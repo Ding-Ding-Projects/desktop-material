@@ -42,6 +42,8 @@ import { Prompts } from './prompts'
 import { Repository } from '../../models/repository'
 import { Notifications } from './notifications'
 import { Accessibility } from './accessibility'
+import { CopilotPreferences } from './copilot'
+import { ICopilotModel } from '../../lib/app-state'
 import {
   ICustomIntegration,
   TargetPathArgument,
@@ -91,6 +93,9 @@ interface IPreferencesProps {
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
   readonly showDiffCheckMarks: boolean
+  readonly selectedCopilotModel: string | null
+  readonly copilotModels: ReadonlyArray<ICopilotModel>
+  readonly copilotAvailable: boolean
 }
 
 interface IPreferencesState {
@@ -151,6 +156,8 @@ interface IPreferencesState {
   readonly selectedGitHookEnvShell: string | undefined
   // Whether the preferences related to Git hooks environment have been changed
   readonly hooksPreferencesDirty: boolean
+
+  readonly selectedCopilotModel: string | null
 }
 
 /**
@@ -213,6 +220,7 @@ export class Preferences extends React.Component<
       cacheGitHookEnv: getCacheHooksEnv(),
       selectedGitHookEnvShell: getGitHookEnvShell(),
       hooksPreferencesDirty: false,
+      selectedCopilotModel: this.props.selectedCopilotModel,
     }
   }
 
@@ -246,6 +254,9 @@ export class Preferences extends React.Component<
       getAvailableEditors(),
       getAvailableShells(),
     ])
+
+    // Kick off Copilot model list fetch (non-blocking)
+    this.props.dispatcher.fetchCopilotModels()
 
     const availableEditors = editors.map(e => e.editor) ?? null
     const availableShells = shells.map(e => e.shell) ?? null
@@ -318,6 +329,10 @@ export class Preferences extends React.Component<
               <Octicon className="icon" symbol={octicons.person} />
               Integrations
             </span>
+            <span id={this.getTabId(PreferencesTab.Copilot)}>
+              <Octicon className="icon" symbol={octicons.copilot} />
+              Copilot
+            </span>
             <span id={this.getTabId(PreferencesTab.Git)}>
               <Octicon className="icon" symbol={octicons.gitCommit} />
               Git
@@ -359,6 +374,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.Integrations:
         suffix = 'integrations'
+        break
+      case PreferencesTab.Copilot:
+        suffix = 'copilot'
         break
       case PreferencesTab.Git:
         suffix = 'git'
@@ -462,6 +480,16 @@ export class Preferences extends React.Component<
         )
         break
       }
+      case PreferencesTab.Copilot:
+        View = (
+          <CopilotPreferences
+            selectedCopilotModel={this.state.selectedCopilotModel}
+            copilotModels={this.props.copilotModels}
+            copilotAvailable={this.props.copilotAvailable}
+            onSelectedCopilotModelChanged={this.onSelectedCopilotModelChanged}
+          />
+        )
+        break
       case PreferencesTab.Git: {
         const { existingLockFilePath } = this.state
         const error =
@@ -745,6 +773,12 @@ export class Preferences extends React.Component<
     this.setState({ showDiffCheckMarks })
   }
 
+  private onSelectedCopilotModelChanged = (
+    selectedCopilotModel: string | null
+  ) => {
+    this.setState({ selectedCopilotModel })
+  }
+
   private onSelectedTabSizeChanged = (tabSize: number) => {
     this.props.dispatcher.setSelectedTabSize(tabSize)
   }
@@ -908,6 +942,8 @@ export class Preferences extends React.Component<
     dispatcher.setUnderlineLinksSetting(this.state.underlineLinks)
 
     dispatcher.setDiffCheckMarksSetting(this.state.showDiffCheckMarks)
+
+    dispatcher.setSelectedCopilotModel(this.state.selectedCopilotModel)
 
     this.props.onDismissed()
   }

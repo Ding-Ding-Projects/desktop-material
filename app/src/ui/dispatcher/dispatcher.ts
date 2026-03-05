@@ -4079,4 +4079,14 @@ export class Dispatcher {
   public toggleChangesFilterVisibility() {
     this.appStore._toggleChangesFilterVisibility()
   }
+
+  /** Set the selected Copilot model for commit message generation. */
+  public setSelectedCopilotModel(model: string | null) {
+    return this.appStore._setSelectedCopilotModel(model)
+  }
+
+  /** Fetch the list of available Copilot models from the SDK. */
+  public fetchCopilotModels(): Promise<void> {
+    return this.appStore._fetchCopilotModels()
+  }
 }

@@ -56,6 +56,12 @@ import { ICustomIntegration } from './custom-integration'
 import { Emoji } from './emoji'
 import { IUpdateState } from '../ui/lib/update-store'
 
+/** Lightweight representation of a Copilot model for the UI. */
+export interface ICopilotModel {
+  readonly id: string
+  readonly name: string
+}
+
 export enum SelectionType {
   Repository,
   CloningRepository,
@@ -388,6 +394,18 @@ export interface IAppState {
 
   /** Whether the changes filter is shown */
   readonly showChangesFilter: boolean
+
+  /**
+   * The selected Copilot model ID for commit message generation.
+   * Null means the SDK default model will be used.
+   */
+  readonly selectedCopilotModel: string | null
+
+  /** The list of available Copilot models fetched from the SDK. */
+  readonly copilotModels: ReadonlyArray<ICopilotModel>
+
+  /** Whether Copilot is available (i.e. a GitHub.com account is signed in). */
+  readonly copilotAvailable: boolean
 }
 
 export enum FoldoutType {

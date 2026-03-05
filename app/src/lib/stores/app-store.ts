@@ -132,6 +132,7 @@ import {
   IConstrainedValue,
   ICompareState,
   CommitOptions,
+  ICopilotModel,
 } from '../app-state'
 import {
   findEditorOrDefault,
@@ -473,6 +474,8 @@ const commitMessageGenerationButtonClickedKey =
   'commit-message-generation-button-clicked'
 
 export const showChangesFilterKey = 'show-changes-filter'
+
+const selectedCopilotModelKey = 'selected-copilot-model'
 export const showChangesFilterDefault = true
 
 export class AppStore extends TypedBaseStore<IAppState> {
@@ -631,6 +634,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private commitMessageGenerationButtonClicked: boolean = false
 
   private showChangesFilter: boolean = false
+
+  private selectedCopilotModel: string | null = null
+  private copilotModels: ReadonlyArray<ICopilotModel> = []
 
   public constructor(
     private readonly gitHubUserStore: GitHubUserStore,
@@ -1134,6 +1140,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       commitMessageGenerationButtonClicked:
         this.commitMessageGenerationButtonClicked,
       showChangesFilter: this.showChangesFilter,
+      selectedCopilotModel: this.selectedCopilotModel,
+      copilotModels: this.copilotModels,
+      copilotAvailable: this.copilotStore.isAvailable,
     }
   }
 
@@ -2393,6 +2402,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       showChangesFilterKey,
       showChangesFilterDefault
     )
+
+    this.selectedCopilotModel =
+      localStorage.getItem(selectedCopilotModelKey) ?? null
 
     this.emitUpdateNow()
 
@@ -5665,7 +5677,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       try {
         const response = enableCopilotSdkCommitMessageGeneration(account)
-          ? await this.copilotStore.generateCommitMessage(diff, repository.path)
+          ? await this.copilotStore.generateCommitMessage(
+              diff,
+              repository.path,
+              this.selectedCopilotModel
+            )
           : await API.fromAccount(account).getDiffChangesCommitMessage(diff)
 
         this._setCommitMessage(repository, {
@@ -8560,6 +8576,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
       setBoolean(showDiffCheckMarksKey, showDiffCheckMarks)
       this.emitUpdate()
     }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public _setSelectedCopilotModel(model: string | null) {
+    if (model !== this.selectedCopilotModel) {
+      this.selectedCopilotModel = model
+      if (model === null) {
+        localStorage.removeItem(selectedCopilotModelKey)
+      } else {
+        localStorage.setItem(selectedCopilotModelKey, model)
+      }
+      this.emitUpdate()
+    }
+  }
+
+  /** This shouldn't be called directly. See 'Dispatcher'. */
+  public async _fetchCopilotModels(): Promise<void> {
+    const models = await this.copilotStore.listModels()
+    this.copilotModels = models.map(m => ({ id: m.id, name: m.name }))
+    this.emitUpdate()
   }
 
   public _updateFileListFilter(
