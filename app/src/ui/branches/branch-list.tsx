@@ -323,10 +323,7 @@ export class BranchList extends React.Component<
     const authorDate = this.state.commitAuthorDates.get(tip.sha)
 
     const absoluteDate = authorDate
-      ? formatDate(authorDate, {
-          dateStyle: 'full',
-          timeStyle: 'short',
-        })
+      ? formatDate(authorDate)
       : null
 
     return (

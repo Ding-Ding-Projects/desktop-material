@@ -1,21 +1,56 @@
-import mem from 'mem'
-import QuickLRU from 'quick-lru'
+import { format } from 'date-fns'
+import {
+  DateFormat,
+  TimeFormat,
+  defaultDateFormat,
+  defaultTimeFormat,
+} from '../models/formatting-preferences'
 
-// Initializing a date formatter is expensive but formatting is relatively cheap
-// so we cache them based on the locale and their options. The maxSize of a 100
-// is only as an escape hatch, we don't expect to ever create more than a
-// handful different formatters.
-const getDateFormatter = mem(Intl.DateTimeFormat, {
-  cache: new QuickLRU({ maxSize: 100 }),
-  cacheKey: (...args) => JSON.stringify(args),
-})
+const dateFormatKey = 'dateFormat'
+const timeFormatKey = 'timeFormat'
+
+function getDateFormatPreference(): DateFormat {
+  return (
+    (localStorage.getItem(dateFormatKey) as DateFormat) ?? defaultDateFormat
+  )
+}
+
+function getTimeFormatPreference(): TimeFormat {
+  return (
+    (localStorage.getItem(timeFormatKey) as TimeFormat) ?? defaultTimeFormat
+  )
+}
+
+interface IFormatDateOptions {
+  /** Whether to include the date portion. Defaults to true. */
+  readonly date?: boolean
+  /** Whether to include the time portion. Defaults to true. */
+  readonly time?: boolean
+}
 
 /**
- * Format a date in en-US locale, customizable with Intl.DateTimeFormatOptions.
+ * Format a date using the user's preferred date and time format patterns.
  *
- * See Intl.DateTimeFormat for more information
+ * By default both date and time are included. Pass `{ date: false }` or
+ * `{ time: false }` to include only one.
  */
-export const formatDate = (date: Date, options: Intl.DateTimeFormatOptions) =>
-  isNaN(date.valueOf())
-    ? 'Invalid date'
-    : getDateFormatter('en-US', options).format(date)
+export function formatDate(
+  value: Date,
+  { date = true, time = true }: IFormatDateOptions = {}
+): string {
+  if (isNaN(value.valueOf())) {
+    return 'Invalid date'
+  }
+
+  const parts: Array<string> = []
+
+  if (date) {
+    parts.push(format(value, getDateFormatPreference()))
+  }
+
+  if (time) {
+    parts.push(format(value, getTimeFormatPreference()))
+  }
+
+  return parts.join(' ')
+}

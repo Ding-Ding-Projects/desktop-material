@@ -78,7 +78,7 @@ export function getReleaseSummary(
   return {
     latestVersion: latestRelease.version,
     datePublished: formatDate(new Date(latestRelease.pub_date), {
-      dateStyle: 'long',
+      time: false,
     }),
     pretext,
     enhancements,
