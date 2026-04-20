@@ -184,7 +184,7 @@ export class CopilotPreferences extends React.Component<ICopilotPreferencesProps
   private renderBYOKProvider = (provider: IBYOKProvider) => {
     const modelCount = provider.models.length
     const modelLabel = modelCount === 1 ? '1 model' : `${modelCount} models`
-    const isLocal = provider.authKind === 'none'
+    const isLocal = isLocalBaseUrl(provider.baseUrl)
     return (
       <li key={provider.id} className="copilot-byok-provider">
         <div className="copilot-byok-provider-info">
@@ -225,5 +225,14 @@ export class CopilotPreferences extends React.Component<ICopilotPreferencesProps
       case 'anthropic':
         return 'Anthropic'
     }
+  }
+}
+
+function isLocalBaseUrl(baseUrl: string): boolean {
+  try {
+    const { hostname } = new URL(baseUrl)
+    return hostname === 'localhost' || hostname === '127.0.0.1'
+  } catch {
+    return false
   }
 }

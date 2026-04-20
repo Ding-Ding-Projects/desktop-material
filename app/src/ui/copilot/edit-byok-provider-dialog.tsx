@@ -270,7 +270,7 @@ export class EditCopilotBYOKProviderDialog extends React.Component<
           >
             <option value="apiKey">API key</option>
             <option value="bearer">Bearer token</option>
-            <option value="none">None (local provider)</option>
+            <option value="none">None</option>
           </Select>
         </Row>
         {this.state.authKind !== 'none' && (
@@ -288,8 +288,7 @@ export class EditCopilotBYOKProviderDialog extends React.Component<
         )}
         {this.state.authKind === 'none' && (
           <p className="copilot-byok-section-hint">
-            No credentials will be sent. Suitable for local providers like
-            Ollama or Foundry Local.
+            No credentials will be sent with requests to this provider.
           </p>
         )}
       </fieldset>
