@@ -124,21 +124,56 @@
     }
   }
 
-  .copilot-byok-model-row {
-    display: grid;
-    grid-template-columns: 2fr 2fr auto auto;
-    align-items: end;
+  .copilot-byok-model-card {
+    border: var(--base-border);
+    border-radius: var(--border-radius);
+    background: var(--box-alt-background-color);
+    padding: var(--spacing);
+    margin-bottom: var(--spacing);
+
+    &:last-of-type {
+      margin-bottom: var(--spacing);
+    }
+  }
+
+  .copilot-byok-model-card-header {
+    display: flex;
+    align-items: center;
     gap: var(--spacing-half);
-    margin-bottom: var(--spacing-half);
+    margin-bottom: var(--spacing);
 
-    .text-box-component,
-    .checkbox-component {
-      margin-bottom: 0;
+    .copilot-byok-model-card-title {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: var(--font-weight-semibold);
     }
+  }
 
-    .checkbox-component {
-      // Align the checkbox baseline with the bottom of the text inputs.
-      padding-bottom: var(--spacing-half);
+  .copilot-byok-field-hint {
+    margin: calc(var(--spacing-half) * -1) 0 var(--spacing-half);
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+
+    code {
+      font-family: var(--font-family-monospace);
+      font-size: 0.95em;
+      padding: 0 0.25em;
+      border-radius: var(--border-radius);
+      background: var(--box-selected-background-color);
     }
+  }
+
+  // The checkbox doesn't have its own bottom margin to overlap the way
+  // text boxes do, so the hint can sit normally below it.
+  .copilot-byok-field-hint-checkbox {
+    margin-top: var(--spacing-half);
+    margin-bottom: 0;
+  }
+
+  .copilot-byok-add-model-button {
+    width: 100%;
   }
 }

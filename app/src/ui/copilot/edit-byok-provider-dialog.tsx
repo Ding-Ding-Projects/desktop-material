@@ -59,7 +59,6 @@ interface IModelRowProps {
   readonly index: number
   readonly model: IBYOKModel
   readonly canRemove: boolean
-  readonly showLabels: boolean
   readonly onIdChanged: (index: number, id: string) => void
   readonly onNameChanged: (index: number, name: string) => void
   readonly onReasoningChanged: (index: number, value: boolean) => void
@@ -68,25 +67,43 @@ interface IModelRowProps {
 
 class ModelRow extends React.Component<IModelRowProps> {
   public render() {
-    const { model, canRemove, showLabels } = this.props
+    const { model, canRemove, index } = this.props
+    const heading = model.name.trim() !== '' ? model.name : `Model ${index + 1}`
+
     return (
-      <div className="copilot-byok-model-row">
+      <div className="copilot-byok-model-card">
+        <div className="copilot-byok-model-card-header">
+          <span className="copilot-byok-model-card-title">{heading}</span>
+          <Button
+            onClick={this.onRemove}
+            ariaLabel={`Remove ${heading}`}
+            disabled={!canRemove}
+          >
+            <Octicon symbol={octicons.trash} />
+          </Button>
+        </div>
         <TextBox
-          label={showLabels ? 'Model ID' : undefined}
-          ariaLabel={showLabels ? undefined : 'Model ID'}
-          value={model.id}
-          onValueChanged={this.onIdChanged}
-          placeholder="gpt-4o"
-        />
-        <TextBox
-          label={showLabels ? 'Display name' : undefined}
-          ariaLabel={showLabels ? undefined : 'Display name'}
+          label={__DARWIN__ ? 'Display Name' : 'Display name'}
           value={model.name}
           onValueChanged={this.onNameChanged}
           placeholder="GPT-4o"
         />
+        <p className="copilot-byok-field-hint">
+          The friendly name shown in the Copilot model picker.
+        </p>
+        <TextBox
+          label={__DARWIN__ ? 'Model Identifier' : 'Model identifier'}
+          value={model.id}
+          onValueChanged={this.onIdChanged}
+          placeholder="gpt-4o"
+          required={true}
+        />
+        <p className="copilot-byok-field-hint">
+          The exact name your provider expects (e.g. <code>gpt-4o</code>,
+          <code>llama3</code>).
+        </p>
         <Checkbox
-          label="Reasoning"
+          label="Supports extended thinking"
           value={
             model.supportsReasoningEffort === true
               ? CheckboxValue.On
@@ -94,13 +111,10 @@ class ModelRow extends React.Component<IModelRowProps> {
           }
           onChange={this.onReasoningChanged}
         />
-        <Button
-          onClick={this.onRemove}
-          ariaLabel="Remove model"
-          disabled={!canRemove}
-        >
-          <Octicon symbol={octicons.trash} />
-        </Button>
+        <p className="copilot-byok-field-hint copilot-byok-field-hint-checkbox">
+          Enable for reasoning models that take longer to think before
+          responding (e.g. o1, o3, GPT-5 reasoning variants).
+        </p>
       </div>
     )
   }
@@ -291,8 +305,9 @@ export class EditCopilotBYOKProviderDialog extends React.Component<
       <fieldset className="copilot-byok-fieldset copilot-byok-models">
         <legend>Models</legend>
         <p className="copilot-byok-section-hint">
-          Add the models you want to make available. The model ID must match
-          what the provider expects.
+          Tell Desktop which models this provider offers. You can add as many as
+          you like — each one will appear in the model picker for Copilot
+          features.
         </p>
         {this.state.models.map((m, i) => (
           <ModelRow
@@ -300,16 +315,18 @@ export class EditCopilotBYOKProviderDialog extends React.Component<
             index={i}
             model={m}
             canRemove={this.state.models.length > 1}
-            showLabels={i === 0}
             onIdChanged={this.onModelIdChanged}
             onNameChanged={this.onModelNameChanged}
             onReasoningChanged={this.onModelReasoningChanged}
             onRemove={this.onRemoveModel}
           />
         ))}
-        <Button onClick={this.onAddModel}>
+        <Button
+          onClick={this.onAddModel}
+          className="copilot-byok-add-model-button"
+        >
           <Octicon symbol={octicons.plus} />
-          {__DARWIN__ ? 'Add Model' : 'Add model'}
+          {__DARWIN__ ? 'Add Another Model' : 'Add another model'}
         </Button>
       </fieldset>
     )
