@@ -75,7 +75,9 @@ export class CopilotPreferences extends React.Component<
     if (!showBYOK) {
       return (
         <DialogContent className="copilot-tab">
-          <div className="copilot-section">{this.renderModelPicker()}</div>
+          <div className="copilot-tab-content">
+            <div className="copilot-section">{this.renderModelPicker()}</div>
+          </div>
         </DialogContent>
       )
     }
@@ -89,7 +91,9 @@ export class CopilotPreferences extends React.Component<
           <span>Models</span>
           <span>{__DARWIN__ ? 'Custom Providers' : 'Custom providers'}</span>
         </TabBar>
-        <div className="copilot-section">{this.renderCurrentTab()}</div>
+        <div className="copilot-tab-content">
+          <div className="copilot-section">{this.renderCurrentTab()}</div>
+        </div>
       </DialogContent>
     )
   }
