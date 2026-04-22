@@ -426,8 +426,13 @@ export class CopilotStore extends BaseStore {
 
     try {
       if (filesTotal <= SinglePromptFileLimit) {
+        const filteredContext: ICopilotConflictContext = {
+          ourLabel: context.ourLabel,
+          theirLabel: context.theirLabel,
+          files: resolvableFiles,
+        }
         const prompt = formatConflictContextForPrompt(
-          context,
+          filteredContext,
           commitContext,
           pullRequest
         )
@@ -538,6 +543,19 @@ export class CopilotStore extends BaseStore {
           )
         }
 
+        // Check that every expected file received a resolution
+        const missingPaths: Array<string> = []
+        for (const path of expectedPaths) {
+          if (!returnedPaths.has(path)) {
+            missingPaths.push(path)
+          }
+        }
+        if (missingPaths.length > 0) {
+          throw new Error(
+            `Copilot did not return resolutions for: ${missingPaths.join(', ')}`
+          )
+        }
+
         return parsed.resolutions
       } catch (e) {
         lastError = e instanceof Error ? e : new Error(String(e))
@@ -636,13 +654,12 @@ export class CopilotStore extends BaseStore {
   }
 }
 
-/** Split an array into chunks of the given size. */
 /**
  * Extract exported and imported symbols from conflict hunk content for
  * dependency detection. Scans all hunk sections (ours, theirs, context)
  * to find import paths, exported names, and referenced identifiers.
  */
-function extractSymbols(file: IFileConflictContext): {
+export function extractSymbols(file: IFileConflictContext): {
   readonly exports: ReadonlySet<string>
   readonly importPaths: ReadonlySet<string>
   readonly references: ReadonlySet<string>
@@ -702,7 +719,7 @@ function extractSymbols(file: IFileConflictContext): {
  * each other or reference each other's exports stay in the same chunk
  * so the model can reason about cross-file coherence.
  */
-function createDependencyAwareChunks(
+export function createDependencyAwareChunks(
   files: ReadonlyArray<IFileConflictContext>,
   targetSize: number
 ): ReadonlyArray<ReadonlyArray<IFileConflictContext>> {
