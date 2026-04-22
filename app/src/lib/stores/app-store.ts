@@ -5731,7 +5731,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /**
    * Extract display labels and git refs for both sides of a conflict.
-   * Returns null for unrecognized conflict types.
    */
   private async getConflictLabelsAndRefs(
     repository: Repository,
@@ -5742,7 +5741,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     readonly theirLabel: string
     readonly ourRef: string | undefined
     readonly theirRef: string | undefined
-  } | null> {
+  }> {
     if (isMergeConflictState(conflictState)) {
       const theirBranch = await this.getMergeConflictsTheirBranch(
         repository,
@@ -5783,7 +5782,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
     }
 
-    return null
+    return assertNever(conflictState, 'Unsupported conflict kind')
   }
 
   /** This shouldn't be called directly. See 'Dispatcher'. */
@@ -5800,6 +5799,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const { conflictState } = state.changesState
 
       if (conflictState === null) {
+        log.warn(
+          'AppStore: resolveConflictsWithCopilot called with no active conflict state'
+        )
         return null
       }
 
@@ -5809,16 +5811,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
         state.multiCommitOperationState
       )
 
-      if (labels === null) {
-        return null
-      }
-
       const conflictedFiles = getConflictedFiles(
         state.changesState.workingDirectory,
         conflictState.manualResolutions
       )
 
       if (conflictedFiles.length === 0) {
+        log.warn(
+          'AppStore: resolveConflictsWithCopilot called with no conflicted files'
+        )
         return null
       }
 
