@@ -62,6 +62,9 @@ export class CopilotConflictsDialog extends React.Component<
   ICopilotConflictsDialogProps,
   ICopilotConflictsDialogState
 > {
+  private readonly dropdownHandlers = new Map<string, () => void>()
+  private readonly overflowHandlers = new Map<string, () => void>()
+
   public constructor(props: ICopilotConflictsDialogProps) {
     super(props)
     this.state = { isContinuing: false }
@@ -82,12 +85,17 @@ export class CopilotConflictsDialog extends React.Component<
 
   private onContinue = async () => {
     this.setState({ isContinuing: true })
-    // Write Copilot resolutions to disk before continuing the operation.
-    // Done here (shared) so it works for merge, rebase, and cherry-pick.
-    await this.props.dispatcher.applyCopilotConflictResolutions(
-      this.props.repository
-    )
-    await this.props.onContinueAfterConflicts()
+    try {
+      // Write Copilot resolutions to disk before continuing the operation.
+      // Done here (shared) so it works for merge, rebase, and cherry-pick.
+      await this.props.dispatcher.applyCopilotConflictResolutions(
+        this.props.repository
+      )
+      await this.props.onContinueAfterConflicts()
+    } catch (e) {
+      this.setState({ isContinuing: false })
+      throw e
+    }
   }
 
   private onAbort = async (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -205,12 +213,22 @@ export class CopilotConflictsDialog extends React.Component<
     showContextualMenu(items)
   }
 
-  private makeResolutionDropdownClickHandler(path: string) {
-    return () => this.onResolutionDropdownClick(path)
+  private getResolutionDropdownClickHandler(path: string): () => void {
+    let handler = this.dropdownHandlers.get(path)
+    if (handler === undefined) {
+      handler = () => this.onResolutionDropdownClick(path)
+      this.dropdownHandlers.set(path, handler)
+    }
+    return handler
   }
 
-  private makeOverflowMenuClickHandler(path: string) {
-    return () => this.onOverflowMenuClick(path)
+  private getOverflowMenuClickHandler(path: string): () => void {
+    let handler = this.overflowHandlers.get(path)
+    if (handler === undefined) {
+      handler = () => this.onOverflowMenuClick(path)
+      this.overflowHandlers.set(path, handler)
+    }
+    return handler
   }
 
   private getResolutionForPath(path: string): IFileResolution | undefined {
@@ -273,8 +291,8 @@ export class CopilotConflictsDialog extends React.Component<
           }`
         : undefined
 
-    const onDropdownClick = this.makeResolutionDropdownClickHandler(file.path)
-    const onOverflowClick = this.makeOverflowMenuClickHandler(file.path)
+    const onDropdownClick = this.getResolutionDropdownClickHandler(file.path)
+    const onOverflowClick = this.getOverflowMenuClickHandler(file.path)
 
     return (
       <li key={file.path} className="copilot-conflicts-file-item">
