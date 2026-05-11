@@ -4239,10 +4239,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // up-to-date information to the user.
       return this.checkoutImplementation(repository, branch, strategy)
         .then(() => this.onSuccessfulCheckout(repository, branch))
-        .catch(e => this.emitError(new CheckoutError(e, repository, branch)))
+        .catch(async e => {
+          const worktreePath = this.parseWorktreeConflictError(e)
+          if (worktreePath !== null) {
+            await this._switchWorktree(repository, worktreePath)
+            return
+          }
+          this.emitError(new CheckoutError(e, repository, branch))
+        })
         .then(() => this.refreshAfterCheckout(repository, branch.name))
         .finally(() => this.updateCheckoutProgress(repository, null))
     })
+  }
+
+  /**
+   * If a checkout error is due to the branch being checked out in another
+   * worktree, extract and return that worktree's path. Returns null if the
+   * error is unrelated.
+   */
+  private parseWorktreeConflictError(e: unknown): string | null {
+    if (!(e instanceof GitError)) {
+      return null
+    }
+
+    const match = e.message.match(/is already used by worktree at '(.+?)'/)
+
+    return match?.[1] ?? null
   }
 
   /** Invoke the best checkout implementation for the selected strategy */
