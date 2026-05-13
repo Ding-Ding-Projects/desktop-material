@@ -114,6 +114,7 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
         onDeleteBranch={this.onDeleteBranch}
         onRenameBranch={this.onRenameBranch}
         onCheckoutInNewWorktree={this.onCheckoutInNewWorktree}
+        onCheckoutPRInNewWorktree={this.onCheckoutPRInNewWorktree}
         underlineLinks={this.props.underlineLinks}
       />
     )
@@ -415,6 +416,16 @@ export class BranchDropdown extends React.Component<IBranchDropdownProps> {
       type: PopupType.AddWorktree,
       repository: this.props.repository,
       initialBranchName: branchName,
+    })
+  }
+
+  private onCheckoutPRInNewWorktree = (pullRequest: PullRequest) => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Branch)
+    this.props.dispatcher.showPopup({
+      type: PopupType.AddWorktree,
+      repository: this.props.repository,
+      initialBranchName: pullRequest.head.ref,
+      initialWorktreeName: `${this.props.repository.name}-${pullRequest.pullRequestNumber}`,
     })
   }
 

@@ -504,6 +504,7 @@ export type PopupDetail =
       type: PopupType.AddWorktree
       repository: Repository
       initialBranchName?: string
+      initialWorktreeName?: string
     }
   | {
       type: PopupType.RenameWorktree

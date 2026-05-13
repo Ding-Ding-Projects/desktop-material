@@ -2699,6 +2699,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
             initialBranchName={popup.initialBranchName}
+            initialWorktreeName={popup.initialWorktreeName}
             allBranches={allBranches}
           />
         )

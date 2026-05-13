@@ -52,6 +52,9 @@ interface IBranchesContainerProps {
   readonly onDeleteBranch: (branchName: string) => void
   readonly onCheckoutInNewWorktree?: (branchName: string) => void
 
+  /** Optional callback to checkout a PR in a new worktree */
+  readonly onCheckoutPRInNewWorktree?: (pullRequest: PullRequest) => void
+
   /** The pull request associated with the current branch. */
   readonly currentPullRequest: PullRequest | null
 
@@ -384,6 +387,7 @@ export class BranchesContainer extends React.Component<
         isLoadingPullRequests={this.props.isLoadingPullRequests}
         onMouseEnterPullRequest={this.onMouseEnterPullRequestListItem}
         onMouseLeavePullRequest={this.onMouseLeavePullRequestListItem}
+        onCheckoutInNewWorktree={this.props.onCheckoutPRInNewWorktree}
       />
     )
   }
