@@ -351,9 +351,15 @@ export class RepositoriesStore extends TypedBaseStore<
   /** Update the repository's path. */
   public async updateRepositoryPath(
     repository: Repository,
-    path: string
+    path: string,
+    gitDir: string | undefined,
+    missing: boolean = false
   ): Promise<Repository> {
-    await this.db.repositories.update(repository.id, { missing: false, path })
+    await this.db.repositories.update(repository.id, {
+      missing,
+      path,
+      gitDir,
+    })
 
     this.emitUpdatedRepositories()
 
@@ -361,11 +367,11 @@ export class RepositoriesStore extends TypedBaseStore<
       path,
       repository.id,
       repository.gitHubRepository,
-      false,
+      missing,
       repository.alias,
       repository.workflowPreferences,
       repository.isTutorialRepository,
-      repository.gitDir
+      gitDir
     )
   }
 

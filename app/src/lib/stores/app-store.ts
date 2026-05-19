@@ -114,6 +114,7 @@ import {
   sendWillQuitEvenIfUpdatingSync,
   quitApp,
   sendCancelQuittingSync,
+  showOpenDialog,
 } from '../../ui/main-process-proxy'
 import {
   API,
@@ -6938,13 +6939,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return result
   }
 
-  public _updateRepositoryPath(
-    repository: Repository,
-    path: string
-  ): Promise<Repository> {
-    return this.repositoriesStore.updateRepositoryPath(repository, path)
-  }
-
   public async _removeAccount(account: Account) {
     log.info(
       `[AppStore] removing account ${account.login} (${account.name}) from store`
@@ -7096,6 +7090,33 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     return addedRepositories
+  }
+
+  public async _relocateRepository(repository: Repository): Promise<void> {
+    const path = await showOpenDialog({ properties: ['openDirectory'] })
+
+    if (path === null) {
+      return
+    }
+
+    const rt = await getRepositoryType(path)
+
+    if (rt.kind === 'regular') {
+      await this.repositoriesStore.updateRepositoryPath(
+        repository,
+        rt.topLevelWorkingDirectory,
+        rt.gitDir
+      )
+    } else if (rt.kind === 'unsafe') {
+      await this.repositoriesStore.updateRepositoryPath(
+        repository,
+        path,
+        undefined,
+        true
+      )
+    } else {
+      this.emitError(new Error(this.getInvalidRepoPathsMessage([path])))
+    }
   }
 
   public async _removeRepository(
