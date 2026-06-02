@@ -51,7 +51,8 @@ const DefaultReasoningEffort: ReasoningEffort = 'low'
  * higher effort than the commit-message default, so this is intentionally
  * `'medium'`.
  */
-const DefaultConflictResolutionReasoningEffort: ReasoningEffort = 'medium'
+export const DefaultConflictResolutionReasoningEffort: ReasoningEffort =
+  'medium'
 
 /**
  * Default per-request timeout (in milliseconds) for Copilot SDK calls such

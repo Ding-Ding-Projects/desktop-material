@@ -11,6 +11,8 @@ import { Octicon } from '../../octicons'
 import * as octicons from '../../octicons/octicons.generated'
 import { MultiCommitOperationKind } from '../../../models/multi-commit-operation'
 import { AriaLiveContainer } from '../../accessibility/aria-live-container'
+import { IConflictResolutionModelDisplay } from '../../../lib/copilot/conflict-resolution-model'
+import { formatReasoningEffort } from '../../copilot/edit-byok-provider-dialog'
 
 interface ICopilotConflictsLoadingDialogProps {
   readonly repository: Repository
@@ -19,6 +21,8 @@ interface ICopilotConflictsLoadingDialogProps {
   readonly conflictedFilePaths: ReadonlyArray<string>
   readonly progress: IConflictResolutionProgress | null
   readonly operationKind: MultiCommitOperationKind
+  /** The model and reasoning effort used to resolve the conflicts. */
+  readonly model: IConflictResolutionModelDisplay
   readonly onAbort: () => void
   readonly onDismissed: () => void
 }
@@ -393,7 +397,11 @@ export class CopilotConflictsLoadingDialog extends React.Component<
           onCloseButtonClick={this.props.onDismissed}
         >
           <span className="copilot-conflicts-loading-model">
-            GPT-5 mini · Medium
+            {this.props.model.reasoningEffort !== undefined
+              ? `${this.props.model.modelName} · ${formatReasoningEffort(
+                  this.props.model.reasoningEffort
+                )}`
+              : this.props.model.modelName}
           </span>
         </DialogHeader>
         <DialogContent>
