@@ -150,13 +150,29 @@ export class CopilotConflictsResolutionSummary extends React.Component<ICopilotC
               key={`${ref.kind}-${i}`}
               className="copilot-conflicts-summary-reference-item"
             >
-              {renderReference(ref)}
+              {renderReference(ref, this.props.gitHubRepository)}
             </li>
           ))}
         </ul>
       </div>
     )
   }
+}
+
+function buildPullRequestUrl(
+  gitHubRepository: GitHubRepository | null,
+  prNumber: number
+): string | null {
+  const base = gitHubRepository?.htmlURL ?? null
+  return base !== null ? `${base}/pull/${prNumber}` : null
+}
+
+function buildCommitUrl(
+  gitHubRepository: GitHubRepository | null,
+  sha: string
+): string | null {
+  const base = gitHubRepository?.htmlURL ?? null
+  return base !== null ? `${base}/commit/${sha}` : null
 }
 
 /**
@@ -176,7 +192,10 @@ function renderTitle(text: string, url: string | null): JSX.Element {
   )
 }
 
-function renderReference(ref: IConflictContextReference): JSX.Element {
+function renderReference(
+  ref: IConflictContextReference,
+  gitHubRepository: GitHubRepository | null
+): JSX.Element {
   switch (ref.kind) {
     case 'pullRequest':
       return (
@@ -185,7 +204,10 @@ function renderReference(ref: IConflictContextReference): JSX.Element {
             symbol={octicons.gitPullRequest}
             className="copilot-conflicts-summary-reference-icon"
           />
-          {renderTitle(ref.pullRequest.title, ref.pullRequest.url)}
+          {renderTitle(
+            ref.pullRequest.title,
+            buildPullRequestUrl(gitHubRepository, ref.pullRequest.number)
+          )}
           <span className="copilot-conflicts-summary-reference-id">
             #{ref.pullRequest.number}
           </span>
@@ -199,7 +221,12 @@ function renderReference(ref: IConflictContextReference): JSX.Element {
             symbol={octicons.gitCommit}
             className="copilot-conflicts-summary-reference-icon"
           />
-          {renderTitle(ref.commit.summary, ref.commit.url)}
+          {renderTitle(
+            ref.commit.summary,
+            ref.commit.isOnRemote
+              ? buildCommitUrl(gitHubRepository, ref.commit.sha)
+              : null
+          )}
           <span className="copilot-conflicts-summary-reference-commit-ref">
             <span className="ref selectable">{ref.commit.shortSha}</span>
             <CopyButton

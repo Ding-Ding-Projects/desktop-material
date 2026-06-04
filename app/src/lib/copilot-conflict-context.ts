@@ -66,8 +66,6 @@ export interface IConflictContextPullRequest {
   readonly title: string
   /** The pull-request body/description (may be empty). */
   readonly body: string
-  /** github.com URL for the pull request, or null when unknown. */
-  readonly url: string | null
 }
 
 /**
@@ -80,8 +78,6 @@ export interface IConflictContextCommit {
   readonly shortSha: string
   /** First line of the commit message. */
   readonly summary: string
-  /** github.com URL for the commit when it's reachable on the remote. */
-  readonly url: string | null
   /** Whether the commit is reachable from a remote (i.e. pushed). */
   readonly isOnRemote: boolean
 }
@@ -96,15 +92,11 @@ export interface IConflictContextCommit {
  */
 export interface IConflictResolutionContext extends ICopilotConflictContext {
   /**
-   * Pull requests on the *ours* (current) side — the current branch's own
-   * pull request plus any referenced by our commits. Plural because a
-   * branch's history can fold in several merged PRs, and ours-vs-theirs is
-   * not a reliable proxy for "which side has PRs" (a rebase, for instance,
-   * makes *ours* the branch you're landing onto).
+   * All pull requests referenced in either side's commit history, resolved
+   * against the local cache and API. The model infers which PRs relate to
+   * which side from the commit context.
    */
-  readonly ourPullRequests: ReadonlyArray<IConflictContextPullRequest>
-  /** Pull requests believed to have contributed the *theirs* changes. */
-  readonly theirPullRequests: ReadonlyArray<IConflictContextPullRequest>
+  readonly pullRequests: ReadonlyArray<IConflictContextPullRequest>
   /** Recent commits on the *ours* (current) side. */
   readonly ourCommits: ReadonlyArray<IConflictContextCommit>
   /** Recent commits on the *theirs* (incoming) side. */
@@ -389,24 +381,13 @@ export function formatConflictContextForPrompt(
   )
   parts.push('')
 
-  if (context.ourPullRequests.length > 0) {
-    parts.push(`## Pull Request Context (ours: ${context.ourLabel})`)
+  if (context.pullRequests.length > 0) {
+    parts.push('## Pull Request Context')
     parts.push(
-      'These pull requests are part of the current side and may explain its intent:'
+      'These pull requests were referenced in the commit history and may explain the intent behind either side:'
     )
     parts.push('')
-    for (const pr of context.ourPullRequests) {
-      appendPullRequest(parts, pr)
-    }
-  }
-
-  if (context.theirPullRequests.length > 0) {
-    parts.push(`## Pull Request Context (theirs: ${context.theirLabel})`)
-    parts.push(
-      'These pull requests contributed changes to the incoming side and may explain the conflict:'
-    )
-    parts.push('')
-    for (const pr of context.theirPullRequests) {
+    for (const pr of context.pullRequests) {
       appendPullRequest(parts, pr)
     }
   }
