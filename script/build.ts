@@ -406,7 +406,6 @@ function copyDependencies() {
         'foundry-local-sdk',
         'prebuilds'
       ),
-      path.join(copilotDestination, 'koffi', 'build', 'koffi'),
       path.join(
         copilotDestination,
         'pvrecorder',
