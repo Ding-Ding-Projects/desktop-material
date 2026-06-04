@@ -70,21 +70,6 @@ export type IConflictContextReference =
     }
 
 /**
- * A source id the model can cite inline in its summary prose (a pull
- * request number or a commit SHA) paired with the github.com URL we
- * gathered for it. The dialog uses these to turn the plain `#1234` /
- * `abc1234` tokens the model writes into real, clickable links — the
- * model itself never emits URLs.
- */
-export interface IConflictSourceLink {
-  readonly kind: 'pullRequest' | 'commit'
-  /** Pull-request number as a string, or the full commit SHA (lowercased). */
-  readonly id: string
-  /** github.com URL for the source. */
-  readonly url: string
-}
-
-/**
  * The full set of context needed to render the resolution-summary card in
  * the conflict resolution dialog. Bundled together so we capture it once
  * while the data is fresh and hand it to the dialog as a single prop.
@@ -102,12 +87,6 @@ export interface ICopilotResolutionSummary {
    * the "Context" list.
    */
   readonly references: ReadonlyArray<IConflictContextReference>
-  /**
-   * Every gathered pull request and commit that has a URL, keyed by the
-   * id the model would cite, so the dialog can linkify the source ids
-   * (`#1234` / `abc1234`) that appear inline in the summary prose.
-   */
-  readonly sourceLinks: ReadonlyArray<IConflictSourceLink>
 }
 
 /** Progress information emitted during conflict resolution. */
@@ -465,7 +444,7 @@ export function selectReferencedContext(
   context: IConflictResolutionContext
 ): ReadonlyArray<IConflictContextReference> {
   const prByNumber = new Map<number, IConflictContextPullRequest>()
-  for (const pr of [...context.ourPullRequests, ...context.theirPullRequests]) {
+  for (const pr of context.pullRequests) {
     prByNumber.set(pr.number, pr)
   }
 
@@ -546,8 +525,7 @@ function isMeaningfulCommit(commit: IConflictContextCommit): boolean {
 export function fallbackReferencedContext(
   context: IConflictResolutionContext
 ): ReadonlyArray<IConflictContextReference> {
-  const pr =
-    context.theirPullRequests.at(0) ?? context.ourPullRequests.at(0) ?? null
+  const pr = context.pullRequests.at(0) ?? null
   if (pr !== null) {
     return [{ kind: 'pullRequest', pullRequest: pr }]
   }
@@ -563,42 +541,6 @@ export function fallbackReferencedContext(
   }
 
   return []
-}
-
-/**
- * Flatten the gathered context into the id→URL list the dialog needs to
- * linkify inline source citations in the summary prose. Includes every
- * pull request and commit we have a URL for (the incoming/theirs side
- * first), de-duplicated on id. Entries without a URL are skipped — there
- * is nothing to link to.
- */
-export function collectSourceLinks(
-  context: IConflictResolutionContext
-): ReadonlyArray<IConflictSourceLink> {
-  const links: Array<IConflictSourceLink> = []
-  const seen = new Set<string>()
-
-  for (const pr of [...context.theirPullRequests, ...context.ourPullRequests]) {
-    const id = String(pr.number)
-    const key = `pr:${id}`
-    if (pr.url === null || seen.has(key)) {
-      continue
-    }
-    seen.add(key)
-    links.push({ kind: 'pullRequest', id, url: pr.url })
-  }
-
-  for (const commit of [...context.theirCommits, ...context.ourCommits]) {
-    const id = commit.sha.toLowerCase()
-    const key = `commit:${id}`
-    if (commit.url === null || seen.has(key)) {
-      continue
-    }
-    seen.add(key)
-    links.push({ kind: 'commit', id, url: commit.url })
-  }
-
-  return links
 }
 
 /**

@@ -390,7 +390,6 @@ import { BypassReasonType } from '../../ui/secret-scanning/bypass-push-protectio
 import {
   selectReferencedContext,
   fallbackReferencedContext,
-  collectSourceLinks,
   IConflictResolutionProgress,
   ICopilotResolutionSummary,
   IFileResolution,
@@ -6136,7 +6135,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
             ourLabel: labels.ourLabel,
             theirLabel: labels.theirLabel,
             references,
-            sourceLinks: collectSourceLinks(context),
           },
         }
       } finally {

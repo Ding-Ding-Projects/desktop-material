@@ -7,7 +7,6 @@ import {
   createDependencyAwareChunks,
   selectReferencedContext,
   fallbackReferencedContext,
-  collectSourceLinks,
 } from '../../src/lib/copilot-conflict-resolution'
 import {
   IFileConflictContext,
@@ -725,8 +724,7 @@ function makeResolutionContext(
     ourLabel: 'main',
     theirLabel: 'feature',
     files: [],
-    ourPullRequests: [],
-    theirPullRequests: [],
+    pullRequests: [],
     ourCommits: [],
     theirCommits: [],
     ...overrides,
@@ -742,7 +740,6 @@ function ctxCommit(
     sha: sha.toLowerCase().padEnd(40, '0'),
     shortSha: sha.slice(0, 7),
     summary,
-    url: isOnRemote ? `https://github.com/o/r/commit/${sha}` : null,
     isOnRemote,
   }
 }
@@ -752,14 +749,13 @@ function ctxPr(prNumber: number, title: string): IConflictContextPullRequest {
     number: prNumber,
     title,
     body: '',
-    url: `https://github.com/o/r/pull/${prNumber}`,
   }
 }
 
 describe('selectReferencedContext', () => {
   it('resolves pull request references against the gathered context', () => {
     const context = makeResolutionContext({
-      theirPullRequests: [ctxPr(20, 'Add greetings')],
+      pullRequests: [ctxPr(20, 'Add greetings')],
     })
 
     const selected = selectReferencedContext(
@@ -815,7 +811,7 @@ describe('selectReferencedContext', () => {
 
   it('promotes a merge commit to its pull request, de-duplicating direct citations', () => {
     const context = makeResolutionContext({
-      theirPullRequests: [ctxPr(20, 'Add greetings')],
+      pullRequests: [ctxPr(20, 'Add greetings')],
       theirCommits: [ctxCommit('mergesha123', 'Add greetings (#20)')],
     })
 
@@ -860,7 +856,7 @@ describe('selectReferencedContext', () => {
 describe('fallbackReferencedContext', () => {
   it('prefers the incoming pull request over commits', () => {
     const context = makeResolutionContext({
-      theirPullRequests: [ctxPr(20, 'Add greetings')],
+      pullRequests: [ctxPr(20, 'Add greetings')],
       theirCommits: [ctxCommit('abc1234', 'Add greetings')],
     })
 
@@ -890,23 +886,5 @@ describe('fallbackReferencedContext', () => {
 
   it('returns empty when there are no commits or pull requests', () => {
     assert.equal(fallbackReferencedContext(makeResolutionContext()).length, 0)
-  })
-})
-
-describe('collectSourceLinks', () => {
-  it('flattens PRs and commits with URLs, theirs first, skipping urlless and duplicates', () => {
-    const context = makeResolutionContext({
-      theirPullRequests: [ctxPr(20, 'Add greetings')],
-      ourPullRequests: [ctxPr(20, 'Add greetings'), ctxPr(5, 'Other')],
-      theirCommits: [ctxCommit('abc1234', 'On remote')],
-      ourCommits: [ctxCommit('def5678', 'Local only', false)],
-    })
-
-    const links = collectSourceLinks(context)
-
-    assert.deepEqual(
-      links.map(l => `${l.kind}:${l.id}`),
-      ['pullRequest:20', 'pullRequest:5', 'commit:abc1234'.padEnd(47, '0')]
-    )
   })
 })
