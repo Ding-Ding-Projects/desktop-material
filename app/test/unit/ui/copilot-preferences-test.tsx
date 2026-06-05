@@ -167,6 +167,15 @@ function getListItemHeight(element: HTMLElement): string {
   return row.style.height
 }
 
+function getSelectedModelBilling(container: HTMLElement): HTMLElement {
+  const billing = container.querySelector(
+    '.copilot-model-picker-selected-billing'
+  )
+  assert.ok(billing instanceof HTMLElement)
+
+  return billing
+}
+
 describe('CopilotPreferences', () => {
   it('shows sign-in message when copilot is not available', () => {
     render(
@@ -249,6 +258,35 @@ describe('CopilotPreferences', () => {
     assert.ok(
       !getModelPickerButtonText(view.container).includes('GitHub Copilot')
     )
+    assert.strictEqual(
+      view.container.querySelector('.copilot-model-picker-selected-billing'),
+      null
+    )
+  })
+
+  it('shows usage billing under the selected model picker', () => {
+    const view = render(
+      <CopilotPreferences
+        {...defaults()}
+        selectedCopilotModels={{
+          'commit-message-generation': encodeModelKey({
+            kind: 'copilot',
+            modelId: 'usage-billed-model',
+          }),
+        }}
+      />
+    )
+
+    const billing = getSelectedModelBilling(view.container)
+    const billingText = billing.textContent ?? ''
+
+    assert.ok(billingText.includes('AI credits per 1M tokens'))
+    assert.ok(billingText.includes('Input'))
+    assert.ok(billingText.includes('500'))
+    assert.ok(billingText.includes('Cached input'))
+    assert.ok(billingText.includes('50'))
+    assert.ok(billingText.includes('Output'))
+    assert.ok(billingText.includes('2500'))
   })
 
   it('treats legacy bare-string selections as Copilot models', () => {

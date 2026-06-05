@@ -219,15 +219,22 @@ export class CopilotModelPicker extends React.Component<
     )
   }
 
-  private renderUsageBilling = (billing: ModelBilling | undefined) => {
+  private renderUsageBilling = (
+    billing: ModelBilling | undefined,
+    className?: string
+  ) => {
     if (billing?.tokenPrices === undefined) {
       return null
     }
 
     const tokenPrices: ModelBillingTokenPricesLongContext = billing.tokenPrices
+    const billingClassName =
+      className === undefined
+        ? 'copilot-model-billing'
+        : `copilot-model-billing ${className}`
 
     return (
-      <div className="copilot-model-billing">
+      <div className={billingClassName}>
         <div className="copilot-model-billing-heading">
           AI credits per{' '}
           {formatTokenBatchSize(billing.tokenPrices.batchSize ?? 0)} tokens
@@ -305,37 +312,43 @@ export class CopilotModelPicker extends React.Component<
     const buttonItem = this.getItemByValue(groups, this.props.value)
 
     return (
-      <PopoverDropdown
-        className="copilot-model-picker"
-        contentTitle="Choose a model"
-        buttonContent={
-          <div className="copilot-model-picker-button-content">
-            <span className="name">
-              {buttonItem ? getCopilotModelLabel(buttonItem) : ''}
-            </span>
-          </div>
-        }
-        label={this.props.label}
-        ref={this.popoverRef}
-      >
-        <SectionFilterList<ICopilotModelListItem>
-          className="copilot-model-list"
-          rowHeight={this.getRowHeight}
-          groups={groups}
-          selectedItem={selectedItem}
-          renderItem={this.renderModel}
-          renderGroupHeader={this.renderGroupHeader}
-          filterText={this.state.filterText}
-          onFilterTextChanged={this.onFilterTextChanged}
-          invalidationProps={groups}
-          onItemClick={this.onItemClick}
-          onSelectionChanged={this.onSelectionChanged}
-          getItemAriaLabel={this.getItemAriaLabel}
-          getGroupAriaLabel={this.getGroupAriaLabel}
-          placeholderText="Filter models"
-          renderNoItems={this.renderNoItems}
-        />
-      </PopoverDropdown>
+      <div className="copilot-model-picker-container">
+        <PopoverDropdown
+          className="copilot-model-picker"
+          contentTitle="Choose a model"
+          buttonContent={
+            <div className="copilot-model-picker-button-content">
+              <span className="name">
+                {buttonItem ? getCopilotModelLabel(buttonItem) : ''}
+              </span>
+            </div>
+          }
+          label={this.props.label}
+          ref={this.popoverRef}
+        >
+          <SectionFilterList<ICopilotModelListItem>
+            className="copilot-model-list"
+            rowHeight={this.getRowHeight}
+            groups={groups}
+            selectedItem={selectedItem}
+            renderItem={this.renderModel}
+            renderGroupHeader={this.renderGroupHeader}
+            filterText={this.state.filterText}
+            onFilterTextChanged={this.onFilterTextChanged}
+            invalidationProps={groups}
+            onItemClick={this.onItemClick}
+            onSelectionChanged={this.onSelectionChanged}
+            getItemAriaLabel={this.getItemAriaLabel}
+            getGroupAriaLabel={this.getGroupAriaLabel}
+            placeholderText="Filter models"
+            renderNoItems={this.renderNoItems}
+          />
+        </PopoverDropdown>
+        {this.renderUsageBilling(
+          buttonItem?.billing,
+          'copilot-model-picker-selected-billing'
+        )}
+      </div>
     )
   }
 }
