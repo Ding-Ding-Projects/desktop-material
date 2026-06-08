@@ -141,7 +141,6 @@ export class CopilotModelSelectionInfo extends React.Component<
   public render() {
     return (
       <div className="copilot-model-picker-selection-info">
-        <span>{this.props.selectionInfo.summary}</span>
         <Button
           ariaControls={this.costDetailsContentId}
           ariaExpanded={this.state.showCostDetails}
@@ -155,6 +154,7 @@ export class CopilotModelSelectionInfo extends React.Component<
         >
           <Octicon symbol={octicons.info} />
         </Button>
+        <span>{this.props.selectionInfo.summary}</span>
         {this.state.showCostDetails ? this.renderCostDetailsPopover() : null}
       </div>
     )
