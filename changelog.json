@@ -1,5 +1,15 @@
 {
   "releases": {
+    "3.5.13-beta1": [
+      "[New] Resolve merge conflicts with Copilot - #22265",
+      "[New] Add Git worktree support for managing multiple working directories of the same repository - #22102",
+      "[Added] Show a resolution summary card in the Copilot conflict resolution dialog with context about what changed and how conflicts were decided - #22252",
+      "[Fixed] Restore screen reader accessibility for lists (branches, changed files) broken by react-virtualized upgrade - #22228",
+      "[Fixed] GitHub Desktop no longer prompts to initialize Git LFS for repositories that use non-LFS Git filters - #22180. Thanks @RonanLB!",
+      "[Fixed] Remove misleading pointer cursor from the example link preview in Accessibility preferences - #22244",
+      "[Improved] Add option to skip the delete worktree confirmation dialog, switch back to the original worktree when deletion is cancelled, and improve screen reader announcements in the delete worktree dialog - #22249",
+      "[Improved] Show live reasoning snippets and themed progress messages in the Copilot conflict resolution loading dialog - #22080"
+    ],
     "3.5.12": [
       "[Fixed] Items in lists such as branches and changed files are properly announced by screen readers on Windows - #22219"
     ],
