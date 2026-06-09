@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 import {
   render,
@@ -157,11 +157,25 @@ class TestListResizeObserver implements ResizeObserver {
   public disconnect() {}
 }
 
-Object.assign(globalThis, { ResizeObserver: TestListResizeObserver })
+const originalGlobalResizeObserver = globalThis.ResizeObserver
+const originalWindowResizeObserver =
+  typeof window !== 'undefined' ? window.ResizeObserver : undefined
 
-if (typeof window !== 'undefined') {
-  Object.assign(window, { ResizeObserver: TestListResizeObserver })
-}
+beforeEach(() => {
+  Object.assign(globalThis, { ResizeObserver: TestListResizeObserver })
+
+  if (typeof window !== 'undefined') {
+    Object.assign(window, { ResizeObserver: TestListResizeObserver })
+  }
+})
+
+afterEach(() => {
+  Object.assign(globalThis, { ResizeObserver: originalGlobalResizeObserver })
+
+  if (typeof window !== 'undefined') {
+    Object.assign(window, { ResizeObserver: originalWindowResizeObserver })
+  }
+})
 
 function defaults() {
   return {
