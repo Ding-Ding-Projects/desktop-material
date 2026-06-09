@@ -12,6 +12,7 @@ interface IPopoverDropdownProps {
   readonly className?: string
   readonly contentTitle: string
   readonly buttonContent: JSX.Element | string
+  readonly buttonAriaLabel?: string
   readonly decoration?: PopoverDecoration
   readonly label?: string
   /**
@@ -139,6 +140,7 @@ export class PopoverDropdown extends React.Component<
           ariaExpanded={this.state.showPopover}
           ariaHaspopup="dialog"
           ariaControls={ariaControls}
+          ariaLabel={this.props.buttonAriaLabel}
         >
           <div className="button-content">{buttonContent}</div>
           <Octicon symbol={octicons.triangleDown} />

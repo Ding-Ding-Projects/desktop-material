@@ -241,7 +241,14 @@ describe('CopilotPreferences', () => {
   it('renders a Copilot group with the available models', async () => {
     const view = render(<CopilotPreferences {...defaults()} />)
     const modelPickerButton = getModelPickerButton(view.container)
+    const pickerLabel = __DARWIN__
+      ? 'Commit Message Generation'
+      : 'Commit message generation'
 
+    assert.strictEqual(
+      modelPickerButton.getAttribute('aria-label'),
+      `${pickerLabel}: GPT-5 mini`
+    )
     assert.strictEqual(modelPickerButton.getAttribute('aria-expanded'), 'false')
     assert.strictEqual(
       modelPickerButton.getAttribute('aria-haspopup'),

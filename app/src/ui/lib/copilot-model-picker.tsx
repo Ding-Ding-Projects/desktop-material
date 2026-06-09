@@ -467,12 +467,14 @@ export class CopilotModelPicker extends React.Component<
       this.props.value
     )
     const buttonItem = this.getItemByValue(groups, this.props.value)
+    const buttonAriaLabel = `${this.props.label}: ${buttonItem?.name ?? 'None'}`
 
     return (
       <PopoverDropdown
         className="copilot-model-picker"
         contentTitle="Choose a model"
         buttonContent={this.renderButtonContent(buttonItem)}
+        buttonAriaLabel={buttonAriaLabel}
         decoration={PopoverDecoration.Bordered}
         label={this.props.label}
         ref={this.popoverRef}
