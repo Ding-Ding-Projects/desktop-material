@@ -6,6 +6,7 @@ import {
   type IBYOKProvider,
 } from '../../lib/copilot/byok'
 import { enableCopilotConflictResolution } from '../../lib/feature-flag'
+import { isGHES } from '../../lib/endpoint-capabilities'
 import {
   DefaultCopilotModel,
   type CopilotFeature,
@@ -138,7 +139,11 @@ export class CopilotPreferences extends React.Component<
   }
 
   private getCopilotAccessState(): CopilotAccessState {
-    if (this.props.accounts.length === 0) {
+    const accounts = this.props.accounts.filter(
+      account => !isGHES(account.endpoint)
+    )
+
+    if (accounts.length === 0) {
       return 'signed-out'
     }
 
@@ -146,9 +151,10 @@ export class CopilotPreferences extends React.Component<
     let hasNoAccessAccount = false
     let hasDesktopDisabledAccount = false
 
-    for (const account of this.props.accounts) {
+    for (const account of accounts) {
       if (
         account.isCopilotDesktopEnabled === true &&
+        account.copilotLicenseType !== undefined &&
         account.copilotLicenseType !== CopilotLicenseTypeNoAccess
       ) {
         return 'enabled'
@@ -185,7 +191,7 @@ export class CopilotPreferences extends React.Component<
     switch (accessState) {
       case 'signed-out':
         return this.renderAccessCallToAction(
-          'Sign in to an account to configure Copilot settings.',
+          'Sign in to an account with a Copilot license to configure Copilot settings.',
           'Sign In',
           this.props.onSignIn,
           DialogPreferredFocusClassName

@@ -328,6 +328,30 @@ describe('CopilotPreferences', () => {
     assert.strictEqual(screen.queryByRole('combobox'), null)
   })
 
+  it('shows sign-in call to action when only GHES accounts are available', () => {
+    render(
+      <CopilotPreferences
+        {...defaults()}
+        copilotModels={null}
+        accounts={[
+          makeAccount({
+            endpoint: 'https://enterprise.example.com/api/v3',
+            id: 2,
+            login: 'octo',
+            isCopilotDesktopEnabled: undefined,
+            copilotLicenseType: undefined,
+          }),
+        ]}
+      />
+    )
+
+    assert.ok(
+      screen.getByText('Sign in to an account to configure Copilot settings.')
+    )
+    assert.strictEqual(screen.queryByText('Checking Copilot access…'), null)
+    assert.strictEqual(screen.queryByRole('combobox'), null)
+  })
+
   it('shows checking message when Copilot account metadata has not loaded', () => {
     render(
       <CopilotPreferences
@@ -335,6 +359,23 @@ describe('CopilotPreferences', () => {
         accounts={[
           makeAccount({
             isCopilotDesktopEnabled: undefined,
+            copilotLicenseType: undefined,
+          }),
+        ]}
+      />
+    )
+
+    assert.ok(screen.getByText('Checking Copilot access…'))
+    assert.strictEqual(screen.queryByRole('combobox'), null)
+  })
+
+  it('shows checking message when Copilot license metadata has not loaded', () => {
+    render(
+      <CopilotPreferences
+        {...defaults()}
+        accounts={[
+          makeAccount({
+            isCopilotDesktopEnabled: true,
             copilotLicenseType: undefined,
           }),
         ]}
@@ -409,14 +450,14 @@ describe('CopilotPreferences', () => {
     )
   })
 
-  it('uses Copilot when any account has Copilot enabled', () => {
+  it('uses Copilot when a GHE account has Copilot enabled', () => {
     render(
       <CopilotPreferences
         {...defaults()}
         accounts={[
           makeAccount({ copilotLicenseType: 'NO_ACCESS' }),
           makeAccount({
-            endpoint: 'https://enterprise.example.com/api/v3',
+            endpoint: 'https://api.octocorp.ghe.com',
             id: 2,
             login: 'octo',
             isCopilotDesktopEnabled: true,
@@ -430,7 +471,7 @@ describe('CopilotPreferences', () => {
     assert.strictEqual(screen.queryByText('View Copilot plans'), null)
   })
 
-  it('keeps checking while another account may still have Copilot access', () => {
+  it('ignores GHES accounts while checking Copilot access', () => {
     render(
       <CopilotPreferences
         {...defaults()}
@@ -447,9 +488,13 @@ describe('CopilotPreferences', () => {
       />
     )
 
-    assert.ok(screen.getByText('Checking Copilot access…'))
+    assert.ok(
+      screen.getByText(
+        'Copilot features in GitHub Desktop require a GitHub Copilot license.'
+      )
+    )
     assert.strictEqual(screen.queryByRole('combobox'), null)
-    assert.strictEqual(screen.queryByText('View Copilot plans'), null)
+    assert.strictEqual(screen.queryByText('Checking Copilot access…'), null)
   })
 
   it('shows loading message when models not yet fetched', () => {
