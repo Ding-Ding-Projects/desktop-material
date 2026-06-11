@@ -1056,8 +1056,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    this.copilotModels =
-      this.copilotStore.getCachedModelList(account) ?? this.copilotModels
+    this.copilotModels = this.copilotStore.getCachedModelList(account)
   }
 
   /** Load the emoji from disk. */
@@ -9979,6 +9978,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (models !== null) {
       this.copilotModels = [...models]
       this.scrubMissingCopilotModelSelections()
+    } else {
+      this.syncCopilotModelsFromCache()
     }
     this.emitUpdate()
   }
