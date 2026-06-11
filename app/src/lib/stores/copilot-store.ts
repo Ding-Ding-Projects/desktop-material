@@ -46,6 +46,7 @@ import type {
   Model,
   ModelBillingTokenPrices,
 } from '@github/copilot-sdk/dist/generated/rpc'
+import { isGHE } from '../endpoint-capabilities'
 
 /** The default model ID used for Copilot commit message generation. */
 export const DefaultCopilotModel = 'gpt-5-mini'
@@ -135,7 +136,11 @@ export function getCopilotModelCacheKey(account: Account): string {
 
 /** Returns the Copilot CLI host override for the account, if one is needed. */
 export function getCopilotGHHost(account: Account): string | undefined {
-  return isDotComAccount(account) ? undefined : new URL(account.endpoint).host
+  const host = isDotComAccount(account)
+    ? undefined
+    : new URL(account.endpoint).host
+
+  return isGHE(account.endpoint) && host ? host.replace(/^api\./, '') : host
 }
 
 /**
