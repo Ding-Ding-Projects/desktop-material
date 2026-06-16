@@ -670,14 +670,6 @@ export class CopilotStore extends BaseStore {
   >()
   private readonly signedInAccountKeys = new Set<string>()
 
-  /**
-   * Tracks the active commit message generation session and client so that
-   * we can abort an in-flight request when the user cancels.
-   */
-  private generationActiveSession: CopilotSession | null = null
-  private generationActiveClient: CopilotClient | null = null
-  private generationCancelled = false
-
   public constructor(private readonly accountsStore: AccountsStore) {
     super()
     this.accountsStore.onDidUpdate(this.onAccountsUpdated)
@@ -779,8 +771,62 @@ export class CopilotStore extends BaseStore {
   private async stopClient(client: CopilotClient): Promise<void> {
     try {
       await client.stop()
-    } catch (e) {
-      log.error('CopilotStore: Error stopping client', e)
+    } catch (error) {
+      log.error('CopilotStore: Error stopping client', error)
+    }
+  }
+
+  private async createCancellableSession(
+    client: CopilotClient,
+    config: SessionConfig,
+    signal?: AbortSignal
+  ): Promise<CopilotSession> {
+    if (signal?.aborted) {
+      throw new CommitMessageGenerationCancelledError()
+    }
+
+    const sessionCreation = client.createSession(config)
+
+    if (signal === undefined) {
+      return sessionCreation
+    }
+
+    let sessionWasReturned = false
+    void sessionCreation
+      .then(async createdSession => {
+        if (signal.aborted && !sessionWasReturned) {
+          await createdSession.disconnect().catch(() => {})
+        }
+      })
+      .catch(() => {})
+
+    let rejectAbort: ((error: Error) => void) | null = null
+    const abortPromise = new Promise<never>((_, reject) => {
+      rejectAbort = reject
+    })
+
+    const onAbort = () => {
+      rejectAbort?.(new CommitMessageGenerationCancelledError())
+    }
+
+    signal.addEventListener('abort', onAbort)
+
+    try {
+      if (signal.aborted) {
+        onAbort()
+      }
+
+      const session = await Promise.race([sessionCreation, abortPromise])
+      sessionWasReturned = true
+      return session
+    } catch (error) {
+      if (signal.aborted) {
+        throw new CommitMessageGenerationCancelledError()
+      }
+
+      throw error
+    } finally {
+      signal.removeEventListener('abort', onAbort)
     }
   }
 
@@ -804,9 +850,19 @@ export class CopilotStore extends BaseStore {
   private async sendAndWait(
     session: CopilotSession,
     options: MessageOptions,
-    timeoutMs: number
+    timeoutMs: number,
+    signal?: AbortSignal
   ): Promise<AssistantMessageEvent | undefined> {
     let paymentRequiredError: Error | undefined
+    let rejectAbort: ((error: Error) => void) | null = null
+
+    const abortPromise = new Promise<never>((_, reject) => {
+      rejectAbort = reject
+    })
+
+    const onAbort = () => {
+      rejectAbort?.(new CommitMessageGenerationCancelledError())
+    }
 
     const unsubscribe = session.on('session.error', e => {
       const captured = getCopilotPaymentRequiredErrorFromSessionError(e.data)
@@ -817,11 +873,34 @@ export class CopilotStore extends BaseStore {
       }
     })
 
+    signal?.addEventListener('abort', onAbort)
+
     try {
-      return await session.sendAndWait(options, timeoutMs)
+      if (signal?.aborted) {
+        onAbort()
+        throw new CommitMessageGenerationCancelledError()
+      }
+
+      const response = session.sendAndWait(options, timeoutMs).catch(e => {
+        if (signal?.aborted) {
+          throw new CommitMessageGenerationCancelledError()
+        }
+
+        throw paymentRequiredError ?? e
+      })
+      void response.catch(() => {})
+
+      return signal === undefined
+        ? await response
+        : await Promise.race([response, abortPromise])
     } catch (e) {
-      throw paymentRequiredError ?? e
+      if (signal?.aborted) {
+        throw new CommitMessageGenerationCancelledError()
+      }
+
+      throw e
     } finally {
+      signal?.removeEventListener('abort', onAbort)
       unsubscribe()
     }
   }
@@ -851,9 +930,16 @@ export class CopilotStore extends BaseStore {
     diff: string,
     repositoryPath: string,
     request?: CopilotModelRequest | null,
-    commitMessageRules?: ReadonlyArray<IRepoRulesMetadataRule>
+    commitMessageRules?: ReadonlyArray<IRepoRulesMetadataRule>,
+    signal?: AbortSignal
   ): Promise<ICopilotCommitMessage> {
-    this.generationCancelled = false
+    const throwIfCancelled = () => {
+      if (signal?.aborted) {
+        throw new CommitMessageGenerationCancelledError()
+      }
+    }
+
+    throwIfCancelled()
 
     let modelId: string
     let reasoningEffort: ReasoningEffort | undefined
@@ -871,6 +957,7 @@ export class CopilotStore extends BaseStore {
       const requestedModelId =
         request?.kind === 'copilot' ? request.modelId : null
       const cachedModels = await this.getCachedModels(account)
+      throwIfCancelled()
       const resolvedModel = requestedModelId
         ? cachedModels.find(m => m.id === requestedModelId) ?? null
         : getPreferredDefaultModel(cachedModels)
@@ -883,36 +970,42 @@ export class CopilotStore extends BaseStore {
         : DefaultReasoningEffort
     }
 
-    const client = await this.createClient(account, repositoryPath)
-    this.generationActiveClient = client
+    let client: CopilotClient | null = null
     let session: Awaited<ReturnType<CopilotClient['createSession']>> | null =
       null
 
     try {
+      client = await this.createClient(account, repositoryPath)
+      throwIfCancelled()
+
       const tags = generateCommitMessagePromptTags()
       const cleanedRuleDescriptions =
         getCleanedEnforcedRuleDescriptions(commitMessageRules)
       const hasRules = cleanedRuleDescriptions.length > 0
 
       // Create a session for commit message generation
-      session = await client.createSession({
-        model: modelId,
-        reasoningEffort,
-        provider,
-        systemMessage: {
-          // It's important to 'append' the system prompt so that it doesn't
-          // override any instructions, like copilot-instructions.md (in which
-          // we rely for custom commit message generation instructions).
-          mode: 'append',
-          content: buildCommitMessageSystemPrompt(hasRules, tags),
+      session = await this.createCancellableSession(
+        client,
+        {
+          model: modelId,
+          reasoningEffort,
+          provider,
+          systemMessage: {
+            // It's important to 'append' the system prompt so that it doesn't
+            // override any instructions, like copilot-instructions.md (in which
+            // we rely for custom commit message generation instructions).
+            mode: 'append',
+            content: buildCommitMessageSystemPrompt(hasRules, tags),
+          },
+          availableTools: [],
+          onPermissionRequest: async () => ({
+            kind: 'reject',
+          }),
         },
-        availableTools: [],
-        onPermissionRequest: async () => ({
-          kind: 'reject',
-        }),
-      })
+        signal
+      )
 
-      this.generationActiveSession = session
+      throwIfCancelled()
 
       // Send the diff (and any repo-rule constraints) and wait for response.
       // Both are wrapped in per-request tagged blocks so the model can
@@ -927,8 +1020,11 @@ export class CopilotStore extends BaseStore {
       const response = await this.sendAndWait(
         session,
         { prompt: userPrompt },
-        timeoutMs
+        timeoutMs,
+        signal
       )
+
+      throwIfCancelled()
 
       if (!response || !response.data.content) {
         throw new Error('No response from Copilot')
@@ -936,52 +1032,23 @@ export class CopilotStore extends BaseStore {
 
       return parseCopilotCommitMessage(response.data.content)
     } catch (e) {
-      if (this.generationCancelled) {
+      if (e instanceof CommitMessageGenerationCancelledError) {
+        throw e
+      }
+
+      if (signal?.aborted) {
         throw new CommitMessageGenerationCancelledError()
       }
 
       log.warn('CopilotStore: Failed to generate commit message', e)
       throw e
     } finally {
-      this.generationActiveSession = null
-      this.generationActiveClient = null
-
       // Clean up the session
       await session?.disconnect().catch(() => {})
 
       // Stop the client after use
-      await this.stopClient(client)
-    }
-  }
-
-  /**
-   * Cancels an in-flight commit message generation, if one is active.
-   *
-   * This aborts the Copilot session and cleans up the client. The
-   * `generateCommitMessage` call will reject with a
-   * `CommitMessageGenerationCancelledError`.
-   */
-  public async cancelCommitMessageGeneration(): Promise<void> {
-    const client = this.generationActiveClient
-    const session = this.generationActiveSession
-
-    if (client === null && session === null) {
-      return
-    }
-
-    this.generationCancelled = true
-
-    if (session !== null) {
-      try {
-        await session.abort()
-      } catch (e) {
-        log.warn('CopilotStore: Error aborting session', e)
-      }
-    } else if (client !== null) {
-      try {
-        await client.stop()
-      } catch (e) {
-        log.warn('CopilotStore: Error stopping client', e)
+      if (client !== null) {
+        await this.stopClient(client)
       }
     }
   }

@@ -5105,7 +5105,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private async withIsGeneratingCommitMessage(
     repository: Repository,
-    fn: () => Promise<boolean>
+    fn: (signal: AbortSignal) => Promise<boolean>
   ): Promise<boolean> {
     const state = this.repositoryStateCache.get(repository)
     // ensure the user doesn't try and commit again
@@ -5113,18 +5113,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return false
     }
 
+    const abortController = new AbortController()
+
     this.repositoryStateCache.update(repository, () => ({
       isGeneratingCommitMessage: true,
+      commitMessageGenerationAbortController: abortController,
     }))
     this.emitUpdate()
 
     try {
-      return await fn()
+      return await fn(abortController.signal)
     } finally {
-      this.repositoryStateCache.update(repository, () => ({
-        isGeneratingCommitMessage: false,
-      }))
-      this.emitUpdate()
+      const currentState = this.repositoryStateCache.get(repository)
+      if (
+        currentState.commitMessageGenerationAbortController === abortController
+      ) {
+        this.repositoryStateCache.update(repository, () => ({
+          isGeneratingCommitMessage: false,
+          commitMessageGenerationAbortController: null,
+        }))
+        this.emitUpdate()
+      }
     }
   }
 
@@ -6009,7 +6018,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return false
     }
 
-    return this.withIsGeneratingCommitMessage(repository, async () => {
+    return this.withIsGeneratingCommitMessage(repository, async signal => {
       // If user is amending a commit, we want to use the commit
       // to amend as the base for the commit message generation.
       const commitToAmend =
@@ -6036,7 +6045,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
               this.repositoryStateCache
                 .get(repository)
                 ?.changesState.currentRepoRulesInfo?.commitMessagePatterns.getRules() ??
-                []
+                [],
+              signal
             )
           : await API.fromAccount(account).getDiffChangesCommitMessage(diff)
 
@@ -6070,11 +6080,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository
   ): Promise<void> {
     const state = this.repositoryStateCache.get(repository)
-    if (!state.isGeneratingCommitMessage) {
+    const abortController = state.commitMessageGenerationAbortController
+    if (!state.isGeneratingCommitMessage || abortController === null) {
       return
     }
 
-    await this.copilotStore.cancelCommitMessageGeneration()
+    abortController.abort()
   }
 
   /**
