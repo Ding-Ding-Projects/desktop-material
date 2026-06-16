@@ -401,8 +401,12 @@ export async function getWorkingDirectoryDiff(
 }
 
 /**
- * Compute a diff between the current on-disk file content (with conflict
- * markers) and Copilot's resolved content string.
+ * Compute a diff between the merge base version of a file and Copilot's
+ * resolved content string.
+ *
+ * During an active merge, git stores the common ancestor at index stage 1
+ * (`:1:path`). We diff that against the resolved content so the user sees
+ * what changed relative to the last clean version — no conflict markers.
  *
  * Uses `git diff --no-index` with temp files, following the same pattern as
  * getWorkingDirectoryDiff for new/untracked files.
@@ -413,16 +417,26 @@ export async function getResolutionDiff(
   resolvedContent: string,
   hideWhitespaceInDiff: boolean = false
 ): Promise<IDiff> {
-  const originalContent = await readFile(
-    Path.join(repository.path, filePath),
-    'utf8'
-  )
+  // Read merge base (stage 1) from the index — the common ancestor before
+  // the conflict. Falls back to on-disk content if not in a merge.
+  let baseContent: string
+  try {
+    const buffer = await getBlobContents(repository, ':1', filePath)
+    baseContent = buffer.toString('utf-8')
+  } catch {
+    // Not in a merge or file doesn't exist at stage 1 — fall back to
+    // reading the on-disk file (which may have conflict markers).
+    baseContent = await readFile(
+      Path.join(repository.path, filePath),
+      'utf8'
+    )
+  }
 
-  const tempOriginal = getTempFilePath('conflict-original')
+  const tempBase = getTempFilePath('conflict-base')
   const tempResolved = getTempFilePath('conflict-resolved')
 
   try {
-    await writeFile(tempOriginal, originalContent, 'utf8')
+    await writeFile(tempBase, baseContent, 'utf8')
     await writeFile(tempResolved, resolvedContent, 'utf8')
 
     const args = [
@@ -434,7 +448,7 @@ export async function getResolutionDiff(
       '--no-color',
       '--no-index',
       '--',
-      tempOriginal,
+      tempBase,
       tempResolved,
     ]
 
@@ -467,7 +481,7 @@ export async function getResolutionDiff(
       hasHiddenBidiChars: diff.hasHiddenBidiChars,
     }
   } finally {
-    await unlink(tempOriginal).catch(() => {})
+    await unlink(tempBase).catch(() => {})
     await unlink(tempResolved).catch(() => {})
   }
 }
