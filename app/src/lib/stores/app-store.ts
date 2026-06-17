@@ -1,5 +1,5 @@
 import * as Path from 'path'
-import { writeFile } from 'fs/promises'
+import { stat, writeFile } from 'fs/promises'
 import {
   AccountsStore,
   CloningRepositoriesStore,
@@ -6889,6 +6889,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
           `Copilot resolution skipped: path outside repository: ${resolution.path}`
         )
         continue
+      }
+
+      // Safety check: reject resolutions that are drastically shorter than the
+      // original file. This catches cases where the model truncated its output
+      // or only returned the resolved conflict section instead of the complete
+      // file, which would cause data loss when written to disk.
+      try {
+        const fileStat = await stat(absolutePath)
+        const originalSize = fileStat.size
+        const resolvedSize = Buffer.byteLength(
+          resolution.resolvedContent,
+          'utf8'
+        )
+        // A resolved file removing conflict markers will always be smaller,
+        // but should never drop below 50% of the original (markers are typically
+        // a small fraction of the file). Be conservative: 20% threshold allows
+        // for cases where one entire side is dropped.
+        if (originalSize > 1024 && resolvedSize < originalSize * 0.2) {
+          log.warn(
+            `Copilot resolution skipped: resolved content for "${resolution.path}" is ` +
+              `suspiciously small (${resolvedSize} bytes vs ${originalSize} bytes original). ` +
+              `This likely indicates truncated model output.`
+          )
+          continue
+        }
+      } catch {
+        // If we can't stat the file, proceed anyway — the writeFile call will
+        // surface any real filesystem error.
       }
 
       await writeFile(absolutePath, resolution.resolvedContent, 'utf8')
