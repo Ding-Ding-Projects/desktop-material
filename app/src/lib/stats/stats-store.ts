@@ -1,3 +1,4 @@
+import { ENABLE_TELEMETRY } from '../telemetry-flag'
 import { StatsDatabase, ILaunchStats, IDailyMeasures } from './stats-database'
 import { getVersion } from '../../ui/lib/app-proxy'
 import { hasShownWelcomeFlow } from '../welcome'
@@ -469,7 +470,7 @@ export interface IStatsStore {
   increment: (k: keyof NumericMeasures, n?: number) => Promise<void>
 }
 
-const defaultPostImplementation = (body: Record<string, any>) =>
+const defaultPostImplementationWithTelemetry = (body: Record<string, any>) =>
   fetch(StatsEndpoint, {
     method: 'POST',
     headers: {
@@ -478,6 +479,10 @@ const defaultPostImplementation = (body: Record<string, any>) =>
     },
     body: JSON.stringify(body),
   })
+
+const defaultPostImplementation = ENABLE_TELEMETRY
+  ? defaultPostImplementationWithTelemetry
+  : Promise.resolve(new Response(null, { status: 200 }))
 
 /** The store for the app's stats. */
 export class StatsStore implements IStatsStore {

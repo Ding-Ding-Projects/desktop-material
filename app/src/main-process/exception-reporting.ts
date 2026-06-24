@@ -1,4 +1,5 @@
 import { app, net } from 'electron'
+import { ENABLE_TELEMETRY } from '../lib/telemetry-flag'
 import { getArchitecture } from '../lib/get-architecture'
 import { computeBundleHash } from '../lib/compute-bundle-hash'
 import { getMainGUID } from '../lib/get-main-guid'
@@ -81,6 +82,13 @@ export async function reportError(
     for (const key of Object.keys(extra)) {
       data.set(key, extra[key])
     }
+  }
+
+  if (!ENABLE_TELEMETRY) {
+    console.error(
+      `Exception report: ${JSON.stringify(Object.fromEntries(data.entries()))}`
+    )
+    return
   }
 
   const body = [...data.entries()]

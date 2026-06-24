@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { ENABLE_TELEMETRY } from '../../lib/telemetry-flag'
 import { DialogContent } from '../dialog'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
@@ -111,18 +112,20 @@ export class Advanced extends React.Component<
             </p>
           </div>
         </div>
-        <div className="advanced-section">
-          <h2>Usage</h2>
-          <Checkbox
-            label={this.reportDesktopUsageLabel()}
-            value={
-              this.state.optOutOfUsageTracking
-                ? CheckboxValue.Off
-                : CheckboxValue.On
-            }
-            onChange={this.onReportingOptOutChanged}
-          />
-        </div>
+        {ENABLE_TELEMETRY && (
+          <div className="advanced-section">
+            <h2>Usage</h2>
+            <Checkbox
+              label={this.reportDesktopUsageLabel()}
+              value={
+                this.state.optOutOfUsageTracking
+                  ? CheckboxValue.Off
+                  : CheckboxValue.On
+              }
+              onChange={this.onReportingOptOutChanged}
+            />
+          </div>
+        )}
         <h2>Network and credentials</h2>
         {this.renderSSHSettings()}
         <div className="advanced-section">

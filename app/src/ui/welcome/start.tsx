@@ -7,6 +7,7 @@ import * as octicons from '../octicons/octicons.generated'
 import { Button } from '../lib/button'
 import { Loading } from '../lib/loading'
 import { BrowserRedirectMessage } from '../lib/authentication-form'
+import { ENABLE_TELEMETRY } from '../../lib/telemetry-flag'
 import { SamplesURL } from '../../lib/stats'
 
 /**
@@ -95,13 +96,15 @@ export class Start extends React.Component<IStartProps, {}> {
               GitHub Privacy Statement.
             </LinkButton>
           </p>
-          <p>
-            GitHub Desktop sends usage metrics to improve the product and inform
-            feature decisions.{' '}
-            <LinkButton uri={SamplesURL}>
-              Learn more about user metrics.
-            </LinkButton>
-          </p>
+          {ENABLE_TELEMETRY && (
+            <p>
+              GitHub Desktop sends usage metrics to improve the product and
+              inform feature decisions.{' '}
+              <LinkButton uri={SamplesURL}>
+                Learn more about user metrics.
+              </LinkButton>
+            </p>
+          )}
         </div>
       </section>
     )
