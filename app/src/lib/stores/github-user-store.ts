@@ -215,7 +215,7 @@ export function matchMentionableUsers(
   query: string,
   maxHits: number = DefaultMaxHits
 ): ReadonlyArray<IMentionableUser> {
-  const hits = []
+  const hits: Array<{ readonly user: IMentionableUser; readonly ix: number }> = []
   const needle = query.toLowerCase()
 
   // Simple substring comparison on login and real name
