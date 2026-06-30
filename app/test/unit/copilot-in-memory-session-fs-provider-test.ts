@@ -211,6 +211,71 @@ describe('createCopilotInMemorySessionFsProvider', () => {
     )
   })
 
+  it('does not rename files over directories', async () => {
+    const provider = createCopilotInMemorySessionFsProvider()
+
+    await provider.writeFile('state/events.jsonl', 'event')
+    await provider.mkdir('state/archive', false)
+
+    await assert.rejects(
+      () => provider.rename('state/events.jsonl', 'state/archive'),
+      {
+        message: 'EISDIR: state/archive',
+        code: 'EISDIR',
+      }
+    )
+
+    assert.strictEqual(await provider.readFile('state/events.jsonl'), 'event')
+
+    const directoryInfo = await provider.stat('state/archive')
+    assert.strictEqual(directoryInfo.isDirectory, true)
+  })
+
+  it('does not merge directory renames into existing directories', async () => {
+    const provider = createCopilotInMemorySessionFsProvider()
+
+    await provider.writeFile('state/workspace/context.json', '{}')
+    await provider.writeFile('state/snapshot/existing.json', 'existing')
+
+    await assert.rejects(
+      () => provider.rename('state/workspace', 'state/snapshot'),
+      {
+        message: 'EEXIST: state/snapshot',
+        code: 'EEXIST',
+      }
+    )
+
+    assert.strictEqual(
+      await provider.readFile('state/workspace/context.json'),
+      '{}'
+    )
+    assert.strictEqual(
+      await provider.readFile('state/snapshot/existing.json'),
+      'existing'
+    )
+    assert.strictEqual(
+      await provider.exists('state/snapshot/context.json'),
+      false
+    )
+  })
+
+  it('treats renaming a path to itself as a no-op', async () => {
+    const provider = createCopilotInMemorySessionFsProvider()
+
+    await provider.writeFile('state/events.jsonl', 'event')
+    await provider.rename('state/events.jsonl', 'state/events.jsonl')
+
+    assert.strictEqual(await provider.readFile('state/events.jsonl'), 'event')
+
+    await provider.writeFile('state/workspace/context.json', '{}')
+    await provider.rename('state/workspace', 'state/workspace')
+
+    assert.strictEqual(
+      await provider.readFile('state/workspace/context.json'),
+      '{}'
+    )
+  })
+
   it('throws ENOENT errors for missing required paths', async () => {
     const provider = createCopilotInMemorySessionFsProvider()
 
