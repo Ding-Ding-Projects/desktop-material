@@ -81,12 +81,11 @@ export class DiffContentsWarning extends React.Component<IDiffContentsWarningPro
         const { lineEndingsChange } = item
         return (
           <>
-            This file uses '{lineEndingsChange.from}' line endings, but Git is
-            configured to convert them to '{lineEndingsChange.to}' the next time
-            the file is checked out.{' '}
-            <LinkButton uri="https://docs.github.com/en/get-started/getting-started-with-git/configuring-git-to-handle-line-endings">
-              Learn more about line endings
-            </LinkButton>
+            This file uses '{lineEndingsChange.from}' line endings, but{' '}
+            <LinkButton uri="https://docs.github.com/get-started/git-basics/configuring-git-to-handle-line-endings">
+              Git is configured to convert them
+            </LinkButton>{' '}
+            to '{lineEndingsChange.to}' the next time the file is checked out.
           </>
         )
     }
