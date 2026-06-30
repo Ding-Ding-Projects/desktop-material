@@ -61,21 +61,29 @@ export function createCopilotInMemorySessionFsProvider(): SessionFsProvider {
 
   const getTimestamp = () => new Date().toISOString()
 
-  const addDirectory = (path: string) => {
+  const addDirectory = (path: string, recursive = true) => {
     const normalized = normalizePath(path)
     const existing = directories.get(normalized)
 
-    if (existing === undefined) {
-      const timestamp = getTimestamp()
-      directories.set(normalized, {
-        createdAt: timestamp,
-        updatedAt: timestamp,
-      })
+    if (existing !== undefined) {
+      return
     }
 
     if (normalized !== '.' && normalized !== '/') {
-      addDirectory(getParentPath(normalized))
+      const parentPath = getParentPath(normalized)
+
+      if (recursive) {
+        addDirectory(parentPath)
+      } else if (!directories.has(parentPath)) {
+        throw createCopilotInMemorySessionFsError(parentPath)
+      }
     }
+
+    const timestamp = getTimestamp()
+    directories.set(normalized, {
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    })
   }
 
   const addParentDirectory = (path: string) => {
@@ -166,8 +174,8 @@ export function createCopilotInMemorySessionFsProvider(): SessionFsProvider {
 
       throw createCopilotInMemorySessionFsError(path)
     },
-    mkdir: async path => {
-      addDirectory(path)
+    mkdir: async (path, recursive) => {
+      addDirectory(path, recursive)
     },
     readdir: async path => {
       const normalized = normalizePath(path)

@@ -134,6 +134,22 @@ describe('createCopilotInMemorySessionFsProvider', () => {
     )
   })
 
+  it('requires existing parent directories for non-recursive mkdir', async () => {
+    const provider = createCopilotInMemorySessionFsProvider()
+
+    await assert.rejects(
+      () => provider.mkdir('state/workspace/nested', false),
+      /ENOENT/
+    )
+
+    await provider.mkdir('state/workspace', false)
+    await provider.mkdir('state/workspace/nested', false)
+
+    assert.deepStrictEqual(await provider.readdir('state/workspace'), [
+      'nested',
+    ])
+  })
+
   it('removes files and directories with force and recursive semantics', async () => {
     const provider = createCopilotInMemorySessionFsProvider()
 
