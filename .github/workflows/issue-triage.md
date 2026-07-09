@@ -20,6 +20,7 @@ on:
 
 permissions:
   contents: read
+  copilot-requests: write
   issues: read
 
 # GH_AW_RUNTIME_FEATURES enables native issue-intent rationale/confidence at runtime.
