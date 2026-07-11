@@ -13,6 +13,18 @@ export function accountEquals(x: Account, y: Account) {
 }
 
 /**
+ * Get the stable identity used to distinguish authenticated accounts.
+ *
+ * Endpoints are not unique: Desktop Material supports signing into multiple
+ * users on GitHub.com or the same GitHub Enterprise host. The numeric user id
+ * is stable across login renames, while the endpoint keeps identities from
+ * different GitHub installations separate.
+ */
+export function getAccountKey(account: Account): string {
+  return `${account.endpoint}#${account.id}`
+}
+
+/**
  * A GitHub account, representing the user found on GitHub The Website or GitHub Enterprise.
  *
  * This contains a token that will be used for operations that require authentication.

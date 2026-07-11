@@ -52,7 +52,7 @@ describe('SignInStore', () => {
 
   beforeEach(() => {
     accountsStore = createAccountsStore()
-    signInStore = new SignInStore(accountsStore)
+    signInStore = new SignInStore()
   })
 
   describe('initial state', () => {
@@ -74,17 +74,17 @@ describe('SignInStore', () => {
       }
     })
 
-    it('transitions to ExistingAccountWarning when a dotcom account exists', async () => {
+    it('allows adding another dotcom account when one exists', async () => {
       const existingAccount = createDotComAccount()
       accountsStore = createAccountsStore()
-      signInStore = new SignInStore(accountsStore)
+      signInStore = new SignInStore()
 
       await accountsStore.addAccount(existingAccount)
 
       signInStore.beginDotComSignIn()
       const state = signInStore.getState()
       assert.notEqual(state, null)
-      assert.equal(state?.kind, SignInStep.ExistingAccountWarning)
+      assert.equal(state?.kind, SignInStep.Authentication)
     })
 
     it('calls resultCallback when provided', async () => {
@@ -171,11 +171,11 @@ describe('SignInStore', () => {
       }
     })
 
-    it('shows ExistingAccountWarning if enterprise account exists', async () => {
+    it('allows adding another account on an existing enterprise host', async () => {
       const endpoint = 'https://github.example.com/api/v3'
       const existingAccount = createEnterpriseAccount('user', endpoint)
       accountsStore = createAccountsStore()
-      signInStore = new SignInStore(accountsStore)
+      signInStore = new SignInStore()
 
       await accountsStore.addAccount(existingAccount)
 
@@ -183,7 +183,7 @@ describe('SignInStore', () => {
       await signInStore.setEndpoint('https://github.example.com')
 
       const state = signInStore.getState()
-      assert.equal(state?.kind, SignInStep.ExistingAccountWarning)
+      assert.equal(state?.kind, SignInStep.Authentication)
     })
   })
 

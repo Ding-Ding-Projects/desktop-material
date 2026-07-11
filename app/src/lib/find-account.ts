@@ -54,17 +54,18 @@ export async function findAccountForRemoteURL(
   //     truly don't care.
   const parsedURL = parseRemote(urlOrRepositoryAlias)
   if (parsedURL) {
-    const account =
-      allAccounts.find(a => {
-        const htmlURL = getHTMLURL(a.endpoint)
-        const parsedEndpoint = URL.parse(htmlURL)
-        return parsedURL.hostname === parsedEndpoint.hostname
-      }) || null
+    const hostAccounts = allAccounts.filter(a => {
+      const htmlURL = getHTMLURL(a.endpoint)
+      const parsedEndpoint = URL.parse(htmlURL)
+      return parsedURL.hostname === parsedEndpoint.hostname
+    })
 
-    // If we find an account whose hostname matches the URL to be cloned, it's
-    // always gonna be our best bet for success. We're not gonna do better.
-    if (account) {
-      return account
+    // A host match is decisive only when there is one possible identity. If
+    // multiple users share the host, continue to the repository access check
+    // below so a private repository selects the account that can actually see
+    // it instead of whichever account happened to be added first.
+    if (hostAccounts.length === 1) {
+      return hostAccounts[0]
     }
   }
 

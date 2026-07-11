@@ -133,6 +133,27 @@ describe('findAccountForRemoteURL', () => {
     assert.deepStrictEqual(account.login, 'joan')
   })
 
+  it('selects the account with access when users share a host', async () => {
+    const otherAccount = new Account(
+      'no-access',
+      getDotComAPIEndpoint(),
+      'other-token',
+      [],
+      '',
+      3,
+      'No Access',
+      'free'
+    )
+
+    const account = await findAccountForRemoteURL(
+      'https://github.com/desktop/repo-fixture.git',
+      [otherAccount, ...accounts],
+      mockCanAccessRepository
+    )
+    assert(account !== null)
+    assert.deepStrictEqual(account.login, 'joan')
+  })
+
   it('cannot see the private GitHub owner/name repository', async () => {
     const account = await findAccountForRemoteURL(
       'desktop/repo-fixture',

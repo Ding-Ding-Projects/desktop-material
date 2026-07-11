@@ -24,6 +24,42 @@ describe('AccountsStore', () => {
       const users = await accountsStore.getAll()
       assert.equal(users[0].login, newAccountLogin)
     })
+
+    it('keeps multiple users on the same endpoint', async () => {
+      const endpoint = 'https://api.github.com'
+      await accountsStore.addAccount(
+        new Account('joan', endpoint, 'token-one', [], '', 1, '', 'free')
+      )
+      await accountsStore.addAccount(
+        new Account('joel', endpoint, 'token-two', [], '', 2, '', 'free')
+      )
+
+      const users = await accountsStore.getAll()
+      assert.equal(users.length, 2)
+      assert.deepStrictEqual(
+        users.map(x => x.login),
+        ['joan', 'joel']
+      )
+    })
+
+    it('updates the same identity without replacing sibling accounts', async () => {
+      const endpoint = 'https://api.github.com'
+      await accountsStore.addAccount(
+        new Account('old-login', endpoint, 'old-token', [], '', 1, '', 'free')
+      )
+      await accountsStore.addAccount(
+        new Account('sibling', endpoint, 'token-two', [], '', 2, '', 'free')
+      )
+      await accountsStore.addAccount(
+        new Account('new-login', endpoint, 'new-token', [], '', 1, '', 'free')
+      )
+
+      const users = await accountsStore.getAll()
+      assert.equal(users.length, 2)
+      assert.equal(users.find(x => x.id === 1)?.login, 'new-login')
+      assert.equal(users.find(x => x.id === 1)?.token, 'new-token')
+      assert.equal(users.find(x => x.id === 2)?.login, 'sibling')
+    })
   })
 
   describe('loading persisted users', () => {

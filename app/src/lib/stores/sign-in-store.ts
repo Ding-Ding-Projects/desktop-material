@@ -1,5 +1,5 @@
 import { Disposable } from 'event-kit'
-import { Account, isDotComAccount } from '../../models/account'
+import { Account } from '../../models/account'
 import { fatalError } from '../fatal-error'
 import {
   validateURL,
@@ -19,7 +19,6 @@ import { TypedBaseStore } from './base-store'
 import { IOAuthAction } from '../parse-app-url'
 import { shell } from '../app-shell'
 import noop from 'lodash/noop'
-import { AccountsStore } from './accounts-store'
 
 /**
  * An enumeration of the possible steps that the sign in
@@ -156,17 +155,8 @@ export type SignInResult =
 export class SignInStore extends TypedBaseStore<SignInState | null> {
   private state: SignInState | null = null
 
-  private accounts: ReadonlyArray<Account> = []
-
-  public constructor(private readonly accountStore: AccountsStore) {
+  public constructor() {
     super()
-
-    this.accountStore.getAll().then(accounts => {
-      this.accounts = accounts
-    })
-    this.accountStore.onDidUpdate(accounts => {
-      this.accounts = accounts
-    })
   }
 
   private emitAuthenticate(account: Account) {
@@ -230,26 +220,13 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
       this.reset()
     }
 
-    const existingAccount = this.accounts.find(isDotComAccount)
-
-    if (existingAccount) {
-      this.setState({
-        kind: SignInStep.ExistingAccountWarning,
-        endpoint,
-        existingAccount,
-        error: null,
-        loading: false,
-        resultCallback: resultCallback ?? noop,
-      })
-    } else {
-      this.setState({
-        kind: SignInStep.Authentication,
-        endpoint,
-        error: null,
-        loading: false,
-        resultCallback: resultCallback ?? noop,
-      })
-    }
+    this.setState({
+      kind: SignInStep.Authentication,
+      endpoint,
+      error: null,
+      loading: false,
+      resultCallback: resultCallback ?? noop,
+    })
   }
 
   /**
@@ -271,15 +248,6 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     }
 
     this.setState({ ...currentState, loading: true })
-
-    if (currentState.kind === SignInStep.ExistingAccountWarning) {
-      const { existingAccount } = currentState
-      // Try to avoid emitting an error out of AccountsStore if the account
-      // is already gone.
-      if (this.accounts.find(x => x.endpoint === existingAccount.endpoint)) {
-        await this.accountStore.removeAccount(existingAccount)
-      }
-    }
 
     const csrfToken = crypto.randomUUID()
 
@@ -436,25 +404,12 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
 
     const endpoint = getEnterpriseAPIURL(validUrl)
 
-    const existingAccount = this.accounts.find(x => x.endpoint === endpoint)
-
-    if (existingAccount) {
-      this.setState({
-        kind: SignInStep.ExistingAccountWarning,
-        endpoint,
-        existingAccount,
-        error: null,
-        loading: false,
-        resultCallback: currentState.resultCallback,
-      })
-    } else {
-      this.setState({
-        kind: SignInStep.Authentication,
-        endpoint,
-        error: null,
-        loading: false,
-        resultCallback: currentState.resultCallback,
-      })
-    }
+    this.setState({
+      kind: SignInStep.Authentication,
+      endpoint,
+      error: null,
+      loading: false,
+      resultCallback: currentState.resultCallback,
+    })
   }
 }
