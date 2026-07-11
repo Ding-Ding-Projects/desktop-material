@@ -34,6 +34,7 @@ import {
   TokenStore,
   AccountsStore,
   PullRequestStore,
+  ProfileStore,
 } from '../lib/stores'
 import { GitHubUserDatabase } from '../lib/databases'
 import { SelectionType, IAppState } from '../lib/app-state'
@@ -257,6 +258,8 @@ const statsStore = new StatsStore(
 
 const accountsStore = new AccountsStore(localStorage, TokenStore)
 
+const profileStore = new ProfileStore(accountsStore)
+
 const signInStore = new SignInStore()
 
 trampolineServer.registerCommandHandler(
@@ -324,7 +327,10 @@ const appStore = new AppStore(
 
 appStore.onDidUpdate(state => {
   currentState = state
+  profileStore.onAppStateChanged()
 })
+
+profileStore.initialize()
 
 const dispatcher = new Dispatcher(
   appStore,

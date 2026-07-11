@@ -1,0 +1,310 @@
+import { join } from 'path'
+import { writeFile, stat } from 'fs/promises'
+import { TypedBaseStore } from './base-store'
+import { AccountsStore } from './accounts-store'
+import { Account, getAccountKey } from '../../models/account'
+import { getPath } from '../../ui/main-process-proxy'
+import { Repository } from '../../models/repository'
+import {
+  ProfileKey,
+  LocalProfileKey,
+  IProfileDescriptor,
+  sanitizeProfileDirectoryName,
+} from '../../models/profile'
+import {
+  ensureProfileRepository,
+  commitAllChanges,
+  ProfileCommitQueue,
+} from '../profiles/profile-git'
+import {
+  captureSettingsSnapshot,
+  describeSettingsChange,
+} from '../profiles/profile-settings-registry'
+
+/** localStorage key holding the raw key of the active profile. */
+const ActiveProfileStorageKey = 'active-profile-key'
+
+/** How long to wait after a settings change before writing + committing. */
+const SettingsDebounceMs = 1000
+
+/** The current version of the on-disk settings file format. */
+const SettingsFileVersion = 1
+
+/** Public state exposed by the profile store. */
+export interface IProfileState {
+  readonly activeProfileKey: ProfileKey
+  readonly profiles: ReadonlyArray<IProfileDescriptor>
+}
+
+interface ISettingsFile {
+  readonly version: number
+  readonly settings: Record<string, string>
+}
+
+/**
+ * Stores each account's UI settings in a per-account git repository under the
+ * application's userData directory, auto-committing on every settings change so
+ * the full history is preserved.
+ *
+ * The store is defensive by design: if it cannot initialize (for example the
+ * userData directory is not writable, or git is unavailable) it disables itself
+ * and every public method becomes a no-op, so a failure here can never break
+ * the rest of the application.
+ */
+export class ProfileStore extends TypedBaseStore<IProfileState> {
+  private basePath: string | null = null
+  private activeProfileKey: ProfileKey = LocalProfileKey
+  private enabled = false
+
+  private readonly descriptors = new Map<ProfileKey, IProfileDescriptor>()
+  private readonly repositoriesByKey = new Map<ProfileKey, Repository>()
+  private readonly queuesByKey = new Map<ProfileKey, ProfileCommitQueue>()
+
+  private lastSnapshot: Record<string, string> = {}
+  private suppressAutoCommit = false
+  private settingsTimer: ReturnType<typeof setTimeout> | null = null
+
+  public constructor(private readonly accountsStore: AccountsStore) {
+    super()
+  }
+
+  /**
+   * Resolve the userData directory, pick the active profile from the signed-in
+   * accounts, and prepare that profile's repository. Safe to call once at
+   * startup; on any failure the store disables itself and logs the error.
+   */
+  public async initialize(): Promise<void> {
+    try {
+      this.basePath = join(await getPath('userData'), 'profiles')
+
+      const accounts = await this.accountsStore.getAll()
+      const stored = localStorage.getItem(ActiveProfileStorageKey)
+      this.activeProfileKey = resolveInitialProfileKey(stored, accounts)
+
+      await this.ensureProfile(this.activeProfileKey, accounts)
+
+      localStorage.setItem(ActiveProfileStorageKey, this.activeProfileKey)
+      this.lastSnapshot = captureSettingsSnapshot()
+      this.enabled = true
+
+      this.accountsStore.onDidUpdate(accounts => {
+        this.onAccountsChanged(accounts).catch(err =>
+          log.error('ProfileStore failed to handle account change', err)
+        )
+      })
+
+      this.emitUpdate(this.getState())
+    } catch (err) {
+      log.error(
+        'ProfileStore failed to initialize; settings versioning disabled',
+        err
+      )
+      this.enabled = false
+    }
+  }
+
+  public getState(): IProfileState {
+    return {
+      activeProfileKey: this.activeProfileKey,
+      profiles: [...this.descriptors.values()],
+    }
+  }
+
+  public getActiveProfileKey(): ProfileKey {
+    return this.activeProfileKey
+  }
+
+  /**
+   * Invoked on every app state update. Debounces a snapshot comparison of the
+   * registered settings and records a commit for any changes. A no-op until the
+   * store is initialized, or while restored settings are being applied.
+   */
+  public onAppStateChanged(): void {
+    if (!this.enabled || this.suppressAutoCommit) {
+      return
+    }
+
+    if (this.settingsTimer !== null) {
+      clearTimeout(this.settingsTimer)
+    }
+
+    this.settingsTimer = setTimeout(() => {
+      this.captureAndCommitSettings().catch(err =>
+        log.error('ProfileStore failed to record settings change', err)
+      )
+    }, SettingsDebounceMs)
+  }
+
+  /** Flush any pending commit for the active profile (e.g. before quit). */
+  public async flush(): Promise<void> {
+    const queue = this.queuesByKey.get(this.activeProfileKey)
+    if (queue !== undefined) {
+      await queue.flush()
+    }
+  }
+
+  private async captureAndCommitSettings(): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
+
+    const key = this.activeProfileKey
+    const repository = this.repositoriesByKey.get(key)
+    const queue = this.queuesByKey.get(key)
+    if (repository === undefined || queue === undefined) {
+      return
+    }
+
+    const next = captureSettingsSnapshot()
+    const changes = describeSettingsChange(this.lastSnapshot, next)
+    if (changes.length === 0) {
+      return
+    }
+
+    await this.writeSettingsFile(repository, next)
+    this.lastSnapshot = next
+
+    for (const description of changes) {
+      queue.schedule(description)
+    }
+  }
+
+  private async ensureProfile(
+    key: ProfileKey,
+    accounts: ReadonlyArray<Account>
+  ): Promise<void> {
+    if (this.basePath === null || this.repositoriesByKey.has(key)) {
+      return
+    }
+
+    const directoryName = sanitizeProfileDirectoryName(key)
+    const dir = join(this.basePath, directoryName)
+    const repository = await ensureProfileRepository(dir)
+
+    this.repositoriesByKey.set(key, repository)
+    this.queuesByKey.set(key, new ProfileCommitQueue(repository))
+
+    const login = loginForKey(key, accounts)
+    this.descriptors.set(key, { key, directoryName, login })
+
+    await writeJsonFile(join(dir, 'profile.json'), {
+      version: SettingsFileVersion,
+      key,
+      login,
+    })
+
+    if (!(await fileExists(join(dir, 'settings.json')))) {
+      await this.writeSettingsFile(repository, captureSettingsSnapshot())
+    }
+
+    await commitAllChanges(
+      repository,
+      login === null ? 'Initialize profile' : `Initialize profile for ${login}`
+    )
+  }
+
+  private async writeSettingsFile(
+    repository: Repository,
+    settings: Record<string, string>
+  ): Promise<void> {
+    const contents: ISettingsFile = {
+      version: SettingsFileVersion,
+      settings,
+    }
+    await writeJsonFile(join(repository.path, 'settings.json'), contents)
+  }
+
+  private async onAccountsChanged(
+    accounts: ReadonlyArray<Account>
+  ): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
+
+    const keys = new Set(accounts.map(getAccountKey))
+    if (
+      this.activeProfileKey !== LocalProfileKey &&
+      !keys.has(this.activeProfileKey)
+    ) {
+      // The active account signed out — fall back to the local profile. We do
+      // not apply the local profile's stored settings here (that belongs with
+      // the account-switcher UX and its state reload); we only redirect where
+      // future auto-commits are recorded.
+      await this.setActiveProfile(LocalProfileKey)
+    }
+  }
+
+  /**
+   * Change which profile future settings commits are recorded against. Flushes
+   * the previous profile's pending commit first. Note: this does not yet apply
+   * the target profile's stored settings back to the app — restoring settings
+   * on switch is handled together with the account switcher UI.
+   */
+  public async setActiveProfile(key: ProfileKey): Promise<void> {
+    if (!this.enabled || key === this.activeProfileKey) {
+      return
+    }
+
+    const previousQueue = this.queuesByKey.get(this.activeProfileKey)
+    if (previousQueue !== undefined) {
+      await previousQueue.flush()
+    }
+
+    const accounts = await this.accountsStore.getAll()
+    await this.ensureProfile(key, accounts)
+
+    this.activeProfileKey = key
+    localStorage.setItem(ActiveProfileStorageKey, key)
+    this.lastSnapshot = captureSettingsSnapshot()
+
+    this.emitUpdate(this.getState())
+  }
+}
+
+/**
+ * Choose the initial active profile: the stored key when it is still valid,
+ * otherwise the first signed-in account, otherwise the local profile.
+ */
+export function resolveInitialProfileKey(
+  stored: string | null,
+  accounts: ReadonlyArray<Account>
+): ProfileKey {
+  const accountKeys = accounts.map(getAccountKey)
+
+  if (stored !== null) {
+    if (stored === LocalProfileKey || accountKeys.includes(stored)) {
+      return stored
+    }
+  }
+
+  if (accounts.length > 0) {
+    return accountKeys[0]
+  }
+
+  return LocalProfileKey
+}
+
+function loginForKey(
+  key: ProfileKey,
+  accounts: ReadonlyArray<Account>
+): string | null {
+  if (key === LocalProfileKey) {
+    return null
+  }
+
+  const account = accounts.find(a => getAccountKey(a) === key)
+  return account?.login ?? null
+}
+
+async function writeJsonFile(path: string, contents: unknown): Promise<void> {
+  await writeFile(path, JSON.stringify(contents, null, 2))
+}
+
+async function fileExists(path: string): Promise<boolean> {
+  try {
+    await stat(path)
+    return true
+  } catch {
+    return false
+  }
+}
