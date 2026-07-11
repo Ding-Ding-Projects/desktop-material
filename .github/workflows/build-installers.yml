@@ -48,7 +48,7 @@ jobs:
           - os: windows-2022
             arch: x64
             friendlyName: Windows
-          - os: macos-14-xlarge
+          - os: macos-14
             arch: arm64
             friendlyName: macOS
     steps:
@@ -98,6 +98,9 @@ jobs:
   release:
     name: Publish release
     needs: build
+    # Run even if one platform's build failed so the installers that did build
+    # (e.g. Windows) are still released.
+    if: ${{ always() }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -107,6 +110,8 @@ jobs:
         with:
           path: installers
           merge-multiple: true
+          # A platform may have produced no artifact; don't fail the release.
+        continue-on-error: true
       - name: List downloaded files
         run: ls -R installers || true
       - name: Publish GitHub release
