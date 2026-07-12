@@ -69,8 +69,13 @@
       }
     }
 
+    // MD3 de-stock: account group header reads as an on-surface-variant overline.
     .filter-list-group-header {
       @include ellipsis;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      color: var(--md-sys-color-on-surface-variant);
     }
   }
 }

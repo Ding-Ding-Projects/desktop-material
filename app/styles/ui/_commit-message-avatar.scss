@@ -32,8 +32,9 @@
   }
 
   .warning-badge {
-    background-color: var(--commit-warning-badge-background-color);
-    border: var(--commit-warning-badge-border-color) 1px solid;
+    // MD3 de-stock: identity warning badge uses a tonal amber container.
+    background-color: var(--dm-amber-container);
+    border: color-mix(in srgb, var(--dm-amber) 40%, transparent) 1px solid;
     width: 18px;
     height: 18px;
     position: absolute;
@@ -49,11 +50,16 @@
     }
 
     &.warning > svg {
-      color: var(--input-icon-warning-color);
+      color: var(--dm-amber);
     }
 
-    &.error > svg {
-      color: var(--input-icon-error-color);
+    &.error {
+      background-color: var(--md-sys-color-error-container);
+      border-color: color-mix(in srgb, var(--md-sys-color-error) 40%, transparent);
+
+      > svg {
+        color: var(--md-sys-color-error);
+      }
     }
   }
 
