@@ -8,13 +8,6 @@
   }
 }
 
-dialog.clone-repository {
-  .clone-github-repo {
-    height: calc(100vh - 400px);
-    max-height: 250px;
-  }
-}
-
 .clone-github-repo {
   &.filter-list {
     max-width: 100%;
@@ -97,6 +90,209 @@ dialog.clone-repository {
   .dialog-content {
     > .row-component:not(:last-child) {
       margin-bottom: 0;
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Commit 14 — Clone dialog MD3 restyle (single-select).
+//
+// The existing clone dialog keeps its behaviour (GitHub.com / Enterprise / URL
+// tabs, single-select filter list, local-path field, Clone/Cancel footer). This
+// block only restyles it into the design's draggable center card: a 790px
+// `surface-container-low` sheet with a 48px search pill, MD3 rows and an MD3
+// footer. Dragging comes free from the phase-3 non-modal dialog framework (the
+// `.dialog-header` is the drag handle); non-modal float + centering come from
+// `#dialog-layer dialog[open]`.
+//
+// Everything here is scoped under `dialog.clone-repository` so it out-specifies
+// the shell override layer (`_material-shell.scss`) and the base `dialog`
+// rules without `!important`, and never leaks to other dialogs. The
+// "Add local repository" / "Create repository" dialogs already inherit the
+// generic MD3 dialog + `.button-component` + input treatment from the shell
+// layer, so they need no partial changes here.
+// ---------------------------------------------------------------------------
+dialog.clone-repository {
+  // Card geometry: 790px wide `surface-container-low` sheet (design §5).
+  width: 790px;
+  max-width: calc(100vw - 50px);
+  background: var(--md-sys-color-surface-container-low);
+
+  // The header (drag handle), tab strip, tab panel and footer all sit on the
+  // card surface — drop the shell's `surface-container-high` fills.
+  .dialog-header,
+  .dialog-footer {
+    background: transparent;
+  }
+
+  .dialog-header {
+    border-bottom: 0;
+    padding: 20px 22px 8px;
+
+    h1 {
+      font-size: 18px;
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  // Tab strip: the global `.tab-bar` MD3 pills already apply; just seat them on
+  // the card and give a little breathing room.
+  .tab-bar {
+    background: transparent;
+    padding: 4px 18px 6px;
+  }
+
+  [role='tabpanel'] {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .dialog-content {
+    background: transparent;
+  }
+
+  // The filter list fills the card and scrolls internally. Taller than the
+  // legacy 250px cap so the card reads like the design's spacious sheet.
+  .clone-github-repo {
+    height: calc(100vh - 340px);
+    min-height: 240px;
+    max-height: 440px;
+
+    &.filter-list {
+      background: transparent;
+
+      .filter-field-row {
+        margin: 0 20px 8px;
+        gap: 8px;
+        align-items: center;
+      }
+    }
+  }
+
+  // 48px search pill (design §1.14 / §5.2): rounded, `surface-container-high`,
+  // leading search glyph, 2px focus border. The refresh button trails as a
+  // round icon button.
+  .filter-list-filter-field {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    height: 48px;
+    box-sizing: border-box;
+    padding: 0 8px 0 16px;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background: var(--md-sys-color-surface-container-high);
+    transition: border-color 240ms var(--emph), background-color 300ms var(--emph);
+
+    &:focus-within {
+      border-color: var(--md-sys-color-primary);
+    }
+
+    .prefixed-icon {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      margin-right: 6px;
+      fill: var(--md-sys-color-on-surface-variant);
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      font-size: 13.5px;
+
+      &:focus {
+        outline: none;
+      }
+    }
+
+    .clear-button {
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--md-sys-color-on-surface-variant);
+      cursor: pointer;
+      transition: background-color 220ms var(--emph);
+
+      &:hover {
+        background: var(--md-sys-color-surface-container-highest);
+      }
+
+      .octicon {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+    }
+  }
+
+  // Trailing "refresh repositories" control → round icon button that lines up
+  // with the pill.
+  .filter-field-row .button-component {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 48px;
+    min-width: 0;
+    height: 48px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface-variant);
+
+    &:not([aria-disabled='true']):hover {
+      background: var(--md-sys-color-surface-container-highest);
+      box-shadow: none;
+    }
+
+    .octicon {
+      margin: 0;
+      fill: currentColor;
+    }
+  }
+
+  // Local-path row: soften the divider to the MD3 outline and drop the
+  // account-picker divider so the field sits on the card cleanly.
+  .local-path-field {
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  // MD3 footer: text Cancel + filled primary Clone pill (design §5.5). The
+  // OkCancelButtonGroup already renders Clone as `type="submit"`, so the shell's
+  // primary treatment applies; here we morph it into the pill and drop the
+  // divider so it floats on the card.
+  .dialog-footer {
+    border-top: 0;
+    padding: 12px 18px 16px;
+
+    .button-component {
+      min-width: 0;
+      height: 44px;
+      padding: 0 20px;
+      border-radius: 999px;
+      transition: border-radius 280ms var(--spring), transform 200ms var(--spring-fast), background-color 120ms ease;
+
+      &:active {
+        transform: scale(0.95);
+      }
+    }
+
+    .button-component[type='submit'] {
+      &:hover {
+        border-radius: 16px;
+      }
     }
   }
 }

@@ -33,3 +33,63 @@
     }
   }
 }
+
+// Commit 14 — Clone dialog repository rows (single-select).
+// Scoped under `dialog.clone-repository` so the id-less-but-two-class selector
+// out-specifies the shell layer's generic `.list-item` / `.clone-repository-list`
+// rules without `!important`, and only applies inside the clone card.
+dialog.clone-repository {
+  // Uppercase group labels (Your repositories / owner login) per the design.
+  .clone-repository-list-group-header {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 12px 12px 6px;
+  }
+
+  // Rows: radius morph on hover + press feedback, echoing the sheet rows.
+  .list-item {
+    border-radius: 14px;
+    transition: background-color 240ms var(--emph), border-radius 260ms var(--spring), transform 200ms var(--spring-fast);
+
+    &:hover {
+      border-radius: 18px;
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .clone-repository-list-item {
+    padding: 8px 10px;
+
+    // 34x34 radius-11 icon chip around the repository octicon. `box-sizing:
+    // border-box` + padding keeps the 16px octicon centred inside the tile.
+    .icon {
+      width: 34px;
+      height: 34px;
+      padding: 9px;
+      box-sizing: border-box;
+      flex-shrink: 0;
+      margin-right: 12px;
+      border-radius: 11px;
+      background: var(--md-sys-color-surface-container-high);
+      fill: var(--md-sys-color-on-surface-variant);
+      transition: background-color 240ms var(--emph), color 240ms var(--emph);
+    }
+
+    .name {
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  // Selected repository → primary-container icon chip acts as the current
+  // marker, echoing the design's check_circle treatment on the picked row.
+  .list-item.selected .clone-repository-list-item .icon {
+    background: var(--md-sys-color-primary-container);
+    fill: var(--md-sys-color-on-primary-container);
+  }
+}
