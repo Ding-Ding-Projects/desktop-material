@@ -4,6 +4,10 @@ import { groupRepositories } from '../../src/ui/repositories-list/group-reposito
 import { Repository, ILocalRepositoryState } from '../../src/models/repository'
 import { CloningRepository } from '../../src/models/cloning-repository'
 import { gitHubRepoFixture } from '../helpers/github-repo-builder'
+import {
+  ShowBranchNameInRepoListSetting,
+  shouldShowBranchName,
+} from '../../src/models/show-branch-name-in-repo-list'
 
 describe('repository list grouping', () => {
   const repositories: Array<Repository | CloningRepository> = [
@@ -27,6 +31,41 @@ describe('repository list grouping', () => {
   ]
 
   const cache = new Map<number, ILocalRepositoryState>()
+
+  it('applies the repository branch display preference', () => {
+    assert.equal(
+      shouldShowBranchName(
+        ShowBranchNameInRepoListSetting.Always,
+        'main',
+        'main'
+      ),
+      true
+    )
+    assert.equal(
+      shouldShowBranchName(
+        ShowBranchNameInRepoListSetting.WhenNotDefault,
+        'main',
+        'main'
+      ),
+      false
+    )
+    assert.equal(
+      shouldShowBranchName(
+        ShowBranchNameInRepoListSetting.WhenNotDefault,
+        'feature',
+        'main'
+      ),
+      true
+    )
+    assert.equal(
+      shouldShowBranchName(
+        ShowBranchNameInRepoListSetting.Never,
+        'feature',
+        'main'
+      ),
+      false
+    )
+  })
 
   it('groups repositories by owners/Enterprise/Other', () => {
     const grouped = groupRepositories(repositories, cache, [])
@@ -173,6 +212,44 @@ describe('repository list grouping', () => {
     assert.deepEqual(
       pinned[0].items.map(item => item.repository.id),
       [2]
+    )
+  })
+
+  it('combines repositories from different hosts in a custom group', () => {
+    const customLocal = new Repository(
+      'custom-local',
+      10,
+      null,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      null,
+      undefined,
+      'Clients'
+    )
+    const customGitHub = new Repository(
+      'custom-github',
+      11,
+      gitHubRepoFixture({ owner: 'octocat', name: 'custom-github' }),
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      null,
+      undefined,
+      'Clients'
+    )
+    const grouped = groupRepositories([customGitHub, customLocal], cache, [])
+
+    assert.equal(grouped.length, 1)
+    assert.equal(grouped[0].identifier.kind, 'custom')
+    assert.equal((grouped[0].identifier as any).name, 'Clients')
+    assert.deepEqual(
+      grouped[0].items.map(item => item.repository.id),
+      [11, 10]
     )
   })
 })

@@ -43,6 +43,7 @@ import {
   getNonForkGitHubRepository,
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
+import { getEditorOverrideLabel } from '../models/editor-override'
 import { Branch } from '../models/branch'
 import { PreferencesTab } from '../models/preferences'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
@@ -88,6 +89,7 @@ import { SettingsHistoryDialog } from './settings-history'
 import { NotificationHistoryDialog } from './notifications/notification-history-dialog'
 import { NotificationCentrePanel } from './notifications/notification-centre-panel'
 import { MergeAllDialog } from './merge-all'
+import { PullAllDialog } from './pull-all'
 import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
 import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
 import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
@@ -164,6 +166,7 @@ import { CommitDragElement } from './drag-elements/commit-drag-element'
 import classNames from 'classnames'
 import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
+import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
 import { ThankYou } from './thank-you'
 import {
   getUserContributions,
@@ -1482,6 +1485,13 @@ export class App extends React.Component<IAppProps, IAppState> {
       : this.state.selectedExternalEditor ?? undefined
   }
 
+  private getExternalEditorLabel(repository: Repository | CloningRepository) {
+    return !(repository instanceof Repository) ||
+      repository.customEditorOverride === null
+      ? this.externalEditorLabel
+      : getEditorOverrideLabel(repository.customEditorOverride)
+  }
+
   private openCurrentRepositoryInExternalEditor() {
     const repository = this.getRepository()
     if (!repository) {
@@ -1780,6 +1790,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             useCustomShell={this.state.useCustomShell}
             customShell={this.state.customShell}
             showRecentRepositories={this.state.showRecentRepositories}
+            showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             branchSortOrder={this.state.branchSortOrder}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
             onEditGlobalGitConfig={this.editGlobalGitConfig}
@@ -1825,6 +1836,14 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.PullAllRepositories:
+        return (
+          <PullAllDialog
+            key="pull-all-repositories"
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.RepositorySettings: {
         const repository = popup.repository
         const state = this.props.repositoryStateManager.get(repository)
@@ -2367,6 +2386,15 @@ export class App extends React.Component<IAppProps, IAppState> {
       case PopupType.ChangeRepositoryAlias: {
         return (
           <ChangeRepositoryAlias
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ChangeRepositoryGroupName: {
+        return (
+          <ChangeRepositoryGroupName
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             onDismissed={onPopupDismissedFn}
@@ -3410,6 +3438,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         repositories={repositories}
         recentRepositories={this.state.recentRepositories}
         showRecentRepositories={this.state.showRecentRepositories}
+        showBranchNameInRepoList={this.state.showBranchNameInRepoList}
         localRepositoryStateLookup={this.state.localRepositoryStateLookup}
         askForConfirmationOnRemoveRepository={
           this.state.askForConfirmationOnRepositoryRemoval
@@ -3449,7 +3478,11 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private openFileInExternalEditor = (fullPath: string) => {
-    this.props.dispatcher.openInExternalEditor(fullPath)
+    const repository = this.state.selectedState?.repository
+    this.props.dispatcher.openInExternalEditor(
+      fullPath,
+      repository instanceof Repository ? repository : null
+    )
   }
 
   private openInExternalEditor = (
@@ -3459,7 +3492,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    this.props.dispatcher.openInExternalEditor(repository.path)
+    this.props.dispatcher.openInExternalEditor(repository.path, repository)
   }
 
   private openRepositoryInSelectedEditor = async (
@@ -3485,7 +3518,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     const fullPath = Path.join(repository.path, path)
-    this.props.dispatcher.openInExternalEditor(fullPath)
+    this.props.dispatcher.openInExternalEditor(
+      fullPath,
+      repository instanceof Repository ? repository : null
+    )
   }
 
   private showRepository = (repository: Repository | CloningRepository) => {
@@ -3596,6 +3632,17 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.dispatcher.changeRepositoryAlias(repository, null)
     }
 
+    const onChangeRepositoryGroupName = (repository: Repository) => {
+      this.props.dispatcher.showPopup({
+        type: PopupType.ChangeRepositoryGroupName,
+        repository,
+      })
+    }
+
+    const onRemoveRepositoryGroupName = (repository: Repository) => {
+      this.props.dispatcher.changeRepositoryGroupName(repository, null)
+    }
+
     const onCreateWorktree = (repository: Repository) => {
       this.props.dispatcher.showPopup({
         type: PopupType.AddWorktree,
@@ -3614,9 +3661,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       onOpenInExternalEditor: this.openInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.state.askForConfirmationOnRepositoryRemoval,
-      externalEditorLabel: this.externalEditorLabel,
+      externalEditorLabel: this.getExternalEditorLabel(repository),
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
+      onChangeRepositoryGroupName: onChangeRepositoryGroupName,
+      onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
       onViewOnGitHub: this.viewOnGitHub,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,

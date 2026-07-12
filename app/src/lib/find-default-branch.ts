@@ -27,11 +27,12 @@ export async function findDefaultBranch(
     ? UpstreamRemoteName
     : defaultRemoteName
 
-  const remoteHead = remoteName
-    ? await getRemoteHEAD(repository, remoteName)
-    : null
+  const remoteHead =
+    repository.defaultBranch ??
+    (remoteName ? await getRemoteHEAD(repository, remoteName) : null)
 
-  const defaultBranchName = remoteHead ?? (await getDefaultBranch())
+  const defaultBranchName =
+    repository.defaultBranch ?? remoteHead ?? (await getDefaultBranch())
   const remoteRef = remoteHead ? `${remoteName}/${remoteHead}` : undefined
 
   let localHit: Branch | undefined = undefined

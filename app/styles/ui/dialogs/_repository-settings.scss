@@ -73,6 +73,42 @@
     }
   }
 
+  .repository-metadata-settings {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-double);
+
+    .repository-metadata-card {
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-large);
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing);
+      padding: var(--spacing-double);
+
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h2 {
+        color: var(--md-sys-color-on-surface);
+        font-size: var(--font-size-md);
+      }
+
+      p {
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-size-sm);
+      }
+
+      .select-component,
+      .text-box-component {
+        width: 100%;
+      }
+    }
+  }
+
   .tab-container {
     display: flex;
 

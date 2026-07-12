@@ -291,6 +291,10 @@ import {
   getFloatNumber,
 } from '../local-storage'
 import {
+  defaultShowBranchNameInRepoListSetting,
+  ShowBranchNameInRepoListSetting,
+} from '../../models/show-branch-name-in-repo-list'
+import {
   clampZoom,
   computeAutoFitMultiplier,
   stepZoom,
@@ -329,6 +333,7 @@ import {
   selectBranchCandidates,
   selectWorktreeCandidates,
 } from '../automation/merge-all'
+import { IPullAllResult, runBoundedPullAll } from '../automation/pull-all'
 import { BranchPruner } from './helpers/branch-pruner'
 import {
   enableCopilotConflictResolution,
@@ -561,6 +566,7 @@ const tabSizeKey: string = 'tab-size'
 const shellKey = 'shell'
 
 const showRecentRepositoriesKey = 'show-recent-repositories'
+const showBranchNameInRepoListKey = 'show-branch-name-in-repo-list'
 const repositoryIndicatorsEnabledKey = 'enable-repository-indicators'
 const branchSortOrderKey = 'branch-sort-order'
 
@@ -745,6 +751,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private currentTheme: ApplicableTheme = ApplicationTheme.Light
   private selectedTabSize = tabSizeDefault
   private showRecentRepositories = true
+  private showBranchNameInRepoList = defaultShowBranchNameInRepoListSetting
 
   private useWindowsOpenSSH: boolean = false
 
@@ -885,6 +892,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.repositoryIndicatorsEnabled =
       getBoolean(repositoryIndicatorsEnabledKey) ?? true
     this.showRecentRepositories = getBoolean(showRecentRepositoriesKey) ?? true
+    this.showBranchNameInRepoList =
+      getEnum(showBranchNameInRepoListKey, ShowBranchNameInRepoListSetting) ??
+      defaultShowBranchNameInRepoListSetting
 
     this.repositoryIndicatorUpdater = new RepositoryIndicatorUpdater(
       this.getRepositoriesForIndicatorRefresh,
@@ -1480,6 +1490,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       currentTheme: this.currentTheme,
       selectedTabSize: this.selectedTabSize,
       showRecentRepositories: this.showRecentRepositories,
+      showBranchNameInRepoList: this.showBranchNameInRepoList,
       apiRepositories: this.apiRepositoriesStore.getState(),
       useWindowsOpenSSH: this.useWindowsOpenSSH,
       showCommitLengthWarning: this.showCommitLengthWarning,
@@ -3229,15 +3240,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
       useCustomShell,
       selectedShell,
       selectedRepository,
-      useCustomEditor,
-      selectedExternalEditor,
       askForConfirmationOnRepositoryRemoval,
       askForConfirmationOnForcePush,
     } = this
 
+    const editorOverride =
+      selectedRepository instanceof Repository &&
+      selectedRepository.customEditorOverride !== null
+        ? selectedRepository.customEditorOverride
+        : null
+    const editorUsesCustom =
+      editorOverride?.useCustomEditor ?? this.useCustomEditor
+    const editorName = editorOverride
+      ? editorOverride.selectedExternalEditor
+      : this.selectedExternalEditor
+
     const labels: MenuLabelsEvent = {
       selectedShell: useCustomShell ? null : selectedShell,
-      selectedExternalEditor: useCustomEditor ? null : selectedExternalEditor,
+      selectedExternalEditor: editorUsesCustom ? null : editorName,
       askForConfirmationOnRepositoryRemoval,
       askForConfirmationOnForcePush,
     }
@@ -4447,8 +4467,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // is in a bad state - let's mark it as missing here and give up on the
     // further work
     const status = await this._loadStatus(repository)
-    this.updateSidebarIndicator(repository, status)
-
     if (status === null) {
       await this._updateRepositoryMissing(repository, true)
       return
@@ -4457,6 +4475,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // loadBranches needs the default remote to determine the default branch
     await gitStore.loadRemotes()
     await gitStore.loadBranches()
+    this.updateSidebarIndicator(
+      repository,
+      status,
+      gitStore.defaultBranch?.name
+    )
 
     const section = state.selectedSection
     let refreshSectionPromise: Promise<void>
@@ -4525,7 +4548,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private async updateSidebarIndicator(
     repository: Repository,
-    status: IStatusResult | null
+    status: IStatusResult | null,
+    defaultBranchName: string | null = repository.defaultBranch
   ): Promise<void> {
     const lookup = this.localRepositoryStateLookup
 
@@ -4542,6 +4566,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     lookup.set(repository.id, {
       aheadBehind: status.branchAheadBehind || null,
       changedFilesCount: status.workingDirectory.files.length,
+      branchName: status.currentBranch ?? null,
+      defaultBranchName,
     })
   }
   /**
@@ -4568,7 +4594,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    this.updateSidebarIndicator(repository, status)
+    await gitStore.loadRemotes()
+    await gitStore.loadBranches()
+    this.updateSidebarIndicator(
+      repository,
+      status,
+      gitStore.defaultBranch?.name
+    )
     this.emitUpdate()
 
     const lastPush = await inferLastPushForRepository(
@@ -4586,6 +4618,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // We don't need to update changedFilesCount here since it was already
         // set when calling `updateSidebarIndicator()` with the status object.
         changedFilesCount: existing?.changedFilesCount ?? 0,
+        branchName: existing?.branchName ?? null,
+        defaultBranchName:
+          existing?.defaultBranchName ?? repository.defaultBranch,
       })
       this.emitUpdate()
     }
@@ -4652,6 +4687,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     setBoolean(showRecentRepositoriesKey, showRecentRepositories)
     this.showRecentRepositories = showRecentRepositories
+    this.emitUpdate()
+  }
+
+  public _setShowBranchNameInRepoList(
+    setting: ShowBranchNameInRepoListSetting
+  ) {
+    if (this.showBranchNameInRepoList === setting) {
+      return
+    }
+
+    localStorage.setItem(showBranchNameInRepoListKey, setting)
+    this.showBranchNameInRepoList = setting
     this.emitUpdate()
   }
 
@@ -5942,6 +5989,37 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.repositoriesStore.updateRepositoryAlias(repository, newAlias)
   }
 
+  public async _changeRepositoryGroupName(
+    repository: Repository,
+    newGroupName: string | null
+  ): Promise<void> {
+    return this.repositoriesStore.updateRepositoryGroupName(
+      [repository],
+      newGroupName
+    )
+  }
+
+  public async _updateRepositoryDefaultBranch(
+    repository: Repository,
+    defaultBranch: string | null
+  ): Promise<void> {
+    const updated = await this.repositoriesStore.updateRepositoryDefaultBranch(
+      repository,
+      defaultBranch
+    )
+    await this._refreshRepository(updated)
+  }
+
+  public async _updateRepositoryEditorOverride(
+    repository: Repository,
+    editorOverride: import('../../models/editor-override').EditorOverride | null
+  ): Promise<void> {
+    await this.repositoriesStore.updateRepositoryEditorOverride(
+      repository,
+      editorOverride
+    )
+  }
+
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _renameBranch(
     repository: Repository,
@@ -6403,6 +6481,74 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return this.withRefreshedGitHubRepository(repository, repository => {
       return this.performPull(repository)
     })
+  }
+
+  /** Pull every available repository with bounded network concurrency. */
+  public async _pullAllRepositories(): Promise<ReadonlyArray<IPullAllResult>> {
+    const repositories = await this.repositoriesStore.getAll()
+    const repositoriesById = new Map(repositories.map(repo => [repo.id, repo]))
+
+    return runBoundedPullAll(
+      repositories.map(repository => ({
+        id: repository.id,
+        name: repository.name,
+      })),
+      async candidate => {
+        const repository = repositoriesById.get(candidate.id)
+        if (repository === undefined) {
+          return { status: 'skipped', detail: 'Repository was removed.' }
+        }
+        return this.performPullAllRepository(repository)
+      }
+    )
+  }
+
+  private async performPullAllRepository(repository: Repository) {
+    if (repository.missing) {
+      return { status: 'skipped' as const, detail: 'Repository is missing.' }
+    }
+
+    await this._refreshRepository(repository)
+    const gitStore = this.gitStoreCache.get(repository)
+    const remote = gitStore.currentRemote
+    if (remote === null) {
+      return { status: 'skipped' as const, detail: 'No pull remote.' }
+    }
+
+    const tip = gitStore.tip
+    if (tip.kind !== TipState.Valid) {
+      return {
+        status: 'skipped' as const,
+        detail:
+          tip.kind === TipState.Detached
+            ? 'Detached HEAD.'
+            : 'No active branch.',
+      }
+    }
+    if (tip.branch.upstream === null) {
+      return {
+        status: 'skipped' as const,
+        detail: `Branch ${tip.branch.name} has no upstream.`,
+      }
+    }
+
+    const state = this.repositoryStateCache.get(repository)
+    if (state.isPushPullFetchInProgress) {
+      return {
+        status: 'skipped' as const,
+        detail: 'Another network operation is in progress.',
+      }
+    }
+
+    await this.withPushPullFetch(repository, async () => {
+      await pullRepo(repository, remote)
+      await updateRemoteHEAD(repository, remote, false).catch(error =>
+        log.error('Failed updating remote HEAD after Pull all', error)
+      )
+      await this._refreshRepository(repository)
+    })
+
+    return { status: 'pulled' as const, detail: 'Pull completed.' }
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -8579,9 +8725,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** Open a path to a repository or file using the user's configured editor */
-  public async _openInExternalEditor(fullPath: string): Promise<void> {
+  public async _openInExternalEditor(
+    fullPath: string,
+    repository: Repository | null = null
+  ): Promise<void> {
+    const globalSettings = this.getState()
     const { selectedExternalEditor, useCustomEditor, customEditor } =
-      this.getState()
+      repository?.customEditorOverride ?? globalSettings
 
     try {
       if (useCustomEditor && customEditor) {

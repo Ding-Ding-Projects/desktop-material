@@ -81,6 +81,7 @@ export enum PopupType {
   ConfirmDiscardSelection = 'ConfirmDiscardSelection',
   MoveToApplicationsFolder = 'MoveToApplicationsFolder',
   ChangeRepositoryAlias = 'ChangeRepositoryAlias',
+  ChangeRepositoryGroupName = 'ChangeRepositoryGroupName',
   ThankYou = 'ThankYou',
   CommitMessage = 'CommitMessage',
   MultiCommitOperation = 'MultiCommitOperation',
@@ -125,6 +126,7 @@ export enum PopupType {
   ExportRepositoryList = 'ExportRepositoryList',
   ImportRepositoryList = 'ImportRepositoryList',
   MergeAll = 'MergeAll',
+  PullAllRepositories = 'PullAllRepositories',
 }
 
 interface IBasePopup {
@@ -166,6 +168,7 @@ export type PopupDetail =
   | { type: PopupType.SettingsHistory }
   | { type: PopupType.NotificationHistory }
   | { type: PopupType.MergeAll; repository: Repository; mode: MergeAllMode }
+  | { type: PopupType.PullAllRepositories }
   | {
       type: PopupType.EditCopilotBYOKProvider
       provider: IBYOKProvider | null
@@ -339,6 +342,7 @@ export type PopupDetail =
     }
   | { type: PopupType.MoveToApplicationsFolder }
   | { type: PopupType.ChangeRepositoryAlias; repository: Repository }
+  | { type: PopupType.ChangeRepositoryGroupName; repository: Repository }
   | {
       type: PopupType.ThankYou
       userContributions: ReadonlyArray<ReleaseNote>
@@ -560,13 +564,15 @@ export type Popup = IBasePopup & PopupDetail
 /**
  * The Settings and Notification history managers are non-modal side sheets, and
  * the batch clone progress popup is non-modal so the app stays interactive while
- * repositories clone in the background. Every other popup still blocks global
- * actions, even when one of these is stacked above it.
+ * repositories clone or pull in the background. Every other popup still blocks
+ * global actions, even when one of these is stacked above it.
  */
 const nonModalHistoryPopupTypes = new Set<PopupType>([
   PopupType.SettingsHistory,
   PopupType.NotificationHistory,
   PopupType.BatchCloneProgress,
+  PopupType.ChangeRepositoryGroupName,
+  PopupType.PullAllRepositories,
 ])
 
 export function hasModalPopup(popups: ReadonlyArray<Popup>): boolean {

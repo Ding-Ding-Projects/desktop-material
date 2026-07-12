@@ -28,6 +28,11 @@ import { FoldoutType } from '../../lib/app-state'
 import { SectionFilterList } from '../lib/section-filter-list'
 import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
+import { getEditorOverrideLabel } from '../../models/editor-override'
+import {
+  ShowBranchNameInRepoListSetting,
+  shouldShowBranchName,
+} from '../../models/show-branch-name-in-repo-list'
 import {
   addPinnedRepository,
   getPinnedRepositories,
@@ -41,6 +46,7 @@ interface IRepositoriesListProps {
   readonly repositories: ReadonlyArray<Repositoryish>
   readonly recentRepositories: ReadonlyArray<number>
   readonly showRecentRepositories: boolean
+  readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
 
   /** A cache of the latest repository state values, keyed by the repository id */
   readonly localRepositoryStateLookup: ReadonlyMap<
@@ -176,6 +182,15 @@ export class RepositoriesList extends React.Component<
         matches={matches}
         aheadBehind={item.aheadBehind}
         changedFilesCount={item.changedFilesCount}
+        branchName={
+          shouldShowBranchName(
+            this.props.showBranchNameInRepoList,
+            item.branchName,
+            item.defaultBranchName
+          )
+            ? item.branchName
+            : null
+        }
       />
     )
   }
@@ -265,6 +280,8 @@ export class RepositoriesList extends React.Component<
       return group.owner.login
     } else if (kind === 'recent') {
       return 'Recent'
+    } else if (kind === 'custom') {
+      return group.name
     } else {
       assertNever(kind, `Unknown repository group kind ${kind}`)
     }
@@ -309,9 +326,15 @@ export class RepositoriesList extends React.Component<
       onOpenInExternalEditor: this.props.onOpenInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.props.askForConfirmationOnRemoveRepository,
-      externalEditorLabel: this.props.externalEditorLabel,
+      externalEditorLabel:
+        item.repository instanceof Repository &&
+        item.repository.customEditorOverride !== null
+          ? getEditorOverrideLabel(item.repository.customEditorOverride)
+          : this.props.externalEditorLabel,
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
+      onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
+      onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
       onViewOnGitHub: this.props.onViewOnGitHub,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
@@ -417,16 +440,30 @@ export class RepositoriesList extends React.Component<
 
   private renderPostFilter = () => {
     return (
-      <Button
-        className="new-repository-button"
-        onClick={this.onNewRepositoryButtonClick}
-        ariaExpanded={this.state.newRepositoryMenuExpanded}
-        onKeyDown={this.onNewRepositoryButtonKeyDown}
-      >
-        Add
-        <Octicon symbol={octicons.triangleDown} />
-      </Button>
+      <div className="repository-list-actions">
+        <Button
+          className="pull-all-repositories-button"
+          onClick={this.onPullAllRepositories}
+        >
+          <Octicon symbol={octicons.arrowDown} /> Pull all
+        </Button>
+        <Button
+          className="new-repository-button"
+          onClick={this.onNewRepositoryButtonClick}
+          ariaExpanded={this.state.newRepositoryMenuExpanded}
+          onKeyDown={this.onNewRepositoryButtonKeyDown}
+        >
+          Add
+          <Octicon symbol={octicons.triangleDown} />
+        </Button>
+      </div>
     )
+  }
+
+  private onPullAllRepositories = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.PullAllRepositories,
+    })
   }
 
   private onNewRepositoryButtonKeyDown = (
@@ -509,6 +546,17 @@ export class RepositoriesList extends React.Component<
 
   private onRemoveRepositoryAlias = (repository: Repository) => {
     this.props.dispatcher.changeRepositoryAlias(repository, null)
+  }
+
+  private onChangeRepositoryGroupName = (repository: Repository) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.ChangeRepositoryGroupName,
+      repository,
+    })
+  }
+
+  private onRemoveRepositoryGroupName = (repository: Repository) => {
+    this.props.dispatcher.changeRepositoryGroupName(repository, null)
   }
 
   private onCreateWorktree = (repository: Repository) => {

@@ -4,6 +4,7 @@ import { WorkflowPreferences } from '../../models/workflow-preferences'
 import { IBuildRunPreferences } from '../../models/build-run-preferences'
 import { assertNonNullable } from '../fatal-error'
 import { GitHubAccountType } from '../api'
+import { EditorOverride } from '../../models/editor-override'
 
 export interface IDatabaseOwner {
   readonly id?: number
@@ -78,6 +79,11 @@ export interface IDatabaseRepository {
 
   /** Stable account identity selected for authenticated operations. */
   readonly accountKey?: string | null
+
+  /** Repository-list and per-repository behavior metadata (unindexed). */
+  readonly groupName?: string | null
+  readonly defaultBranch?: string | null
+  readonly customEditorOverride?: EditorOverride | null
 }
 
 /**
@@ -150,7 +156,19 @@ export class RepositoriesDatabase extends BaseDatabase {
 
     this.conditionalVersion(8, {}, ensureNoUndefinedParentID)
     this.conditionalVersion(9, { owners: '++id, &key' }, createOwnerKey)
+    this.conditionalVersion(10, {}, initializeRepositoryMetadata)
   }
+}
+
+async function initializeRepositoryMetadata(tx: Transaction) {
+  const table = tx.table<IDatabaseRepository, number>('repositories')
+  await table.toCollection().modify(repository => {
+    Object.assign(repository, {
+      groupName: repository.groupName ?? null,
+      defaultBranch: repository.defaultBranch ?? null,
+      customEditorOverride: repository.customEditorOverride ?? null,
+    })
+  })
 }
 
 /**

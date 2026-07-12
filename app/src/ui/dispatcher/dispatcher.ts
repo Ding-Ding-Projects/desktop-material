@@ -69,6 +69,7 @@ import type {
   IAutomationSettingsState,
 } from '../../lib/automation/automation-settings'
 import type { MergeAllMode } from '../../lib/automation/merge-all'
+import type { IPullAllResult } from '../../lib/automation/pull-all'
 
 import { Account } from '../../models/account'
 import { AppMenu, ExecutableMenuItem } from '../../models/app-menu'
@@ -1039,6 +1040,10 @@ export class Dispatcher {
     return this.appStore._pull(repository)
   }
 
+  public pullAllRepositories(): Promise<ReadonlyArray<IPullAllResult>> {
+    return this.appStore._pullAllRepositories()
+  }
+
   /** Fetch a specific refspec for the repository. */
   public fetchRefspec(
     repository: Repository,
@@ -1178,6 +1183,33 @@ export class Dispatcher {
     newAlias: string | null
   ): Promise<void> {
     return this.appStore._changeRepositoryAlias(repository, newAlias)
+  }
+
+  public changeRepositoryGroupName(
+    repository: Repository,
+    newGroupName: string | null
+  ): Promise<void> {
+    return this.appStore._changeRepositoryGroupName(repository, newGroupName)
+  }
+
+  public updateRepositoryDefaultBranch(
+    repository: Repository,
+    defaultBranch: string | null
+  ): Promise<void> {
+    return this.appStore._updateRepositoryDefaultBranch(
+      repository,
+      defaultBranch
+    )
+  }
+
+  public updateRepositoryEditorOverride(
+    repository: Repository,
+    editorOverride: import('../../models/editor-override').EditorOverride | null
+  ): Promise<void> {
+    return this.appStore._updateRepositoryEditorOverride(
+      repository,
+      editorOverride
+    )
   }
 
   /** Rename the branch to a new name. */
@@ -1963,8 +1995,11 @@ export class Dispatcher {
   /**
    * Opens a path in the external editor selected by the user.
    */
-  public async openInExternalEditor(fullPath: string): Promise<void> {
-    return this.appStore._openInExternalEditor(fullPath)
+  public async openInExternalEditor(
+    fullPath: string,
+    repository: Repository | null = null
+  ): Promise<void> {
+    return this.appStore._openInExternalEditor(fullPath, repository)
   }
 
   /**
@@ -3575,6 +3610,12 @@ export class Dispatcher {
 
   public setShowRecentRepositories(showRecentRepositories: boolean) {
     this.appStore._setShowRecentRepositories(showRecentRepositories)
+  }
+
+  public setShowBranchNameInRepoList(
+    setting: import('../../models/show-branch-name-in-repo-list').ShowBranchNameInRepoListSetting
+  ) {
+    this.appStore._setShowBranchNameInRepoList(setting)
   }
 
   public setCommitSpellcheckEnabled(commitSpellcheckEnabled: boolean) {
