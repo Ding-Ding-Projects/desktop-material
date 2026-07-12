@@ -156,6 +156,7 @@ import {
   IConstrainedValue,
   ICompareState,
   CommitOptions,
+  OneClickCommitPushPhase,
 } from '../app-state'
 import {
   findEditorOrDefault,
@@ -304,6 +305,11 @@ import {
   saveRepositoryAutomationOverrides,
   IAutomationSettingsOverrides,
 } from '../automation/automation-settings'
+import { buildFallbackCommitMessage } from '../automation/fallback-commit-message'
+import {
+  IAutomationGuardState,
+  canAutoCommitPush,
+} from '../automation/automation-guards'
 import { BranchPruner } from './helpers/branch-pruner'
 import {
   enableCopilotConflictResolution,
@@ -5147,6 +5153,152 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): void {
     saveRepositoryAutomationOverrides(repositoryId, overrides)
     this.emitUpdate()
+  }
+
+  private setOneClickCommitPushPhase(
+    repository: Repository,
+    phase: OneClickCommitPushPhase
+  ): void {
+    this.repositoryStateCache.update(repository, () => ({
+      oneClickCommitPushPhase: phase,
+    }))
+    this.emitUpdate()
+  }
+
+  private getAutomationGuardState(
+    repository: Repository,
+    mergeHeadSet: boolean = false
+  ): IAutomationGuardState {
+    const state = this.repositoryStateCache.get(repository)
+    const { tip } = state.branchesState
+    const message = state.changesState.commitMessage
+    return {
+      tipIsValid: tip.kind === TipState.Valid,
+      hasChanges: state.changesState.workingDirectory.files.length > 0,
+      hasConflict: state.changesState.conflictState !== null,
+      hasMultiCommitOperation: state.multiCommitOperationState !== null,
+      isCommitting: state.isCommitting,
+      isGeneratingCommitMessage: state.isGeneratingCommitMessage,
+      isPushPullFetchInProgress: state.isPushPullFetchInProgress,
+      isCheckingOut: state.checkoutProgress !== null,
+      hasDraftCommitMessage:
+        message.summary.trim().length > 0 ||
+        (message.description?.trim().length ?? 0) > 0,
+      hasUpstream:
+        tip.kind === TipState.Valid && tip.branch.upstreamRemoteName !== null,
+      mergeHeadSet,
+    }
+  }
+
+  public async _oneClickCommitAndPush(repository: Repository): Promise<void> {
+    const guard = canAutoCommitPush(this.getAutomationGuardState(repository))
+    if (!guard.safe) {
+      this.postNotification({
+        kind: 'info',
+        title: 'Commit and push skipped',
+        body: guard.reason,
+        repositoryId: repository.id,
+        action: { kind: 'open-repository', repositoryId: repository.id },
+      })
+      return
+    }
+
+    const files =
+      this.repositoryStateCache.get(repository).changesState.workingDirectory
+        .files
+    let context: ICommitContext = buildFallbackCommitMessage(files, new Date())
+
+    try {
+      this.setOneClickCommitPushPhase(repository, 'generating')
+      context =
+        (await this.generateAutomationCommitMessage(repository, files)) ??
+        context
+
+      await this._changeIncludeAllFiles(repository, true)
+      this.setOneClickCommitPushPhase(repository, 'committing')
+      const committed = await this._commitIncludedChanges(repository, context)
+      if (!committed) {
+        throw new Error('The commit did not complete.')
+      }
+
+      this.setOneClickCommitPushPhase(repository, 'pushing')
+      await this._push(repository)
+      this.postNotification({
+        kind: 'auto-commit',
+        title: 'Committed and pushed',
+        body: context.summary,
+        repositoryId: repository.id,
+        action: { kind: 'open-repository', repositoryId: repository.id },
+      })
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      log.error('One-click commit and push failed', error)
+      this.postNotification({
+        kind: 'auto-commit',
+        title: 'Commit and push failed',
+        body: message,
+        repositoryId: repository.id,
+        action: { kind: 'open-repository', repositoryId: repository.id },
+      })
+    } finally {
+      this.setOneClickCommitPushPhase(repository, null)
+    }
+  }
+
+  private async generateAutomationCommitMessage(
+    repository: Repository,
+    files: ReadonlyArray<WorkingDirectoryFileChange>
+  ): Promise<ICommitContext | null> {
+    const account = getAccountForCommitMessageGeneration(
+      this.accounts,
+      repository
+    )
+    const disclaimerFresh =
+      this.commitMessageGenerationDisclaimerLastSeen !== null &&
+      offsetFromNow(-30, 'days') <=
+        this.commitMessageGenerationDisclaimerLastSeen
+    if (!account || !disclaimerFresh) {
+      return null
+    }
+
+    let context: ICommitContext | null = null
+    await this.withIsGeneratingCommitMessage(repository, async signal => {
+      try {
+        const diff = await getFilesDiffText(repository, files)
+        if (!diff) {
+          return false
+        }
+        const response = enableCopilotSdkCommitMessageGeneration(account)
+          ? await this.copilotStore.generateCommitMessage(
+              account,
+              diff,
+              repository.path,
+              await this.resolveCopilotModelRequest(
+                this.selectedCopilotModels['commit-message-generation'] ?? null
+              ),
+              this.repositoryStateCache
+                .get(repository)
+                .changesState.currentRepoRulesInfo?.commitMessagePatterns.getRules() ??
+                [],
+              signal
+            )
+          : await API.fromAccount(account).getDiffChangesCommitMessage(diff)
+        context = {
+          summary: response.title,
+          description: response.description,
+          messageGeneratedByCopilot: true,
+        }
+        this.statsStore.increment('generateCommitMessageCount')
+        return true
+      } catch (error) {
+        log.warn(
+          'Automation commit-message generation failed; using fallback',
+          error
+        )
+        return false
+      }
+    })
+    return context
   }
 
   /** Open or close the notification centre side sheet. */

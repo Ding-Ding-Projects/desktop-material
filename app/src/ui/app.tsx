@@ -65,7 +65,9 @@ import {
   BranchDropdown,
   WorktreeDropdown,
   RevertProgress,
+  OneClickCommitPushButton,
 } from './toolbar'
+import { canAutoCommitPush } from '../lib/automation/automation-guards'
 import { iconForRepository, OcticonSymbol } from './octicons'
 import * as octicons from './octicons/octicons.generated'
 import {
@@ -3958,6 +3960,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         {this.renderWorktreeToolbarButton()}
         {this.renderBranchToolbarButton()}
         {this.renderPushPullToolbarButton()}
+        {this.renderOneClickCommitPushButton()}
         {this.renderBuildRunToolbarButton()}
       </Toolbar>
     )
@@ -3975,6 +3978,40 @@ export class App extends React.Component<IAppProps, IAppState> {
         repository={selection.repository}
         dispatcher={this.props.dispatcher}
         buildRunStore={this.props.buildRunStore}
+      />
+    )
+  }
+
+  private renderOneClickCommitPushButton() {
+    const selection = this.state.selectedState
+    if (!selection || selection.type !== SelectionType.Repository) {
+      return null
+    }
+    const state = selection.state
+    const tip = state.branchesState.tip
+    const message = state.changesState.commitMessage
+    const guard = canAutoCommitPush({
+      tipIsValid: tip.kind === TipState.Valid,
+      hasChanges: state.changesState.workingDirectory.files.length > 0,
+      hasConflict: state.changesState.conflictState !== null,
+      hasMultiCommitOperation: state.multiCommitOperationState !== null,
+      isCommitting: state.isCommitting,
+      isGeneratingCommitMessage: state.isGeneratingCommitMessage,
+      isPushPullFetchInProgress: state.isPushPullFetchInProgress,
+      isCheckingOut: state.checkoutProgress !== null,
+      hasDraftCommitMessage:
+        message.summary.trim().length > 0 ||
+        (message.description?.trim().length ?? 0) > 0,
+      hasUpstream:
+        tip.kind === TipState.Valid && tip.branch.upstreamRemoteName !== null,
+      mergeHeadSet: false,
+    })
+    return (
+      <OneClickCommitPushButton
+        repository={selection.repository}
+        dispatcher={this.props.dispatcher}
+        phase={state.oneClickCommitPushPhase}
+        disabledReason={guard.safe ? null : guard.reason}
       />
     )
   }

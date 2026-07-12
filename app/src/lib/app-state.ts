@@ -578,6 +578,7 @@ export type ConflictState =
   | CherryPickConflictState
 
 export interface IRepositoryState {
+  readonly oneClickCommitPushPhase: OneClickCommitPushPhase
   readonly commitSelection: ICommitSelection
   readonly changesState: IChangesState
   readonly compareState: ICompareState
@@ -698,6 +699,12 @@ export interface IRepositoryState {
    */
   readonly allowEmptyCommit: boolean
 }
+
+export type OneClickCommitPushPhase =
+  | 'generating'
+  | 'committing'
+  | 'pushing'
+  | null
 
 export type CommitOptions = Pick<
   IRepositoryState,

@@ -300,6 +300,10 @@ export class Dispatcher {
     this.appStore._setRepositoryAutomationOverrides(repositoryId, overrides)
   }
 
+  public oneClickCommitAndPush(repository: Repository): Promise<void> {
+    return this.appStore._oneClickCommitAndPush(repository)
+  }
+
   /** Open or close the notification centre side sheet. */
   public setNotificationCentreOpen(open: boolean): void {
     this.appStore._setNotificationCentreOpen(open)
