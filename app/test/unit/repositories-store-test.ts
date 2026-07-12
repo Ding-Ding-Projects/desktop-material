@@ -91,10 +91,12 @@ describe('RepositoriesStore', () => {
         '/some/metadata/path/.git'
       )
       await repositoriesStore.updateRepositoryGroupName([repository], 'Clients')
-      await repositoriesStore.updateRepositoryDefaultBranch(
-        repository,
-        'develop'
-      )
+      const withDefaultBranch =
+        await repositoriesStore.updateRepositoryDefaultBranch(
+          repository,
+          'develop'
+        )
+      assert.equal(withDefaultBranch.defaultBranch, 'develop')
       await repositoriesStore.updateRepositoryEditorOverride(repository, {
         selectedExternalEditor: 'Visual Studio Code',
         useCustomEditor: false,

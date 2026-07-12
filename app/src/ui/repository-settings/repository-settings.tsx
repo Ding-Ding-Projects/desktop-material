@@ -43,6 +43,16 @@ import {
   IAutomationSettingsOverrides,
   loadRepositoryAutomationOverrides,
 } from '../../lib/automation/automation-settings'
+import { RepositoryMetadata } from './repository-metadata'
+import { getAvailableEditors } from '../../lib/editors/lookup'
+import {
+  ICustomIntegration,
+  TargetPathArgument,
+} from '../../lib/custom-integration'
+import {
+  EditorOverride,
+  getEditorOverrideHash,
+} from '../../models/editor-override'
 
 interface IRepositorySettingsProps {
   readonly initialSelectedTab?: RepositorySettingsTab
@@ -67,6 +77,7 @@ export enum RepositorySettingsTab {
   BuildRun,
   Submodules,
   Automation,
+  Metadata,
   ForkSettings,
 }
 
@@ -96,6 +107,12 @@ interface IRepositorySettingsState {
   readonly buildRunPreferences: IBuildRunPreferences
   readonly buildRunPreferencesHaveChanged: boolean
   readonly automationOverrides: IAutomationSettingsOverrides
+  readonly defaultBranch: string
+  readonly availableEditors: ReadonlyArray<string>
+  readonly useDefaultEditor: boolean
+  readonly selectedExternalEditor: string | null
+  readonly useCustomEditor: boolean
+  readonly customEditor: ICustomIntegration
 }
 
 export class RepositorySettings extends React.Component<
@@ -136,6 +153,17 @@ export class RepositorySettings extends React.Component<
       automationOverrides: loadRepositoryAutomationOverrides(
         props.repository.id
       ),
+      defaultBranch: props.repository.defaultBranch ?? '',
+      availableEditors: [],
+      useDefaultEditor: props.repository.customEditorOverride === null,
+      selectedExternalEditor:
+        props.repository.customEditorOverride?.selectedExternalEditor ?? null,
+      useCustomEditor:
+        props.repository.customEditorOverride?.useCustomEditor ?? false,
+      customEditor: props.repository.customEditorOverride?.customEditor ?? {
+        path: '',
+        arguments: TargetPathArgument,
+      },
     }
   }
 
@@ -159,6 +187,13 @@ export class RepositorySettings extends React.Component<
         e
       )
       this.setState({ errors: [`Could not read root .gitignore: ${e}`] })
+    }
+
+    try {
+      const editors = await getAvailableEditors()
+      this.setState({ availableEditors: editors.map(editor => editor.editor) })
+    } catch (e) {
+      log.warn('RepositorySettings: unable to find external editors', e)
     }
 
     const localCommitterName = await getConfigValue(
@@ -260,6 +295,10 @@ export class RepositorySettings extends React.Component<
               <Octicon className="icon" symbol={octicons.sync} />
               Automation
             </span>
+            <span>
+              <Octicon className="icon" symbol={octicons.gear} />
+              Metadata
+            </span>
             {showForkSettings && (
               <span>
                 <Octicon className="icon" symbol={octicons.repoForked} />
@@ -333,6 +372,23 @@ export class RepositorySettings extends React.Component<
           <AutomationOverrides
             overrides={this.state.automationOverrides}
             onChanged={this.onAutomationOverridesChanged}
+          />
+        )
+      }
+      case RepositorySettingsTab.Metadata: {
+        return (
+          <RepositoryMetadata
+            defaultBranch={this.state.defaultBranch}
+            availableEditors={this.state.availableEditors}
+            useDefaultEditor={this.state.useDefaultEditor}
+            selectedExternalEditor={this.state.selectedExternalEditor}
+            useCustomEditor={this.state.useCustomEditor}
+            customEditor={this.state.customEditor}
+            onDefaultBranchChanged={this.onDefaultBranchChanged}
+            onUseDefaultEditorChanged={this.onUseDefaultEditorChanged}
+            onSelectedEditorChanged={this.onSelectedEditorChanged}
+            onUseCustomEditorChanged={this.onUseCustomEditorChanged}
+            onCustomEditorChanged={this.onCustomEditorChanged}
           />
         )
       }
@@ -557,6 +613,41 @@ export class RepositorySettings extends React.Component<
       }
     }
 
+    const defaultBranch = this.state.defaultBranch.trim() || null
+    if (defaultBranch !== this.props.repository.defaultBranch) {
+      try {
+        await this.props.dispatcher.updateRepositoryDefaultBranch(
+          this.props.repository,
+          defaultBranch
+        )
+      } catch (e) {
+        log.error('RepositorySettings: unable to save default branch', e)
+        errors.push(`Failed saving the default branch: ${e}`)
+      }
+    }
+
+    const editorOverride: EditorOverride | null = this.state.useDefaultEditor
+      ? null
+      : {
+          selectedExternalEditor: this.state.selectedExternalEditor,
+          useCustomEditor: this.state.useCustomEditor,
+          customEditor: this.state.customEditor,
+        }
+    if (
+      getEditorOverrideHash(editorOverride) !==
+      getEditorOverrideHash(this.props.repository.customEditorOverride)
+    ) {
+      try {
+        await this.props.dispatcher.updateRepositoryEditorOverride(
+          this.props.repository,
+          editorOverride
+        )
+      } catch (e) {
+        log.error('RepositorySettings: unable to save editor override', e)
+        errors.push(`Failed saving the external editor: ${e}`)
+      }
+    }
+
     let shouldRefreshAuthor = false
     const gitLocationChanged =
       this.state.gitConfigLocation !== this.state.initialGitConfigLocation
@@ -683,5 +774,25 @@ export class RepositorySettings extends React.Component<
 
   private onCommitterEmailChanged = (committerEmail: string) => {
     this.setState({ committerEmail })
+  }
+
+  private onDefaultBranchChanged = (defaultBranch: string) => {
+    this.setState({ defaultBranch })
+  }
+
+  private onUseDefaultEditorChanged = (useDefaultEditor: boolean) => {
+    this.setState({ useDefaultEditor })
+  }
+
+  private onSelectedEditorChanged = (selectedExternalEditor: string) => {
+    this.setState({ selectedExternalEditor })
+  }
+
+  private onUseCustomEditorChanged = (useCustomEditor: boolean) => {
+    this.setState({ useCustomEditor })
+  }
+
+  private onCustomEditorChanged = (customEditor: ICustomIntegration) => {
+    this.setState({ customEditor })
   }
 }

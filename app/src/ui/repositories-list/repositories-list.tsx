@@ -28,6 +28,7 @@ import { FoldoutType } from '../../lib/app-state'
 import { SectionFilterList } from '../lib/section-filter-list'
 import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
+import { getEditorOverrideLabel } from '../../models/editor-override'
 import {
   ShowBranchNameInRepoListSetting,
   shouldShowBranchName,
@@ -325,7 +326,11 @@ export class RepositoriesList extends React.Component<
       onOpenInExternalEditor: this.props.onOpenInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.props.askForConfirmationOnRemoveRepository,
-      externalEditorLabel: this.props.externalEditorLabel,
+      externalEditorLabel:
+        item.repository instanceof Repository &&
+        item.repository.customEditorOverride !== null
+          ? getEditorOverrideLabel(item.repository.customEditorOverride)
+          : this.props.externalEditorLabel,
       onChangeRepositoryAlias: this.onChangeRepositoryAlias,
       onRemoveRepositoryAlias: this.onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,

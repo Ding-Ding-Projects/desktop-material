@@ -1155,6 +1155,26 @@ export class Dispatcher {
     return this.appStore._changeRepositoryGroupName(repository, newGroupName)
   }
 
+  public updateRepositoryDefaultBranch(
+    repository: Repository,
+    defaultBranch: string | null
+  ): Promise<void> {
+    return this.appStore._updateRepositoryDefaultBranch(
+      repository,
+      defaultBranch
+    )
+  }
+
+  public updateRepositoryEditorOverride(
+    repository: Repository,
+    editorOverride: import('../../models/editor-override').EditorOverride | null
+  ): Promise<void> {
+    return this.appStore._updateRepositoryEditorOverride(
+      repository,
+      editorOverride
+    )
+  }
+
   /** Rename the branch to a new name. */
   public renameBranch(
     repository: Repository,
@@ -1930,8 +1950,11 @@ export class Dispatcher {
   /**
    * Opens a path in the external editor selected by the user.
    */
-  public async openInExternalEditor(fullPath: string): Promise<void> {
-    return this.appStore._openInExternalEditor(fullPath)
+  public async openInExternalEditor(
+    fullPath: string,
+    repository: Repository | null = null
+  ): Promise<void> {
+    return this.appStore._openInExternalEditor(fullPath, repository)
   }
 
   /**

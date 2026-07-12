@@ -42,6 +42,7 @@ import {
   getNonForkGitHubRepository,
   isRepositoryWithGitHubRepository,
 } from '../models/repository'
+import { getEditorOverrideLabel } from '../models/editor-override'
 import { Branch } from '../models/branch'
 import { PreferencesTab } from '../models/preferences'
 import { findItemByAccessKey, itemIsSelectable } from '../models/app-menu'
@@ -1480,6 +1481,13 @@ export class App extends React.Component<IAppProps, IAppState> {
     return this.state.useCustomEditor
       ? undefined
       : this.state.selectedExternalEditor ?? undefined
+  }
+
+  private getExternalEditorLabel(repository: Repository | CloningRepository) {
+    return !(repository instanceof Repository) ||
+      repository.customEditorOverride === null
+      ? this.externalEditorLabel
+      : getEditorOverrideLabel(repository.customEditorOverride)
   }
 
   private openCurrentRepositoryInExternalEditor() {
@@ -3484,7 +3492,11 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private openFileInExternalEditor = (fullPath: string) => {
-    this.props.dispatcher.openInExternalEditor(fullPath)
+    const repository = this.state.selectedState?.repository
+    this.props.dispatcher.openInExternalEditor(
+      fullPath,
+      repository instanceof Repository ? repository : null
+    )
   }
 
   private openInExternalEditor = (
@@ -3494,7 +3506,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    this.props.dispatcher.openInExternalEditor(repository.path)
+    this.props.dispatcher.openInExternalEditor(repository.path, repository)
   }
 
   private openRepositoryInSelectedEditor = async (
@@ -3520,7 +3532,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     const fullPath = Path.join(repository.path, path)
-    this.props.dispatcher.openInExternalEditor(fullPath)
+    this.props.dispatcher.openInExternalEditor(
+      fullPath,
+      repository instanceof Repository ? repository : null
+    )
   }
 
   private showRepository = (repository: Repository | CloningRepository) => {
@@ -3660,7 +3675,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       onOpenInExternalEditor: this.openInExternalEditor,
       askForConfirmationOnRemoveRepository:
         this.state.askForConfirmationOnRepositoryRemoval,
-      externalEditorLabel: this.externalEditorLabel,
+      externalEditorLabel: this.getExternalEditorLabel(repository),
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,

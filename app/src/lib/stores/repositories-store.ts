@@ -368,9 +368,25 @@ export class RepositoriesStore extends TypedBaseStore<
   public async updateRepositoryDefaultBranch(
     repository: Repository,
     defaultBranch: string | null
-  ): Promise<void> {
+  ): Promise<Repository> {
     await this.db.repositories.update(repository.id, { defaultBranch })
     this.emitUpdatedRepositories()
+
+    return new Repository(
+      repository.path,
+      repository.id,
+      repository.gitHubRepository,
+      repository.missing,
+      repository.alias,
+      repository.workflowPreferences,
+      repository.isTutorialRepository,
+      repository.gitDir,
+      repository.accountKey,
+      repository.buildRunPreferences,
+      repository.groupName,
+      defaultBranch,
+      repository.customEditorOverride
+    )
   }
 
   public async updateRepositoryEditorOverride(

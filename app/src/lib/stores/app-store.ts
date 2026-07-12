@@ -3227,15 +3227,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
       useCustomShell,
       selectedShell,
       selectedRepository,
-      useCustomEditor,
-      selectedExternalEditor,
       askForConfirmationOnRepositoryRemoval,
       askForConfirmationOnForcePush,
     } = this
 
+    const editorOverride =
+      selectedRepository instanceof Repository &&
+      selectedRepository.customEditorOverride !== null
+        ? selectedRepository.customEditorOverride
+        : null
+    const editorUsesCustom =
+      editorOverride?.useCustomEditor ?? this.useCustomEditor
+    const editorName = editorOverride
+      ? editorOverride.selectedExternalEditor
+      : this.selectedExternalEditor
+
     const labels: MenuLabelsEvent = {
       selectedShell: useCustomShell ? null : selectedShell,
-      selectedExternalEditor: useCustomEditor ? null : selectedExternalEditor,
+      selectedExternalEditor: editorUsesCustom ? null : editorName,
       askForConfirmationOnRepositoryRemoval,
       askForConfirmationOnForcePush,
     }
@@ -5980,6 +5989,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
   }
 
+  public async _updateRepositoryDefaultBranch(
+    repository: Repository,
+    defaultBranch: string | null
+  ): Promise<void> {
+    const updated = await this.repositoriesStore.updateRepositoryDefaultBranch(
+      repository,
+      defaultBranch
+    )
+    await this._refreshRepository(updated)
+  }
+
+  public async _updateRepositoryEditorOverride(
+    repository: Repository,
+    editorOverride: import('../../models/editor-override').EditorOverride | null
+  ): Promise<void> {
+    await this.repositoriesStore.updateRepositoryEditorOverride(
+      repository,
+      editorOverride
+    )
+  }
+
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _renameBranch(
     repository: Repository,
@@ -8585,9 +8615,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** Open a path to a repository or file using the user's configured editor */
-  public async _openInExternalEditor(fullPath: string): Promise<void> {
+  public async _openInExternalEditor(
+    fullPath: string,
+    repository: Repository | null = null
+  ): Promise<void> {
+    const globalSettings = this.getState()
     const { selectedExternalEditor, useCustomEditor, customEditor } =
-      this.getState()
+      repository?.customEditorOverride ?? globalSettings
 
     try {
       if (useCustomEditor && customEditor) {
