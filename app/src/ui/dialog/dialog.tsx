@@ -1106,6 +1106,7 @@ export class Dialog extends React.Component<DialogProps, IDialogState> {
         style={style}
         data-top-most={this.context.isTopMost ? 'true' : undefined}
         data-modal={isModal ? 'true' : undefined}
+        data-busy={this.props.disabled ? 'true' : undefined}
         {...this.getAriaAttributes()}
         tabIndex={-1}
       >

@@ -15,6 +15,22 @@
   z-index: var(--popup-z-index);
   pointer-events: none;
 
+  // While a dialog is actively performing its submitted operation (its fieldset
+  // is disabled, i.e. it is "busy" — e.g. create-branch running its checkout,
+  // sign-in authenticating) block interaction with the app underneath until the
+  // operation resolves and the dialog closes. This restores the guarantee the
+  // old modal dialogs gave without a scrim: it prevents the app from being
+  // driven into a transient, operation-in-progress state (such as clicking the
+  // branch toolbar button mid-checkout, which the dropdown refuses to open while
+  // a checkout is running, silently swallowing the click). The layer only
+  // captures pointer events — it stays transparent — and the open dialogs keep
+  // `pointer-events: auto` below, so they remain fully interactive. Idle
+  // non-modal dialogs match no `[data-busy]` and leave the app interactive, so
+  // the M4 non-modal behavior is preserved.
+  &:has(dialog[data-busy]) {
+    pointer-events: auto;
+  }
+
   dialog {
     &[open] {
       pointer-events: auto;
