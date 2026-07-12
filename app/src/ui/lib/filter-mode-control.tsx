@@ -157,7 +157,6 @@ export class FilterModeControl extends React.Component<
             <button
               className="filter-regex-builder-button"
               aria-label="Open regex builder"
-              title="Regex builder"
               onClick={this.onOpenBuilder}
             >
               <span className="filter-mode-glyph">.*</span>

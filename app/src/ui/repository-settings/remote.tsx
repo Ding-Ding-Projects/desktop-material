@@ -57,47 +57,19 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
       <DialogContent>
         <div className="remotes-manager">
           <div className="remotes-list" role="list">
-            {this.props.remotes.map(remote => this.renderRemoteRow(remote))}
+            {this.props.remotes.map(remote => (
+              <RemoteRow
+                key={remote.name}
+                remote={remote}
+                isDefault={remote.name === this.props.defaultRemoteName}
+                onRemoteUrlChanged={this.props.onRemoteUrlChanged}
+                onRemoveRemote={this.props.onRemoveRemote}
+              />
+            ))}
           </div>
           {this.renderAddRemoteRow()}
         </div>
       </DialogContent>
-    )
-  }
-
-  private renderRemoteRow(remote: IRemote) {
-    const isDefault = remote.name === this.props.defaultRemoteName
-
-    return (
-      <div className="remote-row" role="listitem" key={remote.name}>
-        <div className="remote-name" title={remote.name}>
-          <Octicon className="remote-icon" symbol={octicons.server} />
-          <span>{remote.name}</span>
-          {isDefault && <span className="remote-badge">origin</span>}
-        </div>
-        <TextBox
-          className="remote-url"
-          placeholder="Remote URL"
-          ariaLabel={`${remote.name} remote URL`}
-          value={remote.url}
-          onValueChanged={url =>
-            this.props.onRemoteUrlChanged(remote.name, url)
-          }
-        />
-        <Button
-          className="remote-remove"
-          ariaLabel={`Remove ${remote.name} remote`}
-          tooltip={
-            isDefault
-              ? 'The account-bound remote cannot be removed'
-              : `Remove ${remote.name}`
-          }
-          disabled={isDefault}
-          onClick={() => this.props.onRemoveRemote(remote.name)}
-        >
-          <Octicon symbol={octicons.trash} />
-        </Button>
-      </div>
     )
   }
 
@@ -174,5 +146,60 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
 
     this.props.onAddRemote(name, url)
     this.setState({ newRemoteName: '', newRemoteUrl: '', addError: null })
+  }
+}
+
+interface IRemoteRowProps {
+  readonly remote: IRemote
+  readonly isDefault: boolean
+  readonly onRemoteUrlChanged: (name: string, url: string) => void
+  readonly onRemoveRemote: (name: string) => void
+}
+
+/**
+ * A single remote row. Extracted so the per-remote URL and remove handlers can
+ * be stable instance methods bound to the remote's name.
+ */
+class RemoteRow extends React.PureComponent<IRemoteRowProps> {
+  private onUrlChanged = (url: string) => {
+    this.props.onRemoteUrlChanged(this.props.remote.name, url)
+  }
+
+  private onRemove = () => {
+    this.props.onRemoveRemote(this.props.remote.name)
+  }
+
+  public render() {
+    const { remote, isDefault } = this.props
+
+    return (
+      <div className="remote-row" role="listitem">
+        <div className="remote-name">
+          <Octicon className="remote-icon" symbol={octicons.server} />
+          <span>{remote.name}</span>
+          {isDefault && <span className="remote-badge">origin</span>}
+        </div>
+        <TextBox
+          className="remote-url"
+          placeholder="Remote URL"
+          ariaLabel={`${remote.name} remote URL`}
+          value={remote.url}
+          onValueChanged={this.onUrlChanged}
+        />
+        <Button
+          className="remote-remove"
+          ariaLabel={`Remove ${remote.name} remote`}
+          tooltip={
+            isDefault
+              ? 'The account-bound remote cannot be removed'
+              : `Remove ${remote.name}`
+          }
+          disabled={isDefault}
+          onClick={this.onRemove}
+        >
+          <Octicon symbol={octicons.trash} />
+        </Button>
+      </div>
+    )
   }
 }

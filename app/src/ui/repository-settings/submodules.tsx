@@ -8,6 +8,7 @@ import { TextBox } from '../lib/text-box'
 import { Loading } from '../lib/loading'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { TooltippedContent } from '../lib/tooltipped-content'
 
 interface ISubmodulesProps {
   readonly repository: Repository
@@ -150,7 +151,7 @@ export class Submodules extends React.Component<
     }
   }
 
-  private onSync = async (submodule: IManagedSubmodule) => {
+  private onSyncSubmodule = async (submodule: IManagedSubmodule) => {
     this.setPathBusy(submodule.path, true)
     this.setState({ error: null })
     try {
@@ -221,64 +222,17 @@ export class Submodules extends React.Component<
   private renderRow(submodule: IManagedSubmodule): JSX.Element {
     const isBusy =
       this.state.busyPaths.has(submodule.path) || this.state.isBusyGlobal
-    const shortSha = submodule.sha ? submodule.sha.slice(0, 8) : '—'
 
     return (
-      <li key={submodule.path} className="submodule-row">
-        <div className="submodule-row-main">
-          <div className="submodule-row-heading">
-            <Octicon
-              className="submodule-row-icon"
-              symbol={octicons.fileSubmodule}
-            />
-            <span className="submodule-row-path">{submodule.path}</span>
-            {this.renderStatusPill(submodule)}
-          </div>
-          <div className="submodule-row-meta">
-            {submodule.url !== null && (
-              <span className="submodule-row-url" title={submodule.url}>
-                {submodule.url}
-              </span>
-            )}
-            {submodule.branch !== null && (
-              <span className="submodule-row-branch">
-                <Octicon symbol={octicons.gitBranch} />
-                {submodule.branch}
-              </span>
-            )}
-            <span className="submodule-row-sha" title={submodule.sha ?? ''}>
-              <Octicon symbol={octicons.gitCommit} />
-              {shortSha}
-            </span>
-          </div>
-        </div>
-        <div className="submodule-row-actions">
-          <Button
-            type="button"
-            disabled={isBusy}
-            onClick={() => this.onUpdate(submodule)}
-            tooltip="Initialize and update this submodule"
-          >
-            Update
-          </Button>
-          <Button
-            type="button"
-            disabled={isBusy}
-            onClick={() => this.onSync(submodule)}
-            tooltip="Sync the remote URL from .gitmodules"
-          >
-            Sync
-          </Button>
-          <Button
-            type="button"
-            disabled={isBusy}
-            onClick={() => this.onRemove(submodule)}
-            tooltip="Deinitialize and remove this submodule"
-          >
-            Remove
-          </Button>
-        </div>
-      </li>
+      <SubmoduleRow
+        key={submodule.path}
+        submodule={submodule}
+        isBusy={isBusy}
+        statusPill={this.renderStatusPill(submodule)}
+        onUpdate={this.onUpdate}
+        onSyncSubmodule={this.onSyncSubmodule}
+        onRemove={this.onRemove}
+      />
     )
   }
 
@@ -389,6 +343,98 @@ export class Submodules extends React.Component<
           {this.renderAddForm()}
         </div>
       </DialogContent>
+    )
+  }
+}
+
+interface ISubmoduleRowProps {
+  readonly submodule: IManagedSubmodule
+  readonly isBusy: boolean
+  readonly statusPill: JSX.Element
+  readonly onUpdate: (submodule: IManagedSubmodule) => void
+  readonly onSyncSubmodule: (submodule: IManagedSubmodule) => void
+  readonly onRemove: (submodule: IManagedSubmodule) => void
+}
+
+/**
+ * A single submodule row. Extracted so the per-row action handlers can be
+ * stable instance methods bound to the submodule rather than inline arrows.
+ */
+class SubmoduleRow extends React.PureComponent<ISubmoduleRowProps> {
+  private onUpdate = () => this.props.onUpdate(this.props.submodule)
+  private onSyncClicked = () =>
+    this.props.onSyncSubmodule(this.props.submodule)
+  private onRemove = () => this.props.onRemove(this.props.submodule)
+
+  public render() {
+    const { submodule, isBusy, statusPill } = this.props
+    const shortSha = submodule.sha ? submodule.sha.slice(0, 8) : '—'
+
+    return (
+      <li className="submodule-row">
+        <div className="submodule-row-main">
+          <div className="submodule-row-heading">
+            <Octicon
+              className="submodule-row-icon"
+              symbol={octicons.fileSubmodule}
+            />
+            <span className="submodule-row-path">{submodule.path}</span>
+            {statusPill}
+          </div>
+          <div className="submodule-row-meta">
+            {submodule.url !== null && (
+              <TooltippedContent
+                tagName="span"
+                className="submodule-row-url"
+                tooltip={submodule.url}
+                onlyWhenOverflowed={true}
+              >
+                {submodule.url}
+              </TooltippedContent>
+            )}
+            {submodule.branch !== null && (
+              <span className="submodule-row-branch">
+                <Octicon symbol={octicons.gitBranch} />
+                {submodule.branch}
+              </span>
+            )}
+            <TooltippedContent
+              tagName="span"
+              className="submodule-row-sha"
+              tooltip={submodule.sha ?? ''}
+            >
+              <Octicon symbol={octicons.gitCommit} />
+              {shortSha}
+            </TooltippedContent>
+          </div>
+        </div>
+        <div className="submodule-row-actions">
+          <Button
+            type="button"
+            disabled={isBusy}
+            onClick={this.onUpdate}
+            tooltip="Initialize and update this submodule"
+          >
+            Update
+          </Button>
+          <Button
+            type="button"
+            disabled={isBusy}
+            onClick={this.onSyncClicked}
+            tooltip="Sync the remote URL from .gitmodules"
+          >
+            Sync
+          </Button>
+          <Button
+            type="button"
+            disabled={isBusy}
+            onClick={this.onRemove}
+            tooltip="Deinitialize and remove this submodule"
+          >
+            Remove
+          </Button>
+        </div>
+      </li>
     )
   }
 }

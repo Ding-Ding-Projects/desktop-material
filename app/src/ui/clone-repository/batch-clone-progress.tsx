@@ -6,6 +6,7 @@ import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { TooltippedContent } from '../lib/tooltipped-content'
+import { isTopMostDialog } from '../dialog/is-top-most'
 import {
   IBatchCloneItem,
   IBatchCloneItemStatus,
@@ -30,6 +31,19 @@ interface IBatchCloneProgressProps {
  * once the batch has finished with failures.
  */
 export class BatchCloneProgress extends React.Component<IBatchCloneProgressProps> {
+  private checkIsTopMostDialog = isTopMostDialog(
+    () => {},
+    () => {}
+  )
+
+  public componentDidMount() {
+    this.checkIsTopMostDialog(this.props.isTopMost)
+  }
+
+  public componentDidUpdate() {
+    this.checkIsTopMostDialog(this.props.isTopMost)
+  }
+
   private onRetryFailed = () => {
     this.props.dispatcher.retryBatchCloneFailed()
   }

@@ -128,33 +128,14 @@ export class ExportRepositoriesDialog extends React.Component<
     }
   }
 
-  private renderEntry = (entry: IExportEntry) => {
-    const { repository, url } = entry
-    const disabled = url === null
-
-    return (
-      <li
-        key={repository.id}
-        className={`transfer-item ${disabled ? 'disabled' : ''}`}
-      >
-        <Checkbox
-          value={
-            this.state.checkedIds.has(repository.id)
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={() => this.onToggle(repository.id)}
-          disabled={disabled}
-        />
-        <div className="details">
-          <div className="name">{repository.name}</div>
-          <div className="url">
-            {url ?? 'No remote URL — cannot be exported'}
-          </div>
-        </div>
-      </li>
-    )
-  }
+  private renderEntry = (entry: IExportEntry) => (
+    <ExportEntryRow
+      key={entry.repository.id}
+      entry={entry}
+      checked={this.state.checkedIds.has(entry.repository.id)}
+      onToggle={this.onToggle}
+    />
+  )
 
   public render() {
     const skipped = this.state.entries.filter(e => e.url === null).length

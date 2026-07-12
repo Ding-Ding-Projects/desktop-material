@@ -122,6 +122,10 @@ export class ImportRepositoriesDialog extends React.Component<
     this.setState({ baseDirectory })
   }
 
+  private onModeChanged = (mode: BatchCloneMode) => {
+    this.setState({ mode })
+  }
+
   private onChooseDirectory = async () => {
     const path = await showOpenDialog({
       properties: ['createDirectory', 'openDirectory'],
@@ -159,27 +163,15 @@ export class ImportRepositoriesDialog extends React.Component<
   private renderModeContents = (mode: BatchCloneMode) =>
     mode === BatchCloneMode.Parallel ? 'Parallel' : 'One at a time'
 
-  private renderUrl = (url: string, existing: ReadonlySet<string>) => {
-    const alreadyCloned = existing.has(url.toLowerCase())
-    return (
-      <li key={url} className="transfer-item">
-        <Checkbox
-          value={
-            this.state.checkedUrls.has(url)
-              ? CheckboxValue.On
-              : CheckboxValue.Off
-          }
-          onChange={() => this.onToggle(url)}
-        />
-        <div className="details">
-          <div className="url">{url}</div>
-          {alreadyCloned && (
-            <div className="already-cloned">Already cloned</div>
-          )}
-        </div>
-      </li>
-    )
-  }
+  private renderUrl = (url: string, existing: ReadonlySet<string>) => (
+    <ImportUrlRow
+      key={url}
+      url={url}
+      checked={this.state.checkedUrls.has(url)}
+      alreadyCloned={existing.has(url.toLowerCase())}
+      onToggle={this.onToggle}
+    />
+  )
 
   private renderPicker() {
     return (
@@ -223,7 +215,7 @@ export class ImportRepositoriesDialog extends React.Component<
               BatchCloneMode.Parallel,
               BatchCloneMode.Sequential,
             ]}
-            onSelectionChanged={mode => this.setState({ mode })}
+            onSelectionChanged={this.onModeChanged}
             renderRadioButtonLabelContents={this.renderModeContents}
           />
         </Row>
@@ -266,6 +258,42 @@ export class ImportRepositoriesDialog extends React.Component<
           />
         </DialogFooter>
       </Dialog>
+    )
+  }
+}
+
+interface IImportUrlRowProps {
+  readonly url: string
+  readonly checked: boolean
+  readonly alreadyCloned: boolean
+  readonly onToggle: (url: string) => void
+}
+
+/**
+ * A single import row. Extracted so the checkbox toggle handler can be a stable
+ * instance method bound to the row's URL.
+ */
+class ImportUrlRow extends React.PureComponent<IImportUrlRowProps> {
+  private onChange = () => {
+    this.props.onToggle(this.props.url)
+  }
+
+  public render() {
+    const { url, checked, alreadyCloned } = this.props
+
+    return (
+      <li className="transfer-item">
+        <Checkbox
+          value={checked ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={this.onChange}
+        />
+        <div className="details">
+          <div className="url">{url}</div>
+          {alreadyCloned && (
+            <div className="already-cloned">Already cloned</div>
+          )}
+        </div>
+      </li>
     )
   }
 }

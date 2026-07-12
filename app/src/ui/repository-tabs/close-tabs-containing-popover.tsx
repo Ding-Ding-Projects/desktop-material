@@ -120,7 +120,6 @@ export class CloseTabsContainingPopover extends React.Component<
               }
               aria-pressed={useRegex}
               aria-label="Use regular expression"
-              title="Use regular expression"
               onClick={this.onToggleRegex}
             >
               .*

@@ -125,6 +125,62 @@ function findRepositoryForListItem(
   return repositories.find(r => r.clone_url === listItem.url) || null
 }
 
+interface ICloneableRepositoryListItemProps {
+  readonly item: ICloneableRepositoryListItem
+  readonly matches: IMatches
+  readonly checked: boolean
+  readonly onToggleItemChecked?: (url: string) => void
+}
+
+/**
+ * A single row in the cloneable repository list. Encapsulated in its own
+ * component so the per-row checkbox handlers can be stable instance methods
+ * rather than inline arrow functions.
+ */
+class CloneableRepositoryListItem extends React.PureComponent<ICloneableRepositoryListItemProps> {
+  private onCheckboxClick = (event: React.MouseEvent<HTMLSpanElement>) => {
+    // Prevent the row's own click/selection handler from firing when the user
+    // is only toggling the multi-clone checkbox.
+    event.stopPropagation()
+  }
+
+  private onCheckboxChange = () => {
+    this.props.onToggleItemChecked?.(this.props.item.url)
+  }
+
+  public render() {
+    const { item, matches, checked, onToggleItemChecked } = this.props
+    const checkable = onToggleItemChecked !== undefined
+
+    return (
+      <div className="clone-repository-list-item">
+        {checkable && (
+          <span
+            className="checkbox"
+            role="presentation"
+            onClick={this.onCheckboxClick}
+          >
+            <Checkbox
+              value={checked ? CheckboxValue.On : CheckboxValue.Off}
+              onChange={this.onCheckboxChange}
+            />
+          </span>
+        )}
+        <Octicon className="icon" symbol={item.icon} />
+        <TooltippedContent
+          className="name"
+          tooltip={item.text[0]}
+          onlyWhenOverflowed={true}
+          tagName="div"
+        >
+          <HighlightText text={item.text[0]} highlight={matches.title} />
+        </TooltippedContent>
+        {item.archived && <div className="archived">Archived</div>}
+      </div>
+    )
+  }
+}
+
 export class CloneableRepositoryFilterList extends React.PureComponent<ICloneableRepositoryFilterListProps> {
   /**
    * A memoized function for grouping repositories for display
@@ -249,44 +305,19 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
     )
   }
 
-  private onCheckboxClick = (event: React.MouseEvent<HTMLSpanElement>) => {
-    // Prevent the row's own click/selection handler from firing when the user
-    // is only toggling the multi-clone checkbox.
-    event.stopPropagation()
-  }
-
   private renderItem = (
     item: ICloneableRepositoryListItem,
     matches: IMatches
   ) => {
     const { onToggleItemChecked, checkedUrls } = this.props
-    const checkable = onToggleItemChecked !== undefined
 
     return (
-      <div className="clone-repository-list-item">
-        {checkable && (
-          <span className="checkbox" onClick={this.onCheckboxClick}>
-            <Checkbox
-              value={
-                checkedUrls?.has(item.url)
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={() => onToggleItemChecked(item.url)}
-            />
-          </span>
-        )}
-        <Octicon className="icon" symbol={item.icon} />
-        <TooltippedContent
-          className="name"
-          tooltip={item.text[0]}
-          onlyWhenOverflowed={true}
-          tagName="div"
-        >
-          <HighlightText text={item.text[0]} highlight={matches.title} />
-        </TooltippedContent>
-        {item.archived && <div className="archived">Archived</div>}
-      </div>
+      <CloneableRepositoryListItem
+        item={item}
+        matches={matches}
+        checked={checkedUrls?.has(item.url) === true}
+        onToggleItemChecked={onToggleItemChecked}
+      />
     )
   }
 
