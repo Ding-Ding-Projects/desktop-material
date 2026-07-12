@@ -1,0 +1,104 @@
+// MD3 top app-bar: window branding + inline app-menu pill treatment.
+//
+// Registered after `ui/window/app-menu-bar` so the pill rules win over the
+// upstream menu-button styling while the access-key underline and the app-menu
+// foldout transparency hack (both declared in `_app-menu-bar.scss`) are left
+// intact. All colour / motion / shape values come from --md-sys-* tokens.
+
+// ---------------------------------------------------------------------------
+// Branding — logo squircle + wordmark
+// ---------------------------------------------------------------------------
+
+#desktop-app-title-bar {
+  .app-brand-container {
+    // New, self-contained hit target — does not alter the title bar's own
+    // -webkit-app-region: drag region.
+    -webkit-app-region: no-drag;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding-right: 8px;
+  }
+
+  // The GitHub mark reversed onto a 21x21 primary tile (radius 7). Overrides
+  // the `_material-shell.scss` `.app-icon` colour via higher specificity.
+  .app-brand-container .app-icon {
+    box-sizing: border-box;
+    width: 21px;
+    height: 21px;
+    padding: 3px;
+    margin: 0 !important;
+    border-radius: 7px;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary) !important;
+    align-self: center;
+    transition: background-color 480ms var(--emph), transform 300ms var(--spring-fast);
+
+    &:hover {
+      transform: rotate(90deg) scale(1.1);
+    }
+  }
+
+  .app-brand {
+    color: var(--md-sys-color-on-surface);
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Inline application menu — pill menu items
+// ---------------------------------------------------------------------------
+
+#app-menu-bar {
+  align-items: center;
+  gap: 2px;
+
+  // Resting + hover state. Mirrors the upstream `:not(.open)` selector so this
+  // layer wins on equal specificity by load order.
+  .toolbar-dropdown:not(.open) > .toolbar-button > button {
+    background: transparent;
+    border-radius: 999px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12.5px;
+    overflow: hidden;
+    padding: 4px 11px;
+    position: relative;
+    transition: background-color 200ms var(--emph), color 200ms var(--emph), transform 200ms var(--spring-fast);
+
+    &:hover,
+    &:focus {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:active {
+      transform: scale(0.94);
+    }
+  }
+
+  // Opened menu — tonal pill.
+  .toolbar-dropdown.open > .toolbar-button > button {
+    background: var(--md-sys-color-secondary-container);
+    border-radius: 999px;
+    color: var(--md-sys-color-on-secondary-container);
+    font-size: 12.5px;
+    overflow: hidden;
+    padding: 4px 11px;
+    position: relative;
+  }
+
+  // Staggered entrance for the top-level menu items (dmDown, backwards fill so
+  // they cascade in on first mount only).
+  .toolbar-dropdown > .toolbar-button > button {
+    animation: dmDown calc(460ms * var(--mdur)) var(--emph) backwards;
+  }
+
+  @for $i from 1 through 8 {
+    .toolbar-dropdown:nth-child(#{$i}) > .toolbar-button > button {
+      animation-delay: #{$i * 30}ms;
+    }
+  }
+}

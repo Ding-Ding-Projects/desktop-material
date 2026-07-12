@@ -110,7 +110,10 @@ export class TitleBar extends React.Component<ITitleBarProps> {
       this.props.titleBarStyle === 'light' ? 'light-title-bar' : ''
 
     const appIcon = this.props.showAppIcon ? (
-      <Octicon className="app-icon" symbol={octicons.markGithub} />
+      <div className="app-brand-container">
+        <Octicon className="app-icon" symbol={octicons.markGithub} />
+        <span className="app-brand">Desktop Material</span>
+      </div>
     ) : null
 
     const onTitlebarDoubleClick = __DARWIN__
