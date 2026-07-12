@@ -15,8 +15,14 @@
     margin-bottom: var(--spacing-quad);
 
     h1 {
-      font-size: var(--font-size-xxl);
-      font-weight: var(--font-weight-light);
+      font-size: 28px;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.01em;
+      color: var(--md-sys-color-on-surface);
+    }
+
+    p {
+      color: var(--md-sys-color-on-surface-variant);
     }
 
     h1,
@@ -56,44 +62,91 @@
       flex-grow: 1;
 
       span {
-        margin-bottom: var(--spacing);
+        margin-bottom: 10px;
         width: 100%;
+        display: block;
+        // Staggered dmUp entrance for the option cards
+        animation: dmUp calc(480ms * var(--mdur)) var(--spring) backwards;
 
+        &:nth-child(1) {
+          animation-delay: 40ms;
+        }
+        &:nth-child(2) {
+          animation-delay: 110ms;
+        }
+        &:nth-child(3) {
+          animation-delay: 180ms;
+        }
+        &:nth-child(4) {
+          animation-delay: 250ms;
+        }
+
+        // MD3 option card: radius-20 surface-container-low with a 42x42 tonal
+        // icon chip, hover lift, radius morph on press.
         .button-component {
           width: 100%;
-          padding: var(--spacing);
+          padding: 14px 16px;
           height: auto;
           text-align: left;
-          margin-bottom: var(--spacing);
+          margin-bottom: 0;
           display: flex;
           flex-direction: row;
           align-items: center;
+          gap: 14px;
+
+          border: 0;
+          border-radius: 20px;
+          background: var(--md-sys-color-surface-container-low);
+          color: var(--md-sys-color-on-surface);
+          font-weight: var(--font-weight-semibold);
+          transition: background-color 200ms var(--emph), box-shadow 200ms var(--emph), transform 200ms var(--spring-fast), border-radius 300ms var(--spring);
 
           /** These buttons need to wrap in high zoom levels */
           text-overflow: unset;
           white-space: normal;
           min-width: 0;
 
+          &:not([aria-disabled='true']):hover {
+            background: var(--md-sys-color-surface-container);
+            box-shadow: var(--md-sys-elevation-level1);
+            transform: translateY(-2px);
+            border-radius: 16px;
+          }
+
+          &:not([aria-disabled='true']):active {
+            transform: scale(0.99);
+          }
+
           .octicon {
-            margin: var(--spacing-half) var(--spacing) var(--spacing-half) var(--spacing-half);
-            height: 24px;
-            width: 24px;
+            box-sizing: content-box;
+            margin: 0;
+            padding: 10px;
+            height: 22px;
+            width: 22px;
+            flex-shrink: 0;
+            border-radius: 14px;
+            background: var(--md-sys-color-secondary-container);
+            color: var(--md-sys-color-on-secondary-container);
           }
         }
       }
     }
   }
 
+  // ProTip callout as a tonal card (no dashed border)
   .drag-drop-info {
-    background: var(--tip-box-background-color);
-    border: 2px dashed var(--tip-box-border-color);
-    border-radius: var(--border-radius);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    border: 0;
+    border-radius: 20px;
     padding: var(--spacing-double);
     display: flex;
     flex-direction: row;
+    align-items: center;
 
     .octicon {
       margin-right: var(--spacing);
+      color: var(--md-sys-color-on-secondary-container);
     }
   }
 

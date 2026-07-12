@@ -7,10 +7,12 @@
   align-items: center;
   overflow-y: auto;
   overflow-x: hidden;
+  animation: dmUp calc(560ms * var(--mdur)) var(--spring) backwards;
 
   .interstitial-header {
     display: flex;
     flex-direction: row;
+    align-items: center;
 
     .text {
       flex-grow: 1;
@@ -18,13 +20,18 @@
 
       h1 {
         padding: 0;
-        margin: 0;
-        font-size: var(--font-size-xl);
-        font-weight: var(--font-weight-light);
+        margin: 0 0 var(--spacing-half);
+        font-size: 26px;
+        font-weight: var(--font-weight-semibold);
+        letter-spacing: -0.01em;
+        color: var(--md-sys-color-on-surface);
       }
 
       p {
         margin: 0;
+        font-size: var(--font-size);
+        line-height: 1.6;
+        color: var(--md-sys-color-on-surface-variant);
       }
     }
 
@@ -34,7 +41,7 @@
       width: 73px;
       min-width: 70px;
       min-height: 73px;
-      align-self: flex-end;
+      align-self: center;
     }
 
     margin-bottom: var(--spacing-double);
@@ -42,7 +49,121 @@
 
   .content {
     width: 100%;
-    max-width: 600px;
+    max-width: 640px;
+  }
+
+  // ---- MD3 suggestion cards ----------------------------------------------
+  // The suggested-action list is retinted into discrete floating cards
+  // (radius-20 surface-container-low) instead of the upstream shared-border
+  // stack. Scoped so the base .suggested-action treatment elsewhere is intact.
+  .suggested-action-group {
+    gap: 10px;
+
+    &.primary {
+      margin-bottom: 10px;
+    }
+  }
+
+  .suggested-action {
+    border: 0;
+    border-radius: 20px;
+    background: var(--md-sys-color-surface-container-low);
+    padding: 16px 18px;
+    gap: 14px;
+    transition: background-color 200ms var(--emph), box-shadow 200ms var(--emph), transform 200ms var(--spring-fast);
+
+    &:first-child,
+    &:last-child {
+      border: 0;
+      border-radius: 20px;
+    }
+
+    &:not(:last-child) {
+      margin-bottom: 10px;
+    }
+
+    &:hover {
+      background: var(--md-sys-color-surface-container);
+      box-shadow: var(--md-sys-elevation-level1);
+      transform: translateY(-2px);
+    }
+
+    &.primary {
+      background: var(--md-sys-color-primary-container);
+      border: 0;
+
+      h2 {
+        color: var(--md-sys-color-on-primary-container);
+      }
+
+      p.description {
+        color: color-mix(in srgb, var(--md-sys-color-on-primary-container) 88%, transparent);
+      }
+    }
+
+    // 42x42 radius-14 tonal icon chip (rendered when an image is supplied)
+    .image-wrapper {
+      width: 42px;
+      height: 42px;
+      border-radius: 14px;
+      background: var(--md-sys-color-secondary-container);
+      margin-right: 4px;
+
+      .octicon {
+        height: 22px;
+        width: 22px;
+        color: var(--md-sys-color-on-secondary-container);
+      }
+    }
+
+    h2 {
+      font-size: 14.5px;
+      font-weight: var(--font-weight-semibold);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    p.description {
+      font-size: 12.5px;
+      line-height: 1.5;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    p.discoverability {
+      font-size: 11.5px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    // Action pill: tonal secondary by default, morphs to filled primary on hover
+    .button-component {
+      height: 38px;
+      padding: 0 18px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      transition: background-color 200ms var(--emph), color 200ms var(--emph), border-radius 300ms var(--spring), transform 200ms var(--spring-fast);
+
+      &:not([aria-disabled='true']):hover {
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        border-radius: 12px;
+        box-shadow: none;
+      }
+
+      &:not([aria-disabled='true']):active {
+        transform: scale(0.96);
+      }
+
+      &[type='submit'] {
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+
+        &:not([aria-disabled='true']):hover {
+          background: var(--md-sys-color-primary);
+          border-radius: 12px;
+        }
+      }
+    }
   }
 
   .pull-request-action {

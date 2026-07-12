@@ -155,6 +155,75 @@
     }
   }
 
+  // ---- MD3 fields --------------------------------------------------------
+  // 46px radius-14 surface inputs with a 2px border that lifts to primary on
+  // focus (replacing the thin underline-ish default).
+  .text-box-component input,
+  input[type='text'],
+  input[type='password'],
+  input[type='email'] {
+    height: calc(46px * var(--welcome-scale));
+    box-sizing: border-box;
+    padding: 0 14px;
+    border-radius: 14px;
+    border: 2px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+    transition: border-color 200ms var(--emph), background-color 200ms var(--emph);
+
+    &::placeholder {
+      color: var(--md-sys-color-on-surface-variant);
+      opacity: 0.62;
+    }
+
+    &:focus {
+      border-color: var(--md-sys-color-primary);
+      outline: none;
+      box-shadow: none;
+    }
+  }
+
+  // ---- MD3 action pills --------------------------------------------------
+  // Primary actions = filled radius-999 pills; secondary = tonal pills.
+  .button-component {
+    height: calc(44px * var(--welcome-scale));
+    padding: 0 22px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    font-weight: var(--font-weight-semibold);
+    transition: background-color 200ms var(--emph), color 200ms var(--emph), box-shadow 200ms var(--emph), transform 200ms var(--spring-fast), border-radius 300ms var(--spring);
+
+    &:not([aria-disabled='true']):hover {
+      background: var(--md-sys-color-secondary-container);
+      box-shadow: var(--md-sys-elevation-level1);
+      border-radius: 16px;
+    }
+
+    &:not([aria-disabled='true']):active {
+      transform: scale(0.97);
+    }
+
+    &[type='submit'] {
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+      border: 0;
+
+      &:not([aria-disabled='true']):hover {
+        background: var(--md-sys-color-primary);
+        box-shadow: var(--md-sys-elevation-level2);
+        border-radius: 16px;
+      }
+    }
+  }
+
+  // Links in primary colour.
+  .link-button-component {
+    color: var(--md-sys-color-primary);
+    font-weight: var(--font-weight-semibold);
+  }
+
   .actions {
     margin-top: var(--spacing);
   }
@@ -201,10 +270,14 @@
 }
 
 .welcome-title {
-  font-size: var(--welcome-font-size-xxl);
-  font-weight: var(--font-weight-light);
-  line-height: 1.25;
+  font-size: calc(28px * var(--welcome-scale));
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
   margin-bottom: var(--spacing);
+  color: var(--md-sys-color-on-surface);
+  // Entrance: heading drops in from above.
+  animation: dmDown calc(460ms * var(--mdur)) var(--emph) backwards;
 
   span {
     display: inline-block;
@@ -213,6 +286,10 @@
 
 .welcome-text {
   margin: var(--spacing) 0;
+  color: var(--md-sys-color-on-surface-variant);
+  // Entrance: supporting copy rises in, just after the heading.
+  animation: dmUp calc(500ms * var(--mdur)) var(--spring) backwards;
+  animation-delay: 70ms;
 }
 
 .sign-in-field {
@@ -295,7 +372,9 @@
 }
 
 .welcome-right {
-  background-color: #28373b;
+  // MD3 primary-container → deep surface gradient (theme-aware, no literal hex).
+  // Keeps the existing artwork DOM; only the backing colour is restyled.
+  background: linear-gradient(145deg, var(--md-sys-color-inverse-surface) 35%, var(--md-sys-color-primary) 155%);
   justify-content: center;
   align-items: center;
   display: flex;
