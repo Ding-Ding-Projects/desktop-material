@@ -6,7 +6,7 @@
     <title>Desktop Material — Material Design 3 remake of GitHub Desktop</title>
     <meta
       name="description"
-      content="Desktop Material is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop — browser-like repo tabs, multi-account, versioned settings, automation, GitHub Actions, and more."
+      content="Desktop Material is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop — an icon navigation rail, floating pill toolbar, browser-like repo tabs, multi-account, versioned settings, and non-modal dialogs."
     />
     <link rel="stylesheet" href="style.css" />
     <!-- Set theme before paint to avoid a flash of the wrong palette -->
@@ -70,8 +70,9 @@
             </h1>
             <p class="hero-tagline">
               Desktop Material is an independent M3 Expressive remake of GitHub
-              Desktop — browser-like repo tabs, real multi-account, versioned
-              settings, and automation, wrapped in an animated light/dark shell.
+              Desktop — an icon navigation rail, a floating pill toolbar,
+              browser-like repo tabs, real multi-account, versioned settings,
+              and non-modal dialogs, wrapped in an animated light/dark shell.
             </p>
             <div class="hero-cta">
               <a
@@ -97,8 +98,8 @@
           </div>
           <figure class="hero-shot">
             <img
-              src="../docs/assets/screenshots/workspace-changes-light.png"
-              alt="Desktop Material Changes view in light theme with browser-like repository tabs"
+              src="../docs/assets/screenshots/material-workspace-changes.png"
+              alt="Desktop Material Changes view: an icon navigation rail, a floating pill toolbar with repository and branch chips, browser-like repository tabs, and a floating Material Design 3 card"
               width="1280"
               loading="eager"
             />
@@ -109,19 +110,29 @@
       <!-- ================= Features ================= -->
       <section class="features" id="features">
         <div class="wrap">
-          <span class="eyebrow">What's inside</span>
-          <h2 class="section-title">A full Git workflow, expanded</h2>
+          <span class="eyebrow">Shipped today</span>
+          <h2 class="section-title">A Material Design 3 shell, live now</h2>
           <p class="section-sub">
-            Everything GitHub Desktop does, plus the features power users keep
-            asking for — reimagined around Material Design 3.
+            Everything below is implemented and on <code>main</code> — the full
+            GitHub Desktop workflow, rebuilt around Material Design 3.
           </p>
           <div class="feature-grid">
             <article class="card">
               <div class="glyph" aria-hidden="true">🎨</div>
               <h3>M3 Expressive shell</h3>
               <p>
-                Animated light/dark theming, soft elevation, pill controls, and
-                dynamic UI scaling from 50–200% with auto-fit.
+                Animated light/dark theming, soft elevation, an app bar with an
+                inline pill menu, and floating radius-24 workspace cards.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">🧭</div>
+              <h3>Icon navigation rail</h3>
+              <p>
+                A left rail for Changes (with a badge), History, Branches,
+                Settings, and your account avatar — plus a floating pill
+                toolbar with repo and branch chips and a sync pill.
               </p>
             </article>
 
@@ -140,7 +151,8 @@
               <h3>Real multi-account</h3>
               <p>
                 Multiple identities per host, each with its own tabs, repos, and
-                settings. Self-hosted GitLab and Bitbucket sign-in included.
+                settings. Switching the active account switches the whole
+                workspace context.
               </p>
             </article>
 
@@ -156,17 +168,40 @@
             </article>
 
             <article class="card">
-              <div class="glyph" aria-hidden="true">⧉</div>
-              <h3>Multi-clone</h3>
+              <div class="glyph" aria-hidden="true">🪟</div>
+              <h3>Non-modal dialogs</h3>
               <p>
-                Checkbox-select many repos, filter by org chips, clone in
-                parallel or one-by-one, and export/import repo lists as URLs.
+                Dialogs float without blocking the app, drag by their headers,
+                cascade, and come to front on focus. Preferences is an MD3
+                940×660 dialog; repo and branch pickers are side sheets.
+              </p>
+            </article>
+          </div>
+
+          <span class="eyebrow" style="margin-top: 3rem"
+            >On the roadmap</span
+          >
+          <h2 class="section-title">Planned next</h2>
+          <p class="section-sub">
+            These are the queued milestones — <strong>not yet implemented</strong>.
+            Progress is tracked in the project's
+            <a href="https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md"
+              >plan</a
+            >.
+          </p>
+          <div class="feature-grid">
+            <article class="card">
+              <div class="glyph" aria-hidden="true">🔔</div>
+              <h3>Notification centre <span class="tag">Roadmap</span></h3>
+              <p>
+                A bell and side panel backed by its own local git repo — unread
+                badges, mark read/unread, and delete.
               </p>
             </article>
 
             <article class="card">
               <div class="glyph" aria-hidden="true">🔍</div>
-              <h3>Regex-powered search</h3>
+              <h3>Regex-powered search <span class="tag">Roadmap</span></h3>
               <p>
                 Every search bar gets filter chips, a regex toggle, and a full
                 builder — anchors, classes, quantifiers, groups, lookaround,
@@ -175,28 +210,27 @@
             </article>
 
             <article class="card">
-              <div class="glyph" aria-hidden="true">⚡</div>
-              <h3>Automation</h3>
+              <div class="glyph" aria-hidden="true">⧉</div>
+              <h3>Multi-clone <span class="tag">Roadmap</span></h3>
               <p>
-                One-click commit &amp; push with a Copilot-written message,
-                scheduled auto commit/push, and auto pull — global default plus
-                per-repo override.
+                Checkbox-select many repos, filter by org chips, clone in
+                parallel or one-by-one, and export/import repo lists as URLs.
               </p>
             </article>
 
             <article class="card">
-              <div class="glyph" aria-hidden="true">⑃</div>
-              <h3>Merge-all branches</h3>
+              <div class="glyph" aria-hidden="true">⚡</div>
+              <h3>Automation <span class="tag">Roadmap</span></h3>
               <p>
-                Fold every branch and worktree into the default branch with
-                Copilot conflict resolution, then delete merged branches and
-                push.
+                One-click commit &amp; push with a Copilot-written message,
+                scheduled auto commit/push and auto pull, and merge-all with
+                Copilot conflict resolution.
               </p>
             </article>
 
             <article class="card">
               <div class="glyph" aria-hidden="true">▷</div>
-              <h3>GitHub Actions panel</h3>
+              <h3>GitHub Actions panel <span class="tag">Roadmap</span></h3>
               <p>
                 Browse workflow runs, filter by status/branch/event, re-run or
                 re-run-failed, inspect job steps, and read logs in-app.
@@ -204,30 +238,30 @@
             </article>
 
             <article class="card">
-              <div class="glyph" aria-hidden="true">🔔</div>
-              <h3>Notification centre</h3>
+              <div class="glyph" aria-hidden="true">🤖</div>
+              <h3>Built-in MCP server <span class="tag">Roadmap</span></h3>
               <p>
-                A bell and side panel backed by its own local git repo — unread
-                badges, mark read/unread, and delete.
+                Drive the app from AI agents over a bundled MCP server, with a
+                local HTTP/CLI fallback.
               </p>
             </article>
 
             <article class="card">
               <div class="glyph" aria-hidden="true">🏢</div>
-              <h3>Organizations</h3>
+              <h3>Organizations &amp; scaling <span class="tag">Roadmap</span></h3>
               <p>
-                Browse and clone full org repo lists, and publish straight into
-                an organization.
+                Browse and clone full org repo lists, publish into an org, and
+                scale the whole UI from 50–200% with auto-fit.
               </p>
             </article>
 
             <article class="card">
-              <div class="glyph" aria-hidden="true">🤖</div>
-              <h3>Built-in MCP server</h3>
+              <div class="glyph" aria-hidden="true">🦊</div>
+              <h3>GitLab &amp; parity <span class="tag">Roadmap</span></h3>
               <p>
-                Drive the app from AI agents over a bundled MCP server, with a
-                local HTTP/CLI fallback. Non-modal, drag-by-header dialogs
-                throughout.
+                Self-hosted GitLab (endpoint + PAT) and Bitbucket sign-in, plus
+                desktop-plus parity: commit search, commit graph, stashes,
+                pinning, pull-all.
               </p>
             </article>
           </div>
@@ -243,67 +277,50 @@
           <div class="gallery-grid">
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/workspace-changes-light.png"
+                href="../docs/assets/screenshots/material-workspace-changes.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/workspace-changes-light.png"
-                  alt="Changes view in light theme"
+                  src="../docs/assets/screenshots/material-workspace-changes.png"
+                  alt="Changes view with the icon rail, pill toolbar, and floating card"
                   loading="lazy"
                 />
               </a>
               <figcaption>
-                Changes view <span class="tag">Light</span>
+                Changes view <span class="tag">Shell</span>
               </figcaption>
             </figure>
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/workspace-dark.png"
+                href="../docs/assets/screenshots/material-history.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/workspace-dark.png"
-                  alt="Workspace in dark theme"
+                  src="../docs/assets/screenshots/material-history.png"
+                  alt="History view with MD3 commit rows and commit detail"
                   loading="lazy"
                 />
               </a>
-              <figcaption>Workspace <span class="tag">Dark</span></figcaption>
+              <figcaption>History <span class="tag">Commits</span></figcaption>
             </figure>
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/tab-text-style.png"
+                href="../docs/assets/screenshots/material-settings.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/tab-text-style.png"
-                  alt="Per-tab text styling popover"
+                  src="../docs/assets/screenshots/material-settings.png"
+                  alt="Preferences as an MD3 940 by 660 dialog with a left rail"
                   loading="lazy"
                 />
               </a>
               <figcaption>
-                Per-tab text styling <span class="tag">Tabs</span>
-              </figcaption>
-            </figure>
-
-            <figure class="shot">
-              <a
-                href="../docs/assets/screenshots/regex-builder.png"
-                target="_blank"
-                rel="noopener"
-              >
-                <img
-                  src="../docs/assets/screenshots/regex-builder.png"
-                  alt="Full regex builder dialog"
-                  loading="lazy"
-                />
-              </a>
-              <figcaption>
-                Regex builder <span class="tag">Search</span>
+                Preferences <span class="tag">MD3 dialog</span>
               </figcaption>
             </figure>
 
@@ -320,25 +337,42 @@
                 />
               </a>
               <figcaption>
-                Git-backed settings history
+                Settings history
                 <span class="tag">Undo · redo · restore</span>
               </figcaption>
             </figure>
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/07-clone.png"
+                href="../docs/assets/screenshots/material-repositories-sheet.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/07-clone.png"
-                  alt="Multi-clone window with checkboxes and org chips"
+                  src="../docs/assets/screenshots/material-repositories-sheet.png"
+                  alt="Repositories picker as an MD3 side sheet"
                   loading="lazy"
                 />
               </a>
               <figcaption>
-                Multi-clone <span class="tag">Batch</span>
+                Repositories <span class="tag">Side sheet</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="../docs/assets/screenshots/material-branches-sheet.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="../docs/assets/screenshots/material-branches-sheet.png"
+                  alt="Branches picker as an MD3 side sheet"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Branches <span class="tag">Side sheet</span>
               </figcaption>
             </figure>
           </div>
