@@ -6,7 +6,7 @@ import {
 } from '../../src/main-process/window-routing'
 import { windowScopeFromHash } from '../../src/lib/window-scope'
 
-interface TestWindow {
+interface ITestWindow {
   readonly name: string
   readonly selectedRepositoryPath: string | null
   readonly openRepositoryPaths: ReadonlyArray<string>
@@ -16,7 +16,7 @@ const windowState = (
   name: string,
   selectedRepositoryPath: string | null,
   openRepositoryPaths: ReadonlyArray<string>
-): TestWindow => ({ name, selectedRepositoryPath, openRepositoryPaths })
+): ITestWindow => ({ name, selectedRepositoryPath, openRepositoryPaths })
 
 describe('multi-window routing', () => {
   it('allocates stable reusable window scopes', () => {
