@@ -574,3 +574,141 @@
     padding: 16px;
   }
 }
+
+.close-tabs-containing {
+  // Overlays §8: a compact "close tabs containing…" prompt. A filled MD3 text
+  // field carries an inline `.*` regex toggle, a live match-count line, and a
+  // Cancel / Close action row.
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 268px;
+  max-width: 100%;
+  color: var(--md-sys-color-on-surface);
+
+  h3 {
+    margin: 0;
+    font-size: 13px;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .close-tabs-containing-field {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 40px;
+    padding: 0 6px 0 12px;
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-high);
+
+    .close-tabs-containing-input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 14px;
+      font-family: inherit;
+
+      &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+      }
+    }
+
+    .close-tabs-containing-mode {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      width: 30px;
+      height: 30px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--md-sys-color-on-surface-variant);
+      font-family: var(--font-family-monospace);
+      font-size: 13px;
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: background-color 200ms var(--emph), color 200ms var(--emph),
+        transform 200ms var(--spring-fast);
+
+      &:hover {
+        background: var(--md-sys-color-surface-container-highest);
+      }
+
+      &:active {
+        transform: scale(0.85);
+      }
+
+      &.active {
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+      }
+    }
+  }
+
+  .close-tabs-containing-status {
+    font-size: 12px;
+    color: var(--md-sys-color-on-surface-variant);
+
+    &.error {
+      color: var(--md-sys-color-error);
+    }
+  }
+
+  .close-tabs-containing-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+
+    button {
+      height: 36px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: background-color 200ms var(--emph), color 200ms var(--emph);
+    }
+
+    .close-tabs-containing-cancel {
+      background: transparent;
+      color: var(--md-sys-color-primary);
+
+      &:hover {
+        background: var(--md-sys-color-surface-container-high);
+      }
+    }
+
+    .close-tabs-containing-confirm {
+      background: var(--md-sys-color-error);
+      color: var(--md-sys-color-on-error);
+
+      &:hover {
+        background: var(--md-sys-color-error);
+        filter: brightness(1.05);
+      }
+
+      &:disabled {
+        background: var(--md-sys-color-surface-container-highest);
+        color: var(--md-sys-color-on-surface-variant);
+        cursor: default;
+      }
+    }
+  }
+}
+
+.popover-component:has(.close-tabs-containing) {
+  border-radius: 22px;
+  box-shadow: var(--md-sys-elevation-level3);
+
+  .popover-content {
+    border-radius: 22px;
+    padding: 16px;
+  }
+}

@@ -13,6 +13,7 @@ import {
 } from '../../models/repository-tab'
 import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
+import { CloseTabsContainingPopover } from './close-tabs-containing-popover'
 import { showContextualMenu } from '../../lib/menu-item'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
@@ -29,6 +30,7 @@ interface IRepositoryTabStripState {
   readonly tabs: IProfileTabsState
   readonly styleEditorTabId: string | null
   readonly styleEditorAnchor: HTMLElement | null
+  readonly closeMatchingAnchor: HTMLElement | null
 }
 
 /** The browser-style repository tab strip shown above the toolbar. */
@@ -44,6 +46,7 @@ export class RepositoryTabStrip extends React.Component<
       tabs: props.tabsStore.getState(),
       styleEditorTabId: null,
       styleEditorAnchor: null,
+      closeMatchingAnchor: null,
     }
   }
 
@@ -72,23 +75,47 @@ export class RepositoryTabStrip extends React.Component<
     this.props.tabsStore.activateTab(tab.id)
   }
 
+  /** Re-select the repository for the tab that became active after a close. */
+  private selectActiveRepository = (activeId: string | null) => {
+    if (activeId === null) {
+      return
+    }
+    const activeTab = this.props.tabsStore
+      .getState()
+      .tabs.find(t => t.id === activeId)
+    const repository =
+      activeTab !== undefined ? this.repositoryForTab(activeTab) : null
+    if (repository !== null) {
+      this.props.dispatcher.selectRepository(repository)
+    }
+  }
+
   private onClose = (tab: IRepositoryTab) => {
     this.props.tabsStore
       .closeTab(tab.id)
-      .then(activeId => {
-        if (activeId === null) {
-          return
-        }
-        const activeTab = this.props.tabsStore
-          .getState()
-          .tabs.find(t => t.id === activeId)
-        const repository =
-          activeTab !== undefined ? this.repositoryForTab(activeTab) : null
-        if (repository !== null) {
-          this.props.dispatcher.selectRepository(repository)
-        }
-      })
+      .then(this.selectActiveRepository)
       .catch(err => log.error('Failed to close repository tab', err))
+  }
+
+  private onCloseTabsToLeft = (tab: IRepositoryTab) => {
+    this.props.tabsStore
+      .closeTabsToLeft(tab.id)
+      .then(this.selectActiveRepository)
+      .catch(err => log.error('Failed to close tabs to the left', err))
+  }
+
+  private onCloseTabsToRight = (tab: IRepositoryTab) => {
+    this.props.tabsStore
+      .closeTabsToRight(tab.id)
+      .then(this.selectActiveRepository)
+      .catch(err => log.error('Failed to close tabs to the right', err))
+  }
+
+  private onCloseOtherTabs = (tab: IRepositoryTab) => {
+    this.props.tabsStore
+      .closeOtherTabs(tab.id)
+      .then(this.selectActiveRepository)
+      .catch(err => log.error('Failed to close other tabs', err))
   }
 
   private onRename = (tab: IRepositoryTab, label: string | null) => {
@@ -133,6 +160,9 @@ export class RepositoryTabStrip extends React.Component<
   ) => {
     event.preventDefault()
     const anchor = event.currentTarget as HTMLElement
+    const { tabs } = this.state.tabs
+    const index = tabs.findIndex(t => t.id === tab.id)
+
     showContextualMenu([
       {
         label: 'Customize Appearance…',
@@ -144,11 +174,35 @@ export class RepositoryTabStrip extends React.Component<
         action: () => this.onClose(tab),
       },
       {
+        label: 'Close Tabs to the Left',
+        action: () => this.onCloseTabsToLeft(tab),
+        enabled: index > 0,
+      },
+      {
+        label: 'Close Tabs to the Right',
+        action: () => this.onCloseTabsToRight(tab),
+        enabled: index !== -1 && index < tabs.length - 1,
+      },
+      {
         label: 'Close Other Tabs',
-        action: () => this.closeOtherTabs(tab),
-        enabled: this.state.tabs.tabs.length > 1,
+        action: () => this.onCloseOtherTabs(tab),
+        enabled: tabs.length > 1,
+      },
+      { type: 'separator' },
+      {
+        label: 'Close Tabs Containing…',
+        action: () => this.openCloseMatching(anchor),
+        enabled: tabs.length > 0,
       },
     ])
+  }
+
+  private openCloseMatching = (anchor: HTMLElement) => {
+    this.setState({ closeMatchingAnchor: anchor })
+  }
+
+  private onCloseMatchingDismiss = () => {
+    this.setState({ closeMatchingAnchor: null })
   }
 
   private renderStyleEditor() {
@@ -173,12 +227,20 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
-  private closeOtherTabs(keep: IRepositoryTab) {
-    for (const tab of this.state.tabs.tabs) {
-      if (tab.id !== keep.id) {
-        this.props.tabsStore.closeTab(tab.id).catch(() => {})
-      }
+  private renderCloseMatchingPopover() {
+    const { closeMatchingAnchor } = this.state
+    if (closeMatchingAnchor === null) {
+      return null
     }
+
+    return (
+      <CloseTabsContainingPopover
+        tabsStore={this.props.tabsStore}
+        anchor={closeMatchingAnchor}
+        onClosed={this.selectActiveRepository}
+        onClose={this.onCloseMatchingDismiss}
+      />
+    )
   }
 
   public render() {
@@ -216,6 +278,7 @@ export class RepositoryTabStrip extends React.Component<
           />
         </div>
         {this.renderStyleEditor()}
+        {this.renderCloseMatchingPopover()}
       </div>
     )
   }

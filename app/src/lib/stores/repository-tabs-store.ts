@@ -3,12 +3,29 @@ import { TypedBaseStore } from './base-store'
 import { ProfileStore } from './profile-store'
 import { Repository } from '../../models/repository'
 import { matchExistingRepository } from '../repository-matching'
+import { FilterMode, matchWithMode } from '../fuzzy-find'
 import {
   IProfileTabsState,
   IRepositoryTab,
   ITabTitleStyle,
   emptyProfileTabsState,
 } from '../../models/repository-tab'
+
+/** The final path segment of a repository path (its folder name). */
+function tabBaseName(path: string): string {
+  const trimmed = path.replace(/[\\/]+$/, '')
+  const match = /[^\\/]+$/.exec(trimmed)
+  return match !== null ? match[0] : trimmed
+}
+
+/**
+ * The searchable keys for a tab: its custom label (when set) plus the
+ * repository folder name, matching what the tab strip renders as the label.
+ */
+function tabMatchKeys(tab: IRepositoryTab): ReadonlyArray<string> {
+  const name = tabBaseName(tab.repositoryPath)
+  return tab.customLabel !== null ? [tab.customLabel, name] : [name]
+}
 
 /**
  * Holds the browser-style repository tab strip for the active profile. Every
@@ -165,6 +182,141 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       { tabs, activeTabId },
       'Close tabs for removed repository'
     )
+  }
+
+  /**
+   * Pick the tab that should become active after `removedActiveId` is closed:
+   * the nearest survivor to its right, else to its left, using the pre-close
+   * ordering. Returns null when nothing survives.
+   */
+  private pickNeighbor(
+    oldTabs: ReadonlyArray<IRepositoryTab>,
+    survivors: ReadonlySet<string>,
+    removedActiveId: string
+  ): string | null {
+    if (survivors.size === 0) {
+      return null
+    }
+    const from = oldTabs.findIndex(t => t.id === removedActiveId)
+    for (let i = from + 1; i < oldTabs.length; i++) {
+      if (survivors.has(oldTabs[i].id)) {
+        return oldTabs[i].id
+      }
+    }
+    for (let i = from - 1; i >= 0; i--) {
+      if (survivors.has(oldTabs[i].id)) {
+        return oldTabs[i].id
+      }
+    }
+    return null
+  }
+
+  /**
+   * Close every tab whose id is in `ids`, reactivating a sensible neighbor when
+   * the active tab is among them. Returns the id of the tab that should become
+   * active (or null when the strip is now empty).
+   */
+  private async closeTabsByIds(
+    ids: ReadonlySet<string>,
+    description: string
+  ): Promise<string | null> {
+    if (ids.size === 0) {
+      return this.state.activeTabId
+    }
+
+    const oldTabs = this.state.tabs
+    const tabs = oldTabs.filter(t => !ids.has(t.id))
+    if (tabs.length === oldTabs.length) {
+      return this.state.activeTabId
+    }
+
+    let activeTabId = this.state.activeTabId
+    if (activeTabId !== null && ids.has(activeTabId)) {
+      const survivors = new Set(tabs.map(t => t.id))
+      activeTabId = this.pickNeighbor(oldTabs, survivors, activeTabId)
+    }
+
+    await this.persist({ tabs, activeTabId }, description)
+    return activeTabId
+  }
+
+  /** Close every tab positioned before `id`. Returns the new active tab id. */
+  public async closeTabsToLeft(id: string): Promise<string | null> {
+    const index = this.state.tabs.findIndex(t => t.id === id)
+    if (index <= 0) {
+      return this.state.activeTabId
+    }
+    const ids = new Set(this.state.tabs.slice(0, index).map(t => t.id))
+    return this.closeTabsByIds(ids, 'Close tabs to the left')
+  }
+
+  /** Close every tab positioned after `id`. Returns the new active tab id. */
+  public async closeTabsToRight(id: string): Promise<string | null> {
+    const index = this.state.tabs.findIndex(t => t.id === id)
+    if (index === -1 || index >= this.state.tabs.length - 1) {
+      return this.state.activeTabId
+    }
+    const ids = new Set(this.state.tabs.slice(index + 1).map(t => t.id))
+    return this.closeTabsByIds(ids, 'Close tabs to the right')
+  }
+
+  /** Close every tab except `id`. Returns the new active tab id. */
+  public async closeOtherTabs(id: string): Promise<string | null> {
+    if (!this.state.tabs.some(t => t.id === id)) {
+      return this.state.activeTabId
+    }
+    const ids = new Set(
+      this.state.tabs.filter(t => t.id !== id).map(t => t.id)
+    )
+    return this.closeTabsByIds(ids, 'Close other tabs')
+  }
+
+  /**
+   * Preview which tabs a "close tabs containing" query would close, reusing
+   * {@link matchWithMode}. An invalid (or over-long) regex matches nothing: the
+   * `regexError` is surfaced for the UI while the returned list stays empty so a
+   * confirm is a safe no-op.
+   */
+  public findMatchingTabs(
+    query: string,
+    mode: FilterMode,
+    caseSensitive = false
+  ): {
+    readonly tabs: ReadonlyArray<IRepositoryTab>
+    readonly regexError: string | null
+  } {
+    if (query.length === 0) {
+      return { tabs: [], regexError: null }
+    }
+
+    const result = matchWithMode(query, this.state.tabs, tabMatchKeys, {
+      mode,
+      caseSensitive,
+    })
+
+    if (result.regexError !== null) {
+      return { tabs: [], regexError: result.regexError }
+    }
+
+    return { tabs: result.results.map(r => r.item), regexError: null }
+  }
+
+  /**
+   * Close every tab whose label or repository name matches `query` under the
+   * given {@link FilterMode}. An invalid regex is a no-op. Returns the new
+   * active tab id.
+   */
+  public async closeTabsMatching(
+    query: string,
+    mode: FilterMode,
+    caseSensitive = false
+  ): Promise<string | null> {
+    const { tabs } = this.findMatchingTabs(query, mode, caseSensitive)
+    if (tabs.length === 0) {
+      return this.state.activeTabId
+    }
+    const ids = new Set(tabs.map(t => t.id))
+    return this.closeTabsByIds(ids, `Close tabs matching “${query}”`)
   }
 
   public async moveTab(id: string, toIndex: number): Promise<void> {
