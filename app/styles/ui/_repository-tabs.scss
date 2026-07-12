@@ -72,6 +72,40 @@
     line-height: 1.4;
   }
 
+  .repository-tab-format {
+    // Design-spec-shell §3: active-tab inline format button, 26×26 radius-8,
+    // text_format glyph @16 (Octicon `typography` is the closest mark). Opens
+    // the existing TabStyleEditor popover (previously right-click only).
+    // Hover fills to secondary-container; press scales to .85.
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    transition: background 200ms var(--emph), color 200ms var(--emph), transform 200ms var(--spring-fast);
+
+    .octicon {
+      width: 16px;
+      height: 16px;
+    }
+
+    &:hover {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:active {
+      transform: scale(0.85);
+    }
+  }
+
   .repository-tab-close {
     display: flex;
     align-items: center;

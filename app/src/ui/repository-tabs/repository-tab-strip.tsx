@@ -114,6 +114,10 @@ export class RepositoryTabStrip extends React.Component<
     this.setState({ styleEditorTabId: null, styleEditorAnchor: null })
   }
 
+  private openStyleEditor = (tab: IRepositoryTab, anchor: HTMLElement) => {
+    this.setState({ styleEditorTabId: tab.id, styleEditorAnchor: anchor })
+  }
+
   private onContextMenu = (
     tab: IRepositoryTab,
     event: React.MouseEvent<HTMLElement>
@@ -123,11 +127,7 @@ export class RepositoryTabStrip extends React.Component<
     showContextualMenu([
       {
         label: 'Customize Appearance…',
-        action: () =>
-          this.setState({
-            styleEditorTabId: tab.id,
-            styleEditorAnchor: anchor,
-          }),
+        action: () => this.openStyleEditor(tab, anchor),
       },
       { type: 'separator' },
       {
@@ -188,6 +188,7 @@ export class RepositoryTabStrip extends React.Component<
               onClose={this.onClose}
               onRename={this.onRename}
               onContextMenu={this.onContextMenu}
+              onOpenStyleEditor={this.openStyleEditor}
             />
           ))}
         </div>

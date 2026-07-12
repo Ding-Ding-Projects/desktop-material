@@ -16,6 +16,7 @@ interface IRepositoryTabProps {
     tab: IRepositoryTab,
     event: React.MouseEvent<HTMLElement>
   ) => void
+  readonly onOpenStyleEditor: (tab: IRepositoryTab, anchor: HTMLElement) => void
 }
 
 interface IRepositoryTabState {
@@ -98,6 +99,14 @@ export class RepositoryTab extends React.Component<
     this.props.onContextMenu(this.props.tab, event)
   }
 
+  private onFormatClick = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation()
+    this.props.onOpenStyleEditor(
+      this.props.tab,
+      event.currentTarget as HTMLElement
+    )
+  }
+
   private renderIcon() {
     const { repository } = this.props
     const symbol =
@@ -147,6 +156,15 @@ export class RepositoryTab extends React.Component<
         >
           {this.label}
         </span>
+        {isActive && (
+          <button
+            className="repository-tab-format"
+            aria-label="Customize tab appearance"
+            onClick={this.onFormatClick}
+          >
+            <Octicon symbol={octicons.typography} />
+          </button>
+        )}
         <button
           className="repository-tab-close"
           aria-label="Close tab"
