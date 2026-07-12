@@ -64,6 +64,80 @@ describe('API', () => {
     })
   })
 
+  describe('Actions endpoints', () => {
+    it('builds workflow run filters and dispatch bodies', async () => {
+      const api = new API('https://api.github.com', 'token')
+      const requests = new Array<{
+        method: string
+        path: string
+        body?: Object
+      }>()
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (method: string, path: string, options?: { body?: Object }) => {
+          requests.push({ method, path, body: options?.body })
+          return path.endsWith('/dispatches')
+            ? new Response(null, { status: 204 })
+            : new Response(
+                JSON.stringify({ total_count: 0, workflow_runs: [] }),
+                {
+                  status: 200,
+                }
+              )
+        }
+      )
+
+      await api.fetchWorkflowRuns('owner', 'repo', {
+        workflowId: 42,
+        branch: 'feature/a',
+        event: 'push',
+        status: 'success',
+      })
+      await api.dispatchWorkflow('owner', 'repo', 42, 'main', {
+        target: 'prod',
+      })
+
+      assert.equal(
+        requests[0].path,
+        'repos/owner/repo/actions/workflows/42/runs?per_page=50&branch=feature%2Fa&event=push&status=success'
+      )
+      assert.deepEqual(requests[1].body, {
+        ref: 'main',
+        inputs: { target: 'prod' },
+      })
+    })
+
+    it('follows job log redirects without forwarding request options', async () => {
+      const api = new API('https://api.github.com', 'secret')
+      Reflect.set(
+        api,
+        'ghRequest',
+        async () =>
+          new Response(null, {
+            status: 302,
+            headers: { Location: 'https://blob.example.test/job.txt' },
+          })
+      )
+      const originalFetch = globalThis.fetch
+      let receivedOptions: RequestInit | undefined
+      globalThis.fetch = async (_input, options) => {
+        receivedOptions = options
+        return new Response('hello from the job')
+      }
+
+      try {
+        assert.equal(
+          await api.fetchWorkflowJobLogs('owner', 'repo', 7),
+          'hello from the job'
+        )
+        assert.equal(receivedOptions, undefined)
+      } finally {
+        globalThis.fetch = originalFetch
+      }
+    })
+  })
+
   describe('getNextPagePathWithIncreasingPageSize', () => {
     it("returns null when there's no link header", () => {
       assert(getNextPagePathWithIncreasingPageSize(new Response()) === null)

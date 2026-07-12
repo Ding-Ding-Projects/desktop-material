@@ -504,6 +504,7 @@ export type Foldout =
 export enum RepositorySectionTab {
   Changes,
   History,
+  Actions,
 }
 
 /**

@@ -3477,6 +3477,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         includingStatus: true,
         clearPartialState: false,
       })
+    } else if (selectedSection !== RepositorySectionTab.Actions) {
+      return assertNever(selectedSection, `Unknown section: ${selectedSection}`)
     }
 
     if (forceButtonFocus) {
@@ -4207,6 +4209,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         includingStatus: false,
         clearPartialState: false,
       })
+    } else if (section === RepositorySectionTab.Actions) {
+      refreshSectionPromise = Promise.resolve()
     } else {
       return assertNever(section, `Unknown section: ${section}`)
     }
