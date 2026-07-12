@@ -116,17 +116,19 @@
       background: var(--tab-bar-background-color);
       border: var(--base-border);
 
+      // MD3 de-stock: the History/Compare toggle reads as a rounded segmented
+      // control rather than a stock 6px-radius pair.
       &:first-of-type {
-        border-radius: var(--border-radius) 0 0 var(--border-radius);
+        border-radius: var(--md-sys-shape-corner-medium) 0 0 var(--md-sys-shape-corner-medium);
       }
 
       &:last-of-type {
-        border-radius: 0 var(--border-radius) var(--border-radius) 0;
+        border-radius: 0 var(--md-sys-shape-corner-medium) var(--md-sys-shape-corner-medium) 0;
       }
 
       &.selected {
         background: var(--box-selected-active-background-color);
-        border-color: var(--box-border-accent-color);
+        border-color: var(--md-sys-color-primary);
         color: var(--box-selected-active-text-color);
       }
     }

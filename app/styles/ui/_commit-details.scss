@@ -13,14 +13,21 @@
     border-right: var(--base-border);
   }
 
+  // MD3 de-stock: the committed-files section header reads as an
+  // on-surface-variant overline over a tonal surface, and the dividers use the
+  // Material outline role explicitly.
   .file-list-header {
     background: var(--box-alt-background-color);
-    border-bottom: 1px solid var(--box-border-color);
-    border-right: var(--base-border);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    border-right: 1px solid var(--md-sys-color-outline-variant);
     height: 30px;
     line-height: 30px;
     flex: 0 0 auto;
     padding: 0 var(--spacing);
     text-align: center;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 }
