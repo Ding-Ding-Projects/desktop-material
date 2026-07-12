@@ -3043,6 +3043,29 @@ abstract class ThirdPartyAPI extends API {
   public override async getFetchPollInterval(): Promise<null> {
     return null
   }
+
+  public override async fetchProtectedBranches(): Promise<
+    ReadonlyArray<IAPIBranch>
+  > {
+    return []
+  }
+
+  public override async fetchPushControl(): Promise<IAPIPushControl> {
+    return {
+      pattern: null,
+      required_signatures: false,
+      required_status_checks: [],
+      required_approving_review_count: 0,
+      required_linear_history: false,
+      allow_actor: true,
+      allow_deletions: true,
+      allow_force_pushes: true,
+    }
+  }
+
+  public override async fetchMentionables(): Promise<null> {
+    return null
+  }
 }
 
 /** GitLab REST client supporting gitlab.com and arbitrary self-hosted v4 endpoints. */

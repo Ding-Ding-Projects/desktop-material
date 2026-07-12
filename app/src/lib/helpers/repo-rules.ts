@@ -31,6 +31,7 @@ export function useRepoRulesLogic(
 ): boolean {
   if (
     !account ||
+    account.provider !== 'github' ||
     !repository ||
     !isRepositoryWithGitHubRepository(repository)
   ) {
