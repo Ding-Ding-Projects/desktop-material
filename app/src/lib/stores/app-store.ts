@@ -8547,6 +8547,196 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
+   * Re-read every setting managed by the active profile from localStorage.
+   *
+   * Profile history operations restore the allowlisted settings.json snapshot
+   * first, then call this method so the running renderer reflects that snapshot
+   * immediately without requiring a window reload. Keep this list aligned with
+   * profile-settings-registry.ts.
+   */
+  public async _reloadProfileBackedSettings(): Promise<void> {
+    const previousHideWhitespaceInChangesDiff = this.hideWhitespaceInChangesDiff
+    const previousHideWhitespaceInHistoryDiff = this.hideWhitespaceInHistoryDiff
+    const previousHideWhitespaceInPullRequestDiff =
+      this.hideWhitespaceInPullRequestDiff
+
+    this.sidebarWidth = constrain(
+      getNumber(sidebarWidthConfigKey, defaultSidebarWidth)
+    )
+    this.commitSummaryWidth = constrain(
+      getNumber(commitSummaryWidthConfigKey, defaultCommitSummaryWidth)
+    )
+    this.stashedFilesWidth = constrain(
+      getNumber(stashedFilesWidthConfigKey, defaultStashedFilesWidth)
+    )
+    this.pullRequestFileListWidth = constrain(
+      getNumber(pullRequestFileListConfigKey, defaultPullRequestFileListWidth)
+    )
+    this.branchDropdownWidth = constrain(
+      getNumber(branchDropdownWidthConfigKey, defaultBranchDropdownWidth)
+    )
+    this.worktreeDropdownWidth = constrain(
+      getNumber(worktreeDropdownWidthConfigKey, defaultWorktreeDropdownWidth)
+    )
+    this.pushPullButtonWidth = constrain(
+      getNumber(pushPullButtonWidthConfigKey, defaultPushPullButtonWidth)
+    )
+    this.updateResizableConstraints()
+    this.updatePullRequestResizableConstraints()
+
+    this.askToMoveToApplicationsFolderSetting = getBoolean(
+      askToMoveToApplicationsFolderKey,
+      askToMoveToApplicationsFolderDefault
+    )
+    this.askForConfirmationOnRepositoryRemoval = getBoolean(
+      confirmRepoRemovalKey,
+      confirmRepoRemovalDefault
+    )
+    this.showCommitLengthWarning = getBoolean(
+      showCommitLengthWarningKey,
+      showCommitLengthWarningDefault
+    )
+    this.confirmDiscardChanges = getBoolean(
+      confirmDiscardChangesKey,
+      confirmDiscardChangesDefault
+    )
+    this.confirmDiscardChangesPermanently = getBoolean(
+      confirmDiscardChangesPermanentlyKey,
+      confirmDiscardChangesPermanentlyDefault
+    )
+    this.confirmDiscardStash = getBoolean(
+      confirmDiscardStashKey,
+      confirmDiscardStashDefault
+    )
+    this.confirmCheckoutCommit = getBoolean(
+      confirmCheckoutCommitKey,
+      confirmCheckoutCommitDefault
+    )
+    this.askForConfirmationOnForcePush = getBoolean(
+      confirmForcePushKey,
+      askForConfirmationOnForcePushDefault
+    )
+    this.confirmUndoCommit = getBoolean(
+      confirmUndoCommitKey,
+      confirmUndoCommitDefault
+    )
+    this.confirmCommitFilteredChanges = getBoolean(
+      confirmCommitFilteredChangesKey,
+      confirmCommitFilteredChangesDefault
+    )
+    this.confirmCommitMessageOverride = getBoolean(
+      confirmCommitMessageOverrideKey,
+      confirmCommitMessageOverrideDefault
+    )
+    this.confirmWorktreeRemoval = getBoolean(
+      confirmWorktreeRemovalKey,
+      confirmWorktreeRemovalDefault
+    )
+
+    const imageDiffTypeValue = localStorage.getItem(imageDiffTypeKey)
+    this.imageDiffType =
+      imageDiffTypeValue === null
+        ? imageDiffTypeDefault
+        : parseInt(imageDiffTypeValue)
+    this.hideWhitespaceInChangesDiff = getBoolean(
+      hideWhitespaceInChangesDiffKey,
+      false
+    )
+    this.hideWhitespaceInHistoryDiff = getBoolean(
+      hideWhitespaceInHistoryDiffKey,
+      false
+    )
+    this.hideWhitespaceInPullRequestDiff = getBoolean(
+      hideWhitespaceInPullRequestDiffKey,
+      false
+    )
+    this.commitSpellcheckEnabled = getBoolean(
+      commitSpellcheckEnabledKey,
+      commitSpellcheckEnabledDefault
+    )
+    this.showSideBySideDiff = getShowSideBySideDiff()
+
+    this.selectedTheme = getPersistedThemeName()
+    setPersistedTheme(this.selectedTheme)
+    this.currentTheme = await getCurrentlyAppliedTheme()
+    this.selectedTabSize = getNumber(tabSizeKey, tabSizeDefault)
+
+    const repositoryIndicatorsEnabled =
+      getBoolean(repositoryIndicatorsEnabledKey) ?? true
+    if (repositoryIndicatorsEnabled !== this.repositoryIndicatorsEnabled) {
+      this.repositoryIndicatorsEnabled = repositoryIndicatorsEnabled
+      if (repositoryIndicatorsEnabled) {
+        this.repositoryIndicatorUpdater.start()
+      } else {
+        this.repositoryIndicatorUpdater.stop()
+      }
+    }
+
+    this.pullRequestSuggestedNextAction =
+      getEnum(
+        pullRequestSuggestedNextActionKey,
+        PullRequestSuggestedNextAction
+      ) ?? defaultPullRequestSuggestedNextAction
+    this.underlineLinks = getBoolean(underlineLinksKey, underlineLinksDefault)
+    this.showDiffCheckMarks = getBoolean(
+      showDiffCheckMarksKey,
+      showDiffCheckMarksDefault
+    )
+
+    const repository = this.selectedRepository
+    if (repository instanceof Repository) {
+      const state = this.repositoryStateCache.get(repository)
+      const refreshes = new Array<Promise<unknown>>()
+
+      if (
+        previousHideWhitespaceInChangesDiff !== this.hideWhitespaceInChangesDiff
+      ) {
+        refreshes.push(
+          this.refreshChangesSection(repository, {
+            includingStatus: true,
+            clearPartialState: true,
+          })
+        )
+      }
+
+      if (
+        previousHideWhitespaceInHistoryDiff !== this.hideWhitespaceInHistoryDiff
+      ) {
+        const file = state.commitSelection.file
+        refreshes.push(
+          file === null
+            ? this.updateChangesWorkingDirectoryDiff(repository)
+            : this._changeFileSelection(repository, file)
+        )
+      }
+
+      if (
+        previousHideWhitespaceInPullRequestDiff !==
+        this.hideWhitespaceInPullRequestDiff
+      ) {
+        const file = state.pullRequestState?.commitSelection?.file ?? null
+        if (file !== null) {
+          refreshes.push(
+            Promise.resolve(
+              this._changePullRequestFileSelection(repository, file)
+            )
+          )
+        }
+      }
+
+      await Promise.all(
+        refreshes.map(refresh =>
+          refresh.catch(error =>
+            log.error('Failed to refresh a restored profile diff', error)
+          )
+        )
+      )
+    }
+
+    this.emitUpdate()
+  }
+
+  /**
    * Set the application-wide theme
    */
   public _setSelectedTheme(theme: ApplicationTheme) {

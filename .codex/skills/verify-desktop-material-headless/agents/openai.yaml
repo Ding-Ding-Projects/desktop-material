@@ -1,0 +1,6 @@
+interface:
+  display_name: 'Verify Desktop Material Headlessly'
+  short_description: 'Invisible MCP build, capture, docs, and push'
+  default_prompt:
+    'Use $verify-desktop-material-headless to verify the current Desktop
+    Material milestone invisibly and publish its screenshot and docs.'

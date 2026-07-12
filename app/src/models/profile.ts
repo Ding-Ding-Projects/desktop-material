@@ -21,6 +21,30 @@ export interface IProfileDescriptor {
   readonly login: string | null
 }
 
+/** Maximum number of profile-history entries returned in one page. */
+export const ProfileHistoryPageSize = 50
+
+/** A serializable profile-repository commit for the settings-history UI. */
+export interface IProfileHistoryEntry {
+  readonly sha: string
+  readonly shortSha: string
+  readonly summary: string
+  readonly body: string
+  readonly committedAt: Date
+  readonly undoOf: string | null
+  readonly redoOf: string | null
+  readonly restoreOf: string | null
+}
+
+/** One bounded page of profile history plus actions available at its HEAD. */
+export interface IProfileHistoryPage {
+  readonly entries: ReadonlyArray<IProfileHistoryEntry>
+  readonly total: number
+  readonly hasMore: boolean
+  readonly canUndo: boolean
+  readonly canRedo: boolean
+}
+
 /**
  * Turn a profile key into a filesystem-safe, collision-free directory name.
  *

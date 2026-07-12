@@ -7,6 +7,9 @@ import {
   MinTabFontSize,
   MaxTabFontSize,
 } from '../../src/models/repository-tab'
+import { Repository } from '../../src/models/repository'
+import { ProfileStore } from '../../src/lib/stores/profile-store'
+import { RepositoryTabsStore } from '../../src/lib/stores/repository-tabs-store'
 
 describe('clampTabFontSize', () => {
   it('clamps below the minimum', () => {
@@ -67,5 +70,44 @@ describe('tabTitleStyleToCss', () => {
   it('clamps the font size', () => {
     assert.equal(tabTitleStyleToCss({ fontSize: 100 }).fontSize, '20px')
     assert.equal(tabTitleStyleToCss({ fontSize: 1 }).fontSize, '10px')
+  })
+})
+
+describe('RepositoryTabsStore', () => {
+  it('rebinds a restored active tab by path without losing its presentation', async () => {
+    let writes = 0
+    const restored = {
+      tabs: [
+        {
+          id: 'restored-tab',
+          repositoryId: 41,
+          repositoryPath: 'C:\\work\\desktop-material',
+          customLabel: 'Styled tab',
+          titleStyle: { bold: true },
+        },
+      ],
+      activeTabId: 'restored-tab',
+    }
+    const profileStore = {
+      readTabs: () => Promise.resolve(restored),
+      writeTabs: () => {
+        writes++
+        return Promise.resolve()
+      },
+    } as unknown as ProfileStore
+    const store = new RepositoryTabsStore(profileStore)
+    await store.initialize()
+
+    store.rebindActiveTabToRepository({
+      id: 99,
+      path: 'C:\\work\\desktop-material',
+    } as Repository)
+
+    const active = store.getActiveTab()
+    assert.equal(active?.repositoryId, 99)
+    assert.equal(active?.customLabel, 'Styled tab')
+    assert.deepEqual(active?.titleStyle, { bold: true })
+    assert.equal(store.getState().tabs.length, 1)
+    assert.equal(writes, 0)
   })
 })

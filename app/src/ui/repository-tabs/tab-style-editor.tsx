@@ -47,6 +47,44 @@ export class TabStyleEditor extends React.Component<ITabStyleEditorProps> {
     this.props.onStyleChange({ ...this.style, ...patch })
   }
 
+  private onToggleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    switch (event.currentTarget.value) {
+      case 'bold':
+        this.update({ bold: this.style.bold !== true })
+        break
+      case 'italic':
+        this.update({ italic: this.style.italic !== true })
+        break
+      case 'underline':
+        this.update({ underline: this.style.underline !== true })
+        break
+    }
+  }
+
+  private onAlignClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    switch (event.currentTarget.value) {
+      case 'left':
+      case 'center':
+      case 'right':
+        this.update({ textAlign: event.currentTarget.value })
+        break
+    }
+  }
+
+  private onFamilyClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    switch (event.currentTarget.value) {
+      case 'system':
+      case 'serif':
+      case 'monospace':
+        this.update({ fontFamily: event.currentTarget.value })
+        break
+    }
+  }
+
+  private onColorClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    this.update({ color: event.currentTarget.value })
+  }
+
   private renderToggle(
     key: 'bold' | 'italic' | 'underline',
     label: string,
@@ -60,9 +98,10 @@ export class TabStyleEditor extends React.Component<ITabStyleEditorProps> {
             ? `tab-style-toggle ${className} active`
             : `tab-style-toggle ${className}`
         }
+        value={key}
         aria-pressed={active}
         aria-label={key}
-        onClick={() => this.update({ [key]: !active })}
+        onClick={this.onToggleClick}
       >
         {label}
       </button>
@@ -74,9 +113,10 @@ export class TabStyleEditor extends React.Component<ITabStyleEditorProps> {
     return (
       <button
         className={active ? 'tab-style-align active' : 'tab-style-align'}
+        value={direction}
         aria-pressed={active}
         aria-label={`Align ${direction}`}
-        onClick={() => this.update({ textAlign: direction })}
+        onClick={this.onAlignClick}
       >
         <span className={`align-bars align-${direction}`}>
           <i />
@@ -96,8 +136,9 @@ export class TabStyleEditor extends React.Component<ITabStyleEditorProps> {
             ? `tab-style-family family-${value} active`
             : `tab-style-family family-${value}`
         }
+        value={value}
         aria-pressed={active}
-        onClick={() => this.update({ fontFamily: value })}
+        onClick={this.onFamilyClick}
       >
         {label}
       </button>
@@ -170,9 +211,10 @@ export class TabStyleEditor extends React.Component<ITabStyleEditorProps> {
                       ? 'tab-style-swatch active'
                       : 'tab-style-swatch'
                   }
+                  value={color}
                   style={{ backgroundColor: color }}
                   aria-label={`Color ${color}`}
-                  onClick={() => this.update({ color })}
+                  onClick={this.onColorClick}
                 />
               ))}
             </div>

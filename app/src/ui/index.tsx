@@ -341,6 +341,8 @@ appStore.onDidUpdate(state => {
         .ensureTabForRepository(repository)
         .catch(err => log.error('Failed to ensure repository tab', err))
     }
+  } else {
+    lastEnsuredRepositoryId = null
   }
 })
 
@@ -353,7 +355,9 @@ const dispatcher = new Dispatcher(
   appStore,
   repositoryStateManager,
   statsStore,
-  commitStatusStore
+  commitStatusStore,
+  profileStore,
+  repositoryTabsStore
 )
 
 dispatcher.registerErrorHandler(defaultErrorHandler)

@@ -157,6 +157,11 @@ export function buildDefaultMenuTemplate({
     submenu: [
       { role: 'undo', label: __DARWIN__ ? 'Undo' : '&Undo' },
       { role: 'redo', label: __DARWIN__ ? 'Redo' : '&Redo' },
+      {
+        label: __DARWIN__ ? 'Settings History…' : 'Settings &history…',
+        accelerator: 'CmdOrCtrl+Alt+Z',
+        click: emit('show-settings-history'),
+      },
       separator,
       { role: 'cut', label: __DARWIN__ ? 'Cut' : 'Cu&t' },
       { role: 'copy', label: __DARWIN__ ? 'Copy' : '&Copy' },

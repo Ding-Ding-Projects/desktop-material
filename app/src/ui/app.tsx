@@ -78,6 +78,7 @@ import { Welcome } from './welcome'
 import { AppMenuBar } from './app-menu'
 import { UpdateAvailable, renderBanner } from './banners'
 import { Preferences } from './preferences'
+import { SettingsHistoryDialog } from './settings-history'
 import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
 import { EditCopilotBYOKModelDialog } from './copilot/edit-byok-model-dialog'
 import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete-byok-provider-dialog'
@@ -112,7 +113,7 @@ import { CommitConflictsWarning } from './merge-conflicts'
 import { AppTheme } from './app-theme'
 import { ApplicationTheme } from './lib/application-theme'
 import { RepositoryStateCache } from '../lib/stores/repository-state-cache'
-import { PopupType, Popup } from '../models/popup'
+import { hasModalPopup, PopupType, Popup } from '../models/popup'
 import { OversizedFiles } from './changes/oversized-files-warning'
 import { PushNeedsPullWarning } from './push-needs-pull'
 import { getCurrentBranchForcePushState } from '../lib/rebase'
@@ -282,7 +283,7 @@ export class App extends React.Component<IAppProps, IAppState> {
    * modal dialog such as the preferences, or an error dialog.
    */
   private get isShowingModal() {
-    return this.state.currentPopup !== null
+    return hasModalPopup(this.state.allPopups)
   }
 
   /**
@@ -490,6 +491,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.stashAllChanges()
       case 'show-preferences':
         return this.props.dispatcher.showPopup({ type: PopupType.Preferences })
+      case 'show-settings-history':
+        return this.props.dispatcher.showPopup({
+          type: PopupType.SettingsHistory,
+        })
       case 'open-working-directory':
         return this.openCurrentRepositoryWorkingDirectory()
       case 'update-branch-with-contribution-target-branch':
@@ -1707,6 +1712,14 @@ export class App extends React.Component<IAppProps, IAppState> {
             alwaysUseCopilotForConflictResolution={
               this.state.alwaysUseCopilotForConflictResolution
             }
+          />
+        )
+      case PopupType.SettingsHistory:
+        return (
+          <SettingsHistoryDialog
+            key="settings-history"
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
           />
         )
       case PopupType.RepositorySettings: {

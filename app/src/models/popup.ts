@@ -35,6 +35,7 @@ export enum PopupType {
   DeleteRemoteBranch = 'DeleteRemoteBranch',
   ConfirmDiscardChanges = 'ConfirmDiscardChanges',
   Preferences = 'Preferences',
+  SettingsHistory = 'SettingsHistory',
   RepositorySettings = 'RepositorySettings',
   AddRepository = 'AddRepository',
   CreateRepository = 'CreateRepository',
@@ -156,6 +157,7 @@ export type PopupDetail =
       selection: DiffSelection
     }
   | { type: PopupType.Preferences; initialSelectedTab?: PreferencesTab }
+  | { type: PopupType.SettingsHistory }
   | {
       type: PopupType.EditCopilotBYOKProvider
       provider: IBYOKProvider | null
@@ -540,3 +542,11 @@ export type PopupDetail =
       originalWorktree: WorktreeEntry | null
     }
 export type Popup = IBasePopup & PopupDetail
+
+/**
+ * Settings History is a non-modal side sheet. Every other popup still blocks
+ * global actions, even when Settings History is stacked above it.
+ */
+export function hasModalPopup(popups: ReadonlyArray<Popup>): boolean {
+  return popups.some(popup => popup.type !== PopupType.SettingsHistory)
+}

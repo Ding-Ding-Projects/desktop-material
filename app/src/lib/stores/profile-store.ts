@@ -9,16 +9,26 @@ import {
   ProfileKey,
   LocalProfileKey,
   IProfileDescriptor,
+  IProfileHistoryPage,
+  ProfileHistoryPageSize,
   sanitizeProfileDirectoryName,
 } from '../../models/profile'
 import {
   ensureProfileRepository,
   commitAllChanges,
+  getProfileCommitDiff,
+  getProfileCommitFiles,
+  getProfileHistory,
   ProfileCommitQueue,
+  redoLastProfileChange,
+  restoreProfileTo,
+  undoLastProfileChange,
 } from '../profiles/profile-git'
 import {
+  applySettingsSnapshot,
   captureSettingsSnapshot,
   describeSettingsChange,
+  profileSettingsRegistry,
 } from '../profiles/profile-settings-registry'
 import { IProfileTabsState } from '../../models/repository-tab'
 
@@ -60,8 +70,12 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
   private readonly descriptors = new Map<ProfileKey, IProfileDescriptor>()
   private readonly repositoriesByKey = new Map<ProfileKey, Repository>()
   private readonly queuesByKey = new Map<ProfileKey, ProfileCommitQueue>()
+  private readonly mutationChainsByKey = new Map<ProfileKey, Promise<void>>()
+  private readonly lastSnapshotsByKey = new Map<
+    ProfileKey,
+    Record<string, string>
+  >()
 
-  private lastSnapshot: Record<string, string> = {}
   private suppressAutoCommit = false
   private settingsTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -85,7 +99,10 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
       await this.ensureProfile(this.activeProfileKey, accounts)
 
       localStorage.setItem(ActiveProfileStorageKey, this.activeProfileKey)
-      this.lastSnapshot = captureSettingsSnapshot()
+      this.lastSnapshotsByKey.set(
+        this.activeProfileKey,
+        captureSettingsSnapshot()
+      )
       this.enabled = true
 
       this.accountsStore.onDidUpdate(accounts => {
@@ -115,6 +132,88 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
     return this.activeProfileKey
   }
 
+  /** Load one newest-first, 50-entry maximum page of settings history. */
+  public async getSettingsHistory(
+    skip: number = 0,
+    limit: number = ProfileHistoryPageSize
+  ): Promise<IProfileHistoryPage> {
+    if (!this.enabled) {
+      return emptyHistoryPage()
+    }
+
+    const key = this.activeProfileKey
+    this.cancelSettingsTimer()
+    return this.enqueueProfileOperation(key, async () => {
+      const repository = this.repositoriesByKey.get(key)
+      if (repository === undefined) {
+        return emptyHistoryPage()
+      }
+
+      await this.flushUnlocked(key)
+      return getProfileHistory(repository, skip, limit)
+    })
+  }
+
+  /** Lazily load the paths changed by one settings-history commit. */
+  public async getSettingsHistoryFiles(
+    sha: string
+  ): Promise<ReadonlyArray<string>> {
+    if (!this.enabled) {
+      return []
+    }
+
+    const key = this.activeProfileKey
+    this.cancelSettingsTimer()
+    return this.enqueueProfileOperation(key, async () => {
+      const repository = this.repositoriesByKey.get(key)
+      if (repository === undefined) {
+        return []
+      }
+
+      await this.flushUnlocked(key)
+      return getProfileCommitFiles(repository, sha)
+    })
+  }
+
+  /** Lazily load a unified diff for a commit, optionally narrowed to one path. */
+  public async getSettingsHistoryDiff(
+    sha: string,
+    file?: string
+  ): Promise<string> {
+    if (!this.enabled) {
+      return ''
+    }
+
+    const key = this.activeProfileKey
+    this.cancelSettingsTimer()
+    return this.enqueueProfileOperation(key, async () => {
+      const repository = this.repositoriesByKey.get(key)
+      if (repository === undefined) {
+        return ''
+      }
+
+      await this.flushUnlocked(key)
+      return getProfileCommitDiff(repository, sha, file)
+    })
+  }
+
+  /** Undo the latest logical change by appending a linked revert commit. */
+  public undoLastSettingsChange(): Promise<void> {
+    return this.enqueueActiveHistoryMutation(undoLastProfileChange)
+  }
+
+  /** Redo the latest logical undo by appending a linked revert commit. */
+  public redoLastSettingsChange(): Promise<void> {
+    return this.enqueueActiveHistoryMutation(redoLastProfileChange)
+  }
+
+  /** Restore profile files from a prior commit and append an audit commit. */
+  public restoreSettingsTo(sha: string): Promise<void> {
+    return this.enqueueActiveHistoryMutation(repository =>
+      restoreProfileTo(repository, sha)
+    )
+  }
+
   /**
    * Invoked on every app state update. Debounces a snapshot comparison of the
    * registered settings and records a commit for any changes. A no-op until the
@@ -129,8 +228,12 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
       clearTimeout(this.settingsTimer)
     }
 
+    const key = this.activeProfileKey
     this.settingsTimer = setTimeout(() => {
-      this.captureAndCommitSettings().catch(err =>
+      this.settingsTimer = null
+      this.enqueueProfileOperation(key, () =>
+        this.captureAndCommitSettingsUnlocked(key)
+      ).catch(err =>
         log.error('ProfileStore failed to record settings change', err)
       )
     }, SettingsDebounceMs)
@@ -138,10 +241,13 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
 
   /** Flush any pending commit for the active profile (e.g. before quit). */
   public async flush(): Promise<void> {
-    const queue = this.queuesByKey.get(this.activeProfileKey)
-    if (queue !== undefined) {
-      await queue.flush()
+    if (!this.enabled) {
+      return
     }
+
+    const key = this.activeProfileKey
+    this.cancelSettingsTimer()
+    await this.enqueueProfileOperation(key, () => this.flushUnlocked(key))
   }
 
   /** Read the active profile's saved tab state, or null if none/unavailable. */
@@ -150,25 +256,28 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
       return null
     }
 
-    const repository = this.repositoriesByKey.get(this.activeProfileKey)
-    if (repository === undefined) {
-      return null
-    }
-
-    try {
-      const raw = await readFile(join(repository.path, 'tabs.json'), 'utf8')
-      const parsed = JSON.parse(raw)
-      if (parsed !== null && Array.isArray(parsed.tabs)) {
-        return {
-          tabs: parsed.tabs,
-          activeTabId: parsed.activeTabId ?? null,
-        }
+    const key = this.activeProfileKey
+    return this.enqueueProfileOperation(key, async () => {
+      const repository = this.repositoriesByKey.get(key)
+      if (repository === undefined) {
+        return null
       }
-    } catch {
-      // Absent or corrupt — treat as no saved tabs.
-    }
 
-    return null
+      try {
+        const raw = await readFile(join(repository.path, 'tabs.json'), 'utf8')
+        const parsed = JSON.parse(raw)
+        if (parsed !== null && Array.isArray(parsed.tabs)) {
+          return {
+            tabs: parsed.tabs,
+            activeTabId: parsed.activeTabId ?? null,
+          }
+        }
+      } catch {
+        // Absent or corrupt — treat as no saved tabs.
+      }
+
+      return null
+    })
   }
 
   /** Persist the active profile's tab state and record a commit. */
@@ -180,43 +289,144 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
       return
     }
 
-    const repository = this.repositoriesByKey.get(this.activeProfileKey)
-    const queue = this.queuesByKey.get(this.activeProfileKey)
-    if (repository === undefined || queue === undefined) {
-      return
-    }
+    const key = this.activeProfileKey
+    await this.enqueueProfileOperation(key, async () => {
+      const repository = this.repositoriesByKey.get(key)
+      const queue = this.queuesByKey.get(key)
+      if (repository === undefined || queue === undefined) {
+        return
+      }
 
-    await writeJsonFile(join(repository.path, 'tabs.json'), {
-      version: SettingsFileVersion,
-      tabs: state.tabs,
-      activeTabId: state.activeTabId,
+      await writeJsonFile(join(repository.path, 'tabs.json'), {
+        version: SettingsFileVersion,
+        tabs: state.tabs,
+        activeTabId: state.activeTabId,
+      })
+      queue.schedule(description)
     })
-    queue.schedule(description)
   }
 
-  private async captureAndCommitSettings(): Promise<void> {
+  private async captureAndCommitSettingsUnlocked(
+    key: ProfileKey
+  ): Promise<void> {
     if (!this.enabled) {
       return
     }
 
-    const key = this.activeProfileKey
     const repository = this.repositoriesByKey.get(key)
     const queue = this.queuesByKey.get(key)
     if (repository === undefined || queue === undefined) {
       return
     }
 
+    const previous = this.lastSnapshotsByKey.get(key) ?? {}
     const next = captureSettingsSnapshot()
-    const changes = describeSettingsChange(this.lastSnapshot, next)
+    const changes = describeSettingsChange(previous, next)
     if (changes.length === 0) {
       return
     }
 
     await this.writeSettingsFile(repository, next)
-    this.lastSnapshot = next
+    this.lastSnapshotsByKey.set(key, next)
 
     for (const description of changes) {
       queue.schedule(description)
+    }
+  }
+
+  /**
+   * Put every read and write for one profile behind the same promise tail.
+   * Callers inside an operation use the *Unlocked helpers below; recursively
+   * enqueueing on the same key would otherwise deadlock behind itself.
+   */
+  private enqueueProfileOperation<T>(
+    key: ProfileKey,
+    action: () => Promise<T>
+  ): Promise<T> {
+    const previous = this.mutationChainsByKey.get(key) ?? Promise.resolve()
+    const operation = previous.then(action)
+    const tail = operation.then(
+      () => undefined,
+      () => undefined
+    )
+    this.mutationChainsByKey.set(key, tail)
+
+    void tail.then(() => {
+      if (this.mutationChainsByKey.get(key) === tail) {
+        this.mutationChainsByKey.delete(key)
+      }
+    })
+
+    return operation
+  }
+
+  /** Capture the current settings and drain the commit queue without enqueueing. */
+  private async flushUnlocked(key: ProfileKey): Promise<void> {
+    await this.captureAndCommitSettingsUnlocked(key)
+    await this.queuesByKey.get(key)?.flush()
+  }
+
+  private enqueueActiveHistoryMutation(
+    action: (repository: Repository) => Promise<void>
+  ): Promise<void> {
+    if (!this.enabled) {
+      return Promise.resolve()
+    }
+
+    const key = this.activeProfileKey
+    // Capture synchronously at invocation. Any edit made after the user clicks
+    // Undo/Redo/Restore is concurrent, even if this operation first waits for
+    // an already-enqueued profile write.
+    const preOperationSnapshot = captureSettingsSnapshot()
+    this.cancelSettingsTimer()
+
+    return this.enqueueProfileOperation(key, async () => {
+      const repository = this.repositoriesByKey.get(key)
+      if (repository === undefined) {
+        return
+      }
+
+      await this.flushUnlocked(key)
+      await action(repository)
+      await this.applySettingsFromDiskPreservingConcurrentChanges(
+        key,
+        repository,
+        preOperationSnapshot
+      )
+    })
+  }
+
+  /**
+   * Apply only allowlisted values from settings.json, overlaying settings that
+   * changed while the non-modal history operation was running. The overlay is
+   * immediately written and committed after the audit commit, so it remains a
+   * first-class new change and invalidates redo as expected.
+   */
+  private async applySettingsFromDiskPreservingConcurrentChanges(
+    key: ProfileKey,
+    repository: Repository,
+    preOperationSnapshot: Record<string, string>
+  ): Promise<void> {
+    const restored = await readSettingsSnapshot(repository)
+    const live = captureSettingsSnapshot()
+    const merged = overlayChangedSettings(restored, preOperationSnapshot, live)
+
+    this.suppressAutoCommit = true
+    try {
+      applySettingsSnapshot(merged)
+    } finally {
+      this.suppressAutoCommit = false
+    }
+
+    this.lastSnapshotsByKey.set(key, restored)
+    await this.captureAndCommitSettingsUnlocked(key)
+    await this.queuesByKey.get(key)?.flush()
+  }
+
+  private cancelSettingsTimer(): void {
+    if (this.settingsTimer !== null) {
+      clearTimeout(this.settingsTimer)
+      this.settingsTimer = null
     }
   }
 
@@ -233,7 +443,12 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
     const repository = await ensureProfileRepository(dir)
 
     this.repositoriesByKey.set(key, repository)
-    this.queuesByKey.set(key, new ProfileCommitQueue(repository))
+    this.queuesByKey.set(
+      key,
+      new ProfileCommitQueue(repository, undefined, undefined, flush =>
+        this.enqueueProfileOperation(key, flush)
+      )
+    )
 
     const login = loginForKey(key, accounts)
     this.descriptors.set(key, { key, directoryName, login })
@@ -296,17 +511,14 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
       return
     }
 
-    const previousQueue = this.queuesByKey.get(this.activeProfileKey)
-    if (previousQueue !== undefined) {
-      await previousQueue.flush()
-    }
+    await this.flush()
 
     const accounts = await this.accountsStore.getAll()
     await this.ensureProfile(key, accounts)
 
     this.activeProfileKey = key
     localStorage.setItem(ActiveProfileStorageKey, key)
-    this.lastSnapshot = captureSettingsSnapshot()
+    this.lastSnapshotsByKey.set(key, captureSettingsSnapshot())
 
     this.emitUpdate(this.getState())
   }
@@ -358,4 +570,74 @@ async function fileExists(path: string): Promise<boolean> {
   } catch {
     return false
   }
+}
+
+function emptyHistoryPage(): IProfileHistoryPage {
+  return {
+    entries: [],
+    total: 0,
+    hasMore: false,
+    canUndo: false,
+    canRedo: false,
+  }
+}
+
+async function readSettingsSnapshot(
+  repository: Repository
+): Promise<Record<string, string>> {
+  const raw = await readFile(join(repository.path, 'settings.json'), 'utf8')
+  const parsed: unknown = JSON.parse(raw)
+
+  if (!isRecord(parsed) || parsed.version !== SettingsFileVersion) {
+    throw new Error('The profile settings file has an unsupported format')
+  }
+
+  const settings = parsed.settings
+  if (!isRecord(settings)) {
+    throw new Error('The profile settings file does not contain settings')
+  }
+
+  // Build a fresh object directly from the registry. Unknown keys (including
+  // account or credential keys) never reach localStorage.
+  const snapshot: Record<string, string> = {}
+  for (const { key } of profileSettingsRegistry) {
+    const value = settings[key]
+    if (value === undefined) {
+      continue
+    }
+    if (typeof value !== 'string') {
+      throw new Error(`Profile setting ${key} is not a string`)
+    }
+    snapshot[key] = value
+  }
+
+  return snapshot
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** Overlay only the registered settings whose live value changed after base. */
+function overlayChangedSettings(
+  restored: Record<string, string>,
+  base: Record<string, string>,
+  live: Record<string, string>
+): Record<string, string> {
+  const merged = { ...restored }
+
+  for (const { key } of profileSettingsRegistry) {
+    if (base[key] === live[key]) {
+      continue
+    }
+
+    const value = live[key]
+    if (value === undefined) {
+      delete merged[key]
+    } else {
+      merged[key] = value
+    }
+  }
+
+  return merged
 }

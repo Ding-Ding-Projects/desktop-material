@@ -6,7 +6,11 @@ import { Dispatcher } from '../dispatcher'
 import { RepositoryTabsStore } from '../../lib/stores'
 import { Repository } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
-import { IProfileTabsState, IRepositoryTab } from '../../models/repository-tab'
+import {
+  IProfileTabsState,
+  IRepositoryTab,
+  ITabTitleStyle,
+} from '../../models/repository-tab'
 import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
 import { showContextualMenu } from '../../lib/menu-item'
@@ -92,6 +96,24 @@ export class RepositoryTabStrip extends React.Component<
     this.props.dispatcher.showFoldout({ type: FoldoutType.Repository })
   }
 
+  private onStyleChange = (style: ITabTitleStyle) => {
+    const { styleEditorTabId } = this.state
+    if (styleEditorTabId !== null) {
+      this.props.tabsStore.setTabStyle(styleEditorTabId, style)
+    }
+  }
+
+  private onStyleReset = () => {
+    const { styleEditorTabId } = this.state
+    if (styleEditorTabId !== null) {
+      this.props.tabsStore.setTabStyle(styleEditorTabId, null)
+    }
+  }
+
+  private onStyleEditorClose = () => {
+    this.setState({ styleEditorTabId: null, styleEditorAnchor: null })
+  }
+
   private onContextMenu = (
     tab: IRepositoryTab,
     event: React.MouseEvent<HTMLElement>
@@ -135,11 +157,9 @@ export class RepositoryTabStrip extends React.Component<
       <TabStyleEditor
         tab={tab}
         anchor={styleEditorAnchor}
-        onStyleChange={style => this.props.tabsStore.setTabStyle(tab.id, style)}
-        onReset={() => this.props.tabsStore.setTabStyle(tab.id, null)}
-        onClose={() =>
-          this.setState({ styleEditorTabId: null, styleEditorAnchor: null })
-        }
+        onStyleChange={this.onStyleChange}
+        onReset={this.onStyleReset}
+        onClose={this.onStyleEditorClose}
       />
     )
   }

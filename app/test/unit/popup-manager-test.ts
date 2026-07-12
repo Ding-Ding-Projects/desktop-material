@@ -1,8 +1,20 @@
+import './profile-history-test-env'
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { PopupManager } from '../../src/lib/popup-manager'
 import { Account } from '../../src/models/account'
-import { Popup, PopupType } from '../../src/models/popup'
+import { hasModalPopup, Popup, PopupType } from '../../src/models/popup'
+
+describe('hasModalPopup', () => {
+  it('keeps Settings History non-modal unless another popup is stacked', () => {
+    const history: Popup = { type: PopupType.SettingsHistory }
+    const preferences: Popup = { type: PopupType.Preferences }
+
+    assert.equal(hasModalPopup([]), false)
+    assert.equal(hasModalPopup([history]), false)
+    assert.equal(hasModalPopup([preferences, history]), true)
+  })
+})
 
 describe('PopupManager', () => {
   describe('currentPopup', () => {

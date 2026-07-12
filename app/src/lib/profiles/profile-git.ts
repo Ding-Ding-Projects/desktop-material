@@ -2,11 +2,28 @@ import { mkdir, stat, rm } from 'fs/promises'
 import { join } from 'path'
 import { git } from '../git/core'
 import { initGitRepository } from '../git/init'
+import { setConfigValue } from '../git/config'
+import { getChangedFiles, getCommits } from '../git/log'
+import { getCommitDiff } from '../git/diff'
 import { Repository } from '../../models/repository'
-import { composeProfileCommitMessage } from '../../models/profile'
+import { Commit } from '../../models/commit'
+import { DiffType, IDiff } from '../../models/diff/diff-data'
+import {
+  composeProfileCommitMessage,
+  IProfileHistoryEntry,
+  IProfileHistoryPage,
+  ProfileHistoryPageSize,
+} from '../../models/profile'
 
 const commitAuthorName = 'Desktop Material'
 const commitAuthorEmail = 'desktop-material@localhost'
+
+export const ProfileUndoTrailer = 'Desktop-Material-Undo-Of'
+export const ProfileRedoTrailer = 'Desktop-Material-Redo-Of'
+export const ProfileRestoreTrailer = 'Desktop-Material-Restore-Of'
+
+const profileStateFiles = ['settings.json', 'tabs.json'] as const
+const fullSHA = /^[0-9a-f]{40}$/i
 
 /** Construct a lightweight Repository model pointing at a profile directory. */
 export function profileRepository(path: string): Repository {
@@ -37,7 +54,13 @@ export async function ensureProfileRepository(
     await clearStaleLock(path)
   }
 
-  return profileRepository(path)
+  const repository = profileRepository(path)
+  // Git config writes take an exclusive lock, so keep these sequential.
+  await setConfigValue(repository, 'user.name', commitAuthorName)
+  await setConfigValue(repository, 'user.email', commitAuthorEmail)
+  await setConfigValue(repository, 'commit.gpgsign', 'false')
+
+  return repository
 }
 
 /** Remove a leftover `.git/index.lock` from a previous crashed session. */
@@ -59,32 +82,33 @@ export async function clearStaleLock(path: string): Promise<void> {
  */
 export async function commitAllChanges(
   repository: Repository,
-  message: string
+  message: string,
+  options: { readonly allowEmpty?: boolean } = {}
 ): Promise<boolean> {
   const { path } = repository
 
   await git(['add', '-A'], path, 'profileStage')
 
   const status = await git(['status', '--porcelain'], path, 'profileStatus')
-  if (status.stdout.trim().length === 0) {
+  if (status.stdout.trim().length === 0 && options.allowEmpty !== true) {
     return false
   }
 
-  await git(
-    [
-      '-c',
-      `user.name=${commitAuthorName}`,
-      '-c',
-      `user.email=${commitAuthorEmail}`,
-      '-c',
-      'commit.gpgsign=false',
-      'commit',
-      '-m',
-      message,
-    ],
-    path,
-    'profileCommit'
-  )
+  const commitArgs = [
+    '-c',
+    `user.name=${commitAuthorName}`,
+    '-c',
+    `user.email=${commitAuthorEmail}`,
+    '-c',
+    'commit.gpgsign=false',
+    'commit',
+  ]
+  if (options.allowEmpty === true) {
+    commitArgs.push('--allow-empty')
+  }
+  commitArgs.push('-m', message)
+
+  await git(commitArgs, path, 'profileCommit')
 
   return true
 }
@@ -104,7 +128,10 @@ export class ProfileCommitQueue {
     private readonly composeMessage: (
       descriptions: ReadonlyArray<string>
     ) => string = composeProfileCommitMessage,
-    private readonly delayMs: number = 1000
+    private readonly delayMs: number = 1000,
+    private readonly enqueueFlush?: (
+      flush: () => Promise<void>
+    ) => Promise<void>
   ) {}
 
   /** Record a change and (re)start the debounce timer. */
@@ -116,9 +143,11 @@ export class ProfileCommitQueue {
     }
 
     this.timer = setTimeout(() => {
-      this.flush().catch(err =>
-        log.error('Failed to commit profile changes', err)
-      )
+      this.timer = null
+      const flush = () => this.flush()
+      const operation =
+        this.enqueueFlush === undefined ? flush() : this.enqueueFlush(flush)
+      operation.catch(err => log.error('Failed to commit profile changes', err))
     }, this.delayMs)
   }
 
@@ -132,17 +161,345 @@ export class ProfileCommitQueue {
       this.timer = null
     }
 
-    const descriptions = this.pending.splice(0)
-    if (descriptions.length === 0) {
-      return this.chain
-    }
-
-    const message = this.composeMessage(descriptions)
     this.chain = this.chain
-      .then(() => commitAllChanges(this.repository, message))
-      .then(() => undefined)
-      .catch(err => log.error('Failed to commit profile changes', err))
+      // A failed batch must not permanently poison the serialization chain.
+      // Its descriptions are restored by drainPendingChanges for the retry.
+      .catch(() => undefined)
+      .then(() => this.drainPendingChanges())
 
     return this.chain
   }
+
+  private async drainPendingChanges(): Promise<void> {
+    while (this.pending.length > 0) {
+      if (this.timer !== null) {
+        clearTimeout(this.timer)
+        this.timer = null
+      }
+
+      const descriptions = this.pending.splice(0)
+      const message = this.composeMessage(descriptions)
+
+      try {
+        await commitAllChanges(this.repository, message)
+      } catch (err) {
+        this.pending.unshift(...descriptions)
+        throw err
+      }
+    }
+  }
+}
+
+/** Return one bounded, newest-first page of the profile repository's history. */
+export async function getProfileHistory(
+  repository: Repository,
+  skip: number = 0,
+  limit: number = ProfileHistoryPageSize
+): Promise<IProfileHistoryPage> {
+  const normalizedSkip = normalizeNonNegativeInteger(skip)
+  const normalizedLimit = Math.min(
+    ProfileHistoryPageSize,
+    Math.max(1, normalizeNonNegativeInteger(limit))
+  )
+  const [commits, allCommits] = await Promise.all([
+    getCommits(repository, 'HEAD', normalizedLimit, normalizedSkip),
+    getCommits(repository, 'HEAD'),
+  ])
+  const traversal = buildProfileHistoryTraversal(allCommits)
+  const total = allCommits.length
+
+  return {
+    entries: commits.map(toProfileHistoryEntry),
+    total,
+    hasMore: normalizedSkip + commits.length < total,
+    canUndo: traversal.undoable.length > 0,
+    canRedo: traversal.redoable.length > 0,
+  }
+}
+
+/** Load changed paths for a commit only when its row is expanded. */
+export async function getProfileCommitFiles(
+  repository: Repository,
+  sha: string
+): Promise<ReadonlyArray<string>> {
+  await assertReachableProfileCommit(repository, sha)
+  const { files } = await getChangedFiles(repository, sha)
+  return files.map(file => file.path)
+}
+
+/** Load a unified text diff lazily for one path, or all paths in a commit. */
+export async function getProfileCommitDiff(
+  repository: Repository,
+  sha: string,
+  path?: string
+): Promise<string> {
+  await assertReachableProfileCommit(repository, sha)
+  const { files } = await getChangedFiles(repository, sha)
+  const selected =
+    path === undefined ? files : files.filter(file => file.path === path)
+
+  if (path !== undefined && selected.length === 0) {
+    throw new Error(`Path ${path} was not changed by profile commit ${sha}`)
+  }
+
+  const rendered = await Promise.all(
+    selected.map(async file =>
+      renderProfileDiff(await getCommitDiff(repository, file, sha), file.path)
+    )
+  )
+  return rendered.filter(diff => diff.length > 0).join('\n')
+}
+
+/** Revert the latest active logical change and append a linked audit commit. */
+export async function undoLastProfileChange(
+  repository: Repository
+): Promise<void> {
+  const traversal = await getProfileHistoryTraversal(repository)
+  const head = traversal.head
+  const target = traversal.undoable.at(-1)
+  if (head === null || target === undefined) {
+    throw new Error('There is no profile change to undo')
+  }
+
+  await runProfileHistoryMutation(
+    repository,
+    head.sha,
+    () => revertWithoutCommitting(repository, target.sha),
+    operationMessage(`Undo ${target.summary}`, ProfileUndoTrailer, target.sha)
+  )
+}
+
+/** Reapply the latest logically undone change and append a linked audit commit. */
+export async function redoLastProfileChange(
+  repository: Repository
+): Promise<void> {
+  const traversal = await getProfileHistoryTraversal(repository)
+  const head = traversal.head
+  const target = traversal.redoable.at(-1)
+  if (head === null || target === undefined) {
+    throw new Error('The latest profile change cannot be redone')
+  }
+
+  await runProfileHistoryMutation(
+    repository,
+    head.sha,
+    () => revertWithoutCommitting(repository, target.undo.sha),
+    operationMessage(
+      `Redo ${target.change.summary}`,
+      ProfileRedoTrailer,
+      target.undo.sha
+    )
+  )
+}
+
+/** Restore profile-backed files from a commit and append an audit commit. */
+export async function restoreProfileTo(
+  repository: Repository,
+  sha: string
+): Promise<void> {
+  await assertReachableProfileCommit(repository, sha)
+  const traversal = await getProfileHistoryTraversal(repository)
+  const head = traversal.head
+  if (head === null) {
+    throw new Error('There is no profile history to restore')
+  }
+
+  await runProfileHistoryMutation(
+    repository,
+    head.sha,
+    async () => {
+      for (const file of profileStateFiles) {
+        if (await profileFileExistsAtCommit(repository, sha, file)) {
+          await git(
+            ['checkout', sha, '--', file],
+            repository.path,
+            'profileRestoreFile'
+          )
+        } else {
+          await rm(join(repository.path, file), { force: true })
+        }
+      }
+    },
+    operationMessage(
+      `Restore profile to ${sha.slice(0, 7)}`,
+      ProfileRestoreTrailer,
+      sha
+    )
+  )
+}
+
+interface IProfileRedoTarget {
+  readonly change: Commit
+  readonly undo: Commit
+}
+
+interface IProfileHistoryTraversal {
+  readonly head: Commit | null
+  readonly undoable: ReadonlyArray<Commit>
+  readonly redoable: ReadonlyArray<IProfileRedoTarget>
+}
+
+/**
+ * Replay audit trailers from oldest to newest to derive the logical state.
+ * Undo and redo commits remain in Git history, but are not themselves treated
+ * as user changes. A new ordinary (or restore) commit starts a new branch of
+ * logical history and therefore invalidates the redo stack.
+ */
+function buildProfileHistoryTraversal(
+  newestFirst: ReadonlyArray<Commit>
+): IProfileHistoryTraversal {
+  const undoable = new Array<Commit>()
+  const redoable = new Array<IProfileRedoTarget>()
+
+  for (const commit of [...newestFirst].reverse()) {
+    const undoOf = trailerValue(commit, ProfileUndoTrailer)
+    if (undoOf !== null) {
+      const target = undoable.at(-1)
+      if (target !== undefined && target.sha === undoOf) {
+        undoable.pop()
+        redoable.push({ change: target, undo: commit })
+      }
+      continue
+    }
+
+    const redoOf = trailerValue(commit, ProfileRedoTrailer)
+    if (redoOf !== null) {
+      const target = redoable.at(-1)
+      if (target !== undefined && target.undo.sha === redoOf) {
+        redoable.pop()
+        undoable.push(target.change)
+      }
+      continue
+    }
+
+    redoable.length = 0
+    if (commit.parentSHAs.length > 0) {
+      undoable.push(commit)
+    }
+  }
+
+  return {
+    head: newestFirst[0] ?? null,
+    undoable,
+    redoable,
+  }
+}
+
+async function getProfileHistoryTraversal(
+  repository: Repository
+): Promise<IProfileHistoryTraversal> {
+  return buildProfileHistoryTraversal(await getCommits(repository, 'HEAD'))
+}
+
+function toProfileHistoryEntry(commit: Commit): IProfileHistoryEntry {
+  return {
+    sha: commit.sha,
+    shortSha: commit.shortSha,
+    summary: commit.summary,
+    body: commit.body,
+    committedAt: commit.committer.date,
+    undoOf: trailerValue(commit, ProfileUndoTrailer),
+    redoOf: trailerValue(commit, ProfileRedoTrailer),
+    restoreOf: trailerValue(commit, ProfileRestoreTrailer),
+  }
+}
+
+function trailerValue(commit: Commit, token: string): string | null {
+  return (
+    commit.trailers.find(
+      trailer => trailer.token.toLowerCase() === token.toLowerCase()
+    )?.value ?? null
+  )
+}
+
+function operationMessage(subject: string, trailer: string, sha: string) {
+  return `${subject}\n\n${trailer}: ${sha}`
+}
+
+async function assertReachableProfileCommit(
+  repository: Repository,
+  sha: string
+): Promise<void> {
+  if (!fullSHA.test(sha)) {
+    throw new Error('Profile history requires a full commit SHA')
+  }
+
+  const result = await git(
+    ['merge-base', '--is-ancestor', sha, 'HEAD'],
+    repository.path,
+    'profileValidateCommit',
+    { successExitCodes: new Set([0, 1, 128]) }
+  )
+  if (result.exitCode !== 0) {
+    throw new Error(`Commit ${sha} is not in the active profile history`)
+  }
+}
+
+async function revertWithoutCommitting(
+  repository: Repository,
+  sha: string
+): Promise<void> {
+  await git(['revert', '--no-commit', sha], repository.path, 'profileRevert')
+}
+
+/**
+ * Keep an audited mutation atomic. Both a failed worktree mutation and a
+ * failed audit commit restore HEAD, the index, and tracked profile files to
+ * their exact pre-operation state.
+ */
+async function runProfileHistoryMutation(
+  repository: Repository,
+  originalHead: string,
+  mutate: () => Promise<void>,
+  message: string
+): Promise<void> {
+  try {
+    await mutate()
+    await commitAllChanges(repository, message, { allowEmpty: true })
+  } catch (err) {
+    try {
+      await git(
+        ['reset', '--hard', originalHead],
+        repository.path,
+        'profileHistoryRollback'
+      )
+    } catch (rollbackError) {
+      log.error('Failed to roll back profile history mutation', rollbackError)
+    }
+    throw err
+  }
+}
+
+async function profileFileExistsAtCommit(
+  repository: Repository,
+  sha: string,
+  path: string
+): Promise<boolean> {
+  const result = await git(
+    ['cat-file', '-e', `${sha}:${path}`],
+    repository.path,
+    'profileFileAtCommit',
+    { successExitCodes: new Set([0, 1, 128]) }
+  )
+  return result.exitCode === 0
+}
+
+function renderProfileDiff(diff: IDiff, path: string): string {
+  switch (diff.kind) {
+    case DiffType.Text:
+    case DiffType.LargeText:
+      return diff.text
+    case DiffType.Binary:
+      return `Binary file ${path} changed.`
+    case DiffType.Image:
+      return `Image file ${path} changed.`
+    case DiffType.Submodule:
+      return `Submodule ${path} changed.`
+    case DiffType.Unrenderable:
+      return `Diff for ${path} cannot be rendered.`
+  }
+}
+
+function normalizeNonNegativeInteger(value: number): number {
+  return Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0
 }

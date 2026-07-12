@@ -51,6 +51,8 @@ import {
 import { Shell } from '../../lib/shells'
 import { ILaunchStats, StatsStore } from '../../lib/stats'
 import { AppStore } from '../../lib/stores/app-store'
+import { ProfileStore } from '../../lib/stores/profile-store'
+import { RepositoryTabsStore } from '../../lib/stores/repository-tabs-store'
 import type {
   CopilotFeature,
   CopilotModelSelections,
@@ -73,6 +75,7 @@ import { FetchType } from '../../models/fetch'
 import { GitHubRepository } from '../../models/github-repository'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { Popup, PopupType } from '../../models/popup'
+import { IProfileHistoryPage } from '../../models/profile'
 import {
   PullRequest,
   PullRequestSuggestedNextAction,
@@ -162,7 +165,9 @@ export class Dispatcher {
     private readonly appStore: AppStore,
     private readonly repositoryStateManager: RepositoryStateCache,
     private readonly statsStore: StatsStore,
-    private readonly commitStatusStore: CommitStatusStore
+    private readonly commitStatusStore: CommitStatusStore,
+    private readonly profileStore: ProfileStore,
+    private readonly repositoryTabsStore: RepositoryTabsStore
   ) {
     this.incrementMetric = statsStore.increment.bind(statsStore)
   }
@@ -170,6 +175,69 @@ export class Dispatcher {
   /** Load the initial state for the app. */
   public loadInitialState(): Promise<void> {
     return this.appStore.loadInitialState()
+  }
+
+  /** Load a newest-first page of commits from the active settings profile. */
+  public getSettingsHistory(
+    skip?: number,
+    limit?: number
+  ): Promise<IProfileHistoryPage> {
+    return this.profileStore.getSettingsHistory(skip, limit)
+  }
+
+  /** Load the paths changed by a settings-profile commit. */
+  public getSettingsHistoryFiles(sha: string): Promise<ReadonlyArray<string>> {
+    return this.profileStore.getSettingsHistoryFiles(sha)
+  }
+
+  /** Load a unified settings-profile diff, optionally narrowed to one file. */
+  public getSettingsHistoryDiff(sha: string, file?: string): Promise<string> {
+    return this.profileStore.getSettingsHistoryDiff(sha, file)
+  }
+
+  /** Append an undo commit and reload every profile-backed renderer surface. */
+  public async undoLastSettingsChange(): Promise<void> {
+    await this.profileStore.undoLastSettingsChange()
+    await this.reloadProfileBackedState()
+  }
+
+  /** Append a redo commit and reload every profile-backed renderer surface. */
+  public async redoLastSettingsChange(): Promise<void> {
+    await this.profileStore.redoLastSettingsChange()
+    await this.reloadProfileBackedState()
+  }
+
+  /** Restore a prior profile point with a new commit and reload the renderer. */
+  public async restoreSettingsTo(sha: string): Promise<void> {
+    await this.profileStore.restoreSettingsTo(sha)
+    await this.reloadProfileBackedState()
+  }
+
+  private async reloadProfileBackedState(): Promise<void> {
+    await this.appStore._reloadProfileBackedSettings()
+    await this.repositoryTabsStore.reloadFromDisk()
+
+    const activeTab = this.repositoryTabsStore.getActiveTab()
+    const repositories = this.appStore
+      .getState()
+      .repositories.filter(
+        (repository): repository is Repository =>
+          repository instanceof Repository
+      )
+    const selectedRepository =
+      activeTab === null
+        ? null
+        : repositories.find(
+            repository => repository.id === activeTab.repositoryId
+          ) ??
+          matchExistingRepository(repositories, activeTab.repositoryPath) ??
+          null
+
+    if (selectedRepository !== null) {
+      this.repositoryTabsStore.rebindActiveTabToRepository(selectedRepository)
+    }
+
+    await this.appStore._selectRepository(selectedRepository)
   }
 
   /**

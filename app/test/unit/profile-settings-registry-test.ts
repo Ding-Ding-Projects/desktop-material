@@ -24,6 +24,7 @@ describe('captureSettingsSnapshot', () => {
   it('captures registered keys and ignores unregistered ones', () => {
     const storage = createStorage({
       'tab-size': '2',
+      theme: 'dark',
       'underline-links': '1',
       'last-selected-repository-id': '42',
       users: '[secret]',
@@ -32,6 +33,7 @@ describe('captureSettingsSnapshot', () => {
     const snapshot = captureSettingsSnapshot(storage)
 
     assert.equal(snapshot['tab-size'], '2')
+    assert.equal(snapshot['theme'], 'dark')
     assert.equal(snapshot['underline-links'], '1')
     assert.equal(snapshot['last-selected-repository-id'], undefined)
     assert.equal(snapshot['users'], undefined)

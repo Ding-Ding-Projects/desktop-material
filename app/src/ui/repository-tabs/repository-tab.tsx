@@ -61,6 +61,16 @@ export class RepositoryTab extends React.Component<
     this.setState({ isRenaming: true, draftLabel: this.label })
   }
 
+  private onKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (
+      event.target === event.currentTarget &&
+      (event.key === 'Enter' || event.key === ' ')
+    ) {
+      event.preventDefault()
+      this.onClick()
+    }
+  }
+
   private onRenameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     this.setState({ draftLabel: event.currentTarget.value })
   }
@@ -123,8 +133,9 @@ export class RepositoryTab extends React.Component<
         className={className}
         role="tab"
         aria-selected={isActive}
-        title={this.label}
+        tabIndex={isActive ? 0 : -1}
         onClick={this.onClick}
+        onKeyDown={this.onKeyDown}
         onMouseDown={this.onMouseDown}
         onDoubleClick={this.onDoubleClick}
         onContextMenu={this.onContextMenu}

@@ -2,6 +2,7 @@ import { randomUUID } from 'crypto'
 import { TypedBaseStore } from './base-store'
 import { ProfileStore } from './profile-store'
 import { Repository } from '../../models/repository'
+import { matchExistingRepository } from '../repository-matching'
 import {
   IProfileTabsState,
   IRepositoryTab,
@@ -42,6 +43,39 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
   public async reloadFromDisk(): Promise<void> {
     const loaded = await this.profileStore.readTabs()
     this.state = loaded ?? emptyProfileTabsState
+    this.emitUpdate(this.state)
+  }
+
+  /**
+   * Reconnect a restored active tab when repository database ids have changed.
+   * This is intentionally in-memory: a later tab mutation will persist the
+   * corrected id, while an Undo remains redoable immediately after reload.
+   */
+  public rebindActiveTabToRepository(repository: Repository): void {
+    const activeTab = this.getActiveTab()
+    if (
+      activeTab === null ||
+      activeTab.repositoryId === repository.id ||
+      matchExistingRepository(
+        [{ path: activeTab.repositoryPath }],
+        repository.path
+      ) === undefined
+    ) {
+      return
+    }
+
+    this.state = {
+      ...this.state,
+      tabs: this.state.tabs.map(tab =>
+        tab.id === activeTab.id
+          ? {
+              ...tab,
+              repositoryId: repository.id,
+              repositoryPath: repository.path,
+            }
+          : tab
+      ),
+    }
     this.emitUpdate(this.state)
   }
 

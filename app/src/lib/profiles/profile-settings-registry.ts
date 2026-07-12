@@ -53,6 +53,7 @@ export const profileSettingsRegistry: ReadonlyArray<IProfileSettingEntry> = [
   { key: 'confirmWorktreeRemoval', label: 'confirm worktree removal' },
 
   // Diff and appearance preferences
+  { key: 'theme', label: 'appearance' },
   { key: 'image-diff-type', label: 'image diff type' },
   {
     key: 'hide-whitespace-in-changes-diff',
@@ -64,6 +65,7 @@ export const profileSettingsRegistry: ReadonlyArray<IProfileSettingEntry> = [
     label: 'hide whitespace (pull request)',
   },
   { key: 'commit-spellcheck-enabled', label: 'commit spellcheck' },
+  { key: 'show-side-by-side-diff', label: 'side-by-side diff' },
   { key: 'tab-size', label: 'tab size' },
   { key: 'enable-repository-indicators', label: 'repository indicators' },
   { key: 'underline-links', label: 'underline links' },
