@@ -142,6 +142,11 @@
 
     .button-group {
       display: flex;
+      // DOM order on Windows is Save (submit) then Cancel (reset); the design
+      // (overlays §2.3) puts Cancel on the LEFT and the filled Save pill on the
+      // RIGHT. Reverse visually only — DOM/markup and button roles are unchanged.
+      // Symmetric `gap` (not margins) means the reversal keeps spacing intact.
+      flex-direction: row-reverse;
       gap: 8px;
     }
 
