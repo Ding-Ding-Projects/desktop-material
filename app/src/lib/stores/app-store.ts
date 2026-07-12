@@ -6805,9 +6805,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     const gitStore = this.gitStoreCache.get(repository)
     const repositoryState = this.repositoryStateCache.get(repository)
-    const { changesState } = repositoryState
+    const { changesState, localCommitSHAs } = repositoryState
     const isWorkingDirectoryClean =
       changesState.workingDirectory.files.length === 0
+
+    if (showConfirmationDialog && !localCommitSHAs.includes(commit.sha)) {
+      return this._showPopup({
+        type: PopupType.WarnUndoPushedCommit,
+        repository,
+        commit,
+      })
+    }
 
     // Warn the user if there are changes in the working directory
     // This warning can be disabled, except when the user tries to undo
@@ -6846,9 +6854,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     const gitStore = this.gitStoreCache.get(repository)
     const repositoryState = this.repositoryStateCache.get(repository)
-    const { changesState } = repositoryState
+    const { changesState, localCommitSHAs } = repositoryState
     const isWorkingDirectoryClean =
       changesState.workingDirectory.files.length === 0
+
+    if (showConfirmationDialog && !localCommitSHAs.includes(commit.sha)) {
+      return this._showPopup({
+        type: PopupType.WarnResetToPushedCommit,
+        repository,
+        commit,
+      })
+    }
 
     // Warn the user if there are changes in the working directory
     if (showConfirmationDialog && !isWorkingDirectoryClean) {

@@ -108,8 +108,8 @@ interface ICommitListProps {
   /** Callback to fire to open the dialog to create a new tag on the given commit */
   readonly onCreateTag?: (targetCommitSha: string) => void
 
-  /** Callback to fire to delete an unpushed tag */
-  readonly onDeleteTag?: (tagName: string) => void
+  /** Callback to fire to delete a tag, including whether it is unpushed. */
+  readonly onDeleteTag?: (tagName: string, unpushed: boolean) => void
 
   /**
    * A handler called whenever the user drops commits on the list to be inserted.
@@ -749,14 +749,11 @@ export class CommitList extends React.Component<
   ): IMenuItem[] {
     const isLocal = this.isLocalCommit(commit.sha)
 
-    const canBeUndone =
-      this.props.canUndoCommits === true && isLocal && row === 0
+    const canBeUndone = this.props.canUndoCommits === true && row === 0
     const canBeAmended = this.props.canAmendCommits === true && row === 0
-    // The user can reset to any commit up to the first non-local one (included).
     // They cannot reset to the most recent commit... because they're already
     // in it.
-    const isResettableCommit =
-      row > 0 && row <= this.props.localCommitSHAs.length
+    const isResettableCommit = row > 0
     const canBeResetTo =
       this.props.canResetToCommits === true && isResettableCommit
     const canBeCheckedOut = row > 0 //Cannot checkout the current commit
@@ -922,11 +919,11 @@ export class CommitList extends React.Component<
 
     if (commit.tags.length === 1) {
       const tagName = commit.tags[0]
+      const unpushed = unpushedTags.includes(tagName)
 
       return {
         label: `Delete tag ${tagName}`,
-        action: () => onDeleteTag(tagName),
-        enabled: unpushedTags.includes(tagName),
+        action: () => onDeleteTag(tagName, unpushed),
       }
     }
 
@@ -936,10 +933,10 @@ export class CommitList extends React.Component<
     return {
       label: 'Delete tag…',
       submenu: commit.tags.map(tagName => {
+        const unpushed = unpushedTagsSet.has(tagName)
         return {
           label: tagName,
-          action: () => onDeleteTag(tagName),
-          enabled: unpushedTagsSet.has(tagName),
+          action: () => onDeleteTag(tagName, unpushed),
         }
       }),
     }
