@@ -77,6 +77,7 @@ import { GitHubRepository } from '../../models/github-repository'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { Popup, PopupType } from '../../models/popup'
 import { IProfileHistoryPage } from '../../models/profile'
+import { NotificationInput } from '../../models/notification-centre'
 import {
   PullRequest,
   PullRequestSuggestedNextAction,
@@ -259,6 +260,82 @@ export class Dispatcher {
   public async restoreSettingsTo(sha: string): Promise<void> {
     await this.profileStore.restoreSettingsTo(sha)
     await this.reloadProfileBackedState()
+  }
+
+  /**
+   * Record an in-app notification. Public API for other workstreams
+   * (clone-batch, auto-commit, merge-all, auto-pull) to surface events.
+   */
+  public postNotification(input: NotificationInput): void {
+    this.appStore.postNotification(input)
+  }
+
+  /** Open or close the notification centre side sheet. */
+  public setNotificationCentreOpen(open: boolean): void {
+    this.appStore._setNotificationCentreOpen(open)
+  }
+
+  /** Mark a single notification as read. */
+  public markNotificationRead(id: string): Promise<void> {
+    return this.appStore._markNotificationRead(id)
+  }
+
+  /** Mark a single notification as unread. */
+  public markNotificationUnread(id: string): Promise<void> {
+    return this.appStore._markNotificationUnread(id)
+  }
+
+  /** Delete a single notification. */
+  public deleteNotification(id: string): Promise<void> {
+    return this.appStore._deleteNotification(id)
+  }
+
+  /** Mark every notification as read. */
+  public markAllNotificationsRead(): Promise<void> {
+    return this.appStore._markAllNotificationsRead()
+  }
+
+  /** Remove every notification. */
+  public clearAllNotifications(): Promise<void> {
+    return this.appStore._clearAllNotifications()
+  }
+
+  /** Load a newest-first page of notification-history commits. */
+  public getNotificationHistory(
+    skip?: number,
+    limit?: number
+  ): Promise<IProfileHistoryPage> {
+    return this.appStore.getNotificationHistory(skip, limit)
+  }
+
+  /** Load the paths changed by a notification-history commit. */
+  public getNotificationHistoryFiles(
+    sha: string
+  ): Promise<ReadonlyArray<string>> {
+    return this.appStore.getNotificationHistoryFiles(sha)
+  }
+
+  /** Load a unified notification-history diff, optionally narrowed to a file. */
+  public getNotificationHistoryDiff(
+    sha: string,
+    file?: string
+  ): Promise<string> {
+    return this.appStore.getNotificationHistoryDiff(sha, file)
+  }
+
+  /** Undo the latest notification change (appends a linked revert commit). */
+  public undoLastNotificationChange(): Promise<void> {
+    return this.appStore.undoLastNotificationChange()
+  }
+
+  /** Redo the latest notification undo (appends a linked revert commit). */
+  public redoLastNotificationChange(): Promise<void> {
+    return this.appStore.redoLastNotificationChange()
+  }
+
+  /** Restore the notification log to a prior commit. */
+  public restoreNotificationsTo(sha: string): Promise<void> {
+    return this.appStore.restoreNotificationsTo(sha)
   }
 
   private async reloadProfileBackedState(): Promise<void> {

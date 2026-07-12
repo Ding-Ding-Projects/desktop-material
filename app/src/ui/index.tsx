@@ -37,6 +37,7 @@ import {
   ProfileStore,
   RepositoryTabsStore,
   BuildRunStore,
+  NotificationCentreStore,
 } from '../lib/stores'
 import { GitHubUserDatabase } from '../lib/databases'
 import { SelectionType, IAppState } from '../lib/app-state'
@@ -313,6 +314,8 @@ const notificationsDebugStore = new NotificationsDebugStore(
   pullRequestCoordinator
 )
 
+const notificationCentreStore = new NotificationCentreStore()
+
 const appStore = new AppStore(
   gitHubUserStore,
   cloningRepositoriesStore,
@@ -325,7 +328,8 @@ const appStore = new AppStore(
   repositoryStateManager,
   apiRepositoriesStore,
   notificationsStore,
-  copilotStore
+  copilotStore,
+  notificationCentreStore
 )
 
 let lastEnsuredRepositoryId: number | null = null
@@ -351,6 +355,16 @@ profileStore
   .initialize()
   .then(() => repositoryTabsStore.initialize())
   .catch(err => log.error('Failed to initialize profile stores', err))
+
+notificationCentreStore
+  .initialize()
+  .catch(err => log.error('Failed to initialize notification centre', err))
+
+window.addEventListener('beforeunload', () => {
+  notificationCentreStore
+    .flush()
+    .catch(err => log.error('Failed to flush notification centre', err))
+})
 
 const buildRunStore = new BuildRunStore()
 
