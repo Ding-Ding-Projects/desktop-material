@@ -1,16 +1,15 @@
 name: Build Installers
 
-# Builds the Desktop Material installers and publishes a new GitHub prerelease
-# on every push to main (and on manual dispatch). Each run produces a unique
-# release tagged with the workflow run number so history is preserved.
+# Builds the Desktop Material Windows installer and publishes a new GitHub
+# release on every push to main (and on manual dispatch). Each run produces a
+# unique release tagged with the workflow run number so history is preserved.
+# Installers are attached directly to the release (no build artifacts).
 #
 # Notes:
 # - Code signing is disabled (no certificates configured), so installers are
-#   unsigned. Provide AZURE_* / APPLE_* secrets and flip the signing inputs to
-#   produce signed builds.
-# - Building the native modules requires the runner toolchains that GitHub's
-#   hosted runners already provide; this cannot be reproduced on a machine
-#   without the Visual Studio C++ workload (Windows) or Xcode (macOS).
+#   unsigned. Provide AZURE_* secrets and flip the signing input to produce
+#   signed builds.
+# - macOS builds are intentionally not produced.
 
 on:
   push:
@@ -38,19 +37,9 @@ permissions:
 
 jobs:
   build:
-    name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+    name: Windows x64
+    runs-on: windows-2022
     timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-2022
-            arch: x64
-            friendlyName: Windows
-          - os: macos-14
-            arch: arm64
-            friendlyName: macOS
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,71 +47,44 @@ jobs:
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
-          arch: ${{ matrix.arch }}
+          arch: x64
       - name: Build production app
         run: yarn build:prod
         env:
           DESKTOP_OAUTH_CLIENT_ID: ${{ secrets.DESKTOP_OAUTH_CLIENT_ID }}
           DESKTOP_OAUTH_CLIENT_SECRET:
             ${{ secrets.DESKTOP_OAUTH_CLIENT_SECRET }}
-          npm_config_arch: ${{ matrix.arch }}
-          TARGET_ARCH: ${{ matrix.arch }}
-      - if: runner.os == 'Windows'
-        uses: ./.github/actions/setup-windows-signing
+          npm_config_arch: x64
+          TARGET_ARCH: x64
+      - uses: ./.github/actions/setup-windows-signing
         with:
           enabled: 'false'
       - name: Package production app
         run: yarn package
         env:
-          npm_config_arch: ${{ matrix.arch }}
+          npm_config_arch: x64
       - name: Collect installers
         shell: bash
         run: |
           mkdir -p installers
           shopt -s nullglob
           for f in \
-            "dist/GitHub Desktop-${{ matrix.arch }}.zip" \
+            "dist/GitHub Desktop-x64.zip" \
             dist/GitHubDesktop-*.nupkg \
-            "dist/GitHubDesktopSetup-${{ matrix.arch }}.exe" \
-            "dist/GitHubDesktopSetup-${{ matrix.arch }}.msi"; do
+            "dist/GitHubDesktopSetup-x64.exe" \
+            "dist/GitHubDesktopSetup-x64.msi"; do
             [ -e "$f" ] && cp "$f" installers/
           done
           ls -la installers
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.friendlyName }}-${{ matrix.arch }}
-          path: installers/**
-          if-no-files-found: warn
-
-  release:
-    name: Publish release
-    needs: build
-    # Run even if one platform's build failed so the installers that did build
-    # (e.g. Windows) are still released.
-    if: ${{ always() }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Download all installers
-        uses: actions/download-artifact@v4
-        with:
-          path: installers
-          merge-multiple: true
-          # A platform may have produced no artifact; don't fail the release.
-        continue-on-error: true
-      - name: List downloaded files
-        run: ls -R installers || true
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v3.6.3-beta3-build.${{ github.run_number }}
           name: Desktop Material build ${{ github.run_number }}
           body: |
-            Automated Desktop Material build from commit ${{ github.sha }}.
+            Automated Desktop Material Windows build from commit ${{ github.sha }}.
 
-            Unsigned installers built by `.github/workflows/build-installers.yml`.
+            Unsigned installer built by `.github/workflows/build-installers.yml`.
           prerelease: false
           make_latest: true
           files: installers/**
