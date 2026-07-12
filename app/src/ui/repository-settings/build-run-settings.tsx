@@ -386,7 +386,7 @@ export class BuildRunSettings extends React.Component<
           <Checkbox
             label={autoInstallLabel}
             value={
-              (prefs.autoInstallMissingTools ?? true)
+              prefs.autoInstallMissingTools ?? true
                 ? CheckboxValue.On
                 : CheckboxValue.Off
             }

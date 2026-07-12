@@ -145,7 +145,8 @@ export function planToolchainInstall(
       steps: [
         {
           command: cmd('corepack', ['enable'], 'corepack enable'),
-          toolLabel: name === 'yarn' ? 'Yarn (via Corepack)' : 'pnpm (via Corepack)',
+          toolLabel:
+            name === 'yarn' ? 'Yarn (via Corepack)' : 'pnpm (via Corepack)',
           needsElevation: false,
         },
       ],

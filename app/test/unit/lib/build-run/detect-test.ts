@@ -169,7 +169,11 @@ describe('detectProfiles', () => {
     it('uses --project for a single project so run is unambiguous', () => {
       const probe = makeProbe({ files: ['App.csproj'] })
       const [profile] = detectProfiles(probe)
-      assert.deepEqual(profile.run?.[0].args, ['run', '--project', 'App.csproj'])
+      assert.deepEqual(profile.run?.[0].args, [
+        'run',
+        '--project',
+        'App.csproj',
+      ])
       assert.deepEqual(profile.build?.[0].args, ['build', 'App.csproj'])
     })
 

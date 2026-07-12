@@ -142,7 +142,10 @@ export class BuildRunPanel extends React.Component<
   }
 
   private onRestore = () => {
-    this.props.dispatcher.setBuildRunPanelMinimized(this.props.repository, false)
+    this.props.dispatcher.setBuildRunPanelMinimized(
+      this.props.repository,
+      false
+    )
   }
 
   private onStop = () => {

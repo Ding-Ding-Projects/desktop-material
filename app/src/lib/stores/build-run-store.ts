@@ -179,7 +179,10 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
   }
 
   /** Collapse the log panel to its slim header bar, or restore it. */
-  public setPanelMinimized(repositoryId: number, panelMinimized: boolean): void {
+  public setPanelMinimized(
+    repositoryId: number,
+    panelMinimized: boolean
+  ): void {
     this.mutate(repositoryId, { panelMinimized })
   }
 
