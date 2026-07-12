@@ -12,6 +12,7 @@ import {
 } from './build-run-preferences'
 import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
+import { EditorOverride, getEditorOverrideHash } from './editor-override'
 
 function getBaseName(path: string): string {
   const baseName = Path.basename(path)
@@ -70,7 +71,13 @@ export class Repository {
      * Per-repository Build & Run preferences. Defaults are applied for
      * repositories added before this property was introduced.
      */
-    public readonly buildRunPreferences: IBuildRunPreferences = defaultBuildRunPreferences
+    public readonly buildRunPreferences: IBuildRunPreferences = defaultBuildRunPreferences,
+    /** Optional user-defined repository-list group. */
+    public readonly groupName: string | null = null,
+    /** Optional local default branch override. */
+    public readonly defaultBranch: string | null = null,
+    /** Optional per-repository editor override. */
+    public readonly customEditorOverride: EditorOverride | null = null
   ) {
     this.name = (gitHubRepository && gitHubRepository.name) || getBaseName(path)
 
@@ -86,7 +93,10 @@ export class Repository {
       this.buildRunPreferences.defaultProfileId,
       this.buildRunPreferences.elevated,
       this.buildRunPreferences.autoRunAfterBuild,
-      this.buildRunPreferences.autoIgnoreBuildOutputs
+      this.buildRunPreferences.autoIgnoreBuildOutputs,
+      this.groupName,
+      this.defaultBranch,
+      getEditorOverrideHash(this.customEditorOverride)
     )
   }
 

@@ -26,6 +26,7 @@ import {
 import { TypedBaseStore } from './base-store'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import { IBuildRunPreferences } from '../../models/build-run-preferences'
+import { EditorOverride } from '../../models/editor-override'
 import { clearTagsToPush } from './helpers/tags-to-push-storage'
 import { IMatchedGitHubRepository } from '../repository-matching'
 import { shallowEquals } from '../equality'
@@ -156,7 +157,10 @@ export class RepositoriesStore extends TypedBaseStore<
       repo.isTutorialRepository,
       repo.gitDir,
       repo.accountKey ?? null,
-      repo.buildRunPreferences
+      repo.buildRunPreferences,
+      repo.groupName ?? null,
+      repo.defaultBranch ?? null,
+      repo.customEditorOverride ?? null
     )
   }
 
@@ -298,7 +302,10 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.isTutorialRepository,
       repository.gitDir,
       repository.accountKey,
-      repository.buildRunPreferences
+      repository.buildRunPreferences,
+      repository.groupName,
+      repository.defaultBranch,
+      repository.customEditorOverride
     )
   }
 
@@ -321,7 +328,10 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.isTutorialRepository,
       gitDir,
       repository.accountKey,
-      repository.buildRunPreferences
+      repository.buildRunPreferences,
+      repository.groupName,
+      repository.defaultBranch,
+      repository.customEditorOverride
     )
   }
 
@@ -337,6 +347,39 @@ export class RepositoriesStore extends TypedBaseStore<
   ): Promise<void> {
     await this.db.repositories.update(repository.id, { alias })
 
+    this.emitUpdatedRepositories()
+  }
+
+  /** Assign one or more repositories to a custom repository-list group. */
+  public async updateRepositoryGroupName(
+    repositories: ReadonlyArray<Repository>,
+    groupName: string | null
+  ): Promise<void> {
+    await this.db.transaction('rw', this.db.repositories, () =>
+      Promise.all(
+        repositories.map(repository =>
+          this.db.repositories.update(repository.id, { groupName })
+        )
+      )
+    )
+    this.emitUpdatedRepositories()
+  }
+
+  public async updateRepositoryDefaultBranch(
+    repository: Repository,
+    defaultBranch: string | null
+  ): Promise<void> {
+    await this.db.repositories.update(repository.id, { defaultBranch })
+    this.emitUpdatedRepositories()
+  }
+
+  public async updateRepositoryEditorOverride(
+    repository: Repository,
+    customEditorOverride: EditorOverride | null
+  ): Promise<void> {
+    await this.db.repositories.update(repository.id, {
+      customEditorOverride,
+    })
     this.emitUpdatedRepositories()
   }
 
@@ -395,7 +438,10 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.isTutorialRepository,
       repository.gitDir,
       accountKey,
-      repository.buildRunPreferences
+      repository.buildRunPreferences,
+      repository.groupName,
+      repository.defaultBranch,
+      repository.customEditorOverride
     )
   }
 
@@ -424,7 +470,10 @@ export class RepositoriesStore extends TypedBaseStore<
       repository.isTutorialRepository,
       gitDir,
       repository.accountKey,
-      repository.buildRunPreferences
+      repository.buildRunPreferences,
+      repository.groupName,
+      repository.defaultBranch,
+      repository.customEditorOverride
     )
   }
 
@@ -473,7 +522,10 @@ export class RepositoriesStore extends TypedBaseStore<
         repository.isTutorialRepository,
         gitDir,
         repository.accountKey,
-        repository.buildRunPreferences
+        repository.buildRunPreferences,
+        repository.groupName,
+        repository.defaultBranch,
+        repository.customEditorOverride
       ),
       existingRepository: false,
     }
@@ -624,7 +676,10 @@ export class RepositoriesStore extends TypedBaseStore<
       repo.isTutorialRepository,
       repo.gitDir,
       repo.accountKey,
-      repo.buildRunPreferences
+      repo.buildRunPreferences,
+      repo.groupName,
+      repo.defaultBranch,
+      repo.customEditorOverride
     )
 
     assertIsRepositoryWithGitHubRepository(updatedRepo)

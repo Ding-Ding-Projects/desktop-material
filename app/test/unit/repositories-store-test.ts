@@ -84,6 +84,57 @@ describe('RepositoriesStore', () => {
     })
   })
 
+  describe('repository metadata', () => {
+    it('persists grouping, default branch, and editor override together', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/metadata/path',
+        '/some/metadata/path/.git'
+      )
+      await repositoriesStore.updateRepositoryGroupName([repository], 'Clients')
+      await repositoriesStore.updateRepositoryDefaultBranch(
+        repository,
+        'develop'
+      )
+      await repositoriesStore.updateRepositoryEditorOverride(repository, {
+        selectedExternalEditor: 'Visual Studio Code',
+        useCustomEditor: false,
+        customEditor: null,
+      })
+
+      const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(reloaded.groupName, 'Clients')
+      assert.equal(reloaded.defaultBranch, 'develop')
+      assert.deepEqual(reloaded.customEditorOverride, {
+        selectedExternalEditor: 'Visual Studio Code',
+        useCustomEditor: false,
+        customEditor: null,
+      })
+    })
+
+    it('keeps metadata when repository path and account change', async () => {
+      const original = await repositoriesStore.addRepository(
+        '/some/preserved/path',
+        '/some/preserved/path/.git'
+      )
+      await repositoriesStore.updateRepositoryGroupName([original], 'Work')
+      await repositoriesStore.updateRepositoryDefaultBranch(original, 'trunk')
+      const [withMetadata] = await repositoriesStore.getAll()
+      const moved = await repositoriesStore.updateRepositoryPath(
+        withMetadata,
+        '/some/preserved/moved',
+        '/some/preserved/moved/.git'
+      )
+      const rebound = await repositoriesStore.updateRepositoryAccount(
+        moved,
+        'https://api.github.com#42'
+      )
+
+      assert.equal(rebound.groupName, 'Work')
+      assert.equal(rebound.defaultBranch, 'trunk')
+      assert.equal(rebound.accountKey, 'https://api.github.com#42')
+    })
+  })
+
   describe('updating a GitHub repository', () => {
     const apiRepo: IAPIFullRepository = {
       clone_url: 'https://github.com/my-user/my-repo',

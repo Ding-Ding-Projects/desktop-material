@@ -4,6 +4,7 @@ import {
   RepositoriesDatabase,
   IDatabaseGitHubRepository,
   IDatabaseOwner,
+  IDatabaseRepository,
   getOwnerKey,
 } from '../../src/lib/databases'
 
@@ -112,6 +113,36 @@ describe('RepositoriesDatabase', () => {
     assert.deepStrictEqual(migratedOwner?.endpoint, endpoint)
     assert.deepStrictEqual(migratedOwner?.key, getOwnerKey(endpoint, 'DeskTop'))
 
+    await db.delete()
+  })
+
+  it('migrates repository metadata from version 9 to 10', async () => {
+    const dbName = 'TestRepositoriesMetadataMigration'
+    let db = new RepositoriesDatabase(dbName, 9)
+    await db.delete()
+    await db.open()
+
+    type RepositoryBeforeMetadata = Omit<
+      IDatabaseRepository,
+      'groupName' | 'defaultBranch' | 'customEditorOverride'
+    >
+    const legacyTable = db.table<RepositoryBeforeMetadata, number>(
+      'repositories'
+    )
+    const id = await legacyTable.add({
+      path: '/legacy/repository',
+      alias: null,
+      gitHubRepositoryID: null,
+      missing: false,
+    })
+    db.close()
+
+    db = new RepositoriesDatabase(dbName, 10)
+    await db.open()
+    const migrated = await db.repositories.get(id)
+    assert.equal(migrated?.groupName, null)
+    assert.equal(migrated?.defaultBranch, null)
+    assert.equal(migrated?.customEditorOverride, null)
     await db.delete()
   })
 })
