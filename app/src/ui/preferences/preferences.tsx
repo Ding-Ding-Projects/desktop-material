@@ -80,6 +80,10 @@ import {
 import { enableFormattingPreferences } from '../../lib/feature-flag'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import { BranchSortOrder } from '../../models/branch-sort-order'
+import {
+  getShowCommitAuthorInfo,
+  setShowCommitAuthorInfo,
+} from '../../models/commit-author-display'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
@@ -161,6 +165,7 @@ interface IPreferencesState {
   readonly selectedShell: Shell
   readonly showRecentRepositories: boolean
   readonly branchSortOrder: BranchSortOrder
+  readonly showCommitAuthorInfo: boolean
 
   /**
    * If unable to save Git configuration values (name, email)
@@ -258,6 +263,7 @@ export class Preferences extends React.Component<
       selectedShell: this.props.selectedShell,
       showRecentRepositories: this.props.showRecentRepositories,
       branchSortOrder: this.props.branchSortOrder,
+      showCommitAuthorInfo: getShowCommitAuthorInfo(),
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
@@ -635,6 +641,8 @@ export class Preferences extends React.Component<
               selectedShell={
                 this.state.selectedGitHookEnvShell ?? defaultGitHookEnvShell
               }
+              showCommitAuthorInfo={this.state.showCommitAuthorInfo}
+              onShowCommitAuthorInfoChanged={this.onShowCommitAuthorInfoChanged}
             />
           </>
         )
@@ -915,6 +923,10 @@ export class Preferences extends React.Component<
     this.setState({ branchSortOrder })
   }
 
+  private onShowCommitAuthorInfoChanged = (showCommitAuthorInfo: boolean) => {
+    this.setState({ showCommitAuthorInfo })
+  }
+
   private onUseCustomEditorChanged = (useCustomEditor: boolean) => {
     this.setState({ useCustomEditor })
   }
@@ -1179,6 +1191,8 @@ export class Preferences extends React.Component<
     dispatcher.setAlwaysUseCopilotForConflictResolution(
       this.state.alwaysUseCopilotForConflictResolution
     )
+
+    setShowCommitAuthorInfo(this.state.showCommitAuthorInfo)
 
     if (enableFormattingPreferences()) {
       if (this.state.selectedDateFormat !== undefined) {

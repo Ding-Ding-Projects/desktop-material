@@ -37,7 +37,13 @@ import {
   isAttributableEmailFor,
   lookupPreferredEmail,
 } from '../../lib/email'
-import { setGlobalConfigValue } from '../../lib/git/config'
+import {
+  formatConfigPath,
+  formatConfigScope,
+  getConfigValueWithOrigin,
+  IConfigValueOrigin,
+  setGlobalConfigValue,
+} from '../../lib/git/config'
 import { Popup, PopupType } from '../../models/popup'
 import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 import { IdealSummaryLength } from '../../lib/wrap-rich-text-commit-message'
@@ -71,6 +77,7 @@ import { getAccountForCommitMessageGeneration } from '../../lib/get-account-for-
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
+import { getShowCommitAuthorInfo } from '../../models/commit-author-display'
 
 const addAuthorIcon: OcticonSymbolVariant = {
   w: 18,
@@ -264,6 +271,8 @@ interface ICommitMessageState {
   readonly repoRuleCommitMessageFailures: RepoRulesMetadataFailures
   readonly repoRuleCommitAuthorFailures: RepoRulesMetadataFailures
   readonly repoRuleBranchNameFailures: RepoRulesMetadataFailures
+  readonly commitAuthorNameOrigin: IConfigValueOrigin | null
+  readonly commitAuthorEmailOrigin: IConfigValueOrigin | null
 }
 
 function findCommitMessageAutoCompleteProvider(
@@ -321,6 +330,8 @@ export class CommitMessage extends React.Component<
       repoRuleCommitMessageFailures: new RepoRulesMetadataFailures(),
       repoRuleCommitAuthorFailures: new RepoRulesMetadataFailures(),
       repoRuleBranchNameFailures: new RepoRulesMetadataFailures(),
+      commitAuthorNameOrigin: null,
+      commitAuthorEmailOrigin: null,
     }
   }
 
@@ -333,7 +344,10 @@ export class CommitMessage extends React.Component<
 
   public async componentDidMount() {
     window.addEventListener('keydown', this.onKeyDown)
-    await this.updateRepoRuleFailures(undefined, undefined, true)
+    await Promise.all([
+      this.updateRepoRuleFailures(undefined, undefined, true),
+      this.loadCommitAuthorOrigins(),
+    ])
   }
 
   /**
@@ -377,6 +391,10 @@ export class CommitMessage extends React.Component<
       })
     }
 
+    if (this.props.repository.id !== prevProps.repository.id) {
+      await this.loadCommitAuthorOrigins()
+    }
+
     if (
       this.props.focusCommitMessage &&
       this.props.focusCommitMessage !== prevProps.focusCommitMessage
@@ -412,6 +430,23 @@ export class CommitMessage extends React.Component<
     }
 
     await this.updateRepoRuleFailures(prevProps, prevState)
+  }
+
+  private loadCommitAuthorOrigins = async () => {
+    try {
+      const [commitAuthorNameOrigin, commitAuthorEmailOrigin] =
+        await Promise.all([
+          getConfigValueWithOrigin(this.props.repository, 'user.name'),
+          getConfigValueWithOrigin(this.props.repository, 'user.email'),
+        ])
+      this.setState({ commitAuthorNameOrigin, commitAuthorEmailOrigin })
+    } catch (error) {
+      log.warn('Unable to load effective Git author config origins', error)
+      this.setState({
+        commitAuthorNameOrigin: null,
+        commitAuthorEmailOrigin: null,
+      })
+    }
   }
 
   private async updateRepoRuleFailures(
@@ -790,6 +825,44 @@ export class CommitMessage extends React.Component<
         repository={repository}
         accounts={this.props.accounts}
       />
+    )
+  }
+
+  private renderCommitAuthorIdentity() {
+    const { commitAuthor, repository } = this.props
+    if (!getShowCommitAuthorInfo() || commitAuthor === null) {
+      return null
+    }
+
+    const { commitAuthorNameOrigin, commitAuthorEmailOrigin } = this.state
+    const origins = [commitAuthorNameOrigin, commitAuthorEmailOrigin].filter(
+      (origin): origin is IConfigValueOrigin => origin !== null
+    )
+    const sourceText = origins.length
+      ? Array.from(
+          new Set(
+            origins.map(
+              origin =>
+                `${formatConfigScope(origin)} · ${formatConfigPath(
+                  origin,
+                  repository.path
+                )}`
+            )
+          )
+        ).join(' / ')
+      : 'Git effective configuration'
+
+    return (
+      <div className="commit-author-identity">
+        {this.renderAvatar()}
+        <div className="commit-author-info">
+          <span className="commit-author-name">{commitAuthor.name}</span>
+          <span className="commit-author-email">{commitAuthor.email}</span>
+          <span className="commit-author-source" title={sourceText}>
+            {sourceText}
+          </span>
+        </div>
+      </div>
     )
   }
 
@@ -1781,8 +1854,9 @@ export class CommitMessage extends React.Component<
         onContextMenu={this.onContextMenu}
         ref={this.wrapperRef}
       >
+        {this.renderCommitAuthorIdentity()}
         <div className={summaryClassName} ref={this.summaryGroupRef}>
-          {this.renderAvatar()}
+          {!getShowCommitAuthorInfo() && this.renderAvatar()}
 
           <AutocompletingInput
             required={true}

@@ -12,6 +12,39 @@
 
   padding: var(--spacing);
 
+  .commit-author-identity {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing);
+    min-width: 0;
+    margin-bottom: var(--spacing);
+    padding: var(--spacing);
+    border-radius: 14px;
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+
+    .commit-author-info {
+      display: grid;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .commit-author-name {
+      font-weight: var(--font-weight-semibold);
+    }
+
+    .commit-author-email,
+    .commit-author-source {
+      @include ellipsis;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+    }
+
+    .commit-author-source {
+      font-family: var(--font-family-monospace);
+    }
+  }
+
   .commit-progress {
     display: flex;
     align-items: center;

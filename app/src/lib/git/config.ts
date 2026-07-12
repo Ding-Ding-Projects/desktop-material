@@ -255,6 +255,71 @@ export async function removeGlobalConfigValue(
   return removeConfigValueInPath(name, null, env)
 }
 
+export interface IConfigValueOrigin {
+  readonly value: string
+  readonly scope: string
+  readonly origin: string
+}
+
+/** Look up an effective config value together with the file and scope that won. */
+export async function getConfigValueWithOrigin(
+  repository: Repository,
+  name: string
+): Promise<IConfigValueOrigin | null> {
+  const result = await git(
+    ['config', '--show-origin', '--show-scope', '-z', name],
+    repository.path,
+    'getConfigValueWithOrigin',
+    { successExitCodes: new Set([0, 1, 128]) }
+  )
+
+  if (result.exitCode !== 0) {
+    return null
+  }
+
+  const [scope, origin, value] = result.stdout.split('\0')
+  return scope && origin && value ? { scope, origin, value } : null
+}
+
+export function isConditionalInclude(origin: IConfigValueOrigin): boolean {
+  if (origin.scope !== 'global') {
+    return false
+  }
+
+  const filePath = origin.origin.replace(/^file:/, '')
+  return (
+    !/[/\\]\.gitconfig$/i.test(filePath) &&
+    !/[/\\]\.config[/\\]git[/\\]config$/i.test(filePath)
+  )
+}
+
+export function formatConfigScope(origin: IConfigValueOrigin): string {
+  return origin.scope === 'global' && isConditionalInclude(origin)
+    ? 'global via includeIf'
+    : origin.scope
+}
+
+export function formatConfigPath(
+  origin: IConfigValueOrigin,
+  repositoryPath: string
+): string {
+  const rawPath = origin.origin.replace(/^file:/, '')
+  if (origin.scope === 'local' || origin.scope === 'worktree') {
+    if (!/^([a-zA-Z]:|[/\\])/.test(rawPath)) {
+      return `<repo>/${rawPath}`
+    }
+
+    const normalizedRepositoryPath = repositoryPath.replace(/[\\/]+$/, '')
+    if (
+      rawPath.toLowerCase().startsWith(normalizedRepositoryPath.toLowerCase())
+    ) {
+      return `<repo>${rawPath.slice(normalizedRepositoryPath.length)}`
+    }
+  }
+
+  return rawPath
+}
+
 /**
  * Remove config value by name
  *

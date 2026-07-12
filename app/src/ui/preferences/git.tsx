@@ -37,6 +37,8 @@ interface IGitProps {
   readonly enableGitHookEnv: boolean
   readonly cacheGitHookEnv: boolean
   readonly selectedShell: string
+  readonly showCommitAuthorInfo: boolean
+  readonly onShowCommitAuthorInfoChanged: (show: boolean) => void
 }
 
 const windowsShells: ReadonlyArray<SupportedHooksEnvShell> = [
@@ -71,6 +73,12 @@ export class Git extends React.Component<IGitProps> {
     event: React.FormEvent<HTMLSelectElement>
   ) => {
     this.props.onSelectedShellChanged(event.currentTarget.value)
+  }
+
+  private onShowCommitAuthorInfoChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onShowCommitAuthorInfoChanged(event.currentTarget.checked)
   }
 
   private renderHooksSettings() {
@@ -176,6 +184,20 @@ export class Git extends React.Component<IGitProps> {
           onEmailChanged={this.props.onEmailChanged}
           onNameChanged={this.props.onNameChanged}
         />
+        <Checkbox
+          label="Show effective identity and config source above commit message"
+          ariaDescribedBy="commit-author-info-description"
+          value={
+            this.props.showCommitAuthorInfo
+              ? CheckboxValue.On
+              : CheckboxValue.Off
+          }
+          onChange={this.onShowCommitAuthorInfoChanged}
+        />
+        <p id="commit-author-info-description" className="settings-description">
+          Displays the name, email, Git config scope, and winning config file
+          before you commit.
+        </p>
         {this.renderEditGlobalGitConfigInfo()}
       </>
     )
