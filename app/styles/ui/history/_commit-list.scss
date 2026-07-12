@@ -109,6 +109,12 @@
   padding-right: calc(var(--spacing) + var(--spacing-half));
   padding-left: var(--spacing);
 
+  &.merge-commit .summary span {
+    color: var(--md-sys-color-on-surface-variant);
+    font-style: italic;
+    font-weight: var(--font-weight-normal);
+  }
+
   .info {
     display: flex;
     flex: 1 1 auto;
