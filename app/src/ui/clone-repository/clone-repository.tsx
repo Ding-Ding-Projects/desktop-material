@@ -4,8 +4,10 @@ import { Dispatcher } from '../dispatcher'
 import { getDefaultDir, setDefaultDir } from '../lib/default-dir'
 import {
   Account,
+  isBitbucketAccount,
   isDotComAccount,
   isEnterpriseAccount,
+  isGitLabAccount,
 } from '../../models/account'
 import { resolveSelectedAccount } from '../../lib/resolve-selected-account'
 import { FoldoutType } from '../../lib/app-state'
@@ -42,6 +44,8 @@ import {
   buildBatchCloneItems,
 } from '../../models/batch-clone'
 import { mergeOrganizationRepositories } from './org-filter-chips'
+import { PopupType } from '../../models/popup'
+import { PreferencesTab } from '../../models/preferences'
 
 interface ICloneRepositoryProps {
   readonly dispatcher: Dispatcher
@@ -84,6 +88,25 @@ interface ICloneRepositoryProps {
   readonly isTopMost: boolean
 }
 
+/** Whether an authenticated account belongs on a hosted clone tab. */
+export function accountMatchesCloneTab(
+  tab: CloneRepositoryTab,
+  account: Account
+): boolean {
+  switch (tab) {
+    case CloneRepositoryTab.DotCom:
+      return isDotComAccount(account)
+    case CloneRepositoryTab.Enterprise:
+      return isEnterpriseAccount(account)
+    case CloneRepositoryTab.Providers:
+      return isGitLabAccount(account) || isBitbucketAccount(account)
+    case CloneRepositoryTab.Generic:
+      return false
+    default:
+      return assertNever(tab, `Unknown clone repository tab: ${tab}`)
+  }
+}
+
 interface ICloneRepositoryState {
   /** A copy of the path state field which is set when the component initializes.
    *
@@ -113,6 +136,9 @@ interface ICloneRepositoryState {
    * the GitHub Enterprise account.
    */
   readonly enterpriseTabState: IGitHubTabState
+
+  /** GitLab and Bitbucket repository browser state. */
+  readonly providerTabState: IGitHubTabState
 
   /**
    * The persisted state of the CloneGenericRepository component.
@@ -150,7 +176,7 @@ interface IUrlTabState extends IBaseTabState {
  * Persisted state for the CloneGitHubRepository component.
  */
 interface IGitHubTabState extends IBaseTabState {
-  readonly kind: 'dotComTabState' | 'enterpriseTabState'
+  readonly kind: 'dotComTabState' | 'enterpriseTabState' | 'providerTabState'
 
   /**
    * The contents of the filter text box used to filter the list of
@@ -193,11 +219,7 @@ export class CloneRepository extends React.Component<
     (tab: CloneRepositoryTab, accounts: ReadonlyArray<Account>) =>
       tab === CloneRepositoryTab.Generic
         ? []
-        : accounts.filter(
-            tab === CloneRepositoryTab.DotCom
-              ? isDotComAccount
-              : isEnterpriseAccount
-          )
+        : accounts.filter(account => accountMatchesCloneTab(tab, account))
   )
 
   public constructor(props: ICloneRepositoryProps) {
@@ -227,6 +249,14 @@ export class CloneRepository extends React.Component<
       },
       enterpriseTabState: {
         kind: 'enterpriseTabState',
+        filterText: '',
+        selectedItem: null,
+        checkedUrls: new Set<string>(),
+        selectedOrganization: null,
+        ...initialBaseTabState,
+      },
+      providerTabState: {
+        kind: 'providerTabState',
         filterText: '',
         selectedItem: null,
         checkedUrls: new Set<string>(),
@@ -275,10 +305,15 @@ export class CloneRepository extends React.Component<
       path: initialPath,
     }
     const urlTabState = { ...this.state.urlTabState, path: initialPath }
+    const providerTabState = {
+      ...this.state.providerTabState,
+      path: initialPath,
+    }
     this.setState({
       initialPath,
       dotComTabState,
       enterpriseTabState,
+      providerTabState,
       urlTabState,
     })
 
@@ -305,6 +340,7 @@ export class CloneRepository extends React.Component<
           <span id="dotcom-tab">GitHub.com</span>
           <span id="enterprise-tab">GitHub Enterprise</span>
           <span id="url-tab">URL</span>
+          <span id="providers-tab">GitLab &amp; Bitbucket</span>
         </TabBar>
 
         {error ? <DialogError>{error.message}</DialogError> : null}
@@ -323,7 +359,9 @@ export class CloneRepository extends React.Component<
       ? 'dotcom-tab'
       : this.props.selectedTab === CloneRepositoryTab.Enterprise
       ? 'enterprise-tab'
-      : 'url-tab'
+      : this.props.selectedTab === CloneRepositoryTab.Generic
+      ? 'url-tab'
+      : 'providers-tab'
   }
 
   private checkIfCloningDisabled = () => {
@@ -384,7 +422,8 @@ export class CloneRepository extends React.Component<
         )
 
       case CloneRepositoryTab.DotCom:
-      case CloneRepositoryTab.Enterprise: {
+      case CloneRepositoryTab.Enterprise:
+      case CloneRepositoryTab.Providers: {
         const tabState = this.getGitHubTabState(tab)
         const tabAccounts = this.getAccountsForTab(tab, this.props.accounts)
         const selectedAccount = this.getAccountForTab(tab)
@@ -522,12 +561,17 @@ export class CloneRepository extends React.Component<
   }
 
   private getGitHubTabState(
-    tab: CloneRepositoryTab.DotCom | CloneRepositoryTab.Enterprise
+    tab:
+      | CloneRepositoryTab.DotCom
+      | CloneRepositoryTab.Enterprise
+      | CloneRepositoryTab.Providers
   ): IGitHubTabState {
     if (tab === CloneRepositoryTab.DotCom) {
       return this.state.dotComTabState
     } else if (tab === CloneRepositoryTab.Enterprise) {
       return this.state.enterpriseTabState
+    } else if (tab === CloneRepositoryTab.Providers) {
+      return this.state.providerTabState
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
     }
@@ -540,6 +584,8 @@ export class CloneRepository extends React.Component<
       return this.state.enterpriseTabState
     } else if (tab === CloneRepositoryTab.Generic) {
       return this.state.urlTabState
+    } else if (tab === CloneRepositoryTab.Providers) {
+      return this.state.providerTabState
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
     }
@@ -598,6 +644,16 @@ export class CloneRepository extends React.Component<
         }),
         callback
       )
+    } else if (tab === CloneRepositoryTab.Providers) {
+      this.setState(
+        prevState => ({
+          providerTabState: {
+            ...prevState.providerTabState,
+            ...state,
+          },
+        }),
+        callback
+      )
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
     }
@@ -605,7 +661,10 @@ export class CloneRepository extends React.Component<
 
   private setGitHubTabState<K extends keyof IGitHubTabState>(
     tabState: Pick<IGitHubTabState, K>,
-    tab: CloneRepositoryTab.DotCom | CloneRepositoryTab.Enterprise
+    tab:
+      | CloneRepositoryTab.DotCom
+      | CloneRepositoryTab.Enterprise
+      | CloneRepositoryTab.Providers
   ): void {
     if (tab === CloneRepositoryTab.DotCom) {
       this.setState(prevState => ({
@@ -614,6 +673,10 @@ export class CloneRepository extends React.Component<
     } else if (tab === CloneRepositoryTab.Enterprise) {
       this.setState(prevState => ({
         enterpriseTabState: merge(prevState.enterpriseTabState, tabState),
+      }))
+    } else if (tab === CloneRepositoryTab.Providers) {
+      this.setState(prevState => ({
+        providerTabState: merge(prevState.providerTabState, tabState),
       }))
     } else {
       return assertNever(tab, `Unknown tab: ${tab}`)
@@ -645,6 +708,18 @@ export class CloneRepository extends React.Component<
         )
       case CloneRepositoryTab.Generic:
         return null
+      case CloneRepositoryTab.Providers:
+        return (
+          <CallToAction
+            actionTitle="Add provider account"
+            onAction={this.signInProvider}
+          >
+            <div>
+              Add a GitLab personal access token or Bitbucket app password in
+              Settings to browse and clone your repositories.
+            </div>
+          </CallToAction>
+        )
       default:
         return assertNever(tab, `Unknown sign in tab: ${tab}`)
     }
@@ -656,6 +731,13 @@ export class CloneRepository extends React.Component<
 
   private signInEnterprise = () => {
     this.props.dispatcher.showEnterpriseSignInDialog()
+  }
+
+  private signInProvider = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.Preferences,
+      initialSelectedTab: PreferencesTab.Accounts,
+    })
   }
 
   private onFilterTextChanged = (filterText: string) => {

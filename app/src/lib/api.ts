@@ -3027,6 +3027,10 @@ abstract class ThirdPartyAPI extends API {
     return undefined
   }
 
+  public override async fetchOrgs(): Promise<ReadonlyArray<IAPIOrganization>> {
+    return []
+  }
+
   public override async fetchRefCheckRuns(
     _owner: string,
     _name: string,
