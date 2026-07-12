@@ -9,7 +9,7 @@ import {
 import { TextBox } from '../lib/text-box'
 import { Row } from '../lib/row'
 
-import { match, IMatch, IMatches } from '../../lib/fuzzy-find'
+import { FilterMode, IMatch, IMatches } from '../../lib/fuzzy-find'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import {
   InvalidRowIndexPath,
@@ -23,6 +23,17 @@ import {
 } from './filter-list'
 import * as octicons from '../octicons/octicons.generated'
 import xor from 'lodash/xor'
+import { FilterModeControl } from './filter-mode-control'
+import {
+  FilterChipsRow,
+  IFilterModeSettings,
+  IListFilter,
+  applyCustomFilters,
+  initialFilterModeSettings,
+  matchGroup,
+  persistFilterMode,
+  toggleFilterId,
+} from './filter-list-mode'
 
 interface IFlattenedGroup {
   readonly kind: 'group'
@@ -227,15 +238,35 @@ interface IAugmentedSectionFilterListProps<T extends IFilterListItem> {
    * in this filter list (not needed yet)
    */
   readonly selectionMode?: 'single' | 'multi'
+
+  /**
+   * When provided, enables the filter-mode control (fuzzy / substring / regex)
+   * and persists the chosen mode to localStorage under `filter-mode/<id>`.
+   */
+  readonly filterListId?: string
+
+  /**
+   * Optional toggleable predicate filters rendered as chips below the search
+   * field.
+   */
+  readonly customFilters?: ReadonlyArray<IListFilter<T>>
+
+  /**
+   * A human readable label for this list, used in the regex builder. Falls back
+   * to the placeholder text.
+   */
+  readonly filterListLabel?: string
 }
 
-interface IAugmentedSectionFilterListState<T extends IFilterListItem> {
+interface IAugmentedSectionFilterListState<T extends IFilterListItem>
+  extends IFilterModeSettings {
   readonly rows: ReadonlyArray<ReadonlyArray<IFilterListRow<T>>>
   readonly selectedRows: ReadonlyArray<RowIndexPath>
   readonly filterValue: string
   readonly filterValueChanged: boolean
   // Indices of groups in the filtered list
   readonly groups: ReadonlyArray<number>
+  readonly regexError: string | null
 }
 
 /** A List which includes the ability to filter based on its contents. */
@@ -371,6 +402,81 @@ export class AugmentedSectionFilterList<
     )
   }
 
+  private getSampleItems = (): ReadonlyArray<string> => {
+    const items = new Array<string>()
+    for (const group of this.state.rows) {
+      for (const row of group) {
+        if (row.kind === 'item' && row.item.text.length > 0) {
+          items.push(row.item.text[0])
+        }
+        if (items.length >= 50) {
+          return items
+        }
+      }
+    }
+    return items
+  }
+
+  private setFilterMode = (filterMode: FilterMode) => {
+    persistFilterMode(this.props.filterListId, filterMode)
+    this.setState(prev => createStateUpdate(this.props, { ...prev, filterMode }))
+  }
+
+  private setCaseSensitive = (caseSensitive: boolean) => {
+    this.setState(prev =>
+      createStateUpdate(this.props, { ...prev, caseSensitive })
+    )
+  }
+
+  private onToggleCustomFilter = (id: string) => {
+    this.setState(prev =>
+      createStateUpdate(this.props, {
+        ...prev,
+        activeFilterIds: toggleFilterId(prev.activeFilterIds, id),
+      })
+    )
+  }
+
+  private onRegexPatternApply = (pattern: string) => {
+    this.props.onFilterTextChanged?.(pattern)
+  }
+
+  private renderFilterControls() {
+    if (this.props.filterListId === undefined) {
+      return null
+    }
+
+    return (
+      <FilterModeControl
+        mode={this.state.filterMode}
+        caseSensitive={this.state.caseSensitive}
+        onModeChange={this.setFilterMode}
+        onCaseSensitiveChange={this.setCaseSensitive}
+        regexBuilderTarget={
+          this.props.filterListLabel ?? this.props.placeholderText ?? 'the list'
+        }
+        getSampleItems={this.getSampleItems}
+        filterText={this.props.filterText ?? ''}
+        onRegexPatternApply={this.onRegexPatternApply}
+      />
+    )
+  }
+
+  private renderCustomFilterChips() {
+    const { customFilters } = this.props
+    if (customFilters === undefined || customFilters.length === 0) {
+      return null
+    }
+
+    return (
+      <FilterChipsRow
+        customFilters={customFilters}
+        activeFilterIds={this.state.activeFilterIds}
+        onToggleFilter={this.onToggleCustomFilter}
+      />
+    )
+  }
+
   public renderFilterRow() {
     if (this.props.hideFilterRow === true) {
       return null
@@ -381,16 +487,24 @@ export class AugmentedSectionFilterList<
     }
 
     return (
-      <Row className="filter-field-row">
-        {this.props.filterTextBox === undefined ? this.renderTextBox() : null}
-        {this.props.renderPostFilter ? this.props.renderPostFilter() : null}
-      </Row>
+      <>
+        <Row className="filter-field-row">
+          {this.props.filterTextBox === undefined ? this.renderTextBox() : null}
+          {this.renderFilterControls()}
+          {this.props.renderPostFilter ? this.props.renderPostFilter() : null}
+        </Row>
+        {this.renderCustomFilterChips()}
+      </>
     )
   }
 
   public render() {
     return (
-      <div className={classnames('filter-list', this.props.className)}>
+      <div
+        className={classnames('filter-list', this.props.className, {
+          'filter-list-regex-error': this.state.regexError !== null,
+        })}
+      >
         {this.renderLiveContainer()}
 
         {this.props.renderPreList ? this.props.renderPreList() : null}
@@ -823,32 +937,56 @@ function getFirstVisibleRow<T extends IFilterListItem>(
   return InvalidRowIndexPath
 }
 
+function getFilterSettings<T extends IFilterListItem>(
+  props: IAugmentedSectionFilterListProps<T>,
+  state: IAugmentedSectionFilterListState<T> | null
+): IFilterModeSettings {
+  if (state === null) {
+    return initialFilterModeSettings(props.filterListId)
+  }
+
+  return {
+    filterMode: state.filterMode,
+    caseSensitive: state.caseSensitive,
+    activeFilterIds: state.activeFilterIds,
+  }
+}
+
 function createStateUpdate<T extends IFilterListItem>(
   props: IAugmentedSectionFilterListProps<T>,
   state: IAugmentedSectionFilterListState<T> | null
 ) {
   const rows = new Array<Array<IFilterListRow<T>>>()
-  const filter = (props.filterText || '').toLowerCase()
+  const filter = props.filterText || ''
   const { filterMethod, selectedItems } = props
+  const settings = getFilterSettings(props, state)
+  let regexError: string | null = null
   const selectedRows = []
   let section = 0
   const groupIndices = []
-  let filterValueChanged = state?.filterValueChanged ? true : filter.length > 0
+  const hasActiveFilter =
+    filter.length > 0 || settings.activeFilterIds.length > 0
+  let filterValueChanged = state?.filterValueChanged ? true : hasActiveFilter
 
   for (const [idx, group] of props.groups.entries()) {
     const groupRows = new Array<IFilterListRow<T>>()
 
-    const itemsToMatch = filterMethod
-      ? group.items.filter(filterMethod)
-      : group.items
+    const itemsToMatch = applyCustomFilters(
+      filterMethod ? group.items.filter(filterMethod) : group.items,
+      props.customFilters,
+      settings.activeFilterIds
+    )
 
-    const items: ReadonlyArray<IMatch<T>> = filter
-      ? match(filter, itemsToMatch, getText)
-      : itemsToMatch.map(item => ({
-          score: 1,
-          matches: { title: [], subtitle: [] },
-          item,
-        }))
+    const { results, regexError: groupRegexError } = matchGroup(
+      filter,
+      itemsToMatch,
+      getText,
+      { mode: settings.filterMode, caseSensitive: settings.caseSensitive }
+    )
+    if (groupRegexError !== null) {
+      regexError = groupRegexError
+    }
+    const items: ReadonlyArray<IMatch<T>> = results
 
     if (group.items.length !== items.length) {
       filterValueChanged = true
@@ -891,6 +1029,10 @@ function createStateUpdate<T extends IFilterListItem>(
     filterValue: filter,
     filterValueChanged,
     groups: groupIndices,
+    filterMode: settings.filterMode,
+    caseSensitive: settings.caseSensitive,
+    activeFilterIds: settings.activeFilterIds,
+    regexError,
   }
 }
 
