@@ -98,7 +98,6 @@
   color: inherit;
   text-align: left;
   background: var(--md-sys-color-surface-container-low);
-  cursor: pointer;
   transition: transform 180ms var(--spring-fast), border-radius 220ms var(--spring), background-color 180ms ease;
 
   &:hover {
@@ -110,10 +109,30 @@
     transform: scale(0.99);
   }
 
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 2px;
+  }
+
   &.selected {
     border-color: var(--md-sys-color-primary);
     background: var(--md-sys-color-primary-container);
   }
+}
+
+.actions-run-select {
+  display: grid;
+  grid-column: 1 / 4;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
 }
 
 .actions-status-chip,

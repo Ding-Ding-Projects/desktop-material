@@ -1,6 +1,12 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { API, getNextPagePathWithIncreasingPageSize } from '../../src/lib/api'
+import {
+  API,
+  ActionsLogMaximumBytes,
+  ActionsLogTruncationMarker,
+  getNextPagePathWithIncreasingPageSize,
+} from '../../src/lib/api'
+import { APIError } from '../../src/lib/http'
 import { CopilotError } from '../../src/lib/copilot-error'
 import * as URL from 'url'
 
@@ -135,6 +141,28 @@ describe('API', () => {
       } finally {
         globalThis.fetch = originalFetch
       }
+    })
+
+    it('caps oversized job logs and identifies expired logs', async () => {
+      const api = new API('https://api.github.com', 'secret')
+      Reflect.set(
+        api,
+        'ghRequest',
+        async () =>
+          new Response(new Uint8Array(ActionsLogMaximumBytes + 10).fill(65))
+      )
+      const log = await api.fetchWorkflowJobLogs('owner', 'repo', 7)
+      assert(log.endsWith(ActionsLogTruncationMarker))
+
+      Reflect.set(
+        api,
+        'ghRequest',
+        async () => new Response(null, { status: 410 })
+      )
+      await assert.rejects(
+        api.fetchWorkflowJobLogs('owner', 'repo', 7),
+        error => error instanceof APIError && error.responseStatus === 410
+      )
     })
   })
 

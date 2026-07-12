@@ -748,9 +748,14 @@ export class RepositoryView extends React.Component<
     } else if (selectedSection === RepositorySectionTab.History) {
       return this.renderContentForHistory()
     } else if (selectedSection === RepositorySectionTab.Actions) {
-      const branches = this.props.state.branchesState.allBranches.map(
-        branch => branch.name
-      )
+      const tip = this.props.state.branchesState.tip
+      const currentBranch = tip.kind === TipState.Valid ? tip.branch.name : null
+      const branches = [
+        ...(currentBranch === null ? [] : [currentBranch]),
+        ...this.props.state.branchesState.allBranches.map(
+          branch => branch.name
+        ),
+      ].filter((branch, index, all) => all.indexOf(branch) === index)
       return (
         <ActionsView
           repository={this.props.repository}
@@ -815,9 +820,26 @@ export class RepositoryView extends React.Component<
       return
     }
 
-    // Toggle tab selection on Ctrl+Tab. Note that we don't care
-    // about the shift key here, we can get away with that as long
-    // as there's only two tabs.
+    if ((event.metaKey || event.ctrlKey) && !event.altKey) {
+      const shortcut =
+        event.key === '1'
+          ? RepositorySectionTab.Changes
+          : event.key === '2'
+          ? RepositorySectionTab.History
+          : event.key === '3' && this.props.repository.gitHubRepository !== null
+          ? RepositorySectionTab.Actions
+          : null
+      if (shortcut !== null) {
+        this.props.dispatcher.changeRepositorySection(
+          this.props.repository,
+          shortcut
+        )
+        event.preventDefault()
+        return
+      }
+    }
+
+    // Cycle repository sections on Ctrl+Tab.
     if (event.ctrlKey && event.key === 'Tab') {
       this.changeTab()
       event.preventDefault()

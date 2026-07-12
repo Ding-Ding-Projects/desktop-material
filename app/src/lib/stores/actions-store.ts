@@ -297,6 +297,9 @@ export class ActionsStore {
       ref,
       inputs
     )
-    await this.refresh(repository, true)
+    this.refresh(repository, true).catch(error =>
+      log.error('Failed refreshing after workflow dispatch', error)
+    )
+    window.setTimeout(() => this.refresh(repository, true), 5000)
   }
 }

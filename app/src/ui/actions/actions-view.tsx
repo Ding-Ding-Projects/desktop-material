@@ -12,6 +12,8 @@ import { Select } from '../lib/select'
 import { Button } from '../lib/button'
 import { RunList } from './run-list'
 import { RunDetails } from './run-details'
+import { WorkflowDispatchDialog } from './workflow-dispatch-dialog'
+import { JobLogViewer } from './job-log-viewer'
 
 interface IActionsViewProps {
   readonly repository: Repository
@@ -32,6 +34,11 @@ interface IActionsViewState {
   readonly busyRunId: number | null
   readonly actionMessage: string | null
   readonly actionError: Error | null
+  readonly dispatchOpen: boolean
+  readonly logJob: IAPIWorkflowJob | null
+  readonly log: string
+  readonly logLoading: boolean
+  readonly logError: Error | null
 }
 
 const InitialActionsState: IActionsState = {
@@ -65,6 +72,11 @@ export class ActionsView extends React.Component<
       busyRunId: null,
       actionMessage: null,
       actionError: null,
+      dispatchOpen: false,
+      logJob: null,
+      log: '',
+      logLoading: false,
+      logError: null,
     }
   }
 
@@ -124,6 +136,50 @@ export class ActionsView extends React.Component<
 
   private closeRun = () => this.setState({ selectedRun: null, jobs: [] })
 
+  private openDispatch = () => this.setState({ dispatchOpen: true })
+  private closeDispatch = () => this.setState({ dispatchOpen: false })
+
+  private dispatchWorkflow = async (
+    workflowId: number,
+    ref: string,
+    inputs: Readonly<Record<string, string>>
+  ) => {
+    const repository = this.props.repository.gitHubRepository
+    if (repository === null) {
+      return
+    }
+    await this.props.actionsStore.dispatch(repository, workflowId, ref, inputs)
+    this.setState({
+      dispatchOpen: false,
+      actionError: null,
+      actionMessage: `Workflow queued for ${ref}. Waiting for GitHub to publish the run…`,
+    })
+  }
+
+  private viewLogs = async (logJob: IAPIWorkflowJob) => {
+    const repository = this.props.repository.gitHubRepository
+    if (repository === null) {
+      return
+    }
+    this.setState({ logJob, log: '', logLoading: true, logError: null })
+    try {
+      const log = await this.props.actionsStore.fetchJobLogs(
+        repository,
+        logJob.id
+      )
+      if (this.state.logJob?.id === logJob.id) {
+        this.setState({ log, logLoading: false })
+      }
+    } catch (error) {
+      this.setState({
+        logLoading: false,
+        logError: error instanceof Error ? error : new Error(String(error)),
+      })
+    }
+  }
+
+  private closeLogs = () => this.setState({ logJob: null, log: '' })
+
   private rerun = (run: IAPIWorkflowRun) => this.performRunAction(run, false)
   private rerunFailed = (run: IAPIWorkflowRun) =>
     this.performRunAction(run, true)
@@ -155,23 +211,39 @@ export class ActionsView extends React.Component<
   private getFilteredRuns() {
     const { workflow, branch, event, status, actions } = this.state
     return actions.runs.filter(run => {
-      if (workflow !== 'all' && run.workflow_id !== Number(workflow))
+      if (workflow !== 'all' && run.workflow_id !== Number(workflow)) {
         return false
-      if (branch !== 'all' && run.head_branch !== branch) return false
-      if (event !== 'all' && run.event !== event) return false
-      if (status === 'running' && run.status === APICheckStatus.Completed)
+      }
+      if (branch !== 'all' && run.head_branch !== branch) {
         return false
-      if (status === 'success' && run.conclusion !== APICheckConclusion.Success)
+      }
+      if (event !== 'all' && run.event !== event) {
         return false
-      if (status === 'failure' && run.conclusion !== APICheckConclusion.Failure)
+      }
+      if (status === 'running' && run.status === APICheckStatus.Completed) {
         return false
+      }
+      if (
+        status === 'success' &&
+        run.conclusion !== APICheckConclusion.Success
+      ) {
+        return false
+      }
+      if (
+        status === 'failure' &&
+        run.conclusion !== APICheckConclusion.Failure
+      ) {
+        return false
+      }
       return true
     })
   }
 
   private renderRateLimit() {
     const { rateLimitReset } = this.state.actions
-    if (rateLimitReset === null) return null
+    if (rateLimitReset === null) {
+      return null
+    }
     return (
       <div className="actions-banner warning" role="alert">
         GitHub API rate limit reached. Refresh is available after{' '}
@@ -188,7 +260,7 @@ export class ActionsView extends React.Component<
         ...this.props.branchNames,
         ...actions.runs
           .map(x => x.head_branch)
-          .filter((x): x is string => x !== null),
+          .filter((x): x is string => typeof x === 'string'),
       ]),
     ].sort()
 
@@ -207,9 +279,18 @@ export class ActionsView extends React.Component<
             <span className="eyebrow">Repository automation</span>
             <h1>GitHub Actions</h1>
           </div>
-          <Button onClick={this.refresh} disabled={actions.loading}>
-            Refresh
-          </Button>
+          <div className="actions-header-buttons">
+            <Button
+              className="button-component-primary"
+              onClick={this.openDispatch}
+              disabled={!actions.workflows.some(x => x.state === 'active')}
+            >
+              Run workflow
+            </Button>
+            <Button onClick={this.refresh} disabled={actions.loading}>
+              Refresh
+            </Button>
+          </div>
         </header>
         {this.renderRateLimit()}
         {actions.error && (
@@ -298,9 +379,33 @@ export class ActionsView extends React.Component<
               loading={this.state.jobsLoading}
               error={this.state.jobsError}
               onClose={this.closeRun}
+              onViewLogs={this.viewLogs}
             />
           )}
         </div>
+        {this.state.dispatchOpen && this.props.repository.gitHubRepository && (
+          <WorkflowDispatchDialog
+            repository={this.props.repository.gitHubRepository}
+            workflows={actions.workflows.filter(x => x.state === 'active')}
+            initialWorkflowId={
+              this.state.workflow === 'all' ? null : Number(this.state.workflow)
+            }
+            branchNames={this.props.branchNames}
+            initialRef={this.props.branchNames[0] ?? 'main'}
+            actionsStore={this.props.actionsStore}
+            onSubmit={this.dispatchWorkflow}
+            onDismissed={this.closeDispatch}
+          />
+        )}
+        {this.state.logJob && (
+          <JobLogViewer
+            job={this.state.logJob}
+            log={this.state.log}
+            loading={this.state.logLoading}
+            error={this.state.logError}
+            onClose={this.closeLogs}
+          />
+        )}
       </main>
     )
   }

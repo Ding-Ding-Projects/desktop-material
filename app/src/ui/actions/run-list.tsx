@@ -65,34 +65,38 @@ class RunListItem extends React.PureComponent<
 
     return (
       <li>
-        <button
-          type="button"
+        <div
           className={classNames('actions-run-card', {
             selected: selectedRunId === run.id,
           })}
-          onClick={this.select}
-          aria-pressed={selectedRunId === run.id}
         >
-          <span className={classNames('actions-status-chip', status.tone)}>
-            {status.label}
-          </span>
-          <span className="actions-run-summary">
-            <strong>{run.display_title || run.name}</strong>
-            <span className="actions-run-meta">
-              <span className="branch-chip">
-                {run.head_branch ?? 'detached'}
-              </span>
-              <span>{run.event}</span>
-              {actor && (
-                <span className="actions-actor">
-                  <img src={actor.avatar_url} alt="" />
-                  {actor.login}
-                </span>
-              )}
-              <RelativeTime date={new Date(run.created_at)} />
+          <button
+            type="button"
+            className="actions-run-select"
+            onClick={this.select}
+            aria-pressed={selectedRunId === run.id}
+          >
+            <span className={classNames('actions-status-chip', status.tone)}>
+              {status.label}
             </span>
-          </span>
-          <span className="actions-run-number">#{run.run_number}</span>
+            <span className="actions-run-summary">
+              <strong>{run.display_title || run.name}</strong>
+              <span className="actions-run-meta">
+                <span className="branch-chip">
+                  {run.head_branch ?? 'detached'}
+                </span>
+                <span>{run.event}</span>
+                {actor && (
+                  <span className="actions-actor">
+                    <img src={actor.avatar_url} alt="" />
+                    {actor.login}
+                  </span>
+                )}
+                <RelativeTime date={new Date(run.created_at)} />
+              </span>
+            </span>
+            <span className="actions-run-number">#{run.run_number}</span>
+          </button>
           <span className="actions-run-buttons">
             {failed && (
               <Button
@@ -112,7 +116,7 @@ class RunListItem extends React.PureComponent<
             </Button>
             <LinkButton uri={run.html_url}>GitHub</LinkButton>
           </span>
-        </button>
+        </div>
       </li>
     )
   }
