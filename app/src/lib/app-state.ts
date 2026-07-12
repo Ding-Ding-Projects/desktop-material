@@ -7,6 +7,7 @@ import type {
   ICopilotResolutionSummary,
 } from './copilot-conflict-resolution'
 import { Account } from '../models/account'
+import { INotificationEntry } from '../models/notification-centre'
 import { CommitIdentity } from '../models/commit-identity'
 import { IDiff, ImageDiffType } from '../models/diff'
 import { Repository, ILocalRepositoryState } from '../models/repository'
@@ -431,6 +432,19 @@ export interface IAppState {
    * the user has not configured any custom providers.
    */
   readonly byokProviders: ReadonlyArray<IBYOKProvider>
+
+  /** The in-app notification centre entries, newest first. */
+  readonly notifications: ReadonlyArray<INotificationEntry>
+
+  /** The number of unread notifications, driving the bell badge. */
+  readonly unreadNotificationCount: number
+
+  /**
+   * Whether the notification centre side sheet is open. This is a plain boolean
+   * rather than a foldout: the sheet persists while the user keeps working
+   * (opposite of the click-away foldout contract).
+   */
+  readonly isNotificationCentreOpen: boolean
 }
 
 export enum FoldoutType {

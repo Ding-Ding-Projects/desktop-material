@@ -369,6 +369,12 @@ import {
   NotificationsStore,
   getNotificationsEnabled,
 } from './notifications-store'
+import { NotificationCentreStore } from './notification-centre-store'
+import {
+  INotificationEntry,
+  NotificationInput,
+} from '../../models/notification-centre'
+import { IProfileHistoryPage } from '../../models/profile'
 import * as ipcRenderer from '../ipc-renderer'
 import { pathExists } from '../path-exists'
 import { offsetFromNow } from '../offset-from'
@@ -722,6 +728,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private copilotModels: ReadonlyArray<Model> | null = null
   private byokProviders: ReadonlyArray<IBYOKProvider> = []
 
+  /** Mirror of the notification centre store's state (see NotificationCentreStore). */
+  private notifications: ReadonlyArray<INotificationEntry> = []
+  private unreadNotificationCount = 0
+  private isNotificationCentreOpen = false
+
   public constructor(
     private readonly gitHubUserStore: GitHubUserStore,
     private readonly cloningRepositoriesStore: CloningRepositoriesStore,
@@ -734,7 +745,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     private readonly repositoryStateCache: RepositoryStateCache,
     private readonly apiRepositoriesStore: ApiRepositoriesStore,
     private readonly notificationsStore: NotificationsStore,
-    private readonly copilotStore: CopilotStore
+    private readonly copilotStore: CopilotStore,
+    private readonly notificationCentreStore: NotificationCentreStore
   ) {
     super()
 
@@ -991,6 +1003,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private wireupStoreEventHandlers() {
     this.gitHubUserStore.onDidUpdate(() => {
+      this.emitUpdate()
+    })
+
+    this.notificationCentreStore.onDidUpdate(state => {
+      this.notifications = state.entries
+      this.unreadNotificationCount = state.unreadCount
+      this.isNotificationCentreOpen = state.isOpen
       this.emitUpdate()
     })
 
@@ -1281,6 +1300,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       selectedCopilotModels: this.selectedCopilotModels,
       copilotModels: this.copilotModels,
       byokProviders: this.byokProviders,
+      notifications: this.notifications,
+      unreadNotificationCount: this.unreadNotificationCount,
+      isNotificationCentreOpen: this.isNotificationCentreOpen,
     }
   }
 
@@ -4886,9 +4908,93 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See `Dispatcher`. */
   public _pushError(error: Error): Promise<void> {
     this.popupManager.addErrorPopup(error)
+    this.postNotification({
+      kind: 'app-error',
+      title: 'An error occurred',
+      body: error.message,
+    })
     this.emitUpdate()
 
     return Promise.resolve()
+  }
+
+  /**
+   * Record an in-app notification. Public entry point for the dispatcher and for
+   * other orchestrators (clone-batch, auto-commit, merge-all, auto-pull) that
+   * post their summaries to the notification centre. Never throws.
+   */
+  public postNotification(input: NotificationInput): void {
+    this.notificationCentreStore
+      .post(input)
+      .catch(err => log.error('Failed to record notification', err))
+  }
+
+  /** Open or close the notification centre side sheet. */
+  public _setNotificationCentreOpen(open: boolean): void {
+    this.notificationCentreStore.setOpen(open)
+  }
+
+  /** Mark a single notification read. */
+  public _markNotificationRead(id: string): Promise<void> {
+    return this.notificationCentreStore.markRead(id)
+  }
+
+  /** Mark a single notification unread. */
+  public _markNotificationUnread(id: string): Promise<void> {
+    return this.notificationCentreStore.markUnread(id)
+  }
+
+  /** Delete a single notification. */
+  public _deleteNotification(id: string): Promise<void> {
+    return this.notificationCentreStore.delete(id)
+  }
+
+  /** Mark every notification read. */
+  public _markAllNotificationsRead(): Promise<void> {
+    return this.notificationCentreStore.markAllRead()
+  }
+
+  /** Remove every notification. */
+  public _clearAllNotifications(): Promise<void> {
+    return this.notificationCentreStore.clearAll()
+  }
+
+  /** Load a page of notification history commits. */
+  public getNotificationHistory(
+    skip?: number,
+    limit?: number
+  ): Promise<IProfileHistoryPage> {
+    return this.notificationCentreStore.getHistory(skip, limit)
+  }
+
+  /** Load the paths changed by a notification-history commit. */
+  public getNotificationHistoryFiles(
+    sha: string
+  ): Promise<ReadonlyArray<string>> {
+    return this.notificationCentreStore.getHistoryFiles(sha)
+  }
+
+  /** Load a unified notification-history diff, optionally narrowed to a file. */
+  public getNotificationHistoryDiff(
+    sha: string,
+    file?: string
+  ): Promise<string> {
+    return this.notificationCentreStore.getHistoryDiff(sha, file)
+  }
+
+  /** Undo the latest notification change and re-read the log from disk. */
+  public undoLastNotificationChange(): Promise<void> {
+    return this.notificationCentreStore.undoLastChange()
+  }
+
+  /** Redo the latest notification undo and re-read the log from disk. */
+  public redoLastNotificationChange(): Promise<void> {
+    return this.notificationCentreStore.redoLastChange()
+  }
+
+  /** Restore the notification log to a prior commit and re-read from disk. */
+  public restoreNotificationsTo(sha: string): Promise<void> {
+    return this.notificationCentreStore.restoreTo(sha)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -9772,6 +9878,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
     pullRequest: PullRequest,
     checks: ReadonlyArray<IRefCheck>
   ) => {
+    this.postNotification({
+      kind: 'pr-checks-failed',
+      title: `Checks failed on #${pullRequest.pullRequestNumber}`,
+      body: `${checks.length} check${
+        checks.length === 1 ? '' : 's'
+      } failed on "${pullRequest.title}".`,
+      repositoryId: repository.id,
+    })
+
     const selectedRepository =
       this.selectedRepository ?? (await this._selectRepository(repository))
 
@@ -9820,6 +9935,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     pullRequest: PullRequest,
     review: ValidNotificationPullRequestReview
   ) => {
+    this.postNotification({
+      kind: 'pr-review-submit',
+      title: `New review on #${pullRequest.pullRequestNumber}`,
+      body: `${review.user.login} reviewed "${pullRequest.title}".`,
+      repositoryId: repository.id,
+    })
+
     const selectedRepository =
       this.selectedRepository ?? (await this._selectRepository(repository))
 
@@ -9847,6 +9969,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     pullRequest: PullRequest,
     comment: IAPIComment
   ) => {
+    this.postNotification({
+      kind: 'pr-comment',
+      title: `New comment on #${pullRequest.pullRequestNumber}`,
+      body: `${comment.user.login} commented on "${pullRequest.title}".`,
+      repositoryId: repository.id,
+    })
+
     const selectedRepository =
       this.selectedRepository ?? (await this._selectRepository(repository))
 
