@@ -3,7 +3,11 @@ import { Octicon, iconForRepository } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Repository } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
-import { IRepositoryTab, tabTitleStyleToCss } from '../../models/repository-tab'
+import {
+  IRepositoryTab,
+  tabTitleStyleToCss,
+  tabFrameStyleToCss,
+} from '../../models/repository-tab'
 
 interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
@@ -119,10 +123,11 @@ export class RepositoryTab extends React.Component<
   public render() {
     const { tab, isActive } = this.props
     const className = isActive ? 'repository-tab active' : 'repository-tab'
+    const frameStyle = tabFrameStyleToCss(tab.titleStyle)
 
     if (this.state.isRenaming) {
       return (
-        <div className={className}>
+        <div className={className} style={frameStyle}>
           {this.renderIcon()}
           <input
             className="repository-tab-rename"
@@ -140,6 +145,7 @@ export class RepositoryTab extends React.Component<
     return (
       <div
         className={className}
+        style={frameStyle}
         role="tab"
         aria-selected={isActive}
         tabIndex={isActive ? 0 : -1}
