@@ -14,6 +14,7 @@ interface IRepositoryListItemContextMenuConfig {
   externalEditorLabel: string | undefined
   askForConfirmationOnRemoveRepository: boolean
   onViewOnGitHub: (repository: Repositoryish) => void
+  onOpenInNewWindow: (repository: Repositoryish) => void
   onOpenInShell: (repository: Repositoryish) => void
   onShowRepository: (repository: Repositoryish) => void
   onOpenInExternalEditor: (repository: Repositoryish) => void
@@ -67,6 +68,11 @@ export const generateRepositoryListContextMenu = (
       action: () => clipboard.writeText(repository.path),
     },
     { type: 'separator' },
+    {
+      label: __DARWIN__ ? 'Open in New Window' : 'Open in new window',
+      action: () => config.onOpenInNewWindow(repository),
+      enabled: repository instanceof Repository && !missing,
+    },
     {
       label: 'View on GitHub',
       action: () => config.onViewOnGitHub(repository),

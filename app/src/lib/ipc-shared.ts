@@ -81,8 +81,15 @@ export type RequestChannels = {
   focus: () => void
   blur: () => void
   'update-accounts': (accounts: ReadonlyArray<EndpointToken>) => void
+  'accounts-changed': () => void
   'quit-and-install-updates': () => void
   'quit-app': () => void
+  'open-repository-in-new-window': (path: string) => void
+  'set-window-title': (title: string) => void
+  'set-window-repository-state': (
+    selectedRepositoryPath: string | null,
+    openRepositoryPaths: ReadonlyArray<string>
+  ) => void
   'minimize-window': () => void
   'maximize-window': () => void
   'unmaximize-window': () => void

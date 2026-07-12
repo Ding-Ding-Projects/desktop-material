@@ -31,6 +31,11 @@ import {
   profileSettingsRegistry,
 } from '../profiles/profile-settings-registry'
 import { IProfileTabsState } from '../../models/repository-tab'
+import {
+  mergeWindowTabsState,
+  readWindowTabsState,
+} from '../profiles/profile-tabs-file'
+import { PrimaryWindowScope } from '../window-scope'
 
 /** localStorage key holding the raw key of the active profile. */
 const ActiveProfileStorageKey = 'active-profile-key'
@@ -251,7 +256,9 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
   }
 
   /** Read the active profile's saved tab state, or null if none/unavailable. */
-  public async readTabs(): Promise<IProfileTabsState | null> {
+  public async readTabs(
+    windowScope: string = PrimaryWindowScope
+  ): Promise<IProfileTabsState | null> {
     if (!this.enabled) {
       return null
     }
@@ -265,13 +272,7 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
 
       try {
         const raw = await readFile(join(repository.path, 'tabs.json'), 'utf8')
-        const parsed = JSON.parse(raw)
-        if (parsed !== null && Array.isArray(parsed.tabs)) {
-          return {
-            tabs: parsed.tabs,
-            activeTabId: parsed.activeTabId ?? null,
-          }
-        }
+        return readWindowTabsState(JSON.parse(raw), windowScope)
       } catch {
         // Absent or corrupt — treat as no saved tabs.
       }
@@ -283,7 +284,8 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
   /** Persist the active profile's tab state and record a commit. */
   public async writeTabs(
     state: IProfileTabsState,
-    description: string
+    description: string,
+    windowScope: string = PrimaryWindowScope
   ): Promise<void> {
     if (!this.enabled) {
       return
@@ -297,11 +299,17 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
         return
       }
 
-      await writeJsonFile(join(repository.path, 'tabs.json'), {
-        version: SettingsFileVersion,
-        tabs: state.tabs,
-        activeTabId: state.activeTabId,
-      })
+      const path = join(repository.path, 'tabs.json')
+      let current: unknown = null
+      try {
+        current = JSON.parse(await readFile(path, 'utf8'))
+      } catch {
+        // Missing or corrupt state is replaced with a valid scoped file.
+      }
+      await writeJsonFile(
+        path,
+        mergeWindowTabsState(current, windowScope, state, SettingsFileVersion)
+      )
       queue.schedule(description)
     })
   }

@@ -10,6 +10,7 @@ import {
   ITabTitleStyle,
   emptyProfileTabsState,
 } from '../../models/repository-tab'
+import { PrimaryWindowScope } from '../window-scope'
 
 /** The final path segment of a repository path (its folder name). */
 function tabBaseName(path: string): string {
@@ -35,7 +36,10 @@ function tabMatchKeys(tab: IRepositoryTab): ReadonlyArray<string> {
 export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
   private state: IProfileTabsState = emptyProfileTabsState
 
-  public constructor(private readonly profileStore: ProfileStore) {
+  public constructor(
+    private readonly profileStore: ProfileStore,
+    private readonly windowScope: string = PrimaryWindowScope
+  ) {
     super()
   }
 
@@ -49,7 +53,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
 
   /** Load persisted tabs for the active profile. */
   public async initialize(): Promise<void> {
-    const loaded = await this.profileStore.readTabs()
+    const loaded = await this.profileStore.readTabs(this.windowScope)
     if (loaded !== null) {
       this.state = loaded
       this.emitUpdate(this.state)
@@ -58,7 +62,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
 
   /** Re-read tabs from disk (e.g. after a profile switch or history restore). */
   public async reloadFromDisk(): Promise<void> {
-    const loaded = await this.profileStore.readTabs()
+    const loaded = await this.profileStore.readTabs(this.windowScope)
     this.state = loaded ?? emptyProfileTabsState
     this.emitUpdate(this.state)
   }
@@ -102,7 +106,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
   ): Promise<void> {
     this.state = next
     this.emitUpdate(this.state)
-    await this.profileStore.writeTabs(next, description)
+    await this.profileStore.writeTabs(next, description, this.windowScope)
   }
 
   /**

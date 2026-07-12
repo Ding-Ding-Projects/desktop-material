@@ -78,6 +78,8 @@ import {
   selectAllWindowContents,
   installWindowsCLI,
   uninstallWindowsCLI,
+  openRepositoryInNewWindow,
+  setWindowTitle,
 } from './main-process-proxy'
 import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
@@ -488,6 +490,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     switch (name) {
+      case 'open-new-window':
+        return this.openRepositoryInNewWindow(this.getRepository())
       case 'push':
         return this.push()
       case 'force-push':
@@ -1178,6 +1182,29 @@ export class App extends React.Component<IAppProps, IAppState> {
     document.addEventListener('focus', this.onDocumentFocus, {
       capture: true,
     })
+
+    this.updateWindowTitle()
+  }
+
+  public componentDidUpdate(_prevProps: IAppProps, prevState: IAppState) {
+    if (this.getWindowTitle(prevState) !== this.getWindowTitle()) {
+      this.updateWindowTitle()
+    }
+  }
+
+  private getWindowTitle(state: IAppState = this.state): string {
+    const repository = state.selectedState?.repository
+    const repositoryTitle =
+      repository instanceof Repository
+        ? repository.alias ?? repository.name
+        : repository?.name
+    return repositoryTitle
+      ? `${repositoryTitle} - Desktop Material`
+      : 'Desktop Material'
+  }
+
+  private updateWindowTitle() {
+    setWindowTitle(this.getWindowTitle())
   }
 
   private onDocumentFocus = (event: FocusEvent) => {
@@ -3416,6 +3443,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         }
         onRemoveRepository={this.removeRepository}
         onViewOnGitHub={this.viewOnGitHub}
+        onOpenInNewWindow={this.openRepositoryInNewWindow}
         onOpenInShell={this.openInShell}
         onShowRepository={this.showRepository}
         onOpenInExternalEditor={this.openInExternalEditor}
@@ -3446,6 +3474,15 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     this.props.dispatcher.openShell(repository.path)
+  }
+
+  private openRepositoryInNewWindow = (
+    repository: Repository | CloningRepository | null
+  ) => {
+    if (!(repository instanceof Repository) || repository.missing) {
+      return
+    }
+    openRepositoryInNewWindow(repository.path)
   }
 
   private openFileInExternalEditor = (fullPath: string) => {
@@ -3618,6 +3655,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       onChangeRepositoryAlias: onChangeRepositoryAlias,
       onRemoveRepositoryAlias: onRemoveRepositoryAlias,
       onViewOnGitHub: this.viewOnGitHub,
+      onOpenInNewWindow: this.openRepositoryInNewWindow,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,
       repository: repository,

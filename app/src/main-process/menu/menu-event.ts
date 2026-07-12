@@ -1,4 +1,5 @@
 export type MenuEvent =
+  | 'open-new-window'
   | 'push'
   | 'force-push'
   | 'pull'

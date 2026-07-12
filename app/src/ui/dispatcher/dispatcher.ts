@@ -570,9 +570,10 @@ export class Dispatcher {
 
   /** Select the repository. */
   public selectRepository(
-    repository: Repository | CloningRepository
+    repository: Repository | CloningRepository,
+    persistSelection: boolean = true
   ): Promise<Repository | null> {
-    return this.appStore._selectRepository(repository)
+    return this.appStore._selectRepository(repository, persistSelection)
   }
 
   /** Change the selected section in the repository. */
@@ -2700,7 +2701,10 @@ export class Dispatcher {
       const existingRepository = matchExistingRepository(repositories, path)
 
       if (existingRepository) {
-        await this.selectRepository(existingRepository)
+        await this.selectRepository(
+          existingRepository,
+          action.persistSelection ?? true
+        )
         return
       }
 

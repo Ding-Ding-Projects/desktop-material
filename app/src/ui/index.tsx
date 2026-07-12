@@ -50,7 +50,11 @@ import {
 } from '../lib/databases'
 import { shellNeedsPatching, updateEnvironmentForProcess } from '../lib/shell'
 import { installDevGlobals } from './install-globals'
-import { reportUncaughtException, sendErrorReport } from './main-process-proxy'
+import {
+  reportUncaughtException,
+  sendErrorReport,
+  setWindowRepositoryState,
+} from './main-process-proxy'
 import { getOS } from '../lib/get-os'
 import {
   enableSourceMaps,
@@ -83,6 +87,7 @@ import { createAskpassTrampolineHandler } from '../lib/trampoline/trampoline-ask
 import { createCredentialHelperTrampolineHandler } from '../lib/trampoline/trampoline-credential-helper'
 import { installAgentCommandExecutor } from '../lib/agent-command-executor'
 import { getBoolean } from '../lib/local-storage'
+import { getCurrentWindowScope } from '../lib/window-scope'
 
 if (__DEV__) {
   installDevGlobals()
@@ -265,7 +270,10 @@ const statsStore = new StatsStore(
 const accountsStore = new AccountsStore(localStorage, TokenStore)
 
 const profileStore = new ProfileStore(accountsStore)
-const repositoryTabsStore = new RepositoryTabsStore(profileStore)
+const repositoryTabsStore = new RepositoryTabsStore(
+  profileStore,
+  getCurrentWindowScope()
+)
 
 const signInStore = new SignInStore()
 
@@ -336,11 +344,22 @@ const appStore = new AppStore(
 )
 
 let lastEnsuredRepositoryId: number | null = null
+let selectedRepositoryPath: string | null = null
+const reportWindowRepositoryState = () => {
+  setWindowRepositoryState(
+    selectedRepositoryPath,
+    repositoryTabsStore.getState().tabs.map(tab => tab.repositoryPath)
+  )
+}
+
+repositoryTabsStore.onDidUpdate(reportWindowRepositoryState)
 appStore.onDidUpdate(state => {
   currentState = state
   profileStore.onAppStateChanged()
 
   const selected = state.selectedState
+  selectedRepositoryPath = selected?.repository.path ?? null
+  reportWindowRepositoryState()
   if (selected !== null && selected.type === SelectionType.Repository) {
     const repository = selected.repository
     if (repository.id !== lastEnsuredRepositoryId) {

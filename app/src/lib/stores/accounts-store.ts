@@ -95,6 +95,12 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
     return this.accounts.slice()
   }
 
+  /** Re-read shared account metadata after another app window changes it. */
+  public reloadFromStore(): Promise<void> {
+    this.loadingPromise = this.loadingPromise.then(() => this.loadFromStore())
+    return this.loadingPromise
+  }
+
   /**
    * Add the account to the store.
    */
@@ -214,6 +220,8 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
   private async loadFromStore(): Promise<void> {
     const raw = this.dataStore.getItem('users')
     if (!raw || !raw.length) {
+      this.accounts = []
+      this.emitUpdate(this.accounts)
       return
     }
 
