@@ -1,6 +1,9 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { parseBranchNamePresets } from '../../src/models/branch-preset'
+import {
+  getBranchNamePresetForShortcut,
+  parseBranchNamePresets,
+} from '../../src/models/branch-preset'
 
 describe('branch name presets', () => {
   it('parses names, optional descriptions, whitespace, and CRLF', () => {
@@ -14,5 +17,13 @@ describe('branch name presets', () => {
         { name: 'hotfix/', description: 'hotfix/' },
       ]
     )
+  })
+
+  it('maps only Ctrl/Cmd shortcut number keys 1 through 9', () => {
+    const presets = parseBranchNamePresets('one/ First\ntwo/ Second')
+    assert.equal(getBranchNamePresetForShortcut('1', presets)?.name, 'one/')
+    assert.equal(getBranchNamePresetForShortcut('2', presets)?.name, 'two/')
+    assert.equal(getBranchNamePresetForShortcut('0', presets), undefined)
+    assert.equal(getBranchNamePresetForShortcut('x', presets), undefined)
   })
 })

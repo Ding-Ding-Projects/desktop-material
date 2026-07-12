@@ -17,3 +17,10 @@ export function parseBranchNamePresets(
       return { name, description: match?.[2]?.trim() || name }
     })
 }
+
+export function getBranchNamePresetForShortcut(
+  key: string,
+  presets: ReadonlyArray<IBranchNamePreset>
+): IBranchNamePreset | undefined {
+  return /^[1-9]$/.test(key) ? presets[Number(key) - 1] : undefined
+}
