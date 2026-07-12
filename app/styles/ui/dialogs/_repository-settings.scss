@@ -58,6 +58,127 @@
     }
   }
 
+  // MD3 multi-remote manager — list rows + an add-remote input row.
+  .remotes-manager {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-double);
+
+    .remotes-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-half);
+    }
+
+    .remote-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing);
+      padding: var(--spacing-half) var(--spacing);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-large);
+      background: var(--md-sys-color-surface-container);
+
+      .remote-name {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-half);
+        flex: 0 0 auto;
+        min-width: 96px;
+        max-width: 140px;
+        font-weight: var(--font-weight-semibold);
+        color: var(--md-sys-color-on-surface);
+        overflow: hidden;
+
+        span {
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .remote-icon {
+          flex-shrink: 0;
+          color: var(--md-sys-color-on-surface-variant);
+        }
+      }
+
+      .remote-badge {
+        flex-shrink: 0;
+        padding: 1px var(--spacing-half);
+        border-radius: 999px;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-normal);
+        color: var(--md-sys-color-on-secondary-container);
+        background: var(--md-sys-color-secondary-container);
+      }
+
+      .remote-url {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .remote-remove {
+        flex-shrink: 0;
+
+        .octicon {
+          color: var(--md-sys-color-on-surface-variant);
+        }
+
+        &:not(:disabled):hover .octicon {
+          color: var(--md-sys-color-error);
+        }
+      }
+    }
+
+    .add-remote {
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing);
+      padding: var(--spacing-double);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-large);
+      background: var(--md-sys-color-surface);
+
+      .add-remote-fields {
+        display: flex;
+        gap: var(--spacing);
+
+        .add-remote-name {
+          flex: 0 0 34%;
+          min-width: 0;
+        }
+
+        .add-remote-url {
+          flex: 1;
+          min-width: 0;
+        }
+      }
+
+      .add-remote-error {
+        display: flex;
+        align-items: center;
+        gap: var(--spacing-half);
+        color: var(--md-sys-color-error);
+        font-size: var(--font-size-sm);
+
+        .octicon {
+          flex-shrink: 0;
+        }
+      }
+
+      .add-remote-actions {
+        display: flex;
+        justify-content: flex-end;
+
+        .add-remote-button {
+          display: inline-flex;
+          align-items: center;
+          gap: var(--spacing-half);
+        }
+      }
+    }
+  }
+
   .fork-settings-description {
     margin-top: var(--spacing-double);
     font-size: var(--font-size-sm);

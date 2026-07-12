@@ -4,7 +4,7 @@ import { Remote } from './remote'
 import { GitIgnore } from './git-ignore'
 import { BuildRunSettings } from './build-run-settings'
 import { assertNever } from '../../lib/fatal-error'
-import { IRemote } from '../../models/remote'
+import { IRemote, diffRemotes } from '../../models/remote'
 import { Dispatcher } from '../dispatcher'
 import { PopupType } from '../../models/popup'
 import {
@@ -14,7 +14,7 @@ import {
 } from '../../models/repository'
 import { Dialog, DialogError, DialogFooter } from '../dialog'
 import { NoRemote } from './no-remote'
-import { readGitIgnoreAtRoot } from '../../lib/git'
+import { getRemotes, readGitIgnoreAtRoot } from '../../lib/git'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { ForkSettings } from './fork-settings'
 import { ForkContributionTarget } from '../../models/workflow-preferences'
@@ -62,6 +62,10 @@ export enum RepositorySettingsTab {
 interface IRepositorySettingsState {
   readonly selectedTab: RepositorySettingsTab
   readonly remote: IRemote | null
+  /** The full list of remotes, as edited by the user in the Remote tab. */
+  readonly remotes: ReadonlyArray<IRemote>
+  /** The remotes as they existed on disk when the dialog was opened. */
+  readonly initialRemotes: ReadonlyArray<IRemote>
   readonly ignoreText: string | null
   readonly ignoreTextHasChanged: boolean
   readonly disabled: boolean
@@ -93,6 +97,8 @@ export class RepositorySettings extends React.Component<
       selectedTab:
         this.props.initialSelectedTab || RepositorySettingsTab.Remote,
       remote: props.remote,
+      remotes: props.remote ? [props.remote] : [],
+      initialRemotes: props.remote ? [props.remote] : [],
       ignoreText: null,
       ignoreTextHasChanged: false,
       disabled: false,
@@ -119,6 +125,16 @@ export class RepositorySettings extends React.Component<
   }
 
   public async componentWillMount() {
+    try {
+      const remotes = await getRemotes(this.props.repository)
+      this.setState({ remotes, initialRemotes: remotes })
+    } catch (e) {
+      log.error(
+        `RepositorySettings: unable to read remotes for ${this.props.repository.path}`,
+        e
+      )
+    }
+
     try {
       const ignoreText = await readGitIgnoreAtRoot(this.props.repository)
       this.setState({ ignoreText })
@@ -245,14 +261,16 @@ export class RepositorySettings extends React.Component<
     const tab = this.state.selectedTab
     switch (tab) {
       case RepositorySettingsTab.Remote: {
-        const remote = this.state.remote
         return (
           <>
             {this.renderRepositoryAccountPicker()}
-            {remote ? (
+            {this.state.remotes.length > 0 ? (
               <Remote
-                remote={remote}
+                remotes={this.state.remotes}
+                defaultRemoteName={this.props.remote?.name ?? null}
                 onRemoteUrlChanged={this.onRemoteUrlChanged}
+                onAddRemote={this.onAddRemote}
+                onRemoveRemote={this.onRemoveRemote}
               />
             ) : (
               <NoRemote onPublish={this.onPublish} />
@@ -387,23 +405,67 @@ export class RepositorySettings extends React.Component<
       )
     }
 
-    if (this.state.remote && this.props.remote) {
-      const trimmedUrl = this.state.remote.url.trim()
+    // Reconcile the edited remotes against what was on disk when the dialog
+    // opened. Removals run first so that re-adding a remote under a name that
+    // was just freed up can't collide.
+    const normalizedRemotes = this.state.remotes.map(r => ({
+      name: r.name,
+      url: r.url.trim(),
+    }))
+    const { added, removed, changed } = diffRemotes(
+      this.state.initialRemotes,
+      normalizedRemotes
+    )
 
-      if (trimmedUrl !== this.props.remote.url) {
-        try {
-          await this.props.dispatcher.setRemoteURL(
-            this.props.repository,
-            this.props.remote.name,
-            trimmedUrl
-          )
-        } catch (e) {
-          log.error(
-            `RepositorySettings: unable to set remote URL at ${this.props.repository.path}`,
-            e
-          )
-          errors.push(`Failed setting the remote URL: ${e}`)
-        }
+    for (const remote of removed) {
+      // Never remove the account-bound default remote.
+      if (remote.name === this.props.remote?.name) {
+        continue
+      }
+
+      try {
+        await this.props.dispatcher.removeRemote(
+          this.props.repository,
+          remote.name
+        )
+      } catch (e) {
+        log.error(
+          `RepositorySettings: unable to remove remote "${remote.name}" at ${this.props.repository.path}`,
+          e
+        )
+        errors.push(`Failed removing the remote "${remote.name}": ${e}`)
+      }
+    }
+
+    for (const remote of added) {
+      try {
+        await this.props.dispatcher.addRemote(
+          this.props.repository,
+          remote.name,
+          remote.url
+        )
+      } catch (e) {
+        log.error(
+          `RepositorySettings: unable to add remote "${remote.name}" at ${this.props.repository.path}`,
+          e
+        )
+        errors.push(`Failed adding the remote "${remote.name}": ${e}`)
+      }
+    }
+
+    for (const remote of changed) {
+      try {
+        await this.props.dispatcher.setRemoteURL(
+          this.props.repository,
+          remote.name,
+          remote.url
+        )
+      } catch (e) {
+        log.error(
+          `RepositorySettings: unable to set remote URL at ${this.props.repository.path}`,
+          e
+        )
+        errors.push(`Failed setting the "${remote.name}" remote URL: ${e}`)
       }
     }
 
@@ -497,15 +559,34 @@ export class RepositorySettings extends React.Component<
     }
   }
 
-  private onRemoteUrlChanged = (url: string) => {
-    const remote = this.props.remote
+  private onRemoteUrlChanged = (name: string, url: string) => {
+    const remotes = this.state.remotes.map(r =>
+      r.name === name ? { ...r, url } : r
+    )
+    const remote =
+      this.state.remote && this.state.remote.name === name
+        ? { ...this.state.remote, url }
+        : this.state.remote
+    this.setState({ remotes, remote })
+  }
 
-    if (!remote) {
+  private onAddRemote = (name: string, url: string) => {
+    if (this.state.remotes.some(r => r.name === name)) {
       return
     }
 
-    const newRemote = { ...remote, url }
-    this.setState({ remote: newRemote })
+    this.setState({ remotes: [...this.state.remotes, { name, url }] })
+  }
+
+  private onRemoveRemote = (name: string) => {
+    // The account-bound default remote is protected and cannot be removed.
+    if (name === this.props.remote?.name) {
+      return
+    }
+
+    this.setState({
+      remotes: this.state.remotes.filter(r => r.name !== name),
+    })
   }
 
   private onIgnoreTextChanged = (text: string) => {
