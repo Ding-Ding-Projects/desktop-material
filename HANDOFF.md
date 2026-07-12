@@ -16,9 +16,23 @@ build, run, and verify the app. The full feature plan lives in
 | **M3 — Settings history manager** | `4114fa2`, `b89b9ce`, wiki `c818fd5` | Shared Git-backed history UI, lazy diffs, logical undo/redo, restore-to-point, audit commits, menu/shortcut wiring, tab/settings reconciliation, live screenshot, and published README/Pages/wiki docs. Verified live on an isolated Win32 Headless Desktop. |
 | **M4 — Non-modal dialogs** | `690ea60a`, `e9cf5b3d` | Non-modal floating dialog framework: drag-by-header, bring-to-front, cascade, pointer-events-none layer so the app stays interactive behind open dialogs. Preferences rebuilt as the MD3 940×660 dialog (left rail + Active chip + pill footer). Verified live headless: the app is interactive behind open dialogs. |
 | **M18 — MD3 shell visual clone** | 17 commits `…`→`80be0f6e` | Full visual clone of the design prototype: MD3 color/motion/shape tokens + 16 keyframes; app-bar branding + pill inline menu; floating pill toolbar with repo/branch chips + a sync pill with an ahead badge; left icon navigation rail (Changes badge/History/Branches/Settings/avatar); floating radius-24 workspace cards; full MD3 workspace surfaces (tri-state checkboxes, tonal status chips, token diff colors, inverse-surface undo banner, redesigned welcome flow + blank slate); repository & branch left side sheets; clone dialog restyle + tab-style popover. Verified live headless. |
+| **Conformance Waves A/B** | `420e199`→`b5e0300` | Design-conformance sweep vs the prototype: composer 2-row description + ellipsized commit label; tab geometry (38px raised active tab); app-bar chip stagger + chevron rotate; rail icons 22px; Settings footer order; Changes panel header (H1 + count chip); diff header subline + `+adds`/`−dels` chips + open-in-editor; Settings branded "Settings" with a full-height rail; repository/branch side-sheet FAB + current markers + headers; inline tab-format button + 38px title bar. Fixed a real E2E regression from the non-modal work (`ebfd6bd`: dialog `data-busy` gates the app during in-flight ops). |
+| **Gitignore manager** | `35cc6d9`, `2a75fa2` | Per-repo `.gitignore` manager (Repository → Manage .gitignore…): CC0 template catalog (~19, generated from the bundled github/gitignore), repo-content auto-suggest, searchable catalog, marker-section merge (idempotent/reversible). 37 tests. Verified live headless. |
+| **Unhide gated features** | `0e63c2b`→`d2998bb` | Fork ships a **production** channel despite the beta tag, so beta-gated features were hidden. Flipped safe ones on: README-overwrite warning, previous-tag suggestions, accessible list tooltips, unhandled-rejection reporting, WSL shell detection, default git-hooks env. Plus the update-URL fix (stop polling upstream's updater). |
+| **One-click Build & Run** | `bedd4ea`→`45bcba5` (+ `215523c`) | Detect build profile (node/pnpm/yarn, rust, go, dotnet, python, java, make/cmake) → auto-gitignore build outputs → install → build → run, streamed to an MD3 log panel; bounded auto-fix; **auto-install missing toolchains** (winget/corepack) with single-prompt UAC pre-elevation; **multiple .NET project picker**; **minimize** the log panel; per-repo Build & Run settings tab. |
+| **M8 (partial) — UI scaling + auto-fit** | `44e450a` | Fixes "too big on small windows": `lib/zoom.ts`, AppStore as single zoom owner, 150ms-debounced auto-fit multiplier (on by default), Appearance 50–200% slider + auto-fit switch, composes with Ctrl +/−/0. |
+| **De-stock (full Material)** | `749949b`, `3cb437c`… | Re-tinted the remaining stock surfaces through Material tokens (both themes): tooltips (vars were never remapped), autocomplete popup, segmented controls, split-buttons, diff-options, author-input, banners, app-menu rows, dialog internals, History/CI surfaces. |
+| **M5 — Notification centre** | `6f5230a`, `14597ca` | Bell + right side sheet backed by its own local git repo; unread badges, mark read/unread, delete, mark-all; git-backed notification history (shared VersionedStoreHistory). |
+| **M6 — Search + regex builder** | `6b9e76b`, `40e59df` | Fuzzy/substring/regex filter modes + case toggle + per-list filter chips across search bars; full regex builder (blocks, flags, live tester); inline MD3 filter chip row on Changes. |
+| **User-feedback fixes** | `40e59df`→`c844912` | Account-picker selection by identity (bug); Word-like tab editor (searchable font picker, full color picker, size that enlarges the tab); settings/notification history clickability; fork auto-update via the GitHub releases feed. |
 
-Working tree is clean; everything is pushed. The visual-clone wave landed at `80be0f6e02`
-(shell + M4). Remaining M18 scope is pixel-polish follow-ups.
+Working tree is clean; everything through `c844912ba2` is pushed. **Batch 2 is building in parallel worktrees** (layout/clipping fixes, cramped search row, History search bar, multi-remote manager, submodule manager, tab close-left/right/others + close-containing-regex, and M7 multi-clone). The full outstanding queue (with per-item detail) lives in the session task list; the milestone plan is [`PLAN.md`](PLAN.md).
+
+## Working method (this session)
+
+- **Parallel worktrees for speed.** Independent, file-disjoint features are built by concurrent Opus agents, each in its own git worktree (no shared `node_modules`, so agents self-review types/imports and a **merge integrator** runs `yarn lint` + `tsc` + the unit suite on `main` after each `--no-ff` merge, fixing trivia, then pushes and removes the worktree). Two waves have landed this way (5-feature + 6-feedback); a third is in flight.
+- **Verification runtime.** The unit runner works on the system Node with `node script/test.mjs --no-experimental-webstorage` (Node 26 ships a `localStorage` global that otherwise collides); it **hangs at the tail** after reporting — scan the streamed output for failures (ignore only the environmental `get-shell-env` pwsh test) and kill the lingering worker. Latest full-suite baseline: **2,165 passing / 0 new failures**.
+- **Headless viewport.** The default off-screen launch window is below the app's 1240×700 minimum at 150% display scale, which makes layouts falsely look clipped/too-big. Launch Electron with `--remote-debugging-port=9223` and resize via CDP page eval `window.resizeTo(2100,1250)` before judging (Electron's CDP lacks `Browser.setWindowBounds`); measure the real DOM over CDP. Only compare at ≥1240×700 CSS px.
 
 ## Published M3 state
 
@@ -142,22 +156,28 @@ Use the exact lowlevel MCP checkout at
   store wiring make Settings history non-modal. Restores rebind an active tab by
   repository ID/path and refresh active diffs when whitespace settings change.
 
-## Next up (see PLAN.md for detail)
+## Next up (see PLAN.md and the session task list for detail)
 
-The MD3 shell visual clone and **M4 non-modal dialogs** are done. The immediate queue is:
+Shipped through `c844912ba2`: the MD3 shell clone, M4 dialogs, conformance A/B, gitignore manager,
+unhide, Build & Run, UI scaling/auto-fit, the full de-stock pass, **M5** notification centre, and
+**M6** search + regex builder, plus a wave of user-feedback fixes (account-picker bug, Word-like tab
+editor, history clickability, fork auto-update).
 
-1. **Gitignore manager** — per-repo `.gitignore` editing with template auto-suggest.
-2. **Unhide flag-gated features** — flip safe `feature-flag.ts` gates on for production and port
-   unshipped upstream branch work (see `hidden-features-audit.md` in the session workflow dir).
-3. **One-click Build & Run** — detect the project, install dependencies, and run it in one action.
-4. Then the planned milestones: **M5** notification centre → **M6** search/regex builder →
-   **M7** multi-clone + export/import → **M8** UI scaling + orgs → **M9** automation →
-   **M10** Actions panel → **M11** MCP server → **M12–M17** desktop-plus parity + self-hosted GitLab.
+**In flight (batch 2, parallel worktrees):** dark-theme clipping fixes (file-row + New-branch FAB),
+menu-divider cleanup, cramped search-row layout, **History search bar**, **multi-remote manager**,
+**full submodule manager**, tab close-left/right/others + close-containing (regex), and **M7**
+multi-clone + export/import.
 
-Overarching constraint: the UI must faithfully match the design prototype. M3 was adapted from
+**Queued (from user feedback + PLAN):** version-history search/filters/regex (settings + notification,
+shared component); branch search + "checkout branch as worktree"; then **M8** GitHub orgs → **M9**
+automation (one-click commit+push, schedulers, merge-all) → **M10** Actions panel → **M11** agent
+server (MCP + REST + CLI) → **M12–M15** desktop-plus parity → **M16** multi-window → **M17**
+GitLab/Bitbucket + self-hosted GitLab PAT.
+
+Overarching constraint: the UI must faithfully match the design prototype. It was adapted from
 `Desktop Material v2.dc.html` in the supplied `Material Design UI Recreation.zip`; verify each
-screen with the headless pipeline above. The screenshot/verify scripts live in the session
-workflow dir.
+screen with the headless pipeline above (resize the window past 1240×700 first). The
+screenshot/verify scripts live in the session workflow dir.
 
 ## Gotchas
 
