@@ -1,0 +1,318 @@
+// MD3 gitignore manager — styles the manager sections rendered inside the
+// Ignored Files tab of the Repository Settings dialog. Follows the generic
+// overlay patterns (filter chips, search pill, surface cards); tokens only.
+#repository-settings {
+  .gitignore-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+
+    .gitignore-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      // Sections fade/slide in per the design's list entrance.
+      animation: dmUp calc(300ms * var(--mdur, 1)) var(--spring) both;
+
+      @for $i from 1 through 4 {
+        &:nth-child(#{$i}) {
+          animation-delay: #{40 + ($i - 1) * 40}ms;
+        }
+      }
+    }
+
+    .gitignore-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      color: var(--md-sys-color-on-surface);
+
+      .octicon {
+        color: var(--md-sys-color-on-surface-variant);
+        flex-shrink: 0;
+      }
+    }
+
+    // --- Chip rows (suggested + applied) ---------------------------------
+    .gitignore-chip-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .gitignore-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      padding: 0 12px;
+      border: 0;
+      border-radius: 999px;
+      font-size: 12.5px;
+      font-weight: var(--font-weight-bold);
+      // Chip pop-in.
+      animation: dmPop calc(320ms * var(--mdur, 1)) var(--spring-fast) both;
+
+      .octicon {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+      }
+    }
+
+    .gitignore-chip-label {
+      white-space: nowrap;
+    }
+
+    // Suggested chip: neutral, click to apply.
+    .gitignore-chip-suggested {
+      background: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface-variant);
+      cursor: pointer;
+      transition: background-color 220ms var(--emph), color 220ms var(--emph), border-radius 260ms var(--spring), transform 200ms var(--spring-fast);
+
+      .gitignore-chip-affordance {
+        opacity: 0.7;
+      }
+
+      &:hover {
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+        border-radius: 14px;
+      }
+
+      &:active {
+        transform: scale(0.92);
+      }
+    }
+
+    // Applied chip: selected (secondary-container) with a trailing remove x.
+    .gitignore-chip-applied {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+      padding-right: 4px;
+    }
+
+    .gitignore-chip-remove {
+      display: grid;
+      place-items: center;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      transition: background-color 200ms var(--emph), transform 200ms var(--spring-fast);
+
+      .octicon {
+        width: 12px;
+        height: 12px;
+      }
+
+      &:hover {
+        background: color-mix(in srgb, var(--md-sys-color-on-secondary-container) 14%, transparent);
+      }
+
+      &:active {
+        transform: scale(0.85);
+      }
+    }
+
+    // --- Browse catalog ---------------------------------------------------
+    .gitignore-browse-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      align-self: flex-start;
+      height: 34px;
+      padding: 0 8px;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: var(--font-size-md);
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: background-color 200ms var(--emph);
+
+      .octicon {
+        color: var(--md-sys-color-on-surface-variant);
+        flex-shrink: 0;
+      }
+
+      &:hover {
+        background: var(--md-sys-color-surface-container-high);
+      }
+    }
+
+    .gitignore-browse-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: var(--md-sys-color-surface);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+      padding: 14px;
+      animation: dmUp calc(280ms * var(--mdur, 1)) var(--spring) both;
+    }
+
+    // Search pill.
+    .gitignore-search {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 46px;
+      padding: 0 16px;
+      border-radius: 999px;
+      background: var(--md-sys-color-surface-container-high);
+      border: 2px solid transparent;
+      transition: border-color 220ms var(--emph);
+
+      &:focus-within {
+        border-color: color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      }
+
+      .gitignore-search-icon {
+        width: 18px;
+        height: 18px;
+        color: var(--md-sys-color-on-surface-variant);
+        flex-shrink: 0;
+      }
+    }
+
+    .gitignore-search-input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 13.5px;
+
+      &:focus,
+      &:focus-visible {
+        outline: none;
+      }
+
+      &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+        opacity: 0.62;
+      }
+    }
+
+    .gitignore-catalog-empty {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 13px;
+      padding: 6px 2px;
+    }
+
+    .gitignore-catalog-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .gitignore-catalog-group-label {
+      font-size: 11.5px;
+      font-weight: var(--font-weight-bold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .gitignore-catalog-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .gitignore-catalog-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 14px;
+      background: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface);
+      font-size: 13px;
+      font-weight: var(--font-weight-semibold);
+      cursor: pointer;
+      transition: background-color 220ms var(--emph), color 220ms var(--emph), border-radius 260ms var(--spring), transform 200ms var(--spring-fast);
+
+      .gitignore-catalog-item-icon {
+        width: 15px;
+        height: 15px;
+        flex-shrink: 0;
+        color: var(--md-sys-color-on-surface-variant);
+      }
+
+      .gitignore-catalog-item-affordance {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        opacity: 0.7;
+      }
+
+      &:hover {
+        border-radius: 999px;
+      }
+
+      &:active {
+        transform: scale(0.94);
+      }
+
+      &.selected {
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+
+        .gitignore-catalog-item-icon,
+        .gitignore-catalog-item-affordance {
+          color: inherit;
+          opacity: 1;
+        }
+      }
+    }
+
+    // --- Raw editor -------------------------------------------------------
+    .gitignore-raw-description {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 13px;
+
+      .link-button-component {
+        display: inline;
+      }
+    }
+
+    .gitignore-raw-card {
+      background: var(--md-sys-color-surface);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+      padding: 12px;
+
+      .text-area-component {
+        display: block;
+      }
+
+      textarea.gitignore {
+        height: 150px;
+        width: 100%;
+        box-sizing: border-box;
+        border: 0;
+        background: transparent;
+        resize: vertical;
+
+        &:focus,
+        &:focus-visible {
+          outline: none;
+        }
+      }
+    }
+  }
+}

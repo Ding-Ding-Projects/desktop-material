@@ -26,6 +26,7 @@ export type MenuEvent =
   | 'squash-and-merge-branch'
   | 'rebase-branch'
   | 'show-repository-settings'
+  | 'manage-gitignore'
   | 'open-in-shell'
   | 'compare-on-github'
   | 'branch-on-github'

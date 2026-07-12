@@ -85,7 +85,10 @@ import { ConfirmDeleteCopilotBYOKProviderDialog } from './copilot/confirm-delete
 import type { IBYOKProvider } from '../lib/copilot/byok'
 import { getConflictResolutionModelDisplay } from '../lib/copilot/conflict-resolution-model'
 import { OpenWithExternalEditor } from './open-with-external-editor/open-with-external-editor'
-import { RepositorySettings } from './repository-settings'
+import {
+  RepositorySettings,
+  RepositorySettingsTab,
+} from './repository-settings'
 import { AppError } from './app-error'
 import { MissingRepository } from './missing-repository'
 import { AddExistingRepository, CreateRepository } from './add-repository'
@@ -533,6 +536,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRebaseDialog()
       case 'show-repository-settings':
         return this.showRepositorySettings()
+      case 'manage-gitignore':
+        return this.showRepositorySettings(RepositorySettingsTab.IgnoredFiles)
       case 'view-repository-on-github':
         return this.viewRepositoryOnGitHub()
       case 'compare-on-github':
@@ -1335,7 +1340,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.showRebaseDialog(repository)
   }
 
-  private showRepositorySettings() {
+  private showRepositorySettings(initialSelectedTab?: RepositorySettingsTab) {
     const repository = this.getRepository()
 
     if (!repository || repository instanceof CloningRepository) {
@@ -1344,6 +1349,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.showPopup({
       type: PopupType.RepositorySettings,
       repository,
+      initialSelectedTab,
     })
   }
 

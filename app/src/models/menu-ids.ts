@@ -26,6 +26,7 @@ export type MenuIDs =
   | 'show-branches-list'
   | 'open-working-directory'
   | 'show-repository-settings'
+  | 'manage-gitignore'
   | 'open-external-editor'
   | 'open-with-external-editor'
   | 'remove-repository'

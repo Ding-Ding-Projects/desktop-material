@@ -406,6 +406,11 @@ export function buildDefaultMenuTemplate({
         id: 'show-repository-settings',
         click: emit('show-repository-settings'),
       },
+      {
+        label: __DARWIN__ ? 'Manage .gitignore…' : 'Manage .&gitignore…',
+        id: 'manage-gitignore',
+        click: emit('manage-gitignore'),
+      },
     ],
   })
 

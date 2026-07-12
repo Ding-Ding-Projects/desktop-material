@@ -243,6 +243,7 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
     'open-in-shell',
     'open-working-directory',
     'show-repository-settings',
+    'manage-gitignore',
     'go-to-commit-message',
     'show-changes',
     'show-history',

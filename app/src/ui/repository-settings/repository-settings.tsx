@@ -245,6 +245,7 @@ export class RepositorySettings extends React.Component<
       case RepositorySettingsTab.IgnoredFiles: {
         return (
           <GitIgnore
+            repository={this.props.repository}
             text={this.state.ignoreText}
             onIgnoreTextChanged={this.onIgnoreTextChanged}
             onShowExamples={this.onShowGitIgnoreExamples}
