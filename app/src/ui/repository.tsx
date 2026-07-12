@@ -168,20 +168,6 @@ export class RepositoryView extends React.Component<
   IRepositoryViewProps,
   IRepositoryViewState
 > {
-  private supportsGitHubActions() {
-    const repository = this.props.repository.gitHubRepository
-    return (
-      repository !== null &&
-      accountSupportsActions(repository, this.props.accounts)
-    )
-  }
-
-  private getSelectedSection() {
-    return this.props.state.selectedSection === RepositorySectionTab.Actions &&
-      !this.supportsGitHubActions()
-      ? RepositorySectionTab.Changes
-      : this.props.state.selectedSection
-  }
   private previousSection: RepositorySectionTab =
     this.props.state.selectedSection
 
@@ -202,6 +188,21 @@ export class RepositoryView extends React.Component<
       changesListScrollTop: 0,
       compareListScrollTop: 0,
     }
+  }
+
+  private supportsGitHubActions() {
+    const repository = this.props.repository.gitHubRepository
+    return (
+      repository !== null &&
+      accountSupportsActions(repository, this.props.accounts)
+    )
+  }
+
+  private getSelectedSection() {
+    return this.props.state.selectedSection === RepositorySectionTab.Actions &&
+      !this.supportsGitHubActions()
+      ? RepositorySectionTab.Changes
+      : this.props.state.selectedSection
   }
 
   public setFocusHistoryNeeded(): void {

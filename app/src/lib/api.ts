@@ -884,9 +884,12 @@ export class API {
   /** Create a new API client from the given account. */
   public static fromAccount(account: Account): API {
     if (account.provider === 'gitlab') {
+      // Provider implementations live below the shared base class in this module.
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       return new GitLabAPI(account.endpoint, account.token)
     }
     if (account.provider === 'bitbucket') {
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       return new BitbucketAPI(account.endpoint, account.token, account.login)
     }
     return new API(account.endpoint, account.token, account.copilotEndpoint)
@@ -2430,9 +2433,11 @@ export async function fetchUser(
 ): Promise<Account> {
   const api =
     provider === 'gitlab'
-      ? new GitLabAPI(endpoint, token)
+      ? // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        new GitLabAPI(endpoint, token)
       : provider === 'bitbucket'
-      ? new BitbucketAPI(endpoint, token, '')
+      ? // eslint-disable-next-line @typescript-eslint/no-use-before-define
+        new BitbucketAPI(endpoint, token, '')
       : new API(endpoint, token)
   try {
     const [user, emails, copilotInfo, features] = await Promise.all([

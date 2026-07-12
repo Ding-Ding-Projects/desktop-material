@@ -115,14 +115,14 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             placeholder="https://gitlab.example.com"
             value={this.state.gitLabEndpoint}
             disabled={loading}
-            onValueChanged={gitLabEndpoint => this.setState({ gitLabEndpoint })}
+            onValueChanged={this.onGitLabEndpointChanged}
           />
           <PasswordTextBox
             label="Personal access token"
             placeholder="Token with api scope"
             value={this.state.gitLabToken}
             disabled={loading}
-            onValueChanged={gitLabToken => this.setState({ gitLabToken })}
+            onValueChanged={this.onGitLabTokenChanged}
           />
           <Button
             onClick={this.signInToGitLab}
@@ -160,18 +160,14 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
             placeholder="Bitbucket username"
             value={this.state.bitbucketUsername}
             disabled={loading}
-            onValueChanged={bitbucketUsername =>
-              this.setState({ bitbucketUsername })
-            }
+            onValueChanged={this.onBitbucketUsernameChanged}
           />
           <PasswordTextBox
             label="App password"
             placeholder="Bitbucket app password"
             value={this.state.bitbucketAppPassword}
             disabled={loading}
-            onValueChanged={bitbucketAppPassword =>
-              this.setState({ bitbucketAppPassword })
-            }
+            onValueChanged={this.onBitbucketAppPasswordChanged}
           />
           <Button
             onClick={this.signInToBitbucket}
@@ -197,6 +193,22 @@ export class Accounts extends React.Component<IAccountsProps, IAccountsState> {
         {this.state.providerError}
       </p>
     ) : null
+  }
+
+  private onGitLabEndpointChanged = (gitLabEndpoint: string) => {
+    this.setState({ gitLabEndpoint })
+  }
+
+  private onGitLabTokenChanged = (gitLabToken: string) => {
+    this.setState({ gitLabToken })
+  }
+
+  private onBitbucketUsernameChanged = (bitbucketUsername: string) => {
+    this.setState({ bitbucketUsername })
+  }
+
+  private onBitbucketAppPasswordChanged = (bitbucketAppPassword: string) => {
+    this.setState({ bitbucketAppPassword })
   }
 
   private signInToGitLab = async () => {
