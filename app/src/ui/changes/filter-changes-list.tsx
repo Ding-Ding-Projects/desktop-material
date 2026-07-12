@@ -1232,6 +1232,29 @@ export class FilterChangesList extends React.Component<
     }
   }
 
+  /**
+   * Panel header (design-spec-shell §6.1): an H1 "Changes" title with a
+   * secondary-container count chip carrying the number of changed files.
+   * Rendered via the filter list's `renderPreList` hook so it sits above the
+   * search field. The filter affordance is intentionally not duplicated here —
+   * the existing tune control (`ChangesListFilterOptions`) already lives in the
+   * search row and remains the single filter toggle (§6.1 note).
+   */
+  private renderPanelHeader = () => {
+    const fileCount = this.props.workingDirectory.files.length
+
+    return (
+      <div className="changes-panel-header">
+        <h1 className="changes-panel-title">Changes</h1>
+        {fileCount > 0 && (
+          <span className="changes-panel-count" aria-hidden="true">
+            {formatNumber(fileCount)}
+          </span>
+        )}
+      </div>
+    )
+  }
+
   private renderFilterRow = () => {
     return (
       <div
@@ -1376,6 +1399,7 @@ export class FilterChangesList extends React.Component<
                 this.props.fileListFilter.isExcludedFromCommit,
             }}
             onItemContextMenu={this.onItemContextMenu}
+            renderPreList={this.renderPanelHeader}
             renderCustomFilterRow={this.renderFilterRow}
             getGroupAriaLabel={this.getListAriaLabel}
             renderNoItems={this.renderNoChanges}
