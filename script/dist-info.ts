@@ -136,6 +136,18 @@ export function getDistArchitecture(): 'arm64' | 'x64' {
 }
 
 export function getUpdatesURL() {
+  // Desktop Material fork: allow a fork-operated update server to be baked in at
+  // build time. When DESKTOP_UPDATES_URL is set it fully replaces the upstream
+  // endpoint (mirrors the existing DESKTOP_E2E_UPDATES_URL override in
+  // app/app-info.ts). When it is unset we keep emitting upstream's URL so the
+  // packaging/CI delta logic is unchanged, but the renderer refuses to poll it
+  // (see `checkForUpdates` in app/src/ui/app.tsx) so a fork build never fetches
+  // — and never auto-updates itself to — the official GitHub Desktop release.
+  const forkUpdatesURL = process.env.DESKTOP_UPDATES_URL
+  if (forkUpdatesURL !== undefined && forkUpdatesURL.length > 0) {
+    return forkUpdatesURL
+  }
+
   // It is also possible to use a `x64/` path, but for now we'll leave the
   // original URL without architecture in it (which will still work for
   // compatibility reasons) in case anything goes wrong until we have everything

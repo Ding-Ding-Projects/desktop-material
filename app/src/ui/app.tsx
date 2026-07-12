@@ -677,6 +677,21 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    // Desktop Material fork: never poll upstream's update endpoint. When no
+    // fork-operated update server is configured at build time (via
+    // DESKTOP_UPDATES_URL, see getUpdatesURL in script/dist-info.ts) the baked
+    // __UPDATES_URL__ still points at central.github.com, which serves the
+    // official GitHub Desktop binaries — checking it would silently auto-update
+    // this fork back to upstream and clobber it. Fail closed here so BOTH the
+    // automatic background check and the manual "Check for Updates" button do
+    // nothing (a graceful no-op) until the fork ships its own update server.
+    if (__UPDATES_URL__.includes('central.github.com')) {
+      log.info(
+        'Skipping update check: no Desktop Material update server is configured (would otherwise poll upstream).'
+      )
+      return
+    }
+
     if (isWindowsAndNoLongerSupportedByElectron()) {
       log.error(
         `Can't check for updates on Windows 8.1 or older. Next available update only supports Windows 10 and later`
