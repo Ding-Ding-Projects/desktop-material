@@ -41,6 +41,14 @@
   flex-wrap: wrap;
   align-items: baseline;
 
+  // MD3 shell input treatment (matches the shared input rule in
+  // _material-shell): tonal surface-container-highest fill, outline hairline,
+  // small radius. Top edge stays square + border-less because this field is
+  // seam-joined to the commit summary box above it.
+  background: var(--md-sys-color-surface-container-highest);
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-corner-small);
+  color: var(--md-sys-color-on-surface);
   border-top-left-radius: 0;
   border-top-right-radius: 0;
   border-top: 0;
@@ -48,14 +56,17 @@
   height: auto;
 
   .label {
-    color: var(--text-secondary-color);
+    color: var(--md-sys-color-on-surface-variant);
   }
 
+  // Added co-authors render as MD3 input chips: full-radius secondary-container
+  // tokens with a trailing remove control.
   .handle {
-    border-radius: var(--border-radius);
-    border: 1px solid var(--co-author-tag-border-color);
-    background: var(--co-author-tag-background-color);
-    padding: 1px 2px;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    padding: 1px 8px;
     margin: 0px 2px;
     cursor: pointer;
 
@@ -121,7 +132,9 @@
   }
 
   &:focus-within {
-    @include textboxish-focus-styles;
+    outline: none;
+    border-color: var(--md-sys-color-primary);
+    box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
     border-top-width: 1px;
     border-top-style: solid;
     margin-top: -1px;
