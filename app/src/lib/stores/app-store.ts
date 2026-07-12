@@ -30,7 +30,7 @@ import type {
   CopilotModelRequest,
   CopilotProviderConfig,
 } from './copilot-store'
-import { Account, isDotComAccount } from '../../models/account'
+import { Account, getAccountKey, isDotComAccount } from '../../models/account'
 import { AppMenu, IMenu } from '../../models/app-menu'
 import { Author } from '../../models/author'
 import { Branch, BranchType, IAheadBehind } from '../../models/branch'
@@ -2470,11 +2470,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private startAutomationScheduler(repository: Repository): void {
     this.stopAutomationScheduler()
+    const repositoryAccount = getAccountForRepository(this.accounts, repository)
+    const accountKey =
+      repository.accountKey ??
+      (repositoryAccount === null ? null : getAccountKey(repositoryAccount))
     this.currentAutomationScheduler = new AutomationScheduler(
       () =>
         resolveAutomationSettings(
           this.automationSettings,
-          repository.accountKey,
+          accountKey,
           loadRepositoryAutomationOverrides(repository.id)
         ),
       () => this.runScheduledCommitPush(repository),
@@ -5511,6 +5515,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       initial.multiCommitOperationState !== null ||
       initial.isPushPullFetchInProgress ||
       initial.isCommitting ||
+      initial.isGeneratingCommitMessage ||
+      initial.oneClickCommitPushPhase !== null ||
       initial.checkoutProgress !== null
     ) {
       throw new Error('The repository must be clean and idle before merging.')
@@ -5520,7 +5526,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (
       worktrees.some(
         worktree =>
-          worktree.type === 'linked' && worktree.branch === defaultBranch.ref
+          worktree.path !== repository.path &&
+          worktree.branch === defaultBranch.ref
       )
     ) {
       throw new Error('The default branch is checked out in another worktree.')
@@ -5535,6 +5542,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const refreshed = this.repositoryStateCache.get(repository)
+    if (
+      refreshed.branchesState.tip.kind !== TipState.Valid ||
+      refreshed.branchesState.tip.branch.name !== defaultBranch.name
+    ) {
+      throw new Error('Could not check out the default branch.')
+    }
     let candidates: ReadonlyArray<IMergeAllCandidate>
     let results: ReadonlyArray<IMergeAllResult> = []
     if (mode === 'branches') {
