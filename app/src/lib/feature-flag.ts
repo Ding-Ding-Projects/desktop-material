@@ -110,9 +110,8 @@ export const enableCopilotSdkCommitMessageGeneration = (account: Account) => {
 /** Should we enable Copilot-powered merge conflict resolution? */
 export const enableCopilotConflictResolution = () => true
 
-export function enableAccessibleListToolTips(): boolean {
-  return enableBetaFeatures()
-}
+// was beta-gated upstream (enableBetaFeatures); promoted for the material fork
+export const enableAccessibleListToolTips = () => true
 
 export const enableHooksEnvironment = () => true
 
