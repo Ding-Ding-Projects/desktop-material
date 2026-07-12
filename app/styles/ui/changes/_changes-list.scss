@@ -694,6 +694,22 @@
   }
 
   .file {
+    // The status octicon renders as a 24×24 tonal chip (16px glyph + 4px pad),
+    // wider than the 16px the base row padding assumes. Reserve room on the
+    // right so the chip clears the panel edge, and let the filename column
+    // shrink + ellipsize so the chip never overlaps the name (verified at the
+    // 372px panel width).
+    padding-right: 14px;
+
+    .path-label-component {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 8px;
+    }
+
     // Status octicon → 24×24 radius-8 tonal chip. `content-box` keeps the
     // ~16px glyph and adds 4px padding around it inside the coloured box.
     .status {

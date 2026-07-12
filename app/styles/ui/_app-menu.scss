@@ -91,10 +91,15 @@
     }
   }
 
+  // Group separator: a single 1px hairline. Draw it with only a `border-top`
+  // on a zero-height element (the old rule set both `height: 1px` and a
+  // `border-bottom`, which stacked into a heavy 2px double line in dark). Inset
+  // it to match the menu-item pill margin so it isn't full-bleed, and give it
+  // symmetric vertical margins so it reads as one clean line per group boundary.
   hr {
-    width: 100%;
+    height: 0;
+    margin: var(--spacing-half);
     border: none;
-    height: 1px;
-    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    border-top: 1px solid var(--md-sys-color-outline-variant);
   }
 }
