@@ -7,21 +7,32 @@
     font-family: inherit;
     background: transparent;
     border: none;
-    padding: 0;
     margin: 0;
 
+    // MD3 icon button: 40px round hit target with a state-layer hover circle.
     display: flex;
     align-items: center;
+    justify-content: center;
     flex-direction: row;
-
-    color: var(--text-color);
+    height: 40px;
+    width: 40px;
+    padding: 0;
+    border-radius: 999px;
+    color: var(--md-sys-color-on-surface-variant);
+    transition: background-color 120ms ease, color 120ms ease;
 
     &:hover {
-      color: var(--text-secondary-color);
+      background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+      color: var(--md-sys-color-on-surface);
     }
 
-    &:focus {
-      outline-offset: 3px;
+    &:active {
+      background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+    }
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: 0;
     }
 
     .octicon {
@@ -33,6 +44,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
+    min-height: 44px;
   }
 
   .secondary-text {
