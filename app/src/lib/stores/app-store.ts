@@ -167,8 +167,13 @@ import {
   getAvailableEditors,
   launchCustomExternalEditor,
   launchExternalEditor,
+  launchAndReturnStdout,
 } from '../editors'
 import { assertNever, fatalError, forceUnwrap } from '../fatal-error'
+import {
+  IBranchNamePreset,
+  parseBranchNamePresets,
+} from '../../models/branch-preset'
 
 import { formatCommitMessage } from '../format-commit-message'
 import {
@@ -582,6 +587,7 @@ const customEditorKey = 'custom-editor'
 
 export const useCustomShellKey = 'use-custom-shell'
 const customShellKey = 'custom-shell'
+const branchPresetScriptKey = 'branch-preset-script'
 
 export const underlineLinksKey = 'underline-links'
 export const underlineLinksDefault = true
@@ -763,6 +769,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private useCustomShell: boolean = false
   private customShell: ICustomIntegration | null = null
+  private branchPresetScript: ICustomIntegration | null = null
 
   private showCIStatusPopover: boolean = false
 
@@ -1490,6 +1497,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       customEditor: this.customEditor,
       useCustomShell: this.useCustomShell,
       customShell: this.customShell,
+      branchPresetScript: this.branchPresetScript,
       showCIStatusPopover: this.showCIStatusPopover,
       notificationsEnabled: getNotificationsEnabled(),
       pullRequestSuggestedNextAction: this.pullRequestSuggestedNextAction,
@@ -2931,6 +2939,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.useCustomShell =
       enableCustomIntegration() && getBoolean(useCustomShellKey, false)
     this.customShell = getObject<ICustomIntegration>(customShellKey) ?? null
+    this.branchPresetScript =
+      getObject<ICustomIntegration>(branchPresetScriptKey) ?? null
 
     // Migrate custom editor and shell to the new format if needed. This
     // will persist the new format to local storage.
@@ -8559,6 +8569,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
       .catch(e => log.error('Could not open global Git config for editing', e))
   }
 
+  public async _getBranchNamePresets(
+    repositoryPath: string
+  ): Promise<ReadonlyArray<IBranchNamePreset>> {
+    if (this.branchPresetScript?.path.trim() === '') {
+      return []
+    }
+    if (this.branchPresetScript === null) {
+      return []
+    }
+
+    const stdout = await launchAndReturnStdout(
+      repositoryPath,
+      this.branchPresetScript
+    )
+    return parseBranchNamePresets(stdout)
+  }
+
   /** Open a path to a repository or file using the user's configured editor */
   public async _openInExternalEditor(fullPath: string): Promise<void> {
     const { selectedExternalEditor, useCustomEditor, customEditor } =
@@ -10596,6 +10623,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _setCustomShell(customShell: ICustomIntegration) {
     setObject(customShellKey, customShell)
     this.customShell = customShell
+    this.emitUpdate()
+  }
+
+  public _setBranchPresetScript(branchPresetScript: ICustomIntegration) {
+    setObject(branchPresetScriptKey, branchPresetScript)
+    this.branchPresetScript = branchPresetScript
     this.emitUpdate()
   }
 
