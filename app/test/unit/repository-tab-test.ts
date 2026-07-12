@@ -371,3 +371,31 @@ describe('RepositoryTabsStore range and match close', () => {
     assert.equal(result.tabs.length, 0)
   })
 })
+
+describe('RepositoryTabsStore window scope', () => {
+  it('reads and writes only its assigned window slot', async () => {
+    const scopes: string[] = []
+    const initial: IProfileTabsState = { tabs: [], activeTabId: null }
+    const profileStore = {
+      readTabs: (scope: string) => {
+        scopes.push(`read:${scope}`)
+        return Promise.resolve(initial)
+      },
+      writeTabs: (
+        _state: IProfileTabsState,
+        _description: string,
+        scope: string
+      ) => {
+        scopes.push(`write:${scope}`)
+        return Promise.resolve()
+      },
+    } as unknown as ProfileStore
+    const store = new RepositoryTabsStore(profileStore, 'window-2')
+    await store.initialize()
+    await store.ensureTabForRepository(
+      new Repository('C:\\repos\\secondary', 501, null, false)
+    )
+
+    assert.deepEqual(scopes, ['read:window-2', 'write:window-2'])
+  })
+})

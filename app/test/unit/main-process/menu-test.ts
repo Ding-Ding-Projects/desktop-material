@@ -180,6 +180,16 @@ describe('main-process menu', () => {
       askForConfirmationOnRepositoryRemoval: false,
     }
 
+    it('exposes the multi-window keyboard shortcut', () => {
+      const template = buildDefaultMenuTemplate(baseParams)
+      const fileMenu = template.find(
+        item => item.label?.replace('&', '') === 'File'
+      )
+      assert.ok(fileMenu && Array.isArray(fileMenu.submenu))
+      const newWindow = fileMenu.submenu.find(item => item.id === 'new-window')
+      assert.equal(newWindow?.accelerator, 'CmdOrCtrl+Alt+N')
+    })
+
     it('has no duplicate access keys for any combination of label-affecting parameters', () => {
       const combinationCount = 1 << variantKeys.length
 
