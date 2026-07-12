@@ -223,7 +223,9 @@ export class TabStyleEditor extends React.Component<
 
     return (
       <div className="tab-style-row tab-style-font">
-        <label id="tab-style-font-label">Font</label>
+        <span className="tab-style-label" id="tab-style-font-label">
+          Font
+        </span>
         <div className="tab-style-font-picker">
           <button
             className="tab-style-font-select"

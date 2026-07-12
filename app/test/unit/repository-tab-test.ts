@@ -84,9 +84,15 @@ describe('tabTitleStyleToCss', () => {
 
   it('keeps back-compat with legacy font buckets', () => {
     // 'system' inherits the default (no override).
-    assert.equal(tabTitleStyleToCss({ fontFamily: 'system' }).fontFamily, undefined)
+    assert.equal(
+      tabTitleStyleToCss({ fontFamily: 'system' }).fontFamily,
+      undefined
+    )
     // 'serif'/'monospace' still resolve to serif/monospace stacks.
-    assert.equal(tabTitleStyleToCss({ fontFamily: 'serif' }).fontFamily, 'serif')
+    assert.equal(
+      tabTitleStyleToCss({ fontFamily: 'serif' }).fontFamily,
+      'serif'
+    )
     assert.equal(
       tabTitleStyleToCss({ fontFamily: 'monospace' }).fontFamily,
       'monospace'

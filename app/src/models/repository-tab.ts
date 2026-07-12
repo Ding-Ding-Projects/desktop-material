@@ -291,7 +291,10 @@ export function tabFrameStyleToCss(
   // gently and is capped to the strip's max tab width.
   const extra = size - DefaultTabFontSize
   const height = Math.round(BaseTabHeight + extra * 1.7)
-  const minWidth = Math.min(MaxTabMinWidth, Math.round(BaseTabMinWidth + extra * 5))
+  const minWidth = Math.min(
+    MaxTabMinWidth,
+    Math.round(BaseTabMinWidth + extra * 5)
+  )
 
   return { height: `${height}px`, minWidth: `${minWidth}px` }
 }
