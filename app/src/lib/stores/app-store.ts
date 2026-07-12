@@ -226,6 +226,12 @@ import {
   TerminalOutput,
   HookProgress,
   git,
+  getSubmodules,
+  addSubmodule,
+  updateSubmodules,
+  syncSubmodules,
+  removeSubmodule,
+  IManagedSubmodule,
 } from '../git'
 import {
   installGlobalLFSFilters,
@@ -7734,6 +7740,53 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     await saveGitIgnore(repository, text)
     return this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _getSubmodules(
+    repository: Repository
+  ): Promise<ReadonlyArray<IManagedSubmodule>> {
+    return getSubmodules(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _addSubmodule(
+    repository: Repository,
+    url: string,
+    path: string,
+    branch?: string | null
+  ): Promise<void> {
+    await addSubmodule(repository, url, path, branch)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _updateSubmodules(
+    repository: Repository,
+    paths?: ReadonlyArray<string>,
+    onProgress?: (line: string, percent: number) => void
+  ): Promise<void> {
+    await updateSubmodules(repository, paths, onProgress)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _syncSubmodules(
+    repository: Repository,
+    paths?: ReadonlyArray<string>
+  ): Promise<void> {
+    await syncSubmodules(repository, paths)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _removeSubmodule(
+    repository: Repository,
+    path: string,
+    name?: string
+  ): Promise<void> {
+    await removeSubmodule(repository, path, name)
+    await this._refreshRepository(repository)
   }
 
   /** Set whether the user has opted out of stats reporting. */
