@@ -29,6 +29,7 @@ import { formatDate } from '../../lib/format-date'
 import { Avatar } from '../lib/avatar'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { buildCommitGraphRows, ICommitGraphRow } from './commit-graph-model'
 
 const RowHeight = 50
 
@@ -184,6 +185,9 @@ interface ICommitListProps {
 
   /** This will make the list semantics friendly to screen reader users in browse mode. */
   readonly isInformationalView?: boolean
+
+  /** Whether to draw the commit ancestry graph beside each history row. */
+  readonly showCommitGraph?: boolean
 }
 
 interface ICommitListState {
@@ -203,6 +207,18 @@ export class CommitList extends React.Component<
   private commitIndexBySha = memoizeOne(
     (commitSHAs: ReadonlyArray<string>) =>
       new Map(commitSHAs.map((sha, index) => [sha, index]))
+  )
+  private graphRowsBySHA = memoizeOne(
+    (
+      commitSHAs: ReadonlyArray<string>,
+      commitLookup: Map<string, Commit>
+    ): ReadonlyMap<string, ICommitGraphRow> => {
+      const commits = commitSHAs.flatMap(sha => {
+        const commit = commitLookup.get(sha)
+        return commit === undefined ? [] : [commit]
+      })
+      return new Map(buildCommitGraphRows(commits).map(row => [row.sha, row]))
+    }
   )
 
   private containerRef = React.createRef<HTMLDivElement>()
@@ -288,6 +304,11 @@ export class CommitList extends React.Component<
     const showUnpushedIndicator =
       (isLocal || unpushedTags.length > 0) &&
       this.props.isLocalRepository === false
+    const graphRow = this.props.showCommitGraph
+      ? this.graphRowsBySHA(this.props.commitSHAs, this.props.commitLookup).get(
+          commit.sha
+        )
+      : undefined
 
     return (
       <CommitListItem
@@ -311,6 +332,7 @@ export class CommitList extends React.Component<
         disableSquashing={this.props.disableSquashing}
         accounts={this.props.accounts}
         preferAbsoluteDates={this.props.preferAbsoluteDates}
+        graphRow={graphRow}
       />
     )
   }

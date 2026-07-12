@@ -40,6 +40,9 @@ import { Account } from '../../models/account'
 import { Emoji } from '../../lib/emoji'
 import { formatNumber } from '../../lib/format-number'
 import { getCommitSearchKeys } from '../../lib/commit-search'
+import { Button } from '../lib/button'
+import { Octicon } from '../octicons'
+import { getBoolean, setBoolean } from '../../lib/local-storage'
 
 interface ICompareSidebarProps {
   readonly repository: Repository
@@ -91,10 +94,14 @@ interface ICompareSidebarState {
 
   /** Whether the History commit filter matches case-sensitively. */
   readonly commitFilterCaseSensitive: boolean
+
+  /** Whether the ancestry graph is visible beside commit rows. */
+  readonly showCommitGraph: boolean
 }
 
 /** localStorage key used to persist the History commit filter mode. */
 const CommitFilterListId = 'history-commits'
+const ShowCommitGraphKey = 'history-show-commit-graph'
 
 /** If we're within this many rows from the bottom, load the next history batch. */
 const CloseToBottomThreshold = 10
@@ -121,6 +128,7 @@ export class CompareSidebar extends React.Component<
       commitFilterText: '',
       commitFilterMode: readPersistedFilterMode(CommitFilterListId),
       commitFilterCaseSensitive: false,
+      showCommitGraph: getBoolean(ShowCommitGraphKey, true),
     }
   }
 
@@ -376,8 +384,25 @@ export class CompareSidebar extends React.Component<
           filterText={this.state.commitFilterText}
           onRegexPatternApply={this.onCommitFilterRegexPatternApply}
         />
+        <Button
+          className="history-commit-graph-toggle"
+          ariaLabel="Show commit graph"
+          tooltip="Show commit graph"
+          ariaPressed={this.state.showCommitGraph}
+          onClick={this.onCommitGraphToggle}
+        >
+          <Octicon symbol={octicons.gitMerge} />
+        </Button>
       </div>
     )
+  }
+
+  private onCommitGraphToggle = () => {
+    this.setState(state => {
+      const showCommitGraph = !state.showCommitGraph
+      setBoolean(ShowCommitGraphKey, showCommitGraph)
+      return { showCommitGraph }
+    })
   }
 
   private renderCommitList() {
@@ -471,6 +496,9 @@ export class CompareSidebar extends React.Component<
           keyboardReorderData={this.state.keyboardReorderData}
           accounts={this.props.accounts}
           preferAbsoluteDates={this.props.preferAbsoluteDates}
+          showCommitGraph={
+            isHistory && this.state.showCommitGraph && !isCommitFilterActive
+          }
         />
       </>
     )
