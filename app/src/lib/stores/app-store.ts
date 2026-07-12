@@ -7110,7 +7110,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async _switchWorktree(
     repository: Repository,
-    worktree: WorktreeEntry
+    worktree: WorktreeEntry,
+    persistSelection: boolean = true
   ): Promise<Repository> {
     const type = await getRepositoryType(worktree.path).catch(e => {
       log.error('Could not determine repository type', e)
@@ -7142,7 +7143,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       worktree
     )
 
-    await this._selectRepository(result.repository)
+    await this._selectRepository(result.repository, persistSelection)
 
     this.statsStore.increment('worktreeSwitchCount')
 

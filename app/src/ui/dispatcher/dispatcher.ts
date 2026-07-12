@@ -1342,10 +1342,11 @@ export class Dispatcher {
    */
   public async switchWorktree(
     repository: Repository,
-    worktree: WorktreeEntry
+    worktree: WorktreeEntry,
+    persistSelection: boolean = true
   ): Promise<void> {
     await this.appStore
-      ._switchWorktree(repository, worktree)
+      ._switchWorktree(repository, worktree, persistSelection)
       .catch(e => this.postError(e))
   }
 
@@ -2720,7 +2721,11 @@ export class Dispatcher {
         r => matchExistingRepository(worktrees, r.path) !== undefined
       )
       if (worktree && sharedCommonDirRepository instanceof Repository) {
-        await this.switchWorktree(sharedCommonDirRepository, worktree)
+        await this.switchWorktree(
+          sharedCommonDirRepository,
+          worktree,
+          action.persistSelection ?? true
+        )
         return
       }
 

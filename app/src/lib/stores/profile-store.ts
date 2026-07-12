@@ -23,6 +23,7 @@ import {
   redoLastProfileChange,
   restoreProfileTo,
   undoLastProfileChange,
+  withProfileRepositoryLock,
 } from '../profiles/profile-git'
 import {
   applySettingsSnapshot,
@@ -352,7 +353,12 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
     action: () => Promise<T>
   ): Promise<T> {
     const previous = this.mutationChainsByKey.get(key) ?? Promise.resolve()
-    const operation = previous.then(action)
+    const operation = previous.then(() => {
+      const repository = this.repositoriesByKey.get(key)
+      return repository === undefined
+        ? action()
+        : withProfileRepositoryLock(repository, action)
+    })
     const tail = operation.then(
       () => undefined,
       () => undefined
