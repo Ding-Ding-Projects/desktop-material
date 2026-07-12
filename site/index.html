@@ -149,7 +149,9 @@
               <h3>Versioned settings</h3>
               <p>
                 Every settings and tab change auto-commits to a local git repo,
-                with a full undo/redo history manager — restore any prior state.
+                with a non-modal history side sheet for diffs, undo, redo, and
+                restore. Each action appends an audit commit instead of
+                rewriting history.
               </p>
             </article>
 
@@ -313,12 +315,13 @@
               >
                 <img
                   src="../docs/assets/screenshots/settings-history-manager.png"
-                  alt="Settings undo/redo/restore history manager"
+                  alt="Live M3 Settings history side sheet with a Git-backed timeline, selected diff, Undo, Redo, and restore controls"
                   loading="lazy"
                 />
               </a>
               <figcaption>
-                Settings history <span class="tag">Undo/redo</span>
+                Git-backed settings history
+                <span class="tag">Undo · redo · restore</span>
               </figcaption>
             </figure>
 

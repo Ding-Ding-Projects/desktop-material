@@ -6,6 +6,7 @@ guide focuses on what Desktop Material adds on top.
 
 - [Signing in](#signing-in)
 - [Repository tabs](#repository-tabs)
+- [Settings history](#settings-history)
 - [Multi-clone](#multi-clone)
 - [One-click commit & push](#one-click-commit--push)
 - [Notification centre](#notification-centre)
@@ -80,8 +81,24 @@ Styling is per tab, so you can make a production repo bold-red and a scratch rep
 tell them apart at a glance.
 
 > Tab layout and styling are part of your per-account settings, so every change **auto-commits** to
-> that account's local settings repo. See [Automation](Automation) and the history manager in
-> **Settings → History** if you ever need to undo, redo, or restore an earlier state.
+> that account's local settings repo. Open **Edit → Settings History…** or press `Ctrl+Alt+Z` if
+> you ever need to inspect, undo, redo, or restore an earlier state.
+
+---
+
+## Settings history
+
+Desktop Material records every per-account settings and repository-tab change as a commit in that
+account's local settings repo. Open **Edit → Settings History…** or press `Ctrl+Alt+Z` to open the
+non-modal right-side sheet; the workspace remains usable while it is open.
+
+- Select a timeline entry to lazily load its changed files and diff.
+- Choose **Undo last** to reverse the latest logical change, or **Redo** to replay an undone change.
+- Use an entry's restore action to confirm and restore the complete settings state at that point.
+- Choose **Load more** when the timeline contains more entries than the first page.
+- Undo, redo, and restore all append audit commits, so the history itself is never rewritten.
+
+![Live Settings history side sheet](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 
 ---
 

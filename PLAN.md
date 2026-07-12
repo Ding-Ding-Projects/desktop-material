@@ -2,7 +2,7 @@
 
 ## Context
 
-`desktop-material` is a fork of GitHub Desktop (Electron + React + TypeScript + Sass) being rebuilt around Material Design 3. The material work is the top ~6 commits on `main`; `MATERIAL_REDESIGN.md` is the implementation contract. The user will later supply a "claude design" zip — **decision: build features now, restyle/align to the zip in a follow-up pass**.
+`desktop-material` is a fork of GitHub Desktop (Electron + React + TypeScript + Sass) being rebuilt around Material Design 3. `MATERIAL_REDESIGN.md` is the implementation contract. The user supplied `Material Design UI Recreation.zip`; M3 was adapted from its `Desktop Material v2.dc.html` Settings History side sheet, while M18 remains the later full-app alignment pass.
 
 The user wants a large feature expansion:
 
@@ -29,8 +29,8 @@ The user wants a large feature expansion:
 
 ## Confirmed environment facts
 
-- Remote: `origin = https://github.com/codingmachineedge/desktop-material.git`, branch `main`, working tree clean.
-- GitHub Pages: **not configured** (API 404). Wiki: enabled but **uninitialized** — the wiki git repo does not exist until the first page is created (web UI); cannot push to it yet.
+- Remote: `origin = https://github.com/codingmachineedge/desktop-material.git`, branch `main`.
+- GitHub Pages is live at https://codingmachineedge.github.io/desktop-material/. The wiki is enabled; its canonical Markdown source is under `docs/wiki/` and publication requires the one-time browser bootstrap described below.
 - Copilot integration already in codebase: `app/src/lib/copilot-commit-message.ts`, `app/src/lib/stores/copilot-store.ts`, BYOK providers, Copilot conflict resolution (`app/src/lib/copilot-conflict-resolution.ts`, `app/src/ui/multi-commit-operation/dialog/copilot-*`).
 - Worktree support already in codebase: `app/src/ui/worktrees/*`, `app/src/ui/toolbar/worktree-dropdown.tsx`, `app/src/models/worktree.ts`.
 
@@ -42,8 +42,8 @@ The user wants a large feature expansion:
 - **Git plumbing (dugite)**: `app/src/lib/git/core.ts` `git()`; `init.ts:5 initGitRepository(path)` (takes bare path — usable on userData dir); `commit.ts:15 createCommit(repository, message, files, options)`; `push.ts:48 push(...)`; `log.ts:120 getCommits(...)`; `reset.ts`, `checkout.ts`, `clone.ts`, `worktree.ts`. Commit-path functions take a `Repository` model — wrap the settings dir in a lightweight Repository or call `git()` directly.
 - **Undo today**: only "undo last commit" (`ui/changes/undo-commit.tsx` → `dispatcher.undoCommit` (dispatcher.ts:951) → `app-store._undoCommit` (app-store.ts:5686) → `git-store.undoCommit` (git-store.ts:718)). No general undo stack — the undo history manager is new build on git plumbing.
 - **Docs**: README.md is unmodified upstream (hero screenshot from remote URLs). Two material screenshots committed at `docs/assets/screenshots/material-*.png` but referenced nowhere; no script produced them. `MATERIAL_REDESIGN.md` L15-16 forbids writing tokens to exported settings (matters for tab/settings export + repo export). No Pages branch/workflow/config anywhere.
-- **Screenshot automation**: Playwright+Electron e2e harness at `app/test/e2e/` (`e2e-fixtures.ts` launches real app, `mainWindow` is a Playwright `Page` → `.screenshot()` available; unpackaged mode: `DESKTOP_SKIP_PACKAGE=1 yarn build:prod` + `DESKTOP_E2E_APP_MODE=unpackaged`).
-- **CI**: `.github/workflows/ci.yml` triggers on push to `development` (not `main`!) + PRs; lint job runs `yarn lint` + changelog validation. No Pages workflow.
+- **Screenshot automation**: the repo-local `.codex/skills/verify-desktop-material-headless/` workflow calls the exact lowlevel MCP HTTP server, launches Electron on an isolated Win32 Headless Desktop, drives only by resolved HWND, captures with PrintWindow, visually verifies in Temp, and then promotes the accepted PNG.
+- **CI/publishing**: `.github/workflows/ci.yml` runs on pushes to `main` and `development`; `.github/workflows/pages.yml` deploys `site/` and tracked screenshots; `build-installers.yml` creates a public release for each non-docs push to `main`.
 - Dev launch: `yarn start` (webpack dev + Electron).
 
 ## Exploration findings (agent 1 — accounts/state/shell)
@@ -191,11 +191,11 @@ The user wants a large feature expansion:
 
 Every milestone ends with: `yarn lint` + `yarn test:unit` green → screenshot refresh (once harness exists) → README/Pages/wiki content update where relevant → `git commit` + `git push origin main`.
 
-- **M0 — Publishing bootstrap** (C5, infra-first so every later milestone can publish): add `main` to ci.yml triggers; `.github/workflows/pages.yml` + `site/` skeleton; enable Pages via `gh api ... -f build_type=workflow`; README v1 rewrite (fork identity, existing screenshots); `docs/wiki/*.md` sources; screenshots e2e spec + yarn script. ⚠ Wiki bootstrap needs its first page created once via web UI (API cannot) — ask user or do via browser with confirmation at implementation time.
-- **M1 — Profile foundation** (A-commit-1): per-account settings git repos, allowlist registry, commit queue, recovery.
-- **M2 — Repository tabs** (A-2/3): tab strip + persistence + migration; per-tab styling editor.
-- **M3 — Settings history manager** (A-4): undo/redo/restore dialog + menu + shortcut.
-- **M4 — Non-modal dialogs** (F): dialog framework goes non-blocking (floating panels), escape hatch for must-block cases.
+- **M0 — Publishing bootstrap — COMPLETE** (`d367c92`): CI on `main`, Pages, README/site, wiki sources, and tracked screenshots.
+- **M1 — Profile foundation — COMPLETE** (`9826361`): per-account settings git repos, allowlist registry, commit queue, recovery.
+- **M2 — Repository tabs — COMPLETE** (`18b3876`, `007845c`): tab strip, persistence/migration, and per-tab styling editor.
+- **M3 — Settings history manager — COMPLETE** (`4114fa2`): reusable Git-backed history UI, lazy diffs, logical multi-level undo/redo, restore-to-point, audit commits, menu/shortcut, reconciliation, tests, and live Headless Desktop verification.
+- **M4 — Non-modal dialogs — NEXT** (F): broaden non-blocking floating-panel/side-sheet behavior across the remaining dialogs, using M3 Settings history as the reference surface and retaining escape hatches for actions that must block.
 - **M5 — Notification centre** (F, uses M1 helpers): bell + panel, git-backed log, history manager (generalized from M3's dialog if clean).
 - **M6 — Search upgrades** (B-3/4): filter modes (fuzzy/substring/regex) + per-list filters on ALL search bars; full regex builder.
 - **M7 — Multi-clone + export/import** (B-1/2): checkboxes, parallel/sequential batch engine, progress popup; repo list export (URLs only)/import→auto-clone.
@@ -209,7 +209,7 @@ Every milestone ends with: `yarn lint` + `yarn test:unit` green → screenshot r
 - **M15 — Desktop-plus M4** stashes + CLI.
 - **M16 — Desktop-plus M5** multi-window (tabs become per-window; settle design in M2's model early).
 - **M17 — Desktop-plus M6 + 16a** GitLab/Bitbucket integration on OUR accountKey model + self-hosted GitLab endpoint entry + PAT login. (Register OAuth apps early — external dependency.)
-- **M18 — Claude design zip integration** (when the user provides it): restyle pass across all new UI.
+- **M18 — Claude design integration**: the ZIP is supplied and already informed M3; complete the later full-app restyle/alignment pass across all remaining surfaces.
 
 ## Cross-workstream contracts (must hold across milestones)
 
@@ -225,10 +225,10 @@ Every milestone ends with: `yarn lint` + `yarn test:unit` green → screenshot r
 
 ## Verification (every milestone)
 
-1. `yarn lint` and `yarn test:unit` green (new pure modules get unit tests: path sanitizer, snapshot diff, commit queue debounce, repo-list file parse/sanitize, matchWithMode, regex block model, fallback commit message, automation guards, merge-all candidate selection, notification store, workflow-inputs parser).
-2. Launch `yarn start` and exercise the feature end-to-end in the running app (e.g. open tabs → check `git log` inside `userData/profiles/<dir>`; run one-click commit+push against a scratch repo; run merge-all on a seeded multi-branch scratch repo with a manufactured conflict; import an exported repo list on a clean base dir).
+1. Run `yarn lint`, `yarn tsc --noEmit --skipLibCheck`, focused regression tests, and the full unit suite under the repository's Node 24 runtime. M3 baseline: 56/56 focused and 1,518 passed / 1 skipped / 0 failed in the full suite.
+2. Build through the exact lowlevel MCP HTTP server with `npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`, then exercise the feature against a deterministic disposable fixture and isolated user-data directory.
 3. Agent server: verify with `curl` against `/api/v1/info` + a full MCP `initialize`/`tools/list`/`tools/call` handshake, plus token-rejection and Origin-rejection cases.
-4. Screenshots: run the Playwright screenshots spec (unpackaged mode) after visual milestones; verified images land in `docs/assets/screenshots/`.
+4. Screenshots: use `.codex/skills/verify-desktop-material-headless/`; create a unique off-screen Win32 desktop, discover the current HWND, use background-only input, inspect the Temp PrintWindow capture at original resolution, promote it to `docs/assets/screenshots/`, and close the exact app/desktop. Never expose the Headless Desktop to the user's live session.
 5. E2E smoke (`app-launch.e2e.ts`) still passes at least at M2 (tab strip touches shell), M4 (dialog framework), and M16 (multi-window).
 
 ## Working agreement (user directives)
@@ -240,9 +240,9 @@ Every milestone ends with: `yarn lint` + `yarn test:unit` green → screenshot r
 
 ## External dependencies / one-time user actions
 
-1. **Wiki bootstrap** (M0): the wiki git repo doesn't exist until the first page is created in the GitHub web UI — one click on "Create the first page". I'll ask for this (or offer to do it via the browser with your confirmation) when M0 lands; wiki pushes are blocked until then, everything else proceeds.
+1. **Wiki bootstrap** (one-time): the wiki git repo does not exist until the first page is created in GitHub's web UI. After explicit browser confirmation, create `Home`, then push the canonical `docs/wiki/` mirror normally.
 2. **GitLab/Bitbucket OAuth apps** (M17): cloud OAuth needs client IDs registered under your account (desktop-plus's are org-owned). Self-hosted GitLab uses PAT auth and needs nothing. PAT-only is the fallback for cloud too if you prefer not to register apps.
-3. **Claude design zip** (M18): provide whenever ready; it becomes a restyle pass over all shipped UI.
+3. **Claude design ZIP** (M18): supplied. M3 already uses its Settings History layout; the remaining dependency is the later full-app alignment pass.
 
 ## Sizing note
 

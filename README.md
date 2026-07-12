@@ -29,7 +29,7 @@ On top of GitHub Desktop's complete Git workflow, Desktop Material adds:
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
 - Per-tab title styling: bold/italic/underline, size, color, font family, alignment
 - Multiple accounts including multiple identities per host; per-account tabs, repos, and settings
-- Per-account settings stored in a local git repo — every settings/tabs change auto-commits, with a full undo history manager (undo/redo/restore to any commit)
+- Per-account settings stored in a local git repo — every settings/tabs change auto-commits. Open **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo, and restore; each history action adds an audit commit instead of rewriting history
 
 **Cloning & organizations**
 - Multi-clone: select many repos with checkboxes, org filter chips, parallel or one-by-one cloning
@@ -59,8 +59,8 @@ On top of GitHub Desktop's complete Git workflow, Desktop Material adds:
 |---|---|
 | ![Per-tab text styling popover](docs/assets/screenshots/tab-text-style.png) | ![Regex builder dialog](docs/assets/screenshots/regex-builder.png) |
 | **Per-tab title styling** — bold, italic, size, color, and font per tab | **Regex builder** — anchors, classes, quantifiers, flags, and a live tester |
-| ![Settings undo/redo history manager](docs/assets/screenshots/settings-history-manager.png) | ![Multi-clone window](docs/assets/screenshots/07-clone.png) |
-| **Settings history manager** — undo/redo and restore to any commit | **Multi-clone** — checkboxes, org filter chips, parallel cloning |
+| ![Live M3 Settings history side sheet with a Git-backed timeline, selected diff, Undo, Redo, and restore controls](docs/assets/screenshots/settings-history-manager.png) | ![Multi-clone window](docs/assets/screenshots/07-clone.png) |
+| **Live M3 Settings history** — Git-backed timeline, selected change diff, Undo, Redo, and restore-to-point | **Multi-clone** — checkboxes, org filter chips, parallel cloning |
 | ![Multi-account settings with GitLab sign-in](docs/assets/screenshots/settings-accounts-dark.png) | |
 | **Multi-account settings** — multiple identities per host and self-hosted GitLab sign-in | |
 

@@ -12,9 +12,10 @@ styling, multi-repository cloning, automation (scheduled commit/push and pull, m
 Copilot conflict resolution), a GitHub Actions panel, a notification centre, and regex-powered
 search on every search bar.
 
-> **Status:** Desktop Material is in **active development**. It is not yet released — there are no
-> download links or version numbers to publish. Feature-parity references come from
-> [desktop-plus](https://github.com/severity1/desktop-plus) (MIT).
+> **Status:** Desktop Material is in **active development**. Preview builds are published from the
+> project's [GitHub Releases](https://github.com/codingmachineedge/desktop-material/releases).
+> Feature-parity references come from [desktop-plus](https://github.com/severity1/desktop-plus)
+> (MIT).
 
 ---
 
@@ -22,7 +23,7 @@ search on every search bar.
 
 | Page | What it covers |
 | --- | --- |
-| [User Guide](User-Guide) | Task-oriented walkthrough of the headline features — sign-in, tabs, multi-clone, one-click commit & push, notifications, Actions, UI scaling. |
+| [User Guide](User-Guide) | Task-oriented walkthrough of the headline features — sign-in, tabs, Settings history, multi-clone, one-click commit & push, notifications, Actions, UI scaling. |
 | [Automation](Automation) | Scheduled auto commit & push, auto pull, and merge-all — with the exact safety rules that gate each one. |
 | [Regex Guide](Regex-Guide) | How the search bars work: filter chips, regex mode, and the regex builder. Mirrors the in-app help. |
 | [Developer Guide](Developer-Guide) | Architecture for contributors — Electron main/renderer, the store/dispatcher state flow, dugite, per-account profile repos, the agent server, and the SCSS token system. |
@@ -37,8 +38,11 @@ search on every search bar.
   per-tab title styling (bold/italic/underline, size, color, font family, alignment).
 - **Multi-account** — multiple identities per host; each account carries its own tabs, repos, and
   settings.
-- **Per-account settings in a local git repo** — every settings or tabs change auto-commits, with a
-  full undo history manager (undo / redo / restore to any commit).
+- **Per-account settings in a local git repo** — every settings or tabs change auto-commits. Open
+  **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo,
+  and restore; each history action appends an audit commit.
+
+![Live Settings history side sheet](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
 - **Multi-clone** — select many repositories with checkboxes, filter by org chips, clone in parallel
   or one-by-one, and export/import repo lists (URLs only).
 - **Regex search everywhere** — filter chips, a regex-mode toggle, and a full regex builder on every

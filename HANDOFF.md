@@ -13,110 +13,95 @@ build, run, and verify the app. The full feature plan lives in
 | **CI fixes** | `e50a6df` | Formatted a pre-existing Prettier violation (`app/styles/ui/_button.scss`); switched CI off the unavailable `macos-14-xlarge` runner to `macos-14`. |
 | **M1 — Per-account profiles** | `9826361` | Each account gets a git repo under `userData/profiles/<sanitized>/` that auto-commits UI-settings changes. Verified: 15 unit tests, built + passed Windows E2E-smoke on CI. |
 | **M2 — Repository tabs** | `18b3876`, `007845c` | Browser-style tab strip + per-tab "Tab text style" editor. **Verified headlessly matching the design prototype.** |
+| **M3 — Settings history manager** | `4114fa2` | Shared Git-backed history UI, lazy diffs, logical undo/redo, restore-to-point, audit commits, menu/shortcut wiring, and tab/settings reconciliation. Verified live on an isolated Win32 Headless Desktop. |
 
 Working tree is clean; everything is pushed.
 
-## Critical environment setup (hard-won — read before building)
+## Critical environment setup
 
-The default `yarn install` / `yarn start` **fail** on this machine for two
-non-obvious reasons. Both are worked around; here's how to reproduce:
+- Use the repository runtime from `.tool-versions` (**Node 24.15.0**). The M3 full
+  suite was verified with the bundled Node 24.14 runtime. System Node 26 has an
+  unrelated test-runner `localStorage` incompatibility, so it is not the release
+  validation runtime.
+- `node_modules/electron/dist/electron.exe` is present and the production build
+  runs from the repository. If a future install loses native modules on VS 2026,
+  refresh the repo-local `node-gyp` from a current global install, then run
+  `npm rebuild` and `yarn run postinstall`.
+- Do not download dependencies during an unattended capture. The reproducible
+  build uses only installed packages.
 
-### 1. Native modules — node-gyp is too old for Visual Studio 2026
-`yarn install`'s native rebuild uses the bundled `node-gyp@10`, which cannot
-detect the installed **VS 2026 (v18)** toolchain (it exists, with the C++
-workload). Fix that is already applied locally:
+## How to run and verify the UI without touching the real desktop
 
-```
-npm install -g node-gyp@latest              # v13 knows about VS 2026
-# replace the repo-local copy so module install scripts use it:
-cp -r <global>/node_modules/node-gyp node_modules/node-gyp
-npm rebuild                                  # rebuilds printenvz, keytar, etc.
-yarn run postinstall                         # app deps, electron binary, submodules, compile:script
-```
+Use the exact lowlevel MCP checkout at
+`C:\Users\cntow\Documents\GitHub\lowlevel-computer-use-mcp` (verified commit
+`beed66ca6ed2503e6170ee1e1158247f1c2f0140`) through its HTTP endpoint
+`http://127.0.0.1:8765/mcp`. The repeatable client and safety workflow live in
+`.codex/skills/verify-desktop-material-headless/`.
 
-After this, `yarn compile:prod` and `yarn build:dev` succeed.
+1. Build through MCP `run_command`:
+   `npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`.
+2. Create unique Temp fixture/user-data paths and one uniquely named Win32
+   Headless Desktop.
+3. Launch `node_modules/electron/dist/electron.exe --disable-gpu out/main.js`
+   on that desktop with the isolated paths, then discover the current HWND.
+4. Use only HWND-bound background clicks/keys and PrintWindow screenshots. Never
+   call `show_headless_desktop`, focus a normal window, or send global input.
+5. Inspect the Temp screenshot at original resolution before promoting it, then
+   revalidate the exact HWND/PID, close the app and desktop, and remove owned
+   Temp paths.
 
-### 2. Electron binary is quarantined by antivirus in the repo folder
-`node_modules/electron/dist/` ends up with **only `locales/`** — the AV
-deletes `electron.exe` (226 MB) and the DLLs as they extract into the
-`Documents\GitHub\...` tree. The cached zip is intact. Workaround: extract
-Electron to a path the AV leaves alone (Temp) and run from there.
+## M3 verification evidence
 
-```
-# extract the cached electron zip to Temp (electron.exe survives there):
-Expand cache zip  C:\Users\<user>\AppData\Local\electron\Cache\<hash>\electron-v42.0.1-win32-x64.zip
-   ->  C:\Users\<user>\AppData\Local\Temp\electron-dist-v42
-```
-
-Current extracted copy: `C:\Users\cntow\AppData\Local\Temp\electron-dist-v42\electron.exe`.
-(A real fix is a Defender **folder exclusion** for the repo — a user action.)
-
-## How to run and verify the UI (headless, off the real desktop)
-
-Two options, both avoid cluttering the interactive desktop:
-
-**A. Playwright helper (in-repo):** `script/headless-screenshot.js`
-```
-set ELECTRON_EXE=C:\Users\<user>\AppData\Local\Temp\electron-dist-v42\electron.exe
-node script/headless-screenshot.js out.png     # needs a prod build in out/
-```
-
-**B. lowlevel-computer-use-mcp (external repo, off-screen desktop + PrintWindow):**
-`C:\Users\cntow\Documents\GitHub\lowlevel-computer-use-mcp`, driven via its
-"cheap" CLI (no MCP registration needed):
-```
-uv run --directory <mcp> lowlevel-computer-use-cheap create_headless_desktop --name dm
-uv run --directory <mcp> lowlevel-computer-use-cheap launch_on_headless_desktop --name dm --command "<electron.exe> <repo>\out\main.js"
-uv run --directory <mcp> lowlevel-computer-use-cheap list_headless_windows --name dm      # find the GitHub Desktop hwnd
-uv run --directory <mcp> lowlevel-computer-use-cheap screenshot --hwnd <handle>           # PrintWindow capture
-# background input: mouse_click / type_text with --hwnd (client coords)
-```
-A **production** build (`yarn compile:prod`) makes `out/` self-contained so
-`electron.exe out/main.js` runs standalone (dev builds need the webpack dev
-server that `yarn start` normally provides).
-
-## Verification workflow used for code (local build is limited)
-
-- **Typecheck diff:** `node_modules/.bin/tsc --noEmit -p tsconfig.json`. There
-  are ~20 pre-existing baseline errors (all from the `desktop-notifications`
-  native module's missing types under `--ignore-scripts`, plus one lodash/Node
-  types clash). New code must add **zero** new error signatures — diff the
-  sorted, line-number-stripped error list against the baseline.
-- **Unit tests:** `node script/test.mjs app/test/unit/<file>-test.ts` (Node's
-  built-in test runner; `node:test` + `node:assert`).
-- **Lint:** `node_modules/.bin/prettier --write` on changed files (CI runs
-  `yarn lint` = Prettier over `{ts,tsx,js,json,jsx,scss,html,yaml,yml}` + eslint).
-- **CI is the integration backstop:** every push to `main` runs the full build
-  + Windows E2E-smoke.
+- Focused M3/regression suite: **56/56 passed**.
+- Full unit suite under Node 24.14: **1,519 tests; 1,518 passed, 1 skipped, 0 failed**.
+- Standalone popup regression under Node 26: **26/26 passed**.
+- `yarn tsc --noEmit --skipLibCheck`: passed.
+- Repository-wide `yarn lint`: passed.
+- Production unpackaged build through the exact lowlevel MCP server: passed;
+  webpack emitted `out/` successfully.
+- Live UI smoke: Settings history opened on an isolated Headless Desktop, then
+  Undo and Redo were exercised with HWND-bound background clicks.
+- Promoted screenshot: `docs/assets/screenshots/settings-history-manager.png`,
+  **1443×992**, SHA-256
+  `abbcc34aa02949d2144f008c9ed10b4414f721843890643d65d8e0b9360c3da1`.
+- `git diff --check` and the changed-file secret scan passed.
 
 ## Architecture added (for continuing the plan)
 
 - **Profiles (M1):** `app/src/models/profile.ts`, `app/src/lib/profiles/*`,
-  `app/src/lib/stores/profile-store.ts`. The `ProfileStore` is wired through the
-  **public** `appStore.onDidUpdate` in `app/src/ui/index.tsx` — no edits to the
-  `app-store.ts` hot path. It exposes `readTabs`/`writeTabs` for M2 and is the
-  place to add the M3 history API (`getSettingsHistory` via `getCommits`,
-  `undoLastSettingsChange` via `revertCommit`, `restoreSettingsTo`).
+  `app/src/lib/stores/profile-store.ts`. Settings writes, tab writes, flushes,
+  history reads, and history mutations share one per-profile queue so concurrent
+  changes cannot be folded into an undo/redo operation or lost.
 - **Tabs (M2):** `app/src/models/repository-tab.ts`,
   `app/src/lib/stores/repository-tabs-store.ts`,
   `app/src/ui/repository-tabs/*`, styles in
   `app/styles/ui/_repository-tabs.scss`. The strip mounts in `app.tsx`
   `renderApp()` above the toolbar; selection→tab is hooked in `index.tsx`.
+- **History (M3):** `app/src/ui/version-history/*` is the reusable history UI;
+  `app/src/ui/settings-history/*` is its settings wrapper. Profile history APIs
+  provide paged commits, selected-file diffs, logical multi-level undo/redo, and
+  restore-to-point without rewriting history. Menu, popup, dispatcher, and app
+  store wiring make Settings history non-modal. Restores rebind an active tab by
+  repository ID/path and refresh active diffs when whitespace settings change.
 
 ## Next up (see PLAN.md for detail)
 
-M3 settings-history UI → M4 non-modal dialogs → M5 notification centre →
-M6 search/regex builder → M7 multi-clone + export/import → M8 UI scaling + orgs
+**M4 — broaden non-modal behavior across the remaining dialogs**, using the M3
+Settings history side sheet as the reference surface. Then M5 notification
+centre → M6 search/regex builder → M7 multi-clone + export/import → M8 UI scaling + orgs
 → M9 automation → M10 Actions panel → M11 MCP server → M12 GHCR manager →
 M13–17 desktop-plus parity + self-hosted GitLab. Overarching constraint: the UI
-must faithfully match the design prototype
-(`Desktop Material v2.dc.html` from the "claude design" zip) — verify each
-screen with the headless pipeline above.
+must faithfully match the design prototype. M3 was adapted from
+`Desktop Material v2.dc.html` in the supplied
+`Material Design UI Recreation.zip`; verify each screen with the headless
+pipeline above.
 
 ## Gotchas
 
-- Do **not** edit `app-store.ts`'s `emitUpdate`/`getState` unless necessary;
-  the profile/tabs stores deliberately hook via `onDidUpdate` and props.
+- Keep settings, tabs, flushes, and history actions on the same profile queue;
+  splitting them reintroduces lost updates and corrupt undo/redo semantics.
+- Preserve restored-tab reconciliation by both repository ID and normalized path,
+  and refresh active diffs after restoring whitespace preferences.
 - Keep tokens out of profile repos, exports, and any agent bridge — the
   settings registry is an allowlist by construction.
 - `build-installers.yml` cuts a release on every non-docs push to `main`; this
