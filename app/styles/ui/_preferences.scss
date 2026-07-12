@@ -18,20 +18,20 @@
   // --- MD3 settings card (commit 12) -------------------------------------
   // The card geometry (940x660, surface-container-low) is locked in
   // _material-shell.scss so it beats the generic dialog rules. Here we lay out
-  // the interior: a 236px left rail + a scrollable content column.
+  // the interior: a 236px full-height left rail + a scrollable content pane.
 
-  // Slim, transparent header (the design has no title strip; we keep the
-  // Dialog's built-in header for behavior/close-button, just make it minimal).
-  .dialog-header {
-    background: transparent;
-    min-height: 0;
-    padding: 14px 14px 0 20px;
+  // The design (overlays §2.1/§2.2) has NO title strip: the "Settings" title
+  // sits at the top of the rail and the close ✕ moves to the top-right of the
+  // content pane. The Dialog's built-in `.dialog-header` is therefore
+  // suppressed for this dialog (it's rendered without a `title` prop), so the
+  // rail can span the full card height. Nothing renders `.dialog-header` here.
 
-    h1 {
-      font-size: 15px;
-      font-weight: var(--font-weight-semibold);
-      color: var(--md-sys-color-on-surface-variant);
-    }
+  // Rail title ("Settings"), pinned to the top of the rail.
+  .preferences-title {
+    margin: 0 0 14px 12px;
+    font-size: 20px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--md-sys-color-on-surface);
   }
 
   .preferences-container {
@@ -48,7 +48,7 @@
     display: flex;
     flex-direction: column;
     background: var(--md-sys-color-surface-container);
-    padding: 10px 12px 16px;
+    padding: 22px 12px 16px;
 
     .tab-bar.vertical {
       flex: 1;
@@ -91,6 +91,52 @@
       font-size: 11px;
       color: var(--md-sys-color-on-surface-variant);
       opacity: 0.7;
+    }
+  }
+
+  // Right content pane: a full-height column holding the close-button header,
+  // the scrollable active tab, and the footer. Because the footer lives inside
+  // the pane (not spanning the card) the rail reaches the full card height.
+  .preferences-content-pane {
+    flex: 1;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // Header row of the content pane: right-aligned round close ✕ (overlays §2.2
+  // moves the close button out of a title strip into the right pane).
+  .preferences-pane-header {
+    display: flex;
+    justify-content: flex-end;
+    flex-shrink: 0;
+    padding: 14px 14px 0 0;
+  }
+
+  .preferences-close-button {
+    display: grid;
+    place-items: center;
+    width: 40px;
+    height: 40px;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+    transition: background-color 220ms var(--emph), transform 200ms var(--spring-fast);
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    &:active {
+      transform: scale(0.86) rotate(90deg);
+    }
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: 1px;
     }
   }
 

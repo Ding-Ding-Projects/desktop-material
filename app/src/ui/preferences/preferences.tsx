@@ -189,6 +189,15 @@ interface IPreferencesState {
 }
 
 /**
+ * Stable id for the Settings dialog's title heading. Because the Preferences
+ * dialog suppresses the built-in `Dialog` header strip (overlays §2.1/§2.2 —
+ * the title lives inside the left rail, not in a top strip) we render our own
+ * `<h2>` heading and hand its id to the `Dialog` via the `titleId` prop so the
+ * dialog's `aria-labelledby` still points at the visible title.
+ */
+const PreferencesTitleId = 'preferences-title'
+
+/**
  * Default custom integration values to coalesce with. We can't make up a path
  * nor a bundle ID, but we can at least provide a default argument.
  */
@@ -348,13 +357,16 @@ export class Preferences extends React.Component<
     return (
       <Dialog
         id="preferences"
-        title={__DARWIN__ ? 'Settings' : 'Options'}
+        titleId={PreferencesTitleId}
         onDismissed={this.onCancel}
         onSubmit={this.onSave}
       >
         {this.renderDisallowedCharactersError()}
         <div className="preferences-container">
           <div className="preferences-rail">
+            <h2 id={PreferencesTitleId} className="preferences-title">
+              Settings
+            </h2>
             <TabBar
               onTabClicked={this.onTabClicked}
               selectedIndex={this.tabToVisualIndex(this.state.selectedIndex)}
@@ -402,9 +414,21 @@ export class Preferences extends React.Component<
             <div className="preferences-version">Desktop Material 0.1.0</div>
           </div>
 
-          {this.renderActiveTab()}
+          <div className="preferences-content-pane">
+            <div className="preferences-pane-header">
+              <button
+                type="button"
+                className="preferences-close-button"
+                onClick={this.onCancel}
+                aria-label="Close"
+              >
+                <Octicon symbol={octicons.x} />
+              </button>
+            </div>
+            {this.renderActiveTab()}
+            {this.renderFooter()}
+          </div>
         </div>
-        {this.renderFooter()}
       </Dialog>
     )
   }
