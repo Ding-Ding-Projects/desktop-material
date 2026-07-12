@@ -22,6 +22,9 @@ interface IRepositoryListItemContextMenuConfig {
   onRemoveRepositoryAlias: (repository: Repository) => void
   onCreateWorktree?: (repository: Repository) => void
   onShowWorktrees?: (repository: Repository) => void
+  isPinned?: boolean
+  onPinRepository?: (repository: Repository) => void
+  onUnpinRepository?: (repository: Repository) => void
 }
 
 export const generateRepositoryListContextMenu = (
@@ -39,6 +42,20 @@ export const generateRepositoryListContextMenu = (
     : DefaultShellLabel
 
   const items: ReadonlyArray<IMenuItem> = [
+    ...(repository instanceof Repository &&
+    config.onPinRepository !== undefined &&
+    config.onUnpinRepository !== undefined
+      ? [
+          {
+            label: config.isPinned ? 'Unpin repository' : 'Pin repository',
+            action: () =>
+              config.isPinned
+                ? config.onUnpinRepository?.(repository)
+                : config.onPinRepository?.(repository),
+          },
+          { type: 'separator' as const },
+        ]
+      : []),
     ...buildAliasMenuItems(config),
     ...buildWorktreeMenuItems(config),
     {

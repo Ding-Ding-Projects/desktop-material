@@ -166,4 +166,13 @@ describe('repository list grouping', () => {
     const hidden = groupRepositories(manyRepositories, cache, [1, 2], false)
     assert(!hidden.some(group => group.identifier.kind === 'recent'))
   })
+
+  it('places pinned repositories in a dedicated first group', () => {
+    const pinned = groupRepositories(repositories, cache, [], true, [2])
+    assert.equal(pinned[0].identifier.kind, 'pinned')
+    assert.deepEqual(
+      pinned[0].items.map(item => item.repository.id),
+      [2]
+    )
+  })
 })

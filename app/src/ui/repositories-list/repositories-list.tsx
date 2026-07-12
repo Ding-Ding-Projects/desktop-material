@@ -28,6 +28,11 @@ import { FoldoutType } from '../../lib/app-state'
 import { SectionFilterList } from '../lib/section-filter-list'
 import { assertNever } from '../../lib/fatal-error'
 import { IAheadBehind } from '../../models/branch'
+import {
+  addPinnedRepository,
+  getPinnedRepositories,
+  removePinnedRepository,
+} from '../../lib/stores/repository-pinning'
 
 const BlankSlateImage = encodePathAsUrl(__dirname, 'static/empty-no-repo.svg')
 
@@ -82,6 +87,7 @@ interface IRepositoriesListProps {
 interface IRepositoriesListState {
   readonly newRepositoryMenuExpanded: boolean
   readonly selectedItem: IRepositoryListItem | null
+  readonly pinnedRepositoryIds: ReadonlyArray<number>
 }
 
 const RowHeight = 29
@@ -125,7 +131,8 @@ export class RepositoriesList extends React.Component<
       repositories: ReadonlyArray<Repositoryish> | null,
       localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
       recentRepositories: ReadonlyArray<number>,
-      showRecentRepositories: boolean
+      showRecentRepositories: boolean,
+      pinnedRepositories: ReadonlyArray<number>
     ) =>
       repositories === null
         ? []
@@ -133,7 +140,8 @@ export class RepositoriesList extends React.Component<
             repositories,
             localRepositoryStateLookup,
             recentRepositories,
-            showRecentRepositories
+            showRecentRepositories,
+            pinnedRepositories
           )
   )
 
@@ -154,6 +162,7 @@ export class RepositoriesList extends React.Component<
     this.state = {
       newRepositoryMenuExpanded: false,
       selectedItem: null,
+      pinnedRepositoryIds: getPinnedRepositories(),
     }
   }
 
@@ -246,7 +255,9 @@ export class RepositoriesList extends React.Component<
 
   private getGroupLabel(group: RepositoryListGroup) {
     const { kind } = group
-    if (kind === 'enterprise') {
+    if (kind === 'pinned') {
+      return 'Pinned'
+    } else if (kind === 'enterprise') {
       return group.host
     } else if (kind === 'other') {
       return 'Other'
@@ -308,6 +319,9 @@ export class RepositoriesList extends React.Component<
       onShowWorktrees: enableWorktreeSupport()
         ? this.onShowWorktrees
         : undefined,
+      isPinned: this.state.pinnedRepositoryIds.includes(item.repository.id),
+      onPinRepository: this.onPinRepository,
+      onUnpinRepository: this.onUnpinRepository,
       repository: item.repository,
       shellLabel: this.props.shellLabel,
     })
@@ -330,7 +344,8 @@ export class RepositoriesList extends React.Component<
       this.props.repositories,
       this.props.localRepositoryStateLookup,
       this.props.recentRepositories,
-      this.props.showRecentRepositories
+      this.props.showRecentRepositories,
+      this.state.pinnedRepositoryIds
     )
 
     // So there's two types of selection at play here. There's the repository
@@ -363,6 +378,7 @@ export class RepositoriesList extends React.Component<
             repositories: this.props.repositories,
             filterText: this.props.filterText,
             showRecentRepositories: this.props.showRecentRepositories,
+            pinnedRepositoryIds: this.state.pinnedRepositoryIds,
           }}
           onItemContextMenu={this.onItemContextMenu}
           getGroupAriaLabel={this.getGroupAriaLabelGetter(groups)}
@@ -505,5 +521,15 @@ export class RepositoriesList extends React.Component<
   private onShowWorktrees = (repository: Repository) => {
     this.props.dispatcher.selectRepository(repository)
     this.props.dispatcher.showWorktreesFoldout()
+  }
+
+  private onPinRepository = (repository: Repository) => {
+    addPinnedRepository(repository)
+    this.setState({ pinnedRepositoryIds: getPinnedRepositories() })
+  }
+
+  private onUnpinRepository = (repository: Repository) => {
+    removePinnedRepository(repository)
+    this.setState({ pinnedRepositoryIds: getPinnedRepositories() })
   }
 }

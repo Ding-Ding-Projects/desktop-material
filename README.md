@@ -28,6 +28,7 @@ These features are implemented and live on `main`.
 **Multi-account**
 - Multiple accounts including multiple identities per host; per-account tabs, repos, and settings
 - The repository list can hide its automatically maintained Recent group from **Settings → Appearance**
+- Repositories can be pinned from their context menu into a dedicated top group
 
 **Versioned settings & history**
 - Per-account settings stored in a local git repo — every settings/tabs change auto-commits. Open **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo, and restore; each history action adds an audit commit instead of rewriting history

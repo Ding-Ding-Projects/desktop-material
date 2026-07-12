@@ -16,7 +16,7 @@ import { Owner } from '../../models/owner'
 
 export type RepositoryListGroup =
   | {
-      kind: 'recent' | 'other'
+      kind: 'pinned' | 'recent' | 'other'
     }
   | {
       kind: 'dotcom'
@@ -35,14 +35,16 @@ export type RepositoryListGroup =
 export const getGroupKey = (group: RepositoryListGroup) => {
   const { kind } = group
   switch (kind) {
+    case 'pinned':
+      return `0:pinned`
     case 'recent':
-      return `0:recent`
+      return `1:recent`
     case 'dotcom':
-      return `1:dotcom:${group.owner.login}`
+      return `2:dotcom:${group.owner.login}`
     case 'enterprise':
-      return `2:enterprise:${group.host}`
+      return `3:enterprise:${group.host}`
     case 'other':
-      return `3:other`
+      return `4:other`
     default:
       assertNever(group, `Unknown repository group kind ${kind}`)
   }
@@ -78,11 +80,13 @@ export function groupRepositories(
   repositories: ReadonlyArray<Repositoryish>,
   localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
   recentRepositories: ReadonlyArray<number>,
-  showRecentRepositories = true
+  showRecentRepositories = true,
+  pinnedRepositories: ReadonlyArray<number> = []
 ): ReadonlyArray<IFilterListGroup<IRepositoryListItem, RepositoryListGroup>> {
   const includeRecentGroup =
     showRecentRepositories && repositories.length > recentRepositoriesThreshold
   const recentSet = includeRecentGroup ? new Set(recentRepositories) : undefined
+  const pinnedSet = new Set(pinnedRepositories)
   const groups = new Map<string, RepoGroupItem>()
 
   const addToGroup = (group: RepositoryListGroup, repo: Repositoryish) => {
@@ -97,6 +101,10 @@ export function groupRepositories(
   }
 
   for (const repo of repositories) {
+    if (pinnedSet.has(repo.id) && repo instanceof Repository) {
+      addToGroup({ kind: 'pinned' }, repo)
+    }
+
     if (recentSet?.has(repo.id) && repo instanceof Repository) {
       addToGroup({ kind: 'recent' }, repo)
     }
