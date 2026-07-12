@@ -11,7 +11,13 @@ import {
   CommitOptions,
 } from '../lib/app-state'
 import { Dispatcher } from './dispatcher'
-import { AppStore, GitHubUserStore, IssuesStore } from '../lib/stores'
+import {
+  AppStore,
+  GitHubUserStore,
+  IssuesStore,
+  RepositoryTabsStore,
+} from '../lib/stores'
+import { RepositoryTabStrip } from './repository-tabs/repository-tab-strip'
 import { assertNever } from '../lib/fatal-error'
 import { shell } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
@@ -240,6 +246,7 @@ interface IAppProps {
   readonly gitHubUserStore: GitHubUserStore
   readonly aheadBehindStore: AheadBehindStore
   readonly notificationsDebugStore: NotificationsDebugStore
+  readonly repositoryTabsStore: RepositoryTabsStore
   readonly startTime: number
 }
 
@@ -3191,12 +3198,23 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
+  private renderRepositoryTabStrip() {
+    return (
+      <RepositoryTabStrip
+        tabsStore={this.props.repositoryTabsStore}
+        repositories={this.state.repositories}
+        dispatcher={this.props.dispatcher}
+      />
+    )
+  }
+
   private renderApp() {
     return (
       <div
         id="desktop-app-contents"
         className={this.getDesktopAppContentsClassNames()}
       >
+        {this.renderRepositoryTabStrip()}
         {this.renderToolbar()}
         {this.renderBanner()}
         {this.renderRepository()}

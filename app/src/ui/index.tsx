@@ -35,6 +35,7 @@ import {
   AccountsStore,
   PullRequestStore,
   ProfileStore,
+  RepositoryTabsStore,
 } from '../lib/stores'
 import { GitHubUserDatabase } from '../lib/databases'
 import { SelectionType, IAppState } from '../lib/app-state'
@@ -259,6 +260,7 @@ const statsStore = new StatsStore(
 const accountsStore = new AccountsStore(localStorage, TokenStore)
 
 const profileStore = new ProfileStore(accountsStore)
+const repositoryTabsStore = new RepositoryTabsStore(profileStore)
 
 const signInStore = new SignInStore()
 
@@ -325,12 +327,27 @@ const appStore = new AppStore(
   copilotStore
 )
 
+let lastEnsuredRepositoryId: number | null = null
 appStore.onDidUpdate(state => {
   currentState = state
   profileStore.onAppStateChanged()
+
+  const selected = state.selectedState
+  if (selected !== null && selected.type === SelectionType.Repository) {
+    const repository = selected.repository
+    if (repository.id !== lastEnsuredRepositoryId) {
+      lastEnsuredRepositoryId = repository.id
+      repositoryTabsStore
+        .ensureTabForRepository(repository)
+        .catch(err => log.error('Failed to ensure repository tab', err))
+    }
+  }
 })
 
-profileStore.initialize()
+profileStore
+  .initialize()
+  .then(() => repositoryTabsStore.initialize())
+  .catch(err => log.error('Failed to initialize profile stores', err))
 
 const dispatcher = new Dispatcher(
   appStore,
@@ -432,6 +449,7 @@ ReactDOM.render(
     gitHubUserStore={gitHubUserStore}
     aheadBehindStore={aheadBehindStore}
     notificationsDebugStore={notificationsDebugStore}
+    repositoryTabsStore={repositoryTabsStore}
     startTime={startTime}
   />,
   document.getElementById('desktop-app-container')!

@@ -1,5 +1,5 @@
 import { join } from 'path'
-import { writeFile, stat } from 'fs/promises'
+import { writeFile, readFile, stat } from 'fs/promises'
 import { TypedBaseStore } from './base-store'
 import { AccountsStore } from './accounts-store'
 import { Account, getAccountKey } from '../../models/account'
@@ -20,6 +20,7 @@ import {
   captureSettingsSnapshot,
   describeSettingsChange,
 } from '../profiles/profile-settings-registry'
+import { IProfileTabsState } from '../../models/repository-tab'
 
 /** localStorage key holding the raw key of the active profile. */
 const ActiveProfileStorageKey = 'active-profile-key'
@@ -141,6 +142,56 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
     if (queue !== undefined) {
       await queue.flush()
     }
+  }
+
+  /** Read the active profile's saved tab state, or null if none/unavailable. */
+  public async readTabs(): Promise<IProfileTabsState | null> {
+    if (!this.enabled) {
+      return null
+    }
+
+    const repository = this.repositoriesByKey.get(this.activeProfileKey)
+    if (repository === undefined) {
+      return null
+    }
+
+    try {
+      const raw = await readFile(join(repository.path, 'tabs.json'), 'utf8')
+      const parsed = JSON.parse(raw)
+      if (parsed !== null && Array.isArray(parsed.tabs)) {
+        return {
+          tabs: parsed.tabs,
+          activeTabId: parsed.activeTabId ?? null,
+        }
+      }
+    } catch {
+      // Absent or corrupt — treat as no saved tabs.
+    }
+
+    return null
+  }
+
+  /** Persist the active profile's tab state and record a commit. */
+  public async writeTabs(
+    state: IProfileTabsState,
+    description: string
+  ): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
+
+    const repository = this.repositoriesByKey.get(this.activeProfileKey)
+    const queue = this.queuesByKey.get(this.activeProfileKey)
+    if (repository === undefined || queue === undefined) {
+      return
+    }
+
+    await writeJsonFile(join(repository.path, 'tabs.json'), {
+      version: SettingsFileVersion,
+      tabs: state.tabs,
+      activeTabId: state.activeTabId,
+    })
+    queue.schedule(description)
   }
 
   private async captureAndCommitSettings(): Promise<void> {
