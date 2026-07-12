@@ -334,3 +334,270 @@
     }
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────
+// MD3 Expressive commit composer (design-spec-shell §7). These rules live in
+// the component's own partial (equal specificity to the upstream rules above,
+// declared later so they win). No _material-shell.scss override is needed.
+// ─────────────────────────────────────────────────────────────────────────
+.commit-message-component {
+  // Floating radius-20 surface-container-low card that hugs the panel bottom.
+  margin: 0 12px 12px 12px;
+  padding: 14px;
+  gap: 10px;
+  border-top: 0;
+  border-radius: 20px;
+  background-color: var(--md-sys-color-surface-container-low);
+  animation: dmUp calc(600ms * var(--mdur, 1)) var(--spring) 200ms backwards;
+
+  // 34px round primary-container avatar (spec §7). Overrides the shared
+  // _commit-message-avatar.scss sizing via the extra composer-scoped class.
+  .commit-message-avatar-component {
+    width: 34px;
+    height: 34px;
+
+    .avatar-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      background-color: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      overflow: hidden;
+      transition: transform 200ms var(--spring-fast);
+
+      &:hover {
+        transform: scale(1.06);
+      }
+      &:active {
+        transform: scale(0.92);
+      }
+
+      .avatar-container,
+      .avatar {
+        border-radius: 999px;
+      }
+    }
+  }
+
+  // Summary row: avatar + 46px radius-14 surface field with 2px focus border.
+  .summary {
+    align-items: center;
+    column-gap: 10px;
+
+    .summary-field {
+      margin-bottom: 0;
+
+      input {
+        width: 100%;
+        height: 46px;
+        padding: 0 12px;
+        border: 2px solid var(--md-sys-color-outline-variant);
+        border-radius: 14px;
+        background-color: var(--md-sys-color-surface);
+        color: var(--md-sys-color-on-surface);
+        font-size: 13.5px;
+        font-weight: 500;
+        transition: border-color 200ms var(--emph), border-radius 260ms var(--spring);
+
+        &::placeholder {
+          color: var(--md-sys-color-on-surface-variant);
+          opacity: 0.62;
+        }
+
+        &:focus,
+        &:focus-visible {
+          outline: none;
+          border-color: var(--md-sys-color-primary);
+          box-shadow: none;
+        }
+      }
+    }
+
+    &.with-trailing-icon input {
+      padding-right: 36px;
+    }
+
+    // Amber "great summaries are < 50 chars" glyph inside the 46px field.
+    .length-hint {
+      top: 0;
+      right: 0;
+      width: 30px;
+      height: 46px;
+      margin-right: 4px;
+
+      .warning-icon,
+      .octicon {
+        color: var(--dm-amber);
+      }
+    }
+  }
+
+  // Description textarea card + toolbar row.
+  .description-focus-container {
+    border: 2px solid var(--md-sys-color-outline-variant);
+    border-radius: 14px;
+    background-color: var(--md-sys-color-surface);
+    transition: border-color 200ms var(--emph);
+
+    &.focus-within {
+      border-color: var(--md-sys-color-primary);
+      box-shadow: none;
+    }
+
+    textarea {
+      padding: 10px 12px;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 13px;
+      line-height: 1.5;
+
+      &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+        opacity: 0.62;
+      }
+    }
+
+    .action-bar {
+      gap: 2px;
+      align-items: center;
+      padding: 4px 8px 8px;
+      margin-top: 4px;
+      background: transparent;
+      border-bottom-left-radius: 14px;
+      border-bottom-right-radius: 14px;
+
+      &.disabled {
+        background: transparent;
+      }
+
+      .separator {
+        background: var(--md-sys-color-outline-variant);
+      }
+    }
+
+    // 32×32 radius-10 icon toggles (co-authors, commit-options) + Copilot pill.
+    .co-authors-toggle,
+    .commit-options-button {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      padding: 0;
+      border-radius: 10px;
+      color: var(--md-sys-color-on-surface-variant);
+      transition: background-color 200ms var(--emph), transform 200ms var(--spring-fast), border-radius 260ms var(--spring);
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      &:not([aria-disabled='true']):hover {
+        background-color: var(--md-sys-color-surface-container-high);
+        color: var(--md-sys-color-on-surface);
+      }
+      &:active {
+        transform: scale(0.85);
+      }
+    }
+
+    .copilot-button {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 32px;
+      padding: 0 8px;
+      border-radius: 10px;
+      color: var(--md-sys-color-on-surface-variant);
+      transition: background-color 200ms var(--emph), transform 200ms var(--spring-fast), border-radius 260ms var(--spring);
+
+      svg {
+        width: 18px;
+        height: 18px;
+      }
+
+      &:not([aria-disabled='true']):hover {
+        background-color: var(--md-sys-color-surface-container-high);
+        color: var(--md-sys-color-on-surface);
+      }
+      &:active {
+        transform: scale(0.85);
+      }
+
+      // "NEW" pill on the generate-message control.
+      .call-to-action-bubble {
+        margin-left: 2px;
+        padding: 2px 6px;
+        border: 0;
+        border-radius: 999px;
+        background-color: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+      }
+    }
+  }
+
+  // Active co-authors toggle reads as a tonal-selected chip.
+  &.with-co-authors .description-focus-container .co-authors-toggle {
+    background-color: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+
+    &:not([aria-disabled='true']):hover {
+      background-color: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+  }
+
+  // Commit button: 48px filled pill, hover morphs to radius-18 + level2 lift,
+  // dmSpin spinner while committing. Keeps the .commit-button JS/a11y hook.
+  .commit-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    width: 100%;
+    max-width: 100%;
+    height: 48px;
+    min-height: 48px;
+    margin-top: 2px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 999px;
+    background-color: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    transition: border-radius 260ms var(--spring), box-shadow 200ms var(--emph), transform 200ms var(--spring-fast), background-color 200ms var(--emph), color 200ms var(--emph);
+
+    &:not(:disabled):hover {
+      border-radius: 18px;
+      box-shadow: var(--md-sys-elevation-level2);
+      background-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+    }
+    &:not(:disabled):active {
+      transform: scale(0.97);
+    }
+
+    &:disabled {
+      background-color: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface-variant);
+      opacity: 1;
+    }
+
+    .octicon {
+      height: 18px;
+      margin-right: 0;
+      margin-bottom: 0;
+    }
+
+    // Committing spinner.
+    .octicon.spin {
+      animation: dmSpin calc(900ms * var(--mdur, 1)) linear infinite;
+    }
+  }
+}

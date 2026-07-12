@@ -2,12 +2,19 @@
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
 
-  border-top: var(--base-border);
-  background: var(--box-alt-background-color);
+  // MD3 Expressive undo banner (design-spec-shell §7): floating radius-18
+  // inverse-surface card sitting above the composer, with an inverse Undo pill.
+  margin: 0 12px 10px 12px;
+  border-top: 0;
+  border-radius: 18px;
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  animation: dmUp calc(460ms * var(--mdur, 1)) var(--spring) backwards;
 
   .commit-info {
-    padding: var(--spacing-half) var(--spacing);
+    padding: 12px var(--spacing);
     padding-right: 0;
     margin-right: var(--spacing-half);
 
@@ -20,8 +27,15 @@
     .ago {
       @include ellipsis;
     }
+    .summary {
+      color: var(--md-sys-color-inverse-on-surface);
+      font-size: 12.5px;
+      font-weight: 600;
+    }
     .ago {
-      color: var(--text-secondary-color);
+      color: var(--md-sys-color-inverse-on-surface);
+      opacity: 0.75;
+      font-size: 11px;
     }
   }
 
@@ -29,9 +43,32 @@
   // padding on #undo-commit, the enter/leave animate wouldn't animate the
   // amount of the padding.
   .actions {
-    padding: var(--spacing);
+    padding: 12px var(--spacing);
 
     // In order to not add to the margin already in commit-info.
     padding-left: 0;
+
+    // Undo pill: inverse-on-surface fill on the inverse-surface banner.
+    .button-component {
+      height: 32px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--md-sys-color-inverse-on-surface);
+      color: var(--md-sys-color-inverse-surface);
+      font-size: 12.5px;
+      font-weight: 700;
+      transition: transform 200ms var(--spring-fast), border-radius 260ms var(--spring), box-shadow 200ms var(--emph);
+
+      &:not(:disabled):hover {
+        border-radius: 12px;
+        box-shadow: var(--md-sys-elevation-level1);
+        background: var(--md-sys-color-inverse-on-surface);
+        color: var(--md-sys-color-inverse-surface);
+      }
+      &:not(:disabled):active {
+        transform: scale(0.94);
+      }
+    }
   }
 }
