@@ -37,6 +37,7 @@ import {
   getRebaseSnapshot,
   getRepositoryType,
   listWorktrees,
+  IManagedSubmodule,
 } from '../../lib/git'
 import { isGitOnPath } from '../../lib/is-git-on-path'
 import {
@@ -1870,6 +1871,52 @@ export class Dispatcher {
    */
   public saveGitIgnore(repository: Repository, text: string): Promise<void> {
     return this.appStore._saveGitIgnore(repository, text)
+  }
+
+  /** List the repository's submodules with their configuration and status. */
+  public getSubmodules(
+    repository: Repository
+  ): Promise<ReadonlyArray<IManagedSubmodule>> {
+    return this.appStore._getSubmodules(repository)
+  }
+
+  /** Add a submodule at the given path, optionally tracking a branch. */
+  public addSubmodule(
+    repository: Repository,
+    url: string,
+    path: string,
+    branch?: string | null
+  ): Promise<void> {
+    return this.appStore._addSubmodule(repository, url, path, branch)
+  }
+
+  /**
+   * Initialize and update the given submodules (or all of them when no paths
+   * are supplied), streaming coarse progress to the optional callback.
+   */
+  public updateSubmodules(
+    repository: Repository,
+    paths?: ReadonlyArray<string>,
+    onProgress?: (line: string, percent: number) => void
+  ): Promise<void> {
+    return this.appStore._updateSubmodules(repository, paths, onProgress)
+  }
+
+  /** Synchronize the given submodules' remote URLs from `.gitmodules`. */
+  public syncSubmodules(
+    repository: Repository,
+    paths?: ReadonlyArray<string>
+  ): Promise<void> {
+    return this.appStore._syncSubmodules(repository, paths)
+  }
+
+  /** Fully remove a submodule (deinit, module cleanup, and `git rm`). */
+  public removeSubmodule(
+    repository: Repository,
+    path: string,
+    name?: string
+  ): Promise<void> {
+    return this.appStore._removeSubmodule(repository, path, name)
   }
 
   /** Set whether the user has opted out of stats reporting. */
