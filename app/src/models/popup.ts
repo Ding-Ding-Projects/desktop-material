@@ -122,6 +122,8 @@ export enum PopupType {
   CopilotConflictResolutionAlwaysNudge = 'CopilotConflictResolutionAlwaysNudge',
   DeleteWorktreeFailed = 'DeleteWorktreeFailed',
   BatchCloneProgress = 'BatchCloneProgress',
+  ExportRepositoryList = 'ExportRepositoryList',
+  ImportRepositoryList = 'ImportRepositoryList',
 }
 
 interface IBasePopup {
@@ -546,6 +548,14 @@ export type PopupDetail =
     }
   | {
       type: PopupType.BatchCloneProgress
+    }
+  | {
+      type: PopupType.ExportRepositoryList
+      repositories: ReadonlyArray<Repository>
+    }
+  | {
+      type: PopupType.ImportRepositoryList
+      existingRepositories: ReadonlyArray<Repository>
     }
 export type Popup = IBasePopup & PopupDetail
 
