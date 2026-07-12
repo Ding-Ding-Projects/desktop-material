@@ -113,6 +113,7 @@ interface IPreferencesProps {
   readonly customEditor: ICustomIntegration | null
   readonly useCustomShell: boolean
   readonly customShell: ICustomIntegration | null
+  readonly showRecentRepositories: boolean
   readonly repositoryIndicatorsEnabled: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
@@ -156,6 +157,7 @@ interface IPreferencesState {
   readonly selectedExternalEditor: string | null
   readonly availableShells: ReadonlyArray<Shell>
   readonly selectedShell: Shell
+  readonly showRecentRepositories: boolean
 
   /**
    * If unable to save Git configuration values (name, email)
@@ -251,6 +253,7 @@ export class Preferences extends React.Component<
       selectedExternalEditor: this.props.selectedExternalEditor,
       availableShells: [],
       selectedShell: this.props.selectedShell,
+      showRecentRepositories: this.props.showRecentRepositories,
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedTabSize: this.props.selectedTabSize,
@@ -661,6 +664,10 @@ export class Preferences extends React.Component<
               this.state.preferAbsoluteDates ?? getPreferAbsoluteDates()
             }
             onPreferAbsoluteDatesChanged={this.onPreferAbsoluteDatesChanged}
+            showRecentRepositories={this.state.showRecentRepositories}
+            onShowRecentRepositoriesChanged={
+              this.onShowRecentRepositoriesChanged
+            }
           />
         )
         break
@@ -892,6 +899,12 @@ export class Preferences extends React.Component<
     this.setState({ preferAbsoluteDates })
   }
 
+  private onShowRecentRepositoriesChanged = (
+    showRecentRepositories: boolean
+  ) => {
+    this.setState({ showRecentRepositories })
+  }
+
   private onUseCustomEditorChanged = (useCustomEditor: boolean) => {
     this.setState({ useCustomEditor })
   }
@@ -1032,6 +1045,12 @@ export class Preferences extends React.Component<
         dispatcher.setRepositoryIndicatorsEnabled(
           this.state.repositoryIndicatorsEnabled
         )
+      }
+
+      if (
+        this.state.showRecentRepositories !== this.props.showRecentRepositories
+      ) {
+        dispatcher.setShowRecentRepositories(this.state.showRecentRepositories)
       }
 
       if (this.state.hooksPreferencesDirty) {

@@ -41,6 +41,8 @@ interface IAppearanceProps {
   readonly onSelectedNumberFormatChanged: (format: INumberFormat) => void
   readonly preferAbsoluteDates: boolean
   readonly onPreferAbsoluteDatesChanged: (value: boolean) => void
+  readonly showRecentRepositories: boolean
+  readonly onShowRecentRepositoriesChanged: (show: boolean) => void
 }
 
 interface IAppearanceState {
@@ -147,6 +149,12 @@ export class Appearance extends React.Component<
     event: React.FormEvent<HTMLInputElement>
   ) => {
     this.props.onPreferAbsoluteDatesChanged(event.currentTarget.checked)
+  }
+
+  private onShowRecentRepositoriesChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onShowRecentRepositoriesChanged(event.currentTarget.checked)
   }
 
   public renderThemeSwatch = (theme: ApplicationTheme) => {
@@ -360,11 +368,29 @@ export class Appearance extends React.Component<
     )
   }
 
+  private renderRepositoryList() {
+    return (
+      <div className="appearance-section">
+        <h2 id="repository-list-heading">Repository list</h2>
+        <Checkbox
+          label="Show recent repositories"
+          value={
+            this.props.showRecentRepositories
+              ? CheckboxValue.On
+              : CheckboxValue.Off
+          }
+          onChange={this.onShowRecentRepositoriesChanged}
+        />
+      </div>
+    )
+  }
+
   public render() {
     return (
       <DialogContent>
         {this.renderScaling()}
         {this.renderSelectedTheme()}
+        {this.renderRepositoryList()}
         {this.renderFormatting()}
         {this.renderSelectedTabSize()}
       </DialogContent>

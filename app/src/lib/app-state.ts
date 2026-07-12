@@ -336,6 +336,9 @@ export interface IAppState {
   /** The selected tab size preference */
   readonly selectedTabSize: number
 
+  /** Whether the Recent group is shown in the repository list. */
+  readonly showRecentRepositories: boolean
+
   /**
    * A map keyed on a user account (GitHub.com or GitHub Enterprise)
    * containing an object with repositories that the authenticated

@@ -153,4 +153,17 @@ describe('repository list grouping', () => {
     assert.equal(grouped[2].items[1].text[0], 'enterprise-repo')
     assert(grouped[2].items[1].needsDisambiguation)
   })
+
+  it('omits the Recent group when the preference is disabled', () => {
+    const manyRepositories = Array.from(
+      { length: 8 },
+      (_, index) => new Repository(`repo-${index}`, index + 1, null, false)
+    )
+
+    const visible = groupRepositories(manyRepositories, cache, [1, 2], true)
+    assert(visible.some(group => group.identifier.kind === 'recent'))
+
+    const hidden = groupRepositories(manyRepositories, cache, [1, 2], false)
+    assert(!hidden.some(group => group.identifier.kind === 'recent'))
+  })
 })
