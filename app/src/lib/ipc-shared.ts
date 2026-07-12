@@ -17,6 +17,11 @@ import { DesktopNotificationPermission } from 'desktop-notifications'
 import { NotificationCallback } from 'desktop-notifications'
 import { DesktopAliveEvent } from './stores/alive-store'
 import { CLIAction } from './cli-action'
+import {
+  IBuildRunLogEvent,
+  IBuildRunPlan,
+  IBuildRunStateEvent,
+} from './build-run/types'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -87,6 +92,8 @@ export type RequestChannels = {
   'show-installing-update': () => void
   'install-windows-cli': () => void
   'uninstall-windows-cli': () => void
+  'build-run-log': (event: IBuildRunLogEvent) => void
+  'build-run-state': (event: IBuildRunStateEvent) => void
 }
 
 /**
@@ -135,4 +142,6 @@ export type RequestResponseChannels = {
   ) => Promise<string | null>
   'get-notifications-permission': () => Promise<DesktopNotificationPermission>
   'request-notifications-permission': () => Promise<boolean>
+  'start-build-run': (plan: IBuildRunPlan) => Promise<void>
+  'cancel-build-run': (runId: string) => Promise<void>
 }

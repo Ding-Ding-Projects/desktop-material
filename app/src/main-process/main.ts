@@ -51,6 +51,7 @@ import {
 import { initializeDesktopNotifications } from './notifications'
 import parseCommandLineArgs from 'minimist'
 import { CLIAction } from '../lib/cli-action'
+import { buildRunner, registerBuildRunIpc } from './build-run'
 
 app.setAppLogsPath()
 enableSourceMaps()
@@ -129,6 +130,11 @@ app.on('window-all-closed', () => {
   //
   // If we don't subscribe to this and change the default behavior we break
   // the crash process window which is shown after the main window is closed.
+})
+
+app.on('will-quit', () => {
+  // Ensure no Build & Run child process (or its tree) outlives the app.
+  buildRunner.killAll()
 })
 
 process.on('uncaughtException', (error: Error) => {
@@ -357,6 +363,8 @@ app.on('ready', () => {
       askForConfirmationOnForcePush: false,
     })
   )
+
+  registerBuildRunIpc()
 
   ipcMain.on('update-accounts', (_, accounts) => updateAccounts(accounts))
 

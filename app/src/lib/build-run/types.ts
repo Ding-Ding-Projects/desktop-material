@@ -84,3 +84,74 @@ export interface IRepoFileProbe {
   /** The host platform, used for path-shape and toolchain decisions. */
   readonly platform: NodeJS.Platform
 }
+
+/**
+ * The lifecycle phases a single build-run passes through, in order. The first
+ * two (`detecting`, `gitignore`) are owned by the renderer before it hands a
+ * plan to the runner; the runner drives the remainder.
+ */
+export type BuildRunPhase =
+  | 'detecting'
+  | 'gitignore'
+  | 'installing'
+  | 'building'
+  | 'running'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled'
+
+/** The origin of a single streamed log line. */
+export type BuildRunLogStream = 'stdout' | 'stderr' | 'command' | 'meta'
+
+/** One sequential stage of a {@link IBuildRunPlan}. */
+export interface IBuildRunStage {
+  readonly kind: BuildStageKind
+  readonly commands: ReadonlyArray<ICommand>
+}
+
+/**
+ * A fully-resolved, ready-to-execute build-run request. The renderer resolves
+ * detection, env/PATH and (optionally) auto-gitignore up front, then hands this
+ * to the main-process runner, which never re-inspects the working tree. Crosses
+ * the IPC boundary on the `start-build-run` channel, so it must stay a plain,
+ * serialisable data shape.
+ */
+export interface IBuildRunPlan {
+  readonly runId: string
+  readonly repositoryId: number
+  /** Absolute working directory the stages run in. */
+  readonly cwd: string
+  readonly ecosystem: BuildRunEcosystem
+  readonly elevated: boolean
+  readonly stages: ReadonlyArray<IBuildRunStage>
+  /** The complete environment child processes see (already merged by caller). */
+  readonly env: Record<string, string>
+  readonly toolchainCheck: IToolchainCheck
+  /** Cheap probe flags the bounded auto-fix loop needs but can't re-derive. */
+  readonly probeFlags: {
+    readonly hasYarnLock: boolean
+    readonly hasPnpmLock: boolean
+    readonly hasVenv: boolean
+  }
+}
+
+/** A single streamed log line, pushed to the renderer on `build-run-log`. */
+export interface IBuildRunLogEvent {
+  readonly runId: string
+  /** Monotonic per-run sequence number for ordering / de-duplication. */
+  readonly seq: number
+  readonly stage: BuildStageKind | 'toolchain'
+  readonly stream: BuildRunLogStream
+  readonly text: string
+}
+
+/** A phase transition, pushed to the renderer on `build-run-state`. */
+export interface IBuildRunStateEvent {
+  readonly runId: string
+  readonly repositoryId: number
+  readonly phase: BuildRunPhase
+  /** Present on terminal phases when an exit code is known. */
+  readonly exitCode?: number
+  /** The live child PID while a run stage is `running`. */
+  readonly pid?: number
+}
