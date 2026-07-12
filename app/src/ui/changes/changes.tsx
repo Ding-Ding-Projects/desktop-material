@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as Path from 'path'
 import { DiffHeader } from '../diff/diff-header'
 import {
   DiffSelection,
@@ -54,6 +55,18 @@ interface IChangesProps {
 
   /** Called when the user opens the diff options popover */
   readonly onDiffOptionsOpened: () => void
+
+  /** The name of the branch the working directory is currently on. */
+  readonly branchName?: string
+
+  /** Human-readable label of the user's selected external editor. */
+  readonly externalEditorLabel?: string
+
+  /** Whether an external editor is available to open the file in. */
+  readonly isExternalEditorAvailable: boolean
+
+  /** Called to open a path in the user's selected external editor. */
+  readonly onOpenInExternalEditor: (fullPath: string) => void
 }
 
 export class Changes extends React.Component<IChangesProps, {}> {
@@ -111,6 +124,10 @@ export class Changes extends React.Component<IChangesProps, {}> {
           hideWhitespaceInDiff={this.props.hideWhitespaceInDiff}
           onHideWhitespaceInDiffChanged={this.onHideWhitespaceInDiffChanged}
           onDiffOptionsOpened={this.props.onDiffOptionsOpened}
+          branchName={this.props.branchName}
+          externalEditorLabel={this.props.externalEditorLabel}
+          isExternalEditorAvailable={this.props.isExternalEditorAvailable}
+          onOpenInExternalEditor={this.onOpenInExternalEditor}
         />
 
         <SeamlessDiffSwitcher
@@ -134,6 +151,11 @@ export class Changes extends React.Component<IChangesProps, {}> {
         />
       </div>
     )
+  }
+
+  private onOpenInExternalEditor = () => {
+    const fullPath = Path.join(this.props.repository.path, this.props.file.path)
+    this.props.onOpenInExternalEditor(fullPath)
   }
 
   private onShowSideBySideDiffChanged = (showSideBySideDiff: boolean) => {

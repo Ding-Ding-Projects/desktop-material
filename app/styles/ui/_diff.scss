@@ -954,8 +954,18 @@
 
     @include octicon-status;
 
-    .path-label-component {
+    // Path + status subline column (spec §8.1). Grows to push the trailing
+    // chips / buttons to the right edge of the header.
+    .diff-path-column {
       flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1px;
+    }
+
+    .path-label-component {
       min-width: 0;
       font-family: var(--font-family-monospace);
       font-size: 13px;
@@ -963,8 +973,89 @@
       color: var(--md-sys-color-on-surface);
     }
 
+    // "{status} · {branch}" subline beneath the path.
+    .diff-status-line {
+      min-width: 0;
+      font-size: 11.5px;
+      line-height: 1.3;
+      color: var(--md-sys-color-on-surface-variant);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    // +adds / −dels pill chips.
+    .diff-line-stats {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+
+      .diff-line-stat {
+        height: 26px;
+        display: inline-flex;
+        align-items: center;
+        padding: 0 10px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+      }
+
+      .diff-line-stat-added {
+        background: var(--dm-green-container);
+        color: var(--dm-green);
+      }
+
+      .diff-line-stat-deleted {
+        background: var(--md-sys-color-error-container);
+        color: var(--md-sys-color-on-error-container);
+      }
+    }
+
+    // 38x38 round open-in-editor button (spec §8.1).
+    .diff-open-editor-button {
+      flex-shrink: 0;
+      box-sizing: border-box;
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--md-sys-color-on-surface-variant);
+      cursor: pointer;
+      transition: background-color 200ms var(--emph), border-radius 260ms var(--spring), transform 200ms var(--spring-fast);
+
+      .octicon {
+        width: 19px;
+        height: 19px;
+        fill: currentColor;
+      }
+
+      &:hover {
+        background: var(--md-sys-color-surface-container-high);
+        color: var(--md-sys-color-on-surface);
+        border-radius: 12px;
+      }
+
+      &:active {
+        transform: scale(0.86);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+        cursor: default;
+        background: transparent;
+        transform: none;
+      }
+    }
+
     .diff-options-component {
-      margin-left: auto;
+      margin-left: 0;
       margin-right: 0;
       flex-shrink: 0;
     }

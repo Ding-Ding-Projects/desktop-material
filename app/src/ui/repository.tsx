@@ -635,6 +635,14 @@ export class RepositoryView extends React.Component<
     const { changesState } = this.props.state
     const { workingDirectory, selection } = changesState
 
+    const tip = this.props.state.branchesState.tip
+    const branchName =
+      tip.kind === TipState.Valid
+        ? tip.branch.name
+        : tip.kind === TipState.Unborn
+        ? tip.ref
+        : undefined
+
     if (selection.kind === ChangesSelectionKind.Stash) {
       return this.renderStashedChangesContent()
     }
@@ -692,6 +700,10 @@ export class RepositoryView extends React.Component<
             this.props.askForConfirmationOnDiscardChanges
           }
           onDiffOptionsOpened={this.onDiffOptionsOpened}
+          branchName={branchName}
+          externalEditorLabel={this.props.externalEditorLabel}
+          isExternalEditorAvailable={this.props.isExternalEditorAvailable}
+          onOpenInExternalEditor={this.props.onOpenInExternalEditor}
         />
       )
     }
