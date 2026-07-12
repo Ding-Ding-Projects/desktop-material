@@ -225,6 +225,7 @@ import {
   getRemoteURL,
   getGlobalConfigPath,
   getFilesDiffText,
+  isMergeHeadSet,
   TerminalOutput,
   HookProgress,
   git,
@@ -304,12 +305,16 @@ import {
   saveAutomationSettings,
   saveRepositoryAutomationOverrides,
   IAutomationSettingsOverrides,
+  loadRepositoryAutomationOverrides,
+  resolveAutomationSettings,
 } from '../automation/automation-settings'
 import { buildFallbackCommitMessage } from '../automation/fallback-commit-message'
 import {
   IAutomationGuardState,
   canAutoCommitPush,
+  canAutoPull,
 } from '../automation/automation-guards'
+import { AutomationScheduler } from './helpers/automation-scheduler'
 import { BranchPruner } from './helpers/branch-pruner'
 import {
   enableCopilotConflictResolution,
@@ -603,6 +608,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** The background fetcher for the currently selected repository. */
   private currentBackgroundFetcher: BackgroundFetcher | null = null
+  private currentAutomationScheduler: AutomationScheduler | null = null
 
   private currentBranchPruner: BranchPruner | null = null
 
@@ -2275,6 +2281,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.emitUpdate()
     this.stopBackgroundFetching()
+    this.stopAutomationScheduler()
     this.stopPullRequestUpdater()
     this._clearBanner()
     this.stopBackgroundPruner()
@@ -2377,10 +2384,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // for edge cases where _selectRepository is re-entract, calling this here
     // ensures we clean up the existing background fetcher correctly (if set)
     this.stopBackgroundFetching()
+    this.stopAutomationScheduler()
     this.stopPullRequestUpdater()
     this.stopBackgroundPruner()
 
     this.startBackgroundFetching(repository, !previouslySelectedRepository)
+    this.startAutomationScheduler(repository)
     this.startPullRequestUpdater(repository)
 
     this.startBackgroundPruner(repository)
@@ -2436,6 +2445,85 @@ export class AppStore extends TypedBaseStore<IAppState> {
       backgroundFetcher.stop()
       this.currentBackgroundFetcher = null
     }
+  }
+
+  private stopAutomationScheduler(): void {
+    this.currentAutomationScheduler?.stop()
+    this.currentAutomationScheduler = null
+  }
+
+  private restartAutomationScheduler(): void {
+    this.stopAutomationScheduler()
+    if (this.selectedRepository instanceof Repository) {
+      this.startAutomationScheduler(this.selectedRepository)
+    }
+  }
+
+  private startAutomationScheduler(repository: Repository): void {
+    this.stopAutomationScheduler()
+    this.currentAutomationScheduler = new AutomationScheduler(
+      () =>
+        resolveAutomationSettings(
+          this.automationSettings,
+          repository.accountKey,
+          loadRepositoryAutomationOverrides(repository.id)
+        ),
+      () => this.runScheduledCommitPush(repository),
+      () => this.runScheduledPull(repository),
+      (operation, error) => {
+        const normalizedError =
+          error instanceof Error ? error : new Error(String(error))
+        log.error(`Scheduled automation ${operation} failed`, normalizedError)
+        this.postNotification({
+          kind: operation === 'pull' ? 'auto-pull' : 'auto-commit',
+          title:
+            operation === 'pull'
+              ? 'Automatic pull failed'
+              : 'Automatic commit failed',
+          body: normalizedError.message,
+          repositoryId: repository.id,
+          action: { kind: 'open-repository', repositoryId: repository.id },
+        })
+      }
+    )
+    this.currentAutomationScheduler.start()
+  }
+
+  private async runScheduledCommitPush(repository: Repository): Promise<void> {
+    if (this.selectedRepository !== repository) {
+      return
+    }
+    await this._refreshRepository(repository)
+    const guard = canAutoCommitPush(this.getAutomationGuardState(repository))
+    if (!guard.safe) {
+      log.info(`Automatic commit and push skipped: ${guard.reason}`)
+      return
+    }
+    await this._oneClickCommitAndPush(repository)
+  }
+
+  private async runScheduledPull(repository: Repository): Promise<void> {
+    if (this.selectedRepository !== repository) {
+      return
+    }
+    await this._refreshRepository(repository)
+    const mergeHeadSet = await isMergeHeadSet(repository)
+    const guard = canAutoPull(
+      this.getAutomationGuardState(repository, mergeHeadSet)
+    )
+    if (!guard.safe) {
+      log.info(`Automatic pull skipped: ${guard.reason}`)
+      return
+    }
+
+    await this._pull(repository)
+    this.postNotification({
+      kind: 'auto-pull',
+      title: 'Automatic pull completed',
+      body: `Updated ${repository.name}.`,
+      repositoryId: repository.id,
+      action: { kind: 'open-repository', repositoryId: repository.id },
+    })
   }
 
   private refreshMentionables(repository: GitHubRepository) {
@@ -5124,6 +5212,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.automationSettings = { ...this.automationSettings, global: settings }
     saveAutomationSettings(this.automationSettings)
     this.emitUpdate()
+    this.restartAutomationScheduler()
   }
 
   public _setAccountAutomationOverrides(
@@ -5139,12 +5228,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
     saveAutomationSettings(this.automationSettings)
     this.emitUpdate()
+    this.restartAutomationScheduler()
   }
 
   public _setAutomationSettings(settings: IAutomationSettingsState): void {
     this.automationSettings = settings
     saveAutomationSettings(settings)
     this.emitUpdate()
+    this.restartAutomationScheduler()
   }
 
   public _setRepositoryAutomationOverrides(
@@ -5153,6 +5244,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): void {
     saveRepositoryAutomationOverrides(repositoryId, overrides)
     this.emitUpdate()
+    if (
+      this.selectedRepository instanceof Repository &&
+      this.selectedRepository.id === repositoryId
+    ) {
+      this.restartAutomationScheduler()
+    }
   }
 
   private setOneClickCommitPushPhase(
