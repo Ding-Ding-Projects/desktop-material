@@ -65,6 +65,63 @@
   }
 }
 
+.actions-workflow-management {
+  display: flex;
+  min-width: 0;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin: -4px 0 14px;
+  padding: 10px 12px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+  color: var(--md-sys-color-on-surface-variant);
+
+  > div {
+    display: grid;
+    min-width: 0;
+    flex: 1 1 260px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 3px 10px;
+    align-items: center;
+
+    .eyebrow {
+      grid-column: 1 / 3;
+    }
+
+    strong {
+      min-width: 0;
+      color: var(--md-sys-color-on-surface);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .button-component {
+    max-width: 100%;
+    flex: 0 1 auto;
+    border-radius: 999px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+}
+
+.actions-workflow-state {
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: var(--md-sys-color-on-secondary-container);
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--md-sys-color-secondary-container);
+  text-transform: capitalize;
+}
+
 .actions-content {
   display: flex;
   flex: 1 1 auto;
@@ -220,14 +277,19 @@
 
 .actions-run-buttons {
   display: flex;
+  min-width: 0;
   grid-column: 2 / 4;
+  flex-wrap: wrap;
   gap: 8px;
   align-items: center;
   justify-content: flex-end;
 
   .button-component {
+    max-width: 100%;
     min-height: 30px;
     border-radius: 999px;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -284,7 +346,18 @@
 }
 
 .actions-job-links {
+  display: flex;
+  min-width: 0;
   flex: 0 0 auto;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: flex-end;
+
+  .button-component {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 .actions-step-list {
@@ -393,6 +466,19 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
+  .actions-workflow-management {
+    align-items: stretch;
+    flex-direction: column;
+
+    > div {
+      flex-basis: auto;
+    }
+
+    .button-component {
+      align-self: stretch;
+    }
+  }
+
   .actions-run-list {
     min-width: 0;
   }
@@ -413,7 +499,6 @@
 
   .actions-run-buttons {
     grid-column: 1 / 3;
-    flex-wrap: wrap;
   }
 
   .actions-run-details {

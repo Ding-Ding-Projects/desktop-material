@@ -17,7 +17,17 @@ describe('post-shell MD3 style contracts', () => {
   })
 
   it('keeps Actions and Agent Access responsive on narrow windows', () => {
-    assert.match(readStyle('_actions-view.scss'), /max-width: 620px/)
+    const actions = readStyle('_actions-view.scss')
+    const actionsDialogs = readStyle('_actions-log-viewer.scss')
+    assert.match(actions, /max-width: 620px/)
+    assert.match(
+      actions,
+      /\.actions-workflow-management\s*\{[\s\S]*?min-width: 0;[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      actionsDialogs,
+      /\.actions-confirmation-dialog\s*\{[\s\S]*?width: min\(520px, 100%\);/
+    )
     assert.match(readStyle('_agent-access.scss'), /max-width: 430px/)
   })
 
