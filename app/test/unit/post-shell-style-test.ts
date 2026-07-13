@@ -9,6 +9,9 @@ const readStyle = (name: string) =>
 const readRootStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', name), 'utf8')
 
+const readSiteStyle = () =>
+  readFileSync(join(process.cwd(), 'site', 'style.css'), 'utf8')
+
 describe('post-shell MD3 style contracts', () => {
   it('uses system tokens instead of literal colors in the Actions log viewer', () => {
     const style = readStyle('_actions-log-viewer.scss')
@@ -37,6 +40,27 @@ describe('post-shell MD3 style contracts', () => {
     const style = readStyle('_pull-all.scss')
     assert.match(style, /pull-all-results-container/)
     assert.match(style, /overflow: auto/)
+  })
+
+  it('keeps Merge all content inside its dialog with reachable results', () => {
+    const style = readStyle('_merge-all.scss')
+    assert.doesNotMatch(style, /\.dialog-content\s*\{\s*min-width: 680px;/)
+    assert.match(style, /max-width: calc\(100vw - var\(--spacing-quad\)\);/)
+    assert.match(
+      style,
+      /\.merge-all-results-scroll\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow: auto;/
+    )
+    assert.match(style, /overflow-wrap: anywhere;/)
+  })
+
+  it('keeps every Pages gallery card within a narrow mobile viewport', () => {
+    const style = readSiteStyle()
+    assert.match(
+      style,
+      /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 340px\), 1fr\)\);/
+    )
+    assert.match(style, /\.shot\s*\{[\s\S]*?min-width: 0;/)
+    assert.match(style, /\.shot figcaption\s*\{[\s\S]*?flex-wrap: wrap;/)
   })
 
   it('keeps Repository Settings inside the viewport with a scrollable tab', () => {
