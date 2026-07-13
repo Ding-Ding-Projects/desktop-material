@@ -13,17 +13,19 @@
   SHA. No personal worktree path, account credential, signed URL, or provider
   response body may enter a capture or tracked file.
 - Expected UI states:
-  1. A bounded shallow repository shows its current shallow state, a reviewed
+  1. The URL clone form shows bounded shallow-clone controls and completes a
+     synthetic exact-origin clone without exposing its disposable path.
+  2. A bounded shallow repository shows its current shallow state, a reviewed
      deepen operation, successful refresh, and the updated shallow state.
-  2. Cone-mode sparse checkout shows validated directories and a safe reviewed
+  3. Cone-mode sparse checkout shows validated directories and a safe reviewed
      operation without exposing the disposable fixture path.
-  3. Native pull-request creation reaches compose, immutable review, and a
+  4. Native pull-request creation reaches compose, immutable review, and a
      synthetic success receipt against the loopback GitHub Enterprise fixture;
      it performs no public pull-request mutation.
-  4. Actions shows a synthetic run, jobs, readable job log, artifact digest and
+  5. Actions shows a synthetic run, jobs, readable job log, artifact digest and
      attestation-presence context, a successful authenticated same-endpoint
      artifact download, local SHA-256 result, and reveal-ready destination.
-  5. Regular and compact window checks have no clipping, overlap, oversized
+  6. Regular and compact window checks have no clipping, overlap, oversized
      text, black compositor tiles, or document-level horizontal overflow.
 - Ordered background interactions: verify the exact low-level MCP server,
   scheduled-task command, and MCP checkout SHA; run the required unpackaged
@@ -44,13 +46,14 @@
   names.
 - Screenshot target, theme, and dimensions: light Material theme, regular
   2048 x 1228 captures promoted only after original-resolution inspection to
+  `docs/assets/screenshots/material-shallow-clone-safe.png`,
   `docs/assets/screenshots/material-history-deepen.png`,
   `docs/assets/screenshots/material-sparse-checkout-safe.png`,
   `docs/assets/screenshots/material-native-pull-request.png`, and
   `docs/assets/screenshots/material-actions-artifact-download.png`; take an
   additional compact geometry capture under the owned Temp root for layout
   validation without necessarily publishing it.
-- Documentation allowlist: this manifest; the four accepted screenshots;
+- Documentation allowlist: this manifest; the five accepted screenshots;
   `README.md`; `PLAN.md`; `HANDOFF.md`; `site/index.html`; and the relevant
   actual image references in `docs/wiki/Home.md` and
   `docs/wiki/User-Guide.md`. The separate GitHub wiki receives the same
