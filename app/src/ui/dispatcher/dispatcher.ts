@@ -177,10 +177,10 @@ import {
 import { WorktreeEntry } from '../../models/worktree'
 import { ICreatedGitHubIssue } from '../../lib/github-issue'
 import {
-  getGitHubPullRequestHead,
   GitHubPullRequestContextChangedError,
   ICreatedGitHubPullRequest,
   IGitHubPullRequestDraft,
+  validateGitHubPullRequestDraftRouting,
 } from '../../lib/github-pull-request'
 
 /**
@@ -3753,16 +3753,14 @@ export class Dispatcher {
       throw new Error('No matching authenticated GitHub account is available.')
     }
 
-    const expectedHead = getGitHubPullRequestHead(
+    validateGitHubPullRequestDraftRouting(
       source,
       target,
       currentBranch,
       sourceRemote,
-      providerHTMLURL
+      providerHTMLURL,
+      draft
     )
-    if (draft.head !== expectedHead) {
-      throw new GitHubPullRequestContextChangedError()
-    }
 
     return API.fromAccount(account).createPullRequest(
       target.owner.login,
@@ -3772,6 +3770,7 @@ export class Dispatcher {
       draft.head,
       draft.base,
       draft.draft,
+      draft.headRepository,
       signal
     )
   }

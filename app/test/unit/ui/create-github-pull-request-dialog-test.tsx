@@ -103,10 +103,16 @@ function createRemoteBranch(remote: string, name: string) {
   )
 }
 
-function createFixture(options: { parentArchived?: boolean } = {}) {
-  const parent = createGitHubRepository('desktop', 'material', {
-    archived: options.parentArchived,
-  })
+function createFixture(
+  options: { parentArchived?: boolean; sameOwner?: boolean } = {}
+) {
+  const parent = createGitHubRepository(
+    options.sameOwner ? 'octocat' : 'desktop',
+    options.sameOwner ? 'upstream' : 'material',
+    {
+      archived: options.parentArchived,
+    }
+  )
   const source = createGitHubRepository('octocat', 'material', { parent })
   const repository = new Repository(
     'C:\\fixtures\\material',
@@ -324,6 +330,7 @@ describe('CreateGitHubPullRequestDialog', () => {
       title: 'Native pull request',
       body: 'Line one\nLine two',
       head: 'octocat:published-head',
+      headRepository: { name: null, fullName: 'octocat/material' },
       base: 'main',
       draft: true,
     })
@@ -340,6 +347,25 @@ describe('CreateGitHubPullRequestDialog', () => {
         'https://github.com/desktop/material/pull/12',
       ])
     )
+  })
+
+  it('reviews and submits the required same-owner fork head repository', async () => {
+    const fixture = createFixture({ sameOwner: true })
+    const dispatcher = new TestDispatcher()
+    render(dialogElement(fixture, dispatcher, () => {}))
+
+    assert.ok(screen.getByText('Head repository: octocat/material'))
+    composeAndReview('Same-owner fork', '')
+    assert.ok(screen.getByText('Head repository: octocat/material'))
+    fireEvent.click(screen.getByRole('button', { name: 'Create pull request' }))
+
+    await waitFor(() => assert.equal(dispatcher.createCalls.length, 1))
+    assert.deepEqual(dispatcher.createCalls[0].draft.headRepository, {
+      name: 'material',
+      fullName: 'octocat/material',
+    })
+    await waitFor(() => assert.ok(screen.getByText('Pull request #12 created')))
+    assert.ok(screen.getByText('Head repository: octocat/material'))
   })
 
   it('passes exact cancellation and warns before a duplicate retry', async () => {

@@ -3,6 +3,11 @@ import { describe, it } from 'node:test'
 
 import { API } from '../../src/lib/api'
 
+const desktopHeadRepository = {
+  name: null,
+  fullName: 'desktop/material',
+} as const
+
 describe('GitHub pull request API', () => {
   it('posts only the reviewed fields and propagates the exact abort signal', async () => {
     const api = new API('https://api.github.com', 'secret-token')
@@ -44,7 +49,11 @@ describe('GitHub pull request API', () => {
             html_url: 'https://github.com/desktop/material/pull/42',
             state: 'open',
             draft: true,
-            head: { ref: 'feature/native', label: 'octocat:feature/native' },
+            head: {
+              ref: 'feature/native',
+              label: 'octocat:feature/native',
+              repo: { full_name: 'octocat/material' },
+            },
             base: { ref: 'main' },
           }),
           { status: 201 }
@@ -60,6 +69,7 @@ describe('GitHub pull request API', () => {
       'octocat:feature/native',
       'main',
       true,
+      { name: null, fullName: 'octocat/material' },
       controller.signal
     )
 
@@ -84,6 +94,55 @@ describe('GitHub pull request API', () => {
     })
   })
 
+  it('posts head_repo only for the reviewed same-owner source repository', async () => {
+    const api = new API('https://api.github.com', 'secret-token')
+    let body: Object | undefined
+    Reflect.set(
+      api,
+      'ghRequest',
+      async (_method: string, _path: string, options?: { body?: Object }) => {
+        body = options?.body
+        return new Response(
+          JSON.stringify({
+            number: 7,
+            title: 'Same-owner fork',
+            body: '',
+            html_url: 'https://github.com/acme/upstream/pull/7',
+            state: 'open',
+            draft: false,
+            head: {
+              ref: 'feature',
+              label: 'acme:feature',
+              repo: { full_name: 'acme/product-fork' },
+            },
+            base: { ref: 'main' },
+          }),
+          { status: 201 }
+        )
+      }
+    )
+
+    await api.createPullRequest(
+      'acme',
+      'upstream',
+      'Same-owner fork',
+      '',
+      'acme:feature',
+      'main',
+      false,
+      { name: 'product-fork', fullName: 'acme/product-fork' }
+    )
+
+    assert.deepEqual(body, {
+      title: 'Same-owner fork',
+      body: '',
+      head: 'acme:feature',
+      head_repo: 'product-fork',
+      base: 'main',
+      draft: false,
+    })
+  })
+
   it('rejects invalid input and pre-cancellation before any request', async () => {
     const api = new API('https://api.github.com', 'secret-token')
     let requestCount = 0
@@ -100,7 +159,8 @@ describe('GitHub pull request API', () => {
         '',
         'feature',
         'main',
-        false
+        false,
+        desktopHeadRepository
       )
     )
     await assert.rejects(() =>
@@ -111,7 +171,8 @@ describe('GitHub pull request API', () => {
         '',
         'main',
         'main',
-        false
+        false,
+        desktopHeadRepository
       )
     )
 
@@ -127,6 +188,7 @@ describe('GitHub pull request API', () => {
           'feature',
           'main',
           false,
+          desktopHeadRepository,
           controller.signal
         ),
       error => error instanceof DOMException && error.name === 'AbortError'
@@ -148,7 +210,11 @@ describe('GitHub pull request API', () => {
             html_url: 'https://evil.example.test/desktop/material/pull/42',
             state: 'open',
             draft: false,
-            head: { ref: 'feature', label: 'desktop:feature' },
+            head: {
+              ref: 'feature',
+              label: 'desktop:feature',
+              repo: { full_name: 'desktop/material' },
+            },
             base: { ref: 'main' },
           }),
           { status: 201 }
@@ -164,7 +230,8 @@ describe('GitHub pull request API', () => {
           '',
           'feature',
           'main',
-          false
+          false,
+          desktopHeadRepository
         ),
       /unexpected pull request URL/i
     )
@@ -184,7 +251,11 @@ describe('GitHub pull request API', () => {
             html_url: 'https://github.com/desktop/material/pull/42',
             state: 'open',
             draft: false,
-            head: { ref: 'feature', label: 'desktop:feature' },
+            head: {
+              ref: 'feature',
+              label: 'desktop:feature',
+              repo: { full_name: 'desktop/material' },
+            },
             base: { ref: 'main' },
           }),
           { status: 201 }
@@ -200,7 +271,8 @@ describe('GitHub pull request API', () => {
           'Reviewed body',
           'feature',
           'main',
-          false
+          false,
+          desktopHeadRepository
         ),
       /do not match the reviewed request/i
     )

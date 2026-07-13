@@ -38,6 +38,7 @@ import {
 import {
   IAPICreatedGitHubPullRequest,
   ICreatedGitHubPullRequest,
+  IGitHubPullRequestHeadRepository,
   normalizeGitHubPullRequestDraft,
   validateCreatedGitHubPullRequest,
 } from './github-pull-request'
@@ -1499,6 +1500,7 @@ export class API {
     head: string,
     base: string,
     draft: boolean,
+    headRepository: IGitHubPullRequestHeadRepository,
     signal?: AbortSignal
   ): Promise<ICreatedGitHubPullRequest> {
     signal?.throwIfAborted()
@@ -1510,13 +1512,24 @@ export class API {
       body,
       head,
       base,
-      draft
+      draft,
+      headRepository
     )
+    const requestBody = {
+      title: pullRequest.title,
+      body: pullRequest.body,
+      head: pullRequest.head,
+      ...(pullRequest.headRepository.name === null
+        ? {}
+        : { head_repo: pullRequest.headRepository.name }),
+      base: pullRequest.base,
+      draft: pullRequest.draft,
+    }
     const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
       safeName
     )}/pulls`
     const response = await this.ghRequest('POST', path, {
-      body: pullRequest,
+      body: requestBody,
       customHeaders: { Accept: 'application/vnd.github+json' },
       signal,
     })

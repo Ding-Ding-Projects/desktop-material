@@ -4,11 +4,13 @@ import { getAccountForRepository } from '../../lib/get-account-for-repository'
 import {
   getGitHubPullRequestCreationError,
   getGitHubPullRequestHead,
+  getGitHubPullRequestHeadRepository,
   GitHubPullRequestBodyMaximumLength,
   GitHubPullRequestTitleMaximumLength,
   ICreatedGitHubPullRequest,
   IGitHubPullRequestBaseBranch,
   IGitHubPullRequestDraft,
+  IGitHubPullRequestHeadRepository,
   IGitHubPullRequestTarget,
   isGitHubPullRequestAbortError,
   normalizeGitHubPullRequestDraft,
@@ -69,6 +71,7 @@ interface IPullRequestCreationAvailability {
   readonly account: Account | null
   readonly baseBranch: IGitHubPullRequestBaseBranch | null
   readonly head: string | null
+  readonly headRepository: IGitHubPullRequestHeadRepository | null
   readonly reason: string | null
   readonly browserFallbackAllowed: boolean
 }
@@ -310,6 +313,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account: null,
         baseBranch: null,
         head: null,
+        headRepository: null,
         reason:
           'The repository or current branch changed. Close this dialog and start again.',
         browserFallbackAllowed: false,
@@ -321,6 +325,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account: null,
         baseBranch: null,
         head: null,
+        headRepository: null,
         reason: 'Desktop could not identify a GitHub target repository.',
         browserFallbackAllowed: false,
       }
@@ -331,6 +336,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account: null,
         baseBranch: null,
         head: null,
+        headRepository: null,
         reason: 'The selected repository is archived.',
         browserFallbackAllowed: false,
       }
@@ -341,6 +347,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account: null,
         baseBranch: null,
         head: null,
+        headRepository: null,
         reason: 'Publish the current branch before creating a pull request.',
         browserFallbackAllowed: false,
       }
@@ -356,6 +363,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account: null,
         baseBranch: null,
         head: null,
+        headRepository: null,
         reason:
           'Desktop could not find a published base branch for this target.',
         browserFallbackAllowed: target.repository.htmlURL !== null,
@@ -372,6 +380,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account: null,
         baseBranch,
         head: null,
+        headRepository: null,
         reason:
           'Sign in to a matching GitHub account to create this pull request inside Desktop.',
         browserFallbackAllowed: target.repository.htmlURL !== null,
@@ -390,6 +399,10 @@ export class CreateGitHubPullRequestDialog extends React.Component<
           this.props.sourceRemote,
           this.props.providerHTMLURL
         ),
+        headRepository: getGitHubPullRequestHeadRepository(
+          this.props.repository.gitHubRepository,
+          target.repository
+        ),
         reason: null,
         browserFallbackAllowed: false,
       }
@@ -399,6 +412,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         account,
         baseBranch,
         head: null,
+        headRepository: null,
         reason:
           error instanceof Error
             ? error.message
@@ -457,7 +471,8 @@ export class CreateGitHubPullRequestDialog extends React.Component<
       availability.target === null ||
       availability.account === null ||
       availability.baseBranch === null ||
-      availability.head === null
+      availability.head === null ||
+      availability.headRepository === null
     ) {
       this.setState({
         error: availability.reason ?? 'Review the pull request prerequisites.',
@@ -471,7 +486,8 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         this.state.body,
         availability.head,
         availability.baseBranch.name,
-        this.state.draft
+        this.state.draft,
+        availability.headRepository
       )
       this.setState({
         step: 'review',
@@ -500,7 +516,8 @@ export class CreateGitHubPullRequestDialog extends React.Component<
       availability.target === null ||
       availability.account === null ||
       availability.baseBranch === null ||
-      availability.head === null
+      availability.head === null ||
+      availability.headRepository === null
     ) {
       this.setState({
         error: availability.reason ?? 'Pull request creation is unavailable.',
@@ -527,7 +544,8 @@ export class CreateGitHubPullRequestDialog extends React.Component<
         this.state.body,
         availability.head,
         availability.baseBranch.name,
-        this.state.draft
+        this.state.draft,
+        availability.headRepository
       )
     } catch (error) {
       this.setState({
@@ -741,6 +759,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
     const target = availability.target!
     const account = availability.account!
     const head = availability.head!
+    const headRepository = availability.headRepository!
     const baseBranches = target.baseBranches
     const eligibleAccounts = getEligibleAccounts(this.props.accounts, target)
     const titleRemaining =
@@ -808,6 +827,9 @@ export class CreateGitHubPullRequestDialog extends React.Component<
               <span>Head (current branch)</span>
               <strong>{head}</strong>
               <small>Local branch: {this.props.currentBranch.name}</small>
+              {headRepository.name !== null && (
+                <small>Head repository: {headRepository.fullName}</small>
+              )}
             </div>
           </div>
           <label className="create-github-pull-request-field">
@@ -867,6 +889,7 @@ export class CreateGitHubPullRequestDialog extends React.Component<
     const target = availability.target!
     const account = availability.account!
     const head = availability.head!
+    const headRepository = availability.headRepository!
     return (
       <>
         <DialogContent className="create-github-pull-request-content">
@@ -879,6 +902,9 @@ export class CreateGitHubPullRequestDialog extends React.Component<
             <span>
               {head} → {this.state.baseBranchName}
             </span>
+            {headRepository.name !== null && (
+              <span>Head repository: {headRepository.fullName}</span>
+            )}
             <span>
               {account.login} · {account.friendlyEndpoint}
             </span>
@@ -972,6 +998,9 @@ export class CreateGitHubPullRequestDialog extends React.Component<
               {receipt.accountLogin} ·{' '}
               {reviewed.draft ? 'Draft' : 'Ready for review'}
             </span>
+            {reviewed.headRepository.name !== null && (
+              <span>Head repository: {reviewed.headRepository.fullName}</span>
+            )}
             <p>{reviewed.title}</p>
             {reviewed.body !== '' && (
               <div className="create-github-pull-request-review-body">
@@ -1015,7 +1044,8 @@ export class CreateGitHubPullRequestDialog extends React.Component<
       availability.target === null ||
       availability.account === null ||
       availability.baseBranch === null ||
-      availability.head === null
+      availability.head === null ||
+      availability.headRepository === null
     ) {
       content = this.renderUnavailable(availability)
     } else {

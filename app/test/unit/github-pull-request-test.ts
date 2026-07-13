@@ -7,11 +7,13 @@ import {
   getGitHubPullRequestCreationError,
   getGitHubPullRequestCreationURL,
   getGitHubPullRequestHead,
+  getGitHubPullRequestHeadRepository,
   GitHubPullRequestBodyMaximumLength,
   GitHubPullRequestTitleMaximumLength,
   normalizeGitHubPullRequestDraft,
   resolveRefreshedGitHubPullRequestBranch,
   validateCreatedGitHubPullRequest,
+  validateGitHubPullRequestDraftRouting,
   validateGitHubPullRequestBranch,
 } from '../../src/lib/github-pull-request'
 import { APIError } from '../../src/lib/http'
@@ -28,6 +30,13 @@ function createRemote(
   url: string = 'https://github.com/octocat/material.git'
 ): IRemote {
   return { name, url }
+}
+
+function createHeadRepository(
+  fullName: string = 'desktop/material',
+  name: string | null = null
+) {
+  return { name, fullName }
 }
 
 function createGitHubRepository(
@@ -82,12 +91,14 @@ describe('GitHub pull request validation', () => {
         ' body\n',
         'octocat:feature/native',
         'main',
-        true
+        true,
+        createHeadRepository('octocat/material')
       ),
       {
         title: 'Native PR',
         body: ' body\n',
         head: 'octocat:feature/native',
+        headRepository: createHeadRepository('octocat/material'),
         base: 'main',
         draft: true,
       }
@@ -96,7 +107,14 @@ describe('GitHub pull request validation', () => {
 
   it('rejects empty, oversized, ambiguous, and same-repository identical refs', () => {
     assert.throws(() =>
-      normalizeGitHubPullRequestDraft(' ', '', 'feature', 'main', false)
+      normalizeGitHubPullRequestDraft(
+        ' ',
+        '',
+        'feature',
+        'main',
+        false,
+        createHeadRepository()
+      )
     )
     assert.throws(() =>
       normalizeGitHubPullRequestDraft(
@@ -104,7 +122,8 @@ describe('GitHub pull request validation', () => {
         '',
         'feature',
         'main',
-        false
+        false,
+        createHeadRepository()
       )
     )
     assert.throws(() =>
@@ -113,15 +132,39 @@ describe('GitHub pull request validation', () => {
         'x'.repeat(GitHubPullRequestBodyMaximumLength + 1),
         'feature',
         'main',
-        false
+        false,
+        createHeadRepository()
       )
     )
     for (const branch of ['', ' bad', 'bad..ref', 'bad[ref', 'bad\\ref']) {
       assert.throws(() => validateGitHubPullRequestBranch(branch, 'head'))
     }
     assert.throws(() =>
-      normalizeGitHubPullRequestDraft('Title', '', 'main', 'main', false)
+      normalizeGitHubPullRequestDraft(
+        'Title',
+        '',
+        'main',
+        'main',
+        false,
+        createHeadRepository()
+      )
     )
+    for (const headRepository of [
+      createHeadRepository('not/a/full/name'),
+      createHeadRepository('desktop/material', 'other'),
+      createHeadRepository('desktop/material', 'material'),
+    ]) {
+      assert.throws(() =>
+        normalizeGitHubPullRequestDraft(
+          'Title',
+          '',
+          'octocat:feature',
+          'main',
+          false,
+          headRepository
+        )
+      )
+    }
   })
 
   it('maps local upstream names to same-repo and fork-parent API heads', () => {
@@ -209,18 +252,107 @@ describe('GitHub pull request validation', () => {
     )
   })
 
+  it('reviews and revalidates the exact same-owner fork head repository', () => {
+    const parent = createGitHubRepository(
+      'acme',
+      'upstream',
+      'https://github.com/acme/upstream'
+    )
+    const fork = createGitHubRepository(
+      'acme',
+      'product-fork',
+      'https://github.com/acme/product-fork',
+      parent
+    )
+    const branch = createBranch('feature', 'origin/published-feature')
+    const remote = createRemote(
+      'origin',
+      'https://github.com/acme/product-fork.git'
+    )
+    const head = getGitHubPullRequestHead(
+      fork,
+      parent,
+      branch,
+      remote,
+      'https://github.com'
+    )
+    const headRepository = getGitHubPullRequestHeadRepository(fork, parent)
+    assert.equal(head, 'acme:published-feature')
+    assert.deepEqual(headRepository, {
+      name: 'product-fork',
+      fullName: 'acme/product-fork',
+    })
+
+    const reviewed = normalizeGitHubPullRequestDraft(
+      'Same-owner fork',
+      '',
+      head,
+      'main',
+      false,
+      headRepository
+    )
+    assert.doesNotThrow(() =>
+      validateGitHubPullRequestDraftRouting(
+        fork,
+        parent,
+        branch,
+        remote,
+        'https://github.com',
+        reviewed
+      )
+    )
+
+    for (const changed of [
+      { ...reviewed, head: 'acme:other' },
+      {
+        ...reviewed,
+        headRepository: { ...headRepository, name: 'upstream' },
+      },
+      {
+        ...reviewed,
+        headRepository: { ...headRepository, fullName: 'acme/upstream' },
+      },
+    ]) {
+      assert.throws(() =>
+        validateGitHubPullRequestDraftRouting(
+          fork,
+          parent,
+          branch,
+          remote,
+          'https://github.com',
+          changed
+        )
+      )
+    }
+
+    const differentOwner = createGitHubRepository(
+      'octocat',
+      'product-fork',
+      'https://github.com/octocat/product-fork',
+      parent
+    )
+    assert.deepEqual(
+      getGitHubPullRequestHeadRepository(differentOwner, parent),
+      { name: null, fullName: 'octocat/product-fork' }
+    )
+    assert.deepEqual(getGitHubPullRequestHeadRepository(fork, fork), {
+      name: null,
+      fullName: 'acme/product-fork',
+    })
+  })
+
   it('binds HTTPS, enterprise-base, custom HTTP, and SSH remotes to the provider', () => {
     const branch = createBranch('feature', 'origin/published-feature')
     const cases = [
       {
         html: 'https://github.com/octocat/material',
         provider: 'https://github.com',
-        remote: 'https://github.com/octocat/material.git',
+        remote: 'https://github.com/OCTOCAT/MATERIAL.git',
       },
       {
-        html: 'https://github.example.test/code/octocat/material',
-        provider: 'https://github.example.test/code',
-        remote: 'https://github.example.test/code/octocat/material.git',
+        html: 'https://github.example.test/Code/octocat/material',
+        provider: 'https://github.example.test/Code',
+        remote: 'https://github.example.test/Code/OCTOCAT/MATERIAL.git',
       },
       {
         html: 'http://github.internal:8080/code/octocat/material',
@@ -235,7 +367,12 @@ describe('GitHub pull request validation', () => {
       {
         html: 'https://github.com/octocat/material',
         provider: 'https://github.com',
-        remote: 'ssh://git@github.com/octocat/material.git',
+        remote: 'ssh://git@github.com/OCTOCAT/MATERIAL.git',
+      },
+      {
+        html: 'https://github.com/octocat/material',
+        provider: 'https://github.com',
+        remote: 'ssh://git@ssh.github.com:443/OCTOCAT/MATERIAL.git',
       },
     ]
 
@@ -254,7 +391,7 @@ describe('GitHub pull request validation', () => {
     }
   })
 
-  it('rejects alternate HTTP ports/base paths and non-default SSH routes', () => {
+  it('rejects userinfo, alternate HTTP origins/base paths, and untrusted SSH routes', () => {
     const source = createGitHubRepository(
       'octocat',
       'material',
@@ -262,19 +399,50 @@ describe('GitHub pull request validation', () => {
     )
     const branch = createBranch('feature', 'origin/published-feature')
 
-    for (const remote of [
+    const rejectedRemotes = [
       'https://github.example.test:8443/code/octocat/material.git',
+      'https://github.example.test/Code/octocat/material.git',
       'https://github.example.test/other/octocat/material.git',
+      'https://user@github.example.test/code/octocat/material.git',
+      'https://user:secret@github.example.test/code/octocat/material.git',
       'ssh://git@github.example.test:2222/octocat/material.git',
       'ssh://git@github.example.test/other/octocat/material.git',
+      'ssh://git@ssh.github.com:443/octocat/material.git',
+    ]
+    for (const remote of rejectedRemotes) {
+      assert.throws(
+        () =>
+          getGitHubPullRequestHead(
+            source,
+            source,
+            branch,
+            createRemote('origin', remote),
+            'https://github.example.test/code'
+          ),
+        error =>
+          error instanceof Error &&
+          !error.message.includes(remote) &&
+          !error.message.includes('secret')
+      )
+    }
+
+    const dotComSource = createGitHubRepository(
+      'octocat',
+      'material',
+      'https://github.com/octocat/material'
+    )
+    for (const remote of [
+      'ssh://git@ssh.github.com:22/octocat/material.git',
+      'ssh://octocat@ssh.github.com:443/octocat/material.git',
+      'ssh://git@ssh.github.com:444/octocat/material.git',
     ]) {
       assert.throws(() =>
         getGitHubPullRequestHead(
-          source,
-          source,
+          dotComSource,
+          dotComSource,
           branch,
           createRemote('origin', remote),
-          'https://github.example.test/code'
+          'https://github.com'
         )
       )
     }
@@ -539,7 +707,8 @@ describe('GitHub pull request validation', () => {
       'Reviewed body',
       'octocat:feature',
       'main',
-      true
+      true,
+      createHeadRepository('octocat/material')
     )
     const valid = {
       number: 12,
@@ -548,7 +717,11 @@ describe('GitHub pull request validation', () => {
       html_url: 'https://github.com/desktop/material/pull/12',
       state: 'open',
       draft: reviewed.draft,
-      head: { ref: 'feature', label: reviewed.head },
+      head: {
+        ref: 'feature',
+        label: reviewed.head,
+        repo: { full_name: reviewed.headRepository.fullName },
+      },
       base: { ref: reviewed.base },
     }
 
@@ -576,6 +749,10 @@ describe('GitHub pull request validation', () => {
       { ...valid, state: 'closed' },
       { ...valid, draft: false },
       { ...valid, head: { ...valid.head, ref: 'other' } },
+      {
+        ...valid,
+        head: { ...valid.head, repo: { full_name: 'attacker/material' } },
+      },
       { ...valid, base: { ref: 'release' } },
     ]) {
       assert.throws(() =>

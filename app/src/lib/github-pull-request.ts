@@ -13,8 +13,19 @@ export interface IGitHubPullRequestDraft {
   readonly title: string
   readonly body: string
   readonly head: string
+  readonly headRepository: IGitHubPullRequestHeadRepository
   readonly base: string
   readonly draft: boolean
+}
+
+/**
+ * The exact source repository reviewed for a pull request. `name` maps to the
+ * REST API's optional `head_repo` field and is populated only when GitHub
+ * requires it for a cross-repository pull request owned by the same account.
+ */
+export interface IGitHubPullRequestHeadRepository {
+  readonly name: string | null
+  readonly fullName: string
 }
 
 export interface IAPICreatedGitHubPullRequest {
@@ -27,6 +38,9 @@ export interface IAPICreatedGitHubPullRequest {
   readonly head?: {
     readonly ref?: string
     readonly label?: string
+    readonly repo?: {
+      readonly full_name?: string
+    }
   }
   readonly base?: {
     readonly ref?: string
@@ -227,13 +241,71 @@ export function validateGitHubPullRequestHead(value: string): string {
   return value
 }
 
+/** Derive the exact reviewed source repository and optional REST `head_repo`. */
+export function getGitHubPullRequestHeadRepository(
+  source: GitHubRepository,
+  target: GitHubRepository
+): IGitHubPullRequestHeadRepository {
+  const sourceOwner = validateGitHubRepositoryPart(source.owner.login, 'owner')
+  const sourceName = validateGitHubRepositoryPart(source.name, 'repository')
+  const targetOwner = validateGitHubRepositoryPart(target.owner.login, 'owner')
+  validateGitHubRepositoryPart(target.name, 'repository')
+
+  return {
+    name:
+      source.hash !== target.hash &&
+      sourceOwner.toLowerCase() === targetOwner.toLowerCase()
+        ? sourceName
+        : null,
+    fullName: `${sourceOwner}/${sourceName}`,
+  }
+}
+
+function normalizeGitHubPullRequestHeadRepository(
+  head: string,
+  value: IGitHubPullRequestHeadRepository
+): IGitHubPullRequestHeadRepository {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    typeof value.fullName !== 'string' ||
+    (value.name !== null && typeof value.name !== 'string')
+  ) {
+    throw new Error('The pull request head repository is not valid.')
+  }
+
+  const parts = value.fullName.split('/')
+  if (parts.length !== 2) {
+    throw new Error('The pull request head repository is not valid.')
+  }
+
+  const owner = validateGitHubRepositoryPart(parts[0], 'owner')
+  const repository = validateGitHubRepositoryPart(parts[1], 'repository')
+  const name =
+    value.name === null
+      ? null
+      : validateGitHubRepositoryPart(value.name, 'repository')
+  const separator = head.indexOf(':')
+  if (
+    (separator !== -1 &&
+      head.slice(0, separator).toLowerCase() !== owner.toLowerCase()) ||
+    (name !== null &&
+      (separator === -1 || name.toLowerCase() !== repository.toLowerCase()))
+  ) {
+    throw new Error('The pull request head repository is not valid.')
+  }
+
+  return { name, fullName: `${owner}/${repository}` }
+}
+
 /** Normalize the exact fields exposed by the guided native PR creator. */
 export function normalizeGitHubPullRequestDraft(
   title: string,
   body: string,
   head: string,
   base: string,
-  draft: boolean
+  draft: boolean,
+  headRepository: IGitHubPullRequestHeadRepository
 ): IGitHubPullRequestDraft {
   const normalizedTitle = title.trim()
 
@@ -252,6 +324,10 @@ export function normalizeGitHubPullRequestDraft(
   }
 
   const safeHead = validateGitHubPullRequestHead(head)
+  const safeHeadRepository = normalizeGitHubPullRequestHeadRepository(
+    safeHead,
+    headRepository
+  )
   const safeBase = validateGitHubPullRequestBranch(base, 'base')
   if (!safeHead.includes(':') && safeHead === safeBase) {
     throw new Error('Choose a base branch different from the head branch.')
@@ -261,6 +337,7 @@ export function normalizeGitHubPullRequestDraft(
     title: normalizedTitle,
     body,
     head: safeHead,
+    headRepository: safeHeadRepository,
     base: safeBase,
     draft,
   }
@@ -307,18 +384,45 @@ function getExactGitHubRepositoryHTMLURL(
     : null
 }
 
-function repositoryPath(prefix: string, repository: GitHubRepository): string {
-  return `${prefix}/${encodeURIComponent(
-    repository.owner.login
-  )}/${encodeURIComponent(repository.name)}`.replace(/^\/\//, '/')
-}
-
 function matchesRepositoryPath(
   actualPath: string,
-  expectedPath: string
+  providerPrefix: string,
+  repository: GitHubRepository
 ): boolean {
-  const normalized = actualPath.replace(/\/$/, '')
-  return normalized === expectedPath || normalized === `${expectedPath}.git`
+  const normalizedPrefix = providerPrefix.replace(/\/+$/, '')
+  const requiredPrefix = normalizedPrefix === '' ? '/' : `${normalizedPrefix}/`
+  const normalizedPath = actualPath.replace(/\/$/, '')
+  if (!normalizedPath.startsWith(requiredPrefix)) {
+    return false
+  }
+
+  const parts = normalizedPath.slice(requiredPrefix.length).split('/')
+  if (parts.length !== 2) {
+    return false
+  }
+
+  const repositoryPart = parts[1].endsWith('.git')
+    ? parts[1].slice(0, -4)
+    : parts[1]
+  return (
+    parts[0].toLowerCase() ===
+      encodeURIComponent(repository.owner.login).toLowerCase() &&
+    repositoryPart.toLowerCase() ===
+      encodeURIComponent(repository.name).toLowerCase()
+  )
+}
+
+function isGitHubDotComProvider(providerURL: URL): boolean {
+  return (
+    providerURL.protocol === 'https:' &&
+    providerURL.hostname.toLowerCase() === 'github.com' &&
+    (providerURL.port === '' || providerURL.port === '443') &&
+    providerURL.pathname.replace(/\/+$/, '') === '' &&
+    providerURL.username === '' &&
+    providerURL.password === '' &&
+    providerURL.search === '' &&
+    providerURL.hash === ''
+  )
 }
 
 /**
@@ -357,28 +461,34 @@ function isExactGitHubRepositoryRemoteURL(
     if (['http:', 'https:'].includes(remoteURL.protocol)) {
       return (
         remoteURL.origin === providerURL.origin &&
-        remoteURL.search === '' &&
-        remoteURL.hash === '' &&
-        matchesRepositoryPath(
-          remoteURL.pathname,
-          repositoryPath(providerURL.pathname.replace(/\/+$/, ''), repository)
-        )
-      )
-    }
-
-    if (remoteURL.protocol === 'ssh:') {
-      return (
-        remoteURL.hostname.toLowerCase() ===
-          providerURL.hostname.toLowerCase() &&
-        (remoteURL.port === '' || remoteURL.port === '22') &&
-        remoteURL.username === 'git' &&
+        remoteURL.username === '' &&
         remoteURL.password === '' &&
         remoteURL.search === '' &&
         remoteURL.hash === '' &&
         matchesRepositoryPath(
           remoteURL.pathname,
-          repositoryPath('', repository)
+          providerURL.pathname,
+          repository
         )
+      )
+    }
+
+    if (remoteURL.protocol === 'ssh:') {
+      const usesProviderSSH =
+        remoteURL.hostname.toLowerCase() ===
+          providerURL.hostname.toLowerCase() &&
+        (remoteURL.port === '' || remoteURL.port === '22')
+      const usesGitHubDotComSSHOverHTTPS =
+        isGitHubDotComProvider(providerURL) &&
+        remoteURL.hostname.toLowerCase() === 'ssh.github.com' &&
+        remoteURL.port === '443'
+      return (
+        (usesProviderSSH || usesGitHubDotComSSHOverHTTPS) &&
+        remoteURL.username === 'git' &&
+        remoteURL.password === '' &&
+        remoteURL.search === '' &&
+        remoteURL.hash === '' &&
+        matchesRepositoryPath(remoteURL.pathname, '', repository)
       )
     }
 
@@ -442,6 +552,35 @@ export function getGitHubPullRequestHead(
         source.owner.login,
         'owner'
       )}:${safeBranch}`
+}
+
+/** Recompute the reviewed head routing at the dispatcher trust boundary. */
+export function validateGitHubPullRequestDraftRouting(
+  source: GitHubRepository,
+  target: GitHubRepository,
+  branch: Branch,
+  sourceRemote: IRemote | null,
+  providerHTMLURL: string,
+  draft: IGitHubPullRequestDraft
+): void {
+  const expectedHead = getGitHubPullRequestHead(
+    source,
+    target,
+    branch,
+    sourceRemote,
+    providerHTMLURL
+  )
+  const expectedRepository = getGitHubPullRequestHeadRepository(source, target)
+  const reviewedRepository = draft.headRepository
+  if (
+    draft.head !== expectedHead ||
+    reviewedRepository === undefined ||
+    reviewedRepository === null ||
+    reviewedRepository.name !== expectedRepository.name ||
+    reviewedRepository.fullName !== expectedRepository.fullName
+  ) {
+    throw new GitHubPullRequestContextChangedError()
+  }
 }
 
 /** Build a provider-scoped browser fallback URL without including draft text. */
@@ -593,6 +732,8 @@ export function validateCreatedGitHubPullRequest(
       pullRequest.draft !== reviewedDraft.draft ||
       pullRequest.head?.ref !== reviewedHeadRef ||
       pullRequest.head?.label !== expectedHeadLabel ||
+      pullRequest.head?.repo?.full_name?.toLowerCase() !==
+        reviewedDraft.headRepository.fullName.toLowerCase() ||
       pullRequest.base?.ref !== reviewedDraft.base
     ) {
       throw new Error(
