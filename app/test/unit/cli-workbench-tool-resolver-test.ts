@@ -89,9 +89,13 @@ describe('CLI workbench tool resolver', () => {
   })
 
   it('scrubs unsafe Git environment names regardless of casing', () => {
+    const runtimeDirectory = resolve('staged-app')
+    const gitDirectory = resolve(runtimeDirectory, 'git')
     const resolved = resolveCLIWorkbenchTool(
       'git',
       {
+        git_exec_path: resolve('wrong-git-core'),
+        git_pager: 'payload',
         git_ssh_command: 'payload --option',
         Git_Config_Key_7: 'alias.pwn',
         gIt_CoNfIg_VaLuE_7: '!payload',
@@ -101,9 +105,11 @@ describe('CLI workbench tool resolver', () => {
         git_terminal_prompt: '1',
         gcm_interactive: 'Always',
       },
-      resolve('staged-app')
+      runtimeDirectory
     )
 
+    assert.equal(resolved.env.git_exec_path, undefined)
+    assert.equal(resolved.env.git_pager, undefined)
     assert.equal(resolved.env.git_ssh_command, undefined)
     assert.equal(resolved.env.Git_Config_Key_7, undefined)
     assert.equal(resolved.env.gIt_CoNfIg_VaLuE_7, undefined)
@@ -112,6 +118,8 @@ describe('CLI workbench tool resolver', () => {
     assert.equal(resolved.env.gIt_ShAlLoW_FiLe, undefined)
     assert.equal(resolved.env.git_terminal_prompt, undefined)
     assert.equal(resolved.env.gcm_interactive, undefined)
+    assert.equal(resolved.env.GIT_EXEC_PATH, resolveGitExecPath(gitDirectory))
+    assert.equal(resolved.env.GIT_PAGER, '')
     assert.equal(resolved.env.GIT_TERMINAL_PROMPT, '0')
     assert.equal(resolved.env.GCM_INTERACTIVE, 'Never')
   })
