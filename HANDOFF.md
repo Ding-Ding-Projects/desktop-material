@@ -4,7 +4,7 @@
 
 The requested roadmap is implemented: **M0 through M18 are complete and
 shipped on `main`** through final implementation baseline
-`a346d0a569642e1c1b1180994cac4144890bf037`. The implementation, integration
+`c944eeea05227ef1ddb1c7c71e1062f44f672eb3`. The implementation, integration
 fixes, exhaustive local validation, production build, hidden-desktop review,
 responsive regression correction, public documentation, and canonical wiki
 publication are complete. There is no remaining queued or in-flight feature
@@ -100,10 +100,10 @@ These are the first paths to inspect when maintaining each subsystem:
 ## Final integrated validation evidence
 
 The exhaustive final run on the same application/test tree shipped by
-`a346d0a56964` recorded:
+`c944eeea0522` recorded:
 
-- **242 files and 618 suites** in the validation scope;
-- **1,861 unit tests: 1,860 passed, 0 failed, 1 intentional skip**;
+- **243 files and 619 suites** in the validation scope;
+- **1,863 unit tests: 1,862 passed, 0 failed, 1 intentional skip**;
 - `yarn lint`: **passed**;
 - `yarn tsc --noEmit --skipLibCheck`: **passed**;
 - focused version-history tests: **4 of 4 passed**;
@@ -181,6 +181,11 @@ pattern scanning all pass on the published source-only set.
 - Unit regressions cover redirect following, cross-origin credential removal,
   same-origin header preservation, expired logs, the 5 MB display cap, and
   signed-query-safe failure messages.
+- The viewer ignores a late rejection from an older job after another job is
+  opened, and closing the viewer clears loading/error state so an in-flight
+  request cannot repopulate it. Focused tests cover both races.
+- Release publication explicitly targets the triggering `github.sha`, so an
+  overlapping documentation push cannot move a generated tag to newer `main`.
 - A sanitized live API check confirmed an authenticated 302 to an HTTPS signed
   blob, followed by an unauthenticated `text/plain` 200 response with the CORS
   policy required by the renderer. No token, signed URL, or log body was
@@ -220,28 +225,28 @@ The safety contract is mandatory:
 The closing gate is complete:
 
 - **Code and CI:** final implementation baseline
-  `aeaba02818c3a7c13a6ba78554b2917188b7a9ba` passed all seven jobs in
-  [CI 29219750257](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750257).
+  `c944eeea05227ef1ddb1c7c71e1062f44f672eb3` passed all seven jobs in
+  [CI 29223257147](https://github.com/codingmachineedge/desktop-material/actions/runs/29223257147).
 - **Installer and release:**
-  [Build Installers 29219750294](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750294)
+  [Build Installers 29223257140](https://github.com/codingmachineedge/desktop-material/actions/runs/29223257140)
   succeeded at that exact SHA with zero workflow artifacts. Public, non-draft,
   non-prerelease release
-  [`v3.6.3-beta3-b0000000072`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000072)
+  [`v3.6.3-beta3-b0000000075`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000075)
   has exactly five uploaded, non-empty assets and an exact-SHA lightweight tag.
-  The non-architecture full NUPKG is 307,543,167 bytes; independently streamed
-  SHA-1 `0cf684825502c692bd7c61d091132afbbd840a28` matches `RELEASES`, and SHA-256
-  `5183826ac72a3248fb005292e3744ea431c8a3fcfb2ca25915afb62dc423bf8d`
+  The non-architecture full NUPKG is 307,543,053 bytes; independently streamed
+  SHA-1 `0a33c5534057ef07ace8fab808e40761802c3283` matches `RELEASES`, and SHA-256
+  `d4420dd9500915b704646ec42adf716972d15b9bec056e4c1e02c39eb05da5a2`
   matches the GitHub asset digest.
 - **Pages and README:** screenshot/site baseline
-  `9e2bd120aafbb89c7ca7de544fd16cd943ec7169` passed
-  [Pages 29219686071](https://github.com/codingmachineedge/desktop-material/actions/runs/29219686071).
+  `8a2df4d28166f3c303f8e8e241ee71c23f9b4b05` passed
+  [Pages 29222707562](https://github.com/codingmachineedge/desktop-material/actions/runs/29222707562).
   The [repository](https://github.com/codingmachineedge/desktop-material) and
   [Pages site](https://codingmachineedge.github.io/desktop-material/) return
   HTTP 200, reference the responsive and Actions log proofs, and serve all 16
   distinct README/site screenshot assets byte-for-byte with their tracked
   SHA-256.
 - **Wiki:** the canonical six-file mirror is pushed at
-  `72b8eac8bb2f76f3499bedd3f96bc7ea6c295202`. The live
+  `6df402780eea3b32987d40e46094fb10e8ce769e`. The live
   [Home](https://github.com/codingmachineedge/desktop-material/wiki) and
   [User Guide](https://github.com/codingmachineedge/desktop-material/wiki/User-Guide)
   return HTTP 200 and render the 1450×997 responsive proof; the final User

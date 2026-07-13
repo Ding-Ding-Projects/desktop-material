@@ -4,12 +4,15 @@
 
 The feature-expansion roadmap and its handoff work are complete. Milestones
 **M0 through M18 are shipped on `main`** through final implementation baseline
-`aeaba02818c3a7c13a6ba78554b2917188b7a9ba`. There is no remaining queued,
+`c944eeea05227ef1ddb1c7c71e1062f44f672eb3`. There is no remaining queued,
 partial, or in-flight implementation work in this plan.
 
 That baseline includes the responsive-shell correction prompted by the final
 1450×997 review, its exact-size headless regression capture, the public
-README/Pages/wiki propagation, and the shared Node/jsdom UI-test storage fix.
+README/Pages/wiki propagation, the shared Node/jsdom UI-test storage fix, and
+secure GitHub Actions log downloads with stale-response protection.
+Installer release creation is pinned to the triggering `github.sha`, preventing
+an overlapping documentation push from moving a generated tag to newer `main`.
 The closing publication evidence is recorded below and in [`HANDOFF.md`](HANDOFF.md).
 
 ## Shipped milestone ledger
@@ -52,6 +55,11 @@ The closing publication evidence is recorded below and in [`HANDOFF.md`](HANDOFF
   sample identities and private-looking endpoints were replaced, while raster
   files with identifiers baked into pixels or metadata were intentionally
   excluded.
+- GitHub Actions job logs use Electron-managed redirects so Chromium receives
+  the signed-host body without an opaque status-0 response. The installed
+  request filter strips authentication, authorization, and cookie headers on
+  cross-origin hops; safe errors omit signed URLs, and late failures cannot
+  overwrite a newer or closed job viewer.
 - Account selection, profile mutation serialization, export rendering,
   provider routing, submodule display, repository tooltips, and other integration
   regressions found during the merge waves were fixed before the final build.
@@ -77,10 +85,10 @@ The closing publication evidence is recorded below and in [`HANDOFF.md`](HANDOFF
 ## Final integrated validation evidence
 
 The exhaustive final run on the same application/test tree shipped by
-`aeaba02818c3` recorded:
+`c944eeea0522` recorded:
 
-- validation scope: **241 files and 617 suites**;
-- unit suite: **1,858 tests — 1,857 passed, 0 failed, 1 intentional skip**;
+- validation scope: **243 files and 619 suites**;
+- unit suite: **1,863 tests — 1,862 passed, 0 failed, 1 intentional skip**;
 - repository-wide `yarn lint`: **passed**;
 - `yarn tsc --noEmit --skipLibCheck`: **passed**;
 - focused version-history coverage: **4 of 4 passed**;
@@ -106,25 +114,28 @@ The exhaustive final run on the same application/test tree shipped by
 | `material-scale-200-autofit.png` | 1443×992 | 104,599 | `6fc094a466cef3a540d3bef08db7468e6d9312c9d2242c5abf0df6f9b4fafe05` |
 | `material-workspace-changes.png` | 1443×992 | 123,162 | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
 | `material-responsive-overflow-fixed.png` | 1450×997 | 132,049 | `160c622c6630d96eda26b5ff3be6705c31dbe55d6ffa6d1376575425770278bf` |
+| `material-actions-job-log.png` | 2048×1228 | 155,579 | `6f8a96a9bff8a9c76f89b44aaf3c84a71574aed11ef994db93d12d2749ca0409` |
 
 ## Root-finalized publication evidence
 
 The publication gate is closed:
 
-1. Final implementation baseline `aeaba02818c3a7c13a6ba78554b2917188b7a9ba`
+1. Final implementation baseline `c944eeea05227ef1ddb1c7c71e1062f44f672eb3`
    passed all seven jobs in
-   [CI 29219750257](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750257).
-2. [Build Installers 29219750294](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750294)
+   [CI 29223257147](https://github.com/codingmachineedge/desktop-material/actions/runs/29223257147).
+2. [Build Installers 29223257140](https://github.com/codingmachineedge/desktop-material/actions/runs/29223257140)
    succeeded for that exact commit and published public, non-draft,
    non-prerelease release
-   [`v3.6.3-beta3-b0000000072`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000072).
-3. Screenshot/site baseline `9e2bd120aafbb89c7ca7de544fd16cd943ec7169`
+   [`v3.6.3-beta3-b0000000075`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000075).
+   Its lightweight tag resolves exactly to the build SHA; all five uploaded
+   assets are non-empty, and the workflow retained zero artifacts.
+3. Screenshot/site baseline `8a2df4d28166f3c303f8e8e241ee71c23f9b4b05`
    passed
-   [Pages run 29219686071](https://github.com/codingmachineedge/desktop-material/actions/runs/29219686071).
-   The public site and all 15 referenced images return HTTP 200 and match the
+   [Pages run 29222707562](https://github.com/codingmachineedge/desktop-material/actions/runs/29222707562).
+   The public site and all 16 referenced images return HTTP 200 and match the
    tracked byte counts and SHA-256 hashes.
 4. The canonical six-file `docs/wiki/` mirror is published at wiki commit
-   `72b8eac8bb2f76f3499bedd3f96bc7ea6c295202`; the live Home and User Guide
+   `6df402780eea3b32987d40e46094fb10e8ce769e`; the live Home and User Guide
    return HTTP 200 and render the raw-main responsive proof.
 5. The final headless audit verified the exact 1450×997 review size, the
    supported minimum behavior, and requested 200% scaling auto-fit. Toolbar,
