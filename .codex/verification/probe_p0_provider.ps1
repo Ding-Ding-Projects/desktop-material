@@ -53,16 +53,29 @@ if (-not $branch.protected -or $rules.Count -lt 8) {
 }
 
 $workflows = Invoke-RestMethod -Method Get -Uri "$repo/actions/workflows?per_page=100" -Headers $headers
-$runs = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs?per_page=50" -Headers $headers
-$runId = [int]$runs.workflow_runs[0].id
-$artifacts = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs/$runId/artifacts?per_page=100" -Headers $headers
-$artifact = $artifacts.artifacts[0]
+$runsPage1 = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs?per_page=50&page=1" -Headers $headers
+$runsPage2 = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs?per_page=50&page=2" -Headers $headers
+$successPage1 = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs?per_page=50&page=1&status=success" -Headers $headers
+$successPage2 = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs?per_page=50&page=2&status=success" -Headers $headers
+$runId = [int]$ready.workflowRunId
+$artifactsPage1 = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs/$runId/artifacts?per_page=30&page=1" -Headers $headers
+$artifactsPage2 = Invoke-RestMethod -Method Get -Uri "$repo/actions/runs/$runId/artifacts?per_page=30&page=2" -Headers $headers
+$artifact = @($artifactsPage2.artifacts)[0]
 $encodedDigest = [Uri]::EscapeDataString([string]$artifact.digest)
 $attestations = Invoke-RestMethod -Method Get -Uri "$repo/attestations/$encodedDigest`?per_page=1" -Headers $headers
 if (
   $workflows.total_count -ne 1 -or
-  $runs.total_count -ne 1 -or
-  $artifacts.total_count -ne 1 -or
+  $runsPage1.total_count -ne [int]$ready.workflowRunCount -or
+  @($runsPage1.workflow_runs).Count -ne 50 -or
+  @($runsPage2.workflow_runs).Count -ne 2 -or
+  $successPage1.total_count -ne [int]$ready.successfulWorkflowRunCount -or
+  @($successPage1.workflow_runs).Count -ne 50 -or
+  @($successPage2.workflow_runs).Count -ne 1 -or
+  [int](@($successPage2.workflow_runs)[0].id) -ne [int]$ready.workflowRunSentinelId -or
+  $artifactsPage1.total_count -ne [int]$ready.artifactCount -or
+  @($artifactsPage1.artifacts).Count -ne 30 -or
+  @($artifactsPage2.artifacts).Count -ne 1 -or
+  [int]$artifact.id -ne [int]$ready.artifactSentinelId -or
   @($attestations.attestations).Count -ne 1
 ) {
   throw 'Provider Actions metadata contract failed.'
@@ -105,8 +118,13 @@ try {
   repository = [string]$repository.full_name
   branchRules = $rules.Count
   workflows = [int]$workflows.total_count
-  runs = [int]$runs.total_count
-  artifacts = [int]$artifacts.total_count
+  runs = [int]$runsPage1.total_count
+  successfulRuns = [int]$successPage1.total_count
+  runPage2 = @($runsPage2.workflow_runs).Count
+  workflowRunSentinelId = [int]$ready.workflowRunSentinelId
+  artifacts = [int]$artifactsPage1.total_count
+  artifactPage2 = @($artifactsPage2.artifacts).Count
+  artifactSentinelId = [int]$artifact.id
   artifactSize = [int64]$artifact.size_in_bytes
   artifactDigest = [string]$artifact.digest
   attestationPresence = $true

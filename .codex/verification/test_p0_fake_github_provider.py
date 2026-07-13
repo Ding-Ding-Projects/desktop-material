@@ -71,16 +71,18 @@ class ProviderStateTests(unittest.TestCase):
         metadata = self.state.dispatch(
             "GET",
             self.repo_path
-            + f"/actions/runs/{provider.WORKFLOW_RUN_ID}/artifacts?per_page=100",
+            + f"/actions/runs/{provider.WORKFLOW_RUN_ID}/artifacts?per_page=30&page=2",
             self.headers,
         )
         artifact = self.json(metadata)["artifacts"][0]
         archive = self.state.dispatch(
             "GET",
-            self.repo_path + f"/actions/artifacts/{provider.ARTIFACT_ID}/zip",
+            self.repo_path
+            + f"/actions/artifacts/{provider.ARTIFACT_SENTINEL_ID}/zip",
             self.headers,
         )
         self.assertEqual(archive.status, 200)
+        self.assertEqual(artifact["id"], provider.ARTIFACT_SENTINEL_ID)
         self.assertEqual(artifact["size_in_bytes"], len(archive.body))
         self.assertEqual(
             artifact["digest"],
@@ -96,6 +98,79 @@ class ProviderStateTests(unittest.TestCase):
         )
         self.assertEqual(attestation.status, 200)
         self.assertEqual(len(self.json(attestation)["attestations"]), 1)
+
+    def test_actions_pages_filters_and_sentinels_are_exact(self) -> None:
+        first = self.state.dispatch(
+            "GET",
+            self.repo_path + "/actions/runs?per_page=50&page=1",
+            self.headers,
+        )
+        second = self.state.dispatch(
+            "GET",
+            self.repo_path + "/actions/runs?per_page=50&page=2",
+            self.headers,
+        )
+        first_body = self.json(first)
+        second_body = self.json(second)
+        self.assertEqual(first_body["total_count"], provider.WORKFLOW_RUN_COUNT)
+        self.assertEqual(len(first_body["workflow_runs"]), 50)
+        self.assertEqual(len(second_body["workflow_runs"]), 2)
+
+        success_first = self.state.dispatch(
+            "GET",
+            self.repo_path
+            + f"/actions/workflows/{provider.WORKFLOW_ID}/runs?per_page=50&page=1&status=success",
+            self.headers,
+        )
+        success_second = self.state.dispatch(
+            "GET",
+            self.repo_path
+            + f"/actions/workflows/{provider.WORKFLOW_ID}/runs?per_page=50&page=2&status=success",
+            self.headers,
+        )
+        success_first_body = self.json(success_first)
+        success_second_body = self.json(success_second)
+        self.assertEqual(
+            success_first_body["total_count"],
+            provider.SUCCESS_WORKFLOW_RUN_COUNT,
+        )
+        self.assertEqual(len(success_first_body["workflow_runs"]), 50)
+        self.assertEqual(len(success_second_body["workflow_runs"]), 1)
+        self.assertEqual(
+            success_second_body["workflow_runs"][0]["id"],
+            provider.WORKFLOW_RUN_SENTINEL_ID,
+        )
+
+        artifacts_first = self.state.dispatch(
+            "GET",
+            self.repo_path
+            + f"/actions/runs/{provider.WORKFLOW_RUN_ID}/artifacts?per_page=30&page=1",
+            self.headers,
+        )
+        artifacts_second = self.state.dispatch(
+            "GET",
+            self.repo_path
+            + f"/actions/runs/{provider.WORKFLOW_RUN_ID}/artifacts?per_page=30&page=2",
+            self.headers,
+        )
+        artifacts_first_body = self.json(artifacts_first)
+        artifacts_second_body = self.json(artifacts_second)
+        self.assertEqual(artifacts_first_body["total_count"], provider.ARTIFACT_COUNT)
+        self.assertEqual(len(artifacts_first_body["artifacts"]), 30)
+        self.assertEqual(len(artifacts_second_body["artifacts"]), 1)
+        self.assertEqual(
+            artifacts_second_body["artifacts"][0]["id"],
+            provider.ARTIFACT_SENTINEL_ID,
+        )
+
+        for target in (
+            self.repo_path + "/actions/runs?per_page=50&page=0",
+            self.repo_path + "/actions/runs?per_page=49&page=1",
+            self.repo_path
+            + f"/actions/runs/{provider.WORKFLOW_RUN_ID}/artifacts?per_page=30&page=bad",
+        ):
+            response = self.state.dispatch("GET", target, self.headers)
+            self.assertEqual(response.status, 422)
 
     def test_pull_request_is_in_memory_and_echoes_reviewed_fields(self) -> None:
         request = {

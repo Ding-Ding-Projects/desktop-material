@@ -36,6 +36,13 @@ WORKFLOW_ID = 84_001
 WORKFLOW_RUN_ID = 84_101
 WORKFLOW_JOB_ID = 84_201
 ARTIFACT_ID = 84_301
+WORKFLOW_RUN_COUNT = 52
+SUCCESS_WORKFLOW_RUN_COUNT = 51
+WORKFLOW_RUN_PAGE_SIZE = 50
+WORKFLOW_RUN_SENTINEL_ID = WORKFLOW_RUN_ID + SUCCESS_WORKFLOW_RUN_COUNT - 1
+ARTIFACT_COUNT = 31
+ARTIFACT_PAGE_SIZE = 30
+ARTIFACT_SENTINEL_ID = ARTIFACT_ID + ARTIFACT_COUNT - 1
 RULESET_IDS = (91_001, 91_002)
 FIXTURE_TOKEN = "dm-p0-loopback-token-20260713"
 FIXTURE_HTML_URL = "http://material-provider.invalid"
@@ -190,33 +197,77 @@ class ProviderState:
 
     @property
     def workflow_run(self) -> dict[str, Any]:
+        return self.workflow_run_for(0)
+
+    def workflow_run_for(self, index: int) -> dict[str, Any]:
+        if index < 0 or index >= WORKFLOW_RUN_COUNT:
+            raise ValueError("Workflow run index is outside the fixture.")
+        run_id = WORKFLOW_RUN_ID + index
+        success = index < SUCCESS_WORKFLOW_RUN_COUNT
+        sentinel = run_id == WORKFLOW_RUN_SENTINEL_ID
+        branch = (
+            "feature/material-verification-with-a-deliberately-long-page-two-"
+            "sentinel-branch-name-that-must-wrap-without-clipping"
+            if sentinel
+            else FEATURE_BRANCH
+        )
+        title = (
+            "Page two sentinel verifies complete workflow run pagination, "
+            "wrapped titles, wrapped branch names, and zero sideways scrolling"
+            if sentinel
+            else f"Production pagination fixture run {index + 1:02d}"
+        )
+        actor = dict(self.identity)
+        actor["login"] = (
+            "material-verifier-with-a-deliberately-long-page-two-actor-identity"
+            if sentinel
+            else ACCOUNT_LOGIN
+        )
         return {
-            "id": WORKFLOW_RUN_ID,
+            "id": run_id,
             "workflow_id": WORKFLOW_ID,
-            "cancel_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/cancel",
+            "cancel_url": f"{self.repository_html_url}/actions/runs/{run_id}/cancel",
             "created_at": FIXED_TIME,
             "updated_at": FIXED_TIME,
-            "logs_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/logs",
+            "logs_url": f"{self.repository_html_url}/actions/runs/{run_id}/logs",
             "name": self.workflow["name"],
-            "display_title": "Verify every production viewport without clipping or sideways scrolling",
-            "rerun_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/rerun",
-            "check_suite_id": 84_102,
+            "display_title": title,
+            "rerun_url": f"{self.repository_html_url}/actions/runs/{run_id}/rerun",
+            "check_suite_id": 84_102 + index,
             "event": "pull_request",
-            "run_number": 73,
+            "run_number": 73 + index,
             "run_attempt": 1,
-            "head_branch": FEATURE_BRANCH,
+            "head_branch": branch,
             "head_sha": HEAD_SHA,
             "status": "completed",
-            "conclusion": "success",
-            "html_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}",
-            "actor": self.identity,
+            "conclusion": "success" if success else "failure",
+            "html_url": f"{self.repository_html_url}/actions/runs/{run_id}",
+            "actor": actor,
         }
 
     @property
     def artifact(self) -> dict[str, Any]:
+        return self.artifact_for(0, WORKFLOW_RUN_ID)
+
+    def artifact_for(self, index: int, workflow_run_id: int) -> dict[str, Any]:
+        if index < 0 or index >= ARTIFACT_COUNT:
+            raise ValueError("Artifact index is outside the fixture.")
+        if not self.is_fixture_run_id(workflow_run_id):
+            raise ValueError("Artifact workflow run is outside the fixture.")
+        artifact_id = ARTIFACT_ID + index
+        name = (
+            "page-two-artifact-sentinel-with-a-deliberately-long-name-that-"
+            "must-wrap-without-clipping-overlap-or-sideways-scrolling"
+            if artifact_id == ARTIFACT_SENTINEL_ID
+            else (
+                "desktop-material-production-ui-evidence-with-long-wrapped-name"
+                if index == 0
+                else f"desktop-material-pagination-artifact-{index + 1:02d}"
+            )
+        )
         return {
-            "id": ARTIFACT_ID,
-            "name": "desktop-material-production-ui-evidence-with-long-wrapped-name",
+            "id": artifact_id,
+            "name": name,
             "size_in_bytes": len(self.artifact_bytes),
             "expired": False,
             "created_at": FIXED_TIME,
@@ -224,11 +275,103 @@ class ProviderState:
             "updated_at": FIXED_TIME,
             "digest": f"sha256:{self.artifact_hex_digest}",
             "workflow_run": {
-                "id": WORKFLOW_RUN_ID,
+                "id": workflow_run_id,
                 "head_branch": FEATURE_BRANCH,
                 "head_sha": HEAD_SHA,
             },
         }
+
+    @staticmethod
+    def is_fixture_run_id(value: int) -> bool:
+        return WORKFLOW_RUN_ID <= value < WORKFLOW_RUN_ID + WORKFLOW_RUN_COUNT
+
+    @staticmethod
+    def is_fixture_artifact_id(value: int) -> bool:
+        return ARTIFACT_ID <= value < ARTIFACT_ID + ARTIFACT_COUNT
+
+    @staticmethod
+    def _page(
+        query: Mapping[str, list[str]],
+        *,
+        expected_page_size: int,
+        allowed: set[str],
+    ) -> tuple[int, int] | None:
+        if any(key not in allowed for key in query):
+            return None
+        page_values = query.get("page", ["1"])
+        size_values = query.get("per_page", [str(expected_page_size)])
+        if len(page_values) != 1 or len(size_values) != 1:
+            return None
+        try:
+            page = int(page_values[0])
+            page_size = int(size_values[0])
+        except ValueError:
+            return None
+        if page < 1 or page > 1_000_000 or page_size != expected_page_size:
+            return None
+        return page, page_size
+
+    def _workflow_runs(self, query: Mapping[str, list[str]]) -> FixtureResponse:
+        allowed = {"page", "per_page", "branch", "event", "status"}
+        paging = self._page(
+            query,
+            expected_page_size=WORKFLOW_RUN_PAGE_SIZE,
+            allowed=allowed,
+        )
+        if paging is None or any(len(query.get(key, [])) > 1 for key in allowed):
+            return json_response(
+                {"message": "Invalid workflow run pagination or filter."},
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+        page, page_size = paging
+        runs = [self.workflow_run_for(index) for index in range(WORKFLOW_RUN_COUNT)]
+        branch = query.get("branch", [None])[0]
+        event = query.get("event", [None])[0]
+        status = query.get("status", [None])[0]
+        if branch is not None:
+            runs = [run for run in runs if run["head_branch"] == branch]
+        if event is not None:
+            runs = [run for run in runs if run["event"] == event]
+        if status is not None:
+            if status in {"success", "failure"}:
+                runs = [run for run in runs if run["conclusion"] == status]
+            else:
+                runs = [run for run in runs if run["status"] == status]
+        start = (page - 1) * page_size
+        return json_response(
+            {
+                "total_count": len(runs),
+                "workflow_runs": runs[start : start + page_size],
+            }
+        )
+
+    def _artifacts(
+        self,
+        query: Mapping[str, list[str]],
+        workflow_run_id: int,
+    ) -> FixtureResponse:
+        paging = self._page(
+            query,
+            expected_page_size=ARTIFACT_PAGE_SIZE,
+            allowed={"page", "per_page"},
+        )
+        if paging is None:
+            return json_response(
+                {"message": "Invalid artifact pagination."},
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+        page, page_size = paging
+        artifacts = [
+            self.artifact_for(index, workflow_run_id)
+            for index in range(ARTIFACT_COUNT)
+        ]
+        start = (page - 1) * page_size
+        return json_response(
+            {
+                "total_count": len(artifacts),
+                "artifacts": artifacts[start : start + page_size],
+            }
+        )
 
     def _authorized(self, headers: Mapping[str, str]) -> bool:
         authorization = next(
@@ -448,29 +591,57 @@ class ProviderState:
 
         if method == "GET" and resource == f"{repo_root}/actions/workflows":
             return json_response({"total_count": 1, "workflows": [self.workflow]})
-        if method == "GET" and resource == f"{repo_root}/actions/runs":
-            return json_response({"total_count": 1, "workflow_runs": [self.workflow_run]})
-        if method == "GET" and resource == f"{repo_root}/actions/runs/{WORKFLOW_RUN_ID}/jobs":
+        if method == "GET" and resource in {
+            f"{repo_root}/actions/runs",
+            f"{repo_root}/actions/workflows/{WORKFLOW_ID}/runs",
+        }:
+            return self._workflow_runs(query)
+
+        jobs_match = re.fullmatch(
+            re.escape(f"{repo_root}/actions/runs/") + r"(\d+)/jobs",
+            resource,
+        )
+        if method == "GET" and jobs_match is not None:
+            run_id = int(jobs_match.group(1))
+            if not self.is_fixture_run_id(run_id):
+                return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
+            job_id = WORKFLOW_JOB_ID + (run_id - WORKFLOW_RUN_ID)
             return json_response(
                 {
                     "total_count": 1,
                     "jobs": [
                         {
-                            "id": WORKFLOW_JOB_ID,
+                            "id": job_id,
                             "name": "Verify regular, narrow, short, and 200 percent viewport layouts",
                             "status": "completed",
                             "conclusion": "success",
                             "completed_at": FIXED_TIME,
                             "started_at": FIXED_TIME,
-                            "html_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/job/{WORKFLOW_JOB_ID}",
+                            "html_url": f"{self.repository_html_url}/actions/runs/{run_id}/job/{job_id}",
                             "steps": [],
                         }
                     ],
                 }
             )
-        if method == "GET" and resource == f"{repo_root}/actions/runs/{WORKFLOW_RUN_ID}/artifacts":
-            return json_response({"total_count": 1, "artifacts": [self.artifact]})
-        if method == "GET" and resource == f"{repo_root}/actions/artifacts/{ARTIFACT_ID}/zip":
+
+        artifacts_match = re.fullmatch(
+            re.escape(f"{repo_root}/actions/runs/") + r"(\d+)/artifacts",
+            resource,
+        )
+        if method == "GET" and artifacts_match is not None:
+            run_id = int(artifacts_match.group(1))
+            if not self.is_fixture_run_id(run_id):
+                return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
+            return self._artifacts(query, run_id)
+
+        download_match = re.fullmatch(
+            re.escape(f"{repo_root}/actions/artifacts/") + r"(\d+)/zip",
+            resource,
+        )
+        if method == "GET" and download_match is not None:
+            artifact_id = int(download_match.group(1))
+            if not self.is_fixture_artifact_id(artifact_id):
+                return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
             return FixtureResponse(
                 HTTPStatus.OK,
                 {
@@ -768,7 +939,7 @@ class FixtureRequestHandler(BaseHTTPRequestHandler):
         )
         self.end_headers()
         if include_body and response.body:
-            if f"/actions/artifacts/{ARTIFACT_ID}/zip" in self.path:
+            if re.search(r"/actions/artifacts/\d+/zip(?:\?|$)", self.path):
                 for offset in range(0, len(response.body), 32 * 1024):
                     self.wfile.write(response.body[offset : offset + 32 * 1024])
                     self.wfile.flush()
@@ -857,9 +1028,15 @@ def main(argv: list[str]) -> int:
         "defaultBranch": DEFAULT_BRANCH,
         "accountLogin": ACCOUNT_LOGIN,
         "accountId": ACCOUNT_ID,
-        "credentialService": f"GitHub - {endpoint}",
+        "credentialService": f"GitHub Desktop Dev - {endpoint}",
         "token": FIXTURE_TOKEN,
+        "workflowRunId": WORKFLOW_RUN_ID,
+        "workflowRunCount": WORKFLOW_RUN_COUNT,
+        "successfulWorkflowRunCount": SUCCESS_WORKFLOW_RUN_COUNT,
+        "workflowRunSentinelId": WORKFLOW_RUN_SENTINEL_ID,
         "artifactId": ARTIFACT_ID,
+        "artifactCount": ARTIFACT_COUNT,
+        "artifactSentinelId": ARTIFACT_SENTINEL_ID,
         "artifactSize": len(state.artifact_bytes),
         "artifactDigest": f"sha256:{state.artifact_hex_digest}",
     }

@@ -77,7 +77,13 @@ $state = Get-Content -LiteralPath $ready -Raw | ConvertFrom-Json
   repository = [string]$state.repository
   featureBranch = [string]$state.featureBranch
   credentialService = [string]$state.credentialService
+  workflowRunId = [int]$state.workflowRunId
+  workflowRunCount = [int]$state.workflowRunCount
+  successfulWorkflowRunCount = [int]$state.successfulWorkflowRunCount
+  workflowRunSentinelId = [int]$state.workflowRunSentinelId
   artifactId = [int]$state.artifactId
+  artifactCount = [int]$state.artifactCount
+  artifactSentinelId = [int]$state.artifactSentinelId
   artifactSize = [int]$state.artifactSize
   artifactDigest = [string]$state.artifactDigest
 } | ConvertTo-Json -Compress
