@@ -367,4 +367,101 @@ describe('ActionsStore exact account routing', () => {
       pendingJobLogs.clear()
     }
   })
+
+  it('drops late jobs and workflow source after the selected account changes', async () => {
+    const endpoint = 'https://api.github.com'
+    const selected = new Account(
+      'selected',
+      endpoint,
+      'token-one',
+      [],
+      '',
+      2,
+      'Selected'
+    )
+    const gitHubRepository = new GitHubRepository(
+      'project',
+      new Owner('group', endpoint, 1),
+      1
+    )
+    const repository = new Repository(
+      'C:/project',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const accounts = new TestAccountsStore([selected])
+    const signals = new Array<AbortSignal>()
+    let resolveJobs!: (value: { readonly jobs: ReadonlyArray<never> }) => void
+    let resolveSource!: (value: string) => void
+    const jobsResult = new Promise<{ readonly jobs: ReadonlyArray<never> }>(
+      resolve => {
+        resolveJobs = resolve
+      }
+    )
+    const sourceResult = new Promise<string>(resolve => {
+      resolveSource = resolve
+    })
+    const fromAccount = mock.method(
+      API,
+      'fromAccount',
+      () =>
+        ({
+          fetchWorkflowRunJobs: async (
+            _owner: string,
+            _name: string,
+            _runId: number,
+            signal: AbortSignal
+          ) => {
+            signals.push(signal)
+            return await jobsResult
+          },
+          fetchWorkflowFileContent: async (
+            _owner: string,
+            _name: string,
+            _path: string,
+            _ref: string | undefined,
+            signal: AbortSignal
+          ) => {
+            signals.push(signal)
+            return await sourceResult
+          },
+        } as unknown as API)
+    )
+
+    try {
+      const { ActionsStore } = await import(
+        '../../src/lib/stores/actions-store'
+      )
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const jobs = store.fetchJobs(repository, 7)
+      const source = store.fetchWorkflowSource(repository, {
+        id: 3,
+        name: 'CI',
+        path: '.github/workflows/ci.yml',
+      } as IAPIWorkflow)
+      assert.equal(signals.length, 2)
+
+      accounts.update([selected.withToken('token-two')])
+      assert.ok(signals.every(signal => signal.aborted))
+      resolveJobs({ jobs: [] })
+      resolveSource('name: Old account workflow')
+      await assert.rejects(
+        jobs,
+        error => (error as Error).name === 'AbortError'
+      )
+      await assert.rejects(
+        source,
+        error => (error as Error).name === 'AbortError'
+      )
+    } finally {
+      fromAccount.mock.restore()
+    }
+  })
 })

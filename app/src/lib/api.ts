@@ -2687,7 +2687,8 @@ export class API {
   public async fetchWorkflowRunJobs(
     owner: string,
     name: string,
-    workflowRunId: number
+    workflowRunId: number,
+    signal?: AbortSignal
   ): Promise<IAPIWorkflowJobs | null> {
     const path = `repos/${owner}/${name}/actions/runs/${workflowRunId}/jobs`
     const customHeaders = {
@@ -2695,6 +2696,7 @@ export class API {
     }
     const response = await this.ghRequest('GET', path, {
       customHeaders,
+      signal,
     })
     try {
       return await parsedResponse<IAPIWorkflowJobs>(response)
@@ -3132,13 +3134,17 @@ export class API {
     owner: string,
     name: string,
     path: string,
-    ref?: string
+    ref?: string,
+    signal?: AbortSignal
   ): Promise<string> {
     const query = ref ? `?ref=${encodeURIComponent(ref)}` : ''
     const response = await this.ghRequest(
       'GET',
       `repos/${owner}/${name}/contents/${path}${query}`,
-      { customHeaders: { Accept: 'application/vnd.github.raw+json' } }
+      {
+        customHeaders: { Accept: 'application/vnd.github.raw+json' },
+        signal,
+      }
     )
     if (!response.ok) {
       await parsedResponse<unknown>(response)

@@ -671,15 +671,19 @@ export class ActionsStore {
 
   public async fetchJobs(
     repository: Repository,
-    runId: number
+    runId: number,
+    signal?: AbortSignal
   ): Promise<ReadonlyArray<IAPIWorkflowJob>> {
-    const gitHubRepository = this.gitHubFor(repository)
-    const result = await this.apiFor(repository).fetchWorkflowRunJobs(
-      gitHubRepository.owner.login,
-      gitHubRepository.name,
-      runId
-    )
-    return result?.jobs ?? []
+    return await this.runAccountBound(signal, async requestSignal => {
+      const gitHubRepository = this.gitHubFor(repository)
+      const result = await this.apiFor(repository).fetchWorkflowRunJobs(
+        gitHubRepository.owner.login,
+        gitHubRepository.name,
+        runId,
+        requestSignal
+      )
+      return result?.jobs ?? []
+    })
   }
 
   public fetchJobLogs(
@@ -797,15 +801,19 @@ export class ActionsStore {
   public fetchWorkflowSource(
     repository: Repository,
     workflow: IAPIWorkflow,
-    ref?: string
+    ref?: string,
+    signal?: AbortSignal
   ) {
-    const gitHubRepository = this.gitHubFor(repository)
-    return this.apiFor(repository).fetchWorkflowFileContent(
-      gitHubRepository.owner.login,
-      gitHubRepository.name,
-      workflow.path,
-      ref
-    )
+    return this.runAccountBound(signal, requestSignal => {
+      const gitHubRepository = this.gitHubFor(repository)
+      return this.apiFor(repository).fetchWorkflowFileContent(
+        gitHubRepository.owner.login,
+        gitHubRepository.name,
+        workflow.path,
+        ref,
+        requestSignal
+      )
+    })
   }
 
   public async dispatch(
