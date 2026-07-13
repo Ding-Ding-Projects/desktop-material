@@ -3760,7 +3760,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
         includingStatus: true,
         clearPartialState: false,
       })
-    } else if (selectedSection !== RepositorySectionTab.Actions) {
+    } else if (
+      selectedSection !== RepositorySectionTab.Actions &&
+      selectedSection !== RepositorySectionTab.RepositoryTools
+    ) {
       return assertNever(selectedSection, `Unknown section: ${selectedSection}`)
     }
 
@@ -4514,7 +4517,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
         includingStatus: false,
         clearPartialState: false,
       })
-    } else if (section === RepositorySectionTab.Actions) {
+    } else if (
+      section === RepositorySectionTab.Actions ||
+      section === RepositorySectionTab.RepositoryTools
+    ) {
       refreshSectionPromise = Promise.resolve()
     } else {
       return assertNever(section, `Unknown section: ${section}`)

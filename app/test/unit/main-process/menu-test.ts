@@ -190,6 +190,18 @@ describe('main-process menu', () => {
       assert.equal(newWindow?.accelerator, 'CmdOrCtrl+Alt+N')
     })
 
+    it('exposes the stable Repository Tools keyboard shortcut', () => {
+      const template = buildDefaultMenuTemplate(baseParams)
+      const viewMenu = template.find(
+        item => item.label?.replace('&', '') === 'View'
+      )
+      assert.ok(viewMenu && Array.isArray(viewMenu.submenu))
+      const repositoryTools = viewMenu.submenu.find(
+        item => item.id === 'show-repository-tools'
+      )
+      assert.equal(repositoryTools?.accelerator, 'CmdOrCtrl+4')
+    })
+
     it('has no duplicate access keys for any combination of label-affecting parameters', () => {
       const combinationCount = 1 << variantKeys.length
 

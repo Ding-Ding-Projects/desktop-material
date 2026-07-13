@@ -212,6 +212,12 @@ export function buildDefaultMenuTemplate({
         click: emit('show-history'),
       },
       {
+        label: __DARWIN__ ? 'Repository Tools' : 'Repository to&ols',
+        id: 'show-repository-tools',
+        accelerator: 'CmdOrCtrl+4',
+        click: emit('show-repository-tools'),
+      },
+      {
         label: __DARWIN__ ? 'Show Repository List' : 'Repository &list',
         id: 'show-repository-list',
         accelerator: 'CmdOrCtrl+T',

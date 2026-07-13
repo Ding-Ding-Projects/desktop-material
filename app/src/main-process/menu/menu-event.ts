@@ -6,6 +6,7 @@ export type MenuEvent =
   | 'fetch'
   | 'show-changes'
   | 'show-history'
+  | 'show-repository-tools'
   | 'add-local-repository'
   | 'create-branch'
   | 'show-branches'

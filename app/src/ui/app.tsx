@@ -510,6 +510,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showChanges(true)
       case 'show-history':
         return this.showHistory(true)
+      case 'show-repository-tools':
+        return this.showRepositoryTools()
       case 'choose-repository':
         return this.chooseRepository()
       case 'add-local-repository':
@@ -1032,6 +1034,19 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (shouldFocusChanges) {
       this.repositoryViewRef.current?.setFocusChangesNeeded()
     }
+  }
+
+  private async showRepositoryTools() {
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+
+    await this.props.dispatcher.closeCurrentFoldout()
+    await this.props.dispatcher.changeRepositorySection(
+      state.repository,
+      RepositorySectionTab.RepositoryTools
+    )
   }
 
   private chooseRepository() {
