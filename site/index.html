@@ -98,7 +98,7 @@
           </div>
           <figure class="hero-shot">
             <img
-              src="../docs/assets/screenshots/material-workspace-changes.png"
+              src="docs/assets/screenshots/material-workspace-changes.png"
               alt="Desktop Material Changes view: an icon navigation rail, a floating pill toolbar with repository and branch chips, browser-like repository tabs, and a floating Material Design 3 card"
               width="1280"
               loading="eager"
@@ -110,11 +110,15 @@
       <!-- ================= Features ================= -->
       <section class="features" id="features">
         <div class="wrap">
-          <span class="eyebrow">Shipped today</span>
-          <h2 class="section-title">A Material Design 3 shell, live now</h2>
+          <span class="eyebrow">Material foundation and active roadmap</span>
+          <h2 class="section-title">
+            A Material Design 3 shell with verified native workflows
+          </h2>
           <p class="section-sub">
-            Everything below is implemented and on <code>main</code> — the full
-            GitHub Desktop workflow, rebuilt around Material Design 3.
+            The core shell is published on <code>main</code>. Cards marked
+            <strong>Verified branch</strong> have also passed the exact
+            production UI gate on <code>mega-feature-update</code> and promote
+            through the normal reviewed merge path.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -179,15 +183,15 @@
           </div>
 
           <span class="eyebrow" style="margin-top: 3rem">Power features</span>
-          <h2 class="section-title">Shipped for real-world Git work</h2>
+          <h2 class="section-title">Built for real-world Git work</h2>
           <p class="section-sub">
-            These features are implemented on <code>main</code>. Their design
-            and verification history is tracked in the project's
+            Delivery and verification history is tracked in the project's
             <a
-              href="https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md"
-              >plan</a
-            >. Git and GitHub capabilities appear as named, guided workflows—not
-            a searchable dump of commands or API endpoints.
+              href="https://github.com/codingmachineedge/desktop-material/blob/mega-feature-update/README.md#roadmaps"
+              >living roadmap</a
+            >. Git, <code>gh</code>, REST, and GraphQL capabilities become
+            named, guided workflows—not a searchable dump of commands or API
+            endpoints.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -223,12 +227,13 @@
             <article class="card">
               <div class="glyph" aria-hidden="true">↘</div>
               <h3>
-                Guided repository functions <span class="tag">Shipped</span>
+                Guided repository functions
+                <span class="tag">Verified branch</span>
               </h3>
               <p>
-                Shallow-clone with a commit-depth field, then deepen history
-                later from Repository tools; manage cone-mode sparse checkout
-                with validation and an explicit review step.
+                Shallow-clone with a commit-depth field, deepen to a bounded or
+                complete history from Repository Tools, and manage cone-mode
+                sparse checkout with validation and an explicit review step.
               </p>
             </article>
 
@@ -244,11 +249,36 @@
 
             <article class="card">
               <div class="glyph" aria-hidden="true">▷</div>
-              <h3>GitHub Actions <span class="tag">Shipped</span></h3>
+              <h3>GitHub Actions <span class="tag">Verified branch</span></h3>
               <p>
                 Filter workflow runs, re-run all or failed jobs, inspect jobs
-                and steps, search in-app logs, and dispatch workflows with refs
-                and inputs.
+                and steps, search logs, dispatch workflows, and safely download
+                artifacts with local digest comparison and attestation-presence
+                context.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">PR</div>
+              <h3>
+                Native pull requests <span class="tag">Verified branch</span>
+              </h3>
+              <p>
+                Choose the exact repository, account, base, and current head;
+                write a title and Markdown description; review the mutation; and
+                submit or create a draft without entering a command or endpoint.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">BR</div>
+              <h3>
+                Effective branch rules <span class="tag">Verified branch</span>
+              </h3>
+              <p>
+                Inspect reviews, checks, deployments, merge queue, signatures,
+                history, update/delete/force policy, bypass context, and source
+                rulesets with signed-out and account-selection recovery paths.
               </p>
             </article>
 
@@ -308,12 +338,12 @@
           <div class="gallery-grid">
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-workspace-changes.png"
+                href="docs/assets/screenshots/material-workspace-changes.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-workspace-changes.png"
+                  src="docs/assets/screenshots/material-workspace-changes.png"
                   alt="Changes view with the icon rail, pill toolbar, and floating card"
                   loading="lazy"
                 />
@@ -325,12 +355,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-history.png"
+                href="docs/assets/screenshots/material-history.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-history.png"
+                  src="docs/assets/screenshots/material-history.png"
                   alt="History view with MD3 commit rows and commit detail"
                   loading="lazy"
                 />
@@ -340,12 +370,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-settings.png"
+                href="docs/assets/screenshots/material-settings.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-settings.png"
+                  src="docs/assets/screenshots/material-settings.png"
                   alt="Preferences as an MD3 940 by 660 dialog with a left rail"
                   loading="lazy"
                 />
@@ -357,12 +387,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/settings-history-manager.png"
+                href="docs/assets/screenshots/settings-history-manager.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/settings-history-manager.png"
+                  src="docs/assets/screenshots/settings-history-manager.png"
                   alt="Live M3 Settings history side sheet with a Git-backed timeline, selected diff, Undo, Redo, and restore controls"
                   loading="lazy"
                 />
@@ -375,12 +405,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-repositories-sheet.png"
+                href="docs/assets/screenshots/material-repositories-sheet.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-repositories-sheet.png"
+                  src="docs/assets/screenshots/material-repositories-sheet.png"
                   alt="Repositories picker as an MD3 side sheet"
                   loading="lazy"
                 />
@@ -392,12 +422,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-branches-sheet.png"
+                href="docs/assets/screenshots/material-branches-sheet.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-branches-sheet.png"
+                  src="docs/assets/screenshots/material-branches-sheet.png"
                   alt="Branches picker as an MD3 side sheet"
                   loading="lazy"
                 />
@@ -409,12 +439,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-automation.png"
+                href="docs/assets/screenshots/material-automation.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-automation.png"
+                  src="docs/assets/screenshots/material-automation.png"
                   alt="Automation preferences with guarded commit and pull schedules and account overrides"
                   loading="lazy"
                 />
@@ -426,12 +456,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-github-notifications.png"
+                href="docs/assets/screenshots/material-github-notifications.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-github-notifications.png"
+                  src="docs/assets/screenshots/material-github-notifications.png"
                   alt="GitHub notifications view with account selection, inbox filters, and the no-signed-in-account state"
                   loading="lazy"
                 />
@@ -443,12 +473,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-shallow-clone.png"
+                href="docs/assets/screenshots/material-shallow-clone.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-shallow-clone.png"
+                  src="docs/assets/screenshots/material-shallow-clone.png"
                   alt="Clone repository form with shallow clone enabled and a commit-depth field"
                   loading="lazy"
                 />
@@ -460,12 +490,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-sparse-checkout.png"
+                href="docs/assets/screenshots/material-sparse-checkout.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-sparse-checkout.png"
+                  src="docs/assets/screenshots/material-sparse-checkout.png"
                   alt="Sparse checkout side panel with cone-mode directory validation and review control"
                   loading="lazy"
                 />
@@ -477,12 +507,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-history-power-tools.png"
+                href="docs/assets/screenshots/material-history-power-tools.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-history-power-tools.png"
+                  src="docs/assets/screenshots/material-history-power-tools.png"
                   alt="History view with commit search and ancestry graph controls"
                   loading="lazy"
                 />
@@ -494,12 +524,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-branch-merge-all.png"
+                href="docs/assets/screenshots/material-branch-merge-all.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-branch-merge-all.png"
+                  src="docs/assets/screenshots/material-branch-merge-all.png"
                   alt="Merge all branches dialog with per-branch progress"
                   loading="lazy"
                 />
@@ -511,12 +541,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-agent-access.png"
+                href="docs/assets/screenshots/material-agent-access.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-agent-access.png"
+                  src="docs/assets/screenshots/material-agent-access.png"
                   alt="Agent access preferences with loopback address and bearer token controls"
                   loading="lazy"
                 />
@@ -528,12 +558,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-provider-accounts.png"
+                href="docs/assets/screenshots/material-provider-accounts.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-provider-accounts.png"
+                  src="docs/assets/screenshots/material-provider-accounts.png"
                   alt="Accounts preferences for GitHub, GitLab, and Bitbucket providers"
                   loading="lazy"
                 />
@@ -545,12 +575,12 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-multi-window-menu.png"
+                href="docs/assets/screenshots/material-multi-window-menu.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-multi-window-menu.png"
+                  src="docs/assets/screenshots/material-multi-window-menu.png"
                   alt="Repository context menu with the open in new window action"
                   loading="lazy"
                 />
@@ -562,18 +592,86 @@
 
             <figure class="shot">
               <a
-                href="../docs/assets/screenshots/material-scale-200-autofit.png"
+                href="docs/assets/screenshots/material-scale-200-autofit.png"
                 target="_blank"
                 rel="noopener"
               >
                 <img
-                  src="../docs/assets/screenshots/material-scale-200-autofit.png"
+                  src="docs/assets/screenshots/material-scale-200-autofit.png"
                   alt="Dark Appearance settings at a requested 200 percent scale, auto-fitted to 96 percent in the minimum window without clipping"
                   loading="lazy"
                 />
               </a>
               <figcaption>
                 200% auto-fit <span class="tag">A11y · no clipping</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-history-deepening.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-history-deepening.png"
+                  alt="Repository Tools showing the final full-history state after a verified deepen"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                History deepening <span class="tag">Verified function</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-create-pull-request.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-create-pull-request.png"
+                  alt="Native pull-request creation success with wrapped title and description"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Create pull request <span class="tag">No command entry</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-actions-artifacts.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-actions-artifacts.png"
+                  alt="Actions artifact with download, local digest match, and attestation-presence context"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Actions artifacts <span class="tag">Digest verified</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-effective-branch-rules.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-effective-branch-rules.png"
+                  alt="Effective branch rules with reviews, checks, merge queue, history, and operation policy"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Effective branch rules <span class="tag">Account aware</span>
               </figcaption>
             </figure>
           </div>
@@ -586,9 +684,9 @@
           <div class="cta-card">
             <h2>Build with Desktop Material</h2>
             <p>
-              Clone the repo, follow the wiki, and try the completed M0–M18
-              Material roadmap. Contributions and follow-on refinements are
-              welcome.
+              Clone the repo, follow the wiki, try the completed M0–M18 Material
+              foundation, and help advance the living function-first Git and
+              GitHub parity roadmap.
             </p>
             <div class="hero-cta">
               <a

@@ -208,6 +208,19 @@ history later, use the named deepen-history action in **Repository tools**.
 
 ![Shallow clone with a commit-depth control](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-shallow-clone.png)
 
+### Deepen shallow history
+
+Open the **Tools** rail, find **History depth**, and choose **Check history status**. When Git reports
+a shallow boundary, choose **Review bounded deepen** to fetch a specific number of older commits or
+**Review full history** to remove the boundary deliberately. The review names the selected remote,
+scope, and consequence before the bundled Git runtime starts. Progress is cancellable, and the app
+rechecks the marker when the fetch completes.
+
+The production fixture began with 3 visible commits and finished with all 15; the clean screenshot
+below shows the final state. The raw verification receipt is retained in the P0 run manifest.
+
+![Repository Tools showing full history after a verified deepen](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepening.png)
+
 ### Sparse checkout
 
 Open **Repository → Manage sparse checkout…** to keep selected directories in a large worktree.
@@ -223,6 +236,36 @@ disabled state below leaves all working-tree paths eligible to appear locally.
 These forms wrap labels and stack actions as space narrows. Page-level sideways scrolling is not
 part of the workflow; only inherently spatial content such as code, diffs, and logs may scroll
 horizontally when preserving columns is necessary.
+
+### Create a pull request
+
+Open **Branch → Create pull request** while the head branch is checked out:
+
+1. Confirm the exact target repository and signed-in account.
+2. Choose the base branch; the current local branch is the fixed head.
+3. Enter a title and optional Markdown description, and choose whether to create a draft.
+4. Select **Review pull request** and verify repository, account, base/head, title, body, and draft
+   state.
+5. Select **Create pull request**. The success receipt offers **Done** and **Open on GitHub**.
+
+The app rejects ambiguous remote syntax and routes account problems to repository settings. The
+workflow does not expose `gh pr create`, editable arguments, or a raw REST request.
+
+![Native pull-request creation success with wrapped content](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
+
+### Inspect effective branch rules
+
+Open **Repository → Inspect branch rules…**. The non-modal sheet combines classic protection and
+rulesets for the checked-out branch into plain-language sections for reviews, checks, deployments,
+merge queue, verified signatures, linear history, update/delete/force policy, bypass context, and
+source rulesets. Use **Refresh** to load the same exact branch again.
+
+If no matching account is signed in, **Open account settings** is shown. If more than one account
+matches a legacy repository, **Open repository settings** opens the real repository-account picker;
+saving one records its stable `endpoint#id` identity. Unknown or partial policy evidence is stated
+instead of guessed.
+
+![Effective branch rules with long checks and policy details wrapped](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-effective-branch-rules.png)
 
 ---
 
@@ -270,6 +313,14 @@ The **Actions** panel brings CI into the app:
   without leaving Desktop Material. Search the loaded log to isolate a command, warning, or error.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
+- Select a run artifact to review its name, size, creation/expiry, workflow source, and GitHub digest.
+  **Download archive** opens the native save picker; after transfer, Desktop computes SHA-256 locally,
+  reports whether it matches, and offers **Show in folder**.
+- **Check attestations** reports whether an attestation record is present. Presence is not presented as
+  cryptographic verification: signer, signature, timestamp, source identity, and policy still need a
+  future verification function.
+
+![Actions artifact with digest match and attestation-presence context](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifacts.png)
 
 ---
 
@@ -281,8 +332,9 @@ Desktop Material scales its whole interface independently of the OS:
 - Or choose **auto-fit to window**, which picks a scale that fits the current window size.
 - Auto-fit treats your slider value as the requested maximum. If the window is too small, it caps
   the effective scale instead of multiplying the requested scale again. At the supported minimum
-  window size, 200% auto-fits to 96% so the title bar, navigation rail, Appearance cards, value,
-  and footer remain visible without horizontal clipping.
+  window size, 200% auto-fits below that maximum so the title bar, navigation rail, Appearance
+  cards, value, and footer remain visible without horizontal clipping. The latest P0 gate measured
+  94%; the older screenshot below records a 96% viewport.
 
 Combined with the animated light/dark theme, this lets you tune the workspace for a laptop panel, a
 4K monitor, or a shared screen without touching system display settings.

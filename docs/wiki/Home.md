@@ -9,12 +9,14 @@ workflow intact underneath.
 On top of that shell, Desktop Material ships multi-provider accounts and organizations, automation,
 GitHub Actions and logs, agent access, searchable graph History, multiple stashes, pull-all,
 multi-window workflows, per-account repository tabs, Git-backed settings and notifications, and a
-non-modal dialog framework.
+non-modal dialog framework. The active parity roadmap turns audited Git, `gh`, REST, and GraphQL
+capabilities into named app functions rather than a searchable command or endpoint catalogue.
 
 > **Status:** Desktop Material is in **active development**. Preview builds are published from the
 > project's [GitHub Releases](https://github.com/codingmachineedge/desktop-material/releases).
 > Feature-parity references come from [desktop-plus](https://github.com/severity1/desktop-plus)
-> (MIT).
+> (MIT). The current P0 function wave passed its exact off-screen production UI gate at
+> `9e946fd527` on `mega-feature-update` and promotes through the normal reviewed `main` path.
 
 ![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
 
@@ -29,10 +31,11 @@ non-modal dialog framework.
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
 | [Developer Guide](Developer-Guide) | Architecture for contributors — Electron windows, store/dispatcher flow, dugite, profile repos, agent server, CLI routing, and SCSS tokens. |
 | [Agent API](Agent-API) | Shipped MCP, local REST, stdio proxy, and CLI access for safe AI-agent control. |
+| [Living parity roadmap](https://github.com/codingmachineedge/desktop-material/blob/mega-feature-update/README.md#roadmaps) | Current named-function delivery waves, production UI gates, and the no-raw-command/API-browser product contract. |
 
 ---
 
-## Shipped today
+## Available and production-verified
 
 - **Material Design 3 Expressive shell** with animated light/dark theming and M3 color tokens: an
   app bar with an inline pill menu, a left icon navigation rail (Changes with a badge, History,
@@ -62,11 +65,34 @@ non-modal dialog framework.
   setting per account or repository, run commit-and-push immediately, and merge all branches or
   worktrees with per-target progress and Copilot-assisted conflict handling.
 - **GitHub Actions** — filter runs by workflow, branch, event, or status; re-run a complete run or
-  failed jobs; inspect jobs and steps; search job logs; and dispatch a workflow with a ref and
-  declared inputs.
+  failed jobs; inspect jobs and steps; search job logs; dispatch a workflow; and browse/download a
+  bounded artifact page with a local digest comparison and explicit attestation-presence context.
 - **Agent access** — opt in from Settings to start a token-gated MCP/REST server on a random
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
+
+### Verified native Git and GitHub functions
+
+- **Deepen shallow history** — Repository Tools detects the shallow boundary, reviews a bounded or
+  complete deepen, runs the bundled Git recipe, and rechecks the repository state. The production
+  fixture expanded from 3 visible commits to all 15.
+- **Create a pull request** — choose the exact repository, account, base, and current head; compose
+  the title and Markdown body; choose draft state; review; and submit without a raw command or API
+  editor.
+- **Actions artifacts** — select a workflow run and artifact, review size/expiry/source context,
+  save through the native file picker, compare the downloaded SHA-256 with GitHub's digest, reveal
+  the file, and distinguish attestation presence from cryptographic verification.
+- **Effective branch rules** — inspect reviews, checks, deployments, merge queue, signatures,
+  history, update/delete/force policy, bypass context, and source rulesets. Signed-out and ambiguous
+  repository-account states route to the relevant settings screen.
+
+![Final full-history state after a verified deepen](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepening.png)
+
+![Native pull-request creation success](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
+
+![Actions artifact download and digest evidence](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifacts.png)
+
+![Effective branch rules inspector](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-effective-branch-rules.png)
 
 ![Automation preferences with global and account overrides](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-automation.png)
 

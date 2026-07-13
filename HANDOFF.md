@@ -1,22 +1,112 @@
-# Desktop Material — Final Handoff
+# Desktop Material — Active parity handoff
 
 ## Outcome
 
-The requested roadmap is implemented: **M0 through M18 are complete and
-shipped on `main`** through the pre-documentation integration SHA
-`4da59bd38308fff45b48f09819d08cbc356ee946`. The implementation work, merge
-fixes, full local validation, production build, and final headless screenshots
-are complete. There is no remaining queued or in-flight feature work in
-[`PLAN.md`](PLAN.md).
+The legacy **M0 through M18** Material foundation remains shipped on `main`.
+The newer Git, GitHub CLI, GitHub API, and GitKraken-parity roadmap is active on
+`mega-feature-update`; it deliberately turns audited capabilities into named,
+interactive app functions instead of exposing a searchable command/API list.
 
-This file deliberately does **not** claim that the final documentation merge is
-already public. After these two closing documents are merged, the root
-integrator must verify the resulting `main` SHA, applicable CI and Pages runs,
-README/site assets, canonical wiki publication, and the final
-accessibility/clipping gate. That post-merge evidence belongs in the root's
-final response.
+The first four-function P0 wave is implemented, pushed, and production-UI
+verified at exact source SHA `9e946fd527e5843b2fdba5de675a5476b0c80445`:
+guided history deepening, native pull-request creation, Actions artifact
+download/digest context, and effective branch-rules inspection. The next
+checkpoint is a typed operation registry that removes arbitrary
+renderer-supplied Git argv, followed by the Pull Request Center, Actions
+completion, Issue Hub, and Release Manager listed in the README roadmap.
 
-## Completed milestone summary
+This handoff does not claim that branch-only Pages assets are already live on
+`main`. Pages remains protected to the normal reviewed `main` promotion path;
+the separate wiki can be updated independently after its existing content is
+merged rather than overwritten.
+
+## 2026-07-13 P0 production UI gate
+
+The exact unpackaged production build passed with:
+
+`npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`
+
+The build took 108.72 seconds. It ran at `9e946fd527` through the exact
+low-level MCP checkout `806d9ba85e4afbc2af58d7499496babfa7c68891` on one
+off-screen Win32 desktop. The visible user desktop was never shown, focused, or
+used for input. A loopback-only synthetic provider, disposable profile, true
+shallow Git fixture, and reserved `.invalid` repository identity kept all
+mutations and credentials out of public GitHub and the normal Desktop profile.
+
+### Functional receipts
+
+- **History deepening:** the fixture started with a real shallow marker and 3
+  visible commits. The bounded review fetched older history from `origin`; the
+  app then reported full history. Direct Git verification returned
+  `--is-shallow-repository=false`, 15 commits, branch
+  `feature/material-verification`, and upstream
+  `origin/feature/material-verification`.
+- **Native pull requests:** the purpose-built compose, review, and submit flow
+  created provider-only PRs #73 and #74 from `feature/material-verification` to
+  `main`. Long titles and Markdown bodies wrapped. The provider recorded
+  authorized HTTP 201 mutations; no public PR was created.
+- **Actions artifact:** the native Save dialog wrote the deterministic
+  2,097,728-byte archive. Its local SHA-256 exactly matched the provider digest:
+  `ff2e29e2ab05d44fb7e66c8242a8d74895232ad7ea2258255b91a9145fa5a783`.
+  The app reported attestation presence while explicitly withholding a
+  cryptographic-verification claim.
+- **Effective branch rules:** refresh loaded classic protection plus two
+  rulesets into seven plain-language sections with 12 state badges and no
+  alert. Signed-out and two-matching-account states exposed complete routes to
+  Accounts or Repository settings. The repository picker showed both accounts;
+  saving one persisted `http://localhost:54612/api/v3#7130701`.
+
+### Responsive, focus, and clipping receipts
+
+- At the product-enforced minimum outer width of 960, the auto-fit renderer had
+  a 1000 CSS-pixel viewport and `document.scrollWidth === clientWidth === 1000`.
+- The requested base scale reached 200% through **View → Zoom in**. Auto-fit
+  displayed the interface at 94% for the minimum window; the Appearance dialog
+  showed both values and stayed bounded at the shortest supported height.
+- At outer height 660, dense Branch Rules and confirmation content scrolled
+  vertically inside its surface. Geometry inspection found no element outside
+  the viewport and no document-level horizontal overflow.
+- Branch Rules and Sparse Checkout were opened together. The front sheet owned
+  focus and dismissal; closing it restored focus to Sparse Checkout. Both
+  remained non-modal and horizontally contained.
+- Long repository, branch, check, deployment, artifact, digest, path, account,
+  title, and body values wrapped. No measured state had clipped controls,
+  overlapping/oversized text, or page-level sideways scrolling. Horizontal
+  scrolling remains reserved for intrinsically spatial code, diff, and log
+  content.
+
+Win32 background input and the native Save dialog were exercised through the
+low-level server. Chromium ignored background-posted clicks and PrintWindow
+occasionally returned stale/black compositor pixels, so the allowlisted
+app-native CDP fallback drove renderer controls and captured the stable original
+surface. Every promoted candidate was reopened at original resolution.
+
+| Promoted screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-history-deepening.png` | 944×660 | 70,047 | `a03f313b604ade9eb4458aaccffe2807c7580e53651215d52b75d9ddbfc181e2` |
+| `docs/assets/screenshots/material-create-pull-request.png` | 944×660 | 76,575 | `93c8ec71c65e73414419d46214dd5849a128908e7336b08786ab677cd9f48022` |
+| `docs/assets/screenshots/material-actions-artifacts.png` | 944×1000 | 106,252 | `326a27a927fa668444487f0dff3ef71c8b81eaf53e5d300b554d07a62541ae42` |
+| `docs/assets/screenshots/material-effective-branch-rules.png` | 944×1000 | 107,573 | `7a4533aa0e9b40644ac2fb55ceb3fe0788ccb502137e370fd1762925a685bfd6` |
+
+The two 944×1000 captures intentionally preserve tall original viewports of the
+dense Actions and Branch Rules states, including their visible internal scroll
+positions. They are original screenshots, not stitched or resized images.
+
+The Pages publish layout was also assembled exactly under the owned run root.
+All 21 images loaded with nonzero natural dimensions. At 944×660 the document
+width was 929 with matching scroll/client widths and zero visible overflows. At
+390×844 mobile emulation the document width was 375 with matching widths; the
+four P0 cards collapsed into one 259-pixel-wide column with wrapped captions.
+Desktop, P0-gallery, and mobile-P0 captures were visually inspected before
+cleanup. All 33 formerly parent-relative screenshot URLs in the Pages source
+were corrected to publish-root-relative paths.
+
+Cleanup completed: the exact disposable development-channel credential was
+deleted and read back absent; the app, provider, CDP endpoint, provider port,
+and off-screen desktop were gone; and the containment-checked owned Temp root
+was removed. No normal Desktop profile or public provider state was changed.
+
+## Legacy M0-M18 milestone summary
 
 | Milestone | Status | Shipped result |
 | --- | --- | --- |
@@ -71,7 +161,7 @@ These are the first paths to inspect when maintaining each subsystem:
   `app/src/ui/actions/`, `app/src/lib/agent-commands.ts`,
   `app/src/main-process/agent-server/`,
   `app/src/lib/agent-command-executor.ts`, `script/agent/`, and
-  `docs/agent-api.md`.
+  `docs/wiki/Agent-API.md`.
 - **Repository parity:** `app/src/lib/databases/repositories-database.ts`,
   `app/src/ui/repository-settings/`, `app/src/ui/pull-all/`,
   `app/src/ui/history/`, `app/src/ui/diff/image-diffs/`,
@@ -152,9 +242,9 @@ is reserved for spatial code, diff, or log content.
 
 ## Headless verification environment
 
-- Project: `C:\Users\cntow\Documents\GitHub\desktop-material`
-- MCP checkout: `C:\Users\cntow\Documents\GitHub\lowlevel-computer-use-mcp`
-- Required MCP SHA: `beed66ca6ed2503e6170ee1e1158247f1c2f0140`
+- Project: `C:\Users\Administrator\Documents\GitHub\desktop-material`
+- MCP checkout: `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`
+- MCP SHA used by the P0 gate: `806d9ba85e4afbc2af58d7499496babfa7c68891`
 - MCP endpoint: `http://127.0.0.1:8765/mcp`
 - Skill and client: `.codex/skills/verify-desktop-material-headless/`
 - Release runtime: Node **24.15.0** from `.tool-versions`; when system Node 26
@@ -202,9 +292,10 @@ following against the resulting final `main` SHA:
 7. **Final evidence:** record the pushed SHA, workflow URLs, public URLs, wiki
    SHA, response status, screenshot names/sizes/hashes, and audit result.
 
-Until root completes that gate, the correct status is: **all implementation
-milestones and local/headless verification are complete; final public
-verification for the documentation merge is pending root finalization**.
+For the legacy M0-M18 foundation, final public verification still follows that
+gate. The newer function-first parity roadmap is intentionally active: the P0
+four-function slice is production-verified, its documentation publication is in
+progress, and the typed-operation/PR/Actions/Issue/Release waves remain next.
 
 ## Maintenance constraints
 

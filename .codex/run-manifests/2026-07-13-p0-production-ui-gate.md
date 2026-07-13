@@ -63,17 +63,62 @@
 - Exact unpackaged production build through MCP.
 - Off-screen interaction, focus ownership, geometry, original-pixel screenshot inspection, PNG dimension/SHA-256 checks, Markdown/Pages/wiki reference checks, full/cached diff review, and secret/private-path scan.
 
+## Executed results
+
+- Exact built and exercised source: `9e946fd527e5843b2fdba5de675a5476b0c80445` on `mega-feature-update`.
+- Exact MCP checkout: `806d9ba85e4afbc2af58d7499496babfa7c68891`; endpoint startup was healthy at `http://127.0.0.1:8765/mcp`.
+- Exact production command passed in 108.72 seconds: `npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`.
+- The retained provider harness passed 7/7 tests and the live probe: CORS, repository identity, nine effective rules across two rulesets, Actions workflow/run/artifact metadata, exact 2,097,728-byte artifact digest, attestation presence, smart-HTTP clone/deepen, and receive-pack rejection.
+- The app completed a bounded history deepen. Direct fixture verification after the UI flow returned shallow `false`, 15 commits, branch `feature/material-verification`, upstream `origin/feature/material-verification`, stored remote `http://material-provider.invalid/material-fixture-owner/material-fixture.git`, and head `09d7ed3e257b60330ebd51aac1d9dd9fd4494e47`.
+- Native PR review/create produced synthetic provider-only PR #73, and the clean documentation recapture produced #74. The provider recorded authorized HTTP 201 mutations. No public pull request was created.
+- Actions downloaded artifact 84301 through the native Save dialog. The written 2,097,728-byte file had SHA-256 `ff2e29e2ab05d44fb7e66c8242a8d74895232ad7ea2258255b91a9145fa5a783`, exactly matching the advertised digest. Attestation lookup returned a presence record; the UI correctly did not claim signature/signer/policy verification.
+- Effective Branch Rules loaded classic branch protection plus two rulesets into seven sections with 12 state badges. Refresh, signed-out recovery, two-matching-account recovery, and the real Repository account picker were exercised. Saving the selected account persisted `http://localhost:54612/api/v3#7130701`.
+
+### Responsive and geometry receipts
+
+- Product-enforced minimum outer width: 960. With auto-fit active, renderer viewport width was 1000 CSS pixels and `document.scrollWidth === document.clientWidth === 1000`.
+- Requested scale reached 200% through five actual **View -> Zoom in** actions. Appearance showed requested **Scale 200%**, auto-fit enabled, and effective **94%** for the minimum window.
+- The shortest supported outer height was 660. Branch Rules and Settings content stayed bounded and scrolled vertically; DOM inspection found no element outside the viewport and no page-level horizontal overflow.
+- Mixed Branch Rules and Sparse Checkout sheets deliberately cascaded. Branch Rules owned focus and dismissal while in front; closing it restored focus to the Sparse Checkout section.
+- Signed-out and ambiguous-account Branch Rules states both had zero overflowing descendants and complete settings routes. The account dialog listed both matching identities before one was saved.
+- Long repository, branch, ruleset, check, deployment, artifact, digest, path, account, PR title, and PR body values wrapped without clipped controls, oversized/overlapped text, or a sideways page scrollbar.
+
+### Interaction and capture fallback
+
+- Low-level Win32 background input was attempted first. The native Save dialog was successfully driven through child HWND discovery, `WM_SETTEXT`, and a background Save click.
+- Chromium ignored background-posted clicks and PrintWindow returned stale/black compositor frames during renderer interaction. As allowlisted by this manifest, the run used only the app-native loopback CDP endpoint for renderer clicks, DOM geometry checks, and `Page.captureScreenshot`. `show_headless_desktop`, global focus, global input, and visible-desktop switching were never used.
+- Clean public history and PR captures were recaptured at the minimum supported height after the functional receipts. The public history image shows the final full-history state; raw capture `07-history-success.png` was the interaction receipt containing “Fetched older history from origin. This repository now has full history.”
+
+### Promoted screenshot ledger
+
+| Target | Source capture | Dimensions | Bytes | SHA-256 |
+| --- | --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-history-deepening.png` | `25-history-full-clean.png` | 944×660 | 70,047 | `a03f313b604ade9eb4458aaccffe2807c7580e53651215d52b75d9ddbfc181e2` |
+| `docs/assets/screenshots/material-create-pull-request.png` | `27-pr-success-clean.png` | 944×660 | 76,575 | `93c8ec71c65e73414419d46214dd5849a128908e7336b08786ab677cd9f48022` |
+| `docs/assets/screenshots/material-actions-artifacts.png` | `13-actions-artifact-full.png` | 944×1000 | 106,252 | `326a27a927fa668444487f0dff3ef71c8b81eaf53e5d300b554d07a62541ae42` |
+| `docs/assets/screenshots/material-effective-branch-rules.png` | `14-branch-rules.png` | 944×1000 | 107,573 | `7a4533aa0e9b40644ac2fb55ceb3fe0788ccb502137e370fd1762925a685bfd6` |
+
+The 944×1000 Actions and Branch Rules images are intentional original captures for vertically dense surfaces. No public image was cropped, stitched, resized, or generated.
+
+### Pages source verification
+
+- The Pages workflow layout was reproduced under the owned run root: `site/index.html` and `site/style.css` at the publish root plus `docs/assets/screenshots/` beneath it.
+- All 21 page images were forced through lazy loading and completed with nonzero natural dimensions; all four P0 assets reported their exact tracked dimensions.
+- Desktop capture used a 944×660 viewport. The document width was 929 and `scrollWidth === clientWidth`; no visible element crossed either viewport edge.
+- Mobile emulation used 390×844. The document width was 375 and `scrollWidth === clientWidth`; zero visible elements overflowed horizontally. The four P0 gallery cards collapsed to one 259-pixel-wide column with wrapped captions.
+- Original captures `28-pages-desktop.png`, `29-pages-p0-gallery.png`, and `31-pages-mobile-p0.png` were visually inspected. They remained raw run evidence rather than tracked product screenshots.
+
 ## Cleanup ledger
 
 - Run id: `dm-p0-ui-20260713-c7e68853`
 - Owned root: `%TEMP%\desktop-material-p0-ui-20260713-c7e68853` (resolve absolute path after creation)
 - Resolved owned root: `C:\Users\Administrator\AppData\Local\Temp\desktop-material-p0-ui-20260713-c7e68853`
-- Fixture/remotes: deterministic 15-commit source and bare smart-HTTP repository under `git-source` / `git-http`; disposable true-shallow clone at `fixture`, feature head `09d7ed3e257b60330ebd51aac1d9dd9fd4494e47`, main head `ce9c1605e167f0cb045b549834302f859808772c`, stored remote `http://material-provider.invalid/material-fixture-owner/material-fixture.git`, feature upstream `origin/feature/material-verification`, `origin/main` present, visible commit count 3
+- Fixture/remotes: deterministic 15-commit source and bare smart-HTTP repository under `git-source` / `git-http`; disposable true-shallow clone at `fixture`, feature head `09d7ed3e257b60330ebd51aac1d9dd9fd4494e47`, main head `ce9c1605e167f0cb045b549834302f859808772c`, stored remote `http://material-provider.invalid/material-fixture-owner/material-fixture.git`, feature upstream `origin/feature/material-verification`, `origin/main` present, initially 3 visible commits and finally all 15
 - Retained verification harness: `.codex/verification`; 7/7 pure/HTTP/Git integration tests pass, and the live probe passes CORS, repository identity, nine branch rules across two rulesets, one workflow/run/artifact, exact 2,097,728-byte SHA-256/digest agreement, attestation presence, proxy clone/deepen, and receive-pack rejection
 - Isolated profile/home/config: created empty at `profile`, `home`, and `config`; no normal Desktop profile was read or changed
-- Fake provider: currently PID `16980`, loopback port `51292`, API endpoint `http://localhost:51292/api/v3`, provider identity `http://material-provider.invalid`; dummy credential service `GitHub - http://localhost:51292/api/v3` with login `material-verifier-p0` is not seeded yet; requests log under `provider/requests.jsonl`
+- Fake provider: PID `17320` (launcher `17420`), loopback port `54612`, API endpoint `http://localhost:54612/api/v3`, provider identity `http://material-provider.invalid`; development-channel credential service `GitHub Desktop Dev - http://localhost:54612/api/v3`, login `material-verifier-p0`; requests log under `provider/requests.jsonl`
 - Desktop name: `DesktopMaterialP0-20260713-c7e68853`
-- Desktop create state/handle: not created
-- Launch PID/resolved HWND: not launched/not resolved
-- Captures/promoted SHA-256 values: pending
-- Cleanup result: active run; no desktop/app/credential exists yet, and final cleanup remains pending until owned windows, PIDs, listeners, desktop, credential, downloads, and paths are verified absent
+- Desktop create state/handle: created once; never shown or switched to the visible desktop
+- Launch PID/resolved HWND: isolated Electron launched; app HWND `20448912`, title `material-fixture - Desktop Material`, CDP port `59503`
+- Captures/promoted SHA-256 values: recorded in the promoted screenshot ledger above; all four tracked copies matched their inspected sources exactly
+- Cleanup result: complete. The exact `GitHub Desktop Dev - http://localhost:54612/api/v3` / `material-verifier-p0` credential was deleted and read back absent; the secondary test identity had no credential. The app window closed, CDP port 59503 disappeared, provider PID 17320 stopped (its launcher 17420 exited with it), and port 54612 had no listener. `DesktopMaterialP0-20260713-c7e68853` closed exactly once and subsequent open returned not found. The containment-checked owned root was removed and `Test-Path` returned false.
