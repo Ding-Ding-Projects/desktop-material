@@ -6,6 +6,9 @@ export const ActionsArtifactProvenancePredicate =
 export const ActionsArtifactProvenanceIssuer =
   'https://token.actions.githubusercontent.com'
 
+/** gh's projected JSON is independently bounded from provider bundle input. */
+export const ActionsArtifactProvenanceMaximumProjectedBytes = 1024 * 1024
+
 /** Fetch one extra record so the app can fail closed above its bundle limit. */
 export const ActionsArtifactAttestationProbePageSize = 31
 export const ActionsArtifactAttestationMaximumBundles = 30
@@ -26,8 +29,6 @@ const repositoryPartPattern = /^[A-Za-z0-9_.-]{1,100}$/
 const fullRefPattern = /^refs\/(?:heads|tags|pull)\/[\x21-\x7e]{1,1024}$/
 const workflowPathPattern =
   /^\.github\/workflows\/[A-Za-z0-9_./-]{1,1000}\.ya?ml$/
-const referencedWorkflowPattern =
-  /^([^/]+)\/([^/]+)\/(\.github\/workflows\/[A-Za-z0-9_./-]{1,1000}\.ya?ml)@([a-f0-9]{40}(?:[a-f0-9]{24})?)$/
 
 export interface IActionsArtifactAttestationBundleSet {
   /** Canonical one-line JSON objects suitable for a private JSONL file. */
@@ -70,11 +71,17 @@ export interface IActionsArtifactSignerCandidate {
 export interface IActionsArtifactVerificationPolicy {
   readonly sourceRepositoryURI: string
   readonly sourceDigest: string
-  readonly sourceRef: string | null
+  /** An authoritative full ref; branch names are never expanded into refs. */
+  readonly sourceRef: string
   readonly signerIdentity: string
   readonly signerDigest: string
-  readonly repositoryVisibility: 'public' | 'private'
+  readonly repositoryVisibility: ActionsArtifactRepositoryVisibility
 }
+
+export type ActionsArtifactRepositoryVisibility =
+  | 'public'
+  | 'private'
+  | 'internal'
 
 export interface IActionsArtifactVerificationTimestamp {
   readonly type: string
@@ -82,22 +89,30 @@ export interface IActionsArtifactVerificationTimestamp {
   readonly uri: string | null
 }
 
+export interface IActionsArtifactVerifiedAttestation {
+  readonly subjectNames: ReadonlyArray<string>
+  readonly certificateIssuer: string
+  readonly runInvocationURI: string
+  readonly timestamps: ReadonlyArray<IActionsArtifactVerificationTimestamp>
+}
+
+/**
+ * Policy fields are common because every projected record is checked against
+ * them. Per-attestation subject names, issuer, invocation, and timestamps stay
+ * separate so a multi-attestation result is never presented as one certificate.
+ */
 export interface IActionsArtifactVerificationEvidence {
-  readonly subjectName: string
   readonly subjectDigest: string
   readonly predicateType: typeof ActionsArtifactProvenancePredicate
-  readonly certificateIssuer: string
   readonly signerIdentity: string
   readonly signerDigest: string
-  readonly oidcIssuer: typeof ActionsArtifactProvenanceIssuer
+  readonly oidcIssuer: string
   readonly runnerEnvironment: 'github-hosted'
   readonly sourceRepositoryURI: string
   readonly sourceRepositoryDigest: string
   readonly sourceRepositoryRef: string
-  readonly sourceRepositoryVisibilityAtSigning: string
-  readonly runInvocationURI: string
-  readonly timestamps: ReadonlyArray<IActionsArtifactVerificationTimestamp>
-  readonly verifiedAttestations: number
+  readonly sourceRepositoryVisibilityAtSigning: ActionsArtifactRepositoryVisibility
+  readonly attestations: ReadonlyArray<IActionsArtifactVerifiedAttestation>
 }
 
 export type ActionsArtifactProvenanceFailureReason =
@@ -130,18 +145,19 @@ export type ActionsArtifactProvenanceResult =
     }
 
 export interface IActionsArtifactReferencedWorkflow {
-  readonly path: string
-  readonly ref: string
-  readonly sha: string
+  readonly path?: string | null
+  readonly ref?: string | null
+  readonly sha?: string | null
 }
 
 export interface IActionsArtifactSignerCandidateInput {
-  readonly host: string
+  /** Account API endpoint, mapped through the strict verifier host boundary. */
+  readonly endpoint: string
   readonly owner: string
   readonly repository: string
   readonly sourceDigest: string
   readonly sourceRef: string | null
-  readonly workflowPath?: string
+  readonly workflowPath?: string | null
   readonly referencedWorkflows?: ReadonlyArray<IActionsArtifactReferencedWorkflow>
 }
 
@@ -156,6 +172,18 @@ function record(value: unknown, label: string): Record<string, unknown> {
     throw new Error(`GitHub returned an invalid ${label}.`)
   }
   return value as Record<string, unknown>
+}
+
+function hasExactKeys(
+  value: Record<string, unknown>,
+  keys: ReadonlyArray<string>
+): boolean {
+  const actual = Object.keys(value).sort()
+  const expected = [...keys].sort()
+  return (
+    actual.length === expected.length &&
+    actual.every((key, index) => key === expected[index])
+  )
 }
 
 function validateJSONValue(
@@ -314,6 +342,178 @@ function normalizeHost(value: unknown): string {
   return value
 }
 
+/** Map only supported GitHub API/web endpoints to the certificate web host. */
+export function getActionsArtifactProvenanceWebHost(endpoint: unknown): string {
+  if (typeof endpoint !== 'string' || endpoint.length > 2048) {
+    throw new Error('Artifact provenance endpoint is invalid.')
+  }
+  let parsed: URL
+  try {
+    parsed = new URL(endpoint)
+  } catch {
+    throw new Error('Artifact provenance endpoint is invalid.')
+  }
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.username !== '' ||
+    parsed.password !== '' ||
+    parsed.port !== '' ||
+    parsed.search !== '' ||
+    parsed.hash !== ''
+  ) {
+    throw new Error('Artifact provenance endpoint is invalid.')
+  }
+
+  const path = parsed.pathname.replace(/\/+$/, '')
+  const host = normalizeHost(parsed.hostname)
+  if ((host === 'api.github.com' || host === 'github.com') && path === '') {
+    return 'github.com'
+  }
+  if (host.endsWith('.ghe.com') && host !== 'ghe.com') {
+    const webHost = host.startsWith('api.') ? host.slice(4) : host
+    const tenant = webHost.slice(0, -'.ghe.com'.length)
+    if (
+      tenant.length > 0 &&
+      !tenant.includes('.') &&
+      /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(tenant) &&
+      (path === '' || path === '/api' || path === '/api/v3')
+    ) {
+      return `${tenant}.ghe.com`
+    }
+  }
+  throw new Error('Artifact provenance host is unsupported.')
+}
+
+/** Exact certificate OIDC issuer for GitHub.com or one GHE.com tenant. */
+export function getActionsArtifactProvenanceOIDCIssuer(
+  endpoint: unknown
+): string {
+  const host = getActionsArtifactProvenanceWebHost(endpoint)
+  return host === 'github.com'
+    ? ActionsArtifactProvenanceIssuer
+    : `https://token.actions.${host}`
+}
+
+function normalizeSourceRepositoryURI(value: unknown): {
+  readonly uri: string
+  readonly host: string
+} {
+  if (typeof value !== 'string' || value.length > 2048) {
+    throw new Error('Artifact provenance source repository is invalid.')
+  }
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error('Artifact provenance source repository is invalid.')
+  }
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.username !== '' ||
+    parsed.password !== '' ||
+    parsed.port !== '' ||
+    parsed.search !== '' ||
+    parsed.hash !== ''
+  ) {
+    throw new Error('Artifact provenance source repository is invalid.')
+  }
+  const host = getActionsArtifactProvenanceWebHost(parsed.origin)
+  if (parsed.hostname !== host) {
+    throw new Error('Artifact provenance source repository is invalid.')
+  }
+  const parts = parsed.pathname.split('/').slice(1)
+  if (parts.length !== 2) {
+    throw new Error('Artifact provenance source repository is invalid.')
+  }
+  const owner = normalizeRepositoryPart(parts[0], 'source owner')
+  const repository = normalizeRepositoryPart(parts[1], 'source repository')
+  const uri = `https://${host}/${owner}/${repository}`
+  if (value !== uri) {
+    throw new Error('Artifact provenance source repository is invalid.')
+  }
+  return { uri, host }
+}
+
+function normalizeSignerIdentity(value: unknown, expectedHost: string): string {
+  if (typeof value !== 'string' || value.length > 4096) {
+    throw new Error('Artifact provenance signer identity is invalid.')
+  }
+  let parsed: URL
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error('Artifact provenance signer identity is invalid.')
+  }
+  if (
+    parsed.protocol !== 'https:' ||
+    parsed.hostname !== expectedHost ||
+    parsed.username !== '' ||
+    parsed.password !== '' ||
+    parsed.port !== '' ||
+    parsed.search !== '' ||
+    parsed.hash !== ''
+  ) {
+    throw new Error('Artifact provenance signer identity is invalid.')
+  }
+  const identityPath = parsed.pathname.slice(1)
+  const suffixAt = identityPath.lastIndexOf('@')
+  if (suffixAt <= 0 || identityPath.slice(0, suffixAt).includes('@')) {
+    throw new Error('Artifact provenance signer identity is invalid.')
+  }
+  const parts = identityPath.slice(0, suffixAt).split('/')
+  if (parts.length < 5) {
+    throw new Error('Artifact provenance signer identity is invalid.')
+  }
+  const owner = normalizeRepositoryPart(parts[0], 'signer owner')
+  const repository = normalizeRepositoryPart(parts[1], 'signer repository')
+  const workflow = normalizeWorkflowPath(parts.slice(2).join('/'))
+  const ref = normalizeActionsArtifactFullRef(identityPath.slice(suffixAt + 1))
+  const identity = `https://${expectedHost}/${owner}/${repository}/${workflow}@${ref}`
+  if (value !== identity) {
+    throw new Error('Artifact provenance signer identity is invalid.')
+  }
+  return identity
+}
+
+export function normalizeActionsArtifactRepositoryVisibility(
+  value: unknown
+): ActionsArtifactRepositoryVisibility {
+  if (value !== 'public' && value !== 'private' && value !== 'internal') {
+    throw new Error('Artifact provenance repository visibility is invalid.')
+  }
+  return value
+}
+
+/** Revalidate the complete fixed policy before it reaches the verifier. */
+export function normalizeActionsArtifactVerificationPolicy(
+  value: unknown
+): IActionsArtifactVerificationPolicy {
+  const policy = record(value, 'artifact provenance policy')
+  if (
+    !hasExactKeys(policy, [
+      'repositoryVisibility',
+      'signerDigest',
+      'signerIdentity',
+      'sourceDigest',
+      'sourceRef',
+      'sourceRepositoryURI',
+    ])
+  ) {
+    throw new Error('Artifact provenance policy is invalid.')
+  }
+  const source = normalizeSourceRepositoryURI(policy.sourceRepositoryURI)
+  return {
+    sourceRepositoryURI: source.uri,
+    sourceDigest: normalizeActionsArtifactGitObjectId(policy.sourceDigest),
+    sourceRef: normalizeActionsArtifactFullRef(policy.sourceRef),
+    signerIdentity: normalizeSignerIdentity(policy.signerIdentity, source.host),
+    signerDigest: normalizeActionsArtifactGitObjectId(policy.signerDigest),
+    repositoryVisibility: normalizeActionsArtifactRepositoryVisibility(
+      policy.repositoryVisibility
+    ),
+  }
+}
+
 function normalizeWorkflowPath(value: unknown): string {
   if (
     typeof value !== 'string' ||
@@ -327,9 +527,41 @@ function normalizeWorkflowPath(value: unknown): string {
   return value
 }
 
+function directWorkflowPath(value: string, sourceRef: string): string | null {
+  const suffixAt = value.lastIndexOf('@')
+  const rawPath = suffixAt === -1 ? value : value.slice(0, suffixAt)
+  if (
+    (suffixAt !== -1 && value.slice(suffixAt + 1) !== sourceRef) ||
+    rawPath.includes('@')
+  ) {
+    return null
+  }
+  try {
+    return normalizeWorkflowPath(rawPath)
+  } catch {
+    return null
+  }
+}
+
+function referencedWorkflowSuffixMatches(
+  suffix: string,
+  digest: string,
+  ref: string
+): boolean {
+  if (suffix === digest || suffix === ref) {
+    return true
+  }
+  for (const prefix of ['refs/heads/', 'refs/tags/']) {
+    if (ref.startsWith(prefix) && suffix === ref.slice(prefix.length)) {
+      return true
+    }
+  }
+  return false
+}
+
 /** Build exact, reviewed workflow identities only from complete run metadata. */
 export function buildActionsArtifactSignerCandidates({
-  host: rawHost,
+  endpoint,
   owner: rawOwner,
   repository: rawRepository,
   sourceDigest: rawSourceDigest,
@@ -337,7 +569,7 @@ export function buildActionsArtifactSignerCandidates({
   workflowPath,
   referencedWorkflows = [],
 }: IActionsArtifactSignerCandidateInput): ReadonlyArray<IActionsArtifactSignerCandidate> {
-  const host = normalizeHost(rawHost)
+  const host = getActionsArtifactProvenanceWebHost(endpoint)
   const owner = normalizeRepositoryPart(rawOwner, 'owner')
   const repository = normalizeRepositoryPart(rawRepository, 'repository')
   const sourceDigest = normalizeActionsArtifactGitObjectId(rawSourceDigest)
@@ -345,16 +577,18 @@ export function buildActionsArtifactSignerCandidates({
     rawSourceRef === null ? null : normalizeActionsArtifactFullRef(rawSourceRef)
   const candidates = new Array<IActionsArtifactSignerCandidate>()
 
-  if (workflowPath !== undefined && sourceRef !== null) {
-    const path = normalizeWorkflowPath(workflowPath)
-    candidates.push({
-      identity: `https://${host}/${owner}/${repository}/${path}@${sourceRef}`,
-      digest: sourceDigest,
-      repository: `${owner}/${repository}`,
-      workflowPath: path,
-      ref: sourceRef,
-      kind: 'current-workflow',
-    })
+  if (typeof workflowPath === 'string' && sourceRef !== null) {
+    const path = directWorkflowPath(workflowPath, sourceRef)
+    if (path !== null) {
+      candidates.push({
+        identity: `https://${host}/${owner}/${repository}/${path}@${sourceRef}`,
+        digest: sourceDigest,
+        repository: `${owner}/${repository}`,
+        workflowPath: path,
+        ref: sourceRef,
+        kind: 'current-workflow',
+      })
+    }
   }
 
   for (const workflow of referencedWorkflows) {
@@ -365,20 +599,51 @@ export function buildActionsArtifactSignerCandidates({
     ) {
       throw new Error('Artifact provenance referenced workflow is invalid.')
     }
-    const digest = normalizeActionsArtifactGitObjectId(workflow.sha)
-    const ref = normalizeActionsArtifactFullRef(workflow.ref)
-    const match = referencedWorkflowPattern.exec(workflow.path)
-    if (match === null || match[4].toLowerCase() !== digest) {
-      throw new Error(
-        'Artifact provenance referenced workflow path is invalid.'
-      )
+    if (
+      typeof workflow.path !== 'string' ||
+      typeof workflow.sha !== 'string' ||
+      typeof workflow.ref !== 'string'
+    ) {
+      continue
     }
-    const candidateOwner = normalizeRepositoryPart(match[1], 'signer owner')
-    const candidateRepository = normalizeRepositoryPart(
-      match[2],
-      'signer repository'
-    )
-    const path = normalizeWorkflowPath(match[3])
+    let digest: string
+    let ref: string
+    try {
+      digest = normalizeActionsArtifactGitObjectId(workflow.sha)
+      ref = normalizeActionsArtifactFullRef(workflow.ref)
+    } catch {
+      continue
+    }
+    const suffixAt = workflow.path.lastIndexOf('@')
+    if (
+      suffixAt <= 0 ||
+      !referencedWorkflowSuffixMatches(
+        workflow.path.slice(suffixAt + 1),
+        digest,
+        ref
+      ) ||
+      workflow.path.slice(0, suffixAt).includes('@')
+    ) {
+      continue
+    }
+    const identityPath = workflow.path.slice(0, suffixAt)
+    const parts = identityPath.split('/')
+    if (parts.length < 5) {
+      continue
+    }
+    let candidateOwner: string
+    let candidateRepository: string
+    let path: string
+    try {
+      candidateOwner = normalizeRepositoryPart(parts[0], 'signer owner')
+      candidateRepository = normalizeRepositoryPart(
+        parts[1],
+        'signer repository'
+      )
+      path = normalizeWorkflowPath(parts.slice(2).join('/'))
+    } catch {
+      continue
+    }
     candidates.push({
       identity: `https://${host}/${candidateOwner}/${candidateRepository}/${path}@${ref}`,
       digest,

@@ -4,10 +4,13 @@ import {
   ActionsArtifactAttestationMaximumBundles,
   ActionsArtifactAttestationMaximumBytes,
   buildActionsArtifactSignerCandidates,
+  getActionsArtifactProvenanceOIDCIssuer,
+  getActionsArtifactProvenanceWebHost,
   normalizeActionsArtifactFullRef,
   normalizeActionsArtifactGitObjectId,
   normalizeActionsArtifactProvenanceOperationId,
   normalizeActionsArtifactSHA256,
+  normalizeActionsArtifactVerificationPolicy,
   parseActionsArtifactAttestationBundles,
 } from '../../src/lib/actions-artifact-provenance'
 
@@ -134,7 +137,7 @@ describe('Actions artifact provenance contracts', () => {
 
   it('builds exact direct and reusable signer choices without inventing refs', () => {
     const common = {
-      host: 'github.com',
+      endpoint: 'https://api.github.com',
       owner: 'actions',
       repository: 'attest',
       sourceDigest: sha,
@@ -179,35 +182,145 @@ describe('Actions artifact provenance contracts', () => {
     })
     assert.equal(withoutSourceRef.length, 1)
     assert.equal(withoutSourceRef[0].kind, 'reusable-workflow')
+
+    const exactDirectSuffix = buildActionsArtifactSignerCandidates({
+      ...common,
+      workflowPath: '.github/workflows/prober-public-good.yml@refs/heads/main',
+      referencedWorkflows: [],
+      sourceRef: 'refs/heads/main',
+    })
+    assert.equal(exactDirectSuffix.length, 1)
+    assert.equal(exactDirectSuffix[0].kind, 'current-workflow')
   })
 
-  it('rejects incomplete or mismatched signer metadata', () => {
+  it('maps only canonical GitHub.com and tenant GHE.com trust hosts', () => {
+    assert.equal(
+      getActionsArtifactProvenanceWebHost('https://api.github.com'),
+      'github.com'
+    )
+    assert.equal(
+      getActionsArtifactProvenanceWebHost('https://api.octocorp.ghe.com/'),
+      'octocorp.ghe.com'
+    )
+    assert.equal(
+      getActionsArtifactProvenanceWebHost('https://octocorp.ghe.com/api/v3'),
+      'octocorp.ghe.com'
+    )
+    assert.equal(
+      getActionsArtifactProvenanceOIDCIssuer('https://api.github.com'),
+      'https://token.actions.githubusercontent.com'
+    )
+    assert.equal(
+      getActionsArtifactProvenanceOIDCIssuer('https://api.octocorp.ghe.com'),
+      'https://token.actions.octocorp.ghe.com'
+    )
+
+    for (const endpoint of [
+      'http://api.github.com',
+      'https://github.example.com/api/v3',
+      'https://api.foo.bar.ghe.com',
+      'https://ghe.com',
+      'https://api.github.com/attestations',
+      'https://api.github.com:444',
+      'https://user@api.github.com',
+    ]) {
+      assert.throws(() => getActionsArtifactProvenanceWebHost(endpoint))
+    }
+  })
+
+  it('requires one complete exact verification policy', () => {
+    const policy = {
+      sourceRepositoryURI: 'https://github.com/actions/attest',
+      sourceDigest: sha,
+      sourceRef: 'refs/heads/main',
+      signerIdentity:
+        'https://github.com/actions/attest/.github/workflows/prober.yml@refs/heads/main',
+      signerDigest: sha,
+      repositoryVisibility: 'internal',
+    }
+    assert.deepEqual(normalizeActionsArtifactVerificationPolicy(policy), policy)
+
+    for (const invalid of [
+      { ...policy, sourceRef: null },
+      { ...policy, sourceRef: 'main' },
+      { ...policy, repositoryVisibility: 'unknown' },
+      {
+        ...policy,
+        sourceRepositoryURI: 'https://api.github.com/actions/attest',
+      },
+      { ...policy, extra: true },
+    ]) {
+      assert.throws(() => normalizeActionsArtifactVerificationPolicy(invalid))
+    }
+  })
+
+  it('skips incomplete, mismatched, or unsafe signer metadata', () => {
     assert.throws(() =>
       buildActionsArtifactSignerCandidates({
-        host: 'GitHub.com',
+        endpoint: 'https://github.example.com/api/v3',
         owner: 'actions',
         repository: 'attest',
         sourceDigest: sha,
         sourceRef: 'refs/heads/main',
       })
     )
-    assert.throws(() =>
-      buildActionsArtifactSignerCandidates({
-        host: 'github.com',
+    const candidates = buildActionsArtifactSignerCandidates({
+      endpoint: 'https://api.github.com',
+      owner: 'actions',
+      repository: 'attest',
+      sourceDigest: sha,
+      sourceRef: 'refs/heads/main',
+      workflowPath: '.github/workflows/direct.yml@main',
+      referencedWorkflows: [
+        {
+          path: `actions/attest/.github/workflows/prober.yml@${'b'.repeat(40)}`,
+          ref: 'refs/heads/main',
+          sha,
+        },
+        {
+          path: 'actions/attest/.github/workflows/prober.yml@main',
+          sha,
+        },
+        {
+          path: 'actions/attest/.github/workflows/prober.yml@main\u0000',
+          ref: 'refs/heads/main',
+          sha,
+        },
+      ],
+    })
+    assert.deepEqual(candidates, [])
+  })
+
+  it('uses separate reusable SHA and authoritative full ref for safe suffixes', () => {
+    const suffixes = [
+      { suffix: sha, ref: 'refs/heads/main' },
+      { suffix: 'main', ref: 'refs/heads/main' },
+      { suffix: 'release/v2', ref: 'refs/heads/release/v2' },
+      { suffix: 'v2', ref: 'refs/tags/v2' },
+      { suffix: 'refs/tags/v2', ref: 'refs/tags/v2' },
+    ]
+    for (const { suffix, ref } of suffixes) {
+      const candidates = buildActionsArtifactSignerCandidates({
+        endpoint: 'https://api.github.com',
         owner: 'actions',
         repository: 'attest',
         sourceDigest: sha,
-        sourceRef: 'refs/heads/main',
+        sourceRef: null,
         referencedWorkflows: [
           {
-            path: `actions/attest/.github/workflows/prober.yml@${'b'.repeat(
-              40
-            )}`,
-            ref: 'refs/heads/main',
+            path: `actions/attest/.github/workflows/prober.yml@${suffix}`,
+            ref,
             sha,
           },
         ],
       })
-    )
+      assert.equal(candidates.length, 1)
+      assert.equal(candidates[0].digest, sha)
+      assert.equal(candidates[0].ref, ref)
+      assert.equal(
+        candidates[0].identity,
+        `https://github.com/actions/attest/.github/workflows/prober.yml@${ref}`
+      )
+    }
   })
 })

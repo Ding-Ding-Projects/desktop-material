@@ -18,15 +18,13 @@
 
 ## Current checkpoint
 
-The safe inventory and digest IPC checkpoint is complete from clean source `1718c9e15266eb4c9161fffd578fdd7da324d9e3`. Its bounded implementation allowlist is the Actions artifact transfer/client/IPC contracts, one main-process completed-download registry and ZIP subject service, direct pinned ZIP/CRC dependencies, focused unit tests, this manifest, and the README roadmap.
+The verifier trust-contract and projected-result checkpoint is complete from clean source `d525dbc75f733b2b8981eabe4ddfc4eaca832a1d`. Its bounded implementation allowlist is the shared provenance/API contracts, one main-process projected-result parser, their focused tests, this manifest, and the README roadmap. Subprocess execution, verifier IPC, store/UI orchestration, screenshots, wiki, and Pages remain outside this checkpoint.
 
-Completed downloads receive opaque sender-scoped identities bound to their canonical path, size, archive digest, owner/repository, artifact, and workflow-run metadata. Explicit release, navigation, renderer destruction, and app shutdown release the records and dependent inventories. Inspection and preparation use opaque operation/download/inventory/entry identities; raw provenance paths, tokens, commands, and provider envelopes do not cross the new renderer contract.
+An exact policy now requires the canonical source repository, source SHA, authoritative full source ref, exact signer identity/SHA, and a known public/private/internal visibility. A pure URL boundary accepts only GitHub.com or a single tenant under GHE.com, maps API endpoints to the certificate web host without environment overrides, and derives the documented public or tenant Actions OIDC issuer. GHES, nested tenants, credentials, ports, query/fragment data, unknown visibility, branch-only names, and incomplete refs fail closed.
 
-The strict service hashes and parses one open descriptor, validates classic/ZIP64 directory boundaries plus exact central/local headers and signed or unsigned data descriptors, admits only safe NFC regular-file paths and stored/deflate methods, checks CRC and declared/actual sizes, rejects overlapping ranges, and enforces 2,000 entries, 8 GiB aggregate expansion, 1 GiB per subject, and a 200:1 ratio. Preparation reopens and fully revalidates the retained archive, extracts only the selected fingerprint into a unique directory with fixed `subject.bin`, hashes while streaming, and removes the owned directory on success, failure, or cancellation; cleanup failure is a typed failure.
+Direct and reusable signer choices never expand `head_branch`. Reusable metadata validates its SHA and authoritative full ref independently, splits the last safe `@suffix`, and accepts only an exact SHA, exact full ref, or matching heads/tags ref tail. The known live run `29283111640` shape (`path`, `head_sha`, `referenced_workflows[].path/ref/sha`) produces the exact direct and reusable candidates; missing, mismatched, or control-bearing metadata is skipped rather than converted into a weaker identity.
 
-The focused checkpoint regression passes 47 tests across provenance contracts, raw ZIP inventory/preparation, completed-download lifecycle, renderer cancellation/races, transfer publication, account routing, exhaustive IPC channel registration, and the existing artifact UI. It covers stored/deflate members, signed/unsigned descriptors, traversal, malformed UTF-8, symbolic links, ratio bombs, local/central mismatch, CRC forgery, changed bytes, cross-sender denial, immediate cancellation, release invalidation, and Temp cleanup. Full TypeScript also passes. Formatting, focused lint, diff/secret checks, commit/push, and local/tracking/direct-remote SHA alignment are the final publication gates for this same checkpoint.
-
-Cryptographic verifier execution, verification policy/result normalization, UI, production interaction, screenshots, wiki publication, and Pages verification remain out of scope and pending.
+The fixed `gh attestation verify --format=json --jq` projection includes only subject name/SHA-256, predicate type, eleven required certificate fields, and timestamp type/time/URI. The parser independently caps projected UTF-8 at 1 MiB and 30 records, rejects zero, malformed/extra-key output, validates every record against the complete policy and selected digest, requires one through eight timestamps, and returns each verified attestation as a distinct bounded evidence record. The exact live projection succeeds at 1,017 bytes with one public GitHub-hosted SLSA v1 record and one Rekor timestamp. Nineteen new adversarial tests, the 37-test combined provider/trust regression, full TypeScript, focused Prettier, and scoped ESLint pass; staged diff/secret checks, commit/push, and remote-SHA alignment remain this checkpoint's final publication gates.
 
 ## App-native product contract
 
@@ -44,8 +42,8 @@ This distinction is required by observed Actions behavior: a downloaded `upload-
 ## Fixed verification policy
 
 - Predicate type: SLSA provenance v1 (`https://slsa.dev/provenance/v1`).
-- Issuer: GitHub Actions (`https://token.actions.githubusercontent.com`) for GitHub-hosted repositories.
-- Source identity: exact selected repository plus the exact workflow-run source commit.
+- Issuer: GitHub Actions (`https://token.actions.githubusercontent.com`) on GitHub.com or the strictly derived `https://token.actions.<tenant>.ghe.com` issuer for one supported GHE.com tenant, following [GitHub's documented GHE.com OIDC substitution](https://docs.github.com/en/enterprise-cloud@latest/actions/reference/security/oidc#substituted-values-on-ghecom).
+- Source identity: exact selected repository, workflow-run source commit, authoritative full source ref, and known public/private/internal visibility. Branch-only names are insufficient.
 - Signer identity: exactly one bounded signer repository or signer workflow choice; the default is the selected repository and the UI displays the resolved value before verification.
 - Subject identity: exact SHA-256 of the selected bytes, recomputed immediately before verification.
 - Account routing: the repository-selected same-endpoint account performs every attestation metadata/bundle request. Ambient CLI authentication is neither selected nor exposed.
@@ -69,7 +67,7 @@ These are safety ceilings, not claims that every allowed byte count must be load
 - One selected subject may request at most 30 attestation bundles and 8 MiB of serialized bundle data through fixed repository-relative API paths.
 - The main process receives only the completed-download identity, selected normalized entry identity or explicit archive-subject choice, normalized verification policy, and validated bundles. It rechecks all invariants and digests rather than trusting renderer state.
 - The verifier executable is capability-detected. It runs hidden with `shell: false`, closed stdin, a fixed argument vector, sanitized environment, one exact cancellable process tree, a 120-second deadline, 1 MiB stdout/stderr ceilings, and a unique owned bundle Temp file that is always removed.
-- Exit zero is insufficient by itself: bounded JSON must parse into at least one verified result whose subject digest, predicate, source, signer, issuer, and supported trust evidence exactly match policy.
+- Exit zero is insufficient by itself: a fixed projection capped at 1 MiB must parse into 1–30 records, every record must match the subject digest, SLSA v1 predicate, source, full ref, visibility, signer, tenant-aware issuer, GitHub-hosted runner, invocation, and 1–8 timestamps, and multi-attestation evidence remains distinct.
 - Tokens, authorization headers, arbitrary environment variables, arbitrary paths, raw arguments, raw provider envelopes, and raw verifier output never cross the provenance IPC contract or appear in React state, DOM, logs, or telemetry. Only bounded canonical Sigstore bundle JSON may cross to the verifier; the pre-existing artifact download transport remains outside this new contract.
 - Repository, selected account, workflow run, artifact download, archive path/digest, entry selection, or policy changes cancel and invalidate stale operations before they can repopulate state.
 
@@ -102,9 +100,10 @@ No public repository, workflow, artifact, attestation, or release mutation is pa
 
 - **Done — provider contract and signer metadata:** bounded canonical bundle parsing, exact subject/predicate request construction, selected-account routing, GitHub.com/GHE.com capability gating, workflow-run reusable-signer metadata, and exact signer-candidate validation are implemented and focused-tested.
 - **Done — safe inventory and digest IPC:** opaque sender-scoped completed-download retention, strict same-descriptor ZIP inventory, selected-entry digest preparation, typed opaque IPC, changed-byte/CRC checks, cancellation, lifecycle release, and exact Temp cleanup are implemented and focused-tested.
-- **Active — verifier contract and runtime:** implement the fixed bundle-based/API-offline verifier policy, re-extraction/digest boundary, normalized output, time/output ceilings, cancellation, and exact process/Temp cleanup. Bundle mode avoids attestation API fetching, but Sigstore trusted-root initialization may still contact configured TUF mirrors; capability and trust availability must therefore remain explicit inputs to **Unavailable** rather than being described as fully offline.
+- **Done — verifier trust contract and projected result parser:** authoritative source ref/visibility, canonical GitHub.com/GHE.com host and OIDC policy, safe direct/reusable signer metadata, the fixed minimal JSON projection, strict all-record validation, and truthful multi-attestation evidence are implemented, live-checked, and focused-tested.
+- **Active — fixed verifier runtime and IPC:** implement bundle-based/API-offline execution, re-extraction/digest and zero-bundle-after-rehash boundaries, selected-account orchestration, time/output ceilings, cancellation, and exact process/Temp cleanup. Bundle mode avoids attestation API fetching, but Sigstore trusted-root initialization may still contact configured TUF mirrors; capability and trust availability remain explicit inputs to **Unavailable**, not claims of fully network-disconnected verification.
 - **Queued — modal and result UI:** implement explicit subject selection, policy review, progress/cancel/retry, evidence/result views, focus restoration, and responsive containment.
-- **Active — remaining verifier and UI tests:** the raw parser, ZIP safety, registry, transfer/client, account-routing, and IPC checkpoint is complete; process, negative-policy, React, accessibility, style-contract, and deterministic-provider gates remain with their implementation slices.
+- **Active — remaining verifier and UI tests:** raw ZIP safety, registry, transfer/client, account-routing, IPC, trust policy, signer metadata, and projected-result parsing are complete; subprocess, orchestration, React, accessibility, style-contract, and deterministic-provider gates remain with their implementation slices.
 - **Queued — production headless verification:** exact production build, isolated interaction matrix, provider/process/cleanup receipts, inspected screenshots, and source-SHA binding.
 - **Queued — wiki, Pages, and screenshots:** update README, `HANDOFF.md`, in-repository wiki sources, live wiki assets, Pages gallery, and this manifest; push and verify all public artifacts.
 
@@ -133,9 +132,9 @@ No implementation checkpoint may move to **Done** on documentation or mocked UI 
 
 ## Verification and evidence placeholders
 
-- Implementation commits and exact production source: **Safe inventory/digest IPC checkpoint completed from `1718c9e15266eb4c9161fffd578fdd7da324d9e3`; final pushed commit is this manifest's Git revision. Verifier/UI production source remains pending**
-- Focused parser/API/store/IPC/React/style checks: **Safe inventory slice passed 47 focused provenance/parser/registry/client/transfer/routing/IPC/artifact-UI tests plus full TypeScript; verifier/process/full-React/style layers remain pending**
-- Deterministic provider request and policy receipt: **Pending**
+- Implementation commits and exact production source: **Safe inventory/digest IPC is complete at `d525dbc75f`; the trust-contract/projected-result checkpoint's final pushed commit is this manifest's Git revision. Subprocess/UI production source remains pending**
+- Focused parser/API/store/IPC/React/style checks: **Trust/result slice passed 19 new adversarial tests, the combined provider/trust regression passed 37 tests, and full TypeScript passed; prior safe-inventory coverage remains green. Subprocess/full-React/style layers remain pending**
+- Deterministic provider request and policy receipt: **Live public run `29283111640` passed the exact fixed projection: 1,017 bytes, one selected subject, SLSA v1, exact signer/source SHA+ref, GitHub-hosted/public, one Rekor timestamp**
 - Exact production build receipt: **Pending**
 - Hidden-desktop interaction and geometry receipt: **Pending**
 - Screenshot dimensions, byte sizes, and SHA-256: **Pending**

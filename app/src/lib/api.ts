@@ -626,9 +626,10 @@ export interface IAPIWorkflowRun {
 }
 
 export interface IAPIReferencedWorkflow {
-  readonly path: string
-  readonly ref: string
-  readonly sha: string
+  readonly path?: string | null
+  /** Optional in provider payloads; never synthesize it from `head_branch`. */
+  readonly ref?: string | null
+  readonly sha?: string | null
 }
 
 export interface IAPIWorkflowJobs {
