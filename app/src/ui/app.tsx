@@ -3482,6 +3482,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         entries={this.state.notifications}
         unreadCount={this.state.unreadNotificationCount}
         repositories={this.state.repositories}
+        accounts={this.state.accounts}
       />
     )
   }
