@@ -9,7 +9,9 @@
   display: flex;
   flex: 1;
   flex-direction: column;
+  max-width: 100%;
   min-height: 100px;
+  min-width: 0;
 
   .header {
     background: var(--box-alt-background-color);
@@ -404,6 +406,9 @@
 // ---------------------------------------------------------------------------
 
 .filtered-changes-list {
+  max-width: 100%;
+  min-width: 0;
+
   // Panel header (§6.1): H1 "Changes" title + secondary-container count chip,
   // sitting above the search field via the filter list's `renderPreList` hook.
   .changes-panel-header {
@@ -444,6 +449,8 @@
   .header {
     background: transparent;
     border-bottom: 0;
+    max-width: 100%;
+    min-width: 0;
   }
 
   // Filter/search row -------------------------------------------------------
@@ -453,6 +460,8 @@
   .header .filter-box-container {
     gap: 6px;
     align-items: center;
+    max-width: 100%;
+    min-width: 0;
 
     // Search field becomes a 46px pill (§6.2). Sits left, flex-grows; the
     // filter (tune) button is pushed to the right via order.
