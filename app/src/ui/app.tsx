@@ -1875,6 +1875,9 @@ export class App extends React.Component<IAppProps, IAppState> {
             key={`file-history-${popup.repository.id}-${popup.path}`}
             repository={popup.repository}
             path={popup.path}
+            onRefreshRepository={() =>
+              this.props.dispatcher.refreshRepository(popup.repository)
+            }
             onDismissed={onPopupDismissedFn}
           />
         )
