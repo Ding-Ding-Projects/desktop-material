@@ -1,10 +1,12 @@
 export { RepositoryTools } from './repository-tools'
+export { RepositoryBisectSession } from './bisect-session'
 export { RepositoryBundleImport } from './bundle-import'
 export { RepositoryShallowHistory } from './shallow-history'
 export { RepositoryPatchSeries } from './patch-series'
 export { RepositorySigning } from './signing'
 export { RepositoryLFSAdministration } from './lfs-administration'
 export type { IRepositoryBundleImportProps } from './bundle-import'
+export type { IRepositoryBisectSessionProps } from './bisect-session'
 export type { IRepositoryShallowHistoryProps } from './shallow-history'
 export type { IRepositoryPatchSeriesProps } from './patch-series'
 export type { IRepositorySigningProps } from './signing'
@@ -13,6 +15,34 @@ export type {
   IRepositoryToolsClient,
   IRepositoryToolsProps,
 } from './repository-tools'
+export {
+  estimateRepositoryBisectSteps,
+  normalizeRepositoryBisectObjectId,
+  normalizeRepositoryBisectRevision,
+  parseRepositoryBisectHead,
+  parseRepositoryBisectRefState,
+  parseRepositoryBisectRemaining,
+  parseRepositoryBisectResolvedRevision,
+  parseRepositoryBisectWorktreeClean,
+  prepareRepositoryBisectMark,
+  prepareRepositoryBisectRange,
+  prepareRepositoryBisectRevision,
+  prepareRepositoryBisectStart,
+  RepositoryBisectHeadArgs,
+  RepositoryBisectRemainingArgs,
+  RepositoryBisectResetArgs,
+  RepositoryBisectStateArgs,
+  RepositoryBisectWorktreeArgs,
+} from '../../lib/repository-bisect'
+export type {
+  IRepositoryBisectCommit,
+  IRepositoryBisectMarkRequest,
+  IRepositoryBisectRangeRequest,
+  IRepositoryBisectRefState,
+  IRepositoryBisectRevisionRequest,
+  IRepositoryBisectStartRequest,
+  RepositoryBisectVerdict,
+} from '../../lib/repository-bisect'
 export {
   getRepositoryToolOperation,
   assertRepositoryBundleSourceUnchanged,

@@ -31,6 +31,7 @@ import {
   RepositoryToolOperations,
 } from './operations'
 import { RepositoryBundleImport } from './bundle-import'
+import { RepositoryBisectSession } from './bisect-session'
 import { RepositoryLFSAdministration } from './lfs-administration'
 import { RepositoryShallowHistory } from './shallow-history'
 import { RepositoryPatchSeries } from './patch-series'
@@ -110,6 +111,7 @@ interface IRepositoryToolsState {
   readonly patchSeriesBusy: boolean
   readonly signingBusy: boolean
   readonly lfsBusy: boolean
+  readonly bisectBusy: boolean
 }
 
 let nextOperationSequence = 0
@@ -151,6 +153,7 @@ export class RepositoryTools extends React.Component<
       patchSeriesBusy: false,
       signingBusy: false,
       lfsBusy: false,
+      bisectBusy: false,
     }
   }
 
@@ -182,6 +185,7 @@ export class RepositoryTools extends React.Component<
         patchSeriesBusy: false,
         signingBusy: false,
         lfsBusy: false,
+        bisectBusy: false,
       })
     }
   }
@@ -236,7 +240,8 @@ export class RepositoryTools extends React.Component<
       this.state.shallowHistoryBusy ||
       this.state.patchSeriesBusy ||
       this.state.signingBusy ||
-      this.state.lfsBusy
+      this.state.lfsBusy ||
+      this.state.bisectBusy
     )
   }
 
@@ -267,6 +272,12 @@ export class RepositoryTools extends React.Component<
   private onLFSBusyChanged = (lfsBusy: boolean) => {
     if (this.state.lfsBusy !== lfsBusy) {
       this.setState({ lfsBusy })
+    }
+  }
+
+  private onBisectBusyChanged = (bisectBusy: boolean) => {
+    if (this.state.bisectBusy !== bisectBusy) {
+      this.setState({ bisectBusy })
     }
   }
 
@@ -746,6 +757,7 @@ export class RepositoryTools extends React.Component<
           this.state.patchSeriesBusy ||
           this.state.signingBusy ||
           this.state.lfsBusy ||
+          this.state.bisectBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -767,6 +779,7 @@ export class RepositoryTools extends React.Component<
           this.state.patchSeriesBusy ||
           this.state.signingBusy ||
           this.state.lfsBusy ||
+          this.state.bisectBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -788,6 +801,7 @@ export class RepositoryTools extends React.Component<
           this.state.patchSeriesBusy ||
           this.state.signingBusy ||
           this.state.lfsBusy ||
+          this.state.bisectBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -807,6 +821,7 @@ export class RepositoryTools extends React.Component<
           this.state.shallowHistoryBusy ||
           this.state.patchSeriesBusy ||
           this.state.lfsBusy ||
+          this.state.bisectBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -826,11 +841,32 @@ export class RepositoryTools extends React.Component<
           this.state.shallowHistoryBusy ||
           this.state.patchSeriesBusy ||
           this.state.signingBusy ||
+          this.state.bisectBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
         onRefreshRepository={this.props.onRefreshRepository}
         onBusyChanged={this.onLFSBusyChanged}
+      />
+    )
+  }
+
+  private renderBisectSession() {
+    return (
+      <RepositoryBisectSession
+        repositoryPath={this.props.repositoryPath}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          this.state.shallowHistoryBusy ||
+          this.state.patchSeriesBusy ||
+          this.state.signingBusy ||
+          this.state.lfsBusy ||
+          !this.state.gitAvailable
+        }
+        client={this.client}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onBisectBusyChanged}
       />
     )
   }
@@ -995,6 +1031,7 @@ export class RepositoryTools extends React.Component<
         <div className="repository-tools-layout">
           <div className="repository-tools-functions">
             {this.renderShallowHistory()}
+            {this.renderBisectSession()}
             {this.renderSigning()}
             {this.renderLFSAdministration()}
             {this.renderCategory('Diagnostics')}
