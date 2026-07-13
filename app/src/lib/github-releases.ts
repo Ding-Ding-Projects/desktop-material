@@ -70,6 +70,43 @@ export interface IGitHubReleaseUpdate extends IGitHubReleaseDraft {
   readonly releaseId: number
 }
 
+/** Stable semantic fingerprint used to fail closed when reviewed assets change. */
+export function getGitHubReleaseAssetFingerprint(
+  asset: IGitHubReleaseAsset
+): string {
+  return JSON.stringify([
+    asset.id,
+    asset.name,
+    asset.label,
+    asset.state,
+    asset.contentType,
+    asset.sizeInBytes,
+    asset.downloadCount,
+    asset.createdAt.toISOString(),
+    asset.updatedAt.toISOString(),
+    asset.digest,
+  ])
+}
+
+/** Stable semantic fingerprint used to fail closed when a reviewed release changes. */
+export function getGitHubReleaseFingerprint(release: IGitHubRelease): string {
+  return JSON.stringify([
+    release.id,
+    release.tagName,
+    release.targetCommitish,
+    release.name,
+    release.body,
+    release.draft,
+    release.prerelease,
+    release.createdAt.toISOString(),
+    release.publishedAt?.toISOString() ?? null,
+    release.authorLogin,
+    [...release.assets]
+      .sort((left, right) => left.id - right.id)
+      .map(getGitHubReleaseAssetFingerprint),
+  ])
+}
+
 const controlCharacters = /[\u0000-\u001f\u007f]/
 const invalidRepositoryPartCharacters = /[\u0000-\u001f\u007f/\\?#]/
 const invalidAssetNameCharacters = /[\u0000-\u001f\u007f/\\?#]/

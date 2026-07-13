@@ -5,6 +5,8 @@ import {
   GitHubReleaseAssetPageSize,
   GitHubReleaseMaximumPages,
   GitHubReleasePageSize,
+  getGitHubReleaseAssetFingerprint,
+  getGitHubReleaseFingerprint,
   normalizeGitHubReleaseAssetName,
   normalizeGitHubReleaseDraft,
   parseGitHubReleaseAssetList,
@@ -120,6 +122,26 @@ describe('GitHub Releases model', () => {
         name: '',
         body: '',
         prerelease: false,
+      })
+    )
+  })
+
+  it('fingerprints every reviewed release and asset field deterministically', () => {
+    const parsed = parseGitHubReleaseList([release()], 1).releases[0]
+    const reordered = { ...parsed, assets: [...parsed.assets].reverse() }
+    assert.equal(
+      getGitHubReleaseFingerprint(parsed),
+      getGitHubReleaseFingerprint(reordered)
+    )
+    assert.notEqual(
+      getGitHubReleaseFingerprint(parsed),
+      getGitHubReleaseFingerprint({ ...parsed, body: 'Changed remotely' })
+    )
+    assert.notEqual(
+      getGitHubReleaseAssetFingerprint(parsed.assets[0]),
+      getGitHubReleaseAssetFingerprint({
+        ...parsed.assets[0],
+        downloadCount: parsed.assets[0].downloadCount + 1,
       })
     )
   })

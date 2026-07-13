@@ -90,6 +90,7 @@ import {
   GitHubReleaseMaximumPages,
   GitHubReleasePageSize,
   IGitHubRelease,
+  IGitHubReleaseAsset,
   IGitHubReleaseAssetList,
   IGitHubReleaseDraft,
   IGitHubReleaseList,
@@ -97,6 +98,7 @@ import {
   normalizeGitHubReleaseDraft,
   normalizeGitHubReleaseUpdate,
   parseGitHubRelease,
+  parseGitHubReleaseAsset,
   parseGitHubReleaseAssetList,
   parseGitHubReleaseList,
   validateGitHubReleaseIdentifier,
@@ -2345,6 +2347,26 @@ export class API {
     )
   }
 
+  /** Re-fetch one exact release through the bounded JSON parser before mutation. */
+  public async fetchRelease(
+    owner: string,
+    name: string,
+    releaseId: number,
+    signal?: AbortSignal
+  ): Promise<IGitHubRelease> {
+    const safeOwner = validateGitHubReleaseRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubReleaseRepositoryPart(name, 'repository')
+    const safeReleaseId = validateGitHubReleaseIdentifier(releaseId)
+    const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeName
+    )}/releases/${safeReleaseId}`
+    const response = await this.ghRequest('GET', path, { signal })
+    return parseGitHubRelease(
+      await boundedGitHubReleaseResponse(response, signal),
+      safeReleaseId
+    )
+  }
+
   /** List one bounded, locally generated page of assets for one release. */
   public async fetchReleaseAssets(
     owner: string,
@@ -2372,6 +2394,26 @@ export class API {
     return parseGitHubReleaseAssetList(
       await boundedGitHubReleaseResponse(response, signal),
       page
+    )
+  }
+
+  /** Re-fetch one exact release asset through the bounded parser before deletion. */
+  public async fetchReleaseAsset(
+    owner: string,
+    name: string,
+    assetId: number,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAsset> {
+    const safeOwner = validateGitHubReleaseRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubReleaseRepositoryPart(name, 'repository')
+    const safeAssetId = validateGitHubReleaseIdentifier(assetId, 'asset id')
+    const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeName
+    )}/releases/assets/${safeAssetId}`
+    const response = await this.ghRequest('GET', path, { signal })
+    return parseGitHubReleaseAsset(
+      await boundedGitHubReleaseResponse(response, signal),
+      safeAssetId
     )
   }
 

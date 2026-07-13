@@ -52,9 +52,14 @@ describe('GitHub Releases API', () => {
         options?: { signal?: AbortSignal }
       ) => {
         requests.push({ method, path, signal: options?.signal })
-        return new Response(
-          JSON.stringify(path.includes('/assets?') ? [apiAsset] : [apiRelease])
-        )
+        const value = path.endsWith('/releases/42')
+          ? apiRelease
+          : path.endsWith('/releases/assets/19')
+          ? apiAsset
+          : path.includes('/assets?')
+          ? [apiAsset]
+          : [apiRelease]
+        return new Response(JSON.stringify(value))
       }
     )
 
@@ -71,9 +76,23 @@ describe('GitHub Releases API', () => {
       3,
       controller.signal
     )
+    const exactRelease = await api.fetchRelease(
+      'desktop',
+      'material',
+      42,
+      controller.signal
+    )
+    const exactAsset = await api.fetchReleaseAsset(
+      'desktop',
+      'material',
+      19,
+      controller.signal
+    )
 
     assert.equal(releases.releases[0].tagName, 'v1.0.0')
     assert.equal(assets.assets[0].name, 'desktop.zip')
+    assert.equal(exactRelease.id, 42)
+    assert.equal(exactAsset.id, 19)
     assert.deepEqual(requests, [
       {
         method: 'GET',
@@ -83,6 +102,16 @@ describe('GitHub Releases API', () => {
       {
         method: 'GET',
         path: 'repos/desktop/material/releases/42/assets?per_page=100&page=3',
+        signal: controller.signal,
+      },
+      {
+        method: 'GET',
+        path: 'repos/desktop/material/releases/42',
+        signal: controller.signal,
+      },
+      {
+        method: 'GET',
+        path: 'repos/desktop/material/releases/assets/19',
         signal: controller.signal,
       },
     ])
@@ -191,6 +220,8 @@ describe('GitHub Releases API', () => {
     assert.equal(requests, 1)
     await assert.rejects(() => api.fetchReleases('bad/owner', 'material'))
     await assert.rejects(() => api.fetchReleaseAssets('desktop', 'material', 0))
+    await assert.rejects(() => api.fetchRelease('desktop', 'material', 0))
+    await assert.rejects(() => api.fetchReleaseAsset('desktop', 'material', 0))
     assert.equal(requests, 1)
 
     Reflect.set(

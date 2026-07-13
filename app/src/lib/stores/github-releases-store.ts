@@ -9,6 +9,8 @@ import {
   uploadGitHubReleaseAssetThroughMainProcess,
 } from '../github-release-transfer-client'
 import {
+  getGitHubReleaseAssetFingerprint,
+  getGitHubReleaseFingerprint,
   IGitHubRelease,
   IGitHubReleaseAsset,
   IGitHubReleaseAssetList,
@@ -167,6 +169,10 @@ export function getGitHubReleasesAvailability(
   if (gitHubRepository === null) {
     return 'not-github'
   }
+  const selectedAccount = getAccountForRepository(accounts, repository)
+  if (selectedAccount !== null && selectedAccount.provider !== 'github') {
+    return 'not-github'
+  }
   if (!supportsReleases(gitHubRepository.endpoint)) {
     return 'unsupported'
   }
@@ -189,6 +195,12 @@ export interface IGitHubReleasesAPI {
     page?: number,
     signal?: AbortSignal
   ): Promise<IGitHubReleaseList>
+  fetchRelease(
+    owner: string,
+    name: string,
+    releaseId: number,
+    signal?: AbortSignal
+  ): Promise<IGitHubRelease>
   fetchReleaseAssets(
     owner: string,
     name: string,
@@ -196,6 +208,12 @@ export interface IGitHubReleasesAPI {
     page?: number,
     signal?: AbortSignal
   ): Promise<IGitHubReleaseAssetList>
+  fetchReleaseAsset(
+    owner: string,
+    name: string,
+    assetId: number,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAsset>
   createReleaseDraft(
     owner: string,
     name: string,
@@ -245,6 +263,39 @@ interface IRequestContext {
   readonly repository: GitHubRepository
   readonly api: IGitHubReleasesAPI
   readonly generation: number
+}
+
+export interface IGitHubReleaseMutationReview {
+  readonly repositoryFingerprint: string
+  readonly accountKey: string
+  readonly accountGeneration: number
+  readonly releaseId: number
+  readonly releaseFingerprint: string
+  readonly assetId: number | null
+  readonly assetFingerprint: string | null
+}
+
+function repositoryFingerprint(repository: Repository): string {
+  const remote = repository.gitHubRepository
+  return JSON.stringify(
+    remote === null
+      ? [repository.id, repository.accountKey, null]
+      : [
+          repository.id,
+          repository.accountKey,
+          remote.dbID,
+          remote.endpoint,
+          remote.owner.login,
+          remote.name,
+        ]
+  )
+}
+
+function staleReviewError(): GitHubReleasesError {
+  return new GitHubReleasesError(
+    'conflict',
+    'The reviewed release, asset, repository, or account changed. Refresh Releases and review the operation again.'
+  )
 }
 
 function accountsEqual(
@@ -300,6 +351,13 @@ export class GitHubReleasesStore {
         'Releases are available only for repositories hosted on GitHub.'
       )
     }
+    const selectedAccount = getAccountForRepository(this.accounts, repository)
+    if (selectedAccount !== null && selectedAccount.provider !== 'github') {
+      throw new GitHubReleasesError(
+        'unsupported',
+        'Releases are available only for repositories hosted on GitHub.'
+      )
+    }
     if (!supportsReleases(gitHubRepository.endpoint)) {
       throw new GitHubReleasesError(
         'unsupported',
@@ -339,14 +397,7 @@ export class GitHubReleasesStore {
         controller.abort()
       }
       const result = await work(context, controller.signal)
-      if (
-        controller.signal.aborted ||
-        context.generation !== this.generation ||
-        getGitHubReleasesAccount(repository, this.accounts)?.token !==
-          context.account.token
-      ) {
-        throw abortError('The selected GitHub account changed.')
-      }
+      this.assertContextCurrent(repository, context, controller.signal)
       return result
     } catch (error) {
       throw githubReleasesError(error, operation)
@@ -354,6 +405,112 @@ export class GitHubReleasesStore {
       signal?.removeEventListener('abort', cancel)
       this.activeControllers.delete(controller)
     }
+  }
+
+  private assertContextCurrent(
+    repository: Repository,
+    context: IRequestContext,
+    signal: AbortSignal
+  ) {
+    const account = getGitHubReleasesAccount(repository, this.accounts)
+    if (
+      signal.aborted ||
+      context.generation !== this.generation ||
+      account === null ||
+      getAccountKey(account) !== getAccountKey(context.account) ||
+      account.token !== context.account.token ||
+      repository.gitHubRepository?.endpoint !== context.repository.endpoint ||
+      repository.gitHubRepository?.owner.login !==
+        context.repository.owner.login ||
+      repository.gitHubRepository?.name !== context.repository.name
+    ) {
+      throw abortError('The selected GitHub account or repository changed.')
+    }
+  }
+
+  public createMutationReview(
+    repository: Repository,
+    release: IGitHubRelease,
+    asset: IGitHubReleaseAsset | null = null
+  ): IGitHubReleaseMutationReview {
+    const context = this.context(repository)
+    return Object.freeze({
+      repositoryFingerprint: repositoryFingerprint(repository),
+      accountKey: getAccountKey(context.account),
+      accountGeneration: context.generation,
+      releaseId: release.id,
+      releaseFingerprint: getGitHubReleaseFingerprint(release),
+      assetId: asset?.id ?? null,
+      assetFingerprint:
+        asset === null ? null : getGitHubReleaseAssetFingerprint(asset),
+    })
+  }
+
+  private validateReviewContext(
+    repository: Repository,
+    context: IRequestContext,
+    review: IGitHubReleaseMutationReview,
+    expectsAsset: boolean
+  ) {
+    if (
+      review.repositoryFingerprint !== repositoryFingerprint(repository) ||
+      review.accountKey !== getAccountKey(context.account) ||
+      review.accountGeneration !== context.generation ||
+      (review.assetId !== null) !== expectsAsset ||
+      (review.assetFingerprint !== null) !== expectsAsset
+    ) {
+      throw staleReviewError()
+    }
+  }
+
+  private async revalidateReviewedRelease(
+    repository: Repository,
+    context: IRequestContext,
+    signal: AbortSignal,
+    review: IGitHubReleaseMutationReview,
+    expectsAsset: boolean = false
+  ): Promise<IGitHubRelease> {
+    this.validateReviewContext(repository, context, review, expectsAsset)
+    const release = await context.api.fetchRelease(
+      context.repository.owner.login,
+      context.repository.name,
+      review.releaseId,
+      signal
+    )
+    this.assertContextCurrent(repository, context, signal)
+    if (getGitHubReleaseFingerprint(release) !== review.releaseFingerprint) {
+      throw staleReviewError()
+    }
+    return release
+  }
+
+  private async revalidateReviewedAsset(
+    repository: Repository,
+    context: IRequestContext,
+    signal: AbortSignal,
+    review: IGitHubReleaseMutationReview
+  ): Promise<IGitHubReleaseAsset> {
+    await this.revalidateReviewedRelease(
+      repository,
+      context,
+      signal,
+      review,
+      true
+    )
+    if (review.assetId === null || review.assetFingerprint === null) {
+      throw staleReviewError()
+    }
+    const asset = await context.api.fetchReleaseAsset(
+      context.repository.owner.login,
+      context.repository.name,
+      review.assetId,
+      signal
+    )
+    this.assertContextCurrent(repository, context, signal)
+    if (getGitHubReleaseAssetFingerprint(asset) !== review.assetFingerprint) {
+      throw staleReviewError()
+    }
+    return asset
   }
 
   public list(
@@ -409,65 +566,110 @@ export class GitHubReleasesStore {
 
   public update(
     repository: Repository,
+    review: IGitHubReleaseMutationReview,
     update: IGitHubReleaseUpdate,
     signal?: AbortSignal
   ): Promise<IGitHubRelease> {
-    return this.run(repository, 'update', signal, (context, requestSignal) =>
-      context.api.updateRelease(
-        context.repository.owner.login,
-        context.repository.name,
-        update,
-        requestSignal
-      )
+    return this.run(
+      repository,
+      'update',
+      signal,
+      async (context, requestSignal) => {
+        await this.revalidateReviewedRelease(
+          repository,
+          context,
+          requestSignal,
+          review
+        )
+        this.assertContextCurrent(repository, context, requestSignal)
+        return await context.api.updateRelease(
+          context.repository.owner.login,
+          context.repository.name,
+          update,
+          requestSignal
+        )
+      }
     )
   }
 
   public publish(
     repository: Repository,
-    releaseId: number,
+    review: IGitHubReleaseMutationReview,
     signal?: AbortSignal
   ): Promise<IGitHubRelease> {
-    return this.run(repository, 'publish', signal, (context, requestSignal) =>
-      context.api.publishRelease(
-        context.repository.owner.login,
-        context.repository.name,
-        releaseId,
-        requestSignal
-      )
+    return this.run(
+      repository,
+      'publish',
+      signal,
+      async (context, requestSignal) => {
+        await this.revalidateReviewedRelease(
+          repository,
+          context,
+          requestSignal,
+          review
+        )
+        this.assertContextCurrent(repository, context, requestSignal)
+        return await context.api.publishRelease(
+          context.repository.owner.login,
+          context.repository.name,
+          review.releaseId,
+          requestSignal
+        )
+      }
     )
   }
 
   public delete(
     repository: Repository,
-    releaseId: number,
+    review: IGitHubReleaseMutationReview,
     signal?: AbortSignal
   ): Promise<void> {
-    return this.run(repository, 'delete', signal, (context, requestSignal) =>
-      context.api.deleteRelease(
-        context.repository.owner.login,
-        context.repository.name,
-        releaseId,
-        requestSignal
-      )
+    return this.run(
+      repository,
+      'delete',
+      signal,
+      async (context, requestSignal) => {
+        await this.revalidateReviewedRelease(
+          repository,
+          context,
+          requestSignal,
+          review
+        )
+        this.assertContextCurrent(repository, context, requestSignal)
+        await context.api.deleteRelease(
+          context.repository.owner.login,
+          context.repository.name,
+          review.releaseId,
+          requestSignal
+        )
+      }
     )
   }
 
   public deleteAsset(
     repository: Repository,
-    assetId: number,
+    review: IGitHubReleaseMutationReview,
     signal?: AbortSignal
   ): Promise<void> {
     return this.run(
       repository,
       'delete-asset',
       signal,
-      (context, requestSignal) =>
-        context.api.deleteReleaseAsset(
+      async (context, requestSignal) => {
+        const asset = await this.revalidateReviewedAsset(
+          repository,
+          context,
+          requestSignal,
+          review
+        )
+        this.assertContextCurrent(repository, context, requestSignal)
+        await context.api.deleteReleaseAsset(
           context.repository.owner.login,
           context.repository.name,
-          assetId,
+          asset.id,
           requestSignal
         )
+      }
     )
   }
 
@@ -494,24 +696,36 @@ export class GitHubReleasesStore {
 
   public uploadAsset(
     repository: Repository,
-    releaseId: number,
+    review: IGitHubReleaseMutationReview,
     sourcePath: string,
     name: string,
     label: string | null,
     signal: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ) {
-    return this.run(repository, 'upload', signal, (context, requestSignal) =>
-      this.dependencies.uploadAsset(
-        context.account,
-        context.repository,
-        releaseId,
-        sourcePath,
-        name,
-        label,
-        requestSignal,
-        onProgress
-      )
+    return this.run(
+      repository,
+      'upload',
+      signal,
+      async (context, requestSignal) => {
+        await this.revalidateReviewedRelease(
+          repository,
+          context,
+          requestSignal,
+          review
+        )
+        this.assertContextCurrent(repository, context, requestSignal)
+        return await this.dependencies.uploadAsset(
+          context.account,
+          context.repository,
+          review.releaseId,
+          sourcePath,
+          name,
+          label,
+          requestSignal,
+          onProgress
+        )
+      }
     )
   }
 }

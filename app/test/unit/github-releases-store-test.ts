@@ -115,12 +115,14 @@ function fakeAPI(
       nextPage: null,
       capped: false,
     }),
+    fetchRelease: async () => release,
     fetchReleaseAssets: async () => ({
       assets: [asset],
       page: 1,
       nextPage: null,
       capped: false,
     }),
+    fetchReleaseAsset: async () => asset,
     createReleaseDraft: async () => release,
     updateRelease: async () => release,
     publishRelease: async () => ({
@@ -309,10 +311,23 @@ describe('GitHub Releases store', () => {
       body: 'Notes',
       prerelease: false,
     })
-    await store.update(repository, { ...release, releaseId: 7 })
-    await store.publish(repository, 7)
-    await store.deleteAsset(repository, 19)
-    await store.delete(repository, 7)
+    await store.update(
+      repository,
+      store.createMutationReview(repository, release),
+      { ...release, releaseId: 7 }
+    )
+    await store.publish(
+      repository,
+      store.createMutationReview(repository, release)
+    )
+    await store.deleteAsset(
+      repository,
+      store.createMutationReview(repository, release, asset)
+    )
+    await store.delete(
+      repository,
+      store.createMutationReview(repository, release)
+    )
     const transferController = new AbortController()
     await store.downloadAsset(
       repository,
@@ -323,7 +338,7 @@ describe('GitHub Releases store', () => {
     )
     await store.uploadAsset(
       repository,
-      7,
+      store.createMutationReview(repository, release),
       'C:\\Build\\desktop.exe',
       asset.name,
       null,
@@ -336,6 +351,114 @@ describe('GitHub Releases store', () => {
       'delete-asset',
       'delete',
     ])
+  })
+
+  it('re-fetches exact reviewed state and fails every mutation closed when stale', async () => {
+    const accountsStore = new FakeAccountsStore([selected])
+    let remoteRelease: IGitHubRelease = {
+      ...release,
+      body: 'Changed after review',
+    }
+    const remoteAsset: IGitHubReleaseAsset = {
+      ...asset,
+      sizeInBytes: asset.sizeInBytes + 1,
+    }
+    const mutations = new Array<string>()
+    const api = fakeAPI({
+      fetchRelease: async () => remoteRelease,
+      fetchReleaseAsset: async () => remoteAsset,
+      publishRelease: async () => {
+        mutations.push('publish')
+        return { ...release, draft: false }
+      },
+      updateRelease: async () => {
+        mutations.push('update')
+        return release
+      },
+      deleteRelease: async () => {
+        mutations.push('delete')
+      },
+      deleteReleaseAsset: async () => {
+        mutations.push('delete-asset')
+      },
+    })
+    const baseDependencies = dependencies(() => api)
+    const store = await storeWith(accountsStore, {
+      ...baseDependencies,
+      uploadAsset: async () => {
+        mutations.push('upload')
+        return {
+          ok: true,
+          asset,
+          bytes: asset.sizeInBytes,
+          localDigest: asset.digest!,
+        }
+      },
+    })
+    const review = store.createMutationReview(repository, release)
+    const isStaleReview = (error: unknown) =>
+      error instanceof GitHubReleasesError && error.kind === 'conflict'
+
+    await assert.rejects(store.publish(repository, review), isStaleReview)
+    await assert.rejects(
+      store.update(repository, review, { ...release, releaseId: release.id }),
+      isStaleReview
+    )
+    await assert.rejects(store.delete(repository, review), isStaleReview)
+    await assert.rejects(
+      store.uploadAsset(
+        repository,
+        review,
+        'C:\\Build\\desktop.exe',
+        asset.name,
+        null,
+        new AbortController().signal
+      ),
+      isStaleReview
+    )
+    assert.deepEqual(mutations, [])
+
+    remoteRelease = release
+    const assetReview = store.createMutationReview(repository, release, asset)
+    await assert.rejects(
+      store.deleteAsset(repository, assetReview),
+      isStaleReview
+    )
+    assert.deepEqual(mutations, [])
+  })
+
+  it('invalidates reviews when the repository or selected account generation changes', async () => {
+    const accountsStore = new FakeAccountsStore([selected])
+    let fetches = 0
+    const store = await storeWith(
+      accountsStore,
+      dependencies(() =>
+        fakeAPI({
+          fetchRelease: async () => {
+            fetches++
+            return release
+          },
+        })
+      )
+    )
+    const review = store.createMutationReview(repository, release)
+    const otherRepository = new Repository(
+      repository.path,
+      99,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const isStaleReview = (error: unknown) =>
+      error instanceof GitHubReleasesError && error.kind === 'conflict'
+    await assert.rejects(store.publish(otherRepository, review), isStaleReview)
+    accountsStore.update([selected.withToken('rotated-token')])
+    await assert.rejects(store.publish(repository, review), isStaleReview)
+    assert.equal(fetches, 0)
   })
 
   it('maps provider messages to permission-safe app errors', () => {
