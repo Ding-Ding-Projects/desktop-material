@@ -2,16 +2,15 @@
 
 ## Final status
 
-The feature-expansion roadmap is complete. Milestones **M0 through M18 are
-shipped on `main`** through pre-documentation integration SHA
-`4da59bd38308fff45b48f09819d08cbc356ee946`. There is no remaining queued,
+The feature-expansion roadmap and its handoff work are complete. Milestones
+**M0 through M18 are shipped on `main`** through final implementation baseline
+`aeaba02818c3a7c13a6ba78554b2917188b7a9ba`. There is no remaining queued,
 partial, or in-flight implementation work in this plan.
 
-The only work intentionally left outside the milestone ledger is the
-root-integrator publication gate after this final documentation merge: verify
-the resulting `main` SHA, CI, Pages, canonical wiki publication, public assets,
-and the final accessibility/clipping audit. Those checks must be recorded from
-the post-merge SHA and are not claimed by this pre-merge document.
+That baseline includes the responsive-shell correction prompted by the final
+1450×997 review, its exact-size headless regression capture, the public
+README/Pages/wiki propagation, and the shared Node/jsdom UI-test storage fix.
+The closing publication evidence is recorded below and in [`HANDOFF.md`](HANDOFF.md).
 
 ## Shipped milestone ledger
 
@@ -49,6 +48,10 @@ the post-merge SHA and are not claimed by this pre-merge document.
   `app/src/ui/build-run/`.
 - Fork update checks and release feeds point to the Desktop Material repository,
   not the upstream GitHub Desktop updater.
+- The `design/` prototype sources are published as a sanitized five-file set;
+  sample identities and private-looking endpoints were replaced, while raster
+  files with identifiers baked into pixels or metadata were intentionally
+  excluded.
 - Account selection, profile mutation serialization, export rendering,
   provider routing, submodule display, repository tooltips, and other integration
   regressions found during the merge waves were fixed before the final build.
@@ -73,50 +76,66 @@ the post-merge SHA and are not claimed by this pre-merge document.
 
 ## Final integrated validation evidence
 
-The pre-documentation integration run at `4da59bd383` recorded:
+The exhaustive final run on the same application/test tree shipped by
+`aeaba02818c3` recorded:
 
-- validation scope: **239 files**;
-- unit suite: **1,850 tests — 1,849 passed, 0 failed, 1 intentional skip**;
+- validation scope: **241 files and 617 suites**;
+- unit suite: **1,858 tests — 1,857 passed, 0 failed, 1 intentional skip**;
 - repository-wide `yarn lint`: **passed**;
 - `yarn tsc --noEmit --skipLibCheck`: **passed**;
-- production unpackaged build: **passed**, using
+- focused version-history coverage: **4 of 4 passed**;
+- production unpackaged build: **passed** for the identical application source,
+  using
   `npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`;
 - the build and GUI verification path used the exact low-level MCP checkout at
   SHA `beed66ca6ed2503e6170ee1e1158247f1c2f0140`;
 - all promoted final milestone captures were inspected at original resolution,
-  were nonblank, contained no private data, and measured **1443×992**.
+  were nonblank, and contained no private data. The standard ledger is
+  **1443×992**; the final responsive proof is the user's exact **1450×997**
+  client size.
 
-| Final capture | SHA-256 |
-| --- | --- |
-| `material-agent-access.png` | `644891eaa37c878cb577065822681ee8fd33a018a92e0b89822b43e67393ef93` |
-| `material-automation.png` | `efe45408a390301294d5e23193b619eec858fcef4abb147d82709513c5bb3843` |
-| `material-branch-merge-all.png` | `c5cb41e17d67c627758ef43620c255c8272f85ed182a741c086a80d735c8719e` |
-| `material-history-power-tools.png` | `2df21a9a1f5cb9f39b541a5678583d5c314d4254e12a615f9369b462af92d797` |
-| `material-multi-window-menu.png` | `9a6cbcbb4c257eac3312b76f8ed0077a6a123901a6bee9b7793b926a61310c66` |
-| `material-notification-center.png` | `f8d0cf33723b1c9793d165ab39fd0cec2ccd41b50136d36f6be9c3d34b7d4709` |
-| `material-provider-accounts.png` | `91ab46ec566676f0c87534f5e72795e31a62adeecf6bf2597e533920ff428cff` |
-| `material-workspace-changes.png` | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
+| Final capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `material-agent-access.png` | 1443×992 | 110,128 | `644891eaa37c878cb577065822681ee8fd33a018a92e0b89822b43e67393ef93` |
+| `material-automation.png` | 1443×992 | 87,304 | `efe45408a390301294d5e23193b619eec858fcef4abb147d82709513c5bb3843` |
+| `material-branch-merge-all.png` | 1443×992 | 116,134 | `c5cb41e17d67c627758ef43620c255c8272f85ed182a741c086a80d735c8719e` |
+| `material-history-power-tools.png` | 1443×992 | 122,930 | `fe8b6323d77663467b2a6ae887d5e277e31b8dc84f0e35cec2332537ec7fd28a` |
+| `material-multi-window-menu.png` | 1443×992 | 115,719 | `9a6cbcbb4c257eac3312b76f8ed0077a6a123901a6bee9b7793b926a61310c66` |
+| `material-notification-center.png` | 1443×992 | 111,723 | `f8d0cf33723b1c9793d165ab39fd0cec2ccd41b50136d36f6be9c3d34b7d4709` |
+| `material-provider-accounts.png` | 1443×992 | 117,558 | `91ab46ec566676f0c87534f5e72795e31a62adeecf6bf2597e533920ff428cff` |
+| `material-scale-200-autofit.png` | 1443×992 | 104,599 | `6fc094a466cef3a540d3bef08db7468e6d9312c9d2242c5abf0df6f9b4fafe05` |
+| `material-workspace-changes.png` | 1443×992 | 123,162 | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
+| `material-responsive-overflow-fixed.png` | 1450×997 | 132,049 | `160c622c6630d96eda26b5ff3be6705c31dbe55d6ffa6d1376575425770278bf` |
 
-## Root-finalized publication gate
+## Root-finalized publication evidence
 
-After this documentation branch is merged, the root integrator must close the
-handoff against the resulting `main` SHA:
+The publication gate is closed:
 
-1. Confirm local `main`, `origin/main`, and the pushed documentation SHA match.
-2. Confirm applicable CI and Pages workflows succeeded for that exact SHA; do
-   not substitute an older green run.
-3. Confirm the public README and Pages site render the final feature ledger and
-   each referenced screenshot returns HTTP 200 with the tracked SHA-256.
-4. Push the canonical `docs/wiki/` mirror to the GitHub wiki and verify the live
-   pages and raw-main image references.
-5. Run the final accessibility and clipping audit: keyboard reachability,
-   accessible names/roles, focus visibility, dark/light contrast, text and
-   controls at 50–200% scaling, no clipped rows/FABs/search controls/log panels,
-   and no horizontal overflow at the supported minimum viewport and the
-   **1443×992** verification viewport.
-6. Record the exact workflow URLs, wiki commit, public URLs, response status,
-   and asset hashes in the final root handoff.
+1. Final implementation baseline `aeaba02818c3a7c13a6ba78554b2917188b7a9ba`
+   passed all seven jobs in
+   [CI 29219750257](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750257).
+2. [Build Installers 29219750294](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750294)
+   succeeded for that exact commit and published public, non-draft,
+   non-prerelease release
+   [`v3.6.3-beta3-b0000000072`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000072).
+3. Screenshot/site baseline `9e2bd120aafbb89c7ca7de544fd16cd943ec7169`
+   passed
+   [Pages run 29219686071](https://github.com/codingmachineedge/desktop-material/actions/runs/29219686071).
+   The public site and all 15 referenced images return HTTP 200 and match the
+   tracked byte counts and SHA-256 hashes.
+4. The canonical six-file `docs/wiki/` mirror is published at wiki commit
+   `72b8eac8bb2f76f3499bedd3f96bc7ea6c295202`; the live Home and User Guide
+   return HTTP 200 and render the raw-main responsive proof.
+5. The final headless audit verified the exact 1450×997 review size, the
+   supported minimum behavior, and requested 200% scaling auto-fit. Toolbar,
+   Changes search/filter/composer controls, rows, actions, and the page shell no
+   longer clip or produce horizontal overflow. Existing accessibility tests
+   cover names, roles, focus, keyboard paths, and 50–200% zoom bounds; recorded
+   light/dark contrast pairs meet WCAG AA for normal text.
+6. The published design set and the tracked repository pass targeted personal
+   identifier and common-secret scans. Account-specific Windows paths use
+   `%USERPROFILE%` in public documentation.
 
-Until those post-merge checks are complete, this plan claims the implementation
-and local/headless validation as shipped, but does not claim final public
-publication for the documentation merge.
+The final PLAN/HANDOFF closeout changes documentation only. Its exact pushed
+`main` SHA and corresponding successful CI run are recorded in the final task
+response because a commit cannot contain its own hash.

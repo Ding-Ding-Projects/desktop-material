@@ -11,8 +11,8 @@ desktop.
 
 ## Fixed locations
 
-- Project: `C:\Users\cntow\Documents\GitHub\desktop-material`
-- MCP checkout: `C:\Users\cntow\Documents\GitHub\lowlevel-computer-use-mcp`
+- Project: `%USERPROFILE%\Documents\GitHub\desktop-material`
+- MCP checkout: `%USERPROFILE%\Documents\GitHub\lowlevel-computer-use-mcp`
 - MCP endpoint: `http://127.0.0.1:8765/mcp`
 - MCP Python: `<MCP checkout>\.venv\Scripts\python.exe`
 - Client: `scripts/lowlevel_mcp_client.py` relative to this skill

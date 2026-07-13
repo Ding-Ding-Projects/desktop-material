@@ -3,18 +3,19 @@
 ## Outcome
 
 The requested roadmap is implemented: **M0 through M18 are complete and
-shipped on `main`** through the pre-documentation integration SHA
-`4da59bd38308fff45b48f09819d08cbc356ee946`. The implementation work, merge
-fixes, full local validation, production build, and final headless screenshots
-are complete. There is no remaining queued or in-flight feature work in
-[`PLAN.md`](PLAN.md).
+shipped on `main`** through final implementation baseline
+`aeaba02818c3a7c13a6ba78554b2917188b7a9ba`. The implementation, integration
+fixes, exhaustive local validation, production build, hidden-desktop review,
+responsive regression correction, public documentation, and canonical wiki
+publication are complete. There is no remaining queued or in-flight feature
+work in [`PLAN.md`](PLAN.md).
 
-This file deliberately does **not** claim that the final documentation merge is
-already public. After these two closing documents are merged, the root
-integrator must verify the resulting `main` SHA, applicable CI and Pages runs,
-README/site assets, canonical wiki publication, and the final
-accessibility/clipping gate. That post-merge evidence belongs in the root's
-final response.
+The final 1450×997 review found real horizontal clipping in the shell toolbar
+and Changes card. The responsive flex/containment correction is now shipped,
+covered by style regressions, and demonstrated by the tracked exact-size image
+`material-responsive-overflow-fixed.png`. A separate final test run also found
+and fixed Node's read-only `globalThis.localStorage` accessor colliding with
+jsdom; that was a test-harness defect, not a product regression.
 
 ## Completed milestone summary
 
@@ -87,12 +88,14 @@ These are the first paths to inspect when maintaining each subsystem:
 
 ## Final integrated validation evidence
 
-The final pre-documentation integration run at `4da59bd383` recorded:
+The exhaustive final run on the same application/test tree shipped by
+`aeaba02818c3` recorded:
 
-- **239 files** in the integration validation scope;
-- **1,850 unit tests: 1,849 passed, 0 failed, 1 intentional skip**;
+- **241 files and 617 suites** in the validation scope;
+- **1,858 unit tests: 1,857 passed, 0 failed, 1 intentional skip**;
 - `yarn lint`: **passed**;
 - `yarn tsc --noEmit --skipLibCheck`: **passed**;
+- focused version-history tests: **4 of 4 passed**;
 - production unpackaged build: **passed** with
   `npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`;
 - build and GUI verification through the exact low-level MCP checkout at
@@ -101,30 +104,62 @@ The final pre-documentation integration run at `4da59bd383` recorded:
   uniquely named off-screen Win32 Headless Desktop with isolated fixture and
   user-data paths;
 - all final promoted captures were visually inspected at original resolution,
-  nonblank, private-data-free, and exactly **1443×992**.
+  nonblank, and private-data-free. The standard captures are **1443×992** and
+  the user-size responsive proof is **1450×997**.
 
 ### Final headless capture ledger
 
-| Screenshot | Bytes | SHA-256 |
-| --- | ---: | --- |
-| `docs/assets/screenshots/material-agent-access.png` | 110,128 | `644891eaa37c878cb577065822681ee8fd33a018a92e0b89822b43e67393ef93` |
-| `docs/assets/screenshots/material-automation.png` | 87,304 | `efe45408a390301294d5e23193b619eec858fcef4abb147d82709513c5bb3843` |
-| `docs/assets/screenshots/material-branch-merge-all.png` | 116,134 | `c5cb41e17d67c627758ef43620c255c8272f85ed182a741c086a80d735c8719e` |
-| `docs/assets/screenshots/material-history-power-tools.png` | 127,723 | `2df21a9a1f5cb9f39b541a5678583d5c314d4254e12a615f9369b462af92d797` |
-| `docs/assets/screenshots/material-multi-window-menu.png` | 115,719 | `9a6cbcbb4c257eac3312b76f8ed0077a6a123901a6bee9b7793b926a61310c66` |
-| `docs/assets/screenshots/material-notification-center.png` | 111,723 | `f8d0cf33723b1c9793d165ab39fd0cec2ccd41b50136d36f6be9c3d34b7d4709` |
-| `docs/assets/screenshots/material-provider-accounts.png` | 117,558 | `91ab46ec566676f0c87534f5e72795e31a62adeecf6bf2597e533920ff428cff` |
-| `docs/assets/screenshots/material-workspace-changes.png` | 123,162 | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
+| Screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-agent-access.png` | 1443×992 | 110,128 | `644891eaa37c878cb577065822681ee8fd33a018a92e0b89822b43e67393ef93` |
+| `docs/assets/screenshots/material-automation.png` | 1443×992 | 87,304 | `efe45408a390301294d5e23193b619eec858fcef4abb147d82709513c5bb3843` |
+| `docs/assets/screenshots/material-branch-merge-all.png` | 1443×992 | 116,134 | `c5cb41e17d67c627758ef43620c255c8272f85ed182a741c086a80d735c8719e` |
+| `docs/assets/screenshots/material-history-power-tools.png` | 1443×992 | 122,930 | `fe8b6323d77663467b2a6ae887d5e277e31b8dc84f0e35cec2332537ec7fd28a` |
+| `docs/assets/screenshots/material-multi-window-menu.png` | 1443×992 | 115,719 | `9a6cbcbb4c257eac3312b76f8ed0077a6a123901a6bee9b7793b926a61310c66` |
+| `docs/assets/screenshots/material-notification-center.png` | 1443×992 | 111,723 | `f8d0cf33723b1c9793d165ab39fd0cec2ccd41b50136d36f6be9c3d34b7d4709` |
+| `docs/assets/screenshots/material-provider-accounts.png` | 1443×992 | 117,558 | `91ab46ec566676f0c87534f5e72795e31a62adeecf6bf2597e533920ff428cff` |
+| `docs/assets/screenshots/material-scale-200-autofit.png` | 1443×992 | 104,599 | `6fc094a466cef3a540d3bef08db7468e6d9312c9d2242c5abf0df6f9b4fafe05` |
+| `docs/assets/screenshots/material-workspace-changes.png` | 1443×992 | 123,162 | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
+| `docs/assets/screenshots/material-responsive-overflow-fixed.png` | 1450×997 | 132,049 | `160c622c6630d96eda26b5ff3be6705c31dbe55d6ffa6d1376575425770278bf` |
 
 Earlier verified captures, including
 `docs/assets/screenshots/settings-history-manager.png`, remain tracked; that M3
 image is also 1443×992 and has SHA-256
 `abbcc34aa02949d2144f008c9ed10b4414f721843890643d65d8e0b9360c3da1`.
 
+## Published design sanitization
+
+The previously local `design/` prototype is now pushed as five auditable source
+files: both `.dc.html` prototypes, `design/README.md`, the regex guide, and
+`support.js`. Sample names, handles, email addresses, initials, and the private
+GitLab-style hostname were replaced with generic examples while the public
+`codingmachineedge` repository identity was preserved.
+
+The original thumbnail, seven raster captures, and UUID-named upload were not
+published because personal-like identifiers were baked into their pixels and
+some carried image metadata. HTML parsing, embedded JavaScript compilation,
+local-link checks, Prettier, personal-identifier scanning, and common-secret
+pattern scanning all pass on the published source-only set.
+
+## Release automation hardening
+
+- Installer versions use the NuGet-compatible form
+  `3.6.3-beta3-b00000000NN`, avoiding the prior dotted prerelease
+  normalization failure.
+- Squirrel feed processing accepts the final unterminated `RELEASES` record,
+  so the required non-architecture full NUPKG alias is always published.
+- Installer outputs attach directly to a real public release; the Build
+  Installers workflow itself retains no Actions artifacts.
+- Documentation-only pushes intentionally skip installer production, while CI
+  remains enabled for every push to `main`.
+- Existing queued/in-progress runs were canceled when requested. After the
+  subsequent enable instruction, no new runs were canceled and all ten
+  repository Actions workflows report `active`.
+
 ## Headless verification environment
 
-- Project: `C:\Users\cntow\Documents\GitHub\desktop-material`
-- MCP checkout: `C:\Users\cntow\Documents\GitHub\lowlevel-computer-use-mcp`
+- Project: `%USERPROFILE%\Documents\GitHub\desktop-material`
+- MCP checkout: `%USERPROFILE%\Documents\GitHub\lowlevel-computer-use-mcp`
 - Required MCP SHA: `beed66ca6ed2503e6170ee1e1158247f1c2f0140`
 - MCP endpoint: `http://127.0.0.1:8765/mcp`
 - Skill and client: `.codex/skills/verify-desktop-material-headless/`
@@ -146,36 +181,52 @@ The safety contract is mandatory:
 8. Revalidate HWND/PID before close; use exact saved-PID termination only as a
    fallback; close the desktop exactly once; delete only the owned Temp root.
 
-## Root-finalized publication and accessibility gate
+## Root-finalized publication and accessibility evidence
 
-After merging these closing docs, root must perform and report all of the
-following against the resulting final `main` SHA:
+The closing gate is complete:
 
-1. **Git state:** local `main` equals `origin/main`; no delegated branch content
-   remains unmerged; unrelated pre-existing files remain untouched.
-2. **CI:** every applicable CI, Pages, and release workflow is successful or
-   correctly skipped for that exact SHA. Include the workflow URLs.
-3. **Pages and README:** public pages return HTTP 200, show the final shipped
-   ledger rather than roadmap labels, and serve each referenced screenshot with
-   the tracked hash.
-4. **Wiki:** push the canonical `docs/wiki/` mirror, record the wiki commit, and
-   verify the live pages plus raw-main screenshot references.
-5. **Accessibility:** keyboard navigation and focus order work; interactive
-   controls have accessible names, roles, and state; focus remains visible;
-   dark/light contrast and disabled/error states remain legible; no regression
-   exists in list tooltip, dialog, tab, Actions, agent-access, or provider
-   surfaces.
-6. **Clipping and scaling:** inspect the supported minimum viewport and the
-   **1443×992** verification viewport in light/dark themes and representative
-   50%, 100%, 150%, and 200% scaling. Confirm no clipped file rows, FABs,
-   search/filter rows, branch controls, tab actions, remote/submodule controls,
-   Pull-all content, workflow/log controls, or horizontal page overflow.
-7. **Final evidence:** record the pushed SHA, workflow URLs, public URLs, wiki
-   SHA, response status, screenshot names/sizes/hashes, and audit result.
+- **Code and CI:** final implementation baseline
+  `aeaba02818c3a7c13a6ba78554b2917188b7a9ba` passed all seven jobs in
+  [CI 29219750257](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750257).
+- **Installer and release:**
+  [Build Installers 29219750294](https://github.com/codingmachineedge/desktop-material/actions/runs/29219750294)
+  succeeded at that exact SHA with zero workflow artifacts. Public, non-draft,
+  non-prerelease release
+  [`v3.6.3-beta3-b0000000072`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000072)
+  has exactly five uploaded, non-empty assets and an exact-SHA lightweight tag.
+  The non-architecture full NUPKG is 307,543,167 bytes; independently streamed
+  SHA-1 `0cf684825502c692bd7c61d091132afbbd840a28` matches `RELEASES`, and SHA-256
+  `5183826ac72a3248fb005292e3744ea431c8a3fcfb2ca25915afb62dc423bf8d`
+  matches the GitHub asset digest.
+- **Pages and README:** screenshot/site baseline
+  `9e2bd120aafbb89c7ca7de544fd16cd943ec7169` passed
+  [Pages 29219686071](https://github.com/codingmachineedge/desktop-material/actions/runs/29219686071).
+  The [repository](https://github.com/codingmachineedge/desktop-material) and
+  [Pages site](https://codingmachineedge.github.io/desktop-material/) return
+  HTTP 200, reference the responsive proof, and serve all 15 distinct
+  README/site screenshot assets byte-for-byte with their tracked SHA-256.
+- **Wiki:** the canonical six-file mirror is pushed at
+  `72b8eac8bb2f76f3499bedd3f96bc7ea6c295202`. The live
+  [Home](https://github.com/codingmachineedge/desktop-material/wiki) and
+  [User Guide](https://github.com/codingmachineedge/desktop-material/wiki/User-Guide)
+  return HTTP 200 and render the 1450×997 raw-main proof.
+- **Accessibility and clipping:** the exact-size hidden-desktop review shows
+  every repository/worktree/branch/sync/one-click/build toolbar control, all
+  Changes filter/composer controls, and no horizontal scrollbar. The supported
+  minimum remains contained, and requested 200% scaling auto-fits to 96% when
+  required. Keyboard/name/role/focus and 50–200% zoom regressions pass; recorded
+  light/dark core contrast pairs meet WCAG AA for normal text.
+- **Privacy:** the sanitized five-file design set and the full tracked tree pass
+  targeted personal-identifier and common-secret scans. Public local-path
+  examples use `%USERPROFILE%`.
+- **Git and delegation:** every delegated commit is merged into `main`, every
+  delegated branch was pushed, and completed agent worktrees were removed only
+  after clean-state, remote-SHA, and ancestry checks.
 
-Until root completes that gate, the correct status is: **all implementation
-milestones and local/headless verification are complete; final public
-verification for the documentation merge is pending root finalization**.
+The final PLAN/HANDOFF closeout is documentation-only, so installer and Pages
+workflows correctly do not apply to it. Its exact pushed `main` SHA and
+successful CI URL are recorded in the final task response because a commit
+cannot include its own hash.
 
 ## Maintenance constraints
 
