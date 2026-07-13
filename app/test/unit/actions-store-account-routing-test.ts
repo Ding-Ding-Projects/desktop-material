@@ -11,18 +11,35 @@ import { AccountsStore } from '../../src/lib/stores/accounts-store'
 const ipcRequests = new Array<{
   readonly channel: string
   readonly request: {
+    readonly operationId: string
     readonly endpoint: string
     readonly token: string
     readonly owner: string
     readonly repository: string
   }
 }>()
+const canceledTransfers = new Array<string>()
+const pendingArtifactDownloads = new Map<
+  string,
+  (result: { readonly ok: false; readonly reason: 'canceled' }) => void
+>()
+const pendingJobLogs = new Map<
+  string,
+  (result: {
+    readonly ok: true
+    readonly log: string
+    readonly truncated: false
+  }) => void
+>()
+let pauseArtifactDownloads = false
+let pauseJobLogs = false
 
 mock.module('../../src/lib/ipc-renderer', {
   namedExports: {
     invoke: async (
       channel: string,
       request: {
+        operationId: string
         endpoint: string
         token: string
         owner: string
@@ -30,6 +47,16 @@ mock.module('../../src/lib/ipc-renderer', {
       }
     ) => {
       ipcRequests.push({ channel, request })
+      if (channel === 'download-actions-artifact' && pauseArtifactDownloads) {
+        return await new Promise(resolve => {
+          pendingArtifactDownloads.set(request.operationId, resolve)
+        })
+      }
+      if (channel === 'fetch-actions-job-log' && pauseJobLogs) {
+        return await new Promise(resolve => {
+          pendingJobLogs.set(request.operationId, resolve)
+        })
+      }
       return channel === 'fetch-actions-job-log'
         ? { ok: true, log: 'selected account log', truncated: false }
         : {
@@ -40,20 +67,37 @@ mock.module('../../src/lib/ipc-renderer', {
             matchesGitHubDigest: null,
           }
     },
-    send: () => undefined,
+    send: (channel: string, operationId: string) => {
+      if (channel === 'cancel-actions-transfer') {
+        canceledTransfers.push(operationId)
+        pendingArtifactDownloads.get(operationId)?.({
+          ok: false,
+          reason: 'canceled',
+        })
+        pendingArtifactDownloads.delete(operationId)
+      }
+    },
     on: () => undefined,
     removeListener: () => undefined,
   },
 })
 
 class TestAccountsStore {
+  private listener: ((accounts: ReadonlyArray<Account>) => void) | null = null
+
   public constructor(private readonly accounts: ReadonlyArray<Account>) {}
 
   public async getAll() {
     return this.accounts
   }
 
-  public onDidUpdate() {}
+  public onDidUpdate(listener: (accounts: ReadonlyArray<Account>) => void) {
+    this.listener = listener
+  }
+
+  public update(accounts: ReadonlyArray<Account>) {
+    this.listener?.(accounts)
+  }
 }
 
 describe('ActionsStore exact account routing', () => {
@@ -195,6 +239,229 @@ describe('ActionsStore exact account routing', () => {
     } finally {
       fromAccount.mock.restore()
       window.setTimeout = originalSetTimeout
+    }
+  })
+
+  it('cancels an in-flight artifact transfer when the selected account changes', async () => {
+    ipcRequests.length = 0
+    canceledTransfers.length = 0
+    pendingArtifactDownloads.clear()
+    pauseArtifactDownloads = true
+    const endpoint = 'https://api.github.com'
+    const selected = new Account(
+      'selected',
+      endpoint,
+      'token-one',
+      [],
+      '',
+      2,
+      'Selected'
+    )
+    const gitHubRepository = new GitHubRepository(
+      'project',
+      new Owner('group', endpoint, 1),
+      1
+    )
+    const repository = new Repository(
+      'C:/project',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const accounts = new TestAccountsStore([selected])
+    const artifact: IActionsArtifact = {
+      id: 19,
+      name: 'package',
+      sizeInBytes: 0,
+      expired: false,
+      createdAt: new Date(0),
+      expiresAt: null,
+      updatedAt: new Date(0),
+      digest: null,
+      workflowRun: null,
+    }
+
+    try {
+      const { ActionsStore } = await import(
+        '../../src/lib/stores/actions-store'
+      )
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const transfer = store.downloadArtifact(
+        repository,
+        artifact,
+        'C:\\Downloads\\package.zip',
+        new AbortController().signal
+      )
+      await Promise.resolve()
+      assert.equal(pendingArtifactDownloads.size, 1)
+
+      accounts.update([selected.withToken('token-two')])
+      await assert.rejects(
+        transfer,
+        error => (error as Error).name === 'AbortError'
+      )
+      assert.equal(canceledTransfers.length, 1)
+      assert.equal(pendingArtifactDownloads.size, 0)
+    } finally {
+      pauseArtifactDownloads = false
+      pendingArtifactDownloads.clear()
+    }
+  })
+
+  it('drops a late job log result after the selected account changes', async () => {
+    ipcRequests.length = 0
+    canceledTransfers.length = 0
+    pendingJobLogs.clear()
+    pauseJobLogs = true
+    const endpoint = 'https://api.github.com'
+    const selected = new Account(
+      'selected',
+      endpoint,
+      'token-one',
+      [],
+      '',
+      2,
+      'Selected'
+    )
+    const gitHubRepository = new GitHubRepository(
+      'project',
+      new Owner('group', endpoint, 1),
+      1
+    )
+    const repository = new Repository(
+      'C:/project',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const accounts = new TestAccountsStore([selected])
+
+    try {
+      const { ActionsStore } = await import(
+        '../../src/lib/stores/actions-store'
+      )
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const log = store.fetchJobLogs(repository, 11)
+      await Promise.resolve()
+      assert.equal(pendingJobLogs.size, 1)
+
+      accounts.update([selected.withToken('token-two')])
+      const [operationId, resolve] = [...pendingJobLogs.entries()][0]
+      assert.deepEqual(canceledTransfers, [operationId])
+      resolve({ ok: true, log: 'old account log', truncated: false })
+      await assert.rejects(log, error => (error as Error).name === 'AbortError')
+    } finally {
+      pauseJobLogs = false
+      pendingJobLogs.clear()
+    }
+  })
+
+  it('drops late jobs and workflow source after the selected account changes', async () => {
+    const endpoint = 'https://api.github.com'
+    const selected = new Account(
+      'selected',
+      endpoint,
+      'token-one',
+      [],
+      '',
+      2,
+      'Selected'
+    )
+    const gitHubRepository = new GitHubRepository(
+      'project',
+      new Owner('group', endpoint, 1),
+      1
+    )
+    const repository = new Repository(
+      'C:/project',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const accounts = new TestAccountsStore([selected])
+    const signals = new Array<AbortSignal>()
+    let resolveJobs!: (value: { readonly jobs: ReadonlyArray<never> }) => void
+    let resolveSource!: (value: string) => void
+    const jobsResult = new Promise<{ readonly jobs: ReadonlyArray<never> }>(
+      resolve => {
+        resolveJobs = resolve
+      }
+    )
+    const sourceResult = new Promise<string>(resolve => {
+      resolveSource = resolve
+    })
+    const fromAccount = mock.method(
+      API,
+      'fromAccount',
+      () =>
+        ({
+          fetchWorkflowRunJobs: async (
+            _owner: string,
+            _name: string,
+            _runId: number,
+            signal: AbortSignal
+          ) => {
+            signals.push(signal)
+            return await jobsResult
+          },
+          fetchWorkflowFileContent: async (
+            _owner: string,
+            _name: string,
+            _path: string,
+            _ref: string | undefined,
+            signal: AbortSignal
+          ) => {
+            signals.push(signal)
+            return await sourceResult
+          },
+        } as unknown as API)
+    )
+
+    try {
+      const { ActionsStore } = await import(
+        '../../src/lib/stores/actions-store'
+      )
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const jobs = store.fetchJobs(repository, 7)
+      const source = store.fetchWorkflowSource(repository, {
+        id: 3,
+        name: 'CI',
+        path: '.github/workflows/ci.yml',
+      } as IAPIWorkflow)
+      assert.equal(signals.length, 2)
+
+      accounts.update([selected.withToken('token-two')])
+      assert.ok(signals.every(signal => signal.aborted))
+      resolveJobs({ jobs: [] })
+      resolveSource('name: Old account workflow')
+      await assert.rejects(
+        jobs,
+        error => (error as Error).name === 'AbortError'
+      )
+      await assert.rejects(
+        source,
+        error => (error as Error).name === 'AbortError'
+      )
+    } finally {
+      fromAccount.mock.restore()
     }
   })
 })
