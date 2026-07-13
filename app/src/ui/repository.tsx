@@ -190,10 +190,9 @@ export class RepositoryView extends React.Component<
   }
 
   private supportsGitHubActions() {
-    const repository = this.props.repository.gitHubRepository
     return (
-      repository !== null &&
-      accountSupportsActions(repository, this.props.accounts)
+      this.props.repository.gitHubRepository !== null &&
+      accountSupportsActions(this.props.repository, this.props.accounts)
     )
   }
 

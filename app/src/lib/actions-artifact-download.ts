@@ -162,24 +162,58 @@ async function writeAll(handle: FileHandle, bytes: Uint8Array): Promise<void> {
   }
 }
 
-async function publishWithoutOverwrite(partial: string, destination: string) {
-  for (let index = 1; index <= 1000; index++) {
-    const candidate = getActionsArtifactDestinationCandidate(destination, index)
-    try {
-      // A same-directory hard link is atomic and fails when the candidate
-      // already exists. Existing user files are therefore never replaced.
-      await link(partial, candidate)
-      return candidate
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
-        throw error
+export async function publishActionsArtifactWithoutOverwrite(
+  partial: string,
+  destination: string,
+  signal: AbortSignal
+): Promise<string> {
+  let published: string | null = null
+  try {
+    for (let index = 1; index <= 1000; index++) {
+      const candidate = getActionsArtifactDestinationCandidate(
+        destination,
+        index
+      )
+      try {
+        // A same-directory hard link is atomic and fails when the candidate
+        // already exists. Existing user files are therefore never replaced.
+        await link(partial, candidate)
+        published = candidate
+        break
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+          throw error
+        }
       }
     }
+    if (published === null) {
+      throw new ActionsArtifactDownloadError(
+        'Too many files already use this artifact archive name. Choose another destination.',
+        'destination'
+      )
+    }
+
+    // Cancellation and partial-file cleanup are part of the publish boundary.
+    // A candidate is not handed to the caller until both checks have passed.
+    throwIfAborted(signal)
+    await unlink(partial)
+    throwIfAborted(signal)
+    const completed = published
+    published = null
+    return completed
+  } catch (error) {
+    if (published !== null) {
+      try {
+        await unlink(published)
+      } catch {
+        throw new ActionsArtifactDownloadError(
+          'The incomplete artifact archive could not be removed from the selected destination.',
+          'destination'
+        )
+      }
+    }
+    throw error
   }
-  throw new ActionsArtifactDownloadError(
-    'Too many files already use this artifact archive name. Choose another destination.',
-    'destination'
-  )
 }
 
 /**
@@ -292,8 +326,11 @@ export async function downloadActionsArtifactArchive({
     await handle.close()
     openHandle = null
     throwIfAborted(signal)
-    const publishedPath = await publishWithoutOverwrite(partialPath, target)
-    await unlink(partialPath)
+    const publishedPath = await publishActionsArtifactWithoutOverwrite(
+      partialPath,
+      target,
+      signal
+    )
     return {
       path: publishedPath,
       bytes: receivedBytes,

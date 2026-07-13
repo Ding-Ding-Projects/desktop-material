@@ -8,7 +8,7 @@ import {
 } from '../../lib/actions-artifacts'
 import { IActionsArtifactDownloadProgress } from '../../lib/actions-artifact-download'
 import { ActionsStore } from '../../lib/stores/actions-store'
-import { GitHubRepository } from '../../models/github-repository'
+import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
 import { formatBytes } from '../lib/bytes'
 import { showItemInFolder, showSaveDialog } from '../main-process-proxy'
@@ -27,7 +27,7 @@ interface ICompletedArtifactDownload {
 }
 
 interface IRunArtifactsProps {
-  readonly repository: GitHubRepository
+  readonly repository: Repository
   readonly run: IAPIWorkflowRun
   readonly actionsStore: ActionsStore
   readonly chooseDestination?: (

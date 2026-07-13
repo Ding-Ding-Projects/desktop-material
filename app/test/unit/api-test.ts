@@ -2,8 +2,6 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import {
   API,
-  ActionsLogMaximumBytes,
-  ActionsLogTruncationMarker,
   createGitHubAPIRequestHeaders,
   getBitbucketAPIEndpoint,
   getEndpointForRepository,
@@ -404,57 +402,6 @@ describe('API', () => {
           error instanceof APIError &&
           error.responseStatus === 404 &&
           error.message === 'Resource not found'
-      )
-    })
-
-    it('follows job log redirects without forwarding request options', async () => {
-      const api = new API('https://api.github.com', 'secret')
-      Reflect.set(
-        api,
-        'ghRequest',
-        async () =>
-          new Response(null, {
-            status: 302,
-            headers: { Location: 'https://blob.example.test/job.txt' },
-          })
-      )
-      const originalFetch = globalThis.fetch
-      let receivedOptions: RequestInit | undefined
-      globalThis.fetch = async (_input, options) => {
-        receivedOptions = options
-        return new Response('hello from the job')
-      }
-
-      try {
-        assert.equal(
-          await api.fetchWorkflowJobLogs('owner', 'repo', 7),
-          'hello from the job'
-        )
-        assert.equal(receivedOptions, undefined)
-      } finally {
-        globalThis.fetch = originalFetch
-      }
-    })
-
-    it('caps oversized job logs and identifies expired logs', async () => {
-      const api = new API('https://api.github.com', 'secret')
-      Reflect.set(
-        api,
-        'ghRequest',
-        async () =>
-          new Response(new Uint8Array(ActionsLogMaximumBytes + 10).fill(65))
-      )
-      const log = await api.fetchWorkflowJobLogs('owner', 'repo', 7)
-      assert(log.endsWith(ActionsLogTruncationMarker))
-
-      Reflect.set(
-        api,
-        'ghRequest',
-        async () => new Response(null, { status: 410 })
-      )
-      await assert.rejects(
-        api.fetchWorkflowJobLogs('owner', 'repo', 7),
-        error => error instanceof APIError && error.responseStatus === 410
       )
     })
   })

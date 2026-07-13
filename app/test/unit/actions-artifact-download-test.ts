@@ -8,6 +8,7 @@ import {
   ActionsArtifactDownloadError,
   downloadActionsArtifactArchive,
   normalizeActionsArtifactDestination,
+  publishActionsArtifactWithoutOverwrite,
 } from '../../src/lib/actions-artifact-download'
 import { IActionsArtifact } from '../../src/lib/actions-artifacts'
 
@@ -149,6 +150,26 @@ describe('Actions artifact archive download', () => {
         { name: 'AbortError' }
       )
       assert.deepEqual(await readdir(directory), [])
+    })
+  })
+
+  it('removes a linked candidate when cancellation reaches the publish boundary', async () => {
+    await withDirectory(async directory => {
+      const partial = join(directory, '.package.partial')
+      const destination = join(directory, 'package.zip')
+      await writeFile(partial, archive)
+      const controller = new AbortController()
+      controller.abort()
+
+      await assert.rejects(
+        publishActionsArtifactWithoutOverwrite(
+          partial,
+          destination,
+          controller.signal
+        ),
+        { name: 'AbortError' }
+      )
+      assert.deepEqual(await readdir(directory), ['.package.partial'])
     })
   })
 })

@@ -33,6 +33,7 @@ interface IActionsViewProps {
 }
 
 interface IActionsViewState {
+  readonly repositoryHash: string
   readonly actions: IActionsState
   readonly workflow: string
   readonly branch: string
@@ -65,53 +66,130 @@ const InitialActionsState: IActionsState = {
   supported: true,
 }
 
+const initialActionsViewState = (
+  repositoryHash: string
+): IActionsViewState => ({
+  repositoryHash,
+  actions: InitialActionsState,
+  workflow: 'all',
+  branch: 'all',
+  event: 'all',
+  status: 'all',
+  selectedRun: null,
+  jobs: [],
+  jobsLoading: false,
+  jobsError: null,
+  busyRunId: null,
+  busyJobId: null,
+  busyWorkflowId: null,
+  actionMessage: null,
+  actionError: null,
+  dispatchOpen: false,
+  logJob: null,
+  log: '',
+  logLoading: false,
+  logError: null,
+  confirmation: null,
+})
+
 export class ActionsView extends React.Component<
   IActionsViewProps,
   IActionsViewState
 > {
+  public static getDerivedStateFromProps(
+    props: IActionsViewProps,
+    state: IActionsViewState
+  ): IActionsViewState | null {
+    return props.repository.hash === state.repositoryHash
+      ? null
+      : initialActionsViewState(props.repository.hash)
+  }
+
   private subscription: Disposable | null = null
+  private logController: AbortController | null = null
+  private repositoryGeneration = 0
 
   public constructor(props: IActionsViewProps) {
     super(props)
-    this.state = {
-      actions: InitialActionsState,
-      workflow: 'all',
-      branch: 'all',
-      event: 'all',
-      status: 'all',
-      selectedRun: null,
-      jobs: [],
-      jobsLoading: false,
-      jobsError: null,
-      busyRunId: null,
-      busyJobId: null,
-      busyWorkflowId: null,
-      actionMessage: null,
-      actionError: null,
-      dispatchOpen: false,
-      logJob: null,
-      log: '',
-      logLoading: false,
-      logError: null,
-      confirmation: null,
-    }
+    this.state = initialActionsViewState(props.repository.hash)
   }
 
   public componentDidMount() {
-    const gitHubRepository = this.props.repository.gitHubRepository
-    if (gitHubRepository !== null) {
-      this.subscription = this.props.actionsStore.subscribe(
-        gitHubRepository,
-        this.onActionsState
-      )
+    this.subscribeToRepository()
+  }
+
+  public componentDidUpdate(prevProps: IActionsViewProps) {
+    if (prevProps.repository.hash !== this.props.repository.hash) {
+      this.repositoryGeneration++
+      this.subscription?.dispose()
+      this.subscription = null
+      this.logController?.abort()
+      this.logController = null
+      this.subscribeToRepository()
     }
   }
 
   public componentWillUnmount() {
+    this.repositoryGeneration++
     this.subscription?.dispose()
+    this.logController?.abort()
   }
 
-  private onActionsState = (actions: IActionsState) =>
+  private subscribeToRepository() {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (repository.gitHubRepository !== null) {
+      this.subscription = this.props.actionsStore.subscribe(
+        repository,
+        actions => {
+          if (this.isCurrentRepository(repository, generation)) {
+            this.onActionsState(actions)
+          }
+        }
+      )
+    }
+  }
+
+  private isCurrentRepository(
+    repository: Repository,
+    generation: number
+  ): boolean {
+    return (
+      generation === this.repositoryGeneration &&
+      repository.hash === this.props.repository.hash
+    )
+  }
+
+  private onActionsState = (actions: IActionsState) => {
+    const invalidated =
+      actions.lastUpdated === null &&
+      actions.workflows.length === 0 &&
+      actions.runs.length === 0
+    if (invalidated) {
+      this.logController?.abort()
+      this.logController = null
+      this.setState({
+        actions,
+        workflow: 'all',
+        selectedRun: null,
+        jobs: [],
+        jobsLoading: false,
+        jobsError: null,
+        busyRunId: null,
+        busyJobId: null,
+        busyWorkflowId: null,
+        actionMessage: null,
+        actionError: null,
+        dispatchOpen: false,
+        logJob: null,
+        log: '',
+        logLoading: false,
+        logError: null,
+        confirmation: null,
+      })
+      return
+    }
+
     this.setState(state => ({
       actions,
       selectedRun:
@@ -120,6 +198,7 @@ export class ActionsView extends React.Component<
           : actions.runs.find(run => run.id === state.selectedRun?.id) ??
             state.selectedRun,
     }))
+  }
 
   private onFilterChange = (event: React.FormEvent<HTMLSelectElement>) => {
     const element = event.currentTarget
@@ -130,15 +209,15 @@ export class ActionsView extends React.Component<
   }
 
   private refresh = () => {
-    const repository = this.props.repository.gitHubRepository
-    if (repository !== null) {
-      this.props.actionsStore.refresh(repository, true)
+    if (this.props.repository.gitHubRepository !== null) {
+      this.props.actionsStore.refresh(this.props.repository, true)
     }
   }
 
   private selectRun = async (selectedRun: IAPIWorkflowRun) => {
-    const repository = this.props.repository.gitHubRepository
-    if (repository === null) {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (repository.gitHubRepository === null) {
       return
     }
     this.setState({ selectedRun, jobs: [], jobsLoading: true, jobsError: null })
@@ -147,14 +226,22 @@ export class ActionsView extends React.Component<
         repository,
         selectedRun.id
       )
-      if (this.state.selectedRun?.id === selectedRun.id) {
+      if (
+        this.isCurrentRepository(repository, generation) &&
+        this.state.selectedRun?.id === selectedRun.id
+      ) {
         this.setState({ jobs, jobsLoading: false })
       }
     } catch (error) {
-      this.setState({
-        jobsLoading: false,
-        jobsError: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (
+        this.isCurrentRepository(repository, generation) &&
+        this.state.selectedRun?.id === selectedRun.id
+      ) {
+        this.setState({
+          jobsLoading: false,
+          jobsError: error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     }
   }
 
@@ -168,41 +255,67 @@ export class ActionsView extends React.Component<
     ref: string,
     inputs: Readonly<Record<string, string>>
   ) => {
-    const repository = this.props.repository.gitHubRepository
-    if (repository === null) {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (repository.gitHubRepository === null) {
       return
     }
     await this.props.actionsStore.dispatch(repository, workflowId, ref, inputs)
-    this.setState({
-      dispatchOpen: false,
-      actionError: null,
-      actionMessage: `Workflow queued for ${ref}. Waiting for GitHub to publish the run…`,
-    })
-  }
-
-  private viewLogs = async (logJob: IAPIWorkflowJob) => {
-    const repository = this.props.repository.gitHubRepository
-    if (repository === null) {
-      return
-    }
-    this.setState({ logJob, log: '', logLoading: true, logError: null })
-    try {
-      const log = await this.props.actionsStore.fetchJobLogs(
-        repository,
-        logJob.id
-      )
-      if (this.state.logJob?.id === logJob.id) {
-        this.setState({ log, logLoading: false })
-      }
-    } catch (error) {
+    if (this.isCurrentRepository(repository, generation)) {
       this.setState({
-        logLoading: false,
-        logError: error instanceof Error ? error : new Error(String(error)),
+        dispatchOpen: false,
+        actionError: null,
+        actionMessage: `Workflow queued for ${ref}. Waiting for GitHub to publish the run…`,
       })
     }
   }
 
-  private closeLogs = () => this.setState({ logJob: null, log: '' })
+  private viewLogs = async (logJob: IAPIWorkflowJob) => {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (repository.gitHubRepository === null) {
+      return
+    }
+    this.logController?.abort()
+    const controller = new AbortController()
+    this.logController = controller
+    this.setState({ logJob, log: '', logLoading: true, logError: null })
+    try {
+      const log = await this.props.actionsStore.fetchJobLogs(
+        repository,
+        logJob.id,
+        controller.signal
+      )
+      if (
+        this.isCurrentRepository(repository, generation) &&
+        this.logController === controller &&
+        this.state.logJob?.id === logJob.id
+      ) {
+        this.setState({ log, logLoading: false })
+      }
+    } catch (error) {
+      if (
+        this.isCurrentRepository(repository, generation) &&
+        this.logController === controller &&
+        (error as Error)?.name !== 'AbortError'
+      ) {
+        this.setState({
+          logLoading: false,
+          logError: error instanceof Error ? error : new Error(String(error)),
+        })
+      }
+    } finally {
+      if (this.logController === controller) {
+        this.logController = null
+      }
+    }
+  }
+
+  private closeLogs = () => {
+    this.logController?.abort()
+    this.logController = null
+    this.setState({ logJob: null, log: '', logLoading: false, logError: null })
+  }
 
   private rerun = (run: IAPIWorkflowRun) => this.performRunAction(run, false)
   private rerunFailed = (run: IAPIWorkflowRun) =>
@@ -223,8 +336,12 @@ export class ActionsView extends React.Component<
 
   private confirmCancelRun = async (force: boolean) => {
     const confirmation = this.state.confirmation
-    const repository = this.props.repository.gitHubRepository
-    if (confirmation?.kind !== 'cancel-run' || repository === null) {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (
+      confirmation?.kind !== 'cancel-run' ||
+      repository.gitHubRepository === null
+    ) {
       return
     }
     this.setState({
@@ -238,24 +355,35 @@ export class ActionsView extends React.Component<
         confirmation.run.id,
         force
       )
-      this.setState({
-        actionMessage: force
-          ? 'Force cancellation requested.'
-          : 'Workflow cancellation requested.',
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          actionMessage: force
+            ? 'Force cancellation requested.'
+            : 'Workflow cancellation requested.',
+        })
+      }
     } catch (error) {
-      this.setState({
-        actionError: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          actionError:
+            error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     } finally {
-      this.setState({ busyRunId: null, confirmation: null })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({ busyRunId: null, confirmation: null })
+      }
     }
   }
 
   private confirmWorkflowStateChange = async () => {
     const confirmation = this.state.confirmation
-    const repository = this.props.repository.gitHubRepository
-    if (confirmation?.kind !== 'workflow-state' || repository === null) {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (
+      confirmation?.kind !== 'workflow-state' ||
+      repository.gitHubRepository === null
+    ) {
       return
     }
     this.setState({
@@ -269,24 +397,32 @@ export class ActionsView extends React.Component<
         confirmation.workflow.id,
         confirmation.enabled
       )
-      this.setState({
-        actionMessage: confirmation.enabled
-          ? `Enabled ${confirmation.workflow.name}.`
-          : `Disabled ${confirmation.workflow.name}.`,
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          actionMessage: confirmation.enabled
+            ? `Enabled ${confirmation.workflow.name}.`
+            : `Disabled ${confirmation.workflow.name}.`,
+        })
+      }
     } catch (error) {
-      this.setState({
-        actionError: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          actionError:
+            error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     } finally {
-      this.setState({ busyWorkflowId: null, confirmation: null })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({ busyWorkflowId: null, confirmation: null })
+      }
     }
   }
 
   private rerunJob = async (job: IAPIWorkflowJob) => {
-    const repository = this.props.repository.gitHubRepository
     const selectedRun = this.state.selectedRun
-    if (repository === null || selectedRun === null) {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (repository.gitHubRepository === null || selectedRun === null) {
       return
     }
     this.setState({
@@ -296,26 +432,37 @@ export class ActionsView extends React.Component<
     })
     try {
       await this.props.actionsStore.rerunJob(repository, job.id)
+      if (!this.isCurrentRepository(repository, generation)) {
+        return
+      }
       const jobs = await this.props.actionsStore.fetchJobs(
         repository,
         selectedRun.id
       )
-      this.setState({
-        jobs,
-        actionMessage: `Re-run requested for ${job.name}.`,
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          jobs,
+          actionMessage: `Re-run requested for ${job.name}.`,
+        })
+      }
     } catch (error) {
-      this.setState({
-        actionError: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          actionError:
+            error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     } finally {
-      this.setState({ busyJobId: null })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({ busyJobId: null })
+      }
     }
   }
 
   private async performRunAction(run: IAPIWorkflowRun, failedOnly: boolean) {
-    const repository = this.props.repository.gitHubRepository
-    if (repository === null) {
+    const repository = this.props.repository
+    const generation = this.repositoryGeneration
+    if (repository.gitHubRepository === null) {
       return
     }
     this.setState({ busyRunId: run.id, actionError: null, actionMessage: null })
@@ -325,15 +472,20 @@ export class ActionsView extends React.Component<
       } else {
         await this.props.actionsStore.rerun(repository, run.id)
       }
-      this.setState({
-        busyRunId: null,
-        actionMessage: 'Workflow re-run requested.',
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          busyRunId: null,
+          actionMessage: 'Workflow re-run requested.',
+        })
+      }
     } catch (error) {
-      this.setState({
-        busyRunId: null,
-        actionError: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (this.isCurrentRepository(repository, generation)) {
+        this.setState({
+          busyRunId: null,
+          actionError:
+            error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     }
   }
 
@@ -520,7 +672,7 @@ export class ActionsView extends React.Component<
           />
           {selectedRun && this.props.repository.gitHubRepository && (
             <RunDetails
-              repository={this.props.repository.gitHubRepository}
+              repository={this.props.repository}
               actionsStore={this.props.actionsStore}
               run={selectedRun}
               jobs={this.state.jobs}
@@ -535,7 +687,7 @@ export class ActionsView extends React.Component<
         </div>
         {this.state.dispatchOpen && this.props.repository.gitHubRepository && (
           <WorkflowDispatchDialog
-            repository={this.props.repository.gitHubRepository}
+            repository={this.props.repository}
             workflows={actions.workflows.filter(x => x.state === 'active')}
             initialWorkflowId={
               this.state.workflow === 'all' ? null : Number(this.state.workflow)
