@@ -45,7 +45,7 @@
 3. Require MCP `startup_status` `ok: true`. Through MCP `run_command`, inspect the scheduled task executable/arguments and require the actual server checkout `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`, port `8765`, and its exact `git rev-parse HEAD`; require `client_ok: true`, `returncode: 0`, and `timed_out: false` for every preflight command.
 4. Through MCP `run_command`, build exactly `npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod` from the source root with a 3,600-second tool timeout and a longer client timeout. Abort rather than downloading any dependency.
 5. Create one unique owned run root beneath `%TEMP%\desktop-material-p0-ui-20260713-c7e68853`. Under it create the disposable Git repositories/remotes, isolated user-data/home/config directories, captures, downloaded artifacts, local fake-provider state, logs, and cleanup ledger. Resolve every path beneath this root before later deletion.
-6. Build a deterministic loopback-only fake GitHub Enterprise provider when provider data is required. Use a unique dummy account/token and synthetic `material-fixture` repository; bind to an owned ephemeral localhost port; implement only the exact repository, branch, protection, ruleset, pull-request, Actions, artifact, and download routes exercised by the production app. Record every request, reject unexpected mutations, and never proxy credentials or public GitHub traffic. A pull-request submit must mutate only in-memory/local fake-provider state.
+6. Build a deterministic loopback-only GitHub Enterprise-compatible provider when provider data is required. Use a unique dummy account/token and synthetic `material-fixture` repository; bind to an owned ephemeral localhost port; implement only the exact repository, branch, protection, ruleset, pull-request, Actions, artifact, and download routes exercised by the production app. The stored Git remote and provider HTML identity use the reserved `.invalid` name `material-provider.invalid`; repository-local `http.proxy` sends only Git transport to the owned loopback listener without rewriting the identity Desktop reads. Record every request, reject unexpected mutations, and never proxy credentials or public GitHub traffic. A pull-request submit must mutate only in-memory/local fake-provider state.
 7. Seed only the isolated profile and its unique dummy credential. Record and delete that exact credential during cleanup; do not read, copy, or alter the user's normal Desktop profile.
 8. Create exactly one uniquely named headless desktop, `DesktopMaterialP0-20260713-c7e68853`; record creation state/handle once.
 9. Recheck the newly built Electron binary. Launch with absolute paths, `--disable-gpu`, the isolated `--user-data-dir`, and only the disposable fixture as `--cli-open`; save the exact PID. Poll `list_headless_windows` to resolve the current Desktop Material HWND at runtime.
@@ -67,11 +67,13 @@
 
 - Run id: `dm-p0-ui-20260713-c7e68853`
 - Owned root: `%TEMP%\desktop-material-p0-ui-20260713-c7e68853` (resolve absolute path after creation)
-- Fixture/remotes: pending creation under owned root
-- Isolated profile/home/config: pending creation under owned root
-- Fake-provider PID/port and unique dummy credential key: pending creation
+- Resolved owned root: `C:\Users\Administrator\AppData\Local\Temp\desktop-material-p0-ui-20260713-c7e68853`
+- Fixture/remotes: deterministic 15-commit source and bare smart-HTTP repository under `git-source` / `git-http`; disposable true-shallow clone at `fixture`, feature head `09d7ed3e257b60330ebd51aac1d9dd9fd4494e47`, main head `ce9c1605e167f0cb045b549834302f859808772c`, stored remote `http://material-provider.invalid/material-fixture-owner/material-fixture.git`, feature upstream `origin/feature/material-verification`, `origin/main` present, visible commit count 3
+- Retained verification harness: `.codex/verification`; 7/7 pure/HTTP/Git integration tests pass, and the live probe passes CORS, repository identity, nine branch rules across two rulesets, one workflow/run/artifact, exact 2,097,728-byte SHA-256/digest agreement, attestation presence, proxy clone/deepen, and receive-pack rejection
+- Isolated profile/home/config: created empty at `profile`, `home`, and `config`; no normal Desktop profile was read or changed
+- Fake provider: currently PID `16980`, loopback port `51292`, API endpoint `http://localhost:51292/api/v3`, provider identity `http://material-provider.invalid`; dummy credential service `GitHub - http://localhost:51292/api/v3` with login `material-verifier-p0` is not seeded yet; requests log under `provider/requests.jsonl`
 - Desktop name: `DesktopMaterialP0-20260713-c7e68853`
 - Desktop create state/handle: not created
 - Launch PID/resolved HWND: not launched/not resolved
 - Captures/promoted SHA-256 values: pending
-- Cleanup result: pending; the run is not complete until owned windows, PID, desktop, listeners, credential, and paths are verified absent
+- Cleanup result: active run; no desktop/app/credential exists yet, and final cleanup remains pending until owned windows, PIDs, listeners, desktop, credential, downloads, and paths are verified absent

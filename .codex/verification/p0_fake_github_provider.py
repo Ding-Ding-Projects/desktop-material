@@ -1,0 +1,879 @@
+#!/usr/bin/env python3
+"""Loopback-only GitHub fixture used by the P0 production UI gate.
+
+The server exposes a deliberately small REST surface and delegates the exact
+fixture repository path to ``git http-backend``. It never proxies requests and
+rejects every API mutation except creation of an in-memory pull request.
+"""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import re
+import subprocess
+import sys
+import threading
+import time
+import zipfile
+from dataclasses import dataclass
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from typing import Any, Mapping
+from urllib.parse import parse_qs, unquote, urlsplit
+
+
+OWNER = "material-fixture-owner"
+REPOSITORY = "material-fixture"
+FEATURE_BRANCH = "feature/material-verification"
+DEFAULT_BRANCH = "main"
+ACCOUNT_LOGIN = "material-verifier-p0"
+ACCOUNT_ID = 7_130_701
+WORKFLOW_ID = 84_001
+WORKFLOW_RUN_ID = 84_101
+WORKFLOW_JOB_ID = 84_201
+ARTIFACT_ID = 84_301
+RULESET_IDS = (91_001, 91_002)
+FIXTURE_TOKEN = "dm-p0-loopback-token-20260713"
+FIXTURE_HTML_URL = "http://material-provider.invalid"
+ENTERPRISE_VERSION = "3.17.2"
+FIXED_TIME = "2026-07-13T14:30:00Z"
+HEAD_SHA = "7" * 40
+
+
+@dataclass(frozen=True)
+class FixtureResponse:
+    status: int
+    headers: Mapping[str, str]
+    body: bytes
+
+
+def json_response(value: Any, status: int = HTTPStatus.OK) -> FixtureResponse:
+    body = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
+    return FixtureResponse(
+        int(status),
+        {
+            "Content-Type": "application/json; charset=utf-8",
+            "Content-Length": str(len(body)),
+        },
+        body,
+    )
+
+
+def empty_response(status: int = HTTPStatus.NO_CONTENT) -> FixtureResponse:
+    return FixtureResponse(int(status), {"Content-Length": "0"}, b"")
+
+
+def make_deterministic_artifact(path: Path) -> None:
+    """Create a stable, harmless archive without relying on host timestamps."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    entries = {
+        "reports/material-ui-gate.txt": (
+            "Desktop Material P0 fixture\n"
+            "Synthetic evidence only; no user or GitHub data is present.\n"
+        ),
+        "reports/viewport-results.json": json.dumps(
+            {
+                "regular": "pending-runtime-verification",
+                "minimumWidth": "pending-runtime-verification",
+                "zoom200": "pending-runtime-verification",
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+    }
+    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+        for name, content in sorted(entries.items()):
+            info = zipfile.ZipInfo(name, (2026, 7, 13, 14, 30, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o100644 << 16
+            archive.writestr(info, content.encode("utf-8"))
+        # Stored deterministic bytes keep the transfer large enough for the
+        # real UI to expose progress and cancellation without excessive disk
+        # or memory use. No archive entry can escape the destination.
+        payload = bytearray()
+        counter = 0
+        while len(payload) < 2 * 1024 * 1024:
+            payload.extend(hashlib.sha256(f"material-p0-{counter}".encode()).digest())
+            counter += 1
+        info = zipfile.ZipInfo("reports/cancel-transfer.bin", (2026, 7, 13, 14, 30, 0))
+        info.compress_type = zipfile.ZIP_STORED
+        info.external_attr = 0o100644 << 16
+        archive.writestr(info, bytes(payload[: 2 * 1024 * 1024]))
+
+
+class ProviderState:
+    """Pure request dispatcher shared by the HTTP handler and unit tests."""
+
+    def __init__(
+        self,
+        artifact_path: Path,
+        *,
+        html_url: str = FIXTURE_HTML_URL,
+    ) -> None:
+        self.artifact_path = artifact_path
+        self.token = FIXTURE_TOKEN
+        self.html_url = html_url.rstrip("/")
+        self.pull_requests: list[dict[str, Any]] = []
+        self._lock = threading.Lock()
+        self.artifact_bytes = artifact_path.read_bytes()
+        self.artifact_hex_digest = hashlib.sha256(self.artifact_bytes).hexdigest()
+
+    @property
+    def repository_html_url(self) -> str:
+        return f"{self.html_url}/{OWNER}/{REPOSITORY}"
+
+    @property
+    def repository_clone_url(self) -> str:
+        return f"{self.html_url}/{OWNER}/{REPOSITORY}.git"
+
+    @property
+    def identity(self) -> dict[str, Any]:
+        return {
+            "id": ACCOUNT_ID,
+            "login": ACCOUNT_LOGIN,
+            "name": "Material Verification Account With Wrapped Identity",
+            "email": "material-verifier@example.invalid",
+            "avatar_url": "",
+            "html_url": f"{self.html_url}/{ACCOUNT_LOGIN}",
+            "type": "User",
+            "plan": {"name": "enterprise"},
+        }
+
+    @property
+    def repository(self) -> dict[str, Any]:
+        return {
+            "id": 7_130_702,
+            "name": REPOSITORY,
+            "full_name": f"{OWNER}/{REPOSITORY}",
+            "private": True,
+            "owner": {
+                "id": 7_130_703,
+                "login": OWNER,
+                "avatar_url": "",
+                "html_url": f"{self.html_url}/{OWNER}",
+                "type": "Organization",
+            },
+            "html_url": self.repository_html_url,
+            "clone_url": self.repository_clone_url,
+            "ssh_url": f"git@material-provider.invalid:{OWNER}/{REPOSITORY}.git",
+            "fork": False,
+            "default_branch": DEFAULT_BRANCH,
+            "pushed_at": FIXED_TIME,
+            "has_issues": True,
+            "has_pull_requests": True,
+            "archived": False,
+            "disabled": False,
+            "pull_request_creation_policy": "all",
+            "allow_merge_commit": True,
+            "allow_squash_merge": True,
+            "allow_rebase_merge": True,
+            "permissions": {"admin": True, "push": True, "pull": True},
+        }
+
+    @property
+    def workflow(self) -> dict[str, Any]:
+        return {
+            "id": WORKFLOW_ID,
+            "name": "Production desktop viewport, artifact, and accessibility verification",
+            "path": ".github/workflows/material-production-verification.yml",
+            "state": "active",
+            "html_url": f"{self.repository_html_url}/actions/workflows/{WORKFLOW_ID}",
+            "created_at": FIXED_TIME,
+            "updated_at": FIXED_TIME,
+        }
+
+    @property
+    def workflow_run(self) -> dict[str, Any]:
+        return {
+            "id": WORKFLOW_RUN_ID,
+            "workflow_id": WORKFLOW_ID,
+            "cancel_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/cancel",
+            "created_at": FIXED_TIME,
+            "updated_at": FIXED_TIME,
+            "logs_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/logs",
+            "name": self.workflow["name"],
+            "display_title": "Verify every production viewport without clipping or sideways scrolling",
+            "rerun_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/rerun",
+            "check_suite_id": 84_102,
+            "event": "pull_request",
+            "run_number": 73,
+            "run_attempt": 1,
+            "head_branch": FEATURE_BRANCH,
+            "head_sha": HEAD_SHA,
+            "status": "completed",
+            "conclusion": "success",
+            "html_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}",
+            "actor": self.identity,
+        }
+
+    @property
+    def artifact(self) -> dict[str, Any]:
+        return {
+            "id": ARTIFACT_ID,
+            "name": "desktop-material-production-ui-evidence-with-long-wrapped-name",
+            "size_in_bytes": len(self.artifact_bytes),
+            "expired": False,
+            "created_at": FIXED_TIME,
+            "expires_at": "2027-07-13T14:30:00Z",
+            "updated_at": FIXED_TIME,
+            "digest": f"sha256:{self.artifact_hex_digest}",
+            "workflow_run": {
+                "id": WORKFLOW_RUN_ID,
+                "head_branch": FEATURE_BRANCH,
+                "head_sha": HEAD_SHA,
+            },
+        }
+
+    def _authorized(self, headers: Mapping[str, str]) -> bool:
+        authorization = next(
+            (value for key, value in headers.items() if key.lower() == "authorization"),
+            "",
+        )
+        return authorization == f"Bearer {self.token}"
+
+    def _branch_rules(self) -> list[dict[str, Any]]:
+        long_check = "ci/material-desktop-production-viewport-geometry-and-accessibility"
+        return [
+            {
+                "ruleset_id": RULESET_IDS[0],
+                "type": "required_status_checks",
+                "parameters": {
+                    "required_status_checks": [
+                        {"context": long_check},
+                        {"context": "security/loopback-artifact-integrity"},
+                    ],
+                    "strict_required_status_checks_policy": True,
+                },
+            },
+            {
+                "ruleset_id": RULESET_IDS[0],
+                "type": "pull_request",
+                "parameters": {
+                    "required_approving_review_count": 2,
+                    "dismiss_stale_reviews_on_push": True,
+                    "require_code_owner_review": True,
+                    "require_last_push_approval": True,
+                    "required_review_thread_resolution": True,
+                },
+            },
+            {"ruleset_id": RULESET_IDS[0], "type": "required_signatures"},
+            {"ruleset_id": RULESET_IDS[0], "type": "required_linear_history"},
+            {"ruleset_id": RULESET_IDS[0], "type": "non_fast_forward"},
+            {"ruleset_id": RULESET_IDS[0], "type": "deletion"},
+            {
+                "ruleset_id": RULESET_IDS[1],
+                "type": "merge_queue",
+                "parameters": {
+                    "check_response_timeout_minutes": 60,
+                    "grouping_strategy": "ALLGREEN",
+                    "max_entries_to_build": 5,
+                    "max_entries_to_merge": 5,
+                    "merge_method": "SQUASH",
+                    "min_entries_to_merge": 1,
+                    "min_entries_to_merge_wait_minutes": 5,
+                },
+            },
+            {
+                "ruleset_id": RULESET_IDS[1],
+                "type": "required_deployments",
+                "parameters": {
+                    "required_deployment_environments": [
+                        "github-pages-production-environment-with-wrapped-name"
+                    ]
+                },
+            },
+            {
+                "ruleset_id": RULESET_IDS[1],
+                "type": "branch_name_pattern",
+                "parameters": {
+                    "operator": "starts_with",
+                    "pattern": "feature/material-",
+                    "negate": False,
+                },
+            },
+        ]
+
+    def _classic_protection(self) -> dict[str, Any]:
+        return {
+            "required_status_checks": {
+                "strict": True,
+                "contexts": ["classic/material-build-and-unit-tests"],
+                "checks": [{"context": "classic/material-build-and-unit-tests"}],
+            },
+            "required_pull_request_reviews": {
+                "dismiss_stale_reviews": True,
+                "require_code_owner_reviews": True,
+                "required_approving_review_count": 2,
+                "require_last_push_approval": True,
+                "dismissal_restrictions": {"users": [], "teams": [], "apps": []},
+                "bypass_pull_request_allowances": {"users": [], "teams": [], "apps": []},
+            },
+            "required_signatures": {"enabled": True},
+            "required_linear_history": {"enabled": True},
+            "allow_force_pushes": {"enabled": False},
+            "allow_deletions": {"enabled": False},
+            "required_conversation_resolution": {"enabled": True},
+            "lock_branch": {"enabled": False},
+            "allow_fork_syncing": {"enabled": False},
+            "enforce_admins": {"enabled": True},
+        }
+
+    def dispatch(
+        self,
+        method: str,
+        raw_target: str,
+        headers: Mapping[str, str],
+        body: bytes = b"",
+    ) -> FixtureResponse:
+        parsed = urlsplit(raw_target)
+        path = unquote(parsed.path)
+        query = parse_qs(parsed.query, keep_blank_values=True)
+        api_prefix = "/api/v3"
+        if not path.startswith(api_prefix):
+            return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
+        if method == "OPTIONS":
+            return empty_response(HTTPStatus.NO_CONTENT)
+        if not self._authorized(headers):
+            return json_response({"message": "Bad credentials"}, HTTPStatus.UNAUTHORIZED)
+
+        resource = path[len(api_prefix) :] or "/"
+        repo_root = f"/repos/{OWNER}/{REPOSITORY}"
+
+        if method == "HEAD" and resource in {"/meta", f"{repo_root}/git"}:
+            return empty_response(HTTPStatus.OK)
+        if method == "GET" and resource == "/user":
+            return json_response(self.identity)
+        if method == "GET" and resource == "/user/emails":
+            return json_response(
+                [
+                    {
+                        "email": "material-verifier@example.invalid",
+                        "verified": True,
+                        "primary": True,
+                        "visibility": "private",
+                    }
+                ]
+            )
+        if method == "GET" and resource == "/user/repos":
+            return json_response([self.repository])
+        if method == "GET" and resource in {"/user/orgs", "/organizations", "/notifications"}:
+            return json_response([])
+        if method == "GET" and resource == "/desktop_internal/features":
+            return json_response({"features": []})
+        if method == "POST" and resource == "/graphql":
+            return json_response(
+                {
+                    "data": {
+                        "viewer": {
+                            "copilotEndpoints": {"api": ""},
+                            "copilotLicenseType": "none",
+                            "isCopilotDesktopEnabled": False,
+                        }
+                    }
+                }
+            )
+        if method == "GET" and resource == repo_root:
+            return json_response(self.repository)
+        if method == "GET" and resource == f"{repo_root}/branches":
+            branches = [
+                {"name": DEFAULT_BRANCH, "protected": True},
+                {"name": FEATURE_BRANCH, "protected": True},
+            ]
+            if query.get("protected") == ["true"]:
+                return json_response(branches)
+            return json_response(branches)
+
+        branch_prefix = f"{repo_root}/branches/{FEATURE_BRANCH}"
+        if method == "GET" and resource == branch_prefix:
+            return json_response(
+                {"name": FEATURE_BRANCH, "protected": True, "commit": {"sha": HEAD_SHA}}
+            )
+        if method == "GET" and resource == f"{branch_prefix}/protection":
+            return json_response(self._classic_protection())
+        if method == "GET" and resource == f"{branch_prefix}/push_control":
+            return json_response(
+                {
+                    "pattern": FEATURE_BRANCH,
+                    "required_signatures": True,
+                    "required_status_checks": [
+                        "classic/material-build-and-unit-tests"
+                    ],
+                    "required_approving_review_count": 2,
+                    "required_linear_history": True,
+                    "allow_actor": True,
+                    "allow_deletions": False,
+                    "allow_force_pushes": False,
+                }
+            )
+        if method == "GET" and resource == f"{repo_root}/rules/branches/{FEATURE_BRANCH}":
+            return json_response(self._branch_rules())
+        if method == "GET" and resource == f"{repo_root}/rulesets":
+            return json_response([{"id": value} for value in RULESET_IDS])
+        if method == "GET" and resource == f"{repo_root}/rulesets/{RULESET_IDS[0]}":
+            return json_response(
+                {
+                    "id": RULESET_IDS[0],
+                    "name": "Production integrity, review, and signed-history policy",
+                    "source_type": "Repository",
+                    "source": f"{OWNER}/{REPOSITORY}",
+                    "current_user_can_bypass": "never",
+                    "_links": {
+                        "html": {
+                            "href": f"{self.repository_html_url}/settings/rules/{RULESET_IDS[0]}"
+                        }
+                    },
+                }
+            )
+        if method == "GET" and resource == f"{repo_root}/rulesets/{RULESET_IDS[1]}":
+            return json_response(
+                {
+                    "id": RULESET_IDS[1],
+                    "name": "Merge queue, deployment, and branch naming policy with deliberately long identity",
+                    "source_type": "Organization",
+                    "source": OWNER,
+                    "current_user_can_bypass": "pull_requests_only",
+                    "_links": {
+                        "html": {
+                            "href": f"{self.html_url}/organizations/{OWNER}/settings/rules/{RULESET_IDS[1]}"
+                        }
+                    },
+                }
+            )
+
+        if method == "GET" and resource == f"{repo_root}/actions/workflows":
+            return json_response({"total_count": 1, "workflows": [self.workflow]})
+        if method == "GET" and resource == f"{repo_root}/actions/runs":
+            return json_response({"total_count": 1, "workflow_runs": [self.workflow_run]})
+        if method == "GET" and resource == f"{repo_root}/actions/runs/{WORKFLOW_RUN_ID}/jobs":
+            return json_response(
+                {
+                    "total_count": 1,
+                    "jobs": [
+                        {
+                            "id": WORKFLOW_JOB_ID,
+                            "name": "Verify regular, narrow, short, and 200 percent viewport layouts",
+                            "status": "completed",
+                            "conclusion": "success",
+                            "completed_at": FIXED_TIME,
+                            "started_at": FIXED_TIME,
+                            "html_url": f"{self.repository_html_url}/actions/runs/{WORKFLOW_RUN_ID}/job/{WORKFLOW_JOB_ID}",
+                            "steps": [],
+                        }
+                    ],
+                }
+            )
+        if method == "GET" and resource == f"{repo_root}/actions/runs/{WORKFLOW_RUN_ID}/artifacts":
+            return json_response({"total_count": 1, "artifacts": [self.artifact]})
+        if method == "GET" and resource == f"{repo_root}/actions/artifacts/{ARTIFACT_ID}/zip":
+            return FixtureResponse(
+                HTTPStatus.OK,
+                {
+                    "Content-Type": "application/zip",
+                    "Content-Length": str(len(self.artifact_bytes)),
+                },
+                self.artifact_bytes,
+            )
+        if method == "GET" and resource == f"{repo_root}/attestations/sha256:{self.artifact_hex_digest}":
+            return json_response({"attestations": [{"fixture": True}]})
+
+        if method == "GET" and resource == f"{repo_root}/pulls":
+            # The creation receipt is intentionally in-memory only. Returning
+            # a partial PR object to a background list refresh would violate
+            # the larger IAPIPullRequest contract, so the list remains empty.
+            return json_response([])
+        if method == "GET" and resource in {
+            f"{repo_root}/issues",
+            f"{repo_root}/labels",
+            f"{repo_root}/milestones",
+            f"{repo_root}/mentionables/users",
+        }:
+            return json_response([])
+        if method == "POST" and resource == f"{repo_root}/pulls":
+            try:
+                request = json.loads(body.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                return json_response({"message": "Invalid JSON"}, HTTPStatus.BAD_REQUEST)
+            expected_keys = {"title", "body", "head", "base", "draft"}
+            if not isinstance(request, dict) or set(request) != expected_keys:
+                return json_response(
+                    {"message": "Unexpected pull request fields"},
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                )
+            if (
+                not isinstance(request["title"], str)
+                or not request["title"]
+                or not isinstance(request["body"], str)
+                or not isinstance(request["head"], str)
+                or not isinstance(request["base"], str)
+                or not isinstance(request["draft"], bool)
+            ):
+                return json_response(
+                    {"message": "Invalid pull request fields"},
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                )
+            if (
+                request["head"] != FEATURE_BRANCH
+                or request["base"] != DEFAULT_BRANCH
+            ):
+                return json_response(
+                    {"message": "Pull request refs do not match the fixture"},
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                )
+            with self._lock:
+                number = 73 + len(self.pull_requests)
+                head = request["head"]
+                head_ref = head.split(":", 1)[-1]
+                head_label = head if ":" in head else f"{OWNER}:{head}"
+                created = {
+                    "number": number,
+                    "title": request["title"],
+                    "body": request["body"],
+                    "state": "open",
+                    "draft": request["draft"],
+                    "head": {"ref": head_ref, "label": head_label},
+                    "base": {"ref": request["base"]},
+                    "html_url": f"{self.repository_html_url}/pull/{number}",
+                }
+                self.pull_requests.append(created)
+            return json_response(created, HTTPStatus.CREATED)
+
+        if method in {"POST", "PUT", "PATCH", "DELETE"}:
+            return json_response(
+                {"message": "Mutation is not enabled in this fixture"},
+                HTTPStatus.METHOD_NOT_ALLOWED,
+            )
+        return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
+
+
+class FixtureHTTPServer(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def __init__(
+        self,
+        address: tuple[str, int],
+        state: ProviderState,
+        git_project_root: Path,
+        request_log: Path,
+        git_executable: str,
+    ) -> None:
+        super().__init__(address, FixtureRequestHandler)
+        self.state = state
+        self.git_project_root = git_project_root
+        self.request_log = request_log
+        self.git_executable = git_executable
+        self.log_lock = threading.Lock()
+
+    def append_log(self, entry: Mapping[str, Any]) -> None:
+        with self.log_lock:
+            self.request_log.parent.mkdir(parents=True, exist_ok=True)
+            with self.request_log.open("a", encoding="utf-8", newline="\n") as stream:
+                stream.write(json.dumps(entry, sort_keys=True) + "\n")
+
+
+class FixtureRequestHandler(BaseHTTPRequestHandler):
+    server: FixtureHTTPServer
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, _format: str, *_args: Any) -> None:
+        return
+
+    def do_HEAD(self) -> None:  # noqa: N802
+        self._handle()
+
+    def do_GET(self) -> None:  # noqa: N802
+        self._handle()
+
+    def do_POST(self) -> None:  # noqa: N802
+        self._handle()
+
+    def do_PUT(self) -> None:  # noqa: N802
+        self._handle()
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        self._handle()
+
+    def do_DELETE(self) -> None:  # noqa: N802
+        self._handle()
+
+    def do_OPTIONS(self) -> None:  # noqa: N802
+        self._handle()
+
+    def _read_body(self) -> bytes:
+        value = self.headers.get("Content-Length")
+        if value is None:
+            return b""
+        try:
+            length = int(value)
+        except ValueError:
+            return b""
+        if length < 0 or length > 16 * 1024 * 1024:
+            return b""
+        return self.rfile.read(length)
+
+    def _is_git_request(self) -> bool:
+        parsed = urlsplit(self.path)
+        prefix = f"/{OWNER}/{REPOSITORY}.git"
+        if parsed.scheme and (
+            parsed.scheme != "http" or parsed.netloc != "material-provider.invalid"
+        ):
+            return False
+        return (
+            parsed.path == prefix
+            or parsed.path.startswith(prefix + "/")
+        ) and ".." not in unquote(parsed.path).split("/")
+
+    def _handle(self) -> None:
+        body = self._read_body()
+        if self._is_git_request():
+            self._serve_git_backend(body)
+            return
+        response = self.server.state.dispatch(
+            self.command,
+            self.path,
+            dict(self.headers.items()),
+            body,
+        )
+        self.server.append_log(
+            {
+                "kind": "api",
+                "method": self.command,
+                "path": self.path,
+                "status": int(response.status),
+                "authorized": self.server.state._authorized(dict(self.headers.items())),
+                "body_sha256": hashlib.sha256(body).hexdigest() if body else None,
+            }
+        )
+        self._send(response, include_body=self.command != "HEAD")
+
+    def _serve_git_backend(self, body: bytes) -> None:
+        parsed = urlsplit(self.path)
+        if (
+            parse_qs(parsed.query).get("service") == ["git-receive-pack"]
+            or parsed.path.endswith("/git-receive-pack")
+        ):
+            response = json_response(
+                {"message": "Git pushes are disabled for this fixture"},
+                HTTPStatus.FORBIDDEN,
+            )
+            self.server.append_log(
+                {
+                    "kind": "git",
+                    "method": self.command,
+                    "path": self.path,
+                    "status": int(HTTPStatus.FORBIDDEN),
+                    "returncode": None,
+                    "stderr": None,
+                }
+            )
+            self._send(response)
+            return
+        env = os.environ.copy()
+        env.update(
+            {
+                "GIT_PROJECT_ROOT": str(self.server.git_project_root),
+                "GIT_HTTP_EXPORT_ALL": "1",
+                "PATH_INFO": unquote(parsed.path),
+                "QUERY_STRING": parsed.query,
+                "REQUEST_METHOD": self.command,
+                "CONTENT_TYPE": self.headers.get("Content-Type", ""),
+                "CONTENT_LENGTH": str(len(body)),
+                "REMOTE_ADDR": self.client_address[0],
+                "SERVER_NAME": self.server.server_address[0],
+                "SERVER_PORT": str(self.server.server_address[1]),
+                "SERVER_PROTOCOL": self.request_version,
+            }
+        )
+        process = subprocess.run(
+            [self.server.git_executable, "http-backend"],
+            input=body,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+            check=False,
+            timeout=30,
+        )
+        output = process.stdout
+        separator = b"\r\n\r\n" if b"\r\n\r\n" in output else b"\n\n"
+        if separator not in output:
+            response = json_response(
+                {"message": "Git backend failed"},
+                HTTPStatus.INTERNAL_SERVER_ERROR,
+            )
+            self.server.append_log(
+                {
+                    "kind": "git",
+                    "method": self.command,
+                    "path": self.path,
+                    "status": 500,
+                    "returncode": process.returncode,
+                    "stderr": process.stderr.decode("utf-8", "replace")[-2000:],
+                }
+            )
+            self._send(response)
+            return
+
+        raw_headers, response_body = output.split(separator, 1)
+        status = HTTPStatus.OK
+        headers: dict[str, str] = {}
+        for raw_line in raw_headers.replace(b"\r", b"").split(b"\n"):
+            if not raw_line:
+                continue
+            name, _, value = raw_line.decode("latin-1").partition(":")
+            value = value.strip()
+            if name.lower() == "status":
+                status = int(value.split(" ", 1)[0])
+            elif name.lower() not in {"connection", "transfer-encoding"}:
+                headers[name] = value
+        headers["Content-Length"] = str(len(response_body))
+        self.server.append_log(
+            {
+                "kind": "git",
+                "method": self.command,
+                "path": self.path,
+                "status": int(status),
+                "returncode": process.returncode,
+                "stderr": process.stderr.decode("utf-8", "replace")[-2000:] or None,
+            }
+        )
+        self._send(
+            FixtureResponse(int(status), headers, response_body),
+            include_body=self.command != "HEAD",
+        )
+
+    def _send(self, response: FixtureResponse, *, include_body: bool = True) -> None:
+        self.send_response(int(response.status))
+        for name, value in response.headers.items():
+            self.send_header(name, value)
+        self.send_header("X-GitHub-Request-Id", "DM-P0-LOCAL-20260713")
+        self.send_header("X-GitHub-Enterprise-Version", ENTERPRISE_VERSION)
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            "Accept, Authorization, Content-Type, GraphQL-Features, If-None-Match, X-GitHub-Api-Version",
+        )
+        self.send_header(
+            "Access-Control-Allow-Methods", "GET, HEAD, OPTIONS, POST"
+        )
+        self.send_header("Access-Control-Allow-Private-Network", "true")
+        self.send_header(
+            "Access-Control-Expose-Headers",
+            "ETag, Link, X-GitHub-Enterprise-Version, X-GitHub-Request-Id, X-Poll-Interval",
+        )
+        self.end_headers()
+        if include_body and response.body:
+            if f"/actions/artifacts/{ARTIFACT_ID}/zip" in self.path:
+                for offset in range(0, len(response.body), 32 * 1024):
+                    self.wfile.write(response.body[offset : offset + 32 * 1024])
+                    self.wfile.flush()
+                    time.sleep(0.02)
+            else:
+                self.wfile.write(response.body)
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--bind", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=0)
+    parser.add_argument("--git-project-root", type=Path, required=True)
+    parser.add_argument("--artifact-file", type=Path, required=True)
+    parser.add_argument("--request-log", type=Path, required=True)
+    parser.add_argument("--ready-file", type=Path, required=True)
+    parser.add_argument("--html-url", default=FIXTURE_HTML_URL)
+    parser.add_argument("--git", default="git")
+    return parser.parse_args(argv)
+
+
+def ensure_contained(path: Path, root: Path) -> Path:
+    resolved = path.resolve()
+    resolved.relative_to(root.resolve())
+    return resolved
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
+    if args.bind != "127.0.0.1":
+        raise SystemExit("The fixture provider may bind only to a loopback address.")
+    if args.html_url.rstrip("/") != FIXTURE_HTML_URL:
+        raise SystemExit(
+            f"The fixture HTML URL must remain {FIXTURE_HTML_URL}."
+        )
+    owned_root = args.ready_file.resolve().parent.parent
+    expected_prefix = "desktop-material-p0-ui-"
+    if not owned_root.name.startswith(expected_prefix):
+        raise SystemExit("The fixture provider requires its named owned run root.")
+    temp_root = Path(os.environ["TEMP"]).resolve()
+    try:
+        owned_root.relative_to(temp_root)
+    except ValueError as error:
+        raise SystemExit("The fixture provider run root must remain under TEMP.") from error
+
+    git_project_root = ensure_contained(args.git_project_root, owned_root)
+    if not git_project_root.is_dir():
+        raise SystemExit(f"Git project root does not exist: {git_project_root}")
+    bare_repository = git_project_root / OWNER / f"{REPOSITORY}.git"
+    if not bare_repository.is_dir() or not (bare_repository / "config").is_file():
+        raise SystemExit("The exact fixture bare repository does not exist.")
+    receive_pack = subprocess.run(
+        [args.git, "-C", str(bare_repository), "config", "--bool", "http.receivepack"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    if receive_pack.returncode != 0 or receive_pack.stdout.strip() != "false":
+        raise SystemExit("The fixture bare repository must disable HTTP pushes.")
+
+    artifact_file = ensure_contained(args.artifact_file, owned_root)
+    request_log = ensure_contained(args.request_log, owned_root)
+    ready_file = ensure_contained(args.ready_file, owned_root)
+    make_deterministic_artifact(artifact_file)
+    state = ProviderState(artifact_file, html_url=args.html_url)
+    server = FixtureHTTPServer(
+        (args.bind, args.port),
+        state,
+        git_project_root,
+        request_log,
+        args.git,
+    )
+    host, port = server.server_address[:2]
+    endpoint = f"http://localhost:{port}/api/v3"
+    ready = {
+        "pid": os.getpid(),
+        "bind": host,
+        "port": port,
+        "endpoint": endpoint,
+        "htmlUrl": args.html_url,
+        "owner": OWNER,
+        "repository": REPOSITORY,
+        "featureBranch": FEATURE_BRANCH,
+        "defaultBranch": DEFAULT_BRANCH,
+        "accountLogin": ACCOUNT_LOGIN,
+        "accountId": ACCOUNT_ID,
+        "credentialService": f"GitHub - {endpoint}",
+        "token": FIXTURE_TOKEN,
+        "artifactId": ARTIFACT_ID,
+        "artifactSize": len(state.artifact_bytes),
+        "artifactDigest": f"sha256:{state.artifact_hex_digest}",
+    }
+    ready_file.parent.mkdir(parents=True, exist_ok=True)
+    ready_file.write_text(json.dumps(ready, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    print(json.dumps({key: value for key, value in ready.items() if key != "token"}), flush=True)
+    try:
+        server.serve_forever(poll_interval=0.1)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        server.server_close()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
