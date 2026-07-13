@@ -94,6 +94,34 @@ describe('AccountsStore', () => {
   })
 
   describe('loading persisted users', () => {
+    it('reloads account changes written by another window', async () => {
+      const dataStore = new InMemoryStore()
+      const secureStore = new AsyncInMemoryStore()
+      const firstWindow = new AccountsStore(dataStore, secureStore)
+      const secondWindow = new AccountsStore(dataStore, secureStore)
+      assert.equal((await secondWindow.getAll()).length, 0)
+
+      const account = new Account(
+        'shared',
+        'https://api.github.com',
+        'shared-token',
+        [],
+        '',
+        99,
+        'Shared',
+        'free'
+      )
+      await firstWindow.addAccount(account)
+      await secondWindow.reloadFromStore()
+
+      assert.equal((await secondWindow.getAll())[0].login, 'shared')
+      assert.equal((await secondWindow.getAll())[0].token, 'shared-token')
+
+      await firstWindow.removeAccount(account)
+      await secondWindow.reloadFromStore()
+      assert.equal((await secondWindow.getAll()).length, 0)
+    })
+
     it('migrates .ghe.com users still using /api/v3 to api. subdomain', async () => {
       const dataStore = new InMemoryStore()
       dataStore.setItem(

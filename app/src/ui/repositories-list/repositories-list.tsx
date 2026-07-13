@@ -69,6 +69,9 @@ interface IRepositoriesListProps {
   /** Called when the repository should be opened on GitHub in the default web browser. */
   readonly onViewOnGitHub: (repository: Repositoryish) => void
 
+  /** Called when the repository should be opened in another app window. */
+  readonly onOpenInNewWindow: (repository: Repositoryish) => void
+
   /** Called when the repository should be shown in the shell. */
   readonly onOpenInShell: (repository: Repositoryish) => void
 
@@ -336,6 +339,7 @@ export class RepositoriesList extends React.Component<
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
       onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
       onViewOnGitHub: this.props.onViewOnGitHub,
+      onOpenInNewWindow: this.props.onOpenInNewWindow,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree
         : undefined,

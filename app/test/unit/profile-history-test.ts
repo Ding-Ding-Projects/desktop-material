@@ -14,6 +14,7 @@ import {
   redoLastProfileChange,
   restoreProfileTo,
   undoLastProfileChange,
+  withProfileRepositoryLock,
 } from '../../src/lib/profiles/profile-git'
 import { AsyncInMemoryStore, InMemoryStore } from '../helpers/stores'
 import { Repository } from '../../src/models/repository'
@@ -41,6 +42,29 @@ async function readSettings(repository: Repository) {
 }
 
 describe('profile git history', () => {
+  it('serializes profile mutations across window stores', async t => {
+    const repository = await createProfileRepository(t)
+    let active = 0
+    let maximumActive = 0
+    const order: string[] = []
+    const mutation = (name: string) =>
+      withProfileRepositoryLock(repository, async () => {
+        active++
+        maximumActive = Math.max(maximumActive, active)
+        order.push(`${name}:start`)
+        await new Promise(resolve => setTimeout(resolve, 30))
+        order.push(`${name}:end`)
+        active--
+      })
+
+    await Promise.all([mutation('first'), mutation('second')])
+
+    assert.equal(maximumActive, 1)
+    assert.equal(order.length, 4)
+    assert.ok(order.indexOf('first:start') < order.indexOf('first:end'))
+    assert.ok(order.indexOf('second:start') < order.indexOf('second:end'))
+  })
+
   it('returns bounded skip-based pages with action availability', async t => {
     const repository = await createProfileRepository(t)
 

@@ -1,4 +1,4 @@
-import { mkdir, stat, rm } from 'fs/promises'
+import { mkdir, open, readFile, stat, rm } from 'fs/promises'
 import { join } from 'path'
 import { git } from '../git/core'
 import { initGitRepository } from '../git/init'
@@ -24,6 +24,9 @@ export const ProfileRestoreTrailer = 'Desktop-Material-Restore-Of'
 
 const profileStateFiles = ['settings.json', 'tabs.json'] as const
 const fullSHA = /^[0-9a-f]{40}$/i
+const ProfileLockRetryMs = 25
+const ProfileLockWaitMs = 5000
+const ProfileLockStaleMs = 30000
 
 /** Construct a lightweight Repository model pointing at a profile directory. */
 export function profileRepository(path: string): Repository {
@@ -40,27 +43,108 @@ export async function ensureProfileRepository(
 ): Promise<Repository> {
   await mkdir(path, { recursive: true })
 
-  let initialized = false
-  try {
-    await stat(join(path, '.git'))
-    initialized = true
-  } catch {
-    initialized = false
-  }
-
-  if (!initialized) {
-    await initGitRepository(path)
-  } else {
-    await clearStaleLock(path)
-  }
-
   const repository = profileRepository(path)
-  // Git config writes take an exclusive lock, so keep these sequential.
-  await setConfigValue(repository, 'user.name', commitAuthorName)
-  await setConfigValue(repository, 'user.email', commitAuthorEmail)
-  await setConfigValue(repository, 'commit.gpgsign', 'false')
+  await withProfileRepositoryLock(repository, async () => {
+    let initialized = false
+    try {
+      await stat(join(path, '.git'))
+      initialized = true
+    } catch {
+      initialized = false
+    }
+
+    if (!initialized) {
+      await initGitRepository(path)
+    } else {
+      await clearStaleLock(path)
+    }
+
+    // Git config writes take an exclusive lock, so keep these sequential.
+    await setConfigValue(repository, 'user.name', commitAuthorName)
+    await setConfigValue(repository, 'user.email', commitAuthorEmail)
+    await setConfigValue(repository, 'commit.gpgsign', 'false')
+  })
 
   return repository
+}
+
+/**
+ * Serialize profile file and Git mutations across renderer processes. Each app
+ * window owns a separate ProfileStore, so an in-memory promise queue alone is
+ * insufficient once multi-window support is enabled.
+ */
+export async function withProfileRepositoryLock<T>(
+  repository: Repository,
+  action: () => Promise<T>
+): Promise<T> {
+  const lockPath = `${repository.path}.desktop-material.lock`
+  const startedAt = Date.now()
+
+  while (true) {
+    try {
+      const handle = await open(lockPath, 'wx')
+      try {
+        await handle.writeFile(String(process.pid), 'utf8')
+        return await action()
+      } finally {
+        await handle.close()
+        await rm(lockPath, { force: true })
+      }
+    } catch (error) {
+      if (!isFileExistsError(error)) {
+        throw error
+      }
+
+      if (await isAbandonedProfileLock(lockPath)) {
+        await rm(lockPath, { force: true })
+        continue
+      }
+
+      if (Date.now() - startedAt >= ProfileLockWaitMs) {
+        throw new Error(`Timed out waiting for profile lock at ${lockPath}`)
+      }
+      await new Promise(resolve => setTimeout(resolve, ProfileLockRetryMs))
+    }
+  }
+}
+
+function isFileExistsError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    error.code === 'EEXIST'
+  )
+}
+
+async function isAbandonedProfileLock(lockPath: string): Promise<boolean> {
+  try {
+    const [contents, lockStat] = await Promise.all([
+      readFile(lockPath, 'utf8'),
+      stat(lockPath),
+    ])
+    if (Date.now() - lockStat.mtimeMs >= ProfileLockStaleMs) {
+      return true
+    }
+
+    const ownerPid = Number(contents)
+    if (!Number.isSafeInteger(ownerPid) || ownerPid <= 0) {
+      return false
+    }
+    try {
+      process.kill(ownerPid, 0)
+      return false
+    } catch (error) {
+      return (
+        typeof error === 'object' &&
+        error !== null &&
+        'code' in error &&
+        error.code === 'ESRCH'
+      )
+    }
+  } catch {
+    return false
+  }
 }
 
 /** Remove a leftover `.git/index.lock` from a previous crashed session. */

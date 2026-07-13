@@ -171,6 +171,21 @@ export const quitAndInstallUpdate = sendProxy('quit-and-install-updates', 0)
 /** Tell the main process to quit the app */
 export const quitApp = sendProxy('quit-app', 0)
 
+/** Open a repository in a separate Desktop Material window. */
+export const openRepositoryInNewWindow = sendProxy(
+  'open-repository-in-new-window',
+  1
+)
+
+/** Update the native title for this renderer's BrowserWindow. */
+export const setWindowTitle = sendProxy('set-window-title', 1)
+
+/** Report selected and tabbed repositories for tab-aware external routing. */
+export const setWindowRepositoryState = sendProxy(
+  'set-window-repository-state',
+  2
+)
+
 /** Subscribes to auto updater error events originating from the main process */
 export function onAutoUpdaterError(
   errorHandler: (evt: Electron.IpcRendererEvent, error: Error) => void

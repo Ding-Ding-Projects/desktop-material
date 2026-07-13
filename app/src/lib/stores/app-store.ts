@@ -1215,6 +1215,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private wireupIpcEventHandlers() {
+    ipcRenderer.on('accounts-changed', () => {
+      this.accountsStore
+        .reloadFromStore()
+        .catch(error =>
+          log.error('Failed to reload accounts from another window', error)
+        )
+    })
+
     ipcRenderer.on('window-state-changed', (_, windowState) => {
       this.windowState = windowState
       this.emitUpdate()
@@ -2315,7 +2323,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _selectRepository(
-    repository: Repository | CloningRepository | null
+    repository: Repository | CloningRepository | null,
+    persistSelection: boolean = true
   ): Promise<Repository | null> {
     const previouslySelectedRepository = this.selectedRepository
 
@@ -2348,7 +2357,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return Promise.resolve(null)
     }
 
-    setNumber(LastSelectedRepositoryIDKey, repository.id)
+    if (persistSelection) {
+      setNumber(LastSelectedRepositoryIDKey, repository.id)
+    }
 
     const previousRepositoryId = previouslySelectedRepository
       ? previouslySelectedRepository.id
@@ -7273,7 +7284,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async _switchWorktree(
     repository: Repository,
-    worktree: WorktreeEntry
+    worktree: WorktreeEntry,
+    persistSelection: boolean = true
   ): Promise<Repository> {
     const type = await getRepositoryType(worktree.path).catch(e => {
       log.error('Could not determine repository type', e)
@@ -7305,7 +7317,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       worktree
     )
 
-    await this._selectRepository(result.repository)
+    await this._selectRepository(result.repository, persistSelection)
 
     this.statsStore.increment('worktreeSwitchCount')
 

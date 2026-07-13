@@ -9,6 +9,7 @@ import { WorktreeEntry } from '../../models/worktree'
 import { WorktreeList } from '../worktrees/worktree-list'
 import { showContextualMenu, IMenuItem } from '../../lib/menu-item'
 import { generateWorktreeContextMenuItems } from '../worktrees/worktree-list-item-context-menu'
+import { openRepositoryInNewWindow } from '../main-process-proxy'
 import { PopupType } from '../../models/popup'
 import { Resizable } from '../resizable'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
@@ -57,9 +58,15 @@ export class WorktreeDropdown extends React.Component<
       isLocked: worktree.isLocked,
       onRenameWorktree: this.onRenameWorktree,
       onRemoveWorktree: this.onRemoveWorktree,
+      onOpenInNewWindow: () => this.onOpenWorktreeInNewWindow(worktree.path),
     })
 
     showContextualMenu(items)
+  }
+
+  private onOpenWorktreeInNewWindow = (path: string) => {
+    this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
+    openRepositoryInNewWindow(path)
   }
 
   private onRenameWorktree = (path: string) => {
@@ -108,6 +115,8 @@ export class WorktreeDropdown extends React.Component<
       isMainWorktree: isMain,
       isLocked: currentWorktree.isLocked,
       onRemoveWorktree: isMain ? undefined : this.onRemoveWorktree,
+      onOpenInNewWindow: () =>
+        this.onOpenWorktreeInNewWindow(currentWorktree.path),
     })
 
     const newWorktreeItem: IMenuItem = {
