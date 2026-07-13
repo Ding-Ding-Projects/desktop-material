@@ -40,6 +40,7 @@ import {
   DefaultBranchSortOrder,
 } from '../../models/branch-sort-order'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
+import type { CloneOptions } from '../../models/clone-options'
 import { CloningRepository } from '../../models/cloning-repository'
 import {
   getPreferAbsoluteDates,
@@ -6795,7 +6796,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public _clone(
     url: string,
     path: string,
-    options: { branch?: string; defaultBranch?: string } = {}
+    options: CloneOptions = {}
   ): {
     promise: Promise<boolean>
     repository: CloningRepository
