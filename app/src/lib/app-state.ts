@@ -524,6 +524,7 @@ export enum RepositorySectionTab {
   RepositoryTools,
   Releases,
   Issues,
+  Triage,
 }
 
 /**
