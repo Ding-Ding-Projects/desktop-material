@@ -388,17 +388,8 @@ function normalizeGitHubPullRequestHeadRepository(
   return { name, fullName: `${owner}/${repository}` }
 }
 
-/** Normalize the exact fields exposed by the guided native PR creator. */
-export function normalizeGitHubPullRequestDraft(
-  title: string,
-  body: string,
-  head: string,
-  base: string,
-  draft: boolean,
-  headRepository: IGitHubPullRequestHeadRepository
-): IGitHubPullRequestDraft {
+function normalizeGitHubPullRequestTitleAndBody(title: string, body: string) {
   const normalizedTitle = title.trim()
-
   if (normalizedTitle.length === 0) {
     throw new Error('Enter a pull request title.')
   }
@@ -412,6 +403,19 @@ export function normalizeGitHubPullRequestDraft(
       `Pull request descriptions must be ${GitHubPullRequestBodyMaximumLength} characters or fewer.`
     )
   }
+  return { title: normalizedTitle, body }
+}
+
+/** Normalize the exact fields exposed by the guided native PR creator. */
+export function normalizeGitHubPullRequestDraft(
+  title: string,
+  body: string,
+  head: string,
+  base: string,
+  draft: boolean,
+  headRepository: IGitHubPullRequestHeadRepository
+): IGitHubPullRequestDraft {
+  const normalized = normalizeGitHubPullRequestTitleAndBody(title, body)
 
   const safeHead = validateGitHubPullRequestHead(head)
   const safeHeadRepository = normalizeGitHubPullRequestHeadRepository(
@@ -424,8 +428,8 @@ export function normalizeGitHubPullRequestDraft(
   }
 
   return {
-    title: normalizedTitle,
-    body,
+    title: normalized.title,
+    body: normalized.body,
     head: safeHead,
     headRepository: safeHeadRepository,
     base: safeBase,
@@ -516,18 +520,11 @@ export function normalizeGitHubPullRequestUpdate(
   base: string,
   metadata: IGitHubPullRequestMetadata
 ): IGitHubPullRequestUpdate {
-  const normalized = normalizeGitHubPullRequestDraft(
-    title,
-    body,
-    'desktop-material-validation-head',
-    base,
-    false,
-    { name: null, fullName: 'desktop-material/validation' }
-  )
+  const normalized = normalizeGitHubPullRequestTitleAndBody(title, body)
   return {
     title: normalized.title,
     body: normalized.body,
-    base: normalized.base,
+    base: validateGitHubPullRequestBranch(base, 'base'),
     metadata: normalizeGitHubPullRequestMetadata(
       metadata.reviewers,
       metadata.assignees,
@@ -1225,6 +1222,37 @@ export function getGitHubPullRequestCreationError(
     message:
       'Desktop could not create the pull request. Check GitHub before retrying.',
   }
+}
+
+/** Convert lifecycle transport failures to bounded UI copy. */
+export function getGitHubPullRequestLifecycleError(
+  error: unknown,
+  action: 'load' | 'update' | 'review' | 'merge'
+): string {
+  if (error instanceof GitHubPullRequestContextChangedError) {
+    return 'The pull request changed after it was reviewed. Refresh it before continuing.'
+  }
+  if (error instanceof APIError) {
+    if (error.responseStatus === 401) {
+      return 'GitHub could not authenticate this account. Sign in again, then retry.'
+    }
+    if (error.responseStatus === 403) {
+      return `GitHub denied this pull request ${action}. Check the selected account’s access.`
+    }
+    if (error.responseStatus === 404) {
+      return 'GitHub could not find this pull request for the selected account.'
+    }
+    if (error.responseStatus === 409 || error.responseStatus === 422) {
+      return `GitHub could not ${action} this pull request in its current state. Refresh it before retrying.`
+    }
+    if (error.responseStatus === 429) {
+      return 'GitHub is temporarily limiting pull request requests. Try again later.'
+    }
+  }
+  if (error instanceof TypeError) {
+    return 'Desktop could not reach GitHub. Check your connection and try again.'
+  }
+  return `Desktop could not ${action} this pull request. Refresh it before retrying.`
 }
 
 export function isGitHubPullRequestAbortError(error: unknown): boolean {

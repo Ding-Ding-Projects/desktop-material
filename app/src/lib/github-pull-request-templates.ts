@@ -21,10 +21,11 @@ const DirectTemplatePaths = [
 const TemplateDirectory = '.github/PULL_REQUEST_TEMPLATE'
 
 function getTemplateName(path: string): string {
-  return basename(path)
+  const name = basename(path)
     .replace(/\.(?:md|markdown)$/i, '')
     .replace(/[-_]+/g, ' ')
     .trim()
+  return name.toLowerCase() === 'pull request template' ? 'Default' : name
 }
 
 async function readTemplate(

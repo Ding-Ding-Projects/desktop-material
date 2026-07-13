@@ -1523,6 +1523,11 @@ export class API {
       draft,
       headRepository
     )
+    const safeMetadata = normalizeGitHubPullRequestMetadata(
+      metadata.reviewers,
+      metadata.assignees,
+      metadata.labels
+    )
     const requestBody = {
       title: pullRequest.title,
       body: pullRequest.body,
@@ -1548,11 +1553,6 @@ export class API {
       safeName,
       getHTMLURL(this.endpoint),
       pullRequest
-    )
-    const safeMetadata = normalizeGitHubPullRequestMetadata(
-      metadata.reviewers,
-      metadata.assignees,
-      metadata.labels
     )
     const metadataWarnings = await this.applyCreatedPullRequestMetadata(
       safeOwner,

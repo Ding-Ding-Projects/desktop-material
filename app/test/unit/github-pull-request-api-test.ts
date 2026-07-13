@@ -175,6 +175,20 @@ describe('GitHub pull request API', () => {
         desktopHeadRepository
       )
     )
+    await assert.rejects(() =>
+      api.createPullRequest(
+        'desktop',
+        'material',
+        'Title',
+        '',
+        'feature',
+        'main',
+        false,
+        desktopHeadRepository,
+        undefined,
+        { reviewers: ['bad login'], assignees: [], labels: [] }
+      )
+    )
 
     const controller = new AbortController()
     controller.abort()

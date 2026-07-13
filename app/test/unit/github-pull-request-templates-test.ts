@@ -42,7 +42,7 @@ describe('GitHub pull request templates', () => {
     assert.deepEqual(
       templates.map(template => [template.name, template.body]),
       [
-        ['PULL REQUEST TEMPLATE', 'Default body'],
+        ['Default', 'Default body'],
         ['bug fix', 'Bug body'],
         ['feature', 'Feature body'],
       ]
