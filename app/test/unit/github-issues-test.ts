@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import {
   getGitHubIssueFingerprint,
+  getGitHubIssueMutationFingerprint,
   GitHubIssueMaximumPages,
   GitHubIssuePageSize,
   normalizeGitHubIssueComment,
@@ -218,14 +219,14 @@ describe('GitHub Issues model', () => {
         search: '  crash is:pr  ',
         labels: ['bug'],
         assignee: 'fixture-maintainer',
-        milestone: 3,
+        milestone: null,
       }),
       {
         ...query,
         search: 'crash is:pr',
         labels: ['bug'],
         assignee: 'fixture-maintainer',
-        milestone: 3,
+        milestone: null,
       }
     )
     assert.deepEqual(
@@ -252,6 +253,13 @@ describe('GitHub Issues model', () => {
     assert.throws(() =>
       normalizeGitHubIssueQuery({ ...query, labels: ['bug', 'bug'] })
     )
+    assert.throws(() =>
+      normalizeGitHubIssueQuery({
+        ...query,
+        search: 'crash',
+        milestone: 3,
+      })
+    )
   })
 
   it('fingerprints every remotely mutable and concurrency-relevant field', () => {
@@ -262,8 +270,11 @@ describe('GitHub Issues model', () => {
       'material',
       'https://github.com'
     )
+    const fingerprint = getGitHubIssueFingerprint(parsed)
+    assert.match(fingerprint, /^sha256:[a-f0-9]{64}$/)
+    assert.doesNotMatch(fingerprint, /Issue 7|bounded issue|github\.com/)
     assert.notEqual(
-      getGitHubIssueFingerprint(parsed),
+      fingerprint,
       getGitHubIssueFingerprint({ ...parsed, body: 'Changed remotely' })
     )
     assert.notEqual(
@@ -272,6 +283,24 @@ describe('GitHub Issues model', () => {
         ...parsed,
         commentCount: parsed.commentCount + 1,
       })
+    )
+    const update = {
+      title: parsed.title,
+      body: parsed.body,
+      labels: parsed.labels.map(x => x.name),
+      assignees: parsed.assignees,
+      milestone: parsed.milestone?.number ?? null,
+    }
+    assert.match(
+      getGitHubIssueMutationFingerprint('update', update),
+      /^sha256:[a-f0-9]{64}$/
+    )
+    assert.notEqual(
+      getGitHubIssueMutationFingerprint('comment', 'First comment'),
+      getGitHubIssueMutationFingerprint('comment', 'Second comment')
+    )
+    assert.throws(() =>
+      getGitHubIssueMutationFingerprint('close', 'unexpected')
     )
   })
 })

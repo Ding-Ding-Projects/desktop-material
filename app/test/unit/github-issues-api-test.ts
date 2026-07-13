@@ -109,6 +109,7 @@ describe('GitHub Issues API', () => {
       ...query,
       page: 1,
       search: 'crash repo:attacker/private is:pr',
+      milestone: null,
     })
     const decoded = decodeURIComponent(requestPath).replace(/\+/g, ' ')
     assert.match(decoded, /^search\/issues\?/)
@@ -226,6 +227,31 @@ describe('GitHub Issues API', () => {
     const api = new API('https://api.github.com', 'synthetic-token')
     await assert.rejects(() =>
       api.fetchIssuePage('../owner', 'material', query)
+    )
+    for (const owner of [
+      'desktop" is:pr',
+      'desktop:repo',
+      'desktop@host',
+      'desktop owner',
+    ]) {
+      await assert.rejects(() => api.fetchIssuePage(owner, 'material', query))
+    }
+    for (const repository of [
+      'material" is:pr',
+      'material:repo',
+      'material@host',
+      'material repo',
+    ]) {
+      await assert.rejects(() =>
+        api.fetchIssuePage('desktop', repository, query)
+      )
+    }
+    await assert.rejects(() =>
+      api.fetchIssuePage('desktop', 'material', {
+        ...query,
+        search: 'crash',
+        milestone: 3,
+      })
     )
     await assert.rejects(() =>
       api.fetchIssueCommentPage('desktop', 'material', 7, 11)

@@ -1,3 +1,5 @@
+import { createHash } from 'crypto'
+
 /** GitHub's maximum documented page size for repository issues. */
 export const GitHubIssuePageSize = 30
 
@@ -115,7 +117,15 @@ const controlCharacters = /[\u0000-\u001f\u007f]/
 const multilineControlCharacters =
   /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/
 const invalidRepositoryPartCharacters = /[\u0000-\u001f\u007f/\\?#]/
+const safeOwner = /^[A-Za-z0-9](?:[A-Za-z0-9-]{0,253}[A-Za-z0-9])?$/
+const safeRepository = /^[A-Za-z0-9_.-]+$/
 const safeColor = /^[a-fA-F0-9]{6}$/
+
+function digest(value: unknown): string {
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(value))
+    .digest('hex')}`
+}
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -580,7 +590,8 @@ export function validateGitHubIssueRepositoryPart(
     value.length > 255 ||
     value === '.' ||
     value === '..' ||
-    invalidRepositoryPartCharacters.test(value)
+    invalidRepositoryPartCharacters.test(value) ||
+    (label === 'owner' ? !safeOwner.test(value) : !safeRepository.test(value))
   ) {
     throw new Error(`The ${label} is not safe for a GitHub Issues request.`)
   }
@@ -624,14 +635,20 @@ export function normalizeGitHubIssueQuery(
     value.milestone === null
       ? null
       : positiveIdentifier(value.milestone, 'issue milestone number')
+  const search = normalizeText(
+    value.search,
+    'Issue search',
+    GitHubIssueSearchMaximumLength,
+    true
+  )
+  if (search.length > 0 && milestone !== null) {
+    throw new Error(
+      'Milestone filtering cannot be combined with text search in Desktop.'
+    )
+  }
   return {
     state: value.state,
-    search: normalizeText(
-      value.search,
-      'Issue search',
-      GitHubIssueSearchMaximumLength,
-      true
-    ),
+    search,
     labels,
     assignee,
     milestone,
@@ -710,7 +727,7 @@ export function normalizeGitHubIssueComment(value: string): string {
 
 /** Semantic fingerprint used to reject stale reviewed mutations. */
 export function getGitHubIssueFingerprint(issue: IGitHubIssue): string {
-  return JSON.stringify([
+  return digest([
     issue.id,
     issue.number,
     issue.title,
@@ -740,4 +757,41 @@ export function getGitHubIssueFingerprint(issue: IGitHubIssue): string {
     issue.commentCount,
     issue.locked,
   ])
+}
+
+export type GitHubIssueMutationOperation =
+  | 'update'
+  | 'comment'
+  | 'close'
+  | 'reopen'
+
+/** Bind one confirmation to its exact normalized mutation payload. */
+export function getGitHubIssueMutationFingerprint(
+  operation: GitHubIssueMutationOperation,
+  payload: IGitHubIssueUpdate | string | null
+): string {
+  if (operation === 'update') {
+    if (typeof payload !== 'object' || payload === null) {
+      throw new Error('Issue update review requires update fields.')
+    }
+    const update = normalizeGitHubIssueUpdate(payload)
+    return digest([
+      operation,
+      update.title,
+      update.body,
+      update.labels,
+      update.assignees,
+      update.milestone,
+    ])
+  }
+  if (operation === 'comment') {
+    if (typeof payload !== 'string') {
+      throw new Error('Issue comment review requires comment text.')
+    }
+    return digest([operation, normalizeGitHubIssueComment(payload)])
+  }
+  if (payload !== null) {
+    throw new Error('Issue state review does not accept additional fields.')
+  }
+  return digest([operation])
 }

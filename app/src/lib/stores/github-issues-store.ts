@@ -1,3 +1,4 @@
+import { createHash } from 'crypto'
 import { Account, getAccountKey } from '../../models/account'
 import { GitHubRepository } from '../../models/github-repository'
 import { Repository } from '../../models/repository'
@@ -5,6 +6,8 @@ import { API } from '../api'
 import { getAccountForRepository } from '../get-account-for-repository'
 import {
   getGitHubIssueFingerprint,
+  getGitHubIssueMutationFingerprint,
+  GitHubIssueMutationOperation,
   GitHubIssueState,
   IGitHubIssue,
   IGitHubIssueComment,
@@ -245,15 +248,17 @@ interface IRequestContext {
 
 export interface IGitHubIssueMutationReview {
   readonly repositoryFingerprint: string
-  readonly accountKey: string
+  readonly accountFingerprint: string
   readonly accountGeneration: number
   readonly issueNumber: number
   readonly issueFingerprint: string
+  readonly operation: GitHubIssueMutationOperation
+  readonly mutationFingerprint: string
 }
 
 function repositoryFingerprint(repository: Repository): string {
   const remote = repository.gitHubRepository
-  return JSON.stringify(
+  const tuple =
     remote === null
       ? [repository.id, repository.accountKey, null]
       : [
@@ -265,7 +270,15 @@ function repositoryFingerprint(repository: Repository): string {
           remote.name,
           remote.issuesEnabled,
         ]
-  )
+  return `sha256:${createHash('sha256')
+    .update(JSON.stringify(tuple))
+    .digest('hex')}`
+}
+
+function accountFingerprint(account: Account): string {
+  return `sha256:${createHash('sha256')
+    .update(getAccountKey(account))
+    .digest('hex')}`
 }
 
 function staleReviewError(): GitHubIssuesError {
@@ -284,6 +297,11 @@ function uncertainMutationError(
     `Desktop lost confirmation after GitHub began the request to ${action}. Check the issue on GitHub before retrying so you do not overwrite changes or duplicate a comment.`
   )
 }
+
+/** Statuses that unambiguously reject a write before applying it. */
+const definiteMutationRejections = new Set([
+  400, 401, 403, 404, 405, 409, 410, 412, 415, 422, 429,
+])
 
 function accountsEqual(
   left: ReadonlyArray<Account>,
@@ -420,27 +438,39 @@ export class GitHubIssuesStore {
 
   public createMutationReview(
     repository: Repository,
-    issue: IGitHubIssue
+    issue: IGitHubIssue,
+    operation: GitHubIssueMutationOperation,
+    payload: IGitHubIssueUpdate | string | null
   ): IGitHubIssueMutationReview {
     const context = this.context(repository)
     return Object.freeze({
       repositoryFingerprint: repositoryFingerprint(repository),
-      accountKey: getAccountKey(context.account),
+      accountFingerprint: accountFingerprint(context.account),
       accountGeneration: context.generation,
       issueNumber: issue.number,
       issueFingerprint: getGitHubIssueFingerprint(issue),
+      operation,
+      mutationFingerprint: getGitHubIssueMutationFingerprint(
+        operation,
+        payload
+      ),
     })
   }
 
   private validateReviewContext(
     repository: Repository,
     context: IRequestContext,
-    review: IGitHubIssueMutationReview
+    review: IGitHubIssueMutationReview,
+    operation: GitHubIssueMutationOperation,
+    payload: IGitHubIssueUpdate | string | null
   ) {
     if (
       review.repositoryFingerprint !== repositoryFingerprint(repository) ||
-      review.accountKey !== getAccountKey(context.account) ||
-      review.accountGeneration !== context.generation
+      review.accountFingerprint !== accountFingerprint(context.account) ||
+      review.accountGeneration !== context.generation ||
+      review.operation !== operation ||
+      review.mutationFingerprint !==
+        getGitHubIssueMutationFingerprint(operation, payload)
     ) {
       throw staleReviewError()
     }
@@ -450,9 +480,11 @@ export class GitHubIssuesStore {
     repository: Repository,
     context: IRequestContext,
     signal: AbortSignal,
-    review: IGitHubIssueMutationReview
+    review: IGitHubIssueMutationReview,
+    operation: GitHubIssueMutationOperation,
+    payload: IGitHubIssueUpdate | string | null
   ): Promise<IGitHubIssue> {
-    this.validateReviewContext(repository, context, review)
+    this.validateReviewContext(repository, context, review, operation, payload)
     const issue = await context.api.fetchIssue(
       context.repository.owner.login,
       context.repository.name,
@@ -468,8 +500,9 @@ export class GitHubIssuesStore {
 
   private async mutate<T>(
     repository: Repository,
-    operation: GitHubIssueOperation,
+    operation: GitHubIssueMutationOperation,
     review: IGitHubIssueMutationReview,
+    payload: IGitHubIssueUpdate | string | null,
     signal: AbortSignal | undefined,
     mutation: (
       context: IRequestContext,
@@ -486,7 +519,9 @@ export class GitHubIssuesStore {
           repository,
           context,
           requestSignal,
-          review
+          review,
+          operation,
+          payload
         )
         this.assertContextCurrent(repository, context, requestSignal)
 
@@ -508,8 +543,7 @@ export class GitHubIssuesStore {
           if (
             error instanceof APIError &&
             error.responseStatus !== null &&
-            error.responseStatus >= 400 &&
-            error.responseStatus < 500
+            definiteMutationRejections.has(error.responseStatus)
           ) {
             throw error
           }
@@ -590,6 +624,7 @@ export class GitHubIssuesStore {
       repository,
       'update',
       review,
+      update,
       signal,
       (context, requestSignal) =>
         context.api.updateIssue(
@@ -612,6 +647,7 @@ export class GitHubIssuesStore {
       repository,
       'comment',
       review,
+      body,
       signal,
       (context, requestSignal) =>
         context.api.addIssueComment(
@@ -636,6 +672,7 @@ export class GitHubIssuesStore {
       repository,
       operation,
       review,
+      null,
       signal,
       (context, requestSignal) =>
         context.api.setIssueState(

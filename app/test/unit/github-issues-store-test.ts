@@ -198,12 +198,22 @@ describe('GitHub Issues store', () => {
     const store = await storeWith(new FakeAccountsStore([selected]), () =>
       fakeAPI()
     )
-    const review = store.createMutationReview(repository, issue)
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'comment',
+      'Reviewed comment'
+    )
     assert.equal(Object.isFrozen(review), true)
-    assert.equal(review.accountKey, getAccountKey(selected))
+    assert.match(review.accountFingerprint, /^sha256:[a-f0-9]{64}$/)
     assert.equal(review.issueNumber, 7)
-    assert.ok(review.repositoryFingerprint.includes('desktop'))
-    assert.ok(review.issueFingerprint.includes('Issue 7'))
+    assert.match(review.repositoryFingerprint, /^sha256:[a-f0-9]{64}$/)
+    assert.match(review.issueFingerprint, /^sha256:[a-f0-9]{64}$/)
+    assert.match(review.mutationFingerprint, /^sha256:[a-f0-9]{64}$/)
+    assert.doesNotMatch(
+      JSON.stringify(review),
+      /desktop|material|Issue 7|Reviewed comment|github\.com/
+    )
   })
 
   it('re-fetches exact state and fails closed before update when it changed', async () => {
@@ -217,16 +227,21 @@ describe('GitHub Issues store', () => {
         },
       })
     )
-    const review = store.createMutationReview(repository, issue)
+    const update = {
+      title: issue.title,
+      body: 'Reviewed body',
+      labels: [] as ReadonlyArray<string>,
+      assignees: [] as ReadonlyArray<string>,
+      milestone: null,
+    }
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'update',
+      update
+    )
     await assert.rejects(
-      () =>
-        store.update(repository, review, {
-          title: issue.title,
-          body: 'Reviewed body',
-          labels: [],
-          assignees: [],
-          milestone: null,
-        }),
+      () => store.update(repository, review, update),
       error => error instanceof GitHubIssuesError && error.kind === 'conflict'
     )
     assert.equal(updateCalled, false)
@@ -264,16 +279,34 @@ describe('GitHub Issues store', () => {
         },
       })
     )
-    const review = store.createMutationReview(repository, issue)
-    await store.update(repository, review, {
+    const update = {
       title: 'Updated',
       body: issue.body,
-      labels: [],
-      assignees: [],
+      labels: [] as ReadonlyArray<string>,
+      assignees: [] as ReadonlyArray<string>,
       milestone: null,
-    })
-    await store.addComment(repository, review, 'Reviewed comment')
-    await store.setState(repository, review, 'closed')
+    }
+    const updateReview = store.createMutationReview(
+      repository,
+      issue,
+      'update',
+      update
+    )
+    const commentReview = store.createMutationReview(
+      repository,
+      issue,
+      'comment',
+      'Reviewed comment'
+    )
+    const stateReview = store.createMutationReview(
+      repository,
+      issue,
+      'close',
+      null
+    )
+    await store.update(repository, updateReview, update)
+    await store.addComment(repository, commentReview, 'Reviewed comment')
+    await store.setState(repository, stateReview, 'closed')
     assert.equal(fetchCount, 3)
     assert.equal(updateNumber, 7)
     assert.equal(commentNumber, 7)
@@ -294,7 +327,12 @@ describe('GitHub Issues store', () => {
         },
       })
     )
-    const review = store.createMutationReview(repository, issue)
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'comment',
+      'Reviewed comment'
+    )
     const pending = store.addComment(repository, review, 'Reviewed comment')
     await Promise.resolve()
     accountsStore.update([selected.withToken('rotated-token')])
@@ -323,7 +361,12 @@ describe('GitHub Issues store', () => {
         },
       })
     )
-    const review = store.createMutationReview(repository, issue)
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'comment',
+      'Reviewed comment'
+    )
     const pending = store.addComment(repository, review, 'Reviewed comment')
     await started
     accountsStore.update([selected.withToken('rotated-token')])
@@ -344,17 +387,76 @@ describe('GitHub Issues store', () => {
         },
       })
     )
-    const review = store.createMutationReview(repository, issue)
+    const update = {
+      title: issue.title,
+      body: issue.body,
+      labels: [] as ReadonlyArray<string>,
+      assignees: [] as ReadonlyArray<string>,
+      milestone: null,
+    }
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'update',
+      update
+    )
     await assert.rejects(
-      () =>
-        store.update(repository, review, {
-          title: issue.title,
-          body: issue.body,
-          labels: [],
-          assignees: [],
-          milestone: null,
-        }),
+      () => store.update(repository, review, update),
       error => error instanceof GitHubIssuesError && error.kind === 'conflict'
+    )
+  })
+
+  it('rejects review reuse across operations or changed payloads before re-fetch', async () => {
+    let fetchCalled = false
+    const store = await storeWith(new FakeAccountsStore([selected]), () =>
+      fakeAPI({
+        fetchIssue: async () => {
+          fetchCalled = true
+          return issue
+        },
+      })
+    )
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'comment',
+      'First reviewed comment'
+    )
+    await assert.rejects(
+      () => store.addComment(repository, review, 'Different comment'),
+      error => error instanceof GitHubIssuesError && error.kind === 'conflict'
+    )
+    await assert.rejects(
+      () => store.setState(repository, review, 'closed'),
+      error => error instanceof GitHubIssuesError && error.kind === 'conflict'
+    )
+    assert.equal(fetchCalled, false)
+  })
+
+  it('treats HTTP 408 after the write boundary as uncertain', async () => {
+    const update = {
+      title: issue.title,
+      body: 'Reviewed body',
+      labels: [] as ReadonlyArray<string>,
+      assignees: [] as ReadonlyArray<string>,
+      milestone: null,
+    }
+    const store = await storeWith(new FakeAccountsStore([selected]), () =>
+      fakeAPI({
+        updateIssue: async () => {
+          throw new APIError(new Response(null, { status: 408 }), null)
+        },
+      })
+    )
+    const review = store.createMutationReview(
+      repository,
+      issue,
+      'update',
+      update
+    )
+    await assert.rejects(
+      () => store.update(repository, review, update),
+      error => error instanceof GitHubIssuesError && error.kind === 'uncertain'
     )
   })
 
