@@ -100,6 +100,7 @@ async function rawRequestStatus(
     readonly method?: string
     readonly headers?: Readonly<Record<string, string>>
     readonly rawPath?: string
+    readonly body?: string | Buffer
   } = {}
 ): Promise<number> {
   return await new Promise<number>((resolvePromise, reject) => {
@@ -118,7 +119,7 @@ async function rawRequestStatus(
       }
     )
     request.once('error', reject)
-    request.end()
+    request.end(options.body)
   })
 }
 
@@ -180,6 +181,13 @@ describe('guided proof fixture script', () => {
           GUIDED_PROOF_TOKEN_B: tokenB,
         }
       )
+    )
+    assert.equal(parseGuidedProofCLIArguments(['--help'], {}), null)
+    assert.throws(() =>
+      parseGuidedProofCLIArguments(['--help', '--token-a', tokenA], {
+        GUIDED_PROOF_TOKEN_A: tokenA,
+        GUIDED_PROOF_TOKEN_B: tokenB,
+      })
     )
     assert.throws(() =>
       parseGuidedProofCLIArguments(
@@ -302,8 +310,26 @@ describe('guided proof fixture script', () => {
         421
       )
       assert.equal(
+        await rawRequestStatus(`${harness.endpoint}/user`, {
+          method: 'GET',
+          headers: {
+            Authorization: `Bearer ${tokenB}`,
+            'Content-Length': '1',
+          },
+          body: 'x',
+        }),
+        400
+      )
+      assert.equal(
         await rawRequestStatus(`${harness.origin}/`, {
           rawPath: '/api/v3/repos/material-proof/other/../guided-proof',
+          headers: { Authorization: `Bearer ${tokenB}` },
+        }),
+        400
+      )
+      assert.equal(
+        await rawRequestStatus(`${harness.origin}/`, {
+          rawPath: '/api/v3/repos/material-proof/guided-proof/rules/branches/%',
           headers: { Authorization: `Bearer ${tokenB}` },
         }),
         400

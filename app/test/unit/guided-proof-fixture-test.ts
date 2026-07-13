@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { describe, it } from 'node:test'
-import { API } from '../../src/lib/api'
+import { API, fetchUser } from '../../src/lib/api'
 import {
   createGuidedProofChildEnvironment,
   createGuidedProofHandler,
@@ -195,6 +195,10 @@ describe('guided hidden-desktop proof fixture', () => {
 
       const api = new API(harness.endpoint, tokenB)
       assert.equal((await api.fetchAccount()).login, 'proof-b')
+      const signedIn = await fetchUser(harness.endpoint, tokenB)
+      assert.equal(signedIn.login, 'proof-b')
+      assert.equal(signedIn.id, 102)
+      assert.deepEqual(await api.fetchFeatureFlags(), [])
       const repository = await api.fetchRepository(
         'material-proof',
         'guided-proof'

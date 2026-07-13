@@ -22,6 +22,8 @@ const ProofGitPath = `/${ProofOwner}/${ProofRepository}.git`
 const ProofRequestBodyMaximumBytes = 2 * 1024 * 1024
 const ProofTLSFileMaximumBytes = 1024 * 1024
 const ProofChildOutputMaximumBytes = 16 * 1024 * 1024
+const ProofChildMaximumRuntimeMilliseconds = 30_000
+const ProofChildShutdownGraceMilliseconds = 2_000
 const ProofDate = '2026-07-13T12:00:00Z'
 const ProofEarlierDate = '2026-06-01T09:00:00Z'
 const ProofArtifactBytes = Buffer.from(
@@ -255,6 +257,19 @@ async function runGit(
     const stdout = new Array<Buffer>()
     let stdoutBytes = 0
     let stderrBytes = 0
+    let settled = false
+    const timeout = setTimeout(() => {
+      child.kill()
+      fail('A deterministic guided proof Git command timed out.')
+    }, ProofChildMaximumRuntimeMilliseconds)
+    const fail = (message: string) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      clearTimeout(timeout)
+      reject(new Error(message))
+    }
     child.stdout.on('data', (chunk: Buffer) => {
       stdoutBytes += chunk.length
       if (stdoutBytes > ProofChildOutputMaximumBytes) {
@@ -269,12 +284,21 @@ async function runGit(
         child.kill()
       }
     })
-    child.once('error', () => reject(new Error('Unable to start Git.')))
+    child.once('error', () => fail('Unable to start Git.'))
     child.once('close', code => {
-      if (code !== 0 || stdoutBytes > ProofChildOutputMaximumBytes) {
-        reject(new Error('A deterministic guided proof Git command failed.'))
+      if (settled) {
         return
       }
+      if (
+        code !== 0 ||
+        stdoutBytes > ProofChildOutputMaximumBytes ||
+        stderrBytes > ProofChildOutputMaximumBytes
+      ) {
+        fail('A deterministic guided proof Git command failed.')
+        return
+      }
+      settled = true
+      clearTimeout(timeout)
       resolvePromise(Buffer.concat(stdout))
     })
   })
@@ -636,22 +660,46 @@ class GuidedProofContext {
   }
 
   public async stopUploadPacks(): Promise<void> {
-    const active = [...this.activeUploadPacks]
-    for (const child of active) {
-      child.kill()
+    const waitForExit = async (
+      active: ReadonlyArray<ChildProcessWithoutNullStreams>
+    ): Promise<boolean> => {
+      const exits = Promise.all(
+        active.map(
+          child =>
+            new Promise<void>(resolvePromise => {
+              if (child.exitCode !== null || child.signalCode !== null) {
+                resolvePromise()
+                return
+              }
+              child.once('close', () => resolvePromise())
+            })
+        )
+      ).then(() => true)
+      let timeout: NodeJS.Timeout | null = null
+      const expired = new Promise<false>(resolvePromise => {
+        timeout = setTimeout(
+          () => resolvePromise(false),
+          ProofChildShutdownGraceMilliseconds
+        )
+      })
+      const exited = await Promise.race([exits, expired])
+      if (timeout !== null) {
+        clearTimeout(timeout)
+      }
+      return exited
     }
-    await Promise.all(
-      active.map(
-        child =>
-          new Promise<void>(resolvePromise => {
-            if (child.exitCode !== null || child.signalCode !== null) {
-              resolvePromise()
-              return
-            }
-            child.once('close', () => resolvePromise())
-          })
-      )
-    )
+
+    const active = [...this.activeUploadPacks]
+    active.forEach(child => child.kill())
+    if (await waitForExit(active)) {
+      return
+    }
+    active
+      .filter(child => child.exitCode === null && child.signalCode === null)
+      .forEach(child => child.kill('SIGKILL'))
+    if (!(await waitForExit(active))) {
+      throw new Error('A guided proof upload-pack process did not stop.')
+    }
   }
 }
 
@@ -854,6 +902,34 @@ function boundedString(
   return value
 }
 
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    throw new ProofRequestError(400, 'invalid-path-encoding')
+  }
+}
+
+function validateRequestBodyEnvelope(request: IncomingMessage): void {
+  const declaredLength = request.headers['content-length']
+  let parsedLength = 0
+  if (declaredLength !== undefined) {
+    if (!/^[0-9]+$/.test(declaredLength)) {
+      throw new ProofRequestError(400, 'invalid-content-length')
+    }
+    parsedLength = Number.parseInt(declaredLength, 10)
+    if (parsedLength > ProofRequestBodyMaximumBytes) {
+      throw new ProofPayloadTooLargeError()
+    }
+  }
+  if (
+    ['GET', 'HEAD', 'DELETE'].includes(request.method ?? '') &&
+    (parsedLength > 0 || request.headers['transfer-encoding'] !== undefined)
+  ) {
+    throw new ProofRequestError(400, 'unexpected-request-body')
+  }
+}
+
 function serializeReleaseAsset(
   asset: IProofReleaseAsset
 ): Omit<IProofReleaseAsset, 'bytes'> {
@@ -1001,11 +1077,17 @@ async function runUploadPack(
     let stdoutBytes = 0
     let stderrBytes = 0
     let settled = false
+    const timeout = setTimeout(() => {
+      child.kill()
+      fail()
+    }, ProofChildMaximumRuntimeMilliseconds)
     const fail = () => {
       if (settled) {
         return
       }
       settled = true
+      clearTimeout(timeout)
+      child.kill()
       reject(new Error('The guided proof upload-pack process failed.'))
     }
     child.stdout.on('data', (chunk: Buffer) => {
@@ -1025,8 +1107,10 @@ async function runUploadPack(
     child.once('error', fail)
     child.once('close', code => {
       context.activeUploadPacks.delete(child)
+      if (settled) {
+        return
+      }
       if (
-        settled ||
         code !== 0 ||
         stdoutBytes > ProofChildOutputMaximumBytes ||
         stderrBytes > ProofChildOutputMaximumBytes
@@ -1035,6 +1119,7 @@ async function runUploadPack(
         return
       }
       settled = true
+      clearTimeout(timeout)
       resolvePromise(Buffer.concat(stdout))
     })
     child.stdin.once('error', fail)
@@ -1964,7 +2049,7 @@ async function handleActionsAPI(
       return true
     }
     requireOnlyQuery(url, ['per_page', 'page'])
-    if (decodeURIComponent(branchRules[1]) !== ProofBranch) {
+    if (safeDecodeURIComponent(branchRules[1]) !== ProofBranch) {
       throw new ProofRequestError(404, 'branch-not-found')
     }
     const page = boundedIntegerQuery(url, 'page', 1, 5, 1)
@@ -2007,7 +2092,7 @@ async function handleActionsAPI(
     if (boundedIntegerQuery(url, 'per_page', 1, 1, 1) !== 1) {
       throw new ProofRequestError(400, 'invalid-query')
     }
-    const digest = decodeURIComponent(attestation[1]).toLowerCase()
+    const digest = safeDecodeURIComponent(attestation[1]).toLowerCase()
     sendJSON(response, 200, {
       attestations:
         digest === sha256(ProofArtifactBytes)
@@ -2031,7 +2116,7 @@ async function handleActionsAPI(
       return true
     }
     requireOnlyQuery(url, [])
-    if (decodeURIComponent(pushControl[1]) !== ProofBranch) {
+    if (safeDecodeURIComponent(pushControl[1]) !== ProofBranch) {
       throw new ProofRequestError(404, 'branch-not-found')
     }
     sendJSON(response, 200, {
@@ -2088,9 +2173,7 @@ async function handleActionsAPI(
       return true
     }
     requireOnlyQuery(url, [])
-    if ((request.headers['content-length'] ?? '0') !== '0') {
-      await readBody(request)
-    }
+    await readBody(request)
     sendNoContent(response)
     return true
   }
@@ -2126,6 +2209,7 @@ async function dispatchGuidedProofRequest(
     audit.route = 'rejected-host'
     throw new ProofRequestError(421, 'unexpected-host')
   }
+  validateRequestBodyEnvelope(request)
   let url: URL
   try {
     url = new URL(rawURL, `${context.ready.origin}/`)
@@ -2359,11 +2443,27 @@ export async function startGuidedProofFixture(
       resolvePromise()
     })
   })
-  await writeFile(
-    repository.readyPath,
-    `${JSON.stringify(fixture.ready, null, 2)}\n`,
-    { encoding: 'utf8', flag: 'wx' }
-  )
+  const closeServer = async (): Promise<void> => {
+    if (!server.listening) {
+      return
+    }
+    await new Promise<void>(resolvePromise => {
+      server.close(() => resolvePromise())
+      server.closeAllConnections()
+    })
+  }
+  try {
+    await writeFile(
+      repository.readyPath,
+      `${JSON.stringify(fixture.ready, null, 2)}\n`,
+      { encoding: 'utf8', flag: 'wx' }
+    )
+  } catch {
+    await fixture.stopUploadPacks().catch(() => undefined)
+    await closeServer()
+    throw new Error('The guided proof ready file could not be published.')
+  }
+  server.on('error', () => undefined)
   let closePromise: Promise<void> | null = null
   return {
     ready: fixture.ready,
@@ -2374,10 +2474,7 @@ export async function startGuidedProofFixture(
         return
       }
       closePromise = (async () => {
-        const serverClosed = new Promise<void>(resolvePromise => {
-          server.close(() => resolvePromise())
-          server.closeAllConnections()
-        })
+        const serverClosed = closeServer()
         await fixture.stopUploadPacks()
         await serverClosed
         await fixture.flushLedger()
@@ -2410,7 +2507,7 @@ export function parseGuidedProofCLIArguments(
   argv: ReadonlyArray<string>,
   environment: Readonly<Record<string, string | undefined>> = process.env
 ): ICLIArguments | null {
-  if (argv.includes('--help')) {
+  if (argv.length === 1 && argv[0] === '--help') {
     return null
   }
   const allowed = new Set([
@@ -2477,8 +2574,12 @@ async function main(): Promise<void> {
     fixture = await startGuidedProofFixture(options)
     process.stdout.write(`${JSON.stringify(fixture.ready)}\n`)
     const close = async () => {
-      await fixture?.close()
-      process.exitCode = 0
+      try {
+        await fixture?.close()
+        process.exitCode = 0
+      } catch {
+        process.exitCode = 1
+      }
     }
     process.once('SIGINT', () => void close())
     process.once('SIGTERM', () => void close())
