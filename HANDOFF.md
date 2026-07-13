@@ -459,11 +459,32 @@ sources now reference them. The assembled local Pages layout loaded 25 nonzero
 images across 24 gallery cards. At 960×660, document/body client and scroll
 widths were all 945; at 390×844 they were all 375. Overflow and outside-control
 arrays were empty, and original desktop/mobile captures showed the two new
-cards with wrapped captions and no sideways scrolling. Separate-wiki
-publication, remote Pages artifact verification, final remote-SHA
-confirmation, credential removal, exact process shutdown, desktop closure, and
-containment-checked run-root deletion remain for the publication/cleanup
-receipt.
+cards with wrapped captions and no sideways scrolling.
+
+### Publication and cleanup receipt
+
+- Primary-repository evidence and both promoted PNGs were pushed at
+  `6d00ab73531d5359d821b6fccef2bf9ffffb3035`; local, tracking, and direct remote
+  SHA matched with a clean worktree.
+- The existing live wiki's newer M19 content was preserved while the Actions
+  Home/User Guide sections were merged. Wiki commit
+  `e4f4a49a973a442078369c61b7c6da9696fd38a7` is on the direct remote, with both
+  screenshots stored as local `Images/` assets. Public Home, User Guide, raw
+  sources, and both PNG responses were verified; the images returned 200 with
+  the exact 111,675/98,249 byte sizes.
+- [Pages run `29283239381`](https://github.com/codingmachineedge/desktop-material/actions/runs/29283239381)
+  checked out the exact evidence SHA and passed checkout, configuration,
+  assembly, and upload. Artifact `8292133247` contained 41 traversal/link-safe
+  entries; its HTML and both PNG Git blobs exactly matched the pushed source.
+  Deployment correctly stopped before a runner because the protected
+  `github-pages` environment does not allow `mega-feature-update`.
+- The fixture remote was restored to its `.invalid` identity. The exact
+  loopback dummy credential was deleted and read back absent. Only the
+  revalidated owned app, Pages Edge, and provider PID trees were terminated;
+  ports `62208`, `62209`, and `64402` were absent afterward. Both owned desktops
+  reached zero windows, closed exactly once, and then returned not found. The
+  containment-checked run root and separate wiki clone were removed with
+  `Test-Path=false`. The visible user desktop remained untouched.
 
 ## Maintenance constraints
 
