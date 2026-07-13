@@ -23,6 +23,8 @@ describe('multi-window context actions', () => {
       onRemoveRepository: () => {},
       onChangeRepositoryAlias: () => {},
       onRemoveRepositoryAlias: () => {},
+      onChangeRepositoryGroupName: () => {},
+      onRemoveRepositoryGroupName: () => {},
     })
 
     const action = items.find(item =>
