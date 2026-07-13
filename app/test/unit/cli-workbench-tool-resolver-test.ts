@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { resolveGitBinary } from 'dugite'
+import { resolveGitBinary, resolveGitExecPath } from 'dugite'
 import { resolve } from 'path'
 import { resolveCLIWorkbenchTool } from '../../src/main-process/cli-workbench/tool-resolver'
 
@@ -24,16 +24,21 @@ describe('CLI workbench tool resolver', () => {
     }
   })
 
-  it('preserves an explicit local Git directory override', () => {
-    const gitDirectory = resolve('custom-git')
+  it('does not let ambient Git paths redirect the staged executable', () => {
+    const runtimeDirectory = resolve('staged-app')
+    const gitDirectory = resolve(runtimeDirectory, 'git')
     const resolved = resolveCLIWorkbenchTool(
       'git',
-      { LOCAL_GIT_DIRECTORY: gitDirectory },
-      resolve('ignored-runtime')
+      {
+        LOCAL_GIT_DIRECTORY: resolve('wrong-git'),
+        GIT_EXEC_PATH: resolve('wrong-git-core'),
+      },
+      runtimeDirectory
     )
 
     assert.equal(resolved.executable, resolveGitBinary(gitDirectory))
     assert.equal(resolved.env.LOCAL_GIT_DIRECTORY, gitDirectory)
+    assert.equal(resolved.env.GIT_EXEC_PATH, resolveGitExecPath(gitDirectory))
   })
 
   it('keeps GitHub CLI feature detection on the supplied PATH', () => {

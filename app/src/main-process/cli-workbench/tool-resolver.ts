@@ -20,14 +20,14 @@ export function resolveCLIWorkbenchTool(
       // Dugite normally resolves relative to its own module directory. Webpack
       // places that module inside out/main.js, while the staged Git payload is
       // out/git, so give it the runtime location explicitly.
-      const configuredGitDirectory =
-        processEnvironment.LOCAL_GIT_DIRECTORY?.trim()
-      const localGitDirectory =
-        configuredGitDirectory === undefined || configuredGitDirectory === ''
-          ? resolve(runtimeDirectory, 'git')
-          : configuredGitDirectory
+      const localGitDirectory = resolve(runtimeDirectory, 'git')
       const { env } = setupEnvironment(
-        { LOCAL_GIT_DIRECTORY: localGitDirectory },
+        {
+          LOCAL_GIT_DIRECTORY: localGitDirectory,
+          // Mirror renderer startup: never let an inherited helper path point
+          // the staged executable at a different Git installation.
+          GIT_EXEC_PATH: undefined,
+        },
         processEnvironment
       )
       return {
