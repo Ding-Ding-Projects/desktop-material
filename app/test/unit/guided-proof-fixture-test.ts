@@ -1,5 +1,6 @@
 import assert from 'node:assert'
 import { execFile } from 'node:child_process'
+import { createHash } from 'node:crypto'
 import {
   createServer,
   IncomingMessage,
@@ -240,6 +241,12 @@ describe('guided hidden-desktop proof fixture', () => {
       const signedIn = await fetchUser(harness.endpoint, tokenB)
       assert.equal(signedIn.login, 'proof-b')
       assert.equal(signedIn.id, 102)
+      const publicAvatar = await fetch(
+        `${harness.endpoint}/enterprise/avatars/proof-b`
+      )
+      assert.equal(publicAvatar.status, 200)
+      assert.match(publicAvatar.headers.get('content-type') ?? '', /image\/svg/)
+      assert.match(await publicAvatar.text(), />B<\/text>/)
       assert.deepEqual(await api.fetchFeatureFlags(), [])
       const repository = await api.fetchRepository(
         'material-proof',
@@ -296,16 +303,39 @@ describe('guided hidden-desktop proof fixture', () => {
           ?.jobs[0].name,
         'Windows x64'
       )
+      const artifact = (
+        await api.fetchWorkflowRunArtifacts(
+          'material-proof',
+          'guided-proof',
+          7001
+        )
+      ).artifacts[0]
+      assert.equal(artifact.name, 'guided-proof-artifact')
       assert.equal(
-        (
-          await api.fetchWorkflowRunArtifacts(
-            'material-proof',
-            'guided-proof',
-            7001
-          )
-        ).artifacts[0].name,
-        'guided-proof-artifact'
+        await api.fetchArtifactAttestationPresence(
+          'material-proof',
+          'guided-proof',
+          artifact.digest!
+        ),
+        true
       )
+      const artifactDownload = await fetch(
+        `${harness.endpoint}/repos/material-proof/guided-proof/actions/artifacts/7301/zip`,
+        { headers: { Authorization: `Bearer ${tokenB}` } }
+      )
+      assert.equal(artifactDownload.status, 200)
+      const artifactBytes = Buffer.from(await artifactDownload.arrayBuffer())
+      assert.equal(artifactBytes.length, artifact.sizeInBytes)
+      assert.equal(
+        `sha256:${createHash('sha256').update(artifactBytes).digest('hex')}`,
+        artifact.digest
+      )
+      const jobLog = await fetch(
+        `${harness.endpoint}/repos/material-proof/guided-proof/actions/jobs/7101/logs`,
+        { headers: { Authorization: `Bearer ${tokenB}` } }
+      )
+      assert.equal(jobLog.status, 200)
+      assert.match(await jobLog.text(), /Guided proof build completed/)
       assert.equal(
         (
           await api.fetchEffectiveBranchRules(
