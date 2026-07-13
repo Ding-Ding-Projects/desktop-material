@@ -23,7 +23,16 @@ const pendingArtifactDownloads = new Map<
   string,
   (result: { readonly ok: false; readonly reason: 'canceled' }) => void
 >()
+const pendingJobLogs = new Map<
+  string,
+  (result: {
+    readonly ok: true
+    readonly log: string
+    readonly truncated: false
+  }) => void
+>()
 let pauseArtifactDownloads = false
+let pauseJobLogs = false
 
 mock.module('../../src/lib/ipc-renderer', {
   namedExports: {
@@ -41,6 +50,11 @@ mock.module('../../src/lib/ipc-renderer', {
       if (channel === 'download-actions-artifact' && pauseArtifactDownloads) {
         return await new Promise(resolve => {
           pendingArtifactDownloads.set(request.operationId, resolve)
+        })
+      }
+      if (channel === 'fetch-actions-job-log' && pauseJobLogs) {
+        return await new Promise(resolve => {
+          pendingJobLogs.set(request.operationId, resolve)
         })
       }
       return channel === 'fetch-actions-job-log'
@@ -297,6 +311,60 @@ describe('ActionsStore exact account routing', () => {
     } finally {
       pauseArtifactDownloads = false
       pendingArtifactDownloads.clear()
+    }
+  })
+
+  it('drops a late job log result after the selected account changes', async () => {
+    ipcRequests.length = 0
+    canceledTransfers.length = 0
+    pendingJobLogs.clear()
+    pauseJobLogs = true
+    const endpoint = 'https://api.github.com'
+    const selected = new Account(
+      'selected',
+      endpoint,
+      'token-one',
+      [],
+      '',
+      2,
+      'Selected'
+    )
+    const gitHubRepository = new GitHubRepository(
+      'project',
+      new Owner('group', endpoint, 1),
+      1
+    )
+    const repository = new Repository(
+      'C:/project',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const accounts = new TestAccountsStore([selected])
+
+    try {
+      const { ActionsStore } = await import(
+        '../../src/lib/stores/actions-store'
+      )
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const log = store.fetchJobLogs(repository, 11)
+      await Promise.resolve()
+      assert.equal(pendingJobLogs.size, 1)
+
+      accounts.update([selected.withToken('token-two')])
+      const [operationId, resolve] = [...pendingJobLogs.entries()][0]
+      assert.deepEqual(canceledTransfers, [operationId])
+      resolve({ ok: true, log: 'old account log', truncated: false })
+      await assert.rejects(log, error => (error as Error).name === 'AbortError')
+    } finally {
+      pauseJobLogs = false
+      pendingJobLogs.clear()
     }
   })
 })

@@ -687,19 +687,15 @@ export class ActionsStore {
     jobId: number,
     signal?: AbortSignal
   ) {
-    return this.runAccountBound(
-      signal,
-      requestSignal => {
-        const gitHubRepository = this.gitHubFor(repository)
-        return fetchActionsJobLogThroughMainProcess(
-          this.accountFor(repository),
-          gitHubRepository,
-          jobId,
-          requestSignal
-        )
-      },
-      true
-    )
+    return this.runAccountBound(signal, requestSignal => {
+      const gitHubRepository = this.gitHubFor(repository)
+      return fetchActionsJobLogThroughMainProcess(
+        this.accountFor(repository),
+        gitHubRepository,
+        jobId,
+        requestSignal
+      )
+    })
   }
 
   public async fetchArtifacts(
