@@ -277,6 +277,7 @@
   .button-component {
     align-self: flex-start;
     height: auto;
+    max-width: 100%;
     min-height: 32px;
     overflow-wrap: anywhere;
     white-space: normal;
@@ -317,6 +318,7 @@
 
   .button-component {
     height: auto;
+    max-width: 100%;
     min-height: 32px;
     overflow-wrap: anywhere;
     white-space: normal;

@@ -284,7 +284,12 @@ body {
       color: currentColor;
       font-size: 11px;
       letter-spacing: 0;
+      line-height: 1.2;
       opacity: 0.75;
+      overflow: visible;
+      overflow-wrap: anywhere;
+      text-overflow: clip;
+      white-space: normal;
     }
   }
 

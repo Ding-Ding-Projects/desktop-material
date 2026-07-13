@@ -29,6 +29,10 @@ describe('Repository tools responsive styles', () => {
     assert.match(styles, /flex-direction: column/)
     assert.match(
       styles,
+      /\.repository-tool-card\s*\{[\s\S]*?\.button-component\s*\{[\s\S]*?max-width: 100%/
+    )
+    assert.match(
+      styles,
       /\.repository-tool-confirmation[\s\S]*overflow-wrap: anywhere/
     )
   })

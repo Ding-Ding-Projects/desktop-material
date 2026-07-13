@@ -38,6 +38,9 @@
 
   .tab-bar.vertical {
     align-items: center;
+    max-width: 100%;
+    padding: 0;
+    width: 100%;
   }
 
   // Section tabs and the Branches destination share the rail-button look: a
