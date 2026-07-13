@@ -12,6 +12,16 @@
 - Initial baseline: preserve the clean tracked state at the final integration
   SHA. No personal worktree path, account credential, signed URL, or provider
   response body may enter a capture or tracked file.
+- Preflight evidence (2026-07-13): the fixed HTTP MCP endpoint returned
+  `ok: true`; scheduled task `LowLevelComputerUseMCP` runs the `uv` launcher
+  from `%USERPROFILE%\AppData\Local\Microsoft\WinGet\Links` with
+  `run --directory %USERPROFILE%\Documents\GitHub\lowlevel-computer-use-mcp
+  lowlevel-computer-use-mcp --http --host 127.0.0.1 --port 8765`; that checkout
+  is `beed66ca6ed2503e6170ee1e1158247f1c2f0140`; the active GitHub identity is
+  `codingmachineedge`; Actions is enabled with all actions allowed and no
+  queued or active worker. The initial clean integration branch SHA is
+  `175ccf069a13a9c850463d0e24c2da746026f346`; replace this with the exact
+  accepted source SHA before the GUI phase.
 - Expected UI states:
   1. The URL clone form shows bounded shallow-clone controls and completes a
      synthetic exact-origin clone without exposing its disposable path.
@@ -25,7 +35,22 @@
   5. Actions shows a synthetic run, jobs, readable job log, artifact digest and
      attestation-presence context, a successful authenticated same-endpoint
      artifact download, local SHA-256 result, and reveal-ready destination.
-  6. Regular and compact window checks cover light and dark themes; requested
+  6. Pull All shows one successful repository result whose detail says another
+     signed-in account completed the pull; the fixture ledger records account A
+     rejected before account B and never records a token.
+  7. GitHub Releases shows bounded release and asset creation/update/deletion
+     controls against the in-memory loopback fixture only.
+  8. GitHub Issues shows bounded search, compose, metadata, comment, close, and
+     reopen state; provider triage shows exact-origin GitHub/GitLab/Bitbucket
+     parsing without a public mutation.
+  9. Repository Tools shows shallow/deepen, sparse checkout, patch series,
+     structured commit rewrite, bisect, signing, LFS, worktree, branch
+     visibility, merge-tree preview, bundle, and hooks surfaces using only the
+     disposable repository.
+  10. The repository-wide Stash Manager and Repository Settings Remote Manager
+      show their complete bounded review surfaces without exposing the owned
+      Temp root.
+  11. Regular and compact window checks cover light and dark themes; requested
      50%, 100%, and 200% UI scaling with auto-fit; long synthetic repository,
      branch, and host labels; destructive-confirmation focus; keyboard paths;
      and screen-reader names and roles. They have no clipping, overlap,
@@ -49,19 +74,28 @@
   use only `guided-proof`, `octo-proof`, `material-proof`, and public repository
   names.
 - Screenshot target, theme, and dimensions: light Material theme, regular
-  2048 x 1228 captures promoted only after original-resolution inspection to
+  2048 x 1228 client-area captures promoted only after original-resolution
+  inspection to `docs/assets/screenshots/material-clone-account-fallback.png`,
+  `docs/assets/screenshots/material-pull-all-account-fallback.png`,
   `docs/assets/screenshots/material-shallow-clone-safe.png`,
   `docs/assets/screenshots/material-history-deepen.png`,
   `docs/assets/screenshots/material-sparse-checkout-safe.png`,
-  `docs/assets/screenshots/material-native-pull-request.png`, and
-  `docs/assets/screenshots/material-actions-artifact-download.png`; retain
-  compact, dark-theme, and scaling-matrix captures under the owned Temp root for
+  `docs/assets/screenshots/material-native-pull-request.png`,
+  `docs/assets/screenshots/material-actions-job-log.png`,
+  `docs/assets/screenshots/material-actions-artifact-download.png`,
+  `docs/assets/screenshots/material-github-releases.png`,
+  `docs/assets/screenshots/material-github-issues.png`,
+  `docs/assets/screenshots/material-provider-triage.png`,
+  `docs/assets/screenshots/material-repository-tools.png`,
+  `docs/assets/screenshots/material-stash-manager.png`, and
+  `docs/assets/screenshots/material-remote-manager.png`; retain compact,
+  dark-theme, and scaling-matrix captures under the owned Temp root for
   validation without necessarily publishing them.
-- Documentation allowlist: this manifest; the five accepted screenshots;
+- Documentation allowlist: this manifest; the fourteen accepted screenshots;
   `README.md`; `PLAN.md`; `HANDOFF.md`; `site/index.html`; and the relevant
-  actual image references in `docs/wiki/Home.md` and
-  `docs/wiki/User-Guide.md`. The separate GitHub wiki receives the same
-  canonical privacy-safe content and images only after `main` is final.
+  actual image references in `docs/wiki/Home.md`, `docs/wiki/User-Guide.md`,
+  and `docs/wiki/Developer-Guide.md`. The separate GitHub wiki receives the
+  same canonical privacy-safe content and images only after `main` is final.
 - Tests: focused clone/Pull All/PR/Actions/runner/file-history/sparse/shallow/UI,
   accessibility, focus, scaling, theme, and responsive suites; full unit corpus;
   `yarn lint:src`; repository-wide `yarn prettier`; `yarn tsc --noEmit
