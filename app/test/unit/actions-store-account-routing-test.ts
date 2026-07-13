@@ -86,9 +86,17 @@ describe('ActionsStore exact account routing', () => {
       fetchWorkflowRunArtifacts: async () => ({
         totalCount: 0,
         artifacts: [],
+        page: 1,
+        nextPage: null,
         truncated: false,
+        capped: false,
       }),
       fetchArtifactAttestationPresence: async () => false,
+      fetchEffectiveBranchRules: async () => ({
+        branch: 'main',
+        rules: [],
+        capped: false,
+      }),
       rerunWorkflowRun: async () => undefined,
       rerunFailedJobs: async () => true,
       rerunJob: async () => true,
@@ -122,6 +130,7 @@ describe('ActionsStore exact account routing', () => {
         repository,
         `sha256:${'a'.repeat(64)}`
       )
+      await store.fetchBranchRules(repository, 'main')
       await store.rerun(repository, 7)
       await store.rerunFailed(repository, 7)
       await store.rerunJob(repository, 11)
@@ -156,7 +165,7 @@ describe('ActionsStore exact account routing', () => {
         controller.signal
       )
 
-      assert.equal(selectedAccounts.length, 11)
+      assert.equal(selectedAccounts.length, 12)
       assert.ok(selectedAccounts.every(account => account === second))
       assert.deepEqual(
         ipcRequests.map(({ channel, request }) => ({

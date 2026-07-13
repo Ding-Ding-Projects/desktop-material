@@ -43,6 +43,7 @@ import {
   validateCreatedGitHubPullRequest,
 } from './github-pull-request'
 import {
+  ActionsArtifactMaximumPages,
   ActionsArtifactPageSize,
   IActionsArtifactList,
   isSupportedActionsArtifactDigest,
@@ -55,6 +56,13 @@ import {
   parseBoundedActionsArtifactAPIError,
   readBoundedActionsArtifactJSON,
 } from './actions-artifact-json'
+import {
+  ActionsBranchRuleMaximumPages,
+  ActionsBranchRulePageSize,
+  IActionsBranchRuleList,
+  parseActionsBranchRulePage,
+  validateActionsBranchName,
+} from './actions-branch-rules'
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
 export {
   createGitHubAPIRequestHeaders,
@@ -1912,18 +1920,68 @@ export class API {
     owner: string,
     name: string,
     workflowRunId: number,
+    page: number = 1,
     signal?: AbortSignal
   ): Promise<IActionsArtifactList> {
     const runId = validateActionsArtifactIdentifier(
       workflowRunId,
       'workflow run id'
     )
-    const path = `repos/${owner}/${name}/actions/runs/${runId}/artifacts?per_page=${ActionsArtifactPageSize}`
+    const artifactPage = validateActionsArtifactIdentifier(
+      page,
+      'artifact page'
+    )
+    if (artifactPage > ActionsArtifactMaximumPages) {
+      throw new Error(
+        'The requested artifact page exceeds the app safety limit.'
+      )
+    }
+    const path = `repos/${owner}/${name}/actions/runs/${runId}/artifacts?per_page=${ActionsArtifactPageSize}&page=${artifactPage}`
     const response = await this.ghRequest('GET', path, { signal })
     return parseActionsArtifactList(
       await boundedActionsArtifactResponse(response, signal),
-      runId
+      runId,
+      artifactPage
     )
+  }
+
+  /**
+   * Inspect active rules that GitHub evaluates for one exact branch. Pages are
+   * generated locally from the account-bound provider path and never followed
+   * from a provider-supplied pagination URL.
+   */
+  public async fetchEffectiveBranchRules(
+    owner: string,
+    name: string,
+    branch: string,
+    signal?: AbortSignal
+  ): Promise<IActionsBranchRuleList> {
+    const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubRepositoryPart(name, 'repository')
+    const safeBranch = validateActionsBranchName(branch)
+    const rules = new Array<IActionsBranchRuleList['rules'][number]>()
+
+    for (let page = 1; page <= ActionsBranchRuleMaximumPages; page++) {
+      const path = `repos/${safeOwner}/${safeName}/rules/branches/${encodeURIComponent(
+        safeBranch
+      )}?per_page=${ActionsBranchRulePageSize}&page=${page}`
+      const response = await this.ghRequest('GET', path, { signal })
+      const hasNextPage = getNextPagePathFromLink(response) !== null
+      rules.push(
+        ...parseActionsBranchRulePage(
+          await boundedActionsArtifactResponse(response, signal)
+        )
+      )
+
+      if (!hasNextPage) {
+        return { branch: safeBranch, rules, capped: false }
+      }
+      if (page === ActionsBranchRuleMaximumPages) {
+        return { branch: safeBranch, rules, capped: true }
+      }
+    }
+
+    return { branch: safeBranch, rules, capped: false }
   }
 
   /** Check for a matching attestation record without claiming verification. */
