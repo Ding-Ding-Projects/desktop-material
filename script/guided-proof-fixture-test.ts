@@ -128,18 +128,24 @@ async function cloneWithToken(
   destination: string,
   token: string
 ): Promise<void> {
-  const environment = createGuidedProofChildEnvironment(process.env, {
-    GIT_CONFIG_COUNT: '2',
-    GIT_CONFIG_KEY_0: 'credential.helper',
-    GIT_CONFIG_VALUE_0: '',
-    GIT_CONFIG_KEY_1: 'http.extraHeader',
-    GIT_CONFIG_VALUE_1: `Authorization: ${basicAuthorization(token)}`,
-    GIT_TERMINAL_PROMPT: '0',
-  })
-  await execFileAsync('git', ['clone', '--quiet', url, destination], {
-    env: environment,
-    windowsHide: true,
-  })
+  const configPath = `${destination}.proof.gitconfig`
+  await writeFile(
+    configPath,
+    `[credential]\n\thelper =\n[http]\n\textraHeader = Authorization: ${basicAuthorization(
+      token
+    )}\n`,
+    { encoding: 'utf8', flag: 'wx', mode: 0o600 }
+  )
+  try {
+    const environment = createGuidedProofChildEnvironment(process.env)
+    environment.GIT_CONFIG_GLOBAL = configPath
+    await execFileAsync('git', ['clone', '--quiet', url, destination], {
+      env: environment,
+      windowsHide: true,
+    })
+  } finally {
+    await rm(configPath, { force: true })
+  }
 }
 
 describe('guided proof fixture script', () => {
@@ -210,11 +216,15 @@ describe('guided proof fixture script', () => {
         Path: 'synthetic-path',
         GUIDED_PROOF_TOKEN_A: tokenA,
         guided_proof_token_b: tokenB,
+        GH_TOKEN: 'unrelated-secret',
+        ALIASED_TOKEN: tokenA,
         KEEP_ME: 'safe',
       },
       { GIT_PROTOCOL: 'version=2' }
     )
-    assert.equal(child.KEEP_ME, 'safe')
+    assert.equal(child.KEEP_ME, undefined)
+    assert.equal(child.GH_TOKEN, undefined)
+    assert.equal(child.ALIASED_TOKEN, undefined)
     assert.equal(child.GIT_PROTOCOL, 'version=2')
     assert.equal(child.GUIDED_PROOF_TOKEN_A, undefined)
     assert.equal(child.guided_proof_token_b, undefined)
@@ -232,6 +242,9 @@ describe('guided proof fixture script', () => {
           GUIDED_PROOF_TOKEN_A: tokenA,
         }
       )
+    )
+    assert.throws(() =>
+      createGuidedProofChildEnvironment({}, { GIT_PROTOCOL: tokenA })
     )
   })
 

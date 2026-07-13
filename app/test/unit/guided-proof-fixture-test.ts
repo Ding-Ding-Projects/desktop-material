@@ -102,18 +102,24 @@ async function runGitClone(
   destination: string,
   token: string
 ): Promise<void> {
-  const environment = createGuidedProofChildEnvironment(process.env, {
-    GIT_CONFIG_COUNT: '2',
-    GIT_CONFIG_KEY_0: 'credential.helper',
-    GIT_CONFIG_VALUE_0: '',
-    GIT_CONFIG_KEY_1: 'http.extraHeader',
-    GIT_CONFIG_VALUE_1: `Authorization: ${basicAuthorization(token)}`,
-    GIT_TERMINAL_PROMPT: '0',
-  })
-  await execFileAsync('git', ['clone', '--quiet', cloneURL, destination], {
-    env: environment,
-    windowsHide: true,
-  })
+  const configPath = `${destination}.proof.gitconfig`
+  await writeFile(
+    configPath,
+    `[credential]\n\thelper =\n[http]\n\textraHeader = Authorization: ${basicAuthorization(
+      token
+    )}\n`,
+    { encoding: 'utf8', flag: 'wx', mode: 0o600 }
+  )
+  try {
+    const environment = createGuidedProofChildEnvironment(process.env)
+    environment.GIT_CONFIG_GLOBAL = configPath
+    await execFileAsync('git', ['clone', '--quiet', cloneURL, destination], {
+      env: environment,
+      windowsHide: true,
+    })
+  } finally {
+    await rm(configPath, { force: true })
+  }
 }
 
 async function requestWithDeclaredLength(

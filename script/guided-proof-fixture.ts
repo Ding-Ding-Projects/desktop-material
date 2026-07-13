@@ -197,30 +197,59 @@ function validateToken(value: string, label: string): string {
   return value
 }
 
-const proofTokenEnvironmentNames = new Set([
-  'guided_proof_token_a',
-  'guided_proof_token_b',
+const guidedProofChildEnvironmentAllowlist = new Set([
+  'lang',
+  'lc_all',
+  'lc_ctype',
+  'path',
+  'pathext',
+  'systemroot',
+  'temp',
+  'tmp',
+  'tmpdir',
+  'windir',
 ])
 
-/** Keep fixture credentials out of every Git/upload-pack child environment. */
+const guidedProofChildOverrideAllowlist = new Set([
+  'git_author_date',
+  'git_committer_date',
+  'git_protocol',
+])
+
+function validateGuidedProofChildOverride(name: string, value: string): void {
+  const normalizedName = name.toLowerCase()
+  if (!guidedProofChildOverrideAllowlist.has(normalizedName)) {
+    throw new Error(
+      'Only fixed guided proof Git metadata may enter a child environment.'
+    )
+  }
+  if (
+    normalizedName === 'git_protocol'
+      ? value !== 'version=2'
+      : !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(value)
+  ) {
+    throw new Error('The guided proof child environment override is invalid.')
+  }
+}
+
+/** Keep all caller credentials out of every Git/upload-pack child environment. */
 export function createGuidedProofChildEnvironment(
   base: NodeJS.ProcessEnv = process.env,
   overrides: Readonly<Record<string, string>> = {}
 ): NodeJS.ProcessEnv {
   const result: NodeJS.ProcessEnv = {}
   for (const [name, value] of Object.entries(base)) {
-    if (!proofTokenEnvironmentNames.has(name.toLowerCase())) {
+    if (guidedProofChildEnvironmentAllowlist.has(name.toLowerCase())) {
       result[name] = value
     }
   }
   for (const [name, value] of Object.entries(overrides)) {
-    if (proofTokenEnvironmentNames.has(name.toLowerCase())) {
-      throw new Error('Guided proof tokens cannot enter a child environment.')
-    }
+    validateGuidedProofChildOverride(name, value)
     result[name] = value
   }
   result.GIT_CONFIG_NOSYSTEM = '1'
   result.GIT_CONFIG_GLOBAL = process.platform === 'win32' ? 'NUL' : '/dev/null'
+  result.GIT_TERMINAL_PROMPT = '0'
   return result
 }
 
