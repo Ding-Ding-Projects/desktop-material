@@ -3,9 +3,9 @@ import assert from 'node:assert'
 import * as React from 'react'
 import {
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
-  ICLIWorkbenchCatalog,
+  ICLIWorkbenchOperationRequest,
+  ICLIWorkbenchRuntime,
 } from '../../../src/lib/cli-workbench'
 import {
   IRepositoryBundleImportRequest,
@@ -16,28 +16,25 @@ import {
 } from '../../../src/ui/repository-tools'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
-const catalog: ICLIWorkbenchCatalog = {
+const runtime: ICLIWorkbenchRuntime = {
   tools: [
     {
       tool: 'git',
       available: true,
       version: 'git version 2.55.0',
       error: null,
-      entries: [],
     },
     {
       tool: 'gh',
       available: true,
       version: 'gh version 2.80.0',
       error: null,
-      entries: [],
     },
   ],
-  entries: [],
 }
 
 class FakeRepositoryToolsClient implements IRepositoryToolsClient {
-  public readonly starts: ICLICommandRequest[] = []
+  public readonly starts: ICLIWorkbenchOperationRequest[] = []
   public readonly cancels: string[] = []
   private readonly outputHandlers = new Set<
     (event: ICLICommandOutputEvent) => void
@@ -46,8 +43,8 @@ class FakeRepositoryToolsClient implements IRepositoryToolsClient {
     (event: ICLICommandStateEvent) => void
   >()
 
-  public getCatalog = async () => catalog
-  public start = async (request: ICLICommandRequest) => {
+  public getRuntime = async () => runtime
+  public start = async (request: ICLIWorkbenchOperationRequest) => {
     this.starts.push(request)
   }
   public cancel = async (id: string) => {
@@ -126,11 +123,12 @@ describe('Repository tools', () => {
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0], {
       id: client.starts[0].id,
-      tool: 'git',
-      args: ['status', '--short', '--branch'],
-      cwd: 'C:/repo',
+      operation: { id: 'status-summary' },
+      repositoryPath: 'C:/repo',
       confirmed: false,
     })
+    assert.equal('args' in client.starts[0], false)
+    assert.equal('tool' in client.starts[0], false)
   })
 
   it('keeps reflog inspection non-mutating and shell-free', async () => {
@@ -144,12 +142,7 @@ describe('Repository tools', () => {
     assert.ok(card)
     fireEvent.click(card.querySelector('button') as HTMLButtonElement)
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'reflog',
-      'show',
-      '--date=local',
-      '-50',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, { id: 'reflog-view' })
     assert.equal(client.starts[0].confirmed, false)
   })
 
@@ -166,7 +159,9 @@ describe('Repository tools', () => {
     assert.ok(screen.getByRole('alertdialog'))
     fireEvent.click(screen.getByRole('button', { name: 'Confirm maintenance' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, ['maintenance', 'run'])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'maintenance-run',
+    })
     assert.equal(client.starts[0].confirmed, true)
 
     const id = client.starts[0].id
@@ -245,12 +240,11 @@ describe('Repository tools', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Export archive' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'archive',
-      '--format=zip',
-      '--output=C:\\exports\\repository-source.zip',
-      'HEAD',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'archive-export',
+      format: 'zip',
+      destination: 'C:\\exports\\repository-source.zip',
+    })
     assert.equal(client.starts[0].confirmed, true)
 
     const id = client.starts[0].id
@@ -297,12 +291,10 @@ describe('Repository tools', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Export bundle' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'bundle',
-      'create',
-      'C:\\exports\\all-history.bundle',
-      '--all',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'bundle-export',
+      destination: 'C:\\exports\\all-history.bundle',
+    })
     assert.equal(client.starts[0].confirmed, true)
   })
 
@@ -319,11 +311,10 @@ describe('Repository tools', () => {
     await screen.findByText('git version 2.55.0')
     fireEvent.click(screen.getByRole('button', { name: 'Verify a bundle' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'bundle',
-      'verify',
-      'C:\\exports\\repository.bundle',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'bundle-verify',
+      bundlePath: 'C:\\exports\\repository.bundle',
+    })
     assert.equal(client.starts[0].confirmed, false)
     assert.equal(screen.queryByRole('alertdialog'), null)
   })
@@ -349,11 +340,10 @@ describe('Repository tools', () => {
       screen.getByRole('button', { name: 'Choose and inspect a bundle' })
     )
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'bundle',
-      'verify',
-      'C:\\exports\\repository.bundle',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'bundle-verify',
+      bundlePath: 'C:\\exports\\repository.bundle',
+    })
     client.emitState({
       id: client.starts[0].id,
       state: 'completed',
@@ -362,11 +352,10 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 2))
-    assert.deepStrictEqual(client.starts[1].args, [
-      'bundle',
-      'list-heads',
-      'C:\\exports\\repository.bundle',
-    ])
+    assert.deepStrictEqual(client.starts[1].operation, {
+      id: 'bundle-list-heads',
+      bundlePath: 'C:\\exports\\repository.bundle',
+    })
     client.emitOutput({
       id: client.starts[1].id,
       stream: 'stdout',
@@ -389,11 +378,10 @@ describe('Repository tools', () => {
     )
 
     await waitFor(() => assert.equal(client.starts.length, 3))
-    assert.deepStrictEqual(client.starts[2].args, [
-      'check-ref-format',
-      '--branch',
-      'imported/main',
-    ])
+    assert.deepStrictEqual(client.starts[2].operation, {
+      id: 'bundle-import-validate-destination',
+      branchName: 'imported/main',
+    })
     client.emitState({
       id: client.starts[2].id,
       state: 'completed',
@@ -401,12 +389,10 @@ describe('Repository tools', () => {
       signal: null,
     })
     await waitFor(() => assert.equal(client.starts.length, 4))
-    assert.deepStrictEqual(client.starts[3].args, [
-      'show-ref',
-      '--verify',
-      '--quiet',
-      'refs/heads/imported/main',
-    ])
+    assert.deepStrictEqual(client.starts[3].operation, {
+      id: 'bundle-import-check-destination',
+      branchName: 'imported/main',
+    })
     client.emitState({
       id: client.starts[3].id,
       state: 'failed',
@@ -422,7 +408,10 @@ describe('Repository tools', () => {
     )
 
     await waitFor(() => assert.equal(client.starts.length, 5))
-    assert.deepStrictEqual(client.starts[4].args, client.starts[0].args)
+    assert.deepStrictEqual(
+      client.starts[4].operation,
+      client.starts[0].operation
+    )
     client.emitState({
       id: client.starts[4].id,
       state: 'completed',
@@ -442,7 +431,10 @@ describe('Repository tools', () => {
       signal: null,
     })
     await waitFor(() => assert.equal(client.starts.length, 7))
-    assert.deepStrictEqual(client.starts[6].args, client.starts[2].args)
+    assert.deepStrictEqual(
+      client.starts[6].operation,
+      client.starts[2].operation
+    )
     client.emitState({
       id: client.starts[6].id,
       state: 'completed',
@@ -450,7 +442,10 @@ describe('Repository tools', () => {
       signal: null,
     })
     await waitFor(() => assert.equal(client.starts.length, 8))
-    assert.deepStrictEqual(client.starts[7].args, client.starts[3].args)
+    assert.deepStrictEqual(
+      client.starts[7].operation,
+      client.starts[3].operation
+    )
     client.emitState({
       id: client.starts[7].id,
       state: 'failed',
@@ -459,14 +454,11 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 9))
-    assert.deepStrictEqual(client.starts[8].args, [
-      'fetch',
-      '--no-write-fetch-head',
-      '--no-tags',
-      '--no-auto-maintenance',
-      'C:\\exports\\repository.bundle',
-      'refs/heads/main',
-    ])
+    assert.deepStrictEqual(client.starts[8].operation, {
+      id: 'bundle-import-fetch-objects',
+      bundlePath: 'C:\\exports\\repository.bundle',
+      sourceRef: 'refs/heads/main',
+    })
     assert.equal(client.starts[8].confirmed, true)
     client.emitState({
       id: client.starts[8].id,
@@ -476,11 +468,10 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 10))
-    assert.deepStrictEqual(client.starts[9].args, [
-      'cat-file',
-      '-e',
-      `${sourceOID}^{commit}`,
-    ])
+    assert.deepStrictEqual(client.starts[9].operation, {
+      id: 'bundle-import-validate-commit',
+      oid: sourceOID,
+    })
     assert.equal(client.starts[9].confirmed, false)
     client.emitState({
       id: client.starts[9].id,
@@ -490,13 +481,11 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 11))
-    assert.deepStrictEqual(client.starts[10].args, [
-      'branch',
-      '--no-track',
-      '--',
-      'imported/main',
-      sourceOID,
-    ])
+    assert.deepStrictEqual(client.starts[10].operation, {
+      id: 'bundle-import-create-branch',
+      branchName: 'imported/main',
+      oid: sourceOID,
+    })
     assert.equal(client.starts[10].confirmed, true)
     client.emitState({
       id: client.starts[10].id,
@@ -608,11 +597,15 @@ describe('Repository tools', () => {
     await screen.findByText(/already exists.*will not be overwritten/i)
     assert.equal(client.starts.length, 8)
     assert.equal(
-      client.starts.some(start => start.args[0] === 'fetch'),
+      client.starts.some(
+        start => start.operation.id === 'bundle-import-fetch-objects'
+      ),
       false
     )
     assert.equal(
-      client.starts.some(start => start.args[0] === 'branch'),
+      client.starts.some(
+        start => start.operation.id === 'bundle-import-create-branch'
+      ),
       false
     )
   })

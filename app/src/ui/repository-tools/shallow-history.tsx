@@ -1,8 +1,9 @@
 import * as React from 'react'
 import {
+  CLIWorkbenchOperation,
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
+  ICLIWorkbenchOperationRequest,
 } from '../../lib/cli-workbench'
 import { Button } from '../lib/button'
 import {
@@ -35,7 +36,7 @@ type ShallowHistoryPhase =
   | 'failed'
 
 interface IShallowHistoryClient {
-  readonly start: (request: ICLICommandRequest) => Promise<void>
+  readonly start: (request: ICLIWorkbenchOperationRequest) => Promise<void>
   readonly cancel: (id: string) => Promise<boolean>
   readonly onOutput: (
     handler: (output: ICLICommandOutputEvent) => void
@@ -219,7 +220,7 @@ export class RepositoryShallowHistory extends React.Component<
 
   private async startCommand(
     phase: ShallowHistoryPhase,
-    args: ReadonlyArray<string>,
+    operation: CLIWorkbenchOperation,
     confirmed: boolean
   ) {
     if (this.runId !== null || !this.mounted) {
@@ -240,9 +241,8 @@ export class RepositoryShallowHistory extends React.Component<
     try {
       await this.props.client.start({
         id,
-        tool: 'git',
-        args,
-        cwd: this.props.repositoryPath,
+        operation,
+        repositoryPath: this.props.repositoryPath,
         confirmed,
       })
     } catch (error) {
@@ -375,7 +375,7 @@ export class RepositoryShallowHistory extends React.Component<
             )
           }
           this.mutationStarted = true
-          void this.startCommand('fetching', request.args, true)
+          void this.startCommand('fetching', request.operation, true)
           return
         }
         case 'fetching': {

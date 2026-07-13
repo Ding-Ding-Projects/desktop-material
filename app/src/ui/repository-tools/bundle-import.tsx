@@ -1,8 +1,9 @@
 import * as React from 'react'
 import {
+  CLIWorkbenchOperation,
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
+  ICLIWorkbenchOperationRequest,
 } from '../../lib/cli-workbench'
 import { Button } from '../lib/button'
 import { showOpenDialog } from '../main-process-proxy'
@@ -39,7 +40,7 @@ type BundleImportPhase =
   | 'failed'
 
 interface IBundleImportClient {
-  readonly start: (request: ICLICommandRequest) => Promise<void>
+  readonly start: (request: ICLIWorkbenchOperationRequest) => Promise<void>
   readonly cancel: (id: string) => Promise<boolean>
   readonly onOutput: (
     handler: (output: ICLICommandOutputEvent) => void
@@ -266,7 +267,7 @@ export class RepositoryBundleImport extends React.Component<
           if (this.isCurrentRepository(repositoryPath, repositoryGeneration)) {
             void this.startCommand(
               'inspection-verification',
-              inspection.verifyArgs,
+              inspection.verifyOperation,
               false
             )
           }
@@ -288,7 +289,7 @@ export class RepositoryBundleImport extends React.Component<
 
   private async startCommand(
     phase: BundleImportPhase,
-    args: ReadonlyArray<string>,
+    operation: CLIWorkbenchOperation,
     confirmed: boolean
   ) {
     if (this.runId !== null || !this.mounted) {
@@ -309,9 +310,8 @@ export class RepositoryBundleImport extends React.Component<
     try {
       await this.props.client.start({
         id,
-        tool: 'git',
-        args,
-        cwd: this.props.repositoryPath,
+        operation,
+        repositoryPath: this.props.repositoryPath,
         confirmed,
       })
     } catch (error) {
@@ -413,7 +413,7 @@ export class RepositoryBundleImport extends React.Component<
           () => this.confirmButton?.focus()
         )
       } else {
-        void this.startCommand('fetching', request.fetchObjectsArgs, true)
+        void this.startCommand('fetching', request.fetchObjectsOperation, true)
       }
       return
     }
@@ -449,7 +449,7 @@ export class RepositoryBundleImport extends React.Component<
           const inspection = prepareRepositoryBundleInspection(bundlePath)
           void this.startCommand(
             'inspection-listing',
-            inspection.listHeadsArgs,
+            inspection.listHeadsOperation,
             false
           )
           return
@@ -478,7 +478,7 @@ export class RepositoryBundleImport extends React.Component<
           }
           void this.startCommand(
             'review-destination',
-            request.checkDestinationArgs,
+            request.checkDestinationOperation,
             false
           )
           return
@@ -490,7 +490,7 @@ export class RepositoryBundleImport extends React.Component<
           }
           void this.startCommand(
             'recheck-listing',
-            request.listHeadsArgs,
+            request.listHeadsOperation,
             false
           )
           return
@@ -504,7 +504,7 @@ export class RepositoryBundleImport extends React.Component<
           assertRepositoryBundleSourceUnchanged(currentHeads, request.source)
           void this.startCommand(
             'recheck-validation',
-            request.validateDestinationArgs,
+            request.validateDestinationOperation,
             false
           )
           return
@@ -517,7 +517,7 @@ export class RepositoryBundleImport extends React.Component<
           }
           void this.startCommand(
             'recheck-destination',
-            request.checkDestinationArgs,
+            request.checkDestinationOperation,
             false
           )
           return
@@ -529,7 +529,7 @@ export class RepositoryBundleImport extends React.Component<
           }
           void this.startCommand(
             'validating-commit',
-            request.validateCommitArgs,
+            request.validateCommitOperation,
             false
           )
           return
@@ -539,7 +539,11 @@ export class RepositoryBundleImport extends React.Component<
               'The prepared bundle import is no longer available.'
             )
           }
-          void this.startCommand('creating', request.createBranchArgs, true)
+          void this.startCommand(
+            'creating',
+            request.createBranchOperation,
+            true
+          )
           return
         case 'creating':
           if (request === null) {
@@ -636,7 +640,7 @@ export class RepositoryBundleImport extends React.Component<
         () =>
           void this.startCommand(
             'review-validation',
-            request.validateDestinationArgs,
+            request.validateDestinationOperation,
             false
           )
       )
@@ -661,7 +665,11 @@ export class RepositoryBundleImport extends React.Component<
       return
     }
     this.setBusy(true)
-    void this.startCommand('recheck-verification', request.verifyArgs, false)
+    void this.startCommand(
+      'recheck-verification',
+      request.verifyOperation,
+      false
+    )
   }
 
   private onCancel = async () => {

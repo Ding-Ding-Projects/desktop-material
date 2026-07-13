@@ -3,8 +3,8 @@ import assert from 'node:assert'
 import * as React from 'react'
 import {
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
+  ICLIWorkbenchOperationRequest,
 } from '../../../src/lib/cli-workbench'
 import {
   prepareRepositoryHistoryDeepen,
@@ -13,7 +13,7 @@ import {
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 class FakeShallowHistoryClient {
-  public readonly starts: ICLICommandRequest[] = []
+  public readonly starts: ICLIWorkbenchOperationRequest[] = []
   public readonly cancels: string[] = []
   private readonly outputHandlers = new Set<
     (event: ICLICommandOutputEvent) => void
@@ -22,7 +22,7 @@ class FakeShallowHistoryClient {
     (event: ICLICommandStateEvent) => void
   >()
 
-  public start = async (request: ICLICommandRequest) => {
+  public start = async (request: ICLIWorkbenchOperationRequest) => {
     this.starts.push(request)
   }
   public cancel = async (id: string) => {
@@ -85,15 +85,16 @@ async function inspectShallowRepository(
 ) {
   fireEvent.click(screen.getByRole('button', { name: 'Check history status' }))
   await waitFor(() => assert.equal(client.starts.length, 1))
-  assert.deepStrictEqual(client.starts[0].args, [
-    'rev-parse',
-    '--is-shallow-repository',
-  ])
+  assert.deepStrictEqual(client.starts[0].operation, {
+    id: 'shallow-history-status',
+  })
   assert.equal(client.starts[0].confirmed, false)
   emitCompleted(client, 0, 'true\n')
 
   await waitFor(() => assert.equal(client.starts.length, 2))
-  assert.deepStrictEqual(client.starts[1].args, ['remote'])
+  assert.deepStrictEqual(client.starts[1].operation, {
+    id: 'fetch-remote-list',
+  })
   emitCompleted(client, 1, remotes)
   await screen.findByLabelText('Additional commits')
 }
@@ -103,14 +104,15 @@ async function advanceReviewedActionToFetch(client: FakeShallowHistoryClient) {
     screen.getByRole('button', { name: /^(Deepen by|Fetch full history)/ })
   )
   await waitFor(() => assert.equal(client.starts.length, 3))
-  assert.deepStrictEqual(client.starts[2].args, [
-    'rev-parse',
-    '--is-shallow-repository',
-  ])
+  assert.deepStrictEqual(client.starts[2].operation, {
+    id: 'shallow-history-status',
+  })
   emitCompleted(client, 2, 'true\n')
 
   await waitFor(() => assert.equal(client.starts.length, 4))
-  assert.deepStrictEqual(client.starts[3].args, ['remote'])
+  assert.deepStrictEqual(client.starts[3].operation, {
+    id: 'fetch-remote-list',
+  })
   emitCompleted(client, 3, 'origin\nupstream\n')
   await waitFor(() => assert.equal(client.starts.length, 5))
 }
@@ -189,27 +191,17 @@ describe('Repository shallow history', () => {
     await advanceReviewedActionToFetch(client)
     assert.deepStrictEqual(client.starts[4], {
       id: client.starts[4].id,
-      tool: 'git',
-      args: [
-        'fetch',
-        '--no-auto-maintenance',
-        '--no-recurse-submodules',
-        '--no-write-fetch-head',
-        '--deepen=75',
-        '--',
-        'origin',
-      ],
-      cwd: 'C:/repo',
+      operation: { id: 'history-deepen', remote: 'origin', deepenBy: 75 },
+      repositoryPath: 'C:/repo',
       confirmed: true,
     })
 
     emitCompleted(client, 4, 'Fetched older objects.\n')
     await waitFor(() => assert.equal(refreshes, 1))
     await waitFor(() => assert.equal(client.starts.length, 6))
-    assert.deepStrictEqual(client.starts[5].args, [
-      'rev-parse',
-      '--is-shallow-repository',
-    ])
+    assert.deepStrictEqual(client.starts[5].operation, {
+      id: 'shallow-history-status',
+    })
     emitCompleted(client, 5, 'true\n')
 
     assert.ok(
@@ -240,15 +232,10 @@ describe('Repository shallow history', () => {
       /Remove this repository’s shallow boundary/
     )
     await advanceReviewedActionToFetch(client)
-    assert.deepStrictEqual(client.starts[4].args, [
-      'fetch',
-      '--no-auto-maintenance',
-      '--no-recurse-submodules',
-      '--no-write-fetch-head',
-      '--unshallow',
-      '--',
-      'origin',
-    ])
+    assert.deepStrictEqual(client.starts[4].operation, {
+      id: 'history-unshallow',
+      remote: 'origin',
+    })
     assert.equal(client.starts[4].confirmed, true)
 
     emitCompleted(client, 4)
@@ -283,7 +270,11 @@ describe('Repository shallow history', () => {
     )
     assert.equal(client.starts.length, 3)
     assert.equal(
-      client.starts.some(start => start.args[0] === 'fetch'),
+      client.starts.some(
+        start =>
+          start.operation.id === 'history-deepen' ||
+          start.operation.id === 'history-unshallow'
+      ),
       false
     )
   })
@@ -308,7 +299,11 @@ describe('Repository shallow history', () => {
     )
     assert.equal(client.starts.length, 4)
     assert.equal(
-      client.starts.some(start => start.args[0] === 'fetch'),
+      client.starts.some(
+        start =>
+          start.operation.id === 'history-deepen' ||
+          start.operation.id === 'history-unshallow'
+      ),
       false
     )
   })
@@ -327,7 +322,11 @@ describe('Repository shallow history', () => {
     assert.ok(await screen.findByText(/valid configured fetch remote/i))
     assert.equal(screen.queryByLabelText('Fetch remote'), null)
     assert.equal(
-      client.starts.some(start => start.args[0] === 'fetch'),
+      client.starts.some(
+        start =>
+          start.operation.id === 'history-deepen' ||
+          start.operation.id === 'history-unshallow'
+      ),
       false
     )
   })
@@ -418,7 +417,7 @@ describe('Repository shallow history', () => {
       screen.getByRole('button', { name: 'Check history status' })
     )
     await waitFor(() => assert.equal(client.starts.length, 2))
-    assert.equal(client.starts[1].cwd, 'C:/second')
+    assert.equal(client.starts[1].repositoryPath, 'C:/second')
   })
 
   it('drops a delayed refresh completion after repository replacement', async () => {

@@ -1,13 +1,18 @@
 import * as Path from 'path'
+import {
+  CLIWorkbenchOperation,
+  RepositoryArchiveFormat,
+  RepositoryToolOperationID,
+} from '../../lib/cli-workbench'
+
+export type { RepositoryArchiveFormat } from '../../lib/cli-workbench'
 
 export type RepositoryToolCategory = 'Diagnostics' | 'Maintenance' | 'Recovery'
-
-export type RepositoryArchiveFormat = 'zip' | 'tar'
 
 export interface IRepositoryArchiveRequest {
   readonly format: RepositoryArchiveFormat | 'bundle'
   readonly destination: string
-  readonly args: ReadonlyArray<string>
+  readonly operation: CLIWorkbenchOperation
 }
 
 export interface IRepositoryBundleRef {
@@ -17,8 +22,8 @@ export interface IRepositoryBundleRef {
 
 export interface IRepositoryBundleInspectionRequest {
   readonly bundlePath: string
-  readonly verifyArgs: ReadonlyArray<string>
-  readonly listHeadsArgs: ReadonlyArray<string>
+  readonly verifyOperation: CLIWorkbenchOperation
+  readonly listHeadsOperation: CLIWorkbenchOperation
 }
 
 export interface IRepositoryBundleImportRequest
@@ -27,15 +32,15 @@ export interface IRepositoryBundleImportRequest
   readonly branchName: string
   readonly destinationRef: string
   /** Validate the destination with Git again immediately before import. */
-  readonly validateDestinationArgs: ReadonlyArray<string>
+  readonly validateDestinationOperation: CLIWorkbenchOperation
   /** Exit 1 means available; exit 0 means the destination already exists. */
-  readonly checkDestinationArgs: ReadonlyArray<string>
+  readonly checkDestinationOperation: CLIWorkbenchOperation
   /** Import objects without writing FETCH_HEAD or any local ref. */
-  readonly fetchObjectsArgs: ReadonlyArray<string>
+  readonly fetchObjectsOperation: CLIWorkbenchOperation
   /** Require the advertised object to peel to a commit before branch creation. */
-  readonly validateCommitArgs: ReadonlyArray<string>
+  readonly validateCommitOperation: CLIWorkbenchOperation
   /** Git branch refuses to replace a ref that appeared after the recheck. */
-  readonly createBranchArgs: ReadonlyArray<string>
+  readonly createBranchOperation: CLIWorkbenchOperation
 }
 
 export type RepositoryShallowHistoryAction = 'deepen' | 'unshallow'
@@ -44,8 +49,8 @@ export interface IRepositoryShallowHistoryRequest {
   readonly action: RepositoryShallowHistoryAction
   readonly remote: string
   readonly deepenBy: number | null
-  /** Fixed fetch recipe. The UI never accepts an editable refspec or argv. */
-  readonly args: ReadonlyArray<string>
+  /** Semantic operation only. Main owns the fixed fetch argv. */
+  readonly operation: CLIWorkbenchOperation
 }
 
 const MaximumBundleRefs = 5_000
@@ -53,13 +58,13 @@ const MaximumFetchRemotes = 128
 const MaximumDeepenCommitCount = 1_000_000
 
 /** The bounded, read-only check used before review and again before mutation. */
-export function prepareRepositoryShallowStatusInspection(): ReadonlyArray<string> {
-  return ['rev-parse', '--is-shallow-repository']
+export function prepareRepositoryShallowStatusInspection(): CLIWorkbenchOperation {
+  return { id: 'shallow-history-status' }
 }
 
 /** Enumerate remote names without expanding URLs, credentials, or refspecs. */
-export function prepareRepositoryFetchRemoteInspection(): ReadonlyArray<string> {
-  return ['remote']
+export function prepareRepositoryFetchRemoteInspection(): CLIWorkbenchOperation {
+  return { id: 'fetch-remote-list' }
 }
 
 /** Parse only Git's exact boolean shallow-repository response. */
@@ -149,23 +154,14 @@ function prepareRepositoryShallowFetch(
   deepenBy: number | null
 ): IRepositoryShallowHistoryRequest {
   const normalizedRemote = normalizeRepositoryFetchRemote(remote)
-  const depthArgument =
-    action === 'deepen' && deepenBy !== null
-      ? `--deepen=${deepenBy}`
-      : '--unshallow'
   return {
     action,
     remote: normalizedRemote,
     deepenBy,
-    args: [
-      'fetch',
-      '--no-auto-maintenance',
-      '--no-recurse-submodules',
-      '--no-write-fetch-head',
-      depthArgument,
-      '--',
-      normalizedRemote,
-    ],
+    operation:
+      action === 'deepen' && deepenBy !== null
+        ? { id: 'history-deepen', remote: normalizedRemote, deepenBy }
+        : { id: 'history-unshallow', remote: normalizedRemote },
   }
 }
 
@@ -297,8 +293,11 @@ export function prepareRepositoryBundleInspection(
   const normalizedPath = normalizeRepositoryBundlePath(bundlePath)
   return {
     bundlePath: normalizedPath,
-    verifyArgs: ['bundle', 'verify', normalizedPath],
-    listHeadsArgs: ['bundle', 'list-heads', normalizedPath],
+    verifyOperation: { id: 'bundle-verify', bundlePath: normalizedPath },
+    listHeadsOperation: {
+      id: 'bundle-list-heads',
+      bundlePath: normalizedPath,
+    },
   }
 }
 
@@ -326,24 +325,28 @@ export function prepareRepositoryBundleImport(
     source: { oid: source.oid, ref: source.ref },
     branchName: normalizedBranch,
     destinationRef,
-    validateDestinationArgs: ['check-ref-format', '--branch', normalizedBranch],
-    checkDestinationArgs: ['show-ref', '--verify', '--quiet', destinationRef],
-    fetchObjectsArgs: [
-      'fetch',
-      '--no-write-fetch-head',
-      '--no-tags',
-      '--no-auto-maintenance',
-      inspection.bundlePath,
-      source.ref,
-    ],
-    validateCommitArgs: ['cat-file', '-e', `${source.oid}^{commit}`],
-    createBranchArgs: [
-      'branch',
-      '--no-track',
-      '--',
-      normalizedBranch,
-      source.oid,
-    ],
+    validateDestinationOperation: {
+      id: 'bundle-import-validate-destination',
+      branchName: normalizedBranch,
+    },
+    checkDestinationOperation: {
+      id: 'bundle-import-check-destination',
+      branchName: normalizedBranch,
+    },
+    fetchObjectsOperation: {
+      id: 'bundle-import-fetch-objects',
+      bundlePath: inspection.bundlePath,
+      sourceRef: source.ref,
+    },
+    validateCommitOperation: {
+      id: 'bundle-import-validate-commit',
+      oid: source.oid,
+    },
+    createBranchOperation: {
+      id: 'bundle-import-create-branch',
+      branchName: normalizedBranch,
+      oid: source.oid,
+    },
   }
 }
 
@@ -393,21 +396,13 @@ function normalizeRepositoryExportDestination(
   return resolvedDestination
 }
 
-export type RepositoryToolID =
-  | 'status-summary'
-  | 'repository-health'
-  | 'maintenance-preview'
-  | 'maintenance-run'
-  | 'reflog-view'
-  | 'signature-audit'
+export type RepositoryToolID = RepositoryToolOperationID
 
 export interface IRepositoryToolOperation {
   readonly id: RepositoryToolID
   readonly title: string
   readonly description: string
   readonly category: RepositoryToolCategory
-  /** Internal fixed argv passed to the bounded Git runner. Never user editable. */
-  readonly args: ReadonlyArray<string>
   readonly mutatesRepository: boolean
   readonly requiresConfirmation: boolean
   readonly confirmationDescription?: string
@@ -426,7 +421,6 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       description:
         'Inspect the current branch plus staged, modified, and untracked files.',
       category: 'Diagnostics',
-      args: ['status', '--short', '--branch'],
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -436,7 +430,6 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       description:
         'Verify object connectivity and validity without changing repository data.',
       category: 'Diagnostics',
-      args: ['fsck', '--full'],
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -446,12 +439,6 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       description:
         'Inspect signature status, signer identity, and subject for the latest 50 commits.',
       category: 'Diagnostics',
-      args: [
-        'log',
-        '--format=%h%x09%G?%x09%GS%x09%s',
-        '--show-signature',
-        '-50',
-      ],
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -466,7 +453,6 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       description:
         'Inspect loose objects, packs, disk usage, and garbage before maintenance.',
       category: 'Maintenance',
-      args: ['count-objects', '-vH'],
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -481,7 +467,6 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       description:
         'Run Git’s configured foreground maintenance tasks for this repository.',
       category: 'Maintenance',
-      args: ['maintenance', 'run'],
       mutatesRepository: true,
       requiresConfirmation: true,
       confirmationDescription:
@@ -493,7 +478,6 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       description:
         'Inspect the latest 50 local reflog entries for recovery clues. This view never changes refs.',
       category: 'Recovery',
-      args: ['reflog', 'show', '--date=local', '-50'],
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -530,12 +514,11 @@ export function prepareRepositoryArchive(
   return {
     format,
     destination: resolvedDestination,
-    args: [
-      'archive',
-      `--format=${format}`,
-      `--output=${resolvedDestination}`,
-      'HEAD',
-    ],
+    operation: {
+      id: 'archive-export',
+      format,
+      destination: resolvedDestination,
+    },
   }
 }
 
@@ -552,14 +535,14 @@ export function prepareRepositoryBundle(
   return {
     format: 'bundle',
     destination: resolvedDestination,
-    args: ['bundle', 'create', resolvedDestination, '--all'],
+    operation: { id: 'bundle-export', destination: resolvedDestination },
   }
 }
 
 /** Prepare a read-only prerequisite and integrity check for a selected bundle. */
 export function prepareRepositoryBundleVerification(
   bundlePath: string
-): ReadonlyArray<string> {
+): CLIWorkbenchOperation {
   const normalizedPath = normalizeRepositoryBundlePath(bundlePath)
-  return ['bundle', 'verify', normalizedPath]
+  return { id: 'bundle-verify', bundlePath: normalizedPath }
 }

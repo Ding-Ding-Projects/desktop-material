@@ -32,15 +32,7 @@ describe('repository tool recipes', () => {
       ]
     )
     assert.ok(
-      RepositoryToolOperations.every(operation => operation.args.length > 0)
-    )
-    assert.ok(
-      RepositoryToolOperations.every(
-        operation =>
-          !operation.args.some(argument =>
-            /credential|password|token|--exec|^!/.test(argument)
-          )
-      )
+      RepositoryToolOperations.every(operation => !('args' in operation))
     )
   })
 
@@ -56,18 +48,8 @@ describe('repository tool recipes', () => {
       assert.equal(operation.mutatesRepository, false)
       assert.equal(operation.requiresConfirmation, false)
     }
-    assert.deepStrictEqual(getRepositoryToolOperation('reflog-view').args, [
-      'reflog',
-      'show',
-      '--date=local',
-      '-50',
-    ])
-    assert.deepStrictEqual(getRepositoryToolOperation('signature-audit').args, [
-      'log',
-      '--format=%h%x09%G?%x09%GS%x09%s',
-      '--show-signature',
-      '-50',
-    ])
+    assert.equal('args' in getRepositoryToolOperation('reflog-view'), false)
+    assert.equal('args' in getRepositoryToolOperation('signature-audit'), false)
   })
 
   it('requires confirmation for repository maintenance', () => {
@@ -86,12 +68,11 @@ describe('repository tool recipes', () => {
       {
         format: 'zip',
         destination: 'C:\\exports\\repo.zip',
-        args: [
-          'archive',
-          '--format=zip',
-          '--output=C:\\exports\\repo.zip',
-          'HEAD',
-        ],
+        operation: {
+          id: 'archive-export',
+          format: 'zip',
+          destination: 'C:\\exports\\repo.zip',
+        },
       }
     )
     assert.equal(
@@ -117,7 +98,10 @@ describe('repository tool recipes', () => {
       {
         format: 'bundle',
         destination: 'C:\\exports\\backup.bundle',
-        args: ['bundle', 'create', 'C:\\exports\\backup.bundle', '--all'],
+        operation: {
+          id: 'bundle-export',
+          destination: 'C:\\exports\\backup.bundle',
+        },
       }
     )
     assert.throws(() =>
@@ -131,7 +115,7 @@ describe('repository tool recipes', () => {
   it('prepares only an absolute bundle for read-only verification', () => {
     assert.deepStrictEqual(
       prepareRepositoryBundleVerification('C:\\exports\\backup.bundle'),
-      ['bundle', 'verify', 'C:\\exports\\backup.bundle']
+      { id: 'bundle-verify', bundlePath: 'C:\\exports\\backup.bundle' }
     )
     for (const path of ['backup.bundle', 'C:\\exports\\backup.zip', '']) {
       assert.throws(() => prepareRepositoryBundleVerification(path))
@@ -193,48 +177,56 @@ describe('repository tool recipes', () => {
     )
     assert.deepStrictEqual(request, {
       bundlePath: 'C:\\exports\\backup.bundle',
-      verifyArgs: ['bundle', 'verify', 'C:\\exports\\backup.bundle'],
-      listHeadsArgs: ['bundle', 'list-heads', 'C:\\exports\\backup.bundle'],
+      verifyOperation: {
+        id: 'bundle-verify',
+        bundlePath: 'C:\\exports\\backup.bundle',
+      },
+      listHeadsOperation: {
+        id: 'bundle-list-heads',
+        bundlePath: 'C:\\exports\\backup.bundle',
+      },
       source,
       branchName: 'restored/release',
       destinationRef: 'refs/heads/restored/release',
-      validateDestinationArgs: [
-        'check-ref-format',
-        '--branch',
-        'restored/release',
-      ],
-      checkDestinationArgs: [
-        'show-ref',
-        '--verify',
-        '--quiet',
-        'refs/heads/restored/release',
-      ],
-      fetchObjectsArgs: [
-        'fetch',
-        '--no-write-fetch-head',
-        '--no-tags',
-        '--no-auto-maintenance',
-        'C:\\exports\\backup.bundle',
-        'refs/heads/release',
-      ],
-      validateCommitArgs: ['cat-file', '-e', `${'a'.repeat(40)}^{commit}`],
-      createBranchArgs: [
-        'branch',
-        '--no-track',
-        '--',
-        'restored/release',
-        'a'.repeat(40),
-      ],
+      validateDestinationOperation: {
+        id: 'bundle-import-validate-destination',
+        branchName: 'restored/release',
+      },
+      checkDestinationOperation: {
+        id: 'bundle-import-check-destination',
+        branchName: 'restored/release',
+      },
+      fetchObjectsOperation: {
+        id: 'bundle-import-fetch-objects',
+        bundlePath: 'C:\\exports\\backup.bundle',
+        sourceRef: 'refs/heads/release',
+      },
+      validateCommitOperation: {
+        id: 'bundle-import-validate-commit',
+        oid: 'a'.repeat(40),
+      },
+      createBranchOperation: {
+        id: 'bundle-import-create-branch',
+        branchName: 'restored/release',
+        oid: 'a'.repeat(40),
+      },
     })
     assert.ok(
-      request.createBranchArgs.every(argument => !argument.includes(':'))
+      request.createBranchOperation.id === 'bundle-import-create-branch' &&
+        !request.createBranchOperation.branchName.includes(':')
     )
     assert.deepStrictEqual(
       prepareRepositoryBundleInspection('C:\\exports\\backup.bundle'),
       {
         bundlePath: 'C:\\exports\\backup.bundle',
-        verifyArgs: ['bundle', 'verify', 'C:\\exports\\backup.bundle'],
-        listHeadsArgs: ['bundle', 'list-heads', 'C:\\exports\\backup.bundle'],
+        verifyOperation: {
+          id: 'bundle-verify',
+          bundlePath: 'C:\\exports\\backup.bundle',
+        },
+        listHeadsOperation: {
+          id: 'bundle-list-heads',
+          bundlePath: 'C:\\exports\\backup.bundle',
+        },
       }
     )
   })

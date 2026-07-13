@@ -1,15 +1,16 @@
 import * as React from 'react'
 import * as Path from 'path'
 import {
+  CLIWorkbenchOperation,
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
-  ICLIWorkbenchCatalog,
+  ICLIWorkbenchOperationRequest,
+  ICLIWorkbenchRuntime,
 } from '../../lib/cli-workbench'
 import { Button } from '../lib/button'
 import {
   cancelCLICommand,
-  getCLIWorkbenchCatalog,
+  getCLIWorkbenchRuntime,
   onCLICommandOutput,
   onCLICommandState,
   showItemInFolder,
@@ -40,8 +41,8 @@ type RepositoryToolResultID =
   | 'bundle-verify'
 
 export interface IRepositoryToolsClient {
-  readonly getCatalog: () => Promise<ICLIWorkbenchCatalog>
-  readonly start: (request: ICLICommandRequest) => Promise<void>
+  readonly getRuntime: () => Promise<ICLIWorkbenchRuntime>
+  readonly start: (request: ICLIWorkbenchOperationRequest) => Promise<void>
   readonly cancel: (id: string) => Promise<boolean>
   readonly onOutput: (
     handler: (output: ICLICommandOutputEvent) => void
@@ -52,7 +53,7 @@ export interface IRepositoryToolsClient {
 }
 
 const defaultClient: IRepositoryToolsClient = {
-  getCatalog: () => getCLIWorkbenchCatalog(),
+  getRuntime: () => getCLIWorkbenchRuntime(),
   start: request => startCLICommand(request),
   cancel: id => cancelCLICommand(id),
   onOutput: handler => onCLICommandOutput((_event, output) => handler(output)),
@@ -182,8 +183,8 @@ export class RepositoryTools extends React.Component<
 
   private async loadAvailability() {
     try {
-      const catalog = await this.client.getCatalog()
-      const git = catalog.tools.find(tool => tool.tool === 'git')
+      const runtime = await this.client.getRuntime()
+      const git = runtime.tools.find(tool => tool.tool === 'git')
       if (this.mounted) {
         this.setState({
           gitAvailable: git?.available === true,
@@ -243,12 +244,12 @@ export class RepositoryTools extends React.Component<
     operation: IRepositoryToolOperation,
     confirmed: boolean
   ) {
-    return this.startCommand(operation.id, operation.args, confirmed)
+    return this.startCommand(operation.id, { id: operation.id }, confirmed)
   }
 
   private async startCommand(
-    operation: RepositoryToolResultID,
-    args: ReadonlyArray<string>,
+    resultOperation: RepositoryToolResultID,
+    operation: CLIWorkbenchOperation,
     confirmed: boolean
   ) {
     if (this.isBusy()) {
@@ -257,8 +258,8 @@ export class RepositoryTools extends React.Component<
     const id = `repository-tool-${Date.now()}-${++nextOperationSequence}`
     this.runId = id
     this.setState({
-      activeOperation: operation,
-      resultOperation: operation,
+      activeOperation: resultOperation,
+      resultOperation,
       confirmationOperation: null,
       archiveRequest: null,
       completedArchivePath: null,
@@ -269,9 +270,8 @@ export class RepositoryTools extends React.Component<
     try {
       await this.client.start({
         id,
-        tool: 'git',
-        args,
-        cwd: this.props.repositoryPath,
+        operation,
+        repositoryPath: this.props.repositoryPath,
         confirmed,
       })
     } catch (error) {
@@ -344,7 +344,7 @@ export class RepositoryTools extends React.Component<
     this.archiveRunDestination = request.destination
     void this.startCommand(
       request.format === 'bundle' ? 'bundle-export' : 'archive-export',
-      request.args,
+      request.operation,
       true
     )
   }

@@ -118,10 +118,9 @@ describe('IPC channel contract', () => {
     'request-notifications-permission',
     'start-build-run',
     'cancel-build-run',
-    'get-cli-workbench-catalog',
+    'get-cli-workbench-runtime',
     'start-cli-command',
     'cancel-cli-command',
-    'write-cli-command-input',
   ] as const
 
   describe('RequestChannels', () => {
@@ -181,6 +180,16 @@ describe('IPC channel contract', () => {
           `Missing critical channel: ${channel}`
         )
       }
+    })
+
+    it('keeps raw executables and argv out of the CLI operation request', () => {
+      type StartRequest = Parameters<
+        RequestResponseChannels['start-cli-command']
+      >[0]
+      type RawFields = Extract<keyof StartRequest, 'tool' | 'args' | 'cwd'>
+      const hasNoRawFields: RawFields extends never ? true : never = true
+
+      assert.equal(hasNoRawFields, true)
     })
   })
 })

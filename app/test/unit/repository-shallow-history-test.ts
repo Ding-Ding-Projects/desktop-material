@@ -72,11 +72,12 @@ describe('guided shallow-history recipes', () => {
   })
 
   it('uses fixed read-only inspection recipes', () => {
-    assert.deepStrictEqual(prepareRepositoryShallowStatusInspection(), [
-      'rev-parse',
-      '--is-shallow-repository',
-    ])
-    assert.deepStrictEqual(prepareRepositoryFetchRemoteInspection(), ['remote'])
+    assert.deepStrictEqual(prepareRepositoryShallowStatusInspection(), {
+      id: 'shallow-history-status',
+    })
+    assert.deepStrictEqual(prepareRepositoryFetchRemoteInspection(), {
+      id: 'fetch-remote-list',
+    })
   })
 
   it('builds a contained deepen recipe with an option terminator', () => {
@@ -84,15 +85,7 @@ describe('guided shallow-history recipes', () => {
       action: 'deepen',
       remote: 'origin',
       deepenBy: 75,
-      args: [
-        'fetch',
-        '--no-auto-maintenance',
-        '--no-recurse-submodules',
-        '--no-write-fetch-head',
-        '--deepen=75',
-        '--',
-        'origin',
-      ],
+      operation: { id: 'history-deepen', remote: 'origin', deepenBy: 75 },
     })
 
     for (const [remote, count] of [
@@ -110,15 +103,7 @@ describe('guided shallow-history recipes', () => {
       action: 'unshallow',
       remote: 'upstream',
       deepenBy: null,
-      args: [
-        'fetch',
-        '--no-auto-maintenance',
-        '--no-recurse-submodules',
-        '--no-write-fetch-head',
-        '--unshallow',
-        '--',
-        'upstream',
-      ],
+      operation: { id: 'history-unshallow', remote: 'upstream' },
     })
     assert.throws(() => prepareRepositoryHistoryUnshallow('-upstream'))
     assert.throws(() => prepareRepositoryHistoryUnshallow('bad\nremote'))

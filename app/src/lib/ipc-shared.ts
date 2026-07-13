@@ -29,9 +29,9 @@ import {
 } from './agent-commands'
 import {
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
-  ICLIWorkbenchCatalog,
+  ICLIWorkbenchOperationRequest,
+  ICLIWorkbenchRuntime,
 } from './cli-workbench'
 import {
   ActionsArtifactTransferResult,
@@ -185,11 +185,7 @@ export type RequestResponseChannels = {
   'request-notifications-permission': () => Promise<boolean>
   'start-build-run': (plan: IBuildRunPlan) => Promise<void>
   'cancel-build-run': (runId: string) => Promise<void>
-  'get-cli-workbench-catalog': () => Promise<ICLIWorkbenchCatalog>
-  'start-cli-command': (request: ICLICommandRequest) => Promise<void>
+  'get-cli-workbench-runtime': () => Promise<ICLIWorkbenchRuntime>
+  'start-cli-command': (request: ICLIWorkbenchOperationRequest) => Promise<void>
   'cancel-cli-command': (id: string) => Promise<boolean>
-  'write-cli-command-input': (
-    id: string,
-    data: string | null
-  ) => Promise<boolean>
 }
