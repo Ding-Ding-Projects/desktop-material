@@ -98,7 +98,11 @@
     color: var(--md-sys-color-on-surface-variant);
     font-size: 11.5px;
     font-weight: 500;
+    max-width: 80px;
+    overflow-wrap: anywhere;
+    text-align: center;
     transition: color 300ms var(--emph);
+    white-space: normal;
   }
 
   // Hover: tonal wash + pill-to-squircle morph on the indicator.
