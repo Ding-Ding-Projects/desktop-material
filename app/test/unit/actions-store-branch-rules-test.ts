@@ -64,6 +64,57 @@ const emptyResult = (branch: string): IActionsBranchRuleList => ({
 })
 
 describe('ActionsStore branch rule account generation', () => {
+  it('actively aborts account-bound metadata when the account changes', async () => {
+    const endpoint = 'https://api.github.com'
+    const first = new Account('first', endpoint, 'one', [], '', 1, 'First')
+    const accounts = new MutableAccountsStore([first])
+    const requestSignals = new Array<AbortSignal>()
+    const fromAccount = mock.method(API, 'fromAccount', () => {
+      return {
+        fetchArtifactAttestationPresence: async (
+          _owner: string,
+          _name: string,
+          _digest: string,
+          signal?: AbortSignal
+        ) => {
+          if (signal !== undefined) {
+            requestSignals.push(signal)
+          }
+          return await new Promise<boolean>((_resolve, reject) => {
+            signal?.addEventListener(
+              'abort',
+              () => {
+                const error = new Error('account changed')
+                error.name = 'AbortError'
+                reject(error)
+              },
+              { once: true }
+            )
+          })
+        },
+      } as unknown as API
+    })
+
+    try {
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const pending = store.fetchArtifactAttestationPresence(
+        repository(first, 1),
+        `sha256:${'a'.repeat(64)}`
+      )
+      assert.equal(requestSignals.length, 1)
+
+      accounts.update([first.withToken('rotated-token')])
+      await assert.rejects(
+        pending,
+        error => (error as Error).name === 'AbortError'
+      )
+      assert.equal(requestSignals[0].aborted, true)
+    } finally {
+      fromAccount.mock.restore()
+    }
+  })
+
   it('rejects an old account response and routes the retry to the new account', async () => {
     const endpoint = 'https://api.github.com'
     const first = new Account('first', endpoint, 'one', [], '', 1, 'First')

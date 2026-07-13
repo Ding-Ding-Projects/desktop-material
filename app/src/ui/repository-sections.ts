@@ -16,6 +16,7 @@ export function getRepositorySections(
   if (supportsGitHubIssues) {
     sections.push(RepositorySectionTab.Issues)
   }
+  sections.push(RepositorySectionTab.Triage)
   sections.push(RepositorySectionTab.RepositoryTools)
   return sections
 }
