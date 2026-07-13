@@ -235,6 +235,11 @@ import {
   listWorktreesFromGitDir,
   removeWorktree,
   moveWorktree,
+  lockWorktree,
+  unlockWorktree,
+  pruneWorktrees,
+  repairWorktrees,
+  validateWorktreeRepairPaths,
   getCommitRangeDiff,
   getCommitRangeChangedFiles,
   updateRemoteHEAD,
@@ -493,7 +498,11 @@ import {
   findPullRequestsByNumbers,
 } from '../pull-request-refs'
 import { resolveWithin } from '../path'
-import { WorktreeEntry } from '../../models/worktree'
+import {
+  IWorktreeMaintenancePreview,
+  WorktreeEntry,
+  WorktreeMaintenanceOperation,
+} from '../../models/worktree'
 import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
@@ -7457,6 +7466,84 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _setWorktreeLocked(
+    repository: Repository,
+    worktreePath: string,
+    locked: boolean
+  ): Promise<void> {
+    const worktrees = await listWorktrees(repository)
+    const worktree = worktrees.find(candidate =>
+      worktreePathsEqual(candidate.path, worktreePath)
+    )
+    if (worktree === undefined || worktree.type === 'main') {
+      throw new Error('Only a registered linked worktree can be locked.')
+    }
+    if (worktree.isLocked === locked) {
+      return
+    }
+
+    if (locked) {
+      await lockWorktree(repository, worktree.path)
+    } else {
+      await unlockWorktree(repository, worktree.path)
+    }
+    await this._refreshWorktrees(repository)
+  }
+
+  /** Build a bounded maintenance preview without exposing worktree paths. */
+  public async _previewWorktreeMaintenance(
+    repository: Repository,
+    operation: WorktreeMaintenanceOperation
+  ): Promise<IWorktreeMaintenancePreview> {
+    if (operation === 'prune') {
+      return {
+        operation,
+        affectedCount: await pruneWorktrees(repository, true),
+      }
+    }
+    if (operation === 'repair') {
+      const paths = validateWorktreeRepairPaths(
+        (await listWorktrees(repository)).map(worktree => worktree.path)
+      )
+      return {
+        operation,
+        affectedCount: paths.length,
+      }
+    }
+    return assertNever(operation, `Unknown worktree maintenance: ${operation}`)
+  }
+
+  /** Revalidate and execute one reviewed worktree maintenance operation. */
+  public async _runWorktreeMaintenance(
+    repository: Repository,
+    operation: WorktreeMaintenanceOperation
+  ): Promise<IWorktreeMaintenancePreview> {
+    let affectedCount = 0
+    if (operation === 'prune') {
+      affectedCount = await pruneWorktrees(repository, true)
+      if (affectedCount > 0) {
+        await pruneWorktrees(repository, false)
+      }
+    } else if (operation === 'repair') {
+      const worktrees = await listWorktrees(repository)
+      const paths = validateWorktreeRepairPaths(
+        worktrees.map(worktree => worktree.path)
+      )
+      affectedCount = paths.length
+      if (affectedCount > 0) {
+        await repairWorktrees(repository, paths)
+      }
+    } else {
+      return assertNever(
+        operation,
+        `Unknown worktree maintenance: ${operation}`
+      )
+    }
+    await this._refreshWorktrees(repository)
+    return { operation, affectedCount }
+  }
+
   public _setWorktreeDropdownWidth(width: number): Promise<void> {
     this.worktreeDropdownWidth = {
       ...this.worktreeDropdownWidth,
@@ -12321,6 +12408,14 @@ function isLocalChangesOverwrittenError(error: Error): boolean {
     error instanceof GitError &&
     error.result.gitError === DugiteError.LocalChangesOverwritten
   )
+}
+
+function worktreePathsEqual(left: string, right: string): boolean {
+  const normalizedLeft = Path.resolve(left)
+  const normalizedRight = Path.resolve(right)
+  return __WIN32__
+    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
+    : normalizedLeft === normalizedRight
 }
 
 function constrain(

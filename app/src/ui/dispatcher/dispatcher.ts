@@ -174,7 +174,11 @@ import {
   IFileResolution,
   ICopilotResolutionSummary,
 } from '../../lib/copilot-conflict-resolution'
-import { WorktreeEntry } from '../../models/worktree'
+import {
+  IWorktreeMaintenancePreview,
+  WorktreeEntry,
+  WorktreeMaintenanceOperation,
+} from '../../models/worktree'
 import { ICreatedGitHubIssue } from '../../lib/github-issue'
 import {
   GitHubPullRequestContextChangedError,
@@ -1450,6 +1454,37 @@ export class Dispatcher {
     worktreePath: string
   ): void {
     this.appStore._requestDeleteWorktree(repository, worktreePath)
+  }
+
+  /** Lock or unlock one exact registered linked worktree. */
+  public async setWorktreeLocked(
+    repository: Repository,
+    worktreePath: string,
+    locked: boolean
+  ): Promise<boolean> {
+    return this.appStore
+      ._setWorktreeLocked(repository, worktreePath, locked)
+      .then(() => true)
+      .catch(error => {
+        this.postError(error)
+        return false
+      })
+  }
+
+  /** Preview one bounded worktree maintenance operation. */
+  public async previewWorktreeMaintenance(
+    repository: Repository,
+    operation: WorktreeMaintenanceOperation
+  ): Promise<IWorktreeMaintenancePreview> {
+    return this.appStore._previewWorktreeMaintenance(repository, operation)
+  }
+
+  /** Execute one explicitly reviewed worktree maintenance operation. */
+  public async runWorktreeMaintenance(
+    repository: Repository,
+    operation: WorktreeMaintenanceOperation
+  ): Promise<IWorktreeMaintenancePreview> {
+    return this.appStore._runWorktreeMaintenance(repository, operation)
   }
 
   /**
