@@ -20,6 +20,7 @@ import {
   RepositoryHooksManagerError,
   revealRepositoryHooks,
 } from '../../src/lib/hooks/repository-hooks-manager'
+import { getRepoHooks } from '../../src/lib/hooks/get-repo-hooks'
 import { setupEmptyRepository } from '../helpers/repositories'
 import { createTempDirectory } from '../helpers/temp'
 
@@ -60,6 +61,9 @@ describe('repository hooks manager', () => {
     const active = join(hooksPath, 'pre-commit')
     await writeFile(active, hookBody)
     await chmod(active, 0o755)
+    assert.deepEqual(await Array.fromAsync(getRepoHooks(repository.path)), [
+      'pre-commit',
+    ])
 
     const snapshot = await inspectRepositoryHooks(repository.path)
     assert.equal(snapshot.locationKind, 'default')
@@ -87,6 +91,7 @@ describe('repository hooks manager', () => {
     const active = join(hooksPath, 'pre-commit')
     const disabled = join(hooksPath, 'pre-commit.disabled')
     await writeFile(active, hookBody)
+    await chmod(active, 0o755)
 
     const disable = findAction(
       findHook(await inspectRepositoryHooks(repository.path), 'pre-commit'),
@@ -98,6 +103,7 @@ describe('repository hooks manager', () => {
     )
     assert.equal(existsSync(active), false)
     assert.equal(await readFile(disabled, 'utf8'), hookBody)
+    assert.deepEqual(await Array.fromAsync(getRepoHooks(repository.path)), [])
     assert.equal(
       findHook(disabledSnapshot, 'pre-commit').disabled.state,
       'present'
@@ -113,6 +119,9 @@ describe('repository hooks manager', () => {
     )
     assert.equal(await readFile(active, 'utf8'), hookBody)
     assert.equal(existsSync(disabled), false)
+    assert.deepEqual(await Array.fromAsync(getRepoHooks(repository.path)), [
+      'pre-commit',
+    ])
     assert.equal(
       findHook(enabledSnapshot, 'pre-commit').active.state,
       'present'
