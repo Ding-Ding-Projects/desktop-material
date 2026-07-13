@@ -8,7 +8,7 @@
 }
 
 .actions-dialog-layer {
-  position: absolute;
+  position: fixed;
   inset: 0;
   z-index: 4;
   display: grid;

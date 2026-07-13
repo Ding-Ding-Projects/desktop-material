@@ -137,7 +137,7 @@ describe('Actions run inspector responsive styles', () => {
   it('keeps dialogs and the long log heading within the available width', () => {
     assert.match(
       logSource,
-      /\.actions-dialog-layer\s*\{[\s\S]*?overscroll-behavior: contain;[\s\S]*?pointer-events: auto;/
+      /\.actions-dialog-layer\s*\{[\s\S]*?position: fixed;[\s\S]*?overscroll-behavior: contain;[\s\S]*?pointer-events: auto;/
     )
     assert.match(
       logSource,
