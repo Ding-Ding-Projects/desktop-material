@@ -20,7 +20,7 @@ Release Manager are the next named-function milestones in the README roadmap.
 This handoff does not claim that branch-only Pages assets are already live on
 `main`. Pages remains protected to the normal reviewed `main` promotion path;
 the separate wiki was merged rather than overwritten and published at exact
-wiki SHA `cf115fec684278f44cceced279651b7f288b2ddd`.
+wiki SHA `2585cf7977b14d5792a1addb8b9a7c9f944e1e84`.
 
 ## 2026-07-13 P0 production UI gate
 
@@ -169,10 +169,31 @@ natural dimensions. At 960×660 and 390×844, document/body widths matched the
 viewport and measured overflow/outside arrays were empty; original desktop and
 mobile captures showed both new cards and wrapped captions.
 
-The first documentation commit, separate wiki SHA, hosted Pages artifact
-receipt, and final cleanup evidence remain to be appended after those actions succeed. See
-`.codex/run-manifests/2026-07-13-actions-pagination-ui-gate.md` for the complete
-fixture, request, interaction, and geometry record.
+### Publication and cleanup receipt
+
+- Main-repository evidence and both PNGs were committed and pushed at
+  `1d81472595b1e01ff457425668cd8afa41f3bf2f`; local, tracking, and direct remote
+  SHAs matched.
+- The separate wiki's extra job-log and responsive guidance was preserved.
+  Home, User Guide, and two local `Images/` assets were committed and pushed at
+  `2585cf7977b14d5792a1addb8b9a7c9f944e1e84`; local, tracking, and direct remote
+  SHAs matched. The live rendered pages show the new named controls and both
+  image links.
+- Pages run `29270933754` checked out exact source `1d81472595`, configured
+  Pages, assembled the publish directory, and uploaded the `github-pages`
+  artifact. The downloaded 3,051,520-byte tar contains both PNGs with the exact
+  tracked hashes. Deployment was correctly rejected because
+  `mega-feature-update` is not allowed by the protected `github-pages`
+  environment.
+- The exact app/provider PIDs and ports exited, the dummy credential was
+  deleted and read back absent, the hidden desktop was closed once, and the
+  containment-checked owned Temp root was removed and confirmed absent. The
+  visible desktop, normal app profile, and public provider state were never
+  touched.
+
+See `.codex/run-manifests/2026-07-13-actions-pagination-ui-gate.md` for the
+complete fixture, request, interaction, geometry, publication, and cleanup
+record.
 
 ## Legacy M0-M18 milestone summary
 
