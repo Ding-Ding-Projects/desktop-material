@@ -251,8 +251,7 @@ async function seedIsolatedProfile(client, fixtureAccount) {
         'theme': 'light',
         'zoom-auto-fit-enabled': '1',
         'stats-opt-out': '1',
-        'has-sent-stats-opt-in-ping': '1',
-        'users': ${JSON.stringify(users)}
+        'has-sent-stats-opt-in-ping': '1'
       }
       let changed = false
       for (const [key, value] of Object.entries(expected)) {
@@ -260,6 +259,22 @@ async function seedIsolatedProfile(client, fixtureAccount) {
           localStorage.setItem(key, value)
           changed = true
         }
+      }
+      const expectedUsers = ${users}
+      let storedUsers = []
+      try {
+        storedUsers = JSON.parse(localStorage.getItem('users') || '[]')
+      } catch {}
+      const expectedAccount = expectedUsers[0]
+      const accountPresent = Array.isArray(storedUsers) && storedUsers.some(
+        value => value?.provider === expectedAccount.provider &&
+          value?.endpoint === expectedAccount.endpoint &&
+          value?.login === expectedAccount.login &&
+          value?.id === expectedAccount.id
+      )
+      if (!accountPresent) {
+        localStorage.setItem('users', JSON.stringify(expectedUsers))
+        changed = true
       }
       return changed
     })()`
