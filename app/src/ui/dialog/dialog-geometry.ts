@@ -47,4 +47,3 @@ export function clampDialogOffset(
 
   return { x, y }
 }
-
