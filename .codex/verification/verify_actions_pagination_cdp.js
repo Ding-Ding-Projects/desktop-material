@@ -162,7 +162,27 @@ async function waitFor(client, expression, label, timeout = 20_000) {
     }
     await new Promise(resolve => setTimeout(resolve, 100))
   }
-  fail(`Timed out waiting for ${label}.`)
+  let diagnostic = null
+  try {
+    diagnostic = await evaluate(
+      client,
+      `({
+        readyState: document.readyState,
+        title: document.title,
+        hash: location.hash,
+        bodyText: (document.body?.innerText || '').trim().slice(0, 1_000),
+        buttons: [...document.querySelectorAll('button')]
+          .filter(value => value.offsetWidth > 0 && value.offsetHeight > 0)
+          .map(value => value.textContent.trim()).filter(Boolean).slice(0, 50),
+        dialogs: [...document.querySelectorAll('[role="dialog"]')]
+          .map(value => value.textContent.trim().slice(0, 300)),
+        actionsTabPresent: document.querySelector('#actions-tab') !== null
+      })`
+    )
+  } catch (error) {
+    diagnostic = { unavailable: String(error) }
+  }
+  fail(`Timed out waiting for ${label}: ${JSON.stringify(diagnostic)}`)
 }
 
 async function seedIsolatedProfile(client) {
