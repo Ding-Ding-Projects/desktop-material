@@ -33,6 +33,11 @@ import {
 import { RepositoryBundleImport } from './bundle-import'
 import { RepositoryShallowHistory } from './shallow-history'
 import { RepositoryPatchSeries } from './patch-series'
+import {
+  IRepositoryCommitRewriteClient,
+  RepositoryCommitRewrite,
+} from './commit-rewrite'
+import { Repository } from '../../models/repository'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -62,6 +67,7 @@ const defaultClient: IRepositoryToolsClient = {
 }
 
 export interface IRepositoryToolsProps {
+  readonly repository: Repository
   readonly repositoryPath: string
   readonly onRefreshRepository: () => Promise<void>
   readonly client?: IRepositoryToolsClient
@@ -79,6 +85,7 @@ export interface IRepositoryToolsProps {
   ) => Promise<string | null>
   readonly choosePatchFiles?: () => Promise<ReadonlyArray<string>>
   readonly revealArchive?: (path: string) => Promise<void>
+  readonly commitRewriteClient?: IRepositoryCommitRewriteClient
 }
 
 type OperationStatus =
@@ -106,6 +113,7 @@ interface IRepositoryToolsState {
   readonly bundleImportBusy: boolean
   readonly shallowHistoryBusy: boolean
   readonly patchSeriesBusy: boolean
+  readonly commitRewriteBusy: boolean
 }
 
 let nextOperationSequence = 0
@@ -145,6 +153,7 @@ export class RepositoryTools extends React.Component<
       bundleImportBusy: false,
       shallowHistoryBusy: false,
       patchSeriesBusy: false,
+      commitRewriteBusy: false,
     }
   }
 
@@ -174,6 +183,7 @@ export class RepositoryTools extends React.Component<
         bundleImportBusy: false,
         shallowHistoryBusy: false,
         patchSeriesBusy: false,
+        commitRewriteBusy: false,
       })
     }
   }
@@ -226,7 +236,8 @@ export class RepositoryTools extends React.Component<
       this.runId !== null ||
       this.state.bundleImportBusy ||
       this.state.shallowHistoryBusy ||
-      this.state.patchSeriesBusy
+      this.state.patchSeriesBusy ||
+      this.state.commitRewriteBusy
     )
   }
 
@@ -245,6 +256,12 @@ export class RepositoryTools extends React.Component<
   private onPatchSeriesBusyChanged = (patchSeriesBusy: boolean) => {
     if (this.state.patchSeriesBusy !== patchSeriesBusy) {
       this.setState({ patchSeriesBusy })
+    }
+  }
+
+  private onCommitRewriteBusyChanged = (commitRewriteBusy: boolean) => {
+    if (this.state.commitRewriteBusy !== commitRewriteBusy) {
+      this.setState({ commitRewriteBusy })
     }
   }
 
@@ -722,6 +739,7 @@ export class RepositoryTools extends React.Component<
           this.runId !== null ||
           this.state.shallowHistoryBusy ||
           this.state.patchSeriesBusy ||
+          this.state.commitRewriteBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -740,7 +758,7 @@ export class RepositoryTools extends React.Component<
           this.runId !== null ||
           this.state.bundleImportBusy ||
           this.state.shallowHistoryBusy ||
-          this.state.patchSeriesBusy ||
+          this.state.commitRewriteBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -760,11 +778,30 @@ export class RepositoryTools extends React.Component<
           this.runId !== null ||
           this.state.bundleImportBusy ||
           this.state.patchSeriesBusy ||
+          this.state.commitRewriteBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
         onRefreshRepository={this.props.onRefreshRepository}
         onBusyChanged={this.onShallowHistoryBusyChanged}
+      />
+    )
+  }
+
+  private renderCommitRewrite() {
+    return (
+      <RepositoryCommitRewrite
+        repository={this.props.repository}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          this.state.shallowHistoryBusy ||
+          this.state.patchSeriesBusy ||
+          !this.state.gitAvailable
+        }
+        client={this.props.commitRewriteClient}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onCommitRewriteBusyChanged}
       />
     )
   }
@@ -934,6 +971,7 @@ export class RepositoryTools extends React.Component<
             {this.renderCategory('Recovery')}
             {this.renderExport()}
             {this.renderPatchSeries()}
+            {this.renderCommitRewrite()}
             {this.renderImport()}
           </div>
           <aside className="repository-tools-results-column">

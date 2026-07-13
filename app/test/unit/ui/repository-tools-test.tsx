@@ -16,6 +16,7 @@ import {
   RepositoryTools,
 } from '../../../src/ui/repository-tools'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import { Repository } from '../../../src/models/repository'
 
 const catalog: ICLIWorkbenchCatalog = {
   tools: [
@@ -167,6 +168,7 @@ function renderTools(
 ) {
   return render(
     <RepositoryTools
+      repository={new Repository('C:/repo', -1, null, false)}
       repositoryPath="C:/repo"
       onRefreshRepository={onRefreshRepository}
       client={client}

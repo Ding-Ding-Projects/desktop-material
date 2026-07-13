@@ -2,9 +2,14 @@ export { RepositoryTools } from './repository-tools'
 export { RepositoryBundleImport } from './bundle-import'
 export { RepositoryShallowHistory } from './shallow-history'
 export { RepositoryPatchSeries } from './patch-series'
+export { RepositoryCommitRewrite } from './commit-rewrite'
 export type { IRepositoryBundleImportProps } from './bundle-import'
 export type { IRepositoryShallowHistoryProps } from './shallow-history'
 export type { IRepositoryPatchSeriesProps } from './patch-series'
+export type {
+  IRepositoryCommitRewriteClient,
+  IRepositoryCommitRewriteProps,
+} from './commit-rewrite'
 export type {
   IRepositoryToolsClient,
   IRepositoryToolsProps,

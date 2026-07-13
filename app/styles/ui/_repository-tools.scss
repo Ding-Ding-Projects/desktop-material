@@ -12,9 +12,144 @@
 .repository-bundle-import,
 .repository-bundle-import *,
 .repository-patch-series,
-.repository-patch-series * {
+.repository-patch-series *,
+.repository-commit-rewrite,
+.repository-commit-rewrite * {
   box-sizing: border-box;
   min-width: 0;
+}
+
+.repository-commit-rewrite,
+.repository-commit-rewrite-card,
+.repository-commit-rewrite-plan,
+.repository-commit-rewrite-confirmation,
+.repository-commit-rewrite-recovery {
+  display: grid;
+  gap: 12px;
+}
+
+.repository-commit-rewrite-snapshot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  span {
+    background: var(--md-sys-color-surface-container-highest);
+    border-radius: 999px;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    padding: 5px 9px;
+    word-break: break-word;
+  }
+}
+
+.repository-commit-rewrite-plan > ol,
+.repository-commit-rewrite-confirmation > ol {
+  display: grid;
+  gap: 8px;
+  list-style-position: inside;
+  margin: 0;
+  max-height: 420px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding: 0;
+}
+
+.repository-commit-rewrite-plan > ol > li {
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: 10px;
+  display: grid;
+  gap: 9px;
+  grid-template-columns: minmax(0, 1fr);
+  padding: 10px;
+}
+
+.repository-commit-rewrite-identity {
+  align-items: baseline;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr);
+
+  code,
+  span {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+.repository-commit-rewrite-row-controls {
+  align-items: stretch;
+  display: grid;
+  gap: 7px;
+  grid-template-columns: minmax(190px, 1fr) auto auto;
+
+  label,
+  select {
+    max-width: 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  select {
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    min-height: 34px;
+    padding: 6px 8px;
+  }
+
+  .button-component {
+    align-self: stretch;
+  }
+}
+
+.repository-commit-rewrite-confirmation,
+.repository-commit-rewrite-recovery {
+  background: var(--md-sys-color-tertiary-container);
+  border-radius: 10px;
+  color: var(--md-sys-color-on-tertiary-container);
+  overflow-x: hidden;
+  padding: 12px;
+
+  strong,
+  p,
+  dt,
+  dd,
+  li,
+  span,
+  code {
+    margin: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+}
+
+.repository-commit-rewrite-confirmation {
+  dl {
+    display: grid;
+    gap: 7px;
+    margin: 0;
+  }
+
+  dl > div {
+    display: grid;
+    gap: 4px;
+    grid-template-columns: minmax(90px, 0.25fr) minmax(0, 1fr);
+  }
+
+  dt {
+    font-weight: 600;
+  }
+}
+
+.repository-commit-rewrite-status {
+  color: var(--md-sys-color-on-surface-variant);
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .repository-patch-series {
@@ -636,5 +771,10 @@
 
   .repository-shallow-history-state span {
     justify-self: start;
+  }
+
+  .repository-commit-rewrite-row-controls,
+  .repository-commit-rewrite-confirmation dl > div {
+    grid-template-columns: minmax(0, 1fr);
   }
 }

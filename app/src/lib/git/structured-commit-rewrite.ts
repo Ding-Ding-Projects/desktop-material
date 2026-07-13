@@ -412,9 +412,19 @@ export async function executeStructuredCommitRewrite(
       )
     }
 
-    return await rebaseInteractive(repository, todoPath, reviewed.baseSha, {
-      action: 'Structured commit rewrite',
-    })
+    try {
+      return await rebaseInteractive(repository, todoPath, reviewed.baseSha, {
+        action: 'Structured commit rewrite',
+      })
+    } catch (error) {
+      // A hook or unexpected Git failure can leave the interactive rebase
+      // recoverable even when Dugite did not classify it as a conflict. Keep
+      // the UI in its continue/abort flow instead of enabling other mutations.
+      if ((await getRebaseInternalState(repository)) !== null) {
+        return RebaseResult.ConflictsEncountered
+      }
+      throw error
+    }
   } finally {
     await rm(todoPath, { force: true })
   }
