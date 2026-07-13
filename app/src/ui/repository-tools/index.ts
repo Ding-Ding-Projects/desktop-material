@@ -6,6 +6,7 @@ export { RepositoryPatchSeries } from './patch-series'
 export { RepositorySigning } from './signing'
 export { RepositoryLFSAdministration } from './lfs-administration'
 export { RepositoryCommitRewrite } from './commit-rewrite'
+export { RepositoryProviderTriage } from './provider-triage'
 export type { IRepositoryBundleImportProps } from './bundle-import'
 export type { IRepositoryBisectSessionProps } from './bisect-session'
 export type { IRepositoryShallowHistoryProps } from './shallow-history'
@@ -16,6 +17,7 @@ export type {
   IRepositoryCommitRewriteClient,
   IRepositoryCommitRewriteProps,
 } from './commit-rewrite'
+export type { IRepositoryProviderTriageProps } from './provider-triage'
 export type {
   IRepositoryToolsClient,
   IRepositoryToolsProps,

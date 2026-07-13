@@ -4,7 +4,10 @@ import {
   normalizeProviderTriageLimit,
 } from './provider-triage'
 
-export const ProviderTriageJSONMaximumBytes = 512 * 1024
+// Provider list responses include full issue/PR bodies even though triage drops
+// them. Four MiB accommodates 50 ordinary long-form items while remaining a
+// hard streaming cap before JSON allocation.
+export const ProviderTriageJSONMaximumBytes = 4 * 1024 * 1024
 
 export class ProviderTriageJSONError extends Error {
   public constructor(
@@ -154,7 +157,7 @@ function record(value: unknown): Readonly<Record<string, unknown>> {
     : invalidShape()
 }
 
-function string(value: unknown, maximum = 4_096): string {
+function requiredString(value: unknown, maximum = 4_096): string {
   return typeof value === 'string' &&
     value.length > 0 &&
     Buffer.byteLength(value, 'utf8') <= maximum
@@ -168,12 +171,12 @@ function integer(value: unknown): number {
     : invalidShape()
 }
 
-function boolean(value: unknown): boolean {
+function requiredBoolean(value: unknown): boolean {
   return typeof value === 'boolean' ? value : invalidShape()
 }
 
 function optionalBoolean(value: unknown, fallback = false): boolean {
-  return value === undefined ? fallback : boolean(value)
+  return value === undefined ? fallback : requiredBoolean(value)
 }
 
 function records(
@@ -194,18 +197,18 @@ function optionalRecords(
 }
 
 function githubLogin(value: unknown): string {
-  return string(record(value).login, 256)
+  return requiredString(record(value).login, 256)
 }
 
 function gitLabLogin(value: unknown): string {
-  return string(record(value).username, 256)
+  return requiredString(record(value).username, 256)
 }
 
 function bitbucketLogin(value: unknown): string {
   const identity = record(value)
   for (const field of ['username', 'nickname', 'display_name'] as const) {
     if (typeof identity[field] === 'string' && identity[field].length > 0) {
-      return string(identity[field], 256)
+      return requiredString(identity[field], 256)
     }
   }
   return invalidShape()
@@ -227,9 +230,9 @@ export function parseGitHubTriageIssues(
     }
     result.push({
       number: integer(issue.number),
-      title: string(issue.title),
-      createdAt: string(issue.created_at, 64),
-      updatedAt: string(issue.updated_at, 64),
+      title: requiredString(issue.title),
+      createdAt: requiredString(issue.created_at, 64),
+      updatedAt: requiredString(issue.updated_at, 64),
       authorLogin: githubLogin(issue.user),
       assigneeLogins: optionalRecords(issue.assignees, 50).map(githubLogin),
       reviewRequestedLogins: [],
@@ -245,9 +248,9 @@ export function parseGitHubTriagePullRequests(
 ): ReadonlyArray<IAPIProviderTriageItem> {
   return arrayPage(value, limit).map(pullRequest => ({
     number: integer(pullRequest.number),
-    title: string(pullRequest.title),
-    createdAt: string(pullRequest.created_at, 64),
-    updatedAt: string(pullRequest.updated_at, 64),
+    title: requiredString(pullRequest.title),
+    createdAt: requiredString(pullRequest.created_at, 64),
+    updatedAt: requiredString(pullRequest.updated_at, 64),
     authorLogin: githubLogin(pullRequest.user),
     assigneeLogins: optionalRecords(pullRequest.assignees, 50).map(githubLogin),
     reviewRequestedLogins: optionalRecords(
@@ -264,9 +267,9 @@ export function parseGitLabTriageIssues(
 ): ReadonlyArray<IAPIProviderTriageItem> {
   return arrayPage(value, limit).map(issue => ({
     number: integer(issue.iid),
-    title: string(issue.title),
-    createdAt: string(issue.created_at, 64),
-    updatedAt: string(issue.updated_at, 64),
+    title: requiredString(issue.title),
+    createdAt: requiredString(issue.created_at, 64),
+    updatedAt: requiredString(issue.updated_at, 64),
     authorLogin: gitLabLogin(issue.author),
     assigneeLogins: optionalRecords(issue.assignees, 50).map(gitLabLogin),
     reviewRequestedLogins: [],
@@ -280,9 +283,9 @@ export function parseGitLabTriagePullRequests(
 ): ReadonlyArray<IAPIProviderTriageItem> {
   return arrayPage(value, limit).map(mergeRequest => ({
     number: integer(mergeRequest.iid),
-    title: string(mergeRequest.title),
-    createdAt: string(mergeRequest.created_at, 64),
-    updatedAt: string(mergeRequest.updated_at, 64),
+    title: requiredString(mergeRequest.title),
+    createdAt: requiredString(mergeRequest.created_at, 64),
+    updatedAt: requiredString(mergeRequest.updated_at, 64),
     authorLogin: gitLabLogin(mergeRequest.author),
     assigneeLogins: optionalRecords(mergeRequest.assignees, 50).map(
       gitLabLogin
@@ -316,25 +319,27 @@ export function parseBitbucketTriagePullRequests(
       bitbucketLogin
     )
     for (const participant of optionalRecords(pullRequest.participants, 50)) {
-      if (participant.role === 'REVIEWER' && participant.approved === false) {
-        requested.push(bitbucketLogin(participant.user))
-      } else if (
+      if (
         participant.role !== undefined &&
         typeof participant.role !== 'string'
       ) {
         invalidShape()
-      } else if (
+      }
+      if (
         participant.approved !== undefined &&
         typeof participant.approved !== 'boolean'
       ) {
         invalidShape()
       }
+      if (participant.role === 'REVIEWER' && participant.approved !== true) {
+        requested.push(bitbucketLogin(participant.user))
+      }
     }
     return {
       number: integer(pullRequest.id),
-      title: string(pullRequest.title),
-      createdAt: string(pullRequest.created_on, 64),
-      updatedAt: string(pullRequest.updated_on, 64),
+      title: requiredString(pullRequest.title),
+      createdAt: requiredString(pullRequest.created_on, 64),
+      updatedAt: requiredString(pullRequest.updated_on, 64),
       authorLogin: bitbucketLogin(author),
       assigneeLogins: [],
       reviewRequestedLogins: requested,

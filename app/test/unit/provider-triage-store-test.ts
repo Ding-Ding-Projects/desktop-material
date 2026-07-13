@@ -280,6 +280,66 @@ describe('provider triage store', () => {
     assert.equal(store.getState().status, 'unavailable')
   })
 
+  it('aborts a same-key old-token generation before publishing a rotated session', async () => {
+    const oldPage = deferred<IAPIProviderTriagePage>()
+    const oldSignals = new Array<AbortSignal>()
+    const rotated = selected.withToken('rotated-secret-token')
+    const store = new ProviderTriageStore(
+      dependencies(account =>
+        account.token === selected.token
+          ? {
+              fetchProviderTriageIssues: async (owner, name, limit, signal) => {
+                oldSignals.push(signal!)
+                return oldPage.promise
+              },
+              fetchProviderTriagePullRequests: async (
+                owner,
+                name,
+                limit,
+                signal
+              ) => {
+                oldSignals.push(signal!)
+                return oldPage.promise
+              },
+            }
+          : api({
+              fetchProviderTriageIssues: async () => ({
+                ...readyPage,
+                items: [{ ...apiItem, number: 88 }],
+              }),
+              fetchProviderTriagePullRequests: async () => ({
+                supported: true,
+                capped: false,
+                items: [],
+              }),
+            })
+      )
+    )
+
+    const oldLoad = store.load(repository(1, 'material'), [selected])
+    store.updateAccounts([rotated])
+    assert.equal(oldSignals.length, 2)
+    assert.equal(
+      oldSignals.every(signal => signal.aborted),
+      true
+    )
+    await store.load(repository(1, 'material'), [rotated])
+    assert.deepEqual(
+      store.getState().items.map(item => item.number),
+      [88]
+    )
+    oldPage.resolve(readyPage)
+    await oldLoad
+    assert.deepEqual(
+      store.getState().items.map(item => item.number),
+      [88]
+    )
+    assert.doesNotMatch(
+      JSON.stringify(store.getState()),
+      /rotated-secret-token/
+    )
+  })
+
   it('retains no token, clone URL, local path, or raw provider body', async () => {
     const store = new ProviderTriageStore(dependencies(() => api()))
     await store.load(repository(1, 'material'), [selected])

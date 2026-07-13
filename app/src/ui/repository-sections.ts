@@ -12,6 +12,7 @@ export function getRepositorySections(
   if (supportsGitHubReleases) {
     sections.push(RepositorySectionTab.Releases)
   }
+  sections.push(RepositorySectionTab.Triage)
   sections.push(RepositorySectionTab.RepositoryTools)
   return sections
 }

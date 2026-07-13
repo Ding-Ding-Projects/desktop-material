@@ -17,6 +17,7 @@ const bitbucketIdentity = { nickname: 'fixture-bot' }
 
 describe('provider triage bounded JSON', () => {
   it('rejects oversized declared and streamed bodies before projection', async () => {
+    assert.equal(ProviderTriageJSONMaximumBytes, 4 * 1024 * 1024)
     const declared = new Response('{}', {
       headers: {
         'content-length': String(ProviderTriageJSONMaximumBytes + 1),
@@ -34,6 +35,23 @@ describe('provider triage bounded JSON', () => {
       readBoundedProviderTriageJSON(streamed),
       (error: ProviderTriageJSONError) => error.kind === 'too-large'
     )
+  })
+
+  it('accepts 50 ordinary long-form provider items beneath the hard cap', async () => {
+    const values = Array.from({ length: 50 }, (_, index) => ({
+      number: index + 1,
+      title: `Issue ${index + 1}`,
+      created_at: '2026-07-01T00:00:00Z',
+      updated_at: '2026-07-02T00:00:00Z',
+      user: githubIdentity,
+      body: 'x'.repeat(60 * 1024),
+    }))
+    const bounded = await readBoundedProviderTriageJSON(
+      new Response(JSON.stringify(values))
+    )
+    const projected = parseGitHubTriageIssues(bounded, 50)
+    assert.equal(projected.length, 50)
+    assert.doesNotMatch(JSON.stringify(projected), /x{100}/)
   })
 
   it('strictly projects GitHub issues and omits pull requests from that channel', () => {
@@ -146,6 +164,9 @@ describe('provider triage bounded JSON', () => {
           updated_on: '2026-07-02T00:00:00Z',
           author: bitbucketIdentity,
           reviewers: [bitbucketIdentity],
+          participants: [
+            { role: 'REVIEWER', user: { nickname: 'pending-reviewer' } },
+          ],
           draft: false,
         },
       ],
@@ -153,6 +174,10 @@ describe('provider triage bounded JSON', () => {
     }
     const parsed = parseBitbucketTriagePullRequests(value, 1)
     assert.equal(parsed.items[0].number, 5)
+    assert.deepEqual(parsed.items[0].reviewRequestedLogins, [
+      'fixture-bot',
+      'pending-reviewer',
+    ])
     assert.equal(parsed.hasNextPage, false)
     assert.throws(
       () => parseBitbucketTriagePullRequests({ ...value, next: {} }, 1),

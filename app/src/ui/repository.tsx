@@ -51,6 +51,7 @@ import {
 } from '../lib/stores/github-releases-store'
 import { GitHubReleasesView } from './github-releases'
 import { RepositoryTools } from './repository-tools'
+import { RepositoryProviderTriage } from './repository-tools/provider-triage'
 import {
   getRepositorySections,
   getRepositorySectionVisualIndex,
@@ -304,6 +305,12 @@ export class RepositoryView extends React.Component<
             <span className="rail-label">Releases</span>
           </span>
         )}
+        <span className="rail-item" id="triage-tab">
+          <span className="rail-pill">
+            <Octicon symbol={octicons.checklist} className="rail-icon" />
+          </span>
+          <span className="rail-label">Triage</span>
+        </span>
         <span className="rail-item" id="repository-tools-tab">
           <span className="rail-pill">
             <Octicon symbol={octicons.tools} className="rail-icon" />
@@ -540,6 +547,7 @@ export class RepositoryView extends React.Component<
     } else if (
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
+      selectedSection === RepositorySectionTab.Triage ||
       selectedSection === RepositorySectionTab.RepositoryTools
     ) {
       return null
@@ -561,6 +569,7 @@ export class RepositoryView extends React.Component<
     if (
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
+      selectedSection === RepositorySectionTab.Triage ||
       selectedSection === RepositorySectionTab.RepositoryTools
     ) {
       return <React.Fragment />
@@ -837,6 +846,13 @@ export class RepositoryView extends React.Component<
           releasesStore={this.props.releasesStore}
         />
       )
+    } else if (selectedSection === RepositorySectionTab.Triage) {
+      return (
+        <RepositoryProviderTriage
+          repository={this.props.repository}
+          accounts={this.props.accounts}
+        />
+      )
     } else if (selectedSection === RepositorySectionTab.RepositoryTools) {
       return (
         <RepositoryTools
@@ -903,21 +919,14 @@ export class RepositoryView extends React.Component<
     }
 
     if ((event.metaKey || event.ctrlKey) && !event.altKey) {
-      const shortcut =
-        event.key === '1'
-          ? RepositorySectionTab.Changes
-          : event.key === '2'
-          ? RepositorySectionTab.History
-          : event.key === '3' && this.supportsGitHubActions()
-          ? RepositorySectionTab.Actions
-          : event.key === '4'
-          ? this.showsGitHubReleases()
-            ? RepositorySectionTab.Releases
-            : RepositorySectionTab.RepositoryTools
-          : event.key === '5' && this.showsGitHubReleases()
-          ? RepositorySectionTab.RepositoryTools
-          : null
-      if (shortcut !== null) {
+      const requestedIndex = /^[1-9]$/.test(event.key)
+        ? Number(event.key) - 1
+        : -1
+      const shortcut = getRepositorySections(
+        this.supportsGitHubActions(),
+        this.showsGitHubReleases()
+      )[requestedIndex]
+      if (shortcut !== undefined) {
         this.props.dispatcher.changeRepositorySection(
           this.props.repository,
           shortcut

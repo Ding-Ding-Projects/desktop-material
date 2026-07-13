@@ -304,10 +304,11 @@ describe('repository tool recipes', () => {
 })
 
 describe('repository section order', () => {
-  it('keeps Repository Tools at visual index 2 when Actions is unavailable', () => {
+  it('places provider triage before Repository Tools when Actions is unavailable', () => {
     assert.deepStrictEqual(getRepositorySections(false), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
+      RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
     assert.equal(
@@ -315,15 +316,16 @@ describe('repository section order', () => {
         RepositorySectionTab.RepositoryTools,
         false
       ),
-      2
+      3
     )
   })
 
-  it('keeps Repository Tools at visual index 3 when Actions is available', () => {
+  it('places provider triage before Repository Tools when Actions is available', () => {
     assert.deepStrictEqual(getRepositorySections(true), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
       RepositorySectionTab.Actions,
+      RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
     assert.equal(
@@ -331,16 +333,17 @@ describe('repository section order', () => {
         RepositorySectionTab.RepositoryTools,
         true
       ),
-      3
+      4
     )
   })
 
-  it('places Releases before Repository Tools when both provider views are available', () => {
+  it('places Releases and triage before Repository Tools when provider views are available', () => {
     assert.deepStrictEqual(getRepositorySections(true, true), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
       RepositorySectionTab.Actions,
       RepositorySectionTab.Releases,
+      RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
     assert.equal(
@@ -349,7 +352,7 @@ describe('repository section order', () => {
         true,
         true
       ),
-      4
+      5
     )
   })
 })

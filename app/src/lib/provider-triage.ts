@@ -201,9 +201,9 @@ export function buildProviderTriageURL(
   owner: string,
   name: string,
   kind: ProviderTriageKind,
-  number: number
+  workItemNumber: number
 ): string {
-  const safeNumber = normalizeWorkItemNumber(number)
+  const safeNumber = normalizeWorkItemNumber(workItemNumber)
   const coordinate = validateProviderTriageCoordinate(
     owner,
     name,
@@ -262,7 +262,7 @@ export function normalizeProviderTriageItem(
   value: IAPIProviderTriageItem,
   now: Date = new Date()
 ): IProviderTriageItem {
-  const number = normalizeWorkItemNumber(value.number)
+  const workItemNumber = normalizeWorkItemNumber(value.number)
   const title = normalizeBoundedText(value.title, MaximumTitleBytes, 'title')
   const authorLogin = normalizeLogin(value.authorLogin)
   const assignees = normalizeLogins(value.assigneeLogins)
@@ -287,7 +287,7 @@ export function normalizeProviderTriageItem(
         owner,
         name,
         kind,
-        number,
+        workItemNumber,
       ])
     )
     .digest('hex')
@@ -296,7 +296,7 @@ export function normalizeProviderTriageItem(
     id: `triage-${identityHash}`,
     provider,
     kind,
-    number,
+    number: workItemNumber,
     title,
     repository: `${owner}/${name}`,
     authorLogin,
@@ -309,7 +309,7 @@ export function normalizeProviderTriageItem(
       owner,
       name,
       kind,
-      number
+      workItemNumber
     ),
     attention: {
       assigned: assignees.some(x => x.toLowerCase() === accountKey),

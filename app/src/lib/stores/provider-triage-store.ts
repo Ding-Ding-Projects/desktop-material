@@ -129,6 +129,19 @@ function repositoryStateKey(
     .slice(0, 24)}`
 }
 
+function accountSnapshotFingerprint(account: Account): string {
+  return createHash('sha256')
+    .update(
+      JSON.stringify([
+        getAccountKey(account),
+        account.provider,
+        account.login,
+        account.token,
+      ])
+    )
+    .digest('hex')
+}
+
 function unavailableState(
   repositoryKey: string | null,
   repositoryName: string | null,
@@ -235,6 +248,7 @@ export class ProviderTriageStore extends BaseStore {
   private generation = 0
   private controller: AbortController | null = null
   private selectedAccountKey: string | null = null
+  private selectedAccountFingerprint: string | null = null
 
   public constructor(
     private readonly dependencies: IProviderTriageStoreDependencies = defaultDependencies
@@ -248,25 +262,62 @@ export class ProviderTriageStore extends BaseStore {
 
   public updateAccounts(accounts: ReadonlyArray<Account>): void {
     const selected = this.selectedAccountKey
-    if (
-      selected !== null &&
-      !accounts.some(account => getAccountKey(account) === selected)
-    ) {
-      this.cancel()
+    const current =
+      selected === null
+        ? undefined
+        : accounts.find(account => getAccountKey(account) === selected)
+    if (selected !== null && current === undefined) {
+      this.cancelCurrent(false)
       this.selectedAccountKey = null
+      this.selectedAccountFingerprint = null
       this.state = unavailableState(
         this.state.repositoryKey,
         this.state.repositoryName,
         'The account selected for this repository was signed out. Sign in or choose another account.'
       )
       this.emitUpdate()
+      return
+    }
+    if (
+      current !== undefined &&
+      this.selectedAccountFingerprint !== null &&
+      accountSnapshotFingerprint(current) !== this.selectedAccountFingerprint
+    ) {
+      this.cancelCurrent(false)
+      this.selectedAccountFingerprint = null
+      this.state = {
+        ...this.state,
+        status: 'idle',
+        items: [],
+        issues: idleChannel,
+        pullRequests: idleChannel,
+        accountLogin: current.login,
+        provider: current.provider,
+        message: 'The selected account session changed. Refreshing triage…',
+        refreshedAt: null,
+      }
+      this.emitUpdate()
+    }
+  }
+
+  private cancelCurrent(updateState: boolean): void {
+    this.generation++
+    this.controller?.abort()
+    this.controller = null
+    if (updateState && this.state.status === 'loading') {
+      this.state = {
+        ...this.state,
+        status: 'idle',
+        issues: idleChannel,
+        pullRequests: idleChannel,
+        message: 'Triage refresh canceled.',
+      }
+      this.emitUpdate()
     }
   }
 
   public cancel(): void {
-    this.generation++
-    this.controller?.abort()
-    this.controller = null
+    this.cancelCurrent(true)
   }
 
   public async load(
@@ -274,7 +325,7 @@ export class ProviderTriageStore extends BaseStore {
     accounts: ReadonlyArray<Account>,
     externalSignal?: AbortSignal
   ): Promise<void> {
-    this.cancel()
+    this.cancelCurrent(false)
     const generation = this.generation
     const remote = repository.gitHubRepository
     const provisionalKey = repositoryStateKey(repository, null)
@@ -301,6 +352,7 @@ export class ProviderTriageStore extends BaseStore {
     const { account, owner, name, repositoryKey } = resolved
     const accountKey = getAccountKey(account)
     this.selectedAccountKey = accountKey
+    this.selectedAccountFingerprint = accountSnapshotFingerprint(account)
     this.state = {
       status: 'loading',
       repositoryKey,
@@ -337,6 +389,20 @@ export class ProviderTriageStore extends BaseStore {
         generation !== this.generation ||
         this.state.repositoryKey !== repositoryKey
       ) {
+        if (
+          controller.signal.aborted &&
+          generation === this.generation &&
+          this.state.status === 'loading'
+        ) {
+          this.state = {
+            ...this.state,
+            status: 'idle',
+            issues: idleChannel,
+            pullRequests: idleChannel,
+            message: 'Triage refresh canceled.',
+          }
+          this.emitUpdate()
+        }
         return
       }
 
