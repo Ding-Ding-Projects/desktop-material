@@ -355,4 +355,25 @@ describe('repository section order', () => {
       5
     )
   })
+
+  it('places Issues and triage after Releases and before Repository Tools', () => {
+    assert.deepStrictEqual(getRepositorySections(true, true, true), [
+      RepositorySectionTab.Changes,
+      RepositorySectionTab.History,
+      RepositorySectionTab.Actions,
+      RepositorySectionTab.Releases,
+      RepositorySectionTab.Issues,
+      RepositorySectionTab.Triage,
+      RepositorySectionTab.RepositoryTools,
+    ])
+    assert.equal(
+      getRepositorySectionVisualIndex(
+        RepositorySectionTab.RepositoryTools,
+        true,
+        true,
+        true
+      ),
+      6
+    )
+  })
 })
