@@ -326,6 +326,7 @@ export class ActionsStore {
   private readonly states = new Map<string, IActionsState>()
   private readonly subscriptions = new Map<string, IActionsSubscription>()
   private readonly inFlight = new Map<string, Promise<void>>()
+  private readonly activeAccountControllers = new Set<AbortController>()
   private refreshHandle: number | null = null
 
   public constructor(accountsStore: AccountsStore) {
@@ -344,6 +345,10 @@ export class ActionsStore {
     }
     this.accounts = accounts
     this.accountsGeneration++
+    for (const controller of this.activeAccountControllers) {
+      controller.abort()
+    }
+    this.activeAccountControllers.clear()
     this.states.clear()
     this.inFlight.clear()
 
@@ -454,6 +459,38 @@ export class ActionsStore {
   private apiFor(repository: Repository): API {
     const account = this.accountFor(repository)
     return API.fromAccount(account)
+  }
+
+  private async runAccountBound<T>(
+    signal: AbortSignal | undefined,
+    work: (signal: AbortSignal) => Promise<T>,
+    completedResultIsAuthoritative: boolean = false
+  ): Promise<T> {
+    const accountsGeneration = this.accountsGeneration
+    const controller = new AbortController()
+    const cancel = () => controller.abort()
+    signal?.addEventListener('abort', cancel, { once: true })
+    this.activeAccountControllers.add(controller)
+    try {
+      if (signal?.aborted) {
+        controller.abort()
+      }
+      if (controller.signal.aborted) {
+        throw canceledAccountRequest()
+      }
+      const result = await work(controller.signal)
+      if (
+        !completedResultIsAuthoritative &&
+        (controller.signal.aborted ||
+          accountsGeneration !== this.accountsGeneration)
+      ) {
+        throw canceledAccountRequest()
+      }
+      return result
+    } finally {
+      signal?.removeEventListener('abort', cancel)
+      this.activeAccountControllers.delete(controller)
+    }
   }
 
   private async mutate(
@@ -650,12 +687,18 @@ export class ActionsStore {
     jobId: number,
     signal?: AbortSignal
   ) {
-    const gitHubRepository = this.gitHubFor(repository)
-    return fetchActionsJobLogThroughMainProcess(
-      this.accountFor(repository),
-      gitHubRepository,
-      jobId,
-      signal
+    return this.runAccountBound(
+      signal,
+      requestSignal => {
+        const gitHubRepository = this.gitHubFor(repository)
+        return fetchActionsJobLogThroughMainProcess(
+          this.accountFor(repository),
+          gitHubRepository,
+          jobId,
+          requestSignal
+        )
+      },
+      true
     )
   }
 
@@ -665,23 +708,17 @@ export class ActionsStore {
     page: number = 1,
     signal?: AbortSignal
   ): Promise<IActionsArtifactList> {
-    const accountsGeneration = this.accountsGeneration
     try {
-      const gitHubRepository = this.gitHubFor(repository)
-      const result = await this.apiFor(repository).fetchWorkflowRunArtifacts(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        runId,
-        page,
-        signal
-      )
-      if (
-        signal?.aborted === true ||
-        accountsGeneration !== this.accountsGeneration
-      ) {
-        throw canceledAccountRequest()
-      }
-      return result
+      return await this.runAccountBound(signal, requestSignal => {
+        const gitHubRepository = this.gitHubFor(repository)
+        return this.apiFor(repository).fetchWorkflowRunArtifacts(
+          gitHubRepository.owner.login,
+          gitHubRepository.name,
+          runId,
+          page,
+          requestSignal
+        )
+      })
     } catch (error) {
       throw actionsArtifactError(error, 'list')
     }
@@ -699,22 +736,15 @@ export class ActionsStore {
         'Effective branch rules require GitHub.com, GHE.com, or GitHub Enterprise Server 3.12 or later.'
       )
     }
-    const api = this.apiFor(repository)
-    const accountsGeneration = this.accountsGeneration
     try {
-      const result = await api.fetchEffectiveBranchRules(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        branch,
-        signal
+      return await this.runAccountBound(signal, requestSignal =>
+        this.apiFor(repository).fetchEffectiveBranchRules(
+          gitHubRepository.owner.login,
+          gitHubRepository.name,
+          branch,
+          requestSignal
+        )
       )
-      if (
-        signal?.aborted === true ||
-        accountsGeneration !== this.accountsGeneration
-      ) {
-        throw canceledAccountRequest()
-      }
-      return result
     } catch (error) {
       throw actionsBranchRulesError(error)
     }
@@ -726,13 +756,15 @@ export class ActionsStore {
     signal?: AbortSignal
   ): Promise<boolean> {
     try {
-      const gitHubRepository = this.gitHubFor(repository)
-      return await this.apiFor(repository).fetchArtifactAttestationPresence(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        digest,
-        signal
-      )
+      return await this.runAccountBound(signal, requestSignal => {
+        const gitHubRepository = this.gitHubFor(repository)
+        return this.apiFor(repository).fetchArtifactAttestationPresence(
+          gitHubRepository.owner.login,
+          gitHubRepository.name,
+          digest,
+          requestSignal
+        )
+      })
     } catch (error) {
       throw actionsArtifactError(error, 'attestations')
     }
@@ -746,14 +778,20 @@ export class ActionsStore {
     onProgress?: (progress: IActionsArtifactDownloadProgress) => void
   ): Promise<IActionsArtifactDownloadResult> {
     try {
-      const gitHubRepository = this.gitHubFor(repository)
-      return await downloadActionsArtifactThroughMainProcess(
-        this.accountFor(repository),
-        gitHubRepository,
-        artifact,
-        destination,
+      return await this.runAccountBound(
         signal,
-        onProgress
+        requestSignal => {
+          const gitHubRepository = this.gitHubFor(repository)
+          return downloadActionsArtifactThroughMainProcess(
+            this.accountFor(repository),
+            gitHubRepository,
+            artifact,
+            destination,
+            requestSignal,
+            onProgress
+          )
+        },
+        true
       )
     } catch (error) {
       throw actionsArtifactError(error, 'download')

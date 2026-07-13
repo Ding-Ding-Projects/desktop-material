@@ -11,18 +11,26 @@ import { AccountsStore } from '../../src/lib/stores/accounts-store'
 const ipcRequests = new Array<{
   readonly channel: string
   readonly request: {
+    readonly operationId: string
     readonly endpoint: string
     readonly token: string
     readonly owner: string
     readonly repository: string
   }
 }>()
+const canceledTransfers = new Array<string>()
+const pendingArtifactDownloads = new Map<
+  string,
+  (result: { readonly ok: false; readonly reason: 'canceled' }) => void
+>()
+let pauseArtifactDownloads = false
 
 mock.module('../../src/lib/ipc-renderer', {
   namedExports: {
     invoke: async (
       channel: string,
       request: {
+        operationId: string
         endpoint: string
         token: string
         owner: string
@@ -30,6 +38,11 @@ mock.module('../../src/lib/ipc-renderer', {
       }
     ) => {
       ipcRequests.push({ channel, request })
+      if (channel === 'download-actions-artifact' && pauseArtifactDownloads) {
+        return await new Promise(resolve => {
+          pendingArtifactDownloads.set(request.operationId, resolve)
+        })
+      }
       return channel === 'fetch-actions-job-log'
         ? { ok: true, log: 'selected account log', truncated: false }
         : {
@@ -40,20 +53,37 @@ mock.module('../../src/lib/ipc-renderer', {
             matchesGitHubDigest: null,
           }
     },
-    send: () => undefined,
+    send: (channel: string, operationId: string) => {
+      if (channel === 'cancel-actions-transfer') {
+        canceledTransfers.push(operationId)
+        pendingArtifactDownloads.get(operationId)?.({
+          ok: false,
+          reason: 'canceled',
+        })
+        pendingArtifactDownloads.delete(operationId)
+      }
+    },
     on: () => undefined,
     removeListener: () => undefined,
   },
 })
 
 class TestAccountsStore {
+  private listener: ((accounts: ReadonlyArray<Account>) => void) | null = null
+
   public constructor(private readonly accounts: ReadonlyArray<Account>) {}
 
   public async getAll() {
     return this.accounts
   }
 
-  public onDidUpdate() {}
+  public onDidUpdate(listener: (accounts: ReadonlyArray<Account>) => void) {
+    this.listener = listener
+  }
+
+  public update(accounts: ReadonlyArray<Account>) {
+    this.listener?.(accounts)
+  }
 }
 
 describe('ActionsStore exact account routing', () => {
@@ -195,6 +225,78 @@ describe('ActionsStore exact account routing', () => {
     } finally {
       fromAccount.mock.restore()
       window.setTimeout = originalSetTimeout
+    }
+  })
+
+  it('cancels an in-flight artifact transfer when the selected account changes', async () => {
+    ipcRequests.length = 0
+    canceledTransfers.length = 0
+    pendingArtifactDownloads.clear()
+    pauseArtifactDownloads = true
+    const endpoint = 'https://api.github.com'
+    const selected = new Account(
+      'selected',
+      endpoint,
+      'token-one',
+      [],
+      '',
+      2,
+      'Selected'
+    )
+    const gitHubRepository = new GitHubRepository(
+      'project',
+      new Owner('group', endpoint, 1),
+      1
+    )
+    const repository = new Repository(
+      'C:/project',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    const accounts = new TestAccountsStore([selected])
+    const artifact: IActionsArtifact = {
+      id: 19,
+      name: 'package',
+      sizeInBytes: 0,
+      expired: false,
+      createdAt: new Date(0),
+      expiresAt: null,
+      updatedAt: new Date(0),
+      digest: null,
+      workflowRun: null,
+    }
+
+    try {
+      const { ActionsStore } = await import(
+        '../../src/lib/stores/actions-store'
+      )
+      const store = new ActionsStore(accounts as unknown as AccountsStore)
+      await Promise.resolve()
+      const transfer = store.downloadArtifact(
+        repository,
+        artifact,
+        'C:\\Downloads\\package.zip',
+        new AbortController().signal
+      )
+      await Promise.resolve()
+      assert.equal(pendingArtifactDownloads.size, 1)
+
+      accounts.update([selected.withToken('token-two')])
+      await assert.rejects(
+        transfer,
+        error => (error as Error).name === 'AbortError'
+      )
+      assert.equal(canceledTransfers.length, 1)
+      assert.equal(pendingArtifactDownloads.size, 0)
+    } finally {
+      pauseArtifactDownloads = false
+      pendingArtifactDownloads.clear()
     }
   })
 })
