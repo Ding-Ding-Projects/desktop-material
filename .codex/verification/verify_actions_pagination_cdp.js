@@ -119,7 +119,7 @@ class CDPClient {
     return new Promise((resolve, reject) => {
       this.pending.set(id, { resolve, reject })
       this.socket.send(JSON.stringify({ id, method, params }), error => {
-        if (error !== undefined) {
+        if (error != null) {
           this.pending.delete(id)
           reject(error)
         }
@@ -525,6 +525,8 @@ async function main() {
 }
 
 main().catch(error => {
-  process.stderr.write(`${error.stack || error.message || String(error)}\n`)
+  process.stderr.write(
+    `${error?.stack || error?.message || String(error ?? 'Unknown error.')}\n`
+  )
   process.exitCode = 1
 })
