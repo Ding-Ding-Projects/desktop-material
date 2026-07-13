@@ -90,6 +90,7 @@ import { Preferences } from './preferences'
 import { SettingsHistoryDialog } from './settings-history'
 import { NotificationHistoryDialog } from './notifications/notification-history-dialog'
 import { FileHistory } from './file-history'
+import { SparseCheckoutManager } from './sparse-checkout'
 import { NotificationCentrePanel } from './notifications/notification-centre-panel'
 import { MergeAllDialog } from './merge-all'
 import { PullAllDialog } from './pull-all'
@@ -567,6 +568,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings()
       case 'manage-gitignore':
         return this.showRepositorySettings(RepositorySettingsTab.IgnoredFiles)
+      case 'manage-sparse-checkout':
+        return this.showSparseCheckout()
       case 'build-and-run':
         return this.buildAndRun()
       case 'view-repository-on-github':
@@ -1466,6 +1469,18 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
+  private showSparseCheckout() {
+    const repository = this.getRepository()
+
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    this.props.dispatcher.showPopup({
+      type: PopupType.SparseCheckout,
+      repository,
+    })
+  }
+
   private buildAndRun() {
     const repository = this.getRepository()
 
@@ -1875,6 +1890,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             key={`file-history-${popup.repository.id}-${popup.path}`}
             repository={popup.repository}
             path={popup.path}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.SparseCheckout:
+        return (
+          <SparseCheckoutManager
+            key={`sparse-checkout-${popup.repository.id}`}
+            repository={popup.repository}
+            onRefreshRepository={() =>
+              this.props.dispatcher.refreshRepository(popup.repository)
+            }
             onDismissed={onPopupDismissedFn}
           />
         )

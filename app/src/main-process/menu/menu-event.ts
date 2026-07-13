@@ -30,6 +30,7 @@ export type MenuEvent =
   | 'rebase-branch'
   | 'show-repository-settings'
   | 'manage-gitignore'
+  | 'manage-sparse-checkout'
   | 'build-and-run'
   | 'open-in-shell'
   | 'compare-on-github'
