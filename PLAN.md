@@ -166,11 +166,10 @@ error, screenshot, or retained ledger. Its redacted cross-account evidence was:
   repository opened on `main`, and its persisted affinity named only the
   synthetic `proof-b` account key. Tokenless candidates and stale tokenless
   repository bindings were excluded;
-- **Pull All:** built checkpoint `32b7bb6b…` showed the normal unforced attempt
-  rejected, another eligible exact-origin signed-in account succeeding, and the
-  neutral result `Pull completed using another signed-in account.`. Its final
-  hardening and regressions are present in `5e80e678…`; this ledger does not
-  relabel the earlier Pull All pixels as a final-source capture;
+- **Pull All:** exact built source `5e80e678…` retried four fixture repositories;
+  the app reported `4 pulled, 0 skipped, 0 failed`, and every row used the
+  neutral result `Pull completed using another signed-in account.` without
+  revealing which synthetic identity succeeded;
 - **history deepening:** a shallow fetch recovered through the Desktop
   credential trampoline and another exact-origin account, and the app reported
   `Fetch completed using another signed-in account.`; and
@@ -180,21 +179,20 @@ error, screenshot, or retained ledger. Its redacted cross-account evidence was:
 
 The following 14 synthetic-only PNGs were reopened at original resolution and
 accepted as nonblank, unclipped, and identity-safe. Their provenance remains
-explicit: six were captured from built app source `32b7bb6b…`, before the last
-cross-account/lifecycle merges; eight were captured from exact built app source
-`5e80e678…`. A separate redacted ledger proves the final-source clone. The files
-must be promoted unchanged with the final documentation/image union before
-their later merge SHA is published.
+explicit: three were captured from built app source `32b7bb6b…`, before the last
+cross-account/lifecycle merges; eleven were captured from exact built app source
+`5e80e678…`. The files must be promoted unchanged with the final
+documentation/image union before their later merge SHA is published.
 
 | M19 accepted capture candidate | App source/build | Dimensions | Bytes | SHA-256 |
 | --- | --- | ---: | ---: | --- |
 | `material-shallow-clone-safe.png` | `32b7bb6b…` | 1443×992 | 86,305 | `926575457408ea49a1a29617b50a429a75fbc394f48ae8cba0a5a418461acd0a` |
-| `material-clone-account-fallback.png` | `32b7bb6b…` | 1443×992 | 144,728 | `0aa51e9c6254e5f1c25ff366ca4dc71fbf9a245224c6292159309c871a83de8e` |
-| `material-pull-all-account-fallback.png` | `32b7bb6b…` | 1443×992 | 97,762 | `66476a7e1807b1ccc33cb63ef9bca3e57f04ccf9c2bd2fbd720b9dcecce7f8aa` |
 | `material-sparse-checkout-safe.png` | `32b7bb6b…` | 1443×992 | 113,831 | `2ed3530f661466b5794a5eda5501e15e54e6aa4d2e47f35a43156a043004b5e5` |
-| `material-remote-manager.png` | `32b7bb6b…` | 1443×992 | 149,830 | `febd9e405b505eef557f5954f58549556fefa3f5656cdbc2396923fcbd46e483` |
 | `material-stash-manager.png` | `32b7bb6b…` | 1443×992 | 121,038 | `21403cb9a5517d904e467dc70a5f8356fe44ba36f5ca66bb46f707557690837f` |
+| `material-clone-account-fallback.png` | `5e80e678…` | 1452×1001 | 164,039 | `d562616bbcfeb6c7f92dfaa600a58265e5f954dfe80999e9383d615400b444f4` |
+| `material-pull-all-account-fallback.png` | `5e80e678…` | 1452×1001 | 121,304 | `3a00b1b61e79e8abadb363b8d63ce5f1ebece4d895a476cc9ca4c983a638a5de` |
 | `material-history-deepen.png` | `5e80e678…` | 1452×1001 | 106,548 | `5e6bdfa9d9a935b9f5fd8d6d3e7cad80dab28cca6f425ef0356b684f74cb8089` |
+| `material-remote-manager.png` | `5e80e678…` | 1452×1001 | 160,714 | `97817a1d31a8d592981c997b5c4aecc98cf291450f9f6f34008b7697942213b3` |
 | `material-repository-tools.png` | `5e80e678…` | 1452×1001 | 117,713 | `b72ba5a362f6d4fef758183cbc84db7795c41884bdc2eea88deb115b3fe59385` |
 | `material-provider-triage.png` | `5e80e678…` | 1452×1001 | 119,639 | `a4acbe0cfa8d7f17deb1e0e36ba7177caf3ff25b5c7c38ae65bc16f0de1f950e` |
 | `material-actions-job-log.png` | `5e80e678…` | 1452×1001 | 93,898 | `45a67b15745f413d80d2d3a3a5a47acdac63e1dda942a4d49131b36b2784a064` |
@@ -265,6 +263,10 @@ The later clone hardening tree at implementation commit
 | `material-actions-job-log.png` | 2048×1228 | 155,579 | `6f8a96a9bff8a9c76f89b44aaf3c84a71574aed11ef994db93d12d2749ca0409` |
 | `material-pull-all-account-fallback.png` | 2048×1228 | 114,222 | `80674cf75511c1238bcf527e6e678ffd3d46e4cc36ee2455ebd4b8cecf1c0991` |
 | `material-clone-account-fallback.png` | 2048×1228 | 140,143 | `89bb755ad37f6d8537815d411526fa6e16aeee9cd16446deabbc17595cb3623c` |
+
+Those three same-name rows are commit-pinned historical values; the M19
+documentation/image union intentionally replaces their current tracked files
+with the accepted M19 PNGs and hashes recorded above.
 
 ## Historical root-finalized publication evidence
 
