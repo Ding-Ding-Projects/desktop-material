@@ -6,6 +6,7 @@ import {
   getBitbucketAPIEndpoint,
   getEndpointForRepository,
   getGitLabAPIEndpoint,
+  getHTMLURL,
   getNextPagePathWithIncreasingPageSize,
   GitHubDotComRESTAPIVersion,
   GitHubRESTAPIVersionHeader,
@@ -81,6 +82,17 @@ describe('API', () => {
       assert.equal(
         getEndpointForRepository('https://bitbucket.org/team/project.git'),
         getBitbucketAPIEndpoint()
+      )
+    })
+
+    it('maps third-party API endpoints back to exact browser roots', () => {
+      assert.equal(
+        getHTMLURL('https://gitlab.example.com/gitlab/api/v4'),
+        'https://gitlab.example.com/gitlab'
+      )
+      assert.equal(
+        getHTMLURL(getBitbucketAPIEndpoint()),
+        'https://bitbucket.org'
       )
     })
   })

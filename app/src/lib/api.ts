@@ -3959,6 +3959,22 @@ export function getHTMLURL(endpoint: string): string {
     return envHTMLURL
   }
 
+  if (
+    endpoint.replace(/\/+$/, '') ===
+    getBitbucketAPIEndpoint().replace(/\/+$/, '')
+  ) {
+    return 'https://bitbucket.org'
+  }
+
+  const providerURL = new window.URL(endpoint)
+  const providerPath = providerURL.pathname.replace(/\/+$/, '')
+  if (providerPath.endsWith('/api/v4')) {
+    providerURL.pathname = providerPath.slice(0, -'/api/v4'.length) || '/'
+    providerURL.search = ''
+    providerURL.hash = ''
+    return providerURL.toString().replace(/\/$/, '')
+  }
+
   // In the case of GitHub.com, the HTML site lives on the parent domain.
   //  E.g., https://api.github.com -> https://github.com
   //
