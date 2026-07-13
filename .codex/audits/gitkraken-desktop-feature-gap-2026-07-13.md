@@ -1,6 +1,7 @@
 # GitKraken Desktop history and native-function gap ledger
 
-Date: 2026-07-13  
+Date: 2026-07-13
+
 Scope: public GitKraken Desktop behavior that can inform original, locally implemented Desktop Material workflows
 
 ## Product boundary
