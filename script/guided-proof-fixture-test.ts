@@ -1,6 +1,7 @@
 import assert from 'node:assert'
 import { execFile } from 'node:child_process'
 import { createServer, request as httpRequest } from 'node:http'
+import { createServer as createTCPServer } from 'node:net'
 import {
   lstat,
   mkdir,
@@ -20,6 +21,7 @@ import {
   GuidedProofRequestHandler,
   IGuidedProofHandlerFixture,
   parseGuidedProofCLIArguments,
+  startGuidedProofFixture,
 } from './guided-proof-fixture'
 
 const execFileAsync = promisify(execFile)
@@ -126,12 +128,19 @@ async function rawRequestStatus(
 async function cloneWithToken(
   url: string,
   destination: string,
-  token: string
+  token: string,
+  certificatePath?: string
 ): Promise<void> {
   const configPath = `${destination}.proof.gitconfig`
+  const certificateConfiguration =
+    certificatePath === undefined
+      ? ''
+      : `\tsslCAInfo = "${certificatePath
+          .replace(/\\/g, '/')
+          .replace(/"/g, '\\"')}"\n`
   await writeFile(
     configPath,
-    `[credential]\n\thelper =\n[http]\n\textraHeader = Authorization: ${basicAuthorization(
+    `[credential]\n\thelper =\n[http]\n${certificateConfiguration}\textraHeader = Authorization: ${basicAuthorization(
       token
     )}\n`,
     { encoding: 'utf8', flag: 'wx', mode: 0o600 }
@@ -146,6 +155,50 @@ async function cloneWithToken(
   } finally {
     await rm(configPath, { force: true })
   }
+}
+
+async function findOpenSSL(): Promise<string> {
+  const candidates = ['openssl']
+  if (process.platform === 'win32') {
+    const environment = createGuidedProofChildEnvironment(process.env)
+    const { stdout } = await execFileAsync('git', ['--exec-path'], {
+      env: environment,
+      windowsHide: true,
+    })
+    candidates.push(
+      resolve(stdout.trim(), '..', '..', '..', 'usr', 'bin', 'openssl.exe')
+    )
+  }
+  for (const candidate of candidates) {
+    try {
+      await execFileAsync(candidate, ['version'], {
+        env: createGuidedProofChildEnvironment(process.env),
+        windowsHide: true,
+      })
+      return candidate
+    } catch {
+      // Keep looking for the OpenSSL distributed with Git for Windows.
+    }
+  }
+  throw new Error('OpenSSL is required for the guided proof HTTPS test.')
+}
+
+async function reserveLoopbackPort(): Promise<number> {
+  const server = createTCPServer()
+  await new Promise<void>((resolvePromise, reject) => {
+    server.once('error', reject)
+    server.listen(0, '127.0.0.1', () => resolvePromise())
+  })
+  const address = server.address()
+  if (address === null || typeof address === 'string') {
+    throw new Error('A loopback port could not be reserved for the proof test.')
+  }
+  await new Promise<void>((resolvePromise, reject) =>
+    server.close(error =>
+      error === undefined ? resolvePromise() : reject(error)
+    )
+  )
+  return address.port
 }
 
 describe('guided proof fixture script', () => {
@@ -362,5 +415,111 @@ describe('guided proof fixture script', () => {
       await harness.close()
     }
     await assert.rejects(lstat(ownedRoot))
+  })
+
+  it('starts on real loopback HTTPS and smart-clones only with account B', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'guided-proof-https-test-'))
+    const certificatePath = join(root, 'certificate.pem')
+    const keyPath = join(root, 'key.pem')
+    const fixtureRoot = join(root, 'owned-fixture')
+    const rejectedDestination = join(root, 'account-a-clone')
+    const acceptedDestination = join(root, 'account-b-clone')
+    const openSSL = await findOpenSSL()
+    await execFileAsync(
+      openSSL,
+      [
+        'req',
+        '-x509',
+        '-newkey',
+        'rsa:2048',
+        '-sha256',
+        '-nodes',
+        '-days',
+        '1',
+        '-keyout',
+        keyPath,
+        '-out',
+        certificatePath,
+        '-subj',
+        '/CN=127.0.0.1',
+        '-addext',
+        'subjectAltName=IP:127.0.0.1,DNS:localhost',
+      ],
+      {
+        env: createGuidedProofChildEnvironment(process.env),
+        windowsHide: true,
+      }
+    )
+    const port = await reserveLoopbackPort()
+    const fixture = await startGuidedProofFixture({
+      root: fixtureRoot,
+      certificatePath,
+      keyPath,
+      port,
+      tokenA,
+      tokenB,
+    })
+    try {
+      assert.match(fixture.ready.cloneUrl, /^https:\/\/127\.0\.0\.1:/)
+      const address = fixture.server.address()
+      if (address === null || typeof address === 'string') {
+        throw new Error('The HTTPS fixture did not bind an IPv4 loopback port.')
+      }
+      assert.equal(address.address, '127.0.0.1')
+
+      let rejectedError: unknown = null
+      try {
+        await cloneWithToken(
+          fixture.ready.cloneUrl,
+          rejectedDestination,
+          tokenA,
+          certificatePath
+        )
+      } catch (error) {
+        rejectedError = error
+      }
+      assert.notEqual(rejectedError, null)
+      const rejectedText =
+        rejectedError instanceof Error
+          ? `${rejectedError.message}\n${String(
+              (rejectedError as Error & { stderr?: unknown }).stderr ?? ''
+            )}`
+          : String(rejectedError)
+      assert.doesNotMatch(rejectedText, new RegExp(tokenA))
+      assert.doesNotMatch(rejectedText, new RegExp(tokenB))
+
+      await cloneWithToken(
+        fixture.ready.cloneUrl,
+        acceptedDestination,
+        tokenB,
+        certificatePath
+      )
+      const { stdout } = await execFileAsync(
+        'git',
+        ['rev-list', '--count', 'HEAD'],
+        {
+          cwd: acceptedDestination,
+          env: createGuidedProofChildEnvironment(process.env),
+          windowsHide: true,
+        }
+      )
+      assert.equal(stdout.trim(), '3')
+
+      await fixture.close()
+      const ready = await readFile(join(fixtureRoot, 'ready.json'), 'utf8')
+      const ledger = await readFile(fixture.ready.ledger.path, 'utf8')
+      for (const output of [ready, ledger, rejectedText]) {
+        assert.doesNotMatch(output, new RegExp(tokenA))
+        assert.doesNotMatch(output, new RegExp(tokenB))
+      }
+      assert.match(ledger, /"route":"git-authentication"/)
+      assert.match(ledger, /"route":"git-upload-pack"/)
+    } finally {
+      await fixture.close()
+      const safeRoot = resolve(root)
+      assert.ok(safeRoot.startsWith(resolve(tmpdir())))
+      await rm(safeRoot, { recursive: true })
+    }
+    await assert.rejects(lstat(root))
   })
 })
