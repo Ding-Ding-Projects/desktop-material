@@ -72,6 +72,14 @@ describe('provider triage API adapters', () => {
       )
       assert.match(requests[0].url, /page=1&per_page=10/)
       assert.equal(requests[0].options?.signal, controller.signal)
+      assert.equal(
+        new Headers(requests[0].options?.headers).get('PRIVATE-TOKEN'),
+        'gitlab-token'
+      )
+      assert.equal(
+        new Headers(requests[0].options?.headers).get('Authorization'),
+        null
+      )
 
       responses.push(
         new Response(
@@ -117,6 +125,14 @@ describe('provider triage API adapters', () => {
       )
       assert.equal(githubPage.capped, true)
       assert.match(requests[2].url, /repos\/desktop\/material\/pulls/)
+      assert.equal(
+        new Headers(requests[2].options?.headers).get('Authorization'),
+        'Bearer github-token'
+      )
+      assert.equal(
+        new Headers(requests[2].options?.headers).get('PRIVATE-TOKEN'),
+        null
+      )
 
       const bitbucket = API.fromAccount(
         account(
@@ -150,6 +166,14 @@ describe('provider triage API adapters', () => {
       assert.match(
         requests[3].url,
         /repositories\/workspace\/material\/pullrequests/
+      )
+      assert.equal(
+        new Headers(requests[3].options?.headers).get('Authorization'),
+        `Basic ${Buffer.from('fixture-bot:app-password').toString('base64')}`
+      )
+      assert.equal(
+        new Headers(requests[3].options?.headers).get('PRIVATE-TOKEN'),
+        null
       )
 
       const requestCount = requests.length

@@ -37,6 +37,39 @@ describe('provider triage bounded JSON', () => {
     )
   })
 
+  it('rejects invalid lengths and promptly cancels an aborted reader', async () => {
+    let invalidLengthCanceled = false
+    const invalidLength = new Response(
+      new ReadableStream<Uint8Array>({
+        cancel() {
+          invalidLengthCanceled = true
+        },
+      }),
+      { headers: { 'content-length': '1e3' } }
+    )
+    await assert.rejects(
+      readBoundedProviderTriageJSON(invalidLength),
+      (error: ProviderTriageJSONError) => error.kind === 'invalid-length'
+    )
+    assert.equal(invalidLengthCanceled, true)
+
+    const controller = new AbortController()
+    let abortCanceled = false
+    const pending = readBoundedProviderTriageJSON(
+      new Response(
+        new ReadableStream<Uint8Array>({
+          cancel() {
+            abortCanceled = true
+          },
+        })
+      ),
+      controller.signal
+    )
+    controller.abort()
+    await assert.rejects(pending, { name: 'AbortError' })
+    assert.equal(abortCanceled, true)
+  })
+
   it('accepts 50 ordinary long-form provider items beneath the hard cap', async () => {
     const values = Array.from({ length: 50 }, (_, index) => ({
       number: index + 1,

@@ -6,6 +6,7 @@ import {
   getBitbucketAPIEndpoint,
   getEndpointForRepository,
   getGitLabAPIEndpoint,
+  getHTMLURL,
   getNextPagePathWithIncreasingPageSize,
   GitHubDotComRESTAPIVersion,
   GitHubRESTAPIVersionHeader,
@@ -81,6 +82,17 @@ describe('API', () => {
       assert.equal(
         getEndpointForRepository('https://bitbucket.org/team/project.git'),
         getBitbucketAPIEndpoint()
+      )
+    })
+
+    it('maps third-party API endpoints back to exact browser roots', () => {
+      assert.equal(
+        getHTMLURL('https://gitlab.example.com/gitlab/api/v4'),
+        'https://gitlab.example.com/gitlab'
+      )
+      assert.equal(
+        getHTMLURL(getBitbucketAPIEndpoint()),
+        'https://bitbucket.org'
       )
     })
   })
@@ -403,6 +415,46 @@ describe('API', () => {
           error.responseStatus === 404 &&
           error.message === 'Resource not found'
       )
+    })
+
+    it('propagates the exact signal for account-bound Actions reads', async () => {
+      const api = new API('https://api.github.com', 'token')
+      const controller = new AbortController()
+      const requests = new Array<{ path: string; signal?: AbortSignal }>()
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (
+          _method: string,
+          path: string,
+          options?: { signal?: AbortSignal }
+        ) => {
+          requests.push({ path, signal: options?.signal })
+          return new Response(
+            path.endsWith('/jobs') ? JSON.stringify({ jobs: [] }) : 'name: CI'
+          )
+        }
+      )
+
+      await api.fetchWorkflowRunJobs('owner', 'repo', 42, controller.signal)
+      await api.fetchWorkflowFileContent(
+        'owner',
+        'repo',
+        '.github/workflows/ci.yml',
+        'main',
+        controller.signal
+      )
+
+      assert.deepEqual(requests, [
+        {
+          path: 'repos/owner/repo/actions/runs/42/jobs',
+          signal: controller.signal,
+        },
+        {
+          path: 'repos/owner/repo/contents/.github/workflows/ci.yml?ref=main',
+          signal: controller.signal,
+        },
+      ])
     })
   })
 
