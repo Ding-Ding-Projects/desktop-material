@@ -31,6 +31,8 @@ const actionsStore = {
   fetchArtifacts: async () => ({
     totalCount: 0,
     artifacts: [],
+    page: 1,
+    nextPage: null,
     truncated: false,
   }),
 } as unknown as ActionsStore

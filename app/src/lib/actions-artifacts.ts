@@ -1,5 +1,8 @@
-/** The REST endpoint is requested with GitHub's maximum supported page size. */
-export const ActionsArtifactPageSize = 100
+/** Keep each interactive artifact page compact while remaining API-efficient. */
+export const ActionsArtifactPageSize = 30
+
+/** Reject accidental or hostile page values before constructing a request. */
+export const ActionsArtifactMaximumPage = 1_000_000
 
 /**
  * A deliberate application safety limit. Artifact archives are streamed, but
@@ -29,7 +32,11 @@ export interface IActionsArtifact {
 export interface IActionsArtifactList {
   readonly totalCount: number
   readonly artifacts: ReadonlyArray<IActionsArtifact>
-  /** True when the bounded first page does not contain every artifact. */
+  /** Highest provider page represented by this list. */
+  readonly page: number
+  /** Next provider page available through the named Load more control. */
+  readonly nextPage: number | null
+  /** True when GitHub reports more artifacts than are currently loaded. */
   readonly truncated: boolean
 }
 
@@ -158,13 +165,15 @@ function parseWorkflowRun(
 
 /**
  * Validate and normalize GitHub's artifact list before any response reaches UI
- * state. The parser accepts only the bounded first page requested by the app.
+ * state. The parser accepts only one bounded page requested by the app.
  */
 export function parseActionsArtifactList(
   value: unknown,
-  expectedRunId: number
+  expectedRunId: number,
+  page: number = 1
 ): IActionsArtifactList {
   safeInteger(expectedRunId, 'workflow run id', 1)
+  validateActionsArtifactPage(page)
   const input = record(value, 'artifact list')
   const totalCount = safeInteger(input.total_count, 'artifact count')
   if (!Array.isArray(input.artifacts)) {
@@ -204,9 +213,66 @@ export function parseActionsArtifactList(
     throw new Error('GitHub returned an inconsistent artifact count.')
   }
 
+  const expectedPageItems = Math.min(
+    ActionsArtifactPageSize,
+    Math.max(totalCount - (page - 1) * ActionsArtifactPageSize, 0)
+  )
+  const hasLaterPage =
+    page * ActionsArtifactPageSize < totalCount ||
+    (artifacts.length > 0 && artifacts.length < expectedPageItems)
+
   return {
     totalCount,
     artifacts,
+    page,
+    nextPage:
+      artifacts.length > 0 && page < ActionsArtifactMaximumPage && hasLaterPage
+        ? page + 1
+        : null,
+    truncated: totalCount > artifacts.length,
+  }
+}
+
+/**
+ * Append a later provider page, updating duplicates that shifted between
+ * requests without rendering the same artifact twice.
+ */
+export function mergeActionsArtifactPage(
+  existing: IActionsArtifactList,
+  next: IActionsArtifactList
+): IActionsArtifactList {
+  if (existing.nextPage === null || next.page !== existing.nextPage) {
+    throw new Error('The artifact page no longer matches the loaded list.')
+  }
+
+  const artifacts = [...existing.artifacts]
+  const indexes = new Map(
+    artifacts.map((artifact, index) => [artifact.id, index])
+  )
+  for (const artifact of next.artifacts) {
+    const index = indexes.get(artifact.id)
+    if (index === undefined) {
+      indexes.set(artifact.id, artifacts.length)
+      artifacts.push(artifact)
+    } else {
+      artifacts[index] = artifact
+    }
+  }
+
+  const totalCount = Math.max(next.totalCount, artifacts.length)
+  const probeNextPage =
+    next.nextPage === null &&
+    next.artifacts.length > 0 &&
+    artifacts.length < totalCount &&
+    existing.page * ActionsArtifactPageSize < existing.totalCount &&
+    next.page < ActionsArtifactMaximumPage
+      ? next.page + 1
+      : null
+  return {
+    totalCount,
+    artifacts,
+    page: next.page,
+    nextPage: next.nextPage ?? probeNextPage,
     truncated: totalCount > artifacts.length,
   }
 }
@@ -271,4 +337,15 @@ export function validateActionsArtifactIdentifier(
   label: string
 ): number {
   return safeInteger(value, label, 1)
+}
+
+export function validateActionsArtifactPage(value: number): number {
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > ActionsArtifactMaximumPage
+  ) {
+    throw new Error('Artifact page is invalid.')
+  }
+  return value
 }

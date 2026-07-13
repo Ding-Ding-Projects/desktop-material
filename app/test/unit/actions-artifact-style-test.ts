@@ -46,6 +46,22 @@ describe('Actions artifact responsive styles', () => {
   it('wraps oversized names, digests, controls, and stacks at minimum width', () => {
     assert.match(
       source,
+      /\.actions-run-summary[\s\S]*?> strong\s*\{[\s\S]*?white-space: normal;[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      source,
+      /\.branch-chip\s*\{[\s\S]*?max-width: 100%;[\s\S]*?white-space: normal;[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      source,
+      /\.actions-actor\s*\{[\s\S]*?white-space: normal;[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      source,
+      /\.actions-artifact-pagination\s*\{[\s\S]*?min-width: 0;[\s\S]*?flex-wrap: wrap;[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      source,
       /\.actions-artifact-card[\s\S]*?h4\s*\{[\s\S]*?overflow-wrap: anywhere;/
     )
     assert.match(
@@ -59,6 +75,10 @@ describe('Actions artifact responsive styles', () => {
     assert.match(
       source,
       /@media \(max-width: 620px\)[\s\S]*?\.actions-artifact-buttons\s*\{[\s\S]*?flex: 1 1 100%;/
+    )
+    assert.match(
+      source,
+      /@media \(max-width: 620px\)[\s\S]*?\.actions-artifact-pagination\s*\{[\s\S]*?flex-direction: column;[\s\S]*?width: 100%;/
     )
   })
 })

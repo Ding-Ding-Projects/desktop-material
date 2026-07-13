@@ -79,15 +79,26 @@ describe('ActionsStore exact account routing', () => {
       getAccountKey(second)
     )
     const selectedAccounts = new Array<Account>()
+    const artifactPages = new Array<number>()
     const fakeAPI = {
       fetchWorkflows: async () => ({ workflows: [] }),
       fetchWorkflowRuns: async () => ({ workflow_runs: [] }),
       fetchWorkflowRunJobs: async () => ({ jobs: [] }),
-      fetchWorkflowRunArtifacts: async () => ({
-        totalCount: 0,
-        artifacts: [],
-        truncated: false,
-      }),
+      fetchWorkflowRunArtifacts: async (
+        _owner: string,
+        _name: string,
+        _runId: number,
+        page: number
+      ) => {
+        artifactPages.push(page)
+        return {
+          totalCount: 0,
+          artifacts: [],
+          page,
+          nextPage: null,
+          truncated: false,
+        }
+      },
       fetchArtifactAttestationPresence: async () => false,
       rerunWorkflowRun: async () => undefined,
       rerunFailedJobs: async () => true,
@@ -117,7 +128,7 @@ describe('ActionsStore exact account routing', () => {
       Reflect.set(store, 'refresh', async () => undefined)
 
       await store.fetchJobs(repository, 7)
-      await store.fetchArtifacts(repository, 7)
+      await store.fetchArtifacts(repository, 7, 2)
       await store.fetchArtifactAttestationPresence(
         repository,
         `sha256:${'a'.repeat(64)}`
@@ -158,6 +169,7 @@ describe('ActionsStore exact account routing', () => {
 
       assert.equal(selectedAccounts.length, 11)
       assert.ok(selectedAccounts.every(account => account === second))
+      assert.deepEqual(artifactPages, [2])
       assert.deepEqual(
         ipcRequests.map(({ channel, request }) => ({
           channel,

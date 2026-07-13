@@ -277,9 +277,8 @@
   gap: 6px;
 
   > strong {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -294,12 +293,12 @@
 
 .branch-chip {
   min-width: 0;
-  max-width: min(100%, 220px);
-  overflow: hidden;
+  max-width: 100%;
   min-height: 21px;
   padding: 0 8px;
   background: var(--md-sys-color-surface-container-highest);
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .actions-actor {
@@ -308,11 +307,11 @@
   max-width: 100%;
   align-items: center;
   gap: 5px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 
   img {
+    flex: 0 0 auto;
     width: 18px;
     height: 18px;
     border-radius: 50%;
@@ -604,14 +603,12 @@
 }
 
 .actions-artifact-guidance,
-.actions-artifact-page-note,
 .actions-artifact-message {
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
-.actions-artifact-guidance,
-.actions-artifact-page-note {
+.actions-artifact-guidance {
   color: var(--md-sys-color-on-surface-variant);
   font-size: 11px;
 }
@@ -620,7 +617,6 @@
   margin: 9px 0 0;
 }
 
-.actions-artifact-page-note,
 .actions-artifact-message {
   margin: 0 0 10px;
   padding: 8px 10px;
@@ -631,6 +627,35 @@
 .actions-artifact-message {
   color: var(--md-sys-color-on-tertiary-container);
   background: var(--md-sys-color-tertiary-container);
+}
+
+.actions-artifact-pagination {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container-high);
+  font-size: 11px;
+
+  > span,
+  > small {
+    min-width: 0;
+    flex: 1 1 180px;
+    overflow-wrap: anywhere;
+  }
+
+  .button-component {
+    max-width: 100%;
+    flex: 0 1 auto;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 
 .actions-job-links {
@@ -805,6 +830,15 @@
   }
 
   .actions-artifacts-header {
+    align-items: stretch;
+    flex-direction: column;
+
+    .button-component {
+      width: 100%;
+    }
+  }
+
+  .actions-artifact-pagination {
     align-items: stretch;
     flex-direction: column;
 

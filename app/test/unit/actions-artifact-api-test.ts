@@ -49,12 +49,13 @@ describe('GitHub Actions artifact API', () => {
       'owner',
       'repo',
       7,
+      1,
       controller.signal
     )
 
     assert.deepEqual(request, {
       method: 'GET',
-      path: 'repos/owner/repo/actions/runs/7/artifacts?per_page=100',
+      path: 'repos/owner/repo/actions/runs/7/artifacts?per_page=30&page=1',
       signal: controller.signal,
     })
     assert.equal(result.artifacts[0].id, 19)
@@ -154,5 +155,28 @@ describe('GitHub Actions artifact API', () => {
       api.fetchWorkflowRunArtifacts('owner', 'repo', 0)
     )
     assert.equal(requests, 0)
+  })
+
+  it('requests exact later pages and rejects invalid pages before transport', async () => {
+    const api = new API('https://api.github.com', 'secret-token')
+    const paths: string[] = []
+    Reflect.set(api, 'ghRequest', async (_method: string, path: string) => {
+      paths.push(path)
+      return new Response(JSON.stringify({ total_count: 31, artifacts: [] }))
+    })
+
+    const result = await api.fetchWorkflowRunArtifacts('owner', 'repo', 7, 2)
+    assert.equal(result.page, 2)
+    assert.deepEqual(paths, [
+      'repos/owner/repo/actions/runs/7/artifacts?per_page=30&page=2',
+    ])
+
+    await assert.rejects(() =>
+      api.fetchWorkflowRunArtifacts('owner', 'repo', 7, 0)
+    )
+    await assert.rejects(() =>
+      api.fetchWorkflowRunArtifacts('owner', 'repo', 7, 1_000_001)
+    )
+    assert.equal(paths.length, 1)
   })
 })

@@ -2,9 +2,11 @@ import * as React from 'react'
 import { IAPIWorkflowRun } from '../../lib/api'
 import {
   ActionsArtifactMaximumDownloadBytes,
+  ActionsArtifactMaximumPage,
   getActionsArtifactDefaultFileName,
   IActionsArtifact,
   IActionsArtifactList,
+  mergeActionsArtifactPage,
 } from '../../lib/actions-artifacts'
 import { IActionsArtifactDownloadProgress } from '../../lib/actions-artifact-download'
 import {
@@ -42,6 +44,7 @@ interface IRunArtifactsProps {
 
 interface IRunArtifactsState {
   readonly loading: boolean
+  readonly loadingMore: boolean
   readonly list: IActionsArtifactList | null
   readonly error: string | null
   readonly checks: Readonly<Record<number, AttestationCheck>>
@@ -55,6 +58,7 @@ interface IRunArtifactsState {
 
 const initialState = (): IRunArtifactsState => ({
   loading: true,
+  loadingMore: false,
   list: null,
   error: null,
   checks: {},
@@ -138,16 +142,22 @@ export class RunArtifacts extends React.Component<
     this.loadController?.abort()
     const controller = new AbortController()
     this.loadController = controller
-    this.setState({ loading: true, error: null })
+    this.setState({ loading: true, loadingMore: false, error: null })
     void this.props.actionsStore
       .fetchArtifacts(
         this.props.repository,
         this.props.run.id,
+        1,
         controller.signal
       )
       .then(list => {
         if (this.mounted && this.loadController === controller) {
-          this.setState({ loading: false, list, error: null })
+          this.setState({
+            loading: false,
+            loadingMore: false,
+            list,
+            error: null,
+          })
         }
       })
       .catch(error => {
@@ -158,8 +168,64 @@ export class RunArtifacts extends React.Component<
         ) {
           this.setState({
             loading: false,
-            list: null,
+            loadingMore: false,
             error: errorMessage(error, 'Unable to load workflow artifacts.'),
+          })
+        }
+      })
+      .finally(() => {
+        if (this.loadController === controller) {
+          this.loadController = null
+        }
+      })
+  }
+
+  private loadMoreArtifacts = () => {
+    const current = this.state.list
+    if (
+      current === null ||
+      current.nextPage === null ||
+      this.state.loading ||
+      this.state.loadingMore
+    ) {
+      return
+    }
+
+    this.loadController?.abort()
+    const controller = new AbortController()
+    this.loadController = controller
+    const page = current.nextPage
+    this.setState({ loadingMore: true, error: null })
+    void this.props.actionsStore
+      .fetchArtifacts(
+        this.props.repository,
+        this.props.run.id,
+        page,
+        controller.signal
+      )
+      .then(next => {
+        if (this.mounted && this.loadController === controller) {
+          const existing = this.state.list
+          if (existing === null || existing.nextPage !== next.page) {
+            this.setState({ loadingMore: false })
+            return
+          }
+          const list = mergeActionsArtifactPage(existing, next)
+          this.setState({ loadingMore: false, list, error: null })
+        }
+      })
+      .catch(error => {
+        if (
+          this.mounted &&
+          this.loadController === controller &&
+          (error as Error)?.name !== 'AbortError'
+        ) {
+          this.setState({
+            loadingMore: false,
+            error: errorMessage(
+              error,
+              'Unable to load more workflow artifacts.'
+            ),
           })
         }
       })
@@ -639,6 +705,7 @@ export class RunArtifacts extends React.Component<
             onClick={this.loadArtifacts}
             disabled={
               this.state.loading ||
+              this.state.loadingMore ||
               this.state.choosingArtifactId !== null ||
               this.state.downloadingArtifactId !== null
             }
@@ -664,11 +731,37 @@ export class RunArtifacts extends React.Component<
               No artifacts were returned for this workflow run.
             </div>
           )}
-        {list?.truncated && (
-          <p className="actions-artifact-page-note" role="status">
-            Showing the first {list.artifacts.length} of {list.totalCount}{' '}
-            artifacts. The list is intentionally bounded.
-          </p>
+        {list !== null && list.artifacts.length > 0 && (
+          <div className="actions-artifact-pagination">
+            <span role="status" aria-live="polite" aria-atomic="true">
+              Showing {list.artifacts.length} loaded of {list.totalCount}{' '}
+              artifacts.
+            </span>
+            {list.nextPage !== null && (
+              <Button
+                size="small"
+                onClick={this.loadMoreArtifacts}
+                ariaControls="actions-artifact-grid"
+                disabled={
+                  this.state.loadingMore ||
+                  this.state.loading ||
+                  this.state.choosingArtifactId !== null ||
+                  this.state.downloadingArtifactId !== null
+                }
+              >
+                {this.state.loadingMore
+                  ? 'Loading more…'
+                  : 'Load more artifacts'}
+              </Button>
+            )}
+            {list.truncated && list.nextPage === null && (
+              <small>
+                {list.page >= ActionsArtifactMaximumPage
+                  ? 'The app reached its artifact browsing safety limit. Refresh to start from the newest artifacts.'
+                  : 'GitHub’s count changed while pages were loading. Refresh to reconcile the list.'}
+              </small>
+            )}
+          </div>
         )}
         {this.state.operationError && (
           <div className="actions-inline-error" role="alert" aria-atomic="true">
@@ -685,7 +778,11 @@ export class RunArtifacts extends React.Component<
             {this.state.operationMessage}
           </div>
         )}
-        <div className="actions-artifact-grid">
+        <div
+          id="actions-artifact-grid"
+          className="actions-artifact-grid"
+          aria-busy={this.state.loadingMore}
+        >
           {list?.artifacts.map(artifact => this.renderArtifact(artifact))}
         </div>
       </section>

@@ -842,6 +842,7 @@ export class ActionsStore {
   public async fetchArtifacts(
     repository: Repository,
     runId: number,
+    page: number = 1,
     signal?: AbortSignal
   ): Promise<IActionsArtifactList> {
     try {
@@ -850,6 +851,7 @@ export class ActionsStore {
         gitHubRepository.owner.login,
         gitHubRepository.name,
         runId,
+        page,
         signal
       )
     } catch (error) {

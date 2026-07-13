@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 import { IAPIWorkflowRun } from '../../../src/lib/api'
 import {
+  ActionsArtifactPageSize,
   ActionsArtifactMaximumDownloadBytes,
   IActionsArtifact,
   IActionsArtifactList,
@@ -69,10 +70,16 @@ const artifact = (
 
 const list = (
   artifacts: ReadonlyArray<IActionsArtifact>,
-  totalCount: number = artifacts.length
+  totalCount: number = artifacts.length,
+  page: number = 1
 ): IActionsArtifactList => ({
   artifacts,
   totalCount,
+  page,
+  nextPage:
+    artifacts.length > 0 && page * ActionsArtifactPageSize < totalCount
+      ? page + 1
+      : null,
   truncated: totalCount > artifacts.length,
 })
 
@@ -80,6 +87,7 @@ interface IStoreOverrides {
   readonly fetchArtifacts?: (
     repository: Repository,
     runId: number,
+    page?: number,
     signal?: AbortSignal
   ) => Promise<IActionsArtifactList>
   readonly fetchArtifactAttestationPresence?: (
@@ -129,10 +137,81 @@ describe('Actions run artifacts', () => {
     assert.ok(screen.getByText(digest))
     assert.ok(screen.getByText(/#42 · attempt 2 · push/))
     assert.ok(screen.getByText(/feature\/artifact-browser · b{12}/))
-    assert.ok(screen.getByText(/Showing the first 1 of 120 artifacts/))
+    assert.ok(screen.getByText(/Showing 1 loaded of 120 artifacts/))
     assert.ok(
       screen.getByRole('button', { name: `Download artifact: ${longName}` })
     )
+  })
+
+  it('loads, retries, and de-duplicates later artifact pages', async () => {
+    const requestedPages: number[] = []
+    let failNextPage = true
+    let rejectNextPage: ((error: Error) => void) | undefined
+    render(
+      <RunArtifacts
+        repository={repository}
+        run={run()}
+        actionsStore={store({
+          fetchArtifacts: async (_repository, _runId, page = 1) => {
+            requestedPages.push(page)
+            if (page === 1) {
+              return list([artifact()], 61, 1)
+            }
+            if (failNextPage) {
+              return await new Promise((_resolve, reject) => {
+                rejectNextPage = reject
+              })
+            }
+            return list(
+              [
+                artifact({ name: 'updated artifact' }),
+                artifact({ id: 20, name: 'page two artifact' }),
+              ],
+              61,
+              2
+            )
+          },
+        })}
+      />
+    )
+
+    const loadMore = await screen.findByRole('button', {
+      name: 'Load more artifacts',
+    })
+    assert.equal(
+      loadMore.getAttribute('aria-controls'),
+      'actions-artifact-grid'
+    )
+    assert.equal(
+      screen.getByText(/Showing 1 loaded of 61 artifacts/).getAttribute('role'),
+      'status'
+    )
+    fireEvent.click(loadMore)
+    await waitFor(() => assert.ok(rejectNextPage))
+    assert.equal(
+      document
+        .querySelector('#actions-artifact-grid')
+        ?.getAttribute('aria-busy'),
+      'true'
+    )
+    rejectNextPage?.(new Error('Later artifact page unavailable.'))
+    assert.ok(await screen.findByText('Later artifact page unavailable.'))
+    assert.ok(screen.getByRole('heading', { name: longName }))
+    assert.ok(screen.getByRole('button', { name: 'Load more artifacts' }))
+    assert.equal(
+      document
+        .querySelector('#actions-artifact-grid')
+        ?.getAttribute('aria-busy'),
+      'false'
+    )
+
+    failNextPage = false
+    fireEvent.click(screen.getByRole('button', { name: 'Load more artifacts' }))
+    assert.ok(await screen.findByRole('heading', { name: 'page two artifact' }))
+    assert.ok(screen.getByRole('heading', { name: 'updated artifact' }))
+    assert.equal(screen.queryByRole('heading', { name: longName }), null)
+    assert.ok(screen.getByText(/Showing 2 loaded of 61 artifacts/))
+    assert.deepEqual(requestedPages, [1, 2, 2])
   })
 
   it('shows empty, signed-out, unsupported, and permission states', async () => {
@@ -312,6 +391,56 @@ describe('Actions run artifacts', () => {
     assert.ok(screen.getByText(/exceeds the app’s 5 GiB download safety limit/))
   })
 
+  it('aborts and ignores a stale later page when the run changes', async () => {
+    let laterSignal: AbortSignal | undefined
+    let resolveLater: ((value: IActionsArtifactList) => void) | undefined
+    const actionsStore = store({
+      fetchArtifacts: async (_repository, runId, page = 1, signal) => {
+        if (runId === 7 && page === 1) {
+          return list([artifact()], 61, 1)
+        }
+        if (runId === 7 && page === 2) {
+          laterSignal = signal
+          return await new Promise(resolve => (resolveLater = resolve))
+        }
+        return list([
+          artifact({
+            id: 22,
+            name: 'new run page',
+            workflowRun: null,
+          }),
+        ])
+      },
+    })
+    const view = render(
+      <RunArtifacts
+        repository={repository}
+        run={run(7)}
+        actionsStore={actionsStore}
+      />
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Load more artifacts' })
+    )
+    await waitFor(() => assert.ok(laterSignal))
+    view.rerender(
+      <RunArtifacts
+        repository={repository}
+        run={run(8)}
+        actionsStore={actionsStore}
+      />
+    )
+    assert.ok(await screen.findByText('new run page'))
+    assert.equal(laterSignal?.aborted, true)
+
+    resolveLater?.(
+      list([artifact({ id: 23, name: 'stale later page' })], 61, 2)
+    )
+    await new Promise(resolve => setTimeout(resolve, 0))
+    assert.equal(screen.queryByText('stale later page'), null)
+  })
+
   it('aborts and ignores a stale provider/run listing', async () => {
     let firstSignal: AbortSignal | undefined
     let resolveFirst: ((value: IActionsArtifactList) => void) | undefined
@@ -328,7 +457,7 @@ describe('Actions run artifacts', () => {
     )
     let latestEndpoint = ''
     const actionsStore = store({
-      fetchArtifacts: async (value, runId, signal) => {
+      fetchArtifacts: async (value, runId, _page, signal) => {
         latestEndpoint = value.gitHubRepository?.endpoint ?? ''
         if (runId === 7) {
           firstSignal = signal

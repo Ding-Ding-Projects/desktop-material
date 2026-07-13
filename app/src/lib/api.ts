@@ -48,6 +48,7 @@ import {
   parseActionsArtifactAttestationPresence,
   parseActionsArtifactList,
   validateActionsArtifactIdentifier,
+  validateActionsArtifactPage,
 } from './actions-artifacts'
 import {
   ActionsArtifactJSONError,
@@ -2185,22 +2186,25 @@ export class API {
     return await parsedResponse<IAPIWorkflowRuns>(response)
   }
 
-  /** List the bounded first page of artifacts produced by one workflow run. */
+  /** List one bounded page of artifacts produced by one workflow run. */
   public async fetchWorkflowRunArtifacts(
     owner: string,
     name: string,
     workflowRunId: number,
+    page: number = 1,
     signal?: AbortSignal
   ): Promise<IActionsArtifactList> {
     const runId = validateActionsArtifactIdentifier(
       workflowRunId,
       'workflow run id'
     )
-    const path = `repos/${owner}/${name}/actions/runs/${runId}/artifacts?per_page=${ActionsArtifactPageSize}`
+    const requestedPage = validateActionsArtifactPage(page)
+    const path = `repos/${owner}/${name}/actions/runs/${runId}/artifacts?per_page=${ActionsArtifactPageSize}&page=${requestedPage}`
     const response = await this.ghRequest('GET', path, { signal })
     return parseActionsArtifactList(
       await boundedActionsArtifactResponse(response, signal),
-      runId
+      runId,
+      requestedPage
     )
   }
 
