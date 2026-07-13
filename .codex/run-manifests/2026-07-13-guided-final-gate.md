@@ -71,4 +71,3 @@
   Electron launch PID, and runtime-resolved HWND before the GUI phase. Pair each
   created resource with one finally-path cleanup and record the verified-absent
   result here after the run.
-
