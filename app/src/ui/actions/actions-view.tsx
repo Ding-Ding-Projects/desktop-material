@@ -171,14 +171,22 @@ export class ActionsView extends React.Component<
         this.setState({ log, logLoading: false })
       }
     } catch (error) {
-      this.setState({
-        logLoading: false,
-        logError: error instanceof Error ? error : new Error(String(error)),
-      })
+      if (this.state.logJob?.id === logJob.id) {
+        this.setState({
+          logLoading: false,
+          logError: error instanceof Error ? error : new Error(String(error)),
+        })
+      }
     }
   }
 
-  private closeLogs = () => this.setState({ logJob: null, log: '' })
+  private closeLogs = () =>
+    this.setState({
+      logJob: null,
+      log: '',
+      logLoading: false,
+      logError: null,
+    })
 
   private rerun = (run: IAPIWorkflowRun) => this.performRunAction(run, false)
   private rerunFailed = (run: IAPIWorkflowRun) =>
