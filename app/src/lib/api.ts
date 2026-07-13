@@ -85,6 +85,19 @@ import {
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
 import { boundedGitHubReleaseResponse } from './github-release-json'
 import {
+  IAPIProviderTriagePage,
+  normalizeProviderTriageLimit,
+  validateProviderTriageCoordinate,
+} from './provider-triage'
+import {
+  boundedProviderTriageResponse,
+  parseBitbucketTriagePullRequests,
+  parseGitHubTriageIssues,
+  parseGitHubTriagePullRequests,
+  parseGitLabTriageIssues,
+  parseGitLabTriagePullRequests,
+} from './provider-triage-json'
+import {
   GitHubReleaseAssetMaximumPages,
   GitHubReleaseAssetPageSize,
   GitHubReleaseMaximumPages,
@@ -1485,6 +1498,83 @@ export class API {
     } catch (e) {
       log.warn(`fetchIssues: failed for repository ${owner}/${name}`, e)
       throw e
+    }
+  }
+
+  /**
+   * Fetch at most one reviewed page of open issues for provider-neutral
+   * triage. Unlike the legacy issue cache, this never walks unbounded pages.
+   */
+  public async fetchProviderTriageIssues(
+    owner: string,
+    name: string,
+    limit: number,
+    signal?: AbortSignal
+  ): Promise<IAPIProviderTriagePage> {
+    signal?.throwIfAborted()
+    const safeLimit = normalizeProviderTriageLimit(limit)
+    const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubRepositoryPart(name, 'repository')
+    const path = urlWithQueryString(
+      `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+        safeName
+      )}/issues`,
+      {
+        state: 'open',
+        sort: 'updated',
+        direction: 'desc',
+        page: '1',
+        per_page: String(safeLimit),
+      }
+    )
+    const response = await this.ghRequest('GET', path, { signal })
+    const issues = parseGitHubTriageIssues(
+      await boundedProviderTriageResponse(response, signal),
+      safeLimit
+    )
+    return {
+      supported: true,
+      capped:
+        getNextPagePathFromLink(response) !== null ||
+        issues.length === safeLimit,
+      items: issues,
+    }
+  }
+
+  /** Fetch one bounded, cancellable page of open pull requests for triage. */
+  public async fetchProviderTriagePullRequests(
+    owner: string,
+    name: string,
+    limit: number,
+    signal?: AbortSignal
+  ): Promise<IAPIProviderTriagePage> {
+    signal?.throwIfAborted()
+    const safeLimit = normalizeProviderTriageLimit(limit)
+    const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubRepositoryPart(name, 'repository')
+    const path = urlWithQueryString(
+      `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+        safeName
+      )}/pulls`,
+      {
+        state: 'open',
+        sort: 'updated',
+        direction: 'desc',
+        page: '1',
+        per_page: String(safeLimit),
+      }
+    )
+    const response = await this.ghRequest('GET', path, { signal })
+    const values = parseGitHubTriagePullRequests(
+      await boundedProviderTriageResponse(response, signal),
+      safeLimit
+    )
+    return {
+      supported: true,
+      capped:
+        getNextPagePathFromLink(response) !== null ||
+        values.length === safeLimit,
+      items: values,
     }
   }
 
@@ -3776,13 +3866,18 @@ interface IGitLabMergeRequest {
   readonly sha: string
   readonly draft?: boolean
   readonly author: IGitLabIdentity
+  readonly assignees?: ReadonlyArray<IGitLabIdentity>
+  readonly reviewers?: ReadonlyArray<IGitLabIdentity>
 }
 
 interface IGitLabIssue {
   readonly iid: number
   readonly title: string
   readonly state: 'opened' | 'closed'
+  readonly created_at: string
   readonly updated_at: string
+  readonly author: IGitLabIdentity
+  readonly assignees?: ReadonlyArray<IGitLabIdentity>
 }
 
 interface IGitLabPipeline {
@@ -3860,6 +3955,12 @@ interface IBitbucketPullRequest {
   readonly created_on: string
   readonly updated_on: string
   readonly author: IBitbucketIdentity
+  readonly reviewers?: ReadonlyArray<IBitbucketIdentity>
+  readonly participants?: ReadonlyArray<{
+    readonly user: IBitbucketIdentity
+    readonly role?: string
+    readonly approved?: boolean
+  }>
   readonly source: IBitbucketPullRequestRef
   readonly destination: IBitbucketPullRequestRef
   readonly draft?: boolean
@@ -4004,7 +4105,8 @@ abstract class ThirdPartyAPI extends API {
     method: HTTPMethod,
     path: string,
     headers: HeadersInit,
-    reloadCache = false
+    reloadCache = false,
+    signal?: AbortSignal
   ): Promise<Response> {
     return request(
       this.endpoint,
@@ -4013,7 +4115,9 @@ abstract class ThirdPartyAPI extends API {
       path,
       undefined,
       headers,
-      reloadCache
+      reloadCache,
+      undefined,
+      signal
     )
   }
 
@@ -4072,12 +4176,18 @@ export class GitLabAPI extends ThirdPartyAPI {
     super(getGitLabAPIEndpoint(endpoint), token)
   }
 
-  private requestGitLab(method: HTTPMethod, path: string, reloadCache = false) {
+  private requestGitLab(
+    method: HTTPMethod,
+    path: string,
+    reloadCache = false,
+    signal?: AbortSignal
+  ) {
     return this.providerRequest(
       method,
       path,
       { 'PRIVATE-TOKEN': this.token },
-      reloadCache
+      reloadCache,
+      signal
     )
   }
 
@@ -4262,6 +4372,64 @@ export class GitLabAPI extends ThirdPartyAPI {
     )
   }
 
+  public override async fetchProviderTriagePullRequests(
+    owner: string,
+    name: string,
+    limit: number,
+    signal?: AbortSignal
+  ): Promise<IAPIProviderTriagePage> {
+    signal?.throwIfAborted()
+    const safeLimit = normalizeProviderTriageLimit(limit)
+    const coordinate = validateProviderTriageCoordinate(owner, name, true)
+    const project = encodeURIComponent(`${coordinate.owner}/${coordinate.name}`)
+    const response = await this.requestGitLab(
+      'GET',
+      `projects/${project}/merge_requests?state=opened&order_by=updated_at&sort=desc&page=1&per_page=${safeLimit}`,
+      false,
+      signal
+    )
+    const values = parseGitLabTriagePullRequests(
+      await boundedProviderTriageResponse(response, signal),
+      safeLimit
+    )
+    return {
+      supported: true,
+      capped:
+        (response.headers.get('x-next-page') ?? '').length > 0 ||
+        values.length === safeLimit,
+      items: values,
+    }
+  }
+
+  public override async fetchProviderTriageIssues(
+    owner: string,
+    name: string,
+    limit: number,
+    signal?: AbortSignal
+  ): Promise<IAPIProviderTriagePage> {
+    signal?.throwIfAborted()
+    const safeLimit = normalizeProviderTriageLimit(limit)
+    const coordinate = validateProviderTriageCoordinate(owner, name, true)
+    const project = encodeURIComponent(`${coordinate.owner}/${coordinate.name}`)
+    const response = await this.requestGitLab(
+      'GET',
+      `projects/${project}/issues?scope=all&state=opened&order_by=updated_at&sort=desc&page=1&per_page=${safeLimit}`,
+      false,
+      signal
+    )
+    const values = parseGitLabTriageIssues(
+      await boundedProviderTriageResponse(response, signal),
+      safeLimit
+    )
+    return {
+      supported: true,
+      capped:
+        (response.headers.get('x-next-page') ?? '').length > 0 ||
+        values.length === safeLimit,
+      items: values,
+    }
+  }
+
   public override async fetchIssues(
     owner: string,
     name: string,
@@ -4402,7 +4570,8 @@ export class BitbucketAPI extends ThirdPartyAPI {
   private requestBitbucket(
     method: HTTPMethod,
     path: string,
-    reloadCache = false
+    reloadCache = false,
+    signal?: AbortSignal
   ) {
     const credentials = Buffer.from(
       `${this.username}:${this.appPassword}`
@@ -4411,7 +4580,8 @@ export class BitbucketAPI extends ThirdPartyAPI {
       method,
       path,
       { Authorization: `Basic ${credentials}` },
-      reloadCache
+      reloadCache,
+      signal
     )
   }
 
@@ -4539,6 +4709,48 @@ export class BitbucketAPI extends ThirdPartyAPI {
     return prs
       .filter(pr => Date.parse(pr.updated_on) >= since.getTime())
       .map(bitbucketPullRequest)
+  }
+
+  public override async fetchProviderTriagePullRequests(
+    owner: string,
+    name: string,
+    limit: number,
+    signal?: AbortSignal
+  ): Promise<IAPIProviderTriagePage> {
+    signal?.throwIfAborted()
+    const safeLimit = normalizeProviderTriageLimit(limit)
+    const coordinate = validateProviderTriageCoordinate(owner, name, false)
+    const response = await this.requestBitbucket(
+      'GET',
+      `repositories/${encodeURIComponent(
+        coordinate.owner
+      )}/${encodeURIComponent(
+        coordinate.name
+      )}/pullrequests?state=OPEN&sort=-updated_on&page=1&pagelen=${safeLimit}`,
+      false,
+      signal
+    )
+    const page = parseBitbucketTriagePullRequests(
+      await boundedProviderTriageResponse(response, signal),
+      safeLimit
+    )
+    return {
+      supported: true,
+      capped: page.hasNextPage || page.items.length === safeLimit,
+      items: page.items,
+    }
+  }
+
+  public override async fetchProviderTriageIssues(
+    owner: string,
+    name: string,
+    limit: number,
+    signal?: AbortSignal
+  ): Promise<IAPIProviderTriagePage> {
+    signal?.throwIfAborted()
+    normalizeProviderTriageLimit(limit)
+    validateProviderTriageCoordinate(owner, name, false)
+    return { supported: false, capped: false, items: [] }
   }
 
   public override async fetchIssues(): Promise<ReadonlyArray<IAPIIssue>> {
