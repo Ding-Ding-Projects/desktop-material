@@ -7,6 +7,7 @@ import {
   normalizeRepositorySigningKey,
   parseRepositorySignatureVerification,
   parseRepositorySigningConfig,
+  parseRepositorySigningKeyPresence,
   parseRepositorySigningTags,
 } from '../../src/lib/repository-signing'
 
@@ -15,12 +16,12 @@ describe('repository signing administration models', () => {
     const global = parseRepositorySigningConfig(
       [
         'gpg.format\nopenpgp',
-        'user.signingkey\n0123456789ABCDEF',
         'commit.gpgsign\nyes',
         'tag.gpgsign\nfalse',
         '',
       ].join('\0'),
-      'global'
+      'global',
+      true
     )
     const local = parseRepositorySigningConfig(
       ['gpg.format\nssh', 'commit.gpgsign\n0', ''].join('\0'),
@@ -35,24 +36,26 @@ describe('repository signing administration models', () => {
     assert.equal(effective.commitSigningScope, 'local')
     assert.equal(effective.tagSigning, false)
     assert.equal(effective.tagSigningScope, 'global')
-    assert.match(effective.signingKeyDescription ?? '', /ending 89ABCDEF/i)
+    assert.equal(
+      effective.signingKeyDescription,
+      'Configured public signing key (value hidden)'
+    )
     assert.equal(
       getRepositorySigningConfigToken(local),
       JSON.stringify(['local', 'ssh', false, null, false, null])
     )
   })
 
-  it('hides configured paths and arbitrary identifiers', () => {
-    const config = parseRepositorySigningConfig(
-      'gpg.format\nssh\0user.signingkey\nC:/private/id_ed25519\0',
-      'local'
+  it('accepts only name-only signing-key presence output', () => {
+    assert.equal(parseRepositorySigningKeyPresence(''), false)
+    assert.equal(parseRepositorySigningKeyPresence('user.signingkey\0'), true)
+    assert.throws(
+      () =>
+        parseRepositorySigningKeyPresence(
+          'user.signingkey\nC:/private/id_ed25519\0'
+        ),
+      /invalid signing-key presence data/
     )
-    assert.equal(config.hasSigningKey, true)
-    assert.equal(
-      config.signingKeyDescription,
-      'Configured SSH public-key reference (value hidden)'
-    )
-    assert.doesNotMatch(config.signingKeyDescription ?? '', /private|C:\//)
   })
 
   it('fails closed for unknown, duplicate-shape, oversized, and invalid values', () => {
@@ -69,12 +72,8 @@ describe('repository signing administration models', () => {
       /invalid commit signing value/
     )
     assert.throws(
-      () =>
-        parseRepositorySigningConfig(
-          `user.signingkey\n${'a'.repeat(17_000)}\0`,
-          'local'
-        ),
-      /invalid signing configuration value/
+      () => parseRepositorySigningKeyPresence('a'.repeat(17_000)),
+      /invalid signing-key presence data/
     )
   })
 

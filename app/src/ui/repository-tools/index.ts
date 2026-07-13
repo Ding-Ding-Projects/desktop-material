@@ -1,8 +1,12 @@
 export { RepositoryTools } from './repository-tools'
 export { RepositoryBundleImport } from './bundle-import'
 export { RepositoryShallowHistory } from './shallow-history'
+export { RepositorySigning } from './signing'
+export { RepositoryLFSAdministration } from './lfs-administration'
 export type { IRepositoryBundleImportProps } from './bundle-import'
 export type { IRepositoryShallowHistoryProps } from './shallow-history'
+export type { IRepositorySigningProps } from './signing'
+export type { IRepositoryLFSAdministrationProps } from './lfs-administration'
 export type {
   IRepositoryToolsClient,
   IRepositoryToolsProps,

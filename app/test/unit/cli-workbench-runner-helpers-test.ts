@@ -317,6 +317,7 @@ describe('CLI workbench runner helpers', () => {
           recipe: {
             kind: 'repository-signing-inspection',
             scope: 'local',
+            operation: 'settings',
           },
           confirmed: false,
           args: [
@@ -324,13 +325,14 @@ describe('CLI workbench runner helpers', () => {
             '--local',
             '--null',
             '--get-regexp',
-            '^(user\\.signingkey|gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$',
+            '^(gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$',
           ],
         },
         {
           recipe: {
             kind: 'repository-signing-inspection',
             scope: 'global',
+            operation: 'settings',
           },
           confirmed: false,
           args: [
@@ -338,7 +340,39 @@ describe('CLI workbench runner helpers', () => {
             '--global',
             '--null',
             '--get-regexp',
-            '^(user\\.signingkey|gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$',
+            '^(gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$',
+          ],
+        },
+        {
+          recipe: {
+            kind: 'repository-signing-inspection',
+            scope: 'local',
+            operation: 'key-presence',
+          },
+          confirmed: false,
+          args: [
+            'config',
+            '--local',
+            '--null',
+            '--name-only',
+            '--get-regexp',
+            '^user\\.signingkey$',
+          ],
+        },
+        {
+          recipe: {
+            kind: 'repository-signing-inspection',
+            scope: 'global',
+            operation: 'key-presence',
+          },
+          confirmed: false,
+          args: [
+            'config',
+            '--global',
+            '--null',
+            '--name-only',
+            '--get-regexp',
+            '^user\\.signingkey$',
           ],
         },
         {
@@ -518,11 +552,21 @@ describe('CLI workbench runner helpers', () => {
     const root = await mkdtemp(join(tmpdir(), 'desktop-admin-deny-'))
     const dependencies = fakeDependencies(root)
     const invalidRecipes: ReadonlyArray<unknown> = [
-      { kind: 'repository-signing-inspection', scope: 'system' },
+      {
+        kind: 'repository-signing-inspection',
+        scope: 'system',
+        operation: 'settings',
+      },
       {
         kind: 'repository-signing-inspection',
         scope: 'local',
+        operation: 'settings',
         argv: ['config', '--global', '--list'],
+      },
+      {
+        kind: 'repository-signing-inspection',
+        scope: 'local',
+        operation: 'raw-key',
       },
       {
         kind: 'repository-signing-update',

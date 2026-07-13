@@ -31,7 +31,9 @@ import {
   RepositoryToolOperations,
 } from './operations'
 import { RepositoryBundleImport } from './bundle-import'
+import { RepositoryLFSAdministration } from './lfs-administration'
 import { RepositoryShallowHistory } from './shallow-history'
+import { RepositorySigning } from './signing'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -100,6 +102,8 @@ interface IRepositoryToolsState {
   readonly error: string | null
   readonly bundleImportBusy: boolean
   readonly shallowHistoryBusy: boolean
+  readonly signingBusy: boolean
+  readonly lfsBusy: boolean
 }
 
 let nextOperationSequence = 0
@@ -138,6 +142,8 @@ export class RepositoryTools extends React.Component<
       error: null,
       bundleImportBusy: false,
       shallowHistoryBusy: false,
+      signingBusy: false,
+      lfsBusy: false,
     }
   }
 
@@ -166,6 +172,8 @@ export class RepositoryTools extends React.Component<
         error: null,
         bundleImportBusy: false,
         shallowHistoryBusy: false,
+        signingBusy: false,
+        lfsBusy: false,
       })
     }
   }
@@ -217,7 +225,9 @@ export class RepositoryTools extends React.Component<
     return (
       this.runId !== null ||
       this.state.bundleImportBusy ||
-      this.state.shallowHistoryBusy
+      this.state.shallowHistoryBusy ||
+      this.state.signingBusy ||
+      this.state.lfsBusy
     )
   }
 
@@ -230,6 +240,18 @@ export class RepositoryTools extends React.Component<
   private onShallowHistoryBusyChanged = (shallowHistoryBusy: boolean) => {
     if (this.state.shallowHistoryBusy !== shallowHistoryBusy) {
       this.setState({ shallowHistoryBusy })
+    }
+  }
+
+  private onSigningBusyChanged = (signingBusy: boolean) => {
+    if (this.state.signingBusy !== signingBusy) {
+      this.setState({ signingBusy })
+    }
+  }
+
+  private onLFSBusyChanged = (lfsBusy: boolean) => {
+    if (this.state.lfsBusy !== lfsBusy) {
+      this.setState({ lfsBusy })
     }
   }
 
@@ -706,6 +728,8 @@ export class RepositoryTools extends React.Component<
         disabled={
           this.runId !== null ||
           this.state.shallowHistoryBusy ||
+          this.state.signingBusy ||
+          this.state.lfsBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
@@ -723,11 +747,49 @@ export class RepositoryTools extends React.Component<
         disabled={
           this.runId !== null ||
           this.state.bundleImportBusy ||
+          this.state.signingBusy ||
+          this.state.lfsBusy ||
           !this.state.gitAvailable
         }
         client={this.client}
         onRefreshRepository={this.props.onRefreshRepository}
         onBusyChanged={this.onShallowHistoryBusyChanged}
+      />
+    )
+  }
+
+  private renderSigning() {
+    return (
+      <RepositorySigning
+        repositoryPath={this.props.repositoryPath}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          this.state.shallowHistoryBusy ||
+          this.state.lfsBusy ||
+          !this.state.gitAvailable
+        }
+        client={this.client}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onSigningBusyChanged}
+      />
+    )
+  }
+
+  private renderLFSAdministration() {
+    return (
+      <RepositoryLFSAdministration
+        repositoryPath={this.props.repositoryPath}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          this.state.shallowHistoryBusy ||
+          this.state.signingBusy ||
+          !this.state.gitAvailable
+        }
+        client={this.client}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onLFSBusyChanged}
       />
     )
   }
@@ -892,6 +954,8 @@ export class RepositoryTools extends React.Component<
         <div className="repository-tools-layout">
           <div className="repository-tools-functions">
             {this.renderShallowHistory()}
+            {this.renderSigning()}
+            {this.renderLFSAdministration()}
             {this.renderCategory('Diagnostics')}
             {this.renderCategory('Maintenance')}
             {this.renderCategory('Recovery')}

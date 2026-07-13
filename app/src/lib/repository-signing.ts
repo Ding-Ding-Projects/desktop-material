@@ -1,4 +1,3 @@
-import { createHash } from 'crypto'
 import type {
   RepositorySigningFormat,
   RepositorySigningScope,
@@ -8,7 +7,6 @@ const MaximumSigningConfigBytes = 64 * 1024
 const MaximumSigningKeyBytes = 16 * 1024
 const MaximumTags = 100
 const SigningConfigKeys = new Set([
-  'user.signingkey',
   'gpg.format',
   'commit.gpgsign',
   'tag.gpgsign',
@@ -83,38 +81,15 @@ function parseBoolean(value: string, label: string): boolean {
   }
 }
 
-function describeSigningKey(
-  value: string,
-  format: RepositorySigningFormat | null
-): string {
-  if (format === 'ssh') {
-    const match = SSHPublicKey.exec(value)
-    if (match !== null) {
-      const decoded = Buffer.from(match[2], 'base64')
-      const fingerprint = createHash('sha256')
-        .update(decoded)
-        .digest('base64')
-        .replace(/=+$/, '')
-      return `${match[1]} public key SHA256:${fingerprint}`
-    }
-    return 'Configured SSH public-key reference (value hidden)'
-  }
-
-  const match = /([a-f0-9]{8,64})$/i.exec(value)
-  if (match !== null) {
-    return `Key ending ${match[1].slice(-8).toUpperCase()}`
-  }
-  return 'Configured key identifier (value hidden)'
-}
-
 /**
- * Parse only the four allowlisted signing keys. Arbitrary config values,
- * origins, include paths, signing programs, and allowed-signers paths never
- * reach renderer state.
+ * Parse only three allowlisted, non-secret signing settings. The signing-key
+ * value is inspected separately with --name-only and never crosses into the
+ * renderer process.
  */
 export function parseRepositorySigningConfig(
   output: string,
-  scope: RepositorySigningScope
+  scope: RepositorySigningScope,
+  hasSigningKey = false
 ): IRepositorySigningConfig {
   if (Buffer.byteLength(output, 'utf8') > MaximumSigningConfigBytes) {
     throw new Error('Git returned too much signing configuration to review.')
@@ -144,15 +119,13 @@ export function parseRepositorySigningConfig(
     throw new Error('Git returned an unsupported signing format.')
   }
   const format = formatValue ?? null
-  const signingKey = values.get('user.signingkey')
   return {
     scope,
     format,
-    hasSigningKey: signingKey !== undefined && signingKey.length > 0,
-    signingKeyDescription:
-      signingKey === undefined || signingKey.length === 0
-        ? null
-        : describeSigningKey(signingKey, format),
+    hasSigningKey,
+    signingKeyDescription: hasSigningKey
+      ? 'Configured public signing key (value hidden)'
+      : null,
     commitSigning: values.has('commit.gpgsign')
       ? parseBoolean(values.get('commit.gpgsign') ?? '', 'commit signing')
       : null,
@@ -160,6 +133,19 @@ export function parseRepositorySigningConfig(
       ? parseBoolean(values.get('tag.gpgsign') ?? '', 'tag signing')
       : null,
   }
+}
+
+export function parseRepositorySigningKeyPresence(output: string): boolean {
+  if (Buffer.byteLength(output, 'utf8') > 1024) {
+    throw new Error('Git returned invalid signing-key presence data.')
+  }
+  if (output.length === 0) {
+    return false
+  }
+  if (output === 'user.signingkey\0') {
+    return true
+  }
+  throw new Error('Git returned invalid signing-key presence data.')
 }
 
 export function getEffectiveRepositorySigningConfig(

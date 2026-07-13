@@ -140,8 +140,7 @@ interface IBoundCLICommand {
   readonly environment?: Readonly<Record<string, string>>
 }
 
-const SigningConfigPattern =
-  '^(user\\.signingkey|gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$'
+const SigningConfigPattern = '^(gpg\\.format|commit\\.gpgsign|tag\\.gpgsign)$'
 const LFSInspectionEnvironment = {
   GIT_LFS_TRACK_NO_INSTALL_HOOKS: '1',
 } as const
@@ -529,10 +528,28 @@ function bindCLICommandRecipe(value: unknown): IBoundCLICommand {
       }
     }
     case 'repository-signing-inspection': {
-      if (!hasOnlyKeys(value, ['kind', 'scope'])) {
+      if (!hasOnlyKeys(value, ['kind', 'scope', 'operation'])) {
         throw new Error('Signing configuration inspection is invalid.')
       }
       const scope = signingScopeFlag(value.scope)
+      if (value.operation === 'key-presence') {
+        return {
+          args: [
+            'config',
+            scope,
+            '--null',
+            '--name-only',
+            '--get-regexp',
+            '^user\\.signingkey$',
+          ],
+          requiresConfirmation: false,
+          outputDestination: null,
+          remote: null,
+        }
+      }
+      if (value.operation !== 'settings') {
+        throw new Error('Unknown signing configuration inspection.')
+      }
       return {
         args: ['config', scope, '--null', '--get-regexp', SigningConfigPattern],
         requiresConfirmation: false,

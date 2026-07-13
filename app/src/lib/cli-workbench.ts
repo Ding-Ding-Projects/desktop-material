@@ -99,6 +99,7 @@ export type CLICommandRecipe =
   | {
       readonly kind: 'repository-signing-inspection'
       readonly scope: RepositorySigningScope
+      readonly operation: 'settings' | 'key-presence'
     }
   | ({
       readonly kind: 'repository-signing-update'
