@@ -49,24 +49,48 @@ body {
   align-items: center;
   background: transparent !important;
   border-bottom: 0;
+  box-sizing: border-box;
   color: var(--md-sys-color-on-surface);
   gap: 10px;
   height: auto;
   min-height: 72px;
   padding: 6px 16px 12px 16px;
+  width: 100%;
+
+  // Every direct child must be allowed to shrink below its intrinsic text
+  // width. At the supported minimum window size -- and at common 1443/1450px
+  // captures with repo, worktree, branch, sync and build controls present --
+  // fixed intrinsic widths otherwise push the trailing controls off-screen.
+  // Button text already ellipsizes and retains its tooltip/accessible name.
+  & > * {
+    min-width: 0;
+  }
 
   // Neutralise the inline (sidebarWidth / Resizable) and fixed widths so the
   // pills size to their content. Foldouts anchor off live client rects and
   // their own independent widths, so this does not affect dropdown placement.
   // The app-bar chips are not user-resizable in the MD3 design — hide handles.
   .sidebar-section {
+    flex: 1 1 180px;
+    max-width: 280px;
+    min-width: 0;
     width: auto !important;
   }
 
   .resizable-component {
-    max-width: none !important;
+    flex: 1 1 180px;
+    max-width: 280px !important;
     min-width: 0 !important;
     width: auto !important;
+  }
+
+  // Keep dropdown buttons within the responsive wrapper. The foldout keeps
+  // its independent explicit width and remains unaffected by this constraint.
+  .sidebar-section > .toolbar-dropdown,
+  .resizable-component > .toolbar-dropdown {
+    flex: 1 1 auto;
+    max-width: 100%;
+    width: 100%;
   }
 
   .resize-handle {
@@ -76,7 +100,26 @@ body {
   // Push the sync pill (the element wrapping the push/pull/fetch button) to the
   // right edge, leaving repo + branch grouped on the left.
   & > *:has(.push-pull-button) {
+    flex: 0 1 230px;
     margin-left: auto;
+    min-width: 130px !important;
+  }
+
+  // Secondary actions keep their complete hit targets while their labels
+  // ellipsize under pressure. This prevents either action from becoming the
+  // toolbar's intrinsic-width escape hatch.
+  & > .one-click-commit-push-button {
+    flex: 0 1 180px;
+  }
+
+  & > .build-run-toolbar-button {
+    flex: 0 1 210px;
+    min-width: 0;
+
+    .build-run-primary {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
   }
 
   // Let the 54px chips escape the upstream 50px toolbar-height cap.
@@ -318,6 +361,18 @@ body {
     // Drop the upstream divider so the panel reads as a floating card; the card
     // surface / radius / shadow / entrance are applied in _material-cards.scss.
     border-right: 0;
+
+    // `overflow-y: auto` alone computes the other axis to `auto`, which made
+    // a slightly oversized Changes descendant produce a card-wide horizontal
+    // scrollbar. The sidebar is a single-column layout: descendants shrink or
+    // ellipsize, while only the vertical axis is intentionally scrollable.
+    min-width: 0;
+
+    .panel {
+      max-width: 100%;
+      min-width: 0;
+      overflow-x: hidden;
+    }
   }
 }
 

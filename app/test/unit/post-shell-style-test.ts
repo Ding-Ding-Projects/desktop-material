@@ -6,6 +6,9 @@ import { join } from 'path'
 const readStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', 'ui', name), 'utf8')
 
+const readRootStyle = (name: string) =>
+  readFileSync(join(process.cwd(), 'app', 'styles', name), 'utf8')
+
 describe('post-shell MD3 style contracts', () => {
   it('uses system tokens instead of literal colors in the Actions log viewer', () => {
     const style = readStyle('_actions-log-viewer.scss')
@@ -42,6 +45,43 @@ describe('post-shell MD3 style contracts', () => {
     assert.match(
       style,
       /\.active-tab\s*\{[\s\S]*?min-height: 0;[\s\S]*?overflow-y: auto;/
+    )
+  })
+
+  it('keeps every app-bar control inside 1443x992 and 1450x997 viewports', () => {
+    const style = readRootStyle('_material-shell.scss')
+
+    assert.match(style, /& > \* \{\s*min-width: 0;/)
+    assert.match(
+      style,
+      /\.resizable-component\s*\{[\s\S]*?flex: 1 1 180px;[\s\S]*?max-width: 280px !important;[\s\S]*?min-width: 0 !important;/
+    )
+    assert.match(
+      style,
+      /& > \*:has\(\.push-pull-button\)\s*\{[\s\S]*?flex: 0 1 230px;[\s\S]*?min-width: 130px !important;/
+    )
+    assert.match(
+      style,
+      /& > \.build-run-toolbar-button\s*\{[\s\S]*?flex: 0 1 210px;[\s\S]*?min-width: 0;/
+    )
+  })
+
+  it('contains the Changes search and composer without horizontal scrolling', () => {
+    const shell = readRootStyle('_material-shell.scss')
+    const changes = readStyle('changes/_changes-list.scss')
+    const composer = readStyle('changes/_commit-message.scss')
+
+    assert.match(
+      shell,
+      /#repository[\s\S]*?&-sidebar\s*\{[\s\S]*?\.panel\s*\{[\s\S]*?overflow-x: hidden;/
+    )
+    assert.match(
+      changes,
+      /\.header \.filter-box-container\s*\{[\s\S]*?max-width: 100%;[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      composer,
+      /\.commit-message-component\s*\{[\s\S]*?max-width: calc\(100% - 24px\);[\s\S]*?min-width: 0;/
     )
   })
 })

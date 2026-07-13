@@ -375,6 +375,9 @@
 // ─────────────────────────────────────────────────────────────────────────
 .commit-message-component {
   // Floating radius-20 surface-container-low card that hugs the panel bottom.
+  box-sizing: border-box;
+  max-width: calc(100% - 24px);
+  min-width: 0;
   margin: 0 12px 12px 12px;
   padding: 14px;
   gap: 10px;
