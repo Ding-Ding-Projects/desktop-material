@@ -432,6 +432,13 @@ export function buildDefaultMenuTemplate({
         id: 'manage-gitignore',
         click: emit('manage-gitignore'),
       },
+      {
+        label: __DARWIN__
+          ? 'Manage Sparse Checkout…'
+          : 'Manage sparse chec&kout…',
+        id: 'manage-sparse-checkout',
+        click: emit('manage-sparse-checkout'),
+      },
       separator,
       {
         label: __DARWIN__ ? 'Build and Run' : '&Build and run',
