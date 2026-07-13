@@ -2,13 +2,17 @@
 
 ## Outcome
 
-The requested roadmap is implemented: **M0 through M18 are complete and
+The original requested roadmap is implemented: **M0 through M18 are complete and
 shipped on `main`** through final implementation baseline
 `b2699faccb07728fe9aa2838aa13355d71e172b0`. The implementation, integration
 fixes, exhaustive local validation, production build, hidden-desktop review,
 responsive regression correction, public documentation, and canonical wiki
 publication are complete. There is no remaining queued or in-flight feature
 work in [`PLAN.md`](PLAN.md).
+
+The later guided Git and GitHub expansion is a separate living roadmap. This
+handoff records the completed functions integrated from that work without
+claiming that its remaining README roadmap items are finished.
 
 The final 1450×997 review found real horizontal clipping in the shell toolbar
 and Changes card. The responsive flex/containment correction is now shipped,
@@ -50,6 +54,53 @@ and remains attached to single, batch, missing-repository, and retry-clone
 flows. The implementation is `0b4f25cc8e91eb62634e70f90e24f1a44d00dc9d`;
 its first reviewed `main` baseline is
 `3dc1ecc4d8daff6150980e47a13db4f3a61ec37a`.
+
+## Guided-function integration
+
+The privacy-safe squash integration adds the completed guided-function work
+without importing the feature branch's original commit ancestry. The integrated
+product behavior includes:
+
+- bounded shallow clone plus later history deepening;
+- validated cone-mode sparse checkout;
+- native file history/blame and guarded repository bundle/archive/signature
+  tools;
+- an account-aware GitHub notification inbox;
+- guided GitHub issue and pull-request creation;
+- confirmed Actions mutations; and
+- responsive task forms whose controls wrap or stack instead of causing
+  page-level sideways scrolling.
+
+The pull-request slice's exact-remote binding and the first Actions artifact
+browse/download/digest slice are present in this sanitized source snapshot but
+are not yet shipped capabilities. Independent review still requires userinfo,
+alternate-SSH, and cross-repository REST corrections for pull requests, plus
+chained-redirect hardening and focused security regressions for artifact
+downloads, before either slice can join `main`. This snapshot therefore remains
+an integration base, not a final publication candidate.
+
+### Sanitized squash verification
+
+The integration uses the source tree at `5d50500e40edac023336434a5bff3ced32df881e`
+on top of `main` baseline `f84903c6acd3f8e9d3d632887ee93a01258f1896`.
+The source delta was applied as one squash, so its original commit authors are
+not part of this branch's ancestry. The integration gate recorded:
+
+- TypeScript `--noEmit --skipLibCheck`: **passed**;
+- all 50 added or modified unit-test files: **307 passed, 0 failed**;
+- the dedicated clone-account/shallow-clone semantic-union set: **67 passed, 0
+  failed**;
+- the final pull-request/API regression rerun after source-tip hardening: **49
+  passed, 0 failed**;
+- repository code/config Prettier and targeted Markdown Prettier: **passed**;
+  and
+- cached diff, conflict-marker, unmerged-path, local-user-path, personal-name,
+  raw PID/HWND, common-key, and screenshot-reference scans: **passed**. The one
+  token-shaped value retained by the scan is a deliberate synthetic response-
+  redaction fixture.
+
+The README remains the authority for guided functions that are still planned or
+in progress. No unimplemented item is promoted to shipped status here.
 
 ## Completed milestone summary
 
@@ -129,9 +180,9 @@ These are the first paths to inspect when maintaining each subsystem:
   `app/styles/_material-shell.scss`, `app/styles/ui/`, and
   `app/src/ui/app.tsx`.
 
-## Final integrated validation evidence
+## Prior integrated validation evidence
 
-The exhaustive final run on the same application/test tree shipped by
+The exhaustive run on the earlier application/test tree shipped by
 `b2699faccb07728fe9aa2838aa13355d71e172b0` recorded:
 
 - **1,880 unit tests: 1,879 passed, 0 failed, 1 intentional skip**;
@@ -295,6 +346,36 @@ pattern scanning all pass on the published source-only set.
   the cloned repository is clean at
   `c9eee876c4451d380f8cc7628b5971f624f9395f`, and no credentials dialog appears.
 
+## Guided Git and GitHub evidence
+
+On 2026-07-13, a subsequent exact off-screen run verified three named,
+task-specific app functions at **1000×687**. The app presents focused controls
+and state for these
+tasks; it does not expose a searchable list of raw Git/`gh` commands or API
+endpoints.
+
+- **GitHub notifications:** the GitHub tab, account selector, inbox filters,
+  refresh guard, and complete no-signed-in-account state fit without clipped
+  labels.
+- **Sparse checkout:** the disabled-state side panel explains cone mode,
+  validates repository-relative directories, and provides an explicit review
+  step before enabling the worktree change.
+- **Shallow clone:** the URL clone form exposes a named toggle and numeric
+  commit-depth field, explains current-branch/submodule scope, and points users
+  to Repository tools for later deepening.
+
+| Screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-github-notifications.png` | 1000×687 | 81,465 | `53f40a94a6ead19b73c6c3302d0eb60b0effd050c7b018b43dd76d4b2072a354` |
+
+The retained Notifications PNG was reopened at original resolution and matched
+the source capture's SHA-256. Other captures from that run are not included;
+fresh neutral-path captures are required before their guided UI is published.
+No bundle-import or issue-creation screenshot is included in this evidence set.
+Task forms follow a no-page-level-sideways-scroll policy: labels wrap and action
+groups stack when practical, while horizontal scrolling is reserved for spatial
+code, diff, or log content.
+
 ## Headless verification environment
 
 - Project: `%USERPROFILE%\Documents\GitHub\desktop-material`
@@ -320,9 +401,10 @@ The safety contract is mandatory:
 8. Revalidate HWND/PID before close; use exact saved-PID termination only as a
    fallback; close the desktop exactly once; delete only the owned Temp root.
 
-## Root-finalized publication and accessibility evidence
+## Previous root-finalized publication and accessibility evidence
 
-The closing gate is complete:
+The most recent completed closing gate before this guided-function integration
+recorded:
 
 - **Code and CI:** final implementation baseline
   `b2699faccb07728fe9aa2838aa13355d71e172b0` passed all seven jobs in
@@ -364,17 +446,12 @@ The closing gate is complete:
 - **Secure clone implementation checkpoint:** implementation commit
   `0b4f25cc8e91eb62634e70f90e24f1a44d00dc9d` is present in first reviewed
   `main` baseline `3dc1ecc4d8daff6150980e47a13db4f3a61ec37a`.
-  This roadmap-only branch does not claim final CI, installer, release, or
-  Pages results for its future integration SHA; root integration must refresh
-  those rows from GitHub after merge.
-- **Git and delegation:** every delegated commit is merged into `main`, every
-  delegated branch was pushed, and completed agent worktrees were removed only
-  after clean-state, remote-SHA, and ancestry checks.
 
-The final documentation integration is documentation-only, so installer
-production does not apply; CI and Pages remain the applicable publication
-checks. Its exact pushed `main` SHA and successful runs are recorded in the
-final task response because a commit cannot include its own hash.
+Those links and checks remain evidence for their stated historical baselines;
+they are not presented as validation of this code integration. Because the
+guided-function squash changes application code, its eventual `main` SHA needs
+fresh CI, installer/release applicability, Pages, and public-documentation
+verification before the repository-wide closing gate can be called current.
 
 ## Maintenance constraints
 
@@ -397,6 +474,9 @@ final task response because a commit cannot include its own hash.
   response-redacted.
 - Preserve Material token usage when adapting upstream or Desktop Plus code;
   do not import their branding or SCSS wholesale.
+- Keep named Git and GitHub workflows responsive: prefer wrapping and stacked
+  controls over page-level sideways scrolling, with spatial code/diff/log
+  surfaces as the narrow exception.
 - `build-installers.yml` intentionally publishes a release on qualifying
   non-documentation pushes to `main`; verify whether a docs-only merge is
   correctly skipped before reporting the final release state.

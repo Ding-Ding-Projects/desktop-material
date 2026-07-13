@@ -214,12 +214,14 @@ The publication gate is closed:
 The secure clone implementation commit
 `0b4f25cc8e91eb62634e70f90e24f1a44d00dc9d` is present in first reviewed
 `main` baseline `3dc1ecc4d8daff6150980e47a13db4f3a61ec37a`.
-This roadmap-only branch does not claim a closing CI, installer, release, or
-Pages result for its future integration SHA; those rows must be refreshed from
-GitHub only after the branch is integrated.
 
-The final documentation integration changes documentation only, so installer
-production does not apply; CI and Pages remain the applicable publication
-checks. Its exact pushed `main` SHA and corresponding successful runs are
-recorded in the final task response because a commit cannot contain its own
-hash.
+The later guided-function squash changes application code while intentionally
+excluding the source feature branch's commit ancestry. Its local integration
+checks are recorded in `HANDOFF.md`; it does not claim closing CI, installer,
+release, Pages, or public-documentation results for the eventual `main` SHA.
+Those rows must be refreshed from GitHub after the integration lands. Because
+this is a code integration, installer/release applicability must be evaluated
+alongside CI and Pages rather than treated as a documentation-only skip. The
+sanitized squash is an integration base until the pending pull-request
+routing/REST corrections, Actions artifact chained-redirect hardening, and their
+focused regressions are applied.

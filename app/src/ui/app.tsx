@@ -89,6 +89,11 @@ import { UpdateAvailable, renderBanner } from './banners'
 import { Preferences } from './preferences'
 import { SettingsHistoryDialog } from './settings-history'
 import { NotificationHistoryDialog } from './notifications/notification-history-dialog'
+import { FileHistory } from './file-history'
+import { SparseCheckoutManager } from './sparse-checkout'
+import { CreateGitHubIssueDialog } from './create-github-issue'
+import { CreateGitHubPullRequestDialog } from './create-github-pull-request'
+import { getGitHubPullRequestContextVersion } from '../lib/github-pull-request'
 import { NotificationCentrePanel } from './notifications/notification-centre-panel'
 import { MergeAllDialog } from './merge-all'
 import { PullAllDialog } from './pull-all'
@@ -510,6 +515,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showChanges(true)
       case 'show-history':
         return this.showHistory(true)
+      case 'show-repository-tools':
+        return this.showRepositoryTools()
       case 'choose-repository':
         return this.chooseRepository()
       case 'add-local-repository':
@@ -564,6 +571,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showRepositorySettings()
       case 'manage-gitignore':
         return this.showRepositorySettings(RepositorySettingsTab.IgnoredFiles)
+      case 'manage-sparse-checkout':
+        return this.showSparseCheckout()
       case 'build-and-run':
         return this.buildAndRun()
       case 'view-repository-on-github':
@@ -1034,6 +1043,19 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  private async showRepositoryTools() {
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+
+    await this.props.dispatcher.closeCurrentFoldout()
+    await this.props.dispatcher.changeRepositorySection(
+      state.repository,
+      RepositorySectionTab.RepositoryTools
+    )
+  }
+
   private chooseRepository() {
     if (
       this.state.currentFoldout &&
@@ -1450,6 +1472,18 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
+  private showSparseCheckout() {
+    const repository = this.getRepository()
+
+    if (!repository || repository instanceof CloningRepository) {
+      return
+    }
+    this.props.dispatcher.showPopup({
+      type: PopupType.SparseCheckout,
+      repository,
+    })
+  }
+
   private buildAndRun() {
     const repository = this.getRepository()
 
@@ -1463,16 +1497,16 @@ export class App extends React.Component<IAppProps, IAppState> {
       .catch(err => log.error('Failed to start build & run', err))
   }
 
-  /**
-   * Opens a browser to the issue creation page
-   * of the current GitHub repository.
-   */
+  /** Open the guided issue creator for the current GitHub repository. */
   private openIssueCreationOnGitHub() {
     const repository = this.getRepository()
     // this will likely never be null since we disable the
     // issue creation menu item for non-GitHub repositories
     if (repository instanceof Repository) {
-      this.props.dispatcher.openIssueCreationPage(repository)
+      this.props.dispatcher.showPopup({
+        type: PopupType.CreateGitHubIssue,
+        repository,
+      })
     }
   }
 
@@ -1853,6 +1887,71 @@ export class App extends React.Component<IAppProps, IAppState> {
             onDismissed={onPopupDismissedFn}
           />
         )
+      case PopupType.FileHistory:
+        return (
+          <FileHistory
+            key={`file-history-${popup.repository.id}-${popup.path}`}
+            repository={popup.repository}
+            path={popup.path}
+            onRefreshRepository={() =>
+              this.props.dispatcher.refreshRepository(popup.repository)
+            }
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CreateGitHubIssue:
+        return (
+          <CreateGitHubIssueDialog
+            key={`create-github-issue-${popup.repository.id}`}
+            repository={popup.repository}
+            accounts={this.state.accounts}
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CreateGitHubPullRequest: {
+        const selection = this.state.selectedState
+        const repositoryContextCurrent =
+          selection !== null &&
+          selection.type === SelectionType.Repository &&
+          selection.repository.id === popup.repository.id &&
+          selection.repository.hash === popup.repository.hash &&
+          selection.state.branchesState.tip.kind === TipState.Valid &&
+          getGitHubPullRequestContextVersion(
+            selection.repository,
+            selection.state.branchesState.tip.branch,
+            selection.state.remote
+          ) === popup.contextVersion
+
+        return (
+          <CreateGitHubPullRequestDialog
+            key={`create-github-pull-request-${popup.repository.id}`}
+            repository={popup.repository}
+            currentBranch={popup.currentBranch}
+            sourceRemote={popup.sourceRemote}
+            providerHTMLURL={popup.providerHTMLURL}
+            targets={popup.targets}
+            initialTargetHash={popup.initialTargetHash}
+            initialBaseBranchName={popup.initialBaseBranchName}
+            contextVersion={popup.contextVersion}
+            repositoryContextCurrent={repositoryContextCurrent}
+            accounts={this.state.accounts}
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.SparseCheckout:
+        return (
+          <SparseCheckoutManager
+            key={`sparse-checkout-${popup.repository.id}`}
+            repository={popup.repository}
+            onRefreshRepository={() =>
+              this.props.dispatcher.refreshRepository(popup.repository)
+            }
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.MergeAll: {
         const mergeState = this.props.repositoryStateManager.get(
           popup.repository
@@ -2112,8 +2211,9 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
             branch={popup.branch}
+            baseBranch={popup.baseBranch}
             unPushedCommits={popup.unPushedCommits}
-            onConfirm={this.openCreatePullRequestInBrowser}
+            onConfirm={this.showCreateGitHubPullRequest}
             onDismissed={onPopupDismissedFn}
           />
         )
@@ -3467,6 +3567,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         entries={this.state.notifications}
         unreadCount={this.state.unreadNotificationCount}
         repositories={this.state.repositories}
+        accounts={this.state.accounts}
       />
     )
   }
@@ -3896,11 +3997,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.startPullRequest(state.repository)
   }
 
-  private openCreatePullRequestInBrowser = (
+  private showCreateGitHubPullRequest = (
     repository: Repository,
-    branch: Branch
+    branch: Branch,
+    baseBranch?: Branch
   ) => {
-    this.props.dispatcher.openCreatePullRequestInBrowser(repository, branch)
+    this.props.dispatcher.showCreateGitHubPullRequest(
+      repository,
+      branch,
+      baseBranch
+    )
   }
 
   private onPushPullDropdownStateChanged = (newState: DropdownState) => {

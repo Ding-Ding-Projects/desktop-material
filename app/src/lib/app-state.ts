@@ -521,6 +521,7 @@ export enum RepositorySectionTab {
   Changes,
   History,
   Actions,
+  RepositoryTools,
 }
 
 /**

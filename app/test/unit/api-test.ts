@@ -4,10 +4,13 @@ import {
   API,
   ActionsLogMaximumBytes,
   ActionsLogTruncationMarker,
+  createGitHubAPIRequestHeaders,
   getBitbucketAPIEndpoint,
   getEndpointForRepository,
   getGitLabAPIEndpoint,
   getNextPagePathWithIncreasingPageSize,
+  GitHubDotComRESTAPIVersion,
+  GitHubRESTAPIVersionHeader,
 } from '../../src/lib/api'
 import { APIError } from '../../src/lib/http'
 import { CopilotError } from '../../src/lib/copilot-error'
@@ -84,6 +87,64 @@ describe('API', () => {
     })
   })
 
+  describe('GitHub REST API versioning', () => {
+    it('pins GitHub.com REST requests to the current stable version', () => {
+      const headers = createGitHubAPIRequestHeaders(
+        'https://api.github.com',
+        '/user',
+        { 'x-github-api-version': '2022-11-28' }
+      )
+
+      assert.equal(
+        headers.get(GitHubRESTAPIVersionHeader),
+        GitHubDotComRESTAPIVersion
+      )
+    })
+
+    it('applies versioning in the GitHub request layer only for REST', async () => {
+      const api = new API('https://api.github.com', 'account-token')
+      const receivedHeaders = new Array<Headers>()
+      Reflect.set(
+        api,
+        'request',
+        async (
+          _endpoint: string,
+          _method: string,
+          _path: string,
+          options?: { customHeaders?: HeadersInit }
+        ) => {
+          receivedHeaders.push(new Headers(options?.customHeaders))
+          return new Response('{}')
+        }
+      )
+
+      await api.fetchAccount()
+      const ghRequest = Reflect.get(api, 'ghRequest') as (
+        method: 'POST',
+        path: string
+      ) => Promise<Response>
+      await ghRequest.call(api, 'POST', '/graphql')
+
+      assert.equal(
+        receivedHeaders[0].get(GitHubRESTAPIVersionHeader),
+        GitHubDotComRESTAPIVersion
+      )
+      assert.equal(receivedHeaders[1].get(GitHubRESTAPIVersionHeader), null)
+    })
+
+    it('does not version GraphQL, GHES, GitLab, or Bitbucket requests', () => {
+      for (const [endpoint, path] of [
+        ['https://api.github.com', '/graphql'],
+        ['https://github.example.test/api/v3', '/user'],
+        ['https://gitlab.com/api/v4', '/user'],
+        ['https://api.bitbucket.org/2.0', '/user'],
+      ]) {
+        const headers = createGitHubAPIRequestHeaders(endpoint, path)
+        assert.equal(headers.get(GitHubRESTAPIVersionHeader), null)
+      }
+    })
+  })
+
   describe('fetchOrgRepositories', () => {
     it('requests the encoded organization repository endpoint', async () => {
       const api = new API('https://api.github.com', 'token')
@@ -95,6 +156,151 @@ describe('API', () => {
 
       await api.fetchOrgRepositories('desktop material')
       assert.equal(path, 'orgs/desktop%20material/repos')
+    })
+  })
+
+  describe('GitHub Notifications endpoints', () => {
+    it('builds the bounded authenticated-user notification query', async () => {
+      const api = new API('https://api.github.com', 'account-token')
+      let method = ''
+      let path = ''
+      let requestHeaders = new Headers()
+      const controller = new AbortController()
+      const thread = {
+        id: '41',
+        repository: {
+          id: 1,
+          name: 'repo',
+          full_name: 'owner/repo',
+          private: false,
+          owner: { login: 'owner', id: 1 },
+          html_url: 'https://github.com/owner/repo',
+        },
+        subject: {
+          title: 'A notification',
+          url: 'https://api.github.com/repos/owner/repo/issues/5',
+          latest_comment_url: null,
+          type: 'Issue',
+        },
+        reason: 'mention',
+        unread: true,
+        updated_at: '2026-07-12T12:00:00Z',
+        last_read_at: null,
+        url: 'https://api.github.com/notifications/threads/41',
+        subscription_url:
+          'https://api.github.com/notifications/threads/41/subscription',
+      }
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (
+          valueMethod: string,
+          valuePath: string,
+          options?: { customHeaders?: HeadersInit; signal?: AbortSignal }
+        ) => {
+          method = valueMethod
+          path = valuePath
+          requestHeaders = new Headers(options?.customHeaders)
+          assert.equal(options?.signal, controller.signal)
+          return new Response(JSON.stringify([thread]), {
+            headers: {
+              Link: '<https://api.github.com/notifications?page=3>; rel="next"',
+              'Last-Modified': 'Sun, 12 Jul 2026 12:00:00 GMT',
+              'X-Poll-Interval': '60',
+            },
+          })
+        }
+      )
+
+      const page = await api.fetchNotifications({
+        includeRead: true,
+        participating: true,
+        page: 2,
+        perPage: 500,
+        lastModified: 'Sun, 12 Jul 2026 11:00:00 GMT',
+        signal: controller.signal,
+      })
+
+      assert.equal(method, 'GET')
+      assert.equal(
+        path,
+        'notifications?all=true&participating=true&per_page=50&page=2'
+      )
+      assert.equal(requestHeaders.get('Accept'), 'application/vnd.github+json')
+      assert.equal(
+        requestHeaders.get('If-Modified-Since'),
+        'Sun, 12 Jul 2026 11:00:00 GMT'
+      )
+      assert.deepEqual(page.notifications, [thread])
+      assert.equal(page.hasNextPage, true)
+      assert.equal(page.notModified, false)
+      assert.equal(page.lastModified, 'Sun, 12 Jul 2026 12:00:00 GMT')
+      assert.equal(page.pollIntervalSeconds, 60)
+    })
+
+    it('preserves the current page on a conditional 304 response', async () => {
+      const api = new API('https://api.github.com', 'account-token')
+      Reflect.set(
+        api,
+        'ghRequest',
+        async () =>
+          new Response(null, {
+            status: 304,
+            headers: { 'X-Poll-Interval': '90' },
+          })
+      )
+
+      const page = await api.fetchNotifications({
+        includeRead: false,
+        participating: false,
+        page: 1,
+        lastModified: 'Sun, 12 Jul 2026 12:00:00 GMT',
+      })
+
+      assert.equal(page.notModified, true)
+      assert.deepEqual(page.notifications, [])
+      assert.equal(page.lastModified, 'Sun, 12 Jul 2026 12:00:00 GMT')
+      assert.equal(page.pollIntervalSeconds, 90)
+    })
+
+    it('uses the exact thread read and done mutation contracts', async () => {
+      const api = new API('https://api.github.com', 'account-token')
+      const controller = new AbortController()
+      const requests = new Array<{
+        method: string
+        path: string
+        signal?: AbortSignal
+      }>()
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (
+          method: string,
+          path: string,
+          options?: { signal?: AbortSignal }
+        ) => {
+          requests.push({ method, path, signal: options?.signal })
+          return new Response(null, {
+            status: method === 'PATCH' ? 205 : 204,
+          })
+        }
+      )
+
+      await api.markNotificationThreadRead('41/escape', controller.signal)
+      await api.markNotificationThreadDone('42', controller.signal)
+
+      assert.deepEqual(requests, [
+        {
+          method: 'PATCH',
+          path: 'notifications/threads/41%2Fescape',
+          signal: controller.signal,
+        },
+        {
+          method: 'DELETE',
+          path: 'notifications/threads/42',
+          signal: controller.signal,
+        },
+      ])
     })
   })
 
@@ -140,6 +346,65 @@ describe('API', () => {
         ref: 'main',
         inputs: { target: 'prod' },
       })
+    })
+
+    it('uses the exact Actions mutation methods and paths', async () => {
+      const api = new API('https://api.github.com', 'token')
+      const requests = new Array<{ method: string; path: string }>()
+      Reflect.set(api, 'ghRequest', async (method: string, path: string) => {
+        requests.push({ method, path })
+        return new Response(null, { status: 204 })
+      })
+
+      assert.equal(await api.rerunJob('owner', 'repo', 17), true)
+      await api.cancelWorkflowRun('owner', 'repo', 23)
+      await api.cancelWorkflowRun('owner', 'repo', 24, true)
+      await api.setWorkflowEnabled('owner', 'repo', 31, true)
+      await api.setWorkflowEnabled('owner', 'repo', 32, false)
+
+      assert.deepEqual(requests, [
+        {
+          method: 'POST',
+          path: '/repos/owner/repo/actions/jobs/17/rerun',
+        },
+        {
+          method: 'POST',
+          path: 'repos/owner/repo/actions/runs/23/cancel',
+        },
+        {
+          method: 'POST',
+          path: 'repos/owner/repo/actions/runs/24/force-cancel',
+        },
+        {
+          method: 'PUT',
+          path: 'repos/owner/repo/actions/workflows/31/enable',
+        },
+        {
+          method: 'PUT',
+          path: 'repos/owner/repo/actions/workflows/32/disable',
+        },
+      ])
+    })
+
+    it('preserves structured errors for workflow state changes', async () => {
+      const api = new API('https://api.github.com', 'token')
+      Reflect.set(
+        api,
+        'ghRequest',
+        async () =>
+          new Response(JSON.stringify({ message: 'Resource not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' },
+          })
+      )
+
+      await assert.rejects(
+        api.setWorkflowEnabled('owner', 'repo', 31, true),
+        error =>
+          error instanceof APIError &&
+          error.responseStatus === 404 &&
+          error.message === 'Resource not found'
+      )
     })
 
     it('lets Electron follow job log redirects through its header filter', async () => {

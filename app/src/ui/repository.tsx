@@ -45,6 +45,11 @@ import {
   ActionsStore,
 } from '../lib/stores/actions-store'
 import { ActionsView } from './actions'
+import { RepositoryTools } from './repository-tools'
+import {
+  getRepositorySections,
+  getRepositorySectionVisualIndex,
+} from './repository-sections'
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -158,12 +163,6 @@ interface IRepositoryViewState {
   readonly compareListScrollTop: number
 }
 
-const enum Tab {
-  Changes = 0,
-  History = 1,
-  Actions = 2,
-}
-
 export class RepositoryView extends React.Component<
   IRepositoryViewProps,
   IRepositoryViewState
@@ -242,12 +241,10 @@ export class RepositoryView extends React.Component<
 
   private renderTabs(): JSX.Element {
     const selectedSection = this.getSelectedSection()
-    const selectedTab =
-      selectedSection === RepositorySectionTab.Changes
-        ? Tab.Changes
-        : selectedSection === RepositorySectionTab.History
-        ? Tab.History
-        : Tab.Actions
+    const selectedTab = getRepositorySectionVisualIndex(
+      selectedSection,
+      this.supportsGitHubActions()
+    )
 
     return (
       <TabBar
@@ -277,6 +274,16 @@ export class RepositoryView extends React.Component<
             <span className="rail-label">Actions</span>
           </span>
         )}
+        <span
+          className="rail-item"
+          id="repository-tools-tab"
+          title="Repository tools"
+        >
+          <span className="rail-pill">
+            <Octicon symbol={octicons.tools} className="rail-icon" />
+          </span>
+          <span className="rail-label">Tools</span>
+        </span>
       </TabBar>
     )
   }
@@ -507,7 +514,10 @@ export class RepositoryView extends React.Component<
       return this.renderChangesSidebar()
     } else if (selectedSection === RepositorySectionTab.History) {
       return this.renderCompareSidebar()
-    } else if (selectedSection === RepositorySectionTab.Actions) {
+    } else if (
+      selectedSection === RepositorySectionTab.Actions ||
+      selectedSection === RepositorySectionTab.RepositoryTools
+    ) {
       return null
     } else {
       return assertNever(selectedSection, 'Unknown repository section')
@@ -523,7 +533,11 @@ export class RepositoryView extends React.Component<
   }
 
   private renderSidebar(): JSX.Element {
-    if (this.getSelectedSection() === RepositorySectionTab.Actions) {
+    const selectedSection = this.getSelectedSection()
+    if (
+      selectedSection === RepositorySectionTab.Actions ||
+      selectedSection === RepositorySectionTab.RepositoryTools
+    ) {
       return <React.Fragment />
     }
     return (
@@ -789,6 +803,15 @@ export class RepositoryView extends React.Component<
           actionsStore={this.props.actionsStore}
         />
       )
+    } else if (selectedSection === RepositorySectionTab.RepositoryTools) {
+      return (
+        <RepositoryTools
+          repositoryPath={this.props.repository.path}
+          onRefreshRepository={() =>
+            this.props.dispatcher.refreshRepository(this.props.repository)
+          }
+        />
+      )
     } else {
       return assertNever(selectedSection, 'Unknown repository section')
     }
@@ -854,6 +877,8 @@ export class RepositoryView extends React.Component<
           ? RepositorySectionTab.History
           : event.key === '3' && this.supportsGitHubActions()
           ? RepositorySectionTab.Actions
+          : event.key === '4'
+          ? RepositorySectionTab.RepositoryTools
           : null
       if (shortcut !== null) {
         this.props.dispatcher.changeRepositorySection(
@@ -873,13 +898,7 @@ export class RepositoryView extends React.Component<
   }
 
   private changeTab() {
-    const sections = !this.supportsGitHubActions()
-      ? [RepositorySectionTab.Changes, RepositorySectionTab.History]
-      : [
-          RepositorySectionTab.Changes,
-          RepositorySectionTab.History,
-          RepositorySectionTab.Actions,
-        ]
+    const sections = getRepositorySections(this.supportsGitHubActions())
     const current = sections.indexOf(this.props.state.selectedSection)
     const section = sections[(current + 1) % sections.length]
 
@@ -889,13 +908,13 @@ export class RepositoryView extends React.Component<
     )
   }
 
-  private onTabClicked = (tab: Tab) => {
-    const section =
-      tab === Tab.History
-        ? RepositorySectionTab.History
-        : tab === Tab.Actions
-        ? RepositorySectionTab.Actions
-        : RepositorySectionTab.Changes
+  private onTabClicked = (visualIndex: number) => {
+    const section = getRepositorySections(this.supportsGitHubActions())[
+      visualIndex
+    ]
+    if (section === undefined) {
+      return
+    }
 
     this.props.dispatcher.changeRepositorySection(
       this.props.repository,

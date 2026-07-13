@@ -10,7 +10,117 @@ import {
 } from '../api'
 import { supportsActions } from '../endpoint-capabilities'
 import { APIError } from '../http'
+import { IActionsArtifact, IActionsArtifactList } from '../actions-artifacts'
+import {
+  downloadActionsArtifactArchive,
+  IActionsArtifactDownloadProgress,
+  IActionsArtifactDownloadResult,
+} from '../actions-artifact-download'
 import { AccountsStore } from './accounts-store'
+
+export type ActionsMutation =
+  | 'rerun-job'
+  | 'cancel-run'
+  | 'force-cancel-run'
+  | 'enable-workflow'
+  | 'disable-workflow'
+
+export type ActionsArtifactOperation = 'list' | 'attestations' | 'download'
+
+const mutationLabels: Readonly<Record<ActionsMutation, string>> = {
+  'rerun-job': 're-run this job',
+  'cancel-run': 'cancel this workflow run',
+  'force-cancel-run': 'force-cancel this workflow run',
+  'enable-workflow': 'enable this workflow',
+  'disable-workflow': 'disable this workflow',
+}
+
+/** Turn API failures into actionable, capability-aware Actions messages. */
+export function actionsMutationError(
+  error: unknown,
+  mutation: ActionsMutation
+): Error {
+  if (!(error instanceof APIError)) {
+    return error instanceof Error ? error : new Error(String(error))
+  }
+
+  const action = mutationLabels[mutation]
+  if (error.responseStatus === 403) {
+    if (error.rateLimitReset !== null) {
+      return new Error(
+        `GitHub cannot ${action} until the API rate limit resets at ${error.rateLimitReset.toLocaleTimeString()}.`
+      )
+    }
+    return new Error(
+      `GitHub denied permission to ${action}. Check that the selected account has Actions write access to this repository.`
+    )
+  }
+  if (error.responseStatus === 404) {
+    return new Error(
+      `GitHub could not ${action}. The run or workflow may no longer exist, or this GitHub Enterprise version may not support the operation.`
+    )
+  }
+  if (error.responseStatus === 409 || error.responseStatus === 422) {
+    return new Error(
+      `GitHub could not ${action} in its current state. Refresh Actions and try again.`
+    )
+  }
+  return error
+}
+
+const artifactOperationLabels: Readonly<
+  Record<ActionsArtifactOperation, string>
+> = {
+  list: 'load artifacts for this workflow run',
+  attestations: 'check artifact attestation records',
+  download: 'download this artifact',
+}
+
+/** Turn artifact API failures into actionable account and permission guidance. */
+export function actionsArtifactError(
+  error: unknown,
+  operation: ActionsArtifactOperation
+): Error {
+  if ((error as Error)?.name === 'AbortError') {
+    return error as Error
+  }
+  if (!(error instanceof APIError)) {
+    return error instanceof Error ? error : new Error(String(error))
+  }
+
+  const action = artifactOperationLabels[operation]
+  if (error.responseStatus === 401) {
+    return new Error(`GitHub could not ${action}. Sign in again and retry.`)
+  }
+  if (error.responseStatus === 403) {
+    if (error.rateLimitReset !== null) {
+      return new Error(
+        `GitHub cannot ${action} until the API rate limit resets at ${error.rateLimitReset.toLocaleTimeString()}.`
+      )
+    }
+    return new Error(
+      `GitHub denied permission to ${action}. Check that the selected account has Actions read access to this repository.`
+    )
+  }
+  if (error.responseStatus === 404) {
+    return new Error(
+      `GitHub could not ${action}. The artifact may no longer exist, the account may not have access, or this GitHub Enterprise version may not support the operation.`
+    )
+  }
+  if (error.responseStatus === 410) {
+    return new Error(
+      'This artifact has expired and can no longer be downloaded.'
+    )
+  }
+  if (error.responseStatus >= 500) {
+    return new Error(
+      `GitHub could not ${action} because the service returned an error (${error.responseStatus}). Retry in a moment.`
+    )
+  }
+  return new Error(
+    `GitHub could not ${action} (HTTP ${error.responseStatus}). Refresh and retry.`
+  )
+}
 
 export interface IActionsState {
   readonly workflows: ReadonlyArray<IAPIWorkflow>
@@ -166,7 +276,23 @@ export class ActionsStore {
     if (account === null || account.provider !== 'github') {
       throw new Error(`Sign in to ${repository.endpoint} to use Actions.`)
     }
+    if (!supportsActions(repository.endpoint)) {
+      throw new Error(
+        'GitHub Actions is not available on this GitHub Enterprise version.'
+      )
+    }
     return API.fromAccount(account)
+  }
+
+  private async mutate(
+    mutation: ActionsMutation,
+    operation: () => Promise<void>
+  ) {
+    try {
+      await operation()
+    } catch (error) {
+      throw actionsMutationError(error, mutation)
+    }
   }
 
   public async refresh(
@@ -262,6 +388,52 @@ export class ActionsStore {
     await this.refresh(repository, true)
   }
 
+  public async rerunJob(repository: GitHubRepository, jobId: number) {
+    await this.mutate('rerun-job', async () => {
+      const succeeded = await this.apiFor(repository).rerunJob(
+        repository.owner.login,
+        repository.name,
+        jobId
+      )
+      if (!succeeded) {
+        throw new Error('GitHub could not re-run this failed job.')
+      }
+    })
+    await this.refresh(repository, true)
+  }
+
+  public async cancelRun(
+    repository: GitHubRepository,
+    runId: number,
+    force: boolean
+  ) {
+    await this.mutate(force ? 'force-cancel-run' : 'cancel-run', () =>
+      this.apiFor(repository).cancelWorkflowRun(
+        repository.owner.login,
+        repository.name,
+        runId,
+        force
+      )
+    )
+    await this.refresh(repository, true)
+  }
+
+  public async setWorkflowEnabled(
+    repository: GitHubRepository,
+    workflowId: number,
+    enabled: boolean
+  ) {
+    await this.mutate(enabled ? 'enable-workflow' : 'disable-workflow', () =>
+      this.apiFor(repository).setWorkflowEnabled(
+        repository.owner.login,
+        repository.name,
+        workflowId,
+        enabled
+      )
+    )
+    await this.refresh(repository, true)
+  }
+
   public async fetchJobs(
     repository: GitHubRepository,
     runId: number
@@ -280,6 +452,68 @@ export class ActionsStore {
       repository.name,
       jobId
     )
+  }
+
+  public async fetchArtifacts(
+    repository: GitHubRepository,
+    runId: number,
+    signal?: AbortSignal
+  ): Promise<IActionsArtifactList> {
+    try {
+      return await this.apiFor(repository).fetchWorkflowRunArtifacts(
+        repository.owner.login,
+        repository.name,
+        runId,
+        signal
+      )
+    } catch (error) {
+      throw actionsArtifactError(error, 'list')
+    }
+  }
+
+  public async fetchArtifactAttestationPresence(
+    repository: GitHubRepository,
+    digest: string,
+    signal?: AbortSignal
+  ): Promise<boolean> {
+    try {
+      return await this.apiFor(repository).fetchArtifactAttestationPresence(
+        repository.owner.login,
+        repository.name,
+        digest,
+        signal
+      )
+    } catch (error) {
+      throw actionsArtifactError(error, 'attestations')
+    }
+  }
+
+  public async downloadArtifact(
+    repository: GitHubRepository,
+    artifact: IActionsArtifact,
+    destination: string,
+    signal: AbortSignal,
+    onProgress?: (progress: IActionsArtifactDownloadProgress) => void
+  ): Promise<IActionsArtifactDownloadResult> {
+    try {
+      const response = await this.apiFor(
+        repository
+      ).fetchWorkflowArtifactArchive(
+        repository.owner.login,
+        repository.name,
+        artifact.id,
+        signal
+      )
+      return await downloadActionsArtifactArchive({
+        artifact,
+        response,
+        destination,
+        signal,
+        onProgress,
+      })
+    } catch (error) {
+      throw actionsArtifactError(error, 'download')
+    }
   }
 
   public fetchWorkflowSource(

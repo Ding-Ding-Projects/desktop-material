@@ -8,6 +8,7 @@ import {
   IAPICheckSuite,
   IAPIRepoRuleset,
   getDotComAPIEndpoint,
+  getHTMLURL,
   IAPICreatePushProtectionBypassResponse,
 } from '../../lib/api'
 import { getAccountForRepository } from '../../lib/get-account-for-repository'
@@ -78,7 +79,7 @@ import { Branch, IAheadBehind } from '../../models/branch'
 import { BranchesTab } from '../../models/branches-tab'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
-import { CloneOptions } from '../../models/clone-options'
+import type { CloneOptions } from '../../models/clone-options'
 import { BatchCloneMode, IBatchCloneItem } from '../../models/batch-clone'
 import { CloningRepository } from '../../models/cloning-repository'
 import { Commit, ICommitContext, CommitOneLine } from '../../models/commit'
@@ -86,6 +87,7 @@ import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
 import { GitHubRepository } from '../../models/github-repository'
+import { IRemote } from '../../models/remote'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { Popup, PopupType } from '../../models/popup'
 import { IProfileHistoryPage } from '../../models/profile'
@@ -173,6 +175,13 @@ import {
   ICopilotResolutionSummary,
 } from '../../lib/copilot-conflict-resolution'
 import { WorktreeEntry } from '../../models/worktree'
+import { ICreatedGitHubIssue } from '../../lib/github-issue'
+import {
+  getGitHubPullRequestHead,
+  GitHubPullRequestContextChangedError,
+  ICreatedGitHubPullRequest,
+  IGitHubPullRequestDraft,
+} from '../../lib/github-pull-request'
 
 /**
  * An error handler function.
@@ -3170,6 +3179,15 @@ export class Dispatcher {
     return this.appStore._createPullRequest(repository, baseBranch)
   }
 
+  /** Continue the publish/push prerequisite flow in the native PR composer. */
+  public showCreateGitHubPullRequest(
+    repository: Repository,
+    branch: Branch,
+    baseBranch?: Branch
+  ): void {
+    this.appStore._showCreateGitHubPullRequest(repository, branch, baseBranch)
+  }
+
   /**
    * Show the current pull request on github.com
    */
@@ -3191,9 +3209,18 @@ export class Dispatcher {
    */
   public openCreatePullRequestInBrowser(
     repository: Repository,
-    branch: Branch
-  ): Promise<void> {
-    return this.appStore._openCreatePullRequestInBrowser(repository, branch)
+    branch: Branch,
+    sourceRemote: IRemote | null,
+    baseBranchName?: string,
+    target?: GitHubRepository
+  ): Promise<boolean> {
+    return this.appStore._openCreatePullRequestInBrowser(
+      repository,
+      branch,
+      sourceRemote,
+      baseBranchName,
+      target
+    )
   }
 
   /**
@@ -3631,6 +3658,122 @@ export class Dispatcher {
     } else {
       return false
     }
+  }
+
+  /** Create one issue through the selected repository-scoped GitHub account. */
+  public async createGitHubIssue(
+    repository: Repository,
+    account: Account,
+    title: string,
+    body: string,
+    signal: AbortSignal
+  ): Promise<ICreatedGitHubIssue> {
+    if (!isRepositoryWithGitHubRepository(repository)) {
+      throw new Error('This repository is not connected to GitHub.')
+    }
+
+    const target = getNonForkGitHubRepository(repository)
+    if (
+      account.provider !== 'github' ||
+      account.token.length === 0 ||
+      account.endpoint !== target.endpoint
+    ) {
+      throw new Error('No matching authenticated GitHub account is available.')
+    }
+    if (target.isArchived === true) {
+      throw new Error('Archived repositories cannot accept new issues.')
+    }
+    if (target.issuesEnabled === false) {
+      throw new Error('Issues are disabled for this repository.')
+    }
+
+    return API.fromAccount(account).createIssue(
+      target.owner.login,
+      target.name,
+      title,
+      body,
+      signal
+    )
+  }
+
+  /** Whether the repository and checked-out tip still match a PR review. */
+  public isGitHubPullRequestContextCurrent(
+    repository: Repository,
+    contextVersion: string
+  ): boolean {
+    return this.appStore._isGitHubPullRequestContextCurrent(
+      repository,
+      contextVersion
+    )
+  }
+
+  /** Create one reviewed pull request through the selected GitHub account. */
+  public async createGitHubPullRequest(
+    repository: Repository,
+    target: GitHubRepository,
+    account: Account,
+    currentBranch: Branch,
+    sourceRemote: IRemote | null,
+    providerHTMLURL: string,
+    contextVersion: string,
+    draft: IGitHubPullRequestDraft,
+    signal: AbortSignal
+  ): Promise<ICreatedGitHubPullRequest> {
+    if (
+      !this.appStore._isGitHubPullRequestContextCurrent(
+        repository,
+        contextVersion
+      )
+    ) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+    if (!isRepositoryWithGitHubRepository(repository)) {
+      throw new Error('This repository is not connected to GitHub.')
+    }
+
+    const source = repository.gitHubRepository
+    if (providerHTMLURL !== getHTMLURL(source.endpoint)) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+    const targetIsAllowed =
+      target.hash === source.hash || target.hash === source.parent?.hash
+    if (!targetIsAllowed || target.endpoint !== source.endpoint) {
+      throw new Error(
+        'The pull request target is not valid for this repository.'
+      )
+    }
+    if (target.isArchived === true) {
+      throw new Error('Archived repositories cannot accept pull requests.')
+    }
+    if (
+      account.provider !== 'github' ||
+      account.token.length === 0 ||
+      account.endpoint !== target.endpoint
+    ) {
+      throw new Error('No matching authenticated GitHub account is available.')
+    }
+
+    const expectedHead = getGitHubPullRequestHead(
+      source,
+      target,
+      currentBranch,
+      sourceRemote,
+      providerHTMLURL
+    )
+    if (draft.head !== expectedHead) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+
+    return API.fromAccount(account).createPullRequest(
+      target.owner.login,
+      target.name,
+      draft.title,
+      draft.body,
+      draft.head,
+      draft.base,
+      draft.draft,
+      signal
+    )
   }
 
   public setRepositoryIndicatorsEnabled(repositoryIndicatorsEnabled: boolean) {

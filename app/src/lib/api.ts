@@ -28,6 +28,27 @@ import {
 import { HttpStatusCode } from './http-status-code'
 import { CopilotError, parseCopilotPaymentRequiredError } from './copilot-error'
 import { BypassReasonType } from '../ui/secret-scanning/bypass-push-protection-dialog'
+import {
+  IAPICreatedGitHubIssue,
+  ICreatedGitHubIssue,
+  normalizeGitHubIssueDraft,
+  validateCreatedGitHubIssue,
+  validateGitHubRepositoryPart,
+} from './github-issue'
+import {
+  IAPICreatedGitHubPullRequest,
+  ICreatedGitHubPullRequest,
+  normalizeGitHubPullRequestDraft,
+  validateCreatedGitHubPullRequest,
+} from './github-pull-request'
+import {
+  ActionsArtifactPageSize,
+  IActionsArtifactList,
+  isSupportedActionsArtifactDigest,
+  parseActionsArtifactAttestationPresence,
+  parseActionsArtifactList,
+  validateActionsArtifactIdentifier,
+} from './actions-artifacts'
 
 const envEndpoint = process.env['DESKTOP_GITHUB_DOTCOM_API_ENDPOINT']
 const envHTMLURL = process.env['DESKTOP_GITHUB_DOTCOM_HTML_URL']
@@ -142,6 +163,45 @@ export type GitHubAccountType = 'User' | 'Organization'
 
 /** The OAuth scopes we want to request */
 const oauthScopes = ['repo', 'user', 'workflow']
+
+/** The current stable REST API version used for GitHub.com requests. */
+export const GitHubDotComRESTAPIVersion = '2026-03-10'
+
+export const GitHubRESTAPIVersionHeader = 'X-GitHub-Api-Version'
+
+function isGraphQLRequestPath(path: string): boolean {
+  return path.split(/[?#]/, 1)[0].replace(/^\/+/, '') === 'graphql'
+}
+
+/**
+ * Return the REST API version to use for a request, if one is known to be
+ * supported by the endpoint. This is deliberately GitHub.com-only until GHES
+ * reports supported API versions through a capability probe.
+ */
+export function getGitHubRESTAPIVersion(
+  endpoint: string,
+  path: string
+): string | null {
+  return isDotCom(endpoint) && !isGraphQLRequestPath(path)
+    ? GitHubDotComRESTAPIVersion
+    : null
+}
+
+/** Add the stable REST version to GitHub.com API request headers. */
+export function createGitHubAPIRequestHeaders(
+  endpoint: string,
+  path: string,
+  customHeaders?: HeadersInit
+): Headers {
+  const headers = new Headers(customHeaders)
+  const version = getGitHubRESTAPIVersion(endpoint, path)
+
+  if (version !== null) {
+    headers.set(GitHubRESTAPIVersionHeader, version)
+  }
+
+  return headers
+}
 
 /**
  * Information about a repository as returned by the GitHub API.
@@ -336,6 +396,55 @@ export interface IAPIEmail {
   readonly verified: boolean
   readonly primary: boolean
   readonly visibility: EmailVisibility
+}
+
+/** A notification subject returned by the authenticated-user inbox API. */
+export interface IAPINotificationSubject {
+  readonly title: string
+  readonly url: string | null
+  readonly latest_comment_url: string | null
+  readonly type: string
+}
+
+/** Repository metadata embedded in a GitHub notification thread. */
+export interface IAPINotificationRepository {
+  readonly id: number
+  readonly name: string
+  readonly full_name: string
+  readonly private: boolean
+  readonly owner: IAPIIdentity
+  readonly html_url: string
+}
+
+/** A thread returned by `GET /notifications`. */
+export interface IAPINotificationThread {
+  readonly id: string
+  readonly repository: IAPINotificationRepository
+  readonly subject: IAPINotificationSubject
+  readonly reason: string
+  readonly unread: boolean
+  readonly updated_at: string
+  readonly last_read_at: string | null
+  readonly url: string
+  readonly subscription_url: string
+}
+
+export interface IAPINotificationsOptions {
+  readonly includeRead: boolean
+  readonly participating: boolean
+  readonly page: number
+  readonly perPage?: number
+  readonly lastModified?: string | null
+  readonly signal?: AbortSignal
+}
+
+/** One bounded page of authenticated-user notification threads. */
+export interface IAPINotificationsPage {
+  readonly notifications: ReadonlyArray<IAPINotificationThread>
+  readonly hasNextPage: boolean
+  readonly notModified: boolean
+  readonly lastModified: string | null
+  readonly pollIntervalSeconds: number | null
 }
 
 /** Information about an issue as returned by the GitHub API. */
@@ -1145,6 +1254,89 @@ export class API {
     }
   }
 
+  /** Fetch one bounded page from the authenticated user's GitHub inbox. */
+  public async fetchNotifications(
+    options: IAPINotificationsOptions
+  ): Promise<IAPINotificationsPage> {
+    const page = Math.max(1, Math.trunc(options.page))
+    const perPage = Math.max(1, Math.min(50, options.perPage ?? 50))
+    const path = urlWithQueryString('notifications', {
+      all: String(options.includeRead),
+      participating: String(options.participating),
+      per_page: String(perPage),
+      page: String(page),
+    })
+    const customHeaders = new Headers({
+      Accept: 'application/vnd.github+json',
+    })
+    if (options.lastModified) {
+      customHeaders.set('If-Modified-Since', options.lastModified)
+    }
+
+    const response = await this.ghRequest('GET', path, {
+      customHeaders,
+      signal: options.signal,
+    })
+    const lastModified = response.headers.get('Last-Modified')
+    const rawPollInterval = response.headers.get('X-Poll-Interval')
+    const parsedPollInterval =
+      rawPollInterval === null ? NaN : Number.parseInt(rawPollInterval, 10)
+    const pollIntervalSeconds = Number.isFinite(parsedPollInterval)
+      ? parsedPollInterval
+      : null
+
+    if (response.status === HttpStatusCode.NotModified) {
+      return {
+        notifications: [],
+        hasNextPage: false,
+        notModified: true,
+        lastModified: lastModified ?? options.lastModified ?? null,
+        pollIntervalSeconds,
+      }
+    }
+
+    const notifications = await parsedResponse<
+      ReadonlyArray<IAPINotificationThread>
+    >(response)
+    return {
+      notifications,
+      hasNextPage: getNextPagePathFromLink(response) !== null,
+      notModified: false,
+      lastModified,
+      pollIntervalSeconds,
+    }
+  }
+
+  /** Mark exactly one GitHub notification thread as read. */
+  public async markNotificationThreadRead(
+    threadId: string,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const response = await this.ghRequest(
+      'PATCH',
+      `notifications/threads/${encodeURIComponent(threadId)}`,
+      { signal }
+    )
+    if (!response.ok && response.status !== HttpStatusCode.NotModified) {
+      await parsedResponse<unknown>(response)
+    }
+  }
+
+  /** Mark exactly one GitHub notification thread as done. */
+  public async markNotificationThreadDone(
+    threadId: string,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const response = await this.ghRequest(
+      'DELETE',
+      `notifications/threads/${encodeURIComponent(threadId)}`,
+      { signal }
+    )
+    if (!response.ok) {
+      await parsedResponse<unknown>(response)
+    }
+  }
+
   /** Fetch all the orgs to which the user belongs. */
   public async fetchOrgs(): Promise<ReadonlyArray<IAPIOrganization>> {
     try {
@@ -1257,6 +1449,86 @@ export class API {
       log.warn(`fetchIssues: failed for repository ${owner}/${name}`, e)
       throw e
     }
+  }
+
+  /**
+   * Create one issue using the bounded fields exposed by the guided Desktop
+   * flow. The response URL is validated against this client's provider before
+   * it is returned to a caller that may offer to open it.
+   */
+  public async createIssue(
+    owner: string,
+    name: string,
+    title: string,
+    body: string,
+    signal?: AbortSignal
+  ): Promise<ICreatedGitHubIssue> {
+    signal?.throwIfAborted()
+
+    const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubRepositoryPart(name, 'repository')
+    const draft = normalizeGitHubIssueDraft(title, body)
+    const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeName
+    )}/issues`
+    const response = await this.ghRequest('POST', path, {
+      body: draft,
+      customHeaders: { Accept: 'application/vnd.github+json' },
+      signal,
+    })
+    const issue = await parsedResponse<IAPICreatedGitHubIssue>(response)
+
+    return validateCreatedGitHubIssue(
+      issue,
+      safeOwner,
+      safeName,
+      getHTMLURL(this.endpoint)
+    )
+  }
+
+  /**
+   * Create one pull request using only the reviewed fields exposed by the
+   * guided Desktop flow. The returned browser URL is constrained to this
+   * client's provider and the exact target repository and PR number.
+   */
+  public async createPullRequest(
+    owner: string,
+    name: string,
+    title: string,
+    body: string,
+    head: string,
+    base: string,
+    draft: boolean,
+    signal?: AbortSignal
+  ): Promise<ICreatedGitHubPullRequest> {
+    signal?.throwIfAborted()
+
+    const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubRepositoryPart(name, 'repository')
+    const pullRequest = normalizeGitHubPullRequestDraft(
+      title,
+      body,
+      head,
+      base,
+      draft
+    )
+    const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeName
+    )}/pulls`
+    const response = await this.ghRequest('POST', path, {
+      body: pullRequest,
+      customHeaders: { Accept: 'application/vnd.github+json' },
+      signal,
+    })
+    const created = await parsedResponse<IAPICreatedGitHubPullRequest>(response)
+
+    return validateCreatedGitHubPullRequest(
+      created,
+      safeOwner,
+      safeName,
+      getHTMLURL(this.endpoint),
+      pullRequest
+    )
   }
 
   /** Fetch all open pull requests in the given repository. */
@@ -1634,6 +1906,104 @@ export class API {
     return await parsedResponse<IAPIWorkflowRuns>(response)
   }
 
+  /** List the bounded first page of artifacts produced by one workflow run. */
+  public async fetchWorkflowRunArtifacts(
+    owner: string,
+    name: string,
+    workflowRunId: number,
+    signal?: AbortSignal
+  ): Promise<IActionsArtifactList> {
+    const runId = validateActionsArtifactIdentifier(
+      workflowRunId,
+      'workflow run id'
+    )
+    const path = `repos/${owner}/${name}/actions/runs/${runId}/artifacts?per_page=${ActionsArtifactPageSize}`
+    const response = await this.ghRequest('GET', path, { signal })
+    return parseActionsArtifactList(
+      await parsedResponse<unknown>(response),
+      runId
+    )
+  }
+
+  /** Check for a matching attestation record without claiming verification. */
+  public async fetchArtifactAttestationPresence(
+    owner: string,
+    name: string,
+    digest: string,
+    signal?: AbortSignal
+  ): Promise<boolean> {
+    if (!isSupportedActionsArtifactDigest(digest)) {
+      throw new Error('Artifact attestation lookup requires a SHA-256 digest.')
+    }
+    const subject = encodeURIComponent(digest.toLowerCase())
+    const response = await this.ghRequest(
+      'GET',
+      `repos/${owner}/${name}/attestations/${subject}?per_page=1`,
+      { signal }
+    )
+    return parseActionsArtifactAttestationPresence(
+      await parsedResponse<unknown>(response)
+    )
+  }
+
+  /**
+   * Obtain an artifact's signed archive response. The authenticated API
+   * redirect is followed by a new anonymous request so the account token can
+   * never be forwarded to GitHub's blob-storage host.
+   */
+  public async fetchWorkflowArtifactArchive(
+    owner: string,
+    name: string,
+    artifactId: number,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    const id = validateActionsArtifactIdentifier(artifactId, 'artifact id')
+    const path = `repos/${owner}/${name}/actions/artifacts/${id}/zip`
+    const response = await this.ghRequest('GET', path, {
+      redirect: 'manual',
+      signal,
+    })
+
+    if (response.status === 410) {
+      throw new APIError(response, {
+        message: 'This artifact has expired and can no longer be downloaded.',
+      })
+    }
+
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get('Location')
+      if (location === null) {
+        throw new Error('GitHub did not provide an artifact download URL.')
+      }
+      let archiveURL: URL.URL
+      try {
+        archiveURL = new URL.URL(location)
+      } catch {
+        throw new Error('GitHub provided an invalid artifact download URL.')
+      }
+      if (archiveURL.protocol !== 'https:' && archiveURL.protocol !== 'http:') {
+        throw new Error('GitHub provided an unsafe artifact download URL.')
+      }
+      const accountProtocol = new URL.URL(this.endpoint).protocol
+      if (archiveURL.protocol === 'http:' && accountProtocol !== 'http:') {
+        throw new Error(
+          'GitHub provided an insecure artifact download URL for this HTTPS account.'
+        )
+      }
+
+      const archive = await fetch(archiveURL.toString(), { signal })
+      if (!archive.ok) {
+        throw new APIError(archive, null)
+      }
+      return archive
+    }
+
+    if (!response.ok) {
+      await parsedResponse<unknown>(response)
+    }
+    return response
+  }
+
   /** Re-run every job in a workflow run. */
   public async rerunWorkflowRun(
     owner: string,
@@ -1642,6 +2012,36 @@ export class API {
   ): Promise<void> {
     const path = `repos/${owner}/${name}/actions/runs/${workflowRunId}/rerun`
     const response = await this.ghRequest('POST', path)
+    if (!response.ok) {
+      await parsedResponse<unknown>(response)
+    }
+  }
+
+  /** Cancel a workflow run, optionally bypassing normal cancellation hooks. */
+  public async cancelWorkflowRun(
+    owner: string,
+    name: string,
+    workflowRunId: number,
+    force: boolean = false
+  ): Promise<void> {
+    const action = force ? 'force-cancel' : 'cancel'
+    const path = `repos/${owner}/${name}/actions/runs/${workflowRunId}/${action}`
+    const response = await this.ghRequest('POST', path)
+    if (!response.ok) {
+      await parsedResponse<unknown>(response)
+    }
+  }
+
+  /** Enable or disable a repository workflow. */
+  public async setWorkflowEnabled(
+    owner: string,
+    name: string,
+    workflowId: number,
+    enabled: boolean
+  ): Promise<void> {
+    const action = enabled ? 'enable' : 'disable'
+    const path = `repos/${owner}/${name}/actions/workflows/${workflowId}/${action}`
+    const response = await this.ghRequest('PUT', path)
     if (!response.ok) {
       await parsedResponse<unknown>(response)
     }
@@ -1998,9 +2398,10 @@ export class API {
     path: string,
     options: {
       body?: Object
-      customHeaders?: Object
+      customHeaders?: HeadersInit
       reloadCache?: boolean
       redirect?: RequestRedirect
+      signal?: AbortSignal
     } = {}
   ): Promise<Response> {
     return await request(
@@ -2011,7 +2412,8 @@ export class API {
       options.body,
       options.customHeaders,
       options.reloadCache,
-      options.redirect
+      options.redirect,
+      options.signal
     )
   }
 
@@ -2024,12 +2426,20 @@ export class API {
     path: string,
     options: {
       body?: Object
-      customHeaders?: Object
+      customHeaders?: HeadersInit
       reloadCache?: boolean
       redirect?: RequestRedirect
+      signal?: AbortSignal
     } = {}
   ): Promise<Response> {
-    const response = await this.request(this.endpoint, method, path, options)
+    const response = await this.request(this.endpoint, method, path, {
+      ...options,
+      customHeaders: createGitHubAPIRequestHeaders(
+        this.endpoint,
+        path,
+        options.customHeaders
+      ),
+    })
 
     // Only consider invalid token when the status is 401 and the response has
     // the X-GitHub-Request-Id header, meaning it comes from GH(E) and not from
@@ -2408,13 +2818,16 @@ export async function deleteToken(account: Account) {
   }
   try {
     const creds = Buffer.from(`${ClientID}:${ClientSecret}`).toString('base64')
+    const path = `applications/${ClientID}/token`
     const response = await request(
       account.endpoint,
       null,
       'DELETE',
-      `applications/${ClientID}/token`,
+      path,
       { access_token: account.token },
-      { Authorization: `Basic ${creds}` }
+      createGitHubAPIRequestHeaders(account.endpoint, path, {
+        Authorization: `Basic ${creds}`,
+      })
     )
 
     return response.status === 204
@@ -3012,7 +3425,7 @@ abstract class ThirdPartyAPI extends API {
   protected async providerRequest(
     method: HTTPMethod,
     path: string,
-    headers: Object,
+    headers: HeadersInit,
     reloadCache = false
   ): Promise<Response> {
     return request(

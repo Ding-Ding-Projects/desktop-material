@@ -4,6 +4,7 @@ import { Repository } from '../../models/repository'
 import {
   APICheckConclusion,
   APICheckStatus,
+  IAPIWorkflow,
   IAPIWorkflowJob,
   IAPIWorkflowRun,
 } from '../../lib/api'
@@ -14,6 +15,16 @@ import { RunList } from './run-list'
 import { RunDetails } from './run-details'
 import { WorkflowDispatchDialog } from './workflow-dispatch-dialog'
 import { JobLogViewer } from './job-log-viewer'
+import { ActionsConfirmationDialog } from './actions-confirmation-dialog'
+import { WorkflowStateControl } from './workflow-state-control'
+
+type ActionsConfirmation =
+  | { readonly kind: 'cancel-run'; readonly run: IAPIWorkflowRun }
+  | {
+      readonly kind: 'workflow-state'
+      readonly workflow: IAPIWorkflow
+      readonly enabled: boolean
+    }
 
 interface IActionsViewProps {
   readonly repository: Repository
@@ -32,6 +43,8 @@ interface IActionsViewState {
   readonly jobsLoading: boolean
   readonly jobsError: Error | null
   readonly busyRunId: number | null
+  readonly busyJobId: number | null
+  readonly busyWorkflowId: number | null
   readonly actionMessage: string | null
   readonly actionError: Error | null
   readonly dispatchOpen: boolean
@@ -39,6 +52,7 @@ interface IActionsViewState {
   readonly log: string
   readonly logLoading: boolean
   readonly logError: Error | null
+  readonly confirmation: ActionsConfirmation | null
 }
 
 const InitialActionsState: IActionsState = {
@@ -70,6 +84,8 @@ export class ActionsView extends React.Component<
       jobsLoading: false,
       jobsError: null,
       busyRunId: null,
+      busyJobId: null,
+      busyWorkflowId: null,
       actionMessage: null,
       actionError: null,
       dispatchOpen: false,
@@ -77,6 +93,7 @@ export class ActionsView extends React.Component<
       log: '',
       logLoading: false,
       logError: null,
+      confirmation: null,
     }
   }
 
@@ -95,7 +112,14 @@ export class ActionsView extends React.Component<
   }
 
   private onActionsState = (actions: IActionsState) =>
-    this.setState({ actions })
+    this.setState(state => ({
+      actions,
+      selectedRun:
+        state.selectedRun === null
+          ? null
+          : actions.runs.find(run => run.id === state.selectedRun?.id) ??
+            state.selectedRun,
+    }))
 
   private onFilterChange = (event: React.FormEvent<HTMLSelectElement>) => {
     const element = event.currentTarget
@@ -192,6 +216,111 @@ export class ActionsView extends React.Component<
   private rerunFailed = (run: IAPIWorkflowRun) =>
     this.performRunAction(run, true)
 
+  private requestCancelRun = (run: IAPIWorkflowRun) =>
+    this.setState({ confirmation: { kind: 'cancel-run', run } })
+
+  private requestWorkflowStateChange = (
+    workflow: IAPIWorkflow,
+    enabled: boolean
+  ) =>
+    this.setState({
+      confirmation: { kind: 'workflow-state', workflow, enabled },
+    })
+
+  private closeConfirmation = () => this.setState({ confirmation: null })
+
+  private confirmCancelRun = async (force: boolean) => {
+    const confirmation = this.state.confirmation
+    const repository = this.props.repository.gitHubRepository
+    if (confirmation?.kind !== 'cancel-run' || repository === null) {
+      return
+    }
+    this.setState({
+      busyRunId: confirmation.run.id,
+      actionError: null,
+      actionMessage: null,
+    })
+    try {
+      await this.props.actionsStore.cancelRun(
+        repository,
+        confirmation.run.id,
+        force
+      )
+      this.setState({
+        actionMessage: force
+          ? 'Force cancellation requested.'
+          : 'Workflow cancellation requested.',
+      })
+    } catch (error) {
+      this.setState({
+        actionError: error instanceof Error ? error : new Error(String(error)),
+      })
+    } finally {
+      this.setState({ busyRunId: null, confirmation: null })
+    }
+  }
+
+  private confirmWorkflowStateChange = async () => {
+    const confirmation = this.state.confirmation
+    const repository = this.props.repository.gitHubRepository
+    if (confirmation?.kind !== 'workflow-state' || repository === null) {
+      return
+    }
+    this.setState({
+      busyWorkflowId: confirmation.workflow.id,
+      actionError: null,
+      actionMessage: null,
+    })
+    try {
+      await this.props.actionsStore.setWorkflowEnabled(
+        repository,
+        confirmation.workflow.id,
+        confirmation.enabled
+      )
+      this.setState({
+        actionMessage: confirmation.enabled
+          ? `Enabled ${confirmation.workflow.name}.`
+          : `Disabled ${confirmation.workflow.name}.`,
+      })
+    } catch (error) {
+      this.setState({
+        actionError: error instanceof Error ? error : new Error(String(error)),
+      })
+    } finally {
+      this.setState({ busyWorkflowId: null, confirmation: null })
+    }
+  }
+
+  private rerunJob = async (job: IAPIWorkflowJob) => {
+    const repository = this.props.repository.gitHubRepository
+    const selectedRun = this.state.selectedRun
+    if (repository === null || selectedRun === null) {
+      return
+    }
+    this.setState({
+      busyJobId: job.id,
+      actionError: null,
+      actionMessage: null,
+    })
+    try {
+      await this.props.actionsStore.rerunJob(repository, job.id)
+      const jobs = await this.props.actionsStore.fetchJobs(
+        repository,
+        selectedRun.id
+      )
+      this.setState({
+        jobs,
+        actionMessage: `Re-run requested for ${job.name}.`,
+      })
+    } catch (error) {
+      this.setState({
+        actionError: error instanceof Error ? error : new Error(String(error)),
+      })
+    } finally {
+      this.setState({ busyJobId: null })
+    }
+  }
+
   private async performRunAction(run: IAPIWorkflowRun, failedOnly: boolean) {
     const repository = this.props.repository.gitHubRepository
     if (repository === null) {
@@ -271,6 +400,12 @@ export class ActionsView extends React.Component<
           .filter((x): x is string => typeof x === 'string'),
       ]),
     ].sort()
+    const selectedWorkflow =
+      this.state.workflow === 'all'
+        ? null
+        : actions.workflows.find(
+            workflow => workflow.id === Number(this.state.workflow)
+          ) ?? null
 
     if (!actions.supported) {
       return (
@@ -307,12 +442,17 @@ export class ActionsView extends React.Component<
           </div>
         )}
         {this.state.actionError && (
-          <div className="actions-banner error" role="alert">
+          <div className="actions-banner error" role="alert" aria-atomic="true">
             {this.state.actionError.message}
           </div>
         )}
         {this.state.actionMessage && (
-          <div className="actions-banner success" role="status">
+          <div
+            className="actions-banner success"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {this.state.actionMessage}
           </div>
         )}
@@ -368,6 +508,11 @@ export class ActionsView extends React.Component<
             <option value="failure">Failure</option>
           </Select>
         </section>
+        <WorkflowStateControl
+          workflow={selectedWorkflow}
+          busyWorkflowId={this.state.busyWorkflowId}
+          onRequestChange={this.requestWorkflowStateChange}
+        />
         {actions.loading && actions.runs.length === 0 && (
           <div className="actions-loading">Loading workflows…</div>
         )}
@@ -379,15 +524,20 @@ export class ActionsView extends React.Component<
             onSelect={this.selectRun}
             onRerun={this.rerun}
             onRerunFailed={this.rerunFailed}
+            onRequestCancel={this.requestCancelRun}
           />
-          {selectedRun && (
+          {selectedRun && this.props.repository.gitHubRepository && (
             <RunDetails
+              repository={this.props.repository.gitHubRepository}
+              actionsStore={this.props.actionsStore}
               run={selectedRun}
               jobs={this.state.jobs}
               loading={this.state.jobsLoading}
               error={this.state.jobsError}
               onClose={this.closeRun}
               onViewLogs={this.viewLogs}
+              busyJobId={this.state.busyJobId}
+              onRerunJob={this.rerunJob}
             />
           )}
         </div>
@@ -412,6 +562,53 @@ export class ActionsView extends React.Component<
             loading={this.state.logLoading}
             error={this.state.logError}
             onClose={this.closeLogs}
+          />
+        )}
+        {this.state.confirmation?.kind === 'cancel-run' && (
+          <ActionsConfirmationDialog
+            eyebrow="Destructive action"
+            title="Cancel workflow run?"
+            description={
+              <p>
+                Cancel run #{this.state.confirmation.run.run_number} for{' '}
+                <strong>
+                  {this.state.confirmation.run.display_title ||
+                    this.state.confirmation.run.name}
+                </strong>
+                ?
+              </p>
+            }
+            confirmLabel="Cancel run"
+            forceConfirmLabel="Force cancel run"
+            showForceCancelOption={true}
+            submitting={this.state.busyRunId === this.state.confirmation.run.id}
+            onConfirm={this.confirmCancelRun}
+            onDismissed={this.closeConfirmation}
+          />
+        )}
+        {this.state.confirmation?.kind === 'workflow-state' && (
+          <ActionsConfirmationDialog
+            eyebrow="Workflow state"
+            title={`${
+              this.state.confirmation.enabled ? 'Enable' : 'Disable'
+            } workflow?`}
+            description={
+              <p>
+                {this.state.confirmation.enabled ? 'Enable' : 'Disable'}{' '}
+                <strong>{this.state.confirmation.workflow.name}</strong> for
+                this repository?
+              </p>
+            }
+            confirmLabel={
+              this.state.confirmation.enabled
+                ? 'Enable workflow'
+                : 'Disable workflow'
+            }
+            submitting={
+              this.state.busyWorkflowId === this.state.confirmation.workflow.id
+            }
+            onConfirm={this.confirmWorkflowStateChange}
+            onDismissed={this.closeConfirmation}
           />
         )}
       </main>

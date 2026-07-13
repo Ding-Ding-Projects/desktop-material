@@ -43,6 +43,7 @@ These features are implemented and live on `main`.
 
 **Notification centre**
 - A bell and right-hand side sheet backed by its own local git repo — unread badges, mark read/unread, delete, mark-all, and a git-backed history you can undo/restore
+- Switch to a separate live GitHub inbox for any signed-in GitHub.com or Enterprise account, filter unread/all and participating threads, load bounded pages, open only validated provider links, mark read, and confirm mark-done without copying remote threads into the local log
 
 **Search everywhere, with a regex builder**
 - Every search bar gains fuzzy / substring / regex filter modes, a case toggle, and per-list filter chips
@@ -87,6 +88,59 @@ These features are implemented and live on `main`.
 - The remaining stock surfaces — tooltips, menus, banners, autocomplete popups, segmented controls, split-buttons, dialog internals, History/CI surfaces — are re-tinted through the Material token system in both light and dark themes
 
 **Also shipped:** multi-clone with organization chips, parallel/sequential modes and URL-only import/export; one-click commit and push with a generated message; self-update checks against Desktop Material releases; SVG diff hardening and display controls; safer undo/reset/tag deletion confirmations; and responsive, keyboard-accessible MD3 surfaces throughout the app.
+
+## Roadmaps
+
+These are living delivery roadmaps for Desktop Material. An item moves to **Done** only after its implementation and focused checks are committed and pushed. UI milestones additionally require an off-screen production build, interactive exercise, and inspected screenshots before the evidence and documentation tasks can be marked done.
+
+Last updated: **July 13, 2026**. The detailed, reproducible evidence ledger is the [Git, GitHub, and GitKraken parity run manifest](.codex/run-manifests/2026-07-12-git-gh-interactive-audit.md).
+
+### Delivery roadmap
+
+| Status | Milestone | Completion evidence |
+|---|---|---|
+| **Done** | Inventory the installed Git 2.55 and GitHub CLI 2.96 command trees | Complete command catalogs are parsed internally for coverage tracking rather than presented as a command-search product |
+| **Done** | Inventory the official GitHub REST and GraphQL surfaces | REST baseline: 790 paths, 1,196 operations, and 51 categories; GraphQL baseline: 252 current mutations, plus 16 deprecated mutations retained only for coverage accounting |
+| **Done** | Add a bounded recipe-execution foundation for guided functions | Internal `git`/`gh` execution only, no shell, repository-bound working directory, output/input limits, cancellation, ownership cleanup, credential-command blocking, and no raw command/API search surface in the app |
+| **Done** | Run repository functions through the bundled Git runtime | The production app resolves and executes bundled Git 2.53.0.windows.3, including Repository Tools, instead of depending on a separately installed system Git |
+| **Done** | Add safe GitHub feature request/response contracts | Selected-host relative paths, traversal rejection, mutation confirmation, bounded streamed responses, safe-header allowlisting, and deep credential redaction |
+| **Done** | Extend native Actions controls | Run/job reruns, normal and force cancellation, workflow enable/disable, confirmations, and responsive long-metadata containment |
+| **Done** | Harden responsive containment on audited app surfaces | Settings, floating surfaces, the repository rail and toolbar, repository-function buttons, Merge All, Pull All, Build & Run, Actions, and the screenshot gallery wrap, stack, clamp, or vertically scroll instead of widening their page shells |
+| **Done** | Add the first guided repository-function batch | Status summary, repository health, recent-signature audit, maintenance preview/run, reflog recovery, ZIP/TAR export from `HEAD`, full-history bundle export, and read-only bundle verification use fixed safe recipes, purpose-built controls, confirmation, streaming results, exact cancel, native save/reveal, and repository refresh—without a raw command search/editor |
+| **Done** | Complete guarded full-history bundle export, verification, and import | An inspected bundle can create a new local branch without overwriting an existing ref; actual off-screen import completed, and standard bundle advertisements such as the pseudo-ref `HEAD` are ignored rather than rejected or offered as import targets |
+| **Done** | Keep Notifications identities and signed-out state responsive | Long local notification-source identities wrap within the panel, while the GitHub inbox presents a complete `No signed-in accounts` option without clipped or oversized text |
+| **Active** | Expand audited Git capabilities as named functions | File history/blame, restore-file-version, signature audit, source archives, full-history bundle workflows, guided shallow cloning, sparse-checkout administration, and guided history deepening are integrated; history deepening still awaits a fresh off-screen UI gate, while patch-series exchange, structured commit rewriting, signing, LFS, worktrees, and the later Git administration functions below follow |
+| **Active** | Expand named GitHub functions on a hardened transport | GitHub.com REST versioning, credential/header precedence, the bounded/cancellable multi-account Notifications inbox, guided native Issue creation, and the first native pull-request creation slice with exact-remote head binding are integrated. Pull-request creation still needs reviewed userinfo, alternate-SSH, and cross-repository REST corrections; the first Actions artifact browse/download/digest slice is blocked on chained-redirect hardening. Neither slice is ready for verification or publication yet; PR metadata/lifecycle, artifact pagination beyond the first 100, effective branch rules, and Releases/assets follow |
+| **Done** | Complete the official GitKraken Desktop history comparison | Official surviving 0.6–6.0 posts plus 7.x–12.3 release archives were deduplicated into current-app coverage, implementable local gaps, and explicitly separated proprietary/cloud services |
+| **Done — current verified slice** | Build and interactively verify every changed UI off-screen | The exact MCP production build passes, and the isolated app exercised bundled Repository Tools, create-only bundle import, shallow clone, sparse checkout review, and both Notifications sources. Regular and minimum-supported-window checks reported equal document/client widths with no visible clipping, overlap, oversized text, or page-level sideways scroll |
+| **Previous evidence published; integration promotion pending** | Refresh README, wiki, Pages, and screenshot evidence | README, in-repository wiki sources, the public GitHub wiki, and Pages source were pushed from the feature work. The sanitized integration retains the identity-safe 1000×687 Notifications capture; fresh neutral-path captures are required for the remaining guided UI. The earlier branch-targeted Pages build assembled successfully, but the protected `github-pages` environment correctly rejected deployment because only `main` may publish. The current code integration requires a fresh `main` publication check after landing |
+
+### Capability roadmap
+
+| Area | Available now | Next native interactive milestones | Long-tail access |
+|---|---|---|---|
+| **Git** | Core repository, branch, commit, diff, rename-following file history/line blame, confirmed working-tree file-version restore, signature audit, stash, remote, worktree, merge, rebase, fetch/pull/push, automation, guarded cleanup, guided bounded-history shallow cloning and deepening, cone-mode sparse-checkout administration, guided source-archive export, portable full-history bundle export/verification, and guarded create-only branch import from inspected bundles | Export/import patch series; structured local-commit rewrite; signing setup; Git LFS and complete worktree administration; then merge-tree preview, bisect, stash, remotes, and hooks | Fixed, audited Git recipes may power named app functions, but the UI exposes task-specific controls and results rather than a raw command list |
+| **GitHub CLI** | Native repository, pull-request reading and first-slice creation, guided Issue authoring, multi-account Notifications triage, Actions browsing/logs/dispatch/rerun/cancel, account, organization, clone, fork, and publish foundations | Complete artifact redirect hardening, then freshly verify artifact download/digest handling and native pull-request creation; enrich pull requests with review/update/merge, add interactive artifact pagination beyond the first 100 results, inspect effective branch rules, manage releases/assets, and add richer Issue workflows | `gh` can back provider-scoped functions internally; users interact with purpose-built forms, previews, confirmations, and results |
+| **GitHub REST and GraphQL** | Account-scoped API layer, safe request/confirmation/redaction contracts, a bounded/cancellable Notifications inbox with conditional polling and pagination, exact-provider native Issue creation, and permission-aware pull-request creation | Harden and verify the first bounded Actions artifact download/digest slice; then add artifact pagination, PR templates/metadata/lifecycle, effective branch-rule inspection, Releases/assets, general bounded pagination, and selected security/deployment/administration functions | The full schema is coverage evidence and an implementation checklist, not an endpoint browser; supported operations become named app features |
+| **GitKraken parity references** | Graph, diff, rename-following file history/blame, commit/stash/branch/remote/worktree flows, shallow clone and sparse-checkout controls, repository tabs, provider accounts, themes, search, automation, multi-window work, and many Material-native productivity tools | Evaluate editor and terminal workflows, undo/redo breadth, branch pin/filter/activity, Gitflow/hooks/signing, richer PR/issues/Launchpad-style triage, conflict prevention, and agent-session worktrees | Proprietary GitKraken cloud, enterprise, AI, and collaboration services remain reference points, not copied services, branding, or assets |
+
+### Native parity waves
+
+| Priority | Guided app functions | State |
+|---|---|---|
+| **Delivered foundation** | Repository status/health/maintenance/reflog tools; file history/blame and restore; bounded shallow clone; sparse checkout; source archives; full bundle export/verify/import; Notifications and guided Issue creation | **Done; each completed slice remains listed here as the roadmap advances** |
+| **P0 — verification pending** | Deepen a shallow repository's history; create a pull request through the first native compose/review/submit slice; browse and safely download a workflow run's first bounded artifact page with local digest and attestation-presence context | **History deepening is integrated and still requires the fresh production/off-screen UI gate. Pull-request creation needs its reviewed routing/REST corrections first; the artifact slice needs chained-redirect hardening and focused security regressions before either enters that gate** |
+| **P0 — active next** | Enrich native pull-request creation with templates/reviewers/assignees/labels; review, update, and merge a pull request; complete Actions artifact redirect hardening and add interactive pagination beyond the first 100; inspect the effective branch rules for the current branch | **In progress** |
+| **P1** | Export and import patch series; rewrite local commits through a structured reviewable plan; manage Releases and assets; configure commit/tag signing; manage Git LFS; administer every worktree lifecycle operation | **Planned** |
+| **P2** | Pin, hide, solo, and restore branch visibility with clear persisted state | **Planned** |
+| **Later** | Preview conflicts with merge-tree; guide bisect sessions; complete stash and remote managers; manage repository hooks; add richer Issue workflows; provide provider-neutral triage | **Sequenced after P2** |
+| **Reference only** | GitKraken Cloud Workspaces/Patches, Team presence, Launchpad sync, Insights, Code Review service, shared AI credits, organization policy, and on-prem commercial services | **Not copied** |
+
+### Verification roadmap
+
+- Do not require sideways scrolling in page or dialog shells wherever responsive wrapping or stacking can preserve usability. Horizontal scrolling is reserved for intrinsically spatial code, diff, and log surfaces.
+- Verify desktop and minimum supported windows, 50–200% UI scaling, light/dark themes, long repository/branch/host names, destructive confirmations, keyboard focus, and screen-reader labels.
+- Commit and push each coherent milestone. Documentation and screenshots must name the exact verified commit and must never claim an unbuilt state was exercised.
 
 ## Screenshots
 

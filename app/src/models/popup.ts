@@ -29,6 +29,7 @@ import { TerminalOutput, TerminalOutputListener } from '../lib/git'
 import type { IBYOKModel, IBYOKProvider } from '../lib/copilot/byok'
 import { WorktreeEntry } from './worktree'
 import { MergeAllMode } from '../lib/automation/merge-all'
+import { IGitHubPullRequestTarget } from '../lib/github-pull-request'
 
 export enum PopupType {
   RenameBranch = 'RenameBranch',
@@ -38,6 +39,10 @@ export enum PopupType {
   Preferences = 'Preferences',
   SettingsHistory = 'SettingsHistory',
   NotificationHistory = 'NotificationHistory',
+  FileHistory = 'FileHistory',
+  CreateGitHubIssue = 'CreateGitHubIssue',
+  CreateGitHubPullRequest = 'CreateGitHubPullRequest',
+  SparseCheckout = 'SparseCheckout',
   RepositorySettings = 'RepositorySettings',
   AddRepository = 'AddRepository',
   CreateRepository = 'CreateRepository',
@@ -170,6 +175,20 @@ export type PopupDetail =
   | { type: PopupType.Preferences; initialSelectedTab?: PreferencesTab }
   | { type: PopupType.SettingsHistory }
   | { type: PopupType.NotificationHistory }
+  | { type: PopupType.FileHistory; repository: Repository; path: string }
+  | { type: PopupType.CreateGitHubIssue; repository: Repository }
+  | {
+      type: PopupType.CreateGitHubPullRequest
+      repository: RepositoryWithGitHubRepository
+      currentBranch: Branch
+      sourceRemote: IRemote | null
+      providerHTMLURL: string
+      targets: ReadonlyArray<IGitHubPullRequestTarget>
+      initialTargetHash: string
+      initialBaseBranchName: string | null
+      contextVersion: string
+    }
+  | { type: PopupType.SparseCheckout; repository: Repository }
   | { type: PopupType.MergeAll; repository: Repository; mode: MergeAllMode }
   | { type: PopupType.PullAllRepositories }
   | {
@@ -224,6 +243,7 @@ export type PopupDetail =
       repository: Repository
       branch: Branch
       unPushedCommits?: number
+      baseBranch?: Branch
     }
   | { type: PopupType.CLIInstalled }
   | {
@@ -580,14 +600,16 @@ export type PopupDetail =
 export type Popup = IBasePopup & PopupDetail
 
 /**
- * The Settings and Notification history managers are non-modal side sheets, and
- * the batch clone progress popup is non-modal so the app stays interactive while
- * repositories clone or pull in the background. Every other popup still blocks
- * global actions, even when one of these is stacked above it.
+ * History managers and repository utility sheets are non-modal, and background
+ * progress popups stay interactive while repository work continues. Every
+ * other popup still blocks global actions, even when one of these is stacked
+ * above it.
  */
 const nonModalHistoryPopupTypes = new Set<PopupType>([
   PopupType.SettingsHistory,
   PopupType.NotificationHistory,
+  PopupType.FileHistory,
+  PopupType.SparseCheckout,
   PopupType.BatchCloneProgress,
   PopupType.ChangeRepositoryGroupName,
   PopupType.PullAllRepositories,
