@@ -93,6 +93,7 @@ import { SettingsHistoryDialog } from './settings-history'
 import { NotificationHistoryDialog } from './notifications/notification-history-dialog'
 import { FileHistory } from './file-history'
 import { SparseCheckoutManager } from './sparse-checkout'
+import { CreateGitHubIssueDialog } from './create-github-issue'
 import { NotificationCentrePanel } from './notifications/notification-centre-panel'
 import { MergeAllDialog } from './merge-all'
 import { PullAllDialog } from './pull-all'
@@ -1913,6 +1914,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             onRefreshRepository={() =>
               this.props.dispatcher.refreshRepository(popup.repository)
             }
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.CreateGitHubIssue:
+        return (
+          <CreateGitHubIssueDialog
+            key={`create-github-issue-${popup.repository.id}`}
+            repository={popup.repository}
+            accounts={this.state.accounts}
+            dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
         )
