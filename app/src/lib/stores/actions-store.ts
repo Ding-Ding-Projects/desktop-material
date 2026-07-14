@@ -61,6 +61,11 @@ import {
 import { IActionsArtifactSubjectEntry } from '../actions-artifact-subjects'
 import { IActionsJobList } from '../actions-jobs'
 import {
+  IActionsCacheList,
+  IActionsCacheUsage,
+  mergeActionsCachePage,
+} from '../actions-caches'
+import {
   ActionsRunReviewState,
   IActionsPendingDeployment,
   IActionsRunReviewHistory,
@@ -77,6 +82,8 @@ export type ActionsMutation =
   | 'disable-workflow'
   | 'review-deployments'
   | 'approve-fork-run'
+  | 'delete-cache'
+  | 'delete-caches-by-key'
 
 export type ActionsInspectorOperation =
   | 'load-jobs'
@@ -231,6 +238,8 @@ const mutationLabels: Readonly<Record<ActionsMutation, string>> = {
   'disable-workflow': 'disable this workflow',
   'review-deployments': 'review these pending deployments',
   'approve-fork-run': 'approve this fork workflow run',
+  'delete-cache': 'delete this cache',
+  'delete-caches-by-key': 'delete these caches',
 }
 
 const inspectorOperationLabels: Readonly<
@@ -400,6 +409,11 @@ export interface IActionsState {
   readonly rateLimitReset: Date | null
   readonly lastUpdated: Date | null
   readonly supported: boolean
+  readonly caches: IActionsCacheList | null
+  readonly cachesLoading: boolean
+  readonly cachesError: Error | null
+  readonly cacheUsage: IActionsCacheUsage | null
+  readonly cacheUsageLoading: boolean
 }
 
 export type ActionsStateCallback = (state: IActionsState) => void
@@ -424,6 +438,11 @@ const emptyState = (supported: boolean): IActionsState => ({
   rateLimitReset: null,
   lastUpdated: null,
   supported,
+  caches: null,
+  cachesLoading: false,
+  cachesError: null,
+  cacheUsage: null,
+  cacheUsageLoading: false,
 })
 
 export function getActionsRepositoryKey(repository: Repository): string {
@@ -1014,6 +1033,11 @@ export class ActionsStore {
         rateLimitReset: null,
         lastUpdated: new Date(),
         supported: true,
+        caches: existing.caches,
+        cachesLoading: existing.cachesLoading,
+        cachesError: existing.cachesError,
+        cacheUsage: existing.cacheUsage,
+        cacheUsageLoading: existing.cacheUsageLoading,
       })
     } catch (error) {
       if (
@@ -1230,6 +1254,140 @@ export class ActionsStore {
       )
     )
     await this.refresh(repository, true)
+  }
+
+  public async loadCacheManager(repository: Repository): Promise<void> {
+    const key = getActionsRepositoryKey(repository)
+    const existing = this.states.get(key)
+    if (existing === undefined || !existing.supported) {
+      return
+    }
+    const gitHubRepository = this.gitHubFor(repository)
+    const { owner, name } = gitHubRepository
+
+    this.notify(repository, {
+      ...existing,
+      cachesLoading: true,
+      cachesError: null,
+      cacheUsageLoading: true,
+    })
+
+    try {
+      const [list, usage] = await Promise.all([
+        this.apiFor(repository).fetchActionsCaches(owner.login, name),
+        this.apiFor(repository).fetchActionsCacheUsage(owner.login, name),
+      ])
+      const current = this.states.get(key)
+      if (current === undefined) {
+        return
+      }
+      this.notify(repository, {
+        ...current,
+        caches: list,
+        cachesLoading: false,
+        cachesError: null,
+        cacheUsage: usage,
+        cacheUsageLoading: false,
+      })
+    } catch (error) {
+      const current = this.states.get(key)
+      if (current === undefined) {
+        return
+      }
+      this.notify(repository, {
+        ...current,
+        cachesLoading: false,
+        cachesError: error instanceof Error ? error : new Error(String(error)),
+        cacheUsageLoading: false,
+      })
+    }
+  }
+
+  public async loadMoreCaches(repository: Repository): Promise<void> {
+    const key = getActionsRepositoryKey(repository)
+    const existing = this.states.get(key)
+    if (
+      existing === undefined ||
+      existing.caches === null ||
+      existing.caches.nextPage === null ||
+      existing.cachesLoading
+    ) {
+      return
+    }
+    const gitHubRepository = this.gitHubFor(repository)
+    const { owner, name } = gitHubRepository
+
+    this.notify(repository, {
+      ...existing,
+      cachesLoading: true,
+    })
+
+    try {
+      const next = await this.apiFor(repository).fetchActionsCaches(
+        owner.login,
+        name,
+        existing.caches.nextPage
+      )
+      const current = this.states.get(key)
+      if (current === undefined || current.caches === null) {
+        return
+      }
+      this.notify(repository, {
+        ...current,
+        caches: mergeActionsCachePage(current.caches, next),
+        cachesLoading: false,
+        cachesError: null,
+      })
+    } catch (error) {
+      const current = this.states.get(key)
+      if (current === undefined) {
+        return
+      }
+      if ((error as Error)?.name === 'AbortError') {
+        this.notify(repository, {
+          ...current,
+          cachesLoading: false,
+        })
+        return
+      }
+      this.notify(repository, {
+        ...current,
+        cachesLoading: false,
+        cachesError: error instanceof Error ? error : new Error(String(error)),
+      })
+    }
+  }
+
+  public async deleteCache(
+    repository: Repository,
+    cacheId: number
+  ): Promise<void> {
+    const gitHubRepository = this.gitHubFor(repository)
+    await this.mutate('delete-cache', () =>
+      this.apiFor(repository).deleteActionsCache(
+        gitHubRepository.owner.login,
+        gitHubRepository.name,
+        cacheId
+      )
+    )
+    await this.loadCacheManager(repository)
+  }
+
+  public async deleteCachesByKey(
+    repository: Repository,
+    key: string,
+    ref?: string
+  ): Promise<void> {
+    const gitHubRepository = this.gitHubFor(repository)
+    await this.mutate('delete-caches-by-key', () =>
+      this.apiFor(repository).deleteActionsCachesByKey(
+        gitHubRepository.owner.login,
+        gitHubRepository.name,
+        key,
+        ref
+      )
+    )
+    await this.loadCacheManager(repository)
   }
 
   public async fetchJobPage(

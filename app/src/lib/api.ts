@@ -136,6 +136,13 @@ import {
   parseActionsBranchRulePage,
   validateActionsBranchName,
 } from './actions-branch-rules'
+import {
+  ActionsCachePageSize,
+  IActionsCacheList,
+  IActionsCacheUsage,
+  parseActionsCacheList,
+  parseActionsCacheUsage,
+} from './actions-caches'
 import { boundedGitHubReleaseResponse } from './github-release-json'
 import {
   IAPIProviderTriagePage,
@@ -3271,6 +3278,87 @@ export class API {
       await boundedActionsArtifactResponse(response, signal),
       runId,
       requestedPage
+    )
+  }
+
+  /** List one bounded page of caches for a repository. */
+  public async fetchActionsCaches(
+    owner: string,
+    name: string,
+    page: number = 1,
+    query?: { readonly key?: string; readonly ref?: string },
+    signal?: AbortSignal
+  ): Promise<IActionsCacheList> {
+    if (!Number.isSafeInteger(page) || page < 1 || page > 1_000_000) {
+      throw new Error('Actions cache page is invalid.')
+    }
+    const params = new URLSearchParams()
+    params.set('per_page', String(ActionsCachePageSize))
+    params.set('page', String(page))
+    if (query?.key) {
+      params.set('key', query.key)
+    }
+    if (query?.ref) {
+      params.set('ref', query.ref)
+    }
+    const path = `repos/${owner}/${name}/actions/caches?${params}`
+    const response = await this.ghRequest('GET', path, { signal })
+    return parseActionsCacheList(
+      await readBoundedActionsJSON(response, signal),
+      page
+    )
+  }
+
+  /** Delete one exact cache by its provider id. */
+  public async deleteActionsCache(
+    owner: string,
+    name: string,
+    cacheId: number,
+    signal?: AbortSignal
+  ): Promise<void> {
+    if (!Number.isSafeInteger(cacheId) || cacheId < 1) {
+      throw new Error('Actions cache id is invalid.')
+    }
+    const path = `repos/${owner}/${name}/actions/caches/${cacheId}`
+    const response = await this.ghRequest('DELETE', path, { signal })
+    if (!response.ok) {
+      await parsedResponse<unknown>(response)
+    }
+  }
+
+  /** Delete all caches matching one exact key, optionally scoped to a ref. */
+  public async deleteActionsCachesByKey(
+    owner: string,
+    name: string,
+    key: string,
+    ref?: string,
+    signal?: AbortSignal
+  ): Promise<void> {
+    if (typeof key !== 'string' || key.length === 0 || key.length > 512) {
+      throw new Error('Actions cache key is invalid.')
+    }
+    const params = new URLSearchParams()
+    params.set('key', key)
+    if (ref !== undefined) {
+      params.set('ref', ref)
+    }
+    const path = `repos/${owner}/${name}/actions/caches?${params}`
+    const response = await this.ghRequest('DELETE', path, { signal })
+    if (!response.ok) {
+      await parsedResponse<unknown>(response)
+    }
+  }
+
+  /** Read bounded repository cache-usage totals. */
+  public async fetchActionsCacheUsage(
+    owner: string,
+    name: string,
+    signal?: AbortSignal
+  ): Promise<IActionsCacheUsage> {
+    const path = `repos/${owner}/${name}/actions/cache/usage`
+    const response = await this.ghRequest('GET', path, { signal })
+    return parseActionsCacheUsage(
+      await readBoundedActionsJSON(response, signal)
     )
   }
 

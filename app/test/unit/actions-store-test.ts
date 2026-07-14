@@ -69,6 +69,11 @@ const cachedActionsState = (): IActionsState => ({
   rateLimitReset: null,
   lastUpdated: new Date(),
   supported: true,
+  caches: null,
+  cachesLoading: false,
+  cachesError: null,
+  cacheUsage: null,
+  cacheUsageLoading: false,
 })
 
 describe('ActionsStore helpers', () => {

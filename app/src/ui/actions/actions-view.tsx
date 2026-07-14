@@ -89,6 +89,11 @@ const InitialActionsState: IActionsState = {
   rateLimitReset: null,
   lastUpdated: null,
   supported: true,
+  caches: null,
+  cachesLoading: false,
+  cachesError: null,
+  cacheUsage: null,
+  cacheUsageLoading: false,
 }
 
 const getActionsViewRepositoryKey = (repository: Repository): string =>

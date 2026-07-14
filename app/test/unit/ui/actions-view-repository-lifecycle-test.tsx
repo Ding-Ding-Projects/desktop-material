@@ -85,6 +85,11 @@ const state = (run: IAPIWorkflowRun): IActionsState => ({
   rateLimitReset: null,
   lastUpdated: new Date(),
   supported: true,
+  caches: null,
+  cachesLoading: false,
+  cachesError: null,
+  cacheUsage: null,
+  cacheUsageLoading: false,
 })
 
 const invalidatedState: IActionsState = {
@@ -98,6 +103,11 @@ const invalidatedState: IActionsState = {
   rateLimitReset: null,
   lastUpdated: null,
   supported: true,
+  caches: null,
+  cachesLoading: false,
+  cachesError: null,
+  cacheUsage: null,
+  cacheUsageLoading: false,
 }
 
 function abortedRequest<T>(signal?: AbortSignal): Promise<T> {
