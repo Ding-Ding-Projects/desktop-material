@@ -10,9 +10,13 @@ import {
   IActionsArtifactVerificationPolicy,
 } from '../../../src/lib/actions-artifact-provenance'
 import { ActionsArtifactSubjectError } from '../../../src/lib/actions-artifact-subjects'
-import { IActionsArtifactDownloadSender } from '../../../src/main-process/actions-artifact-download-registry'
+import {
+  IActionsArtifactDownloadSender,
+  ICompletedActionsArtifactDownload,
+} from '../../../src/main-process/actions-artifact-download-registry'
 import {
   ActionsArtifactProvenanceService,
+  IActionsArtifactProvenanceServiceDependencies,
   IActionsArtifactProvenanceVerifierFiles,
 } from '../../../src/main-process/actions-artifact-provenance'
 import { ActionsArtifactProvenanceCredentialLeaseRegistry } from '../../../src/main-process/actions-artifact-provenance-credential-lease'
@@ -99,13 +103,67 @@ const request = (
 ): IActionsArtifactProvenanceVerifyRequest => ({
   operationId: 'a'.repeat(32),
   accountHandle,
-  downloadId: 'b'.repeat(32),
+  downloadId:
+    new URL(selectedPolicy.sourceRepositoryURI).hostname === 'github.com'
+      ? 'b'.repeat(32)
+      : new URL(selectedPolicy.sourceRepositoryURI).hostname === 'other.ghe.com'
+      ? 'f'.repeat(32)
+      : 'e'.repeat(32),
   inventoryId: 'c'.repeat(32),
   entryId: 'd'.repeat(32),
   expectedSubjectDigest: subjectDigest,
   bundles,
   policy: selectedPolicy,
 })
+
+function completedDownload(
+  endpoint: string,
+  downloadId: string
+): ICompletedActionsArtifactDownload {
+  return {
+    downloadId,
+    senderId: sender.id,
+    endpoint,
+    path: resolve('private', 'artifact.zip'),
+    bytes: 17,
+    archiveDigest: `sha256:${'e'.repeat(64)}`,
+    owner: 'actions',
+    repository: 'attest',
+    artifactId: 19,
+    workflowRun: {
+      id: policy.runId,
+      runAttempt: policy.runAttempt,
+      headBranch: 'main',
+      headSha: policy.sourceDigest,
+    },
+  }
+}
+
+function createService(
+  dependencies: Omit<
+    IActionsArtifactProvenanceServiceDependencies,
+    'getCompletedDownload'
+  >
+): ActionsArtifactProvenanceService {
+  return new ActionsArtifactProvenanceService({
+    ...dependencies,
+    getCompletedDownload: (senderId, downloadId) => {
+      if (senderId !== sender.id || typeof downloadId !== 'string') {
+        return null
+      }
+      if (downloadId === 'b'.repeat(32)) {
+        return completedDownload('https://api.github.com/', downloadId)
+      }
+      if (downloadId === 'e'.repeat(32)) {
+        return completedDownload('https://api.octocorp.ghe.com/', downloadId)
+      }
+      if (downloadId === 'f'.repeat(32)) {
+        return completedDownload('https://api.other.ghe.com/', downloadId)
+      }
+      return null
+    },
+  })
+}
 
 const lease = {
   filePath: resolve('private', 'subject.bin'),
@@ -129,7 +187,7 @@ const withSubject = async <T>(
 ): Promise<T> => {
   assert.deepEqual(subjectRequest, {
     operationId: 'a'.repeat(32),
-    downloadId: 'b'.repeat(32),
+    downloadId: subjectRequest.downloadId,
     inventoryId: 'c'.repeat(32),
     entryId: 'd'.repeat(32),
     expectedDigest: subjectDigest,
@@ -149,7 +207,7 @@ async function missing(path: string): Promise<boolean> {
 describe('Actions artifact provenance service', () => {
   it('revalidates canonical bundles, writes private JSONL, and returns only normalized evidence', async () => {
     let files: IActionsArtifactProvenanceVerifierFiles | undefined
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       withSubject,
       runner: {
         verify: async input => {
@@ -197,7 +255,7 @@ describe('Actions artifact provenance service', () => {
       subjectUses++
       return await withSubject(...args)
     }
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       withSubject: countedSubject,
       runner: {
         verify: async () => {
@@ -230,7 +288,7 @@ describe('Actions artifact provenance service', () => {
     let bundlesPrepared = false
     let credentialReads = 0
     let runnerUses = 0
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       credentialLeases: registry,
       credentialSource: {
         read: async (credentialLease, signal) => {
@@ -296,7 +354,7 @@ describe('Actions artifact provenance service', () => {
     }
     let subjects = 0
     let reads = 0
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       credentialLeases: registry,
       credentialSource: {
         read: async () => {
@@ -331,7 +389,7 @@ describe('Actions artifact provenance service', () => {
       new ActionsArtifactProvenanceCredentialLeaseRegistry()
     const rotatedHandle = registerGHELease(rotatedRegistry)
     let reads = 0
-    const rotated = new ActionsArtifactProvenanceService({
+    const rotated = createService({
       credentialLeases: rotatedRegistry,
       credentialSource: {
         // Buffer.from encodes both of these distinct JS strings as U+FFFD in
@@ -362,7 +420,7 @@ describe('Actions artifact provenance service', () => {
     const revokedRegistry =
       new ActionsArtifactProvenanceCredentialLeaseRegistry()
     const revokedHandle = registerGHELease(revokedRegistry)
-    const revoked = new ActionsArtifactProvenanceService({
+    const revoked = createService({
       credentialLeases: revokedRegistry,
       credentialSource: { read: async () => 'selected-ghe-token' },
       withSubject,
@@ -392,7 +450,7 @@ describe('Actions artifact provenance service', () => {
   it('rejects extra fields, noncanonical bundles, limits, and changed subjects before spawn', async () => {
     let subjectUses = 0
     let runnerUses = 0
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       withSubject: async (...args) => {
         subjectUses++
         return await withSubject(...args)
@@ -443,7 +501,7 @@ describe('Actions artifact provenance service', () => {
     assert.equal(subjectUses, 0)
     assert.equal(runnerUses, 0)
 
-    const changed = new ActionsArtifactProvenanceService({
+    const changed = createService({
       withSubject: async () => {
         throw new ActionsArtifactSubjectError('changed', 'changed')
       },
@@ -463,7 +521,7 @@ describe('Actions artifact provenance service', () => {
   })
 
   it('suppresses verified output when cancellation wins after the runner settles', async () => {
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       withSubject: async (_sender, _request, use) => {
         const controller = new AbortController()
         await use(lease, controller.signal)
@@ -484,7 +542,7 @@ describe('Actions artifact provenance service', () => {
   })
 
   it('maps subject IO and verifier file write/cleanup failures to unavailable', async () => {
-    const subjectIO = new ActionsArtifactProvenanceService({
+    const subjectIO = createService({
       withSubject: async (_sender, _request, use) => {
         await use(lease, new AbortController().signal)
         throw new ActionsArtifactSubjectError('io', 'cleanup failed')
@@ -518,7 +576,7 @@ describe('Actions artifact provenance service', () => {
         throw new Error('cleanup failed')
       },
     ]) {
-      const service = new ActionsArtifactProvenanceService({
+      const service = createService({
         withSubject,
         withVerifierFiles,
         runner: {
@@ -539,7 +597,7 @@ describe('Actions artifact provenance service', () => {
     const runnerDone = new Promise<void>(resolveDone => {
       release = resolveDone
     })
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       withSubject,
       runner: {
         verify: async input => {
@@ -564,7 +622,7 @@ describe('Actions artifact provenance service', () => {
     const cancellations = new Array<readonly [number, unknown]>()
     let runnerKills = 0
     let subjectKills = 0
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       withSubject,
       cancelSubject: (senderId, operationId) => {
         cancellations.push([senderId, operationId])
@@ -600,7 +658,7 @@ describe('Actions artifact provenance service', () => {
     const releases = new Array<() => void>()
     let hold = true
     let entered = 0
-    const service = new ActionsArtifactProvenanceService({
+    const service = createService({
       maximumConcurrency: 2,
       withSubject: async (_sender, _request, use) => {
         entered++

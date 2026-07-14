@@ -76,6 +76,7 @@ describe('completed Actions artifact download registry', () => {
       assert.deepEqual(record, {
         downloadId,
         senderId: owner.id,
+        endpoint: 'https://api.github.com/',
         path: 'C:\\Downloads\\artifact-19.zip',
         bytes: 19,
         archiveDigest: `sha256:${'13'.padStart(64, '0')}`,
@@ -84,6 +85,7 @@ describe('completed Actions artifact download registry', () => {
         artifactId: 19,
         workflowRun: {
           id: 55,
+          runAttempt: 1,
           headBranch: 'main',
           headSha: 'a'.repeat(40),
         },

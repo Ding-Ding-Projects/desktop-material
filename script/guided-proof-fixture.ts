@@ -2758,12 +2758,14 @@ async function handleActionsAPI(
     }
     requireOnlyQuery(url, [
       'per_page',
+      'page',
       'branch',
       'event',
       'status',
       'check_suite_id',
     ])
     boundedIntegerQuery(url, 'per_page', 1, 100, 50)
+    boundedIntegerQuery(url, 'page', 1, 1_000_000, 1)
     const branch = url.searchParams.get('branch')
     const status = url.searchParams.get('status')
     const matching =

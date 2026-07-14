@@ -8,6 +8,10 @@ import {
   parseSparseCheckoutDirectories,
   parseSparseCheckoutList,
 } from './sparse-checkout-parser'
+import {
+  assertSafeWorktreeMutation,
+  WorktreePathSafetyError,
+} from './worktree-path-guard'
 
 export * from './sparse-checkout-parser'
 
@@ -261,6 +265,17 @@ async function runSparseCheckoutMutation(
   const state = await getSparseCheckoutState(repositoryPath, signal)
   assertMutableState(state, mutation)
   throwIfAborted(signal)
+  try {
+    await assertSafeWorktreeMutation(repositoryPath, signal)
+  } catch (error) {
+    if (error instanceof WorktreePathSafetyError) {
+      throw new SparseCheckoutUnavailableError(
+        error.kind === 'aborted' ? 'aborted' : 'unsafe-state',
+        error.message
+      )
+    }
+    throw error
+  }
 
   try {
     await git([...args], repositoryPath, `sparseCheckout${mutation}`, {
