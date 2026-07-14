@@ -26,6 +26,8 @@ const policy: IActionsArtifactVerificationPolicy = {
   sourceRepositoryURI: 'https://github.com/actions/attest',
   sourceDigest: sha,
   sourceRef: 'refs/heads/main',
+  runId: 29283111640,
+  runAttempt: 1,
   signerIdentity,
   signerDigest: sha,
   repositoryVisibility: 'public',
@@ -47,7 +49,7 @@ const projected = () => [
       sourceRepositoryRef: 'refs/heads/main',
       sourceRepositoryVisibilityAtSigning: 'public',
       runInvocationURI:
-        'https://github.com/actions/attest/actions/runs/29283111640',
+        'https://github.com/actions/attest/actions/runs/29283111640/attempts/1',
     },
     timestamps: [
       {

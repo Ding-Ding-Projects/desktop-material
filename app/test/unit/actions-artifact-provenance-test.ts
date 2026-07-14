@@ -233,6 +233,8 @@ describe('Actions artifact provenance contracts', () => {
       sourceRepositoryURI: 'https://github.com/actions/attest',
       sourceDigest: sha,
       sourceRef: 'refs/heads/main',
+      runId: 29283111640,
+      runAttempt: 1,
       signerIdentity:
         'https://github.com/actions/attest/.github/workflows/prober.yml@refs/heads/main',
       signerDigest: sha,
@@ -243,6 +245,10 @@ describe('Actions artifact provenance contracts', () => {
     for (const invalid of [
       { ...policy, sourceRef: null },
       { ...policy, sourceRef: 'main' },
+      { ...policy, runId: 0 },
+      { ...policy, runId: Number.MAX_SAFE_INTEGER + 1 },
+      { ...policy, runAttempt: 1.5 },
+      { ...policy, runAttempt: '1' },
       { ...policy, repositoryVisibility: 'unknown' },
       {
         ...policy,
@@ -270,7 +276,7 @@ describe('Actions artifact provenance contracts', () => {
       repository: 'attest',
       sourceDigest: sha,
       sourceRef: 'refs/heads/main',
-      workflowPath: '.github/workflows/direct.yml@main',
+      workflowPath: '.github/workflows/direct.yml@other',
       referencedWorkflows: [
         {
           path: `actions/attest/.github/workflows/prober.yml@${'b'.repeat(40)}`,
@@ -289,6 +295,49 @@ describe('Actions artifact provenance contracts', () => {
       ],
     })
     assert.deepEqual(candidates, [])
+  })
+
+  it('binds direct workflow suffixes to the authoritative source ref', () => {
+    for (const workflowPath of [
+      '.github/workflows/direct.yml',
+      '.github/workflows/direct.yml@main',
+      '.github/workflows/direct.yml@refs/heads/main',
+      `.github/workflows/direct.yml@${sha}`,
+    ]) {
+      const candidates = buildActionsArtifactSignerCandidates({
+        endpoint: 'https://api.github.com',
+        owner: 'actions',
+        repository: 'attest',
+        sourceDigest: sha,
+        sourceRef: 'refs/heads/main',
+        workflowPath,
+      })
+      assert.equal(candidates.length, 1)
+      assert.equal(candidates[0].kind, 'current-workflow')
+      assert.equal(candidates[0].ref, 'refs/heads/main')
+      assert.equal(
+        candidates[0].identity,
+        'https://github.com/actions/attest/.github/workflows/direct.yml@refs/heads/main'
+      )
+    }
+
+    for (const workflowPath of [
+      '.github/workflows/direct.yml@other',
+      '.github/workflows/direct.yml@refs/tags/main',
+      `.github/workflows/direct.yml@${'b'.repeat(40)}`,
+    ]) {
+      assert.deepEqual(
+        buildActionsArtifactSignerCandidates({
+          endpoint: 'https://api.github.com',
+          owner: 'actions',
+          repository: 'attest',
+          sourceDigest: sha,
+          sourceRef: 'refs/heads/main',
+          workflowPath,
+        }),
+        []
+      )
+    }
   })
 
   it('uses separate reusable SHA and authoritative full ref for safe suffixes', () => {

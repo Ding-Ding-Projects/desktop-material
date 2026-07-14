@@ -25,6 +25,8 @@ const policy: IActionsArtifactVerificationPolicy = {
   sourceRepositoryURI: 'https://github.com/actions/attest',
   sourceDigest: sha,
   sourceRef: 'refs/heads/main',
+  runId: 29283111640,
+  runAttempt: 1,
   signerIdentity,
   signerDigest: sha,
   repositoryVisibility: 'public',
@@ -50,7 +52,7 @@ const evidence: IActionsArtifactVerificationEvidence = {
       subjectNames: ['artifact'],
       certificateIssuer: 'CN=GitHub Attestations',
       runInvocationURI:
-        'https://github.com/actions/attest/actions/runs/29283111640',
+        'https://github.com/actions/attest/actions/runs/29283111640/attempts/1',
       timestamps: [
         {
           type: 'Tlog',

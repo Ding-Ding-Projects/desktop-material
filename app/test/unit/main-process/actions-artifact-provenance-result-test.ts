@@ -21,6 +21,8 @@ const policy: IActionsArtifactVerificationPolicy = {
   sourceRepositoryURI: 'https://github.com/actions/attest',
   sourceDigest: sha,
   sourceRef: 'refs/heads/main',
+  runId: 29283111640,
+  runAttempt: 1,
   signerIdentity,
   signerDigest: sha,
   repositoryVisibility: 'public',
@@ -128,18 +130,36 @@ describe('Actions artifact provenance projected result', () => {
     const second = projected()
     second.subject[0].name = 'artifact-copy'
     second.certificate.certificateIssuer = 'CN=GitHub Attestations'
-    second.certificate.runInvocationURI =
-      'https://github.com/actions/attest/actions/runs/29283111640/attempts/2'
     second.timestamps[0].timestamp = '2026-07-13T21:00:00Z'
     const evidence = parse([projected(), second])
 
     assert.equal(evidence.attestations.length, 2)
     assert.deepEqual(evidence.attestations[0].subjectNames, ['artifact'])
     assert.deepEqual(evidence.attestations[1].subjectNames, ['artifact-copy'])
-    assert.notEqual(
+    assert.equal(
       evidence.attestations[0].runInvocationURI,
       evidence.attestations[1].runInvocationURI
     )
+  })
+
+  it('requires the exact run attempt invocation on every record', () => {
+    const invalidInvocations = [
+      'https://github.com/actions/attest/actions/runs/29283111640',
+      'https://github.com/actions/attest/actions/runs/29283111641/attempts/1',
+      'https://github.com/actions/attest/actions/runs/29283111640/attempts/2',
+      'https://api.github.com/actions/attest/actions/runs/29283111640/attempts/1',
+      'https://github.com/actions/other/actions/runs/29283111640/attempts/1',
+      'https://github.com/actions/attest/actions/runs/29283111640/attempts/1?view=1',
+    ]
+    for (const invocation of invalidInvocations) {
+      const value = projected()
+      value.certificate.runInvocationURI = invocation
+      assert.throws(() => parse([value]))
+    }
+
+    const mixed = projected()
+    mixed.certificate.runInvocationURI = invalidInvocations[2]
+    assert.throws(() => parse([projected(), mixed]))
   })
 
   it('derives and requires the tenant GHE.com issuer and internal visibility', () => {

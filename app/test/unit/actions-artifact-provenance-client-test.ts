@@ -30,6 +30,8 @@ const policy: IActionsArtifactVerificationPolicy = {
   sourceRepositoryURI: 'https://github.com/actions/attest',
   sourceDigest: 'a'.repeat(40),
   sourceRef: 'refs/heads/main',
+  runId: 29283111640,
+  runAttempt: 1,
   signerIdentity:
     'https://github.com/actions/attest/.github/workflows/prober.yml@refs/heads/main',
   signerDigest: 'b'.repeat(40),

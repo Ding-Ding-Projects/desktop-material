@@ -73,6 +73,8 @@ export interface IActionsArtifactVerificationPolicy {
   readonly sourceDigest: string
   /** An authoritative full ref; branch names are never expanded into refs. */
   readonly sourceRef: string
+  readonly runId: number
+  readonly runAttempt: number
   readonly signerIdentity: string
   readonly signerDigest: string
   readonly repositoryVisibility: ActionsArtifactRepositoryVisibility
@@ -312,6 +314,16 @@ export function normalizeActionsArtifactGitObjectId(value: unknown): string {
   return value
 }
 
+export function normalizeActionsArtifactPositiveInteger(
+  value: unknown,
+  label: string
+): number {
+  if (typeof value !== 'number' || !Number.isSafeInteger(value) || value < 1) {
+    throw new Error(`Artifact provenance ${label} is invalid.`)
+  }
+  return value
+}
+
 export function normalizeActionsArtifactFullRef(value: unknown): string {
   if (
     typeof value !== 'string' ||
@@ -480,7 +492,9 @@ function normalizeSignerIdentity(value: unknown, expectedHost: string): string {
   }
   const owner = normalizeRepositoryPart(parts[0], 'signer owner')
   const repository = normalizeRepositoryPart(parts[1], 'signer repository')
-  const workflow = normalizeWorkflowPath(parts.slice(2).join('/'))
+  const workflow = normalizeActionsArtifactWorkflowPath(
+    parts.slice(2).join('/')
+  )
   const ref = normalizeActionsArtifactFullRef(identityPath.slice(suffixAt + 1))
   const identity = `https://${expectedHost}/${owner}/${repository}/${workflow}@${ref}`
   if (value !== identity) {
@@ -506,6 +520,8 @@ export function normalizeActionsArtifactVerificationPolicy(
   if (
     !hasExactKeys(policy, [
       'repositoryVisibility',
+      'runAttempt',
+      'runId',
       'signerDigest',
       'signerIdentity',
       'sourceDigest',
@@ -520,6 +536,11 @@ export function normalizeActionsArtifactVerificationPolicy(
     sourceRepositoryURI: source.uri,
     sourceDigest: normalizeActionsArtifactGitObjectId(policy.sourceDigest),
     sourceRef: normalizeActionsArtifactFullRef(policy.sourceRef),
+    runId: normalizeActionsArtifactPositiveInteger(policy.runId, 'run id'),
+    runAttempt: normalizeActionsArtifactPositiveInteger(
+      policy.runAttempt,
+      'run attempt'
+    ),
     signerIdentity: normalizeSignerIdentity(policy.signerIdentity, source.host),
     signerDigest: normalizeActionsArtifactGitObjectId(policy.signerDigest),
     repositoryVisibility: normalizeActionsArtifactRepositoryVisibility(
@@ -528,7 +549,7 @@ export function normalizeActionsArtifactVerificationPolicy(
   }
 }
 
-function normalizeWorkflowPath(value: unknown): string {
+export function normalizeActionsArtifactWorkflowPath(value: unknown): string {
   if (
     typeof value !== 'string' ||
     !workflowPathPattern.test(value) ||
@@ -541,17 +562,26 @@ function normalizeWorkflowPath(value: unknown): string {
   return value
 }
 
-function directWorkflowPath(value: string, sourceRef: string): string | null {
+function directWorkflowPath(
+  value: string,
+  sourceDigest: string,
+  sourceRef: string
+): string | null {
   const suffixAt = value.lastIndexOf('@')
   const rawPath = suffixAt === -1 ? value : value.slice(0, suffixAt)
   if (
-    (suffixAt !== -1 && value.slice(suffixAt + 1) !== sourceRef) ||
+    (suffixAt !== -1 &&
+      !referencedWorkflowSuffixMatches(
+        value.slice(suffixAt + 1),
+        sourceDigest,
+        sourceRef
+      )) ||
     rawPath.includes('@')
   ) {
     return null
   }
   try {
-    return normalizeWorkflowPath(rawPath)
+    return normalizeActionsArtifactWorkflowPath(rawPath)
   } catch {
     return null
   }
@@ -592,7 +622,7 @@ export function buildActionsArtifactSignerCandidates({
   const candidates = new Array<IActionsArtifactSignerCandidate>()
 
   if (typeof workflowPath === 'string' && sourceRef !== null) {
-    const path = directWorkflowPath(workflowPath, sourceRef)
+    const path = directWorkflowPath(workflowPath, sourceDigest, sourceRef)
     if (path !== null) {
       candidates.push({
         identity: `https://${host}/${owner}/${repository}/${path}@${sourceRef}`,
@@ -654,7 +684,7 @@ export function buildActionsArtifactSignerCandidates({
         parts[1],
         'signer repository'
       )
-      path = normalizeWorkflowPath(parts.slice(2).join('/'))
+      path = normalizeActionsArtifactWorkflowPath(parts.slice(2).join('/'))
     } catch {
       continue
     }

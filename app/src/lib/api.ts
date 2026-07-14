@@ -60,8 +60,22 @@ import {
   ActionsArtifactAttestationProbePageSize,
   ActionsArtifactProvenancePredicate,
   IActionsArtifactAttestationBundleSet,
+  normalizeActionsArtifactGitObjectId,
   parseActionsArtifactAttestationBundles,
 } from './actions-artifact-provenance'
+import {
+  ActionsArtifactProvenanceRefNamespace,
+  IActionsArtifactProvenanceAnnotatedTag,
+  IActionsArtifactProvenanceGitRef,
+  IActionsArtifactProvenanceRepositoryMetadata,
+  IActionsArtifactProvenanceRunAttemptMetadata,
+  normalizeActionsArtifactSourceRefName,
+  parseActionsArtifactProvenanceAnnotatedTag,
+  parseActionsArtifactProvenanceGitRef,
+  parseActionsArtifactProvenanceRepositoryMetadata,
+  parseActionsArtifactProvenanceRunAttemptMetadata,
+  resolveActionsArtifactProvenanceSourceRef,
+} from './actions-artifact-provenance-metadata'
 import {
   ActionsJobPageSize,
   IActionsJobList,
@@ -2442,6 +2456,153 @@ export class API {
         signal,
         ActionsArtifactAttestationMaximumBytes
       )
+    )
+  }
+
+  /** Fetch the authoritative repository identity and visibility. */
+  public async fetchArtifactProvenanceRepositoryMetadata(
+    rawOwner: string,
+    rawName: string,
+    signal?: AbortSignal
+  ): Promise<IActionsArtifactProvenanceRepositoryMetadata> {
+    const owner = validateGitHubRepositoryPart(rawOwner, 'owner')
+    const name = validateGitHubRepositoryPart(rawName, 'repository')
+    if (owner.length > 100 || name.length > 100) {
+      throw new Error('The artifact provenance repository is invalid.')
+    }
+    const response = await this.ghRequest('GET', `repos/${owner}/${name}`, {
+      signal,
+    })
+    const repository = parseActionsArtifactProvenanceRepositoryMetadata(
+      await boundedActionsMetadataResponse(response, signal)
+    )
+    if (repository.full_name !== `${owner}/${name}`) {
+      throw new Error('GitHub returned a different artifact repository.')
+    }
+    return repository
+  }
+
+  /** Fetch one exact workflow-run attempt without falling back to latest. */
+  public async fetchArtifactProvenanceRunAttemptMetadata(
+    rawOwner: string,
+    rawName: string,
+    rawRunId: number,
+    rawRunAttempt: number,
+    signal?: AbortSignal
+  ): Promise<IActionsArtifactProvenanceRunAttemptMetadata> {
+    const owner = validateGitHubRepositoryPart(rawOwner, 'owner')
+    const name = validateGitHubRepositoryPart(rawName, 'repository')
+    if (owner.length > 100 || name.length > 100) {
+      throw new Error('The artifact provenance repository is invalid.')
+    }
+    const runId = validateActionsArtifactIdentifier(rawRunId, 'workflow run id')
+    const runAttempt = validateActionsArtifactIdentifier(
+      rawRunAttempt,
+      'workflow run attempt'
+    )
+    const response = await this.ghRequest(
+      'GET',
+      `repos/${owner}/${name}/actions/runs/${runId}/attempts/${runAttempt}?exclude_pull_requests=true`,
+      { signal }
+    )
+    const attempt = parseActionsArtifactProvenanceRunAttemptMetadata(
+      await boundedActionsMetadataResponse(response, signal)
+    )
+    if (attempt.id !== runId || attempt.run_attempt !== runAttempt) {
+      throw new Error('GitHub returned a different workflow run attempt.')
+    }
+    return attempt
+  }
+
+  /** Fetch one exact branch or tag ref; only this endpoint maps 404 to null. */
+  public async fetchArtifactProvenanceGitRef(
+    rawOwner: string,
+    rawName: string,
+    namespace: ActionsArtifactProvenanceRefNamespace,
+    rawRefName: string,
+    signal?: AbortSignal
+  ): Promise<IActionsArtifactProvenanceGitRef | null> {
+    const owner = validateGitHubRepositoryPart(rawOwner, 'owner')
+    const name = validateGitHubRepositoryPart(rawName, 'repository')
+    if (owner.length > 100 || name.length > 100) {
+      throw new Error('The artifact provenance repository is invalid.')
+    }
+    if (namespace !== 'heads' && namespace !== 'tags') {
+      throw new Error('The artifact provenance ref namespace is invalid.')
+    }
+    const refName = normalizeActionsArtifactSourceRefName(rawRefName)
+    const expectedRef = `refs/${namespace}/${refName}`
+    const encodedRef = encodeURIComponent(`${namespace}/${refName}`)
+    const response = await this.ghRequest(
+      'GET',
+      `repos/${owner}/${name}/git/ref/${encodedRef}`,
+      { signal }
+    )
+    let value: unknown
+    try {
+      value = await boundedActionsMetadataResponse(response, signal)
+    } catch (error) {
+      if (error instanceof APIError && error.responseStatus === 404) {
+        return null
+      }
+      throw error
+    }
+    const gitRef = parseActionsArtifactProvenanceGitRef(value)
+    if (gitRef.ref !== expectedRef) {
+      throw new Error('GitHub returned a different artifact provenance ref.')
+    }
+    return gitRef
+  }
+
+  /** Fetch one exact annotated-tag object in a validated tag chain. */
+  public async fetchArtifactProvenanceAnnotatedTag(
+    rawOwner: string,
+    rawName: string,
+    rawSHA: string,
+    signal?: AbortSignal
+  ): Promise<IActionsArtifactProvenanceAnnotatedTag> {
+    const owner = validateGitHubRepositoryPart(rawOwner, 'owner')
+    const name = validateGitHubRepositoryPart(rawName, 'repository')
+    if (owner.length > 100 || name.length > 100) {
+      throw new Error('The artifact provenance repository is invalid.')
+    }
+    const sha = normalizeActionsArtifactGitObjectId(rawSHA)
+    const response = await this.ghRequest(
+      'GET',
+      `repos/${owner}/${name}/git/tags/${sha}`,
+      { signal }
+    )
+    const tag = parseActionsArtifactProvenanceAnnotatedTag(
+      await boundedActionsMetadataResponse(response, signal)
+    )
+    if (tag.sha !== sha) {
+      throw new Error('GitHub returned a different annotated tag object.')
+    }
+    return tag
+  }
+
+  /** Resolve one unambiguous full source ref through this exact API instance. */
+  public async resolveArtifactProvenanceSourceRef(
+    owner: string,
+    name: string,
+    attempt: IActionsArtifactProvenanceRunAttemptMetadata,
+    signal?: AbortSignal
+  ): Promise<string | null> {
+    return resolveActionsArtifactProvenanceSourceRef(
+      attempt,
+      {
+        getRef: (namespace, refName, refSignal) =>
+          this.fetchArtifactProvenanceGitRef(
+            owner,
+            name,
+            namespace,
+            refName,
+            refSignal
+          ),
+        getAnnotatedTag: (sha, tagSignal) =>
+          this.fetchArtifactProvenanceAnnotatedTag(owner, name, sha, tagSignal),
+      },
+      signal
     )
   }
 

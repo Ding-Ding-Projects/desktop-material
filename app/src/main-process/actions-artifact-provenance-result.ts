@@ -8,7 +8,6 @@ import {
   IActionsArtifactVerificationTimestamp,
   IActionsArtifactVerifiedAttestation,
   getActionsArtifactProvenanceOIDCIssuer,
-  getActionsArtifactProvenanceWebHost,
   normalizeActionsArtifactSHA256,
   normalizeActionsArtifactVerificationPolicy,
 } from '../lib/actions-artifact-provenance'
@@ -50,7 +49,6 @@ const sha256HexPattern = /^[a-f0-9]{64}$/
 const timestampPattern =
   /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:\d{2})$/
 const timestampTypePattern = /^[A-Za-z][A-Za-z0-9_-]{0,63}$/
-const positiveIdentifierPattern = /^[1-9]\d{0,19}$/
 
 function invalidResult(): Error {
   return new Error('The provenance verifier returned an invalid result.')
@@ -166,42 +164,11 @@ function normalizeInvocationURI(
   policy: IActionsArtifactVerificationPolicy
 ): string {
   const raw = boundedString(value, 2048)
-  let parsed: URL
-  try {
-    parsed = new URL(raw)
-  } catch {
+  const expected = `${policy.sourceRepositoryURI}/actions/runs/${policy.runId}/attempts/${policy.runAttempt}`
+  if (raw !== expected) {
     throw invalidResult()
   }
-  const repository = new URL(policy.sourceRepositoryURI)
-  const host = getActionsArtifactProvenanceWebHost(repository.origin)
-  if (
-    parsed.protocol !== 'https:' ||
-    parsed.hostname !== host ||
-    parsed.username !== '' ||
-    parsed.password !== '' ||
-    parsed.port !== '' ||
-    parsed.search !== '' ||
-    parsed.hash !== ''
-  ) {
-    throw invalidResult()
-  }
-  const expectedRepository = repository.pathname.split('/').slice(1)
-  const parts = parsed.pathname.split('/').slice(1)
-  const baseMatches =
-    parts[0] === expectedRepository[0] &&
-    parts[1] === expectedRepository[1] &&
-    parts[2] === 'actions' &&
-    parts[3] === 'runs' &&
-    positiveIdentifierPattern.test(parts[4] ?? '')
-  const attemptMatches =
-    parts.length === 5 ||
-    (parts.length === 7 &&
-      parts[5] === 'attempts' &&
-      positiveIdentifierPattern.test(parts[6]))
-  if (!baseMatches || !attemptMatches) {
-    throw invalidResult()
-  }
-  return raw
+  return expected
 }
 
 function normalizeSubjects(
