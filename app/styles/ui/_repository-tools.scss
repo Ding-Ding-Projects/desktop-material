@@ -15,6 +15,235 @@
   min-width: 0;
 }
 
+.provider-triage {
+  background: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+
+  * {
+    box-sizing: border-box;
+    min-width: 0;
+  }
+}
+
+.provider-triage-header,
+.provider-triage-results-heading {
+  align-items: flex-start;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.provider-triage-header {
+  h2,
+  p {
+    margin: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  p,
+  .provider-triage-context {
+    color: var(--md-sys-color-on-surface-variant);
+    line-height: 1.5;
+    margin-top: 5px;
+  }
+}
+
+.provider-triage-actions,
+.provider-triage-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.provider-triage-context,
+.provider-triage-message,
+.provider-triage-empty {
+  margin: 12px 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  padding: 10px;
+}
+
+.provider-triage-message {
+  background: var(--md-sys-color-primary-container);
+  border-radius: 9px;
+  color: var(--md-sys-color-on-primary-container);
+
+  &.error,
+  &.partial {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+  }
+}
+
+.provider-triage-channels,
+.provider-triage-list,
+.provider-triage-attention {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+
+.provider-triage-channels {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.provider-triage-channel {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 10px;
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  padding: 10px;
+
+  strong,
+  small {
+    overflow-wrap: anywhere;
+  }
+
+  small {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+.provider-triage-filters {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, minmax(min(100%, 170px), 1fr));
+  margin: 16px 0;
+
+  label {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  label > span {
+    font-size: 12px;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+
+  input,
+  select {
+    background: var(--md-sys-color-surface);
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-surface);
+    font: inherit;
+    min-height: 36px;
+    padding: 7px 9px;
+    width: 100%;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+}
+
+.provider-triage-results-heading {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  padding-top: 12px;
+
+  span {
+    color: var(--md-sys-color-on-surface-variant);
+    overflow-wrap: anywhere;
+  }
+}
+
+.provider-triage-list {
+  display: grid;
+  gap: 8px;
+}
+
+.provider-triage-item {
+  background: var(--md-sys-color-surface-container-high);
+  border-radius: 10px;
+  min-width: 0;
+  padding: 12px;
+
+  h3,
+  p {
+    margin: 5px 0 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  h3 {
+    font-size: 15px;
+  }
+}
+
+.provider-triage-item-heading {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.provider-triage-kind,
+.provider-triage-draft,
+.provider-triage-number,
+.provider-triage-attention li {
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+}
+
+.provider-triage-kind {
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+}
+
+.provider-triage-kind.pull-request {
+  background: var(--md-sys-color-tertiary-container);
+  color: var(--md-sys-color-on-tertiary-container);
+}
+
+.provider-triage-draft,
+.provider-triage-number {
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+.provider-triage-byline {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.provider-triage-attention {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+
+  li {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+  }
+}
+
+@media (max-width: 700px) {
+  .provider-triage-channels,
+  .provider-triage-filters {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .provider-triage-actions .button-component {
+    width: 100%;
+  }
+}
+
 .repository-shallow-history-card {
   gap: 14px;
 }

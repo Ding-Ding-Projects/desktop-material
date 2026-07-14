@@ -3804,6 +3804,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       })
     } else if (
       selectedSection !== RepositorySectionTab.Actions &&
+      selectedSection !== RepositorySectionTab.Releases &&
+      selectedSection !== RepositorySectionTab.Issues &&
+      selectedSection !== RepositorySectionTab.Triage &&
       selectedSection !== RepositorySectionTab.RepositoryTools
     ) {
       return assertNever(selectedSection, `Unknown section: ${selectedSection}`)
@@ -4574,6 +4577,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       })
     } else if (
       section === RepositorySectionTab.Actions ||
+      section === RepositorySectionTab.Releases ||
+      section === RepositorySectionTab.Issues ||
+      section === RepositorySectionTab.Triage ||
       section === RepositorySectionTab.RepositoryTools
     ) {
       refreshSectionPromise = Promise.resolve()
@@ -10172,6 +10178,47 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getGitHubPullRequestContextVersion(selected, tip.branch, sourceRemote) ===
         contextVersion
     )
+  }
+
+  public _showGitHubPullRequestLifecycle(
+    repository: Repository,
+    pullRequest: PullRequest
+  ): void {
+    if (
+      !isRepositoryWithGitHubRepository(repository) ||
+      this.popupManager.areTherePopupsOfType(
+        PopupType.GitHubPullRequestLifecycle
+      )
+    ) {
+      return
+    }
+    const target = pullRequest.base.gitHubRepository
+    if (getNonForkGitHubRepository(repository).hash !== target.hash) {
+      return
+    }
+    const repositoryState = this.repositoryStateCache.get(repository)
+    const source = repository.gitHubRepository
+    const remoteName =
+      target.hash === source.hash
+        ? repositoryState.remote?.name ?? null
+        : target.hash === source.parent?.hash
+        ? UpstreamRemoteName
+        : null
+    const names = new Set<string>([pullRequest.base.ref])
+    if (remoteName !== null) {
+      for (const branch of repositoryState.branchesState.allBranches) {
+        const name = getGitHubPullRequestBaseBranchName(branch, remoteName)
+        if (name !== null) {
+          names.add(name)
+        }
+      }
+    }
+    this._showPopup({
+      type: PopupType.GitHubPullRequestLifecycle,
+      repository,
+      pullRequest,
+      baseBranchNames: [...names],
+    })
   }
 
   public async _showPullRequest(repository: Repository): Promise<void> {

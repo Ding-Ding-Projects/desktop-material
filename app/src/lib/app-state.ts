@@ -522,6 +522,9 @@ export enum RepositorySectionTab {
   History,
   Actions,
   RepositoryTools,
+  Releases,
+  Issues,
+  Triage,
 }
 
 /**

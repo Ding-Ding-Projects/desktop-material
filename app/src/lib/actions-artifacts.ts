@@ -3,6 +3,8 @@ export const ActionsArtifactPageSize = 30
 
 /** Reject accidental or hostile page values before constructing a request. */
 export const ActionsArtifactMaximumPage = 1_000_000
+/** Backwards-compatible plural alias used by the paginated API contract. */
+export const ActionsArtifactMaximumPages = ActionsArtifactMaximumPage
 
 /**
  * A deliberate application safety limit. Artifact archives are streamed, but
@@ -166,11 +168,18 @@ function parseWorkflowRun(
   if (!gitObjectId.test(headSha)) {
     throw new Error('GitHub returned an invalid artifact workflow run commit.')
   }
+  const hasRunAttempt =
+    input.run_attempt !== null && input.run_attempt !== undefined
   const runAttempt =
     input.run_attempt === null || input.run_attempt === undefined
       ? null
       : safeInteger(input.run_attempt, 'artifact workflow run attempt', 1)
-  return { id, runAttempt, headBranch, headSha }
+  return {
+    id,
+    headBranch,
+    headSha,
+    ...(hasRunAttempt ? { runAttempt } : {}),
+  } as IActionsArtifactWorkflowRun
 }
 
 /**

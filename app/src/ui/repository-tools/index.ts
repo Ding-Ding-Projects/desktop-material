@@ -1,8 +1,17 @@
 export { RepositoryTools } from './repository-tools'
 export { RepositoryBundleImport } from './bundle-import'
 export { RepositoryShallowHistory } from './shallow-history'
+export { RepositoryBisectSession } from './bisect-session'
+export { RepositoryCommitRewrite } from './commit-rewrite'
+export { RepositoryHooks } from './repository-hooks'
+export { RepositoryLFSAdministration } from './lfs-administration'
+export { RepositoryPatchSeries } from './patch-series'
+export { RepositorySigning } from './signing'
+export { RepositoryProviderTriage } from './provider-triage'
 export type { IRepositoryBundleImportProps } from './bundle-import'
 export type { IRepositoryShallowHistoryProps } from './shallow-history'
+export type { IRepositoryCommitRewriteClient } from './commit-rewrite'
+export type { IRepositoryHooksClient } from './repository-hooks'
 export type {
   IRepositoryToolsClient,
   IRepositoryToolsProps,
@@ -16,6 +25,8 @@ export {
   parseRepositoryShallowStatus,
   parseRepositoryBundleHeads,
   prepareRepositoryArchive,
+  prepareRepositoryPatchExport,
+  prepareRepositoryPatchImport,
   prepareRepositoryBundle,
   prepareRepositoryBundleImport,
   prepareRepositoryBundleInspection,
@@ -28,6 +39,8 @@ export {
 } from './operations'
 export type {
   IRepositoryArchiveRequest,
+  IRepositoryPatchExportRequest,
+  IRepositoryPatchImportRequest,
   IRepositoryBundleImportRequest,
   IRepositoryBundleInspectionRequest,
   IRepositoryBundleRef,

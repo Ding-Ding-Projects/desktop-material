@@ -90,7 +90,11 @@ import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
 import { GitHubRepository } from '../../models/github-repository'
-import { IRemote } from '../../models/remote'
+import {
+  IRemote,
+  IRemoteManagementPlan,
+  IRemoteManagementSnapshot,
+} from '../../models/remote'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { Popup, PopupType } from '../../models/popup'
 import { IProfileHistoryPage } from '../../models/profile'
@@ -181,13 +185,25 @@ import {
   IFileResolution,
   ICopilotResolutionSummary,
 } from '../../lib/copilot-conflict-resolution'
-import { WorktreeEntry } from '../../models/worktree'
+import {
+  IWorktreeMaintenancePreview,
+  WorktreeEntry,
+  WorktreeMaintenanceOperation,
+} from '../../models/worktree'
 import { ICreatedGitHubIssue } from '../../lib/github-issue'
 import {
   getGitHubPullRequestHead,
+  GitHubPullRequestMergeMethod,
   GitHubPullRequestContextChangedError,
   ICreatedGitHubPullRequest,
   IGitHubPullRequestDraft,
+  IGitHubPullRequestLifecycle,
+  IGitHubPullRequestMergeReceipt,
+  IGitHubPullRequestMutationReceipt,
+  IGitHubPullRequestReview,
+  IGitHubPullRequestReviewReceipt,
+  IGitHubPullRequestUpdate,
+  validateGitHubPullRequestNumber,
 } from '../../lib/github-pull-request'
 
 /**
@@ -3249,6 +3265,14 @@ export class Dispatcher {
     this.appStore._showCreateGitHubPullRequest(repository, branch, baseBranch)
   }
 
+  /** Open the native inspect/update/review/merge workbench. */
+  public showGitHubPullRequestLifecycle(
+    repository: Repository,
+    pullRequest: PullRequest
+  ): void {
+    this.appStore._showGitHubPullRequestLifecycle(repository, pullRequest)
+  }
+
   /**
    * Show the current pull request on github.com
    */
@@ -3900,6 +3924,129 @@ export class Dispatcher {
       draft.draft,
       signal
     )
+  }
+
+  private getGitHubPullRequestLifecycleTarget(
+    repository: Repository,
+    pullRequest: PullRequest,
+    account: Account,
+    mutation: boolean
+  ): GitHubRepository {
+    if (!isRepositoryWithGitHubRepository(repository)) {
+      throw new Error('This repository is not connected to GitHub.')
+    }
+    const target = pullRequest.base.gitHubRepository
+    validateGitHubPullRequestNumber(pullRequest.pullRequestNumber)
+    if (getNonForkGitHubRepository(repository).hash !== target.hash) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+    if (
+      account.provider !== 'github' ||
+      account.token.length === 0 ||
+      account.endpoint !== target.endpoint
+    ) {
+      throw new Error('No matching authenticated GitHub account is available.')
+    }
+    if (mutation && target.isArchived) {
+      throw new Error('Archived repositories cannot update pull requests.')
+    }
+    return target
+  }
+
+  public inspectGitHubPullRequest(
+    repository: Repository,
+    pullRequest: PullRequest,
+    account: Account,
+    signal?: AbortSignal
+  ): Promise<IGitHubPullRequestLifecycle> {
+    const target = this.getGitHubPullRequestLifecycleTarget(
+      repository,
+      pullRequest,
+      account,
+      false
+    )
+    return this.pullRequestLifecycleStore.inspect(
+      target,
+      account,
+      pullRequest.pullRequestNumber,
+      signal
+    )
+  }
+
+  public async updateGitHubPullRequest(
+    repository: Repository,
+    pullRequest: PullRequest,
+    account: Account,
+    expectedHeadSHA: string,
+    update: IGitHubPullRequestUpdate,
+    signal?: AbortSignal
+  ): Promise<IGitHubPullRequestMutationReceipt> {
+    const target = this.getGitHubPullRequestLifecycleTarget(
+      repository,
+      pullRequest,
+      account,
+      true
+    )
+    const receipt = await this.pullRequestLifecycleStore.update(
+      target,
+      account,
+      pullRequest.pullRequestNumber,
+      expectedHeadSHA,
+      update,
+      signal
+    )
+    void this.appStore._refreshPullRequests(repository)
+    return receipt
+  }
+
+  public submitGitHubPullRequestReview(
+    repository: Repository,
+    pullRequest: PullRequest,
+    account: Account,
+    expectedHeadSHA: string,
+    review: IGitHubPullRequestReview,
+    signal?: AbortSignal
+  ): Promise<IGitHubPullRequestReviewReceipt> {
+    const target = this.getGitHubPullRequestLifecycleTarget(
+      repository,
+      pullRequest,
+      account,
+      true
+    )
+    return this.pullRequestLifecycleStore.review(
+      target,
+      account,
+      pullRequest.pullRequestNumber,
+      expectedHeadSHA,
+      review,
+      signal
+    )
+  }
+
+  public async mergeGitHubPullRequest(
+    repository: Repository,
+    pullRequest: PullRequest,
+    account: Account,
+    expectedHeadSHA: string,
+    method: GitHubPullRequestMergeMethod,
+    signal?: AbortSignal
+  ): Promise<IGitHubPullRequestMergeReceipt> {
+    const target = this.getGitHubPullRequestLifecycleTarget(
+      repository,
+      pullRequest,
+      account,
+      true
+    )
+    const receipt = await this.pullRequestLifecycleStore.merge(
+      target,
+      account,
+      pullRequest.pullRequestNumber,
+      expectedHeadSHA,
+      method,
+      signal
+    )
+    void this.appStore._refreshPullRequests(repository)
+    return receipt
   }
 
   public setRepositoryIndicatorsEnabled(repositoryIndicatorsEnabled: boolean) {

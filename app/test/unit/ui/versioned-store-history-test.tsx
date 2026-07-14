@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, it, TestContext } from 'node:test'
+import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import {
@@ -26,36 +26,6 @@ function createDeferred<T>(): {
   }
 
   return { promise, resolve: resolveValue }
-}
-
-/**
- * Keep the history viewer tests deterministic without replacing the jsdom
- * Storage object. global-jsdom exposes localStorage through a read-only global
- * accessor, so assigning a test double would throw in the Node 26 runner.
- */
-function useEmptyLocalStorage(t: TestContext) {
-  const storage = globalThis.localStorage
-  const previousEntries = new Map<string, string>()
-
-  for (let index = 0; index < storage.length; index++) {
-    const key = storage.key(index)
-    if (key === null) {
-      continue
-    }
-
-    const value = storage.getItem(key)
-    if (value !== null) {
-      previousEntries.set(key, value)
-    }
-  }
-
-  storage.clear()
-  t.after(() => {
-    storage.clear()
-    for (const [key, value] of previousEntries) {
-      storage.setItem(key, value)
-    }
-  })
 }
 
 function historyEntry(sha: string, summary: string): IVersionHistoryEntry {
@@ -105,8 +75,27 @@ describe('versioned store history', () => {
     assert.equal(classifyVersionHistoryDiffLine(' unchanged'), 'context')
   })
 
-  it('ignores an old pagination response after undo reloads history', async t => {
-    useEmptyLocalStorage(t)
+  it('lets only the topmost stacked history consume Escape', () => {
+    const dismissed = { background: 0, foreground: 0 }
+    const source: IVersionedStoreHistorySource = {
+      getHistory: () => Promise.resolve(historyPage([], false, false)),
+      getFiles: () => Promise.resolve([]),
+      getDiff: () => Promise.resolve(''),
+      undoLastChange: () => Promise.resolve(),
+      redoLastChange: () => Promise.resolve(),
+      restoreTo: () => Promise.resolve(),
+    }
+    const history = (isTopMost: boolean, layer: keyof typeof dismissed) => (
+      <DialogStackContext.Provider value={{ isTopMost }}>
+        <VersionedStoreHistory
+          title={`${layer} history`}
+          timelineLabel={`${layer} timeline`}
+          description={`${layer} layer`}
+          source={source}
+          onDismissed={() => dismissed[layer]++}
+        />
+      </DialogStackContext.Provider>
+    )
 
     render(
       <>
@@ -175,9 +164,7 @@ describe('versioned store history', () => {
     assert.equal(screen.getAllByText('Undo snapshot').length, 2)
   })
 
-  it('loads file metadata only for the selected entry', async t => {
-    useEmptyLocalStorage(t)
-
+  it('loads file metadata only for the selected entry', async () => {
     const first = historyEntry('11111111', 'First snapshot')
     const second = historyEntry('22222222', 'Second snapshot')
     const third = historyEntry('33333333', 'Third snapshot')

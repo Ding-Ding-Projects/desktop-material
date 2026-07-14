@@ -32,6 +32,8 @@ import {
 } from './operations'
 import { RepositoryBundleImport } from './bundle-import'
 import { RepositoryShallowHistory } from './shallow-history'
+import type { Repository } from '../../models/repository'
+import type { IRepositoryShallowHistoryFetchRequest } from '../../lib/git'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -61,8 +63,13 @@ const defaultClient: IRepositoryToolsClient = {
 }
 
 export interface IRepositoryToolsProps {
+  readonly repository?: Repository
   readonly repositoryPath: string
   readonly onRefreshRepository: () => Promise<void>
+  readonly onFetchShallowHistory?: (
+    request: IRepositoryShallowHistoryFetchRequest,
+    signal: AbortSignal
+  ) => Promise<{ readonly usedFallbackAccount: boolean }>
   readonly client?: IRepositoryToolsClient
   readonly chooseArchiveDestination?: (
     format: RepositoryArchiveFormat,

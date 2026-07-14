@@ -72,5 +72,11 @@ export async function prepareActionsArtifactSubjectThroughMainProcess(
 export function releaseActionsArtifactDownloadThroughMainProcess(
   downloadId: string
 ): void {
-  ipcRenderer.send('release-actions-artifact-download', downloadId)
+  // Release is best-effort cleanup. Some renderer-only test hosts do not
+  // expose Electron's fire-and-forget IPC method during unmount.
+  try {
+    ipcRenderer.send('release-actions-artifact-download', downloadId)
+  } catch {
+    // The main-process registry has its own expiry for abandoned downloads.
+  }
 }

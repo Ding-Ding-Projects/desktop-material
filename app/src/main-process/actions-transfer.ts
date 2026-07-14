@@ -28,6 +28,9 @@ import {
 } from './actions-artifact-download-registry'
 
 type ActionsFetcher = (input: string, init: RequestInit) => Promise<Response>
+export interface IActionsTransferDependencies {
+  readonly fetch: ActionsFetcher
+}
 type ActionsRequestFactory = (
   options: Electron.ClientRequestConstructorOptions
 ) => Electron.ClientRequest

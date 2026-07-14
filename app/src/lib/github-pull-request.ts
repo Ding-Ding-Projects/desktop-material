@@ -8,13 +8,26 @@ import { validateGitHubRepositoryPart } from './github-issue'
 export const GitHubPullRequestTitleMaximumLength = 256
 export const GitHubPullRequestBodyMaximumLength = 65536
 export const GitHubPullRequestBranchMaximumLength = 255
+export const GitHubPullRequestMetadataMaximumItems = 15
+export const GitHubPullRequestLabelMaximumLength = 50
 
 export interface IGitHubPullRequestDraft {
   readonly title: string
   readonly body: string
   readonly head: string
+  readonly headRepository: IGitHubPullRequestHeadRepository
   readonly base: string
   readonly draft: boolean
+}
+
+/**
+ * The exact source repository reviewed for a pull request. `name` maps to the
+ * REST API's optional `head_repo` field and is populated only when GitHub
+ * requires it for a cross-repository pull request owned by the same account.
+ */
+export interface IGitHubPullRequestHeadRepository {
+  readonly name: string | null
+  readonly fullName: string
 }
 
 export interface IAPICreatedGitHubPullRequest {
@@ -27,6 +40,9 @@ export interface IAPICreatedGitHubPullRequest {
   readonly head?: {
     readonly ref?: string
     readonly label?: string
+    readonly repo?: {
+      readonly full_name?: string
+    }
   }
   readonly base?: {
     readonly ref?: string
@@ -38,6 +54,94 @@ export interface ICreatedGitHubPullRequest {
   readonly title: string
   readonly url: string
   readonly draft: boolean
+  /** Bounded, provider-response-free notices for metadata that was not applied. */
+  readonly metadataWarnings?: ReadonlyArray<string>
+}
+
+export interface IGitHubPullRequestMetadata {
+  readonly reviewers: ReadonlyArray<string>
+  readonly assignees: ReadonlyArray<string>
+  readonly labels: ReadonlyArray<string>
+}
+
+export const EmptyGitHubPullRequestMetadata: IGitHubPullRequestMetadata = {
+  reviewers: [],
+  assignees: [],
+  labels: [],
+}
+
+export interface IAPIGitHubPullRequestLifecycle {
+  readonly number: number
+  readonly title: string
+  readonly body: string | null
+  readonly html_url: string
+  readonly state: 'open' | 'closed'
+  readonly draft: boolean
+  readonly merged: boolean
+  readonly mergeable: boolean | null
+  readonly mergeable_state: string
+  readonly head: {
+    readonly ref: string
+    readonly sha: string
+    readonly repo: { readonly full_name: string } | null
+  }
+  readonly base: { readonly ref: string }
+  readonly requested_reviewers?: ReadonlyArray<{ readonly login: string }>
+  readonly assignees?: ReadonlyArray<{ readonly login: string }>
+  readonly labels?: ReadonlyArray<{ readonly name: string }>
+}
+
+export interface IGitHubPullRequestLifecycle {
+  readonly number: number
+  readonly title: string
+  readonly body: string
+  readonly url: string
+  readonly state: 'open' | 'closed'
+  readonly draft: boolean
+  readonly merged: boolean
+  readonly mergeable: boolean | null
+  readonly mergeableState: string
+  readonly headRef: string
+  readonly headSHA: string
+  readonly headRepository: string
+  readonly base: string
+  readonly metadata: IGitHubPullRequestMetadata
+}
+
+export interface IGitHubPullRequestUpdate {
+  readonly title: string
+  readonly body: string
+  readonly base: string
+  readonly metadata: IGitHubPullRequestMetadata
+}
+
+export type GitHubPullRequestReviewEvent =
+  | 'APPROVE'
+  | 'REQUEST_CHANGES'
+  | 'COMMENT'
+
+export interface IGitHubPullRequestReview {
+  readonly event: GitHubPullRequestReviewEvent
+  readonly body: string
+}
+
+export type GitHubPullRequestMergeMethod = 'merge' | 'squash' | 'rebase'
+
+export interface IGitHubPullRequestMutationReceipt {
+  readonly pullRequest: IGitHubPullRequestLifecycle
+  readonly warnings: ReadonlyArray<string>
+}
+
+export interface IGitHubPullRequestReviewReceipt {
+  readonly id: number
+  readonly state: 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED'
+  readonly url: string
+}
+
+export interface IGitHubPullRequestMergeReceipt {
+  readonly merged: true
+  readonly sha: string
+  readonly message: string
 }
 
 export interface IGitHubPullRequestTarget {
@@ -227,16 +331,65 @@ export function validateGitHubPullRequestHead(value: string): string {
   return value
 }
 
-/** Normalize the exact fields exposed by the guided native PR creator. */
-export function normalizeGitHubPullRequestDraft(
-  title: string,
-  body: string,
-  head: string,
-  base: string,
-  draft: boolean
-): IGitHubPullRequestDraft {
-  const normalizedTitle = title.trim()
+/** Derive the exact reviewed source repository and optional REST `head_repo`. */
+export function getGitHubPullRequestHeadRepository(
+  source: GitHubRepository,
+  target: GitHubRepository
+): IGitHubPullRequestHeadRepository {
+  const sourceOwner = validateGitHubRepositoryPart(source.owner.login, 'owner')
+  const sourceName = validateGitHubRepositoryPart(source.name, 'repository')
+  const targetOwner = validateGitHubRepositoryPart(target.owner.login, 'owner')
+  validateGitHubRepositoryPart(target.name, 'repository')
 
+  return {
+    name:
+      source.hash !== target.hash &&
+      sourceOwner.toLowerCase() === targetOwner.toLowerCase()
+        ? sourceName
+        : null,
+    fullName: `${sourceOwner}/${sourceName}`,
+  }
+}
+
+function normalizeGitHubPullRequestHeadRepository(
+  head: string,
+  value: IGitHubPullRequestHeadRepository
+): IGitHubPullRequestHeadRepository {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    typeof value.fullName !== 'string' ||
+    (value.name !== null && typeof value.name !== 'string')
+  ) {
+    throw new Error('The pull request head repository is not valid.')
+  }
+
+  const parts = value.fullName.split('/')
+  if (parts.length !== 2) {
+    throw new Error('The pull request head repository is not valid.')
+  }
+
+  const owner = validateGitHubRepositoryPart(parts[0], 'owner')
+  const repository = validateGitHubRepositoryPart(parts[1], 'repository')
+  const name =
+    value.name === null
+      ? null
+      : validateGitHubRepositoryPart(value.name, 'repository')
+  const separator = head.indexOf(':')
+  if (
+    (separator !== -1 &&
+      head.slice(0, separator).toLowerCase() !== owner.toLowerCase()) ||
+    (name !== null &&
+      (separator === -1 || name.toLowerCase() !== repository.toLowerCase()))
+  ) {
+    throw new Error('The pull request head repository is not valid.')
+  }
+
+  return { name, fullName: `${owner}/${repository}` }
+}
+
+function normalizeGitHubPullRequestTitleAndBody(title: string, body: string) {
+  const normalizedTitle = title.trim()
   if (normalizedTitle.length === 0) {
     throw new Error('Enter a pull request title.')
   }
@@ -250,20 +403,168 @@ export function normalizeGitHubPullRequestDraft(
       `Pull request descriptions must be ${GitHubPullRequestBodyMaximumLength} characters or fewer.`
     )
   }
+  return { title: normalizedTitle, body }
+}
+
+/** Normalize the exact fields exposed by the guided native PR creator. */
+export function normalizeGitHubPullRequestDraft(
+  title: string,
+  body: string,
+  head: string,
+  base: string,
+  draft: boolean,
+  headRepository?: IGitHubPullRequestHeadRepository
+): IGitHubPullRequestDraft {
+  const normalized = normalizeGitHubPullRequestTitleAndBody(title, body)
 
   const safeHead = validateGitHubPullRequestHead(head)
+  const safeHeadRepository =
+    headRepository === undefined
+      ? undefined
+      : normalizeGitHubPullRequestHeadRepository(safeHead, headRepository)
   const safeBase = validateGitHubPullRequestBranch(base, 'base')
   if (!safeHead.includes(':') && safeHead === safeBase) {
     throw new Error('Choose a base branch different from the head branch.')
   }
 
   return {
-    title: normalizedTitle,
-    body,
+    title: normalized.title,
+    body: normalized.body,
     head: safeHead,
     base: safeBase,
     draft,
+    ...(safeHeadRepository === undefined
+      ? {}
+      : { headRepository: safeHeadRepository }),
+  } as IGitHubPullRequestDraft
+}
+
+function normalizeGitHubLogin(value: string): string {
+  const login = value.trim()
+  const withoutBotSuffix = login.endsWith('[bot]') ? login.slice(0, -5) : login
+  if (
+    login.length === 0 ||
+    login.length > 100 ||
+    withoutBotSuffix.length === 0 ||
+    !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(withoutBotSuffix)
+  ) {
+    throw new Error(`“${login || 'blank'}” is not a valid GitHub login.`)
   }
+  return login
+}
+
+function normalizeGitHubLabel(value: string): string {
+  const label = value.trim()
+  if (
+    label.length === 0 ||
+    label.length > GitHubPullRequestLabelMaximumLength ||
+    /[\u0000-\u001f\u007f]/.test(label)
+  ) {
+    throw new Error(
+      `Pull request labels must be 1–${GitHubPullRequestLabelMaximumLength} printable characters.`
+    )
+  }
+  return label
+}
+
+function normalizeGitHubPullRequestMetadataList(
+  values: ReadonlyArray<string>,
+  kind: 'reviewer' | 'assignee' | 'label'
+): ReadonlyArray<string> {
+  if (
+    !Array.isArray(values) ||
+    values.length > GitHubPullRequestMetadataMaximumItems
+  ) {
+    throw new Error(
+      `Choose no more than ${GitHubPullRequestMetadataMaximumItems} ${kind}s.`
+    )
+  }
+
+  const normalize =
+    kind === 'label' ? normalizeGitHubLabel : normalizeGitHubLogin
+  const unique = new Map<string, string>()
+  for (const value of values) {
+    if (typeof value !== 'string') {
+      throw new Error(`The pull request ${kind} list is not valid.`)
+    }
+    const normalized = normalize(value)
+    unique.set(normalized.toLowerCase(), normalized)
+  }
+  return [...unique.values()]
+}
+
+/** Normalize bounded, exact metadata lists before review or transport. */
+export function normalizeGitHubPullRequestMetadata(
+  reviewers: ReadonlyArray<string>,
+  assignees: ReadonlyArray<string>,
+  labels: ReadonlyArray<string>
+): IGitHubPullRequestMetadata {
+  return {
+    reviewers: normalizeGitHubPullRequestMetadataList(reviewers, 'reviewer'),
+    assignees: normalizeGitHubPullRequestMetadataList(assignees, 'assignee'),
+    labels: normalizeGitHubPullRequestMetadataList(labels, 'label'),
+  }
+}
+
+/** Parse a comma-separated purpose-built metadata field without hidden syntax. */
+export function parseGitHubPullRequestMetadataField(
+  value: string
+): ReadonlyArray<string> {
+  if (value.trim() === '') {
+    return []
+  }
+  return value.split(',').map(part => part.trim())
+}
+
+export function normalizeGitHubPullRequestUpdate(
+  title: string,
+  body: string,
+  base: string,
+  metadata: IGitHubPullRequestMetadata
+): IGitHubPullRequestUpdate {
+  const normalized = normalizeGitHubPullRequestTitleAndBody(title, body)
+  return {
+    title: normalized.title,
+    body: normalized.body,
+    base: validateGitHubPullRequestBranch(base, 'base'),
+    metadata: normalizeGitHubPullRequestMetadata(
+      metadata.reviewers,
+      metadata.assignees,
+      metadata.labels
+    ),
+  }
+}
+
+export function normalizeGitHubPullRequestReview(
+  event: GitHubPullRequestReviewEvent,
+  body: string
+): IGitHubPullRequestReview {
+  if (!['APPROVE', 'REQUEST_CHANGES', 'COMMENT'].includes(event)) {
+    throw new Error('Choose a supported pull request review decision.')
+  }
+  if (body.length > GitHubPullRequestBodyMaximumLength) {
+    throw new Error(
+      `Review comments must be ${GitHubPullRequestBodyMaximumLength} characters or fewer.`
+    )
+  }
+  if (event === 'REQUEST_CHANGES' && body.trim() === '') {
+    throw new Error('Explain the requested changes before submitting.')
+  }
+  return { event, body }
+}
+
+export function validateGitHubPullRequestNumber(value: number): number {
+  if (!Number.isSafeInteger(value) || value <= 0) {
+    throw new Error('The pull request number is not valid.')
+  }
+  return value
+}
+
+export function validateGitHubPullRequestHeadSHA(value: string): string {
+  if (!/^[0-9a-f]{40,64}$/i.test(value)) {
+    throw new Error('The pull request head commit is not valid.')
+  }
+  return value.toLowerCase()
 }
 
 function getExactGitHubRepositoryHTMLURL(
@@ -307,18 +608,45 @@ function getExactGitHubRepositoryHTMLURL(
     : null
 }
 
-function repositoryPath(prefix: string, repository: GitHubRepository): string {
-  return `${prefix}/${encodeURIComponent(
-    repository.owner.login
-  )}/${encodeURIComponent(repository.name)}`.replace(/^\/\//, '/')
-}
-
 function matchesRepositoryPath(
   actualPath: string,
-  expectedPath: string
+  providerPrefix: string,
+  repository: GitHubRepository
 ): boolean {
-  const normalized = actualPath.replace(/\/$/, '')
-  return normalized === expectedPath || normalized === `${expectedPath}.git`
+  const normalizedPrefix = providerPrefix.replace(/\/+$/, '')
+  const requiredPrefix = normalizedPrefix === '' ? '/' : `${normalizedPrefix}/`
+  const normalizedPath = actualPath.replace(/\/$/, '')
+  if (!normalizedPath.startsWith(requiredPrefix)) {
+    return false
+  }
+
+  const parts = normalizedPath.slice(requiredPrefix.length).split('/')
+  if (parts.length !== 2) {
+    return false
+  }
+
+  const repositoryPart = parts[1].endsWith('.git')
+    ? parts[1].slice(0, -4)
+    : parts[1]
+  return (
+    parts[0].toLowerCase() ===
+      encodeURIComponent(repository.owner.login).toLowerCase() &&
+    repositoryPart.toLowerCase() ===
+      encodeURIComponent(repository.name).toLowerCase()
+  )
+}
+
+function isGitHubDotComProvider(providerURL: URL): boolean {
+  return (
+    providerURL.protocol === 'https:' &&
+    providerURL.hostname.toLowerCase() === 'github.com' &&
+    (providerURL.port === '' || providerURL.port === '443') &&
+    providerURL.pathname.replace(/\/+$/, '') === '' &&
+    providerURL.username === '' &&
+    providerURL.password === '' &&
+    providerURL.search === '' &&
+    providerURL.hash === ''
+  )
 }
 
 /**
@@ -357,28 +685,34 @@ function isExactGitHubRepositoryRemoteURL(
     if (['http:', 'https:'].includes(remoteURL.protocol)) {
       return (
         remoteURL.origin === providerURL.origin &&
-        remoteURL.search === '' &&
-        remoteURL.hash === '' &&
-        matchesRepositoryPath(
-          remoteURL.pathname,
-          repositoryPath(providerURL.pathname.replace(/\/+$/, ''), repository)
-        )
-      )
-    }
-
-    if (remoteURL.protocol === 'ssh:') {
-      return (
-        remoteURL.hostname.toLowerCase() ===
-          providerURL.hostname.toLowerCase() &&
-        (remoteURL.port === '' || remoteURL.port === '22') &&
-        remoteURL.username === 'git' &&
+        remoteURL.username === '' &&
         remoteURL.password === '' &&
         remoteURL.search === '' &&
         remoteURL.hash === '' &&
         matchesRepositoryPath(
           remoteURL.pathname,
-          repositoryPath('', repository)
+          providerURL.pathname,
+          repository
         )
+      )
+    }
+
+    if (remoteURL.protocol === 'ssh:') {
+      const usesProviderSSH =
+        remoteURL.hostname.toLowerCase() ===
+          providerURL.hostname.toLowerCase() &&
+        (remoteURL.port === '' || remoteURL.port === '22')
+      const usesGitHubDotComSSHOverHTTPS =
+        isGitHubDotComProvider(providerURL) &&
+        remoteURL.hostname.toLowerCase() === 'ssh.github.com' &&
+        remoteURL.port === '443'
+      return (
+        (usesProviderSSH || usesGitHubDotComSSHOverHTTPS) &&
+        remoteURL.username === 'git' &&
+        remoteURL.password === '' &&
+        remoteURL.search === '' &&
+        remoteURL.hash === '' &&
+        matchesRepositoryPath(remoteURL.pathname, '', repository)
       )
     }
 
@@ -442,6 +776,35 @@ export function getGitHubPullRequestHead(
         source.owner.login,
         'owner'
       )}:${safeBranch}`
+}
+
+/** Recompute the reviewed head routing at the dispatcher trust boundary. */
+export function validateGitHubPullRequestDraftRouting(
+  source: GitHubRepository,
+  target: GitHubRepository,
+  branch: Branch,
+  sourceRemote: IRemote | null,
+  providerHTMLURL: string,
+  draft: IGitHubPullRequestDraft
+): void {
+  const expectedHead = getGitHubPullRequestHead(
+    source,
+    target,
+    branch,
+    sourceRemote,
+    providerHTMLURL
+  )
+  const expectedRepository = getGitHubPullRequestHeadRepository(source, target)
+  const reviewedRepository = draft.headRepository
+  if (
+    draft.head !== expectedHead ||
+    reviewedRepository === undefined ||
+    reviewedRepository === null ||
+    reviewedRepository.name !== expectedRepository.name ||
+    reviewedRepository.fullName !== expectedRepository.fullName
+  ) {
+    throw new GitHubPullRequestContextChangedError()
+  }
 }
 
 /** Build a provider-scoped browser fallback URL without including draft text. */
@@ -593,6 +956,9 @@ export function validateCreatedGitHubPullRequest(
       pullRequest.draft !== reviewedDraft.draft ||
       pullRequest.head?.ref !== reviewedHeadRef ||
       pullRequest.head?.label !== expectedHeadLabel ||
+      (reviewedDraft.headRepository !== undefined &&
+        pullRequest.head?.repo?.full_name?.toLowerCase() !==
+          reviewedDraft.headRepository.fullName.toLowerCase()) ||
       pullRequest.base?.ref !== reviewedDraft.base
     ) {
       throw new Error(
@@ -606,6 +972,181 @@ export function validateCreatedGitHubPullRequest(
     title: pullRequest.title,
     url: expected.toString(),
     draft: pullRequest.draft,
+  }
+}
+
+function getValidatedGitHubPullRequestURL(
+  value: string,
+  owner: string,
+  repository: string,
+  pullRequestNumber: number,
+  providerHTMLURL: string
+): string {
+  const safeOwner = validateGitHubRepositoryPart(owner, 'owner')
+  const safeRepository = validateGitHubRepositoryPart(repository, 'repository')
+  const safeNumber = validateGitHubPullRequestNumber(pullRequestNumber)
+  let provider: URL
+  let supplied: URL
+  try {
+    provider = new URL(providerHTMLURL)
+    supplied = new URL(value)
+  } catch {
+    throw new Error('GitHub returned an invalid pull request URL.')
+  }
+  if (
+    !['http:', 'https:'].includes(provider.protocol) ||
+    supplied.origin !== provider.origin ||
+    supplied.username !== '' ||
+    supplied.password !== '' ||
+    supplied.search !== '' ||
+    supplied.hash !== ''
+  ) {
+    throw new Error('GitHub returned an unexpected pull request URL.')
+  }
+  const expected = new URL(
+    `${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeRepository
+    )}/pull/${safeNumber}`,
+    `${provider.toString().replace(/\/$/, '')}/`
+  )
+  if (supplied.pathname !== expected.pathname) {
+    throw new Error('GitHub returned an unexpected pull request URL.')
+  }
+  return expected.toString()
+}
+
+/** Validate and bound one lifecycle response before it enters UI state. */
+export function validateGitHubPullRequestLifecycle(
+  value: unknown,
+  owner: string,
+  repository: string,
+  pullRequestNumber: number,
+  providerHTMLURL: string
+): IGitHubPullRequestLifecycle {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('GitHub returned an invalid pull request result.')
+  }
+  const pullRequest = value as IAPIGitHubPullRequestLifecycle
+  const safeNumber = validateGitHubPullRequestNumber(pullRequestNumber)
+  if (
+    pullRequest.number !== safeNumber ||
+    typeof pullRequest.title !== 'string' ||
+    pullRequest.title.length === 0 ||
+    pullRequest.title.length > GitHubPullRequestTitleMaximumLength ||
+    !['open', 'closed'].includes(pullRequest.state) ||
+    typeof pullRequest.draft !== 'boolean' ||
+    typeof pullRequest.merged !== 'boolean' ||
+    ![true, false, null].includes(pullRequest.mergeable) ||
+    typeof pullRequest.mergeable_state !== 'string' ||
+    pullRequest.mergeable_state.length === 0 ||
+    pullRequest.mergeable_state.length > 64 ||
+    /[\u0000-\u001f\u007f]/.test(pullRequest.mergeable_state) ||
+    (typeof pullRequest.body !== 'string' && pullRequest.body !== null) ||
+    (pullRequest.body?.length ?? 0) > GitHubPullRequestBodyMaximumLength ||
+    typeof pullRequest.head !== 'object' ||
+    pullRequest.head === null ||
+    typeof pullRequest.head.ref !== 'string' ||
+    typeof pullRequest.head.sha !== 'string' ||
+    pullRequest.head.repo === null ||
+    typeof pullRequest.head.repo?.full_name !== 'string' ||
+    typeof pullRequest.base !== 'object' ||
+    pullRequest.base === null ||
+    typeof pullRequest.base.ref !== 'string'
+  ) {
+    throw new Error('GitHub returned an invalid pull request result.')
+  }
+
+  const headParts = pullRequest.head.repo.full_name.split('/')
+  if (headParts.length !== 2) {
+    throw new Error('GitHub returned an invalid pull request repository.')
+  }
+  const headOwner = validateGitHubRepositoryPart(headParts[0], 'owner')
+  const headName = validateGitHubRepositoryPart(headParts[1], 'repository')
+  const metadata = normalizeGitHubPullRequestMetadata(
+    (pullRequest.requested_reviewers ?? []).map(reviewer => reviewer.login),
+    (pullRequest.assignees ?? []).map(assignee => assignee.login),
+    (pullRequest.labels ?? []).map(label => label.name)
+  )
+
+  return {
+    number: safeNumber,
+    title: pullRequest.title,
+    body: pullRequest.body ?? '',
+    url: getValidatedGitHubPullRequestURL(
+      pullRequest.html_url,
+      owner,
+      repository,
+      safeNumber,
+      providerHTMLURL
+    ),
+    state: pullRequest.state,
+    draft: pullRequest.draft,
+    merged: pullRequest.merged,
+    mergeable: pullRequest.mergeable,
+    mergeableState: pullRequest.mergeable_state,
+    headRef: validateGitHubPullRequestBranch(pullRequest.head.ref, 'head'),
+    headSHA: validateGitHubPullRequestHeadSHA(pullRequest.head.sha),
+    headRepository: `${headOwner}/${headName}`,
+    base: validateGitHubPullRequestBranch(pullRequest.base.ref, 'base'),
+    metadata,
+  }
+}
+
+export function validateGitHubPullRequestReviewReceipt(
+  value: unknown,
+  owner: string,
+  repository: string,
+  pullRequestNumber: number,
+  providerHTMLURL: string
+): IGitHubPullRequestReviewReceipt {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('GitHub returned an invalid pull request review result.')
+  }
+  const review = value as {
+    readonly id?: unknown
+    readonly state?: unknown
+  }
+  if (
+    !Number.isSafeInteger(review.id) ||
+    (review.id as number) <= 0 ||
+    typeof review.state !== 'string' ||
+    !['APPROVED', 'CHANGES_REQUESTED', 'COMMENTED'].includes(review.state)
+  ) {
+    throw new Error('GitHub returned an invalid pull request review result.')
+  }
+  const url = getValidatedGitHubPullRequestURL(
+    new URL(
+      `${encodeURIComponent(owner)}/${encodeURIComponent(
+        repository
+      )}/pull/${validateGitHubPullRequestNumber(pullRequestNumber)}`,
+      `${providerHTMLURL.replace(/\/$/, '')}/`
+    ).toString(),
+    owner,
+    repository,
+    pullRequestNumber,
+    providerHTMLURL
+  )
+  return {
+    id: review.id as number,
+    state: review.state as IGitHubPullRequestReviewReceipt['state'],
+    url,
+  }
+}
+
+export function validateGitHubPullRequestMergeReceipt(
+  value: unknown
+): IGitHubPullRequestMergeReceipt {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    throw new Error('GitHub returned an invalid pull request merge result.')
+  }
+  const result = value as { readonly merged?: unknown; readonly sha?: unknown }
+  if (result.merged !== true || typeof result.sha !== 'string') {
+    throw new Error('GitHub did not confirm that the pull request was merged.')
+  }
+  return {
+    merged: true,
+    sha: validateGitHubPullRequestHeadSHA(result.sha),
+    message: 'Pull request merged.',
   }
 }
 
@@ -684,6 +1225,37 @@ export function getGitHubPullRequestCreationError(
     message:
       'Desktop could not create the pull request. Check GitHub before retrying.',
   }
+}
+
+/** Convert lifecycle transport failures to bounded UI copy. */
+export function getGitHubPullRequestLifecycleError(
+  error: unknown,
+  action: 'load' | 'update' | 'review' | 'merge'
+): string {
+  if (error instanceof GitHubPullRequestContextChangedError) {
+    return 'The pull request changed after it was reviewed. Refresh it before continuing.'
+  }
+  if (error instanceof APIError) {
+    if (error.responseStatus === 401) {
+      return 'GitHub could not authenticate this account. Sign in again, then retry.'
+    }
+    if (error.responseStatus === 403) {
+      return `GitHub denied this pull request ${action}. Check the selected account’s access.`
+    }
+    if (error.responseStatus === 404) {
+      return 'GitHub could not find this pull request for the selected account.'
+    }
+    if (error.responseStatus === 409 || error.responseStatus === 422) {
+      return `GitHub could not ${action} this pull request in its current state. Refresh it before retrying.`
+    }
+    if (error.responseStatus === 429) {
+      return 'GitHub is temporarily limiting pull request requests. Try again later.'
+    }
+  }
+  if (error instanceof TypeError) {
+    return 'Desktop could not reach GitHub. Check your connection and try again.'
+  }
+  return `Desktop could not ${action} this pull request. Refresh it before retrying.`
 }
 
 export function isGitHubPullRequestAbortError(error: unknown): boolean {

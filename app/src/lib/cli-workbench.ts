@@ -11,6 +11,14 @@ export type RepositoryToolOperationID =
 
 export type RepositoryArchiveFormat = 'zip' | 'tar'
 
+export type GuidedPatchSessionOperation = 'continue' | 'skip' | 'abort'
+export type GuidedBisectInspectionOperation =
+  | 'state'
+  | 'head'
+  | 'worktree'
+  | 'remaining'
+export type GuidedBisectVerdict = 'good' | 'bad' | 'skip'
+
 /**
  * The renderer may request only named operations with bounded fields. It
  * never supplies an executable, argv, refspec, or Git global option.
@@ -55,6 +63,117 @@ export type CLIWorkbenchOperation =
       readonly deepenBy: number
     }
   | { readonly id: 'history-unshallow'; readonly remote: string }
+
+// Compatibility contracts for the older guided Repository Tools surfaces.
+// The main-process runner above still accepts only CLIWorkbenchOperation; these
+// types keep the already-shipped signed/LFS/patch-series UI contracts explicit
+// while those surfaces finish their migration to named operations.
+export type RepositorySigningScope = 'local' | 'global'
+export type RepositorySigningFormat = 'openpgp' | 'ssh' | 'x509'
+
+export type RepositorySigningUpdate =
+  | {
+      readonly operation: 'set-format'
+      readonly format: RepositorySigningFormat
+    }
+  | {
+      readonly operation: 'set-key'
+      readonly format: RepositorySigningFormat
+      readonly key: string
+    }
+  | {
+      readonly operation: 'set-commit-signing' | 'set-tag-signing'
+      readonly enabled: boolean
+    }
+
+export type RepositoryLFSInspectionOperation =
+  | 'version'
+  | 'patterns'
+  | 'status'
+  | 'prune-preview'
+
+export type RepositoryLFSOperation =
+  | 'install'
+  | 'uninstall'
+  | 'fetch'
+  | 'pull'
+  | 'prune'
+
+export type CLICommandRecipe =
+  | {
+      readonly kind: 'repository-signing-inspection'
+      readonly scope: RepositorySigningScope
+      readonly operation: 'settings' | 'key-presence'
+    }
+  | ({
+      readonly kind: 'repository-signing-update'
+      readonly scope: RepositorySigningScope
+    } & RepositorySigningUpdate)
+  | {
+      readonly kind: 'repository-signing-list-tags'
+    }
+  | {
+      readonly kind: 'repository-signing-verify'
+      readonly target: 'head' | 'tag'
+      readonly tagName: string | null
+      readonly expectedObject: string | null
+    }
+  | {
+      readonly kind: 'repository-lfs-inspection'
+      readonly operation: RepositoryLFSInspectionOperation
+    }
+  | {
+      readonly kind: 'repository-lfs-pattern'
+      readonly operation: 'track' | 'untrack'
+      readonly pattern: string
+    }
+  | {
+      readonly kind: 'repository-lfs-operation'
+      readonly operation: RepositoryLFSOperation
+    }
+  | {
+      readonly kind: 'repository-patch-export'
+      readonly destination: string
+    }
+  | {
+      readonly kind: 'repository-patch-import'
+      readonly patchPaths: ReadonlyArray<string>
+    }
+  | {
+      readonly kind: 'repository-patch-session'
+      readonly operation: GuidedPatchSessionOperation
+    }
+  | {
+      readonly kind: 'repository-bisect-inspection'
+      readonly operation: GuidedBisectInspectionOperation
+    }
+  | {
+      readonly kind: 'repository-bisect-resolve'
+      readonly revision: string
+    }
+  | {
+      readonly kind: 'repository-bisect-range'
+      readonly goodOid: string
+      readonly badOid: string
+    }
+  | {
+      readonly kind: 'repository-bisect-start'
+      readonly goodOid: string
+      readonly badOid: string
+    }
+  | {
+      readonly kind: 'repository-bisect-mark'
+      readonly verdict: GuidedBisectVerdict
+      readonly expectedHead: string
+    }
+  | { readonly kind: 'repository-bisect-reset' }
+
+export interface ICLICommandRequest {
+  readonly id: string
+  readonly repositoryPath: string
+  readonly recipe: CLICommandRecipe
+  readonly confirmed: boolean
+}
 
 export interface ICLIWorkbenchOperationRequest {
   readonly id: string

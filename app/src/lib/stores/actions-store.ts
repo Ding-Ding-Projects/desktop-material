@@ -13,6 +13,7 @@ import {
 import {
   supportsActions,
   supportsArtifactAttestationVerification,
+  supportsRepoRules,
 } from '../endpoint-capabilities'
 import { APIError } from '../http'
 import {
@@ -20,7 +21,12 @@ import {
   IActionsArtifactList,
   isSupportedActionsArtifactDigest,
 } from '../actions-artifacts'
-import { IActionsArtifactDownloadProgress } from '../actions-artifact-download'
+import {
+  IActionsArtifactDownloadProgress,
+} from '../actions-artifact-download'
+import {
+  IActionsBranchRuleList,
+} from '../actions-branch-rules'
 import {
   downloadActionsArtifactThroughMainProcess,
   fetchActionsJobLogThroughMainProcess,
@@ -87,6 +93,77 @@ export type ActionsArtifactOperation =
   | 'verification-bundles'
   | 'provenance-metadata'
   | 'download'
+
+export type ActionsBranchRulesErrorKind =
+  | 'authentication'
+  | 'permission'
+  | 'not-found'
+  | 'unsupported'
+  | 'rate-limit'
+  | 'service'
+  | 'invalid-response'
+
+export class ActionsBranchRulesError extends Error {
+  public constructor(
+    public readonly kind: ActionsBranchRulesErrorKind,
+    message: string,
+    public readonly responseStatus: number | null = null
+  ) {
+    super(message)
+    this.name = 'ActionsBranchRulesError'
+  }
+}
+
+export function actionsBranchRulesError(error: unknown): Error {
+  if (error instanceof ActionsBranchRulesError) {
+    return error
+  }
+  if (!(error instanceof APIError)) {
+    return error instanceof Error ? error : new Error(String(error))
+  }
+  if (error.responseStatus === 401) {
+    return new ActionsBranchRulesError(
+      'authentication',
+      'GitHub could not load branch rules. Sign in again and retry.',
+      error.responseStatus
+    )
+  }
+  if (error.responseStatus === 403) {
+    if (/upgrade|not supported|unavailable/i.test(error.message)) {
+      return new ActionsBranchRulesError(
+        'unsupported',
+        'Effective branch rules are not supported by the selected provider.',
+        error.responseStatus
+      )
+    }
+    return new ActionsBranchRulesError(
+      error.rateLimitReset === null ? 'permission' : 'rate-limit',
+      error.rateLimitReset === null
+        ? 'GitHub denied branch-rule access for the selected account.'
+        : `GitHub cannot load branch rules until the API rate limit resets at ${error.rateLimitReset.toLocaleTimeString()}.`,
+      error.responseStatus
+    )
+  }
+  if (error.responseStatus === 404) {
+    return new ActionsBranchRulesError(
+      'not-found',
+      'GitHub could not find branch rules for this repository.',
+      error.responseStatus
+    )
+  }
+  if (error.responseStatus >= 500) {
+    return new ActionsBranchRulesError(
+      'service',
+      `GitHub could not load branch rules because the service returned an error (${error.responseStatus}).`,
+      error.responseStatus
+    )
+  }
+  return new ActionsBranchRulesError(
+    'invalid-response',
+    'GitHub returned an invalid branch-rule response.',
+    error.responseStatus
+  )
+}
 
 /** Renderer-safe identity captured from the repository-selected account. */
 export interface IActionsArtifactProvenanceSelectedAccount {
@@ -405,6 +482,12 @@ function actionsAccountsEqual(
   )
 }
 
+function canceledAccountRequest(): Error {
+  const error = new Error('The selected GitHub account changed.')
+  error.name = 'AbortError'
+  return error
+}
+
 /** Compare the API fields used by the run list before notifying subscribers. */
 export function workflowRunsEqual(
   left: ReadonlyArray<IAPIWorkflowRun>,
@@ -577,6 +660,7 @@ export class ActionsStore {
   private readonly inFlight = new Map<string, Promise<void>>()
   private readonly runPageInFlight = new Map<string, Promise<void>>()
   private readonly runPageControllers = new Map<string, AbortController>()
+  private readonly activeAccountControllers = new Set<AbortController>()
   private readonly refreshGenerations = new Map<string, number>()
   private readonly runFilters = new Map<string, ActionsRunFilter>()
   /** One renderer may retain only one provenance review/download at a time. */
@@ -612,6 +696,10 @@ export class ActionsStore {
       )
     }
     this.disposeArtifactProvenanceReview()
+    for (const controller of this.activeAccountControllers) {
+      controller.abort()
+    }
+    this.activeAccountControllers.clear()
     for (const controller of this.runPageControllers.values()) {
       controller.abort()
     }
@@ -781,6 +869,38 @@ export class ActionsStore {
   private apiFor(repository: Repository): API {
     const account = this.accountFor(repository)
     return API.fromAccount(account)
+  }
+
+  private async runAccountBound<T>(
+    signal: AbortSignal | undefined,
+    work: (signal: AbortSignal) => Promise<T>,
+    completedResultIsAuthoritative: boolean = false
+  ): Promise<T> {
+    const accountsGeneration = this.accountsGeneration
+    const controller = new AbortController()
+    const cancel = () => controller.abort()
+    signal?.addEventListener('abort', cancel, { once: true })
+    this.activeAccountControllers.add(controller)
+    try {
+      if (signal?.aborted) {
+        controller.abort()
+      }
+      if (controller.signal.aborted) {
+        throw canceledAccountRequest()
+      }
+      const result = await work(controller.signal)
+      if (
+        !completedResultIsAuthoritative &&
+        (controller.signal.aborted ||
+          accountsGeneration !== this.accountsGeneration)
+      ) {
+        throw canceledAccountRequest()
+      }
+      return result
+    } finally {
+      signal?.removeEventListener('abort', cancel)
+      this.activeAccountControllers.delete(controller)
+    }
   }
 
   private async mutate(
@@ -1116,19 +1236,6 @@ export class ActionsStore {
     await this.refresh(repository, true)
   }
 
-  public async fetchJobs(
-    repository: Repository,
-    runId: number
-  ): Promise<ReadonlyArray<IAPIWorkflowJob>> {
-    const gitHubRepository = this.gitHubFor(repository)
-    const result = await this.apiFor(repository).fetchWorkflowRunJobs(
-      gitHubRepository.owner.login,
-      gitHubRepository.name,
-      runId
-    )
-    return result?.jobs ?? []
-  }
-
   public async fetchJobPage(
     repository: Repository,
     runId: number,
@@ -1220,38 +1327,6 @@ export class ActionsStore {
         gitHubRepository.owner.login,
         gitHubRepository.name,
         runId
-      )
-    )
-    await this.refresh(repository, true)
-  }
-
-  public fetchJobLogs(
-    repository: Repository,
-    jobId: number,
-    signal?: AbortSignal
-  ) {
-    const gitHubRepository = this.gitHubFor(repository)
-    return fetchActionsJobLogThroughMainProcess(
-      this.accountFor(repository),
-      gitHubRepository,
-      jobId,
-      signal
-    )
-    await this.refresh(repository, true)
-  }
-
-  public async setWorkflowEnabled(
-    repository: Repository,
-    workflowId: number,
-    enabled: boolean
-  ) {
-    const gitHubRepository = this.gitHubFor(repository)
-    await this.mutate(enabled ? 'enable-workflow' : 'disable-workflow', () =>
-      this.apiFor(repository).setWorkflowEnabled(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        workflowId,
-        enabled
       )
     )
     await this.refresh(repository, true)
@@ -1364,7 +1439,7 @@ export class ActionsStore {
     destination: string,
     signal: AbortSignal,
     onProgress?: (progress: IActionsArtifactDownloadProgress) => void
-  ): Promise<IActionsArtifactDownloadResult> {
+  ): Promise<IActionsArtifactTransferSuccess> {
     try {
       return await this.runAccountBound(
         signal,
@@ -1383,44 +1458,6 @@ export class ActionsStore {
       )
     } catch (error) {
       throw actionsArtifactError(error, 'download')
-    }
-  }
-
-  public async fetchArtifacts(
-    repository: Repository,
-    runId: number,
-    page: number = 1,
-    signal?: AbortSignal
-  ): Promise<IActionsArtifactList> {
-    try {
-      const gitHubRepository = this.gitHubFor(repository)
-      return await this.apiFor(repository).fetchWorkflowRunArtifacts(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        runId,
-        page,
-        signal
-      )
-    } catch (error) {
-      throw actionsArtifactError(error, 'list')
-    }
-  }
-
-  public async fetchArtifactAttestationPresence(
-    repository: Repository,
-    digest: string,
-    signal?: AbortSignal
-  ): Promise<boolean> {
-    try {
-      const gitHubRepository = this.gitHubFor(repository)
-      return await this.apiFor(repository).fetchArtifactAttestationPresence(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        digest,
-        signal
-      )
-    } catch (error) {
-      throw actionsArtifactError(error, 'attestations')
     }
   }
 
@@ -2085,28 +2122,6 @@ export class ActionsStore {
           kind: candidate.kind,
         })
       ),
-    }
-  }
-
-  public async downloadArtifact(
-    repository: Repository,
-    artifact: IActionsArtifact,
-    destination: string,
-    signal: AbortSignal,
-    onProgress?: (progress: IActionsArtifactDownloadProgress) => void
-  ): Promise<IActionsArtifactTransferSuccess> {
-    try {
-      const gitHubRepository = this.gitHubFor(repository)
-      return await downloadActionsArtifactThroughMainProcess(
-        this.accountFor(repository),
-        gitHubRepository,
-        artifact,
-        destination,
-        signal,
-        onProgress
-      )
-    } catch (error) {
-      throw actionsArtifactError(error, 'download')
     }
   }
 

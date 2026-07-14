@@ -105,6 +105,7 @@ import {
 } from '../lib/effective-branch-rules-context'
 import { CreateGitHubIssueDialog } from './create-github-issue'
 import { CreateGitHubPullRequestDialog } from './create-github-pull-request'
+import { GitHubPullRequestLifecycleDialog } from './github-pull-request-lifecycle'
 import { getGitHubPullRequestContextVersion } from '../lib/github-pull-request'
 import { NotificationCentrePanel } from './notifications/notification-centre-panel'
 import { MergeAllDialog } from './merge-all'
@@ -2020,6 +2021,18 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.GitHubPullRequestLifecycle:
+        return (
+          <GitHubPullRequestLifecycleDialog
+            key={`github-pull-request-lifecycle-${popup.repository.id}-${popup.pullRequest.pullRequestNumber}`}
+            repository={popup.repository}
+            pullRequest={popup.pullRequest}
+            baseBranchNames={popup.baseBranchNames}
+            accounts={this.state.accounts}
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.BranchRules: {
         const selection = this.state.selectedState
         const isSelectedRepository =
@@ -2117,9 +2130,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           <SparseCheckoutManager
             key={`sparse-checkout-${popup.repository.id}`}
             repository={popup.repository}
-            onRefreshRepository={() =>
-              this.props.dispatcher.refreshRepository(popup.repository)
-            }
+            onRefreshRepository={this.getOnRefreshRepositoryFn(popup.repository)}
             onDismissed={onPopupDismissedFn}
           />
         )

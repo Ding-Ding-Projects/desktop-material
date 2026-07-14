@@ -172,6 +172,12 @@ export const supportsArtifactAttestationVerification = endpointSatisfies({
   es: false,
 })
 
+/** Releases and release assets are available across supported GitHub hosts. */
+export const supportsReleases = endpointSatisfies({
+  dotcom: true,
+  es: '>= 3.1.0',
+})
+
 export const supportsAliveSessions = endpointSatisfies({ dotcom: true })
 
 /**

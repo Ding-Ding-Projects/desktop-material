@@ -39,7 +39,7 @@ type ActionsConfirmation =
 
 interface IActionsViewProps {
   readonly repository: Repository
-  readonly currentBranch: string | null
+  readonly currentBranch?: string | null
   readonly branchNames: ReadonlyArray<string>
   readonly actionsStore: ActionsStore
 }
