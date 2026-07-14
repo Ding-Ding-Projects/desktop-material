@@ -8,6 +8,7 @@ import {
   IActionsArtifactList,
   mergeActionsArtifactPage,
 } from '../../lib/actions-artifacts'
+import { getActionsRunAttempt } from '../../lib/actions-jobs'
 import { IActionsArtifactDownloadProgress } from '../../lib/actions-artifact-download'
 import { releaseActionsArtifactDownloadThroughMainProcess } from '../../lib/actions-artifact-subject-client'
 import { ActionsArtifactProvenanceResult } from '../../lib/actions-artifact-provenance'
@@ -554,10 +555,12 @@ export class RunArtifacts extends React.Component<
 
   private startProvenanceReview = (artifact: IActionsArtifact) => {
     const completed = this.state.completedDownload
+    const runAttempt = getActionsRunAttempt(this.props.run.run_attempt)
     if (
       completed === null ||
       completed.artifactId !== artifact.id ||
-      completed.matchesGitHubDigest !== true
+      completed.matchesGitHubDigest !== true ||
+      runAttempt === null
     ) {
       return
     }
@@ -577,7 +580,7 @@ export class RunArtifacts extends React.Component<
         this.props.repository,
         {
           runId: this.props.run.id,
-          runAttempt: this.props.run.run_attempt,
+          runAttempt,
           artifact,
           download: completed,
         },
@@ -878,18 +881,19 @@ export class RunArtifacts extends React.Component<
               Show in folder
             </Button>
           )}
-          {completed?.matchesGitHubDigest === true && (
-            <Button
-              id={`verify-artifact-${artifact.id}`}
-              size="small"
-              className="button-component-primary"
-              onClick={this.openProvenanceFromButton}
-              disabled={this.state.provenanceOpen}
-              ariaLabel={`Verify provenance: ${artifact.name}`}
-            >
-              Verify provenance
-            </Button>
-          )}
+          {completed?.matchesGitHubDigest === true &&
+            getActionsRunAttempt(this.props.run.run_attempt) !== null && (
+              <Button
+                id={`verify-artifact-${artifact.id}`}
+                size="small"
+                className="button-component-primary"
+                onClick={this.openProvenanceFromButton}
+                disabled={this.state.provenanceOpen}
+                ariaLabel={`Verify provenance: ${artifact.name}`}
+              >
+                Verify provenance
+              </Button>
+            )}
         </div>
 
         {this.state.downloadingArtifactId === artifact.id &&
@@ -936,97 +940,101 @@ export class RunArtifacts extends React.Component<
           className="actions-artifacts"
           aria-labelledby="actions-artifacts-heading"
         >
-        <header className="actions-artifacts-header">
-          <div>
-            <span className="eyebrow">Run outputs</span>
-            <h3 id="actions-artifacts-heading">Artifacts</h3>
-          </div>
-          <Button
-            size="small"
-            onClick={this.loadArtifacts}
-            disabled={
-              this.state.loading ||
-              this.state.loadingMore ||
-              this.state.choosingArtifactId !== null ||
-              this.state.downloadingArtifactId !== null ||
-              this.state.provenanceOpen
-            }
-          >
-            Refresh artifacts
-          </Button>
-        </header>
+          <header className="actions-artifacts-header">
+            <div>
+              <span className="eyebrow">Run outputs</span>
+              <h3 id="actions-artifacts-heading">Artifacts</h3>
+            </div>
+            <Button
+              size="small"
+              onClick={this.loadArtifacts}
+              disabled={
+                this.state.loading ||
+                this.state.loadingMore ||
+                this.state.choosingArtifactId !== null ||
+                this.state.downloadingArtifactId !== null ||
+                this.state.provenanceOpen
+              }
+            >
+              Refresh artifacts
+            </Button>
+          </header>
 
-        {this.state.loading && (
-          <div className="actions-loading" role="status">
-            Loading artifacts…
-          </div>
-        )}
-        {this.state.error && (
-          <div className="actions-inline-error" role="alert">
-            {this.state.error}
-          </div>
-        )}
-        {!this.state.loading &&
-          !this.state.error &&
-          list?.artifacts.length === 0 && (
-            <div className="actions-empty">
-              No artifacts were returned for this workflow run.
+          {this.state.loading && (
+            <div className="actions-loading" role="status">
+              Loading artifacts…
             </div>
           )}
-        {list !== null && list.artifacts.length > 0 && (
-          <div className="actions-artifact-pagination">
-            <span role="status" aria-live="polite" aria-atomic="true">
-              Showing {list.artifacts.length} loaded of {list.totalCount}{' '}
-              artifacts.
-            </span>
-            {list.nextPage !== null && (
-              <Button
-                size="small"
-                onClick={this.loadMoreArtifacts}
-                ariaControls="actions-artifact-grid"
-                disabled={
-                  this.state.loadingMore ||
-                  this.state.loading ||
-                  this.state.choosingArtifactId !== null ||
-                  this.state.downloadingArtifactId !== null
-                }
-              >
-                {this.state.loadingMore
-                  ? 'Loading more…'
-                  : 'Load more artifacts'}
-              </Button>
+          {this.state.error && (
+            <div className="actions-inline-error" role="alert">
+              {this.state.error}
+            </div>
+          )}
+          {!this.state.loading &&
+            !this.state.error &&
+            list?.artifacts.length === 0 && (
+              <div className="actions-empty">
+                No artifacts were returned for this workflow run.
+              </div>
             )}
-            {list.truncated && list.nextPage === null && (
-              <small>
-                {list.page >= ActionsArtifactMaximumPage
-                  ? 'The app reached its artifact browsing safety limit. Refresh to start from the newest artifacts.'
-                  : 'GitHub’s count changed while pages were loading. Refresh to reconcile the list.'}
-              </small>
-            )}
-          </div>
-        )}
-        {this.state.operationError && (
-          <div className="actions-inline-error" role="alert" aria-atomic="true">
-            {this.state.operationError}
-          </div>
-        )}
-        {this.state.operationMessage && (
+          {list !== null && list.artifacts.length > 0 && (
+            <div className="actions-artifact-pagination">
+              <span role="status" aria-live="polite" aria-atomic="true">
+                Showing {list.artifacts.length} loaded of {list.totalCount}{' '}
+                artifacts.
+              </span>
+              {list.nextPage !== null && (
+                <Button
+                  size="small"
+                  onClick={this.loadMoreArtifacts}
+                  ariaControls="actions-artifact-grid"
+                  disabled={
+                    this.state.loadingMore ||
+                    this.state.loading ||
+                    this.state.choosingArtifactId !== null ||
+                    this.state.downloadingArtifactId !== null
+                  }
+                >
+                  {this.state.loadingMore
+                    ? 'Loading more…'
+                    : 'Load more artifacts'}
+                </Button>
+              )}
+              {list.truncated && list.nextPage === null && (
+                <small>
+                  {list.page >= ActionsArtifactMaximumPage
+                    ? 'The app reached its artifact browsing safety limit. Refresh to start from the newest artifacts.'
+                    : 'GitHub’s count changed while pages were loading. Refresh to reconcile the list.'}
+                </small>
+              )}
+            </div>
+          )}
+          {this.state.operationError && (
+            <div
+              className="actions-inline-error"
+              role="alert"
+              aria-atomic="true"
+            >
+              {this.state.operationError}
+            </div>
+          )}
+          {this.state.operationMessage && (
+            <div
+              className="actions-artifact-message"
+              role="status"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {this.state.operationMessage}
+            </div>
+          )}
           <div
-            className="actions-artifact-message"
-            role="status"
-            aria-live="polite"
-            aria-atomic="true"
+            id="actions-artifact-grid"
+            className="actions-artifact-grid"
+            aria-busy={this.state.loadingMore}
           >
-            {this.state.operationMessage}
+            {list?.artifacts.map(artifact => this.renderArtifact(artifact))}
           </div>
-        )}
-        <div
-          id="actions-artifact-grid"
-          className="actions-artifact-grid"
-          aria-busy={this.state.loadingMore}
-        >
-          {list?.artifacts.map(artifact => this.renderArtifact(artifact))}
-        </div>
         </section>
         {this.state.provenanceOpen && (
           <ActionsArtifactProvenanceDialog

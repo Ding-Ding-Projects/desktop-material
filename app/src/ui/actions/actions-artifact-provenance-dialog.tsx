@@ -36,12 +36,17 @@ function digest(value: string): string {
 }
 
 function signerLabel(signer: IActionsArtifactProvenanceReviewSigner): string {
-  return `${signer.identity} · ${signer.kind === 'current-workflow' ? 'current workflow' : 'reusable workflow'}`
+  return `${signer.identity} · ${
+    signer.kind === 'current-workflow'
+      ? 'current workflow'
+      : 'reusable workflow'
+  }`
 }
 
-function resultStatus(
-  result: ActionsArtifactProvenanceResult
-): { readonly label: string; readonly tone: 'success' | 'warning' | 'failure' } {
+function resultStatus(result: ActionsArtifactProvenanceResult): {
+  readonly label: string
+  readonly tone: 'success' | 'warning' | 'failure'
+} {
   if (result.ok) {
     return { label: 'Verified', tone: 'success' }
   }
@@ -176,7 +181,10 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
         </div>
         <div className="actions-provenance-digest">
           <span>Selected subject digest</span>
-          <p>Select one regular file below; it is re-read and hashed immediately before verification.</p>
+          <p>
+            Select one regular file below; it is re-read and hashed immediately
+            before verification.
+          </p>
         </div>
       </div>
     )
@@ -184,7 +192,10 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
 
   private renderPolicy(review: IActionsArtifactProvenanceStoreReview) {
     return (
-      <section className="actions-provenance-section" aria-labelledby={this.descriptionId}>
+      <section
+        className="actions-provenance-section"
+        aria-labelledby={this.descriptionId}
+      >
         <div className="actions-provenance-section-heading">
           <div>
             <span className="eyebrow">Fixed verification policy</span>
@@ -195,7 +206,9 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
         <dl className="actions-provenance-metadata">
           <div>
             <dt>Selected account</dt>
-            <dd>{review.account.login} · {review.account.friendlyEndpoint}</dd>
+            <dd>
+              {review.account.login} · {review.account.friendlyEndpoint}
+            </dd>
           </div>
           <div>
             <dt>Source repository</dt>
@@ -203,15 +216,21 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
           </div>
           <div>
             <dt>Source commit</dt>
-            <dd><code>{review.source.digest}</code></dd>
+            <dd>
+              <code>{review.source.digest}</code>
+            </dd>
           </div>
           <div>
             <dt>Authoritative ref</dt>
-            <dd><code>{review.source.ref}</code></dd>
+            <dd>
+              <code>{review.source.ref}</code>
+            </dd>
           </div>
           <div>
             <dt>Workflow run attempt</dt>
-            <dd>#{review.run.id} · attempt {review.run.attempt}</dd>
+            <dd>
+              #{review.run.id} · attempt {review.run.attempt}
+            </dd>
           </div>
           <div>
             <dt>Visibility at signing</dt>
@@ -224,26 +243,46 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
 
   private renderSelection(review: IActionsArtifactProvenanceStoreReview) {
     return (
-      <section className="actions-provenance-selection" aria-label="Subject and signer selection">
+      <section
+        className="actions-provenance-selection"
+        aria-label="Subject and signer selection"
+      >
         <div className="actions-provenance-selection-heading">
           <div>
             <span className="eyebrow">Explicit subject selection</span>
             <h3>Choose one file to verify</h3>
           </div>
-          <small>{review.entries.length} regular file{review.entries.length === 1 ? '' : 's'} inventoried</small>
+          <small>
+            {review.entries.length} regular file
+            {review.entries.length === 1 ? '' : 's'} inventoried
+          </small>
         </div>
         <p className="actions-provenance-guidance">
           Selecting a member does not verify the archive or any other ZIP file.
         </p>
         <div className="actions-provenance-select-grid">
-          <Select label="ZIP member" value={this.state.entryId} disabled={this.props.verifying} onChange={event => this.setState({ entryId: event.currentTarget.value })}>
+          <Select
+            label="ZIP member"
+            value={this.state.entryId}
+            disabled={this.props.verifying}
+            onChange={event =>
+              this.setState({ entryId: event.currentTarget.value })
+            }
+          >
             {review.entries.map(entry => (
               <option key={entry.entryId} value={entry.entryId}>
                 {entry.path} · {formatBytes(entry.bytes, 1)}
               </option>
             ))}
           </Select>
-          <Select label="Signer scope" value={this.state.signerCandidateId} disabled={this.props.verifying} onChange={event => this.setState({ signerCandidateId: event.currentTarget.value })}>
+          <Select
+            label="Signer scope"
+            value={this.state.signerCandidateId}
+            disabled={this.props.verifying}
+            onChange={event =>
+              this.setState({ signerCandidateId: event.currentTarget.value })
+            }
+          >
             {review.signerCandidates.map(signer => (
               <option key={signer.candidateId} value={signer.candidateId}>
                 {signerLabel(signer)}
@@ -254,11 +293,19 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
         <div className="actions-provenance-selection-details">
           <div>
             <span>Selected member</span>
-            <code>{review.entries.find(entry => entry.entryId === this.state.entryId)?.path ?? 'Choose a member'}</code>
+            <code>
+              {review.entries.find(
+                entry => entry.entryId === this.state.entryId
+              )?.path ?? 'Choose a member'}
+            </code>
           </div>
           <div>
             <span>Signer identity</span>
-            <code>{review.signerCandidates.find(signer => signer.candidateId === this.state.signerCandidateId)?.identity ?? 'Choose a signer'}</code>
+            <code>
+              {review.signerCandidates.find(
+                signer => signer.candidateId === this.state.signerCandidateId
+              )?.identity ?? 'Choose a signer'}
+            </code>
           </div>
         </div>
       </section>
@@ -268,24 +315,33 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
   private renderResult(result: ActionsArtifactProvenanceResult) {
     const status = resultStatus(result)
     return (
-      <section className={`actions-provenance-result ${status.tone}`} aria-live="polite">
+      <section
+        className={`actions-provenance-result ${status.tone}`}
+        aria-live="polite"
+      >
         <header>
           <div>
             <span className="eyebrow">Verification result</span>
             <h3>{status.label}</h3>
           </div>
-          <span className={`actions-status-chip ${status.tone}`}>{status.label}</span>
+          <span className={`actions-status-chip ${status.tone}`}>
+            {status.label}
+          </span>
         </header>
         <p>{resultGuidance(result)}</p>
         {result.ok ? (
           <dl className="actions-provenance-evidence">
             <div>
               <dt>Verified subject</dt>
-              <dd><code>{result.subject.path}</code></dd>
+              <dd>
+                <code>{result.subject.path}</code>
+              </dd>
             </div>
             <div>
               <dt>Subject digest</dt>
-              <dd><code>{result.subject.digest}</code></dd>
+              <dd>
+                <code>{result.subject.digest}</code>
+              </dd>
             </div>
             <div>
               <dt>Certificate issuer</dt>
@@ -293,15 +349,22 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
             </div>
             <div>
               <dt>Signer</dt>
-              <dd><code>{result.evidence.signerIdentity}</code></dd>
+              <dd>
+                <code>{result.evidence.signerIdentity}</code>
+              </dd>
             </div>
             <div>
               <dt>Attestation evidence</dt>
-              <dd>{result.evidence.attestations.length} bounded attestation{result.evidence.attestations.length === 1 ? '' : 's'} retained</dd>
+              <dd>
+                {result.evidence.attestations.length} bounded attestation
+                {result.evidence.attestations.length === 1 ? '' : 's'} retained
+              </dd>
             </div>
           </dl>
         ) : (
-          <p className="actions-provenance-result-reason">Outcome code: {result.reason}</p>
+          <p className="actions-provenance-result-reason">
+            Outcome code: {result.reason}
+          </p>
         )}
       </section>
     )
@@ -334,18 +397,31 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
               <span className="eyebrow">Actions artifact security</span>
               <h2 id={this.titleId}>Verify provenance</h2>
             </div>
-            <Button size="small" onClick={this.props.onDismissed} disabled={this.props.verifying}>
+            <Button
+              size="small"
+              onClick={this.props.onDismissed}
+              disabled={this.props.verifying}
+            >
               Close
             </Button>
           </header>
           <p className="actions-provenance-intro">
-            Review the fixed policy, choose one ZIP subject, and verify only those bytes through the selected repository account.
+            Review the fixed policy, choose one ZIP subject, and verify only
+            those bytes through the selected repository account.
           </p>
           {this.props.loading && (
-            <div className="actions-loading" role="status">Preparing archive inventory and provenance policy…</div>
+            <div className="actions-loading" role="status">
+              Preparing archive inventory and provenance policy…
+            </div>
           )}
           {error !== null && (
-            <div id={this.errorId} className="actions-inline-error" role="alert">{error}</div>
+            <div
+              id={this.errorId}
+              className="actions-inline-error"
+              role="alert"
+            >
+              {error}
+            </div>
           )}
           {review !== null && (
             <>
@@ -357,17 +433,33 @@ export class ActionsArtifactProvenanceDialog extends React.Component<
           {this.props.result !== null && this.renderResult(this.props.result)}
           <footer>
             {this.props.verifying ? (
-              <Button onClick={this.props.onCancelVerification}>Cancel verification</Button>
+              <Button onClick={this.props.onCancelVerification}>
+                Cancel verification
+              </Button>
             ) : error !== null ? (
-              <Button onClick={this.props.onRetry} disabled={this.props.loading}>Retry review</Button>
+              <Button
+                onClick={this.props.onRetry}
+                disabled={this.props.loading}
+              >
+                Retry review
+              </Button>
             ) : null}
-            <Button onClick={this.props.onDismissed} disabled={this.props.verifying}>Close</Button>
+            <Button
+              onClick={this.props.onDismissed}
+              disabled={this.props.verifying}
+            >
+              Close
+            </Button>
             <Button
               type="submit"
               className="button-component-primary"
-              disabled={!canVerify || this.props.loading || this.props.verifying}
+              disabled={
+                !canVerify || this.props.loading || this.props.verifying
+              }
             >
-              {this.props.verifying ? 'Verifying selected subject…' : 'Verify selected subject'}
+              {this.props.verifying
+                ? 'Verifying selected subject…'
+                : 'Verify selected subject'}
             </Button>
           </footer>
         </form>
