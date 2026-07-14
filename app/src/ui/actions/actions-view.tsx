@@ -434,11 +434,7 @@ export class ActionsView extends React.Component<
           </div>
         )}
         {this.state.actionError && (
-          <div
-            className="actions-banner error"
-            role="alert"
-            aria-atomic="true"
-          >
+          <div className="actions-banner error" role="alert" aria-atomic="true">
             {this.state.actionError.message}
           </div>
         )}
@@ -575,9 +571,7 @@ export class ActionsView extends React.Component<
             confirmLabel="Cancel run"
             forceConfirmLabel="Force cancel run"
             showForceCancelOption={true}
-            submitting={
-              this.state.busyRunId === this.state.confirmation.run.id
-            }
+            submitting={this.state.busyRunId === this.state.confirmation.run.id}
             onConfirm={this.confirmCancelRun}
             onDismissed={this.closeConfirmation}
           />
@@ -591,8 +585,8 @@ export class ActionsView extends React.Component<
             description={
               <p>
                 {this.state.confirmation.enabled ? 'Enable' : 'Disable'}{' '}
-                <strong>{this.state.confirmation.workflow.name}</strong> for this
-                repository?
+                <strong>{this.state.confirmation.workflow.name}</strong> for
+                this repository?
               </p>
             }
             confirmLabel={
@@ -601,8 +595,7 @@ export class ActionsView extends React.Component<
                 : 'Disable workflow'
             }
             submitting={
-              this.state.busyWorkflowId ===
-              this.state.confirmation.workflow.id
+              this.state.busyWorkflowId === this.state.confirmation.workflow.id
             }
             onConfirm={this.confirmWorkflowStateChange}
             onDismissed={this.closeConfirmation}
