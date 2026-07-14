@@ -4851,7 +4851,7 @@ export function getHTMLURL(endpoint: string): string {
     return 'https://bitbucket.org'
   }
 
-  const providerURL = new window.URL(endpoint)
+  const providerURL = new globalThis.URL(endpoint)
   const providerPath = providerURL.pathname.replace(/\/+$/, '')
   if (providerPath.endsWith('/api/v4')) {
     providerURL.pathname = providerPath.slice(0, -'/api/v4'.length) || '/'

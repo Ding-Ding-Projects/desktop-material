@@ -214,6 +214,11 @@
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
       }
 
+      .remote-name-input,
+      .remote-default-help {
+        grid-column: 1;
+      }
+
       .remote-fetch-url,
       .remote-separate-push,
       .remote-push-url,

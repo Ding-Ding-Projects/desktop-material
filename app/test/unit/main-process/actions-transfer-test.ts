@@ -314,6 +314,7 @@ describe('main-process Actions transfer', () => {
           {
             downloadId: result.downloadId,
             senderId: sender.id,
+            endpoint: 'https://api.github.com/',
             path: destination,
             bytes: archive.length,
             archiveDigest: digest,
