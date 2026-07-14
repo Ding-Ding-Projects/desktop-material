@@ -466,95 +466,11 @@ function RemoteRow(props: IRemoteRowProps) {
   const labelName = remote.name.trim() || `remote ${index + 1}`
 
   return (
-    <article className="remote-row" role="listitem">
-      <header>
-        <div>
-          <Octicon className="remote-icon" symbol={octicons.server} />
-          <strong>{labelName}</strong>
-          {remote.originalName === null && (
-            <span className="remote-badge">New</span>
-          )}
-          {isPreferred && <span className="remote-badge">Current</span>}
-        </div>
-        <Button
-          className="remote-remove"
-          ariaLabel={`Stage ${labelName} remote for removal`}
-          tooltip={`Stage ${labelName} for removal`}
-          disabled={disabled}
-          onClick={onRemove}
-        >
-          <Octicon symbol={octicons.trash} />
-        </Button>
-      </header>
-      <div className="remote-fields">
-        <TextBox
-          className="remote-name-input"
-          label={`${labelName} remote name`}
-          value={remote.name}
-          disabled={disabled}
-          onValueChanged={onNameChanged}
-        />
-        <TextBox
-          className="remote-fetch-url"
-          label={`${labelName} fetch URL`}
-          value={remote.fetchUrl}
-          disabled={disabled}
-          spellcheck={false}
-          onValueChanged={onFetchUrlChanged}
-        />
-        {remote.fetchUrlHasCredentials && (
-          <p className="remote-masked-note">
-            Embedded HTTP credentials were masked. Leave this value unchanged to
-            preserve the stored URL, or replace it with a credential-free URL.
-          </p>
-        )}
-        <Checkbox
-          className="remote-separate-push"
-          label={`Use a separate push URL for ${labelName}`}
-          value={remote.pushUrl === null ? CheckboxValue.Off : CheckboxValue.On}
-          disabled={disabled}
-          onChange={onSeparatePushChanged}
-        />
-        {remote.pushUrl !== null && (
-          <TextBox
-            className="remote-push-url"
-            label={`${labelName} push URL`}
-            value={remote.pushUrl}
-            disabled={disabled}
-            spellcheck={false}
-            onValueChanged={onPushUrlChanged}
-          />
-        )}
-        {remote.pushUrlHasCredentials && (
-          <p className="remote-masked-note">
-            Embedded HTTP credentials in the push URL were masked and will be
-            preserved unless you replace this value.
-          </p>
-        )}
-        <Select
-          className="remote-prune"
-          label={`${labelName} stale branch pruning`}
-          value={remote.prune}
-          disabled={disabled}
-          onChange={onPruneChanged}
-        >
-          <option value="inherit">Use Git default</option>
-          <option value="enabled">Prune on fetch</option>
-          <option value="disabled">Keep stale branches</option>
-        </Select>
-        <TextBox
-          className="remote-default-branch"
-          label={`${labelName} tracked default branch`}
-          placeholder="Leave empty for none"
-          value={remote.defaultBranch ?? ''}
-          disabled={disabled}
-          spellcheck={false}
-          onValueChanged={onDefaultBranchChanged}
-        />
-        <p className="remote-default-help">
-          A changed default must already exist as this remote's exact fetched
-          tracking ref when Save runs.
-        </p>
+    <div className="remote-row" role="listitem">
+      <div className="remote-name">
+        <Octicon className="remote-icon" symbol={octicons.server} />
+        <span title={remote.name}>{remote.name}</span>
+        {isDefault && <span className="remote-badge">origin</span>}
       </div>
     </article>
   )

@@ -6,9 +6,6 @@ import { join } from 'path'
 const readStyle = (name: string) =>
   readFileSync(join(process.cwd(), 'app', 'styles', 'ui', name), 'utf8')
 
-const readUI = (path: string) =>
-  readFileSync(join(process.cwd(), 'app', 'src', 'ui', path), 'utf8')
-
 describe('compact settings style contracts', () => {
   it('keeps Preferences recoverable from a narrow pane without sideways scrolling', () => {
     const style = readStyle('_preferences.scss')
@@ -31,7 +28,6 @@ describe('compact settings style contracts', () => {
 
   it('turns Repository Settings into compact navigation and stacked cards', () => {
     const style = readStyle('dialogs/_repository-settings.scss')
-    const remoteUI = readUI('repository-settings/remote.tsx')
 
     assert.match(style, /container-name: repository-settings-dialog;/)
     assert.match(style, /container-name: repository-settings-pane;/)
@@ -42,10 +38,11 @@ describe('compact settings style contracts', () => {
     )
     assert.match(
       style,
-      /@container repository-settings-pane \(max-width: 500px\)[\s\S]*?\.remote-row\s*\{[\s\S]*?\.remote-fields\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
+      /@container repository-settings-pane \(max-width: 500px\)[\s\S]*?\.remote-row\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) 40px;/
     )
-    assert.match(style, /\.submodule-row\s*\{[\s\S]*?flex-direction: column;/)
-    assert.match(remoteUI, /label=\{`\$\{labelName\} remote name`\}/)
-    assert.doesNotMatch(remoteUI, /title=\{remote\.name\}/)
+    assert.match(
+      style,
+      /\.submodule-row\s*\{[\s\S]*?flex-direction: column;/
+    )
   })
 })

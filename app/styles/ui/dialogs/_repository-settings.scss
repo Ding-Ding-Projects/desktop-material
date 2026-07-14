@@ -879,38 +879,44 @@
 
     .remotes-manager {
       .remote-row {
-        padding: var(--spacing);
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 40px;
+        align-items: end;
 
-        .remote-fields {
-          grid-template-columns: minmax(0, 1fr);
+        .remote-name {
+          grid-column: 1 / -1;
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
         }
 
-        .remote-name-input,
-        .remote-fetch-url,
-        .remote-separate-push,
-        .remote-push-url,
-        .remote-prune,
-        .remote-default-branch,
-        .remote-masked-note,
-        .remote-default-help {
+        .remote-url {
           grid-column: 1;
+          width: 100%;
+        }
+
+        .remote-remove {
+          grid-column: 2;
+          width: 40px;
+          min-width: 40px;
+          height: 40px;
+          margin: 0;
         }
       }
 
       .add-remote-fields {
-        grid-template-columns: minmax(0, 1fr);
-      }
-
-      .add-remote-actions,
-      .remote-review-actions,
-      .remote-manager-actions {
-        align-items: stretch;
         flex-direction: column;
 
-        .button-component {
-          justify-content: center;
+        .add-remote-name,
+        .add-remote-url {
           width: 100%;
+          flex: 1 1 auto;
         }
+      }
+
+      .add-remote-actions .add-remote-button {
+        width: 100%;
+        justify-content: center;
       }
     }
 

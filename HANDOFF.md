@@ -388,42 +388,16 @@ The exhaustive run on the earlier application/test tree shipped by
 
 ### Secure clone account fallback validation
 
-The later clone hardening tree at implementation commit
-`0b4f25cc8e91eb62634e70f90e24f1a44d00dc9d`, first reviewed on `main` at
-`3dc1ecc4d8daff6150980e47a13db4f3a61ec37a`, recorded:
-
-- **627 suites and 1,906 tests: 1,905 passed, 0 failed, 1 intentional skip**;
-- full source lint, repository-wide Prettier, and TypeScript: **passed**;
-- the exact MCP-driven unpackaged production build: **passed**;
-- an isolated hidden-desktop HTTPS smart-Git sequence of account A rejected,
-  then account B silently accepted, with the cloned repository clean on `main`
-  at `c9eee876c4451d380f8cc7628b5971f624f9395f`;
-- preservation of the fixture's custom-port exact origin, with no credentials
-  dialog shown; and
-- complete cleanup of every owned application/server process, listener, Temp
-  path, and synthetic credential entry.
-
-### Historical M0–M18 headless capture ledger
-
-| Screenshot | Dimensions | Bytes | SHA-256 |
-| --- | ---: | ---: | --- |
-| `docs/assets/screenshots/material-agent-access.png` | 1443×992 | 110,128 | `644891eaa37c878cb577065822681ee8fd33a018a92e0b89822b43e67393ef93` |
-| `docs/assets/screenshots/material-automation.png` | 1443×992 | 87,304 | `efe45408a390301294d5e23193b619eec858fcef4abb147d82709513c5bb3843` |
-| `docs/assets/screenshots/material-branch-merge-all.png` | 1443×992 | 116,134 | `c5cb41e17d67c627758ef43620c255c8272f85ed182a741c086a80d735c8719e` |
-| `docs/assets/screenshots/material-history-power-tools.png` | 1443×992 | 122,930 | `fe8b6323d77663467b2a6ae887d5e277e31b8dc84f0e35cec2332537ec7fd28a` |
-| `docs/assets/screenshots/material-multi-window-menu.png` | 1443×992 | 115,719 | `9a6cbcbb4c257eac3312b76f8ed0077a6a123901a6bee9b7793b926a61310c66` |
-| `docs/assets/screenshots/material-notification-center.png` | 1443×992 | 111,723 | `f8d0cf33723b1c9793d165ab39fd0cec2ccd41b50136d36f6be9c3d34b7d4709` |
-| `docs/assets/screenshots/material-provider-accounts.png` | 1443×992 | 117,558 | `91ab46ec566676f0c87534f5e72795e31a62adeecf6bf2597e533920ff428cff` |
-| `docs/assets/screenshots/material-scale-200-autofit.png` | 1443×992 | 104,599 | `6fc094a466cef3a540d3bef08db7468e6d9312c9d2242c5abf0df6f9b4fafe05` |
-| `docs/assets/screenshots/material-workspace-changes.png` | 1443×992 | 123,162 | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
-| `docs/assets/screenshots/material-responsive-overflow-fixed.png` | 1450×997 | 132,049 | `160c622c6630d96eda26b5ff3be6705c31dbe55d6ffa6d1376575425770278bf` |
-| `docs/assets/screenshots/material-actions-job-log.png` | 2048×1228 | 155,579 | `6f8a96a9bff8a9c76f89b44aaf3c84a71574aed11ef994db93d12d2749ca0409` |
-| `docs/assets/screenshots/material-pull-all-account-fallback.png` | 2048×1228 | 114,222 | `80674cf75511c1238bcf527e6e678ffd3d46e4cc36ee2455ebd4b8cecf1c0991` |
-| `docs/assets/screenshots/material-clone-account-fallback.png` | 2048×1228 | 140,143 | `89bb755ad37f6d8537815d411526fa6e16aeee9cd16446deabbc17595cb3623c` |
-
-Those three same-name rows are commit-pinned historical values. The M19
-documentation/image union intentionally replaces their current tracked files
-with the accepted M19 PNGs and hashes in the later ledger.
+| Screenshot | Bytes | SHA-256 |
+| --- | ---: | --- |
+| `docs/assets/screenshots/material-agent-access.png` | 110,128 | `644891eaa37c878cb577065822681ee8fd33a018a92e0b89822b43e67393ef93` |
+| `docs/assets/screenshots/material-automation.png` | 87,304 | `efe45408a390301294d5e23193b619eec858fcef4abb147d82709513c5bb3843` |
+| `docs/assets/screenshots/material-branch-merge-all.png` | 116,134 | `c5cb41e17d67c627758ef43620c255c8272f85ed182a741c086a80d735c8719e` |
+| `docs/assets/screenshots/material-history-power-tools.png` | 122,930 | `fe8b6323d77663467b2a6ae887d5e277e31b8dc84f0e35cec2332537ec7fd28a` |
+| `docs/assets/screenshots/material-multi-window-menu.png` | 115,719 | `9a6cbcbb4c257eac3312b76f8ed0077a6a123901a6bee9b7793b926a61310c66` |
+| `docs/assets/screenshots/material-notification-center.png` | 111,723 | `f8d0cf33723b1c9793d165ab39fd0cec2ccd41b50136d36f6be9c3d34b7d4709` |
+| `docs/assets/screenshots/material-provider-accounts.png` | 117,558 | `91ab46ec566676f0c87534f5e72795e31a62adeecf6bf2597e533920ff428cff` |
+| `docs/assets/screenshots/material-workspace-changes.png` | 123,162 | `3155b321f9aabb73ee6a40000c69f8931f1915920216818a362ec974cc3a4621` |
 
 Earlier verified captures, including
 `docs/assets/screenshots/settings-history-manager.png`, remain tracked; that M3

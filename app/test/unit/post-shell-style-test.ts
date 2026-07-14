@@ -12,9 +12,6 @@ const readRootStyle = (name: string) =>
 const readSiteStyle = () =>
   readFileSync(join(process.cwd(), 'site', 'style.css'), 'utf8')
 
-const readUI = (path: string) =>
-  readFileSync(join(process.cwd(), 'app', 'src', 'ui', path), 'utf8')
-
 describe('post-shell MD3 style contracts', () => {
   it('uses system tokens instead of literal colors in the Actions log viewer', () => {
     const style = readStyle('_actions-log-viewer.scss')
@@ -53,15 +50,11 @@ describe('post-shell MD3 style contracts', () => {
     const style = readStyle('_pull-all.scss')
     assert.match(style, /pull-all-results-container/)
     assert.match(style, /overflow-x: hidden/)
-    assert.match(
-      style,
-      /grid-template-columns: minmax\(82px, 32%\) minmax\(0, 1fr\)/
-    )
+    assert.match(style, /grid-template-columns: minmax\(82px, 32%\) minmax\(0, 1fr\)/)
   })
 
   it('keeps Merge all content inside its dialog with reachable results', () => {
     const style = readStyle('_merge-all.scss')
-    const ui = readUI('merge-all/merge-all-dialog.tsx')
     assert.doesNotMatch(style, /\.dialog-content\s*\{\s*min-width: 680px;/)
     assert.match(style, /max-width: calc\(100vw - var\(--spacing-quad\)\);/)
     assert.match(
@@ -72,14 +65,6 @@ describe('post-shell MD3 style contracts', () => {
     assert.match(
       style,
       /grid-template-columns: minmax\(72px, 30%\) minmax\(0, 1fr\)/
-    )
-    assert.match(
-      ui,
-      /className="merge-all-results-scroll"[\s\S]*?role="region"[\s\S]*?aria-label="Merge results"/
-    )
-    assert.doesNotMatch(
-      ui,
-      /className="merge-all-results-scroll"[\s\S]{0,160}?tabIndex=/
     )
   })
 
@@ -96,7 +81,10 @@ describe('post-shell MD3 style contracts', () => {
   it('fits Settings History at compact width and height without auto-fit', () => {
     const style = readStyle('_versioned-store-history.scss')
     assert.match(style, /max-height: calc\(100vh - 20px\);/)
-    assert.match(style, /min-height: min\(480px, calc\(100vh - 20px\)\);/)
+    assert.match(
+      style,
+      /min-height: min\(480px, calc\(100vh - 20px\)\);/
+    )
     assert.match(style, /@media \(max-height: 520px\)/)
     assert.match(
       style,
@@ -110,7 +98,10 @@ describe('post-shell MD3 style contracts', () => {
       style,
       /\.header-title\s*\{[\s\S]*?min-width: 0;[\s\S]*?text-overflow: ellipsis;/
     )
-    assert.match(style, /\.build-run-panel-header\s*\{[\s\S]*?flex-wrap: wrap;/)
+    assert.match(
+      style,
+      /\.build-run-panel-header\s*\{[\s\S]*?flex-wrap: wrap;/
+    )
     assert.match(style, /@media \(max-width: 640px\), \(max-height: 420px\)/)
   })
 

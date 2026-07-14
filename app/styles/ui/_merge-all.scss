@@ -36,7 +36,8 @@
     border-radius: 12px;
 
     &:focus-visible {
-      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
+      outline: 3px solid
+        color-mix(in srgb, var(--md-sys-color-primary) 45%, transparent);
       outline-offset: 2px;
     }
   }
@@ -59,6 +60,7 @@
     td:first-child {
       max-width: 220px;
     }
+
   }
 
   .merge-result {

@@ -69,6 +69,7 @@ export class MergeAllDialog extends React.Component<IMergeAllDialogProps> {
             className="merge-all-results-scroll"
             role="region"
             aria-label="Merge results"
+            tabIndex={0}
           >
             <table className="merge-all-results">
               <thead>
