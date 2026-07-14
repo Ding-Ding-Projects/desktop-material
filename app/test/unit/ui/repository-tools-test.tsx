@@ -1,5 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import * as React from 'react'
 import {
   ICLICommandOutputEvent,
@@ -32,6 +34,18 @@ const runtime: ICLIWorkbenchRuntime = {
     },
   ],
 }
+
+const uiFixtureRoot = join(tmpdir(), 'desktop-material-repository-tools-ui')
+const uiRepositoryPath = join(uiFixtureRoot, 'repo')
+const uiFirstRepositoryPath = join(uiFixtureRoot, 'first')
+const uiSecondRepositoryPath = join(uiFixtureRoot, 'second')
+const uiExportRoot = join(uiFixtureRoot, 'exports')
+const uiArchiveDestination = join(uiExportRoot, 'repository-source')
+const uiArchivePath = `${uiArchiveDestination}.zip`
+const uiBundleDestination = join(uiExportRoot, 'all-history')
+const uiBundlePath = `${uiBundleDestination}.bundle`
+const uiRepositoryBundlePath = join(uiExportRoot, 'repository.bundle')
+const uiOtherBundlePath = join(uiExportRoot, 'other.bundle')
 
 class FakeRepositoryToolsClient implements IRepositoryToolsClient {
   public readonly starts: ICLIWorkbenchOperationRequest[] = []
@@ -81,7 +95,7 @@ function renderTools(
 ) {
   return render(
     <RepositoryTools
-      repositoryPath="C:/repo"
+      repositoryPath={uiRepositoryPath}
       onRefreshRepository={onRefreshRepository}
       client={client}
       chooseArchiveDestination={chooseArchiveDestination}
@@ -124,7 +138,7 @@ describe('Repository tools', () => {
     assert.deepStrictEqual(client.starts[0], {
       id: client.starts[0].id,
       operation: { id: 'status-summary' },
-      repositoryPath: 'C:/repo',
+      repositoryPath: uiRepositoryPath,
       confirmed: false,
     })
     assert.equal('args' in client.starts[0], false)
@@ -219,7 +233,7 @@ describe('Repository tools', () => {
       async () => {},
       async (format, defaultPath) => {
         choices.push({ format, defaultPath })
-        return 'C:/exports/repository-source'
+        return uiArchiveDestination
       },
       async path => {
         revealed.push(path)
@@ -243,7 +257,7 @@ describe('Repository tools', () => {
     assert.deepStrictEqual(client.starts[0].operation, {
       id: 'archive-export',
       format: 'zip',
-      destination: 'C:\\exports\\repository-source.zip',
+      destination: uiArchivePath,
     })
     assert.equal(client.starts[0].confirmed, true)
 
@@ -260,9 +274,7 @@ describe('Repository tools', () => {
       /repository-source\.zip/
     )
     fireEvent.click(screen.getByRole('button', { name: 'Show in folder' }))
-    await waitFor(() =>
-      assert.deepStrictEqual(revealed, ['C:\\exports\\repository-source.zip'])
-    )
+    await waitFor(() => assert.deepStrictEqual(revealed, [uiArchivePath]))
   })
 
   it('exports all local refs through a guided full-history bundle flow', async () => {
@@ -275,7 +287,7 @@ describe('Repository tools', () => {
       undefined,
       async defaultPath => {
         defaults.push(defaultPath)
-        return 'C:/exports/all-history'
+        return uiBundleDestination
       }
     )
     await screen.findByText('git version 2.55.0')
@@ -293,7 +305,7 @@ describe('Repository tools', () => {
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0].operation, {
       id: 'bundle-export',
-      destination: 'C:\\exports\\all-history.bundle',
+      destination: uiBundlePath,
     })
     assert.equal(client.starts[0].confirmed, true)
   })
@@ -306,14 +318,14 @@ describe('Repository tools', () => {
       undefined,
       undefined,
       undefined,
-      async () => 'C:/exports/repository.bundle'
+      async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
     fireEvent.click(screen.getByRole('button', { name: 'Verify a bundle' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0].operation, {
       id: 'bundle-verify',
-      bundlePath: 'C:\\exports\\repository.bundle',
+      bundlePath: uiRepositoryBundlePath,
     })
     assert.equal(client.starts[0].confirmed, false)
     assert.equal(screen.queryByRole('alertdialog'), null)
@@ -332,7 +344,7 @@ describe('Repository tools', () => {
       undefined,
       undefined,
       undefined,
-      async () => 'C:/exports/repository.bundle'
+      async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
 
@@ -342,7 +354,7 @@ describe('Repository tools', () => {
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0].operation, {
       id: 'bundle-verify',
-      bundlePath: 'C:\\exports\\repository.bundle',
+      bundlePath: uiRepositoryBundlePath,
     })
     client.emitState({
       id: client.starts[0].id,
@@ -354,7 +366,7 @@ describe('Repository tools', () => {
     await waitFor(() => assert.equal(client.starts.length, 2))
     assert.deepStrictEqual(client.starts[1].operation, {
       id: 'bundle-list-heads',
-      bundlePath: 'C:\\exports\\repository.bundle',
+      bundlePath: uiRepositoryBundlePath,
     })
     client.emitOutput({
       id: client.starts[1].id,
@@ -456,7 +468,7 @@ describe('Repository tools', () => {
     await waitFor(() => assert.equal(client.starts.length, 9))
     assert.deepStrictEqual(client.starts[8].operation, {
       id: 'bundle-import-fetch-objects',
-      bundlePath: 'C:\\exports\\repository.bundle',
+      bundlePath: uiRepositoryBundlePath,
       sourceRef: 'refs/heads/main',
     })
     assert.equal(client.starts[8].confirmed, true)
@@ -510,7 +522,7 @@ describe('Repository tools', () => {
       undefined,
       undefined,
       undefined,
-      async () => 'C:/exports/repository.bundle'
+      async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
     fireEvent.click(
@@ -632,13 +644,13 @@ describe('Repository tools', () => {
         chooseBundleToImport={chooseBundleToImport}
       />
     )
-    const view = render(renderImport('C:/first'))
+    const view = render(renderImport(uiFirstRepositoryPath))
 
     fireEvent.click(
       screen.getByRole('button', { name: 'Choose and inspect a bundle' })
     )
-    view.rerender(renderImport('C:/second'))
-    resolvePicker('C:/exports/repository.bundle')
+    view.rerender(renderImport(uiSecondRepositoryPath))
+    resolvePicker(uiRepositoryBundlePath)
 
     await waitFor(() => assert.equal(pickerReturned, true))
     assert.equal(client.starts.length, 0)
@@ -652,12 +664,12 @@ describe('Repository tools', () => {
     const secondClient = new FakeRepositoryToolsClient()
     const renderImport = (client: FakeRepositoryToolsClient) => (
       <RepositoryBundleImport
-        repositoryPath="C:/repo"
+        repositoryPath={uiRepositoryPath}
         disabled={false}
         client={client}
         onRefreshRepository={async () => {}}
         onBusyChanged={() => {}}
-        chooseBundleToImport={async () => 'C:/exports/repository.bundle'}
+        chooseBundleToImport={async () => uiRepositoryBundlePath}
       />
     )
     const view = render(renderImport(firstClient))
@@ -689,7 +701,7 @@ describe('Repository tools', () => {
     const client = new FakeRepositoryToolsClient()
     const request: IRepositoryBundleImportRequest =
       prepareRepositoryBundleImport(
-        'C:/exports/repository.bundle',
+        uiRepositoryBundlePath,
         { oid: 'a'.repeat(40), ref: 'refs/heads/main' },
         'imported/main'
       )
@@ -711,10 +723,10 @@ describe('Repository tools', () => {
         client={client}
         onRefreshRepository={onRefreshRepository}
         onBusyChanged={() => {}}
-        chooseBundleToImport={async () => 'C:/exports/other.bundle'}
+        chooseBundleToImport={async () => uiOtherBundlePath}
       />
     )
-    const view = render(renderImport('C:/first'))
+    const view = render(renderImport(uiFirstRepositoryPath))
     const mountedComponent = component.current
     assert.ok(mountedComponent)
     mountedComponent.setState({
@@ -731,7 +743,7 @@ describe('Repository tools', () => {
           repositoryGeneration: number
         ) => Promise<void>
       }
-    ).finishRefresh(request, 'C:/first', 0)
+    ).finishRefresh(request, uiFirstRepositoryPath, 0)
 
     await waitFor(() => assert.equal(refreshes, 1))
     const chooseButton = screen.getByRole('button', {
@@ -741,7 +753,7 @@ describe('Repository tools', () => {
     fireEvent.click(chooseButton)
     assert.equal(client.starts.length, 0)
 
-    view.rerender(renderImport('C:/second'))
+    view.rerender(renderImport(uiSecondRepositoryPath))
     resolveRefresh()
     await refreshCompletion
 
@@ -763,7 +775,7 @@ describe('Repository tools', () => {
       undefined,
       undefined,
       undefined,
-      async () => 'C:/exports/repository.bundle'
+      async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
     fireEvent.click(
