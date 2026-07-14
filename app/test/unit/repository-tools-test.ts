@@ -251,6 +251,7 @@ describe('repository section order', () => {
     assert.deepStrictEqual(getRepositorySections(false), [
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
+      RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
     assert.equal(
@@ -258,7 +259,7 @@ describe('repository section order', () => {
         RepositorySectionTab.RepositoryTools,
         false
       ),
-      2
+      3
     )
   })
 
@@ -267,6 +268,7 @@ describe('repository section order', () => {
       RepositorySectionTab.Changes,
       RepositorySectionTab.History,
       RepositorySectionTab.Actions,
+      RepositorySectionTab.Triage,
       RepositorySectionTab.RepositoryTools,
     ])
     assert.equal(
@@ -274,7 +276,7 @@ describe('repository section order', () => {
         RepositorySectionTab.RepositoryTools,
         true
       ),
-      3
+      4
     )
   })
 })

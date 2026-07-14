@@ -66,6 +66,10 @@ export class FileHistory extends React.Component<
   private historyController: AbortController | null = null
   private blameController: AbortController | null = null
   private restoreConfirmButton: HTMLButtonElement | null = null
+  private readonly restoreHandlers = new WeakMap<
+    IFileHistoryEntry,
+    () => void
+  >()
 
   public constructor(props: IFileHistoryProps) {
     super(props)
@@ -316,7 +320,7 @@ export class FileHistory extends React.Component<
         </span>
         <span className="file-history-heading-copy">
           <h1 id="file-history-title">File history</h1>
-          <small title={this.props.path}>{this.props.path}</small>
+          <small>{this.props.path}</small>
         </span>
         {loading ? (
           <Octicon
@@ -426,10 +430,8 @@ export class FileHistory extends React.Component<
         >
           <code>{entry.shortSha}</code>
           <span className="file-history-entry-copy">
-            <strong title={entry.summary}>{entry.summary}</strong>
-            <span title={`${entry.authorName} <${entry.authorEmail}>`}>
-              {entry.authorName}
-            </span>
+            <strong>{entry.summary}</strong>
+            <span>{entry.authorName}</span>
           </span>
           <RelativeTime
             className="file-history-entry-time"
@@ -460,6 +462,27 @@ export class FileHistory extends React.Component<
       },
       () => this.restoreConfirmButton?.focus()
     )
+  }
+
+  private getRestoreHandler = (entry: IFileHistoryEntry) => {
+    const existingHandler = this.restoreHandlers.get(entry)
+    if (existingHandler !== undefined) {
+      return existingHandler
+    }
+    const handler = () => this.requestRestore(entry)
+    this.restoreHandlers.set(entry, handler)
+    return handler
+  }
+
+  private setRestoreConfirmButton = (button: HTMLButtonElement | null) => {
+    this.restoreConfirmButton = button
+  }
+
+  private dismissRestoreConfirmation = () => {
+    this.setState({
+      restoreConfirmationSha: null,
+      restoreError: null,
+    })
   }
 
   private confirmRestore = async () => {
@@ -512,28 +535,22 @@ export class FileHistory extends React.Component<
           Restore this file version?
         </strong>
         <p id="file-history-restore-description">
-          <span title={this.props.path}>{this.props.path}</span> will be
-          replaced in the working tree with commit{' '}
-          <code title={entry.sha}>{entry.shortSha}</code>. Existing commits and
-          the staging area remain unchanged, but current unstaged content at
-          this path can be lost.
+          <span>{this.props.path}</span> will be replaced in the working tree
+          with commit <code>{entry.shortSha}</code>. Existing commits and the
+          staging area remain unchanged, but current unstaged content at this
+          path can be lost.
         </p>
         <div className="file-history-restore-actions">
           <Button
-            onButtonRef={button => (this.restoreConfirmButton = button)}
+            onButtonRef={this.setRestoreConfirmButton}
             disabled={this.state.restoring}
-            onClick={() => void this.confirmRestore()}
+            onClick={this.confirmRestore}
           >
             {this.state.restoring ? 'Restoring…' : 'Restore to working tree'}
           </Button>
           <Button
             disabled={this.state.restoring}
-            onClick={() =>
-              this.setState({
-                restoreConfirmationSha: null,
-                restoreError: null,
-              })
-            }
+            onClick={this.dismissRestoreConfirmation}
           >
             Go back
           </Button>
@@ -557,7 +574,7 @@ export class FileHistory extends React.Component<
           <div>
             <dt>Commit</dt>
             <dd>
-              <code title={entry.sha}>{entry.shortSha}</code>
+              <code>{entry.shortSha}</code>
             </dd>
           </div>
           <div>
@@ -578,7 +595,7 @@ export class FileHistory extends React.Component<
         <div className="file-history-restore-controls">
           <Button
             disabled={this.state.restoring}
-            onClick={() => this.requestRestore(entry)}
+            onClick={this.getRestoreHandler(entry)}
           >
             Restore this version
           </Button>
@@ -665,7 +682,7 @@ export class FileHistory extends React.Component<
         <dl>
           <div>
             <dt>Author</dt>
-            <dd title={line.authorEmail}>{line.authorName}</dd>
+            <dd>{line.authorName}</dd>
           </div>
           <div>
             <dt>Authored</dt>
@@ -683,7 +700,7 @@ export class FileHistory extends React.Component<
           </div>
           <div>
             <dt>Original</dt>
-            <dd title={line.originalPath}>
+            <dd>
               {line.originalPath}:{line.originalLine}
             </dd>
           </div>
@@ -708,9 +725,7 @@ export class FileHistory extends React.Component<
         onClick={this.onBlameLineClick}
         onKeyDown={this.onBlameLineKeyDown}
       >
-        <span className="file-blame-sha" title={line.sha}>
-          {line.shortSha}
-        </span>
+        <span className="file-blame-sha">{line.shortSha}</span>
         <span className="file-blame-line-number">{line.finalLine}</span>
         <code>{line.content.length === 0 ? '\u00a0' : line.content}</code>
       </button>
@@ -762,6 +777,8 @@ export class FileHistory extends React.Component<
 
   public render() {
     return (
+      // The dialog stack uses this event to bring a background sheet forward.
+      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
       <section
         className="file-history-panel"
         role="dialog"

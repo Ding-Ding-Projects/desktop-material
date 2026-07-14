@@ -21,12 +21,8 @@ import {
   IActionsArtifactList,
   isSupportedActionsArtifactDigest,
 } from '../actions-artifacts'
-import {
-  IActionsArtifactDownloadProgress,
-} from '../actions-artifact-download'
-import {
-  IActionsBranchRuleList,
-} from '../actions-branch-rules'
+import { IActionsArtifactDownloadProgress } from '../actions-artifact-download'
+import { IActionsBranchRuleList } from '../actions-branch-rules'
 import {
   downloadActionsArtifactThroughMainProcess,
   fetchActionsJobLogThroughMainProcess,
@@ -1558,7 +1554,9 @@ export class ActionsStore {
         )
       }
       if (!provenanceOpaqueIdPattern.test(inventory.inventoryId)) {
-        throw provenanceReviewError('The downloaded artifact inventory is invalid.')
+        throw provenanceReviewError(
+          'The downloaded artifact inventory is invalid.'
+        )
       }
 
       const entries = new Map<string, IActionsArtifactSubjectEntry>()
@@ -1627,7 +1625,9 @@ export class ActionsStore {
       !provenanceOpaqueIdPattern.test(selection.entryId) ||
       !provenanceOpaqueIdPattern.test(selection.signerCandidateId)
     ) {
-      throw provenanceReviewError('The artifact provenance selection is invalid.')
+      throw provenanceReviewError(
+        'The artifact provenance selection is invalid.'
+      )
     }
     const selectedEntry = review.entries.get(selection.entryId)
     const selectedCandidate = review.signerCandidates.get(
@@ -1642,7 +1642,9 @@ export class ActionsStore {
       review.archiveDigest === null ||
       review.archiveBytes === null
     ) {
-      throw provenanceReviewError('The artifact provenance review is incomplete.')
+      throw provenanceReviewError(
+        'The artifact provenance review is incomplete.'
+      )
     }
 
     review.verification?.controller.abort()
@@ -1656,7 +1658,10 @@ export class ActionsStore {
       review.lifecycle.signal,
       verification.controller.signal
     )
-    const operation = combineProvenanceAbortSignals(reviewOperation.signal, signal)
+    const operation = combineProvenanceAbortSignals(
+      reviewOperation.signal,
+      signal
+    )
     let accountHandle: string | null = null
     try {
       const account = this.currentArtifactProvenanceAccount(
@@ -1843,7 +1848,9 @@ export class ActionsStore {
     }
     if (!review.downloadReleased) {
       review.downloadReleased = true
-      releaseActionsArtifactDownloadThroughMainProcess(review.context.downloadId)
+      releaseActionsArtifactDownloadThroughMainProcess(
+        review.context.downloadId
+      )
     }
     return true
   }
@@ -2055,7 +2062,9 @@ export class ActionsStore {
         referencedWorkflows: attempt.referenced_workflows,
       })
     } catch {
-      throw provenanceReviewError('GitHub returned invalid artifact provenance data.')
+      throw provenanceReviewError(
+        'GitHub returned invalid artifact provenance data.'
+      )
     }
     if (candidates.length === 0) {
       throw provenanceReviewError(
@@ -2096,7 +2105,9 @@ export class ActionsStore {
       review.archiveDigest === null ||
       review.archiveBytes === null
     ) {
-      throw provenanceReviewError('The artifact provenance review is incomplete.')
+      throw provenanceReviewError(
+        'The artifact provenance review is incomplete.'
+      )
     }
     return {
       reviewId: review.reviewId,

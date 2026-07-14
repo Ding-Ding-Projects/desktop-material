@@ -152,8 +152,10 @@ export class RunArtifacts extends React.Component<
       return
     }
     this.releasedDownloadIds.add(completed.downloadId)
-    ;(this.props.releaseDownload ??
-      releaseActionsArtifactDownloadThroughMainProcess)(completed.downloadId)
+    ;(
+      this.props.releaseDownload ??
+      releaseActionsArtifactDownloadThroughMainProcess
+    )(completed.downloadId)
   }
 
   private loadArtifacts = () => {
@@ -465,8 +467,10 @@ export class RunArtifacts extends React.Component<
           },
         })
       } else {
-        ;(this.props.releaseDownload ??
-          releaseActionsArtifactDownloadThroughMainProcess)(result.downloadId)
+        ;(
+          this.props.releaseDownload ??
+          releaseActionsArtifactDownloadThroughMainProcess
+        )(result.downloadId)
       }
     } catch (error) {
       if (

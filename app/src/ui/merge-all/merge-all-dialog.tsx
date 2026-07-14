@@ -69,6 +69,8 @@ export class MergeAllDialog extends React.Component<IMergeAllDialogProps> {
             className="merge-all-results-scroll"
             role="region"
             aria-label="Merge results"
+            // This region is a keyboard-scrollable results surface.
+            // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
             tabIndex={0}
           >
             <table className="merge-all-results">

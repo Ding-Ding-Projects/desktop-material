@@ -425,7 +425,6 @@ function isValidFullRefName(ref: string): boolean {
     )
 }
 
-
 function normalizeRepositoryExportDestination(
   repositoryPath: string,
   destination: string,
