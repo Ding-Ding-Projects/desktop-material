@@ -100,6 +100,44 @@ class ProviderStateTests(unittest.TestCase):
         self.assertEqual(attestation.status, 200)
         self.assertEqual(len(self.json(attestation)["attestations"]), 1)
 
+    def test_actions_cache_inventory_usage_and_deletion_are_bounded(self) -> None:
+        inventory = self.state.dispatch(
+            "GET",
+            self.repo_path + "/actions/caches?per_page=30&page=1",
+            self.headers,
+        )
+        usage = self.state.dispatch(
+            "GET",
+            self.repo_path + "/actions/cache/usage",
+            self.headers,
+        )
+        self.assertEqual(inventory.status, 200)
+        self.assertEqual(usage.status, 200)
+        self.assertEqual(
+            len(self.json(inventory)["actions_caches"]),
+            len(provider.CACHE_IDS),
+        )
+        self.assertEqual(
+            self.json(usage)["active_caches_count"],
+            len(provider.CACHE_IDS),
+        )
+
+        deleted = self.state.dispatch(
+            "DELETE",
+            self.repo_path + f"/actions/caches/{provider.CACHE_IDS[1]}",
+            self.headers,
+        )
+        self.assertEqual(deleted.status, 204)
+        refreshed = self.state.dispatch(
+            "GET",
+            self.repo_path + "/actions/caches?per_page=30&page=1",
+            self.headers,
+        )
+        self.assertEqual(
+            [value["id"] for value in self.json(refreshed)["actions_caches"]],
+            [provider.CACHE_IDS[0], provider.CACHE_IDS[2]],
+        )
+
     def test_actions_pages_filters_and_sentinels_are_exact(self) -> None:
         first = self.state.dispatch(
             "GET",

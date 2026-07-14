@@ -56,6 +56,8 @@ PENDING_ENVIRONMENT_IDS = (86_101, 86_102)
 ARTIFACT_COUNT = 31
 ARTIFACT_PAGE_SIZE = 30
 ARTIFACT_SENTINEL_ID = ARTIFACT_ID + ARTIFACT_COUNT - 1
+CACHE_IDS = (87_001, 87_002, 87_003)
+ACTION_CACHE_PAGE_SIZE = 30
 RULESET_IDS = (91_001, 91_002)
 FIXTURE_TOKEN = "dm-p0-loopback-token-20260713"
 FIXTURE_HTML_URL = "http://material-provider.invalid"
@@ -168,6 +170,35 @@ class ProviderState:
         self.review_requests: list[dict[str, Any]] = []
         self.rerun_job_ids: set[int] = set()
         self.fork_approved = False
+        self.caches = [
+            {
+                "id": CACHE_IDS[0],
+                "key": "material-windows-node-modules-long-cache-key-for-responsive-review",
+                "ref": "refs/heads/feature/material-verification",
+                "size_in_bytes": 248_781_824,
+                "last_accessed_at": FIXED_TIME,
+                "created_at": "2026-07-10T09:00:00Z",
+                "version": "cache-v3",
+            },
+            {
+                "id": CACHE_IDS[1],
+                "key": "material-yarn-global-cache",
+                "ref": "refs/heads/main",
+                "size_in_bytes": 91_750_400,
+                "last_accessed_at": "2026-07-12T18:10:00Z",
+                "created_at": "2026-07-08T11:30:00Z",
+                "version": "cache-v2",
+            },
+            {
+                "id": CACHE_IDS[2],
+                "key": "material-playwright-browsers",
+                "ref": None,
+                "size_in_bytes": 536_870_912,
+                "last_accessed_at": "2026-07-11T07:45:00Z",
+                "created_at": "2026-07-01T15:45:00Z",
+                "version": "cache-v1",
+            },
+        ]
         self.artifact_bytes = artifact_path.read_bytes()
         self.artifact_hex_digest = hashlib.sha256(self.artifact_bytes).hexdigest()
 
@@ -700,6 +731,45 @@ class ProviderState:
             }
         )
 
+    def _caches(self, query: Mapping[str, list[str]]) -> FixtureResponse:
+        allowed = {"page", "per_page", "key", "ref"}
+        paging = self._page(
+            query,
+            expected_page_size=ACTION_CACHE_PAGE_SIZE,
+            allowed=allowed,
+        )
+        if paging is None or any(len(query.get(key, [])) > 1 for key in allowed):
+            return json_response(
+                {"message": "Invalid Actions cache pagination or filter."},
+                HTTPStatus.UNPROCESSABLE_ENTITY,
+            )
+        page, page_size = paging
+        key = query.get("key", [None])[0]
+        ref = query.get("ref", [None])[0]
+        caches = [
+            value
+            for value in self.caches
+            if (key is None or value["key"] == key)
+            and (ref is None or value["ref"] == ref)
+        ]
+        start = (page - 1) * page_size
+        return json_response(
+            {
+                "total_count": len(caches),
+                "actions_caches": caches[start : start + page_size],
+            }
+        )
+
+    def _cache_usage(self) -> FixtureResponse:
+        return json_response(
+            {
+                "active_caches_size_in_bytes": sum(
+                    value["size_in_bytes"] for value in self.caches
+                ),
+                "active_caches_count": len(self.caches),
+            }
+        )
+
     def _authorized(self, headers: Mapping[str, str]) -> bool:
         authorization = next(
             (value for key, value in headers.items() if key.lower() == "authorization"),
@@ -929,6 +999,44 @@ class ProviderState:
             f"{repo_root}/actions/workflows/{WORKFLOW_ID}/runs",
         }:
             return self._workflow_runs(query)
+        if method == "GET" and resource == f"{repo_root}/actions/caches":
+            return self._caches(query)
+        if method == "GET" and resource == f"{repo_root}/actions/cache/usage":
+            if query:
+                return json_response(
+                    {"message": "Cache usage does not accept query parameters."},
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                )
+            return self._cache_usage()
+
+        cache_match = re.fullmatch(
+            re.escape(f"{repo_root}/actions/caches/") + r"(\d+)",
+            resource,
+        )
+        if method == "DELETE" and cache_match is not None:
+            cache_id = parse_route_identifier(cache_match.group(1))
+            if query or cache_id not in {value["id"] for value in self.caches}:
+                return json_response({"message": "Cache not found"}, HTTPStatus.NOT_FOUND)
+            with self._lock:
+                self.caches = [value for value in self.caches if value["id"] != cache_id]
+            return empty_response()
+        if method == "DELETE" and resource == f"{repo_root}/actions/caches":
+            if set(query) not in ({"key"}, {"key", "ref"}) or any(
+                len(values) != 1 for values in query.values()
+            ):
+                return json_response(
+                    {"message": "Cache deletion requires one key and optional ref."},
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                )
+            key = query["key"][0]
+            ref = query.get("ref", [None])[0]
+            with self._lock:
+                self.caches = [
+                    value
+                    for value in self.caches
+                    if not (value["key"] == key and (ref is None or value["ref"] == ref))
+                ]
+            return empty_response()
 
         jobs_match = re.fullmatch(
             re.escape(f"{repo_root}/actions/runs/") + r"(\d+)/jobs",

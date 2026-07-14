@@ -1,13 +1,12 @@
 # Guided Feature Gallery
 
-This page maps the guided feature documentation to its 14-image acceptance gallery. Every view
+This page maps the guided feature documentation to its 18-image acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
 
-> **Publication status:** This is the documentation manifest for the candidate gallery. Listing an
-> asset here does not by itself claim that the final source is on `main`, that CI or installers
-> passed, or that Pages, the public wiki, or a release has been refreshed. Those closing results
-> remain recorded in the repository's PLAN and HANDOFF after they are verified.
+> **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
+> pagination evidence. Final source, CI, Pages, wiki, and push receipts remain recorded in
+> `HANDOFF.md` after verification.
 
 | Asset | Guided workflow shown |
 | --- | --- |
@@ -21,6 +20,10 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 | `material-stash-manager.png` | Repository-wide stash selection and exact-entry actions |
 | `material-actions-job-log.png` | Searchable in-app Actions job log |
 | `material-actions-artifact-download.png` | Bounded artifact download with a locally computed digest |
+| `material-actions-cache-manager.png` | Actions cache usage, inventory, refs, and deletion controls |
+| `material-actions-pagination-headless.png` | Headless Actions run pagination and page-two sentinel |
+| `material-actions-artifacts-headless.png` | Headless bounded artifact inventory |
+| `material-actions-sentinel-headless.png` | Headless wrapped sentinel evidence with no clipping |
 | `material-github-releases.png` | Repository-bound Releases and assets workspace |
 | `material-github-issues.png` | Issue detail, comments, and reviewed lifecycle controls |
 | `material-provider-triage.png` | Account- and repository-bound provider triage |
@@ -53,6 +56,14 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 ![Searchable in-app Actions job log](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-job-log.png)
 
 ![Bounded Actions artifact download with a locally computed digest](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifact-download.png)
+
+![Actions cache manager with usage totals, refs, wrapped keys, and delete controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-cache-manager.png)
+
+![Headless Actions run pagination with the page-two sentinel retained](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pagination-headless.png)
+
+![Headless Actions artifact inventory with bounded pagination](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifacts-headless.png)
+
+![Headless Actions sentinel evidence with wrapped content and no clipping](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-sentinel-headless.png)
 
 ![Repository-bound Releases and assets workspace](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
 

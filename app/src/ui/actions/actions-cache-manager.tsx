@@ -46,17 +46,6 @@ export class ActionsCacheManager extends React.PureComponent<IActionsCacheManage
     }
   }
 
-  public componentDidMount() {
-    if (
-      this.props.state.caches === null &&
-      this.props.state.cacheUsage === null &&
-      !this.props.state.cachesLoading &&
-      !this.props.state.cacheUsageLoading
-    ) {
-      this.loadCaches()
-    }
-  }
-
   private formatDate(date: Date): string {
     try {
       return date.toLocaleDateString('en-US', {

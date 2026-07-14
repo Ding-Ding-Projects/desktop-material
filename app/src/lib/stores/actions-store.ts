@@ -1007,6 +1007,7 @@ export class ActionsStore {
       ) {
         return
       }
+      const current = this.states.get(key) ?? existing
       const nextRuns =
         existing.runs.length <= runs.workflow_runs.length
           ? workflowRunsEqual(existing.runs, runs.workflow_runs)
@@ -1033,11 +1034,11 @@ export class ActionsStore {
         rateLimitReset: null,
         lastUpdated: new Date(),
         supported: true,
-        caches: existing.caches,
-        cachesLoading: existing.cachesLoading,
-        cachesError: existing.cachesError,
-        cacheUsage: existing.cacheUsage,
-        cacheUsageLoading: existing.cacheUsageLoading,
+        caches: current.caches,
+        cachesLoading: current.cachesLoading,
+        cachesError: current.cachesError,
+        cacheUsage: current.cacheUsage,
+        cacheUsageLoading: current.cacheUsageLoading,
       })
     } catch (error) {
       if (
@@ -1050,9 +1051,10 @@ export class ActionsStore {
       const clearCachedData =
         error instanceof APIError &&
         (error.responseStatus === 401 || error.responseStatus === 403)
+      const current = this.states.get(key) ?? existing
       const safeExisting = clearCachedData
-        ? emptyState(existing.supported)
-        : existing
+        ? emptyState(current.supported)
+        : current
       this.notify(repository, {
         ...safeExisting,
         runsLoadingMore: false,
@@ -1273,10 +1275,18 @@ export class ActionsStore {
     })
 
     try {
-      const [list, usage] = await Promise.all([
-        this.apiFor(repository).fetchActionsCaches(owner.login, name),
-        this.apiFor(repository).fetchActionsCacheUsage(owner.login, name),
-      ])
+      // Keep the two bounded JSON streams independent. Some GitHub Enterprise
+      // proxies reuse one connection for concurrent Actions metadata requests;
+      // sequential reads prevent one response body from leaving the other
+      // cache request in a permanent loading state.
+      const list = await this.apiFor(repository).fetchActionsCaches(
+        owner.login,
+        name
+      )
+      const usage = await this.apiFor(repository).fetchActionsCacheUsage(
+        owner.login,
+        name
+      )
       const current = this.states.get(key)
       if (current === undefined) {
         return

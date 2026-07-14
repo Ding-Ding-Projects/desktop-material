@@ -4,7 +4,7 @@
 
 The legacy **M0 through M18** Material foundation remains shipped on `main`.
 The newer Git, GitHub CLI, GitHub API, and GitKraken-parity roadmap is active on
-`mega-feature-update`; it deliberately turns audited capabilities into named,
+`main`; it deliberately turns audited capabilities into named,
 interactive app functions instead of exposing a searchable command/API list.
 
 The first four-function P0 wave is implemented, pushed, and production-UI
@@ -17,9 +17,9 @@ pagination then passed its exact production UI gate at
 exact job logs/re-runs, pending deployment reviews, and fork-run approval now
 pass their production UI gate at
 `2f40d8949aaa7ae4ce5418cd949c28c643da0a37`. Cryptographic artifact
-attestation verification is the next named-function slice; the smaller Actions
-cache manager follows, then bounded Pull Request Center and Issue Hub read
-waves. Release Manager follows those work centers in the README roadmap.
+attestation review/result UI and the smaller Actions cache manager are now
+shipped; bounded Pull Request Center and Release Manager read/review waves are
+next, followed by the Issue Hub wave.
 
 This handoff does not claim that branch-only Pages assets are already live on
 `main`. Pages remains protected to the normal reviewed `main` promotion path;
@@ -418,8 +418,8 @@ gate. The newer function-first parity roadmap is intentionally active: the P0
 four-function slice, typed operation boundary, and Actions run/artifact
 pagination are production-verified. Attempt/job/log/re-run, deployment-review,
 and fork-approval functions have now passed their production UI gate as well.
-Cryptographic artifact attestation verification and Actions cache management
-are next, followed by bounded PR/Issue waves and then Release Manager.
+Cryptographic artifact attestation review/result UI and Actions cache
+management are now shipped, followed by bounded PR/Release and Issue waves.
 
 ## 2026-07-13 Actions run inspector production UI gate
 
@@ -513,6 +513,38 @@ cards with wrapped captions and no sideways scrolling.
   reached zero windows, closed exactly once, and then returned not found. The
   containment-checked run root and separate wiki clone were removed with
   `Test-Path=false`. The visible user desktop remained untouched.
+
+## 2026-07-14 Actions cache and screenshot refresh
+
+The Actions provenance/result UI and cache-manager slice is complete on the
+current `main` promotion. The cache manager now starts after the repository's
+selected-account subscription, survives late Fetch-origin association, and
+keeps cache state when a concurrent workflow refresh completes. The page uses a
+scrollable vertical layout so long cache keys, refs, usage, and destructive
+controls remain visible without page-level sideways scrolling.
+
+The synthetic loopback provider adds three bounded cache records and usage,
+single-delete, and delete-by-key routes. Exact headless verification ran on
+`DesktopMaterialActionsCache-20260714-8c4f` with the cached Electron 42.0.1
+runtime, provider `http://localhost:51008/api/v3`, and renderer CDP port 51111.
+The pagination gate loaded 51 successful workflow runs and 31 artifacts with
+both page-two sentinels and empty overflow/clipping/outside/overlap receipts.
+The cache gate displayed 3 caches using 836.8 MiB, all cache cards, and all
+delete controls in an inspected original-resolution 960×660 PNG.
+
+Promoted evidence is referenced by README, the three in-repo wiki pages, and
+the Pages gallery:
+
+- `material-actions-cache-manager.png`
+- `material-actions-pagination-headless.png`
+- `material-actions-artifacts-headless.png`
+- `material-actions-sentinel-headless.png`
+
+Focused formatting, TypeScript, Actions cache/store/UI tests (30/30), fake
+provider tests (12/12), and scoped ESLint passed. Webpack completed in the
+exact `build:prod` command, but packaging remains environment-blocked because
+`node_modules\printenvz\build\Release\printenvz.exe` is absent; no dependency
+was downloaded or synthesized.
 
 ## Maintenance constraints
 

@@ -45,8 +45,33 @@ Required UI behavior:
 - `site/index.html`
 - `docs/assets/screenshots/material-actions-artifact-provenance-review.png`
 - `docs/assets/screenshots/material-actions-artifact-provenance-result.png`
+- `docs/assets/screenshots/material-actions-cache-manager.png`
+- `docs/assets/screenshots/material-actions-pagination-headless.png`
+- `docs/assets/screenshots/material-actions-artifacts-headless.png`
+- `docs/assets/screenshots/material-actions-sentinel-headless.png`
 - `HANDOFF.md`
 - this manifest
+
+## July 14 cache and pagination receipt
+
+- Renderer/store completion: the Actions cache manager is mounted after repository-account
+  subscription, retries the initial load across late GitHub association, preserves cache state when
+  run refreshes complete, and uses bounded list/usage/delete operations.
+- Fixture extension: `.codex/verification/p0_fake_github_provider.py` serves three synthetic caches
+  and bounded usage/deletion routes; its unit suite passes 12/12.
+- Exact MCP headless run: `DesktopMaterialActionsCache-20260714-8c4f`; fixture endpoint
+  `http://localhost:51008/api/v3`; renderer CDP was loopback-only on port `51111`; the app ran from
+  the cached Electron 42.0.1 runtime because the local Electron package binary was absent.
+- Pagination gate: 51 successful workflow runs and 31 artifacts loaded, page-two sentinels present,
+  with `documentScrollWidth === documentClientWidth`, no overflow, clipping, outside controls, or
+  pagination overlaps.
+- Cache gate: 3 caches, `836.8 MiB` usage, all three cache cards and delete controls visible in a
+  960×660 original-resolution PNG; cache panel geometry had no horizontal overflow.
+- Promoted screenshots (SHA-256):
+  - `material-actions-cache-manager.png` — `f6eb8b74ab40eeeff1f8cab2a3a09b7ed85c016005b442a98913b586a35bb06d`
+  - `material-actions-pagination-headless.png` — `27fc065f57cf90eeb394d74e1935881ddc707a4107798871922910db0252b1ee`
+  - `material-actions-artifacts-headless.png` — `f61467ba6b2446b06faeac30d5e07ee185fac3bcc7cf568d87f2ec86698842a7`
+  - `material-actions-sentinel-headless.png` — `f45139a70d76eae99626aaf8e07355a48b5fe26464b7a35f8ab4ad4e494f0cbd`
 
 ## Completion gate
 

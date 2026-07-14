@@ -28,6 +28,7 @@ import { WorkflowDispatchDialog } from './workflow-dispatch-dialog'
 import { JobLogViewer } from './job-log-viewer'
 import { ActionsConfirmationDialog } from './actions-confirmation-dialog'
 import { WorkflowStateControl } from './workflow-state-control'
+import { ActionsCacheManager } from './actions-cache-manager'
 
 type ActionsConfirmation =
   | { readonly kind: 'cancel-run'; readonly run: IAPIWorkflowRun }
@@ -171,6 +172,16 @@ export class ActionsView extends React.Component<
       this.logController = null
       this.subscribeToRepository()
     }
+    // A repository can gain its GitHub association after ActionsView mounts
+    // (for example, when Fetch origin completes). The tab then becomes
+    // available without changing the repository key, so finish the
+    // subscription lifecycle here as well.
+    if (
+      this.subscription === null &&
+      this.props.repository.gitHubRepository !== null
+    ) {
+      this.subscribeToRepository()
+    }
   }
 
   public componentWillUnmount() {
@@ -225,6 +236,7 @@ export class ActionsView extends React.Component<
   }
 
   private onActionsState = (actions: IActionsState) => {
+    this.ensureCacheManagerLoaded(actions)
     const authorizationInvalidated =
       actions.error instanceof APIError &&
       (actions.error.responseStatus === 401 ||
@@ -342,6 +354,22 @@ export class ActionsView extends React.Component<
     }
 
     this.setState({ actions, selectedRun })
+  }
+
+  private ensureCacheManagerLoaded(actions: IActionsState) {
+    const repository = this.props.repository
+    if (
+      repository.gitHubRepository === null ||
+      !actions.supported ||
+      actions.caches !== null ||
+      actions.cacheUsage !== null ||
+      actions.cachesLoading ||
+      actions.cacheUsageLoading ||
+      actions.cachesError !== null
+    ) {
+      return
+    }
+    void this.props.actionsStore.loadCacheManager(repository)
   }
 
   private onFilterChange = (event: React.FormEvent<HTMLSelectElement>) => {
@@ -1317,6 +1345,13 @@ export class ActionsView extends React.Component<
             />
           )}
         </div>
+        {this.props.repository.gitHubRepository && (
+          <ActionsCacheManager
+            repository={this.props.repository}
+            actionsStore={this.props.actionsStore}
+            state={actions}
+          />
+        )}
         {this.state.dispatchOpen && this.props.repository.gitHubRepository && (
           <WorkflowDispatchDialog
             repository={this.props.repository}

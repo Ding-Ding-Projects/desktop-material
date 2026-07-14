@@ -5,7 +5,8 @@
   min-width: 0;
   min-height: 0;
   padding: 22px;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
   color: var(--md-sys-color-on-surface);
   background: var(--md-sys-color-surface);
 
@@ -125,7 +126,7 @@
 .actions-content {
   position: relative;
   display: flex;
-  flex: 1 1 auto;
+  flex: 0 0 250px;
   gap: 14px;
   min-width: 0;
   min-height: 0;

@@ -133,6 +133,8 @@ class TestActionsStore {
   public readonly logSignals = new Array<AbortSignal | undefined>()
   public readonly logJobIds = new Array<number>()
   public readonly rerunJobIds = new Array<number>()
+  public readonly cacheLoads = new Array<string>()
+  public readonly cachePageLoads = new Array<string>()
   public readonly jobRequests = new Array<{
     readonly runId: number
     readonly attempt: number | null
@@ -182,6 +184,22 @@ class TestActionsStore {
       this.callbacks.get(repository.hash)?.(next)
     }
   }
+
+  public async loadCacheManager(repository: Repository) {
+    this.cacheLoads.push(repository.hash)
+  }
+
+  public async loadMoreCaches(repository: Repository) {
+    this.cachePageLoads.push(repository.hash)
+  }
+
+  public async deleteCache(_repository: Repository, _cacheId: number) {}
+
+  public async deleteCachesByKey(
+    _repository: Repository,
+    _key: string,
+    _ref?: string
+  ) {}
 
   public async setRunFilter(_repository: Repository, filter: ActionsRunFilter) {
     this.runFilters.push(filter)
@@ -280,6 +298,7 @@ describe('ActionsView repository lifecycle', () => {
         actionsStore={store as unknown as ActionsStore}
       />
     )
+    assert.deepEqual(store.cacheLoads, [selected.hash])
 
     fireEvent.change(screen.getByLabelText('Branch'), {
       target: { name: 'branch', value: 'release' },

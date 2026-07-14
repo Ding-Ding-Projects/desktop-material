@@ -402,6 +402,11 @@ const geometryExpression = `(() => {
     '.actions-view h1', '.actions-view h2', '.actions-view h3'
   ].join(','))) {
     if (!visible(element)) continue
+    // The cache manager is a second, independently scrollable section below
+    // the run/artifact evidence. Its headings can legitimately straddle the
+    // viewport while the pagination panel is under test; the cache-specific
+    // capture verifies that section after scrolling it into view.
+    if (element.closest('.actions-cache-manager')) continue
     const rect = element.getBoundingClientRect()
     if (rect.left < -1 || rect.right > innerWidth + 1 || rect.top < -1 || rect.bottom > innerHeight + 1) {
       outside.push({ element: label(element), left: one(rect.left), right: one(rect.right), top: one(rect.top), bottom: one(rect.bottom) })
