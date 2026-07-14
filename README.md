@@ -226,6 +226,12 @@ Effective branch-rules follow-up: use GraphQL `bypassForcePushAllowances` to res
 
 **Effective branch rules** — account-aware protection and ruleset state with long checks and deployments wrapped inside a vertically scrollable sheet.
 
+### Post-merge production launch
+
+![Post-merge production build welcome surface](docs/assets/screenshots/material-post-merge-welcome.png)
+
+**Production launch** — the rebuilt `b6e78eecf3` source opens to the privacy-safe welcome surface in the isolated off-screen verification profile; the original 960×660 capture was inspected before promotion.
+
 ### Additional Material workflows
 
 ![Automation preferences with global and account-level schedules](docs/assets/screenshots/material-automation.png)

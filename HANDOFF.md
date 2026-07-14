@@ -98,6 +98,19 @@ The two 944×1000 captures intentionally preserve tall original viewports of the
 dense Actions and Branch Rules states, including their visible internal scroll
 positions. They are original screenshots, not stitched or resized images.
 
+### 2026-07-14 post-merge production launch
+
+The post-merge source at `b6e78eecf3638fcdb1a81d27e7275c84e641a5f6` was rebuilt
+with the exact unpackaged production command and launched on one uniquely named
+off-screen Win32 desktop. The disposable HTTPS fixture and isolated profile were
+removed after capture. Chromium ignored the permitted background-posted welcome
+events, so this receipt intentionally records the stable launch surface rather
+than claiming a deeper renderer state that was not exercised.
+
+| Promoted screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-post-merge-welcome.png` | 960×660 | 150,763 | `c0e5cd5e56fe0cc839446256a8439789229627bc932b91421b418377fcf68d5a` |
+
 The Pages publish layout was also assembled exactly under the owned run root.
 All 21 images loaded with nonzero natural dimensions. At 944×660 the document
 width was 929 with matching scroll/client widths and zero visible overflows. At
