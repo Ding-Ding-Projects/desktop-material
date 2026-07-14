@@ -145,6 +145,9 @@ capabilities into named app functions rather than a searchable command or endpoi
   every title-bar, navigation, attempt, job, deployment, confirmation, and log control.
 - **No page-level sideways scrolling** — task forms wrap text and stack controls when space narrows.
   Horizontal scrolling is reserved for spatial content such as code, diffs, and logs when needed.
+- **Pages accessibility gate** — the current gallery passes headless accessibility checks at 960×660
+  and 390×844, with zero axe violations, matching document/body widths, and no horizontally outside
+  elements.
 
 ![History search and commit ancestry graph](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 

@@ -5,8 +5,8 @@ uses synthetic accounts, repositories, issues, pull requests, workflow runs, log
 metadata; no personal path, credential, or account identifier belongs in the image set.
 
 > **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
-> pagination evidence. Final source, CI, Pages, wiki, and push receipts remain recorded in
-> `HANDOFF.md` after verification.
+> pagination evidence and the current Pages accessibility/clipping gate. Final source, CI, Pages,
+> wiki, and push receipts remain recorded in `HANDOFF.md` after verification.
 
 | Asset | Guided workflow shown |
 | --- | --- |

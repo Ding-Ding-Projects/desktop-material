@@ -544,6 +544,28 @@ exact `build:prod` command, but packaging remains environment-blocked because
 `node_modules\printenvz\build\Release\printenvz.exe` is absent; no dependency
 was downloaded or synthesized.
 
+## 2026-07-14 accessibility and clipping gate
+
+The Pages source was exercised in system Edge headless mode at 960×660 and
+390×844. Both viewports passed with zero axe accessibility violations, matching
+document/body client and scroll widths, and zero visible elements extending past
+the horizontal viewport. The existing page gallery remained fully contained at
+both widths.
+
+The audit found and fixed two real accessibility defects: the footer skipped
+from page-level `h2` sections to `h4` headings, and the in-text roadmap link had
+insufficient contrast without a non-color distinction. Footer headings now use
+the correct `h3` level, and section links are underlined with a visible offset.
+
+Focused source/style coverage passed 27/27 tests, including the new Pages
+accessibility contracts and existing compact-shell, post-shell, Actions, and
+responsive style contracts. The exact production webpack bundles also compiled
+successfully. The Electron interaction portion could not launch in this checkout
+because the installed Electron package has no runtime binary and Playwright's
+bundled browser is absent; the build's packaging step remains blocked by the
+known missing `node_modules\printenvz\build\Release\printenvz.exe`. No runtime or
+dependency was downloaded.
+
 ## Maintenance constraints
 
 - Keep account identity on `endpoint#id`; never collapse provider accounts by

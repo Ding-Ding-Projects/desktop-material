@@ -138,6 +138,7 @@ The REST/GraphQL and Git command inventories are audit inputs only. Users get na
 
 - Do not require sideways scrolling in page or dialog shells wherever responsive wrapping or stacking can preserve usability. Horizontal scrolling is reserved for intrinsically spatial code, diff, and log surfaces.
 - Verify desktop and minimum supported windows, 50–200% UI scaling, light/dark themes, long repository/branch/host names, destructive confirmations, keyboard focus, and screen-reader labels.
+- The Pages source passes headless accessibility and clipping checks at 960×660 and 390×844: zero axe violations, matching document/body widths, and no horizontally outside elements.
 - Commit and push each coherent milestone. Documentation and screenshots must name the exact verified commit and must never claim an unbuilt state was exercised.
 
 ## Screenshots

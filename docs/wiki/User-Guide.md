@@ -389,6 +389,10 @@ The 1450×997 responsive regression check keeps the toolbar and complete Changes
 viewport—including filter, changed-file, summary, description, settings, and commit controls—with
 no page-level horizontal overflow.
 
+The Pages gallery also has a dedicated accessibility/clipping check at 960×660 and 390×844. It
+passes with zero axe violations, matching document/body widths, and no horizontally outside
+elements.
+
 ![Requested 200 percent UI scale auto-fitted to 96 percent at the minimum window size](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-scale-200-autofit.png)
 
 ![Responsive regression proof at 1450 by 997 with toolbar and Changes controls fully contained and no horizontal overflow](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-responsive-overflow-fixed.png)
