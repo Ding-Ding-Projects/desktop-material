@@ -2,8 +2,6 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import {
   API,
-  ActionsLogMaximumBytes,
-  ActionsLogTruncationMarker,
   createGitHubAPIRequestHeaders,
   getBitbucketAPIEndpoint,
   getEndpointForRepository,
@@ -271,6 +269,41 @@ describe('API', () => {
         assert.equal(headers.get(GitHubRESTAPIVersionHeader), null)
       }
     })
+
+    it('versions GHEC data-residency REST hosts without widening to GHES or impostors', () => {
+      for (const endpoint of [
+        'https://api.acme.ghe.com',
+        'https://API.ENTERPRISE.GHE.COM/',
+      ]) {
+        const headers = createGitHubAPIRequestHeaders(endpoint, '/user', {
+          'x-GITHUB-api-VERSION': '2022-11-28',
+        })
+        assert.equal(
+          headers.get(GitHubRESTAPIVersionHeader),
+          GitHubDotComRESTAPIVersion
+        )
+        assert.equal(
+          createGitHubAPIRequestHeaders(endpoint, '/graphql').get(
+            GitHubRESTAPIVersionHeader
+          ),
+          null
+        )
+      }
+
+      for (const endpoint of [
+        'https://ghe.com',
+        'https://api.ghe.com',
+        'https://api.acme.ghe.com.example.test',
+        'https://github.example.test/api/v3',
+      ]) {
+        assert.equal(
+          createGitHubAPIRequestHeaders(endpoint, '/user').get(
+            GitHubRESTAPIVersionHeader
+          ),
+          null
+        )
+      }
+    })
   })
 
   describe('fetchOrgRepositories', () => {
@@ -439,12 +472,23 @@ describe('API', () => {
         method: string
         path: string
         body?: Object
+        signal?: AbortSignal
       }>()
+      const controller = new AbortController()
       Reflect.set(
         api,
         'ghRequest',
-        async (method: string, path: string, options?: { body?: Object }) => {
-          requests.push({ method, path, body: options?.body })
+        async (
+          method: string,
+          path: string,
+          options?: { body?: Object; signal?: AbortSignal }
+        ) => {
+          requests.push({
+            method,
+            path,
+            body: options?.body,
+            signal: options?.signal,
+          })
           return path.endsWith('/dispatches')
             ? new Response(null, { status: 204 })
             : new Response(
@@ -456,24 +500,35 @@ describe('API', () => {
         }
       )
 
-      await api.fetchWorkflowRuns('owner', 'repo', {
-        workflowId: 42,
-        branch: 'feature/a',
-        event: 'push',
-        status: 'success',
-      })
+      await api.fetchWorkflowRuns(
+        'owner',
+        'repo',
+        {
+          workflowId: 42,
+          branch: 'feature/a',
+          event: 'push',
+          status: 'success',
+          page: 3,
+        },
+        controller.signal
+      )
       await api.dispatchWorkflow('owner', 'repo', 42, 'main', {
         target: 'prod',
       })
 
       assert.equal(
         requests[0].path,
-        'repos/owner/repo/actions/workflows/42/runs?per_page=50&branch=feature%2Fa&event=push&status=success'
+        'repos/owner/repo/actions/workflows/42/runs?per_page=50&page=3&branch=feature%2Fa&event=push&status=success'
       )
+      assert.equal(requests[0].signal, controller.signal)
       assert.deepEqual(requests[1].body, {
         ref: 'main',
         inputs: { target: 'prod' },
       })
+
+      await assert.rejects(() =>
+        api.fetchWorkflowRuns('owner', 'repo', { page: 0 })
+      )
     })
 
     it('uses the exact Actions mutation methods and paths', async () => {
@@ -533,115 +588,6 @@ describe('API', () => {
           error.responseStatus === 404 &&
           error.message === 'Resource not found'
       )
-    })
-
-    it('follows job log redirects without forwarding request options', async () => {
-      const api = new API('https://api.github.com', 'secret')
-      Reflect.set(
-        api,
-        'ghRequest',
-        async () =>
-          new Response(null, {
-            status: 302,
-            headers: { Location: 'https://blob.example.test/job.txt' },
-          })
-      )
-      const originalFetch = globalThis.fetch
-      let receivedOptions: RequestInit | undefined
-      globalThis.fetch = async (_input, options) => {
-        receivedOptions = options
-        return new Response('hello from the job')
-      }
-
-      assert.equal(await api.rerunJob('owner', 'repo', 17), true)
-      await api.cancelWorkflowRun('owner', 'repo', 23)
-      await api.cancelWorkflowRun('owner', 'repo', 24, true)
-      await api.setWorkflowEnabled('owner', 'repo', 31, true)
-      await api.setWorkflowEnabled('owner', 'repo', 32, false)
-
-      assert.deepEqual(requests, [
-        {
-          method: 'POST',
-          path: '/repos/owner/repo/actions/jobs/17/rerun',
-        },
-        {
-          method: 'POST',
-          path: 'repos/owner/repo/actions/runs/23/cancel',
-        },
-        {
-          method: 'POST',
-          path: 'repos/owner/repo/actions/runs/24/force-cancel',
-        },
-        {
-          method: 'PUT',
-          path: 'repos/owner/repo/actions/workflows/31/enable',
-        },
-        {
-          method: 'PUT',
-          path: 'repos/owner/repo/actions/workflows/32/disable',
-        },
-      ])
-    })
-
-    it('preserves structured errors for workflow state changes', async () => {
-      const api = new API('https://api.github.com', 'token')
-      Reflect.set(
-        api,
-        'ghRequest',
-        async () =>
-          new Response(JSON.stringify({ message: 'Resource not found' }), {
-            status: 404,
-            headers: { 'Content-Type': 'application/json' },
-          })
-      )
-
-      await assert.rejects(
-        api.setWorkflowEnabled('owner', 'repo', 31, true),
-        error =>
-          error instanceof APIError &&
-          error.responseStatus === 404 &&
-          error.message === 'Resource not found'
-      )
-    })
-
-    it('propagates the exact signal for account-bound Actions reads', async () => {
-      const api = new API('https://api.github.com', 'token')
-      const controller = new AbortController()
-      const requests = new Array<{ path: string; signal?: AbortSignal }>()
-      Reflect.set(
-        api,
-        'ghRequest',
-        async (
-          _method: string,
-          path: string,
-          options?: { signal?: AbortSignal }
-        ) => {
-          requests.push({ path, signal: options?.signal })
-          return new Response(
-            path.endsWith('/jobs') ? JSON.stringify({ jobs: [] }) : 'name: CI'
-          )
-        }
-      )
-
-      await api.fetchWorkflowRunJobs('owner', 'repo', 42, controller.signal)
-      await api.fetchWorkflowFileContent(
-        'owner',
-        'repo',
-        '.github/workflows/ci.yml',
-        'main',
-        controller.signal
-      )
-
-      assert.deepEqual(requests, [
-        {
-          path: 'repos/owner/repo/actions/runs/42/jobs',
-          signal: controller.signal,
-        },
-        {
-          path: 'repos/owner/repo/contents/.github/workflows/ci.yml?ref=main',
-          signal: controller.signal,
-        },
-      ])
     })
   })
 

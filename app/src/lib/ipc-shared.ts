@@ -29,10 +29,28 @@ import {
 } from './agent-commands'
 import {
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
-  ICLIWorkbenchCatalog,
+  ICLIWorkbenchOperationRequest,
+  ICLIWorkbenchRuntime,
 } from './cli-workbench'
+import {
+  ActionsArtifactTransferResult,
+  ActionsJobLogTransferResult,
+  IActionsArtifactTransferRequest,
+  IActionsJobLogTransferRequest,
+  IActionsTransferProgressEvent,
+} from './actions-transfer'
+import {
+  ActionsArtifactSubjectInventoryResult,
+  ActionsArtifactSubjectPrepareResult,
+  IActionsArtifactSubjectInspectRequest,
+  IActionsArtifactSubjectPrepareRequest,
+} from './actions-artifact-subjects'
+import {
+  ActionsArtifactProvenanceResult,
+  IActionsArtifactProvenanceCredentialRegistration,
+  IActionsArtifactProvenanceVerifyRequest,
+} from './actions-artifact-provenance'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -41,12 +59,17 @@ import {
  * the two over the untyped IPC framework.
  */
 export type RequestChannels = {
+  'cancel-actions-artifact-provenance': (operationId: string) => void
+  'release-actions-artifact-provenance-credential-lease': (
+    accountHandle: string
+  ) => void
+  'invalidate-actions-artifact-provenance-credential-lease-generation': (
+    accountsGeneration: number
+  ) => void
+  'cancel-actions-artifact-subject-operation': (operationId: string) => void
+  'release-actions-artifact-download': (downloadId: string) => void
   'cancel-actions-transfer': (operationId: string) => void
   'actions-transfer-progress': (event: IActionsTransferProgressEvent) => void
-  'cancel-github-release-transfer': (operationId: string) => void
-  'github-release-transfer-progress': (
-    event: IGitHubReleaseTransferProgressEvent
-  ) => void
   'agent-command': (command: IAgentCommandEnvelope) => void
   'agent-command-result': (id: string, result: AgentCommandResult) => void
   'agent-server-status': (status: IAgentServerStatus) => void
@@ -135,18 +158,24 @@ export type RequestChannels = {
  * Return signatures must be promises
  */
 export type RequestResponseChannels = {
+  'register-actions-artifact-provenance-credential-lease': (
+    request: IActionsArtifactProvenanceCredentialRegistration
+  ) => Promise<string | null>
+  'verify-actions-artifact-provenance': (
+    request: IActionsArtifactProvenanceVerifyRequest
+  ) => Promise<ActionsArtifactProvenanceResult>
+  'inspect-actions-artifact-subjects': (
+    request: IActionsArtifactSubjectInspectRequest
+  ) => Promise<ActionsArtifactSubjectInventoryResult>
+  'prepare-actions-artifact-subject': (
+    request: IActionsArtifactSubjectPrepareRequest
+  ) => Promise<ActionsArtifactSubjectPrepareResult>
   'download-actions-artifact': (
     request: IActionsArtifactTransferRequest
   ) => Promise<ActionsArtifactTransferResult>
   'fetch-actions-job-log': (
     request: IActionsJobLogTransferRequest
   ) => Promise<ActionsJobLogTransferResult>
-  'download-release-asset': (
-    request: IGitHubReleaseAssetDownloadRequest
-  ) => Promise<GitHubReleaseAssetDownloadTransferResult>
-  'upload-release-asset': (
-    request: IGitHubReleaseAssetUploadRequest
-  ) => Promise<GitHubReleaseAssetUploadTransferResult>
   'get-agent-server-status': () => Promise<IAgentServerStatus>
   'regenerate-agent-server-token': () => Promise<IAgentServerStatus>
   'get-path': (path: PathType) => Promise<string>
@@ -191,11 +220,7 @@ export type RequestResponseChannels = {
   'request-notifications-permission': () => Promise<boolean>
   'start-build-run': (plan: IBuildRunPlan) => Promise<void>
   'cancel-build-run': (runId: string) => Promise<void>
-  'get-cli-workbench-catalog': () => Promise<ICLIWorkbenchCatalog>
-  'start-cli-command': (request: ICLICommandRequest) => Promise<void>
+  'get-cli-workbench-runtime': () => Promise<ICLIWorkbenchRuntime>
+  'start-cli-command': (request: ICLIWorkbenchOperationRequest) => Promise<void>
   'cancel-cli-command': (id: string) => Promise<boolean>
-  'write-cli-command-input': (
-    id: string,
-    data: string | null
-  ) => Promise<boolean>
 }

@@ -20,10 +20,13 @@ describe('IPC channel contract', () => {
     : never
 
   const expectedRequestChannels = [
+    'cancel-actions-artifact-provenance',
+    'release-actions-artifact-provenance-credential-lease',
+    'invalidate-actions-artifact-provenance-credential-lease-generation',
+    'cancel-actions-artifact-subject-operation',
+    'release-actions-artifact-download',
     'cancel-actions-transfer',
     'actions-transfer-progress',
-    'cancel-github-release-transfer',
-    'github-release-transfer-progress',
     'agent-command',
     'agent-command-result',
     'agent-server-status',
@@ -88,10 +91,12 @@ describe('IPC channel contract', () => {
   ] as const
 
   const expectedResponseChannels = [
+    'register-actions-artifact-provenance-credential-lease',
+    'verify-actions-artifact-provenance',
+    'inspect-actions-artifact-subjects',
+    'prepare-actions-artifact-subject',
     'download-actions-artifact',
     'fetch-actions-job-log',
-    'download-release-asset',
-    'upload-release-asset',
     'get-agent-server-status',
     'regenerate-agent-server-token',
     'get-path',
@@ -123,10 +128,9 @@ describe('IPC channel contract', () => {
     'request-notifications-permission',
     'start-build-run',
     'cancel-build-run',
-    'get-cli-workbench-catalog',
+    'get-cli-workbench-runtime',
     'start-cli-command',
     'cancel-cli-command',
-    'write-cli-command-input',
   ] as const
 
   describe('RequestChannels', () => {
@@ -189,28 +193,14 @@ describe('IPC channel contract', () => {
       }
     })
 
-    it('binds start-cli-command to a structured recipe with no raw execution fields', () => {
-      const request: Parameters<
+    it('keeps raw executables and argv out of the CLI operation request', () => {
+      type StartRequest = Parameters<
         RequestResponseChannels['start-cli-command']
-      >[0] = {
-        id: 'ipc-guided-recipe',
-        repositoryPath: 'C:\\work\\repository',
-        recipe: {
-          kind: 'repository-tool',
-          operation: 'status-summary',
-        },
-        confirmed: false,
-      }
+      >[0]
+      type RawFields = Extract<keyof StartRequest, 'tool' | 'args' | 'cwd'>
+      const hasNoRawFields: RawFields extends never ? true : never = true
 
-      assert.deepStrictEqual(Object.keys(request).sort(), [
-        'confirmed',
-        'id',
-        'recipe',
-        'repositoryPath',
-      ])
-      assert.equal('args' in request, false)
-      assert.equal('cwd' in request, false)
-      assert.equal('tool' in request, false)
+      assert.equal(hasNoRawFields, true)
     })
   })
 })

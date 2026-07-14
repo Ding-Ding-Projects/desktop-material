@@ -1,11 +1,8 @@
-/** The REST endpoint is requested with GitHub's maximum supported page size. */
-export const ActionsArtifactPageSize = 100
+/** Keep each interactive artifact page compact while remaining API-efficient. */
+export const ActionsArtifactPageSize = 30
 
-/**
- * Interactive pagination is deliberately finite. A user can inspect at most
- * 1,000 artifact records for one workflow run without refreshing the list.
- */
-export const ActionsArtifactMaximumPages = 10
+/** Reject accidental or hostile page values before constructing a request. */
+export const ActionsArtifactMaximumPage = 1_000_000
 
 /**
  * A deliberate application safety limit. Artifact archives are streamed, but
@@ -15,6 +12,12 @@ export const ActionsArtifactMaximumDownloadBytes = 5 * 1024 * 1024 * 1024
 
 export interface IActionsArtifactWorkflowRun {
   readonly id: number
+  /**
+   * Exact workflow-run attempt that produced this artifact. Older provider
+   * responses may omit it; provenance verification then remains unavailable
+   * rather than silently binding the artifact to the latest attempt.
+   */
+  readonly runAttempt: number | null
   readonly headBranch: string | null
   readonly headSha: string
 }
@@ -35,14 +38,12 @@ export interface IActionsArtifact {
 export interface IActionsArtifactList {
   readonly totalCount: number
   readonly artifacts: ReadonlyArray<IActionsArtifact>
-  /** The highest contiguous page represented by `artifacts`. */
+  /** Highest provider page represented by this list. */
   readonly page: number
-  /** The next page the UI may request, or null when the list is complete. */
+  /** Next provider page available through the named Load more control. */
   readonly nextPage: number | null
-  /** True when GitHub reports records beyond the pages already represented. */
+  /** True when GitHub reports more artifacts than are currently loaded. */
   readonly truncated: boolean
-  /** True when more records exist but the application page cap was reached. */
-  readonly capped: boolean
 }
 
 const controlCharacters = /[\u0000-\u001f\u007f]/
@@ -165,13 +166,16 @@ function parseWorkflowRun(
   if (!gitObjectId.test(headSha)) {
     throw new Error('GitHub returned an invalid artifact workflow run commit.')
   }
-  return { id, headBranch, headSha }
+  const runAttempt =
+    input.run_attempt === null || input.run_attempt === undefined
+      ? null
+      : safeInteger(input.run_attempt, 'artifact workflow run attempt', 1)
+  return { id, runAttempt, headBranch, headSha }
 }
 
 /**
  * Validate and normalize GitHub's artifact list before any response reaches UI
- * state. Each response is limited to one GitHub-sized page and tied to the
- * exact workflow run and page requested by the app.
+ * state. The parser accepts only one bounded page requested by the app.
  */
 export function parseActionsArtifactList(
   value: unknown,
@@ -179,10 +183,7 @@ export function parseActionsArtifactList(
   page: number = 1
 ): IActionsArtifactList {
   safeInteger(expectedRunId, 'workflow run id', 1)
-  safeInteger(page, 'artifact page', 1)
-  if (page > ActionsArtifactMaximumPages) {
-    throw new Error('The requested artifact page exceeds the app safety limit.')
-  }
+  validateActionsArtifactPage(page)
   const input = record(value, 'artifact list')
   const totalCount = safeInteger(input.total_count, 'artifact count')
   if (!Array.isArray(input.artifacts)) {
@@ -218,56 +219,71 @@ export function parseActionsArtifactList(
     }
   })
 
-  const pageStart = (page - 1) * ActionsArtifactPageSize
-  if (totalCount < pageStart + artifacts.length) {
+  if (totalCount < artifacts.length) {
     throw new Error('GitHub returned an inconsistent artifact count.')
   }
 
-  const truncated = totalCount > pageStart + artifacts.length
-  const capped = truncated && page === ActionsArtifactMaximumPages
+  const expectedPageItems = Math.min(
+    ActionsArtifactPageSize,
+    Math.max(totalCount - (page - 1) * ActionsArtifactPageSize, 0)
+  )
+  const hasLaterPage =
+    page * ActionsArtifactPageSize < totalCount ||
+    (artifacts.length > 0 && artifacts.length < expectedPageItems)
 
   return {
     totalCount,
     artifacts,
     page,
-    nextPage: truncated && !capped ? page + 1 : null,
-    truncated,
-    capped,
+    nextPage:
+      artifacts.length > 0 && page < ActionsArtifactMaximumPage && hasLaterPage
+        ? page + 1
+        : null,
+    truncated: totalCount > artifacts.length,
   }
 }
 
 /**
- * Append an exact contiguous artifact page while rejecting provider churn or
- * duplicate records. Callers keep the already-rendered list when this throws
- * and can ask the user to refresh from page one.
+ * Append a later provider page, updating duplicates that shifted between
+ * requests without rendering the same artifact twice.
  */
-export function appendActionsArtifactPage(
-  current: IActionsArtifactList,
+export function mergeActionsArtifactPage(
+  existing: IActionsArtifactList,
   next: IActionsArtifactList
 ): IActionsArtifactList {
-  if (current.nextPage === null || next.page !== current.nextPage) {
-    throw new Error('GitHub returned an unexpected artifact page.')
-  }
-  if (current.totalCount !== next.totalCount) {
-    throw new Error(
-      'The artifact list changed while loading another page. Refresh artifacts and try again.'
-    )
+  if (existing.nextPage === null || next.page !== existing.nextPage) {
+    throw new Error('The artifact page no longer matches the loaded list.')
   }
 
-  const ids = new Set(current.artifacts.map(artifact => artifact.id))
-  if (next.artifacts.some(artifact => ids.has(artifact.id))) {
-    throw new Error(
-      'The artifact list changed while loading another page. Refresh artifacts and try again.'
-    )
+  const artifacts = [...existing.artifacts]
+  const indexes = new Map(
+    artifacts.map((artifact, index) => [artifact.id, index])
+  )
+  for (const artifact of next.artifacts) {
+    const index = indexes.get(artifact.id)
+    if (index === undefined) {
+      indexes.set(artifact.id, artifacts.length)
+      artifacts.push(artifact)
+    } else {
+      artifacts[index] = artifact
+    }
   }
 
+  const totalCount = Math.max(next.totalCount, artifacts.length)
+  const probeNextPage =
+    next.nextPage === null &&
+    next.artifacts.length > 0 &&
+    artifacts.length < totalCount &&
+    existing.page * ActionsArtifactPageSize < existing.totalCount &&
+    next.page < ActionsArtifactMaximumPage
+      ? next.page + 1
+      : null
   return {
-    totalCount: current.totalCount,
-    artifacts: [...current.artifacts, ...next.artifacts],
+    totalCount,
+    artifacts,
     page: next.page,
-    nextPage: next.nextPage,
-    truncated: next.truncated,
-    capped: next.capped,
+    nextPage: next.nextPage ?? probeNextPage,
+    truncated: totalCount > artifacts.length,
   }
 }
 
@@ -331,4 +347,15 @@ export function validateActionsArtifactIdentifier(
   label: string
 ): number {
   return safeInteger(value, label, 1)
+}
+
+export function validateActionsArtifactPage(value: number): number {
+  if (
+    !Number.isSafeInteger(value) ||
+    value < 1 ||
+    value > ActionsArtifactMaximumPage
+  ) {
+    throw new Error('Artifact page is invalid.')
+  }
+  return value
 }

@@ -16,9 +16,7 @@ implementation-complete in the current integration tree; final production/off-sc
 - [Settings history](#settings-history)
 - [Non-modal dialogs](#non-modal-dialogs)
 - [Multi-clone](#multi-clone)
-- [Clone account fallback](#clone-account-fallback)
-- [Guided Git, GitHub, and provider functions](#guided-git-github-and-provider-functions)
-- [Guided Feature Gallery](Feature-Gallery)
+- [Guided Git and GitHub functions](#guided-git-and-github-functions)
 - [One-click commit & push](#one-click-commit--push)
 - [Notification centre](#notification-centre)
 - [GitHub Actions panel](#github-actions-panel)
@@ -193,42 +191,12 @@ The multi-clone window clones **many repositories in one pass**.
 
 ---
 
-## Clone account fallback
-
-When you clone from a hosted repository list, Desktop Material keeps the selected signed-in account
-with the clone request. For a generic HTTPS URL, it prefers the token-bearing signed-in account that
-matches the repository, or the first eligible signed-in account when repository lookup is
-inconclusive. Eligibility always requires the remote's exact HTTPS origin. When an eligible account
-exists, Git receives credentials through the app without opening a manual credential prompt.
-
-If the first attempt ends in HTTPS authentication failure or repository-not-found ambiguity,
-Desktop Material can try the remaining token-bearing accounts for that same origin in stable order.
-SSH failures and non-authentication errors stop immediately. Tokenless accounts are ignored, and a
-selected account that is missing or no longer has credentials cannot silently supply another
-identity inside the credential request. A different-origin submodule keeps its normal credential
-resolution, and its failure cannot unlock account fallback for the repository being cloned.
-
-The account that actually completes the clone is retained with the new repository for later
-operations. Account selection remains inside the app, is removed when the operation ends, and is
-never written to Git child environments or logs.
-
-![Desktop Material workspace after a generic HTTPS repository clone completed through exact-origin signed-in account fallback without displaying a credential prompt](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-clone-account-fallback.png)
-
----
-
-## Guided Git, GitHub, and provider functions
+## Guided Git and GitHub functions
 
 Desktop Material turns useful Git, GitHub CLI, and GitHub API capabilities into **named,
 task-specific workflows**. You choose an action, complete a focused form, review any destructive
 or worktree-changing step, and receive the result in the app. The product UI is not a searchable
 catalogue of raw commands or API endpoints.
-
-The complete guided implementation described here still needs the final exact-tree production and
-off-screen acceptance gate before publication; earlier screenshots prove only the historical trees
-named in their evidence manifests.
-
-The [Guided Feature Gallery](Feature-Gallery) is the synthetic-data visual manifest for the 14
-guided views. Its presence does not pre-claim the remaining publication gates.
 
 ### Shallow clone
 
@@ -242,9 +210,20 @@ Open **File → Clone repository… → URL** when you need only recent history:
 The form explains that it fetches the current branch and recursive submodules. If you need older
 history later, use the named deepen-history action in **Repository tools**.
 
-![Reviewed shallow clone with a bounded commit depth](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-shallow-clone-safe.png)
+![Shallow clone with a commit-depth control](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-shallow-clone.png)
 
-![Deepen-history result without displaying the signed-in account used](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepen.png)
+### Deepen shallow history
+
+Open the **Tools** rail, find **History depth**, and choose **Check history status**. When Git reports
+a shallow boundary, choose **Review bounded deepen** to fetch a specific number of older commits or
+**Review full history** to remove the boundary deliberately. The review names the selected remote,
+scope, and consequence before the bundled Git runtime starts. Progress is cancellable, and the app
+rechecks the marker when the fetch completes.
+
+The production fixture began with 3 visible commits and finished with all 15; the clean screenshot
+below shows the final state. The raw verification receipt is retained in the P0 run manifest.
+
+![Repository Tools showing full history after a verified deepen](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepening.png)
 
 ### Sparse checkout
 
@@ -253,74 +232,44 @@ The side panel reports whether sparse checkout is enabled, explains cone mode, a
 repository-relative directory per line. It normalizes slashes and rejects absolute paths,
 traversal, option-like input, control characters, blanks, and duplicates before the review step.
 
-Choose **Review enable** only after the valid-directory count matches your intent. The disabled
-state leaves all working-tree paths eligible to appear locally.
+Choose **Review enable** only after the valid-directory count matches your intent. The verified
+disabled state below leaves all working-tree paths eligible to appear locally.
+
+![Sparse-checkout directory editor in its disabled state](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-sparse-checkout.png)
 
 These forms wrap labels and stack actions as space narrows. Page-level sideways scrolling is not
 part of the workflow; only inherently spatial content such as code, diffs, and logs may scroll
 horizontally when preserving columns is necessary.
 
-![Validated cone-mode sparse-checkout review](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-sparse-checkout-safe.png)
+### Create a pull request
 
-### Repository Tools administration
+Open **Branch → Create pull request** while the head branch is checked out:
 
-Open **Repository → Repository tools…** for the reviewed administration workspaces:
+1. Confirm the exact target repository and signed-in account.
+2. Choose the base branch; the current local branch is the fixed head.
+3. Enter a title and optional Markdown description, and choose whether to create a draft.
+4. Select **Review pull request** and verify repository, account, base/head, title, body, and draft
+   state.
+5. Select **Create pull request**. The success receipt offers **Done** and **Open on GitHub**.
 
-- **Patch series** exports a bounded commit range and imports an inspected series without exposing
-  a free-form shell.
-- **Rewrite local commits** builds an explicit reorder/reword/squash/fixup/drop plan, previews the
-  resulting sequence, and revalidates the reviewed HEAD before starting.
-- **Signing** inspects effective commit/tag signing settings and applies a reviewed configuration;
-  **Git LFS** inspects availability, attributes, tracked patterns, and guarded lifecycle operations.
-- **Guided bisect** reviews exact good/bad commits, resumes an existing session, records good/bad/
-  skip verdicts for the displayed commit, and resets safely when finished.
-- **Repository hooks** reports the effective hooks directory and known client hooks without showing
-  script contents or absolute paths. Create-only and disable/restore actions revalidate the exact
-  reviewed file and configuration before mutation.
-- **Provider triage** binds the selected account and repository to bounded Issue and pull-request
-  summaries for GitHub, GitLab, or Bitbucket. It exposes safe provider links and explicit partial,
-  capped, unsupported, and error states; Bitbucket Issues are explicitly unsupported.
+The app rejects ambiguous remote syntax and routes account problems to repository settings. The
+workflow does not expose `gh pr create`, editable arguments, or a raw REST request.
 
-![Named Repository Tools administration hub](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-tools.png)
+![Native pull-request creation success with wrapped content](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
 
-![Account- and repository-bound provider triage with bounded results](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-provider-triage.png)
+### Inspect effective branch rules
 
-### Branch, worktree, stash, remote, and conflict controls
+Open **Repository → Inspect branch rules…**. The non-modal sheet combines classic protection and
+rulesets for the checked-out branch into plain-language sections for reviews, checks, deployments,
+merge queue, verified signatures, linear history, update/delete/force policy, bypass context, and
+source rulesets. Use **Refresh** to load the same exact branch again.
 
-- Use a branch context menu to **pin**, **hide**, or **solo** a branch; the filtered-state controls
-  make restoring hidden branches explicit. Merge previews show exact paths from `merge-tree` before
-  the worktree is changed.
-- The Worktrees view supports reviewed add, lock/unlock, move, rename, repair, remove, and prune
-  operations, while preserving the existing open-in-new-window workflow.
-- The repository-wide Stash Manager can create, inspect, apply, pop, rename, branch from, or delete
-  the exact selected stash and keeps partial-success details visible.
-- **Repository settings → Remote** manages every named remote through reviewed add, rename, URL/
-  push-URL update, default selection, and guarded removal operations.
+If no matching account is signed in, **Open account settings** is shown. If more than one account
+matches a legacy repository, **Open repository settings** opens the real repository-account picker;
+saving one records its stable `endpoint#id` identity. Unknown or partial policy evidence is stated
+instead of guessed.
 
-![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
-
-![Reviewed named-remote administration](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
-
-### GitHub lifecycle workspaces
-
-- Pull-request creation loads repository templates and available reviewers, assignees, and labels.
-  The lifecycle dialog then inspects exact details, updates metadata, submits a review, closes or
-  reopens, and merges only the reviewed pull request and head state.
-- The Actions view pages artifacts beyond the first result set, downloads through bounded
-  credential-stripping redirects, records a local digest and attestation-presence context, and
-  shows the effective rules for the current branch.
-- **Releases** pages repository releases and assets, reviews create/update/delete operations, and
-  uses bounded cancelable upload/download transfers that present filenames rather than local paths.
-- **Issues** supports bounded browse/search/filter/sort/pagination, exact detail and comments,
-  metadata edits, new comments, and close/reopen operations tied to the reviewed issue snapshot.
-
-![Native pull-request creation with bounded metadata](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-native-pull-request.png)
-
-![Bounded Actions artifact download with a locally computed digest](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifact-download.png)
-
-![Repository-bound Releases and assets workspace](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
-
-![Issue detail, comments, and reviewed lifecycle controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-issues.png)
+![Effective branch rules with long checks and policy details wrapped](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-effective-branch-rules.png)
 
 ---
 
@@ -361,17 +310,48 @@ command or GitHub API search screen.
 
 The **Actions** panel brings CI into the app:
 
-- **Workflow runs** for the current repository, newest first.
+- **Workflow runs** for the current repository, newest first. When more are available, choose
+  **Load more runs**; already loaded pages remain visible across background polling and **Refresh**.
 - **Filters** by **workflow**, **status**, **branch**, and **event**.
 - **Re-run** a whole run or **re-run only the failed jobs**.
-- Drill into a run to see its **jobs and steps**, and open the **in-app log viewer** to read output
-  without leaving Desktop Material. Search the loaded log to isolate a command, warning, or error.
-- Page through the run's **artifacts**, review size/expiry/attestation-presence context, and download
-  an exact artifact through the bounded transfer path with a local digest.
-- Inspect the **effective branch rules** applied to the current branch, including partial or
-  unavailable provider states without treating them as an empty rule set.
+- Drill into a run, choose the **current or a historical attempt**, and use **Load more jobs** to
+  append the next bounded 50-job page. A failed later page keeps the jobs already loaded and offers
+  the same named retry. Every loaded job retains its exact **View logs** and **Re-run job** actions.
+- Open the **in-app log viewer** to read output without leaving Desktop Material. Search the loaded
+  log to isolate a command, warning, or error; only the spatial log body may pan horizontally.
+- Inspect **pending deployment environments** and prior review history. Select only environments
+  for which the signed-in account is eligible, enter a required bounded comment, review the exact
+  approve/reject intent, and confirm. Locked environments keep their explanation visible.
+- When GitHub marks a first-time fork run as eligible, use the separate **Approve fork run**
+  confirmation. It is never inferred from a deployment decision.
 - Trigger manual workflows with the **`workflow_dispatch` dialog** — pick the workflow, ref, and
   inputs, and dispatch.
+- Select a run artifact to review its name, size, creation/expiry, workflow source, and GitHub digest.
+  Choose **Load more artifacts** to append the next bounded page. A failed later page keeps the
+  cards you already loaded and lets you retry that same page.
+  **Download archive** opens the native save picker; after transfer, Desktop computes SHA-256 locally,
+  reports whether it matches, and offers **Show in folder**.
+- **Check attestations** reports whether an attestation record is present. Presence is not presented as
+  cryptographic verification: signer, signature, timestamp, source identity, and policy still need a
+  future verification function.
+
+![Actions artifact with digest match and attestation-presence context](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifacts.png)
+
+![Actions workflow-run pagination with 51 filtered runs retained after Refresh](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pagination.png)
+
+![Actions artifact page two with a deliberately long wrapping sentinel name](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifact-page-two.png)
+
+![Attempt-aware Actions job pagination with an exact recovered page-two job](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-jobs-pagination.png)
+
+![Pending Actions deployment environments with long reviewer and protection details](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pending-deployments.png)
+
+The production gates exercised 50→51 filtered runs, 30→31 artifacts, and current/historical 50→51
+job pages, including a deliberate later-page 503→200 retry. Exact job log/re-run, deployment review,
+and fork approval mutations ran only against the isolated provider. At regular and short windows
+plus a requested 200% base with auto-fit, document and body widths matched and the measured Actions
+surfaces had no clipping, overlap, outside controls, oversized text, or page-level sideways
+scrolling. Modal focus and scrim ownership were also contained. These are named app controls; there
+is no `gh` command, API-path, or GraphQL editor.
 
 Job-log downloads follow GitHub's signed redirect automatically. Desktop Material's main-process
 request filter tracks the original request and removes authentication, authorization, and cookie
@@ -390,8 +370,9 @@ Desktop Material scales its whole interface independently of the OS:
 - Or choose **auto-fit to window**, which picks a scale that fits the current window size.
 - Auto-fit treats your slider value as the requested maximum. If the window is too small, it caps
   the effective scale instead of multiplying the requested scale again. At the supported minimum
-  window size, 200% auto-fits to 96% so the title bar, navigation rail, Appearance cards, value,
-  and footer remain visible without horizontal clipping.
+  window size, 200% auto-fits below that maximum so the title bar, navigation rail, Appearance
+  cards, value, and footer remain visible without horizontal clipping. The latest P0 gate measured
+  94%; the older screenshot below records a 96% viewport.
 
 Combined with the animated light/dark theme, this lets you tune the workspace for a laptop panel, a
 4K monitor, or a shared screen without touching system display settings.

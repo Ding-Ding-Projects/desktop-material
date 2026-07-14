@@ -1,10 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import {
-  ActionsArtifactMaximumPages,
+  ActionsArtifactMaximumPage,
   ActionsArtifactPageSize,
-  appendActionsArtifactPage,
   getActionsArtifactDefaultFileName,
+  mergeActionsArtifactPage,
   parseActionsArtifactAttestationPresence,
   parseActionsArtifactList,
 } from '../../src/lib/actions-artifacts'
@@ -36,10 +36,9 @@ describe('GitHub Actions artifact contracts', () => {
     )
 
     assert.equal(parsed.totalCount, 2)
-    assert.equal(parsed.truncated, true)
     assert.equal(parsed.page, 1)
     assert.equal(parsed.nextPage, 2)
-    assert.equal(parsed.capped, false)
+    assert.equal(parsed.truncated, true)
     assert.equal(parsed.artifacts[0].digest, digest.toLowerCase())
     assert.deepEqual(parsed.artifacts[0].workflowRun, {
       id: 7,
@@ -49,74 +48,6 @@ describe('GitHub Actions artifact contracts', () => {
     assert.equal(
       parsed.artifacts[0].expiresAt?.toISOString(),
       '2026-10-11T10:00:00.000Z'
-    )
-  })
-
-  it('appends contiguous pages and rejects duplicates or provider churn', () => {
-    const first = parseActionsArtifactList(
-      {
-        total_count: 101,
-        artifacts: Array.from({ length: 100 }, (_, id) =>
-          artifact({ id: id + 1 })
-        ),
-      },
-      7
-    )
-    const second = parseActionsArtifactList(
-      { total_count: 101, artifacts: [artifact({ id: 101 })] },
-      7,
-      2
-    )
-    const merged = appendActionsArtifactPage(first, second)
-
-    assert.equal(merged.artifacts.length, 101)
-    assert.equal(merged.page, 2)
-    assert.equal(merged.nextPage, null)
-    assert.equal(merged.truncated, false)
-
-    assert.throws(() =>
-      appendActionsArtifactPage(
-        first,
-        parseActionsArtifactList(
-          { total_count: 101, artifacts: [artifact({ id: 1 })] },
-          7,
-          2
-        )
-      )
-    )
-    assert.throws(() =>
-      appendActionsArtifactPage(
-        first,
-        parseActionsArtifactList(
-          { total_count: 102, artifacts: [artifact({ id: 101 })] },
-          7,
-          2
-        )
-      )
-    )
-  })
-
-  it('caps pagination after ten bounded pages', () => {
-    const page = parseActionsArtifactList(
-      {
-        total_count: ActionsArtifactMaximumPages * ActionsArtifactPageSize + 1,
-        artifacts: Array.from({ length: 100 }, (_, id) =>
-          artifact({ id: id + 901 })
-        ),
-      },
-      7,
-      ActionsArtifactMaximumPages
-    )
-
-    assert.equal(page.nextPage, null)
-    assert.equal(page.truncated, true)
-    assert.equal(page.capped, true)
-    assert.throws(() =>
-      parseActionsArtifactList(
-        { total_count: 0, artifacts: [] },
-        7,
-        ActionsArtifactMaximumPages + 1
-      )
     )
   })
 
@@ -174,6 +105,125 @@ describe('GitHub Actions artifact contracts', () => {
         7
       )
     )
+    assert.throws(() =>
+      parseActionsArtifactList({ total_count: 0, artifacts: [artifact()] }, 7)
+    )
+    for (const malformed of [
+      { id: 0 },
+      { name: 'invalid\u0000name' },
+      { size_in_bytes: -1 },
+      { created_at: 'not-a-date' },
+      {
+        workflow_run: {
+          id: 7,
+          head_branch: 'main',
+          head_sha: 'not-an-object-id',
+        },
+      },
+    ]) {
+      assert.throws(() =>
+        parseActionsArtifactList(
+          { total_count: 1, artifacts: [artifact(malformed)] },
+          7
+        )
+      )
+    }
+    for (const invalidPage of [0, Number.NaN, ActionsArtifactMaximumPage + 1]) {
+      assert.throws(() =>
+        parseActionsArtifactList(
+          { total_count: 1, artifacts: [artifact()] },
+          7,
+          invalidPage
+        )
+      )
+    }
+  })
+
+  it('merges shifted later pages without duplicate artifact cards', () => {
+    const first = parseActionsArtifactList(
+      {
+        total_count: 61,
+        artifacts: Array.from({ length: ActionsArtifactPageSize }, (_, index) =>
+          artifact({ id: index + 1, name: `artifact ${index + 1}` })
+        ),
+      },
+      7,
+      1
+    )
+    const second = parseActionsArtifactList(
+      {
+        total_count: 61,
+        artifacts: [
+          artifact({ id: 30, name: 'artifact 30 updated' }),
+          artifact({ id: 31, name: 'artifact 31' }),
+        ],
+      },
+      7,
+      2
+    )
+
+    const merged = mergeActionsArtifactPage(first, second)
+    assert.equal(merged.artifacts.length, 31)
+    assert.equal(merged.artifacts[29].name, 'artifact 30 updated')
+    assert.equal(merged.artifacts[30].id, 31)
+    assert.equal(merged.page, 2)
+    assert.equal(merged.nextPage, 3)
+    assert.equal(merged.truncated, true)
+    assert.throws(() => mergeActionsArtifactPage(merged, second))
+  })
+
+  it('never offers a provider page beyond the validated maximum', () => {
+    const parsed = parseActionsArtifactList(
+      { total_count: Number.MAX_SAFE_INTEGER, artifacts: [artifact()] },
+      7,
+      ActionsArtifactMaximumPage
+    )
+    assert.equal(parsed.nextPage, null)
+    assert.throws(() =>
+      parseActionsArtifactList(
+        { total_count: 1, artifacts: [artifact()] },
+        7,
+        ActionsArtifactMaximumPage + 1
+      )
+    )
+  })
+
+  it('uses one bounded probe when the last reported page only shifted ids', () => {
+    const first = parseActionsArtifactList(
+      {
+        total_count: 31,
+        artifacts: Array.from({ length: ActionsArtifactPageSize }, (_, index) =>
+          artifact({ id: index + 1 })
+        ),
+      },
+      7,
+      1
+    )
+    const shiftedLast = parseActionsArtifactList(
+      { total_count: 31, artifacts: [artifact({ id: 30 })] },
+      7,
+      2
+    )
+    const probe = mergeActionsArtifactPage(first, shiftedLast)
+    assert.equal(probe.artifacts.length, 30)
+    assert.equal(probe.nextPage, 3)
+
+    const emptyProbe = parseActionsArtifactList(
+      { total_count: 31, artifacts: [] },
+      7,
+      3
+    )
+    const stopped = mergeActionsArtifactPage(probe, emptyProbe)
+    assert.equal(stopped.nextPage, null)
+    assert.equal(stopped.truncated, true)
+
+    const duplicateProbe = parseActionsArtifactList(
+      { total_count: 31, artifacts: [artifact({ id: 30 })] },
+      7,
+      3
+    )
+    const bounded = mergeActionsArtifactPage(probe, duplicateProbe)
+    assert.equal(bounded.nextPage, null)
   })
 
   it('reports attestation presence without interpreting the bundle', () => {

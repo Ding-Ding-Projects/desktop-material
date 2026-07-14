@@ -1,271 +1,205 @@
-# Desktop Material — Living Final Handoff
+# Desktop Material — Active parity handoff
 
 ## Outcome
 
-The original requested roadmap, **M0 through M18**, is complete and shipped on
-`main` through historical implementation baseline
-`b2699faccb07728fe9aa2838aa13355d71e172b0`; its production, hidden-desktop,
-responsive, public documentation, and canonical wiki evidence remains recorded
-below as historical proof for that exact tree.
+The legacy **M0 through M18** Material foundation remains shipped on `main`.
+The newer Git, GitHub CLI, GitHub API, and GitKraken-parity roadmap is active on
+`mega-feature-update`; it deliberately turns audited capabilities into named,
+interactive app functions instead of exposing a searchable command/API list.
 
-The later guided Git, GitHub, and provider expansion is **complete and shipped**
-as M19. Exact app source
-`5e80e678d062b65a82c0991b352e5a861c7469e5` passed the reproducible production
-build and isolated hidden-desktop proof. Documentation/image union
-`a890ab579c63651e5089ee433b259f0fc9198fbf` and final code/release baseline
-`a0c2f19433631d577979c8c8a88a5151f5ab0656` then passed the distinct `main`,
-CI, Pages, wiki, release, privacy, artifact-purge, and cleanup gates below.
+The first four-function P0 wave is implemented, pushed, and production-UI
+verified at exact source SHA `9e946fd527e5843b2fdba5de675a5476b0c80445`:
+guided history deepening, native pull-request creation, Actions artifact
+download/digest context, and effective branch-rules inspection. The typed
+operation registry is also complete. Actions workflow-run and artifact
+pagination then passed its exact production UI gate at
+`0aca4420df88a0865a0223530b956209e131431d`. Attempt-aware job pagination,
+exact job logs/re-runs, pending deployment reviews, and fork-run approval now
+pass their production UI gate at
+`2f40d8949aaa7ae4ce5418cd949c28c643da0a37`. Cryptographic artifact
+attestation verification is the next named-function slice; the smaller Actions
+cache manager follows, then bounded Pull Request Center and Issue Hub read
+waves. Release Manager follows those work centers in the README roadmap.
 
-### Guided roadmap completion run — final status
+This handoff does not claim that branch-only Pages assets are already live on
+`main`. Pages remains protected to the normal reviewed `main` promotion path;
+the separate wiki was merged rather than overwritten and published at exact
+wiki SHA `2585cf7977b14d5792a1addb8b9a7c9f944e1e84`.
 
-The guided-roadmap completion is finalized on `main`. Accepted application source
-`5e80e678d062b65a82c0991b352e5a861c7469e5` contains the
-privacy-safe cross-account clone and Pull All recovery, hardened Actions logs
-and artifact transfer, the complete native pull-request lifecycle, interactive
-artifact pagination, effective branch-rule inspection, patch-series exchange,
-complete worktree lifecycle administration, branch pin/hide/solo/restore,
-exact merge-tree conflict paths, signing and Git LFS administration,
-structured local-commit rewriting, guided bisect sessions, the complete
-repository-wide native stash manager, and reviewed GitHub Releases/assets
-management with secure arbitrary asset transfers, the complete guarded
-Remote Manager for every named remote, and a safe Repository Hooks Manager
-that honors the effective `core.hooksPath` while withholding script contents
-and absolute paths. Each completed phase was
-committed and pushed after its focused security, TypeScript, lint, formatting,
-and privacy gates passed. The bisect integration union passed 75 focused
-Git/model/UI/style/sibling tests; the stash integration passed 46 focused
-Git/UI/style tests; and the Releases branch passed 180 combined affected tests
-before root repeated its focused transfer/API/store/UI gate and TypeScript
-check. Remote Manager passed 30 root-repeated model/Git/UI/style tests after
-its bounded default-ref inspection, exact mutation revalidation, masked URL
-preservation, rename-swap, partial-state, and current hosted-remote warning
-review. Repository Hooks passed all 349 test files in Windows-safe batches on
-its final worktree, then passed 35/35 focused manager, style, Repository Tools,
-and compact-settings checks again after integration. Its reviewed mutations
-revalidate the hooks directory, source and destination identity, configuration,
-and cancellation boundary before changing an exact known client hook. Richer
-GitHub Issues workflows add bounded browsing, search, filtering, exact detail
-and comments, metadata editing, comments, and close/reopen operations. Every
-write is bound to the exact repository, account generation, issue snapshot,
-operation, and normalized payload; an account rotation, stale issue, reused
-review, or uncertain post-boundary result fails closed. The merged Issues slice
-passed 47/47 focused API/model/store/UI/style/section-order checks again on the
-integration tree after its production build and branch gates passed.
+## 2026-07-13 P0 production UI gate
 
-Provider-neutral triage is now integrated for the exact selected account and
-repository across GitHub, GitLab, and Bitbucket. Its bounded Issues and pull-
-request summaries expose neutral availability, partial-failure, and capped
-states without retaining raw provider payloads, tokens, or repository paths;
-Bitbucket Issues are explicitly reported as unsupported. The final feature
-worktree passed 110 focused API/JSON/store/UI/style/sibling tests, TypeScript,
-full lint and formatting, privacy scans, and an 8 GiB production webpack build.
-Root repeated the combined affected union at 108/108 after merge. The final
-union now also includes a deterministic loopback HTTPS proof fixture and a
-production `CloningRepositoriesStore` integration that reproduces account A's
-private-repository-style not-found result, automatically succeeds with account
-B, verifies the three-commit clone and B affinity, and keeps both synthetic
-tokens out of arguments, environments, errors, metadata, readiness, and the
-account-class-only ledger. The final union additionally routes deepen and
-unshallow fetches through the Desktop credential trampoline and bounded
-exact-origin account fallback; matches provider scheme, host, and effective
-port (including IPv6/default-port normalization); and excludes tokenless
-candidates or stale tokenless repository bindings. That app-source evidence is
-preserved separately from the successful final `main` publication identities
-and public checks recorded below.
+The exact unpackaged production build passed with:
 
-At earlier checkpoint `32b7bb6b…`, the Windows full-suite launcher ran all 363
-test files in two bounded batches. That closing integration run exited zero;
-its final batch reports 626/626 with no failures, cancellations, skips, or
-todos. Script tests passed 15/15, including all five fixture scenarios;
-application TypeScript, script compilation, repository-wide Prettier, ESLint,
-diff/conflict checks, and the personal-data/authorship scan also passed. The
-only high-confidence secret-shaped test literal was split without changing its
-runtime redaction assertion, leaving the tracked scan at zero.
+`npx --no-install cross-env RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod`
 
-An independent final integration audit then passed 732/732 tests across the
-126-file changed union and closed six additional fail-closed seams: Release
-updates are tied to the exact reviewed ID; Actions metadata, job-log, job, and
-workflow-source reads are canceled and discarded across account rotation;
-guided pull-request responses are streamed beneath a fixed byte cap; and
-provider-triage links preserve exact GitLab installation subpaths while mapping
-Bitbucket API responses to the browser site. Root repeated the focused combined
-security/account-routing union at 81/81 after merge.
+The build took 108.72 seconds. It ran at `9e946fd527` through the exact
+low-level MCP checkout `806d9ba85e4afbc2af58d7499496babfa7c68891` on one
+off-screen Win32 desktop. The visible user desktop was never shown, focused, or
+used for input. A loopback-only synthetic provider, disposable profile, true
+shallow Git fixture, and reserved `.invalid` repository identity kept all
+mutations and credentials out of public GitHub and the normal Desktop profile.
 
-The initialized root worktree also reproduced a production-only failure before
-the off-screen gate: the completed renderer exceeded the previous hard-coded
-4 GiB webpack heap. Checkpoint `60ca172f6a` raises only the production compiler
-ceiling to the already-proven 8 GiB value. After the last account-routing and
-fixture/lifecycle merges, root repeated the required low-level MCP production
-command at exact accepted app source
-`5e80e678d062b65a82c0991b352e5a861c7469e5`. It returned
-`client_ok: true`, return code `0`, and no timeout after webpack, native
-dependencies, bundled-Git copying, Sass validation, license generation, and the
-final unpackaged `out` build. The exhaustive final-tree gates were repeated at
-the later `main` identities below; the successful app-source build is not
-relabeled as either later SHA.
+### Functional receipts
 
-### Closing evidence — complete
+- **History deepening:** the fixture started with a real shallow marker and 3
+  visible commits. The bounded review fetched older history from `origin`; the
+  app then reported full history. Direct Git verification returned
+  `--is-shallow-repository=false`, 15 commits, branch
+  `feature/material-verification`, and upstream
+  `origin/feature/material-verification`.
+- **Native pull requests:** the purpose-built compose, review, and submit flow
+  created provider-only PRs #73 and #74 from `feature/material-verification` to
+  `main`. Long titles and Markdown bodies wrapped. The provider recorded
+  authorized HTTP 201 mutations; no public PR was created.
+- **Actions artifact:** the native Save dialog wrote the deterministic
+  2,097,728-byte archive. Its local SHA-256 exactly matched the provider digest:
+  `ff2e29e2ab05d44fb7e66c8242a8d74895232ad7ea2258255b91a9145fa5a783`.
+  The app reported attestation presence while explicitly withholding a
+  cryptographic-verification claim.
+- **Effective branch rules:** refresh loaded classic protection plus two
+  rulesets into seven plain-language sections with 12 state badges and no
+  alert. Signed-out and two-matching-account states exposed complete routes to
+  Accounts or Repository settings. The repository picker showed both accounts;
+  saving one persisted `http://localhost:54612/api/v3#7130701`.
 
-- [x] **Accepted app source:**
-  `5e80e678d062b65a82c0991b352e5a861c7469e5`.
-- [x] **Final publication source:** documentation/image union
-  `a890ab579c63651e5089ee433b259f0fc9198fbf`; final code/release baseline
-  `a0c2f19433631d577979c8c8a88a5151f5ab0656`.
-- [x] **Repository gates:** all seven CI jobs passed at `a0c2f194…`. Windows x64
-  ran 2,533 tests across the 365-file two-batch suite with 2,532 passes, one
-  intentional skip, and zero failures/cancellations; macOS arm64 ran 2,531 with
-  2,530 passes, one intentional skip, and zero failures/cancellations. Lint,
-  TypeScript, formatting, diff, privacy, builds, script tests, and both packaged
-  E2E lanes passed. The exact production build remains attributed to app source
-  `5e80e678…`.
-- [x] **Off-screen acceptance:** deterministic synthetic cross-account clone
-  ledger and representative Foundation/P0/P1/Later interaction matrix with
-  exact MCP/app-source identity. The proof-owned resource cleanup is verified
-  below.
-- [x] **Screenshots:** 14 accepted filenames, dimensions, byte counts, SHA-256
-  digests, exact `5e80e678…` app-source/build provenance,
-  original-resolution inspection, and synthetic-only identity statement
-  recorded below.
-- [x] **Screenshot promotion:** the exact 14 inspected files were copied into
-  the tracked image set at
-  `cf24acc3a45e67b1eac93333263354936e7fd059`, and every dimension, byte count,
-  and SHA-256 below was re-verified after promotion.
-- [x] **GitHub/publication:** exact-SHA CI, Pages, canonical wiki, installer and
-  public release, asset count/size/digests, zero retained Actions artifacts, and
-  live URLs are recorded below.
-- [x] **Repository cleanup:** all completed worktrees and proof resources are
-  removed; local `main` is clean and equal to `origin/main`; Actions is enabled;
-  active workers and retained Actions artifacts both report zero.
+### Responsive, focus, and clipping receipts
 
-The final 1450×997 review found real horizontal clipping in the shell toolbar
-and Changes card. The responsive flex/containment correction is now shipped,
-covered by style regressions, and demonstrated by the tracked exact-size image
-`material-responsive-overflow-fixed.png`. A separate final test run also found
-and fixed Node's read-only `globalThis.localStorage` accessor colliding with
-jsdom; that was a test-harness defect, not a product regression.
+- At the product-enforced minimum outer width of 960, the auto-fit renderer had
+  a 1000 CSS-pixel viewport and `document.scrollWidth === clientWidth === 1000`.
+- The requested base scale reached 200% through **View → Zoom in**. Auto-fit
+  displayed the interface at 94% for the minimum window; the Appearance dialog
+  showed both values and stayed bounded at the shortest supported height.
+- At outer height 660, dense Branch Rules and confirmation content scrolled
+  vertically inside its surface. Geometry inspection found no element outside
+  the viewport and no document-level horizontal overflow.
+- Branch Rules and Sparse Checkout were opened together. The front sheet owned
+  focus and dismissal; closing it restored focus to Sparse Checkout. Both
+  remained non-modal and horizontally contained.
+- Long repository, branch, check, deployment, artifact, digest, path, account,
+  title, and body values wrapped. No measured state had clipped controls,
+  overlapping/oversized text, or page-level sideways scrolling. Horizontal
+  scrolling remains reserved for intrinsically spatial code, diff, and log
+  content.
 
-The final Actions review also reproduced the renderer's status-0 failure when
-job-log downloads used a manual cross-origin redirect. The shipped correction
-lets Electron follow the redirect automatically, while the installed
-main-process same-origin filter tracks the request's initial origin and removes
-`authentication`, `authorization`, and `cookie` headers before a cross-origin
-hop. Renderer-visible download errors use a safe message that omits the
-short-lived signed URL and query. The accepted 2048×1228 hidden-desktop proof
-shows the real **Windows x64** job log loaded in the searchable, collapsible
-viewer with no API error.
+Win32 background input and the native Save dialog were exercised through the
+low-level server. Chromium ignored background-posted clicks and PrintWindow
+occasionally returned stale/black compositor pixels, so the allowlisted
+app-native CDP fallback drove renderer controls and captured the stable original
+surface. Every promoted candidate was reopened at original resolution.
 
-Pull All now keeps its normal, unforced credential attempt first. If that
-attempt produces only an HTTPS authentication failure or HTTPS not-found
-ambiguity, it can try the remaining token-bearing signed-in accounts for the
-exact HTML origin. The repository-bound account is preferred, followed by the
-stable account order. The accepted isolated proof advanced cleanly from proof A
-`dd0bbb04b04da50d42fa55245bc89a1426f01488` to proof B
-`1d58935cf4ef9645f08e2fb3aa68e364ab382676`; its redacted sequence was primary
-account rejected, fallback account accepted. The neutral renderer result is
-exactly `Pull completed using another signed-in account.` and does not expose
-which account or token succeeded.
+| Promoted screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-history-deepening.png` | 944×660 | 70,047 | `a03f313b604ade9eb4458aaccffe2807c7580e53651215d52b75d9ddbfc181e2` |
+| `docs/assets/screenshots/material-create-pull-request.png` | 944×660 | 76,575 | `93c8ec71c65e73414419d46214dd5849a128908e7336b08786ab677cd9f48022` |
+| `docs/assets/screenshots/material-actions-artifacts.png` | 944×1000 | 106,252 | `326a27a927fa668444487f0dff3ef71c8b81eaf53e5d300b554d07a62541ae42` |
+| `docs/assets/screenshots/material-effective-branch-rules.png` | 944×1000 | 107,573 | `7a4533aa0e9b40644ac2fb55ceb3fe0788ccb502137e370fd1762925a685bfd6` |
 
-The current exact-build rerun at `5e80e678…` broadened that proof to four
-synthetic repositories: `4 pulled, 0 skipped, 0 failed`, with every row showing
-the same neutral message. Its accepted 1452×1001 frame and digest are in the
-M19 ledger below; no account login, selector, credential, or owned path appears.
+The two 944×1000 captures intentionally preserve tall original viewports of the
+dense Actions and Branch Rules states, including their visible internal scroll
+positions. They are original screenshots, not stitched or resized images.
 
-Secure clone account fallback is also complete. A hosted clone preserves the
-user-selected account for its first attempt. A generic URL clone chooses the
-API-matched token-bearing account, or the first eligible exact-origin account
-when lookup is inconclusive, specifically to avoid a manual credentials prompt;
-it remains unforced only when no eligible identity exists. Only an HTTPS
-authentication/not-found ambiguity can silently try another token-bearing
-account for the exact rejecting origin, including a non-default port. The
-successful stable account key is persisted before initial repository matching
-and remains attached to single, batch, missing-repository, and retry-clone
-flows. The implementation is `0b4f25cc8e91eb62634e70f90e24f1a44d00dc9d`;
-its first reviewed `main` baseline is
-`3dc1ecc4d8daff6150980e47a13db4f3a61ec37a`.
+The Pages publish layout was also assembled exactly under the owned run root.
+All 21 images loaded with nonzero natural dimensions. At 944×660 the document
+width was 929 with matching scroll/client widths and zero visible overflows. At
+390×844 mobile emulation the document width was 375 with matching widths; the
+four P0 cards collapsed into one 259-pixel-wide column with wrapped captions.
+Desktop, P0-gallery, and mobile-P0 captures were visually inspected before
+cleanup. All 33 formerly parent-relative screenshot URLs in the Pages source
+were corrected to publish-root-relative paths.
 
-The reported cross-account clone failure was traced to an installed `b69`
-runtime built before this fallback existed: its unpacked renderer contains no
-clone-account-fallback module, and the failing runtime event preceded the first
-fallback commit. The current integration passed its focused account-affinity,
-account-exhaustion, retry-metadata, tokenless-ordering, custom-port, and
-credential-trampoline regressions. Exact accepted source `5e80e678…` was then
-exercised on the isolated hidden desktop: `proof-a` returned the synthetic
-private-repository-style not-found response, `proof-b` served the smart-Git
-advertisement and pack, the clone opened cleanly on `main`, and the local
-repository affinity persisted only the synthetic `proof-b` account key. The
-visible installed application was never restarted, focused, or controlled.
+Cleanup completed: the exact disposable development-channel credential was
+deleted and read back absent; the app, provider, CDP endpoint, provider port,
+and off-screen desktop were gone; and the containment-checked owned Temp root
+was removed. No normal Desktop profile or public provider state was changed.
 
-## Guided-function integration
+### Publication checkpoint
 
-The privacy-safe integration adds the complete guided-function implementation
-without importing the privacy-tainted feature branch ancestry. The integrated
-product behavior includes:
+- Main-repository evidence, roadmap, wiki sources, Pages source, and four PNGs
+  were committed and pushed on `mega-feature-update` at
+  `949eca9a29f266f9aa21451718c92d71fe0a4701`; local, tracking, and direct
+  remote SHAs matched.
+- The separate wiki's existing extra guidance was preserved while the P0 Home
+  and User Guide content was merged. Four local `Images/` assets avoid raw-main
+  404s before branch promotion. Wiki `master` was committed and pushed at
+  `cf115fec684278f44cceced279651b7f288b2ddd`; local, tracking, and direct
+  remote SHAs matched.
+- Public Home and User Guide renders showed the current named-function text and
+  all four image links; each raw wiki image returned successfully. Pages source
+  remains branch-only. Workflow run `29260862943` checked out the exact branch
+  SHA, configured Pages, assembled the publish directory, and uploaded the
+  artifact successfully. The deploy job was then rejected because
+  `mega-feature-update` is not allowed by the `github-pages` environment's
+  branch protection; live deployment still follows the reviewed `main` path.
+- The verified clean temporary wiki checkout was containment-checked beneath
+  `%TEMP%`, removed, and confirmed absent after its remote SHA matched.
 
-- bounded shallow clone plus later history deepening;
-- validated cone-mode sparse checkout;
-- native file history/blame and guarded repository bundle/archive/signature
-  tools;
-- an account-aware GitHub notification inbox;
-- guided GitHub Issue and pull-request creation;
-- complete pull-request templates/metadata/review/update/close/reopen/merge;
-- confirmed Actions mutations, paginated artifacts with bounded transfer and
-  digest handling, and effective current-branch rules;
-- patch-series exchange and structured local-commit rewrite;
-- commit/tag signing, Git LFS, and complete worktree administration;
-- persisted branch pin/hide/solo/restore and exact merge-tree conflict paths;
-- guided bisect, the repository-wide Stash Manager, guarded Remote Manager, and
-  safe Repository Hooks Manager;
-- bounded GitHub Releases/assets and richer GitHub Issues workspaces;
-- exact-account GitHub/GitLab/Bitbucket provider-neutral triage with explicit
-  unsupported, partial, capped, and error states; and
-- responsive task forms whose controls wrap or stack instead of causing
-  page-level sideways scrolling.
+## 2026-07-13 Actions pagination production UI gate
 
-The earlier pull-request routing/REST and Actions artifact redirect gaps are
-closed in this implementation tree, including userinfo/alternate-SSH/cross-
-repository head binding, bounded provider responses, chained-redirect
-credential stripping, pagination, and stale-request rejection. Exact app source
-`5e80e678…` has its own production/off-screen evidence; final-tree revalidation
-and public `main` evidence are recorded separately at `a890ab579c…` and
-`a0c2f19433…`.
+The exact unpackaged production build at
+`0aca4420df88a0865a0223530b956209e131431d` passed on the isolated desktop
+`DesktopMaterialActions-20260713-29de6ec7`. The build used the same exact
+production command and completed in 112.3 seconds.
 
-### Guided parity wave summary
+### Pagination and responsive receipts
 
-| Wave | State | Integrated capability |
-| --- | --- | --- |
-| **Foundation** | **SHIPPED** | Repository Tools foundation, file history/blame/restore, shallow clone/deepening, sparse checkout, archives, bundles, Notifications, and guided Issue creation. |
-| **P0** | **SHIPPED** | Complete pull-request lifecycle; Actions artifact hardening/pagination/download/digest context; effective branch-rule inspection. |
-| **P1** | **SHIPPED** | Patch series, structured commit rewrite, Releases/assets, signing, LFS, and complete worktree administration. |
-| **P2** | **SHIPPED** | Persisted branch pin/hide/solo/restore visibility controls. |
-| **Later** | **SHIPPED** | Merge-tree conflict preview, bisect, complete stash/remote/hooks managers, richer GitHub Issues, and provider-neutral triage. |
-| **Closing gate** | **COMPLETE** | Exact app source/build and representative hidden-desktop proof are recorded; final documentation/image union, exhaustive revalidation, `main`, CI/Pages/wiki/release publication, artifact purge, and cleanup passed. |
+- The **Success** filter loaded 50→51 workflow runs through the named **Load
+  more runs** control. The deliberately long page-two sentinel appeared, and
+  all 51 runs plus the sentinel remained after **Refresh**.
+- The selected run loaded 30→31 artifacts through **Load more artifacts**. The
+  long page-two artifact name wrapped, and both load-more controls disappeared
+  when their bounded collections were complete.
+- Provider requests contained exact `per_page=50&page=1|2&status=success` run
+  paths and `per_page=30&page=1|2` artifact paths. No GitHub API mutation was
+  made; POST traffic was limited to the fixture's smart-HTTP `git-upload-pack`
+  fetches.
+- At the supported 960×660 minimum/short window, the renderer was 1000×690 CSS
+  pixels. Document and body client/scroll widths matched, and measured
+  overflow, clipped controls, outside controls, and overlaps were all empty.
+- Five actual **View → Zoom in** actions moved the requested base through
+  100→110→125→150→175→200%. Auto-fit held the effective scale at 94%; the same
+  geometry gate remained clean.
+- The first pass caught a real flex-shrink defect in the run-detail **Close**
+  button. The header button now keeps its intrinsic width, the exact source was
+  rebuilt, and the full 51-run/31-artifact interaction passed.
 
-### Sanitized squash verification
+| Promoted screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-actions-pagination.png` | 960×660 | 95,213 | `3250eaee8b6fc69b06dceb6439f04ee45e68351229ac87db003d04c27c4dd7a2` |
+| `docs/assets/screenshots/material-actions-artifact-page-two.png` | 960×660 | 83,960 | `5310197657763fc1269639d5b3c8c3998393ae36e6077e71e274877e51dbdb8b` |
 
-The integration uses the source tree at `5d50500e40edac023336434a5bff3ced32df881e`
-on top of `main` baseline `f84903c6acd3f8e9d3d632887ee93a01258f1896`.
-The source delta was applied as one squash, so its original commit authors are
-not part of this branch's ancestry. The integration gate recorded:
+The Pages layout was also assembled under the owned run root with all 33
+tracked PNGs. Its 23 referenced images and 22 gallery cards loaded at nonzero
+natural dimensions. At 960×660 and 390×844, document/body widths matched the
+viewport and measured overflow/outside arrays were empty; original desktop and
+mobile captures showed both new cards and wrapped captions.
 
-- TypeScript `--noEmit --skipLibCheck`: **passed**;
-- all 50 added or modified unit-test files: **307 passed, 0 failed**;
-- the dedicated clone-account/shallow-clone semantic-union set: **67 passed, 0
-  failed**;
-- the final pull-request/API regression rerun after source-tip hardening: **49
-  passed, 0 failed**;
-- repository code/config Prettier and targeted Markdown Prettier: **passed**;
-  and
-- cached diff, conflict-marker, unmerged-path, local-user-path, personal-name,
-  raw PID/HWND, common-key, and screenshot-reference scans: **passed**. The one
-  token-shaped value retained by the scan is a deliberate synthetic response-
-  redaction fixture.
+### Publication and cleanup receipt
 
-The README and PLAN now agree that every named guided wave is shipped, app
-source `5e80e678…` is accepted with exact production/off-screen evidence, and
-the later public `main` evidence is complete. Reference-only proprietary
-cloud/team/AI services remain explicitly outside this roadmap.
+- Main-repository evidence and both PNGs were committed and pushed at
+  `1d81472595b1e01ff457425668cd8afa41f3bf2f`; local, tracking, and direct remote
+  SHAs matched.
+- The separate wiki's extra job-log and responsive guidance was preserved.
+  Home, User Guide, and two local `Images/` assets were committed and pushed at
+  `2585cf7977b14d5792a1addb8b9a7c9f944e1e84`; local, tracking, and direct remote
+  SHAs matched. The live rendered pages show the new named controls and both
+  image links.
+- Pages run `29270933754` checked out exact source `1d81472595`, configured
+  Pages, assembled the publish directory, and uploaded the `github-pages`
+  artifact. The downloaded 3,051,520-byte tar contains both PNGs with the exact
+  tracked hashes. Deployment was correctly rejected because
+  `mega-feature-update` is not allowed by the protected `github-pages`
+  environment.
+- The exact app/provider PIDs and ports exited, the dummy credential was
+  deleted and read back absent, the hidden desktop was closed once, and the
+  containment-checked owned Temp root was removed and confirmed absent. The
+  visible desktop, normal app profile, and public provider state were never
+  touched.
 
-## Completed milestone summary
+See `.codex/run-manifests/2026-07-13-actions-pagination-ui-gate.md` for the
+complete fixture, request, interaction, geometry, publication, and cleanup
+record.
+
+## Legacy M0-M18 milestone summary
 
 | Milestone | Status | Shipped result |
 | --- | --- | --- |
@@ -325,24 +259,7 @@ These are the first paths to inspect when maintaining each subsystem:
   `app/src/lib/agent-commands.ts`,
   `app/src/main-process/agent-server/`,
   `app/src/lib/agent-command-executor.ts`, `script/agent/`, and
-  `docs/agent-api.md`.
-- **Guided Git administration:** `app/src/ui/repository-tools/`,
-  `app/src/lib/git/format-patch.ts`,
-  `app/src/lib/git/structured-commit-rewrite.ts`,
-  `app/src/lib/repository-signing.ts`, `app/src/lib/repository-lfs.ts`,
-  `app/src/lib/repository-bisect.ts`, `app/src/lib/git/merge-tree.ts`,
-  `app/src/lib/hooks/repository-hooks-manager.ts`, and
-  `app/src/ui/worktrees/worktree-administration.tsx`.
-- **Guided GitHub workspaces:** `app/src/lib/github-pull-request.ts`,
-  `app/src/lib/stores/pull-request-lifecycle-store.ts`,
-  `app/src/ui/github-pull-request-lifecycle/`,
-  `app/src/lib/actions-artifacts.ts`, `app/src/lib/actions-branch-rules.ts`,
-  `app/src/ui/github-releases/`, `app/src/lib/github-releases.ts`,
-  `app/src/ui/github-issues/`, and `app/src/lib/github-issues.ts`.
-- **Provider-neutral triage:** `app/src/lib/provider-triage.ts`,
-  `app/src/lib/provider-triage-json.ts`,
-  `app/src/lib/stores/provider-triage-store.ts`, and
-  `app/src/ui/repository-tools/provider-triage.tsx`.
+  `docs/wiki/Agent-API.md`.
 - **Repository parity:** `app/src/lib/databases/repositories-database.ts`,
   `app/src/ui/repository-settings/`, `app/src/ui/pull-all/`,
   `app/src/lib/automation/pull-all.ts`,
@@ -380,11 +297,8 @@ The exhaustive run on the earlier application/test tree shipped by
 - the reproducible build emitted `out/`, and Electron was exercised only on a
   uniquely named off-screen Win32 Headless Desktop with isolated fixture and
   user-data paths;
-- all final promoted captures were visually inspected at original resolution,
-  nonblank, and private-data-free. The standard captures are **1443×992** and
-  the user-size responsive proof is **1450×997**. The live Actions job-log
-  proof is **2048×1228** and contains no token value, signed URL, account name,
-  local path, email address, or personal identifier.
+- all captures in that earlier final set were visually inspected at original
+  resolution, nonblank, private-data-free, and exactly **1443×992**.
 
 ### Secure clone account fallback validation
 
@@ -404,188 +318,40 @@ Earlier verified captures, including
 image is also 1443×992 and has SHA-256
 `abbcc34aa02949d2144f008c9ed10b4414f721843890643d65d8e0b9360c3da1`.
 
-## Published design sanitization
+### 2026-07-13 guided Git and GitHub evidence
 
-The previously local `design/` prototype is now pushed as five auditable source
-files: both `.dc.html` prototypes, `design/README.md`, the regex guide, and
-`support.js`. Sample names, handles, email addresses, initials, and the private
-GitLab-style hostname were replaced with generic examples while the public
-`codingmachineedge` repository identity was preserved.
+A subsequent exact off-screen run verified three named, task-specific app
+functions at **1000×687**. The app presents focused controls and state for these
+tasks; it does not expose a searchable list of raw Git/`gh` commands or API
+endpoints.
 
-The original thumbnail, seven raster captures, and UUID-named upload were not
-published because personal-like identifiers were baked into their pixels and
-some carried image metadata. HTML parsing, embedded JavaScript compilation,
-local-link checks, Prettier, personal-identifier scanning, and common-secret
-pattern scanning all pass on the published source-only set.
+- **GitHub notifications:** the GitHub tab, account selector, inbox filters,
+  refresh guard, and complete no-signed-in-account state fit without clipped
+  labels.
+- **Sparse checkout:** the disabled-state side panel explains cone mode,
+  validates repository-relative directories, and provides an explicit review
+  step before enabling the worktree change.
+- **Shallow clone:** the URL clone form exposes a named toggle and numeric
+  commit-depth field, explains current-branch/submodule scope, and points users
+  to Repository tools for later deepening.
 
-## Release automation hardening
+| Screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-github-notifications.png` | 1000×687 | 81,465 | `53f40a94a6ead19b73c6c3302d0eb60b0effd050c7b018b43dd76d4b2072a354` |
+| `docs/assets/screenshots/material-sparse-checkout.png` | 1000×687 | 60,070 | `49a7182f5fd9eb7e0a86d6c20a1ed5b5f388b9063c87d033bfef63d42b7b37e7` |
+| `docs/assets/screenshots/material-shallow-clone.png` | 1000×687 | 67,271 | `337e7a967b538de22bdd560ff9393ff35619fd1ea76e6ff8aea7827793befd59` |
 
-- Installer versions use the NuGet-compatible form
-  `3.6.3-beta3-b00000000NN`, avoiding the prior dotted prerelease
-  normalization failure.
-- Squirrel feed processing accepts the final unterminated `RELEASES` record,
-  so the required non-architecture full NUPKG alias is always published.
-- Installer outputs attach directly to a real public release; the Build
-  Installers workflow itself retains no Actions artifacts.
-- Documentation-only pushes intentionally skip installer production, while CI
-  remains enabled for every push to `main`.
-- Existing queued/in-progress runs were canceled when requested. After the
-  subsequent enable instruction, no new runs were canceled and all ten
-  repository Actions workflows report `active`.
-
-## Secure Actions job-log downloads
-
-- `API.fetchWorkflowJobLogs` uses Electron's automatic redirect path, avoiding
-  Chromium's opaque status-0 response for manual cross-origin redirects.
-- The already-installed `same-origin-filter` records each request's initial
-  origin by request ID and strips authentication, authorization, and cookie
-  headers from every cross-origin continuation. Same-origin requests preserve
-  their required headers.
-- Unit regressions cover redirect following, cross-origin credential removal,
-  same-origin header preservation, expired logs, the 5 MB display cap, and
-  signed-query-safe failure messages.
-- The viewer ignores a late rejection from an older job after another job is
-  opened, and closing the viewer clears loading/error state so an in-flight
-  request cannot repopulate it. Focused tests cover both races.
-- Release publication explicitly targets the triggering `github.sha`, so an
-  overlapping documentation push cannot move a generated tag to newer `main`.
-- A sanitized live API check confirmed an authenticated 302 to an HTTPS signed
-  blob, followed by an unauthenticated `text/plain` 200 response with the CORS
-  policy required by the renderer. No token, signed URL, or log body was
-  printed during that metadata check.
-- The exact `a346d0a569642e1c1b1180994cac4144890bf037` production build loaded the
-  real Windows x64 log on the off-screen desktop. The accepted original-size
-  capture is `material-actions-job-log.png`; its dimensions and digest are in
-  the historical capture ledger above.
-- The M19 exact `5e80e678…` build repeated the viewer against a synthetic
-  searchable log and separately downloaded a synthetic artifact through the
-  authenticated loopback endpoint. The artifact panel showed the locally
-  computed digest matching the provider value plus attestation-presence
-  context. The accepted 1452×1001 job-log and artifact frames, with their new
-  digests, are in the M19 ledger below.
-
-## Secure Pull All account fallback
-
-- The repository's normal credential resolution always runs first, without a
-  forced selector.
-- Retry eligibility is limited to the ambiguity between HTTPS authentication
-  failure and HTTPS repository-not-found. SSH remotes and non-authentication
-  errors are never retried with other accounts.
-- Only token-bearing signed-in accounts whose configured HTML endpoint has the
-  exact remote scheme, host, and effective port are candidates. Tokenless
-  accounts and stale tokenless repository bindings are excluded. The
-  repository-bound eligible account is preferred among the remaining
-  candidates, then stable account order is preserved.
-- The forced account selector is kept in the internal trampoline map, removed
-  after the operation, and stripped before spawning Git. It never enters a Git,
-  hook, LFS, or other child-process environment and is not emitted to logs.
-- A missing exact-origin selection fails closed for that origin. A cross-origin
-  submodule scopes the selector away and follows normal credential resolution.
-- The accepted exact-build off-screen proof at `5e80e678…` uses only synthetic
-  loopback and repository labels. It shows `4 pulled, 0 skipped, 0 failed`; all
-  four rows display `Pull completed using another signed-in account.` without
-  exposing an account name, selector, token, or local path. Its promoted target
-  is `material-pull-all-account-fallback.png` (1452×1001, 121,304 bytes,
-  SHA-256 `3a00b1b61e79e8abadb363b8d63ce5f1ebece4d895a476cc9ca4c983a638a5de`).
-
-## Secure clone account fallback
-
-- A valid hosted-tab account selection is forced for the first clone attempt.
-  For a generic URL, `getPreferredGenericCloneAccountKey` chooses the
-  API-matched token-bearing account or, if lookup is inconclusive, the first
-  eligible exact-origin account. Only a clone with no eligible identity keeps
-  normal unforced behavior, preventing an avoidable credentials prompt.
-- Only HTTPS authentication failure or HTTPS repository-not-found ambiguity can
-  start fallback. SSH, malformed URLs, certificate failures, transport errors,
-  and other non-authentication failures are not retried across accounts.
-- Eligible candidates are token-bearing signed-in accounts whose configured
-  HTML endpoint has the same scheme, host, and port as the origin that rejected
-  the credential. Lookalike hosts, scheme changes, and port changes fail closed.
-- The credential helper records only the rejected origin and internal stable
-  account selector. Neither a token nor selector is added to a Git child
-  environment, command line, log, screenshot, or error message.
-- A successful fallback account key propagates through clone completion and is
-  persisted before initial API matching. Single clone, batch clone,
-  missing-repository recovery, and retry actions therefore keep the account
-  that actually succeeded instead of rebinding to the first same-host account.
-- Refreshed candidate ordering excludes tokenless accounts while retaining an
-  account that gains a token during refresh. A stale tokenless stored affinity
-  is discarded before the generic clone chooses its first eligible identity.
-- The accepted exact-build 1452×1001 light-theme capture target is
-  `material-clone-account-fallback.png` (164,039 bytes, SHA-256
-  `d562616bbcfeb6c7f92dfaa600a58265e5f954dfe80999e9383d615400b444f4`).
-  The redacted `5e80e678…` fixture ledger proves `proof-a` rejected,
-  `proof-b` accepted, advertisement served, and pack served; the clone is clean
-  on `main`, the synthetic successful-account affinity persisted, and no
-  credentials dialog appeared.
-
-## Secure shallow-history account fallback
-
-- Deepen and unshallow fetches run through the Desktop credential trampoline,
-  so they use the same credential isolation as ordinary hosted Git operations
-  instead of invoking a tokenless raw fetch path.
-- Only an eligible token-bearing account for the remote's exact scheme, host,
-  and effective port can recover an ambiguous HTTPS authentication/not-found
-  failure; SSH, non-authentication, and cross-origin failures remain closed.
-- The accepted exact-build History frame is
-  `material-history-deepen.png` (1452×1001, 106,548 bytes, SHA-256
-  `5e6bdfa9d9a935b9f5fd8d6d3e7cad80dab28cca6f425ef0356b684f74cb8089`).
-  It shows the completed deepen and the neutral result
-  `Fetch completed using another signed-in account.` without revealing an
-  account, token, selector, remote URL, or owned path.
-
-## M19 guided hidden-desktop evidence
-
-The accepted run used one uniquely named hidden Win32 desktop, one isolated app
-profile, one owned `%TEMP%` root, and a loopback HTTPS fixture. It never called
-`show_headless_desktop`, focused a normal window, or sent global input. The
-low-level MCP client resolved the owned app window at runtime and captured it
-with `client_only: true`. Chromium ignored background messages for some web
-controls, so the run used the documented isolated-app CDP hook for those
-renderer interactions; the native save dialog still used HWND-bound low-level
-controls. Compositor-banded frames were rejected, clean retries were reopened at
-original resolution, and only the accepted PNGs below entered the candidate
-set.
-
-The exact `5e80e678…` bundle supplied cross-account clone, Pull All, and
-history-deepening receipts plus representative Foundation, P0, P1, and Later
-surfaces. The P2 branch-visibility controls remain covered by focused model/UI
-regressions; this ledger does not claim a dedicated P2 screenshot. All 14 clean
-accepted frames come from the same exact build.
-
-| M19 accepted capture target | App source/build | Dimensions | Bytes | SHA-256 |
-| --- | --- | ---: | ---: | --- |
-| `docs/assets/screenshots/material-shallow-clone-safe.png` | `5e80e678…` | 1452×1001 | 144,543 | `a29b242b08e90b802632226e5af161ed0761ef26bc0ad5e77714b6d2353b87ea` |
-| `docs/assets/screenshots/material-sparse-checkout-safe.png` | `5e80e678…` | 1452×1001 | 120,929 | `cf0fd31bdb470c93b24dd04807443f82a2d4f99e5cccda2fbf345c397c329218` |
-| `docs/assets/screenshots/material-stash-manager.png` | `5e80e678…` | 1452×1001 | 141,437 | `923a7e831ae999c1fcb681e5003108c22eb6632692916915366bdb2ad59c63e9` |
-| `docs/assets/screenshots/material-clone-account-fallback.png` | `5e80e678…` | 1452×1001 | 164,039 | `d562616bbcfeb6c7f92dfaa600a58265e5f954dfe80999e9383d615400b444f4` |
-| `docs/assets/screenshots/material-pull-all-account-fallback.png` | `5e80e678…` | 1452×1001 | 121,304 | `3a00b1b61e79e8abadb363b8d63ce5f1ebece4d895a476cc9ca4c983a638a5de` |
-| `docs/assets/screenshots/material-history-deepen.png` | `5e80e678…` | 1452×1001 | 106,548 | `5e6bdfa9d9a935b9f5fd8d6d3e7cad80dab28cca6f425ef0356b684f74cb8089` |
-| `docs/assets/screenshots/material-remote-manager.png` | `5e80e678…` | 1452×1001 | 160,714 | `97817a1d31a8d592981c997b5c4aecc98cf291450f9f6f34008b7697942213b3` |
-| `docs/assets/screenshots/material-repository-tools.png` | `5e80e678…` | 1452×1001 | 117,713 | `b72ba5a362f6d4fef758183cbc84db7795c41884bdc2eea88deb115b3fe59385` |
-| `docs/assets/screenshots/material-provider-triage.png` | `5e80e678…` | 1452×1001 | 119,639 | `a4acbe0cfa8d7f17deb1e0e36ba7177caf3ff25b5c7c38ae65bc16f0de1f950e` |
-| `docs/assets/screenshots/material-actions-job-log.png` | `5e80e678…` | 1452×1001 | 93,898 | `45a67b15745f413d80d2d3a3a5a47acdac63e1dda942a4d49131b36b2784a064` |
-| `docs/assets/screenshots/material-actions-artifact-download.png` | `5e80e678…` | 1452×1001 | 134,585 | `d263bd5885e67ea52f515970e771eaf266901f51b826e9fa3159d3f9a438a1cf` |
-| `docs/assets/screenshots/material-github-releases.png` | `5e80e678…` | 1452×1001 | 135,021 | `ab6d46d4fe749dd63b34095411562cae82f4ddfc48991474f927e4be9ae5d739` |
-| `docs/assets/screenshots/material-github-issues.png` | `5e80e678…` | 1452×1001 | 123,243 | `423d201a90346548ca9b36cdc472b11e144cf3aff1f79179939e44fb50e606bc` |
-| `docs/assets/screenshots/material-native-pull-request.png` | `5e80e678…` | 1452×1001 | 152,440 | `9fd4c407f74639b58607c1c2c3158c2278f71ac3fe4088bb66bc5e3cf24434cb` |
-
-All visible accounts, repositories, branches, issues, pull requests, workflow
-runs, releases, logs, artifacts, remotes, paths, and credentials in this M19
-proof are synthetic. Public providers were not mutated. The retained evidence
-contains no real login, name, email, token, signed URL, user-profile path,
-credential selector, raw provider payload, or process/window identifier.
-
-Task forms follow a no-page-level-sideways-scroll policy: labels wrap and action
-groups stack when practical, while horizontal scrolling is reserved for spatial
-code, diff, or log content. The exact files are promoted and their final tracked
-hashes match the inspection ledger below.
+Each promoted PNG was reopened at original resolution and matched the source
+capture's SHA-256. No bundle-import or issue-creation screenshot is included in
+this evidence set. Task forms follow a no-page-level-sideways-scroll policy:
+labels wrap and action groups stack when practical, while horizontal scrolling
+is reserved for spatial code, diff, or log content.
 
 ## Headless verification environment
 
-- Project: `%USERPROFILE%\Documents\GitHub\desktop-material`
-- MCP checkout: `%USERPROFILE%\Documents\GitHub\lowlevel-computer-use-mcp`
-- Required MCP SHA: `beed66ca6ed2503e6170ee1e1158247f1c2f0140`
+- Project: `C:\Users\Administrator\Documents\GitHub\desktop-material`
+- MCP checkout: `C:\Users\Administrator\Documents\GitHub\lowlevel-computer-use-mcp`
+- MCP SHA used by the P0 gate: `806d9ba85e4afbc2af58d7499496babfa7c68891`
 - MCP endpoint: `http://127.0.0.1:8765/mcp`
 - Skill and client: `.codex/skills/verify-desktop-material-headless/`
 - Accepted application source/build:
@@ -634,89 +400,106 @@ removal; local `main` was synchronized with `origin/main`.
   HTTP 200; every asset was streamed independently, and computed bytes/SHA-256
   matched the release metadata:
 
-  | Release asset | Bytes | SHA-256 |
-  | --- | ---: | --- |
-  | `GitHubDesktop-3.6.3-beta3-b0000000083-full.nupkg` | 308,216,183 | `47a6f31ef4cd0d380fc10db3daaa6de12100d90b2b0dbf0ed27b6137b9fb016a` |
-  | `GitHubDesktop-3.6.3-beta3-b0000000083-x64-full.nupkg` | 308,216,183 | `47a6f31ef4cd0d380fc10db3daaa6de12100d90b2b0dbf0ed27b6137b9fb016a` |
-  | `GitHubDesktopSetup-x64.exe` | 308,336,640 | `165960a99209a4df2a44b8ed79e36d35980a884fe576dbb8b68a2f7faf19fa78` |
-  | `GitHubDesktopSetup-x64.msi` | 307,916,800 | `510c77289632541fdd6859e59623b5a961a98bf3aabb2e7d00a65f3bd993caac` |
-  | `RELEASES` | 102 | `e92cbeeb7d775d6a3d4f5c972ca7d1d2ae0d6e5f55105661ded84803634a9d23` |
+For the legacy M0-M18 foundation, final public verification still follows that
+gate. The newer function-first parity roadmap is intentionally active: the P0
+four-function slice, typed operation boundary, and Actions run/artifact
+pagination are production-verified. Attempt/job/log/re-run, deployment-review,
+and fork-approval functions have now passed their production UI gate as well.
+Cryptographic artifact attestation verification and Actions cache management
+are next, followed by bounded PR/Issue waves and then Release Manager.
 
-- **Pages and screenshots:** documentation/image union
-  `a890ab579c63651e5089ee433b259f0fc9198fbf` passed
-  [Pages 29272714314](https://github.com/codingmachineedge/desktop-material/actions/runs/29272714314)
-  and deployment `5428939908`. The
-  [Pages site](https://codingmachineedge.github.io/desktop-material/) returns
-  HTTP 200. All 40 tracked PNGs match both raw `main` and Pages byte-for-byte
-  and by SHA-256: 80/80 live comparisons, 0 failures, 4,272,687 bytes per
-  surface; sorted manifest SHA-256
-  `9d173feacd309d46ac63d7898fd36eb4165bd57e738bf7cd511f6ecfa8cdaa4d`.
-- **Canonical wiki:** wiki `master`
-  `9f9c8010c8fcf275e39ae3e805856728ac6a23f8` matches all seven
-  `a890ab579c…:docs/wiki` Markdown blobs exactly, with no missing or stale
-  Markdown pages. Live
-  [Home](https://github.com/codingmachineedge/desktop-material/wiki),
-  [User Guide](https://github.com/codingmachineedge/desktop-material/wiki/User-Guide),
-  [Developer Guide](https://github.com/codingmachineedge/desktop-material/wiki/Developer-Guide),
-  and [Feature Gallery](https://github.com/codingmachineedge/desktop-material/wiki/Feature-Gallery)
-  return HTTP 200.
-- **Privacy and cleanup:** the exact 3,011-file tracked-tree audit found zero
-  current-user names/paths/emails, provider-token signatures, private keys, or
-  personal files. Proof processes, listeners, credentials, hidden desktop,
-  aliases, fixtures, Temp roots, and all completed agent worktrees are absent.
-  The administrative audit left Actions enabled with zero active workers and
-  deleted all 184 retained Actions artifacts, leaving the inventory at zero.
+## 2026-07-13 Actions run inspector production UI gate
 
-## Previous root-finalized publication and accessibility evidence
+The exact unpackaged production build at
+`2f40d8949aaa7ae4ce5418cd949c28c643da0a37` passed on the isolated
+off-screen desktop. The build used the required no-download production command
+and completed in 115 seconds. The visible user desktop was never shown,
+focused, resized, or used for input.
 
-The most recent completed closing gate before this guided-function integration
-recorded:
+This roadmap slice exists as named app functions rather than a command or API
+catalogue. The run detail pane selects the latest or a historical attempt,
+loads strict 50-job pages, retains page one through a later-page retry, and
+sends an exact loaded job to the bounded log transfer or re-run mutation.
+Run-level pending deployments and review history load independently; selected
+approvable environments use a dedicated required 1–1024-character decision
+dialog, while an eligible first-time fork run has a separate confirmation.
 
-- **Code and CI:** final implementation baseline
-  `b2699faccb07728fe9aa2838aa13355d71e172b0` passed all seven jobs in
-  [CI 29225926836](https://github.com/codingmachineedge/desktop-material/actions/runs/29225926836).
-- **Installer and release:**
-  [Build Installers 29225926808](https://github.com/codingmachineedge/desktop-material/actions/runs/29225926808)
-  succeeded at that exact SHA with zero workflow artifacts. Public, non-draft,
-  non-prerelease release
-  [`v3.6.3-beta3-b0000000076`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000076)
-  has exactly five uploaded, non-empty assets and an exact-SHA lightweight tag.
-  Both full NUPKG aliases are 307,547,223 bytes with SHA-256
-  `3a4b0bd30668b2480f9820dab62ca7cfa13f2b58e976ce7454c024942029f365`.
-- **Pages and README:** screenshot/site baseline
-  `3acb0ba0dc69af6f2cfdd5e2967593158eac448d` passed
-  [Pages 29227302226](https://github.com/codingmachineedge/desktop-material/actions/runs/29227302226).
-  The [repository](https://github.com/codingmachineedge/desktop-material) and
-  [Pages site](https://codingmachineedge.github.io/desktop-material/) return
-  HTTP 200. The Pages and raw-main Pull All proof URLs both serve the tracked
-  114,222 bytes with SHA-256
-  `80674cf75511c1238bcf527e6e678ffd3d46e4cc36ee2455ebd4b8cecf1c0991`.
-- **Wiki:** the canonical six-file mirror is pushed at
-  `2d169244373f27a6b08f6c9594ec433ff561880b`. The live
-  [Home](https://github.com/codingmachineedge/desktop-material/wiki) and
-  [User Guide](https://github.com/codingmachineedge/desktop-material/wiki/User-Guide)
-  return HTTP 200 and render the 1450×997 responsive proof; the final User
-  Guide source also embeds the 2048×1228 Actions job-log proof from raw `main`.
-  The published User Guide embeds the 2048×1228 Pull All account-fallback proof
-  through its raw-main URL.
-- **Accessibility and clipping:** the exact-size hidden-desktop review shows
-  every repository/worktree/branch/sync/one-click/build toolbar control, all
-  Changes filter/composer controls, and no horizontal scrollbar. The supported
-  minimum remains contained, and requested 200% scaling auto-fits to 96% when
-  required. Keyboard/name/role/focus and 50–200% zoom regressions pass; recorded
-  light/dark core contrast pairs meet WCAG AA for normal text.
-- **Privacy:** the sanitized five-file design set and the full tracked tree pass
-  targeted personal-identifier and common-secret scans. Public local-path
-  examples use `%USERPROFILE%`; the Pull All proof contains only synthetic
-  loopback/repository labels and no real identity, token, local path, or email.
-- **Secure clone implementation checkpoint:** implementation commit
-  `0b4f25cc8e91eb62634e70f90e24f1a44d00dc9d` is present in first reviewed
-  `main` baseline `3dc1ecc4d8daff6150980e47a13db4f3a61ec37a`.
+Every new API/store surface stays on the repository-selected same-endpoint account. Current jobs use the fixed latest-attempt path, historical jobs use the fixed attempt path, deployment reviews send only normalized environment ids/state/comment, and fork approval is bodyless. Same-run attempt changes abort and generation-guard stale jobs; repository/account/run changes also cancel child work. Artifacts are now correctly labelled as run-level outputs across all attempts.
 
-Those links and checks remain evidence for their stated historical baselines;
-they are not presented as validation of M19. Fresh M19 CI, installer/release,
-Pages, wiki, screenshot, privacy, and cleanup evidence is recorded immediately
-above.
+Focused implementation evidence is green: TypeScript `--noEmit`, targeted ESLint with the repository rule directory, responsive style contracts, and 124/124 Actions checks across 22 suites. Those checks cover strict bounded parsing (including single-byte response streams), fixed paths and bodies, permission-aware bounded errors, exact-account routing, current→historical stale-request cancellation, latest-attempt page revalidation, shortened-page stopping, 50→51 retained retry, exact recovered-job log/re-run targeting, 101-attempt bounded navigation, locked deployment selection, required bounded comments, approval submission, separate fork confirmation, consuming modal scrims, and contained/restored focus.
+
+The deterministic provider checkpoint is also green. Eleven provider tests plus
+the live probe cover inspector run `84152` at attempt 2, 51 current and 51
+historical jobs, current sentinel `85101`, historical sentinel `85050`, a
+one-time current page-two 503, exact bodyless re-run/fork mutations, exact
+bounded deployment-review bodies, redirected log content without credentials,
+two eligibility-distinct environments, stateful history, unchanged artifact
+integrity, and blocked Git receive-pack.
+
+### Interaction, request, and responsive receipts
+
+- The real app loaded the current 50→51 jobs through a deliberate 503→200
+  retry, selected attempt 1, loaded its 50→51 historical jobs, opened the exact
+  recovered logs, and confirmed the exact loaded job re-run.
+- Exact provider links resolved run `84152`, current job `85101`, historical job
+  `85050`, and environment `86101`. The isolated provider recorded exactly
+  three POSTs: job `85101` re-run (201, bodyless), run `84152` pending-deployment
+  review (204, exact normalized body SHA-256
+  `32a6c1c2d4615f352f1d0060b11e688d3cf020146027c4ada23d56e82e460be8`),
+  and run `84152` fork approval (204, bodyless). No public GitHub state was
+  touched.
+- A first production pass caught a real short-window defect: the deployment
+  dialog footer extended 7 pixels below the renderer because its layer was
+  positioned against the tall scrolled Actions view. The layer now uses fixed
+  viewport positioning; the exact source was rebuilt and the same modal passed.
+- The full interaction passed in a 1000×687 CSS renderer captured at a true
+  960×660. Regular-height, supported short-height, and requested 200%-base
+  states also passed. Auto-fit preserved the user base while applying a 96%
+  effective scale. Document and body client/scroll widths matched in every
+  receipt; overflow, clipped controls, outside controls, sibling overlaps, and
+  oversized text arrays were empty.
+- Job-log, deployment-review, and fork-review dialogs each produced exactly one
+  modal and one interactive scrim; focus stayed contained while open and was
+  restored after close. The spatial log body remains the sole intentional
+  horizontal-pan surface.
+
+| Promoted screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-actions-jobs-pagination.png` | 960×660 | 111,675 | `0e61eb4e66c20bffbeac76c79eebb9508d44160cb104feb8fc47f2617dc94b90` |
+| `docs/assets/screenshots/material-actions-pending-deployments.png` | 944×808 | 98,249 | `6eea1333755d5edad469c8d0d06b8a3d62e43c991e6bc9de5e98080dee75c1bc` |
+
+Both promoted PNGs were reopened at original resolution after copying and
+matched their accepted run captures. README, in-repository wiki, and Pages
+sources now reference them. The assembled local Pages layout loaded 25 nonzero
+images across 24 gallery cards. At 960×660, document/body client and scroll
+widths were all 945; at 390×844 they were all 375. Overflow and outside-control
+arrays were empty, and original desktop/mobile captures showed the two new
+cards with wrapped captions and no sideways scrolling.
+
+### Publication and cleanup receipt
+
+- Primary-repository evidence and both promoted PNGs were pushed at
+  `6d00ab73531d5359d821b6fccef2bf9ffffb3035`; local, tracking, and direct remote
+  SHA matched with a clean worktree.
+- The existing live wiki's newer M19 content was preserved while the Actions
+  Home/User Guide sections were merged. Wiki commit
+  `e4f4a49a973a442078369c61b7c6da9696fd38a7` is on the direct remote, with both
+  screenshots stored as local `Images/` assets. Public Home, User Guide, raw
+  sources, and both PNG responses were verified; the images returned 200 with
+  the exact 111,675/98,249 byte sizes.
+- [Pages run `29283239381`](https://github.com/codingmachineedge/desktop-material/actions/runs/29283239381)
+  checked out the exact evidence SHA and passed checkout, configuration,
+  assembly, and upload. Artifact `8292133247` contained 41 traversal/link-safe
+  entries; its HTML and both PNG Git blobs exactly matched the pushed source.
+  Deployment correctly stopped before a runner because the protected
+  `github-pages` environment does not allow `mega-feature-update`.
+- The fixture remote was restored to its `.invalid` identity. The exact
+  loopback dummy credential was deleted and read back absent. Only the
+  revalidated owned app, Pages Edge, and provider PID trees were terminated;
+  ports `62208`, `62209`, and `64402` were absent afterward. Both owned desktops
+  reached zero windows, closed exactly once, and then returned not found. The
+  containment-checked run root and separate wiki clone were removed with
+  `Test-Path=false`. The visible user desktop remained untouched.
 
 ## Maintenance constraints
 

@@ -13,6 +13,10 @@ describe('compact shell style contracts', () => {
       style,
       /\.repository-rail\s*\{[\s\S]*?min-height: 0;[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
     )
+    assert.match(
+      style,
+      /\.tab-bar\.vertical\s*\{[\s\S]*?max-width: 100%;[\s\S]*?padding: 0;[\s\S]*?width: 100%;/
+    )
     assert.match(style, /@media \(max-height: 520px\)/)
     assert.match(
       style,
@@ -44,5 +48,14 @@ describe('compact shell style contracts', () => {
     assert.match(style, /@media \(max-width: 440px\)/)
     assert.match(style, /flex-wrap: wrap;/)
     assert.match(component, /\{this\.renderText\(\)\}/)
+  })
+
+  it('wraps finite sync descriptions while retaining responsive icon controls', () => {
+    const style = read('app/styles/_material-shell.scss')
+
+    assert.match(
+      style,
+      /\.push-pull-button > button\s*\{[\s\S]*?\.description\s*\{[\s\S]*?overflow: visible;[\s\S]*?overflow-wrap: anywhere;[\s\S]*?text-overflow: clip;[\s\S]*?white-space: normal;/
+    )
   })
 })

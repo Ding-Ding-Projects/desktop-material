@@ -3,38 +3,38 @@ import assert from 'node:assert'
 import * as React from 'react'
 import {
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
-  ICLIWorkbenchCatalog,
+  ICLIWorkbenchOperationRequest,
+  ICLIWorkbenchRuntime,
 } from '../../../src/lib/cli-workbench'
 import {
+  IRepositoryBundleImportRequest,
   IRepositoryToolsClient,
+  prepareRepositoryBundleImport,
+  RepositoryBundleImport,
   RepositoryTools,
 } from '../../../src/ui/repository-tools'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
-const catalog: ICLIWorkbenchCatalog = {
+const runtime: ICLIWorkbenchRuntime = {
   tools: [
     {
       tool: 'git',
       available: true,
       version: 'git version 2.55.0',
       error: null,
-      entries: [],
     },
     {
       tool: 'gh',
       available: true,
       version: 'gh version 2.80.0',
       error: null,
-      entries: [],
     },
   ],
-  entries: [],
 }
 
 class FakeRepositoryToolsClient implements IRepositoryToolsClient {
-  public readonly starts: ICLICommandRequest[] = []
+  public readonly starts: ICLIWorkbenchOperationRequest[] = []
   public readonly cancels: string[] = []
   private readonly outputHandlers = new Set<
     (event: ICLICommandOutputEvent) => void
@@ -43,8 +43,8 @@ class FakeRepositoryToolsClient implements IRepositoryToolsClient {
     (event: ICLICommandStateEvent) => void
   >()
 
-  public getCatalog = async () => catalog
-  public start = async (request: ICLICommandRequest) => {
+  public getRuntime = async () => runtime
+  public start = async (request: ICLIWorkbenchOperationRequest) => {
     this.starts.push(request)
   }
   public cancel = async (id: string) => {
@@ -123,11 +123,12 @@ describe('Repository tools', () => {
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0], {
       id: client.starts[0].id,
-      tool: 'git',
-      args: ['status', '--short', '--branch'],
-      cwd: 'C:/repo',
+      operation: { id: 'status-summary' },
+      repositoryPath: 'C:/repo',
       confirmed: false,
     })
+    assert.equal('args' in client.starts[0], false)
+    assert.equal('tool' in client.starts[0], false)
   })
 
   it('keeps reflog inspection non-mutating and shell-free', async () => {
@@ -141,12 +142,7 @@ describe('Repository tools', () => {
     assert.ok(card)
     fireEvent.click(card.querySelector('button') as HTMLButtonElement)
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'reflog',
-      'show',
-      '--date=local',
-      '-50',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, { id: 'reflog-view' })
     assert.equal(client.starts[0].confirmed, false)
   })
 
@@ -163,7 +159,9 @@ describe('Repository tools', () => {
     assert.ok(screen.getByRole('alertdialog'))
     fireEvent.click(screen.getByRole('button', { name: 'Confirm maintenance' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, ['maintenance', 'run'])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'maintenance-run',
+    })
     assert.equal(client.starts[0].confirmed, true)
 
     const id = client.starts[0].id
@@ -242,12 +240,11 @@ describe('Repository tools', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Export archive' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'archive',
-      '--format=zip',
-      '--output=C:\\exports\\repository-source.zip',
-      'HEAD',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'archive-export',
+      format: 'zip',
+      destination: 'C:\\exports\\repository-source.zip',
+    })
     assert.equal(client.starts[0].confirmed, true)
 
     const id = client.starts[0].id
@@ -294,12 +291,10 @@ describe('Repository tools', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Export bundle' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'bundle',
-      'create',
-      'C:\\exports\\all-history.bundle',
-      '--all',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'bundle-export',
+      destination: 'C:\\exports\\all-history.bundle',
+    })
     assert.equal(client.starts[0].confirmed, true)
   })
 
@@ -316,11 +311,10 @@ describe('Repository tools', () => {
     await screen.findByText('git version 2.55.0')
     fireEvent.click(screen.getByRole('button', { name: 'Verify a bundle' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'bundle',
-      'verify',
-      'C:\\exports\\repository.bundle',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'bundle-verify',
+      bundlePath: 'C:\\exports\\repository.bundle',
+    })
     assert.equal(client.starts[0].confirmed, false)
     assert.equal(screen.queryByRole('alertdialog'), null)
   })
@@ -346,11 +340,10 @@ describe('Repository tools', () => {
       screen.getByRole('button', { name: 'Choose and inspect a bundle' })
     )
     await waitFor(() => assert.equal(client.starts.length, 1))
-    assert.deepStrictEqual(client.starts[0].args, [
-      'bundle',
-      'verify',
-      'C:\\exports\\repository.bundle',
-    ])
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'bundle-verify',
+      bundlePath: 'C:\\exports\\repository.bundle',
+    })
     client.emitState({
       id: client.starts[0].id,
       state: 'completed',
@@ -359,11 +352,10 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 2))
-    assert.deepStrictEqual(client.starts[1].args, [
-      'bundle',
-      'list-heads',
-      'C:\\exports\\repository.bundle',
-    ])
+    assert.deepStrictEqual(client.starts[1].operation, {
+      id: 'bundle-list-heads',
+      bundlePath: 'C:\\exports\\repository.bundle',
+    })
     client.emitOutput({
       id: client.starts[1].id,
       stream: 'stdout',
@@ -386,11 +378,10 @@ describe('Repository tools', () => {
     )
 
     await waitFor(() => assert.equal(client.starts.length, 3))
-    assert.deepStrictEqual(client.starts[2].args, [
-      'check-ref-format',
-      '--branch',
-      'imported/main',
-    ])
+    assert.deepStrictEqual(client.starts[2].operation, {
+      id: 'bundle-import-validate-destination',
+      branchName: 'imported/main',
+    })
     client.emitState({
       id: client.starts[2].id,
       state: 'completed',
@@ -398,12 +389,10 @@ describe('Repository tools', () => {
       signal: null,
     })
     await waitFor(() => assert.equal(client.starts.length, 4))
-    assert.deepStrictEqual(client.starts[3].args, [
-      'show-ref',
-      '--verify',
-      '--quiet',
-      'refs/heads/imported/main',
-    ])
+    assert.deepStrictEqual(client.starts[3].operation, {
+      id: 'bundle-import-check-destination',
+      branchName: 'imported/main',
+    })
     client.emitState({
       id: client.starts[3].id,
       state: 'failed',
@@ -419,7 +408,10 @@ describe('Repository tools', () => {
     )
 
     await waitFor(() => assert.equal(client.starts.length, 5))
-    assert.deepStrictEqual(client.starts[4].args, client.starts[0].args)
+    assert.deepStrictEqual(
+      client.starts[4].operation,
+      client.starts[0].operation
+    )
     client.emitState({
       id: client.starts[4].id,
       state: 'completed',
@@ -439,7 +431,10 @@ describe('Repository tools', () => {
       signal: null,
     })
     await waitFor(() => assert.equal(client.starts.length, 7))
-    assert.deepStrictEqual(client.starts[6].args, client.starts[2].args)
+    assert.deepStrictEqual(
+      client.starts[6].operation,
+      client.starts[2].operation
+    )
     client.emitState({
       id: client.starts[6].id,
       state: 'completed',
@@ -447,7 +442,10 @@ describe('Repository tools', () => {
       signal: null,
     })
     await waitFor(() => assert.equal(client.starts.length, 8))
-    assert.deepStrictEqual(client.starts[7].args, client.starts[3].args)
+    assert.deepStrictEqual(
+      client.starts[7].operation,
+      client.starts[3].operation
+    )
     client.emitState({
       id: client.starts[7].id,
       state: 'failed',
@@ -456,14 +454,11 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 9))
-    assert.deepStrictEqual(client.starts[8].args, [
-      'fetch',
-      '--no-write-fetch-head',
-      '--no-tags',
-      '--no-auto-maintenance',
-      'C:\\exports\\repository.bundle',
-      'refs/heads/main',
-    ])
+    assert.deepStrictEqual(client.starts[8].operation, {
+      id: 'bundle-import-fetch-objects',
+      bundlePath: 'C:\\exports\\repository.bundle',
+      sourceRef: 'refs/heads/main',
+    })
     assert.equal(client.starts[8].confirmed, true)
     client.emitState({
       id: client.starts[8].id,
@@ -473,11 +468,10 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 10))
-    assert.deepStrictEqual(client.starts[9].args, [
-      'cat-file',
-      '-e',
-      `${sourceOID}^{commit}`,
-    ])
+    assert.deepStrictEqual(client.starts[9].operation, {
+      id: 'bundle-import-validate-commit',
+      oid: sourceOID,
+    })
     assert.equal(client.starts[9].confirmed, false)
     client.emitState({
       id: client.starts[9].id,
@@ -487,13 +481,11 @@ describe('Repository tools', () => {
     })
 
     await waitFor(() => assert.equal(client.starts.length, 11))
-    assert.deepStrictEqual(client.starts[10].args, [
-      'branch',
-      '--no-track',
-      '--',
-      'imported/main',
-      sourceOID,
-    ])
+    assert.deepStrictEqual(client.starts[10].operation, {
+      id: 'bundle-import-create-branch',
+      branchName: 'imported/main',
+      oid: sourceOID,
+    })
     assert.equal(client.starts[10].confirmed, true)
     client.emitState({
       id: client.starts[10].id,
@@ -605,12 +597,160 @@ describe('Repository tools', () => {
     await screen.findByText(/already exists.*will not be overwritten/i)
     assert.equal(client.starts.length, 8)
     assert.equal(
-      client.starts.some(start => start.args[0] === 'fetch'),
+      client.starts.some(
+        start => start.operation.id === 'bundle-import-fetch-objects'
+      ),
       false
     )
     assert.equal(
-      client.starts.some(start => start.args[0] === 'branch'),
+      client.starts.some(
+        start => start.operation.id === 'bundle-import-create-branch'
+      ),
       false
+    )
+  })
+
+  it('drops a delayed bundle picker result after the repository changes', async () => {
+    const client = new FakeRepositoryToolsClient()
+    let resolvePicker: (value: string | null) => void = () => {}
+    let pickerReturned = false
+    const picker = new Promise<string | null>(resolve => {
+      resolvePicker = resolve
+    })
+    const chooseBundleToImport = async () => {
+      const value = await picker
+      pickerReturned = true
+      return value
+    }
+    const renderImport = (repositoryPath: string) => (
+      <RepositoryBundleImport
+        repositoryPath={repositoryPath}
+        disabled={false}
+        client={client}
+        onRefreshRepository={async () => {}}
+        onBusyChanged={() => {}}
+        chooseBundleToImport={chooseBundleToImport}
+      />
+    )
+    const view = render(renderImport('C:/first'))
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose and inspect a bundle' })
+    )
+    view.rerender(renderImport('C:/second'))
+    resolvePicker('C:/exports/repository.bundle')
+
+    await waitFor(() => assert.equal(pickerReturned, true))
+    assert.equal(client.starts.length, 0)
+    assert.ok(
+      screen.getByRole('button', { name: 'Choose and inspect a bundle' })
+    )
+  })
+
+  it('cancels and resubscribes with the exact client when its identity changes', async () => {
+    const firstClient = new FakeRepositoryToolsClient()
+    const secondClient = new FakeRepositoryToolsClient()
+    const renderImport = (client: FakeRepositoryToolsClient) => (
+      <RepositoryBundleImport
+        repositoryPath="C:/repo"
+        disabled={false}
+        client={client}
+        onRefreshRepository={async () => {}}
+        onBusyChanged={() => {}}
+        chooseBundleToImport={async () => 'C:/exports/repository.bundle'}
+      />
+    )
+    const view = render(renderImport(firstClient))
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose and inspect a bundle' })
+    )
+    await waitFor(() => assert.equal(firstClient.starts.length, 1))
+    const firstRun = firstClient.starts[0].id
+
+    view.rerender(renderImport(secondClient))
+    await waitFor(() => assert.deepStrictEqual(firstClient.cancels, [firstRun]))
+    assert.deepStrictEqual(secondClient.cancels, [])
+    firstClient.emitState({
+      id: firstRun,
+      state: 'completed',
+      exitCode: 0,
+      signal: null,
+    })
+    assert.equal(secondClient.starts.length, 0)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Choose and inspect a bundle' })
+    )
+    await waitFor(() => assert.equal(secondClient.starts.length, 1))
+  })
+
+  it('keeps refresh completion scoped to its repository and blocks a second picker', async () => {
+    const client = new FakeRepositoryToolsClient()
+    const request: IRepositoryBundleImportRequest =
+      prepareRepositoryBundleImport(
+        'C:/exports/repository.bundle',
+        { oid: 'a'.repeat(40), ref: 'refs/heads/main' },
+        'imported/main'
+      )
+    let resolveRefresh: () => void = () => {}
+    let refreshes = 0
+    const refresh = new Promise<void>(resolve => {
+      resolveRefresh = resolve
+    })
+    const onRefreshRepository = () => {
+      refreshes++
+      return refresh
+    }
+    const component = React.createRef<RepositoryBundleImport>()
+    const renderImport = (repositoryPath: string) => (
+      <RepositoryBundleImport
+        ref={component}
+        repositoryPath={repositoryPath}
+        disabled={false}
+        client={client}
+        onRefreshRepository={onRefreshRepository}
+        onBusyChanged={() => {}}
+        chooseBundleToImport={async () => 'C:/exports/other.bundle'}
+      />
+    )
+    const view = render(renderImport('C:/first'))
+    const mountedComponent = component.current
+    assert.ok(mountedComponent)
+    mountedComponent.setState({
+      phase: 'refreshing',
+      bundlePath: request.bundlePath,
+      request,
+      status: 'Branch created. Refreshing the repository…',
+    })
+    const refreshCompletion = (
+      mountedComponent as unknown as {
+        finishRefresh: (
+          value: IRepositoryBundleImportRequest,
+          repositoryPath: string,
+          repositoryGeneration: number
+        ) => Promise<void>
+      }
+    ).finishRefresh(request, 'C:/first', 0)
+
+    await waitFor(() => assert.equal(refreshes, 1))
+    const chooseButton = screen.getByRole('button', {
+      name: 'Choose another bundle',
+    }) as HTMLButtonElement
+    assert.equal(chooseButton.getAttribute('aria-disabled'), 'true')
+    fireEvent.click(chooseButton)
+    assert.equal(client.starts.length, 0)
+
+    view.rerender(renderImport('C:/second'))
+    resolveRefresh()
+    await refreshCompletion
+
+    assert.ok(
+      screen.getByRole('button', { name: 'Choose and inspect a bundle' })
+    )
+    assert.equal(
+      screen.queryByText('Imported refs/heads/main as imported/main.'),
+      null
     )
   })
 

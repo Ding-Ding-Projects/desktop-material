@@ -3,11 +3,12 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 import { IAPIWorkflowRun } from '../../../src/lib/api'
 import {
+  ActionsArtifactPageSize,
   ActionsArtifactMaximumDownloadBytes,
   IActionsArtifact,
   IActionsArtifactList,
 } from '../../../src/lib/actions-artifacts'
-import { IActionsArtifactDownloadResult } from '../../../src/lib/actions-artifact-download'
+import { IActionsArtifactTransferSuccess } from '../../../src/lib/actions-transfer'
 import { ActionsStore } from '../../../src/lib/stores/actions-store'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
@@ -61,6 +62,7 @@ const artifact = (
   digest,
   workflowRun: {
     id: 7,
+    runAttempt: 2,
     headBranch: 'feature/artifact-browser',
     headSha: 'b'.repeat(40),
   },
@@ -71,24 +73,22 @@ const list = (
   artifacts: ReadonlyArray<IActionsArtifact>,
   totalCount: number = artifacts.length,
   page: number = 1
-): IActionsArtifactList => {
-  const truncated = totalCount > (page - 1) * 100 + artifacts.length
-  const capped = truncated && page === 10
-  return {
-    artifacts,
-    totalCount,
-    page,
-    nextPage: truncated && !capped ? page + 1 : null,
-    truncated,
-    capped,
-  }
-}
+): IActionsArtifactList => ({
+  artifacts,
+  totalCount,
+  page,
+  nextPage:
+    artifacts.length > 0 && page * ActionsArtifactPageSize < totalCount
+      ? page + 1
+      : null,
+  truncated: totalCount > artifacts.length,
+})
 
 interface IStoreOverrides {
   readonly fetchArtifacts?: (
     repository: Repository,
     runId: number,
-    page: number,
+    page?: number,
     signal?: AbortSignal
   ) => Promise<IActionsArtifactList>
   readonly fetchArtifactAttestationPresence?: (
@@ -115,7 +115,9 @@ function store(overrides: IStoreOverrides = {}): ActionsStore {
 const downloadResult = (
   path: string,
   matchesGitHubDigest: boolean | null = true
-): IActionsArtifactDownloadResult => ({
+): IActionsArtifactTransferSuccess => ({
+  ok: true,
+  downloadId: 'd'.repeat(32),
   path,
   bytes: 1024,
   localDigest: digest,
@@ -136,83 +138,84 @@ describe('Actions run artifacts', () => {
 
     assert.ok(await screen.findByRole('heading', { name: longName }))
     assert.ok(screen.getByText(digest))
-    assert.ok(screen.getByText(/#42 · attempt 2 · push/))
+    assert.ok(screen.getByText(/#42 · push/))
+    assert.ok(screen.getByText('Workflow run · all attempts'))
     assert.ok(screen.getByText(/feature\/artifact-browser · b{12}/))
-    assert.ok(screen.getByText(/Showing 1 of 120 artifacts/))
+    assert.ok(screen.getByText(/Showing 1 loaded of 120 artifacts/))
     assert.ok(
       screen.getByRole('button', { name: `Download artifact: ${longName}` })
     )
   })
 
-  it('loads another bounded page interactively and keeps the run scope', async () => {
-    const pages = new Array<{ runId: number; page: number }>()
+  it('loads, retries, and de-duplicates later artifact pages', async () => {
+    const requestedPages: number[] = []
+    let failNextPage = true
+    let rejectNextPage: ((error: Error) => void) | undefined
     render(
       <RunArtifacts
         repository={repository}
         run={run()}
         actionsStore={store({
-          fetchArtifacts: async (_repository, runId, page) => {
-            pages.push({ runId, page })
-            return page === 1
-              ? list([artifact()], 101)
-              : list(
-                  [artifact({ id: 20, name: 'second page package' })],
-                  101,
-                  2
-                )
-          },
-        })}
-      />
-    )
-
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Load next 100' })
-    )
-    assert.ok(await screen.findByText('second page package'))
-    assert.ok(screen.getByText(/Showing 2 of 101 artifacts.*list is complete/))
-    assert.deepEqual(pages, [
-      { runId: 7, page: 1 },
-      { runId: 7, page: 2 },
-    ])
-  })
-
-  it('cancels a pending page without discarding records already loaded', async () => {
-    let secondSignal: AbortSignal | undefined
-    render(
-      <RunArtifacts
-        repository={repository}
-        run={run()}
-        actionsStore={store({
-          fetchArtifacts: async (_repository, _runId, page, signal) => {
+          fetchArtifacts: async (_repository, _runId, page = 1) => {
+            requestedPages.push(page)
             if (page === 1) {
-              return list([artifact()], 101)
+              return list([artifact()], 61, 1)
             }
-            secondSignal = signal
-            return await new Promise<IActionsArtifactList>((_resolve, reject) =>
-              signal?.addEventListener(
-                'abort',
-                () => {
-                  const error = new Error('canceled')
-                  error.name = 'AbortError'
-                  reject(error)
-                },
-                { once: true }
-              )
+            if (failNextPage) {
+              return await new Promise((_resolve, reject) => {
+                rejectNextPage = reject
+              })
+            }
+            return list(
+              [
+                artifact({ name: 'updated artifact' }),
+                artifact({ id: 20, name: 'page two artifact' }),
+              ],
+              61,
+              2
             )
           },
         })}
       />
     )
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Load next 100' })
+    const loadMore = await screen.findByRole('button', {
+      name: 'Load more artifacts',
+    })
+    assert.equal(
+      loadMore.getAttribute('aria-controls'),
+      'actions-artifact-grid'
     )
-    fireEvent.click(
-      await screen.findByRole('button', { name: 'Cancel loading' })
+    assert.equal(
+      screen.getByText(/Showing 1 loaded of 61 artifacts/).getAttribute('role'),
+      'status'
     )
-    assert.ok(await screen.findByText('Artifact loading canceled.'))
-    assert.equal(secondSignal?.aborted, true)
+    fireEvent.click(loadMore)
+    await waitFor(() => assert.ok(rejectNextPage))
+    assert.equal(
+      document
+        .querySelector('#actions-artifact-grid')
+        ?.getAttribute('aria-busy'),
+      'true'
+    )
+    rejectNextPage?.(new Error('Later artifact page unavailable.'))
+    assert.ok(await screen.findByText('Later artifact page unavailable.'))
     assert.ok(screen.getByRole('heading', { name: longName }))
+    assert.ok(screen.getByRole('button', { name: 'Load more artifacts' }))
+    assert.equal(
+      document
+        .querySelector('#actions-artifact-grid')
+        ?.getAttribute('aria-busy'),
+      'false'
+    )
+
+    failNextPage = false
+    fireEvent.click(screen.getByRole('button', { name: 'Load more artifacts' }))
+    assert.ok(await screen.findByRole('heading', { name: 'page two artifact' }))
+    assert.ok(screen.getByRole('heading', { name: 'updated artifact' }))
+    assert.equal(screen.queryByRole('heading', { name: longName }), null)
+    assert.ok(screen.getByText(/Showing 2 loaded of 61 artifacts/))
+    assert.deepEqual(requestedPages, [1, 2, 2])
   })
 
   it('shows empty, signed-out, unsupported, and permission states', async () => {
@@ -344,7 +347,7 @@ describe('Actions run artifacts', () => {
             signal
           ) => {
             downloadSignal = signal
-            return await new Promise<IActionsArtifactDownloadResult>(
+            return await new Promise<IActionsArtifactTransferSuccess>(
               (_resolve, reject) =>
                 signal.addEventListener(
                   'abort',
@@ -390,6 +393,56 @@ describe('Actions run artifacts', () => {
       'true'
     )
     assert.ok(screen.getByText(/exceeds the app’s 5 GiB download safety limit/))
+  })
+
+  it('aborts and ignores a stale later page when the run changes', async () => {
+    let laterSignal: AbortSignal | undefined
+    let resolveLater: ((value: IActionsArtifactList) => void) | undefined
+    const actionsStore = store({
+      fetchArtifacts: async (_repository, runId, page = 1, signal) => {
+        if (runId === 7 && page === 1) {
+          return list([artifact()], 61, 1)
+        }
+        if (runId === 7 && page === 2) {
+          laterSignal = signal
+          return await new Promise(resolve => (resolveLater = resolve))
+        }
+        return list([
+          artifact({
+            id: 22,
+            name: 'new run page',
+            workflowRun: null,
+          }),
+        ])
+      },
+    })
+    const view = render(
+      <RunArtifacts
+        repository={repository}
+        run={run(7)}
+        actionsStore={actionsStore}
+      />
+    )
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Load more artifacts' })
+    )
+    await waitFor(() => assert.ok(laterSignal))
+    view.rerender(
+      <RunArtifacts
+        repository={repository}
+        run={run(8)}
+        actionsStore={actionsStore}
+      />
+    )
+    assert.ok(await screen.findByText('new run page'))
+    assert.equal(laterSignal?.aborted, true)
+
+    resolveLater?.(
+      list([artifact({ id: 23, name: 'stale later page' })], 61, 2)
+    )
+    await new Promise(resolve => setTimeout(resolve, 0))
+    assert.equal(screen.queryByText('stale later page'), null)
   })
 
   it('aborts and ignores a stale provider/run listing', async () => {

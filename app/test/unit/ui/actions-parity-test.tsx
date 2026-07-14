@@ -5,9 +5,9 @@ import {
   APICheckConclusion,
   APICheckStatus,
   IAPIWorkflow,
-  IAPIWorkflowJob,
   IAPIWorkflowRun,
 } from '../../../src/lib/api'
+import { IActionsJob } from '../../../src/lib/actions-jobs'
 import { RunList } from '../../../src/ui/actions/run-list'
 import { RunDetails } from '../../../src/ui/actions/run-details'
 import { ActionsConfirmationDialog } from '../../../src/ui/actions/actions-confirmation-dialog'
@@ -16,6 +16,28 @@ import {
   WorkflowStateControl,
 } from '../../../src/ui/actions/workflow-state-control'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
+import { GitHubRepository } from '../../../src/models/github-repository'
+import { Owner } from '../../../src/models/owner'
+import { ActionsStore } from '../../../src/lib/stores/actions-store'
+import { Repository } from '../../../src/models/repository'
+
+const gitHubRepository = new GitHubRepository(
+  'repo',
+  new Owner('owner', 'https://api.github.com', 1),
+  1
+)
+const repository = new Repository('C:/repo', 1, gitHubRepository, false)
+const actionsStore = {
+  fetchArtifacts: async () => ({
+    totalCount: 0,
+    artifacts: [],
+    page: 1,
+    nextPage: null,
+    truncated: false,
+  }),
+  fetchPendingDeployments: async () => [],
+  fetchRunReviewHistory: async () => [],
+} as unknown as ActionsStore
 
 const createRun = (
   status: APICheckStatus,
@@ -42,15 +64,16 @@ const createJob = (
   id: number,
   name: string,
   conclusion: APICheckConclusion
-): IAPIWorkflowJob => ({
+): IActionsJob => ({
   id,
+  runId: 7,
   name,
   status: APICheckStatus.Completed,
   conclusion,
-  completed_at: '2026-07-12T12:01:00Z',
-  started_at: '2026-07-12T12:00:00Z',
+  completedAt: new Date('2026-07-12T12:01:00Z'),
+  startedAt: new Date('2026-07-12T12:00:00Z'),
   steps: [],
-  html_url: `https://github.com/owner/repo/actions/runs/7/job/${id}`,
+  htmlUrl: `https://github.com/owner/repo/actions/runs/7/job/${id}`,
 })
 
 const createWorkflow = (
@@ -113,27 +136,38 @@ describe('Actions parity controls', () => {
       APICheckConclusion.Failure
     )
     const succeeded = createJob(12, 'Lint', APICheckConclusion.Success)
-    let requested: IAPIWorkflowJob | null = null
+    let requested: IActionsJob | null = null
     render(
       <RunDetails
+        repository={repository}
+        actionsStore={actionsStore}
         run={createRun(APICheckStatus.Completed, APICheckConclusion.Failure)}
         jobs={[failed, succeeded]}
+        jobsTotalCount={2}
+        jobsNextPage={null}
+        jobsPage={1}
+        jobsTruncated={false}
         loading={false}
+        loadingMore={false}
         error={null}
+        selectedAttempt={null}
         onClose={() => {}}
+        onAttemptChange={() => {}}
+        onLoadMoreJobs={() => {}}
+        onReloadJobs={() => {}}
         busyJobId={null}
         onRerunJob={job => (requested = job)}
       />
     )
 
     const button = screen.getByRole('button', {
-      name: `Re-run failed job: ${failed.name}`,
+      name: `Re-run job: ${failed.name}`,
     })
     fireEvent.click(button)
     assert.equal(requested, failed)
     assert.equal(
       screen.queryByRole('button', {
-        name: `Re-run failed job: ${succeeded.name}`,
+        name: `Re-run job: ${succeeded.name}`,
       }),
       null
     )

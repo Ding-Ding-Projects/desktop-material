@@ -448,20 +448,17 @@ export function onBuildRunState(
   ipcRenderer.on('build-run-state', handler)
 }
 
-/** Discover the installed Git and GitHub CLI command catalogs at runtime. */
-export const getCLIWorkbenchCatalog = invokeProxy(
-  'get-cli-workbench-catalog',
+/** Query tool availability without exposing a command catalog to the UI. */
+export const getCLIWorkbenchRuntime = invokeProxy(
+  'get-cli-workbench-runtime',
   0
 )
 
-/** Start a validated, argv-only CLI workbench command. */
+/** Start a validated named operation; the main process owns its argv. */
 export const startCLICommand = invokeProxy('start-cli-command', 1)
 
 /** Cancel the exact workbench run owned by this renderer. */
 export const cancelCLICommand = invokeProxy('cancel-cli-command', 1)
-
-/** Write input to a workbench run; null closes its stdin stream. */
-export const writeCLICommandInput = invokeProxy('write-cli-command-input', 2)
 
 export function onCLICommandOutput(
   handler: (

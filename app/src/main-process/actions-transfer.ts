@@ -22,12 +22,10 @@ import {
   IActionsTransferProgressEvent,
 } from '../lib/actions-transfer'
 import { createGitHubAPIRequestHeaders } from '../lib/github-rest-api-version'
-import { EndpointToken } from '../lib/endpoint-token'
 import {
-  ActionsTransferRedirectError,
-  fetchActionsTransferRedirect,
-  IActionsTransferRedirectDependencies,
-} from './actions-transfer-redirect'
+  IActionsArtifactDownloadSender,
+  retainCompletedActionsArtifactDownload,
+} from './actions-artifact-download-registry'
 
 type ActionsFetcher = (input: string, init: RequestInit) => Promise<Response>
 type ActionsRequestFactory = (
@@ -35,20 +33,12 @@ type ActionsRequestFactory = (
 ) => Electron.ClientRequest
 type ActionsSessionFactory = () => Electron.Session
 
-export interface IActionsTransferDependencies {
-  readonly fetch: ActionsFetcher
-  readonly redirects?: IActionsTransferRedirectDependencies
-}
-
-export interface IActionsTransferSender {
+export interface IActionsTransferSender extends IActionsArtifactDownloadSender {
   readonly id: number
   send(
     channel: 'actions-transfer-progress',
     event: IActionsTransferProgressEvent
   ): void
-  once(event: 'destroyed', listener: () => void): unknown
-  removeListener(event: 'destroyed', listener: () => void): unknown
-  isDestroyed(): boolean
 }
 
 class TransferFailure extends Error {
@@ -68,7 +58,6 @@ interface IActiveTransfer {
 }
 
 const activeTransfers = new Map<string, IActiveTransfer>()
-let allowedEndpointTokens = new Map<string, ReadonlySet<string>>()
 const operationIdPattern = /^[a-f0-9]{32}$/
 const forbiddenPartCharacters = /[\u0000-\u001f\u007f/\\?#]/
 const actionsTransferPartition = 'actions-transfer'
@@ -138,12 +127,6 @@ function validateEndpoint(value: unknown): URL {
   ) {
     throw new TransferFailure('invalid-request')
   }
-  if (
-    endpoint.hostname.replace(/\.$/, '') === 'api.github.com' &&
-    endpoint.toString() !== 'https://api.github.com/'
-  ) {
-    throw new TransferFailure('invalid-request')
-  }
   return endpoint
 }
 
@@ -159,46 +142,19 @@ function validateToken(value: unknown): string {
   return value
 }
 
-/** Replace the exact endpoint/token pairs accepted from renderer transfers. */
-export function updateActionsTransferAccounts(
-  accounts: ReadonlyArray<EndpointToken>
-): void {
-  const next = new Map<string, Set<string>>()
-  if (!Array.isArray(accounts)) {
-    allowedEndpointTokens = new Map()
-    return
-  }
-  for (const account of accounts) {
-    try {
-      const endpoint = validateEndpoint(account?.endpoint).toString()
-      const token = validateToken(account?.token)
-      const tokens = next.get(endpoint) ?? new Set<string>()
-      tokens.add(token)
-      next.set(endpoint, tokens)
-    } catch {
-      // The renderer payload is untrusted. Ignore malformed entries and keep
-      // the remaining exact account pairs usable.
-    }
-  }
-  allowedEndpointTokens = next
-}
-
-function validateAllowedAccount(endpoint: URL, token: string): void {
-  if (!allowedEndpointTokens.get(endpoint.toString())?.has(token)) {
-    throw new TransferFailure('invalid-request')
-  }
-}
-
 function artifactPath(request: IActionsArtifactTransferRequest): {
   readonly endpoint: URL
   readonly token: string
   readonly path: string
+  readonly owner: string
+  readonly repository: string
+  readonly artifactId: number
+  readonly workflowRun: IActionsArtifactTransferRequest['artifact']['workflowRun']
 } {
   const endpoint = validateEndpoint(request.endpoint)
   const token = validateToken(request.token)
-  validateAllowedAccount(endpoint, token)
-  const owner = encodeURIComponent(validatePart(request.owner))
-  const repository = encodeURIComponent(validatePart(request.repository))
+  const owner = validatePart(request.owner)
+  const repository = validatePart(request.repository)
   const id = validateIdentifier(request.artifact?.id)
   if (
     typeof request.artifact?.sizeInBytes !== 'number' ||
@@ -219,10 +175,36 @@ function artifactPath(request: IActionsArtifactTransferRequest): {
     throw new TransferFailure('invalid-request')
   }
   normalizeActionsArtifactDestination(request.destination)
+  const workflowRun = request.artifact.workflowRun
+  if (workflowRun !== null) {
+    if (
+      typeof workflowRun !== 'object' ||
+      validateIdentifier(workflowRun.id) !== workflowRun.id ||
+      (workflowRun.runAttempt !== null &&
+        (typeof workflowRun.runAttempt !== 'number' ||
+          validateIdentifier(workflowRun.runAttempt) !==
+            workflowRun.runAttempt)) ||
+      (workflowRun.headBranch !== null &&
+        (typeof workflowRun.headBranch !== 'string' ||
+          workflowRun.headBranch.length === 0 ||
+          workflowRun.headBranch.length > 1024 ||
+          /[\u0000-\u001f\u007f]/.test(workflowRun.headBranch))) ||
+      typeof workflowRun.headSha !== 'string' ||
+      !/^[a-f0-9]{40}(?:[a-f0-9]{24})?$/i.test(workflowRun.headSha)
+    ) {
+      throw new TransferFailure('invalid-request')
+    }
+  }
   return {
     endpoint,
     token,
-    path: `repos/${owner}/${repository}/actions/artifacts/${id}/zip`,
+    path: `repos/${encodeURIComponent(owner)}/${encodeURIComponent(
+      repository
+    )}/actions/artifacts/${id}/zip`,
+    owner,
+    repository,
+    artifactId: id,
+    workflowRun,
   }
 }
 
@@ -233,7 +215,6 @@ function jobLogPath(request: IActionsJobLogTransferRequest): {
 } {
   const endpoint = validateEndpoint(request.endpoint)
   const token = validateToken(request.token)
-  validateAllowedAccount(endpoint, token)
   const owner = encodeURIComponent(validatePart(request.owner))
   const repository = encodeURIComponent(validatePart(request.repository))
   const id = validateIdentifier(request.jobId)
@@ -244,7 +225,7 @@ function jobLogPath(request: IActionsJobLogTransferRequest): {
   }
 }
 
-function redirectURL(location: string, current: URL) {
+function redirectURL(location: string, current: URL, requireHTTPS: boolean) {
   let next: URL
   try {
     next = new URL(location, current)
@@ -252,11 +233,11 @@ function redirectURL(location: string, current: URL) {
     throw new TransferFailure('unsafe-redirect')
   }
   if (
-    next.protocol !== 'https:' ||
+    (next.protocol !== 'https:' && next.protocol !== 'http:') ||
     next.username !== '' ||
     next.password !== '' ||
-    next.port !== '' ||
-    next.hash !== ''
+    next.hash !== '' ||
+    (requireHTTPS && next.protocol !== 'https:')
   ) {
     throw new TransferFailure('unsafe-redirect')
   }
@@ -268,57 +249,42 @@ async function fetchRedirectChain(
   path: string,
   token: string,
   signal: AbortSignal,
-  dependencies: IActionsTransferDependencies
+  fetcher: ActionsFetcher
 ): Promise<Response> {
   let current = new URL(path, endpoint)
   let authenticated = true
-  const githubDotCom = endpoint.toString() === 'https://api.github.com/'
-  const seen = new Set([current.toString()])
+  let requireHTTPS = endpoint.protocol === 'https:'
 
   for (let redirects = 0; ; redirects++) {
-    let response: Response
+    const headers = createGitHubAPIRequestHeaders(endpoint.toString(), path, {
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'GitHubDesktop-ActionsTransfer',
+    })
     if (authenticated) {
-      const headers = createGitHubAPIRequestHeaders(endpoint.toString(), path, {
-        Accept: 'application/vnd.github+json',
-        'User-Agent': 'GitHubDesktop-ActionsTransfer',
-      })
       headers.set('Authorization', `Bearer ${token}`)
-      response = await dependencies.fetch(current.toString(), {
-        method: 'GET',
-        headers,
-        redirect: 'manual',
-        credentials: 'omit',
-        referrerPolicy: 'no-referrer',
-        cache: 'no-store',
-        signal,
-      })
-    } else {
-      response = await fetchActionsTransferRedirect({
-        location: current.toString(),
-        githubDotCom,
-        signal,
-        dependencies: dependencies.redirects,
-      })
     }
-    if (signal.aborted) {
-      await response.body?.cancel().catch(() => undefined)
-      throwIfTransferAborted(signal)
-    }
+    const response = await fetcher(current.toString(), {
+      method: 'GET',
+      headers,
+      redirect: 'manual',
+      credentials: 'omit',
+      referrerPolicy: 'no-referrer',
+      cache: 'no-store',
+      signal,
+    })
+    throwIfTransferAborted(signal)
     if (response.status >= 300 && response.status < 400) {
-      const location = response.headers.get('location')
       await response.body?.cancel().catch(() => undefined)
       throwIfTransferAborted(signal)
       if (redirects >= ActionsTransferMaximumRedirects) {
         throw new TransferFailure('too-many-redirects')
       }
+      const location = response.headers.get('location')
       if (location === null) {
         throw new TransferFailure('missing-location')
       }
-      current = redirectURL(location, current)
-      if (seen.has(current.toString())) {
-        throw new TransferFailure('redirect-loop')
-      }
-      seen.add(current.toString())
+      current = redirectURL(location, current, requireHTTPS)
+      requireHTTPS = requireHTTPS || current.protocol === 'https:'
       authenticated = false
       continue
     }
@@ -368,9 +334,6 @@ function mapFailure(error: unknown): IActionsTransferFailure {
   if (error instanceof TransferFailure) {
     return failure(error.reason, error.status)
   }
-  if (error instanceof ActionsTransferRedirectError) {
-    return failure(error.kind)
-  }
   if (error instanceof ActionsArtifactDownloadError) {
     return failure(error.kind)
   }
@@ -378,8 +341,9 @@ function mapFailure(error: unknown): IActionsTransferFailure {
 }
 
 function getActionsTransferSession(): Electron.Session {
-  // Keep transfer authentication out of the default renderer session. This
-  // in-memory partition has no renderer webRequest hooks, cookies, or cache.
+  // This non-persistent partition has no renderer webRequest hooks, cookies, or
+  // cached account authentication from the app's default session. Keep it lazy
+  // because Electron sessions are only available after app readiness.
   return (actionsTransferSession ??= session.fromPartition(
     actionsTransferPartition,
     { cache: false }
@@ -424,13 +388,6 @@ function electronResponseBody(
   let finished = false
   let canceled = false
   let finishReported = false
-  let readerReleased = false
-  const releaseReader = () => {
-    if (!readerReleased) {
-      readerReleased = true
-      reader.releaseLock()
-    }
-  }
   const reportFinished = () => {
     if (!finishReported) {
       finishReported = true
@@ -448,7 +405,7 @@ function electronResponseBody(
         if (next.done) {
           finished = true
           reportFinished()
-          releaseReader()
+          reader.releaseLock()
           controller.close()
         } else {
           controller.enqueue(next.value)
@@ -457,7 +414,6 @@ function electronResponseBody(
         if (!canceled) {
           request.abort()
           reportFinished()
-          releaseReader()
           controller.error(error)
         }
       }
@@ -470,7 +426,6 @@ function electronResponseBody(
       try {
         await reader.cancel(reason)
       } finally {
-        releaseReader()
         reportFinished()
       }
     },
@@ -478,9 +433,10 @@ function electronResponseBody(
 }
 
 /**
- * Adapt Electron ClientRequest to the fetch surface used for the authenticated
- * API hop. Unlike net.fetch, ClientRequest exposes manual redirects reliably,
- * so every Location can be validated before an anonymous pinned request.
+ * Adapt Electron's ClientRequest to the small Fetch response surface consumed
+ * by the transfer pipeline. ClientRequest exposes a redirect event even though
+ * Electron net.fetch rejects `redirect: "manual"`; resolving from that event
+ * lets the caller validate and issue each hop itself without forwarding auth.
  */
 export function createElectronActionsFetcher(
   requestFactory: ActionsRequestFactory = options => net.request(options),
@@ -541,12 +497,14 @@ export function createElectronActionsFetcher(
             if (!headers.has('location')) {
               headers.set('location', redirectUrl)
             }
+            // Do not call followRedirect. Electron will cancel this one request
+            // after the synchronous event; aborting makes that boundary explicit.
+            // Its expected later error is ignored because the captured redirect
+            // response has already been resolved.
             resolveOnce(new Response(null, { status: statusCode, headers }))
           } catch (error) {
             rejectOnce(error)
           } finally {
-            // Never call followRedirect: the transfer pipeline validates and
-            // issues the anonymous hop through its DNS-pinned transport.
             request.abort()
             removeAbortListener()
           }
@@ -596,21 +554,16 @@ export function createElectronActionsFetcher(
       } catch (error) {
         removeAbortListener()
         rejectOnce(error)
-        request.abort()
       }
     })
 }
 
 const electronFetcher = createElectronActionsFetcher()
 
-const defaultDependencies: IActionsTransferDependencies = {
-  fetch: electronFetcher,
-}
-
 export async function handleActionsArtifactTransfer(
   sender: IActionsTransferSender,
   request: IActionsArtifactTransferRequest,
-  dependencies: IActionsTransferDependencies = defaultDependencies
+  fetcher: ActionsFetcher = electronFetcher
 ): Promise<ActionsArtifactTransferResult> {
   let active: IActiveTransfer | null = null
   try {
@@ -621,46 +574,63 @@ export async function handleActionsArtifactTransfer(
       validated.path,
       validated.token,
       active.controller.signal,
-      dependencies
+      fetcher
     )
-    let lastProgressAt = 0
-    const result = await downloadActionsArtifactArchive({
-      artifact: {
-        id: request.artifact.id,
-        name: 'artifact',
-        sizeInBytes: request.artifact.sizeInBytes,
-        expired: request.artifact.expired,
-        createdAt: new Date(0),
-        expiresAt: null,
-        updatedAt: new Date(0),
-        digest: request.artifact.digest,
-        workflowRun: null,
-      },
-      response,
-      destination: request.destination,
-      signal: active.controller.signal,
-      onProgress: progress => {
-        const now = Date.now()
-        if (
-          !sender.isDestroyed() &&
-          (now - lastProgressAt >= 100 ||
-            progress.receivedBytes === progress.totalBytes)
-        ) {
-          lastProgressAt = now
-          try {
-            sender.send('actions-transfer-progress', {
-              operationId: request.operationId,
-              ...progress,
-            })
-          } catch {
-            // Renderer destruction can race the isDestroyed check. Abort the
-            // owning transfer without replacing cancellation with a send error.
-            active?.controller.abort()
+    try {
+      let lastProgressAt = 0
+      const result = await downloadActionsArtifactArchive({
+        artifact: {
+          id: request.artifact.id,
+          name: 'artifact',
+          sizeInBytes: request.artifact.sizeInBytes,
+          expired: request.artifact.expired,
+          createdAt: new Date(0),
+          expiresAt: null,
+          updatedAt: new Date(0),
+          digest: request.artifact.digest,
+          workflowRun: validated.workflowRun,
+        },
+        response,
+        destination: request.destination,
+        signal: active.controller.signal,
+        onProgress: progress => {
+          const now = Date.now()
+          if (
+            !sender.isDestroyed() &&
+            (now - lastProgressAt >= 100 ||
+              progress.receivedBytes === progress.totalBytes)
+          ) {
+            lastProgressAt = now
+            try {
+              sender.send('actions-transfer-progress', {
+                operationId: request.operationId,
+                ...progress,
+              })
+            } catch {
+              // Renderer destruction can race the isDestroyed check. Abort the
+              // owning transfer without replacing cancellation with a send error.
+              active?.controller.abort()
+            }
           }
-        }
-      },
-    })
-    return { ok: true, ...result }
+        },
+      })
+      const downloadId = retainCompletedActionsArtifactDownload(sender, {
+        endpoint: validated.endpoint.toString(),
+        path: result.path,
+        bytes: result.bytes,
+        archiveDigest: result.localDigest,
+        owner: validated.owner,
+        repository: validated.repository,
+        artifactId: validated.artifactId,
+        workflowRun: validated.workflowRun,
+      })
+      return { ok: true, downloadId, ...result }
+    } catch (error) {
+      // Preflight failures can occur before the download helper owns a reader.
+      // Always tear down the final network stream before ending the operation.
+      await response.body?.cancel().catch(() => undefined)
+      throw error
+    }
   } catch (error) {
     return mapFailure(error)
   } finally {
@@ -674,17 +644,11 @@ async function readBoundedJobLog(
   response: Response,
   signal: AbortSignal
 ): Promise<{ readonly log: string; readonly truncated: boolean }> {
-  let reader: ReadableStreamDefaultReader<Uint8Array>
-  try {
-    throwIfTransferAborted(signal)
-    if (response.body === null) {
-      return { log: '', truncated: false }
-    }
-    reader = response.body.getReader()
-  } catch (error) {
-    await response.body?.cancel().catch(() => undefined)
-    throw error
+  throwIfTransferAborted(signal)
+  if (response.body === null) {
+    return { log: '', truncated: false }
   }
+  const reader = response.body.getReader()
   const chunks = new Array<Uint8Array>()
   let length = 0
   let truncated = false
@@ -719,15 +683,8 @@ async function readBoundedJobLog(
       await reader.cancel().catch(() => undefined)
       throwIfTransferAborted(signal)
     }
-  } catch (error) {
-    await reader.cancel().catch(() => undefined)
-    if (signal.aborted && (error as Error)?.name !== 'AbortError') {
-      throw new DOMException('Job log request canceled.', 'AbortError')
-    }
-    throw error
   } finally {
     signal.removeEventListener('abort', cancel)
-    reader.releaseLock()
   }
 
   const bytes = new Uint8Array(length)
@@ -746,7 +703,7 @@ async function readBoundedJobLog(
 export async function handleActionsJobLogTransfer(
   sender: IActionsTransferSender,
   request: IActionsJobLogTransferRequest,
-  dependencies: IActionsTransferDependencies = defaultDependencies
+  fetcher: ActionsFetcher = electronFetcher
 ): Promise<ActionsJobLogTransferResult> {
   let active: IActiveTransfer | null = null
   try {
@@ -757,10 +714,15 @@ export async function handleActionsJobLogTransfer(
       validated.path,
       validated.token,
       active.controller.signal,
-      dependencies
+      fetcher
     )
-    const result = await readBoundedJobLog(response, active.controller.signal)
-    return { ok: true, ...result }
+    try {
+      const result = await readBoundedJobLog(response, active.controller.signal)
+      return { ok: true, ...result }
+    } catch (error) {
+      await response.body?.cancel().catch(() => undefined)
+      throw error
+    }
   } catch (error) {
     return mapFailure(error)
   } finally {

@@ -1,6 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { mkdtemp, rm } from 'fs/promises'
+import { mkdir, mkdtemp, realpath, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import {
@@ -8,108 +8,114 @@ import {
   validateCLICommandRequest,
 } from '../../src/main-process/cli-workbench/runner-helpers'
 
+async function createRepositoryFixture(): Promise<{
+  readonly root: string
+  readonly repositoryPath: string
+}> {
+  const root = await mkdtemp(join(tmpdir(), 'desktop-cli-runner-'))
+  const repositoryPath = join(root, 'repository')
+  await mkdir(join(repositoryPath, '.git'), { recursive: true })
+  return { root, repositoryPath }
+}
+
 describe('CLI workbench runner helpers', () => {
-  it('accepts only normalized git/gh argv in an existing absolute cwd', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'desktop-cli-runner-'))
+  it('accepts only named operations in an actual repository', async () => {
+    const fixture = await createRepositoryFixture()
     try {
-      assert.deepEqual(
-        await validateCLICommandRequest({
-          id: 'run-1',
-          tool: 'git',
-          args: ['status', '--short'],
-          cwd,
-        }),
-        {
-          id: 'run-1',
-          tool: 'git',
-          args: ['status', '--short'],
-          cwd,
-          confirmed: false,
-        }
+      const request = await validateCLICommandRequest({
+        id: 'run-1',
+        operation: { id: 'status-summary' },
+        repositoryPath: fixture.repositoryPath,
+      })
+      assert.equal(request.id, 'run-1')
+      assert.deepEqual(request.operation, { id: 'status-summary' })
+      assert.equal(
+        request.repositoryPath,
+        await realpath(fixture.repositoryPath)
       )
+      assert.equal(request.tool, 'git')
+      assert.deepEqual(request.args, ['status', '--short', '--branch'])
+      assert.equal(request.confirmed, false)
+
       await assert.rejects(
         validateCLICommandRequest({
-          id: 'run-2',
-          tool: 'powershell',
-          args: ['-Command', 'echo unsafe'],
-          cwd,
-        }),
-        /tool is invalid/
-      )
-      await assert.rejects(
-        validateCLICommandRequest({
-          id: 'run-3',
-          tool: 'git',
-          args: ['status\0--short'],
-          cwd,
-        }),
-        /arguments are invalid/
-      )
-      await assert.rejects(
-        validateCLICommandRequest({
-          id: 'run-4',
+          id: 'run-raw-argv',
+          operation: { id: 'status-summary' },
+          repositoryPath: fixture.repositoryPath,
           tool: 'gh',
-          args: ['status'],
-          cwd: join(cwd, 'missing'),
+          args: ['repo', 'delete', 'owner/repository'],
+        }),
+        /request fields are invalid/
+      )
+      await assert.rejects(
+        validateCLICommandRequest({
+          id: 'run-unknown',
+          operation: { id: 'git-alias-shell' },
+          repositoryPath: fixture.repositoryPath,
+        }),
+        /Unknown CLI workbench operation/
+      )
+      await assert.rejects(
+        validateCLICommandRequest({
+          id: 'run-relative',
+          operation: { id: 'status-summary' },
+          repositoryPath: '.',
+        }),
+        /repository path is invalid/
+      )
+      await assert.rejects(
+        validateCLICommandRequest({
+          id: 'run-missing',
+          operation: { id: 'status-summary' },
+          repositoryPath: join(fixture.root, 'missing'),
         }),
         /does not exist/
       )
       await assert.rejects(
         validateCLICommandRequest({
-          id: 'run-relative',
-          tool: 'git',
-          args: ['status'],
-          cwd: '.',
+          id: 'run-not-repository',
+          operation: { id: 'status-summary' },
+          repositoryPath: fixture.root,
         }),
-        /working directory is invalid/
-      )
-      await assert.rejects(
-        validateCLICommandRequest({
-          id: 'run-large',
-          tool: 'git',
-          args: ['status', 'x'.repeat(31 * 1024)],
-          cwd,
-        }),
-        /arguments are too large/
-      )
-      await assert.rejects(
-        validateCLICommandRequest({
-          id: 'run-secret',
-          tool: 'gh',
-          args: ['auth', 'status', '--show-token'],
-          cwd,
-        }),
-        /cannot display stored authentication tokens/
+        /not a Git repository/
       )
     } finally {
-      await rm(cwd, { recursive: true, force: true })
+      await rm(fixture.root, { recursive: true, force: true })
     }
   })
 
-  it('enforces destructive confirmation again at the main-process boundary', async () => {
-    const cwd = await mkdtemp(join(tmpdir(), 'desktop-cli-runner-'))
+  it('derives confirmation policy from the main-owned operation registry', async () => {
+    const fixture = await createRepositoryFixture()
     try {
       const request = {
-        id: 'run-destructive',
-        tool: 'git',
-        args: ['clean', '-fd'],
-        cwd,
+        id: 'run-maintenance',
+        operation: { id: 'maintenance-run' },
+        repositoryPath: fixture.repositoryPath,
       } as const
       await assert.rejects(
         validateCLICommandRequest(request),
         /requires confirmation/
       )
-      assert.equal(
-        (
-          await validateCLICommandRequest({
-            ...request,
-            confirmed: true,
-          })
-        ).confirmed,
-        true
+      const confirmed = await validateCLICommandRequest({
+        ...request,
+        confirmed: true,
+      })
+      assert.deepEqual(confirmed.args, ['maintenance', 'run'])
+      assert.equal(confirmed.confirmed, true)
+
+      await assert.rejects(
+        validateCLICommandRequest({
+          ...request,
+          confirmed: true,
+          operation: {
+            id: 'maintenance-run',
+            requiresConfirmation: false,
+          },
+        }),
+        /operation fields are invalid/
       )
     } finally {
-      await rm(cwd, { recursive: true, force: true })
+      await rm(fixture.root, { recursive: true, force: true })
     }
   })
 

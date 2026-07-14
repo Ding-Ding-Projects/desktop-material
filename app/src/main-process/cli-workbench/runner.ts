@@ -2,21 +2,20 @@ import { spawn, ChildProcessWithoutNullStreams } from 'child_process'
 import { WebContents } from 'electron'
 import {
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
 } from '../../lib/cli-workbench'
 import * as ipcWebContents from '../ipc-webcontents'
 import { killTree } from '../build-run/kill-tree'
 import {
   CLICommandConcurrencyCap,
-  CLICommandInputChunkCap,
   CLICommandOutputLimiter,
+  IResolvedCLICommandRequest,
   validateCLICommandRequest,
 } from './runner-helpers'
 import { resolveCLIWorkbenchTool } from './tool-resolver'
 
 interface IActiveCLICommand {
-  readonly request: ICLICommandRequest
+  readonly request: IResolvedCLICommandRequest
   readonly sender: WebContents
   readonly child: ChildProcessWithoutNullStreams
   readonly pid: number | null
@@ -39,6 +38,11 @@ export class CLIWorkbenchRunner {
     }
 
     const request = await validateCLICommandRequest(value)
+    // Validation touches the filesystem. Recheck after that await so a burst
+    // of simultaneous requests cannot all pass the initial capacity check.
+    if (this.runs.size >= CLICommandConcurrencyCap) {
+      throw new Error('Too many CLI commands are already running.')
+    }
     if (this.runs.has(request.id)) {
       throw new Error('A CLI command with this id is already running.')
     }
@@ -55,7 +59,7 @@ export class CLIWorkbenchRunner {
     let child: ChildProcessWithoutNullStreams
     try {
       child = spawn(executable, [...request.args], {
-        cwd: request.cwd,
+        cwd: request.repositoryPath,
         env: toolEnv,
         shell: false,
         windowsHide: true,
@@ -101,9 +105,10 @@ export class CLIWorkbenchRunner {
     child.stderr.on('data', (chunk: Buffer) =>
       this.emitOutputChunk(run, 'stderr', chunk)
     )
-    // A process may close its input before the renderer observes its final
-    // state. Swallow only the pipe error; input bytes are never logged.
+    // Current named operations never accept stdin. Closing it prevents a
+    // fixed recipe from becoming an interactive command surface.
     child.stdin.on('error', () => undefined)
+    child.stdin.end()
     child.once('error', () => {
       this.finish(run, {
         id: request.id,
@@ -154,41 +159,6 @@ export class CLIWorkbenchRunner {
       killTree(run.pid)
     }
     return true
-  }
-
-  /** Write a bounded input chunk; null closes stdin without retaining data. */
-  public async writeInput(
-    id: string,
-    data: string | null,
-    sender?: WebContents
-  ): Promise<boolean> {
-    const run = this.runs.get(id)
-    if (
-      run === undefined ||
-      run.finished ||
-      run.cancelled ||
-      (sender !== undefined && run.sender !== sender) ||
-      run.child.stdin.destroyed ||
-      run.child.stdin.writableEnded
-    ) {
-      return false
-    }
-    if (data === null) {
-      run.child.stdin.end()
-      return true
-    }
-    if (
-      typeof data !== 'string' ||
-      Buffer.byteLength(data, 'utf8') > CLICommandInputChunkCap
-    ) {
-      throw new Error('CLI command input chunk is too large.')
-    }
-    try {
-      run.child.stdin.write(data)
-      return true
-    } catch {
-      return false
-    }
   }
 
   /** Kill every exact PID tree during application shutdown. */

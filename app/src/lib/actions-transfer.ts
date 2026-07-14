@@ -2,6 +2,7 @@ import {
   IActionsArtifactDownloadProgress,
   IActionsArtifactDownloadResult,
 } from './actions-artifact-download'
+import { IActionsArtifactWorkflowRun } from './actions-artifacts'
 
 export const ActionsTransferMaximumRedirects = 5
 export const ActionsJobLogMaximumBytes = 5 * 1024 * 1024
@@ -23,6 +24,7 @@ export interface IActionsArtifactTransferRequest
     readonly sizeInBytes: number
     readonly expired: boolean
     readonly digest: string | null
+    readonly workflowRun: IActionsArtifactWorkflowRun | null
   }
   readonly destination: string
 }
@@ -44,7 +46,6 @@ export type ActionsTransferFailureReason =
   | 'http'
   | 'missing-location'
   | 'unsafe-redirect'
-  | 'redirect-loop'
   | 'too-many-redirects'
   | 'expired'
   | 'destination'
@@ -62,6 +63,7 @@ export interface IActionsTransferFailure {
 export interface IActionsArtifactTransferSuccess
   extends IActionsArtifactDownloadResult {
   readonly ok: true
+  readonly downloadId: string
 }
 
 export type ActionsArtifactTransferResult =
@@ -110,8 +112,6 @@ export function actionsTransferFailureMessage(
       return `GitHub did not provide a ${subject} download location.`
     case 'unsafe-redirect':
       return `GitHub provided an unsafe ${subject} download redirect.`
-    case 'redirect-loop':
-      return `GitHub returned a looping ${subject} download redirect.`
     case 'too-many-redirects':
       return `GitHub redirected the ${subject} download too many times.`
     case 'expired':

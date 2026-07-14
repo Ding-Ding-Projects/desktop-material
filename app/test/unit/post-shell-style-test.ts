@@ -29,7 +29,7 @@ describe('post-shell MD3 style contracts', () => {
     )
     assert.match(
       actions,
-      /\.branch-chip\s*\{[\s\S]*?max-width: min\(100%, 220px\);[\s\S]*?text-overflow: ellipsis;/
+      /\.branch-chip\s*\{[\s\S]*?max-width: 100%;[\s\S]*?white-space: normal;[\s\S]*?overflow-wrap: anywhere;/
     )
     assert.match(
       actionsDialogs,

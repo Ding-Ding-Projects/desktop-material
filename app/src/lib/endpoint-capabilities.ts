@@ -162,16 +162,28 @@ export const supportsActions = endpointSatisfies({
   es: '>= 3.1.0',
 })
 
-/** Releases and release assets are available across supported GitHub hosts. */
-export const supportsReleases = endpointSatisfies({
+/**
+ * `gh attestation verify` supports GitHub.com and GHE.com trust roots, but not
+ * ordinary GitHub Enterprise Server hosts. Unsupported hosts stay explicitly
+ * unavailable instead of producing a false verification failure.
+ */
+export const supportsArtifactAttestationVerification = endpointSatisfies({
   dotcom: true,
-  es: '>= 3.1.0',
+  es: false,
 })
 
 export const supportsAliveSessions = endpointSatisfies({ dotcom: true })
 
-/** Repository rulesets reached GitHub Enterprise Server in the 3.12 series. */
-export const supportsRepoRules = endpointSatisfies({
-  dotcom: true,
-  es: '>= 3.12.0',
-})
+/**
+ * Repository rules are available on GitHub.com/GHE.com and GHES 3.11 or
+ * newer. An unknown GHES version must be attempted: treating a missing
+ * version header as an old server would turn an unknown ruleset response into
+ * a falsely authoritative negative answer.
+ */
+export const supportsRepoRules = (
+  endpoint: string,
+  getVersion = getEndpointVersion
+) =>
+  isGHES(endpoint) && getVersion(endpoint) === null
+    ? true
+    : endpointSatisfies({ dotcom: true, es: '>= 3.11.0' }, getVersion)(endpoint)

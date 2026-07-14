@@ -9,17 +9,14 @@ workflow intact underneath.
 On top of that shell, Desktop Material ships multi-provider accounts and organizations, automation,
 GitHub Actions and logs, agent access, searchable graph History, multiple stashes, pull-all,
 multi-window workflows, per-account repository tabs, Git-backed settings and notifications, and a
-non-modal dialog framework. The current integration tree also contains the complete guided
-P0/P1/P2/Later Git, GitHub, and provider parity wave described below.
+non-modal dialog framework. The active parity roadmap turns audited Git, `gh`, REST, and GraphQL
+capabilities into named app functions rather than a searchable command or endpoint catalogue.
 
 > **Status:** Desktop Material is in **active development**. Preview builds are published from the
 > project's [GitHub Releases](https://github.com/codingmachineedge/desktop-material/releases).
 > Feature-parity references come from [desktop-plus](https://github.com/severity1/desktop-plus)
-> (MIT).
->
-> The guided M19 source implementation is complete, but this documentation does not pre-claim its
-> final production/off-screen acceptance, `main` promotion, CI, Pages/wiki, installer/release, or
-> cleanup evidence. Follow the repository's PLAN and HANDOFF for that closing gate.
+> (MIT). The current P0 function wave passed its exact off-screen production UI gate at
+> `9e946fd527` on `mega-feature-update` and promotes through the normal reviewed `main` path.
 
 ![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
 
@@ -29,16 +26,16 @@ P0/P1/P2/Later Git, GitHub, and provider parity wave described below.
 
 | Page | What it covers |
 | --- | --- |
-| [User Guide](User-Guide) | Task-oriented walkthrough for accounts, guided Git/GitHub/provider functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | Synthetic-data visual manifest for clone, pull-all, deepen, sparse checkout, repository administration, GitHub lifecycle, and provider triage. |
+| [User Guide](User-Guide) | Task-oriented walkthrough for accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
 | [Developer Guide](Developer-Guide) | Architecture for contributors — Electron windows, store/dispatcher flow, dugite, profile repos, agent server, CLI routing, and SCSS tokens. |
 | [Agent API](Agent-API) | Shipped MCP, local REST, stdio proxy, and CLI access for safe AI-agent control. |
+| [Living parity roadmap](https://github.com/codingmachineedge/desktop-material/blob/mega-feature-update/README.md#roadmaps) | Current named-function delivery waves, production UI gates, and the no-raw-command/API-browser product contract. |
 
 ---
 
-## Product capabilities
+## Available and production-verified
 
 - **Material Design 3 Expressive shell** with animated light/dark theming and M3 color tokens: an
   app bar with an inline pill menu, a left icon navigation rail (Changes with a badge, History,
@@ -67,12 +64,53 @@ P0/P1/P2/Later Git, GitHub, and provider parity wave described below.
 - **Automation** — schedule guarded commit-and-push and pull at the global level, override either
   setting per account or repository, run commit-and-push immediately, and merge all branches or
   worktrees with per-target progress and Copilot-assisted conflict handling.
-- **GitHub Actions** — filter runs by workflow, branch, event, or status; re-run a complete run or
-  failed jobs; inspect jobs and steps; search job logs; and dispatch a workflow with a ref and
-  declared inputs.
+- **GitHub Actions** — filter runs by workflow, branch, event, or status; load later run pages while
+  preserving them across polling/Refresh; re-run a complete run or failed jobs; switch current or
+  historical attempts; load bounded job pages; search exact job logs; review pending environments;
+  approve or reject eligible deployments; approve an eligible fork run; dispatch a workflow; and
+  load later artifact pages before a native download with local digest comparison and explicit
+  attestation-presence context.
 - **Agent access** — opt in from Settings to start a token-gated MCP/REST server on a random
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
+
+### Verified native Git and GitHub functions
+
+- **Deepen shallow history** — Repository Tools detects the shallow boundary, reviews a bounded or
+  complete deepen, runs the bundled Git recipe, and rechecks the repository state. The production
+  fixture expanded from 3 visible commits to all 15.
+- **Create a pull request** — choose the exact repository, account, base, and current head; compose
+  the title and Markdown body; choose draft state; review; and submit without a raw command or API
+  editor.
+- **Actions artifacts** — select a workflow run and artifact, review size/expiry/source context,
+  save through the native file picker, compare the downloaded SHA-256 with GitHub's digest, reveal
+  the file, and distinguish attestation presence from cryptographic verification.
+- **Actions pagination** — use purpose-built **Load more runs** and **Load more artifacts** controls.
+  Provider-side filters, exact-account routing, cancellation, retained-page retry, and shifted-page
+  de-duplication stay behind the workflow; no command, REST path, or GraphQL editor is exposed.
+- **Actions run inspector** — choose the latest or a historical attempt, load 50-job pages through a
+  named retry, open or re-run the exact loaded job, inspect pending environments and review history,
+  submit a bounded deployment decision, and confirm eligible fork approval. Locked environments
+  explain why they cannot be selected instead of exposing an API mutation editor.
+- **Effective branch rules** — inspect reviews, checks, deployments, merge queue, signatures,
+  history, update/delete/force policy, bypass context, and source rulesets. Signed-out and ambiguous
+  repository-account states route to the relevant settings screen.
+
+![Final full-history state after a verified deepen](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepening.png)
+
+![Native pull-request creation success](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
+
+![Actions artifact download and digest evidence](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifacts.png)
+
+![Actions run page two retained after Refresh](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pagination.png)
+
+![Actions artifact page-two sentinel with wrapped text](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifact-page-two.png)
+
+![Attempt-aware Actions job pagination with the recovered page-two job selected](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-jobs-pagination.png)
+
+![Pending Actions deployment environments with long reviewer and protection details](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pending-deployments.png)
+
+![Effective branch rules inspector](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-effective-branch-rules.png)
 
 ![Automation preferences with global and account overrides](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-automation.png)
 
@@ -94,35 +132,11 @@ P0/P1/P2/Later Git, GitHub, and provider parity wave described below.
 - **Notification centre** — a Git-backed Local view plus an account-aware GitHub inbox with
   All/Unread and participating-only filters, including a complete no-signed-in-account state.
 - **Clipping-safe scaling** — choose 50–200% UI scaling; auto-fit caps the effective scale when a
-  small window cannot contain the requested size. At the supported minimum window, 200% safely
-  auto-fits to 96% while preserving every title-bar, navigation, Appearance, and footer control.
-- **Responsive overflow guard** — at 1450×997, the toolbar and complete Changes card remain inside
-  the viewport, including filter, commit-composer, and action controls, with no horizontal overflow.
+  small window cannot contain the requested size. The latest Actions run-inspector gate reached a
+  requested 200% base through five actual menu actions and safely auto-fit to 96% while preserving
+  every title-bar, navigation, attempt, job, deployment, confirmation, and log control.
 - **No page-level sideways scrolling** — task forms wrap text and stack controls when space narrows.
   Horizontal scrolling is reserved for spatial content such as code, diffs, and logs when needed.
-
-### Guided M19 parity implementation
-
-The implementation-complete guided wave adds named task surfaces instead of a raw command or API
-catalogue:
-
-- **Git administration** — patch-series exchange, structured local-commit rewrite, commit/tag
-  signing, Git LFS, complete worktree lifecycle, branch pin/hide/solo/restore, exact merge-tree
-  conflict paths, guided bisect, the repository-wide Stash Manager, guarded Remote Manager, and the
-  safe Repository Hooks Manager.
-- **GitHub lifecycle** — pull-request templates/metadata/review/update/close/reopen/merge, paginated
-  Actions artifacts with bounded download/digest context, effective branch rules, Releases/assets,
-  and richer Issue browsing/edit/comment/close/reopen workflows.
-- **Provider-neutral triage** — bounded Issue and pull-request summaries for the exact selected
-  GitHub, GitLab, or Bitbucket account and repository, with safe links and explicit unsupported,
-  partial, capped, and error states. Bitbucket Issues are explicitly unsupported by that provider.
-
-These functions remain marked **integration complete, final acceptance pending** until their exact
-production tree and public promotion evidence is recorded.
-
-The [Guided Feature Gallery](Feature-Gallery) maps the candidate 14-image set to these workflows.
-Its asset list is documentation metadata, not a substitute for the final `main`, CI, public-site,
-wiki, installer, release, or cleanup gates.
 
 ![History search and commit ancestry graph](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
@@ -132,6 +146,8 @@ wiki, installer, release, or cleanup gates.
 
 ![Requested 200 percent UI scale auto-fitted without clipping](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-scale-200-autofit.png)
 
-![Responsive regression proof at 1450 by 997 with toolbar and Changes controls fully contained and no horizontal overflow](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-responsive-overflow-fixed.png)
+![Guided shallow clone with commit depth](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-shallow-clone.png)
+
+![Guided sparse-checkout directory editor](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-sparse-checkout.png)
 
 ![Account-aware GitHub notifications](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-notifications.png)

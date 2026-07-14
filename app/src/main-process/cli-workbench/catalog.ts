@@ -3,6 +3,7 @@ import { dirname } from 'path'
 import {
   CLIWorkbenchTool,
   ICLIWorkbenchCatalog,
+  ICLIWorkbenchRuntime,
   ICLIWorkbenchToolCatalog,
 } from '../../lib/cli-workbench'
 import {
@@ -43,6 +44,17 @@ export class CLIWorkbenchCatalogService {
     }
     void discovery.then(clear, clear)
     return discovery
+  }
+
+  /**
+   * Expose availability only. Complete command entries remain an internal
+   * implementation-audit input and never become a renderer search surface.
+   */
+  public async getRuntime(): Promise<ICLIWorkbenchRuntime> {
+    const catalog = await this.getCatalog()
+    return {
+      tools: catalog.tools.map(({ entries: _entries, ...runtime }) => runtime),
+    }
   }
 
   private async discoverCatalog(): Promise<ICLIWorkbenchCatalog> {

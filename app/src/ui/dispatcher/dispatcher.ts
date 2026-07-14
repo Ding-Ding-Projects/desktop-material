@@ -90,11 +90,7 @@ import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
 import { GitHubRepository } from '../../models/github-repository'
-import {
-  IRemote,
-  IRemoteManagementPlan,
-  IRemoteManagementSnapshot,
-} from '../../models/remote'
+import { IRemote } from '../../models/remote'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { Popup, PopupType } from '../../models/popup'
 import { IProfileHistoryPage } from '../../models/profile'
@@ -187,6 +183,12 @@ import {
 } from '../../lib/copilot-conflict-resolution'
 import { WorktreeEntry } from '../../models/worktree'
 import { ICreatedGitHubIssue } from '../../lib/github-issue'
+import {
+  getGitHubPullRequestHead,
+  GitHubPullRequestContextChangedError,
+  ICreatedGitHubPullRequest,
+  IGitHubPullRequestDraft,
+} from '../../lib/github-pull-request'
 
 /**
  * An error handler function.
@@ -3247,22 +3249,6 @@ export class Dispatcher {
     this.appStore._showCreateGitHubPullRequest(repository, branch, baseBranch)
   }
 
-  /** Open the native inspect/update/review/merge workbench. */
-  public showGitHubPullRequestLifecycle(
-    repository: Repository,
-    pullRequest: PullRequest
-  ): void {
-    this.appStore._showGitHubPullRequestLifecycle(repository, pullRequest)
-  }
-
-  /** Read bounded conventional templates from the exact local worktree. */
-  public loadGitHubPullRequestTemplates(
-    repository: Repository,
-    signal?: AbortSignal
-  ): Promise<ReadonlyArray<IGitHubPullRequestTemplate>> {
-    return loadGitHubPullRequestTemplates(repository, signal)
-  }
-
   /**
    * Show the current pull request on github.com
    */
@@ -3832,6 +3818,86 @@ export class Dispatcher {
       target.name,
       title,
       body,
+      signal
+    )
+  }
+
+  /** Whether the repository and checked-out tip still match a PR review. */
+  public isGitHubPullRequestContextCurrent(
+    repository: Repository,
+    contextVersion: string
+  ): boolean {
+    return this.appStore._isGitHubPullRequestContextCurrent(
+      repository,
+      contextVersion
+    )
+  }
+
+  /** Create one reviewed pull request through the selected GitHub account. */
+  public async createGitHubPullRequest(
+    repository: Repository,
+    target: GitHubRepository,
+    account: Account,
+    currentBranch: Branch,
+    sourceRemote: IRemote | null,
+    providerHTMLURL: string,
+    contextVersion: string,
+    draft: IGitHubPullRequestDraft,
+    signal: AbortSignal
+  ): Promise<ICreatedGitHubPullRequest> {
+    if (
+      !this.appStore._isGitHubPullRequestContextCurrent(
+        repository,
+        contextVersion
+      )
+    ) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+    if (!isRepositoryWithGitHubRepository(repository)) {
+      throw new Error('This repository is not connected to GitHub.')
+    }
+
+    const source = repository.gitHubRepository
+    if (providerHTMLURL !== getHTMLURL(source.endpoint)) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+    const targetIsAllowed =
+      target.hash === source.hash || target.hash === source.parent?.hash
+    if (!targetIsAllowed || target.endpoint !== source.endpoint) {
+      throw new Error(
+        'The pull request target is not valid for this repository.'
+      )
+    }
+    if (target.isArchived === true) {
+      throw new Error('Archived repositories cannot accept pull requests.')
+    }
+    if (
+      account.provider !== 'github' ||
+      account.token.length === 0 ||
+      account.endpoint !== target.endpoint
+    ) {
+      throw new Error('No matching authenticated GitHub account is available.')
+    }
+
+    const expectedHead = getGitHubPullRequestHead(
+      source,
+      target,
+      currentBranch,
+      sourceRemote,
+      providerHTMLURL
+    )
+    if (draft.head !== expectedHead) {
+      throw new GitHubPullRequestContextChangedError()
+    }
+
+    return API.fromAccount(account).createPullRequest(
+      target.owner.login,
+      target.name,
+      draft.title,
+      draft.body,
+      draft.head,
+      draft.base,
+      draft.draft,
       signal
     )
   }

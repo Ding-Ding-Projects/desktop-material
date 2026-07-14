@@ -1,15 +1,16 @@
 import * as React from 'react'
 import * as Path from 'path'
 import {
+  CLIWorkbenchOperation,
   ICLICommandOutputEvent,
-  ICLICommandRequest,
   ICLICommandStateEvent,
-  ICLIWorkbenchCatalog,
+  ICLIWorkbenchOperationRequest,
+  ICLIWorkbenchRuntime,
 } from '../../lib/cli-workbench'
 import { Button } from '../lib/button'
 import {
   cancelCLICommand,
-  getCLIWorkbenchCatalog,
+  getCLIWorkbenchRuntime,
   onCLICommandOutput,
   onCLICommandState,
   showItemInFolder,
@@ -30,6 +31,7 @@ import {
   RepositoryToolOperations,
 } from './operations'
 import { RepositoryBundleImport } from './bundle-import'
+import { RepositoryShallowHistory } from './shallow-history'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -39,8 +41,8 @@ type RepositoryToolResultID =
   | 'bundle-verify'
 
 export interface IRepositoryToolsClient {
-  readonly getCatalog: () => Promise<ICLIWorkbenchCatalog>
-  readonly start: (request: ICLICommandRequest) => Promise<void>
+  readonly getRuntime: () => Promise<ICLIWorkbenchRuntime>
+  readonly start: (request: ICLIWorkbenchOperationRequest) => Promise<void>
   readonly cancel: (id: string) => Promise<boolean>
   readonly onOutput: (
     handler: (output: ICLICommandOutputEvent) => void
@@ -51,7 +53,7 @@ export interface IRepositoryToolsClient {
 }
 
 const defaultClient: IRepositoryToolsClient = {
-  getCatalog: () => getCLIWorkbenchCatalog(),
+  getRuntime: () => getCLIWorkbenchRuntime(),
   start: request => startCLICommand(request),
   cancel: id => cancelCLICommand(id),
   onOutput: handler => onCLICommandOutput((_event, output) => handler(output)),
@@ -97,6 +99,7 @@ interface IRepositoryToolsState {
   readonly output: string
   readonly error: string | null
   readonly bundleImportBusy: boolean
+  readonly shallowHistoryBusy: boolean
 }
 
 let nextOperationSequence = 0
@@ -128,6 +131,7 @@ export class RepositoryTools extends React.Component<
       output: '',
       error: null,
       bundleImportBusy: false,
+      shallowHistoryBusy: false,
     }
   }
 
@@ -155,6 +159,7 @@ export class RepositoryTools extends React.Component<
         output: '',
         error: null,
         bundleImportBusy: false,
+        shallowHistoryBusy: false,
       })
     }
   }
@@ -178,8 +183,8 @@ export class RepositoryTools extends React.Component<
 
   private async loadAvailability() {
     try {
-      const catalog = await this.client.getCatalog()
-      const git = catalog.tools.find(tool => tool.tool === 'git')
+      const runtime = await this.client.getRuntime()
+      const git = runtime.tools.find(tool => tool.tool === 'git')
       if (this.mounted) {
         this.setState({
           gitAvailable: git?.available === true,
@@ -203,12 +208,22 @@ export class RepositoryTools extends React.Component<
   }
 
   private isBusy() {
-    return this.runId !== null || this.state.bundleImportBusy
+    return (
+      this.runId !== null ||
+      this.state.bundleImportBusy ||
+      this.state.shallowHistoryBusy
+    )
   }
 
   private onBundleImportBusyChanged = (bundleImportBusy: boolean) => {
     if (this.state.bundleImportBusy !== bundleImportBusy) {
       this.setState({ bundleImportBusy })
+    }
+  }
+
+  private onShallowHistoryBusyChanged = (shallowHistoryBusy: boolean) => {
+    if (this.state.shallowHistoryBusy !== shallowHistoryBusy) {
+      this.setState({ shallowHistoryBusy })
     }
   }
 
@@ -229,12 +244,12 @@ export class RepositoryTools extends React.Component<
     operation: IRepositoryToolOperation,
     confirmed: boolean
   ) {
-    return this.startCommand(operation.id, operation.args, confirmed)
+    return this.startCommand(operation.id, { id: operation.id }, confirmed)
   }
 
   private async startCommand(
-    operation: RepositoryToolResultID,
-    args: ReadonlyArray<string>,
+    resultOperation: RepositoryToolResultID,
+    operation: CLIWorkbenchOperation,
     confirmed: boolean
   ) {
     if (this.isBusy()) {
@@ -243,8 +258,8 @@ export class RepositoryTools extends React.Component<
     const id = `repository-tool-${Date.now()}-${++nextOperationSequence}`
     this.runId = id
     this.setState({
-      activeOperation: operation,
-      resultOperation: operation,
+      activeOperation: resultOperation,
+      resultOperation,
       confirmationOperation: null,
       archiveRequest: null,
       completedArchivePath: null,
@@ -255,9 +270,8 @@ export class RepositoryTools extends React.Component<
     try {
       await this.client.start({
         id,
-        tool: 'git',
-        args,
-        cwd: this.props.repositoryPath,
+        operation,
+        repositoryPath: this.props.repositoryPath,
         confirmed,
       })
     } catch (error) {
@@ -330,7 +344,7 @@ export class RepositoryTools extends React.Component<
     this.archiveRunDestination = request.destination
     void this.startCommand(
       request.format === 'bundle' ? 'bundle-export' : 'archive-export',
-      request.args,
+      request.operation,
       true
     )
   }
@@ -634,11 +648,31 @@ export class RepositoryTools extends React.Component<
     return (
       <RepositoryBundleImport
         repositoryPath={this.props.repositoryPath}
-        disabled={this.runId !== null || !this.state.gitAvailable}
+        disabled={
+          this.runId !== null ||
+          this.state.shallowHistoryBusy ||
+          !this.state.gitAvailable
+        }
         client={this.client}
         onRefreshRepository={this.props.onRefreshRepository}
         onBusyChanged={this.onBundleImportBusyChanged}
         chooseBundleToImport={this.props.chooseBundleToImport}
+      />
+    )
+  }
+
+  private renderShallowHistory() {
+    return (
+      <RepositoryShallowHistory
+        repositoryPath={this.props.repositoryPath}
+        disabled={
+          this.runId !== null ||
+          this.state.bundleImportBusy ||
+          !this.state.gitAvailable
+        }
+        client={this.client}
+        onRefreshRepository={this.props.onRefreshRepository}
+        onBusyChanged={this.onShallowHistoryBusyChanged}
       />
     )
   }
@@ -751,7 +785,7 @@ export class RepositoryTools extends React.Component<
           </div>
           <div className="repository-tool-controls">
             <Button
-              disabled={!this.isBusy()}
+              disabled={this.runId === null}
               onClick={() => void this.onCancel()}
             >
               Cancel
@@ -812,6 +846,7 @@ export class RepositoryTools extends React.Component<
         )}
         <div className="repository-tools-layout">
           <div className="repository-tools-functions">
+            {this.renderShallowHistory()}
             {this.renderCategory('Diagnostics')}
             {this.renderCategory('Maintenance')}
             {this.renderCategory('Recovery')}

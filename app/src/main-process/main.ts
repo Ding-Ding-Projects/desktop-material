@@ -68,14 +68,29 @@ import {
   cancelActionsTransfer,
   handleActionsArtifactTransfer,
   handleActionsJobLogTransfer,
-  updateActionsTransferAccounts,
 } from './actions-transfer'
 import {
-  cancelGitHubReleaseTransfer,
-  handleGitHubReleaseAssetDownload,
-  handleGitHubReleaseAssetUpload,
-  updateGitHubReleaseTransferAccounts,
-} from './github-release-transfer'
+  releaseAllCompletedActionsArtifactDownloads,
+  releaseCompletedActionsArtifactDownload,
+} from './actions-artifact-download-registry'
+import {
+  cancelAllActionsArtifactSubjectOperations,
+  cancelActionsArtifactSubjectOperation,
+  inspectActionsArtifactSubjects,
+  prepareActionsArtifactSubject,
+} from './actions-artifact-subjects'
+import {
+  cancelActionsArtifactProvenance,
+  killAllActionsArtifactProvenanceVerifications,
+  verifyActionsArtifactProvenance,
+} from './actions-artifact-provenance'
+import {
+  invalidateActionsArtifactProvenanceCredentialLeaseGeneration,
+  registerActionsArtifactProvenanceCredentialLease,
+  releaseActionsArtifactProvenanceCredentialLease,
+  releaseAllActionsArtifactProvenanceCredentialLeases,
+} from './actions-artifact-provenance-credential-lease'
+import { ActionsArtifactProvenanceShutdownBarrier } from './actions-artifact-provenance-shutdown'
 import {
   findWindowForRepositoryPath as findOwningWindow,
   nextWindowScope,
@@ -161,11 +176,24 @@ app.on('window-all-closed', () => {
   // the crash process window which is shown after the main window is closed.
 })
 
+const provenanceShutdown = new ActionsArtifactProvenanceShutdownBarrier(
+  killAllActionsArtifactProvenanceVerifications,
+  () => app.quit()
+)
+// Wait until Electron has actually accepted every window close. A before-quit
+// barrier would permanently disable the verifier when update UX cancels close.
+app.on('will-quit', event => {
+  provenanceShutdown.handle(event)
+})
+
 app.on('will-quit', () => {
   // Ensure no owned child process (or its tree) outlives the app.
   buildRunner.killAll()
   cliWorkbenchCatalog.killAll()
   cliWorkbenchRunner.killAll()
+  cancelAllActionsArtifactSubjectOperations()
+  releaseAllActionsArtifactProvenanceCredentialLeases()
+  releaseAllCompletedActionsArtifactDownloads()
   agentServerController
     ?.stop()
     .catch(error => log.error('Failed to stop agent server cleanly', error))
@@ -506,14 +534,49 @@ app.on('ready', () => {
   ipcMain.on('cancel-actions-transfer', (event, operationId) => {
     cancelActionsTransfer(event.sender.id, operationId)
   })
-  ipcMain.handle('download-release-asset', (event, request) =>
-    handleGitHubReleaseAssetDownload(event.sender, request)
+  ipcMain.handle('verify-actions-artifact-provenance', (event, request) =>
+    verifyActionsArtifactProvenance(event.sender, request)
   )
-  ipcMain.handle('upload-release-asset', (event, request) =>
-    handleGitHubReleaseAssetUpload(event.sender, request)
+  ipcMain.handle(
+    'register-actions-artifact-provenance-credential-lease',
+    async (event, request) =>
+      registerActionsArtifactProvenanceCredentialLease(event.sender, request)
   )
-  ipcMain.on('cancel-github-release-transfer', (event, operationId) => {
-    cancelGitHubReleaseTransfer(event.sender.id, operationId)
+  ipcMain.on(
+    'release-actions-artifact-provenance-credential-lease',
+    (event, accountHandle) => {
+      releaseActionsArtifactProvenanceCredentialLease(
+        event.sender.id,
+        accountHandle
+      )
+    }
+  )
+  ipcMain.on(
+    'invalidate-actions-artifact-provenance-credential-lease-generation',
+    (event, accountsGeneration) => {
+      invalidateActionsArtifactProvenanceCredentialLeaseGeneration(
+        event.sender,
+        accountsGeneration
+      )
+    }
+  )
+  ipcMain.on('cancel-actions-artifact-provenance', (event, operationId) => {
+    cancelActionsArtifactProvenance(event.sender.id, operationId)
+  })
+  ipcMain.handle('inspect-actions-artifact-subjects', (event, request) =>
+    inspectActionsArtifactSubjects(event.sender, request)
+  )
+  ipcMain.handle('prepare-actions-artifact-subject', (event, request) =>
+    prepareActionsArtifactSubject(event.sender, request)
+  )
+  ipcMain.on(
+    'cancel-actions-artifact-subject-operation',
+    (event, operationId) => {
+      cancelActionsArtifactSubjectOperation(event.sender.id, operationId)
+    }
+  )
+  ipcMain.on('release-actions-artifact-download', (event, downloadId) => {
+    releaseCompletedActionsArtifactDownload(event.sender.id, downloadId)
   })
 
   const orderedWebRequest = new OrderedWebRequest(
@@ -545,8 +608,11 @@ app.on('ready', () => {
 
   ipcMain.on('update-accounts', (event, accounts) => {
     updateAccounts(accounts)
-    updateActionsTransferAccounts(accounts)
-    updateGitHubReleaseTransferAccounts(accounts)
+    // EndpointToken deliberately omits login and account id. Every account
+    // refresh therefore revokes a provenance lease before the fingerprint
+    // shortcut: a credential rotation, removal, or login-only change in any
+    // window cannot leave an owned GHE verifier process authorized.
+    releaseAllActionsArtifactProvenanceCredentialLeases()
     const fingerprint = JSON.stringify(accounts)
     if (fingerprint === accountsFingerprint) {
       return

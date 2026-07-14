@@ -41,6 +41,8 @@ export enum PopupType {
   NotificationHistory = 'NotificationHistory',
   FileHistory = 'FileHistory',
   CreateGitHubIssue = 'CreateGitHubIssue',
+  CreateGitHubPullRequest = 'CreateGitHubPullRequest',
+  BranchRules = 'BranchRules',
   SparseCheckout = 'SparseCheckout',
   RepositorySettings = 'RepositorySettings',
   AddRepository = 'AddRepository',
@@ -176,6 +178,22 @@ export type PopupDetail =
   | { type: PopupType.NotificationHistory }
   | { type: PopupType.FileHistory; repository: Repository; path: string }
   | { type: PopupType.CreateGitHubIssue; repository: Repository }
+  | {
+      type: PopupType.CreateGitHubPullRequest
+      repository: RepositoryWithGitHubRepository
+      currentBranch: Branch
+      sourceRemote: IRemote | null
+      providerHTMLURL: string
+      targets: ReadonlyArray<IGitHubPullRequestTarget>
+      initialTargetHash: string
+      initialBaseBranchName: string | null
+      contextVersion: string
+    }
+  | {
+      type: PopupType.BranchRules
+      repository: Repository
+      initialBranch: string
+    }
   | { type: PopupType.SparseCheckout; repository: Repository }
   | { type: PopupType.MergeAll; repository: Repository; mode: MergeAllMode }
   | { type: PopupType.PullAllRepositories }
@@ -597,6 +615,7 @@ const nonModalHistoryPopupTypes = new Set<PopupType>([
   PopupType.SettingsHistory,
   PopupType.NotificationHistory,
   PopupType.FileHistory,
+  PopupType.BranchRules,
   PopupType.SparseCheckout,
   PopupType.BatchCloneProgress,
   PopupType.ChangeRepositoryGroupName,

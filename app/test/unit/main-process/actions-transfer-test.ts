@@ -5,16 +5,18 @@ import { mkdtemp, readFile, readdir, rm } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { Readable } from 'stream'
-import { afterEach, beforeEach, describe, it } from 'node:test'
+import { describe, it } from 'node:test'
 import {
   cancelActionsTransfer,
   createElectronActionsFetcher,
   handleActionsArtifactTransfer,
   handleActionsJobLogTransfer,
-  IActionsTransferDependencies,
   IActionsTransferSender,
-  updateActionsTransferAccounts,
 } from '../../../src/main-process/actions-transfer'
+import {
+  getCompletedActionsArtifactDownload,
+  releaseCompletedActionsArtifactDownload,
+} from '../../../src/main-process/actions-artifact-download-registry'
 import {
   ActionsJobLogMaximumBytes,
   ActionsJobLogTruncationMarker,
@@ -25,7 +27,6 @@ import {
 
 const archive = Buffer.from('trusted main process artifact')
 const digest = `sha256:${createHash('sha256').update(archive).digest('hex')}`
-const signedHost = 'productionresultssa16.blob.core.windows.net'
 
 class TestSender extends EventEmitter implements IActionsTransferSender {
   public readonly sent = new Array<IActionsTransferProgressEvent>()
@@ -64,25 +65,26 @@ class FakeClientRequest extends EventEmitter {
 
   public constructor(
     private readonly onEnd: () => void,
-    private readonly endError: Error | null = null
+    private readonly closeBeforeResponse: boolean = false
   ) {
     super()
   }
 
   public end() {
-    if (this.endError !== null) {
-      throw this.endError
+    if (this.closeBeforeResponse) {
+      this.emit('close')
     }
     queueMicrotask(this.onEnd)
     return this
   }
 
   public abort() {
-    if (!this.aborted) {
-      this.aborted = true
-      this.emit('abort')
-      this.emit('close')
+    if (this.aborted) {
+      return
     }
+    this.aborted = true
+    this.emit('abort')
+    this.emit('close')
   }
 }
 
@@ -100,6 +102,7 @@ const artifactRequest = (
     sizeInBytes: archive.byteLength,
     expired: false,
     digest,
+    workflowRun: null,
   },
   destination,
   ...overrides,
@@ -126,75 +129,27 @@ async function withDirectory(run: (directory: string) => Promise<void>) {
   }
 }
 
-function testDependencies(
-  fetch: IActionsTransferDependencies['fetch']
-): IActionsTransferDependencies {
-  return {
-    fetch,
-    redirects: {
-      resolve: async () => [{ address: '20.60.1.2', family: 4 }],
-      request: async (url, _addresses, signal) =>
-        fetch(url.toString(), {
-          method: 'GET',
-          headers: {
-            Accept: 'application/octet-stream',
-            'User-Agent': 'GitHubDesktop-ActionsTransfer',
-          },
-          redirect: 'manual',
-          credentials: 'omit',
-          referrerPolicy: 'no-referrer',
-          cache: 'no-store',
-          signal,
-        }),
-    },
-  }
-}
-
-function trackedResponse(status: number, headers?: HeadersInit) {
-  let canceled = false
-  return {
-    response: new Response(
-      new ReadableStream<Uint8Array>({
-        cancel() {
-          canceled = true
-          throw new Error('response cancellation failed')
-        },
-      }),
-      { status, headers }
-    ),
-    wasCanceled: () => canceled,
-  }
-}
-
 describe('main-process Actions transfer', () => {
-  beforeEach(() => {
-    updateActionsTransferAccounts([
-      {
-        endpoint: 'https://api.github.com',
-        token: 'selected-account-token',
-      },
-    ])
-  })
-
-  afterEach(() => updateActionsTransferAccounts([]))
-
-  it('captures isolated Electron redirects without following them', async () => {
+  it('captures Electron ClientRequest redirects without following them', async () => {
     const requestedOptions =
       new Array<Electron.ClientRequestConstructorOptions>()
-    const isolatedSession = {} as Electron.Session
     let request: FakeClientRequest
+    const isolatedSession = {} as Electron.Session
     const fetcher = createElectronActionsFetcher(
-      options => {
-        requestedOptions.push(options)
+      nextOptions => {
+        requestedOptions.push(nextOptions)
         request = new FakeClientRequest(() => {
           request.emit(
             'redirect',
             302,
             'GET',
-            `https://${signedHost}/archive.zip`,
-            { location: [`https://${signedHost}/archive.zip`] }
+            'https://blob.example.test/archive.zip',
+            {
+              location: ['https://blob.example.test/archive.zip'],
+            }
           )
-          request.emit('error', new Error('redirect canceled'))
+          request.emit('error', new Error('Redirect was cancelled'))
+          request.emit('close')
         })
         return request as unknown as Electron.ClientRequest
       },
@@ -216,9 +171,11 @@ describe('main-process Actions transfer', () => {
     assert.equal(response.status, 302)
     assert.equal(
       response.headers.get('location'),
-      `https://${signedHost}/archive.zip`
+      'https://blob.example.test/archive.zip'
     )
     const options = requestedOptions[0]
+    assert.equal(options.url, 'https://api.github.com/artifact')
+    assert.equal(options.method, 'GET')
     assert.equal(options.redirect, 'manual')
     assert.equal(options.credentials, 'omit')
     assert.equal(options.useSessionCookies, false)
@@ -229,83 +186,79 @@ describe('main-process Actions transfer', () => {
       (options.headers as Record<string, string>).authorization,
       'Bearer selected-account-token'
     )
-    assert.equal(request!.aborted, true)
   })
 
-  it('streams Electron responses and binds cancellation to ClientRequest', async () => {
-    const completeStream = Object.assign(Readable.from([archive]), {
+  it('streams Electron responses and binds body cancellation to ClientRequest', async () => {
+    const responseStream = Object.assign(Readable.from([archive]), {
       statusCode: 200,
       statusMessage: 'OK',
-      headers: { 'content-length': String(archive.byteLength) },
+      headers: {
+        'content-length': String(archive.byteLength),
+      },
     })
-    let completeRequest: FakeClientRequest
-    const completeFetcher = createElectronActionsFetcher(
+    let responseRequest: FakeClientRequest
+    const responseFetcher = createElectronActionsFetcher(
       () => {
-        completeRequest = new FakeClientRequest(() => {
-          completeRequest.emit('response', completeStream)
-        })
-        return completeRequest as unknown as Electron.ClientRequest
+        responseRequest = new FakeClientRequest(() => {
+          responseRequest.emit('response', responseStream)
+        }, true)
+        return responseRequest as unknown as Electron.ClientRequest
       },
       () => ({} as Electron.Session)
     )
-    const complete = await completeFetcher('https://api.github.com/file', {})
-    assert.deepEqual(Buffer.from(await complete.arrayBuffer()), archive)
-    assert.equal(completeRequest!.aborted, false)
-
-    const pendingStream = Object.assign(new Readable({ read() {} }), {
-      statusCode: 200,
-      statusMessage: 'OK',
-      headers: {},
+    const responseController = new AbortController()
+    const response = await responseFetcher('https://blob.example.test/file', {
+      signal: responseController.signal,
     })
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), archive)
+    responseController.abort()
+    assert.equal(responseRequest!.aborted, false)
+
+    const pendingBody = Object.assign(
+      new Readable({
+        read() {},
+      }),
+      {
+        statusCode: 200,
+        statusMessage: 'OK',
+        headers: {},
+      }
+    )
+    let bodyRequest: FakeClientRequest
+    const bodyFetcher = createElectronActionsFetcher(
+      () => {
+        bodyRequest = new FakeClientRequest(() => {
+          bodyRequest.emit('response', pendingBody)
+        })
+        return bodyRequest as unknown as Electron.ClientRequest
+      },
+      () => ({} as Electron.Session)
+    )
+    const cancelableResponse = await bodyFetcher(
+      'https://blob.example.test/cancelable',
+      {}
+    )
+    await cancelableResponse.body?.cancel('preflight failed')
+    assert.equal(bodyRequest!.aborted, true)
+
     let pendingRequest: FakeClientRequest
     const pendingFetcher = createElectronActionsFetcher(
       () => {
-        pendingRequest = new FakeClientRequest(() => {
-          pendingRequest.emit('response', pendingStream)
-        })
+        pendingRequest = new FakeClientRequest(() => undefined)
         return pendingRequest as unknown as Electron.ClientRequest
       },
       () => ({} as Electron.Session)
     )
-    const pending = await pendingFetcher('https://api.github.com/pending', {})
-    await pending.body?.cancel('preflight failed')
-    assert.equal(pendingRequest!.aborted, true)
-
-    let abortedRequest: FakeClientRequest
-    const abortedFetcher = createElectronActionsFetcher(
-      () => {
-        abortedRequest = new FakeClientRequest(() => undefined)
-        return abortedRequest as unknown as Electron.ClientRequest
-      },
-      () => ({} as Electron.Session)
-    )
     const controller = new AbortController()
-    const aborted = abortedFetcher('https://api.github.com/pending', {
+    const pending = pendingFetcher('https://blob.example.test/pending', {
       signal: controller.signal,
     })
     controller.abort()
-    await assert.rejects(aborted, error => {
+    await assert.rejects(pending, error => {
       assert.equal((error as Error).name, 'AbortError')
       return true
     })
-    assert.equal(abortedRequest!.aborted, true)
-
-    let failedRequest: FakeClientRequest
-    const failedFetcher = createElectronActionsFetcher(
-      () => {
-        failedRequest = new FakeClientRequest(
-          () => undefined,
-          new Error('request start failed')
-        )
-        return failedRequest as unknown as Electron.ClientRequest
-      },
-      () => ({} as Electron.Session)
-    )
-    await assert.rejects(
-      failedFetcher('https://api.github.com/failed', {}),
-      /request start failed/
-    )
-    assert.equal(failedRequest!.aborted, true)
+    assert.equal(pendingRequest!.aborted, true)
   })
 
   it('validates every hop, strips auth after the API, and streams to disk', async () => {
@@ -323,11 +276,11 @@ describe('main-process Actions transfer', () => {
       const responses = [
         new Response(null, {
           status: 302,
-          headers: { Location: `https://${signedHost}/first` },
+          headers: { Location: 'https://blob.example.test/first' },
         }),
         new Response(null, {
           status: 307,
-          headers: { Location: `https://${signedHost}/final.zip` },
+          headers: { Location: 'https://cdn.example.test/final.zip' },
         }),
         new Response(archive, {
           headers: { 'Content-Length': String(archive.byteLength) },
@@ -338,7 +291,7 @@ describe('main-process Actions transfer', () => {
       const result = await handleActionsArtifactTransfer(
         sender,
         artifactRequest(destination),
-        testDependencies(async (url, init) => {
+        async (url, init) => {
           requests.push({
             url,
             authorization: new Headers(init.headers).get('Authorization'),
@@ -350,10 +303,31 @@ describe('main-process Actions transfer', () => {
             apiVersion: new Headers(init.headers).get('X-GitHub-Api-Version'),
           })
           return responses.shift()!
-        })
+        }
       )
 
       assert.equal(result.ok, true)
+      if (result.ok) {
+        assert.match(result.downloadId, /^[a-f0-9]{32}$/)
+        assert.deepEqual(
+          getCompletedActionsArtifactDownload(sender.id, result.downloadId),
+          {
+            downloadId: result.downloadId,
+            senderId: sender.id,
+            path: destination,
+            bytes: archive.length,
+            archiveDigest: digest,
+            owner: 'owner',
+            repository: 'repo',
+            artifactId: 19,
+            workflowRun: null,
+          }
+        )
+        assert.equal(
+          releaseCompletedActionsArtifactDownload(sender.id, result.downloadId),
+          true
+        )
+      }
       assert.deepEqual(
         requests.map(request => request.authorization),
         ['Bearer selected-account-token', null, null]
@@ -364,19 +338,13 @@ describe('main-process Actions transfer', () => {
         requests.every(request => request.referrerPolicy === 'no-referrer')
       )
       assert.ok(requests.every(request => request.cache === 'no-store'))
-      assert.deepEqual(
-        requests.map(request => request.accept),
-        [
-          'application/vnd.github+json',
-          'application/octet-stream',
-          'application/octet-stream',
-        ]
+      assert.ok(
+        requests.every(
+          request => request.accept === 'application/vnd.github+json'
+        )
       )
-      assert.deepEqual(
-        requests.map(request => request.apiVersion),
-        ['2026-03-10', null, null]
-      )
-      assert.equal(requests[2].url, `https://${signedHost}/final.zip`)
+      assert.ok(requests.every(request => request.apiVersion === '2026-03-10'))
+      assert.equal(requests[2].url, 'https://cdn.example.test/final.zip')
       assert.deepEqual(await readFile(destination), archive)
       assert.ok(sender.sent.length >= 1)
       assert.ok(
@@ -391,13 +359,13 @@ describe('main-process Actions transfer', () => {
       const downgrade = await handleActionsArtifactTransfer(
         new TestSender(2),
         artifactRequest(join(directory, 'downgrade.zip')),
-        testDependencies(async () => {
+        async () => {
           downgradeFetches++
           return new Response(null, {
             status: 302,
-            headers: { Location: `http://${signedHost}/archive.zip` },
+            headers: { Location: 'http://blob.example.test/archive.zip' },
           })
-        })
+        }
       )
       assert.deepEqual(downgrade, {
         ok: false,
@@ -412,37 +380,52 @@ describe('main-process Actions transfer', () => {
         artifactRequest(join(directory, 'redirects.zip'), {
           operationId: 'c'.repeat(32),
         }),
-        testDependencies(async () => {
+        async () => {
           redirectFetches++
           return new Response(null, {
             status: 302,
             headers: {
-              Location: `https://${signedHost}/${redirectFetches}`,
+              Location: `https://blob.example.test/${redirectFetches}`,
             },
           })
-        })
+        }
       )
       assert.equal(excessive.ok, false)
       assert.equal(excessive.ok ? '' : excessive.reason, 'too-many-redirects')
       assert.equal(redirectFetches, 6)
+      assert.deepEqual(await readdir(directory), [])
+    })
+  })
 
-      let loopFetches = 0
-      const loop = await handleActionsArtifactTransfer(
-        new TestSender(22),
-        artifactRequest(join(directory, 'loop.zip'), {
-          operationId: 'c1'.repeat(16),
+  it('cancels the final response stream when artifact preflight fails', async () => {
+    await withDirectory(async directory => {
+      let canceled = false
+      const response = new Response(
+        new ReadableStream<Uint8Array>({
+          cancel() {
+            canceled = true
+          },
         }),
-        testDependencies(async () => {
-          loopFetches++
-          return new Response(null, {
-            status: 302,
-            headers: { Location: `https://${signedHost}/loop` },
-          })
-        })
+        {
+          headers: {
+            'Content-Length': String(archive.byteLength + 1),
+          },
+        }
       )
-      assert.equal(loop.ok, false)
-      assert.equal(loop.ok ? '' : loop.reason, 'redirect-loop')
-      assert.equal(loopFetches, 2)
+      const result = await handleActionsArtifactTransfer(
+        new TestSender(18),
+        artifactRequest(join(directory, 'mismatch.zip'), {
+          operationId: '8'.repeat(32),
+        }),
+        async () => response
+      )
+
+      assert.deepEqual(result, {
+        ok: false,
+        reason: 'size-mismatch',
+        status: null,
+      })
+      assert.equal(canceled, true)
       assert.deepEqual(await readdir(directory), [])
     })
   })
@@ -454,7 +437,7 @@ describe('main-process Actions transfer', () => {
         artifactRequest(join(directory, 'expired.zip'), {
           operationId: '1'.repeat(32),
         }),
-        testDependencies(async () => new Response(null, { status: 410 }))
+        async () => new Response(null, { status: 410 })
       )
       assert.deepEqual(expiredArtifact, {
         ok: false,
@@ -465,7 +448,7 @@ describe('main-process Actions transfer', () => {
       const expiredLog = await handleActionsJobLogTransfer(
         new TestSender(5),
         logRequest({ operationId: '2'.repeat(32) }),
-        testDependencies(async () => new Response(null, { status: 410 }))
+        async () => new Response(null, { status: 410 })
       )
       assert.deepEqual(expiredLog, {
         ok: false,
@@ -478,70 +461,13 @@ describe('main-process Actions transfer', () => {
         artifactRequest(join(directory, 'missing.zip'), {
           operationId: '3'.repeat(32),
         }),
-        testDependencies(async () => new Response(null, { status: 302 }))
+        async () => new Response(null, { status: 302 })
       )
       assert.deepEqual(missingLocation, {
         ok: false,
         reason: 'missing-location',
         status: null,
       })
-      assert.deepEqual(await readdir(directory), [])
-    })
-  })
-
-  it('cancels authenticated and signed error bodies without masking failures', async () => {
-    await withDirectory(async directory => {
-      const expired = trackedResponse(410)
-      const expiredResult = await handleActionsArtifactTransfer(
-        new TestSender(16),
-        artifactRequest(join(directory, 'expired-body.zip'), {
-          operationId: '6'.repeat(32),
-        }),
-        testDependencies(async () => expired.response)
-      )
-      assert.deepEqual(expiredResult, {
-        ok: false,
-        reason: 'expired',
-        status: 410,
-      })
-      assert.equal(expired.wasCanceled(), true)
-
-      const invalidRedirect = trackedResponse(302, {
-        Location: `http://${signedHost}/archive.zip`,
-      })
-      const invalidResult = await handleActionsArtifactTransfer(
-        new TestSender(17),
-        artifactRequest(join(directory, 'invalid-body.zip'), {
-          operationId: '7'.repeat(32),
-        }),
-        testDependencies(async () => invalidRedirect.response)
-      )
-      assert.deepEqual(invalidResult, {
-        ok: false,
-        reason: 'unsafe-redirect',
-        status: null,
-      })
-      assert.equal(invalidRedirect.wasCanceled(), true)
-
-      const initial = new Response(null, {
-        status: 302,
-        headers: { Location: `https://${signedHost}/archive.zip` },
-      })
-      const signedFailure = trackedResponse(503)
-      const responses = [initial, signedFailure.response]
-      const signedResult = await handleActionsArtifactTransfer(
-        new TestSender(18),
-        artifactRequest(join(directory, 'signed-error.zip'), {
-          operationId: '8'.repeat(32),
-        }),
-        testDependencies(async () => responses.shift()!)
-      )
-      assert.deepEqual(signedResult, {
-        ok: false,
-        reason: 'http',
-        status: 503,
-      })
-      assert.equal(signedFailure.wasCanceled(), true)
       assert.deepEqual(await readdir(directory), [])
     })
   })
@@ -556,21 +482,19 @@ describe('main-process Actions transfer', () => {
       const pending = handleActionsArtifactTransfer(
         sender,
         request,
-        testDependencies(
-          async (_url, init) =>
-            await new Promise<Response>((_resolve, reject) =>
-              init.signal?.addEventListener(
-                'abort',
-                () => reject(new DOMException('canceled', 'AbortError')),
-                { once: true }
-              )
+        async (_url, init) =>
+          await new Promise<Response>((_resolve, reject) =>
+            init.signal?.addEventListener(
+              'abort',
+              () => reject(new DOMException('canceled', 'AbortError')),
+              { once: true }
             )
-        )
+          )
       )
       const duplicate = await handleActionsArtifactTransfer(
         sender,
         request,
-        testDependencies(async () => new Response(archive))
+        async () => new Response(archive)
       )
       assert.deepEqual(duplicate, {
         ok: false,
@@ -597,16 +521,14 @@ describe('main-process Actions transfer', () => {
       const pending = handleActionsArtifactTransfer(
         sender,
         request,
-        testDependencies(
-          async (_url, init) =>
-            await new Promise<Response>((_resolve, reject) =>
-              init.signal?.addEventListener(
-                'abort',
-                () => reject(new DOMException('destroyed', 'AbortError')),
-                { once: true }
-              )
+        async (_url, init) =>
+          await new Promise<Response>((_resolve, reject) =>
+            init.signal?.addEventListener(
+              'abort',
+              () => reject(new DOMException('destroyed', 'AbortError')),
+              { once: true }
             )
-        )
+          )
       )
       sender.destroy()
       assert.equal((await pending).ok, false)
@@ -622,10 +544,10 @@ describe('main-process Actions transfer', () => {
         artifactRequest(join(directory, 'invalid.zip'), {
           owner: 'owner/escape',
         }),
-        testDependencies(async () => {
+        async () => {
           fetches++
           return new Response(archive)
-        })
+        }
       )
       assert.equal(result.ok, false)
       assert.equal(result.ok ? '' : result.reason, 'invalid-request')
@@ -637,28 +559,29 @@ describe('main-process Actions transfer', () => {
           operationId: '4'.repeat(32),
           destination: 42 as unknown as string,
         }),
-        testDependencies(async () => {
+        async () => {
           fetches++
           return new Response(archive)
-        })
+        }
       )
       assert.deepEqual(invalidDestination, {
         ok: false,
         reason: 'invalid-request',
         status: null,
       })
+      assert.equal(fetches, 0)
 
       for (const [index, owner] of ['.', '..'].entries()) {
         const dotSegment = await handleActionsArtifactTransfer(
-          new TestSender(40 + index),
+          new TestSender(20 + index),
           artifactRequest(join(directory, `dot-segment-${index}.zip`), {
             operationId: `${index + 6}`.repeat(32),
             owner,
           }),
-          testDependencies(async () => {
+          async () => {
             fetches++
             return new Response(archive)
-          })
+          }
         )
         assert.deepEqual(dotSegment, {
           ok: false,
@@ -670,115 +593,6 @@ describe('main-process Actions transfer', () => {
     })
   })
 
-  it('cancels fetched artifact and log bodies when abort wins completion', async () => {
-    await withDirectory(async directory => {
-      const artifactSender = new TestSender(23)
-      const artifactResponse = trackedResponse(200)
-      const artifactResult = await handleActionsArtifactTransfer(
-        artifactSender,
-        artifactRequest(join(directory, 'fetch-race.zip'), {
-          operationId: 'd1'.repeat(16),
-        }),
-        testDependencies(async () => {
-          queueMicrotask(() => artifactSender.destroy())
-          return artifactResponse.response
-        })
-      )
-      assert.deepEqual(artifactResult, {
-        ok: false,
-        reason: 'canceled',
-        status: null,
-      })
-      assert.equal(artifactResponse.wasCanceled(), true)
-
-      const logSender = new TestSender(24)
-      const logResponse = trackedResponse(200)
-      const logResult = await handleActionsJobLogTransfer(
-        logSender,
-        logRequest({ operationId: 'e1'.repeat(16) }),
-        testDependencies(async () => {
-          queueMicrotask(() => logSender.destroy())
-          return logResponse.response
-        })
-      )
-      assert.deepEqual(logResult, {
-        ok: false,
-        reason: 'canceled',
-        status: null,
-      })
-      assert.equal(logResponse.wasCanceled(), true)
-      assert.deepEqual(await readdir(directory), [])
-    })
-  })
-
-  it('rejects foreign and stale endpoint-token pairs from renderer IPC', async () => {
-    await withDirectory(async directory => {
-      let fetches = 0
-      const network = testDependencies(async () => {
-        fetches++
-        return new Response(archive, {
-          headers: { 'Content-Length': String(archive.byteLength) },
-        })
-      })
-      const foreign = await handleActionsArtifactTransfer(
-        new TestSender(19),
-        artifactRequest(join(directory, 'foreign.zip'), {
-          operationId: '9'.repeat(32),
-          token: 'foreign-token',
-        }),
-        network
-      )
-      assert.deepEqual(foreign, {
-        ok: false,
-        reason: 'invalid-request',
-        status: null,
-      })
-      assert.equal(fetches, 0)
-
-      updateActionsTransferAccounts([
-        { endpoint: 'https://api.github.com./', token: 'ambiguous-token' },
-      ])
-      const ambiguous = await handleActionsArtifactTransfer(
-        new TestSender(26),
-        artifactRequest(join(directory, 'ambiguous.zip'), {
-          operationId: '91'.repeat(16),
-          endpoint: 'https://api.github.com./',
-          token: 'ambiguous-token',
-        }),
-        network
-      )
-      assert.equal(ambiguous.ok, false)
-      assert.equal(ambiguous.ok ? '' : ambiguous.reason, 'invalid-request')
-      assert.equal(fetches, 0)
-
-      updateActionsTransferAccounts([
-        { endpoint: 'https://api.github.com/', token: 'replacement-token' },
-      ])
-      const stale = await handleActionsArtifactTransfer(
-        new TestSender(20),
-        artifactRequest(join(directory, 'stale.zip'), {
-          operationId: 'a1'.repeat(16),
-        }),
-        network
-      )
-      assert.equal(stale.ok, false)
-      assert.equal(stale.ok ? '' : stale.reason, 'invalid-request')
-      assert.equal(fetches, 0)
-
-      const current = await handleActionsArtifactTransfer(
-        new TestSender(21),
-        artifactRequest(join(directory, 'current.zip'), {
-          operationId: 'b1'.repeat(16),
-          token: 'replacement-token',
-        }),
-        network
-      )
-      assert.equal(current.ok, true)
-      assert.equal(fetches, 1)
-      assert.deepEqual(await readFile(join(directory, 'current.zip')), archive)
-    })
-  })
-
   it('turns a raced progress-send failure into cancellation', async () => {
     await withDirectory(async directory => {
       const result = await handleActionsArtifactTransfer(
@@ -786,40 +600,15 @@ describe('main-process Actions transfer', () => {
         artifactRequest(join(directory, 'destroyed.zip'), {
           operationId: '5'.repeat(32),
         }),
-        testDependencies(
-          async () =>
-            new Response(archive, {
-              headers: { 'Content-Length': String(archive.byteLength) },
-            })
-        )
+        async () =>
+          new Response(archive, {
+            headers: { 'Content-Length': String(archive.byteLength) },
+          })
       )
 
       assert.deepEqual(result, {
         ok: false,
         reason: 'canceled',
-        status: null,
-      })
-      assert.deepEqual(await readdir(directory), [])
-    })
-  })
-
-  it('maps destination filesystem failures without publishing partial files', async () => {
-    await withDirectory(async directory => {
-      const result = await handleActionsArtifactTransfer(
-        new TestSender(25),
-        artifactRequest(join(directory, 'missing', 'package.zip'), {
-          operationId: 'f1'.repeat(16),
-        }),
-        testDependencies(
-          async () =>
-            new Response(archive, {
-              headers: { 'Content-Length': String(archive.byteLength) },
-            })
-        )
-      )
-      assert.deepEqual(result, {
-        ok: false,
-        reason: 'destination',
         status: null,
       })
       assert.deepEqual(await readdir(directory), [])
@@ -832,17 +621,17 @@ describe('main-process Actions transfer', () => {
     const responses = [
       new Response(null, {
         status: 302,
-        headers: { Location: `https://${signedHost}/job.txt` },
+        headers: { Location: 'https://blob.example.test/job.txt' },
       }),
       new Response(bytes),
     ]
     const result = await handleActionsJobLogTransfer(
       new TestSender(12),
       logRequest(),
-      testDependencies(async (_url, init) => {
+      async (_url, init) => {
         requests.push(new Headers(init.headers).get('Authorization'))
         return responses.shift()!
-      })
+      }
     )
 
     assert.equal(result.ok, true)
@@ -853,34 +642,14 @@ describe('main-process Actions transfer', () => {
     assert.deepEqual(requests, ['Bearer selected-account-token', null])
   })
 
-  it('releases the job-log response reader after a successful read', async () => {
-    const response = new Response('complete log')
-    const result = await handleActionsJobLogTransfer(
-      new TestSender(14),
-      logRequest(),
-      testDependencies(async () => response)
-    )
-
-    assert.deepEqual(result, {
-      ok: true,
-      log: 'complete log',
-      truncated: false,
-    })
-    assert.equal(response.body?.locked, false)
-  })
-
   it('reports cancellation that occurs while a job-log read is pending', async () => {
     let readStarted!: () => void
     const reading = new Promise<void>(resolve => (readStarted = resolve))
-    let bodyCanceled = false
     const response = new Response(
       new ReadableStream<Uint8Array>({
         pull() {
           readStarted()
           return new Promise<void>(() => undefined)
-        },
-        cancel() {
-          bodyCanceled = true
         },
       })
     )
@@ -889,7 +658,7 @@ describe('main-process Actions transfer', () => {
     const pending = handleActionsJobLogTransfer(
       sender,
       request,
-      testDependencies(async () => response)
+      async () => response
     )
 
     await reading
@@ -899,6 +668,5 @@ describe('main-process Actions transfer', () => {
       reason: 'canceled',
       status: null,
     })
-    assert.equal(bodyCanceled, true)
   })
 })
