@@ -6,6 +6,7 @@
 - Run id: `dm-actions-artifact-provenance-result-ui-20260714`
 - Milestone: app-native review, selected-subject verification, and bounded result evidence
 - Initial source: `d0373b7acaf5d3bd3899c56f1fd10bd8ac83e86e`
+- Verified source pushed to `main`: `e282eb2fce`
 - Branch: `main`
 - Expected remote: `origin` (`codingmachineedge/desktop-material`)
 - Initial dirty-state baseline: clean and aligned with `origin/main`

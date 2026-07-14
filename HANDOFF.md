@@ -516,8 +516,8 @@ cards with wrapped captions and no sideways scrolling.
 
 ## 2026-07-14 Actions cache and screenshot refresh
 
-The Actions provenance/result UI and cache-manager slice is complete on the
-current `main` promotion. The cache manager now starts after the repository's
+The Actions provenance/result UI and cache-manager slice is complete at exact
+source SHA `e282eb2fce` on `main`. The cache manager now starts after the repository's
 selected-account subscription, survives late Fetch-origin association, and
 keeps cache state when a concurrent workflow refresh completes. The page uses a
 scrollable vertical layout so long cache keys, refs, usage, and destructive
