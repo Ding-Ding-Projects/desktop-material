@@ -88,6 +88,12 @@ interface ICloneableRepositoryFilterListProps {
 
   /** Called when the user toggles a row's multi-clone checkbox. */
   readonly onToggleItemChecked?: (url: string) => void
+
+  /** Called when the user toggles every repository currently in the list. */
+  readonly onToggleAllItemsChecked?: (
+    urls: ReadonlyArray<string>,
+    checked: boolean
+  ) => void
 }
 
 const RowHeight = 31
@@ -321,21 +327,57 @@ export class CloneableRepositoryFilterList extends React.PureComponent<ICloneabl
     )
   }
 
+  private onSelectAllChange = (event: React.FormEvent<HTMLInputElement>) => {
+    const groups = this.getRepositoryGroups(
+      this.props.repositories,
+      this.props.account.login
+    )
+    const urls = groups.flatMap(group => group.items.map(item => item.url))
+    this.props.onToggleAllItemsChecked?.(urls, event.currentTarget.checked)
+  }
+
   private renderPostFilter = () => {
+    const groups = this.getRepositoryGroups(
+      this.props.repositories,
+      this.props.account.login
+    )
+    const urls = groups.flatMap(group => group.items.map(item => item.url))
+    const checkedCount = urls.filter(
+      url => this.props.checkedUrls?.has(url) === true
+    ).length
+    const selectAllValue =
+      urls.length === 0 || checkedCount === 0
+        ? CheckboxValue.Off
+        : checkedCount === urls.length
+        ? CheckboxValue.On
+        : CheckboxValue.Mixed
+    const checkable = this.props.onToggleAllItemsChecked !== undefined
     const tooltip = 'Refresh the list of repositories'
 
     return (
-      <Button
-        disabled={this.props.loading}
-        onClick={this.refreshRepositories}
-        ariaLabel={tooltip}
-        tooltip={tooltip}
-      >
-        <Octicon
-          symbol={syncClockwise}
-          className={this.props.loading ? 'spin' : undefined}
-        />
-      </Button>
+      <>
+        {checkable && (
+          <span className="select-all-repositories">
+            <Checkbox
+              value={selectAllValue}
+              label="Select all"
+              disabled={urls.length === 0}
+              onChange={this.onSelectAllChange}
+            />
+          </span>
+        )}
+        <Button
+          disabled={this.props.loading}
+          onClick={this.refreshRepositories}
+          ariaLabel={tooltip}
+          tooltip={tooltip}
+        >
+          <Octicon
+            symbol={syncClockwise}
+            className={this.props.loading ? 'spin' : undefined}
+          />
+        </Button>
+      </>
     )
   }
 

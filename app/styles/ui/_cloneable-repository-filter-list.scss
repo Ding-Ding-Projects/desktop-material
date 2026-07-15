@@ -1,4 +1,22 @@
 .filter-list.clone-github-repo {
+  .select-all-repositories {
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    min-height: 48px;
+    padding-inline: 4px;
+    color: var(--md-sys-color-on-surface-variant);
+
+    .checkbox-component {
+      margin: 0;
+    }
+
+    label {
+      white-space: nowrap;
+      font-size: var(--font-size-sm);
+    }
+  }
+
   .no-items {
     display: flex;
     align-items: center;

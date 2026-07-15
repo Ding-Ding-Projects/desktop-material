@@ -27,6 +27,36 @@ dialog.clone-repository {
     border-radius: 16px;
     background: var(--md-sys-color-surface-container-high);
 
+    .auto-clone-toggle {
+      display: flex;
+      align-items: flex-start;
+      gap: var(--spacing-half);
+      min-width: 0;
+      cursor: pointer;
+
+      input {
+        flex-shrink: 0;
+        margin-top: 3px;
+      }
+
+      > span {
+        display: flex;
+        min-width: 0;
+        flex-direction: column;
+        gap: 2px;
+
+        strong,
+        small {
+          overflow-wrap: anywhere;
+        }
+
+        small {
+          color: var(--md-sys-color-on-surface-variant);
+          line-height: 1.35;
+        }
+      }
+    }
+
     .batch-mode-row {
       display: flex;
       align-items: center;

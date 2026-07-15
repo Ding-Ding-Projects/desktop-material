@@ -2218,6 +2218,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             initialURL={popup.initialURL}
             onDismissed={onPopupDismissedFn}
             dispatcher={this.props.dispatcher}
+            repositories={this.state.repositories}
             selectedTab={this.state.selectedCloneRepositoryTab}
             onTabSelected={this.onCloneRepositoriesTabSelected}
             apiRepositories={this.state.apiRepositories}

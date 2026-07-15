@@ -49,12 +49,25 @@ import { PopupType } from '../../models/popup'
 import { PreferencesTab } from '../../models/preferences'
 import { getPreferredGenericCloneAccountKey } from '../../lib/automation/clone-account-fallback'
 import { normalizeCloneDepth } from '../../models/clone-options'
+import { getBoolean, setBoolean } from '../../lib/local-storage'
+import { urlsMatch, urlMatchesCloneURL } from '../../lib/repository-matching'
+import {
+  Repository,
+  isRepositoryWithGitHubRepository,
+} from '../../models/repository'
+import { CloningRepository } from '../../models/cloning-repository'
+
+const AutoCloneNewRepositoriesKey = 'clone-auto-clone-new-repositories'
+const AutoCloneRefreshInterval = 5 * 60 * 1000
 
 interface ICloneRepositoryProps {
   readonly dispatcher: Dispatcher
   readonly onDismissed: () => void
 
   readonly accounts: ReadonlyArray<Account>
+
+  /** Repositories already tracked locally, including active clones. */
+  readonly repositories: ReadonlyArray<Repository | CloningRepository>
 
   /** The initial URL or `owner/name` shortcut to use. */
   readonly initialURL: string | null
@@ -152,6 +165,9 @@ interface ICloneRepositoryState {
   /** User-entered shallow history depth, parsed only at the clone boundary. */
   readonly cloneDepth: string
 
+  /** Whether newly discovered repositories should be cloned automatically. */
+  readonly autoCloneNewRepositories: boolean
+
   /**
    * The persisted state of the CloneGitHubRepository component for
    * the GitHub.com account.
@@ -232,6 +248,9 @@ export class CloneRepository extends React.Component<
   ICloneRepositoryProps,
   ICloneRepositoryState
 > {
+  private autoCloneRefreshHandle: number | null = null
+  private readonly autoCloneQueuedUrls = new Set<string>()
+
   private checkIsTopMostDialog = isTopMostDialog(
     () => {
       this.validatePath()
@@ -268,6 +287,7 @@ export class CloneRepository extends React.Component<
       batchMode: BatchCloneMode.Parallel,
       shallowClone: false,
       cloneDepth: '1',
+      autoCloneNewRepositories: getBoolean(AutoCloneNewRepositoriesKey, false),
       dotComTabState: {
         kind: 'dotComTabState',
         filterText: '',
@@ -311,6 +331,10 @@ export class CloneRepository extends React.Component<
     }
 
     this.checkIsTopMostDialog(this.props.isTopMost)
+
+    if (this.state.autoCloneNewRepositories) {
+      this.autoCloneNewRepositories()
+    }
   }
 
   public componentDidMount() {
@@ -320,10 +344,35 @@ export class CloneRepository extends React.Component<
     }
 
     this.checkIsTopMostDialog(this.props.isTopMost)
+    if (this.state.autoCloneNewRepositories) {
+      this.startAutoClonePolling()
+      this.autoCloneNewRepositories()
+    }
   }
 
   public componentWillUnmount(): void {
     this.checkIsTopMostDialog(false)
+    this.stopAutoClonePolling()
+  }
+
+  private startAutoClonePolling = () => {
+    if (this.autoCloneRefreshHandle !== null) {
+      return
+    }
+
+    this.autoCloneRefreshHandle = window.setInterval(() => {
+      const account = this.getAccountForTab(this.props.selectedTab)
+      if (account !== null) {
+        this.props.onRefreshRepositories(account)
+      }
+    }, AutoCloneRefreshInterval)
+  }
+
+  private stopAutoClonePolling = () => {
+    if (this.autoCloneRefreshHandle !== null) {
+      window.clearInterval(this.autoCloneRefreshHandle)
+      this.autoCloneRefreshHandle = null
+    }
   }
 
   private initializePath = async () => {
@@ -563,9 +612,14 @@ export class CloneRepository extends React.Component<
               onSelectedAccountChanged={this.onSelectedAccountChanged}
               checkedUrls={tabState.checkedUrls}
               onToggleItemChecked={this.onToggleRepositoryChecked}
+              onToggleAllItemsChecked={this.onToggleAllRepositoriesChecked}
               batchMode={this.state.batchMode}
               onBatchModeChanged={this.onBatchModeChanged}
               onCloneBatch={this.onCloneBatch}
+              autoCloneNewRepositories={this.state.autoCloneNewRepositories}
+              onAutoCloneNewRepositoriesChanged={
+                this.onAutoCloneNewRepositoriesChanged
+              }
             />
           )
         }
@@ -851,6 +905,151 @@ export class CloneRepository extends React.Component<
     }
 
     this.setGitHubTabState({ checkedUrls }, tab)
+  }
+
+  private onToggleAllRepositoriesChecked = (
+    urls: ReadonlyArray<string>,
+    checked: boolean
+  ) => {
+    const tab = this.props.selectedTab
+    if (tab === CloneRepositoryTab.Generic) {
+      return
+    }
+
+    const checkedUrls = new Set(this.getGitHubTabState(tab).checkedUrls)
+    for (const url of urls) {
+      if (checked) {
+        checkedUrls.add(url)
+      } else {
+        checkedUrls.delete(url)
+      }
+    }
+
+    this.setGitHubTabState({ checkedUrls }, tab)
+  }
+
+  private onAutoCloneNewRepositoriesChanged = (enabled: boolean) => {
+    setBoolean(AutoCloneNewRepositoriesKey, enabled)
+    this.setState({ autoCloneNewRepositories: enabled }, () => {
+      if (enabled) {
+        this.startAutoClonePolling()
+        this.autoCloneNewRepositories()
+      } else {
+        this.stopAutoClonePolling()
+        this.autoCloneQueuedUrls.clear()
+      }
+    })
+  }
+
+  private getAutoCloneRepositories(): ReadonlyArray<IAPIRepository> | null {
+    const tab = this.props.selectedTab
+    if (tab === CloneRepositoryTab.Generic) {
+      return null
+    }
+
+    const account = this.getAccountForTab(tab)
+    if (account === null) {
+      return null
+    }
+
+    const accountState = this.props.apiRepositories.get(account)
+    if (accountState === undefined || accountState.loading) {
+      return null
+    }
+
+    const organization =
+      this.getGitHubTabState(tab).selectedOrganization === null
+        ? null
+        : accountState.organizations.find(
+            x => x.login === this.getGitHubTabState(tab).selectedOrganization
+          ) ?? null
+    const organizationState = organization
+      ? accountState.organizationRepositories.get(
+          organization.login.toLowerCase()
+        )
+      : undefined
+
+    if (organization === null) {
+      return accountState.repositories
+    }
+
+    return mergeOrganizationRepositories(
+      accountState.repositories,
+      organizationState?.repositories ?? [],
+      organization.login
+    )
+  }
+
+  private isAutoCloneRepositoryTracked(apiRepository: IAPIRepository) {
+    return this.props.repositories.some(repository => {
+      if (repository instanceof CloningRepository) {
+        return urlsMatch(repository.url, apiRepository.clone_url)
+      }
+
+      if (
+        !(repository instanceof Repository) ||
+        !isRepositoryWithGitHubRepository(repository)
+      ) {
+        return false
+      }
+
+      return (
+        urlMatchesCloneURL(
+          apiRepository.clone_url,
+          repository.gitHubRepository
+        ) ||
+        urlsMatch(
+          repository.gitHubRepository.htmlURL ?? '',
+          apiRepository.html_url
+        )
+      )
+    })
+  }
+
+  private autoCloneNewRepositories = () => {
+    const tab = this.props.selectedTab
+    if (tab === CloneRepositoryTab.Generic) {
+      return
+    }
+
+    const baseDirectory = this.getGitHubTabState(tab).path
+    const account = this.getAccountForTab(tab)
+    const repositories = this.getAutoCloneRepositories()
+    if (
+      account === null ||
+      baseDirectory === null ||
+      baseDirectory.length === 0 ||
+      repositories === null
+    ) {
+      return
+    }
+
+    const accountKey =
+      account.token.length > 0 ? getAccountKey(account) : undefined
+    const inputs: ReadonlyArray<IBatchCloneInput> = repositories
+      .filter(
+        repository =>
+          !this.autoCloneQueuedUrls.has(repository.clone_url) &&
+          !this.isAutoCloneRepositoryTracked(repository)
+      )
+      .map(repository => {
+        this.autoCloneQueuedUrls.add(repository.clone_url)
+        return {
+          url: repository.clone_url,
+          name: repository.name,
+          defaultBranch: repository.default_branch,
+          ...(accountKey !== undefined ? { accountKey } : {}),
+        }
+      })
+
+    if (inputs.length === 0) {
+      return
+    }
+
+    this.props.dispatcher.cloneBatch(
+      buildBatchCloneItems(inputs, baseDirectory),
+      this.state.batchMode
+    )
   }
 
   private onBatchModeChanged = (batchMode: BatchCloneMode) => {

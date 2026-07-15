@@ -102,6 +102,12 @@ interface ICloneGithubRepositoryProps {
   /** Called when a repository row's multi-clone checkbox is toggled. */
   readonly onToggleItemChecked: (url: string) => void
 
+  /** Called when the Select all checkbox changes. */
+  readonly onToggleAllItemsChecked: (
+    urls: ReadonlyArray<string>,
+    checked: boolean
+  ) => void
+
   /** The parallel/sequential mode for a batch clone. */
   readonly batchMode: BatchCloneMode
 
@@ -110,6 +116,12 @@ interface ICloneGithubRepositoryProps {
 
   /** Called when the user clicks "Clone N Repositories". */
   readonly onCloneBatch: () => void
+
+  /** Whether new repositories should be cloned automatically. */
+  readonly autoCloneNewRepositories: boolean
+
+  /** Called when the automatic new-repository clone setting changes. */
+  readonly onAutoCloneNewRepositoriesChanged: (enabled: boolean) => void
 }
 
 export class CloneGithubRepository extends React.PureComponent<ICloneGithubRepositoryProps> {
@@ -127,34 +139,53 @@ export class CloneGithubRepository extends React.PureComponent<ICloneGithubRepos
   private renderBatchModeContents = (mode: BatchCloneMode) =>
     mode === BatchCloneMode.Parallel ? 'Parallel' : 'One at a time'
 
+  private onAutoCloneChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.props.onAutoCloneNewRepositoriesChanged(event.currentTarget.checked)
+  }
+
   private renderBatchControls() {
     const checkedCount = this.props.checkedUrls.size
-    if (checkedCount === 0) {
-      return null
-    }
 
     return (
       <div className="batch-clone-controls">
-        <Row className="batch-mode-row">
-          <span className="label">Clone mode:</span>
-          <RadioGroup<BatchCloneMode>
-            className="batch-mode-radio"
-            selectedKey={this.props.batchMode}
-            radioButtonKeys={[
-              BatchCloneMode.Parallel,
-              BatchCloneMode.Sequential,
-            ]}
-            onSelectionChanged={this.props.onBatchModeChanged}
-            renderRadioButtonLabelContents={this.renderBatchModeContents}
+        <label className="auto-clone-toggle">
+          <input
+            type="checkbox"
+            checked={this.props.autoCloneNewRepositories}
+            onChange={this.onAutoCloneChange}
           />
-        </Row>
-        <Row className="batch-action-row">
-          <Button onClick={this.props.onCloneBatch}>
-            {`Clone ${checkedCount} ${
-              checkedCount === 1 ? 'Repository' : 'Repositories'
-            }`}
-          </Button>
-        </Row>
+          <span>
+            <strong>Automatically clone new repositories</strong>
+            <small>
+              Refresh periodically and download new repositories into this base
+              directory.
+            </small>
+          </span>
+        </label>
+        {checkedCount > 0 && (
+          <>
+            <Row className="batch-mode-row">
+              <span className="label">Clone mode:</span>
+              <RadioGroup<BatchCloneMode>
+                className="batch-mode-radio"
+                selectedKey={this.props.batchMode}
+                radioButtonKeys={[
+                  BatchCloneMode.Parallel,
+                  BatchCloneMode.Sequential,
+                ]}
+                onSelectionChanged={this.props.onBatchModeChanged}
+                renderRadioButtonLabelContents={this.renderBatchModeContents}
+              />
+            </Row>
+            <Row className="batch-action-row">
+              <Button onClick={this.props.onCloneBatch}>
+                {`Clone ${checkedCount} ${
+                  checkedCount === 1 ? 'Repository' : 'Repositories'
+                }`}
+              </Button>
+            </Row>
+          </>
+        )}
       </div>
     )
   }
@@ -204,6 +235,7 @@ export class CloneGithubRepository extends React.PureComponent<ICloneGithubRepos
             onItemClicked={this.props.onItemClicked}
             checkedUrls={this.props.checkedUrls}
             onToggleItemChecked={this.props.onToggleItemChecked}
+            onToggleAllItemsChecked={this.props.onToggleAllItemsChecked}
           />
         </Row>
 

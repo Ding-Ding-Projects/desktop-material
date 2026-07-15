@@ -31,4 +31,19 @@ describe('guided shallow clone UI contracts', () => {
       /@media \(max-width: 640px\)[\s\S]*\.clone-history-options[\s\S]*grid-template-columns: minmax\(0, 1fr\)/
     )
   })
+
+  it('exposes select-all and opt-in automatic new-repository cloning', () => {
+    const list = read(
+      'app/src/ui/clone-repository/cloneable-repository-filter-list.tsx'
+    )
+    const ui = read('app/src/ui/clone-repository/clone-repository.tsx')
+    const style = read('app/styles/ui/_batch-clone.scss')
+
+    assert.match(list, /label="Select all"/)
+    assert.match(list, /CheckboxValue\.Mixed/)
+    assert.match(ui, /autoCloneNewRepositories/)
+    assert.match(ui, /setBoolean\(AutoCloneNewRepositoriesKey/)
+    assert.match(ui, /AutoCloneRefreshInterval/)
+    assert.match(style, /\.auto-clone-toggle[\s\S]*overflow-wrap: anywhere/)
+  })
 })
