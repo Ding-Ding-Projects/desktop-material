@@ -12,6 +12,7 @@ import { Octicon, OcticonSymbol } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { showContextualMenu } from '../../lib/menu-item'
 import { Disposable } from 'event-kit'
+import { getBuildProfileDisplayName } from '../../lib/build-run'
 
 interface IBuildRunToolbarButtonProps {
   readonly repository: Repository
@@ -120,7 +121,7 @@ export class BuildRunToolbarButton extends React.Component<
     const { dispatcher, repository } = this.props
     showContextualMenu(
       view.detectedProfiles.map(profile => ({
-        label: profile.label,
+        label: getBuildProfileDisplayName(profile),
         type: 'checkbox' as const,
         checked: profile.id === view.selectedProfileId,
         action: () => dispatcher.selectBuildRunProfile(repository, profile.id),
@@ -139,7 +140,9 @@ export class BuildRunToolbarButton extends React.Component<
     const selected = view.detectedProfiles.find(
       p => p.id === view.selectedProfileId
     )
-    const profileLabel = selected?.label ?? 'Build & run'
+    const profileLabel = selected
+      ? getBuildProfileDisplayName(selected)
+      : 'Build & run'
 
     if (this.isRunning) {
       return {
@@ -211,7 +214,7 @@ export class BuildRunToolbarButton extends React.Component<
           <Button
             className="build-run-disclosure"
             onClick={this.onDisclosureClick}
-            ariaLabel="Choose build profile"
+            ariaLabel="Choose project and build profile"
             ariaHaspopup="menu"
           >
             <Octicon symbol={octicons.chevronDown} />

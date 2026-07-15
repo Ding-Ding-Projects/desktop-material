@@ -106,6 +106,26 @@ describe('post-shell MD3 style contracts', () => {
     assert.match(style, /@media \(max-width: 640px\), \(max-height: 420px\)/)
   })
 
+  it('wraps long detected project names and folders in Build & Run settings', () => {
+    const style = readStyle('dialogs/_repository-settings.scss')
+    assert.match(
+      style,
+      /\.build-run-profile\s*\{[\s\S]*?min-width: 0;[\s\S]*?width: 100%;/
+    )
+    assert.match(
+      style,
+      /\.build-run-profile-text\s*\{[\s\S]*?min-width: 0;[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      style,
+      /\.build-run-profile-label\s*\{[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      style,
+      /\.build-run-profile-reasons\s*\{[\s\S]*?overflow-wrap: anywhere;/
+    )
+  })
+
   it('bounds shared dialogs and keeps footer actions reachable', () => {
     const style = readStyle('_dialog-layer.scss')
     assert.match(style, /max-height: calc\(100vh - 54px\);/)

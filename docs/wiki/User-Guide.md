@@ -465,7 +465,7 @@ list.
 - Set a repository-specific external editor when the global editor is not appropriate.
 - Manage every named remote in **Repository settings → Remote**, and administer add/move/rename/
   lock/repair/remove/prune worktree operations from the Worktrees view.
-- Use the `.gitignore` manager and one-click Build & Run for project-aware cleanup and execution.
+- Use the `.gitignore` manager and one-click Build & Run for project-aware cleanup and execution. Build & Run discovers common nested projects across Node, Deno, Rust, Go, .NET, Python, JVM, PHP, Ruby, Swift, Dart/Flutter, Elixir, Scala, Haskell, Zig, Make, and CMake; choose a profile by its displayed project folder when several projects share a language or toolchain.
 
 SSH and non-authentication failures never start account fallback. The selected stable account key
 stays in the app's internal trampoline map; its selector field is removed from the Git options

@@ -1,7 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { detectProfiles } from '../../../../src/lib/build-run/detect'
-import { IRepoFileProbe } from '../../../../src/lib/build-run/types'
+import {
+  getBuildProfileDisplayName,
+  IRepoFileProbe,
+} from '../../../../src/lib/build-run/types'
 
 interface IProbeInput {
   readonly paths?: ReadonlyArray<string>
@@ -82,6 +85,24 @@ describe('detectProfiles', () => {
       })
       const [profile] = detectProfiles(probe)
       assert.equal(profile.install?.[0].exe, 'pnpm')
+    })
+
+    it('resolves modern bun.lock and packageManager declarations', () => {
+      const bun = detectProfiles(
+        makeProbe({
+          files: ['package.json', 'bun.lock'],
+          texts: { 'package.json': pkg({}) },
+        })
+      )[0]
+      assert.equal(bun.install?.[0].exe, 'bun')
+
+      const pnpm = detectProfiles(
+        makeProbe({
+          files: ['package.json'],
+          texts: { 'package.json': pkg({ packageManager: 'pnpm@9.0.0' }) },
+        })
+      )[0]
+      assert.equal(pnpm.install?.[0].exe, 'pnpm')
     })
 
     it('flags an electron app and prefers its run script', () => {
@@ -264,6 +285,106 @@ describe('detectProfiles', () => {
       const [profile] = detectProfiles(probe)
       assert.ok(profile.run?.[0].args.includes('uvicorn'))
     })
+
+    it('detects setup.py and a plain app.py entrypoint', () => {
+      const probe = makeProbe({ files: ['setup.py', 'app.py'] })
+      const [profile] = detectProfiles(probe)
+      assert.equal(profile.ecosystem, 'python')
+      assert.deepEqual(profile.run?.[0].args, ['app.py'])
+      assert.deepEqual(profile.install?.[1].args, ['install', '-e', '.'])
+    })
+  })
+
+  describe('additional language manifests', () => {
+    it('detects Deno tasks from deno.json', () => {
+      const [profile] = detectProfiles(
+        makeProbe({
+          files: ['deno.json', 'main.ts'],
+          texts: {
+            'deno.json': pkg({
+              tasks: { build: 'deno check .', dev: 'deno run main.ts' },
+            }),
+          },
+        })
+      )
+      assert.equal(profile.ecosystem, 'deno')
+      assert.deepEqual(profile.build?.[0].args, ['task', 'build'])
+      assert.deepEqual(profile.run?.[0].args, ['task', 'dev'])
+    })
+
+    it('detects PHP Composer and an Artisan entrypoint', () => {
+      const [profile] = detectProfiles(
+        makeProbe({ files: ['composer.json', 'artisan'] })
+      )
+      assert.equal(profile.ecosystem, 'php')
+      assert.deepEqual(profile.install?.[0].args, ['install'])
+      assert.deepEqual(profile.run?.[0].args, ['artisan', 'serve'])
+    })
+
+    it('detects Ruby Bundler and Rails', () => {
+      const [profile] = detectProfiles(
+        makeProbe({ files: ['Gemfile', 'bin/rails'] })
+      )
+      assert.equal(profile.ecosystem, 'ruby')
+      assert.deepEqual(profile.run?.[0].args, ['exec', 'rails', 'server'])
+    })
+
+    it('detects Swift executable packages', () => {
+      const [profile] = detectProfiles(
+        makeProbe({ files: ['Package.swift', 'Sources/App/main.swift'] })
+      )
+      assert.equal(profile.ecosystem, 'swift')
+      assert.deepEqual(profile.run?.[0].args, ['run'])
+    })
+
+    it('detects Dart and Flutter packages', () => {
+      const [profile] = detectProfiles(
+        makeProbe({
+          files: ['pubspec.yaml', 'lib/main.dart'],
+          texts: {
+            'pubspec.yaml': 'dependencies:\n  flutter:\n    sdk: flutter\n',
+          },
+        })
+      )
+      assert.equal(profile.ecosystem, 'dart')
+      assert.equal(profile.label, 'Flutter')
+      assert.equal(profile.install?.[0].exe, 'flutter')
+      assert.deepEqual(profile.run?.[0].args, ['run'])
+    })
+
+    it('detects Elixir Phoenix applications', () => {
+      const [profile] = detectProfiles(
+        makeProbe({ files: ['mix.exs', 'lib/demo_web/router.ex'] })
+      )
+      assert.equal(profile.ecosystem, 'elixir')
+      assert.deepEqual(profile.run?.[0].args, ['phx.server'])
+    })
+
+    it('detects Scala, Haskell, and Zig build manifests', () => {
+      const scala = detectProfiles(
+        makeProbe({ files: ['build.sbt', 'src/main/scala/Main.scala'] })
+      )[0]
+      assert.equal(scala.ecosystem, 'scala')
+      assert.deepEqual(scala.run?.[0].args, ['run'])
+
+      const haskell = detectProfiles(
+        makeProbe({
+          files: ['cabal.project', 'demo.cabal'],
+          texts: { 'demo.cabal': 'executable demo\n  main-is: Main.hs\n' },
+        })
+      )[0]
+      assert.equal(haskell.ecosystem, 'haskell')
+      assert.deepEqual(haskell.run?.[0].args, ['run'])
+
+      const zig = detectProfiles(
+        makeProbe({
+          files: ['build.zig'],
+          texts: { 'build.zig': 'b.addRunArtifact(exe)' },
+        })
+      )[0]
+      assert.equal(zig.ecosystem, 'zig')
+      assert.deepEqual(zig.run?.[0].args, ['build', 'run'])
+    })
   })
 
   describe('java', () => {
@@ -341,25 +462,35 @@ describe('detectProfiles', () => {
       assert.equal(profiles[0].ecosystem, 'node')
     })
 
-    it('sorts by score desc then label asc and caps at six', () => {
+    it('sorts by score desc then label asc and caps at twelve', () => {
       const probe = makeProbe({
-        files: [
-          'package.json',
-          'Cargo.toml',
-          'src/main.rs',
-          'go.mod',
-          'pom.xml',
-          'CMakeLists.txt',
-          'App.csproj',
-          'requirements.txt',
-        ],
-        texts: { 'package.json': pkg({}) },
+        files: Array.from(
+          { length: 13 },
+          (_, i) => `project-${i}/package.json`
+        ),
       })
       const profiles = detectProfiles(probe)
-      assert.equal(profiles.length, 6)
+      assert.equal(profiles.length, 12)
       const scores = profiles.map(p => p.score)
       const sorted = [...scores].sort((a, b) => b - a)
       assert.deepEqual(scores, sorted)
+    })
+
+    it('names profiles with their project folder', () => {
+      const [root] = detectProfiles(
+        makeProbe({
+          files: ['package.json'],
+          texts: { 'package.json': pkg({}) },
+        })
+      )
+      const [nested] = detectProfiles(
+        makeProbe({ files: ['frontend/package.json'] })
+      )
+      assert.equal(
+        getBuildProfileDisplayName(root),
+        'Node (npm) — repository root'
+      )
+      assert.equal(getBuildProfileDisplayName(nested), 'Node (npm) — frontend')
     })
   })
 })

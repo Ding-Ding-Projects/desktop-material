@@ -13,12 +13,27 @@
   align-items: center;
   display: flex;
   gap: 4px;
+  max-width: 100%;
+  min-width: 0;
 
   // The primary pill inherits the 54px chip base from `_material-shell.scss`;
   // here we only theme the play glyph and the per-state tints.
   .build-run-primary > button .icon {
     background: var(--md-sys-color-secondary-container);
     color: var(--md-sys-color-on-secondary-container);
+  }
+
+  .build-run-primary,
+  .build-run-primary > button,
+  .build-run-primary > button .text {
+    min-width: 0;
+  }
+
+  .build-run-primary > button .title,
+  .build-run-primary > button .description {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   // Idle / succeeded → resting play pill.

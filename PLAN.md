@@ -76,7 +76,7 @@ end of this plan and must be filled only after each check actually succeeds.
 - The per-repository `.gitignore` manager, template catalogue, suggestions, and
   reversible marker-section merge live in `app/src/lib/gitignore/` and
   `app/src/ui/repository-settings/`.
-- Build & Run detects Node, Rust, Go, .NET, Python, Java, Make, and CMake
+- Build & Run auto-detects bounded nested projects across Node/npm/yarn/pnpm/bun, Deno, Rust, Go, .NET, Python, Java/Kotlin, PHP, Ruby, Swift, Dart/Flutter, Elixir, Scala, Haskell, Zig, Make, and CMake, with project folders shown in every profile label
   projects; handles multiple .NET projects; can install missing toolchains;
   streams logs; minimizes; and stores per-repository settings under
   `app/src/lib/build-run/`, `app/src/main-process/`, and

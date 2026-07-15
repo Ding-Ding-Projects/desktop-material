@@ -12,6 +12,7 @@ import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Disposable } from 'event-kit'
+import { getBuildProfileDisplayName } from '../../lib/build-run'
 
 interface IBuildRunPanelProps {
   readonly repository: Repository
@@ -184,7 +185,9 @@ export class BuildRunPanel extends React.Component<
     )
     const chip = phaseChip(view.phase)
     const isActive = view.activeRunId !== null
-    const title = selected?.label ?? 'Build & run'
+    const title = selected
+      ? getBuildProfileDisplayName(selected)
+      : 'Build & run'
 
     // Minimized: collapse to a slim bar (title + status + restore + close).
     if (view.panelMinimized) {

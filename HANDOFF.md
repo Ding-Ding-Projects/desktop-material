@@ -239,6 +239,24 @@ Additional shipped work includes the `.gitignore` manager, Build & Run with
 toolchain/project handling, multi-remote and submodule managers, fork-owned
 updating, and the merge-wave integration fixes listed in Git history.
 
+### Build & Run detection gate
+
+Build & Run now walks bounded nested project roots and presents the project
+folder beside every profile name. The detector covers Node package-manager
+metadata (including modern `bun.lock` and `packageManager`), Deno, Rust, Go,
+.NET, Python entrypoints and packaging files, Java/Kotlin build files, PHP,
+Ruby, Swift packages, Dart/Flutter, Elixir/Phoenix, Scala/SBT, Haskell, Zig,
+Make, and CMake. Settings and the toolbar use the same stable
+`<profile> — <project folder>` display name; long labels wrap in settings and
+ellipsize only in the compact toolbar/panel header.
+
+Focused evidence for this gate is in
+`app/test/unit/lib/build-run/detect-test.ts` and
+`app/test/unit/post-shell-style-test.ts`. The exact production webpack bundles
+compile, but this checkout still lacks the packaged Electron runtime and the
+native `printenvz` package binary, so an interactive Electron headless capture
+cannot be claimed until those dependencies are restored.
+
 ## Merged implementation ledger
 
 These are the first paths to inspect when maintaining each subsystem:

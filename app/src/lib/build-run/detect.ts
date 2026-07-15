@@ -18,11 +18,11 @@ import {
  */
 
 /** Maximum number of profiles surfaced to the UI. */
-const MAX_PROFILES = 6
+const MAX_PROFILES = 12
 
 /** Walk limits for {@link probeRepository}. */
-const MAX_WALK_DEPTH = 3
-const MAX_WALK_ENTRIES = 2000
+const MAX_WALK_DEPTH = 4
+const MAX_WALK_ENTRIES = 4000
 const WALK_SKIP_DIRS = new Set([
   '.git',
   'node_modules',
@@ -34,37 +34,81 @@ const WALK_SKIP_DIRS = new Set([
   'out',
   '.venv',
   '__pycache__',
+  '.dart_tool',
+  '_build',
+  '.bundle',
+  '.gradle',
+  '.elixir_ls',
 ])
 
 /** Files whose text the detector is allowed to read (size-capped on disk). */
 const READ_TEXT_ALLOW_LIST = new Set([
   'package.json',
+  'deno.json',
+  'deno.jsonc',
   'pyproject.toml',
+  'setup.py',
+  'setup.cfg',
   'requirements.txt',
+  'Pipfile',
+  'Pipfile.lock',
+  'poetry.lock',
+  'environment.yml',
+  'environment.yaml',
   'Makefile',
   'go.mod',
+  'composer.json',
+  'Gemfile',
+  'Package.swift',
+  'pubspec.yaml',
+  'mix.exs',
+  'build.sbt',
+  'stack.yaml',
+  'cabal.project',
+  'build.zig',
 ])
 const MAX_READ_TEXT_BYTES = 256 * 1024
 
 /** Manifest basenames that mark a directory as a candidate project root. */
 const MANIFEST_MARKERS = [
   'package.json',
+  'deno.json',
+  'deno.jsonc',
   'Cargo.toml',
   'go.mod',
   'pyproject.toml',
+  'setup.py',
+  'setup.cfg',
   'requirements.txt',
+  'Pipfile',
+  'Pipfile.lock',
+  'poetry.lock',
+  'environment.yml',
+  'environment.yaml',
   'CMakeLists.txt',
   'Makefile',
   'pom.xml',
   'build.gradle',
   'build.gradle.kts',
+  'composer.json',
+  'Gemfile',
+  'Package.swift',
+  'pubspec.yaml',
+  'mix.exs',
+  'build.sbt',
+  'stack.yaml',
+  'cabal.project',
+  'build.zig',
+  'main.py',
+  'app.py',
+  'manage.py',
 ]
 
 /** Penalty applied to any profile discovered below the repository root. */
 const NESTED_PENALTY = 4
 
 /** Cap on candidate directories to keep detection bounded. */
-const MAX_CANDIDATE_DIRS = 12
+const MAX_CANDIDATE_DIRS = 24
 
 function cmd(
   exe: string,
@@ -140,13 +184,42 @@ function resolvePackageManager(probe: IScopedProbe): {
   if (probe.exists('pnpm-lock.yaml')) {
     return { pm: 'pnpm', hasLock: true }
   }
-  if (probe.exists('bun.lockb')) {
+  if (probe.exists('bun.lockb') || probe.exists('bun.lock')) {
     return { pm: 'bun', hasLock: true }
   }
   if (probe.exists('package-lock.json')) {
     return { pm: 'npm', hasLock: true }
   }
+  const packageManager = readPackageManagerField(probe)
+  if (packageManager !== null) {
+    return { pm: packageManager, hasLock: false }
+  }
   return { pm: 'npm', hasLock: false }
+}
+
+function readPackageManagerField(
+  probe: IScopedProbe
+): NodePackageManager | null {
+  const raw = probe.readText('package.json')
+  if (raw == null) {
+    return null
+  }
+  try {
+    const packageManager = (JSON.parse(raw) as { packageManager?: unknown })
+      .packageManager
+    if (typeof packageManager !== 'string') {
+      return null
+    }
+    const name = packageManager.split('@', 1)[0]
+    return name === 'npm' ||
+      name === 'yarn' ||
+      name === 'pnpm' ||
+      name === 'bun'
+      ? name
+      : null
+  } catch {
+    return null
+  }
 }
 
 function parsePackageJson(
@@ -247,6 +320,78 @@ const detectNode: Detector = probe => {
     needsElevation: false,
     gitignoreTemplateId: 'node',
     extraIgnores,
+    score,
+    reasons,
+  }
+}
+
+// ── Deno ─────────────────────────────────────────────────────────────────────
+
+function readDenoTasks(probe: IScopedProbe): Set<string> {
+  const raw = probe.readText('deno.json') ?? probe.readText('deno.jsonc')
+  if (raw == null) {
+    return new Set()
+  }
+  try {
+    const tasks = (JSON.parse(raw) as { tasks?: Record<string, unknown> }).tasks
+    return new Set(
+      Object.keys(tasks ?? {}).filter(key => typeof tasks?.[key] === 'string')
+    )
+  } catch {
+    // JSONC is intentionally handled conservatively: task names are still
+    // discoverable without executing or evaluating project configuration.
+    return new Set(
+      [...raw.matchAll(/"(build|dev|start|serve)"\s*:/g)].map(match => match[1])
+    )
+  }
+}
+
+const detectDeno: Detector = probe => {
+  if (!probe.exists('deno.json') && !probe.exists('deno.jsonc')) {
+    return null
+  }
+  const tasks = readDenoTasks(probe)
+  const reasons: string[] = [
+    probe.exists('deno.json') ? 'deno.json found' : 'deno.jsonc found',
+  ]
+  let score = 10
+  const build: ICommand[] = []
+  if (tasks.has('build')) {
+    build.push(cmd('deno', ['task', 'build']))
+    score += 2
+    reasons.push('build task')
+  }
+
+  const runTask = ['dev', 'start', 'serve'].find(task => tasks.has(task))
+  const run: ICommand[] | undefined = runTask
+    ? [cmd('deno', ['task', runTask])]
+    : probe.exists('main.ts')
+    ? [cmd('deno', ['run', '--allow-all', 'main.ts'])]
+    : probe.exists('main.js')
+    ? [cmd('deno', ['run', '--allow-all', 'main.js'])]
+    : undefined
+  if (runTask) {
+    score += 2
+    reasons.push(`${runTask} task`)
+  } else if (run !== undefined) {
+    score += 2
+    reasons.push('entrypoint')
+  }
+
+  return {
+    ecosystem: 'deno',
+    label: 'Deno',
+    toolIcon: 'code',
+    build: build.length > 0 ? build : undefined,
+    run,
+    toolchainCheck: {
+      cmd: cmd('deno', ['--version']),
+      missingHint:
+        'deno was not found on your PATH. Install Deno from https://deno.com/runtime.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: 'node',
+    extraIgnores: ['.deno/', 'coverage/'],
     score,
     reasons,
   }
@@ -395,8 +540,29 @@ const detectDotnet: Detector = probe => {
 
 const detectPython: Detector = probe => {
   const hasPyproject = probe.exists('pyproject.toml')
+  const hasSetupPy = probe.exists('setup.py')
+  const hasSetupCfg = probe.exists('setup.cfg')
   const hasRequirements = probe.exists('requirements.txt')
-  if (!hasPyproject && !hasRequirements) {
+  const hasPipfile = probe.exists('Pipfile')
+  const hasPoetryLock = probe.exists('poetry.lock')
+  const hasEnvironmentFile =
+    probe.exists('environment.yml') || probe.exists('environment.yaml')
+  const hasPythonManifest =
+    hasPyproject ||
+    hasSetupPy ||
+    hasSetupCfg ||
+    hasRequirements ||
+    hasPipfile ||
+    hasPoetryLock ||
+    hasEnvironmentFile
+  const entrypoint = probe.exists('manage.py')
+    ? 'manage.py'
+    : probe.exists('main.py')
+    ? 'main.py'
+    : probe.exists('app.py')
+    ? 'app.py'
+    : null
+  if (!hasPythonManifest && entrypoint === null) {
     return null
   }
   const win = probe.platform === 'win32'
@@ -413,18 +579,46 @@ const detectPython: Detector = probe => {
   if (hasRequirements) {
     reasons.push('requirements.txt found')
     install.push(cmd(pipExe, ['install', '-r', 'requirements.txt']))
-  } else {
-    reasons.push('pyproject.toml found')
+  } else if (hasPipfile) {
+    reasons.push('Pipfile found')
+    install.push(cmd('pipenv', ['install']))
+  } else if (hasPoetryLock) {
+    reasons.push('poetry.lock found')
+    install.push(cmd('poetry', ['install']))
+  } else if (hasPyproject || hasSetupPy || hasSetupCfg) {
+    reasons.push(
+      hasPyproject
+        ? 'pyproject.toml found'
+        : hasSetupPy
+        ? 'setup.py found'
+        : 'setup.cfg found'
+    )
     install.push(cmd(pipExe, ['install', '-e', '.']))
     score += 3
+  } else {
+    reasons.push(
+      hasEnvironmentFile ? 'environment file found' : 'Python entrypoint found'
+    )
   }
 
   // Resolve a run command from the strongest available signal.
   let run: ICommand[] | undefined
-  if (probe.exists('manage.py')) {
-    run = [
-      cmd(venvPython, ['manage.py', 'runserver'], 'python manage.py runserver'),
-    ]
+  const runPython = hasPipfile
+    ? 'pipenv'
+    : hasPoetryLock
+    ? 'poetry'
+    : venvPython
+  if (entrypoint === 'manage.py') {
+    run =
+      runPython === venvPython
+        ? [
+            cmd(
+              runPython,
+              ['manage.py', 'runserver'],
+              'python manage.py runserver'
+            ),
+          ]
+        : [cmd(runPython, ['run', 'python', 'manage.py', 'runserver'])]
     score += 2
     reasons.push('Django manage.py')
   } else {
@@ -432,19 +626,34 @@ const detectPython: Detector = probe => {
     const pyprojectText = probe.readText('pyproject.toml') ?? ''
     const mentionsUvicorn = /uvicorn/i.test(requirementsText + pyprojectText)
     if (mentionsUvicorn) {
-      run = [
-        cmd(
-          venvPython,
-          ['-m', 'uvicorn', 'main:app', '--reload'],
-          'python -m uvicorn main:app'
-        ),
-      ]
+      run =
+        runPython === venvPython
+          ? [
+              cmd(
+                runPython,
+                ['-m', 'uvicorn', 'main:app', '--reload'],
+                'python -m uvicorn main:app'
+              ),
+            ]
+          : [
+              cmd(runPython, [
+                'run',
+                'python',
+                '-m',
+                'uvicorn',
+                'main:app',
+                '--reload',
+              ]),
+            ]
       score += 2
       reasons.push('uvicorn app')
-    } else if (probe.exists('main.py')) {
-      run = [cmd(venvPython, ['main.py'], 'python main.py')]
+    } else if (entrypoint !== null) {
+      run =
+        runPython === venvPython
+          ? [cmd(runPython, [entrypoint], `python ${entrypoint}`)]
+          : [cmd(runPython, ['run', 'python', entrypoint])]
       score += 2
-      reasons.push('main.py entrypoint')
+      reasons.push(`${entrypoint} entrypoint`)
     }
   }
 
@@ -455,7 +664,10 @@ const detectPython: Detector = probe => {
     install,
     run,
     toolchainCheck: {
-      cmd: cmd(sysPython, ['--version']),
+      cmd:
+        hasPipfile || hasPoetryLock
+          ? cmd(hasPipfile ? 'pipenv' : 'poetry', ['--version'])
+          : cmd(sysPython, ['--version']),
       missingHint:
         'python was not found on your PATH. Install Python from https://python.org/downloads/.',
     },
@@ -464,6 +676,314 @@ const detectPython: Detector = probe => {
     extraIgnores: ['.venv/', '__pycache__/', '*.egg-info/', 'dist/', 'build/'],
     score,
     reasons,
+  }
+}
+
+// ── PHP / Ruby / Swift / Dart / Elixir ───────────────────────────────────────
+
+function readManifestScripts(
+  probe: IScopedProbe,
+  file: string
+): Record<string, string> {
+  const raw = probe.readText(file)
+  if (raw == null) {
+    return {}
+  }
+  try {
+    const scripts = (JSON.parse(raw) as { scripts?: unknown }).scripts
+    return typeof scripts === 'object' && scripts !== null
+      ? Object.fromEntries(
+          Object.entries(scripts).filter(
+            (entry): entry is [string, string] => typeof entry[1] === 'string'
+          )
+        )
+      : {}
+  } catch {
+    return {}
+  }
+}
+
+const detectPhp: Detector = probe => {
+  if (!probe.exists('composer.json')) {
+    return null
+  }
+  const scripts = readManifestScripts(probe, 'composer.json')
+  const reasons: string[] = ['composer.json found']
+  let score = 10
+  const build: ICommand[] = []
+  if (typeof scripts.build === 'string') {
+    build.push(cmd('composer', ['run', 'build']))
+    score += 2
+    reasons.push('build script')
+  }
+
+  const script = ['dev', 'start', 'serve'].find(
+    name => typeof scripts[name] === 'string'
+  )
+  const run: ICommand[] | undefined = script
+    ? [cmd('composer', ['run', script])]
+    : probe.exists('artisan')
+    ? [cmd('php', ['artisan', 'serve'])]
+    : probe.exists('public/index.php')
+    ? [cmd('php', ['-S', 'localhost:8000', '-t', 'public'])]
+    : probe.exists('index.php')
+    ? [cmd('php', ['-S', 'localhost:8000'])]
+    : undefined
+  if (script) {
+    score += 2
+    reasons.push(`${script} script`)
+  } else if (run !== undefined) {
+    score += 2
+    reasons.push('PHP entrypoint')
+  }
+
+  return {
+    ecosystem: 'php',
+    label: 'PHP',
+    toolIcon: 'code',
+    install: [cmd('composer', ['install'])],
+    build: build.length > 0 ? build : undefined,
+    run,
+    toolchainCheck: {
+      cmd: cmd('php', ['--version']),
+      missingHint:
+        'php was not found on your PATH. Install PHP and Composer from https://getcomposer.org/.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: 'composer',
+    extraIgnores: ['vendor/', 'var/cache/'],
+    score,
+    reasons,
+  }
+}
+
+const detectRuby: Detector = probe => {
+  if (!probe.exists('Gemfile')) {
+    return null
+  }
+  const reasons: string[] = ['Gemfile found']
+  let score = 10
+  let run: ICommand[] | undefined
+  if (probe.exists('bin/rails')) {
+    run = [cmd('bundle', ['exec', 'rails', 'server'])]
+    score += 2
+    reasons.push('Rails entrypoint')
+  } else if (probe.exists('config.ru')) {
+    run = [cmd('bundle', ['exec', 'rackup'])]
+    score += 2
+    reasons.push('Rack entrypoint')
+  } else {
+    const entrypoint = probe.exists('main.rb')
+      ? 'main.rb'
+      : probe.exists('app.rb')
+      ? 'app.rb'
+      : null
+    if (entrypoint !== null) {
+      run = [cmd('bundle', ['exec', 'ruby', entrypoint])]
+      score += 2
+      reasons.push(`${entrypoint} entrypoint`)
+    }
+  }
+
+  return {
+    ecosystem: 'ruby',
+    label: 'Ruby',
+    toolIcon: 'code',
+    install: [cmd('bundle', ['install'])],
+    run,
+    toolchainCheck: {
+      cmd: cmd('bundle', ['--version']),
+      missingHint:
+        'Bundler was not found on your PATH. Install Ruby and Bundler from https://www.ruby-lang.org/en/documentation/installation/.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: 'ruby',
+    extraIgnores: ['.bundle/', 'vendor/bundle/'],
+    score,
+    reasons,
+  }
+}
+
+const detectSwift: Detector = probe => {
+  if (!probe.exists('Package.swift')) {
+    return null
+  }
+  const hasExecutable = probe.sampleFiles.some(
+    file => file.startsWith('Sources/') && file.endsWith('/main.swift')
+  )
+  const reasons: string[] = ['Package.swift found']
+  if (hasExecutable) {
+    reasons.push('executable target')
+  }
+  return {
+    ecosystem: 'swift',
+    label: 'Swift Package',
+    toolIcon: 'gear',
+    install: [cmd('swift', ['package', 'resolve'])],
+    build: [cmd('swift', ['build'])],
+    run: hasExecutable ? [cmd('swift', ['run'])] : undefined,
+    toolchainCheck: {
+      cmd: cmd('swift', ['--version']),
+      missingHint:
+        'swift was not found on your PATH. Install the Swift toolchain from https://www.swift.org/install/.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: '',
+    extraIgnores: ['.build/'],
+    score: 10 + (hasExecutable ? 2 : 0),
+    reasons,
+  }
+}
+
+const detectDart: Detector = probe => {
+  if (!probe.exists('pubspec.yaml')) {
+    return null
+  }
+  const text = probe.readText('pubspec.yaml') ?? ''
+  const isFlutter = /(^|\n)\s*sdk:\s*flutter\b/i.test(text)
+  const exe = isFlutter ? 'flutter' : 'dart'
+  const reasons: string[] = ['pubspec.yaml found']
+  if (isFlutter) {
+    reasons.push('Flutter SDK dependency')
+  }
+  const hasEntrypoint =
+    probe.exists('lib/main.dart') ||
+    probe.exists('bin/main.dart') ||
+    probe.sampleFiles.some(file => /^(bin|tool)\/[^/]+\.dart$/.test(file))
+  return {
+    ecosystem: 'dart',
+    label: isFlutter ? 'Flutter' : 'Dart',
+    toolIcon: 'code',
+    install: [cmd(exe, ['pub', 'get'])],
+    run: hasEntrypoint ? [cmd(exe, ['run'])] : undefined,
+    toolchainCheck: {
+      cmd: cmd(exe, ['--version']),
+      missingHint: `${exe} was not found on your PATH. Install it from https://dart.dev/get-dart.`,
+    },
+    needsElevation: false,
+    gitignoreTemplateId: isFlutter ? 'flutter' : 'dart',
+    extraIgnores: ['.dart_tool/', 'build/'],
+    score: 10 + (isFlutter ? 2 : 0) + (hasEntrypoint ? 2 : 0),
+    reasons,
+  }
+}
+
+const detectElixir: Detector = probe => {
+  if (!probe.exists('mix.exs')) {
+    return null
+  }
+  const mixText = probe.readText('mix.exs') ?? ''
+  const isPhoenix =
+    /phoenix/i.test(mixText) ||
+    probe.sampleFiles.some(file => file.includes('_web/'))
+  return {
+    ecosystem: 'elixir',
+    label: isPhoenix ? 'Elixir / Phoenix' : 'Elixir',
+    toolIcon: 'code',
+    install: [cmd('mix', ['deps.get'])],
+    build: [cmd('mix', ['compile'])],
+    run: [cmd('mix', isPhoenix ? ['phx.server'] : ['run', '--no-halt'])],
+    toolchainCheck: {
+      cmd: cmd('mix', ['--version']),
+      missingHint:
+        'mix was not found on your PATH. Install Elixir and Erlang from https://elixir-lang.org/install.html.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: '',
+    extraIgnores: ['_build/', 'deps/', '.elixir_ls/'],
+    score: 12,
+    reasons: ['mix.exs found', ...(isPhoenix ? ['Phoenix application'] : [])],
+  }
+}
+
+// ── Scala / Haskell / Zig ────────────────────────────────────────────────────
+
+const detectScala: Detector = probe => {
+  if (!probe.exists('build.sbt')) {
+    return null
+  }
+  const hasMain = probe.sampleFiles.some(
+    file => file.startsWith('src/main/scala/') && /\.scala$/.test(file)
+  )
+  return {
+    ecosystem: 'scala',
+    label: 'Scala / SBT',
+    toolIcon: 'cpu',
+    install: [cmd('sbt', ['update'])],
+    build: [cmd('sbt', ['compile'])],
+    run: hasMain ? [cmd('sbt', ['run'])] : undefined,
+    toolchainCheck: {
+      cmd: cmd('sbt', ['--version']),
+      missingHint:
+        'sbt was not found on your PATH. Install SBT and a JDK from https://www.scala-lang.org/download/.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: 'java',
+    extraIgnores: ['target/', '.bsp/'],
+    score: 10 + (hasMain ? 2 : 0),
+    reasons: ['build.sbt found', ...(hasMain ? ['Scala source'] : [])],
+  }
+}
+
+const detectHaskell: Detector = probe => {
+  const cabalFiles = globFiles(probe, '.cabal')
+  const hasStack = probe.exists('stack.yaml')
+  const hasCabal = probe.exists('cabal.project') || cabalFiles.length > 0
+  if (!hasStack && !hasCabal) {
+    return null
+  }
+  const exe = hasStack ? 'stack' : 'cabal'
+  const manifestText = hasStack
+    ? probe.readText('stack.yaml') ?? ''
+    : cabalFiles.map(file => probe.readText(file) ?? '').join('\n')
+  const hasExecutable = /(^|\n)\s*executable\b/i.test(manifestText)
+  return {
+    ecosystem: 'haskell',
+    label: 'Haskell',
+    toolIcon: 'code',
+    install: hasStack
+      ? [cmd('stack', ['build', '--only-dependencies'])]
+      : [cmd('cabal', ['update'])],
+    build: [cmd(exe, ['build'])],
+    run: hasExecutable ? [cmd(exe, ['run'])] : undefined,
+    toolchainCheck: {
+      cmd: cmd(exe, ['--version']),
+      missingHint:
+        'A Haskell toolchain was not found. Install GHCup from https://www.haskell.org/ghcup/.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: '',
+    extraIgnores: ['.stack-work/', 'dist-newstyle/'],
+    score: 10 + (hasExecutable ? 2 : 0),
+    reasons: [
+      hasStack ? 'stack.yaml found' : 'Cabal manifest found',
+      ...(hasExecutable ? ['executable target'] : []),
+    ],
+  }
+}
+
+const detectZig: Detector = probe => {
+  if (!probe.exists('build.zig')) {
+    return null
+  }
+  const text = probe.readText('build.zig') ?? ''
+  const hasRunStep = /addRunArtifact|addRun\s*\(/.test(text)
+  return {
+    ecosystem: 'zig',
+    label: 'Zig',
+    toolIcon: 'gear',
+    build: [cmd('zig', ['build'])],
+    run: hasRunStep ? [cmd('zig', ['build', 'run'])] : undefined,
+    toolchainCheck: {
+      cmd: cmd('zig', ['version']),
+      missingHint:
+        'zig was not found on your PATH. Install Zig from https://ziglang.org/download/.',
+    },
+    needsElevation: false,
+    gitignoreTemplateId: '',
+    extraIgnores: ['zig-cache/', 'zig-out/'],
+    score: 10 + (hasRunStep ? 2 : 0),
+    reasons: ['build.zig found', ...(hasRunStep ? ['run step'] : [])],
   }
 }
 
@@ -607,10 +1127,19 @@ const detectMake: Detector = probe => {
 /** All detectors. `detectMake` is a generic fallback, suppressed elsewhere. */
 const DETECTORS: ReadonlyArray<Detector> = [
   detectNode,
+  detectDeno,
   detectRust,
   detectGo,
   detectDotnet,
   detectPython,
+  detectPhp,
+  detectRuby,
+  detectSwift,
+  detectDart,
+  detectElixir,
+  detectScala,
+  detectHaskell,
+  detectZig,
   detectJava,
   detectCmake,
   detectMake,
@@ -628,7 +1157,8 @@ function collectCandidateDirs(probe: IRepoFileProbe): ReadonlyArray<string> {
     const isMarker =
       MANIFEST_MARKERS.includes(base) ||
       base.endsWith('.csproj') ||
-      base.endsWith('.sln')
+      base.endsWith('.sln') ||
+      base.endsWith('.cabal')
     if (isMarker) {
       dirs.add(file.slice(0, slash))
     }

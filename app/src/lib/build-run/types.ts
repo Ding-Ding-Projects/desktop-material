@@ -12,11 +12,20 @@ import * as octicons from '../../ui/octicons/octicons.generated'
 /** Build ecosystems the detector understands, in no particular order. */
 export type BuildRunEcosystem =
   | 'node'
+  | 'deno'
   | 'rust'
   | 'go'
   | 'dotnet'
   | 'python'
   | 'java'
+  | 'php'
+  | 'ruby'
+  | 'swift'
+  | 'dart'
+  | 'elixir'
+  | 'scala'
+  | 'haskell'
+  | 'zig'
   | 'make'
   | 'cmake'
 
@@ -64,6 +73,14 @@ export interface IBuildProfile {
   readonly extraIgnores: ReadonlyArray<string>
   readonly score: number
   readonly reasons: ReadonlyArray<string>
+}
+
+/** Stable, unambiguous name used anywhere the user chooses a profile. */
+export function getBuildProfileDisplayName(
+  profile: Pick<IBuildProfile, 'label' | 'cwd'>
+): string {
+  const location = profile.cwd.length === 0 ? 'repository root' : profile.cwd
+  return `${profile.label} — ${location}`
 }
 
 /**

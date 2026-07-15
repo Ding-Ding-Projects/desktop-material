@@ -7,6 +7,7 @@ import {
   IBuildProfile,
   ICommand,
   detectProfiles,
+  getBuildProfileDisplayName,
   probeRepository,
 } from '../../lib/build-run'
 import { RadioButton } from '../lib/radio-button'
@@ -216,7 +217,9 @@ export class BuildRunSettings extends React.Component<
   private renderProfileLabel(profile: IBuildProfile): JSX.Element {
     const location = profile.cwd.length === 0 ? 'repository root' : profile.cwd
     const reasons =
-      profile.reasons.length > 0 ? profile.reasons.join(' · ') : location
+      profile.reasons.length > 0
+        ? profile.reasons.join(' · ')
+        : 'Detected project'
     return (
       <span className="build-run-profile">
         <Octicon
@@ -224,8 +227,12 @@ export class BuildRunSettings extends React.Component<
           symbol={octicons[profile.toolIcon] ?? octicons.play}
         />
         <span className="build-run-profile-text">
-          <span className="build-run-profile-label">{profile.label}</span>
-          <span className="build-run-profile-reasons">{reasons}</span>
+          <span className="build-run-profile-label">
+            {getBuildProfileDisplayName(profile)}
+          </span>
+          <span className="build-run-profile-reasons">
+            Project folder: {location} · {reasons}
+          </span>
         </span>
       </span>
     )
@@ -239,7 +246,7 @@ export class BuildRunSettings extends React.Component<
         <section className="build-run-section">
           <h3 className="build-run-section-title">
             <Octicon symbol={octicons.play} />
-            Detected build profiles
+            Detected projects and build profiles
           </h3>
           <p className="build-run-empty">Detecting build profiles…</p>
         </section>
@@ -251,12 +258,13 @@ export class BuildRunSettings extends React.Component<
         <section className="build-run-section">
           <h3 className="build-run-section-title">
             <Octicon symbol={octicons.play} />
-            Detected build profiles
+            Detected projects and build profiles
           </h3>
           <p className="build-run-empty">
-            No runnable build profiles were detected in this repository. Build &
-            Run recognises Node, Rust, Go, .NET, Python, Java, Make and CMake
-            projects.
+            No runnable project profiles were detected in this repository. Build
+            &amp; Run looks for supported project manifests and entrypoints
+            across common Node, Deno, Rust, Go, .NET, Python, JVM, PHP, Ruby,
+            Swift, Dart, Elixir, Make and CMake projects.
           </p>
         </section>
       )
@@ -269,15 +277,15 @@ export class BuildRunSettings extends React.Component<
       <section className="build-run-section">
         <h3 className="build-run-section-title">
           <Octicon symbol={octicons.play} />
-          Default build profile
+          Default project and build profile
         </h3>
         <p className="build-run-section-description">
-          The profile run when you click Build &amp; run. Detected profiles are
-          ranked with the best match first.
+          Choose the detected project and build profile that runs when you click
+          Build &amp; run. Profiles are ranked with the best match first.
         </p>
         <div
           role="radiogroup"
-          aria-label="Default build profile"
+          aria-label="Default project and build profile"
           className="build-run-profile-list"
         >
           {detectedProfiles.map(profile => (
@@ -314,7 +322,7 @@ export class BuildRunSettings extends React.Component<
       <section className="build-run-section">
         <h3 className="build-run-section-title">
           <Octicon symbol={octicons.terminal} />
-          Command overrides — {active.label}
+          Command overrides — {getBuildProfileDisplayName(active)}
         </h3>
         <p className="build-run-section-description">
           Leave a field blank to use the detected command. Overrides are split
