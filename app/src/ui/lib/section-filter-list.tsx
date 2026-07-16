@@ -212,8 +212,8 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
   readonly customFilters?: ReadonlyArray<IListFilter<T>>
 
   /**
-   * A human readable label for this list, used in the regex builder (e.g.
-   * "Branches"). Falls back to the placeholder text.
+   * A human readable label for this list, used by the filter input and regex
+   * builder (e.g. "Branches"). Falls back to the placeholder text.
    */
   readonly filterListLabel?: string
 }
@@ -306,6 +306,11 @@ export class SectionFilterList<
   }
 
   public renderTextBox() {
+    const ariaLabel =
+      this.props.filterListLabel !== undefined
+        ? `Filter ${this.props.filterListLabel}`
+        : this.props.placeholderText ?? 'Filter'
+
     return (
       <TextBox
         ref={this.onTextBoxRef}
@@ -313,6 +318,7 @@ export class SectionFilterList<
         prefixedIcon={octicons.search}
         autoFocus={true}
         placeholder={this.props.placeholderText || 'Filter'}
+        ariaLabel={ariaLabel}
         className="filter-list-filter-field"
         onValueChanged={this.onFilterValueChanged}
         onEnterPressed={this.onEnterPressed}

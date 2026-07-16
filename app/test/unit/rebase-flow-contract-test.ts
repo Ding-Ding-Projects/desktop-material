@@ -93,6 +93,16 @@ describe('reviewed rebase flow contracts', () => {
     assert.match(sharedDialog, /className="rebase-cancel-before-start"/)
     assert.match(sharedDialog, />\s*Cancel\s*<\/Button>/)
 
+    const branchList = read('app/src/ui/branches/branch-list.tsx')
+    assert.match(branchList, /filterListLabel="Branches"/)
+
+    const sectionFilterList = read('app/src/ui/lib/section-filter-list.tsx')
+    assert.match(
+      sectionFilterList,
+      /\? `Filter \$\{this\.props\.filterListLabel\}`/
+    )
+    assert.match(sectionFilterList, /ariaLabel=\{ariaLabel\}/)
+
     const forceWarning = read(
       'app/src/ui/multi-commit-operation/dialog/warn-force-push-dialog.tsx'
     )
