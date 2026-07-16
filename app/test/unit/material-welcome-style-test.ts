@@ -16,8 +16,9 @@ describe('Material welcome design contract', () => {
     assert.match(view, /aria-label="Desktop Material workspace overview"/)
     assert.match(view, /Versioned settings/)
     assert.match(start, /className="welcome-material-icon"/)
+    assert.match(start, /className="welcome-progress"/)
     assert.match(start, /viewBox="0 0 24 24"/)
-    assert.doesNotMatch(start, /Octicon|octicons\.generated/)
+    assert.doesNotMatch(start, /Octicon|octicons\.generated|<Loading/)
   })
 
   it('uses semantic Material tokens with compact and reduced-motion fallbacks', () => {
@@ -33,6 +34,7 @@ describe('Material welcome design contract', () => {
     )
     assert.match(style, /@media screen and \(max-width: 760px\)/)
     assert.match(style, /@media \(prefers-reduced-motion: reduce\)/)
+    assert.match(style, /@keyframes dm-welcome-progress/)
     assert.match(
       style,
       /@media screen and \(max-width: 1040px\),[\s\S]*?\.welcome-workspace-preview\s*\{[\s\S]*?display: none;/

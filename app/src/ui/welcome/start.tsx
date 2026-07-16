@@ -3,7 +3,6 @@ import { WelcomeStep } from './welcome'
 import { LinkButton } from '../lib/link-button'
 import { Dispatcher } from '../dispatcher'
 import { Button } from '../lib/button'
-import { Loading } from '../lib/loading'
 import { BrowserRedirectMessage } from '../lib/authentication-form'
 import { ENABLE_TELEMETRY } from '../../lib/telemetry-flag'
 import { SamplesURL } from '../../lib/stats'
@@ -70,7 +69,9 @@ export class Start extends React.Component<IStartProps, {}> {
               autoFocus={true}
               role="link"
             >
-              {this.props.loadingBrowserAuth && <Loading />}
+              {this.props.loadingBrowserAuth && (
+                <span className="welcome-progress" aria-hidden="true" />
+              )}
               Sign in with GitHub.com
               <OpenInNewIcon />
             </Button>

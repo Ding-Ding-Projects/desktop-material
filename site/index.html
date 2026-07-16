@@ -161,6 +161,10 @@
         <path d="M9 6V4h6v2M4 8h16a2 2 0 0 1 2 2v9H2v-9a2 2 0 0 1 2-2Z" />
         <path d="M2 13h8v2h4v-2h8" />
       </symbol>
+      <symbol id="icon-balance" viewBox="0 0 24 24">
+        <path d="M12 3v18M6 6h12M4 21h16" />
+        <path d="m6 6-4 7h8L6 6ZM18 6l-4 7h8l-4-7Z" />
+      </symbol>
     </svg>
     <a class="skip-link" href="#top">Skip to main content</a>
     <!-- ================= Top app bar ================= -->
@@ -1487,13 +1491,19 @@
                 class="btn btn-filled"
                 href="https://github.com/codingmachineedge/desktop-material"
               >
-                <span aria-hidden="true">★</span> View on GitHub
+                <svg class="material-icon" aria-hidden="true">
+                  <use href="#icon-open-new"></use>
+                </svg>
+                View on GitHub
               </a>
               <a
                 class="btn btn-tonal"
                 href="https://github.com/codingmachineedge/desktop-material/wiki"
               >
-                <span aria-hidden="true">▤</span> Read the docs
+                <svg class="material-icon" aria-hidden="true">
+                  <use href="#icon-guide"></use>
+                </svg>
+                Read the docs
               </a>
             </div>
           </div>
@@ -1542,7 +1552,12 @@
         </div>
         <div class="footer-bottom">
           <span>© 2026 Desktop Material contributors.</span>
-          <span class="lic"><span aria-hidden="true">⚖</span> MIT License</span>
+          <span class="lic"
+            ><svg class="material-icon" aria-hidden="true">
+              <use href="#icon-balance"></use>
+            </svg>
+            MIT License</span
+          >
           <span>Built on GitHub Desktop (MIT) &amp; desktop-plus (MIT).</span>
         </div>
       </div>

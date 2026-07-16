@@ -608,12 +608,29 @@
     gap: 10px;
     margin-top: clamp(24px, 4vh, 36px);
 
+    .button-with-icon {
+      align-items: center;
+      display: inline-flex;
+      justify-content: center;
+    }
+
     .welcome-material-icon {
       fill: currentColor;
       flex: none;
       height: 18px;
       margin-left: 8px;
       width: 18px;
+    }
+
+    .welcome-progress {
+      animation: dm-welcome-progress 900ms linear infinite;
+      border: 2px solid color-mix(in srgb, currentColor 32%, transparent);
+      border-radius: 50%;
+      border-top-color: currentColor;
+      flex: none;
+      height: 16px;
+      margin-right: 8px;
+      width: 16px;
     }
 
     .button-component {
@@ -804,6 +821,12 @@
   }
 }
 
+@keyframes dm-welcome-progress {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media screen and (max-width: 1040px), screen and (max-height: 720px) {
   #welcome {
     .welcome-left {
@@ -873,6 +896,10 @@
     .welcome-right {
       animation: none;
       transition-duration: 0s;
+    }
+
+    .welcome-progress {
+      animation: none;
     }
   }
 }
