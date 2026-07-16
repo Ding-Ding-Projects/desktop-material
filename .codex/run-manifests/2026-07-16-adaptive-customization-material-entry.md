@@ -70,7 +70,8 @@
   renderer's loopback CDP endpoint may be used as the documented app-native
   fallback. Never show or switch to the headless desktop.
 - Run ID: `desktop-material-adaptive-customization-019f68ca-r3`.
-- Owned Temp root: `%TEMP%\desktop-material-adaptive-customization-019f68ca-r3`.
+- Owned Temp root:
+  `%TEMP%\desktop-material-p0-ui-customization-019f68ca-r3`.
 - Owned desktop: `DesktopMaterialAdaptiveCustomization019f68caR3`.
 - Owned paths under the run root: disposable Git fixture, isolated user-data,
   temporary launch/control files, raw captures, and cleanup ledger.
@@ -102,8 +103,12 @@
   exact-SHA CI/Pages verification through `gh`.
 - Documentation allowlist: `README.md`, `ROADMAP.md`, `PLAN.md`,
   `MATERIAL_REDESIGN.md`, `HANDOFF.md`, `docs/README.md`, `docs/wiki/*.md`,
-  `site/index.html`, the Pages contract test, this manifest, and the seven
-  declared screenshots. Historical `docs/process/roadmap.md` remains unchanged.
+  `docs/process/roadmap.md` (current-plan pointer copy only), `site/index.html`,
+  the Pages contract test, this manifest, and the seven declared screenshots.
+  Historical roadmap entries remain unchanged. The retained
+  `.codex/verification/verify_pull_all_progress_cdp.js` helper is also
+  allowlisted because its onboarding selector follows the new Material Welcome
+  copy.
 - Wiki publication: push `main` and screenshot assets first, fresh-clone
   `desktop-material.wiki.git`, preserve remote-only `Images/`, overlay reviewed
   canonical Markdown, reject divergence, and push `master` without force.
