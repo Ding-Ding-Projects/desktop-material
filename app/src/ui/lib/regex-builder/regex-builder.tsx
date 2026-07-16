@@ -93,6 +93,8 @@ export class RegexBuilder extends React.Component<
   IRegexBuilderState
 > {
   private dialogRef = React.createRef<HTMLDivElement>()
+  private patternInputRef = React.createRef<HTMLInputElement>()
+  private returnFocusElement: HTMLElement | null = null
   private dragPointerId: number | null = null
   private clampFrameId: number | null = null
   private dragStart: {
@@ -115,9 +117,15 @@ export class RegexBuilder extends React.Component<
   }
 
   public componentDidMount = () => {
+    const activeElement = document.activeElement
+    this.returnFocusElement =
+      activeElement instanceof HTMLElement && activeElement !== document.body
+        ? activeElement
+        : null
     window.addEventListener('resize', this.scheduleKeepOnScreen)
     window.addEventListener('keydown', this.onWindowKeyDown)
     this.scheduleKeepOnScreen()
+    this.patternInputRef.current?.focus()
   }
 
   public componentWillUnmount = () => {
@@ -126,6 +134,12 @@ export class RegexBuilder extends React.Component<
     if (this.clampFrameId !== null) {
       window.cancelAnimationFrame(this.clampFrameId)
     }
+    const returnFocusElement = this.returnFocusElement
+    window.requestAnimationFrame(() => {
+      if (returnFocusElement?.isConnected) {
+        returnFocusElement.focus()
+      }
+    })
   }
 
   private scheduleKeepOnScreen = () => {
@@ -328,6 +342,7 @@ export class RegexBuilder extends React.Component<
               <div className="regex-builder-pattern-field">
                 <span className="regex-delimiter">/</span>
                 <input
+                  ref={this.patternInputRef}
                   type="text"
                   className="regex-pattern-input"
                   aria-label="Regular expression pattern"

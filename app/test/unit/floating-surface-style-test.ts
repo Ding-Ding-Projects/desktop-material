@@ -38,6 +38,11 @@ describe('floating surface layout contracts', () => {
     assert.match(component, /role="dialog"/)
     assert.match(component, /aria-labelledby="regex-builder-title"/)
     assert.match(component, /aria-label="Regular expression pattern"/)
+    assert.match(component, /this\.patternInputRef\.current\?\.focus\(\)/)
+    assert.match(
+      component,
+      /returnFocusElement\?\.isConnected[\s\S]*?returnFocusElement\.focus\(\)/
+    )
     assert.match(component, /onPointerCancel=\{this\.onHeaderPointerUp\}/)
     assert.match(
       style,
