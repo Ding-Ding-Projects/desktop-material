@@ -124,15 +124,21 @@ semantics. The public static landing page uses the same system through a
 Material app bar, expressive hero surface, design-principle cards, screenshot
 evidence gallery, tonal call to action, and footer.
 
-The intended acceptance images are:
+The inspected acceptance images are:
 
 - `docs/assets/screenshots/material-welcome.png`
 - `docs/assets/screenshots/material-customization.png`
 - `docs/assets/screenshots/material-toolbar-overflow.png`
+- `docs/assets/screenshots/material-tab-appearance-word.png`
+- `docs/assets/screenshots/material-tab-arrange.png`
+- `docs/assets/screenshots/material-actions-cancel.png`
+- `docs/assets/screenshots/material-rebase-review.png`
 
-Those filenames are publication targets, not verification receipts. Capture
-dimensions, hashes, source/build identity, CI, Pages, and wiki evidence belong
-in the acceptance ledger only after the files are rendered and inspected.
+All seven were rendered from the exact tested production source, inspected at
+their original 1440×960 resolution, and privacy reviewed. Dimensions, hashes,
+source/build identity, and interaction receipts live in `HANDOFF.md` and the
+run manifest; publication receipts are recorded after direct `main`, Pages, and
+wiki promotion.
 
 ## Delivery phases
 

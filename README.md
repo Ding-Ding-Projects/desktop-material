@@ -16,11 +16,11 @@ The complete M0–M19 roadmap is shipped on `main`. The compact status summary i
 below; the implementation ledger is in [`PLAN.md`](PLAN.md), and detailed
 acceptance receipts are in [`HANDOFF.md`](HANDOFF.md).
 
-The post-M19 customization maintenance release described below is implemented
-in the current release candidate. Its final integrated production build,
-off-screen interaction review, refreshed publication surfaces, and `main`
-promotion remain pending; the existing M0–M19 receipts stay historical rather
-than standing in for that release acceptance.
+The post-M19 adaptive customization maintenance release described below is
+shipped on `main`. Its exact production build, off-screen interaction review,
+compact and zoomed layout checks, safety boundaries, and seven privacy-safe
+captures are recorded in [`HANDOFF.md`](HANDOFF.md); the existing M0–M19
+receipts remain historical evidence for their original releases.
 
 **Material Design 3 Expressive shell**
 - App-bar branding with an inline pill menu
@@ -141,6 +141,10 @@ set.
 | Material Welcome | Appearance customization | Dynamic toolbar overflow |
 | --- | --- | --- |
 | <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="420"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance preferences with active-profile defaults and repository inheritance guidance" width="420"><br><sub>Profile and repository appearance</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="420"><br><sub>Measured More behavior</sub> |
+
+| Word-style tab appearance | Arrange tabs | Actions cancellation | Reviewed rebase |
+| --- | --- | --- | --- |
+| <img src="docs/assets/screenshots/material-tab-appearance-word.png" alt="Word-style tab appearance editor with typography, alignment, and independent text and background palettes" width="320"><br><sub>Per-tab appearance</sub> | <img src="docs/assets/screenshots/material-tab-arrange.png" alt="Arrange tabs surface with pinned and manual movement controls plus one-shot label, opened-date, and repository-status sorts" width="320"><br><sub>Persistent tab order</sub> | <img src="docs/assets/screenshots/material-actions-cancel.png" alt="Material workflow-run cancellation review naming the exact run, ref, actor, and commit" width="320"><br><sub>Exact-run cancellation</sub> | <img src="docs/assets/screenshots/material-rebase-review.png" alt="Reviewed current-branch rebase showing current to target, ahead and behind counts, and a bounded commit preview" width="320"><br><sub>Rebase review</sub> |
 
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |

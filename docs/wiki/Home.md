@@ -14,11 +14,11 @@ appearance controls let the workspace respond to both the active profile and the
 repository. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL capabilities
 into named app functions rather than a searchable command or endpoint catalogue.
 
-> **Status:** Desktop Material is in **active development**, with the complete M0–M19 roadmap
-> published on `main`. The post-M19 customization maintenance set is implemented in the current
-> release candidate; its integrated build, off-screen interaction review, publication, and `main`
-> promotion remain pending. The implementation ledger and completed acceptance receipts are
-> maintained in [`PLAN.md`](https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md)
+> **Status:** Desktop Material is in **active development**, with the complete M0–M19 roadmap and
+> the verified post-M19 adaptive customization maintenance release published on `main`. Its exact
+> production build, off-screen interaction review, compact/zoomed geometry checks, and inspected
+> screenshot evidence are recorded alongside the implementation ledger and historical receipts in
+> [`PLAN.md`](https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md)
 > and [`HANDOFF.md`](https://github.com/codingmachineedge/desktop-material/blob/main/HANDOFF.md).
 
 ![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
@@ -111,7 +111,7 @@ the tonal workspace preview hides when a compact window needs the space.
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
 
-### Current maintenance extensions — final acceptance pending
+### Verified adaptive customization maintenance release
 
 - **Guarded tab close and arrangement** — preserve the original regex **Close Tabs Containing…**
   action and add a case-insensitive literal **Close all tabs except those containing…** review with
@@ -138,6 +138,14 @@ the tonal workspace preview hides when a compact window needs the space.
   heights; Remote Manager protects readable name/URL/control widths before stacking; Regex Builder
   reflows its category/token grid and scrolls its body while keeping the tester and footer
   reachable, without page-level horizontal clipping.
+
+![Word-style tab appearance editor with typography, alignment, and independent text and background palettes](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-appearance-word.png)
+
+![Arrange tabs surface with pinned and manual movement controls plus one-shot sorts](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-arrange.png)
+
+![Material workflow-run cancellation review naming the exact run, ref, actor, and commit](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-cancel.png)
+
+![Reviewed current-branch rebase with ahead and behind counts and a bounded commit preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-rebase-review.png)
 
 ### Production-verified M0–M19 native Git and GitHub functions
 

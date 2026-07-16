@@ -24,22 +24,25 @@ text/background colors. The measured app bar moves Build & Run and then Commit
 returns. The pure Material Welcome and landing redesigns share the same token
 and surface language.
 
-The same maintenance release adds pinned/manual/one-shot tab arrangement,
+The same shipped maintenance release adds pinned/manual/one-shot tab arrangement,
 preserves the original regex close action, and adds a guarded literal
 close-everything-except match with live counts and preview. It also completes
 exact workflow-run cancellation, reviewed current-branch rebase, and immediate
 Provider Triage propagation of the repository account selected in settings;
 aligns GitHub OAuth with the bounded feature scopes; and corrects compact-height
 scrolling/reflow in Repository Tools, Remote Manager, and Regex Builder. These
-items are implemented, but their integrated build, off-screen UI, `main`, CI,
-Pages, and wiki receipts remain final acceptance work.
+items passed the integrated production build, focused and repository-wide
+checks, off-screen interaction review, compact/zoomed geometry gates, and
+privacy review recorded in the acceptance ledger.
 
-The intended acceptance captures are
+The seven inspected acceptance captures are
 [`material-welcome.png`](assets/screenshots/material-welcome.png),
 [`material-customization.png`](assets/screenshots/material-customization.png),
-and
-[`material-toolbar-overflow.png`](assets/screenshots/material-toolbar-overflow.png).
-Their presence here does not assert capture or publication evidence.
+[`material-toolbar-overflow.png`](assets/screenshots/material-toolbar-overflow.png),
+[`material-tab-appearance-word.png`](assets/screenshots/material-tab-appearance-word.png),
+[`material-tab-arrange.png`](assets/screenshots/material-tab-arrange.png),
+[`material-actions-cancel.png`](assets/screenshots/material-actions-cancel.png),
+and [`material-rebase-review.png`](assets/screenshots/material-rebase-review.png).
 
 ## Contributing
 

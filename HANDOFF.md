@@ -25,6 +25,15 @@ Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
 
+The **July 16 adaptive customization maintenance release** also passed its exact
+production build and off-screen interaction gate at tested code source
+`c5205838dfc5ee2b7ce80ce488215a2cd903bb26`. It adds profile/repository/tab
+appearance, measured app-bar overflow, pure Material entry surfaces, guarded
+tab close/arrangement, workflow-run cancellation, reviewed rebase,
+repository-account propagation, bounded OAuth scopes, and compact-surface
+corrections. Its detailed acceptance receipt and seven inspected captures are
+recorded below.
+
 ## 2026-07-13 P0 production UI gate
 
 The exact unpackaged production build passed with:
@@ -583,6 +592,59 @@ because the installed Electron package has no runtime binary and Playwright's
 bundled browser is absent; the build's packaging step remains blocked by the
 known missing `node_modules\printenvz\build\Release\printenvz.exe`. No runtime or
 dependency was downloaded.
+
+## 2026-07-16 adaptive customization production gate
+
+The exact tested code source, fixed verification checkout, production build,
+launched renderer, and captured UI all matched
+`c5205838dfc5ee2b7ce80ce488215a2cd903bb26`. The unpackaged production build
+completed successfully in 147.1 seconds through the repository's exact
+low-level computer-use service. All input, resize, capture, and inspection work
+stayed on an off-screen Win32 desktop; the visible user desktop was never shown,
+focused, or used for input.
+
+The interaction gate verified:
+
+- all 12 active-profile defaults, six repository-local overrides and
+  inheritance, per-tab typography/color persistence, profile local-Git history,
+  repository-local config isolation, and restart restoration;
+- measured **More toolbar actions** behavior at the clipping boundary, including
+  mounted-state/focus continuity and deterministic widening restoration;
+- guarded inverse tab close with literal matching, live counts, zero-match and
+  pinned-tab protection, plus drag/keyboard arrangement and six stable one-shot
+  sorts that persist without reacting continuously to status changes;
+- exact workflow-run cancellation identity/status revalidation, one normal
+  cancellation request, duplicate suppression, accepted-response polling to a
+  terminal state, and no force-cancel request;
+- current-branch rebase review, fresh ref/repository preflight, deliberate
+  conflict routing through the existing continue/abort surface, exact branch
+  restoration after abort, and no force push;
+- immediate Provider Triage resolution of the exact repository-account binding
+  saved in Repository Settings, including restart and refresh without replacing
+  a valid explicit binding; and
+- compact/zoomed Repository Tools, Remote Manager, Regex Builder, confirmation,
+  and popover geometry with named controls, focus return, reachable final
+  actions, vertical scrolling where needed, and no page-level horizontal
+  clipping.
+
+Focused model/store/UI/migration/stale-state/accessibility coverage, TypeScript,
+lint, formatting, diff checks, and the exact production build passed for the
+tested code source. Documentation and screenshot publication are committed only
+after that fixed source gate; direct fast-forward `main`, CI/Pages, and wiki
+receipts therefore belong to the later publication commit rather than being
+retroactively claimed for the captured code SHA.
+
+Seven privacy-safe captures were inspected at original resolution:
+
+| Capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-welcome.png` | 1440×960 | 146,428 | `28f0b56ef43347fad0bbe7e0bcb824d7c3df2c39e444a022fb7145c51b6991ca` |
+| `docs/assets/screenshots/material-customization.png` | 1440×960 | 109,343 | `a9b1493641c69840df6467612dc6f32fa5603404ac5e9b34ac776e7399dc79db` |
+| `docs/assets/screenshots/material-toolbar-overflow.png` | 1440×960 | 167,132 | `67d64944736d37dd521028d55557a2bb7a9d42d8940aa8051d2ef875c5f021c5` |
+| `docs/assets/screenshots/material-tab-appearance-word.png` | 1440×960 | 167,878 | `4df433b6bf3b58993299032d6d19e0ded5da3acb0a37f53e6b7109686df7a569` |
+| `docs/assets/screenshots/material-tab-arrange.png` | 1440×960 | 160,546 | `ce6a43a088b650d14bca158d12776d8dd4dcca5bf89d3f1d52720ddefda85470` |
+| `docs/assets/screenshots/material-actions-cancel.png` | 1440×960 | 133,083 | `6dceb918e322b2f30ee574a51e815e32f5d4b272f250811b20202a409bec731c` |
+| `docs/assets/screenshots/material-rebase-review.png` | 1440×960 | 153,207 | `145c5b54320116ce41bdc0b17eb9e726a8cb0dbaf0988886011a862d8cc189de` |
 
 ## Maintenance constraints
 

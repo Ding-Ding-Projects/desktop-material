@@ -1,26 +1,30 @@
 # Guided Feature Gallery
 
-This page maps the guided feature documentation to its 47-image acceptance gallery. Every view
+This page maps the guided feature documentation to its 51-image acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
 
 > **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
-> pagination evidence and the current Pages accessibility/clipping gate. Final source, CI, Pages,
-> wiki, and push receipts remain recorded in `HANDOFF.md` after verification.
+> pagination evidence, the Pages accessibility/clipping gate, and seven inspected July 16 adaptive
+> customization captures. Exact build, interaction, and privacy receipts are retained in
+> `HANDOFF.md`; main, CI, Pages, and wiki publication are verified against the promoted commit.
 
-The current customization maintenance release adds guarded tab close/arrange,
-Actions cancellation, reviewed rebase, repository-account propagation, OAuth
-scope alignment, and compact Repository Tools/Remote Manager/Regex Builder
-corrections. Those implementations are described below, but no new asset name,
-capture receipt, or acceptance claim is added before the integrated off-screen
-review. The 47-image manifest and its existing references therefore remain
-unchanged.
+The verified adaptive customization maintenance release adds guarded tab
+close/arrange, Actions cancellation, reviewed rebase, repository-account
+propagation, bounded OAuth scopes, and compact Repository Tools, Remote Manager,
+and Regex Builder corrections. Its exact production source, safety checks,
+off-screen interaction review, and responsive geometry are recorded with the
+seven inspected captures below.
 
 | Asset | Guided workflow shown |
 | --- | --- |
 | `material-welcome.png` | Material first-run task card and responsive workspace preview |
 | `material-customization.png` | Git-backed profile appearance defaults and repository override guidance |
 | `material-toolbar-overflow.png` | Measured narrow toolbar with Build & Run and Commit & Push in More |
+| `material-tab-appearance-word.png` | Word-style tab typography, alignment, and independent color palettes |
+| `material-tab-arrange.png` | Pinned/manual movement and one-shot tab ordering controls |
+| `material-actions-cancel.png` | Exact workflow-run cancellation review with ref, actor, and commit context |
+| `material-rebase-review.png` | Reviewed current→target rebase with ahead/behind state and commit preview |
 | `material-shallow-clone-safe.png` | Reviewed shallow clone with a bounded commit depth |
 | `material-clone-account-fallback.png` | Generic HTTPS clone completed through exact-origin signed-in account fallback |
 | `material-pull-all-account-fallback.png` | Pull all with per-repository results and exact-origin account retry |
@@ -93,6 +97,8 @@ existing conflict continue/abort path; it never force-pushes automatically.
 
 ![Named Repository Tools administration hub](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-tools.png)
 
+![Reviewed current-branch rebase showing current to target, ahead and behind counts, and a bounded commit preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-rebase-review.png)
+
 ![Reviewed gitignore template catalogue](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-gitignore-manager.png)
 
 ![Full-history state after a verified deepen](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepening.png)
@@ -130,6 +136,8 @@ recovery.
 
 ![Pending deployment environment review and history](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pending-deployments.png)
 
+![Material workflow-run cancellation review naming the exact run, ref, actor, and commit](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-cancel.png)
+
 ![Effective branch protection and ruleset policy](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-effective-branch-rules.png)
 
 ![Native pull-request completion state](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
@@ -157,14 +165,18 @@ independent text/background palettes. The original regex close action remains;
 the inverse literal close flow adds live counts/preview and cannot confirm empty
 or zero-match input. Pinned/manual/keyboard arrangement plus stable one-shot
 label/opened/status sorts persist without continuously reacting to later status
-changes. App/profile appearance inheritance and measured toolbar overflow remain
-as described by the three existing images below.
+changes. App/profile appearance inheritance and measured toolbar overflow are
+shown with the matching inspected evidence below.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
 ![Profile-backed Appearance preferences with repository override guidance](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ![Measured narrow toolbar with Build and Run and Commit and Push available from More without clipping](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
+
+![Word-style tab appearance editor with typography, alignment, and independent text and background palettes](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-appearance-word.png)
+
+![Arrange tabs surface with pinned and manual movement controls plus one-shot label, opened-date, and repository-status sorts](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-arrange.png)
 
 ## Material shell and accessibility
 

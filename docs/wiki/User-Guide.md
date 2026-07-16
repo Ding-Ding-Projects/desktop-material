@@ -150,8 +150,8 @@ rename is local to the tab and does not touch the repository name on disk or on 
 
 ### Style a tab's title
 
-Open a tab's context menu → **Text style** to open the styling popover (see
-`tab-text-style.png`). Per tab you can set:
+Open a tab's context menu → **Text style** to open the styling popover. Per tab
+you can set:
 
 - **Weight** — bold on/off
 - **Italic** and **underline**
@@ -168,6 +168,8 @@ tell them apart at a glance.
 > Tab layout and styling are part of your per-account settings, so every change **auto-commits** to
 > that account's local settings repo. Open **Edit → Settings History…** or press `Ctrl+Alt+Z` if
 > you ever need to inspect, undo, redo, or restore an earlier state.
+
+![Word-style tab appearance editor with typography, alignment, and independent text and background palettes](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-appearance-word.png)
 
 ### Close matching tabs safely
 
@@ -195,6 +197,8 @@ Use a tab's context menu to **Pin tab**. The pinned group stays before unpinned 
 Each sort is a one-time edit: later repository-status changes do not reshuffle the strip. The saved
 order remains manually editable and restores with the account/window tab state. Pin or unpin a tab
 explicitly before moving it across the group boundary.
+
+![Arrange tabs surface with pinned and manual movement controls plus one-shot label, opened-date, and repository-status sorts](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-arrange.png)
 
 ---
 
@@ -371,6 +375,8 @@ running. If Git reports conflicts after start, resolve them through the existing
 flow. Protected branches receive explicit guidance, and the app never force-pushes automatically;
 review any later force-with-lease decision separately.
 
+![Reviewed current-branch rebase showing current to target, ahead and behind counts, and a bounded commit preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-rebase-review.png)
+
 ### Create a pull request
 
 Open **Branch → Create pull request** while the head branch is checked out:
@@ -470,6 +476,8 @@ The **Actions** panel brings CI into the app:
 - **Check attestations** reports whether an attestation record is present. Presence is not presented as
   cryptographic verification: signer, signature, timestamp, source identity, and policy still need a
   future verification function.
+
+![Material workflow-run cancellation review naming the exact run, ref, actor, and commit](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-cancel.png)
 
 ![Actions artifact with digest match and attestation-presence context](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-artifacts.png)
 

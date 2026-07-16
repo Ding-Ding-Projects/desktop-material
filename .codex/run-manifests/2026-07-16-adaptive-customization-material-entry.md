@@ -16,8 +16,11 @@
   untracked OAuth run-manifest file is outside this run's allowlist and remains
   untouched throughout build, launch, capture, and cleanup.
 - Remote: `https://github.com/codingmachineedge/desktop-material.git`.
-- Required source gate: final fixed-checkout `HEAD`, `origin/main`, built source,
-  launched source, and documented source must match exactly before capture.
+- Required capture gate: fixed-checkout `HEAD`, tested code source, built source,
+  launched source, and captured source must match exactly. The documentation and
+  screenshot publication commit is created only after capture and inspection;
+  `origin/main` is then fast-forwarded to that publication commit and verified
+  separately rather than being required to match before capture.
 - Required build: through `http://127.0.0.1:8765/mcp`, run
   `npx --no-install cross-env RELEASE_CHANNEL=development
   DESKTOP_SKIP_PACKAGE=1 yarn build:prod` with a 3,600-second tool timeout and
@@ -101,6 +104,31 @@
   MCP production build; normal/compact/zoomed renderer geometry; screenshot
   asset/link gate; secret and local-path scan; remote divergence check; and
   exact-SHA CI/Pages verification through `gh`.
+- Tested code source: `c5205838dfc5ee2b7ce80ce488215a2cd903bb26`.
+  Fixed-checkout `HEAD`, build input, launched renderer, and every final capture
+  matched that source. The exact production build completed successfully in
+  147.1 seconds.
+- Completed interaction receipt: profile and repository appearance plus tab
+  styling survived restart; measured overflow moved and restored the expected
+  mounted actions; inverse close and tab arrangement preserved pin safety and
+  persisted order; normal workflow-run cancellation revalidated identity and
+  polled to a terminal state without force cancel; rebase conflict/abort restored
+  the exact original branch state without force push; Provider Triage resolved
+  the saved explicit repository-account binding on refresh/restart; Repository
+  Tools, Remote Manager, Regex Builder, and reviewed dialogs remained named,
+  reachable, vertically scrollable where required, and horizontally bounded at
+  compact and zoomed sizes.
+- Completed capture receipt:
+
+  | Capture | Dimensions | Bytes | SHA-256 |
+  | --- | ---: | ---: | --- |
+  | `material-welcome.png` | 1440×960 | 146,428 | `28f0b56ef43347fad0bbe7e0bcb824d7c3df2c39e444a022fb7145c51b6991ca` |
+  | `material-customization.png` | 1440×960 | 109,343 | `a9b1493641c69840df6467612dc6f32fa5603404ac5e9b34ac776e7399dc79db` |
+  | `material-toolbar-overflow.png` | 1440×960 | 167,132 | `67d64944736d37dd521028d55557a2bb7a9d42d8940aa8051d2ef875c5f021c5` |
+  | `material-tab-appearance-word.png` | 1440×960 | 167,878 | `4df433b6bf3b58993299032d6d19e0ded5da3acb0a37f53e6b7109686df7a569` |
+  | `material-tab-arrange.png` | 1440×960 | 160,546 | `ce6a43a088b650d14bca158d12776d8dd4dcca5bf89d3f1d52720ddefda85470` |
+  | `material-actions-cancel.png` | 1440×960 | 133,083 | `6dceb918e322b2f30ee574a51e815e32f5d4b272f250811b20202a409bec731c` |
+  | `material-rebase-review.png` | 1440×960 | 153,207 | `145c5b54320116ce41bdc0b17eb9e726a8cb0dbaf0988886011a862d8cc189de` |
 - Documentation allowlist: `README.md`, `ROADMAP.md`, `PLAN.md`,
   `MATERIAL_REDESIGN.md`, `HANDOFF.md`, `docs/README.md`, `docs/wiki/*.md`,
   `docs/process/roadmap.md` (current-plan pointer copy only), `site/index.html`,
