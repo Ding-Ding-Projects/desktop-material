@@ -9,9 +9,11 @@ historical acceptance evidence. Build, screenshot, CI, Pages, wiki, privacy,
 and cleanup receipts remain in [`HANDOFF.md`](HANDOFF.md) and the publish-mode
 [run manifests](.codex/run-manifests/).
 
-Post-M19 appearance customization, adaptive app-bar overflow, and Material
-entry-surface work is implemented in the current maintenance changeset. Its
-final integrated build, headless captures, `main`, CI, Pages, wiki, and cleanup
+Post-M19 appearance customization, adaptive app-bar overflow, Material entry
+surfaces, tab management, Actions cancellation, reviewed rebase, repository
+account propagation, OAuth scope alignment, and compact-surface corrections are
+implemented in the current maintenance changeset. Its final integrated build,
+headless interaction/capture review, `main`, CI, Pages, wiki, and cleanup
 receipts are still acceptance work; no later evidence is implied by the ledger
 below.
 
@@ -57,9 +59,16 @@ below.
 | --- | --- | --- |
 | **Active-profile appearance defaults** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | A strict versioned setting supplies 12 defaults: accent palette, surface palette, elevation, UI font, monospace font, motion, toolbar labels, toolbar density, repository-list density, tab density, tab width, and tab-close behavior. It is included in the active profile's allowlisted settings snapshot and local Git history. See `app/src/models/appearance-customization.ts`, `app/src/lib/profiles/profile-settings-registry.ts`, and `app/src/ui/preferences/appearance.tsx`. |
 | **Repository appearance inheritance** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Six allowlisted fields — accent palette, surface palette, toolbar labels, toolbar density, tab density, and tab width — can inherit the app default or override it through **Repository Settings → Appearance**. Explicit values are bounded, parsed as untrusted data, and stored only under `desktop-material.appearance` in local `.git/config`; they are not committed or shared. See `app/src/lib/appearance-customization.ts` and `app/src/ui/repository-settings/appearance.tsx`. |
-| **Per-tab backgrounds** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The existing per-tab text styles now include background color, with text/background targeting, curated and recent palettes, a custom color input, validation, persistence in the active profile, and return-to-default controls. See `app/src/models/repository-tab.ts` and `app/src/ui/repository-tabs/tab-style-editor.tsx`. |
+| **Word-style per-tab appearance** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The per-tab editor exposes bold, italic, underline, size, font family, alignment, and independent foreground/background targeting with curated/recent palettes, a custom color input, validation, persistence in the active profile, and return-to-default controls. See `app/src/models/repository-tab.ts`, `app/src/ui/repository-tabs/tab-style-editor.tsx`, and `app/styles/ui/_repository-tabs.scss`. |
 | **Measured toolbar More behavior** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The app bar measures usable width and real ellipsized label pressure, recalculates from scratch on size/copy/density changes, uses the compact footprint for Icons only, and moves Build & Run before Commit & Push. Overflowed originals stay mounted off-layout; focus follows an action across the boundary; widening or shorter copy restores controls deterministically; an open **More** surface stays stable until close. See `app/src/ui/toolbar/toolbar.tsx` and `app/src/ui/toolbar/toolbar-overflow-layout.ts`. |
 | **Material Welcome and public landing** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Welcome is a pure Material task card plus tonal workspace preview with compact and reduced-motion fallbacks. The static landing page uses a Material app bar, expressive hero surface, principle cards, screenshot evidence gallery, tonal call to action, and footer while preserving the existing static-site architecture. See `app/src/ui/welcome/`, `app/styles/ui/_welcome.scss`, and `site/`. |
+| **Guarded tab close workflows** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The original regex **Close Tabs Containing…** path remains available and now shares pinned-tab protection. The inverse **Close all tabs except those containing…** flow applies a case-insensitive literal substring across visible label, repository alias/name, and local path; an accessible Material confirmation exposes live kept/closed/protected counts and a bounded preview, and cannot confirm an empty or zero-match query. See `app/src/lib/stores/repository-tabs-store.ts` and `app/src/ui/repository-tabs/close-tabs-containing-popover.tsx`. |
+| **Pinned, manual, and one-shot tab arrangement** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | New migration-safe `isPinned` and `openedAt` tab fields preserve unknown newer data. Drag-and-drop and named Move left/right/first/last controls stay within the pinned or unpinned group. A→Z, Z→A, newest/oldest opened, **Needs attention first**, and **Clean first** are deterministic stable one-shot sorts; the resulting order persists and remains manually editable instead of reacting continuously to later status changes. See `app/src/models/repository-tab.ts`, `app/src/lib/stores/repository-tabs-store.ts`, and `app/src/ui/repository-tabs/arrange-tabs-popover.tsx`. |
+| **Actions workflow-run cancellation** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | **Cancel run** appears only for queued, in-progress, waiting, or pending runs. The confirmation identifies the exact workflow/run, ref, actor, and commit when available; the store revalidates repository/account/run identity and live status before one normal cancellation request, suppresses duplicates, treats an accepted response idempotently, and polls until cancelled or another terminal state. Provider-safe 401/403/SSO and 409/422 recovery remains explicit. See `app/src/lib/actions-workflow-runs.ts`, `app/src/lib/api.ts`, `app/src/lib/stores/actions-store.ts`, and `app/src/ui/actions/`. |
+| **Reviewed current-branch rebase** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The existing rebase engine is surfaced as a searched target-branch flow with current→target, ahead/behind context, and a bounded replay preview. Fresh preflight blocks dirty/conflicted repositories and ongoing operations, exact current/base refs and SHAs are revalidated immediately before execution, pre-start work is cancellable, conflicts reuse continue/abort, protected branches receive guidance, and Desktop never force-pushes automatically. See `app/src/lib/rebase.ts`, `app/src/ui/dispatcher/dispatcher.ts`, and `app/src/ui/multi-commit-operation/choose-branch/rebase-choose-branch-dialog.tsx`. |
+| **Provider triage account propagation** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Triage resolves the canonical `endpoint#id` binding saved by Repository Settings and reacts to repository replacement/binding updates without requiring a reopen. One usable exact provider/endpoint match may auto-bind an unassigned repository; multiple matches require a labelled **Use this account** choice; no match, stale token, permission, and organization-SSO states route to recovery. Existing explicit valid bindings are never silently replaced, and repository/account generations are revalidated before load/save. See `app/src/lib/stores/provider-triage-store.ts`, `app/src/lib/stores/app-store.ts`, and `app/src/ui/repository-tools/provider-triage.tsx`. |
+| **GitHub OAuth scope alignment** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Browser authorization requests the bounded feature scope set `repo user workflow notifications read:org`, covering repository/user operations, workflow-file updates, the GitHub inbox, and read-only organization context. The allowlist deliberately excludes delete/admin/key/package/codespace/audit/gist families. See `app/src/lib/github-oauth-scopes.ts` and `app/src/lib/api.ts`. |
+| **Compact-surface responsive corrections** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Repository Tools owns short-window vertical scrolling; Remote Manager gives name/URL/control columns usable minima and stacks before arbitrary character collapse; Regex Builder constrains itself to the renderer, reflows its category/token grid, scrolls the body, and keeps the tester/footer reachable. All three retain named controls, keyboard order, focus visibility, and no page-level horizontal overflow. See `app/styles/ui/_repository-tools.scss`, `app/styles/ui/dialogs/_repository-settings.scss`, and `app/styles/ui/_regex-builder.scss`. |
 | **Intended acceptance captures** | **PENDING** | Final inspected evidence is reserved at `docs/assets/screenshots/material-welcome.png`, `docs/assets/screenshots/material-customization.png`, and `docs/assets/screenshots/material-toolbar-overflow.png`. Dimensions, byte counts, hashes, source/build identity, and publication receipts must be recorded only after capture and inspection. |
 
 ## Additional completed product work
@@ -144,6 +153,27 @@ below.
 15. Tab foreground and background colors remain bounded by the shared color
     validator and persist with the tab model through the serialized profile
     store.
+16. Bulk tab close treats pinned tabs as protected. The inverse literal query
+    cannot degrade into close-all, and tab arrangement never crosses a pin-group
+    boundary unless the user explicitly changes pin state.
+17. Tab sorts are one-shot stable mutations. Status changes do not continuously
+    reorder the strip, and persisted `openedAt`/order data remains migration-safe
+    and isolated by account/window scope.
+18. Actions cancellation is exact repository/account/run-bound, revalidates
+    status before POST, sends no force-cancel from the primary action, and
+    deduplicates an in-flight request before polling the terminal state.
+19. Rebase revalidates the current and base refs immediately before mutation,
+    refuses dirty/conflicted/ongoing-operation state, and never performs an
+    automatic force push.
+20. A valid explicit repository-account binding is authoritative. Provider
+    views may auto-bind only an unassigned repository with one usable exact
+    endpoint match; every save/load remains repository/account-generation-safe.
+21. GitHub OAuth scopes remain a reviewed feature allowlist. Adding an app
+    feature does not implicitly authorize destructive or unrelated
+    administrative scope families.
+22. Task surfaces use vertical scrolling and responsive stacking before text or
+    controls collapse. Page-level horizontal scrolling is not a fallback for
+    Repository Tools, Remote Manager, Regex Builder, or confirmation dialogs.
 
 ## M19 accepted app-source evidence
 

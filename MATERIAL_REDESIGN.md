@@ -35,6 +35,19 @@ Migration must preserve existing users:
    unambiguous.
 4. Ask once when multiple accounts match, then remember the selection.
 
+Repository-bound provider surfaces consume that same canonical account key;
+they do not maintain a second selection. An unassigned repository may bind
+automatically only when exactly one signed-in, token-bearing account matches the
+provider and endpoint. Multiple matches require a labelled choice, no match
+routes to sign-in/account management, and stale credentials or organization SSO
+route to reauthorization. A valid explicit binding is never silently replaced,
+and repository/account generation is rechecked before provider data loads.
+
+GitHub browser authorization uses a reviewed feature allowlist: `repo`, `user`,
+`workflow`, `notifications`, and `read:org`. It excludes unrelated destructive
+and administrative scope families; credentials remain outside renderer state,
+repository configuration, profile history, logs, and screenshots.
+
 ## Appearance customization contract
 
 App-wide customization is profile-scoped. **Settings → Appearance** exposes 12
@@ -56,6 +69,16 @@ independent text and background colors. Both targets support curated palettes,
 recent colors, a custom color picker, validation, and return to the Material
 default.
 
+The tab strip also follows a guarded organization contract. Pinned tabs form a
+protected leading group. The existing regex **Close Tabs Containing…** action
+and the inverse literal **Close all tabs except those containing…** action both
+preserve pinned tabs; the inverse exposes live counts and a bounded preview and
+cannot confirm an empty or zero-match query. Manual drag and named keyboard
+move actions stay within the current pin group. Label, opened-date, and
+repository-status sorts are stable one-shot mutations whose persisted result
+remains manually editable instead of continuously reacting to later status
+changes.
+
 ## Adaptive Material app bar
 
 The app bar measures its usable lane and the real overflow pressure of labels
@@ -69,6 +92,28 @@ Commit & Push. The original controls remain mounted off-layout so subscriptions
 and in-flight state survive. Focus follows an action across the overflow
 boundary, widening or shorter copy restores controls deterministically, and an
 open **More** surface remains stable until the user closes it.
+
+## Reviewed operations and compact task surfaces
+
+Material confirmation is part of the safety model, not decoration. Workflow
+run cancellation names the exact run and relevant ref/actor/commit context,
+revalidates repository/account/run identity and cancellable status, prevents a
+duplicate submission, and keeps progress plus recovery guidance in a live
+status region. Only normal cancellation appears in the primary flow.
+
+The reviewed rebase surface searches target branches and shows the current→base
+relationship, ahead/behind state, and a bounded replay preview. It blocks dirty,
+conflicted, or ongoing-operation states, revalidates both refs immediately
+before Git starts, offers cancellation before mutation, and enters the existing
+continue/abort conflict workflow when necessary. Desktop Material never
+force-pushes automatically.
+
+Every task surface owns its available height and narrows through readable
+stacking before content collapses. Repository Tools scrolls vertically at short
+heights; Remote Manager preserves usable field/control widths and stacks its
+rows before arbitrary character wrapping; Regex Builder reflows its
+category/token layout and scrolls the body while keeping its tester and footer
+reachable. Horizontal page scrolling is not an acceptable compact fallback.
 
 ## Material entry surfaces
 

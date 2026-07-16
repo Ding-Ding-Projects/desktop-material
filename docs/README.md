@@ -18,10 +18,21 @@ this fork.
 
 The current customization work includes 12 active-profile appearance defaults
 in local Git-backed history, six repository-local overrides with app-default
-inheritance, and profile-backed per-tab background colors. The measured app bar
-moves Build & Run and then Commit & Push into **More** before clipping and
-restores those mounted actions as space returns. The pure Material Welcome and
-landing redesigns share the same token and surface language.
+inheritance, and Word-style profile-backed per-tab typography with independent
+text/background colors. The measured app bar moves Build & Run and then Commit
+& Push into **More** before clipping and restores those mounted actions as space
+returns. The pure Material Welcome and landing redesigns share the same token
+and surface language.
+
+The same maintenance release adds pinned/manual/one-shot tab arrangement,
+preserves the original regex close action, and adds a guarded literal
+close-everything-except match with live counts and preview. It also completes
+exact workflow-run cancellation, reviewed current-branch rebase, and immediate
+Provider Triage propagation of the repository account selected in settings;
+aligns GitHub OAuth with the bounded feature scopes; and corrects compact-height
+scrolling/reflow in Repository Tools, Remote Manager, and Regex Builder. These
+items are implemented, but their integrated build, off-screen UI, `main`, CI,
+Pages, and wiki receipts remain final acceptance work.
 
 The intended acceptance captures are
 [`material-welcome.png`](assets/screenshots/material-welcome.png),

@@ -9,6 +9,12 @@ has three power tools:
 
 An **invalid pattern outlines the field in red** and filters nothing until fixed.
 
+At compact or zoomed viewport sizes, the builder stacks its category and
+building-block areas before cards clip. The dialog stays inside the renderer,
+its body scrolls vertically, and the live tester plus footer actions remain
+reachable without page-level horizontal scrolling. `Escape` dismisses the
+builder and returns focus to the control that opened it.
+
 ## How matching works
 
 A regular expression is a tiny program that scans text one character at a time, left to right.

@@ -84,6 +84,10 @@ settings:
   `settings.json`, and described as an appearance-customization change in Git history.
 - Per-tab title/background styling is written with the tab to `tabs.json`; the bounded recent-color
   list is another allowlisted profile setting.
+- Optional `isPinned` and `openedAt` values share that serialized tab model. Missing legacy values
+  keep migration-safe defaults and profile serialization preserves unknown newer fields. Close and
+  arrange mutations must use `RepositoryTabsStore` so they remain ordered on the same profile queue
+  and isolated by account/window scope.
 
 Because these are real git repos, the audit trail and restore semantics come "for free" from Git
 rather than from a bespoke persistence format. When adding data that should be versioned per account,
@@ -118,9 +122,13 @@ See [Agent API](Agent-API) for connection steps, command names, and the security
 
 ---
 
-## Shipped feature subsystems
+## Feature subsystems
 
 These features follow the same Store/Dispatcher rule rather than creating parallel state paths:
+
+The current maintenance additions in this section are implemented but remain subject to their
+integrated production/headless/publication gate. Historical gallery references do not imply that
+new acceptance has already completed.
 
 The [Guided Feature Gallery](Feature-Gallery) is the documentation manifest for the synthetic
 acceptance views associated with these subsystems. Keep captures free of personal paths, account
@@ -131,6 +139,8 @@ does not replace exact-source build, CI, public publication, release, or cleanup
   `app/src/lib/stores/accounts-store.ts`; provider credentials are modelled in the account/auth
   layer; `app/src/ui/clone-repository/` merges personal and organization repositories and hosts the
   GitLab/Bitbucket browser; publish ownership is selected in `app/src/ui/publish-repository/`.
+  `app/src/lib/github-oauth-scopes.ts` is the reviewed GitHub browser-authorization allowlist; keep
+  feature scope additions explicit and never infer destructive/admin families.
 - **Appearance and adaptive Material shell** —
   `app/src/models/appearance-customization.ts` owns the strict versioned model for the 12 profile
   defaults: accent palette, surface palette, elevation, interface font, monospace font, motion,
@@ -141,6 +151,13 @@ does not replace exact-source build, CI, public publication, release, or cleanup
   the width/priority calculation pure while `toolbar.tsx` owns ResizeObserver, More-surface focus,
   and restoration. The first-run React surface lives in `app/src/ui/welcome/` and retains the
   existing sign-in/configure-Git state machine beneath the Material presentation.
+- **Repository tab actions** — `app/src/lib/stores/repository-tabs-store.ts` owns pinned protection,
+  literal inverse-close matching, pin-constrained moves, and stable one-shot sorts.
+  `app/src/ui/repository-tabs/close-tabs-containing-popover.tsx` keeps the original regex close and
+  inverse close behind review/count/preview semantics;
+  `app/src/ui/repository-tabs/arrange-tabs-popover.tsx` owns drag, labelled keyboard moves, pin
+  changes, live announcements, and focus return. Never let an empty or zero-match inverse query
+  become close-all, move across a pin boundary implicitly, or continuously sort on status updates.
 - **Automation** — typed settings and safety predicates live in `app/src/lib/automation/`, the
   scheduler is `app/src/lib/stores/helpers/automation-scheduler.ts`, global/account controls are in
   `app/src/ui/preferences/automation.tsx`, repository overrides are in
@@ -151,14 +168,20 @@ does not replace exact-source build, CI, public publication, release, or cleanup
   `app/src/lib/actions-log-parser/` parses log markup without coupling it to React.
   `app/src/lib/actions-artifacts.ts` and `app/src/lib/actions-branch-rules.ts` own bounded artifact
   and effective-rule projections; transfer code must keep redirect credentials stripped and stale
-  account/repository generations cancelable.
+  account/repository generations cancelable. `app/src/lib/actions-workflow-runs.ts` is the bounded
+  cancellable/terminal status contract. Cancellation must GET/revalidate the exact
+  repository/account/run immediately before one normal POST, deduplicate in-flight submission, and
+  poll a terminal state; do not surface force-cancel as the primary action.
 - **Guided Git administration** — named Repository Tools panels live in
   `app/src/ui/repository-tools/`; bounded models and operations live in
   `app/src/lib/git/format-patch.ts`, `app/src/lib/git/structured-commit-rewrite.ts`,
   `app/src/lib/repository-signing.ts`, `app/src/lib/repository-lfs.ts`,
   `app/src/lib/repository-bisect.ts`, and `app/src/lib/hooks/repository-hooks-manager.ts`. Preserve
   review fingerprints, exact source/destination identity checks, and cancel/uncertain boundaries;
-  never turn this layer into a raw command editor.
+  never turn this layer into a raw command editor. Current-branch rebase continues to use
+  `app/src/lib/rebase.ts` and the existing multi-commit conflict state; the chooser adds only
+  searched target selection, bounded preview, fresh dirty/conflict/operation checks, and exact ref
+  revalidation. No code path may infer or perform an automatic force push.
 - **GitHub lifecycle workspaces** — pull-request state lives in
   `app/src/lib/stores/pull-request-lifecycle-store.ts`; Releases and Issues use their dedicated
   stores under `app/src/lib/stores/` and views under `app/src/ui/github-releases/` and
@@ -167,8 +190,12 @@ does not replace exact-source build, CI, public publication, release, or cleanup
 - **Provider-neutral triage** — `app/src/lib/provider-triage.ts` contains provider adapters,
   `app/src/lib/provider-triage-json.ts` validates bounded projections,
   `app/src/lib/stores/provider-triage-store.ts` owns cancelable account/repository generations, and
-  `app/src/ui/repository-tools/provider-triage.tsx` renders safe neutral states. Do not retain raw
-  provider payloads, tokens, or repository paths in the store.
+  `app/src/ui/repository-tools/provider-triage.tsx` renders safe neutral states. The store resolves
+  the same canonical `endpoint#id` persisted by Repository Settings and subscribes to repository
+  replacement/binding changes; unique-match auto-bind is valid only for an unassigned repository,
+  while multiple matches require an explicit save. Revalidate generations before data load/save,
+  never overwrite a valid explicit binding, and do not retain raw provider payloads, tokens, or
+  repository paths in the store.
 - **History search and graph** — the pure matching helper is `app/src/lib/commit-search.ts`; the
   lane model and renderer are `app/src/ui/history/commit-graph-model.ts` and
   `app/src/ui/history/commit-graph.tsx`. Keep graph construction independent from filtered list row
@@ -178,7 +205,9 @@ does not replace exact-source build, CI, public publication, release, or cleanup
   `app/src/lib/git/worktree.ts`; the complete manager surfaces live in `app/src/ui/stashing/`,
   `app/src/ui/repository-settings/remote.tsx`, and `app/src/ui/worktrees/`.
   `app/src/lib/branch-visibility.ts` owns persisted pin/hide/solo state. Mutations must revalidate the
-  exact reviewed identity and leave partial/uncertain results explicit.
+  exact reviewed identity and leave partial/uncertain results explicit. Remote Manager styling
+  lives in `app/styles/ui/dialogs/_repository-settings.scss`; preserve usable field/control minima,
+  limit arbitrary wrapping to long names/URLs, and stack before semantic columns collapse.
 - **Multi-window and CLI routing** — `app/src/main-process/window-routing.ts` chooses a destination
   window, `app/src/main-process/app-window.ts` owns each native window, and
   `app/src/lib/window-scope.ts` plus `app/src/lib/profiles/profile-tabs-file.ts` keep tab state
@@ -209,6 +238,11 @@ The Material Design 3 look is built from a layered SCSS system under `app/styles
   Material first-run composition and measured More-action layout. Keep moved toolbar actions
   mounted but out of layout so their state survives; preserve the compact-window and reduced-motion
   fallbacks.
+- **`app/styles/ui/_repository-tools.scss`**, **`app/styles/ui/dialogs/_repository-settings.scss`**,
+  and **`app/styles/ui/_regex-builder.scss`** — own the compact-height vertical scroll chain,
+  readable Remote Manager grid-to-stack threshold, and viewport-bounded Regex Builder reflow.
+  Apply `min-width: 0` through the actual flex/grid ancestry, keep named controls and keyboard order,
+  and reserve horizontal scrolling for genuinely spatial content rather than task-page recovery.
 
 Rule of thumb: **never hard-code a color** — reference an M3 token so light/dark theming and future
 palette changes stay consistent. New component styling goes in a `ui/` partial that consumes

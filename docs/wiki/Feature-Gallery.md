@@ -8,6 +8,14 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 > pagination evidence and the current Pages accessibility/clipping gate. Final source, CI, Pages,
 > wiki, and push receipts remain recorded in `HANDOFF.md` after verification.
 
+The current customization maintenance release adds guarded tab close/arrange,
+Actions cancellation, reviewed rebase, repository-account propagation, OAuth
+scope alignment, and compact Repository Tools/Remote Manager/Regex Builder
+corrections. Those implementations are described below, but no new asset name,
+capture receipt, or acceptance claim is added before the integrated off-screen
+review. The 47-image manifest and its existing references therefore remain
+unchanged.
+
 | Asset | Guided workflow shown |
 | --- | --- |
 | `material-welcome.png` | Material first-run task card and responsive workspace preview |
@@ -72,6 +80,13 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 
 ## Repository administration
 
+The current Remote Manager layout preserves readable semantic columns and
+stacks a row before its name, fetch/push URLs, or controls collapse. Repository
+Tools owns short-window vertical scrolling so Diagnostics and later results stay
+reachable. The reviewed current-branch rebase uses searched target selection,
+ahead/behind context, a bounded commit preview, fresh safety/ref checks, and the
+existing conflict continue/abort path; it never force-pushes automatically.
+
 ![Reviewed named-remote administration](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
 ![Repository-wide stash manager with an exact selected entry](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-stash-manager.png)
@@ -83,6 +98,13 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 ![Full-history state after a verified deepen](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-deepening.png)
 
 ## GitHub lifecycle
+
+For queued, running, waiting, or pending workflow runs, the current Actions
+surface adds an exact-run cancellation review with available ref/actor/commit
+context. Repository/account/run identity and live status are revalidated before
+one normal cancel request, duplicate submission is suppressed, and polling
+continues to a terminal state with explicit authentication, SSO, and conflict
+recovery.
 
 ![Native pull-request creation with bounded metadata](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-native-pull-request.png)
 
@@ -118,9 +140,25 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 
 ## Provider triage
 
+Provider Triage now consumes the canonical repository-account key saved by
+Repository Settings and reacts to binding changes without reopening the
+repository. Unique exact matches may bind only an unassigned repository;
+multiple matches require **Use this account**, and signed-out, permission, or
+organization-SSO states do not masquerade as unbound. GitHub browser sign-in
+uses the bounded `repo user workflow notifications read:org` feature scopes and
+excludes unrelated destructive/admin families.
+
 ![Account- and repository-bound provider triage with bounded results](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-provider-triage.png)
 
 ## Customization, welcome, and adaptive toolbar
+
+The Word-style per-tab appearance surface combines typography, alignment, and
+independent text/background palettes. The original regex close action remains;
+the inverse literal close flow adds live counts/preview and cannot confirm empty
+or zero-match input. Pinned/manual/keyboard arrangement plus stable one-shot
+label/opened/status sorts persist without continuously reacting to later status
+changes. App/profile appearance inheritance and measured toolbar overflow remain
+as described by the three existing images below.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
@@ -145,6 +183,10 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 ![Exact-size responsive overflow regression proof](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-responsive-overflow-fixed.png)
 
 ## Search, history, accounts, and automation
+
+At compact and zoomed sizes, Regex Builder reflows the category/token layout,
+scrolls its body vertically, and keeps its live tester and footer actions
+reachable without page-level horizontal clipping.
 
 ![Block-based regular expression builder and live tester](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/regex-builder.png)
 

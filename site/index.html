@@ -313,7 +313,10 @@
             The core shell and named Git/GitHub workflows are published on
             <code>main</code>. Cards marked <strong>Verified on main</strong>
             have passed the exact production UI gate and are represented in the
-            current screenshot gallery.
+            current screenshot gallery. Cards marked
+            <strong>RC</strong> are implemented in the current maintenance set;
+            their integrated production, off-screen, publication, and
+            <code>main</code> acceptance remains pending.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -335,7 +338,7 @@
                   <use href="#icon-sparkle"></use>
                 </svg>
               </div>
-              <h3>Material first run <span class="tag">New</span></h3>
+              <h3>Material first run <span class="tag">RC</span></h3>
               <p>
                 A focused Material welcome keeps GitHub.com, Enterprise, and
                 local-only setup inside one responsive task card, with a tonal
@@ -347,7 +350,8 @@
               <div class="glyph" aria-hidden="true">
                 <svg class="material-icon"><use href="#icon-tune"></use></svg>
               </div>
-              <h3>Scope-aware appearance <span class="tag">New</span></h3>
+              <!-- prettier-ignore -->
+              <h3>Scope-aware appearance <span class="tag">RC</span></h3>
               <p>
                 Tune accent, surface, depth, interface and code fonts, motion,
                 toolbar labels and density, repository-list density, tab density
@@ -361,7 +365,7 @@
               <div class="glyph" aria-hidden="true">
                 <svg class="material-icon"><use href="#icon-more"></use></svg>
               </div>
-              <h3>Adaptive toolbar <span class="tag">New</span></h3>
+              <h3>Adaptive toolbar <span class="tag">RC</span></h3>
               <p>
                 When the app bar tightens, Build &amp; Run moves into More
                 first, followed by Commit &amp; Push. Widening the window
@@ -387,11 +391,31 @@
               <div class="glyph" aria-hidden="true">
                 <svg class="material-icon"><use href="#icon-tabs"></use></svg>
               </div>
-              <h3>Browser-like repo tabs</h3>
+              <h3>
+                Browser-like repo tabs
+                <span class="tag">RC</span>
+              </h3>
               <p>
-                Tabs bound per-account to repositories, with inline rename and
-                per-tab title styling — bold, italic, size, font, alignment,
-                plus separate text and background palettes or custom colours.
+                Tabs bound per-account to repositories, with inline rename and a
+                Word-style appearance editor — bold, italic, underline, size,
+                font, alignment, plus separate text and background palettes or
+                custom colours.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-tabs"></use></svg>
+              </div>
+              <h3>
+                Guarded tab control
+                <span class="tag">RC</span>
+              </h3>
+              <p>
+                Keep the regex close action or review a safe literal
+                close-everything-except query with counts and preview. Pin tabs,
+                drag or move them by keyboard, and apply persistent one-shot
+                label, opened-date, or repository-status ordering.
               </p>
             </article>
 
@@ -484,7 +508,9 @@
               <p>
                 Filter chips, substring/regex modes, and a full regex builder,
                 plus History search by title, message, tag, or hash and an
-                optional commit ancestry graph.
+                optional commit ancestry graph. The builder reflows and scrolls
+                vertically at compact or zoomed sizes while its tester and
+                footer remain reachable.
               </p>
             </article>
 
@@ -545,6 +571,39 @@
 
             <article class="card">
               <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-play"></use></svg>
+              </div>
+              <h3>
+                Guarded run cancellation
+                <span class="tag">RC</span>
+              </h3>
+              <p>
+                Cancel only queued, running, waiting, or pending runs after an
+                exact workflow/run review. Repository, account, run, and live
+                status are revalidated before one normal request, duplicate
+                submission is blocked, and refresh continues to a terminal
+                state.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-merge"></use></svg>
+              </div>
+              <h3>
+                Reviewed current-branch rebase
+                <span class="tag">RC</span>
+              </h3>
+              <p>
+                Search a target, review current-to-base and ahead/behind context
+                with a bounded commit preview, then revalidate repository state
+                and exact refs before Git starts. Conflicts keep continue/abort;
+                force push is never automatic.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
                 <svg class="material-icon"><use href="#icon-merge"></use></svg>
               </div>
               <h3>
@@ -591,7 +650,9 @@
               <p>
                 Use multiple GitHub identities, self-hosted GitLab endpoints
                 with PATs, and Bitbucket app passwords; browse and clone each
-                provider's repositories without exposing credentials.
+                provider's repositories without exposing credentials. GitHub
+                browser sign-in uses the bounded repository, user, workflow,
+                notifications, and read-only organization feature scopes.
               </p>
             </article>
 
@@ -600,13 +661,33 @@
                 <svg class="material-icon"><use href="#icon-link"></use></svg>
               </div>
               <h3>
-                Provider-neutral triage <span class="tag">Integrated</span>
+                Provider-neutral triage
+                <span class="tag">RC</span>
               </h3>
               <p>
-                Triage bounded Issue and pull-request summaries for the exact
-                GitHub, GitLab, or Bitbucket account and repository, with safe
-                links and explicit unsupported, partial, capped, and error
-                states.
+                Use the exact repository-account binding selected in settings,
+                propagate changes without reopening, auto-bind only one valid
+                match, and require a labelled choice when several accounts
+                match. Re-authentication, permission, and organization-SSO
+                recovery stay distinct from unassigned state.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon">
+                  <use href="#icon-toolbox"></use>
+                </svg>
+              </div>
+              <h3>
+                Compact task surfaces
+                <span class="tag">RC</span>
+              </h3>
+              <p>
+                Repository Tools keeps diagnostics reachable at short heights,
+                Remote Manager protects readable name, URL, and control widths
+                before stacking, and Regex Builder reflows without page-level
+                horizontal clipping.
               </p>
             </article>
 

@@ -6,9 +6,11 @@ focuses on what Desktop Material adds on top.
 
 **Feature guide**
 
-The complete M0–M19 roadmap is published on `main`. This guide also covers the adaptive appearance
-and Material entry-surface release; exact build, off-screen UI, publication, and cleanup receipts
-are recorded in the repository's `HANDOFF.md` as each release is verified.
+The complete M0–M19 roadmap is published on `main`. This guide also covers the current maintenance
+release: adaptive appearance and Material entry surfaces, guarded tab management, workflow-run
+cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, and compact
+surface corrections. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
+the repository's `HANDOFF.md` only as each release is verified.
 
 - [The shell](#the-shell)
 - [Material first run](#material-first-run)
@@ -84,6 +86,11 @@ GitHub.com accounts, or a work and a personal GitHub Enterprise identity side by
 Each account keeps its **own tabs, repositories, and settings**. Switching the active account
 switches the whole workspace to that identity's context.
 
+GitHub browser sign-in requests only the feature scopes used by Desktop Material: repository/user
+access, workflow-file updates, notifications, and read-only organization membership. It does not
+request unrelated repository deletion, administrative key, package, codespace, audit, or gist
+scope families.
+
 ### Add a self-hosted GitLab account
 
 Desktop Material signs in to self-hosted GitLab with an **endpoint + personal access token (PAT)**
@@ -108,6 +115,19 @@ list and adds filter chips. Select an organization to browse its complete reposi
 organization fails to load, the view reports that error without hiding the repositories already
 available. The publish dialog uses the same organization list, so choose the owner before creating
 the remote repository.
+
+### Assign an account to a repository
+
+Repository-bound provider features use **Repository settings → Repository account** as their one
+source of truth. If Provider Triage opens while the repository is unassigned, Desktop Material
+automatically uses the account only when exactly one signed-in identity matches the provider and
+endpoint. With multiple matches, choose a labelled account and select **Use this account**; this
+prevents cross-account API calls. With no match, use **Sign in** or **Manage accounts**.
+
+If the saved account has been signed out, lost permission, or needs organization SSO, the tool asks
+you to re-authenticate or authorize SSO instead of claiming the repository is unassigned. Changing
+the account in Repository Settings propagates to Provider Triage immediately; an existing valid
+explicit binding is never silently replaced.
 
 ---
 
@@ -148,6 +168,33 @@ tell them apart at a glance.
 > Tab layout and styling are part of your per-account settings, so every change **auto-commits** to
 > that account's local settings repo. Open **Edit → Settings History…** or press `Ctrl+Alt+Z` if
 > you ever need to inspect, undo, redo, or restore an earlier state.
+
+### Close matching tabs safely
+
+The tab-strip menu keeps both directions explicit:
+
+- **Close Tabs Containing…** uses the existing regular-expression workflow to close matching tabs.
+- **Close all tabs except those containing…** keeps tabs whose visible label, repository alias/name,
+  or local path contains a case-insensitive literal query. Review the live kept, closed, and pinned
+  counts plus the bounded preview before confirming. Empty input and a query with zero matches
+  cannot confirm, so this action cannot accidentally become close-all.
+
+Pinned tabs are protected in both bulk-close directions. Unpin one explicitly before including it
+in a bulk close.
+
+### Pin and arrange tabs
+
+Use a tab's context menu to **Pin tab**. The pinned group stays before unpinned tabs. Open
+**Arrange tabs** to:
+
+- drag a tab within its current pin group;
+- use the named **Move left**, **Move right**, **Move first**, and **Move last** keyboard actions;
+- apply one-shot **A to Z**, **Z to A**, **Newest opened**, **Oldest opened**,
+  **Needs attention first**, or **Clean first** ordering.
+
+Each sort is a one-time edit: later repository-status changes do not reshuffle the strip. The saved
+order remains manually editable and restores with the account/window tab state. Pin or unpin a tab
+explicitly before moving it across the group boundary.
 
 ---
 
@@ -248,6 +295,10 @@ The multi-clone window clones **many repositories in one pass**.
 
 ![Block-based regex builder with live repository-name testing](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/regex-builder.png)
 
+On a compact or zoomed viewport, the builder stacks its category and building-block areas before
+cards clip. Its body scrolls vertically while the live tester and footer actions remain reachable;
+the dialog does not require page-level horizontal scrolling.
+
 ### Export / import repo lists
 
 - **Export** writes the selected repositories to a list file containing **URLs only** — no tokens,
@@ -306,6 +357,19 @@ disabled state below leaves all working-tree paths eligible to appear locally.
 These forms wrap labels and stack actions as space narrows. Page-level sideways scrolling is not
 part of the workflow; only inherently spatial content such as code, diffs, and logs may scroll
 horizontally when preserving columns is necessary.
+
+### Rebase the current branch
+
+Open **Branch → Rebase current branch…**, then search for and select the target/base branch. The
+review shows the current→target relationship, ahead/behind context, and a bounded preview of commits
+that would be replayed.
+
+Before Git starts, Desktop Material refreshes repository state and blocks unresolved conflicts,
+dirty changes, and another ongoing operation. It also revalidates the exact current and target refs,
+so a stale branch picker cannot launch a different rebase. You can cancel while that preflight is
+running. If Git reports conflicts after start, resolve them through the existing continue/abort
+flow. Protected branches receive explicit guidance, and the app never force-pushes automatically;
+review any later force-with-lease decision separately.
 
 ### Create a pull request
 
@@ -380,6 +444,12 @@ The **Actions** panel brings CI into the app:
   **Load more runs**; already loaded pages remain visible across background polling and **Refresh**.
 - **Filters** by **workflow**, **status**, **branch**, and **event**.
 - **Re-run** a whole run or **re-run only the failed jobs**.
+- For a run that is queued, running, waiting, or pending, choose **Cancel run**. The Material review
+  names the workflow and run number plus its branch/ref, actor, and commit when GitHub supplied
+  them. Desktop Material revalidates the selected repository/account/run and live cancellable state
+  immediately before one normal cancel request, disables duplicate submission, and refreshes until
+  GitHub reports cancelled or another terminal state. Authentication/SSO and stale/conflict errors
+  keep specific recovery guidance visible; force-cancel is not the primary action.
 - Drill into a run, choose the **current or a historical attempt**, and use **Load more jobs** to
   append the next bounded 50-job page. A failed later page keeps the jobs already loaded and offers
   the same named retry. Every loaded job retains its exact **View logs** and **Re-run job** actions.
@@ -419,7 +489,7 @@ The **Actions** panel brings CI into the app:
 
 ![Pending Actions deployment environments with long reviewer and protection details](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-pending-deployments.png)
 
-The production gates exercised 50→51 filtered runs, 30→31 artifacts, and current/historical 50→51
+The historical M0–M19 production gates exercised 50→51 filtered runs, 30→31 artifacts, and current/historical 50→51
 job pages, including a deliberate later-page 503→200 retry. Exact job log/re-run, deployment review,
 and fork approval mutations ran only against the isolated provider. At regular and short windows
 plus a requested 200% base with auto-fit, document and body widths matched and the measured Actions
@@ -536,8 +606,13 @@ list.
   and restore branch visibility from branch context and filtered-state controls.
 - Set a repository-specific external editor when the global editor is not appropriate.
 - Manage every named remote in **Repository settings → Remote**, and administer add/move/rename/
-  lock/repair/remove/prune worktree operations from the Worktrees view.
+  lock/repair/remove/prune worktree operations from the Worktrees view. Remote names and URLs wrap
+  only when genuinely long; before a field/control column becomes unreadable, each row changes to a
+  single-column layout with fetch/push controls and actions in keyboard order.
 - Use the `.gitignore` manager and one-click Build & Run for project-aware cleanup and execution. Build & Run discovers common nested projects across Node, Deno, Rust, Go, .NET, Python, JVM, PHP, Ruby, Swift, Dart/Flutter, Elixir, Scala, Haskell, Zig, Make, and CMake; choose a profile by its displayed project folder when several projects share a language or toolchain.
+
+At compact heights, the Repository Tools workspace itself scrolls vertically so the Diagnostics
+section, results, and later actions remain reachable without a horizontal page scrollbar.
 
 SSH and non-authentication failures never start account fallback. The selected stable account key
 stays in the app's internal trampoline map; its selector field is removed from the Git options

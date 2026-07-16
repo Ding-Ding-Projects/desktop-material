@@ -15,9 +15,11 @@ repository. The completed parity roadmap turns audited Git, `gh`, REST, and Grap
 into named app functions rather than a searchable command or endpoint catalogue.
 
 > **Status:** Desktop Material is in **active development**, with the complete M0–M19 roadmap
-> published on `main`. The implementation ledger and acceptance receipts are maintained in
-> [`PLAN.md`](https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md) and
-> [`HANDOFF.md`](https://github.com/codingmachineedge/desktop-material/blob/main/HANDOFF.md).
+> published on `main`. The post-M19 customization maintenance set is implemented in the current
+> release candidate; its integrated build, off-screen interaction review, publication, and `main`
+> promotion remain pending. The implementation ledger and completed acceptance receipts are
+> maintained in [`PLAN.md`](https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md)
+> and [`HANDOFF.md`](https://github.com/codingmachineedge/desktop-material/blob/main/HANDOFF.md).
 
 ![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
 
@@ -36,7 +38,11 @@ into named app functions rather than a searchable command or endpoint catalogue.
 
 ---
 
-## Available and production-verified
+## Available product scope
+
+The M0–M19 portions below have their existing production receipts. Post-M19
+maintenance extensions are described separately and do not borrow those older
+receipts as acceptance evidence.
 
 - **Material Design 3 Expressive shell** with animated light/dark theming and M3 color tokens: an
   app bar with an inline pill menu, a left icon navigation rail (Changes with a badge, History,
@@ -47,7 +53,7 @@ into named app functions rather than a searchable command or endpoint catalogue.
   their labels can clip.
 - **Browser-like repository tabs** — per-account and bound to repos, with inline rename and
   per-tab title styling (bold/italic/underline, size, font family, alignment, and separate text and
-  background palettes or custom colors).
+  background palettes or custom colors) in a Word-style editing surface.
 - **Multi-account** — multiple identities per host; each account carries its own tabs, repos, and
   settings. GitHub organizations expose their complete repository lists and can be selected when
   publishing. GitLab endpoints use PAT authentication and Bitbucket uses app passwords; both
@@ -105,7 +111,35 @@ the tonal workspace preview hides when a compact window needs the space.
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
 
-### Verified native Git and GitHub functions
+### Current maintenance extensions — final acceptance pending
+
+- **Guarded tab close and arrangement** — preserve the original regex **Close Tabs Containing…**
+  action and add a case-insensitive literal **Close all tabs except those containing…** review with
+  live kept/closed/protected counts, a bounded preview, and empty/zero-match protection. Pinned tabs
+  form a protected leading group; drag, keyboard moves, and stable one-shot label/opened/status
+  sorts persist the resulting order without continuously reacting to later status changes.
+- **Actions cancellation** — show **Cancel run** only for queued, running, waiting, or pending runs;
+  name the exact workflow/run and available ref/actor/commit context; revalidate repository,
+  account, run, and live status before one normal cancellation request; suppress duplicates; then
+  refresh until a terminal state with explicit authentication, SSO, or conflict recovery.
+- **Reviewed rebase** — search a target branch, review current→target with ahead/behind state and a
+  bounded replay preview, and run only after fresh dirty/conflict/operation and exact-ref checks.
+  Cancellation remains available before mutation, conflicts reuse continue/abort, and Desktop
+  Material never force-pushes automatically.
+- **Repository account propagation** — Provider Triage reads the exact account saved in Repository
+  Settings and reacts immediately when that binding changes. One usable exact provider/endpoint
+  match may bind an unassigned repository; multiple matches require **Use this account**; signed-out,
+  stale, permission, and organization-SSO states route to recovery without silently replacing a
+  valid explicit binding.
+- **Bounded GitHub sign-in scopes** — request `repo`, `user`, `workflow`, `notifications`, and
+  `read:org` for implemented repository, workflow-file, inbox, and read-only organization features,
+  while excluding unrelated destructive and administrative scope families.
+- **Compact responsive corrections** — Repository Tools scrolls to its diagnostics/results at short
+  heights; Remote Manager protects readable name/URL/control widths before stacking; Regex Builder
+  reflows its category/token grid and scrolls its body while keeping the tester and footer
+  reachable, without page-level horizontal clipping.
+
+### Production-verified M0–M19 native Git and GitHub functions
 
 - **Deepen shallow history** — Repository Tools detects the shallow boundary, reviews a bounded or
   complete deepen, runs the bundled Git recipe, and rechecks the repository state. The production
