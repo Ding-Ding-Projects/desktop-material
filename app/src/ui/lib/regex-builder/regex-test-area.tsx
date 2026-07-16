@@ -127,7 +127,11 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
       empty: !invalid && count === 0,
     })
 
-    return <span className={className}>{label}</span>
+    return (
+      <span className={className} aria-live="polite">
+        {label}
+      </span>
+    )
   }
 
   private onSampleChanged = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -145,6 +149,7 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
         </div>
         <textarea
           className="regex-test-sample"
+          aria-label="Sample text for testing the regular expression"
           rows={2}
           spellCheck={false}
           value={this.props.sample}

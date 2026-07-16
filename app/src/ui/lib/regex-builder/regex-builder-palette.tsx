@@ -113,8 +113,10 @@ class RegexCategoryTab extends React.Component<IRegexCategoryTabProps> {
     const { name, selected } = this.props
     return (
       <button
+        id={`regex-builder-category-${this.props.index}`}
         role="tab"
         aria-selected={selected}
+        aria-controls="regex-builder-token-list"
         className={
           selected
             ? 'regex-builder-category selected'
@@ -160,7 +162,11 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
 
     return (
       <div className="regex-builder-palette">
-        <div className="regex-builder-categories" role="tablist">
+        <div
+          className="regex-builder-categories"
+          role="tablist"
+          aria-label="Regular expression building-block categories"
+        >
           {categories.map((category, index) => (
             <RegexCategoryTab
               key={category.name}
@@ -171,7 +177,12 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
             />
           ))}
         </div>
-        <div className="regex-builder-tokens">
+        <div
+          id="regex-builder-token-list"
+          className="regex-builder-tokens"
+          role="tabpanel"
+          aria-labelledby={`regex-builder-category-${activeCategory}`}
+        >
           {active.tokens.map(t => (
             <RegexTokenChip
               key={t.token}

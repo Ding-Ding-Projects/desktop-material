@@ -116,11 +116,13 @@ export class RegexBuilder extends React.Component<
 
   public componentDidMount = () => {
     window.addEventListener('resize', this.scheduleKeepOnScreen)
+    window.addEventListener('keydown', this.onWindowKeyDown)
     this.scheduleKeepOnScreen()
   }
 
   public componentWillUnmount = () => {
     window.removeEventListener('resize', this.scheduleKeepOnScreen)
+    window.removeEventListener('keydown', this.onWindowKeyDown)
     if (this.clampFrameId !== null) {
       window.cancelAnimationFrame(this.clampFrameId)
     }
@@ -213,6 +215,14 @@ export class RegexBuilder extends React.Component<
     this.props.onApply(this.state.pattern)
   }
 
+  private onWindowKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      this.props.onDismissed()
+    }
+  }
+
   private onHeaderPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.button !== 0) {
       return
@@ -282,6 +292,10 @@ export class RegexBuilder extends React.Component<
           className="regex-builder-dialog"
           style={{ transform }}
           ref={this.dialogRef}
+          role="dialog"
+          aria-modal="false"
+          aria-labelledby="regex-builder-title"
+          aria-describedby="regex-builder-description"
         >
           <div
             className="regex-builder-header"
@@ -292,8 +306,8 @@ export class RegexBuilder extends React.Component<
           >
             <span className="regex-builder-glyph">.*</span>
             <div className="regex-builder-heading">
-              <h2>Regex builder</h2>
-              <p>
+              <h2 id="regex-builder-title">Regex builder</h2>
+              <p id="regex-builder-description">
                 Compose a pattern from building blocks, test it live, then apply
                 it to the {this.props.targetLabel} search
               </p>
@@ -316,6 +330,7 @@ export class RegexBuilder extends React.Component<
                 <input
                   type="text"
                   className="regex-pattern-input"
+                  aria-label="Regular expression pattern"
                   spellCheck={false}
                   placeholder="pattern"
                   value={this.state.pattern}

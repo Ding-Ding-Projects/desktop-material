@@ -35,11 +35,23 @@ describe('floating surface layout contracts', () => {
 
     assert.match(component, /clampDialogOffset\(/)
     assert.match(component, /className="regex-builder-scroll-region"/)
+    assert.match(component, /role="dialog"/)
+    assert.match(component, /aria-labelledby="regex-builder-title"/)
+    assert.match(component, /aria-label="Regular expression pattern"/)
     assert.match(component, /onPointerCancel=\{this\.onHeaderPointerUp\}/)
     assert.match(
       style,
       /\.regex-builder-scroll-region\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
     )
+    assert.match(
+      style,
+      /\.regex-builder-palette\s*\{[\s\S]*?min-width: 0;[\s\S]*?overflow-x: hidden;/
+    )
+    assert.match(
+      style,
+      /\.regex-builder-tokens\s*\{[\s\S]*?min-width: 0;[\s\S]*?grid-template-columns: repeat\(auto-fit, minmax\(min\(132px, 100%\), 1fr\)\);/
+    )
+    assert.match(style, /@media \(max-width: 760px\)/)
     assert.match(style, /@media \(max-width: 620px\)/)
     assert.match(style, /@media \(max-height: 420px\)/)
   })
