@@ -3738,6 +3738,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         tabsStore={this.props.repositoryTabsStore}
         repositories={this.state.repositories}
         dispatcher={this.props.dispatcher}
+        repositoryStateManager={this.props.repositoryStateManager}
         unreadNotificationCount={this.state.unreadNotificationCount}
         isNotificationCentreOpen={this.state.isNotificationCentreOpen}
       />

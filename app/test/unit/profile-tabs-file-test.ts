@@ -80,4 +80,24 @@ describe('profile tabs file window scopes', () => {
 
     assert.deepEqual(restored, futureState)
   })
+
+  it('round-trips optional pin/open time and unknown newer tab fields', () => {
+    const futureTab = {
+      ...tab('future'),
+      isPinned: true,
+      openedAt: 1740000000000,
+      futureArrangementKey: { rank: 7 },
+    } as unknown as IRepositoryTab
+    const futureState: IProfileTabsState = {
+      tabs: [futureTab],
+      activeTabId: futureTab.id,
+    }
+
+    const persisted = JSON.parse(
+      JSON.stringify(mergeWindowTabsState({}, 'window-future', futureState, 3))
+    )
+    const restored = readWindowTabsState(persisted, 'window-future')
+
+    assert.deepEqual(restored, futureState)
+  })
 })

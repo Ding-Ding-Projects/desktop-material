@@ -1,0 +1,469 @@
+import assert from 'node:assert'
+import { describe, it } from 'node:test'
+import * as React from 'react'
+
+import { ProfileStore } from '../../../src/lib/stores/profile-store'
+import { RepositoryStateCache } from '../../../src/lib/stores/repository-state-cache'
+import { RepositoryTabsStore } from '../../../src/lib/stores/repository-tabs-store'
+import { CloningRepository } from '../../../src/models/cloning-repository'
+import {
+  IProfileTabsState,
+  IRepositoryTab,
+} from '../../../src/models/repository-tab'
+import { Repository } from '../../../src/models/repository'
+import { TipState } from '../../../src/models/tip'
+import { ArrangeTabsPopover } from '../../../src/ui/repository-tabs/arrange-tabs-popover'
+import {
+  CloseTabsContainingPopover,
+  CloseTabsExceptContainingPopover,
+} from '../../../src/ui/repository-tabs/close-tabs-containing-popover'
+import { RepositoryTabStrip } from '../../../src/ui/repository-tabs/repository-tab-strip'
+import {
+  repositoryTabMatchKeys,
+  repositoryTabStatusRank,
+  visibleTabLabel,
+} from '../../../src/ui/repository-tabs/tab-action-helpers'
+import { Dispatcher } from '../../../src/ui/dispatcher'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '../../helpers/ui/render'
+
+function makeTab(
+  id: string,
+  repository: Repository,
+  options: {
+    readonly customLabel?: string | null
+    readonly isPinned?: boolean
+    readonly openedAt?: number
+  } = {}
+): IRepositoryTab {
+  return {
+    id,
+    repositoryId: repository.id,
+    repositoryPath: repository.path,
+    customLabel: options.customLabel ?? null,
+    titleStyle: null,
+    ...(options.isPinned === undefined ? {} : { isPinned: options.isPinned }),
+    ...(options.openedAt === undefined ? {} : { openedAt: options.openedAt }),
+  }
+}
+
+async function createStore(
+  tabs: ReadonlyArray<IRepositoryTab>,
+  activeTabId: string | null = tabs[0]?.id ?? null
+): Promise<RepositoryTabsStore> {
+  const initial: IProfileTabsState = { tabs, activeTabId }
+  const profileStore = {
+    readTabs: () => Promise.resolve(initial),
+    writeTabs: () => Promise.resolve(),
+  } as unknown as ProfileStore
+  const store = new RepositoryTabsStore(profileStore)
+  await store.initialize()
+  return store
+}
+
+interface IArrangeHarnessProps {
+  readonly store: RepositoryTabsStore
+  readonly repositories: ReadonlyArray<Repository>
+  readonly ranks: Readonly<Record<string, number>>
+  readonly onClose?: () => void
+}
+
+function ArrangeHarness(props: IArrangeHarnessProps) {
+  const [tabs, setTabs] = React.useState(props.store.getState())
+  React.useEffect(() => {
+    const disposable = props.store.onDidUpdate(setTabs)
+    return () => disposable.dispose()
+  }, [props.store])
+  const repository = (tab: IRepositoryTab) =>
+    props.repositories.find(candidate => candidate.id === tab.repositoryId) ??
+    null
+  return (
+    <ArrangeTabsPopover
+      tabs={tabs}
+      tabsStore={props.store}
+      anchor={null}
+      resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
+      resolveStatusRank={tab => props.ranks[tab.id] ?? 3}
+      onClose={props.onClose ?? (() => undefined)}
+    />
+  )
+}
+
+describe('CloseTabsContainingPopover compatibility', () => {
+  it('keeps the existing regex action and protects matching pinned tabs', async () => {
+    const pinnedRepository = new Repository('C:\\work\\pinned', 1, null, false)
+    const closableRepository = new Repository(
+      'C:\\work\\closable',
+      2,
+      null,
+      false
+    )
+    const untouchedRepository = new Repository(
+      'C:\\work\\untouched',
+      3,
+      null,
+      false
+    )
+    const store = await createStore([
+      makeTab('pinned', pinnedRepository, {
+        customLabel: 'Pinned Match',
+        isPinned: true,
+      }),
+      makeTab('closable', closableRepository, {
+        customLabel: 'Closable Match',
+      }),
+      makeTab('untouched', untouchedRepository),
+    ])
+    let closedActiveId: string | null | undefined
+
+    render(
+      <CloseTabsContainingPopover
+        tabsStore={store}
+        anchor={null}
+        onClosed={activeId => (closedActiveId = activeId)}
+        onClose={() => undefined}
+      />
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Use regular expression' })
+    )
+    const input = screen.getByRole('textbox', {
+      name: 'Close tabs containing',
+    })
+    fireEvent.change(input, {
+      target: { value: 'Match$' },
+    })
+
+    assert.match(
+      screen.getByRole('status').textContent ?? '',
+      /1 close, 1 pinned protected/
+    )
+    fireEvent.keyDown(input, { key: 'Enter' })
+
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['pinned', 'untouched']
+      )
+    )
+    assert.equal(closedActiveId, 'pinned')
+  })
+})
+
+describe('CloseTabsExceptContainingPopover', () => {
+  it('previews literal alias matches, pinned protection, and safe counts', async () => {
+    const material = new Repository(
+      'C:\\work\\desktop-material',
+      1,
+      null,
+      false,
+      'Material Alias'
+    )
+    const api = new Repository('C:\\work\\api', 2, null, false)
+    const protectedRepository = new Repository(
+      'C:\\work\\protected',
+      3,
+      null,
+      false
+    )
+    const repositories = [material, api, protectedRepository]
+    const store = await createStore(
+      [
+        makeTab('material', material, { customLabel: 'Main workspace' }),
+        makeTab('api', api),
+        makeTab('protected', protectedRepository, { isPinned: true }),
+      ],
+      'api'
+    )
+    let closedActiveId: string | null | undefined
+    let dismissals = 0
+    const repository = (tab: IRepositoryTab) =>
+      repositories.find(candidate => candidate.id === tab.repositoryId) ?? null
+
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={tab =>
+          repositoryTabMatchKeys(tab, repository(tab))
+        }
+        resolveLabel={tab => visibleTabLabel(tab, repository(tab))}
+        onClosed={activeId => (closedActiveId = activeId)}
+        onClose={() => dismissals++}
+      />
+    )
+
+    const confirm = screen.getByRole('button', { name: 'Close tabs' })
+    assert.equal(confirm.hasAttribute('disabled'), true)
+
+    fireEvent.change(screen.getByLabelText('Text to keep'), {
+      target: { value: 'MATERIAL ALIAS' },
+    })
+
+    assert.match(
+      screen.getByRole('status').textContent ?? '',
+      /2 kept, 1 closed, 1 pinned protected/
+    )
+    const preview = screen.getByRole('region', { name: 'Tab close preview' })
+    assert.ok(within(preview).getByText('Protected pinned'))
+    assert.ok(within(preview).getByText('Main workspace'))
+
+    assert.ok(screen.getByRole('button', { name: 'Close 1' }))
+    fireEvent.keyDown(screen.getByLabelText('Text to keep'), { key: 'Enter' })
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['protected', 'material']
+      )
+    )
+    assert.equal(closedActiveId, 'material')
+    assert.equal(dismissals, 1)
+  })
+
+  it('blocks blank/zero-match Enter and supports Escape dismissal', async () => {
+    const alpha = new Repository('C:\\work\\alpha', 1, null, false)
+    const beta = new Repository('C:\\work\\beta', 2, null, false)
+    const store = await createStore([makeTab('a', alpha), makeTab('b', beta)])
+    let dismissals = 0
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={tab => tab.repositoryPath}
+        onClosed={() => undefined}
+        onClose={() => dismissals++}
+      />
+    )
+
+    const input = screen.getByLabelText('Text to keep')
+    fireEvent.change(input, { target: { value: 'not-present' } })
+    const confirm = screen.getByRole('button', { name: 'Close tabs' })
+    assert.equal(confirm.hasAttribute('disabled'), true)
+    fireEvent.keyDown(input, { key: 'Enter' })
+    assert.equal(store.getState().tabs.length, 2)
+
+    fireEvent.keyDown(input, { key: 'Escape' })
+    assert.equal(dismissals, 1)
+  })
+})
+
+describe('ArrangeTabsPopover', () => {
+  it('pins and moves tabs with labelled group-constrained controls', async () => {
+    const zed = new Repository('C:\\work\\zed', 1, null, false)
+    const beta = new Repository('C:\\work\\beta', 2, null, false)
+    const alpha = new Repository('C:\\work\\alpha', 3, null, false)
+    const store = await createStore([
+      makeTab('zed', zed, { isPinned: true }),
+      makeTab('beta', beta),
+      makeTab('alpha', alpha),
+    ])
+
+    render(
+      <ArrangeHarness
+        store={store}
+        repositories={[zed, beta, alpha]}
+        ranks={{}}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Pin alpha' }))
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['zed', 'alpha', 'beta']
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Move alpha to first' }))
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['alpha', 'zed', 'beta']
+      )
+    )
+    assert.match(screen.getByRole('status').textContent ?? '', /moved to first/)
+    assert.equal(store.getState().activeTabId, 'zed')
+  })
+
+  it('applies stable one-shot label, opened, and status arrangements', async () => {
+    const beta = new Repository('C:\\work\\beta', 1, null, false)
+    const alpha = new Repository('C:\\work\\alpha', 2, null, false)
+    const clean = new Repository('C:\\work\\clean', 3, null, false)
+    const store = await createStore([
+      makeTab('beta', beta, { openedAt: 200 }),
+      makeTab('alpha', alpha, { openedAt: 100 }),
+      makeTab('clean', clean, { openedAt: 300 }),
+    ])
+    render(
+      <ArrangeHarness
+        store={store}
+        repositories={[beta, alpha, clean]}
+        ranks={{ beta: 1, alpha: 0, clean: 3 }}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Label A → Z' }))
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['alpha', 'beta', 'clean']
+      )
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Newest opened' }))
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['clean', 'beta', 'alpha']
+      )
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Needs attention first' })
+    )
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['alpha', 'beta', 'clean']
+      )
+    )
+    assert.equal(store.getState().activeTabId, 'beta')
+  })
+})
+
+describe('RepositoryTabStrip drag arrangement', () => {
+  it('reorders by drag within a pin group and rejects crossing the boundary', async () => {
+    const pinned = new Repository('C:\\work\\pinned', 1, null, false)
+    const alpha = new Repository('C:\\work\\alpha', 2, null, false)
+    const beta = new Repository('C:\\work\\beta', 3, null, false)
+    const store = await createStore([
+      makeTab('pinned', pinned, { isPinned: true }),
+      makeTab('alpha', alpha),
+      makeTab('beta', beta),
+    ])
+    const dataTransfer = {
+      dropEffect: 'none',
+      effectAllowed: 'none',
+      setData: () => undefined,
+      getData: () => '',
+    } as unknown as DataTransfer
+    const dispatcher = {
+      selectRepository: () => undefined,
+      showFoldout: () => undefined,
+      setNotificationCentreOpen: () => undefined,
+    } as unknown as Dispatcher
+    const stateManager = {
+      get: () => {
+        throw new Error('status cache should not be read during drag')
+      },
+    } as unknown as RepositoryStateCache
+
+    render(
+      <RepositoryTabStrip
+        tabsStore={store}
+        repositories={[pinned, alpha, beta]}
+        dispatcher={dispatcher}
+        repositoryStateManager={stateManager}
+        unreadNotificationCount={0}
+        isNotificationCentreOpen={false}
+      />
+    )
+
+    fireEvent.dragStart(screen.getByRole('tab', { name: 'beta' }), {
+      dataTransfer,
+    })
+    fireEvent.drop(screen.getByRole('tab', { name: 'alpha' }), {
+      dataTransfer,
+      clientX: 0,
+    })
+    await waitFor(() =>
+      assert.deepEqual(
+        store.getState().tabs.map(tab => tab.id),
+        ['pinned', 'beta', 'alpha']
+      )
+    )
+
+    fireEvent.dragStart(screen.getByRole('tab', { name: 'alpha' }), {
+      dataTransfer,
+    })
+    fireEvent.drop(screen.getByRole('tab', { name: 'pinned, pinned' }), {
+      dataTransfer,
+      clientX: 0,
+    })
+    assert.deepEqual(
+      store.getState().tabs.map(tab => tab.id),
+      ['pinned', 'beta', 'alpha']
+    )
+    assert.match(
+      screen.getAllByRole('status').at(-1)?.textContent ?? '',
+      /separate groups/
+    )
+
+    const arrangeButton = screen.getByRole('button', { name: 'Arrange tabs' })
+    fireEvent.click(arrangeButton)
+    assert.ok(screen.getByRole('dialog', { name: 'Arrange tabs' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Done' }))
+    await waitFor(() => assert.equal(document.activeElement, arrangeButton))
+  })
+})
+
+describe('repositoryTabStatusRank', () => {
+  const repository = new Repository('C:\\work\\ranked', 1, null, false)
+  const rankFor = (overrides: object) =>
+    repositoryTabStatusRank(repository, {
+      get: () => ({
+        branchesState: { tip: { kind: TipState.Valid } },
+        changesState: {
+          conflictState: null,
+          workingDirectory: { files: [] },
+        },
+        aheadBehind: null,
+        ...overrides,
+      }),
+    } as unknown as RepositoryStateCache)
+
+  it('ranks unavailable, conflicts, changes, sync delta, then clean', () => {
+    assert.equal(
+      repositoryTabStatusRank(
+        new CloningRepository('C:\\tmp\\clone', 'https://example/repo.git'),
+        {} as unknown as RepositoryStateCache
+      ),
+      0
+    )
+    assert.equal(
+      repositoryTabStatusRank(
+        new Repository('C:\\work\\missing', 2, null, true),
+        {} as unknown as RepositoryStateCache
+      ),
+      0
+    )
+    assert.equal(
+      rankFor({ branchesState: { tip: { kind: TipState.Unknown } } }),
+      0
+    )
+    assert.equal(
+      rankFor({
+        changesState: {
+          conflictState: {},
+          workingDirectory: { files: [] },
+        },
+      }),
+      0
+    )
+    assert.equal(
+      rankFor({
+        changesState: {
+          conflictState: null,
+          workingDirectory: { files: [{}] },
+        },
+      }),
+      1
+    )
+    assert.equal(rankFor({ aheadBehind: { ahead: 1, behind: 1 } }), 2)
+    assert.equal(rankFor({}), 3)
+  })
+})

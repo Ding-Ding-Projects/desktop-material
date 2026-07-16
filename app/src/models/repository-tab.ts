@@ -186,6 +186,18 @@ export interface IRepositoryTab {
   readonly customLabel: string | null
   /** Per-tab title styling, or null for the default appearance. */
   readonly titleStyle: ITabTitleStyle | null
+  /**
+   * Whether this tab belongs to the protected pinned group. Missing values are
+   * intentionally treated as `false` so profiles written by older releases
+   * migrate without a rewrite.
+   */
+  readonly isPinned?: boolean
+  /**
+   * Epoch milliseconds when the tab was first opened. This remains optional
+   * for migration compatibility; tabs restored from older profiles sort as
+   * older than tabs carrying a valid timestamp.
+   */
+  readonly openedAt?: number
 }
 
 /** The full tab state for a single profile. */

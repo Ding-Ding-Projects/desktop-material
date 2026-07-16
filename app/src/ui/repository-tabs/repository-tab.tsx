@@ -13,6 +13,7 @@ interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
   readonly repository: Repository | CloningRepository | null
   readonly isActive: boolean
+  readonly isDragging: boolean
   readonly onSelect: (tab: IRepositoryTab) => void
   readonly onClose: (tab: IRepositoryTab) => void
   readonly onRename: (tab: IRepositoryTab, label: string | null) => void
@@ -21,6 +22,19 @@ interface IRepositoryTabProps {
     event: React.MouseEvent<HTMLElement>
   ) => void
   readonly onOpenStyleEditor: (tab: IRepositoryTab, anchor: HTMLElement) => void
+  readonly onDragStart: (
+    tab: IRepositoryTab,
+    event: React.DragEvent<HTMLElement>
+  ) => void
+  readonly onDragOver: (
+    tab: IRepositoryTab,
+    event: React.DragEvent<HTMLElement>
+  ) => void
+  readonly onDrop: (
+    tab: IRepositoryTab,
+    event: React.DragEvent<HTMLElement>
+  ) => void
+  readonly onDragEnd: () => void
 }
 
 interface IRepositoryTabState {
@@ -111,6 +125,18 @@ export class RepositoryTab extends React.Component<
     )
   }
 
+  private onDragStart = (event: React.DragEvent<HTMLElement>) => {
+    this.props.onDragStart(this.props.tab, event)
+  }
+
+  private onDragOver = (event: React.DragEvent<HTMLElement>) => {
+    this.props.onDragOver(this.props.tab, event)
+  }
+
+  private onDrop = (event: React.DragEvent<HTMLElement>) => {
+    this.props.onDrop(this.props.tab, event)
+  }
+
   private renderIcon() {
     const { repository } = this.props
     const symbol =
@@ -121,8 +147,15 @@ export class RepositoryTab extends React.Component<
   }
 
   public render() {
-    const { tab, isActive } = this.props
-    const className = isActive ? 'repository-tab active' : 'repository-tab'
+    const { tab, isActive, isDragging } = this.props
+    const className = [
+      'repository-tab',
+      isActive ? 'active' : null,
+      tab.isPinned === true ? 'pinned' : null,
+      isDragging ? 'dragging' : null,
+    ]
+      .filter(value => value !== null)
+      .join(' ')
     const frameStyle = tabFrameStyleToCss(tab.titleStyle)
 
     if (this.state.isRenaming) {
@@ -148,14 +181,25 @@ export class RepositoryTab extends React.Component<
         style={frameStyle}
         role="tab"
         aria-selected={isActive}
+        aria-label={`${this.label}${tab.isPinned === true ? ', pinned' : ''}`}
         tabIndex={isActive ? 0 : -1}
+        draggable={true}
         onClick={this.onClick}
         onKeyDown={this.onKeyDown}
         onMouseDown={this.onMouseDown}
         onDoubleClick={this.onDoubleClick}
         onContextMenu={this.onContextMenu}
+        onDragStart={this.onDragStart}
+        onDragOver={this.onDragOver}
+        onDrop={this.onDrop}
+        onDragEnd={this.props.onDragEnd}
       >
         {this.renderIcon()}
+        {tab.isPinned === true && (
+          <span className="repository-tab-pin" aria-hidden="true">
+            <Octicon symbol={octicons.pin} />
+          </span>
+        )}
         <span
           className="repository-tab-label"
           style={tabTitleStyleToCss(tab.titleStyle)}

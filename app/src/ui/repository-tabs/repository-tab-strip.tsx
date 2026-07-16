@@ -13,15 +13,26 @@ import {
 } from '../../models/repository-tab'
 import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
-import { CloseTabsContainingPopover } from './close-tabs-containing-popover'
+import {
+  CloseTabsContainingPopover,
+  CloseTabsExceptContainingPopover,
+} from './close-tabs-containing-popover'
 import { showContextualMenu } from '../../lib/menu-item'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
+import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
+import { ArrangeTabsPopover } from './arrange-tabs-popover'
+import {
+  repositoryTabMatchKeys,
+  repositoryTabStatusRank,
+  visibleTabLabel,
+} from './tab-action-helpers'
 
 interface IRepositoryTabStripProps {
   readonly tabsStore: RepositoryTabsStore
   readonly repositories: ReadonlyArray<Repository | CloningRepository>
   readonly dispatcher: Dispatcher
+  readonly repositoryStateManager: RepositoryStateCache
   readonly unreadNotificationCount: number
   readonly isNotificationCentreOpen: boolean
 }
@@ -31,6 +42,10 @@ interface IRepositoryTabStripState {
   readonly styleEditorTabId: string | null
   readonly styleEditorAnchor: HTMLElement | null
   readonly closeMatchingAnchor: HTMLElement | null
+  readonly closeExceptAnchor: HTMLElement | null
+  readonly arrangeAnchor: HTMLElement | null
+  readonly draggingTabId: string | null
+  readonly announcement: string
 }
 
 /** The browser-style repository tab strip shown above the toolbar. */
@@ -47,6 +62,10 @@ export class RepositoryTabStrip extends React.Component<
       styleEditorTabId: null,
       styleEditorAnchor: null,
       closeMatchingAnchor: null,
+      closeExceptAnchor: null,
+      arrangeAnchor: null,
+      draggingTabId: null,
+      announcement: '',
     }
   }
 
@@ -126,6 +145,18 @@ export class RepositoryTabStrip extends React.Component<
     this.props.dispatcher.showFoldout({ type: FoldoutType.Repository })
   }
 
+  private labelForTab = (tab: IRepositoryTab): string =>
+    visibleTabLabel(tab, this.repositoryForTab(tab))
+
+  private matchKeysForTab = (tab: IRepositoryTab): ReadonlyArray<string> =>
+    repositoryTabMatchKeys(tab, this.repositoryForTab(tab))
+
+  private statusRankForTab = (tab: IRepositoryTab): number =>
+    repositoryTabStatusRank(
+      this.repositoryForTab(tab),
+      this.props.repositoryStateManager
+    )
+
   private onToggleNotifications = () => {
     this.props.dispatcher.setNotificationCentreOpen(
       !this.props.isNotificationCentreOpen
@@ -165,6 +196,15 @@ export class RepositoryTabStrip extends React.Component<
 
     showContextualMenu([
       {
+        label: tab.isPinned === true ? 'Unpin Tab' : 'Pin Tab',
+        action: () => this.onTogglePinned(tab),
+      },
+      {
+        label: 'Arrange Tabs…',
+        action: () => this.openArrange(anchor),
+      },
+      { type: 'separator' },
+      {
         label: 'Customize Appearance…',
         action: () => this.openStyleEditor(tab, anchor),
       },
@@ -194,15 +234,176 @@ export class RepositoryTabStrip extends React.Component<
         action: () => this.openCloseMatching(anchor),
         enabled: tabs.length > 0,
       },
+      {
+        label: 'Close All Tabs Except Those Containing…',
+        action: () => this.openCloseExcept(anchor),
+        enabled: tabs.length > 0,
+      },
     ])
   }
 
+  private restorePopoverFocus = (anchor: HTMLElement | null) => {
+    // FocusTrap restores its pre-dialog target during deactivation. Queue the
+    // exact invoking control after that cleanup so it wins reliably.
+    window.setTimeout(() => {
+      if (anchor?.isConnected) {
+        anchor.focus()
+        return
+      }
+      const activeTab = document.querySelector<HTMLElement>(
+        '.repository-tab[role="tab"][aria-selected="true"]'
+      )
+      activeTab?.focus()
+    }, 0)
+  }
+
+  private openCloseExcept = (anchor: HTMLElement) => {
+    this.setState({
+      closeMatchingAnchor: null,
+      closeExceptAnchor: anchor,
+      arrangeAnchor: null,
+    })
+  }
+
+  private onCloseExceptDismiss = () => {
+    const anchor = this.state.closeExceptAnchor
+    if (anchor === null) {
+      return
+    }
+    this.setState({ closeExceptAnchor: null }, () =>
+      this.restorePopoverFocus(anchor)
+    )
+  }
+
+  private openArrange = (anchor: HTMLElement) => {
+    this.setState({
+      arrangeAnchor: anchor,
+      closeMatchingAnchor: null,
+      closeExceptAnchor: null,
+    })
+  }
+
+  private onArrangeButtonClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    this.openArrange(event.currentTarget)
+  }
+
+  private onArrangeDismiss = () => {
+    const anchor = this.state.arrangeAnchor
+    if (anchor === null) {
+      return
+    }
+    this.setState({ arrangeAnchor: null }, () =>
+      this.restorePopoverFocus(anchor)
+    )
+  }
+
+  private onTogglePinned = (tab: IRepositoryTab) => {
+    const willPin = tab.isPinned !== true
+    this.props.tabsStore
+      .setTabPinned(tab.id, willPin)
+      .then(() =>
+        this.setState({
+          announcement: `${this.labelForTab(tab)} ${
+            willPin ? 'pinned' : 'unpinned'
+          }.`,
+        })
+      )
+      .catch(err => log.error('Failed to update pinned tab', err))
+  }
+
   private openCloseMatching = (anchor: HTMLElement) => {
-    this.setState({ closeMatchingAnchor: anchor })
+    this.setState({
+      closeMatchingAnchor: anchor,
+      closeExceptAnchor: null,
+      arrangeAnchor: null,
+    })
   }
 
   private onCloseMatchingDismiss = () => {
-    this.setState({ closeMatchingAnchor: null })
+    const anchor = this.state.closeMatchingAnchor
+    if (anchor === null) {
+      return
+    }
+    this.setState({ closeMatchingAnchor: null }, () =>
+      this.restorePopoverFocus(anchor)
+    )
+  }
+
+  private onDragStart = (
+    tab: IRepositoryTab,
+    event: React.DragEvent<HTMLElement>
+  ) => {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', tab.id)
+    this.setState({
+      draggingTabId: tab.id,
+      announcement: `Moving ${this.labelForTab(tab)}.`,
+    })
+  }
+
+  private onDragOver = (
+    target: IRepositoryTab,
+    event: React.DragEvent<HTMLElement>
+  ) => {
+    const source = this.state.tabs.tabs.find(
+      tab => tab.id === this.state.draggingTabId
+    )
+    if (
+      source !== undefined &&
+      (source.isPinned === true) === (target.isPinned === true)
+    ) {
+      event.preventDefault()
+      event.dataTransfer.dropEffect = 'move'
+    }
+  }
+
+  private onDrop = (
+    target: IRepositoryTab,
+    event: React.DragEvent<HTMLElement>
+  ) => {
+    const { tabs } = this.state.tabs
+    const sourceIndex = tabs.findIndex(
+      tab => tab.id === this.state.draggingTabId
+    )
+    const targetIndex = tabs.findIndex(tab => tab.id === target.id)
+    const source = tabs[sourceIndex]
+    event.preventDefault()
+    if (
+      source === undefined ||
+      targetIndex === -1 ||
+      (source.isPinned === true) !== (target.isPinned === true)
+    ) {
+      this.setState({
+        draggingTabId: null,
+        announcement: 'Pinned and unpinned tabs stay in separate groups.',
+      })
+      return
+    }
+
+    const bounds = event.currentTarget.getBoundingClientRect()
+    const dropAfter = event.clientX > bounds.left + bounds.width / 2
+    let toIndex = targetIndex + (dropAfter ? 1 : 0)
+    if (sourceIndex < toIndex) {
+      toIndex--
+    }
+    this.props.tabsStore
+      .moveTab(source.id, toIndex)
+      .then(() =>
+        this.setState({
+          draggingTabId: null,
+          announcement: `${this.labelForTab(source)} moved.`,
+        })
+      )
+      .catch(err => {
+        this.setState({ draggingTabId: null })
+        log.error('Failed to drag repository tab', err)
+      })
+  }
+
+  private onDragEnd = () => {
+    this.setState({ draggingTabId: null })
   }
 
   private renderStyleEditor() {
@@ -227,6 +428,24 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
+  private renderCloseExceptPopover() {
+    const { closeExceptAnchor } = this.state
+    if (closeExceptAnchor === null) {
+      return null
+    }
+
+    return (
+      <CloseTabsExceptContainingPopover
+        tabsStore={this.props.tabsStore}
+        anchor={closeExceptAnchor}
+        resolveAdditionalKeys={this.matchKeysForTab}
+        resolveLabel={this.labelForTab}
+        onClosed={this.selectActiveRepository}
+        onClose={this.onCloseExceptDismiss}
+      />
+    )
+  }
+
   private renderCloseMatchingPopover() {
     const { closeMatchingAnchor } = this.state
     if (closeMatchingAnchor === null) {
@@ -243,11 +462,32 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
+  private renderArrangePopover() {
+    const { arrangeAnchor } = this.state
+    if (arrangeAnchor === null) {
+      return null
+    }
+    return (
+      <ArrangeTabsPopover
+        tabs={this.state.tabs}
+        tabsStore={this.props.tabsStore}
+        anchor={arrangeAnchor}
+        resolveLabel={this.labelForTab}
+        resolveStatusRank={this.statusRankForTab}
+        onClose={this.onArrangeDismiss}
+      />
+    )
+  }
+
   public render() {
     const { tabs, activeTabId } = this.state.tabs
 
     return (
-      <div className="repository-tab-strip" role="tablist">
+      <div
+        className="repository-tab-strip"
+        role="tablist"
+        aria-label="Repository tabs"
+      >
         <div className="repository-tab-list">
           {tabs.map(tab => (
             <RepositoryTab
@@ -255,14 +495,28 @@ export class RepositoryTabStrip extends React.Component<
               tab={tab}
               repository={this.repositoryForTab(tab)}
               isActive={tab.id === activeTabId}
+              isDragging={tab.id === this.state.draggingTabId}
               onSelect={this.onSelect}
               onClose={this.onClose}
               onRename={this.onRename}
               onContextMenu={this.onContextMenu}
               onOpenStyleEditor={this.openStyleEditor}
+              onDragStart={this.onDragStart}
+              onDragOver={this.onDragOver}
+              onDrop={this.onDrop}
+              onDragEnd={this.onDragEnd}
             />
           ))}
         </div>
+        <button
+          className="repository-tab-arrange"
+          aria-label="Arrange tabs"
+          aria-haspopup="dialog"
+          aria-expanded={this.state.arrangeAnchor !== null}
+          onClick={this.onArrangeButtonClick}
+        >
+          <Octicon symbol={octicons.sortAsc} />
+        </button>
         <button
           className="repository-tab-new"
           aria-label="Open a repository in a new tab"
@@ -279,6 +533,15 @@ export class RepositoryTabStrip extends React.Component<
         </div>
         {this.renderStyleEditor()}
         {this.renderCloseMatchingPopover()}
+        {this.renderCloseExceptPopover()}
+        {this.renderArrangePopover()}
+        <div
+          className="repository-tab-announcement"
+          role="status"
+          aria-live="polite"
+        >
+          {this.state.announcement}
+        </div>
       </div>
     )
   }

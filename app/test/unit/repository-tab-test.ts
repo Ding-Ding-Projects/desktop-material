@@ -542,3 +542,277 @@ describe('RepositoryTabsStore window scope', () => {
     assert.deepEqual(scopes, ['read:window-2', 'write:window-2'])
   })
 })
+
+describe('RepositoryTabsStore pinning and arrangement', () => {
+  function tab(
+    id: string,
+    options: {
+      readonly name?: string
+      readonly customLabel?: string | null
+      readonly isPinned?: boolean
+      readonly openedAt?: number
+      readonly repositoryId?: number
+    } = {}
+  ): IRepositoryTab {
+    return {
+      id,
+      repositoryId: options.repositoryId ?? id.charCodeAt(0),
+      repositoryPath: `C:\\work\\${options.name ?? id}`,
+      customLabel: options.customLabel ?? null,
+      titleStyle: null,
+      ...(options.isPinned === undefined ? {} : { isPinned: options.isPinned }),
+      ...(options.openedAt === undefined ? {} : { openedAt: options.openedAt }),
+    }
+  }
+
+  async function storeFor(
+    tabs: ReadonlyArray<IRepositoryTab>,
+    activeTabId: string | null = tabs[0]?.id ?? null,
+    now: () => number = Date.now
+  ): Promise<{
+    readonly store: RepositoryTabsStore
+    readonly writes: ReadonlyArray<{
+      readonly state: IProfileTabsState
+      readonly scope: string
+    }>
+  }> {
+    const writes: Array<{ state: IProfileTabsState; scope: string }> = []
+    const profileStore = {
+      readTabs: () => Promise.resolve({ tabs, activeTabId }),
+      writeTabs: (
+        state: IProfileTabsState,
+        _description: string,
+        scope: string
+      ) => {
+        writes.push({ state, scope })
+        return Promise.resolve()
+      },
+    } as unknown as ProfileStore
+    const store = new RepositoryTabsStore(profileStore, 'arrange-window', now)
+    await store.initialize()
+    return { store, writes }
+  }
+
+  const ids = (store: RepositoryTabsStore) =>
+    store.getState().tabs.map(item => item.id)
+
+  it('timestamps newly opened tabs without rewriting legacy timestamps', async () => {
+    const legacy = tab('legacy')
+    const { store } = await storeFor([legacy], 'legacy', () => 123456)
+
+    await store.ensureTabForRepository(
+      new Repository('C:\\work\\new-repository', 999, null, false)
+    )
+
+    assert.equal(store.getState().tabs[0].openedAt, undefined)
+    assert.equal(store.getState().tabs[1].openedAt, 123456)
+  })
+
+  it('normalizes a restored pin group and preserves active selection', async () => {
+    const restored = [
+      tab('u1'),
+      tab('p1', { isPinned: true }),
+      tab('u2'),
+      tab('p2', { isPinned: true }),
+    ]
+    const { store, writes } = await storeFor(restored, 'u2')
+
+    assert.deepEqual(ids(store), ['p1', 'p2', 'u1', 'u2'])
+    assert.equal(store.getState().activeTabId, 'u2')
+    assert.equal(writes.length, 0)
+  })
+
+  it('pins and unpins at the group boundary without changing the active tab', async () => {
+    const { store } = await storeFor(
+      [tab('p1', { isPinned: true }), tab('u1'), tab('u2')],
+      'u2'
+    )
+
+    await store.setTabPinned('u2', true)
+    assert.deepEqual(ids(store), ['p1', 'u2', 'u1'])
+    assert.equal(store.getState().activeTabId, 'u2')
+    assert.equal(store.getState().tabs[1].isPinned, true)
+
+    await store.toggleTabPinned('p1')
+    assert.deepEqual(ids(store), ['u2', 'p1', 'u1'])
+    assert.equal(store.getState().tabs[1].isPinned, false)
+    assert.equal(store.getState().activeTabId, 'u2')
+  })
+
+  it('restricts manual moves to the tab pinned group', async () => {
+    const { store } = await storeFor([
+      tab('p1', { isPinned: true }),
+      tab('p2', { isPinned: true }),
+      tab('u1'),
+      tab('u2'),
+    ])
+
+    await store.moveTab('u2', 0)
+    assert.deepEqual(ids(store), ['p1', 'p2', 'u2', 'u1'])
+
+    await store.moveTab('p1', 99)
+    assert.deepEqual(ids(store), ['p2', 'p1', 'u2', 'u1'])
+  })
+
+  it('protects pinned tabs from user bulk close but permits explicit close', async () => {
+    const { store } = await storeFor(
+      [tab('p', { isPinned: true }), tab('u1'), tab('u2')],
+      'u1'
+    )
+
+    await store.closeOtherTabs('u2')
+    assert.deepEqual(ids(store), ['p', 'u2'])
+    assert.equal(store.getState().activeTabId, 'u2')
+
+    await store.closeTab('p')
+    assert.deepEqual(ids(store), ['u2'])
+  })
+
+  it('removes pinned bindings when their repository is actually removed', async () => {
+    const { store } = await storeFor(
+      [
+        tab('p', { isPinned: true, repositoryId: 10 }),
+        tab('u1', { repositoryId: 10 }),
+        tab('u2'),
+      ],
+      'p'
+    )
+
+    await store.closeTabsForRepository(10)
+
+    assert.deepEqual(ids(store), ['u2'])
+    assert.equal(store.getState().activeTabId, 'u2')
+  })
+
+  it('previews and closes all except literal matches using repository aliases', async () => {
+    const tabs = [
+      tab('a', { name: 'desktop-material', customLabel: 'Main workspace' }),
+      tab('b', { name: 'api-service' }),
+      tab('p', { name: 'protected', isPinned: true }),
+    ]
+    const { store } = await storeFor(tabs, 'b')
+    const aliases = (candidate: IRepositoryTab) =>
+      candidate.id === 'a' ? ['Material Alias', 'Desktop Material'] : []
+
+    const preview = store.previewCloseTabsExceptContaining(
+      'MATERIAL ALIAS',
+      aliases
+    )
+    assert.deepEqual(
+      preview.matchingTabs.map(item => item.id),
+      ['a']
+    )
+    assert.deepEqual(
+      preview.keptTabs.map(item => item.id),
+      ['p', 'a']
+    )
+    assert.deepEqual(
+      preview.closedTabs.map(item => item.id),
+      ['b']
+    )
+    assert.equal(preview.canClose, true)
+
+    await store.closeTabsExceptContaining('material alias', aliases)
+    assert.deepEqual(ids(store), ['p', 'a'])
+    assert.equal(store.getState().activeTabId, 'a')
+  })
+
+  it('never closes for blank or zero-match inverse queries', async () => {
+    const { store, writes } = await storeFor([tab('a'), tab('b')])
+
+    assert.equal(store.previewCloseTabsExceptContaining('  ').canClose, false)
+    assert.equal(
+      store.previewCloseTabsExceptContaining('missing').canClose,
+      false
+    )
+    await store.closeTabsExceptContaining('missing')
+
+    assert.deepEqual(ids(store), ['a', 'b'])
+    assert.equal(writes.length, 0)
+  })
+
+  it('matches inverse-close queries against the full local path literally', async () => {
+    const { store } = await storeFor([
+      {
+        ...tab('a'),
+        repositoryPath: 'C:\\clients\\North [literal]\\repo',
+      },
+      tab('b'),
+    ])
+
+    const preview = store.previewCloseTabsExceptContaining('[LITERAL]')
+    assert.deepEqual(
+      preview.matchingTabs.map(item => item.id),
+      ['a']
+    )
+    assert.equal(preview.canClose, true)
+  })
+
+  it('arranges labels locale-aware and stably inside pin groups', async () => {
+    const { store } = await storeFor([
+      tab('p10', { customLabel: 'Repo 10', isPinned: true }),
+      tab('p2', { customLabel: 'Repo 2', isPinned: true }),
+      tab('same1', { customLabel: 'Same' }),
+      tab('b', { customLabel: 'beta' }),
+      tab('same2', { customLabel: 'same' }),
+    ])
+
+    await store.arrangeTabsByLabel('ascending')
+    assert.deepEqual(ids(store), ['p2', 'p10', 'b', 'same1', 'same2'])
+
+    await store.arrangeTabsByLabel('descending')
+    assert.deepEqual(ids(store), ['p10', 'p2', 'same1', 'same2', 'b'])
+  })
+
+  it('arranges opened time migration-safely and keeps stable ties', async () => {
+    const { store } = await storeFor([
+      tab('legacy1'),
+      tab('new', { openedAt: 300 }),
+      tab('legacy2'),
+      tab('old', { openedAt: 100 }),
+    ])
+
+    await store.arrangeTabsByOpenedAt('oldest')
+    assert.deepEqual(ids(store), ['legacy1', 'legacy2', 'old', 'new'])
+
+    await store.arrangeTabsByOpenedAt('newest')
+    assert.deepEqual(ids(store), ['new', 'old', 'legacy1', 'legacy2'])
+  })
+
+  it('arranges caller-supplied status ranks one-shot with stable ties', async () => {
+    const { store } = await storeFor([
+      tab('changed1'),
+      tab('clean'),
+      tab('conflict'),
+      tab('changed2'),
+    ])
+    const ranks: Readonly<Record<string, number>> = {
+      conflict: 0,
+      changed1: 1,
+      changed2: 1,
+      clean: 3,
+    }
+
+    await store.arrangeTabsByRepositoryStatus(
+      'needs-attention-first',
+      item => ranks[item.id]
+    )
+    assert.deepEqual(ids(store), ['conflict', 'changed1', 'changed2', 'clean'])
+
+    await store.arrangeTabsByRepositoryStatus(
+      'clean-first',
+      item => ranks[item.id]
+    )
+    assert.deepEqual(ids(store), ['clean', 'changed1', 'changed2', 'conflict'])
+  })
+
+  it('persists arrangements only in the assigned window scope', async () => {
+    const { store, writes } = await storeFor([tab('b'), tab('a')], 'b')
+
+    await store.arrangeTabsByLabel('ascending')
+
+    assert.deepEqual(ids(store), ['a', 'b'])
+    assert.equal(store.getState().activeTabId, 'b')
+    assert.equal(writes.at(-1)?.scope, 'arrange-window')
+  })
+})
