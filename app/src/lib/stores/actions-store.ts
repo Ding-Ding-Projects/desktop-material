@@ -59,7 +59,12 @@ import {
   releaseActionsArtifactDownloadThroughMainProcess,
 } from '../actions-artifact-subject-client'
 import { IActionsArtifactSubjectEntry } from '../actions-artifact-subjects'
-import { IActionsJobList } from '../actions-jobs'
+import { IActionsJobList, validateActionsJobIdentifier } from '../actions-jobs'
+import {
+  IActionsWorkflowRunCancellationState,
+  isWorkflowRunCancellableStatus,
+  isWorkflowRunTerminalStatus,
+} from '../actions-workflow-runs'
 import {
   IActionsCacheList,
   IActionsCacheUsage,
@@ -84,6 +89,30 @@ export type ActionsMutation =
   | 'approve-fork-run'
   | 'delete-cache'
   | 'delete-caches-by-key'
+
+export type ActionsRunCancellationPhase =
+  | 'revalidating'
+  | 'requesting'
+  | 'accepted'
+  | 'waiting'
+  | 'terminal'
+
+export interface IActionsRunCancellationProgress {
+  readonly phase: ActionsRunCancellationPhase
+  readonly message: string
+}
+
+export interface IActionsRunCancellationResult {
+  readonly runId: number
+  readonly accepted: boolean
+  readonly alreadyTerminal: boolean
+  readonly status: IActionsWorkflowRunCancellationState['status']
+  readonly conclusion: IActionsWorkflowRunCancellationState['conclusion']
+}
+
+export type ActionsRunCancellationProgressCallback = (
+  progress: IActionsRunCancellationProgress
+) => void
 
 export type ActionsInspectorOperation =
   | 'load-jobs'
@@ -261,7 +290,11 @@ export function actionsMutationError(
 
   const action = mutationLabels[mutation]
   if (error.responseStatus === 401) {
-    return new Error(`GitHub could not ${action}. Sign in again and retry.`)
+    return new Error(
+      mutation === 'cancel-run'
+        ? `GitHub could not ${action}. Re-authenticate the account selected for this repository, then retry.`
+        : `GitHub could not ${action}. Sign in again and retry.`
+    )
   }
   if (error.responseStatus === 403) {
     if (error.rateLimitReset !== null) {
@@ -274,7 +307,9 @@ export function actionsMutationError(
         ? 'Deployments write access'
         : 'Actions write access'
     return new Error(
-      `GitHub denied permission to ${action}. Check that the selected account has ${permission} to this repository.`
+      mutation === 'cancel-run'
+        ? `GitHub denied permission to ${action}. Check that the selected account has ${permission} to this repository, re-authenticate it, and authorize organization SSO if required.`
+        : `GitHub denied permission to ${action}. Check that the selected account has ${permission} to this repository.`
     )
   }
   if (error.responseStatus === 404) {
@@ -284,7 +319,9 @@ export function actionsMutationError(
   }
   if (error.responseStatus === 409 || error.responseStatus === 422) {
     return new Error(
-      `GitHub could not ${action} in its current state. Refresh Actions and try again.`
+      mutation === 'cancel-run'
+        ? `GitHub could not ${action} because the run or workflow changed state. Refresh Actions, confirm it is still eligible, and try again.`
+        : `GitHub could not ${action} in its current state. Refresh Actions and try again.`
     )
   }
   if (error.responseStatus >= 500) {
@@ -503,6 +540,26 @@ function canceledAccountRequest(): Error {
   return error
 }
 
+function canceledWorkflowRunRequest(message: string): Error {
+  const error = new Error(message)
+  error.name = 'AbortError'
+  return error
+}
+
+const ActionsRunCancellationInitialPollDelay = 500
+const ActionsRunCancellationMaximumPollDelay = 5_000
+const ActionsRunCancellationMaximumPollAttempts = 60
+
+interface IActionsRunCancellationContext {
+  readonly repositoryHash: string
+  readonly repositoryKey: string
+  readonly accountKey: string
+  readonly accountsGeneration: number
+  readonly owner: string
+  readonly name: string
+  readonly runId: number
+}
+
 /** Compare the API fields used by the run list before notifying subscribers. */
 export function workflowRunsEqual(
   left: ReadonlyArray<IAPIWorkflowRun>,
@@ -675,6 +732,10 @@ export class ActionsStore {
   private readonly inFlight = new Map<string, Promise<void>>()
   private readonly runPageInFlight = new Map<string, Promise<void>>()
   private readonly runPageControllers = new Map<string, AbortController>()
+  private readonly runCancellationInFlight = new Map<
+    string,
+    Promise<IActionsRunCancellationResult>
+  >()
   private readonly activeAccountControllers = new Set<AbortController>()
   private readonly refreshGenerations = new Map<string, number>()
   private readonly runFilters = new Map<string, ActionsRunFilter>()
@@ -1224,21 +1285,314 @@ export class ActionsStore {
     await this.refresh(repository, true)
   }
 
+  private reportRunCancellationProgress(
+    callback: ActionsRunCancellationProgressCallback | undefined,
+    phase: ActionsRunCancellationPhase,
+    message: string
+  ) {
+    try {
+      callback?.({ phase, message })
+    } catch (error) {
+      log.error('Workflow-run cancellation progress callback failed', error)
+    }
+  }
+
+  private assertRunCancellationContext(
+    repository: Repository,
+    context: IActionsRunCancellationContext,
+    signal: AbortSignal
+  ) {
+    const account = getActionsAccount(repository, this.accounts)
+    const gitHubRepository = repository.gitHubRepository
+    if (
+      signal.aborted ||
+      repository.hash !== context.repositoryHash ||
+      getActionsRepositoryKey(repository) !== context.repositoryKey ||
+      this.accountsGeneration !== context.accountsGeneration ||
+      account === null ||
+      getAccountKey(account) !== context.accountKey ||
+      gitHubRepository === null ||
+      gitHubRepository.owner.login !== context.owner ||
+      gitHubRepository.name !== context.name
+    ) {
+      throw canceledWorkflowRunRequest(
+        'The repository or selected GitHub account changed before cancellation.'
+      )
+    }
+  }
+
+  private updateRunCancellationState(
+    repository: Repository,
+    state: IActionsWorkflowRunCancellationState
+  ) {
+    const key = getActionsRepositoryKey(repository)
+    const current = this.states.get(key)
+    if (current === undefined) {
+      return
+    }
+    let changed = false
+    const runs = current.runs.map(run => {
+      if (run.id !== state.id) {
+        return run
+      }
+      const updatedAt = state.updatedAt ?? run.updated_at
+      if (
+        run.status === state.status &&
+        run.conclusion === state.conclusion &&
+        run.updated_at === updatedAt
+      ) {
+        return run
+      }
+      changed = true
+      return {
+        ...run,
+        status: state.status,
+        conclusion: state.conclusion,
+        updated_at: updatedAt,
+      }
+    })
+    if (changed) {
+      this.notify(repository, { ...current, runs })
+    }
+  }
+
+  private waitForRunCancellationPoll(
+    delay: number,
+    signal: AbortSignal
+  ): Promise<void> {
+    return new Promise((resolve, reject) => {
+      if (signal.aborted) {
+        reject(
+          canceledWorkflowRunRequest('Workflow cancellation was canceled.')
+        )
+        return
+      }
+      const timeout = window.setTimeout(() => {
+        signal.removeEventListener('abort', cancel)
+        resolve()
+      }, delay)
+      const cancel = () => {
+        window.clearTimeout(timeout)
+        signal.removeEventListener('abort', cancel)
+        reject(
+          canceledWorkflowRunRequest('Workflow cancellation was canceled.')
+        )
+      }
+      signal.addEventListener('abort', cancel, { once: true })
+    })
+  }
+
+  private async refreshAfterRunCancellation(
+    repository: Repository,
+    state: IActionsWorkflowRunCancellationState
+  ) {
+    try {
+      await this.refresh(repository, true)
+    } catch (error) {
+      log.error('Failed refreshing Actions after workflow cancellation', error)
+    }
+    // An immediately refreshed list can briefly lag the exact run endpoint.
+    // Preserve the authoritative terminal state until the next provider page.
+    this.updateRunCancellationState(repository, state)
+  }
+
+  private async performCancelRun(
+    repository: Repository,
+    context: IActionsRunCancellationContext,
+    account: Account,
+    signal: AbortSignal | undefined,
+    onProgress: ActionsRunCancellationProgressCallback | undefined
+  ): Promise<IActionsRunCancellationResult> {
+    const api = API.fromAccount(account)
+    return this.runAccountBound(signal, async accountSignal => {
+      this.assertRunCancellationContext(repository, context, accountSignal)
+      this.reportRunCancellationProgress(
+        onProgress,
+        'revalidating',
+        `Checking workflow run #${context.runId} before cancellation…`
+      )
+      let state = await api.fetchWorkflowRunCancellationState(
+        context.owner,
+        context.name,
+        context.runId,
+        accountSignal
+      )
+      this.updateRunCancellationState(repository, state)
+
+      if (isWorkflowRunTerminalStatus(state.status)) {
+        this.reportRunCancellationProgress(
+          onProgress,
+          'terminal',
+          `Workflow run #${context.runId} has already finished.`
+        )
+        await this.refreshAfterRunCancellation(repository, state)
+        return {
+          runId: context.runId,
+          accepted: false,
+          alreadyTerminal: true,
+          status: state.status,
+          conclusion: state.conclusion,
+        }
+      }
+      if (!isWorkflowRunCancellableStatus(state.status)) {
+        throw new Error(
+          'This workflow run is no longer queued, running, waiting, or pending. Refresh Actions before trying again.'
+        )
+      }
+
+      // This check is intentionally adjacent to the POST. It prevents a stale
+      // repository or selected account from crossing the destructive boundary.
+      this.assertRunCancellationContext(repository, context, accountSignal)
+      this.reportRunCancellationProgress(
+        onProgress,
+        'requesting',
+        `Requesting normal cancellation for workflow run #${context.runId}…`
+      )
+
+      let accepted: boolean
+      try {
+        accepted = await api.cancelWorkflowRun(
+          context.owner,
+          context.name,
+          context.runId,
+          false,
+          accountSignal
+        )
+      } catch (error) {
+        if (
+          error instanceof APIError &&
+          (error.responseStatus === 409 || error.responseStatus === 422)
+        ) {
+          try {
+            const racedState = await api.fetchWorkflowRunCancellationState(
+              context.owner,
+              context.name,
+              context.runId,
+              accountSignal
+            )
+            this.updateRunCancellationState(repository, racedState)
+            if (isWorkflowRunTerminalStatus(racedState.status)) {
+              await this.refreshAfterRunCancellation(repository, racedState)
+              return {
+                runId: context.runId,
+                accepted: false,
+                alreadyTerminal: true,
+                status: racedState.status,
+                conclusion: racedState.conclusion,
+              }
+            }
+          } catch (revalidationError) {
+            if ((revalidationError as Error)?.name === 'AbortError') {
+              throw revalidationError
+            }
+          }
+        }
+        throw error
+      }
+
+      this.reportRunCancellationProgress(
+        onProgress,
+        'accepted',
+        accepted
+          ? `GitHub accepted cancellation for workflow run #${context.runId}.`
+          : `Cancellation was sent for workflow run #${context.runId}.`
+      )
+
+      let delay = ActionsRunCancellationInitialPollDelay
+      for (
+        let attempt = 0;
+        attempt < ActionsRunCancellationMaximumPollAttempts;
+        attempt++
+      ) {
+        this.reportRunCancellationProgress(
+          onProgress,
+          'waiting',
+          `Waiting for workflow run #${context.runId} to stop…`
+        )
+        await this.waitForRunCancellationPoll(delay, accountSignal)
+        this.assertRunCancellationContext(repository, context, accountSignal)
+        state = await api.fetchWorkflowRunCancellationState(
+          context.owner,
+          context.name,
+          context.runId,
+          accountSignal
+        )
+        this.updateRunCancellationState(repository, state)
+        if (isWorkflowRunTerminalStatus(state.status)) {
+          this.reportRunCancellationProgress(
+            onProgress,
+            'terminal',
+            state.conclusion === 'cancelled'
+              ? `Workflow run #${context.runId} was canceled.`
+              : `Workflow run #${context.runId} finished before cancellation completed.`
+          )
+          await this.refreshAfterRunCancellation(repository, state)
+          return {
+            runId: context.runId,
+            accepted,
+            alreadyTerminal: false,
+            status: state.status,
+            conclusion: state.conclusion,
+          }
+        }
+        delay = Math.min(
+          Math.ceil(delay * 1.5),
+          ActionsRunCancellationMaximumPollDelay
+        )
+      }
+
+      window.setTimeout(() => {
+        this.refresh(repository, true).catch(error =>
+          log.error('Failed following up accepted workflow cancellation', error)
+        )
+      }, ActionsRunCancellationMaximumPollDelay)
+      throw new Error(
+        'GitHub accepted the cancellation request, but the run is still stopping. Actions will keep refreshing its status.'
+      )
+    })
+  }
+
   public async cancelRun(
     repository: Repository,
     runId: number,
-    force: boolean
-  ) {
+    signal?: AbortSignal,
+    onProgress?: ActionsRunCancellationProgressCallback
+  ): Promise<IActionsRunCancellationResult> {
+    await this.accountsReady
+    const safeRunId = validateActionsJobIdentifier(runId, 'workflow run id')
     const gitHubRepository = this.gitHubFor(repository)
-    await this.mutate(force ? 'force-cancel-run' : 'cancel-run', () =>
-      this.apiFor(repository).cancelWorkflowRun(
-        gitHubRepository.owner.login,
-        gitHubRepository.name,
-        runId,
-        force
-      )
+    const account = this.accountFor(repository)
+    const context: IActionsRunCancellationContext = {
+      repositoryHash: repository.hash,
+      repositoryKey: getActionsRepositoryKey(repository),
+      accountKey: getAccountKey(account),
+      accountsGeneration: this.accountsGeneration,
+      owner: gitHubRepository.owner.login,
+      name: gitHubRepository.name,
+      runId: safeRunId,
+    }
+    const key = `${context.repositoryHash}#${context.repositoryKey}#${context.accountKey}#run:${safeRunId}`
+    const pending = this.runCancellationInFlight.get(key)
+    if (pending !== undefined) {
+      return pending
+    }
+    const request = this.performCancelRun(
+      repository,
+      context,
+      account,
+      signal,
+      onProgress
     )
-    await this.refresh(repository, true)
+      .catch(error => {
+        throw actionsMutationError(error, 'cancel-run')
+      })
+      .finally(() => {
+        if (this.runCancellationInFlight.get(key) === request) {
+          this.runCancellationInFlight.delete(key)
+        }
+      })
+    this.runCancellationInFlight.set(key, request)
+    return request
   }
 
   public async setWorkflowEnabled(

@@ -8,9 +8,11 @@ import {
   getGitLabAPIEndpoint,
   getHTMLURL,
   getNextPagePathWithIncreasingPageSize,
+  getOAuthAuthorizationURL,
   GitHubDotComRESTAPIVersion,
   GitHubRESTAPIVersionHeader,
 } from '../../src/lib/api'
+import { GitHubOAuthScopes } from '../../src/lib/github-oauth-scopes'
 import { APIError } from '../../src/lib/http'
 import { CopilotError } from '../../src/lib/copilot-error'
 import * as URL from 'url'
@@ -61,6 +63,22 @@ function assertNext(current: IPageInfo, expected: IPageInfo) {
 }
 
 describe('API', () => {
+  describe('GitHub OAuth authorization', () => {
+    it('requests the exact implemented feature scopes', () => {
+      const authorization = new URL.URL(
+        getOAuthAuthorizationURL('https://api.github.com', 'reviewed-state')
+      )
+
+      assert.equal(authorization.origin, 'https://github.com')
+      assert.equal(authorization.pathname, '/login/oauth/authorize')
+      assert.equal(
+        authorization.searchParams.get('scope'),
+        GitHubOAuthScopes.join(' ')
+      )
+      assert.equal(authorization.searchParams.get('state'), 'reviewed-state')
+    })
+  })
+
   describe('third-party provider endpoints', () => {
     it('normalizes GitLab.com and self-hosted subpath endpoints', () => {
       assert.equal(getGitLabAPIEndpoint(), 'https://gitlab.com/api/v4')
@@ -567,6 +585,100 @@ describe('API', () => {
           path: 'repos/owner/repo/actions/workflows/32/disable',
         },
       ])
+    })
+
+    it('revalidates the exact run and treats 202 cancellation as accepted', async () => {
+      const api = new API('https://api.github.com', 'token')
+      const controller = new AbortController()
+      const requests = new Array<{
+        method: string
+        path: string
+        signal?: AbortSignal
+      }>()
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (
+          method: string,
+          path: string,
+          options?: { readonly signal?: AbortSignal }
+        ) => {
+          requests.push({ method, path, signal: options?.signal })
+          return method === 'GET'
+            ? new Response(
+                JSON.stringify({
+                  id: 23,
+                  status: 'in_progress',
+                  conclusion: null,
+                  updated_at: '2026-07-16T12:30:00Z',
+                }),
+                { status: 200 }
+              )
+            : new Response(null, { status: 202 })
+        }
+      )
+
+      const state = await api.fetchWorkflowRunCancellationState(
+        'owner',
+        'repo',
+        23,
+        controller.signal
+      )
+      assert.equal(state.id, 23)
+      assert.equal(state.status, 'in_progress')
+      assert.equal(
+        await api.cancelWorkflowRun(
+          'owner',
+          'repo',
+          23,
+          false,
+          controller.signal
+        ),
+        true
+      )
+      assert.deepEqual(requests, [
+        {
+          method: 'GET',
+          path: 'repos/owner/repo/actions/runs/23',
+          signal: controller.signal,
+        },
+        {
+          method: 'POST',
+          path: 'repos/owner/repo/actions/runs/23/cancel',
+          signal: controller.signal,
+        },
+      ])
+      await assert.rejects(
+        api.cancelWorkflowRun('owner', 'repo', 0),
+        /workflow run id/
+      )
+    })
+
+    it('keeps workflow cancellation provider errors structured and bounded', async () => {
+      const api = new API('https://api.github.com', 'token')
+      Reflect.set(
+        api,
+        'ghRequest',
+        async () =>
+          new Response(
+            JSON.stringify({
+              message: 'Permission denied without exposing provider secrets',
+            }),
+            {
+              status: 403,
+              headers: { 'Content-Type': 'application/json' },
+            }
+          )
+      )
+
+      await assert.rejects(
+        api.cancelWorkflowRun('owner', 'repo', 23),
+        error =>
+          error instanceof APIError &&
+          error.responseStatus === 403 &&
+          error.message ===
+            'Permission denied without exposing provider secrets'
+      )
     })
 
     it('preserves structured errors for workflow state changes', async () => {

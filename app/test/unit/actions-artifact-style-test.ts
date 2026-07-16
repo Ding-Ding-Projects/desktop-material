@@ -157,6 +157,29 @@ describe('Actions run inspector responsive styles', () => {
     )
   })
 
+  it('keeps workflow cancellation metadata and actions reachable at compact height', () => {
+    assert.match(
+      logSource,
+      /\.actions-confirmation-dialog\s*\{[\s\S]*?display: flex;[\s\S]*?min-height: 0;[\s\S]*?max-height: calc\(100vh - 48px\);[\s\S]*?flex-direction: column;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      logSource,
+      /\.actions-confirmation-body\s*\{[\s\S]*?min-width: 0;[\s\S]*?min-height: 0;[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+    )
+    assert.match(
+      logSource,
+      /\.actions-cancel-run-metadata[\s\S]*?grid-template-columns: minmax\(96px, max-content\) minmax\(0, 1fr\);[\s\S]*?overflow-wrap: anywhere;[\s\S]*?word-break: normal;/
+    )
+    assert.match(
+      logSource,
+      /@media \(max-width: 620px\)[\s\S]*?\.actions-confirmation-dialog[\s\S]*?> footer \.button-component[\s\S]*?width: 100%;[\s\S]*?\.actions-cancel-run-metadata > div[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
+    )
+    assert.match(
+      logSource,
+      /@media \(max-height: 520px\)[\s\S]*?\.actions-confirmation-dialog[\s\S]*?max-height: calc\(100vh - var\(--spacing-double\)\);/
+    )
+  })
+
   it('stacks attempt recovery and job-error controls at minimum width', () => {
     assert.match(
       source,

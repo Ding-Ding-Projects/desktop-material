@@ -307,10 +307,21 @@
 }
 
 .actions-confirmation-dialog {
+  display: flex;
   width: min(520px, 100%);
+  min-height: 0;
+  max-height: calc(100vh - 48px);
+  flex-direction: column;
+  overflow: hidden;
 
   > header > div {
     min-width: 0;
+  }
+
+  > header,
+  > footer {
+    min-width: 0;
+    flex: 0 0 auto;
   }
 
   > footer {
@@ -321,6 +332,15 @@
       background: var(--md-sys-color-error);
     }
   }
+}
+
+.actions-confirmation-body {
+  min-width: 0;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .actions-deployment-review-dialog {
@@ -348,6 +368,53 @@
   p {
     margin: 0;
   }
+}
+
+.actions-cancel-run-metadata {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  margin: 14px 0 0;
+
+  > div {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: minmax(96px, max-content) minmax(0, 1fr);
+    gap: 4px 12px;
+    align-items: baseline;
+    padding: 9px 10px;
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-highest);
+  }
+
+  dt,
+  dd {
+    min-width: 0;
+    margin: 0;
+  }
+
+  dt {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  dd,
+  code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+}
+
+.actions-cancellation-progress {
+  min-width: 0;
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: var(--md-sys-color-on-primary-container);
+  background: var(--md-sys-color-primary-container);
+  overflow-wrap: anywhere;
 }
 
 .actions-review-environment-summary {
@@ -400,30 +467,6 @@
 
 .actions-review-comment-count {
   text-align: right;
-}
-
-.actions-force-cancel-option {
-  display: flex;
-  min-width: 0;
-  gap: 10px;
-  align-items: flex-start;
-  padding: 12px;
-  border-radius: 14px;
-  color: var(--md-sys-color-on-error-container);
-  background: var(--md-sys-color-error-container);
-
-  input {
-    flex: 0 0 auto;
-    margin-top: 2px;
-  }
-
-  span {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 3px;
-    overflow-wrap: anywhere;
-  }
 }
 
 .workflow-dispatch-selects {
@@ -693,6 +736,16 @@
     }
   }
 
+  .actions-confirmation-dialog {
+    > footer .button-component {
+      width: 100%;
+    }
+  }
+
+  .actions-cancel-run-metadata > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   .actions-artifact-provenance-dialog {
     .actions-provenance-summary-grid,
     .actions-provenance-select-grid,
@@ -747,6 +800,26 @@
     input {
       flex-basis: calc(100% - 80px);
     }
+  }
+}
+
+@media (max-height: 520px) {
+  .actions-dialog-layer {
+    padding: var(--spacing);
+  }
+
+  .actions-confirmation-dialog {
+    max-height: calc(100vh - var(--spacing-double));
+    padding: var(--spacing-double);
+    border-radius: 16px;
+
+    > footer {
+      margin-top: var(--spacing);
+    }
+  }
+
+  .actions-confirmation-copy {
+    margin: var(--spacing) 0;
   }
 }
 

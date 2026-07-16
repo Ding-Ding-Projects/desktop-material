@@ -147,7 +147,26 @@ describe('ActionsStore exact account routing', () => {
       rerunFailedJobs: async () => true,
       rerunJob: async () => true,
       rerunWorkflowJob: async () => undefined,
-      cancelWorkflowRun: async () => undefined,
+      fetchWorkflowRunCancellationState: (() => {
+        let reads = 0
+        return async (_owner: string, _name: string, runId: number) => {
+          reads++
+          return reads === 1
+            ? {
+                id: runId,
+                status: 'in_progress' as const,
+                conclusion: null,
+                updatedAt: null,
+              }
+            : {
+                id: runId,
+                status: 'completed' as const,
+                conclusion: 'cancelled' as const,
+                updatedAt: null,
+              }
+        }
+      })(),
+      cancelWorkflowRun: async () => true,
       setWorkflowEnabled: async () => undefined,
       fetchWorkflowFileContent: async () => 'name: CI',
       dispatchWorkflow: async () => undefined,
@@ -195,7 +214,8 @@ describe('ActionsStore exact account routing', () => {
         'Ready'
       )
       await store.approveForkRun(repository, 7)
-      await store.cancelRun(repository, 7, false)
+      Reflect.set(store, 'waitForRunCancellationPoll', async () => undefined)
+      await store.cancelRun(repository, 7)
       await store.setWorkflowEnabled(repository, 3, false)
       await store.fetchWorkflowSource(repository, {
         id: 3,

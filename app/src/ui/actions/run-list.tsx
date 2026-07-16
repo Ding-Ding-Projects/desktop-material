@@ -8,6 +8,7 @@ import {
 import { RelativeTime } from '../relative-time'
 import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
+import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 
 interface IRunListProps {
   readonly runs: ReadonlyArray<IAPIWorkflowRun>
@@ -16,18 +17,31 @@ interface IRunListProps {
   readonly onSelect: (run: IAPIWorkflowRun) => void
   readonly onRerun: (run: IAPIWorkflowRun) => void
   readonly onRerunFailed: (run: IAPIWorkflowRun) => void
-  readonly onRequestCancel: (run: IAPIWorkflowRun) => void
+  readonly onRequestCancel: (
+    run: IAPIWorkflowRun,
+    trigger: HTMLButtonElement,
+    fallback: HTMLButtonElement | null
+  ) => void
 }
 
 export const isWorkflowRunActive = (run: IAPIWorkflowRun) =>
-  run.status === APICheckStatus.Queued ||
-  run.status === APICheckStatus.InProgress
+  isWorkflowRunCancellableStatus(run.status)
 
 export function getRunTone(run: IAPIWorkflowRun) {
   if (run.status !== APICheckStatus.Completed) {
-    return {
-      label: run.status === APICheckStatus.Queued ? 'Queued' : 'Running',
-      tone: 'pending',
+    switch (run.status) {
+      case APICheckStatus.Queued:
+        return { label: 'Queued', tone: 'pending' }
+      case APICheckStatus.InProgress:
+        return { label: 'Running', tone: 'pending' }
+      case 'waiting':
+        return { label: 'Waiting', tone: 'pending' }
+      case 'pending':
+        return { label: 'Pending', tone: 'pending' }
+      case 'requested':
+        return { label: 'Requested', tone: 'pending' }
+      default:
+        return { label: 'Unknown', tone: 'neutral' }
     }
   }
   switch (run.conclusion) {
@@ -52,7 +66,11 @@ export function getRunTone(run: IAPIWorkflowRun) {
 class RunListItem extends React.PureComponent<
   IRunListProps & { readonly run: IAPIWorkflowRun }
 > {
+  private selectButton: HTMLButtonElement | null = null
   private select = () => this.props.onSelect(this.props.run)
+  private setSelectButtonRef = (button: HTMLButtonElement | null) => {
+    this.selectButton = button
+  }
   private rerun = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
     this.props.onRerun(this.props.run)
@@ -63,7 +81,11 @@ class RunListItem extends React.PureComponent<
   }
   private requestCancel = (event: React.MouseEvent<HTMLButtonElement>) => {
     event.stopPropagation()
-    this.props.onRequestCancel(this.props.run)
+    this.props.onRequestCancel(
+      this.props.run,
+      event.currentTarget,
+      this.selectButton
+    )
   }
 
   public render() {
@@ -85,6 +107,7 @@ class RunListItem extends React.PureComponent<
           <button
             type="button"
             className="actions-run-select"
+            ref={this.setSelectButtonRef}
             onClick={this.select}
             aria-pressed={selectedRunId === run.id}
           >
@@ -114,6 +137,7 @@ class RunListItem extends React.PureComponent<
                 disabled={busyRunId === run.id}
                 onClick={this.requestCancel}
                 ariaLabel={`Cancel workflow run ${run.run_number ?? run.id}`}
+                ariaHaspopup="dialog"
               >
                 Cancel run
               </Button>

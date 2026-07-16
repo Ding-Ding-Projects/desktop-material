@@ -29,9 +29,15 @@ import { JobLogViewer } from './job-log-viewer'
 import { ActionsConfirmationDialog } from './actions-confirmation-dialog'
 import { WorkflowStateControl } from './workflow-state-control'
 import { ActionsCacheManager } from './actions-cache-manager'
+import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 
 type ActionsConfirmation =
-  | { readonly kind: 'cancel-run'; readonly run: IAPIWorkflowRun }
+  | {
+      readonly kind: 'cancel-run'
+      readonly run: IAPIWorkflowRun
+      readonly repositoryKey: string
+      readonly returnFocus: () => void
+    }
   | {
       readonly kind: 'workflow-state'
       readonly workflow: IAPIWorkflow
@@ -77,6 +83,8 @@ interface IActionsViewState {
   readonly logLoading: boolean
   readonly logError: Error | null
   readonly confirmation: ActionsConfirmation | null
+  readonly confirmationError: Error | null
+  readonly confirmationProgress: string | null
 }
 
 const InitialActionsState: IActionsState = {
@@ -124,6 +132,8 @@ const initialActionsViewState = (repositoryKey: string): IActionsViewState => ({
   logLoading: false,
   logError: null,
   confirmation: null,
+  confirmationError: null,
+  confirmationProgress: null,
 })
 
 export class ActionsView extends React.Component<
@@ -144,6 +154,8 @@ export class ActionsView extends React.Component<
   private jobsController: AbortController | null = null
   private jobsRequest: IActionsJobRequestContext | null = null
   private logController: AbortController | null = null
+  private cancellationController: AbortController | null = null
+  private refreshButton: HTMLButtonElement | null = null
   private repositoryGeneration = 0
   private operationGeneration = 0
 
@@ -170,6 +182,8 @@ export class ActionsView extends React.Component<
       this.cancelJobs()
       this.logController?.abort()
       this.logController = null
+      this.cancellationController?.abort()
+      this.cancellationController = null
       this.subscribeToRepository()
     }
     // A repository can gain its GitHub association after ActionsView mounts
@@ -190,6 +204,7 @@ export class ActionsView extends React.Component<
     this.subscription?.dispose()
     this.cancelJobs()
     this.logController?.abort()
+    this.cancellationController?.abort()
   }
 
   private cancelJobs() {
@@ -250,6 +265,8 @@ export class ActionsView extends React.Component<
       this.cancelJobs()
       this.logController?.abort()
       this.logController = null
+      this.cancellationController?.abort()
+      this.cancellationController = null
       this.setState({
         actions,
         workflow: 'all',
@@ -273,6 +290,8 @@ export class ActionsView extends React.Component<
         logLoading: false,
         logError: null,
         confirmation: null,
+        confirmationError: null,
+        confirmationProgress: null,
       })
       return
     }
@@ -747,6 +766,8 @@ export class ActionsView extends React.Component<
     this.setState({
       dispatchOpen: true,
       confirmation: null,
+      confirmationError: null,
+      confirmationProgress: null,
       logJob: null,
       log: '',
       logLoading: false,
@@ -795,6 +816,8 @@ export class ActionsView extends React.Component<
     this.setState({
       dispatchOpen: false,
       confirmation: null,
+      confirmationError: null,
+      confirmationProgress: null,
       logJob,
       log: '',
       logLoading: true,
@@ -849,12 +872,27 @@ export class ActionsView extends React.Component<
   private rerunFailed = (run: IAPIWorkflowRun) =>
     this.performRunAction(run, true)
 
-  private requestCancelRun = (run: IAPIWorkflowRun) => {
+  private requestCancelRun = (
+    run: IAPIWorkflowRun,
+    returnFocus: HTMLButtonElement,
+    fallbackFocus: HTMLButtonElement | null
+  ) => {
+    if (!isWorkflowRunCancellableStatus(run.status)) {
+      return
+    }
     this.logController?.abort()
     this.logController = null
     this.setState({
       dispatchOpen: false,
-      confirmation: { kind: 'cancel-run', run },
+      confirmation: {
+        kind: 'cancel-run',
+        run,
+        repositoryKey: getActionsViewRepositoryKey(this.props.repository),
+        returnFocus: () =>
+          this.restoreCancellationFocus(returnFocus, fallbackFocus),
+      },
+      confirmationError: null,
+      confirmationProgress: null,
       logJob: null,
       log: '',
       logLoading: false,
@@ -871,6 +909,8 @@ export class ActionsView extends React.Component<
     this.setState({
       dispatchOpen: false,
       confirmation: { kind: 'workflow-state', workflow, enabled },
+      confirmationError: null,
+      confirmationProgress: null,
       logJob: null,
       log: '',
       logLoading: false,
@@ -878,41 +918,110 @@ export class ActionsView extends React.Component<
     })
   }
 
-  private closeConfirmation = () => this.setState({ confirmation: null })
+  private closeConfirmation = () => {
+    if (this.state.busyRunId !== null || this.state.busyWorkflowId !== null) {
+      return
+    }
+    this.setState({
+      confirmation: null,
+      confirmationError: null,
+      confirmationProgress: null,
+    })
+  }
 
-  private confirmCancelRun = async (force: boolean) => {
+  private restoreCancellationFocus(
+    returnFocus: HTMLButtonElement,
+    fallbackFocus: HTMLButtonElement | null
+  ) {
+    for (const target of [returnFocus, fallbackFocus, this.refreshButton]) {
+      if (target?.isConnected) {
+        target.focus()
+        return
+      }
+    }
+  }
+
+  private setRefreshButtonRef = (button: HTMLButtonElement | null) => {
+    this.refreshButton = button
+  }
+
+  private confirmCancelRun = async () => {
     const confirmation = this.state.confirmation
     const repository = this.props.repository
     const repositoryGeneration = this.repositoryGeneration
     const operationGeneration = this.operationGeneration
     if (
       confirmation?.kind !== 'cancel-run' ||
-      repository.gitHubRepository === null
+      repository.gitHubRepository === null ||
+      this.state.busyRunId !== null ||
+      confirmation.repositoryKey !== getActionsViewRepositoryKey(repository)
     ) {
       return
     }
+    const run = this.state.actions.runs.find(
+      candidate => candidate.id === confirmation.run.id
+    )
+    if (run === undefined || !isWorkflowRunCancellableStatus(run.status)) {
+      this.setState({
+        confirmationError: new Error(
+          'This workflow run is no longer queued, running, waiting, or pending. Refresh Actions before trying again.'
+        ),
+        confirmationProgress: null,
+      })
+      return
+    }
+    const controller = new AbortController()
+    this.cancellationController = controller
     this.setState({
-      busyRunId: confirmation.run.id,
+      busyRunId: run.id,
       actionError: null,
       actionMessage: null,
+      confirmationError: null,
+      confirmationProgress: `Checking workflow run #${
+        run.run_number ?? run.id
+      } before cancellation…`,
     })
     try {
-      await this.props.actionsStore.cancelRun(
+      const result = await this.props.actionsStore.cancelRun(
         repository,
-        confirmation.run.id,
-        force
+        run.id,
+        controller.signal,
+        progress => {
+          if (
+            this.cancellationController === controller &&
+            this.isCurrentOperation(
+              repository,
+              repositoryGeneration,
+              operationGeneration
+            ) &&
+            this.state.confirmation?.kind === 'cancel-run' &&
+            this.state.confirmation.run.id === run.id
+          ) {
+            this.setState({ confirmationProgress: progress.message })
+          }
+        }
       )
       if (
+        this.cancellationController === controller &&
         this.isCurrentOperation(
           repository,
           repositoryGeneration,
           operationGeneration
         )
       ) {
+        const runNumber = run.run_number ?? run.id
+        const conclusion = result.conclusion?.replace(/_/g, ' ') ?? 'completed'
         this.setState({
-          actionMessage: force
-            ? 'Force cancellation requested.'
-            : 'Workflow cancellation requested.',
+          busyRunId: null,
+          confirmation: null,
+          confirmationError: null,
+          confirmationProgress: null,
+          actionMessage:
+            result.conclusion === 'cancelled'
+              ? `Workflow run #${runNumber} was canceled.`
+              : result.alreadyTerminal
+              ? `Workflow run #${runNumber} had already finished (${conclusion}).`
+              : `Workflow run #${runNumber} finished as ${conclusion} before cancellation completed.`,
         })
       }
     } catch (error) {
@@ -924,19 +1033,15 @@ export class ActionsView extends React.Component<
         )
       ) {
         this.setState({
-          actionError:
+          busyRunId: null,
+          confirmationError:
             error instanceof Error ? error : new Error(String(error)),
+          confirmationProgress: null,
         })
       }
     } finally {
-      if (
-        this.isCurrentOperation(
-          repository,
-          repositoryGeneration,
-          operationGeneration
-        )
-      ) {
-        this.setState({ busyRunId: null, confirmation: null })
+      if (this.cancellationController === controller) {
+        this.cancellationController = null
       }
     }
   }
@@ -1150,6 +1255,10 @@ export class ActionsView extends React.Component<
 
   public render() {
     const { actions, selectedRun } = this.state
+    const cancelConfirmation =
+      this.state.confirmation?.kind === 'cancel-run'
+        ? this.state.confirmation
+        : null
     const filteredRuns = this.getFilteredRuns()
     const events = [
       ...new Set([
@@ -1196,6 +1305,7 @@ export class ActionsView extends React.Component<
               Run workflow
             </Button>
             <Button
+              onButtonRef={this.setRefreshButtonRef}
               onClick={this.refresh}
               disabled={actions.loading || actions.runsLoadingMore}
             >
@@ -1377,28 +1487,74 @@ export class ActionsView extends React.Component<
             onClose={this.closeLogs}
           />
         )}
-        {this.state.confirmation?.kind === 'cancel-run' && (
-          <ActionsConfirmationDialog
-            eyebrow="Destructive action"
-            title="Cancel workflow run?"
-            description={
-              <p>
-                Cancel run #{this.state.confirmation.run.run_number} for{' '}
-                <strong>
-                  {this.state.confirmation.run.display_title ||
-                    this.state.confirmation.run.name}
-                </strong>
-                ?
-              </p>
-            }
-            confirmLabel="Cancel run"
-            forceConfirmLabel="Force cancel run"
-            showForceCancelOption={true}
-            submitting={this.state.busyRunId === this.state.confirmation.run.id}
-            onConfirm={this.confirmCancelRun}
-            onDismissed={this.closeConfirmation}
-          />
-        )}
+        {cancelConfirmation !== null &&
+          this.props.repository.gitHubRepository !== null && (
+            <ActionsConfirmationDialog
+              eyebrow="Destructive action"
+              title="Cancel workflow run?"
+              description={
+                <>
+                  <p>
+                    Request normal cancellation for this exact workflow run?
+                  </p>
+                  <dl className="actions-cancel-run-metadata">
+                    <div>
+                      <dt>Workflow</dt>
+                      <dd>{cancelConfirmation.run.name}</dd>
+                    </div>
+                    <div>
+                      <dt>Run</dt>
+                      <dd>
+                        #
+                        {cancelConfirmation.run.run_number ??
+                          cancelConfirmation.run.id}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Repository</dt>
+                      <dd>
+                        {this.props.repository.gitHubRepository.owner.login}/
+                        {this.props.repository.gitHubRepository.name}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Branch or ref</dt>
+                      <dd>
+                        {cancelConfirmation.run.head_branch ?? 'Detached'}
+                      </dd>
+                    </div>
+                    {cancelConfirmation.run.display_title && (
+                      <div>
+                        <dt>Run title</dt>
+                        <dd>{cancelConfirmation.run.display_title}</dd>
+                      </div>
+                    )}
+                    {cancelConfirmation.run.actor && (
+                      <div>
+                        <dt>Actor</dt>
+                        <dd>@{cancelConfirmation.run.actor.login}</dd>
+                      </div>
+                    )}
+                    {cancelConfirmation.run.head_sha && (
+                      <div>
+                        <dt>Commit</dt>
+                        <dd>
+                          <code>{cancelConfirmation.run.head_sha}</code>
+                        </dd>
+                      </div>
+                    )}
+                  </dl>
+                </>
+              }
+              confirmLabel="Cancel run"
+              submitting={this.state.busyRunId === cancelConfirmation.run.id}
+              error={this.state.confirmationError}
+              progressMessage={this.state.confirmationProgress}
+              onConfirm={this.confirmCancelRun}
+              onDismissed={this.closeConfirmation}
+              onReturnFocus={cancelConfirmation.returnFocus}
+            />
+          )}
         {this.state.confirmation?.kind === 'workflow-state' && (
           <ActionsConfirmationDialog
             eyebrow="Workflow state"

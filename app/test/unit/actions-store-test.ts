@@ -430,6 +430,12 @@ describe('ActionsStore helpers', () => {
   })
 
   it('explains permission and Enterprise capability failures', () => {
+    const unauthorized = actionsMutationError(
+      new APIError(new Response(null, { status: 401 }), null),
+      'cancel-run'
+    )
+    assert.match(unauthorized.message, /Re-authenticate the account selected/)
+
     const denied = actionsMutationError(
       new APIError(new Response(null, { status: 403 }), {
         message: 'Forbidden',
@@ -437,6 +443,24 @@ describe('ActionsStore helpers', () => {
       'disable-workflow'
     )
     assert.match(denied.message, /Actions write access/)
+
+    const cancellationDenied = actionsMutationError(
+      new APIError(new Response(null, { status: 403 }), {
+        message: 'secret-provider-body',
+      }),
+      'cancel-run'
+    )
+    assert.match(cancellationDenied.message, /authorize organization SSO/)
+    assert.equal(
+      cancellationDenied.message.includes('secret-provider-body'),
+      false
+    )
+
+    const conflict = actionsMutationError(
+      new APIError(new Response(null, { status: 422 }), null),
+      'cancel-run'
+    )
+    assert.match(conflict.message, /changed state.*Refresh Actions/)
 
     const unavailable = actionsMutationError(
       new APIError(new Response(null, { status: 404 }), {

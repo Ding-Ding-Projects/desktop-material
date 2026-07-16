@@ -173,28 +173,24 @@ describe('Actions parity controls', () => {
     )
   })
 
-  it('requires confirmation and makes force cancellation explicit', () => {
-    let force: boolean | null = null
+  it('requires confirmation and keeps force cancellation out of the primary action', () => {
+    let confirmed = 0
     render(
       <ActionsConfirmationDialog
         eyebrow="Destructive action"
         title="Cancel workflow run?"
         description={<p>Cancel this run?</p>}
         confirmLabel="Cancel run"
-        forceConfirmLabel="Force cancel run"
-        showForceCancelOption={true}
         submitting={false}
-        onConfirm={value => (force = value)}
+        onConfirm={() => confirmed++}
         onDismissed={() => {}}
       />
     )
 
     assert.ok(screen.getByRole('alertdialog'))
-    fireEvent.click(
-      screen.getByRole('checkbox', { name: /Force cancellation/ })
-    )
-    fireEvent.click(screen.getByRole('button', { name: 'Force cancel run' }))
-    assert.equal(force, true)
+    assert.equal(screen.queryByText(/Force cancellation/), null)
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel run' }))
+    assert.equal(confirmed, 1)
   })
 
   it('maps active and disabled workflow states to confirmed mutations', () => {

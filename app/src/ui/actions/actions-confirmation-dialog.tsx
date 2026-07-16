@@ -8,36 +8,32 @@ interface IActionsConfirmationDialogProps {
   readonly description: React.ReactNode
   readonly confirmLabel: string
   readonly confirmClassName?: string
-  readonly forceConfirmLabel?: string
-  readonly showForceCancelOption?: boolean
   readonly submitting: boolean
   readonly error?: Error | null
-  readonly onConfirm: (force: boolean) => void
+  readonly progressMessage?: string | null
+  readonly onConfirm: () => void
   readonly onDismissed: () => void
-}
-
-interface IActionsConfirmationDialogState {
-  readonly force: boolean
+  readonly onReturnFocus?: () => void
 }
 
 let actionsConfirmationDialogSequence = 0
 
 /** An in-context confirmation surface for destructive Actions mutations. */
-export class ActionsConfirmationDialog extends React.Component<
-  IActionsConfirmationDialogProps,
-  IActionsConfirmationDialogState
-> {
-  private dialog: HTMLDivElement | null = null
+export class ActionsConfirmationDialog extends React.Component<IActionsConfirmationDialogProps> {
+  private dismissButton: HTMLButtonElement | null = null
   private previousFocus: HTMLElement | null = null
   private readonly titleId: string
   private readonly descriptionId: string
+  private readonly progressId: string
+  private readonly errorId: string
 
   public constructor(props: IActionsConfirmationDialogProps) {
     super(props)
     const instanceId = ++actionsConfirmationDialogSequence
     this.titleId = `actions-confirmation-title-${instanceId}`
     this.descriptionId = `actions-confirmation-description-${instanceId}`
-    this.state = { force: false }
+    this.progressId = `actions-confirmation-progress-${instanceId}`
+    this.errorId = `actions-confirmation-error-${instanceId}`
   }
 
   public componentDidMount() {
@@ -45,20 +41,22 @@ export class ActionsConfirmationDialog extends React.Component<
       document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null
-    this.dialog?.focus()
+    this.dismissButton?.focus()
   }
 
   public componentWillUnmount() {
-    if (this.previousFocus?.isConnected) {
+    if (this.props.onReturnFocus !== undefined) {
+      this.props.onReturnFocus()
+    } else if (this.previousFocus?.isConnected) {
       this.previousFocus.focus()
     }
   }
 
-  private setDialogRef = (dialog: HTMLDivElement | null) => {
-    this.dialog = dialog
+  private setDismissButtonRef = (button: HTMLButtonElement | null) => {
+    this.dismissButton = button
   }
 
-  private onKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+  private onKeyDown = (event: React.KeyboardEvent<HTMLFormElement>) => {
     event.stopPropagation()
     trapActionsDialogFocus(event, event.currentTarget)
     if (event.key === 'Escape' && !this.props.submitting) {
@@ -67,26 +65,35 @@ export class ActionsConfirmationDialog extends React.Component<
     }
   }
 
-  private onForceChanged = (event: React.FormEvent<HTMLInputElement>) =>
-    this.setState({ force: event.currentTarget.checked })
-
-  private confirm = () => this.props.onConfirm(this.state.force)
+  private submit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (!this.props.submitting) {
+      this.props.onConfirm()
+    }
+  }
 
   public render() {
-    const forceLabel = this.props.forceConfirmLabel ?? this.props.confirmLabel
+    const describedBy = [
+      this.descriptionId,
+      this.props.progressMessage ? this.progressId : null,
+      this.props.error ? this.errorId : null,
+    ]
+      .filter((value): value is string => value !== null)
+      .join(' ')
     return (
       <div className="actions-dialog-layer">
         {/* This modal surface blocks controls behind the in-context scrim. */}
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
-        <div
+        <form
           className="actions-confirmation-dialog"
           role="alertdialog"
           aria-modal="true"
           aria-labelledby={this.titleId}
-          aria-describedby={this.descriptionId}
+          aria-describedby={describedBy}
+          aria-busy={this.props.submitting}
           tabIndex={-1}
-          ref={this.setDialogRef}
           onKeyDown={this.onKeyDown}
+          onSubmit={this.submit}
         >
           <header>
             <div>
@@ -94,52 +101,49 @@ export class ActionsConfirmationDialog extends React.Component<
               <h2 id={this.titleId}>{this.props.title}</h2>
             </div>
           </header>
-          <div className="actions-confirmation-copy" id={this.descriptionId}>
-            {this.props.description}
-          </div>
-          {this.props.showForceCancelOption && (
-            <label className="actions-force-cancel-option">
-              <input
-                type="checkbox"
-                checked={this.state.force}
-                disabled={this.props.submitting}
-                onChange={this.onForceChanged}
-              />
-              <span>
-                <strong>Force cancellation</strong>
-                <small>
-                  Bypass cancellation hooks only when the normal request cannot
-                  stop the run.
-                </small>
-              </span>
-            </label>
-          )}
-          {this.props.error && (
-            <div className="actions-inline-error" role="alert">
-              {this.props.error.message}
+          <div className="actions-confirmation-body">
+            <div className="actions-confirmation-copy" id={this.descriptionId}>
+              {this.props.description}
             </div>
-          )}
+            {this.props.progressMessage && (
+              <div
+                id={this.progressId}
+                className="actions-cancellation-progress"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              >
+                {this.props.progressMessage}
+              </div>
+            )}
+            {this.props.error && (
+              <div
+                id={this.errorId}
+                className="actions-inline-error"
+                role="alert"
+              >
+                {this.props.error.message}
+              </div>
+            )}
+          </div>
           <footer>
             <Button
+              onButtonRef={this.setDismissButtonRef}
               onClick={this.props.onDismissed}
               disabled={this.props.submitting}
             >
               Keep current state
             </Button>
             <Button
+              type="submit"
               className={this.props.confirmClassName ?? 'destructive'}
-              onClick={this.confirm}
               disabled={this.props.submitting}
               ariaDescribedBy={this.descriptionId}
             >
-              {this.props.submitting
-                ? 'Requesting…'
-                : this.state.force
-                ? forceLabel
-                : this.props.confirmLabel}
+              {this.props.submitting ? 'Requesting…' : this.props.confirmLabel}
             </Button>
           </footer>
-        </div>
+        </form>
       </div>
     )
   }

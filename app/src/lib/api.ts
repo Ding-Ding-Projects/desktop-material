@@ -186,6 +186,12 @@ import {
   validateActionsJobPage,
 } from './actions-jobs'
 import {
+  ActionsWorkflowRunConclusion,
+  ActionsWorkflowRunStatus,
+  IActionsWorkflowRunCancellationState,
+  parseActionsWorkflowRunCancellationState,
+} from './actions-workflow-runs'
+import {
   ActionsRunReviewState,
   createActionsRunReviewRequest,
   IActionsPendingDeployment,
@@ -199,6 +205,7 @@ import {
   readBoundedActionsJSON,
 } from './actions-response'
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
+import { GitHubOAuthScopes } from './github-oauth-scopes'
 export {
   createGitHubAPIRequestHeaders,
   getGitHubRESTAPIVersion,
@@ -328,9 +335,6 @@ if (!ClientID || !ClientID.length || !ClientSecret || !ClientSecret.length) {
 }
 
 export type GitHubAccountType = 'User' | 'Organization'
-
-/** The OAuth scopes we want to request */
-const oauthScopes = ['repo', 'user', 'workflow']
 
 /**
  * Bound the effective-rules response even if a server supplies an unending
@@ -732,8 +736,8 @@ export interface IAPIWorkflowRun {
   readonly run_attempt?: number
   readonly head_branch?: string | null
   readonly head_sha?: string
-  readonly status?: APICheckStatus
-  readonly conclusion?: APICheckConclusion | null
+  readonly status?: ActionsWorkflowRunStatus
+  readonly conclusion?: ActionsWorkflowRunConclusion | null
   readonly updated_at?: string
   readonly html_url?: string
   readonly actor?: IAPIIdentity
@@ -3259,6 +3263,25 @@ export class API {
     return await parsedResponse<IAPIWorkflowRuns>(response)
   }
 
+  /** Revalidate one exact workflow run before or after a mutation. */
+  public async fetchWorkflowRunCancellationState(
+    owner: string,
+    name: string,
+    workflowRunId: number,
+    signal?: AbortSignal
+  ): Promise<IActionsWorkflowRunCancellationState> {
+    const runId = validateActionsJobIdentifier(workflowRunId, 'workflow run id')
+    const response = await this.ghRequest(
+      'GET',
+      `repos/${owner}/${name}/actions/runs/${runId}`,
+      { signal }
+    )
+    return parseActionsWorkflowRunCancellationState(
+      await boundedActionsMetadataResponse(response, signal),
+      runId
+    )
+  }
+
   /** List one bounded page of artifacts produced by one workflow run. */
   public async fetchWorkflowRunArtifacts(
     owner: string,
@@ -3904,14 +3927,15 @@ export class API {
     owner: string,
     name: string,
     workflowRunId: number,
-    force: boolean = false
-  ): Promise<void> {
+    force: boolean = false,
+    signal?: AbortSignal
+  ): Promise<boolean> {
+    const runId = validateActionsJobIdentifier(workflowRunId, 'workflow run id')
     const action = force ? 'force-cancel' : 'cancel'
-    const path = `repos/${owner}/${name}/actions/runs/${workflowRunId}/${action}`
-    const response = await this.ghRequest('POST', path)
-    if (!response.ok) {
-      await parsedResponse<unknown>(response)
-    }
+    const path = `repos/${owner}/${name}/actions/runs/${runId}/${action}`
+    const response = await this.ghRequest('POST', path, { signal })
+    await requireSuccessfulActionsMutation(response, signal)
+    return response.status === 202
   }
 
   /** Enable or disable a repository workflow. */
@@ -5023,7 +5047,7 @@ export function getOAuthAuthorizationURL(
   state: string
 ): string {
   const urlBase = getHTMLURL(endpoint)
-  const scope = encodeURIComponent(oauthScopes.join(' '))
+  const scope = encodeURIComponent(GitHubOAuthScopes.join(' '))
 
   return new window.URL(
     `/login/oauth/authorize?client_id=${ClientID}&scope=${scope}&state=${state}`,
