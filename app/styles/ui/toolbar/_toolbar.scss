@@ -21,6 +21,49 @@
   color: var(--toolbar-text-color);
   background-color: var(--toolbar-background-color);
 
+  .toolbar-item {
+    display: flex;
+    flex: 0 1 var(--toolbar-item-preferred-width);
+    max-width: var(--toolbar-item-preferred-width);
+    min-width: 0;
+
+    &.can-grow {
+      flex-grow: 1;
+    }
+
+    &:empty {
+      display: none;
+    }
+
+    > * {
+      min-width: 0;
+    }
+
+    // Keep the live control mounted so subscriptions, progress, and transient
+    // state survive a move into overflow, while removing it from layout and
+    // the accessibility/focus trees.
+    &.is-overflowed {
+      animation: none !important;
+      flex: none !important;
+      inset-inline-start: -10000px !important;
+      max-width: var(--toolbar-item-preferred-width) !important;
+      min-width: 0 !important;
+      pointer-events: none;
+      position: fixed !important;
+      top: 0;
+      visibility: hidden;
+      width: var(--toolbar-item-preferred-width) !important;
+    }
+  }
+
+  .toolbar-overflow-control {
+    display: flex;
+    flex: 0 0 48px;
+    max-width: 48px;
+    min-width: 48px;
+    width: 48px;
+  }
+
   .sidebar-section {
     display: flex;
     flex-direction: row;

@@ -162,7 +162,7 @@ describe('post-shell MD3 style contracts', () => {
     )
     assert.match(
       style,
-      /& > \.build-run-toolbar-button\s*\{[\s\S]*?flex: 0 1 210px;[\s\S]*?min-width: 0;/
+      /& > \.toolbar-item:has\(> \.build-run-toolbar-button\)\s*\{[\s\S]*?flex: 0 1 210px;[\s\S]*?min-width: 0;/
     )
   })
 

@@ -108,11 +108,11 @@ body {
   // Secondary actions keep their complete hit targets while their labels
   // ellipsize under pressure. This prevents either action from becoming the
   // toolbar's intrinsic-width escape hatch.
-  & > .one-click-commit-push-button {
+  & > .toolbar-item:has(> .one-click-commit-push-button) {
     flex: 0 1 180px;
   }
 
-  & > .build-run-toolbar-button {
+  & > .toolbar-item:has(> .build-run-toolbar-button) {
     flex: 0 1 210px;
     min-width: 0;
 
@@ -343,13 +343,103 @@ body {
       width: 34%;
     }
   }
+
+  // The measured overflow affordance is a compact trailing app-bar action.
+  // It is shown only when one or more optional actions no longer fit.
+  .toolbar-overflow-trigger {
+    height: 54px;
+    max-width: 48px;
+    min-width: 48px;
+    width: 48px;
+
+    > button {
+      border-radius: 999px;
+      height: 54px;
+      justify-content: center;
+      padding: 0;
+      width: 48px;
+
+      .icon {
+        background: transparent;
+        border-radius: 0;
+        height: 20px;
+        padding: 0;
+        width: 20px;
+      }
+    }
+  }
+
+  // The popover keeps the complete action presentations even when the app bar
+  // itself has switched to its icon-only compact fallback.
+  .toolbar-overflow-popover {
+    background: var(--md-sys-color-surface-container-low);
+    border-color: var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-large);
+    box-shadow: var(--md-sys-elevation-level3);
+    max-width: calc(100vw - 20px);
+    width: min(340px, calc(100vw - 20px));
+
+    .popover-content {
+      padding: 0;
+    }
+  }
+
+  .toolbar-overflow-surface {
+    padding: 10px;
+  }
+
+  .toolbar-overflow-header {
+    align-items: center;
+    display: flex;
+    gap: 8px;
+    justify-content: space-between;
+    padding: 2px 2px 8px 8px;
+
+    h3 {
+      font-size: 14px;
+      font-weight: var(--font-weight-semibold);
+      margin: 0;
+    }
+  }
+
+  .toolbar-overflow-close {
+    align-items: center;
+    border-radius: 999px;
+    display: flex;
+    height: 36px;
+    justify-content: center;
+    padding: 0;
+    width: 36px;
+  }
+
+  .toolbar-overflow-items {
+    display: grid;
+    gap: 8px;
+  }
+
+  .toolbar-overflow-item {
+    min-width: 0;
+
+    > .one-click-commit-push-button,
+    > .build-run-toolbar-button,
+    .toolbar-button,
+    .toolbar-button > button {
+      max-width: none !important;
+      width: 100% !important;
+    }
+
+    > .build-run-toolbar-button {
+      display: flex;
+    }
+  }
 }
 
 body[data-dm-toolbar-density='compact'] #desktop-app-toolbar {
   min-height: 58px;
   padding: 4px 12px 8px;
 
-  .toolbar-button > button {
+  & > .toolbar-item .toolbar-button > button,
+  & > .toolbar-overflow-control > .toolbar-button > button {
     gap: 8px;
     height: 44px;
     padding-inline: 10px 12px;
@@ -363,15 +453,15 @@ body[data-dm-toolbar-density='compact'] #desktop-app-toolbar {
 }
 
 body[data-dm-toolbar-labels='icons'] #desktop-app-toolbar {
-  & > .sidebar-section,
-  & > .resizable-component,
-  & > .one-click-commit-push-button,
-  & > .build-run-toolbar-button {
+  & > .toolbar-item.sidebar-section,
+  & > .toolbar-item:has(> .resizable-component),
+  & > .toolbar-item:has(> .one-click-commit-push-button),
+  & > .toolbar-item:has(> .build-run-toolbar-button) {
     flex: 0 1 92px;
     max-width: 92px !important;
   }
 
-  .toolbar-button > button .text {
+  & > .toolbar-item .toolbar-button > button .text {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -383,7 +473,7 @@ body[data-dm-toolbar-labels='icons'] #desktop-app-toolbar {
     white-space: nowrap;
   }
 
-  .toolbar-button > button {
+  & > .toolbar-item .toolbar-button > button {
     justify-content: center;
   }
 }
@@ -396,119 +486,123 @@ body[data-dm-toolbar-labels='icons'] #desktop-app-toolbar {
   }
 }
 
-// Compact/high-zoom app bar. Preserve whole action targets and their DOM text
-// while prioritising the icons; only wrap complete controls when one row truly
-// cannot fit. This avoids the previous zero-width flex collapse.
-@media (max-width: 760px), (max-height: 420px) {
-  #desktop-app-toolbar {
-    min-height: 56px;
-    gap: 6px;
-    padding: 4px 8px;
-    overflow-x: hidden;
+// Compact/high-zoom app bar. This is also the last-resort layout when the
+// pinned repository controls alone cannot fit after optional actions overflow.
+// DOM labels remain available to assistive technology while the lane shows
+// whole icon targets, never clipped text or half-controls.
+@mixin compact-app-toolbar {
+  gap: 6px;
+  min-height: 56px;
+  overflow-x: hidden;
+  padding: 4px 8px;
 
-    & > * {
-      flex: 0 1 auto;
-      min-width: 40px !important;
-      max-width: 92px !important;
-    }
+  & > .toolbar-item:not(.is-overflowed),
+  & > .toolbar-overflow-control {
+    flex: 0 1 auto;
+    max-width: 92px !important;
+    min-width: 40px !important;
+  }
 
-    & > .sidebar-section,
-    & > .resizable-component {
-      flex: 0 1 auto;
-      width: auto !important;
-      max-width: 92px !important;
-    }
+  & > .toolbar-item.sidebar-section,
+  & > .toolbar-item:has(> .resizable-component) {
+    flex: 0 1 auto;
+    max-width: 92px !important;
+    width: auto !important;
+  }
 
-    & > .one-click-commit-push-button,
-    & > .build-run-toolbar-button {
-      flex: 0 1 auto;
-    }
+  & > .toolbar-item:has(> .one-click-commit-push-button),
+  & > .toolbar-item:has(> .build-run-toolbar-button) {
+    flex: 0 1 auto;
+  }
 
-    & > *:has(.push-pull-button) {
-      margin-left: 0;
-      min-width: 48px !important;
-    }
+  & > .toolbar-item:has(.push-pull-button) {
+    margin-left: 0;
+    min-width: 48px !important;
+  }
 
-    & > #push-pull-button-state {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      min-width: 0 !important;
-      overflow: hidden;
-      clip: rect(0 0 0 0);
-      clip-path: inset(50%);
-    }
+  & > .toolbar-item #push-pull-button-state {
+    clip: rect(0 0 0 0);
+    clip-path: inset(50%);
+    height: 1px;
+    min-width: 0 !important;
+    overflow: hidden;
+    position: absolute;
+    width: 1px;
+  }
 
-    .toolbar-button {
-      width: 48px !important;
-      min-width: 40px !important;
-      max-width: 48px !important;
-      flex: none !important;
+  & > .toolbar-item .toolbar-button,
+  & > .toolbar-overflow-control .toolbar-button {
+    flex: none !important;
+    max-width: 48px !important;
+    min-width: 40px !important;
+    width: 48px !important;
 
-      > button {
-        width: 48px;
-        min-width: 40px;
-        height: 48px;
-        min-height: 40px;
-        justify-content: center;
-        gap: 0;
-        padding: 0 7px;
+    > button {
+      gap: 0;
+      height: 48px;
+      justify-content: center;
+      min-height: 40px;
+      min-width: 40px;
+      padding: 0 7px;
+      width: 48px;
 
-        .text {
-          position: absolute;
-          width: 1px;
-          height: 1px;
-          padding: 0;
-          margin: -1px;
-          overflow: hidden;
-          clip: rect(0 0 0 0);
-          clip-path: inset(50%);
-          white-space: nowrap;
-        }
-      }
-
-      &:not(.toolbar-dropdown-arrow-button) > button .dropdownArrow {
-        display: none;
-      }
-    }
-
-    .toolbar-dropdown-arrow-button {
-      width: 40px !important;
-      min-width: 40px !important;
-      max-width: 40px !important;
-
-      > button {
-        width: 40px;
+      .text {
+        clip: rect(0 0 0 0);
+        clip-path: inset(50%);
+        height: 1px;
+        margin: -1px;
+        overflow: hidden;
         padding: 0;
+        position: absolute;
+        white-space: nowrap;
+        width: 1px;
       }
     }
 
-    .push-pull-button .ahead-behind {
+    &:not(.toolbar-dropdown-arrow-button) > button .dropdownArrow {
       display: none;
     }
+  }
 
-    .build-run-toolbar-button {
-      max-width: 92px !important;
+  & > .toolbar-item .toolbar-dropdown-arrow-button {
+    max-width: 40px !important;
+    min-width: 40px !important;
+    width: 40px !important;
 
-      .build-run-primary {
-        width: 48px !important;
-      }
+    > button {
+      padding: 0;
+      width: 40px;
+    }
+  }
 
-      .build-run-disclosure {
-        width: 40px;
-        min-width: 40px;
-        height: 48px;
-        padding: 0;
-      }
+  & > .toolbar-item .push-pull-button .ahead-behind {
+    display: none;
+  }
+
+  & > .toolbar-item .build-run-toolbar-button {
+    max-width: 92px !important;
+
+    .build-run-primary {
+      width: 48px !important;
+    }
+
+    .build-run-disclosure {
+      height: 48px;
+      min-width: 40px;
+      padding: 0;
+      width: 40px;
     }
   }
 }
 
-@media (max-width: 440px) {
+@media (max-width: 760px), (max-height: 420px) {
   #desktop-app-toolbar {
-    flex-wrap: wrap;
-    align-content: center;
+    @include compact-app-toolbar;
   }
+}
+
+#desktop-app-toolbar.toolbar-overflow-exhausted {
+  @include compact-app-toolbar;
 }
 
 // Workspace canvas: the region holding the tab strip, toolbar and the floating

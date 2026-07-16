@@ -64,6 +64,7 @@ import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
 import { CloningRepositoryView } from './cloning-repository'
 import {
   Toolbar,
+  ToolbarItem,
   ToolbarDropdown,
   DropdownState,
   PushPullButton,
@@ -4378,15 +4379,41 @@ export class App extends React.Component<IAppProps, IAppState> {
     const width = clamp(this.state.sidebarWidth)
 
     return (
-      <Toolbar id="desktop-app-toolbar">
-        <div className="sidebar-section" style={{ width }}>
+      <Toolbar id="desktop-app-toolbar" ariaLabel="Repository controls">
+        <ToolbarItem
+          id="repository"
+          preferredWidth={220}
+          canGrow={true}
+          className="sidebar-section"
+          style={{ width }}
+        >
           {this.renderRepositoryToolbarButton()}
-        </div>
-        {this.renderWorktreeToolbarButton()}
-        {this.renderBranchToolbarButton()}
-        {this.renderPushPullToolbarButton()}
-        {this.renderOneClickCommitPushButton()}
-        {this.renderBuildRunToolbarButton()}
+        </ToolbarItem>
+        <ToolbarItem id="worktree" preferredWidth={220} canGrow={true}>
+          {this.renderWorktreeToolbarButton()}
+        </ToolbarItem>
+        <ToolbarItem id="branch" preferredWidth={190} canGrow={true}>
+          {this.renderBranchToolbarButton()}
+        </ToolbarItem>
+        <ToolbarItem id="sync" preferredWidth={210}>
+          {this.renderPushPullToolbarButton()}
+        </ToolbarItem>
+        <ToolbarItem
+          id="one-click-commit-push"
+          preferredWidth={180}
+          overflowPriority={2}
+          renderOverflow={this.renderOneClickCommitPushOverflowButton}
+        >
+          {this.renderOneClickCommitPushButton()}
+        </ToolbarItem>
+        <ToolbarItem
+          id="build-run"
+          preferredWidth={210}
+          overflowPriority={1}
+          renderOverflow={this.renderBuildRunToolbarOverflowButton}
+        >
+          {this.renderBuildRunToolbarButton()}
+        </ToolbarItem>
       </Toolbar>
     )
   }
@@ -4406,6 +4433,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       />
     )
   }
+
+  private renderBuildRunToolbarOverflowButton = () =>
+    this.renderBuildRunToolbarButton()
 
   private renderOneClickCommitPushButton() {
     const selection = this.state.selectedState
@@ -4440,6 +4470,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       />
     )
   }
+
+  private renderOneClickCommitPushOverflowButton = () =>
+    this.renderOneClickCommitPushButton()
 
   private renderBuildRunPanel() {
     const selection = this.state.selectedState

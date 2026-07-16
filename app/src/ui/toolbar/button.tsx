@@ -104,6 +104,10 @@ export interface IToolbarButtonProps {
   readonly role?: string
   readonly ariaExpanded?: boolean
   readonly ariaHaspopup?: AriaHasPopupType
+  readonly ariaControls?: string
+
+  /** Receives the underlying HTML button used for anchored surfaces. */
+  readonly onButtonRef?: (button: HTMLButtonElement | null) => void
 
   /**
    * Typically the contents of a button serve the purpose of describing the
@@ -216,12 +220,14 @@ export class ToolbarButton extends React.Component<IToolbarButtonProps, {}> {
           onClick={this.onClick}
           onContextMenu={this.props.onContextMenu}
           ref={this.onButtonRef}
+          onButtonRef={this.props.onButtonRef}
           disabled={this.props.disabled}
           onMouseEnter={this.props.onMouseEnter}
           tabIndex={this.props.tabIndex}
           role={this.props.role}
           ariaExpanded={this.props.ariaExpanded}
           ariaHaspopup={this.props.ariaHaspopup}
+          ariaControls={this.props.ariaControls}
           ariaLabel={this.props.ariaLabel}
         >
           {progress}

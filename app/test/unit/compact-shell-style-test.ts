@@ -28,25 +28,35 @@ describe('compact shell style contracts', () => {
     )
   })
 
-  it('preserves whole app-bar hit targets and accessible clipped labels', () => {
+  it('preserves whole app-bar hit targets and accessible compact labels', () => {
     const style = read('app/styles/_material-shell.scss')
+    const toolbar = read('app/styles/ui/toolbar/_toolbar.scss')
     const component = read('app/src/ui/toolbar/button.tsx')
 
     assert.match(style, /@media \(max-width: 760px\), \(max-height: 420px\)/)
     assert.match(
       style,
-      /\.toolbar-button\s*\{[\s\S]*?width: 48px !important;[\s\S]*?min-width: 40px !important;/
+      /& > \.toolbar-item \.toolbar-button,[\s\S]*?width: 48px !important;[\s\S]*?min-width: 40px !important;/
     )
     assert.match(
       style,
-      /& > \.sidebar-section,[\s\S]*?& > \.resizable-component\s*\{[\s\S]*?flex: 0 1 auto;/
+      /& > \.toolbar-item\.sidebar-section,[\s\S]*?& > \.toolbar-item:has\(> \.resizable-component\)\s*\{[\s\S]*?flex: 0 1 auto;/
     )
     assert.match(
       style,
       /> button\s*\{[\s\S]*?min-height: 40px;[\s\S]*?\.text\s*\{[\s\S]*?clip-path: inset\(50%\);/
     )
-    assert.match(style, /@media \(max-width: 440px\)/)
-    assert.match(style, /flex-wrap: wrap;/)
+    assert.match(style, /#desktop-app-toolbar\.toolbar-overflow-exhausted/)
+    assert.doesNotMatch(style, /#desktop-app-toolbar\s*\{\s*flex-wrap: wrap;/)
+    assert.match(style, /\.toolbar-overflow-popover\s*\{/)
+    assert.match(
+      toolbar,
+      /&\.is-overflowed\s*\{[\s\S]*?position: fixed !important;[\s\S]*?visibility: hidden;/
+    )
+    assert.match(
+      toolbar,
+      /\.toolbar-overflow-control\s*\{[\s\S]*?flex: 0 0 48px;/
+    )
     assert.match(component, /\{this\.renderText\(\)\}/)
   })
 

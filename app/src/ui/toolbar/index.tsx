@@ -1,4 +1,5 @@
 export * from './toolbar'
+export * from './toolbar-overflow-layout'
 export * from './button'
 export * from './dropdown'
 export * from './push-pull-button'
