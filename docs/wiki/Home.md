@@ -9,8 +9,10 @@ workflow intact underneath.
 On top of that shell, Desktop Material ships multi-provider accounts and organizations, automation,
 GitHub Actions and logs, agent access, searchable graph History, multiple stashes, pull-all,
 multi-window workflows, per-account repository tabs, Git-backed settings and notifications, and a
-non-modal dialog framework. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL
-capabilities into named app functions rather than a searchable command or endpoint catalogue.
+non-modal dialog framework. Its Material first-run experience, adaptive toolbar, and layered
+appearance controls let the workspace respond to both the active profile and the selected
+repository. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL capabilities
+into named app functions rather than a searchable command or endpoint catalogue.
 
 > **Status:** Desktop Material is in **active development**, with the complete M0–M19 roadmap
 > published on `main`. The implementation ledger and acceptance receipts are maintained in
@@ -25,7 +27,7 @@ capabilities into named app functions rather than a searchable command or endpoi
 
 | Page | What it covers |
 | --- | --- |
-| [User Guide](User-Guide) | Task-oriented walkthrough for accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
+| [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
 | [Developer Guide](Developer-Guide) | Architecture for contributors — Electron windows, store/dispatcher flow, dugite, profile repos, agent server, CLI routing, and SCSS tokens. |
@@ -40,19 +42,49 @@ capabilities into named app functions rather than a searchable command or endpoi
   app bar with an inline pill menu, a left icon navigation rail (Changes with a badge, History,
   Branches, Settings, account avatar), a floating pill toolbar with repository and branch chips and
   a sync pill, and floating radius-24 workspace cards with tri-state checkboxes, tonal status chips,
-  token-based diff colors, and an inverse-surface undo banner.
+  token-based diff colors, and an inverse-surface undo banner. When space tightens, **Build & Run**
+  moves into **More** first and **Commit & Push** follows; widening restores both actions before
+  their labels can clip.
 - **Browser-like repository tabs** — per-account and bound to repos, with inline rename and
-  per-tab title styling (bold/italic/underline, size, color, font family, alignment).
+  per-tab title styling (bold/italic/underline, size, font family, alignment, and separate text and
+  background palettes or custom colors).
 - **Multi-account** — multiple identities per host; each account carries its own tabs, repos, and
   settings. GitHub organizations expose their complete repository lists and can be selected when
   publishing. GitLab endpoints use PAT authentication and Bitbucket uses app passwords; both
   providers can browse and clone repositories without exposing credentials to the renderer or
   agent API.
-- **Per-account settings in a local git repo** — every settings or tabs change auto-commits. Open
+- **Per-account settings in a local git repo** — every settings or tabs change, including the
+  versioned appearance defaults, auto-commits. Open
   **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo,
   and restore; each history action appends an audit commit.
 
 ![Live Settings history side sheet](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/settings-history-manager.png)
+
+### Appearance, onboarding, and adaptive layout
+
+Open **Settings → Appearance** to set the 12 app defaults carried by the active profile: **accent
+palette**, **surface palette**, **surface depth**, **interface font**, **code and diff font**,
+**motion**, **toolbar labels**, **toolbar density**, **repository-list density**, **tab density**,
+**tab width**, and **tab close-button visibility**. They are captured in that profile's local Git
+history, so switching profiles switches the appearance context and Settings History can audit or
+restore it.
+
+For a project-specific workspace, open **Repository settings → Appearance**. Its six optional
+overrides are **accent palette**, **surface palette**, **toolbar labels**, **toolbar density**, **tab
+density**, and **tab width**. Each unset field inherits the active-profile default. The overrides
+live in the repository's local `.git/config`; they are not committed or shared with collaborators.
+Per-tab text and background palettes, custom colors, and recent colors remain profile tab data
+rather than repository overrides.
+
+The first-run page uses the same Material type, color, shape, elevation, and responsive rules as the
+main shell. GitHub.com, Enterprise, and continue-locally routes stay inside one focused task card;
+the tonal workspace preview hides when a compact window needs the space.
+
+![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
+
+![Profile-backed Appearance preferences with repository override guidance](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+
+![Measured narrow toolbar with Build and Run and Commit and Push in the More actions surface](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
 
 - **Non-modal dialogs** that float without blocking the app, drag by their headers, cascade, and
   come to front on focus. Preferences is an MD3 940×660 dialog with a left rail, an Active chip, and

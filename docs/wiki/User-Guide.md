@@ -6,13 +6,15 @@ focuses on what Desktop Material adds on top.
 
 **Feature guide**
 
-The original M0–M18 baseline is published on `main`. The guided M19 functions in this guide are
-implementation-complete in the current integration tree; final production/off-screen acceptance,
-`main` promotion, and public evidence remain pending.
+The complete M0–M19 roadmap is published on `main`. This guide also covers the adaptive appearance
+and Material entry-surface release; exact build, off-screen UI, publication, and cleanup receipts
+are recorded in the repository's `HANDOFF.md` as each release is verified.
 
 - [The shell](#the-shell)
+- [Material first run](#material-first-run)
 - [Signing in](#signing-in)
 - [Repository tabs](#repository-tabs)
+- [Appearance customization](#appearance-customization)
 - [Settings history](#settings-history)
 - [Non-modal dialogs](#non-modal-dialogs)
 - [Multi-clone](#multi-clone)
@@ -37,8 +39,10 @@ every day is made of a few pieces:
 
 - **A left icon navigation rail** with entries for **Changes** (with a count badge), **History**,
   **Branches**, **Settings**, and your **account avatar** at the bottom.
-- **A floating pill toolbar** across the top carrying a **repository chip** and a **branch chip**,
-  plus a **sync pill** that shows an ahead badge when you have commits to push.
+- **A floating pill toolbar** across the top carrying repository, worktree, branch, and sync
+  controls. When the measured width gets tight, **Build & Run** moves into the keyboard-accessible
+  **More toolbar actions** surface first, then **Commit & Push** follows. Widening the window
+  restores each action automatically before its label can clip.
 - **Browser-like repository tabs** (see [Repository tabs](#repository-tabs)) above the workspace.
 - **Floating, radius-24 workspace cards** for Changes, the diff, History, and the empty/welcome
   states, with tri-state selection checkboxes, tonal status chips, token-based diff colors, and an
@@ -47,6 +51,20 @@ every day is made of a few pieces:
 The whole shell has an **animated light/dark theme**. Everything below tells you how to drive it.
 
 ![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
+
+![Narrow toolbar with Build and Run and Commit and Push available from More without clipping](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
+
+---
+
+## Material first run
+
+The welcome page is a Material task surface rather than a separate stock onboarding skin. It keeps
+the **Sign in with GitHub.com**, **GitHub Enterprise**, and **Continue without signing in** routes in
+one focused card, preserves keyboard focus and sign-in progress, and explains that repositories stay
+local to the device. A tonal preview introduces the repository-focused workspace; at compact window
+sizes the preview steps away so the setup task remains unclipped.
+
+![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
 ---
 
@@ -118,16 +136,58 @@ Open a tab's context menu → **Text style** to open the styling popover (see
 - **Weight** — bold on/off
 - **Italic** and **underline**
 - **Size**
-- **Color**
+- **Text color** — choose from the palette or use a custom color
+- **Background color** — choose independently from the same palette or use a custom color
 - **Font family**
 - **Alignment**
 
-Styling is per tab, so you can make a production repo bold-red and a scratch repo muted-italic to
+The picker keeps a short recent-colors row for reuse. Styling is per tab, so you can give a
+production repository a strong background while leaving a scratch repository muted and italic to
 tell them apart at a glance.
 
 > Tab layout and styling are part of your per-account settings, so every change **auto-commits** to
 > that account's local settings repo. Open **Edit → Settings History…** or press `Ctrl+Alt+Z` if
 > you ever need to inspect, undo, redo, or restore an earlier state.
+
+---
+
+## Appearance customization
+
+### App defaults in the active profile
+
+Open **Settings → Appearance**. The callout at the top identifies these controls as app defaults
+for the active profile. All 12 are saved through the profile's local Git-backed settings history:
+
+1. **Accent color** — Blue, Violet, Teal, Green, Amber, or Rose.
+2. **Surface color** — Tonal or Neutral.
+3. **Surface depth** — Standard, Subtle, or Flat.
+4. **Interface font** — Material (Roboto) or the system font.
+5. **Code and diff font** — platform default, Consolas, or SF Mono.
+6. **Animation** — follow the system setting or reduce motion.
+7. **Toolbar labels** — Automatic, Prefer labels, or Icons only.
+8. **Toolbar density** — Comfortable or Compact.
+9. **Repository list density** — Comfortable or Compact.
+10. **Tab density** — Comfortable or Compact.
+11. **Tab width** — Compact, Standard, or Wide.
+12. **Tab close buttons** — On hover, Always, or Active tab only.
+
+Changing profile switches these defaults with the rest of that account's settings. Open
+**Edit → Settings History…** (`Ctrl+Alt+Z`) to inspect, undo, redo, or restore an appearance change
+without rewriting the profile history.
+
+### Repository-local overrides
+
+Open **Repository settings → Appearance** when one project needs a different workspace. The six
+optional overrides are **accent color**, **surface color**, **toolbar labels**, **toolbar density**,
+**tab density**, and **tab width**. Every field starts at **Use app default** and independently
+inherits the active-profile value until changed.
+
+These six values are stored under `desktop-material.appearance` in the repository's local
+`.git/config`. They are not committed and are not shared with collaborators. Interface/code fonts,
+surface depth, motion, repository-list density, and tab close-button behavior intentionally remain
+profile defaults; individual tab text/background styling remains in the profile's tab history.
+
+![Profile-backed Appearance preferences with repository override guidance](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ---
 
@@ -391,9 +451,11 @@ Desktop Material scales its whole interface independently of the OS:
 Combined with the animated light/dark theme, this lets you tune the workspace for a laptop panel, a
 4K monitor, or a shared screen without touching system display settings.
 
-The 1450×997 responsive regression check keeps the toolbar and complete Changes card inside the
-viewport—including filter, changed-file, summary, description, settings, and commit controls—with
-no page-level horizontal overflow.
+The responsive toolbar gate measures the space its controls actually need. As the window narrows,
+**Build & Run** enters **More toolbar actions** first and **Commit & Push** enters next; the
+repository, worktree, branch, and sync controls remain available in the app bar. Opening More keeps
+the moved actions keyboard reachable. After the surface closes and the window widens, Commit & Push
+and then Build & Run return to their original positions, with no page-level horizontal overflow.
 
 The Pages gallery also has a dedicated accessibility/clipping check at 960×660 and 390×844. It
 passes with zero axe violations, matching document/body widths, and no horizontally outside
@@ -402,6 +464,8 @@ elements.
 ![Requested 200 percent UI scale auto-fitted to 96 percent at the minimum window size](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-scale-200-autofit.png)
 
 ![Responsive regression proof at 1450 by 997 with toolbar and Changes controls fully contained and no horizontal overflow](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-responsive-overflow-fixed.png)
+
+![Measured narrow toolbar with its complete More actions surface](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
 
 ---
 

@@ -79,10 +79,21 @@ settings:
 - The **history manager** (Settings → History) is `git log` over that repo — **undo/redo** walk the
   commits, and **restore** checks out an earlier state (see `settings-history-manager.png`).
 - The **notification centre** is backed by its own repo in the same way.
+- The strict `appearance-customization-v1` value is allowlisted by
+  `app/src/lib/profiles/profile-settings-registry.ts`, captured in the active profile's
+  `settings.json`, and described as an appearance-customization change in Git history.
+- Per-tab title/background styling is written with the tab to `tabs.json`; the bounded recent-color
+  list is another allowlisted profile setting.
 
 Because these are real git repos, the audit trail and restore semantics come "for free" from Git
 rather than from a bespoke persistence format. When adding data that should be versioned per account,
 persist it into the relevant profile repo and commit through the same path.
+
+Repository appearance overrides are deliberately outside that profile repository. The six
+allowlisted fields — accent palette, surface palette, toolbar labels, toolbar density, tab density,
+and tab width — are serialized under `desktop-material.appearance` in the selected repository's
+local `.git/config`. Missing fields inherit the active-profile defaults. Never move this value into
+a tracked repository file or treat per-tab background color as a repository override.
 
 ---
 
@@ -120,6 +131,16 @@ does not replace exact-source build, CI, public publication, release, or cleanup
   `app/src/lib/stores/accounts-store.ts`; provider credentials are modelled in the account/auth
   layer; `app/src/ui/clone-repository/` merges personal and organization repositories and hosts the
   GitLab/Bitbucket browser; publish ownership is selected in `app/src/ui/publish-repository/`.
+- **Appearance and adaptive Material shell** —
+  `app/src/models/appearance-customization.ts` owns the strict versioned model for the 12 profile
+  defaults: accent palette, surface palette, elevation, interface font, monospace font, motion,
+  toolbar labels, toolbar density, repository-list density, tab density, tab width, and tab close
+  buttons. `app/src/lib/appearance-customization.ts` resolves the six repository-local overrides;
+  `app/src/ui/app-theme.tsx` applies only normalized data attributes and tokens; Preferences and
+  Repository Settings expose the two scopes. `app/src/ui/toolbar/toolbar-overflow-layout.ts` keeps
+  the width/priority calculation pure while `toolbar.tsx` owns ResizeObserver, More-surface focus,
+  and restoration. The first-run React surface lives in `app/src/ui/welcome/` and retains the
+  existing sign-in/configure-Git state machine beneath the Material presentation.
 - **Automation** — typed settings and safety predicates live in `app/src/lib/automation/`, the
   scheduler is `app/src/lib/stores/helpers/automation-scheduler.ts`, global/account controls are in
   `app/src/ui/preferences/automation.tsx`, repository overrides are in
@@ -178,10 +199,16 @@ The Material Design 3 look is built from a layered SCSS system under `app/styles
   `[data-theme="dark"]` / `prefers-color-scheme: dark`), shape corners (small 8px, medium 12px,
   large 16px, full 999px), type, and motion. This is the token layer everything else consumes.
 - **`_material-shell.scss`** — the **application shell** built from those tokens: the tabbed
-  workspace chrome, surfaces, elevation, and layout that give the app its M3 structure.
+  workspace chrome, surfaces, elevation, and layout that give the app its M3 structure. Normalized
+  appearance values become `data-dm-*` attributes on the document body; selectors map those
+  finite values back to tokens instead of accepting arbitrary CSS.
 - **`app/styles/ui/` partials** — one partial **per component** (`_changes.scss`, `_dialog.scss`,
   `_branches.scss`, `_ci-status.scss`, …). Components pull colors and shape from the token layer
   rather than hard-coding hex values.
+- **`app/styles/ui/_welcome.scss`** and **`app/styles/ui/toolbar/_toolbar.scss`** — the responsive
+  Material first-run composition and measured More-action layout. Keep moved toolbar actions
+  mounted but out of layout so their state survives; preserve the compact-window and reduced-motion
+  fallbacks.
 
 Rule of thumb: **never hard-code a color** — reference an M3 token so light/dark theming and future
 palette changes stay consistent. New component styling goes in a `ui/` partial that consumes

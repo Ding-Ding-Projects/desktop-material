@@ -9,6 +9,12 @@ historical acceptance evidence. Build, screenshot, CI, Pages, wiki, privacy,
 and cleanup receipts remain in [`HANDOFF.md`](HANDOFF.md) and the publish-mode
 [run manifests](.codex/run-manifests/).
 
+Post-M19 appearance customization, adaptive app-bar overflow, and Material
+entry-surface work is implemented in the current maintenance changeset. Its
+final integrated build, headless captures, `main`, CI, Pages, wiki, and cleanup
+receipts are still acceptance work; no later evidence is implied by the ledger
+below.
+
 ## Product milestone ledger
 
 | Milestone | Status | Delivered capability | Important implementation paths |
@@ -44,6 +50,17 @@ and cleanup receipts remain in [`HANDOFF.md`](HANDOFF.md) and the publish-mode
 | **P2** | **IMPLEMENTATION COMPLETE** | Persisted branch pin, hide, solo, and restore controls with clear filtered-state recovery. |
 | **Later** | **IMPLEMENTATION COMPLETE** | Exact merge-tree conflict paths, guided bisect, complete repository-wide Stash Manager, guarded Remote Manager, safe Repository Hooks Manager, richer GitHub Issues, and exact-account GitHub/GitLab/Bitbucket triage. |
 | **Closing acceptance** | **COMPLETE** | Exact source/build and isolated off-screen interaction are accepted with 14 inspected synthetic-only captures. Final documentation/image-union gates, `main`, CI/Pages/wiki/release verification, artifact purge, and owned-resource cleanup all passed. |
+
+## Post-M19 customization and adaptive-surface ledger
+
+| Work | Implementation state | Audited behavior and paths |
+| --- | --- | --- |
+| **Active-profile appearance defaults** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | A strict versioned setting supplies 12 defaults: accent palette, surface palette, elevation, UI font, monospace font, motion, toolbar labels, toolbar density, repository-list density, tab density, tab width, and tab-close behavior. It is included in the active profile's allowlisted settings snapshot and local Git history. See `app/src/models/appearance-customization.ts`, `app/src/lib/profiles/profile-settings-registry.ts`, and `app/src/ui/preferences/appearance.tsx`. |
+| **Repository appearance inheritance** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Six allowlisted fields — accent palette, surface palette, toolbar labels, toolbar density, tab density, and tab width — can inherit the app default or override it through **Repository Settings → Appearance**. Explicit values are bounded, parsed as untrusted data, and stored only under `desktop-material.appearance` in local `.git/config`; they are not committed or shared. See `app/src/lib/appearance-customization.ts` and `app/src/ui/repository-settings/appearance.tsx`. |
+| **Per-tab backgrounds** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The existing per-tab text styles now include background color, with text/background targeting, curated and recent palettes, a custom color input, validation, persistence in the active profile, and return-to-default controls. See `app/src/models/repository-tab.ts` and `app/src/ui/repository-tabs/tab-style-editor.tsx`. |
+| **Measured toolbar More behavior** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | The app bar measures usable width and real ellipsized label pressure, recalculates from scratch on size/copy/density changes, uses the compact footprint for Icons only, and moves Build & Run before Commit & Push. Overflowed originals stay mounted off-layout; focus follows an action across the boundary; widening or shorter copy restores controls deterministically; an open **More** surface stays stable until close. See `app/src/ui/toolbar/toolbar.tsx` and `app/src/ui/toolbar/toolbar-overflow-layout.ts`. |
+| **Material Welcome and public landing** | **IMPLEMENTED; FINAL ACCEPTANCE PENDING** | Welcome is a pure Material task card plus tonal workspace preview with compact and reduced-motion fallbacks. The static landing page uses a Material app bar, expressive hero surface, principle cards, screenshot evidence gallery, tonal call to action, and footer while preserving the existing static-site architecture. See `app/src/ui/welcome/`, `app/styles/ui/_welcome.scss`, and `site/`. |
+| **Intended acceptance captures** | **PENDING** | Final inspected evidence is reserved at `docs/assets/screenshots/material-welcome.png`, `docs/assets/screenshots/material-customization.png`, and `docs/assets/screenshots/material-toolbar-overflow.png`. Dimensions, byte counts, hashes, source/build identity, and publication receipts must be recorded only after capture and inspection. |
 
 ## Additional completed product work
 
@@ -113,6 +130,20 @@ and cleanup receipts remain in [`HANDOFF.md`](HANDOFF.md) and the publish-mode
     Account selectors stay internal to the trampoline; the successful stable
     account key is persisted for later repository matching and retries without
     exposing a token, login, selector, or credentials dialog.
+12. Appearance defaults remain a strict, versioned, allowlisted active-profile
+    value. The profile's local Git history is the app-wide audit trail; it must
+    not absorb repository-local overrides or credentials.
+13. Repository appearance overrides remain limited to six allowlisted fields
+    under `desktop-material.appearance` in local `.git/config`. Missing values
+    inherit active-profile defaults; invalid, oversized, or unsupported
+    payloads fail back to inheritance.
+14. Responsive app-bar layout is measurement-driven. Core repository,
+    worktree, branch, and sync controls remain pinned; Build & Run moves to
+    **More** before Commit & Push, and every resize recomputes restoration from
+    the full ordered descriptor set without remounting live controls.
+15. Tab foreground and background colors remain bounded by the shared color
+    validator and persist with the tab model through the serialized profile
+    store.
 
 ## M19 accepted app-source evidence
 

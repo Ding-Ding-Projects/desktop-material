@@ -35,14 +35,70 @@ Migration must preserve existing users:
    unambiguous.
 4. Ask once when multiple accounts match, then remember the selection.
 
+## Appearance customization contract
+
+App-wide customization is profile-scoped. **Settings → Appearance** exposes 12
+versioned defaults: accent color, surface color, surface depth, interface font,
+code/diff font, animation, toolbar labels, toolbar density, repository-list
+density, tab density, tab width, and tab-close-button behavior. These values
+are part of the active profile's allowlisted settings snapshot and therefore
+participate in its local Git history, undo, redo, and restore workflow.
+
+Repository-specific customization is deliberately narrower. **Repository
+Settings → Appearance** may override six fields: accent color, surface color,
+toolbar labels, toolbar density, tab density, and tab width. Every field offers
+**Use app default** inheritance. Explicit overrides stay in the repository's
+local `.git/config`; they are not committed or shared with collaborators and
+must never enter the profile repository.
+
+Repository tabs retain their profile-backed typography controls and add
+independent text and background colors. Both targets support curated palettes,
+recent colors, a custom color picker, validation, and return to the Material
+default.
+
+## Adaptive Material app bar
+
+The app bar measures its usable lane and the real overflow pressure of labels
+that use ellipsis. It recalculates when the window, live label copy, toolbar
+density, or label mode changes. Icons only and compact layouts use their actual
+compact footprint.
+
+Core repository, worktree, branch, and sync controls stay pinned. When space
+runs out, Build & Run moves into the accessible **More** surface first, then
+Commit & Push. The original controls remain mounted off-layout so subscriptions
+and in-flight state survive. Focus follows an action across the overflow
+boundary, widening or shorter copy restores controls deterministically, and an
+open **More** surface remains stable until the user closes it.
+
+## Material entry surfaces
+
+The first-run Welcome flow is a pure Material composition: product lockup,
+task card, tonal workspace preview, responsive compact fallback, and
+reduced-motion handling, without changing sign-in, enterprise, or skip
+semantics. The public static landing page uses the same system through a
+Material app bar, expressive hero surface, design-principle cards, screenshot
+evidence gallery, tonal call to action, and footer.
+
+The intended acceptance images are:
+
+- `docs/assets/screenshots/material-welcome.png`
+- `docs/assets/screenshots/material-customization.png`
+- `docs/assets/screenshots/material-toolbar-overflow.png`
+
+Those filenames are publication targets, not verification receipts. Capture
+dimensions, hashes, source/build identity, CI, Pages, and wiki evidence belong
+in the acceptance ledger only after the files are rendered and inspected.
+
 ## Delivery phases
 
 1. Material foundations: design tokens, theme modes, app frame, navigation.
 2. Repository workspace: changes, history, diff, branches, pull requests.
-3. Account profiles: account switcher, sign-in management, repository binding.
+3. Account profiles: account switcher, sign-in management, repository binding,
+   and local-Git-backed appearance defaults.
 4. Remaining dialogs and flows: clone, publish, settings, merge, conflicts.
 5. Accessibility, keyboard navigation, automated tests, packaged builds.
-6. Screenshots, GitHub Pages landing page, and complete wiki.
+6. Pure Material Welcome and GitHub Pages landing surfaces, screenshots, and a
+   complete wiki.
 
 This file is the implementation contract. A phase is complete only after its
 tests pass, its UI has been rendered and reviewed, and its commit is pushed.

@@ -1,6 +1,6 @@
 # Guided Feature Gallery
 
-This page maps the guided feature documentation to its 44-image acceptance gallery. Every view
+This page maps the guided feature documentation to its 47-image acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
 
@@ -10,6 +10,9 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 
 | Asset | Guided workflow shown |
 | --- | --- |
+| `material-welcome.png` | Material first-run task card and responsive workspace preview |
+| `material-customization.png` | Git-backed profile appearance defaults and repository override guidance |
+| `material-toolbar-overflow.png` | Measured narrow toolbar with Build & Run and Commit & Push in More |
 | `material-shallow-clone-safe.png` | Reviewed shallow clone with a bounded commit depth |
 | `material-clone-account-fallback.png` | Generic HTTPS clone completed through exact-origin signed-in account fallback |
 | `material-pull-all-account-fallback.png` | Pull all with per-repository results and exact-origin account retry |
@@ -116,6 +119,14 @@ metadata; no personal path, credential, or account identifier belongs in the ima
 ## Provider triage
 
 ![Account- and repository-bound provider triage with bounded results](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-provider-triage.png)
+
+## Customization, welcome, and adaptive toolbar
+
+![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
+
+![Profile-backed Appearance preferences with repository override guidance](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+
+![Measured narrow toolbar with Build and Run and Commit and Push available from More without clipping](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
 
 ## Material shell and accessibility
 

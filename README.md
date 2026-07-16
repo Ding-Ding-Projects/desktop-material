@@ -19,13 +19,20 @@ acceptance receipts are in [`HANDOFF.md`](HANDOFF.md).
 **Material Design 3 Expressive shell**
 - App-bar branding with an inline pill menu
 - Left icon navigation rail — Changes (with a badge), History, Branches, Settings, and the account avatar
-- A floating pill toolbar with repository and branch chips and a sync pill that shows an ahead badge
+- A floating pill toolbar with repository and branch chips and a sync pill that shows an ahead badge; it measures the available lane and live ellipsis pressure, then moves Build & Run and, if needed, Commit & Push into an accessible **More** surface before labels clip
 - Floating, radius-24 elevated workspace cards with an animated light/dark theme
 - Full MD3 workspace surfaces: tri-state selection checkboxes, tonal status chips, token-based diff colors, an inverse-surface undo banner, and a redesigned welcome flow and blank slate
+- A pure Material first-run Welcome task card and tonal workspace preview, paired with a Material 3 public landing page built from an expressive app bar, hero surface, principle cards, evidence gallery, and tonal calls to action
+
+**Appearance customization**
+- Twelve app defaults in **Settings → Appearance**: accent color, surface color, surface depth, interface font, code/diff font, animation, toolbar labels, toolbar density, repository-list density, tab density, tab width, and tab-close-button behavior
+- App defaults are versioned with the active profile in its local Git history, so they follow the selected profile and participate in the existing settings-history workflow
+- Six repository-only overrides in **Repository Settings → Appearance**: accent color, surface color, toolbar labels, toolbar density, tab density, and tab width. Each field can inherit **Use app default**; explicit values stay in the repository's local `.git/config` and are neither committed nor shared
+- Toolbar measurement respects Icons only and compact density. Build & Run overflows first, followed by Commit & Push; widening the window or shortening a dynamic label restores the same mounted controls deterministically, while an open **More** surface remains stable until it closes
 
 **Repository tabs**
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
-- Per-tab title styling: bold/italic/underline, size, color, font family, alignment
+- Per-tab title styling: bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, and one-click return to the default
 
 **Multi-account**
 - Multiple accounts including multiple identities per host; per-account tabs, repos, and settings
@@ -117,6 +124,10 @@ The compact selection below keeps this README scannable. The
 [guided feature gallery](docs/wiki/Feature-Gallery.md) and
 [task-oriented tutorial](docs/wiki/User-Guide.md) contain the full annotated
 set.
+
+| Material Welcome | Appearance customization | Dynamic toolbar overflow |
+| --- | --- | --- |
+| <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="420"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance preferences with active-profile defaults and repository inheritance guidance" width="420"><br><sub>Profile and repository appearance</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="420"><br><sub>Measured More behavior</sub> |
 
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |

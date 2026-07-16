@@ -37,6 +37,35 @@ describe('Pages accessibility contracts', () => {
     assert.match(style, /@media \(prefers-reduced-motion: reduce\)/)
   })
 
+  it('publishes the Material welcome, scoped appearance, and adaptive toolbar release', () => {
+    const markup = read('site/index.html')
+
+    assert.match(markup, /<h3>Material first run/)
+    assert.match(markup, /<h3>Scope-aware appearance/)
+    assert.match(markup, /<h3>Adaptive toolbar/)
+    assert.match(
+      markup,
+      /Build &amp; Run moves into More\s+first,[\s\S]*?Commit &amp; Push/
+    )
+    assert.match(markup, /tab close buttons/)
+    assert.match(markup, /six project overrides\s+inherit safely/)
+
+    for (const source of [
+      'docs/assets/screenshots/material-welcome.png',
+      'docs/assets/screenshots/material-customization.png',
+      'docs/assets/screenshots/material-toolbar-overflow.png',
+    ]) {
+      assert.ok(
+        markup.includes(`href="${source}"`),
+        `${source} is missing its full-size link`
+      )
+      assert.ok(
+        markup.includes(`src="${source}"`),
+        `${source} is missing its gallery image`
+      )
+    }
+  })
+
   it('keeps footer headings in sequence after the page-level h2 sections', () => {
     const markup = read('site/index.html')
 

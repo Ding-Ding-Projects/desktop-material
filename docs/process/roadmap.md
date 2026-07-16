@@ -1,8 +1,9 @@
 # Upstream historical roadmap
 
 This page preserves the historical GitHub Desktop release themes inherited by
-Desktop Material. It is not the current Desktop Material plan. For the active
-M0–M19 status and acceptance rules, see [`ROADMAP.md`](../../ROADMAP.md) and
+Desktop Material. It is not the current Desktop Material plan. For the
+completed M0–M19 milestones, current post-M19 maintenance status, and
+acceptance rules, see [`ROADMAP.md`](../../ROADMAP.md) and
 [`PLAN.md`](../../PLAN.md).
 
 ## Major features shipped in previous releases

@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 15, 2026**
+Updated: **July 16, 2026**
 
 Desktop Material's feature roadmap is complete through **M19**. This file is
 the compact public source of truth; implementation details and historical test
@@ -39,6 +39,9 @@ described as shipped.
 
 | Work | State | Required proof |
 |---|---|---|
+| Profile and repository appearance customization | **Implemented; final acceptance pending** | Verify all 12 active-profile defaults, profile local-Git history, all six repository-local overrides and inheritance, per-tab backgrounds, compact layouts, and `material-customization.png`. |
+| Measured app-bar overflow | **Implemented; final acceptance pending** | Verify live label measurement, Icons only/compact footprints, Build & Run then Commit & Push overflow order, mounted-state and focus continuity, deterministic widening restore, and `material-toolbar-overflow.png`. |
+| Material Welcome and landing page | **Implemented; final acceptance pending** | Verify the first-run task card and compact fallback, audit the Material landing structure and keyboard path, and publish `material-welcome.png`. |
 | Detailed Pull All progress | **In verification** | Live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window clipping review, screenshot, tests, and push to `main`. |
 | Repository-wide feature revalidation | **In progress** | Registered-surface inventory, implementation/test/doc mapping, full tests, production build, headless UI exercise, CI, and Pages. |
 | Documentation gallery expansion | **In progress** | Inspected privacy-safe captures referenced from README, wiki, Pages, and tutorial. |
