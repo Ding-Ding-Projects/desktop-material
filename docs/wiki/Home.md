@@ -9,9 +9,9 @@ workflow intact underneath.
 On top of that shell, Desktop Material ships multi-provider accounts and organizations, automation,
 GitHub Actions and logs, agent access, searchable graph History, multiple stashes, pull-all,
 multi-window workflows, per-account repository tabs, Git-backed settings and notifications, and a
-non-modal dialog framework. Its Material first-run experience, adaptive toolbar, and layered
-appearance controls let the workspace respond to both the active profile and the selected
-repository. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL capabilities
+non-modal dialog framework. Its Material first-run experience, adaptive toolbar, profile-backed
+app identity, favorite/portable tabs, and layered appearance controls let the workspace respond to
+both the active profile and the selected repository. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL capabilities
 into named app functions rather than a searchable command or endpoint catalogue.
 
 > **Status:** Desktop Material is in **active development**, with the complete M0–M19 roadmap and
@@ -21,7 +21,7 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > [`PLAN.md`](https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md)
 > and [`HANDOFF.md`](https://github.com/codingmachineedge/desktop-material/blob/main/HANDOFF.md).
 
-![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
+![Desktop Material workspace with a profile-customized app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
 ---
 
@@ -51,9 +51,11 @@ receipts as acceptance evidence.
   token-based diff colors, and an inverse-surface undo banner. When space tightens, **Build & Run**
   moves into **More** first and **Commit & Push** follows; widening restores both actions before
   their labels can clip.
-- **Browser-like repository tabs** — per-account and bound to repos, with inline rename and
-  per-tab title styling (bold/italic/underline, size, font family, alignment, and separate text and
-  background palettes or custom colors) in a Word-style editing surface.
+- **Browser-like repository tabs** — per-account and bound to repos, with inline rename, favorites,
+  persistent pin/manual/sorted order, and per-tab title styling (bold/italic/underline, size, font
+  family, alignment, and separate text and background palettes or custom colors) in a Word-style
+  editing surface. Drop repository folders to open/switch tabs, or export/import the current tab
+  session with aliases, pins, favorites, order, and appearance.
 - **Multi-account** — multiple identities per host; each account carries its own tabs, repos, and
   settings. GitHub organizations expose their complete repository lists and can be selected when
   publishing. GitLab endpoints use PAT authentication and Bitbucket uses app passwords; both
@@ -81,6 +83,16 @@ density**, and **tab width**. Each unset field inherits the active-profile defau
 live in the repository's local `.git/config`; they are not committed or shared with collaborators.
 Per-tab text and background palettes, custom colors, and recent colors remain profile tab data
 rather than repository overrides.
+
+The same page now includes a live **App identity** editor. It can replace the in-app name and logo,
+then tune logo shape, size, inset, rotation, border, shadow, and colors plus name font, width,
+weight, case, size, spacing, opacity, emphasis, highlight, and effects. The identity follows the
+active profile and its local Git history, restores across restart, and deliberately does not rename
+the signed executable or operating-system icon. Right-clicking an appropriate shell or repository
+surface offers its customization route and identifies the exact profile or local Git repository
+whose history owns that setting.
+
+![Profile-customized app identity restored in the Material workspace](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
 The first-run page uses the same Material type, color, shape, elevation, and responsive rules as the
 main shell. GitHub.com, Enterprise, and continue-locally routes stay inside one focused task card;

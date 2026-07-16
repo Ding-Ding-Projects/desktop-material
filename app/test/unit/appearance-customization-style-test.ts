@@ -57,4 +57,64 @@ describe('appearance customization style contracts', () => {
       /\.appearance-scope-note-icon\s*\{[\s\S]*?var\(--md-sys-color-primary-container\)/
     )
   })
+
+  it('keeps the app identity editor rich, labelled, and responsive', async () => {
+    const [editor, brand, titleBar, preferences, appBar] = await Promise.all([
+      readFile(Path.join(app, 'src/ui/preferences/app-identity.tsx'), 'utf8'),
+      readFile(Path.join(app, 'src/ui/window/app-brand.tsx'), 'utf8'),
+      readFile(Path.join(app, 'src/ui/window/title-bar.tsx'), 'utf8'),
+      readFile(Path.join(styles, 'ui/_preferences.scss'), 'utf8'),
+      readFile(Path.join(styles, 'ui/window/_material-app-bar.scss'), 'utf8'),
+    ])
+
+    for (const label of [
+      'App name',
+      'Custom logo image',
+      'Logo shape',
+      'Logo color',
+      'Logo border',
+      'Logo shadow',
+      'Logo size',
+      'Logo rotation',
+      'Logo and name gap',
+      'Font',
+      'Weight',
+      'Font width',
+      'Letter case',
+      'Text effect',
+      'Name highlight',
+      'Name size',
+      'Character spacing',
+      'Name opacity',
+      'Name color',
+      'Highlight color',
+    ]) {
+      assert.match(editor, new RegExp(label))
+    }
+    for (const format of [
+      'Bold',
+      'Italic',
+      'Underline',
+      'Strikethrough',
+      'Small caps',
+    ]) {
+      assert.match(editor, new RegExp(`'${format}'`))
+    }
+
+    assert.match(titleBar, /<AppBrand identity=\{this\.props\.appIdentity\}/)
+    assert.match(brand, /appNameStyleToCss/)
+    assert.match(brand, /appLogoStyleToCss/)
+    assert.match(
+      preferences,
+      /\.app-identity-section\s*\{[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      preferences,
+      /@container preferences-pane \(max-width: 520px\)[\s\S]*?\.app-identity-logo-controls,[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
+    )
+    assert.match(
+      appBar,
+      /\.app-brand\s*\{[\s\S]*?min-width: 0;[\s\S]*?text-overflow: ellipsis;/
+    )
+  })
 })

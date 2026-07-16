@@ -705,6 +705,394 @@
     }
   }
 
+  // Profile-scoped app identity editor. The preview reuses the exact title-bar
+  // component while this layout keeps every control reachable at compact widths.
+  .app-identity-section {
+    min-width: 0;
+    margin-bottom: var(--spacing-double);
+    padding: 18px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 24px;
+    background: var(--md-sys-color-surface-container-low);
+
+    .app-identity-heading-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--spacing);
+      min-width: 0;
+
+      > div {
+        min-width: 0;
+      }
+
+      h2,
+      p {
+        margin: 0;
+      }
+
+      p {
+        margin-top: 3px;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-size-sm);
+      }
+
+      .button-component {
+        flex: 0 0 auto;
+      }
+    }
+
+    .app-identity-preview-surface {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      min-height: 62px;
+      margin-top: var(--spacing);
+      padding: 12px 16px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+      background: var(--md-sys-color-surface-container);
+      overflow: hidden;
+    }
+
+    .app-identity-preview-label {
+      flex: 0 0 auto;
+      margin-right: 16px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 11px;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .app-brand-preview {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      overflow: hidden;
+
+      .app-brand-logo {
+        position: relative;
+        display: grid;
+        place-items: center;
+        flex: 0 0 var(--dm-app-logo-size, 21px);
+        box-sizing: border-box;
+        width: var(--dm-app-logo-size, 21px);
+        height: var(--dm-app-logo-size, 21px);
+        padding: var(--dm-app-logo-inset, 3px);
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        overflow: hidden;
+        transform: rotate(var(--dm-app-logo-rotation, 0deg));
+      }
+
+      .app-icon {
+        width: 100%;
+        height: 100%;
+        color: inherit;
+      }
+
+      .app-brand-monogram {
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .app-brand-custom-logo {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+
+      .app-brand {
+        min-width: 0;
+        max-width: 100%;
+        color: var(--md-sys-color-on-surface);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .app-identity-name-row {
+      min-width: 0;
+      margin-top: var(--spacing);
+
+      .text-box-component,
+      input {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+
+      p {
+        min-height: 18px;
+        margin: 4px 0 0;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-size-sm);
+
+        &.validation-error {
+          color: var(--md-sys-color-error);
+        }
+      }
+    }
+
+    .app-identity-fieldset {
+      min-width: 0;
+      margin: var(--spacing) 0 0;
+      padding: 14px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 18px;
+
+      legend {
+        padding: 0 7px;
+        color: var(--md-sys-color-on-surface);
+        font-weight: var(--font-weight-semibold);
+      }
+    }
+
+    .app-identity-logo-choices {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 96px), 1fr));
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .app-identity-logo-choice {
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 7px;
+      min-width: 0;
+      min-height: 42px;
+      padding: 7px 9px;
+      border-color: var(--md-sys-color-outline-variant);
+      border-radius: 14px;
+      background: var(--md-sys-color-surface-container);
+      color: var(--md-sys-color-on-surface);
+
+      &[aria-pressed='true'] {
+        border-color: var(--md-sys-color-primary);
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+        box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+      }
+
+      > span:last-child {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    .app-identity-logo-choice-icon {
+      display: grid;
+      place-items: center;
+      flex: 0 0 26px;
+      width: 26px;
+      height: 26px;
+      border-radius: 9px;
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .app-identity-visibility-toggle {
+      width: 100%;
+      margin-top: 8px;
+      border-radius: 14px;
+
+      &[aria-pressed='true'] {
+        border-color: var(--md-sys-color-primary);
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+      }
+    }
+
+    .app-identity-logo-controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr));
+      align-items: end;
+      gap: var(--spacing);
+      min-width: 0;
+      margin-top: var(--spacing);
+
+      > *,
+      .text-box-component,
+      .select-component,
+      input,
+      select {
+        min-width: 0;
+        max-width: 100%;
+      }
+    }
+
+    .app-identity-file-control {
+      min-width: 0;
+
+      .text-box-component,
+      input {
+        width: 100%;
+      }
+
+      input[readonly] {
+        text-overflow: ellipsis;
+      }
+    }
+
+    .app-identity-file-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 6px;
+
+      .button-component {
+        flex: 1 1 108px;
+        min-width: 0;
+      }
+    }
+
+    .app-identity-color-control {
+      min-width: 0;
+
+      > label {
+        display: block;
+        margin-bottom: 4px;
+      }
+
+      > div {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+      }
+
+      input[type='color'] {
+        flex: 0 0 44px;
+        width: 44px;
+        height: 38px;
+        padding: 3px;
+        border: 1px solid var(--md-sys-color-outline);
+        border-radius: 12px;
+        background: var(--md-sys-color-surface-container-high);
+        cursor: pointer;
+      }
+
+      .button-component {
+        flex: 1 1 auto;
+        min-width: 0;
+        white-space: normal;
+      }
+    }
+
+    .app-identity-typography-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing);
+      min-width: 0;
+
+      .select-component,
+      select {
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
+      }
+    }
+
+    .app-identity-format-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      min-width: 0;
+      margin-top: var(--spacing);
+    }
+
+    .app-identity-format-button {
+      display: grid;
+      place-items: center;
+      flex: 0 0 40px;
+      width: 40px;
+      min-width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 12px;
+      font-weight: 700;
+
+      &[aria-pressed='true'] {
+        border-color: var(--md-sys-color-primary);
+        background: var(--md-sys-color-secondary-container);
+        color: var(--md-sys-color-on-secondary-container);
+      }
+    }
+
+    .app-identity-format-button:nth-child(2) {
+      font-style: italic;
+    }
+
+    .app-identity-format-button:nth-child(3) {
+      text-decoration: underline;
+    }
+
+    .app-identity-format-button:nth-child(4) {
+      text-decoration: line-through;
+    }
+
+    .app-identity-clear-formatting {
+      flex: 1 1 150px;
+      min-width: min(150px, 100%);
+      margin-left: auto;
+      white-space: normal;
+    }
+
+    .app-identity-slider-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing);
+      min-width: 0;
+      margin-top: var(--spacing);
+
+      label {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 5px 8px;
+        min-width: 0;
+      }
+
+      strong {
+        color: var(--md-sys-color-primary);
+        font-variant-numeric: tabular-nums;
+      }
+
+      input[type='range'] {
+        grid-column: 1 / -1;
+        width: 100%;
+        min-width: 0;
+        accent-color: var(--md-sys-color-primary);
+      }
+    }
+
+    .app-identity-name-color {
+      display: inline-block;
+      width: min(280px, 100%);
+      margin-right: var(--spacing);
+      margin-top: var(--spacing);
+    }
+
+    .app-identity-boundary-note {
+      margin: var(--spacing) 0 0;
+      padding: 11px 13px;
+      border-radius: 14px;
+      background: var(--md-sys-color-surface-container);
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+  }
+
   .appearance-scope-note {
     display: flex;
     align-items: flex-start;
@@ -939,6 +1327,39 @@
   }
 
   @container preferences-pane (max-width: 520px) {
+    .app-identity-section {
+      padding: 14px;
+
+      .app-identity-heading-row {
+        align-items: stretch;
+        flex-direction: column;
+
+        .button-component {
+          width: 100%;
+        }
+      }
+
+      .app-identity-preview-surface {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+      }
+
+      .app-identity-preview-label {
+        margin-right: 0;
+      }
+
+      .app-identity-logo-controls,
+      .app-identity-typography-grid,
+      .app-identity-slider-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+
+      .app-identity-name-color {
+        max-width: 100%;
+      }
+    }
+
     .automation-preferences {
       .automation-toggle-row {
         align-items: stretch;

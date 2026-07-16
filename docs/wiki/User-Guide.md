@@ -7,7 +7,7 @@ focuses on what Desktop Material adds on top.
 **Feature guide**
 
 The complete M0–M19 roadmap is published on `main`. This guide also covers the current maintenance
-release: adaptive appearance and Material entry surfaces, guarded tab management, workflow-run
+release: adaptive appearance and profile app identity, favorite/portable tabs, Material entry surfaces, guarded tab management, workflow-run
 cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, and compact
 surface corrections. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
 the repository's `HANDOFF.md` only as each release is verified.
@@ -52,7 +52,7 @@ every day is made of a few pieces:
 
 The whole shell has an **animated light/dark theme**. Everything below tells you how to drive it.
 
-![Desktop Material Changes view with the MD3 shell](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
+![Desktop Material workspace with a profile-customized app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
 ![Narrow toolbar with Build and Run and Commit and Push available from More without clipping](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
 
@@ -139,7 +139,9 @@ so a tab always opens in the identity that owns it.
 ### Open a tab
 
 - Click **+** on the tab strip to open a new tab, then pick a repository, **or**
-- Middle-click / use the context menu on a repository in the list to open it in a new tab.
+- Middle-click / use the context menu on a repository in the list to open it in a new tab, **or**
+- Drag one or more local repository folders onto the app. An existing repository switches instantly;
+  a new valid repository is added and opened as a tab.
 
 Tabs persist per account — reopening the app restores that account's tabs.
 
@@ -186,19 +188,28 @@ in a bulk close.
 
 ### Pin and arrange tabs
 
-Use a tab's context menu to **Pin tab**. The pinned group stays before unpinned tabs. Open
+Use the star control or context menu to mark a tab as a **Favorite**, and use **Pin tab** when it
+must remain in the leading group. Open
 **Arrange tabs** to:
 
 - drag a tab within its current pin group;
 - use the named **Move left**, **Move right**, **Move first**, and **Move last** keyboard actions;
 - apply one-shot **A to Z**, **Z to A**, **Newest opened**, **Oldest opened**,
-  **Needs attention first**, or **Clean first** ordering.
+  **Needs attention first**, **Clean first**, **Favorites first**, or **Favorites last** ordering.
 
 Each sort is a one-time edit: later repository-status changes do not reshuffle the strip. The saved
 order remains manually editable and restores with the account/window tab state. Pin or unpin a tab
 explicitly before moving it across the group boundary.
 
 ![Arrange tabs surface with pinned and manual movement controls plus one-shot label, opened-date, and repository-status sorts](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-arrange.png)
+
+### Export or import the current tabs
+
+Choose **File → Export current tabs…** to save a portable JSON description of the open tab order,
+active tab, aliases, pins, favorites, and per-tab appearance. The file includes local repository
+paths but never account tokens or credentials. Choose **File → Import current tabs…** to validate a
+file, preview it, then replace the current tabs or merge with them; missing folders are skipped
+without destructively clearing a usable current session.
 
 ---
 
@@ -225,6 +236,21 @@ for the active profile. All 12 are saved through the profile's local Git-backed 
 Changing profile switches these defaults with the rest of that account's settings. Open
 **Edit → Settings History…** (`Ctrl+Alt+Z`) to inspect, undo, redo, or restore an appearance change
 without rewriting the profile history.
+
+### App identity in the active profile
+
+At the top of **Settings → Appearance**, use the live **App identity** preview to customize the
+in-app name and logo. Logo controls cover visibility, built-in/custom artwork, shape, size, inset,
+rotation, gap, border, shadow, and colors. Name controls cover font, width, weight, case, size,
+spacing, opacity, bold/italic/underline/strikethrough/small-caps, highlight, and text effects. Use
+**Clear name formatting** for typography only or **Reset identity** for the entire identity.
+
+The result follows the active profile, participates in Settings History, and restores after an app
+restart. It does not rename the signed executable or operating-system icon. Right-click an
+appropriate shell element to open its customization route and see the owning profile Git-history
+path; repository surfaces instead identify that repository and can open its commit history.
+
+![Profile-customized app identity restored in the Material workspace](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
 ### Repository-local overrides
 

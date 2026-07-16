@@ -1,7 +1,9 @@
 // M7 — Repository list export/import dialogs. MD3 system tokens only.
 
 dialog#export-repositories,
-dialog#import-repositories {
+dialog#import-repositories,
+dialog#export-tab-session,
+dialog#import-tab-session {
   .transfer-intro,
   .transfer-skip-note,
   .transfer-summary {
@@ -66,6 +68,22 @@ dialog#import-repositories {
         text-transform: uppercase;
         letter-spacing: 0.06em;
       }
+
+      .tab-session-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 3px;
+
+        span {
+          padding: 2px 7px;
+          border-radius: 999px;
+          background: var(--md-sys-color-secondary-container);
+          color: var(--md-sys-color-on-secondary-container);
+          font-size: var(--font-size-xs);
+          font-weight: var(--font-weight-semibold);
+        }
+      }
     }
   }
 
@@ -104,6 +122,19 @@ dialog#import-repositories {
     .batch-mode-radio {
       display: flex;
       gap: var(--spacing);
+    }
+  }
+}
+
+@media (max-width: 560px), (max-height: 620px) {
+  dialog#export-tab-session,
+  dialog#import-tab-session {
+    .transfer-list {
+      max-height: min(220px, 34vh);
+    }
+
+    .transfer-item {
+      padding-inline: var(--spacing-half);
     }
   }
 }

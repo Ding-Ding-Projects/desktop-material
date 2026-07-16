@@ -38,6 +38,7 @@ function makeTab(
   options: {
     readonly customLabel?: string | null
     readonly isPinned?: boolean
+    readonly isFavorite?: boolean
     readonly openedAt?: number
   } = {}
 ): IRepositoryTab {
@@ -48,6 +49,9 @@ function makeTab(
     customLabel: options.customLabel ?? null,
     titleStyle: null,
     ...(options.isPinned === undefined ? {} : { isPinned: options.isPinned }),
+    ...(options.isFavorite === undefined
+      ? {}
+      : { isFavorite: options.isFavorite }),
     ...(options.openedAt === undefined ? {} : { openedAt: options.openedAt }),
   }
 }
@@ -250,6 +254,32 @@ describe('CloseTabsExceptContainingPopover', () => {
 })
 
 describe('ArrangeTabsPopover', () => {
+  it('stars and one-shot arranges favorite tabs accessibly', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const beta = new Repository('/work/beta', 2, null, false)
+    const store = await createStore([
+      makeTab('alpha', alpha),
+      makeTab('beta', beta, { isFavorite: true }),
+    ])
+    render(
+      <ArrangeHarness store={store} repositories={[alpha, beta]} ranks={{}} />
+    )
+
+    assert.ok(screen.getByText('Favorite'))
+    fireEvent.click(screen.getByRole('button', { name: 'Favorite alpha' }))
+    await waitFor(() =>
+      assert.equal(
+        store.getState().tabs.find(tab => tab.id === 'alpha')?.isFavorite,
+        true
+      )
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Favorites last' }))
+    await waitFor(() =>
+      assert.match(screen.getByRole('status').textContent ?? '', /moved last/)
+    )
+  })
+
   it('pins and moves tabs with labelled group-constrained controls', async () => {
     const zed = new Repository('/work/zed', 1, null, false)
     const beta = new Repository('/work/beta', 2, null, false)

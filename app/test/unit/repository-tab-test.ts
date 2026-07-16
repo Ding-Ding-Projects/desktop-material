@@ -21,6 +21,11 @@ import { Repository } from '../../src/models/repository'
 import { ProfileStore } from '../../src/lib/stores/profile-store'
 import { RepositoryTabsStore } from '../../src/lib/stores/repository-tabs-store'
 import { FilterMode } from '../../src/lib/fuzzy-find'
+import {
+  ITabSessionFile,
+  TabSessionFormat,
+  TabSessionVersion,
+} from '../../src/lib/tab-session-file'
 
 describe('clampTabFontSize', () => {
   it('clamps below the minimum', () => {
@@ -550,6 +555,7 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
       readonly name?: string
       readonly customLabel?: string | null
       readonly isPinned?: boolean
+      readonly isFavorite?: boolean
       readonly openedAt?: number
       readonly repositoryId?: number
     } = {}
@@ -561,6 +567,9 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
       customLabel: options.customLabel ?? null,
       titleStyle: null,
       ...(options.isPinned === undefined ? {} : { isPinned: options.isPinned }),
+      ...(options.isFavorite === undefined
+        ? {}
+        : { isFavorite: options.isFavorite }),
       ...(options.openedAt === undefined ? {} : { openedAt: options.openedAt }),
     }
   }
@@ -637,6 +646,39 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
     assert.deepEqual(ids(store), ['u2', 'p1', 'u1'])
     assert.equal(store.getState().tabs[1].isPinned, false)
     assert.equal(store.getState().activeTabId, 'u2')
+  })
+
+  it('stars tabs independently and arranges favorites inside pin groups', async () => {
+    const { store } = await storeFor([
+      tab('p-normal', { isPinned: true }),
+      tab('p-favorite', { isPinned: true, isFavorite: true }),
+      tab('u-normal'),
+      tab('u-favorite', { isFavorite: true }),
+    ])
+
+    await store.arrangeTabsByFavorite('favorites-first')
+    assert.deepEqual(ids(store), [
+      'p-favorite',
+      'p-normal',
+      'u-favorite',
+      'u-normal',
+    ])
+
+    await store.setTabFavorite('u-normal', true)
+    assert.equal(store.getState().tabs[3].isFavorite, true)
+    await store.toggleTabFavorite('u-favorite')
+    assert.equal(
+      store.getState().tabs.find(item => item.id === 'u-favorite')?.isFavorite,
+      false
+    )
+
+    await store.arrangeTabsByFavorite('favorites-last')
+    assert.deepEqual(ids(store), [
+      'p-normal',
+      'p-favorite',
+      'u-favorite',
+      'u-normal',
+    ])
   })
 
   it('restricts manual moves to the tab pinned group', async () => {
@@ -814,5 +856,102 @@ describe('RepositoryTabsStore pinning and arrangement', () => {
     assert.deepEqual(ids(store), ['a', 'b'])
     assert.equal(store.getState().activeTabId, 'b')
     assert.equal(writes.at(-1)?.scope, 'arrange-window')
+  })
+
+  it('replaces tabs from a portable session and skips missing paths safely', async () => {
+    const alpha = new Repository('C:\\work\\alpha', 101, null, false)
+    const beta = new Repository('C:\\work\\beta', 102, null, false)
+    const { store } = await storeFor([tab('old')], 'old', () => 999)
+    const session: ITabSessionFile = {
+      format: TabSessionFormat,
+      version: TabSessionVersion,
+      exportedAt: new Date(0).toISOString(),
+      activeRepositoryPath: beta.path,
+      tabs: [
+        {
+          repositoryPath: alpha.path,
+          customLabel: 'Alpha custom',
+          titleStyle: { bold: true, futureStyle: 'kept' },
+          isPinned: true,
+          openedAt: 10,
+        },
+        {
+          repositoryPath: beta.path,
+          customLabel: null,
+          titleStyle: null,
+          isFavorite: true,
+          futureTab: 'kept',
+        },
+        {
+          repositoryPath: 'C:\\work\\missing',
+          customLabel: null,
+          titleStyle: null,
+        },
+      ],
+    }
+
+    const result = await store.importTabSession(
+      session,
+      [alpha, beta],
+      'replace'
+    )
+
+    assert.equal(result.importedCount, 2)
+    assert.equal(result.skippedCount, 1)
+    assert.equal(result.activeRepository, beta)
+    assert.equal(store.getState().tabs.length, 2)
+    assert.equal(store.getState().tabs[0].customLabel, 'Alpha custom')
+    assert.equal(store.getState().tabs[0].titleStyle?.futureStyle, 'kept')
+    assert.equal(store.getState().tabs[1].isFavorite, true)
+    assert.equal(store.getState().tabs[1].futureTab, 'kept')
+    assert.equal(store.getActiveTab()?.repositoryId, beta.id)
+    assert.notEqual(store.getState().tabs[0].id, 'old')
+  })
+
+  it('merges session metadata into existing ids and never wipes on zero matches', async () => {
+    const alpha = new Repository('C:\\work\\alpha', 201, null, false)
+    const existing = {
+      ...tab('stable-id', { repositoryId: alpha.id }),
+      repositoryPath: alpha.path,
+      openedAt: 123,
+    }
+    const { store, writes } = await storeFor([existing], 'stable-id')
+    const session: ITabSessionFile = {
+      format: TabSessionFormat,
+      version: TabSessionVersion,
+      exportedAt: new Date(0).toISOString(),
+      activeRepositoryPath: alpha.path,
+      tabs: [
+        {
+          repositoryPath: alpha.path,
+          customLabel: 'Merged alias',
+          titleStyle: null,
+          isFavorite: true,
+        },
+      ],
+    }
+
+    await store.importTabSession(session, [alpha], 'merge')
+    assert.equal(store.getState().tabs[0].id, 'stable-id')
+    assert.equal(store.getState().tabs[0].openedAt, 123)
+    assert.equal(store.getState().tabs[0].customLabel, 'Merged alias')
+    assert.equal(store.getState().tabs[0].isFavorite, true)
+
+    const beforeWrites = writes.length
+    const missingOnly: ITabSessionFile = {
+      ...session,
+      activeRepositoryPath: 'C:\\work\\missing',
+      tabs: [
+        {
+          repositoryPath: 'C:\\work\\missing',
+          customLabel: null,
+          titleStyle: null,
+        },
+      ],
+    }
+    const result = await store.importTabSession(missingOnly, [], 'replace')
+    assert.equal(result.importedCount, 0)
+    assert.equal(writes.length, beforeWrites)
+    assert.equal(store.getState().tabs[0].id, 'stable-id')
   })
 })

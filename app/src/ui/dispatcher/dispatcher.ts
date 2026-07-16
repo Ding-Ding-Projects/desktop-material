@@ -321,6 +321,11 @@ export class Dispatcher {
     return this.profileStore.getSettingsHistory(skip, limit)
   }
 
+  /** Local Git repository that owns the active profile's settings history. */
+  public getActiveProfileRepositoryPath(): string | null {
+    return this.profileStore.getActiveProfileRepositoryPath()
+  }
+
   /** Load the paths changed by a settings-profile commit. */
   public getSettingsHistoryFiles(sha: string): Promise<ReadonlyArray<string>> {
     return this.profileStore.getSettingsHistoryFiles(sha)

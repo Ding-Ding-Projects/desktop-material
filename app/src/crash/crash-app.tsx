@@ -11,6 +11,7 @@ import { getVersion } from '../ui/lib/app-proxy'
 import { getOS } from '../lib/get-os'
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { getCurrentWindowState } from '../ui/main-process-proxy'
+import { DefaultAppIdentityCustomization } from '../models/app-identity'
 
 // This is a weird one, let's leave it as a placeholder
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -210,6 +211,7 @@ export class CrashApp extends React.Component<ICrashAppProps, ICrashAppState> {
     return (
       <div id="crash-app">
         <TitleBar
+          appIdentity={DefaultAppIdentityCustomization}
           showAppIcon={false}
           titleBarStyle="light"
           windowState={this.state.windowState}

@@ -136,6 +136,8 @@ export enum PopupType {
   BatchCloneProgress = 'BatchCloneProgress',
   ExportRepositoryList = 'ExportRepositoryList',
   ImportRepositoryList = 'ImportRepositoryList',
+  ExportTabSession = 'ExportTabSession',
+  ImportTabSession = 'ImportTabSession',
   MergeAll = 'MergeAll',
   PullAllRepositories = 'PullAllRepositories',
 }
@@ -614,6 +616,13 @@ export type PopupDetail =
     }
   | {
       type: PopupType.ImportRepositoryList
+      existingRepositories: ReadonlyArray<Repository>
+    }
+  | {
+      type: PopupType.ExportTabSession
+    }
+  | {
+      type: PopupType.ImportTabSession
       existingRepositories: ReadonlyArray<Repository>
     }
 export type Popup = IBasePopup & PopupDetail

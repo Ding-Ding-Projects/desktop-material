@@ -59,6 +59,7 @@ describe('Pages accessibility contracts', () => {
     )
 
     for (const source of [
+      'docs/assets/screenshots/material-app-identity-workspace.png',
       'docs/assets/screenshots/material-welcome.png',
       'docs/assets/screenshots/material-customization.png',
       'docs/assets/screenshots/material-toolbar-overflow.png',

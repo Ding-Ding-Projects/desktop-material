@@ -1,9 +1,9 @@
 import * as React from 'react'
 import memoizeOne from 'memoize-one'
 import { WindowState } from '../../lib/window-state'
+import { IAppIdentityCustomization } from '../../models/app-identity'
 import { WindowControls } from './window-controls'
-import { Octicon } from '../octicons/octicon'
-import * as octicons from '../octicons/octicons.generated'
+import { AppBrand } from './app-brand'
 import { isMacOSBigSurOrLater, isMacOSTahoeOrLater } from '../../lib/get-os'
 import {
   getAppleActionOnDoubleClick,
@@ -45,6 +45,9 @@ interface ITitleBarProps {
 
   /** Whether or not to render the app icon */
   readonly showAppIcon: boolean
+
+  /** The profile-scoped name, logo, color, and typography to render. */
+  readonly appIdentity: IAppIdentityCustomization
 
   /**
    * The current zoom factor of the Window represented as a fractional number
@@ -114,10 +117,7 @@ export class TitleBar extends React.Component<ITitleBarProps> {
       this.props.titleBarStyle === 'light' ? 'light-title-bar' : ''
 
     const appIcon = this.props.showAppIcon ? (
-      <div className="app-brand-container">
-        <Octicon className="app-icon" symbol={octicons.markGithub} />
-        <span className="app-brand">Desktop Material</span>
-      </div>
+      <AppBrand identity={this.props.appIdentity} />
     ) : null
 
     const onTitlebarDoubleClick = __DARWIN__

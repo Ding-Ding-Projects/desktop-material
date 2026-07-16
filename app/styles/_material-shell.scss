@@ -637,7 +637,55 @@ body[data-dm-toolbar-labels='icons'] #desktop-app-toolbar {
 // cards reads as surface-container (per spec §0), so the level1 cards lift off a
 // slightly recessed backdrop. Overrides the shared surface fill declared above.
 #desktop-app-contents {
+  position: relative;
   background: var(--md-sys-color-surface-container);
+}
+
+.repository-drop-overlay {
+  position: absolute;
+  inset: 10px 16px 16px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px;
+  border: 3px dashed var(--md-sys-color-primary);
+  border-radius: 28px;
+  background: color-mix(in srgb, var(--md-sys-color-primary-container) 92%, transparent);
+  color: var(--md-sys-color-on-primary-container);
+  text-align: center;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.98);
+  transition: opacity 160ms var(--emph), transform 200ms var(--spring-fast);
+
+  strong {
+    font-size: 18px;
+  }
+
+  > span:last-child {
+    max-width: 460px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}
+
+body.repository-folder-dragging .repository-drop-overlay {
+  opacity: 1;
+  transform: scale(1);
+}
+
+@media (max-width: 620px), (max-height: 520px) {
+  .repository-drop-overlay {
+    inset: 6px 8px 8px;
+    padding: 18px;
+    border-radius: 20px;
+
+    strong {
+      font-size: 15px;
+    }
+  }
 }
 
 // Body row: the rail hugs the left window edge (no left padding); the 16px

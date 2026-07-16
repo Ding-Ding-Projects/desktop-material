@@ -3,6 +3,8 @@
  * the default tab appearance.
  */
 export interface ITabTitleStyle {
+  /** Unknown keys are retained when a newer session visits an older build. */
+  readonly [key: string]: unknown
   /** Font size in px (clamped to a sensible range when applied). */
   readonly fontSize?: number
   /** Text color as a validated CSS hex color or a curated token. */
@@ -176,6 +178,8 @@ export function tabFontStack(family: string): string | undefined {
 
 /** A browser-style tab bound to an open repository. */
 export interface IRepositoryTab {
+  /** Unknown keys are retained when tab sessions cross release versions. */
+  readonly [key: string]: unknown
   /** Stable identity, unchanged across rename and reorder. */
   readonly id: string
   /** The Dexie id of the repository this tab represents. */
@@ -192,6 +196,8 @@ export interface IRepositoryTab {
    * migrate without a rewrite.
    */
   readonly isPinned?: boolean
+  /** A persistent star marker used for quick recognition and arrangement. */
+  readonly isFavorite?: boolean
   /**
    * Epoch milliseconds when the tab was first opened. This remains optional
    * for migration compatibility; tabs restored from older profiles sort as
@@ -260,6 +266,105 @@ const hexColorPattern = /^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i
  */
 export function isValidTabColor(color: string): boolean {
   return hexColorPattern.test(color)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Normalize an imported title style without discarding fields written by a
+ * newer release. Known fields are independently validated before they can
+ * reach an inline style.
+ */
+export function normalizeTabTitleStyle(value: unknown): ITabTitleStyle | null {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const normalized: Record<string, unknown> = { ...value }
+  const knownKeys = [
+    'fontSize',
+    'color',
+    'backgroundColor',
+    'fontFamily',
+    'bold',
+    'italic',
+    'underline',
+    'strikeThrough',
+    'smallCaps',
+    'textCase',
+    'characterSpacing',
+    'textEffect',
+    'textAlign',
+  ]
+  for (const key of knownKeys) {
+    delete normalized[key]
+  }
+
+  if (typeof value.fontSize === 'number' && Number.isFinite(value.fontSize)) {
+    normalized.fontSize = clampTabFontSize(value.fontSize)
+  }
+  if (typeof value.color === 'string' && isValidTabColor(value.color)) {
+    normalized.color = value.color
+  }
+  if (
+    typeof value.backgroundColor === 'string' &&
+    isValidTabColor(value.backgroundColor)
+  ) {
+    normalized.backgroundColor = value.backgroundColor
+  }
+  if (
+    typeof value.fontFamily === 'string' &&
+    isValidFontFamily(value.fontFamily)
+  ) {
+    normalized.fontFamily = value.fontFamily
+  }
+  for (const key of [
+    'bold',
+    'italic',
+    'underline',
+    'strikeThrough',
+    'smallCaps',
+  ] as const) {
+    if (typeof value[key] === 'boolean') {
+      normalized[key] = value[key]
+    }
+  }
+  if (
+    value.textCase === 'normal' ||
+    value.textCase === 'uppercase' ||
+    value.textCase === 'lowercase' ||
+    value.textCase === 'capitalize'
+  ) {
+    normalized.textCase = value.textCase
+  }
+  if (
+    typeof value.characterSpacing === 'number' &&
+    Number.isFinite(value.characterSpacing)
+  ) {
+    normalized.characterSpacing = clampTabCharacterSpacing(
+      value.characterSpacing
+    )
+  }
+  if (
+    value.textEffect === 'none' ||
+    value.textEffect === 'soft-shadow' ||
+    value.textEffect === 'strong-shadow'
+  ) {
+    normalized.textEffect = value.textEffect
+  }
+  if (
+    value.textAlign === 'left' ||
+    value.textAlign === 'center' ||
+    value.textAlign === 'right'
+  ) {
+    normalized.textAlign = value.textAlign
+  }
+
+  return Object.keys(normalized).length === 0
+    ? null
+    : (normalized as ITabTitleStyle)
 }
 
 /**

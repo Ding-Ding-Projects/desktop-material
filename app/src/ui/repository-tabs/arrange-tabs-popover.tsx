@@ -72,6 +72,17 @@ export class ArrangeTabsPopover extends React.Component<
     )
   }
 
+  private toggleFavorite = (tab: IRepositoryTab) => {
+    const willFavorite = tab.isFavorite !== true
+    const label = this.props.resolveLabel(tab)
+    this.run(
+      () => this.props.tabsStore.setTabFavorite(tab.id, willFavorite),
+      `${label} ${
+        willFavorite ? 'added to favorites' : 'removed from favorites'
+      }.`
+    )
+  }
+
   private onManualAction = (event: React.MouseEvent<HTMLButtonElement>) => {
     const { tabId, action } = event.currentTarget.dataset
     const { tabs } = this.props.tabs
@@ -88,6 +99,9 @@ export class ArrangeTabsPopover extends React.Component<
     switch (action) {
       case 'pin':
         this.togglePinned(tab)
+        break
+      case 'favorite':
+        this.toggleFavorite(tab)
         break
       case 'first':
         this.move(tab, groupStart, 'to first')
@@ -122,6 +136,9 @@ export class ArrangeTabsPopover extends React.Component<
           {tab.isPinned === true && (
             <span className="arrange-tabs-chip">Pinned</span>
           )}
+          {tab.isFavorite === true && (
+            <span className="arrange-tabs-chip favorite">Favorite</span>
+          )}
         </div>
         <div className="arrange-tabs-row-actions">
           <button
@@ -133,6 +150,20 @@ export class ArrangeTabsPopover extends React.Component<
             aria-label={`${tab.isPinned === true ? 'Unpin' : 'Pin'} ${label}`}
           >
             {tab.isPinned === true ? 'Unpin' : 'Pin'}
+          </button>
+          <button
+            type="button"
+            data-tab-id={tab.id}
+            data-action="favorite"
+            onClick={this.onManualAction}
+            disabled={disabled}
+            aria-label={
+              (tab.isFavorite === true ? 'Unfavorite' : 'Favorite') +
+              ' ' +
+              label
+            }
+          >
+            {tab.isFavorite === true ? 'Unstar' : 'Star'}
           </button>
           <button
             type="button"
@@ -211,6 +242,15 @@ export class ArrangeTabsPopover extends React.Component<
     )
   }
 
+  private arrangeByFavorite = (order: 'favorites-first' | 'favorites-last') => {
+    this.run(
+      () => this.props.tabsStore.arrangeTabsByFavorite(order),
+      order === 'favorites-first'
+        ? 'Favorite tabs moved first.'
+        : 'Favorite tabs moved last.'
+    )
+  }
+
   private onSortClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     switch (event.currentTarget.dataset.sort) {
       case 'label-ascending':
@@ -230,6 +270,12 @@ export class ArrangeTabsPopover extends React.Component<
         break
       case 'status-clean':
         this.arrangeByStatus('clean-first')
+        break
+      case 'favorites-first':
+        this.arrangeByFavorite('favorites-first')
+        break
+      case 'favorites-last':
+        this.arrangeByFavorite('favorites-last')
         break
     }
   }
@@ -313,6 +359,22 @@ export class ArrangeTabsPopover extends React.Component<
                 onClick={this.onSortClick}
               >
                 Clean first
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                data-sort="favorites-first"
+                onClick={this.onSortClick}
+              >
+                Favorites first
+              </button>
+              <button
+                type="button"
+                disabled={disabled}
+                data-sort="favorites-last"
+                onClick={this.onSortClick}
+              >
+                Favorites last
               </button>
             </div>
           </section>

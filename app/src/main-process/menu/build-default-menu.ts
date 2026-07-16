@@ -141,6 +141,17 @@ export function buildDefaultMenuTemplate({
         id: 'import-repository-list',
         click: emit('import-repository-list'),
       },
+      separator,
+      {
+        label: __DARWIN__ ? 'Export Current Tabs…' : 'Export current &tabs…',
+        id: 'export-tab-session',
+        click: emit('export-tab-session'),
+      },
+      {
+        label: __DARWIN__ ? 'Import Current Tabs…' : 'Import current ta&bs…',
+        id: 'import-tab-session',
+        click: emit('import-tab-session'),
+      },
     ],
   }
 

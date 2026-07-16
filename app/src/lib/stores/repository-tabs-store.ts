@@ -11,6 +11,7 @@ import {
   emptyProfileTabsState,
 } from '../../models/repository-tab'
 import { PrimaryWindowScope } from '../window-scope'
+import { ITabSessionFile, TabSessionImportMode } from '../tab-session-file'
 
 /** Additional repository names/aliases that may be searched for a tab. */
 export type RepositoryTabMatchKeyResolver = (
@@ -26,6 +27,14 @@ export type RepositoryTabStatusRankResolver = (tab: IRepositoryTab) => number
 export type RepositoryTabLabelOrder = 'ascending' | 'descending'
 export type RepositoryTabOpenedOrder = 'newest' | 'oldest'
 export type RepositoryTabStatusOrder = 'needs-attention-first' | 'clean-first'
+export type RepositoryTabFavoriteOrder = 'favorites-first' | 'favorites-last'
+
+export interface ITabSessionImportResult {
+  readonly importedCount: number
+  readonly skippedCount: number
+  readonly activeTabId: string | null
+  readonly activeRepository: Repository | null
+}
 
 export interface ICloseTabsExceptPreview {
   /** Tabs containing the literal query in at least one searchable key. */
@@ -505,6 +514,139 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
     const tab = this.state.tabs.find(candidate => candidate.id === id)
     if (tab !== undefined) {
       await this.setTabPinned(id, tab.isPinned !== true)
+    }
+  }
+
+  /** Persist a tab's independent favorite marker without changing its group. */
+  public async setTabFavorite(id: string, isFavorite: boolean): Promise<void> {
+    const current = this.state.tabs.find(tab => tab.id === id)
+    if (current === undefined || (current.isFavorite === true) === isFavorite) {
+      return
+    }
+    const tabs = this.state.tabs.map(tab =>
+      tab.id === id ? { ...tab, isFavorite } : tab
+    )
+    await this.persist(
+      { ...this.state, tabs },
+      isFavorite ? 'Favorite tab' : 'Remove tab from favorites'
+    )
+  }
+
+  public async toggleTabFavorite(id: string): Promise<void> {
+    const tab = this.state.tabs.find(candidate => candidate.id === id)
+    if (tab !== undefined) {
+      await this.setTabFavorite(id, tab.isFavorite !== true)
+    }
+  }
+
+  /** One-shot stable favorite arrangement inside each protected pin group. */
+  public async arrangeTabsByFavorite(
+    order: RepositoryTabFavoriteOrder
+  ): Promise<void> {
+    const direction = order === 'favorites-first' ? -1 : 1
+    const tabs = stableSortPinGroups(this.state.tabs, (left, right) => {
+      const leftRank = left.isFavorite === true ? 1 : 0
+      const rightRank = right.isFavorite === true ? 1 : 0
+      return direction * (leftRank - rightRank)
+    })
+    await this.persist({ ...this.state, tabs }, 'Arrange tabs by favorites')
+  }
+
+  /**
+   * Restore a portable tab session after the caller has added every available
+   * repository to the app database. Missing paths are skipped and never turn a
+   * replace import into an empty destructive operation.
+   */
+  public async importTabSession(
+    session: ITabSessionFile,
+    repositories: ReadonlyArray<Repository>,
+    mode: TabSessionImportMode
+  ): Promise<ITabSessionImportResult> {
+    const resolved = session.tabs.flatMap(entry => {
+      const repository = matchExistingRepository(
+        repositories,
+        entry.repositoryPath
+      )
+      return repository === undefined ? [] : [{ entry, repository }]
+    })
+    const skippedCount = session.tabs.length - resolved.length
+    if (resolved.length === 0) {
+      return {
+        importedCount: 0,
+        skippedCount,
+        activeTabId: this.state.activeTabId,
+        activeRepository: null,
+      }
+    }
+
+    let tabs: IRepositoryTab[] = mode === 'merge' ? [...this.state.tabs] : []
+    for (const { entry, repository } of resolved) {
+      const existingIndex =
+        mode === 'merge'
+          ? tabs.findIndex(
+              tab =>
+                tab.repositoryId === repository.id ||
+                matchExistingRepository(
+                  [{ path: tab.repositoryPath }],
+                  repository.path
+                ) !== undefined
+            )
+          : -1
+      const existing = existingIndex >= 0 ? tabs[existingIndex] : undefined
+      const imported: IRepositoryTab = {
+        ...(existing ?? {}),
+        ...entry,
+        id: existing?.id ?? randomUUID(),
+        repositoryId: repository.id,
+        repositoryPath: repository.path,
+        customLabel: entry.customLabel,
+        titleStyle: entry.titleStyle,
+        isPinned: entry.isPinned === true,
+        isFavorite: entry.isFavorite === true,
+        openedAt: entry.openedAt ?? existing?.openedAt ?? this.now(),
+      }
+      if (existingIndex >= 0) {
+        tabs[existingIndex] = imported
+      } else {
+        tabs.push(imported)
+      }
+    }
+    tabs = [...groupPinnedTabs(tabs)]
+
+    const activeRepository =
+      session.activeRepositoryPath === null
+        ? null
+        : matchExistingRepository(
+            resolved.map(item => item.repository),
+            session.activeRepositoryPath
+          ) ?? null
+    const importedActiveId =
+      activeRepository === null
+        ? null
+        : tabs.find(tab => tab.repositoryId === activeRepository.id)?.id ?? null
+    const activeTabId =
+      importedActiveId ??
+      (mode === 'merge' &&
+      this.state.activeTabId !== null &&
+      tabs.some(tab => tab.id === this.state.activeTabId)
+        ? this.state.activeTabId
+        : tabs[0]?.id ?? null)
+
+    await this.persist(
+      { tabs, activeTabId },
+      mode === 'replace' ? 'Replace tab session' : 'Merge tab session'
+    )
+    const selectedRepository =
+      repositories.find(
+        repository =>
+          repository.id ===
+          tabs.find(tab => tab.id === activeTabId)?.repositoryId
+      ) ?? null
+    return {
+      importedCount: resolved.length,
+      skippedCount,
+      activeTabId,
+      activeRepository: selectedRepository,
     }
   }
 

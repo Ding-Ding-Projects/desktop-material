@@ -1,4 +1,5 @@
 import * as React from 'react'
+import { clipboard } from 'electron'
 import { Disposable } from 'event-kit'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -27,6 +28,7 @@ import {
   repositoryTabStatusRank,
   visibleTabLabel,
 } from './tab-action-helpers'
+import { PopupType } from '../../models/popup'
 
 interface IRepositoryTabStripProps {
   readonly tabsStore: RepositoryTabsStore
@@ -193,11 +195,19 @@ export class RepositoryTabStrip extends React.Component<
     const anchor = event.currentTarget as HTMLElement
     const { tabs } = this.state.tabs
     const index = tabs.findIndex(t => t.id === tab.id)
+    const profilePath = this.props.dispatcher.getActiveProfileRepositoryPath()
 
     showContextualMenu([
       {
         label: tab.isPinned === true ? 'Unpin Tab' : 'Pin Tab',
         action: () => this.onTogglePinned(tab),
+      },
+      {
+        label:
+          tab.isFavorite === true
+            ? 'Remove from Favorites'
+            : 'Add to Favorites',
+        action: () => this.onToggleFavorite(tab),
       },
       {
         label: 'Arrange Tabs…',
@@ -207,6 +217,26 @@ export class RepositoryTabStrip extends React.Component<
       {
         label: 'Customize Appearance…',
         action: () => this.openStyleEditor(tab, anchor),
+      },
+      {
+        label: 'View Appearance and Tab History…',
+        action: () =>
+          this.props.dispatcher.showPopup({ type: PopupType.SettingsHistory }),
+      },
+      {
+        label:
+          profilePath === null
+            ? 'Profile history repository unavailable'
+            : `Profile Git history: ${profilePath}`,
+        enabled: false,
+      },
+      {
+        label: 'Copy Profile History Repository Path',
+        enabled: profilePath !== null,
+        action:
+          profilePath === null
+            ? undefined
+            : () => clipboard.writeText(profilePath),
       },
       { type: 'separator' },
       {
@@ -311,6 +341,20 @@ export class RepositoryTabStrip extends React.Component<
         })
       )
       .catch(err => log.error('Failed to update pinned tab', err))
+  }
+
+  private onToggleFavorite = (tab: IRepositoryTab) => {
+    const willFavorite = tab.isFavorite !== true
+    this.props.tabsStore
+      .setTabFavorite(tab.id, willFavorite)
+      .then(() =>
+        this.setState({
+          announcement: `${this.labelForTab(tab)} ${
+            willFavorite ? 'added to favorites' : 'removed from favorites'
+          }.`,
+        })
+      )
+      .catch(err => log.error('Failed to update favorite tab', err))
   }
 
   private openCloseMatching = (anchor: HTMLElement) => {
@@ -487,6 +531,9 @@ export class RepositoryTabStrip extends React.Component<
         className="repository-tab-strip"
         role="tablist"
         aria-label="Repository tabs"
+        data-customization-surface="repository-tabs"
+        data-customization-label="Repository tabs"
+        data-customization-scope="profile"
       >
         <div className="repository-tab-list">
           {tabs.map(tab => (
@@ -498,6 +545,7 @@ export class RepositoryTabStrip extends React.Component<
               isDragging={tab.id === this.state.draggingTabId}
               onSelect={this.onSelect}
               onClose={this.onClose}
+              onToggleFavorite={this.onToggleFavorite}
               onRename={this.onRename}
               onContextMenu={this.onContextMenu}
               onOpenStyleEditor={this.openStyleEditor}

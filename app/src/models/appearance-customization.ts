@@ -1,3 +1,9 @@
+import {
+  DefaultAppIdentityCustomization,
+  IAppIdentityCustomization,
+  normalizeAppIdentityCustomization,
+} from './app-identity'
+
 /** The persisted appearance schema version. */
 export const AppearanceCustomizationVersion = 1 as const
 
@@ -33,6 +39,7 @@ export interface IAppearanceCustomization {
   readonly tabDensity: DensityPreference
   readonly tabWidth: TabWidthPreference
   readonly tabCloseButtons: TabCloseButtonPreference
+  readonly appIdentity: IAppIdentityCustomization
 }
 
 /**
@@ -62,6 +69,7 @@ export const DefaultAppearanceCustomization: IAppearanceCustomization = {
   tabDensity: 'comfortable',
   tabWidth: 'standard',
   tabCloseButtons: 'hover',
+  appIdentity: DefaultAppIdentityCustomization,
 }
 
 export const accentPalettes: ReadonlyArray<AccentPalette> = [
@@ -169,6 +177,7 @@ export function normalizeAppearanceCustomization(
     tabCloseButtons: isOneOf(source.tabCloseButtons, tabCloseButtonPreferences)
       ? source.tabCloseButtons
       : defaults.tabCloseButtons,
+    appIdentity: normalizeAppIdentityCustomization(source.appIdentity),
   }
 }
 

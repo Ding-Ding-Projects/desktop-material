@@ -44,7 +44,36 @@ describe('appearance customization', () => {
     assert.equal(parsed.surfacePalette, 'tonal')
     assert.equal(parsed.motion, 'reduced')
     assert.equal(parsed.tabWidth, 'wide')
+    assert.equal(parsed.appIdentity.displayName, 'Desktop Material')
     assert.equal('unexpected' in parsed, false)
+  })
+
+  it('migrates old v1 profiles and preserves newer nested identity keys', () => {
+    const migrated = parseAppearanceCustomization(
+      JSON.stringify({ version: 1, accentPalette: 'teal' })
+    )
+    assert.equal(migrated.appIdentity.displayName, 'Desktop Material')
+
+    const parsed = parseAppearanceCustomization(
+      JSON.stringify({
+        version: 1,
+        appIdentity: {
+          displayName: 'Material Workbench',
+          logo: 'terminal',
+          logoColor: '#6750a4',
+          fontFamily: 'Consolas',
+          fontSize: 14,
+          fontWeight: 700,
+          textCase: 'uppercase',
+          futureLogoTreatment: 'duotone',
+        },
+      })
+    )
+
+    assert.equal(parsed.appIdentity.displayName, 'Material Workbench')
+    assert.equal(parsed.appIdentity.logo, 'terminal')
+    assert.equal(parsed.appIdentity.fontFamily, 'Consolas')
+    assert.equal(parsed.appIdentity.futureLogoTreatment, 'duotone')
   })
 
   it('normalizes internal updates before persistence', () => {

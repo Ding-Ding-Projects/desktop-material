@@ -16,6 +16,7 @@ interface IRepositoryTabProps {
   readonly isDragging: boolean
   readonly onSelect: (tab: IRepositoryTab) => void
   readonly onClose: (tab: IRepositoryTab) => void
+  readonly onToggleFavorite: (tab: IRepositoryTab) => void
   readonly onRename: (tab: IRepositoryTab, label: string | null) => void
   readonly onContextMenu: (
     tab: IRepositoryTab,
@@ -74,6 +75,11 @@ export class RepositoryTab extends React.Component<
   private onCloseClick = (event: React.MouseEvent<HTMLElement>) => {
     event.stopPropagation()
     this.props.onClose(this.props.tab)
+  }
+
+  private onFavoriteClick = (event: React.MouseEvent<HTMLElement>) => {
+    event.stopPropagation()
+    this.props.onToggleFavorite(this.props.tab)
   }
 
   private onDoubleClick = () => {
@@ -152,6 +158,7 @@ export class RepositoryTab extends React.Component<
       'repository-tab',
       isActive ? 'active' : null,
       tab.isPinned === true ? 'pinned' : null,
+      tab.isFavorite === true ? 'favorite' : null,
       isDragging ? 'dragging' : null,
     ]
       .filter(value => value !== null)
@@ -181,7 +188,9 @@ export class RepositoryTab extends React.Component<
         style={frameStyle}
         role="tab"
         aria-selected={isActive}
-        aria-label={`${this.label}${tab.isPinned === true ? ', pinned' : ''}`}
+        aria-label={`${this.label}${tab.isPinned === true ? ', pinned' : ''}${
+          tab.isFavorite === true ? ', favorite' : ''
+        }`}
         tabIndex={isActive ? 0 : -1}
         draggable={true}
         onClick={this.onClick}
@@ -200,6 +209,20 @@ export class RepositoryTab extends React.Component<
             <Octicon symbol={octicons.pin} />
           </span>
         )}
+        <button
+          className="repository-tab-favorite"
+          aria-label={
+            tab.isFavorite === true
+              ? `Remove ${this.label} from favorites`
+              : `Add ${this.label} to favorites`
+          }
+          aria-pressed={tab.isFavorite === true}
+          onClick={this.onFavoriteClick}
+        >
+          <Octicon
+            symbol={tab.isFavorite === true ? octicons.starFill : octicons.star}
+          />
+        </button>
         <span
           className="repository-tab-label"
           style={tabTitleStyleToCss(tab.titleStyle)}

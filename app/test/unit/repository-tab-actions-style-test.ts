@@ -25,6 +25,13 @@ describe('repository tab action responsive styles', () => {
     assert.match(strip, /label: 'Close All Tabs Except Those Containing…'/)
   })
 
+  it('keeps favorite tabs visible, labelled, and independently sortable', () => {
+    assert.match(strip, /Add to Favorites/)
+    assert.match(strip, /setTabFavorite/)
+    assert.match(style, /\.repository-tab-favorite\s*\{[\s\S]*?focus-visible/)
+    assert.match(style, /&\.favorite \.repository-tab-favorite/)
+  })
+
   it('bounds both Material action surfaces without horizontal clipping', () => {
     assert.match(
       style,

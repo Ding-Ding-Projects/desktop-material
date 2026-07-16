@@ -54,6 +54,10 @@ import { TipState } from '../models/tip'
 import { CloneRepositoryTab } from '../models/clone-repository-tab'
 import { CloningRepository } from '../models/cloning-repository'
 import { resolveAppearanceCustomization } from '../models/appearance-customization'
+import {
+  isRepositoryFileDrag,
+  uniqueDroppedRepositoryPaths,
+} from '../lib/repository-folder-drop'
 
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
@@ -74,7 +78,7 @@ import {
   OneClickCommitPushButton,
 } from './toolbar'
 import { canAutoCommitPush } from '../lib/automation/automation-guards'
-import { iconForRepository, OcticonSymbol } from './octicons'
+import { iconForRepository, Octicon, OcticonSymbol } from './octicons'
 import * as octicons from './octicons/octicons.generated'
 import {
   showCertificateTrustDialog,
@@ -131,6 +135,10 @@ import {
   ExportRepositoriesDialog,
   ImportRepositoriesDialog,
 } from './repository-list-transfer'
+import {
+  ExportTabSessionDialog,
+  ImportTabSessionDialog,
+} from './tab-session-transfer'
 import { CreateBranch } from './create-branch'
 import { SignIn } from './sign-in'
 import { InstallGit } from './install-git'
@@ -240,7 +248,7 @@ import { offsetFromNow } from '../lib/offset-from'
 import { getNumber } from '../lib/local-storage'
 import { IconPreviewDialog } from './octicons/icon-preview-dialog'
 import { isCertificateErrorSuppressedFor } from '../lib/suppress-certificate-error'
-import { webUtils } from 'electron'
+import { clipboard, webUtils } from 'electron'
 import { showTestUI } from './lib/test-ui-components/test-ui-components'
 import { ConfirmCommitFilteredChanges } from './changes/confirm-commit-filtered-changes-dialog'
 import { AboutTestDialog } from './about/about-test-dialog'
@@ -323,6 +331,7 @@ export const bannerTransitionTimeout = { enter: 500, exit: 400 }
 const ReadyDelay = 100
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
+  private repositoryFileDragDepth = 0
   private readonly effectiveBranchRulesetCache =
     new EffectiveBranchRulesetCache()
   private readonly getEffectiveBranchRulesClient = memoizeOne(
@@ -455,6 +464,8 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentWillUnmount() {
     window.clearInterval(this.updateIntervalHandle)
+    document.body.classList.remove('repository-folder-dragging')
+    document.removeEventListener('contextmenu', this.onCustomizationContextMenu)
 
     if (__DARWIN__) {
       window.removeEventListener('keydown', this.onMacOSWindowKeyDown)
@@ -625,6 +636,10 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showExportRepositoryList()
       case 'import-repository-list':
         return this.showImportRepositoryList()
+      case 'export-tab-session':
+        return this.showExportTabSession()
+      case 'import-tab-session':
+        return this.showImportTabSession()
       case 'show-about':
         return this.showAbout()
       case 'go-to-commit-message':
@@ -989,6 +1004,20 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
   }
 
+  private showExportTabSession = () => {
+    return this.props.dispatcher.showPopup({ type: PopupType.ExportTabSession })
+  }
+
+  private showImportTabSession = () => {
+    const existingRepositories = this.state.repositories.filter(
+      (repository): repository is Repository => repository instanceof Repository
+    )
+    return this.props.dispatcher.showPopup({
+      type: PopupType.ImportTabSession,
+      existingRepositories,
+    })
+  }
+
   private showCreateTutorialRepositoryPopup = () => {
     const account =
       this.state.accounts.find(isDotComAccount) ?? this.state.accounts.at(0)
@@ -1205,11 +1234,38 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   public componentDidMount() {
+    document.addEventListener('contextmenu', this.onCustomizationContextMenu)
+    document.ondragenter = e => {
+      if (
+        e.dataTransfer !== null &&
+        isRepositoryFileDrag(e.dataTransfer.types) &&
+        !this.isShowingModal
+      ) {
+        this.repositoryFileDragDepth++
+        document.body.classList.add('repository-folder-dragging')
+      }
+    }
+
+    document.ondragleave = e => {
+      if (
+        e.dataTransfer !== null &&
+        isRepositoryFileDrag(e.dataTransfer.types)
+      ) {
+        this.repositoryFileDragDepth = Math.max(
+          0,
+          this.repositoryFileDragDepth - 1
+        )
+        if (this.repositoryFileDragDepth === 0) {
+          document.body.classList.remove('repository-folder-dragging')
+        }
+      }
+    }
+
     document.ondragover = e => {
       if (e.dataTransfer != null) {
         if (this.isShowingModal) {
           e.dataTransfer.dropEffect = 'none'
-        } else {
+        } else if (isRepositoryFileDrag(e.dataTransfer.types)) {
           e.dataTransfer.dropEffect = 'copy'
         }
       }
@@ -1218,6 +1274,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     document.ondrop = e => {
+      this.clearRepositoryFileDrag()
       e.preventDefault()
     }
 
@@ -1227,8 +1284,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       }
       if (e.dataTransfer != null) {
         const files = e.dataTransfer.files
-        this.handleDragAndDrop(files)
+        void this.handleDragAndDrop(files)
       }
+      this.clearRepositoryFileDrag()
       e.preventDefault()
     }
 
@@ -1246,6 +1304,119 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
 
     this.updateWindowTitle()
+  }
+
+  private clearRepositoryFileDrag() {
+    this.repositoryFileDragDepth = 0
+    document.body.classList.remove('repository-folder-dragging')
+  }
+
+  /**
+   * Offer one consistent customization/history contract for otherwise
+   * unhandled shell surfaces. Existing specialized context menus win because
+   * they prevent the event before it reaches this document listener.
+   */
+  private onCustomizationContextMenu = (event: MouseEvent) => {
+    if (event.defaultPrevented || !(event.target instanceof Element)) {
+      return
+    }
+    if (
+      event.target.closest(
+        'input, textarea, select, [contenteditable="true"], [role="textbox"]'
+      ) !== null
+    ) {
+      return
+    }
+
+    const surface = event.target.closest<HTMLElement>(
+      '[data-customization-surface]'
+    )
+    const repositoryElement = event.target.closest('#repository')
+    const inDesktop =
+      surface !== null ||
+      repositoryElement !== null ||
+      event.target.closest('#desktop-app-contents, #desktop-app-title-bar') !==
+        null
+    if (!inDesktop) {
+      return
+    }
+
+    event.preventDefault()
+    const isGenericAppSurface =
+      surface?.dataset.customizationSurface === 'app-workspace'
+    const label =
+      !isGenericAppSurface && surface !== null
+        ? surface.dataset.customizationLabel ?? 'App element'
+        : repositoryElement !== null
+        ? 'Repository workspace'
+        : 'App workspace'
+    const scope =
+      !isGenericAppSurface && surface !== null
+        ? surface.dataset.customizationScope ?? 'profile'
+        : repositoryElement !== null
+        ? 'repository'
+        : 'profile'
+
+    if (scope === 'repository') {
+      const repository = this.getRepository()
+      if (!(repository instanceof Repository)) {
+        return
+      }
+      void showContextualMenu([
+        {
+          label: `Customize ${label}…`,
+          action: () =>
+            this.showRepositorySettings(RepositorySettingsTab.Appearance),
+        },
+        {
+          label: 'View Repository Commit History',
+          action: () => void this.showHistory(false),
+        },
+        { type: 'separator' },
+        {
+          label: `Local Git repository: ${repository.path}`,
+          enabled: false,
+        },
+        {
+          label: 'Copy Local Repository Path',
+          action: () => clipboard.writeText(repository.path),
+        },
+      ])
+      return
+    }
+
+    const profilePath = this.props.dispatcher.getActiveProfileRepositoryPath()
+    void showContextualMenu([
+      {
+        label: `Customize ${label}…`,
+        action: () =>
+          this.props.dispatcher.showPopup({
+            type: PopupType.Preferences,
+            initialSelectedTab: PreferencesTab.Appearance,
+          }),
+      },
+      {
+        label: 'View Appearance and Tab History…',
+        action: () =>
+          this.props.dispatcher.showPopup({ type: PopupType.SettingsHistory }),
+      },
+      { type: 'separator' },
+      {
+        label:
+          profilePath === null
+            ? 'Profile history repository unavailable'
+            : `Profile Git history: ${profilePath}`,
+        enabled: false,
+      },
+      {
+        label: 'Copy Profile History Repository Path',
+        enabled: profilePath !== null,
+        action:
+          profilePath === null
+            ? undefined
+            : () => clipboard.writeText(profilePath),
+      },
+    ])
   }
 
   public componentDidUpdate(prevProps: IAppProps, prevState: IAppState) {
@@ -1268,13 +1439,12 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private getWindowTitle(state: IAppState = this.state): string {
     const repository = state.selectedState?.repository
+    const appName = state.appearanceCustomization.appIdentity.displayName
     const repositoryTitle =
       repository instanceof Repository
         ? repository.alias ?? repository.name
         : repository?.name
-    return repositoryTitle
-      ? `${repositoryTitle} - Desktop Material`
-      : 'Desktop Material'
+    return repositoryTitle ? `${repositoryTitle} - ${appName}` : appName
   }
 
   private updateWindowTitle() {
@@ -1419,12 +1589,14 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private async handleDragAndDrop(fileList: FileList) {
-    const paths = Array.from(fileList, webUtils.getPathForFile)
+    const paths = uniqueDroppedRepositoryPaths(
+      Array.from(fileList, webUtils.getPathForFile)
+    )
     const { dispatcher } = this.props
 
-    // If they're bulk adding repositories then just blindly try to add them.
-    // But if they just dragged one, use the dialog so that they can initialize
-    // it if needed.
+    // Bulk drops add every valid folder and open the first result. A single
+    // repository opens immediately; non-repositories keep the existing setup
+    // dialog so the user can initialize them deliberately.
     if (paths.length > 1) {
       const addedRepositories = await dispatcher.addRepositories(paths)
 
@@ -1436,20 +1608,29 @@ export class App extends React.Component<IAppProps, IAppState> {
       // user may accidentally provide a folder within the repository
       // this ensures we use the repository root, if it is actually a repository
       // otherwise we consider it an untracked repository
-      const path = await getRepositoryType(paths[0])
-        .then(t =>
-          t.kind === 'regular' ? t.topLevelWorkingDirectory : paths[0]
-        )
-        .catch(e => {
-          log.error('Could not determine repository type', e)
-          return paths[0]
-        })
+      let path = paths[0]
+      let isRegularRepository = false
+      try {
+        const repositoryType = await getRepositoryType(path)
+        if (repositoryType.kind === 'regular') {
+          path = repositoryType.topLevelWorkingDirectory
+          isRegularRepository = true
+        }
+      } catch (e) {
+        log.error('Could not determine repository type', e)
+      }
 
       const { repositories } = this.state
       const existingRepository = matchExistingRepository(repositories, path)
 
       if (existingRepository) {
         await dispatcher.selectRepository(existingRepository)
+      } else if (isRegularRepository) {
+        const addedRepositories = await dispatcher.addRepositories([path])
+        if (addedRepositories.length > 0) {
+          dispatcher.recordAddExistingRepository()
+          await dispatcher.selectRepository(addedRepositories[0])
+        }
       } else {
         await this.showPopup({ type: PopupType.AddRepository, path })
       }
@@ -1737,6 +1918,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     return (
       <TitleBar
+        appIdentity={this.state.appearanceCustomization.appIdentity}
         showAppIcon={showAppIcon}
         titleBarStyle={titleBarStyle}
         windowState={this.state.windowState}
@@ -2268,6 +2450,28 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
             existingRepositories={popup.existingRepositories}
+          />
+        )
+      case PopupType.ExportTabSession:
+        return (
+          <ExportTabSessionDialog
+            key="export-tab-session"
+            onDismissed={onPopupDismissedFn}
+            tabs={this.props.repositoryTabsStore.getState()}
+            repositories={this.state.repositories.filter(
+              (repository): repository is Repository =>
+                repository instanceof Repository
+            )}
+          />
+        )
+      case PopupType.ImportTabSession:
+        return (
+          <ImportTabSessionDialog
+            key="import-tab-session"
+            dispatcher={this.props.dispatcher}
+            tabsStore={this.props.repositoryTabsStore}
+            existingRepositories={popup.existingRepositories}
+            onDismissed={onPopupDismissedFn}
           />
         )
       case PopupType.CreateBranch: {
@@ -3780,6 +3984,9 @@ export class App extends React.Component<IAppProps, IAppState> {
       <div
         id="desktop-app-contents"
         className={this.getDesktopAppContentsClassNames()}
+        data-customization-surface="app-workspace"
+        data-customization-label="App workspace"
+        data-customization-scope="profile"
       >
         {this.renderRepositoryTabStrip()}
         {this.renderToolbar()}
@@ -3789,6 +3996,19 @@ export class App extends React.Component<IAppProps, IAppState> {
         {this.renderNotificationCentre()}
         {this.renderPopups()}
         {this.renderDragElement()}
+        <div
+          className="repository-drop-overlay"
+          role="status"
+          aria-live="polite"
+        >
+          <span className="repository-drop-overlay-icon">
+            <Octicon symbol={octicons.repoPush} height={28} />
+          </span>
+          <strong>Drop repository folders to open tabs</strong>
+          <span>
+            Existing repositories switch instantly; new ones are added.
+          </span>
+        </div>
       </div>
     )
   }

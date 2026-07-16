@@ -4,8 +4,8 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 <img
   width="1072"
-  src="docs/assets/screenshots/material-workspace-changes.png"
-  alt="Desktop Material workspace showing the Changes view: a left icon navigation rail, a floating pill toolbar with repository and branch chips, browser-like repository tabs, and a floating Material Design 3 card with tri-state checkboxes and a commit composer"
+  src="docs/assets/screenshots/material-app-identity-workspace.png"
+  alt="Desktop Material workspace with a profile-customized app name and logo, a favorite repository tab, the Material navigation rail, and the Changes view"
 />
 
 ![CI](https://github.com/codingmachineedge/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
@@ -33,6 +33,7 @@ maintenance acceptance items are complete.
 
 **Appearance customization**
 - Twelve app defaults in **Settings → Appearance**: accent color, surface color, surface depth, interface font, code/diff font, animation, toolbar labels, toolbar density, repository-list density, tab density, tab width, and tab-close-button behavior
+- A live **App identity** editor for the in-app logo, app name, logo geometry/border/shadow, colors, font, width, weight, case, size, spacing, opacity, emphasis, highlight, and text effects. Identity follows the active profile and restores across restart; signed binaries and the operating-system icon remain unchanged
 - App defaults are versioned with the active profile in its local Git history, so they follow the selected profile and participate in the existing settings-history workflow
 - Six repository-only overrides in **Repository Settings → Appearance**: accent color, surface color, toolbar labels, toolbar density, tab density, and tab width. Each field can inherit **Use app default**; explicit values stay in the repository's local `.git/config` and are neither committed nor shared
 - Toolbar measurement respects Icons only and compact density. Build & Run overflows first, followed by Commit & Push; widening the window or shortening a dynamic label restores the same mounted controls deterministically, while an open **More** surface remains stable until it closes
@@ -40,8 +41,9 @@ maintenance acceptance items are complete.
 **Repository tabs**
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
 - Per-tab title styling: bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, and one-click return to the default
+- Mark tabs as favorites, drag a repository folder onto the app to open or switch its tab, and export or import the current ordered tab session with pins, favorites, aliases, and per-tab appearance
 - Keep the original **Close Tabs Containing…** regex workflow, or use the guarded inverse **Close all tabs except those containing…** action. The inverse matches a case-insensitive literal substring across the visible label, repository alias/name, and local path; live counts and a bounded preview make the result reviewable, and an empty or zero-match query cannot confirm
-- Pin important tabs and arrange each pinned or unpinned group manually with drag-and-drop or named keyboard move actions. **Arrange tabs** also offers one-shot A→Z, Z→A, newest-opened, oldest-opened, **Needs attention first**, and **Clean first** sorts; the chosen order persists without continuously reshuffling as repository status changes
+- Pin important tabs and arrange each pinned or unpinned group manually with drag-and-drop or named keyboard move actions. **Arrange tabs** also offers one-shot A→Z, Z→A, newest-opened, oldest-opened, repository-status, and favorites-first/last sorts; the chosen order persists without continuously reshuffling as repository status changes
 
 **Multi-account**
 - Multiple accounts including multiple identities per host; per-account tabs, repos, and settings
@@ -56,6 +58,7 @@ maintenance acceptance items are complete.
 
 **Versioned settings & history**
 - Per-account settings stored in a local git repo — every settings/tabs change auto-commits. Open **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo, and restore; each history action adds an audit commit instead of rewriting history
+- Right-click appropriate shell and repository surfaces for a direct customization route plus the exact owning profile or local repository history context; specialized editing/context menus retain priority
 
 **Non-modal dialog framework**
 - Dialogs float without blocking the app, drag by their headers, cascade, and can be brought to front — the app stays fully interactive behind an open dialog
@@ -140,9 +143,9 @@ The compact selection below keeps this README scannable. The
 [task-oriented tutorial](docs/wiki/User-Guide.md) contain the full annotated
 set.
 
-| Material Welcome | Appearance customization | Dynamic toolbar overflow |
-| --- | --- | --- |
-| <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="420"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance preferences with active-profile defaults and repository inheritance guidance" width="420"><br><sub>Profile and repository appearance</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="420"><br><sub>Measured More behavior</sub> |
+| Custom app identity | Material Welcome | Appearance customization | Dynamic toolbar overflow |
+| --- | --- | --- | --- |
+| <img src="docs/assets/screenshots/material-app-identity-workspace.png" alt="Workspace with a customized in-app logo and name plus a favorite repository tab" width="320"><br><sub>Profile app identity</sub> | <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="320"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance preferences with active-profile defaults and repository inheritance guidance" width="320"><br><sub>Profile and repository appearance</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="320"><br><sub>Measured More behavior</sub> |
 
 | Word-style tab appearance | Arrange tabs | Actions cancellation | Reviewed rebase |
 | --- | --- | --- | --- |
@@ -151,7 +154,7 @@ set.
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |
 | <img src="docs/assets/screenshots/material-repository-tools.png" alt="Repository Tools administration hub" width="420"><br><sub>Repository Tools</sub> | <img src="docs/assets/screenshots/material-actions-cache-manager.png" alt="Actions cache manager" width="420"><br><sub>Actions caches</sub> | <img src="docs/assets/screenshots/material-scale-200-autofit.png" alt="Two hundred percent scale auto-fit without clipping" width="420"><br><sub>200% auto-fit</sub> |
-| <img src="docs/assets/screenshots/material-pull-all-account-fallback.png" alt="Pull All results for several repositories" width="420"><br><sub>Pull All</sub> | <img src="docs/assets/screenshots/material-native-pull-request.png" alt="Native pull request creation" width="420"><br><sub>Pull requests</sub> | <img src="docs/assets/screenshots/material-workspace-changes.png" alt="Desktop Material Changes workspace" width="420"><br><sub>Material workspace</sub> |
+| <img src="docs/assets/screenshots/material-pull-all-account-fallback.png" alt="Pull All results for several repositories" width="420"><br><sub>Pull All</sub> | <img src="docs/assets/screenshots/material-native-pull-request.png" alt="Native pull request creation" width="420"><br><sub>Pull requests</sub> | <img src="docs/assets/screenshots/material-workspace-changes.png" alt="Desktop Material Changes workspace" width="420"><br><sub>Changes workspace</sub> |
 | <img src="docs/assets/screenshots/material-stash-manager.png" alt="Repository-wide stash manager" width="420"><br><sub>Stash manager</sub> | <img src="docs/assets/screenshots/material-github-issues.png" alt="GitHub issue detail and lifecycle controls" width="420"><br><sub>Issues</sub> | <img src="docs/assets/screenshots/material-responsive-overflow-fixed.png" alt="Responsive workspace without horizontal clipping" width="420"><br><sub>Responsive clipping gate</sub> |
 
 <details>

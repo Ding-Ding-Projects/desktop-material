@@ -1,24 +1,25 @@
 # Guided Feature Gallery
 
-This page maps the guided feature documentation to its 52-image acceptance gallery. Every view
+This page maps the guided feature documentation to its 53-image acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
 
 > **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
-> pagination evidence, the Pages accessibility/clipping gate, seven inspected July 16 adaptive
-> customization captures, and the clone-style Add Submodule release. Exact build, interaction, and
+> pagination evidence, the Pages accessibility/clipping gate, the inspected July 16 adaptive
+> customization set, the profile app-identity workspace, and the clone-style Add Submodule release. Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; all current roadmap maintenance is complete, and
 > main, CI, Pages, and the seven-page wiki are verified against the promoted release.
 
-The verified adaptive customization maintenance release adds guarded tab
-close/arrange, Actions cancellation, reviewed rebase, repository-account
-propagation, bounded OAuth scopes, and compact Repository Tools, Remote Manager,
-and Regex Builder corrections. Its exact production source, safety checks,
-off-screen interaction review, and responsive geometry are recorded with the
-seven inspected captures below.
+The verified adaptive customization maintenance release adds profile app
+identity, favorite/portable tabs, folder-drop opening, guarded tab close/arrange,
+Actions cancellation, reviewed rebase, repository-account propagation, bounded
+OAuth scopes, and compact Repository Tools, Remote Manager, and Regex Builder
+corrections. Its exact production source, safety checks, off-screen interaction
+review, and responsive geometry are recorded with the inspected captures below.
 
 | Asset | Guided workflow shown |
 | --- | --- |
+| `material-app-identity-workspace.png` | Restart-restored profile app identity and favorite repository tab |
 | `material-welcome.png` | Material first-run task card and responsive workspace preview |
 | `material-customization.png` | Git-backed profile appearance defaults and repository override guidance |
 | `material-toolbar-overflow.png` | Measured narrow toolbar with Build & Run and Commit & Push in More |
@@ -71,6 +72,15 @@ seven inspected captures below.
 | `material-history-deepening.png` | Full-history state after a verified deepen |
 | `material-shallow-clone.png` | Shallow-clone commit-depth controls |
 | `material-sparse-checkout.png` | Sparse-checkout directory editor |
+
+## App identity and portable tabs
+
+The active profile can customize the in-app logo/name and rich name typography,
+with a live preview and clear/reset actions. Favorites, drag-to-open repository
+folders, current-tab session import/export, and appropriate right-click
+customization/history context use the same profile/repository ownership model.
+
+![Restart-restored profile app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
 ## Clone, pull, and working-tree scope
 

@@ -40,6 +40,8 @@ export type MenuEvent =
   | 'clone-repository'
   | 'export-repository-list'
   | 'import-repository-list'
+  | 'export-tab-session'
+  | 'import-tab-session'
   | 'show-about'
   | 'go-to-commit-message'
   | 'open-pull-request'

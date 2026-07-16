@@ -28,6 +28,12 @@ import { ShowBranchNameInRepoListSetting } from '../../models/show-branch-name-i
 import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { AppIdentity } from './app-identity'
+
+type AppearanceSelectKey = Exclude<
+  keyof IAppearanceCustomization,
+  'version' | 'appIdentity'
+>
 
 interface IAppearanceProps {
   readonly selectedTheme: ApplicationTheme
@@ -90,10 +96,7 @@ export class Appearance extends React.Component<
   private onCustomizationChanged = (
     event: React.FormEvent<HTMLSelectElement>
   ) => {
-    const key = event.currentTarget.name as Exclude<
-      keyof IAppearanceCustomization,
-      'version'
-    >
+    const key = event.currentTarget.name as AppearanceSelectKey
     this.props.onAppearanceCustomizationChanged({
       ...this.props.appearanceCustomization,
       [key]: event.currentTarget.value,
@@ -101,7 +104,7 @@ export class Appearance extends React.Component<
   }
 
   private renderCustomizationSelect(
-    key: Exclude<keyof IAppearanceCustomization, 'version'>,
+    key: AppearanceSelectKey,
     label: string,
     options: ReadonlyArray<{ readonly value: string; readonly label: string }>
   ) {
@@ -119,6 +122,15 @@ export class Appearance extends React.Component<
         ))}
       </Select>
     )
+  }
+
+  private onAppIdentityChanged = (
+    appIdentity: IAppearanceCustomization['appIdentity']
+  ) => {
+    this.props.onAppearanceCustomizationChanged({
+      ...this.props.appearanceCustomization,
+      appIdentity,
+    })
   }
 
   public async componentDidUpdate(prevProps: IAppearanceProps) {
@@ -624,6 +636,10 @@ export class Appearance extends React.Component<
             </p>
           </div>
         </aside>
+        <AppIdentity
+          value={this.props.appearanceCustomization.appIdentity}
+          onChange={this.onAppIdentityChanged}
+        />
         {this.renderScaling()}
         {this.renderSelectedTheme()}
         {this.renderColorAndSurfaces()}

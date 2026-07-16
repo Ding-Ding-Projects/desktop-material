@@ -138,6 +138,11 @@ export class ProfileStore extends TypedBaseStore<IProfileState> {
     return this.activeProfileKey
   }
 
+  /** Local Git repository that owns the active profile's settings history. */
+  public getActiveProfileRepositoryPath(): string | null {
+    return this.repositoriesByKey.get(this.activeProfileKey)?.path ?? null
+  }
+
   /** Load one newest-first, 50-entry maximum page of settings history. */
   public async getSettingsHistory(
     skip: number = 0,

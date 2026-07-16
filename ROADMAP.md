@@ -40,6 +40,7 @@ is described as shipped.
 | Work | State | Required proof |
 |---|---|---|
 | Profile, repository, and tab appearance customization | **Complete** | Verified all 12 active-profile defaults, profile local-Git history, all six repository-local overrides and inheritance, Word-style per-tab typography plus independent text/background palettes, restart persistence, compact layouts, and inspected appearance evidence. |
+| App identity and portable tab workspace | **Complete** | Verified profile-backed app logo/name typography and effects, favorites, folder-drop tab opening, current-tab session import/export, appropriate right-click customization/history context, unknown-key migration safety, restart persistence, 38 named identity controls, compact no-overflow geometry, and inspected headless evidence. |
 | Measured app-bar overflow | **Complete** | Verified live label measurement, Icons only/compact footprints, Build & Run then Commit & Push overflow order, mounted-state and focus continuity, deterministic widening restore, and `material-toolbar-overflow.png`. |
 | Material Welcome and landing page | **Complete** | Verified the first-run task card and compact fallback, the Material landing structure and keyboard path, and inspected `material-welcome.png`. |
 | Guarded tab close and arrangement | **Complete** | Preserved the original regex **Close Tabs Containing…** action; verified case-insensitive literal inverse-close matching, counts/preview/zero-match protection, pinned-tab safety, drag and keyboard movement, pin-group boundaries, stable one-shot label/opened/status sorts, persisted order, focus, announcements, and multi-window isolation. |
@@ -50,7 +51,7 @@ is described as shipped.
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on `main`. |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment. |
 | Repository-wide feature revalidation | **Complete** | Verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and the 52-image documentation gallery. |
-| Documentation gallery expansion | **Complete** | Seven adaptive-customization captures plus the inspected clone-style submodule capture are referenced from README, wiki, Pages, and tutorial; the guided gallery now contains 52 images. |
+| Documentation gallery expansion | **Complete** | Current adaptive-customization, submodule, and app-identity captures are shared by README, wiki, Pages, and tutorial; the guided gallery now contains 53 images. |
 
 ## Acceptance gates
 
