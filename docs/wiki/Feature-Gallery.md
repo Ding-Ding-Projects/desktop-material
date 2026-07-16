@@ -1,8 +1,15 @@
 # Guided Feature Gallery
 
-This page maps the guided feature documentation to its 53-image acceptance gallery. Every view
+This page maps 55 named, user-facing visual functions and states to a one-screenshot-per-function
+acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
+
+For this catalog, a function is a distinct visual workflow or result that a user can open or
+reach. Internal commands, background services, and transient safeguards are documented through
+their owning settings, progress, result, or recovery surface. Every tracked gallery PNG is assigned
+to exactly one row below, every row renders exactly one distinct PNG, and the automated catalog
+contract rejects missing, duplicate, or unassigned assets.
 
 > **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
 > pagination evidence, the Pages accessibility/clipping gate, the inspected July 16 adaptive
@@ -47,6 +54,7 @@ review, and responsive geometry are recorded with the inspected captures below.
 | `material-provider-triage.png` | Account- and repository-bound provider triage |
 | `material-repository-tools.png` | Named Repository Tools administration hub |
 | `material-workspace-changes.png` | Material Changes workspace and commit flow |
+| `material-history.png` | Core History browsing and selected-commit inspection |
 | `material-settings.png` | Responsive Material Settings dialog |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Repository navigation side sheet |
@@ -57,6 +65,7 @@ review, and responsive geometry are recorded with the inspected captures below.
 | `material-notification-center.png` | Git-backed notification centre |
 | `material-github-notifications.png` | Account-aware GitHub notifications |
 | `material-provider-accounts.png` | GitHub, GitLab, and Bitbucket account controls |
+| `material-agent-access.png` | Local MCP and REST agent access controls |
 | `material-multi-window-menu.png` | Open repositories and worktrees in another window |
 | `material-scale-200-autofit.png` | 200% requested scale safely auto-fitted at minimum size |
 | `material-responsive-overflow-fixed.png` | Exact-size responsive overflow regression proof |
@@ -219,6 +228,8 @@ reachable without page-level horizontal clipping.
 
 ![Block-based regular expression builder and live tester](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/regex-builder.png)
 
+![Core History browsing and selected-commit inspection](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history.png)
+
 ![Searchable History and commit ancestry graph](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-history-power-tools.png)
 
 ![Layered automation schedules and account overrides](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-automation.png)
@@ -230,6 +241,8 @@ reachable without page-level horizontal clipping.
 ![Account-aware GitHub notifications](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-notifications.png)
 
 ![GitHub, GitLab, and Bitbucket account controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-provider-accounts.png)
+
+![Local MCP and REST agent access controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-agent-access.png)
 
 ![Open repositories and worktrees in another window](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-multi-window-menu.png)
 

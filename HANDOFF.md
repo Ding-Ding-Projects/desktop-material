@@ -43,6 +43,38 @@ the same inspected release documentation. A final focused checkout pass added
 37/37 green registration, Pull All, checkbox, compact-style, and Pages-gallery
 tests to those repository-wide and off-screen receipts.
 
+## 2026-07-16 function screenshot catalog
+
+The wiki now treats the Guided Feature Gallery as a machine-checked visual
+catalog: 55 named, user-facing workflows or states each own one distinct PNG.
+Core History browsing and local Agent access were added to the manifest and its
+rendered image body. Eight unused legacy captures with obsolete or clipped UI
+were removed, leaving no tracked PNG unassigned and no screenshot reused for a
+second catalog row. Home, User Guide, and Developer Guide link or describe the
+same canonical catalog, and a focused unit contract rejects missing, duplicate,
+unrendered, or unassigned assets.
+
+The exact MCP endpoint and scheduled task passed preflight against low-level
+checkout `806d9ba85e4afbc2af58d7499496babfa7c68891`. The service PATH no longer
+contained a global Yarn command, so the first build stopped before compilation.
+A temporary owned shim then invoked the already-cached Yarn Classic package in
+offline mode; the required `npx --no-install cross-env
+RELEASE_CHANNEL=development DESKTOP_SKIP_PACKAGE=1 yarn build:prod` command
+completed with code 0, no timeout, and no dependency download.
+
+The compact visual check used only hidden desktop
+`DesktopMaterialFunctionCatalog2026071601` (creation handle `972`), launch PID
+`7624`, runtime HWND `4392554`, CDP port `9347`, and the synthetic
+`material-fixture@example.invalid` identity. The first 960×660 MCP frame was
+clean and the Configure Git renderer measured 1000/1000 document and body
+widths with seven named controls and no horizontal clipping. Native hidden-HWND
+resize was unavailable. A later post-CDP PrintWindow frame retained stale
+compositor regions, so it was rejected and no replacement image was promoted;
+the catalog uses only previously inspected current assets. The exact PID,
+listener, hidden desktop, disposable fixture/profile/captures, and owned Temp
+root were all verified absent after cleanup. The unrelated OAuth manifest and
+detached foreign worktree remained untouched.
+
 ## 2026-07-16 clone-style Add Submodule release
 
 **Repository settings → Submodules → Add submodule…** now opens a dedicated

@@ -11,6 +11,8 @@ release: adaptive appearance and profile app identity, favorite/portable tabs, M
 cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, and compact
 surface corrections. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
 the repository's `HANDOFF.md` only as each release is verified.
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 55-function visual index: every
+catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
 - [Material first run](#material-first-run)
