@@ -12,6 +12,8 @@ import { SignInStep } from '../../../src/lib/stores/sign-in-store'
 import type { Dispatcher } from '../../../src/ui/dispatcher'
 import { ConfigureGit } from '../../../src/ui/welcome/configure-git'
 import { SignInEnterprise } from '../../../src/ui/welcome/sign-in-enterprise'
+import { Start } from '../../../src/ui/welcome/start'
+import { WelcomeStep } from '../../../src/ui/welcome/welcome'
 import { SignIn } from '../../../src/ui/lib/sign-in'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
 
@@ -26,6 +28,10 @@ class TestDispatcher {
   }
 
   public requestBrowserAuthentication() {
+    this.browserSignInCount++
+  }
+
+  public requestBrowserAuthenticationToDotcom() {
     this.browserSignInCount++
   }
 }
@@ -73,6 +79,35 @@ function createExistingAccountWarningState(): IExistingAccountWarning {
 }
 
 describe('welcome and sign-in wrappers', () => {
+  it('keeps every first-run path reachable from the Material welcome card', () => {
+    const dispatcher = new TestDispatcher()
+    const advancedSteps = new Array<WelcomeStep>()
+
+    render(
+      <Start
+        dispatcher={toDispatcher(dispatcher)}
+        advance={step => advancedSteps.push(step)}
+        loadingBrowserAuth={false}
+      />
+    )
+
+    assert.ok(screen.getByText('Start with', { exact: false }))
+    assert.ok(screen.getByText('First-run setup'))
+
+    fireEvent.click(screen.getByRole('link', { name: /GitHub.com/i }))
+    fireEvent.click(screen.getByRole('button', { name: 'GitHub Enterprise' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Continue without signing in' })
+    )
+
+    assert.equal(dispatcher.browserSignInCount, 1)
+    assert.deepEqual(advancedSteps, [
+      WelcomeStep.SignInToDotComWithBrowser,
+      WelcomeStep.SignInToEnterprise,
+      WelcomeStep.ConfigureGit,
+    ])
+  })
+
   it('submits enterprise endpoints through the shared sign-in wrapper', () => {
     const dispatcher = new TestDispatcher()
 

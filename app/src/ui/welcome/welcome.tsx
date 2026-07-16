@@ -229,25 +229,71 @@ export class Welcome extends React.Component<IWelcomeProps, IWelcomeState> {
     })
     return (
       <UiView id="welcome" className={className}>
+        <div className="welcome-material-orbit" aria-hidden="true">
+          <span className="welcome-orbit welcome-orbit-one" />
+          <span className="welcome-orbit welcome-orbit-two" />
+          <span className="welcome-orbit welcome-orbit-three" />
+        </div>
+
         <div className="welcome-left">
           <div className="welcome-content">
-            {this.getComponentForCurrentStep()}
-            <img
-              className="welcome-graphic-top"
-              src={WelcomeLeftTopImageUri}
-              alt=""
-            />
-            <img
-              className="welcome-graphic-bottom"
-              src={WelcomeLeftBottomImageUri}
-              alt=""
-            />
+            <header className="welcome-product-lockup">
+              <span className="welcome-product-mark" aria-hidden="true">
+                DM
+              </span>
+              <span>
+                <strong>Desktop Material</strong>
+                <small>Material 3 Git client</small>
+              </span>
+            </header>
+
+            <div className="welcome-step-card">
+              {this.getComponentForCurrentStep()}
+            </div>
+
+            <p className="welcome-local-note">
+              <span aria-hidden="true" /> Local-first setup · your repositories
+              stay on this device
+            </p>
           </div>
         </div>
 
-        <div className="welcome-right">
+        <aside
+          className="welcome-right"
+          aria-label="Desktop Material workspace overview"
+        >
+          <div className="welcome-showcase-copy">
+            <p className="welcome-showcase-overline">Material workspace</p>
+            <h2>One calm surface for every Git workflow.</h2>
+            <p>
+              Move from changes to history, branches, automation, and reviews
+              without losing the repository in front of you.
+            </p>
+            <ul className="welcome-showcase-chips" aria-label="Highlights">
+              <li>Repository focused</li>
+              <li>Versioned settings</li>
+              <li>Light and dark</li>
+            </ul>
+          </div>
+
+          <div className="welcome-workspace-preview" aria-hidden="true">
+            <span className="welcome-preview-rail">
+              <i />
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="welcome-preview-toolbar">
+              <i />
+              <i />
+              <i />
+            </span>
+            <span className="welcome-preview-card welcome-preview-card-primary" />
+            <span className="welcome-preview-card welcome-preview-card-secondary" />
+          </div>
+
           <img className="welcome-graphic" src={WelcomeRightImageUri} alt="" />
-        </div>
+        </aside>
       </UiView>
     )
   }

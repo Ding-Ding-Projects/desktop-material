@@ -6,6 +6,37 @@ import { join } from 'path'
 const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
 
 describe('Pages accessibility contracts', () => {
+  it('uses a named Material navigation and a keyboard skip route', () => {
+    const markup = read('site/index.html')
+
+    assert.match(markup, /class="skip-link" href="#top"/)
+    assert.match(markup, /<main id="top" tabindex="-1">/)
+    assert.match(
+      markup,
+      /<nav class="appbar-actions" aria-label="Primary navigation">/
+    )
+    assert.match(markup, /<section class="hero" aria-labelledby="hero-title">/)
+    assert.match(markup, /<h1 class="hero-title" id="hero-title">/)
+    assert.match(
+      markup,
+      /<ul class="material-principles" aria-label="Design principles">/
+    )
+  })
+
+  it('implements the expressive Material surfaces without losing focus or motion safety', () => {
+    const style = read('site/style.css')
+
+    assert.match(style, /--md-sys-shape-expressive:\s*44px;/)
+    assert.match(style, /\.hero-surface\s*\{[\s\S]*?border-radius:/)
+    assert.match(style, /\.material-principles\s*\{[\s\S]*?display:\s*grid;/)
+    assert.match(style, /:where\(a, button\):focus-visible\s*\{/)
+    assert.match(
+      style,
+      /\.cta-card \.btn:focus-visible\s*\{[\s\S]*?var\(--md-sys-color-on-primary\)/
+    )
+    assert.match(style, /@media \(prefers-reduced-motion: reduce\)/)
+  })
+
   it('keeps footer headings in sequence after the page-level h2 sections', () => {
     const markup = read('site/index.html')
 

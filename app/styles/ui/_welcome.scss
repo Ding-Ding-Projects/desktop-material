@@ -413,3 +413,458 @@
     --welcome-item-height: 29px;
   }
 }
+
+// -------------------------------------------------------------------------
+// Material 3 first-run surface
+// -------------------------------------------------------------------------
+// The legacy onboarding structure is intentionally retained above because it
+// also supplies shared form sizing and platform-specific behavior. These rules
+// turn that structure into a single responsive MD3 composition: one elevated
+// task card, one tonal product panel, and no hard-coded light-only colors.
+#welcome {
+  position: relative;
+  isolation: isolate;
+  gap: clamp(16px, 2vw, 28px);
+  padding: clamp(16px, 2vw, 28px);
+  background: var(--md-sys-color-surface-container-low);
+  overflow: hidden;
+
+  .welcome-material-orbit {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    overflow: hidden;
+    pointer-events: none;
+
+    .welcome-orbit {
+      position: absolute;
+      display: block;
+      border-radius: 999px;
+      background: var(--md-sys-color-primary-container);
+      opacity: 0.44;
+      filter: blur(1px);
+    }
+
+    .welcome-orbit-one {
+      width: 36vw;
+      height: 36vw;
+      min-width: 360px;
+      min-height: 360px;
+      left: -18vw;
+      top: -22vw;
+    }
+
+    .welcome-orbit-two {
+      width: 22vw;
+      height: 22vw;
+      right: 32vw;
+      bottom: -14vw;
+      background: var(--md-sys-color-tertiary-container);
+      opacity: 0.3;
+    }
+
+    .welcome-orbit-three {
+      width: 12vw;
+      height: 12vw;
+      right: 2vw;
+      top: -5vw;
+      background: var(--md-sys-color-secondary-container);
+      opacity: 0.72;
+    }
+  }
+
+  .welcome-left {
+    z-index: 1;
+    width: 56%;
+    height: calc(100vh - clamp(32px, 4vw, 56px));
+    padding: clamp(12px, 3.5vw, 56px);
+    border-radius: var(--md-sys-shape-corner-extra-large, 28px);
+    background: color-mix(in srgb, var(--md-sys-color-surface-container-low) 76%, transparent);
+
+    .welcome-content {
+      max-width: min(100%, 660px);
+      margin: auto;
+    }
+  }
+
+  .welcome-product-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin: 0 0 clamp(18px, 3vh, 30px) 4px;
+    color: var(--md-sys-color-on-surface);
+
+    > span:last-child {
+      display: grid;
+      gap: 2px;
+    }
+
+    strong {
+      font-size: calc(15px * var(--welcome-scale));
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: -0.01em;
+    }
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: calc(11px * var(--welcome-scale));
+      letter-spacing: 0.04em;
+    }
+  }
+
+  .welcome-product-mark {
+    display: grid;
+    place-items: center;
+    width: calc(42px * var(--welcome-scale));
+    height: calc(42px * var(--welcome-scale));
+    border-radius: calc(14px * var(--welcome-scale));
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    box-shadow: var(--md-sys-elevation-level1);
+    font-size: calc(12px * var(--welcome-scale));
+    font-weight: 800;
+    letter-spacing: -0.04em;
+  }
+
+  .welcome-step-card {
+    position: relative;
+    padding: clamp(28px, 4vw, 52px);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-extra-large, 28px);
+    background: var(--md-sys-color-surface-container-lowest);
+    box-shadow: var(--md-sys-elevation-level2);
+
+    section {
+      max-height: none;
+    }
+  }
+
+  .welcome-local-note {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 4px 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: calc(11px * var(--welcome-scale));
+
+    > span {
+      width: 8px;
+      height: 8px;
+      flex: 0 0 auto;
+      border-radius: 999px;
+      background: var(--md-sys-color-primary);
+      box-shadow: 0 0 0 4px var(--md-sys-color-primary-container);
+    }
+  }
+
+  .welcome-overline,
+  .welcome-showcase-overline {
+    margin: 0 0 10px;
+    color: var(--md-sys-color-primary);
+    font-size: calc(11px * var(--welcome-scale));
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    line-height: 1.4;
+    text-transform: uppercase;
+  }
+
+  .welcome-title {
+    max-width: 12ch;
+    margin-bottom: 16px;
+    font-size: clamp(32px, calc(36px * var(--welcome-scale)), 52px);
+    font-weight: 650;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+
+    span {
+      color: var(--md-sys-color-primary);
+    }
+  }
+
+  .welcome-text {
+    max-width: 50ch;
+    margin: 0;
+    font-size: calc(14px * var(--welcome-scale));
+    line-height: 1.6;
+  }
+
+  #start {
+    min-height: 0;
+
+    .start-content {
+      margin-top: 0;
+    }
+
+    .start-footer {
+      margin-top: clamp(22px, 4vh, 38px);
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.5;
+    }
+  }
+
+  .welcome-main-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: clamp(24px, 4vh, 36px);
+
+    .button-component {
+      min-height: calc(48px * var(--welcome-scale));
+      height: auto;
+      margin: 0;
+      padding: 0 calc(24px * var(--welcome-scale));
+      border-radius: 999px;
+
+      &:not([aria-disabled='true']):hover,
+      &[type='submit']:not([aria-disabled='true']):hover {
+        border-radius: 999px;
+      }
+    }
+  }
+
+  .skip-action-container {
+    display: grid;
+    gap: 8px;
+    margin-top: clamp(22px, 4vh, 36px);
+    padding-top: 20px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+
+    .welcome-text {
+      font-size: calc(12px * var(--welcome-scale));
+    }
+
+    .skip-button {
+      justify-self: start;
+      color: var(--md-sys-color-primary);
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  .welcome-right {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex: 1 1 44%;
+    width: 44%;
+    height: calc(100vh - clamp(32px, 4vw, 56px));
+    padding: clamp(34px, 5vw, 72px);
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-primary) 18%, var(--md-sys-color-outline-variant));
+    border-radius: clamp(28px, 3.5vw, 44px);
+    background: linear-gradient(150deg, var(--md-sys-color-primary-container), color-mix(in srgb, var(--md-sys-color-primary-container) 70%, var(--md-sys-color-tertiary-container)));
+    color: var(--md-sys-color-on-primary-container);
+    overflow: hidden;
+
+    .welcome-showcase-copy {
+      position: relative;
+      z-index: 3;
+      max-width: 34rem;
+    }
+
+    .welcome-showcase-overline {
+      color: var(--md-sys-color-on-primary-container);
+      opacity: 0.74;
+    }
+
+    h2 {
+      max-width: 12ch;
+      margin: 0 0 18px;
+      font-size: clamp(34px, 4vw, 58px);
+      font-weight: 650;
+      letter-spacing: -0.04em;
+      line-height: 1.02;
+    }
+
+    p {
+      max-width: 46ch;
+      margin: 0;
+      font-size: calc(13px * var(--welcome-scale));
+      line-height: 1.55;
+    }
+
+    .welcome-showcase-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 24px 0 0;
+      padding: 0;
+      list-style: none;
+
+      li {
+        min-height: 34px;
+        padding: 8px 14px;
+        border: 1px solid color-mix(in srgb, var(--md-sys-color-on-primary-container) 25%, transparent);
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--md-sys-color-surface-container-lowest) 44%, transparent);
+        font-size: 12px;
+        font-weight: 650;
+      }
+    }
+
+    .welcome-graphic {
+      position: absolute;
+      z-index: 1;
+      right: -14%;
+      bottom: -10%;
+      width: min(88%, 740px);
+      height: auto;
+      object-fit: contain;
+      opacity: 0.1;
+      mix-blend-mode: luminosity;
+      pointer-events: none;
+    }
+  }
+
+  .welcome-workspace-preview {
+    position: absolute;
+    z-index: 2;
+    right: clamp(26px, 4vw, 58px);
+    bottom: clamp(26px, 4vw, 58px);
+    left: clamp(26px, 4vw, 58px);
+    height: clamp(190px, 30vh, 310px);
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-outline-variant) 76%, transparent);
+    border-radius: var(--md-sys-shape-corner-extra-large, 28px);
+    background: var(--md-sys-color-surface-container-lowest);
+    box-shadow: var(--md-sys-elevation-level3);
+    overflow: hidden;
+
+    .welcome-preview-rail {
+      position: absolute;
+      inset: 0 auto 0 0;
+      display: grid;
+      align-content: start;
+      gap: 16px;
+      width: 66px;
+      padding: 24px 13px;
+      background: var(--md-sys-color-surface-container);
+
+      i {
+        display: block;
+        width: 40px;
+        height: 40px;
+        border-radius: 14px;
+        background: var(--md-sys-color-surface-container-high);
+
+        &:first-child {
+          border-radius: 999px;
+          background: var(--md-sys-color-secondary-container);
+        }
+      }
+    }
+
+    .welcome-preview-toolbar {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      left: 86px;
+      display: flex;
+      gap: 10px;
+
+      i {
+        display: block;
+        width: 26%;
+        height: 42px;
+        border-radius: 999px;
+        background: var(--md-sys-color-surface-container-high);
+
+        &:last-child {
+          width: 18%;
+          margin-left: auto;
+          background: var(--md-sys-color-primary-container);
+        }
+      }
+    }
+
+    .welcome-preview-card {
+      position: absolute;
+      top: 82px;
+      bottom: 20px;
+      display: block;
+      border-radius: 20px;
+      background: var(--md-sys-color-surface-container-low);
+    }
+
+    .welcome-preview-card-primary {
+      left: 86px;
+      width: 38%;
+    }
+
+    .welcome-preview-card-secondary {
+      right: 20px;
+      width: 43%;
+      background: var(--md-sys-color-surface-container-high);
+    }
+  }
+}
+
+@media screen and (max-width: 1040px), screen and (max-height: 720px) {
+  #welcome {
+    .welcome-left {
+      width: 62%;
+      padding: clamp(12px, 2.4vw, 32px);
+    }
+
+    .welcome-right {
+      width: 38%;
+      flex-basis: 38%;
+      padding: 34px;
+
+      h2 {
+        font-size: clamp(30px, 3.6vw, 46px);
+      }
+    }
+
+    .welcome-workspace-preview {
+      display: none;
+    }
+  }
+}
+
+@media screen and (max-width: 760px) {
+  #welcome {
+    display: block;
+    padding: 12px;
+    overflow-y: auto;
+
+    .welcome-left {
+      width: 100%;
+      height: auto;
+      min-height: calc(100vh - 24px);
+      padding: clamp(18px, 5vw, 34px);
+      background: transparent;
+      overflow: visible;
+    }
+
+    .welcome-content {
+      max-width: 620px;
+    }
+
+    .welcome-step-card {
+      padding: clamp(24px, 7vw, 40px);
+    }
+
+    .welcome-right {
+      display: none;
+    }
+
+    .welcome-main-buttons {
+      display: grid;
+
+      .button-component {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #welcome {
+    .welcome-title,
+    .welcome-text,
+    .welcome-left,
+    .welcome-right {
+      animation: none;
+      transition-duration: 0s;
+    }
+  }
+}

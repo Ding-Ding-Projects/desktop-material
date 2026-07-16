@@ -29,19 +29,20 @@ export class Start extends React.Component<IStartProps, {}> {
     return (
       <section
         id="start"
-        aria-label="Welcome to GitHub Desktop"
+        aria-label="Welcome to Desktop Material"
         aria-describedby="start-description"
       >
         <div className="start-content">
+          <p className="welcome-overline">First-run setup</p>
           <h1 className="welcome-title">
-            Welcome to <span>GitHub Desktop</span>
+            Start with <span>Desktop Material</span>
           </h1>
           {!this.props.loadingBrowserAuth ? (
             <>
               <p id="start-description" className="welcome-text">
-                GitHub Desktop is a seamless way to contribute to projects on
-                GitHub and GitHub Enterprise. Sign in below to get started with
-                your existing projects.
+                Bring GitHub and GitHub Enterprise repositories into a focused
+                Material 3 workspace. Sign in to connect your account, or
+                continue locally without one.
               </p>
             </>
           ) : (
@@ -58,14 +59,14 @@ export class Start extends React.Component<IStartProps, {}> {
               role="link"
             >
               {this.props.loadingBrowserAuth && <Loading />}
-              Sign in to GitHub.com
+              Sign in with GitHub.com
               <Octicon symbol={octicons.linkExternal} />
             </Button>
             {this.props.loadingBrowserAuth ? (
               <Button onClick={this.cancelBrowserAuth}>Cancel</Button>
             ) : (
               <Button onClick={this.signInToEnterprise}>
-                Sign in to GitHub Enterprise
+                GitHub Enterprise
               </Button>
             )}
           </div>
@@ -80,7 +81,7 @@ export class Start extends React.Component<IStartProps, {}> {
               </LinkButton>
             </p>
             <LinkButton className="skip-button" onClick={this.skip}>
-              Skip this step
+              Continue without signing in
             </LinkButton>
           </div>
         </div>

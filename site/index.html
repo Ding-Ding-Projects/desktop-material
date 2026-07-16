@@ -6,7 +6,7 @@
     <title>Desktop Material — Material Design 3 remake of GitHub Desktop</title>
     <meta
       name="description"
-      content="Desktop Material is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop — an icon navigation rail, floating pill toolbar, browser-like repo tabs, multi-account, versioned settings, and non-modal dialogs."
+      content="Desktop Material is a Material Design 3 Git desktop with adaptive controls, repository-aware customization, browser-like tabs, multi-account context, local Git-backed settings history, and focused native workflows."
     />
     <link rel="stylesheet" href="style.css" />
     <!-- Set theme before paint to avoid a flash of the wrong palette -->
@@ -25,14 +25,18 @@
     </script>
   </head>
   <body>
+    <a class="skip-link" href="#top">Skip to main content</a>
     <!-- ================= Top app bar ================= -->
     <header class="appbar">
       <div class="wrap appbar-inner">
         <a class="brand" href="#top" aria-label="Desktop Material home">
-          <span class="logo" aria-hidden="true">◆</span>
-          <span>Desktop Material</span>
+          <span class="logo" aria-hidden="true">DM</span>
+          <span class="brand-copy">
+            <strong>Desktop Material</strong>
+            <small>Material 3 Git client</small>
+          </span>
         </a>
-        <nav class="appbar-actions">
+        <nav class="appbar-actions" aria-label="Primary navigation">
           <div class="nav-links">
             <a href="#features">Features</a>
             <a href="#screenshots">Screenshots</a>
@@ -56,54 +60,81 @@
       </div>
     </header>
 
-    <main id="top">
+    <main id="top" tabindex="-1">
       <!-- ================= Hero ================= -->
-      <section class="hero">
-        <div class="wrap hero-grid">
-          <div class="hero-copy">
-            <span class="hero-badge"
-              ><span class="dot"></span> In active development</span
-            >
-            <h1 class="hero-title">
-              Git, rebuilt in
-              <span class="accent">Material&nbsp;Design&nbsp;3</span>.
-            </h1>
-            <p class="hero-tagline">
-              Desktop Material is an independent M3 Expressive remake of GitHub
-              Desktop — an icon navigation rail, a floating pill toolbar,
-              browser-like repo tabs, real multi-account, versioned settings,
-              and non-modal dialogs, wrapped in an animated light/dark shell.
-            </p>
-            <div class="hero-cta">
-              <a
-                class="btn btn-filled"
-                href="https://github.com/codingmachineedge/desktop-material"
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="wrap hero-surface">
+          <div class="hero-grid">
+            <div class="hero-copy">
+              <span class="hero-badge"
+                ><span class="dot"></span> Material 3 · active development</span
               >
-                <span aria-hidden="true">★</span> View on GitHub
-              </a>
-              <a
-                class="btn btn-tonal"
-                href="https://github.com/codingmachineedge/desktop-material/wiki"
-              >
-                <span aria-hidden="true">▤</span> Read the docs
-              </a>
+              <h1 class="hero-title" id="hero-title">
+                Your Git workspace,
+                <span class="accent">made Material</span>.
+              </h1>
+              <p class="hero-tagline">
+                Desktop Material reshapes GitHub Desktop around Material 3:
+                adaptive repository controls, browser-like tabs, local versioned
+                settings, multi-account context, and focused native Git
+                workflows in one calm desktop surface.
+              </p>
+              <div class="hero-cta">
+                <a
+                  class="btn btn-filled"
+                  href="https://github.com/codingmachineedge/desktop-material"
+                >
+                  <span aria-hidden="true">↗</span> Explore the source
+                </a>
+                <a
+                  class="btn btn-tonal"
+                  href="https://github.com/codingmachineedge/desktop-material/wiki"
+                >
+                  <span aria-hidden="true">▤</span> Read the guide
+                </a>
+              </div>
+              <div class="hero-meta" aria-label="Project details">
+                <span><span aria-hidden="true">✓</span> MIT licensed</span>
+                <span><span aria-hidden="true">⌘</span> Local-first</span>
+                <span><span aria-hidden="true">◐</span> Adaptive themes</span>
+              </div>
             </div>
-            <div class="hero-meta">
-              <span><span aria-hidden="true">⚖</span> MIT licensed</span>
-              <span
-                ><span aria-hidden="true">⑂</span> Fork of desktop/desktop</span
-              >
-              <span><span aria-hidden="true">◐</span> Light &amp; dark</span>
-            </div>
+
+            <figure class="hero-shot">
+              <div class="hero-window-bar" aria-hidden="true">
+                <span></span><span></span><span></span>
+                <strong>Desktop Material</strong>
+              </div>
+              <img
+                src="docs/assets/screenshots/material-workspace-changes.png"
+                alt="Desktop Material Changes view: an icon navigation rail, a floating pill toolbar with repository and branch chips, browser-like repository tabs, and a floating Material Design 3 card"
+                width="1280"
+                loading="eager"
+              />
+              <figcaption>
+                A repository-focused shell with adaptive controls and tonal
+                surfaces.
+              </figcaption>
+            </figure>
           </div>
-          <figure class="hero-shot">
-            <img
-              src="docs/assets/screenshots/material-workspace-changes.png"
-              alt="Desktop Material Changes view: an icon navigation rail, a floating pill toolbar with repository and branch chips, browser-like repository tabs, and a floating Material Design 3 card"
-              width="1280"
-              loading="eager"
-            />
-          </figure>
+
+          <ul class="material-principles" aria-label="Design principles">
+            <li>
+              <span aria-hidden="true">01</span>
+              <strong>Adaptive</strong>
+              <small>Controls respond before they clip.</small>
+            </li>
+            <li>
+              <span aria-hidden="true">02</span>
+              <strong>Repository-aware</strong>
+              <small>Choices can follow the project.</small>
+            </li>
+            <li>
+              <span aria-hidden="true">03</span>
+              <strong>Auditable</strong>
+              <small>Settings history stays local and Git-backed.</small>
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -1172,8 +1203,11 @@
         <div class="footer-grid">
           <div class="footer-brand">
             <div class="brand">
-              <span class="logo" aria-hidden="true">◆</span>
-              <span>Desktop Material</span>
+              <span class="logo" aria-hidden="true">DM</span>
+              <span class="brand-copy">
+                <strong>Desktop Material</strong>
+                <small>Material 3 Git client</small>
+              </span>
             </div>
             <p>
               An independent Material Design 3 (M3 Expressive) remake of GitHub
