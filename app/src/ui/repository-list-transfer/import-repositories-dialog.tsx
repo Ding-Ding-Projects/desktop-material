@@ -284,6 +284,7 @@ function ImportUrlRow(props: IImportUrlRowProps) {
       <Checkbox
         value={props.checked ? CheckboxValue.On : CheckboxValue.Off}
         onChange={onChange}
+        ariaLabel={`Select ${props.url} for import`}
       />
       <div className="details">
         <div className="url">{props.url}</div>

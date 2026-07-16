@@ -25,6 +25,9 @@ interface ICheckboxProps {
   /** The label for the checkbox. */
   readonly label?: string | JSX.Element
 
+  /** Accessible name when a visible built-in label is not appropriate. */
+  readonly ariaLabel?: string
+
   /** An id of label of a checkbox (when built in label won't work) */
   readonly ariaLabelledBy?: string
 
@@ -125,6 +128,7 @@ export class Checkbox extends React.Component<ICheckboxProps, ICheckboxState> {
           onDoubleClick={this.onDoubleClick}
           ref={this.onInputRef}
           disabled={this.props.disabled}
+          aria-label={this.props.ariaLabel}
           aria-describedby={this.props.ariaDescribedBy}
           aria-labelledby={this.props.ariaLabelledBy}
         />

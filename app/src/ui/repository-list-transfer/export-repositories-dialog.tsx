@@ -155,6 +155,7 @@ export class ExportRepositoriesDialog extends React.Component<
           }
           onChange={this.getToggleHandler(repository.id)}
           disabled={disabled}
+          ariaLabel={`Select ${repository.name} for export`}
         />
         <div className="details">
           <div className="name">{repository.name}</div>
