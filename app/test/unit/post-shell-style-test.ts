@@ -52,6 +52,8 @@ describe('post-shell MD3 style contracts', () => {
 
   it('reflows Pull all results without horizontal scrolling', () => {
     const style = readStyle('_pull-all.scss')
+    assert.match(style, /\.pull-all-progress-heading/)
+    assert.match(style, /\.pull-all-progress-track/)
     assert.match(style, /pull-all-results-container/)
     assert.match(style, /overflow-x: hidden/)
     assert.match(
