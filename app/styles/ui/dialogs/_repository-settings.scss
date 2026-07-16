@@ -5,6 +5,26 @@
   max-width: calc(100vw - var(--spacing-double));
   overflow: hidden;
 
+  // The generic dialog form uses `height: 100%`, which does not subtract the
+  // Repository Settings header. At compact heights that lets the fieldset and
+  // footer extend below the dialog even though the dialog itself is bounded.
+  // Make the form own only the remaining flex space so the tab body scrolls
+  // and the footer always stays inside the renderer viewport.
+  > form {
+    display: flex;
+    flex: 1;
+    height: auto;
+    min-height: 0;
+    overflow: hidden;
+
+    > fieldset {
+      flex: 1;
+      height: auto;
+      min-height: 0;
+      overflow: hidden;
+    }
+  }
+
   .dialog-header,
   .dialog-footer {
     flex-shrink: 0;
@@ -130,6 +150,13 @@
     display: flex;
     flex: 1;
     min-height: 0;
+    overflow: hidden;
+
+    > .tab-bar.vertical {
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+    }
 
     .active-tab {
       container-name: repository-settings-pane;
@@ -872,6 +899,27 @@
         flex: 1 1 120px;
         margin: 0;
       }
+    }
+  }
+
+  @media (max-height: 550px) {
+    // Override the legacy global compact-height rule which gives each nested
+    // content element a viewport-derived minimum height. The active tab is the
+    // single vertical scroll owner for this dialog.
+    .dialog-content {
+      max-height: none !important;
+      min-height: 0 !important;
+    }
+
+    .tab-container {
+      max-height: none !important;
+      overflow: hidden;
+    }
+
+    .tab-container > .tab-bar.vertical {
+      max-height: none !important;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
   }
 

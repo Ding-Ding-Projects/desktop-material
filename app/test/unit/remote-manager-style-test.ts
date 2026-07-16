@@ -49,6 +49,14 @@ describe('Remote Manager integration styles', () => {
       styles,
       /\.remote-row[\s\S]*grid-template-columns: minmax\(0, 1fr\) 40px/
     )
+    assert.match(
+      styles,
+      /#repository-settings[\s\S]*?> form\s*\{[\s\S]*?height: auto;[\s\S]*?min-height: 0;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-height: 550px\)[\s\S]*?\.tab-container > \.tab-bar\.vertical\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+    )
   })
 
   it('gates Save on confirmation and uses the coordinated guarded plan', () => {

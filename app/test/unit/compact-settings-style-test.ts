@@ -44,6 +44,18 @@ describe('compact settings style contracts', () => {
       style,
       /\.remote-row[\s\S]*grid-template-columns: minmax\(0, 1fr\) 40px/
     )
+    assert.match(
+      style,
+      /> form\s*\{[\s\S]*?flex: 1;[\s\S]*?height: auto;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      style,
+      /> \.tab-bar\.vertical\s*\{[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+    )
+    assert.match(
+      style,
+      /@media \(max-height: 550px\)[\s\S]*?\.dialog-content\s*\{[\s\S]*?max-height: none !important;[\s\S]*?min-height: 0 !important;[\s\S]*?\.tab-container\s*\{[\s\S]*?max-height: none !important;/
+    )
     assert.match(style, /\.submodule-row\s*\{[\s\S]*?flex-direction: column;/)
   })
 })
