@@ -52,8 +52,22 @@ describe('post-shell MD3 style contracts', () => {
 
   it('reflows Pull all results without horizontal scrolling', () => {
     const style = readStyle('_pull-all.scss')
+    assert.match(style, /\.pull-all-progress-heading/)
+    assert.match(style, /\.pull-all-progress-track/)
     assert.match(style, /pull-all-results-container/)
     assert.match(style, /overflow-x: hidden/)
+    assert.match(
+      style,
+      /> form\s*\{[\s\S]*?display: flex;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      style,
+      /\.dialog-content\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-height: 0;[\s\S]*?overflow: hidden;/
+    )
+    assert.match(
+      style,
+      /\.pull-all-results-container\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-height: 120px;/
+    )
     assert.match(
       style,
       /grid-template-columns: minmax\(82px, 32%\) minmax\(0, 1fr\)/
@@ -181,8 +195,39 @@ describe('post-shell MD3 style contracts', () => {
     )
     assert.match(
       composer,
-      /\.commit-message-component\s*\{[\s\S]*?max-width: calc\(100% - 24px\);[\s\S]*?min-width: 0;/
+      /\.commit-message-component\s*\{[\s\S]*?max-width: calc\(100% - 16px\);[\s\S]*?min-width: 0;/
     )
+  })
+
+  it('uses compact Material density without shrinking primary hit targets', () => {
+    const changes = readStyle('changes/_changes-list.scss')
+    const composer = readStyle('changes/_commit-message.scss')
+
+    assert.match(
+      changes,
+      /\.changes-panel-header\s*\{[\s\S]*?gap: 8px;[\s\S]*?padding: 10px 12px 5px;/
+    )
+    assert.match(
+      changes,
+      /\.filter-list-filter-field\s*\{[\s\S]*?input\s*\{[\s\S]*?height: 40px;[\s\S]*?min-height: 40px;/
+    )
+    assert.match(
+      changes,
+      /\.filter-button\s*\{[\s\S]*?min-width: 40px;[\s\S]*?height: 40px;/
+    )
+    assert.match(
+      changes,
+      /\.status\s*\{[\s\S]*?width: 16px;[\s\S]*?height: 16px;[\s\S]*?padding: 2px;/
+    )
+    assert.match(
+      composer,
+      /\.commit-message-component\s*\{[\s\S]*?padding: 9px;[\s\S]*?gap: 6px;[\s\S]*?border-radius: 16px;/
+    )
+    assert.match(
+      composer,
+      /\.commit-button\s*\{[\s\S]*?height: 40px;[\s\S]*?min-height: 40px;/
+    )
+    assert.match(composer, /\.description-field textarea[\s\S]*?height: 46px;/)
   })
 
   it('keeps the repository-wide stash manager bounded and responsive', () => {

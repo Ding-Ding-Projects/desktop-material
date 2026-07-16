@@ -92,6 +92,7 @@ export class ChangedFile extends React.Component<IChangedFileProps, {}> {
             value={this.checkboxValue}
             onChange={this.handleCheckboxChange}
             disabled={disableSelection}
+            ariaLabel={`Include ${path} in commit`}
           />
         </TooltippedContent>
 

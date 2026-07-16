@@ -169,6 +169,7 @@ class CloneableRepositoryListItem extends React.PureComponent<ICloneableReposito
             <Checkbox
               value={checked ? CheckboxValue.On : CheckboxValue.Off}
               onChange={this.onCheckboxChange}
+              ariaLabel={`Select ${item.text[0]} for cloning`}
             />
           </span>
         )}
