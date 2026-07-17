@@ -36,6 +36,27 @@ Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
 
+## 2026-07-17 clipping, Material-token, and accessibility polish pass
+
+A dedicated audit swept all 219 stylesheets and the Material shell components
+for text clipping, pre-Material styling leftovers, and keyboard accessibility.
+Dialogs now use the MD3 extra-large radius and level-3 elevation instead of the
+legacy 6px Primer card; the title bar, window controls, CI status popover,
+avatar stack, tab bar, tooltips, toast/repository `kbd` chips, and commit drag
+badge all route through `--md-sys-*`/`--dm-*` tokens (with a new `--dm-on-green`
+on-color for dark-mode contrast). Fixed pixel heights on app-bar chips,
+repository tabs, menu rows, dialog headers, and buttons became min-heights so
+larger user-selected interface fonts grow controls instead of clipping, the CI
+check-run description lost its hard 250×12px clip box, and the branch list
+description gained the ellipsis treatment. Keyboard users can now see the tab
+close button on focus, the tab rename input has an accessible name and focus
+ring, the tab-strip search fields have focus-within indicators, split-button
+dropdown options highlight tonally on focus-visible, and notification unread
+state is exposed to screen readers rather than being color-only. Validated
+with a full Sass compile, TypeScript, ESLint (custom rules), Prettier, all 31
+style-contract suites (110 tests), and the affected component suites
+(258 tests), all passing.
+
 ## 2026-07-17 recovery, custom logos, app functions, and responsive completion
 
 Clone account changes now invalidate stale provider selections and reload the
