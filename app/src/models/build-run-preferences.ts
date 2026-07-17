@@ -26,6 +26,15 @@ export interface IBuildRunPreferences {
   readonly autoInstallMissingTools?: boolean
 
   /**
+   * Start a Build & Run (using the configured default profile — an app build
+   * or a Docker image alike) whenever a pull for this repository brings in
+   * new commits. Optional for back-compat; absent means disabled. Deliberately
+   * scoped to the single-repository pull action so Pull All cannot fan out
+   * into a build storm.
+   */
+  readonly autoBuildOnPull?: boolean
+
+  /**
    * Per-profile command-line overrides. A blank / absent value for a stage
    * means "use the detected command". Stored as raw command-line strings; the
    * dispatcher tokenises them into an argv array (never a shell string).

@@ -1270,8 +1270,27 @@ export class Dispatcher {
   }
 
   /** Pull the current branch. */
-  public pull(repository: Repository): Promise<void> {
-    return this.appStore._pull(repository)
+  public async pull(repository: Repository): Promise<void> {
+    const tipBefore = getTipSha(
+      this.repositoryStateManager.get(repository).branchesState.tip
+    )
+
+    await this.appStore._pull(repository)
+
+    if (repository.buildRunPreferences?.autoBuildOnPull !== true) {
+      return
+    }
+
+    // _pull refreshes the repository state before resolving, so a changed tip
+    // here means the pull actually brought in new commits.
+    const tipAfter = getTipSha(
+      this.repositoryStateManager.get(repository).branchesState.tip
+    )
+    if (tipAfter !== tipBefore) {
+      // Fire-and-forget: the pull's own promise must not be held hostage by
+      // a build, and startBuildRun reports its progress via the panel.
+      void this.startBuildRun(repository)
+    }
   }
 
   public pullAllRepositories(

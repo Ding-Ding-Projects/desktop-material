@@ -214,6 +214,15 @@ export class BuildRunSettings extends React.Component<
     })
   }
 
+  private onAutoBuildOnPullChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      autoBuildOnPull: event.currentTarget.checked,
+    })
+  }
+
   private renderProfileLabel(profile: IBuildProfile): JSX.Element {
     const location = profile.cwd.length === 0 ? 'repository root' : profile.cwd
     const reasons =
@@ -429,7 +438,26 @@ export class BuildRunSettings extends React.Component<
             }
             onChange={this.onAutoIgnoreBuildOutputsChanged}
           />
+          <Checkbox
+            label={
+              __DARWIN__
+                ? 'Build After Pulling New Commits'
+                : 'Build after pulling new commits'
+            }
+            value={
+              prefs.autoBuildOnPull === true
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onAutoBuildOnPullChanged}
+          />
         </div>
+        <p className="build-run-section-description">
+          Build after pulling starts the default profile — an app build or a
+          Docker image — whenever a pull for this repository brings in new
+          commits. It applies to this repository's own pull action, not Pull
+          All.
+        </p>
         <p className="build-run-section-description">
           Auto-ignore adds the profile's build-output patterns to{' '}
           <code>.gitignore</code> before installing. It uses managed sections,
