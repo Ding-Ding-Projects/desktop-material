@@ -12,6 +12,10 @@ import {
   prepareRepositoryBundleImport,
   prepareRepositoryBundleInspection,
   prepareRepositoryBundleVerification,
+  prepareRepositoryContentSearch,
+  prepareRepositoryFileBlame,
+  prepareRepositoryNoteRemoval,
+  prepareRepositoryNoteSave,
   RepositoryToolOperations,
 } from '../../src/ui/repository-tools'
 import { RepositorySectionTab } from '../../src/lib/app-state'
@@ -39,8 +43,19 @@ describe('repository tool recipes', () => {
         'repository-health',
         'signature-audit',
         'maintenance-preview',
+        'branch-overview',
+        'contributor-summary',
+        'version-describe',
+        'whitespace-audit',
+        'ignored-files-view',
+        'notes-view',
         'maintenance-run',
+        'merged-branch-audit',
+        'prune-preview',
+        'clean-preview',
+        'clean-run',
         'reflog-view',
+        'unreachable-commits',
       ]
     )
     assert.ok(
@@ -54,7 +69,17 @@ describe('repository tool recipes', () => {
       'repository-health',
       'signature-audit',
       'maintenance-preview',
+      'branch-overview',
+      'contributor-summary',
+      'version-describe',
+      'whitespace-audit',
+      'ignored-files-view',
+      'notes-view',
+      'merged-branch-audit',
+      'prune-preview',
+      'clean-preview',
       'reflog-view',
+      'unreachable-commits',
     ] as const) {
       const operation = getRepositoryToolOperation(id)
       assert.equal(operation.mutatesRepository, false)
@@ -72,6 +97,112 @@ describe('repository tool recipes', () => {
       maintenance.confirmationDescription ?? '',
       /rewrite object packs/i
     )
+  })
+
+  it('requires an explicit destructive confirmation for untracked cleanup', () => {
+    const clean = getRepositoryToolOperation('clean-run')
+    assert.equal(clean.mutatesRepository, true)
+    assert.equal(clean.requiresConfirmation, true)
+    assert.equal(clean.confirmationActionLabel, 'Delete untracked files')
+    assert.match(clean.confirmationDescription ?? '', /deleted permanently/i)
+    assert.match(
+      clean.confirmationDescription ?? '',
+      /ignored files are preserved/i
+    )
+
+    const preview = getRepositoryToolOperation('clean-preview')
+    assert.equal(preview.mutatesRepository, false)
+    assert.equal(preview.requiresConfirmation, false)
+  })
+
+  it('contains line authorship to repository-relative tracked paths', () => {
+    assert.deepStrictEqual(
+      prepareRepositoryFileBlame(
+        repositoryPath,
+        join(repositoryPath, 'src', 'lib', 'app.ts')
+      ),
+      {
+        path: 'src/lib/app.ts',
+        operation: { id: 'file-blame', path: 'src/lib/app.ts' },
+      }
+    )
+    for (const path of [
+      '',
+      'relative/file.ts',
+      repositoryPath,
+      join(repositoryPath, '..', 'outside.ts'),
+      join(repositoryPath, '.git', 'config'),
+      join(fixtureRoot, 'unrelated', 'file.ts'),
+    ]) {
+      assert.throws(() => prepareRepositoryFileBlame(repositoryPath, path))
+    }
+  })
+
+  it('bounds content search to one line of literal text', () => {
+    assert.deepStrictEqual(prepareRepositoryContentSearch('TODO: revisit'), {
+      id: 'content-search',
+      pattern: 'TODO: revisit',
+    })
+    for (const pattern of [
+      '',
+      '   ',
+      'a'.repeat(257),
+      'line\nbreak',
+      'tab\tstop',
+      'nul\0byte',
+    ]) {
+      assert.throws(() => prepareRepositoryContentSearch(pattern))
+    }
+  })
+
+  it('scopes content search to one validated revision', () => {
+    assert.deepStrictEqual(
+      prepareRepositoryContentSearch('render()', ' release/2.0 '),
+      { id: 'content-search', pattern: 'render()', ref: 'release/2.0' }
+    )
+    assert.deepStrictEqual(prepareRepositoryContentSearch('render()', '  '), {
+      id: 'content-search',
+      pattern: 'render()',
+    })
+    for (const revision of [
+      '--all',
+      'main..dev',
+      'main@{1}',
+      'bad name',
+      'main:path',
+      '-rev',
+    ]) {
+      assert.throws(() => prepareRepositoryContentSearch('x', revision))
+    }
+  })
+
+  it('reviews commit note edits with a bounded target and message', () => {
+    assert.deepStrictEqual(
+      prepareRepositoryNoteSave(' AbCdEf1 ', 'Reviewed for release\r\nQA ok'),
+      {
+        action: 'save',
+        oid: 'abcdef1',
+        message: 'Reviewed for release\nQA ok',
+        operation: {
+          id: 'notes-edit',
+          oid: 'abcdef1',
+          message: 'Reviewed for release\nQA ok',
+        },
+      }
+    )
+    assert.deepStrictEqual(prepareRepositoryNoteRemoval('HEAD'), {
+      action: 'remove',
+      oid: 'HEAD',
+      message: null,
+      operation: { id: 'notes-remove', oid: 'HEAD' },
+    })
+    for (const target of ['', 'HEAD~1', 'abc', 'not-a-sha', 'refs/notes']) {
+      assert.throws(() => prepareRepositoryNoteSave(target, 'note'))
+      assert.throws(() => prepareRepositoryNoteRemoval(target))
+    }
+    for (const message of ['', '   ', 'a'.repeat(1025), 'bell\x07']) {
+      assert.throws(() => prepareRepositoryNoteSave('HEAD', message))
+    }
   })
 
   it('prepares only contained ZIP and TAR exports from HEAD', () => {

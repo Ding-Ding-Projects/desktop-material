@@ -12,6 +12,7 @@ const MaximumRemoteLength = 255
 const MaximumBranchLength = 1_000
 const MaximumRefLength = 1_024
 const MaximumDeepenCommitCount = 1_000_000
+const MaximumSearchPatternLength = 256
 
 export interface IResolvedCLIWorkbenchOperation {
   readonly operation: CLIWorkbenchOperation
@@ -50,6 +51,62 @@ const FixedRepositoryOperations: Readonly<
   },
   'reflog-view': {
     args: ['reflog', 'show', '--date=local', '-50'],
+    requiresConfirmation: false,
+  },
+  'branch-overview': {
+    args: [
+      'branch',
+      '--list',
+      '--verbose',
+      '--verbose',
+      '--sort=-committerdate',
+    ],
+    requiresConfirmation: false,
+  },
+  'contributor-summary': {
+    args: ['shortlog', '--summary', '--numbered', 'HEAD'],
+    requiresConfirmation: false,
+  },
+  'version-describe': {
+    args: ['describe', '--tags', '--always', '--long', '--dirty'],
+    requiresConfirmation: false,
+  },
+  'whitespace-audit': {
+    args: ['diff', '--check', 'HEAD'],
+    requiresConfirmation: false,
+  },
+  'ignored-files-view': {
+    args: [
+      'ls-files',
+      '--others',
+      '--ignored',
+      '--exclude-standard',
+      '--directory',
+    ],
+    requiresConfirmation: false,
+  },
+  'merged-branch-audit': {
+    args: ['branch', '--list', '--verbose', '--merged'],
+    requiresConfirmation: false,
+  },
+  'prune-preview': {
+    args: ['prune', '--dry-run', '--verbose'],
+    requiresConfirmation: false,
+  },
+  'clean-preview': {
+    args: ['clean', '--dry-run', '-d'],
+    requiresConfirmation: false,
+  },
+  'clean-run': {
+    args: ['clean', '--force', '-d'],
+    requiresConfirmation: true,
+  },
+  'unreachable-commits': {
+    args: ['fsck', '--unreachable', '--no-reflogs', '--no-progress'],
+    requiresConfirmation: false,
+  },
+  'notes-view': {
+    args: ['log', '--notes', '--format=%h %s%n%N', '-50'],
     requiresConfirmation: false,
   },
 }
@@ -224,6 +281,114 @@ function normalizeDeepenCount(value: unknown): number {
   return value
 }
 
+/**
+ * Accept only a normalized repository-relative file path with forward-slash
+ * separators. Absolute, traversal, option-shaped, and .git-internal paths are
+ * rejected instead of being passed to Git.
+ */
+function normalizeRepositoryRelativePath(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.length > MaximumPathLength ||
+    value.includes('\0') ||
+    value.includes('\\') ||
+    value.startsWith('-') ||
+    value.startsWith('/') ||
+    value.endsWith('/') ||
+    /^[A-Za-z]:/.test(value) ||
+    // eslint-disable-next-line no-control-regex
+    /[\x00-\x1f\x7f]/.test(value)
+  ) {
+    throw new Error('Repository file path is invalid.')
+  }
+  const segments = value.split('/')
+  if (
+    segments.some(
+      segment => segment.length === 0 || segment === '.' || segment === '..'
+    ) ||
+    segments[0].toLowerCase() === '.git'
+  ) {
+    throw new Error('Repository file path is invalid.')
+  }
+  return value
+}
+
+/** Accept one bounded single-line literal search text, never a Git option. */
+function normalizeSearchPattern(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    value.length === 0 ||
+    value.length > MaximumSearchPatternLength ||
+    // eslint-disable-next-line no-control-regex
+    /[\x00-\x1f\x7f]/.test(value)
+  ) {
+    throw new Error('Content search text is invalid.')
+  }
+  return value
+}
+
+/**
+ * Accept one bounded branch, tag, HEAD, or object-ID revision name. Ranges,
+ * reflog selectors, path-spec separators, and option-shaped values are
+ * rejected instead of reaching Git's revision parser.
+ */
+function normalizeSearchRevision(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('Content search revision is invalid.')
+  }
+  if (value === 'HEAD' || /^[0-9a-f]{7,64}$/.test(value)) {
+    return value
+  }
+  if (
+    value.length === 0 ||
+    value.length > MaximumRefLength ||
+    value.startsWith('-') ||
+    value.startsWith('/') ||
+    value.endsWith('/') ||
+    value.endsWith('.') ||
+    value.endsWith('.lock') ||
+    value.includes('..') ||
+    value.includes('//') ||
+    value.includes('@{') ||
+    /[\x00-\x20\x7f~^:?*\[\\]/.test(value) ||
+    value.split('/').some(part => part.length === 0 || part.startsWith('.'))
+  ) {
+    throw new Error('Content search revision is invalid.')
+  }
+  return value
+}
+
+const MaximumNoteMessageLength = 1_024
+
+/** Accept HEAD or one bounded abbreviated/full commit object ID. */
+function normalizeNoteTarget(value: unknown): string {
+  if (
+    typeof value !== 'string' ||
+    (value !== 'HEAD' && !/^[0-9a-fA-F]{7,64}$/.test(value))
+  ) {
+    throw new Error('Commit note target is invalid.')
+  }
+  return value === 'HEAD' ? value : value.toLowerCase()
+}
+
+/** Accept one bounded free-form note; newlines allowed, other controls not. */
+function normalizeNoteMessage(value: unknown): string {
+  if (typeof value !== 'string') {
+    throw new Error('Commit note text is invalid.')
+  }
+  const normalized = value.replace(/\r\n?/g, '\n')
+  if (
+    normalized.trim().length === 0 ||
+    normalized.length > MaximumNoteMessageLength ||
+    // eslint-disable-next-line no-control-regex
+    /[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/.test(normalized)
+  ) {
+    throw new Error('Commit note text is invalid.')
+  }
+  return normalized
+}
+
 function resolved(
   operation: CLIWorkbenchOperation,
   args: ReadonlyArray<string>,
@@ -392,6 +557,61 @@ export async function resolveCLIWorkbenchOperation(
           '--',
           remote,
         ],
+        true
+      )
+    }
+    case 'file-blame': {
+      requireExactFields(value, ['id', 'path'])
+      const path = normalizeRepositoryRelativePath(value.path)
+      return resolved(
+        { id: value.id, path },
+        ['blame', '--date=short', '--', path],
+        false
+      )
+    }
+    case 'content-search': {
+      if ('ref' in value) {
+        requireExactFields(value, ['id', 'pattern', 'ref'])
+        const pattern = normalizeSearchPattern(value.pattern)
+        const ref = normalizeSearchRevision(value.ref)
+        return resolved(
+          { id: value.id, pattern, ref },
+          [
+            'grep',
+            '--line-number',
+            '--fixed-strings',
+            '-e',
+            pattern,
+            ref,
+            '--',
+          ],
+          false
+        )
+      }
+      requireExactFields(value, ['id', 'pattern'])
+      const pattern = normalizeSearchPattern(value.pattern)
+      return resolved(
+        { id: value.id, pattern },
+        ['grep', '--line-number', '--fixed-strings', '-e', pattern, '--'],
+        false
+      )
+    }
+    case 'notes-edit': {
+      requireExactFields(value, ['id', 'oid', 'message'])
+      const oid = normalizeNoteTarget(value.oid)
+      const message = normalizeNoteMessage(value.message)
+      return resolved(
+        { id: value.id, oid, message },
+        ['notes', 'add', '--force', '-m', message, '--', oid],
+        true
+      )
+    }
+    case 'notes-remove': {
+      requireExactFields(value, ['id', 'oid'])
+      const oid = normalizeNoteTarget(value.oid)
+      return resolved(
+        { id: value.id, oid },
+        ['notes', 'remove', '--', oid],
         true
       )
     }
