@@ -27,6 +27,12 @@ import {
   redactGitHubAPIWorkbenchValue,
   validateGitHubAPIWorkbenchRequest,
 } from '../../lib/github-api-workbench'
+import {
+  CatalogPageSizeOptions,
+  DefaultCatalogPageSize,
+  ICatalogPage,
+  paginateCatalogItems,
+} from '../../lib/catalog-pagination'
 import { Account, getAccountKey } from '../../models/account'
 import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
@@ -41,7 +47,7 @@ import {
 
 export const GitHubAPIExplorerDefaultOperationId =
   'secret-scanning/list-repo-custom-patterns'
-export const GitHubAPIExplorerVisibleOperationCap = 60
+export const GitHubAPIExplorerDefaultPageSize = DefaultCatalogPageSize
 export const GitHubAPIExplorerResponseCharacterCap = 128 * 1024
 
 const GitHubAPIExplorerHeaderValueCap = 1024
@@ -121,9 +127,13 @@ interface IGitHubAPIExplorerState {
   readonly catalogQuery: string
   readonly catalogCategory: string
   readonly newOnly: boolean
+  readonly catalogPage: number
+  readonly catalogPageSize: number
   readonly selectedOperationId: string | null
   readonly graphQLCatalogQuery: string
   readonly graphQLCatalogKind: '' | 'query' | 'mutation'
+  readonly graphQLCatalogPage: number
+  readonly graphQLCatalogPageSize: number
   readonly selectedGraphQLOperationId: string | null
   readonly restMethod: GitHubAPIWorkbenchMethod
   readonly restPath: string
@@ -259,9 +269,13 @@ function initialState(props: IGitHubAPIExplorerProps): IGitHubAPIExplorerState {
     catalogQuery: '',
     catalogCategory: '',
     newOnly: (catalog?.newOperationIds.length ?? 0) > 0,
+    catalogPage: 1,
+    catalogPageSize: GitHubAPIExplorerDefaultPageSize,
     selectedOperationId: defaultOperation?.id ?? null,
     graphQLCatalogQuery: '',
     graphQLCatalogKind: '',
+    graphQLCatalogPage: 1,
+    graphQLCatalogPageSize: GitHubAPIExplorerDefaultPageSize,
     selectedGraphQLOperationId: null,
     restMethod: defaultOperation?.method ?? 'GET',
     restPath:
@@ -603,19 +617,43 @@ export class GitHubAPIExplorer extends React.Component<
   private onCatalogQueryChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    this.setState({ catalogQuery: event.currentTarget.value })
+    this.setState({ catalogQuery: event.currentTarget.value, catalogPage: 1 })
   }
 
   private onCatalogCategoryChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    this.setState({ catalogCategory: event.currentTarget.value })
+    this.setState({
+      catalogCategory: event.currentTarget.value,
+      catalogPage: 1,
+    })
   }
 
   private onCatalogScopeChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
-    this.setState({ newOnly: event.currentTarget.value === 'new' })
+    this.setState({
+      newOnly: event.currentTarget.value === 'new',
+      catalogPage: 1,
+    })
+  }
+
+  private onCatalogPageChange = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const page = Number(event.currentTarget.dataset.page)
+    if (Number.isFinite(page)) {
+      this.setState({ catalogPage: page })
+    }
+  }
+
+  private onCatalogPageSizeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    this.setState({
+      catalogPageSize: Number(event.currentTarget.value),
+      catalogPage: 1,
+    })
   }
 
   private onOperationClick = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -635,7 +673,10 @@ export class GitHubAPIExplorer extends React.Component<
   private onGraphQLCatalogQueryChange = (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    this.setState({ graphQLCatalogQuery: event.currentTarget.value })
+    this.setState({
+      graphQLCatalogQuery: event.currentTarget.value,
+      graphQLCatalogPage: 1,
+    })
   }
 
   private onGraphQLCatalogKindChange = (
@@ -646,6 +687,25 @@ export class GitHubAPIExplorer extends React.Component<
         | ''
         | 'query'
         | 'mutation',
+      graphQLCatalogPage: 1,
+    })
+  }
+
+  private onGraphQLCatalogPageChange = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const page = Number(event.currentTarget.dataset.page)
+    if (Number.isFinite(page)) {
+      this.setState({ graphQLCatalogPage: page })
+    }
+  }
+
+  private onGraphQLCatalogPageSizeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    this.setState({
+      graphQLCatalogPageSize: Number(event.currentTarget.value),
+      graphQLCatalogPage: 1,
     })
   }
 
@@ -979,6 +1039,80 @@ export class GitHubAPIExplorer extends React.Component<
     )
   }
 
+  private renderCatalogPagination(
+    page: ICatalogPage,
+    navLabel: string,
+    pageSizeLabel: string,
+    pageSizeInputId: string,
+    onPageChange: (event: React.MouseEvent<HTMLButtonElement>) => void,
+    onPageSizeChange: (event: React.ChangeEvent<HTMLSelectElement>) => void
+  ) {
+    const disabled = this.state.loading
+    return (
+      <nav className="github-api-explorer-pagination" aria-label={navLabel}>
+        <div className="github-api-explorer-pagination-controls">
+          <button
+            type="button"
+            data-page="1"
+            disabled={disabled || !page.hasPrevious}
+            aria-label="First page"
+            onClick={onPageChange}
+          >
+            « First
+          </button>
+          <button
+            type="button"
+            data-page={page.page - 1}
+            disabled={disabled || !page.hasPrevious}
+            aria-label="Previous page"
+            onClick={onPageChange}
+          >
+            ‹ Prev
+          </button>
+          <span aria-live="polite">
+            Page {page.page} of {page.pageCount}
+          </span>
+          <button
+            type="button"
+            data-page={page.page + 1}
+            disabled={disabled || !page.hasNext}
+            aria-label="Next page"
+            onClick={onPageChange}
+          >
+            Next ›
+          </button>
+          <button
+            type="button"
+            data-page={page.pageCount}
+            disabled={disabled || !page.hasNext}
+            aria-label="Last page"
+            onClick={onPageChange}
+          >
+            Last »
+          </button>
+        </div>
+        <label
+          className="github-api-explorer-page-size"
+          htmlFor={pageSizeInputId}
+        >
+          {pageSizeLabel}
+          <select
+            id={pageSizeInputId}
+            value={page.pageSize}
+            disabled={disabled}
+            onChange={onPageSizeChange}
+          >
+            {CatalogPageSizeOptions.map(size => (
+              <option key={size} value={size}>
+                {size} per page
+              </option>
+            ))}
+          </select>
+        </label>
+      </nav>
+    )
+  }
+
   private renderRESTCatalog(account: Account) {
     const resolution = (
       this.props.catalogResolver ?? resolveGitHubAPIOperationCatalog
@@ -1024,7 +1158,11 @@ export class GitHubAPIExplorer extends React.Component<
       },
       catalog
     )
-    const visible = filtered.slice(0, GitHubAPIExplorerVisibleOperationCap)
+    const { page, items: visible } = paginateCatalogItems(
+      filtered,
+      this.state.catalogPage,
+      this.state.catalogPageSize
+    )
     return (
       <aside
         className="github-api-explorer-catalog"
@@ -1039,7 +1177,9 @@ export class GitHubAPIExplorer extends React.Component<
             </p>
           </div>
           <span aria-live="polite">
-            {visible.length} of {filtered.length} shown
+            {page.totalItems === 0
+              ? 'No operations match'
+              : `Showing ${page.startItem.toLocaleString()}–${page.endItem.toLocaleString()} of ${page.totalItems.toLocaleString()}`}
           </span>
         </header>
         <div className="github-api-explorer-filters">
@@ -1124,12 +1264,16 @@ export class GitHubAPIExplorer extends React.Component<
             ))}
           </ul>
         )}
-        {filtered.length > visible.length ? (
-          <p className="github-api-explorer-capped" role="status">
-            Refine the filters to inspect the remaining{' '}
-            {filtered.length - visible.length} operations.
-          </p>
-        ) : null}
+        {visible.length === 0
+          ? null
+          : this.renderCatalogPagination(
+              page,
+              'GitHub API operation pages',
+              'Operations per page',
+              'github-api-explorer-rest-page-size',
+              this.onCatalogPageChange,
+              this.onCatalogPageSizeChange
+            )}
       </aside>
     )
   }
@@ -1181,7 +1325,11 @@ export class GitHubAPIExplorer extends React.Component<
       },
       catalog
     )
-    const visible = filtered.slice(0, GitHubAPIExplorerVisibleOperationCap)
+    const { page, items: visible } = paginateCatalogItems(
+      filtered,
+      this.state.graphQLCatalogPage,
+      this.state.graphQLCatalogPageSize
+    )
     return (
       <aside
         className="github-api-explorer-catalog"
@@ -1199,7 +1347,9 @@ export class GitHubAPIExplorer extends React.Component<
             </p>
           </div>
           <span aria-live="polite">
-            {visible.length} of {filtered.length} shown
+            {page.totalItems === 0
+              ? 'No root operations match'
+              : `Showing ${page.startItem.toLocaleString()}–${page.endItem.toLocaleString()} of ${page.totalItems.toLocaleString()}`}
           </span>
         </header>
         <div className="github-api-explorer-filters">
@@ -1265,12 +1415,16 @@ export class GitHubAPIExplorer extends React.Component<
             ))}
           </ul>
         )}
-        {filtered.length > visible.length ? (
-          <p className="github-api-explorer-capped" role="status">
-            Refine the filters to inspect the remaining{' '}
-            {filtered.length - visible.length} root operations.
-          </p>
-        ) : null}
+        {visible.length === 0
+          ? null
+          : this.renderCatalogPagination(
+              page,
+              'GitHub GraphQL root operation pages',
+              'Roots per page',
+              'github-api-explorer-graphql-page-size',
+              this.onGraphQLCatalogPageChange,
+              this.onGraphQLCatalogPageSizeChange
+            )}
       </aside>
     )
   }

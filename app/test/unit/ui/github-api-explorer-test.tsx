@@ -16,8 +16,8 @@ import { Owner } from '../../../src/models/owner'
 import { Repository } from '../../../src/models/repository'
 import {
   GitHubAPIExplorer,
+  GitHubAPIExplorerDefaultPageSize,
   GitHubAPIExplorerResponseCharacterCap,
-  GitHubAPIExplorerVisibleOperationCap,
   IGitHubAPIExplorerClient,
 } from '../../../src/ui/github-api-explorer'
 import {
@@ -175,9 +175,11 @@ describe('GitHub API Explorer', () => {
     let list = screen.getByRole('list', { name: 'GitHub API operations' })
     assert.equal(
       within(list).getAllByRole('listitem').length,
-      GitHubAPIExplorerVisibleOperationCap
+      GitHubAPIExplorerDefaultPageSize
     )
-    assert.ok(screen.getByText(/Refine the filters to inspect/))
+    assert.ok(
+      screen.getByRole('navigation', { name: 'GitHub API operation pages' })
+    )
 
     fireEvent.change(screen.getByLabelText('Category'), {
       target: { value: 'secret-scanning' },
@@ -196,6 +198,159 @@ describe('GitHub API Explorer', () => {
       screen.queryByRole('list', { name: 'GitHub API operations' }),
       null
     )
+    assert.equal(
+      screen.queryByRole('navigation', {
+        name: 'GitHub API operation pages',
+      }),
+      null
+    )
+  })
+
+  it('paginates the REST catalog with first, previous, next, and last controls', () => {
+    render(
+      <GitHubAPIExplorer
+        repository={selectedRepository}
+        accounts={[selectedAccount]}
+        client={new FakeExplorerClient()}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Catalog scope'), {
+      target: { value: 'all' },
+    })
+
+    const nav = screen.getByRole('navigation', {
+      name: 'GitHub API operation pages',
+    })
+    const first = within(nav).getByRole('button', { name: 'First page' })
+    const previous = within(nav).getByRole('button', { name: 'Previous page' })
+    const next = within(nav).getByRole('button', { name: 'Next page' })
+    const last = within(nav).getByRole('button', { name: 'Last page' })
+
+    // First page: backward controls disabled, exact leading range shown.
+    assert.equal(first.hasAttribute('disabled'), true)
+    assert.equal(previous.hasAttribute('disabled'), true)
+    assert.equal(next.hasAttribute('disabled'), false)
+    assert.ok(within(nav).getByText('Page 1 of 25'))
+    assert.ok(screen.getByText('Showing 1–50 of 1,206'))
+
+    fireEvent.click(next)
+    assert.ok(within(nav).getByText('Page 2 of 25'))
+    assert.ok(screen.getByText('Showing 51–100 of 1,206'))
+    assert.equal(previous.hasAttribute('disabled'), false)
+    assert.equal(
+      within(
+        screen.getByRole('list', { name: 'GitHub API operations' })
+      ).getAllByRole('listitem').length,
+      GitHubAPIExplorerDefaultPageSize
+    )
+
+    fireEvent.click(last)
+    assert.ok(within(nav).getByText('Page 25 of 25'))
+    assert.ok(screen.getByText('Showing 1,201–1,206 of 1,206'))
+    assert.equal(next.hasAttribute('disabled'), true)
+    assert.equal(last.hasAttribute('disabled'), true)
+    // Final page holds the remainder (1206 - 1200 = 6 operations).
+    assert.equal(
+      within(
+        screen.getByRole('list', { name: 'GitHub API operations' })
+      ).getAllByRole('listitem').length,
+      6
+    )
+
+    fireEvent.click(first)
+    assert.ok(within(nav).getByText('Page 1 of 25'))
+    assert.ok(screen.getByText('Showing 1–50 of 1,206'))
+  })
+
+  it('changes the REST page size and resets to the first page', () => {
+    render(
+      <GitHubAPIExplorer
+        repository={selectedRepository}
+        accounts={[selectedAccount]}
+        client={new FakeExplorerClient()}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Catalog scope'), {
+      target: { value: 'all' },
+    })
+    const nav = screen.getByRole('navigation', {
+      name: 'GitHub API operation pages',
+    })
+    fireEvent.click(within(nav).getByRole('button', { name: 'Next page' }))
+    assert.ok(within(nav).getByText('Page 2 of 25'))
+
+    fireEvent.change(screen.getByLabelText('Operations per page'), {
+      target: { value: '200' },
+    })
+    assert.ok(within(nav).getByText('Page 1 of 7'))
+    assert.ok(screen.getByText('Showing 1–200 of 1,206'))
+    assert.equal(
+      within(
+        screen.getByRole('list', { name: 'GitHub API operations' })
+      ).getAllByRole('listitem').length,
+      200
+    )
+  })
+
+  it('clamps a stale REST page when a filter shrinks the result set', () => {
+    render(
+      <GitHubAPIExplorer
+        repository={selectedRepository}
+        accounts={[selectedAccount]}
+        client={new FakeExplorerClient()}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Catalog scope'), {
+      target: { value: 'all' },
+    })
+    const nav = screen.getByRole('navigation', {
+      name: 'GitHub API operation pages',
+    })
+    fireEvent.click(within(nav).getByRole('button', { name: 'Last page' }))
+    assert.ok(within(nav).getByText('Page 25 of 25'))
+
+    // Narrowing the catalog collapses the page count; the view must clamp back
+    // to a valid page instead of rendering an empty window past the new end.
+    fireEvent.change(screen.getByLabelText('Category'), {
+      target: { value: 'secret-scanning' },
+    })
+    assert.ok(within(nav).getByText('Page 1 of 1'))
+    assert.ok(
+      within(
+        screen.getByRole('list', { name: 'GitHub API operations' })
+      ).getAllByRole('listitem').length > 0
+    )
+  })
+
+  it('paginates the GraphQL root catalog independently of REST', () => {
+    render(
+      <GitHubAPIExplorer
+        repository={selectedRepository}
+        accounts={[selectedAccount]}
+        client={new FakeExplorerClient()}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'GraphQL' }))
+    const nav = screen.getByRole('navigation', {
+      name: 'GitHub GraphQL root operation pages',
+    })
+    // 31 queries + 268 mutations = 299 roots across 6 pages of 50.
+    assert.ok(within(nav).getByText('Page 1 of 6'))
+    assert.ok(screen.getByText('Showing 1–50 of 299'))
+    assert.equal(
+      within(
+        screen.getByRole('list', { name: 'GitHub GraphQL root operations' })
+      ).getAllByRole('listitem').length,
+      GitHubAPIExplorerDefaultPageSize
+    )
+
+    fireEvent.click(within(nav).getByRole('button', { name: 'Last page' }))
+    assert.ok(within(nav).getByText('Page 6 of 6'))
+    assert.ok(screen.getByText('Showing 251–299 of 299'))
   })
 
   it('uses only the repository-bound GitHub account', () => {

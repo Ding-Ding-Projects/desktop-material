@@ -49,6 +49,22 @@ describe('GitHub API Explorer responsive Material styles', () => {
     )
   })
 
+  it('styles the catalog pagination controls and page-size selector', () => {
+    assert.match(styles, /\.github-api-explorer-pagination\s*\{/)
+    assert.match(
+      styles,
+      /\.github-api-explorer-pagination-controls\s*\{[\s\S]*flex-wrap:\s*wrap/
+    )
+    assert.match(
+      styles,
+      /\.github-api-explorer-pagination-controls\s*\{[\s\S]*button\s*\{[\s\S]*&:disabled\s*\{[\s\S]*cursor:\s*not-allowed/
+    )
+    assert.match(
+      styles,
+      /\.github-api-explorer-page-size\s*\{[\s\S]*select\s*\{[\s\S]*width:\s*auto/
+    )
+  })
+
   it('uses semantic Material tokens for surfaces, selection, and risk', () => {
     assert.match(styles, /--md-sys-color-surface-container-low/)
     assert.match(styles, /--md-sys-color-primary-container/)
