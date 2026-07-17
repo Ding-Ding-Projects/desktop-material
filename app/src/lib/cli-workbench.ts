@@ -8,6 +8,17 @@ export type RepositoryToolOperationID =
   | 'maintenance-run'
   | 'reflog-view'
   | 'signature-audit'
+  | 'branch-overview'
+  | 'contributor-summary'
+  | 'version-describe'
+  | 'whitespace-audit'
+  | 'ignored-files-view'
+  | 'merged-branch-audit'
+  | 'prune-preview'
+  | 'clean-preview'
+  | 'clean-run'
+  | 'unreachable-commits'
+  | 'notes-view'
 
 export type RepositoryArchiveFormat = 'zip' | 'tar'
 
@@ -63,6 +74,18 @@ export type CLIWorkbenchOperation =
       readonly deepenBy: number
     }
   | { readonly id: 'history-unshallow'; readonly remote: string }
+  | { readonly id: 'file-blame'; readonly path: string }
+  | {
+      readonly id: 'content-search'
+      readonly pattern: string
+      readonly ref?: string
+    }
+  | {
+      readonly id: 'notes-edit'
+      readonly oid: string
+      readonly message: string
+    }
+  | { readonly id: 'notes-remove'; readonly oid: string }
 
 // Compatibility contracts for the older guided Repository Tools surfaces.
 // The main-process runner above still accepts only CLIWorkbenchOperation; these

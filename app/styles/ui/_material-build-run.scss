@@ -208,7 +208,7 @@
 
       &.success {
         background: var(--dm-green);
-        color: #fff;
+        color: var(--dm-on-green);
       }
 
       &.error {

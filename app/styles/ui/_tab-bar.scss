@@ -158,7 +158,7 @@
 
     &:not(.selected) {
       .icon {
-        color: #{$gray-500};
+        color: var(--md-sys-color-on-surface-variant);
       }
 
       &:hover {

@@ -36,6 +36,44 @@ describe('CLI workbench operation registry', () => {
         ['maintenance-preview', ['count-objects', '-vH']],
         ['maintenance-run', ['maintenance', 'run']],
         ['reflog-view', ['reflog', 'show', '--date=local', '-50']],
+        [
+          'branch-overview',
+          [
+            'branch',
+            '--list',
+            '--verbose',
+            '--verbose',
+            '--sort=-committerdate',
+          ],
+        ],
+        [
+          'contributor-summary',
+          ['shortlog', '--summary', '--numbered', 'HEAD'],
+        ],
+        [
+          'version-describe',
+          ['describe', '--tags', '--always', '--long', '--dirty'],
+        ],
+        ['whitespace-audit', ['diff', '--check', 'HEAD']],
+        [
+          'ignored-files-view',
+          [
+            'ls-files',
+            '--others',
+            '--ignored',
+            '--exclude-standard',
+            '--directory',
+          ],
+        ],
+        ['merged-branch-audit', ['branch', '--list', '--verbose', '--merged']],
+        ['prune-preview', ['prune', '--dry-run', '--verbose']],
+        ['clean-preview', ['clean', '--dry-run', '-d']],
+        ['clean-run', ['clean', '--force', '-d']],
+        [
+          'unreachable-commits',
+          ['fsck', '--unreachable', '--no-reflogs', '--no-progress'],
+        ],
+        ['notes-view', ['log', '--notes', '--format=%h %s%n%N', '-50']],
       ])
 
       for (const [id, args] of expected) {
@@ -46,7 +84,10 @@ describe('CLI workbench operation registry', () => {
         assert.equal(result.tool, 'git')
         assert.deepEqual(result.args, args)
         assert.equal(result.operation.id, id)
-        assert.equal(result.requiresConfirmation, id === 'maintenance-run')
+        assert.equal(
+          result.requiresConfirmation,
+          id === 'maintenance-run' || id === 'clean-run'
+        )
       }
     } finally {
       await rm(fixture.root, { recursive: true, force: true })
@@ -175,6 +216,67 @@ describe('CLI workbench operation registry', () => {
           ],
           true,
         ],
+        [
+          { id: 'file-blame', path: 'app/src/ui/app.tsx' },
+          ['blame', '--date=short', '--', 'app/src/ui/app.tsx'],
+          false,
+        ],
+        [
+          { id: 'content-search', pattern: 'TODO: follow up' },
+          [
+            'grep',
+            '--line-number',
+            '--fixed-strings',
+            '-e',
+            'TODO: follow up',
+            '--',
+          ],
+          false,
+        ],
+        [
+          { id: 'content-search', pattern: 'render()', ref: 'release/2.0' },
+          [
+            'grep',
+            '--line-number',
+            '--fixed-strings',
+            '-e',
+            'render()',
+            'release/2.0',
+            '--',
+          ],
+          false,
+        ],
+        [
+          { id: 'content-search', pattern: 'main', ref: 'HEAD' },
+          [
+            'grep',
+            '--line-number',
+            '--fixed-strings',
+            '-e',
+            'main',
+            'HEAD',
+            '--',
+          ],
+          false,
+        ],
+        [
+          { id: 'notes-edit', oid: 'AbCdEf1', message: 'reviewed for release' },
+          [
+            'notes',
+            'add',
+            '--force',
+            '-m',
+            'reviewed for release',
+            '--',
+            'abcdef1',
+          ],
+          true,
+        ],
+        [
+          { id: 'notes-remove', oid: 'HEAD' },
+          ['notes', 'remove', '--', 'HEAD'],
+          true,
+        ],
       ]
 
       for (const [operation, args, requiresConfirmation] of cases) {
@@ -209,6 +311,34 @@ describe('CLI workbench operation registry', () => {
         { id: 'status-summary', tool: 'gh' },
         { id: 'status-summary', shell: true },
         { id: 'maintenance-run', requiresConfirmation: false },
+        { id: 'clean-run', requiresConfirmation: false },
+        { id: 'clean-run', args: ['clean', '-fdx'] },
+        { id: 'clean-preview', paths: ['..'] },
+        { id: 'file-blame', path: '/absolute/file.ts' },
+        { id: 'file-blame', path: 'C:/absolute/file.ts' },
+        { id: 'file-blame', path: '../outside.ts' },
+        { id: 'file-blame', path: 'src/../../outside.ts' },
+        { id: 'file-blame', path: '.git/config' },
+        { id: 'file-blame', path: '-c=core.pager=payload' },
+        { id: 'file-blame', path: 'src\\main.ts' },
+        { id: 'file-blame', path: 'ok.ts', extra: true },
+        { id: 'content-search', pattern: '' },
+        { id: 'content-search', pattern: 'a'.repeat(257) },
+        { id: 'content-search', pattern: 'line\nbreak' },
+        { id: 'content-search', pattern: 'nul\0byte' },
+        { id: 'content-search', pattern: 42 },
+        { id: 'content-search', pattern: 'x', ref: '--all' },
+        { id: 'content-search', pattern: 'x', ref: 'main..dev' },
+        { id: 'content-search', pattern: 'x', ref: 'main@{1}' },
+        { id: 'content-search', pattern: 'x', ref: 'bad name' },
+        { id: 'content-search', pattern: 'x', ref: '' },
+        { id: 'notes-edit', oid: 'HEAD~1', message: 'note' },
+        { id: 'notes-edit', oid: 'abc', message: 'note' },
+        { id: 'notes-edit', oid: 'a'.repeat(40), message: '' },
+        { id: 'notes-edit', oid: 'a'.repeat(40), message: 'a'.repeat(1025) },
+        { id: 'notes-edit', oid: 'a'.repeat(40), message: 'bell\x07' },
+        { id: 'notes-remove', oid: 'refs/notes/commits' },
+        { id: 'notes-remove', oid: 'HEAD', force: true },
         { id: 'history-deepen', remote: '--upload-pack=payload', deepenBy: 1 },
         { id: 'history-deepen', remote: 'origin', deepenBy: 0 },
         { id: 'history-deepen', remote: 'origin', deepenBy: 1_000_001 },

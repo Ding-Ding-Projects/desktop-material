@@ -138,7 +138,7 @@
 .avatar.avatar-more {
   z-index: 1;
   margin-right: 0;
-  background: $gray-100;
+  background: var(--md-sys-color-surface-container);
   width: 10px !important;
 
   &::before,
@@ -152,11 +152,11 @@
 
   &::before {
     width: 17px;
-    background: $gray-200;
+    background: var(--md-sys-color-surface-container-high);
   }
 
   &::after {
     width: 14px;
-    background: $gray-300;
+    background: var(--md-sys-color-surface-container-highest);
   }
 }

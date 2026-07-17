@@ -2,14 +2,6 @@
 
 ## Outcome
 
-urgent add to goal:
-
-make docker build actions, and fetch origin push origin pull origin and push and pull orin will change color background theme of that button to match the vibes
-
-also add option to auto build docker image or app when pulled new stuff
-
-and add a repository list font customization per repo that can be shown on repo list
-
 The complete **M0 through M19** Material and guided Git/GitHub roadmap is shipped
 on `main`; it turns audited capabilities into named, interactive app functions.
 The separately guarded expert GitHub API Explorer is contextualized by the
@@ -35,6 +27,146 @@ The current Pages source, README, and in-repository wiki sources are on `main`.
 Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
+
+## 2026-07-17 Docker builds, sync-pill vibes, auto-build-on-pull, and list typography
+
+The three urgent goals previously recorded at the top of this handoff are
+implemented on `claude/handoff-md-implementation-3b529c`:
+
+- **Docker build actions.** Build & Run detects `Dockerfile` and Docker
+  Compose (`docker-compose.yml`/`.yaml`, `compose.yml`/`.yaml`) projects as a
+  first-class `docker` ecosystem with argv-encoded `docker build .`,
+  `docker compose build`, and `docker compose up` stages, a `docker --version`
+  toolchain probe, nested-directory manifest markers, and stable
+  `docker:image` / `docker:compose` profile ids (compose outranks the plain
+  image build when both exist). Docker deliberately does not suppress the
+  generic Make fallback — a Dockerfile packages a project without replacing
+  its native build — and stays out of the winget auto-install path.
+- **Sync-pill vibes.** Every push/pull toolbar state now carries a
+  `push-pull-button--<state>` modifier on both pill shapes (single-button and
+  split-button, whose backgrounds live on different DOM nodes), themed through
+  new `--dm-sync-*` background/on-color token pairs: neutral fetch, secondary
+  container pull, primary container push, green publish, and error-container
+  force push, whose ahead/behind badge and disclosure chevron also adopt the
+  error family. The aliases are declared on `body` — not `:root` — so dark
+  theme, curated accent palettes, and the neutral surface variant all flow
+  through the var() substitution; publish gained a dedicated
+  `--dm-green-on-container` tone that passes AA on the 0.75-opacity
+  description line.
+- **Auto build after pull.** A per-repository, default-off Build & Run
+  preference `autoBuildOnPull` ("Build after pulling new commits") starts the
+  selected profile only when an interactive pull actually moves the branch tip
+  to a new commit, no build-run is already in flight, and both tips are valid
+  branches — decided by the pure, tested `shouldAutoBuildAfterPull` helper.
+  Build problems never surface as pull failures. The preference participates
+  in the repository equality hash so saving the checkbox takes effect
+  immediately, the post-pull read re-resolves the live repository instance
+  (the pull can swap in a refreshed instance whose state is keyed by a new
+  hash), and the localhost agent API's `pull` command passes
+  `autoBuild: false` so a remote command can never spawn build or run
+  processes as a side effect.
+- **Repository-list fonts.** Repository appearance overrides gained a
+  validated `listNameStyle` Word-style typography field — curated font
+  family, size clamped to the row-safe `MaxListNameFontSize` (18px),
+  bold/italic, and the rest of the tab title-style model — stored beside the
+  logo in the repository's local `desktop-material.appearance` Git config,
+  resolved and LRU-cached through the shared bounded logo loader in one
+  config read, applied to the list row's name through `tabTitleStyleToCss`,
+  and edited in Repository Settings → Appearance with a live preview that
+  reproduces the row's real base typography.
+
+A three-dimension adversarial review (correctness, security/invariants, and
+UI/style consistency, with every finding independently re-verified against
+the code) confirmed nine defects, all fixed before commit: the
+stale-preference equality hash, agent-surface auto-build exposure, the
+light-theme accent freeze of `:root`-declared aliases, the 32px-size versus
+29px-row mismatch, publish description contrast, the force-push badge color
+mismatch, the misleading typography preview baseline, the stale post-pull tip
+read after a mid-pull repository refresh, and docker suppressing make.
+
+Local verification in this checkout: 105 focused tests across the build-run,
+appearance, and style-contract suites pass, including 11 Docker detection
+cases, 9 auto-build decision cases, the new typography validation cases, and
+a new sync-pill style contract; repository-wide `tsc --noEmit` introduces
+zero new errors against the pre-change baseline; changed-file Prettier and
+repository-rule ESLint are clean. The loader, list-row, and Git-config
+round-trip suites were extended for the new appearance payload but cannot
+execute in this checkout because it lacks the `dugite`/`@testing-library`
+dependencies; they run in CI. No production build or headless UI gate was run
+for this wave.
+
+A parallel implementation of the same three goals on
+`claude/ui-clipping-material-design-g5g3n9` was superseded by this reviewed
+wave when the branches were merged to `main`; that branch's distinct
+clipping/token/accessibility polish pass (next section) was kept in full.
+
+## 2026-07-17 clipping, Material-token, and accessibility polish pass
+
+A dedicated audit swept all 219 stylesheets and the Material shell components
+for text clipping, pre-Material styling leftovers, and keyboard accessibility.
+Dialogs now use the MD3 extra-large radius and level-3 elevation instead of the
+legacy 6px Primer card; the title bar, window controls, CI status popover,
+avatar stack, tab bar, tooltips, toast/repository `kbd` chips, and commit drag
+badge all route through `--md-sys-*`/`--dm-*` tokens (with a new `--dm-on-green`
+on-color for dark-mode contrast). Fixed pixel heights on app-bar chips,
+repository tabs, menu rows, dialog headers, and buttons became min-heights so
+larger user-selected interface fonts grow controls instead of clipping, the CI
+check-run description lost its hard 250×12px clip box, and the branch list
+description gained the ellipsis treatment. Keyboard users can now see the tab
+close button on focus, the tab rename input has an accessible name and focus
+ring, the tab-strip search fields have focus-within indicators, split-button
+dropdown options highlight tonally on focus-visible, and notification unread
+state is exposed to screen readers rather than being color-only. Validated
+with a full Sass compile, TypeScript, ESLint (custom rules), Prettier, all 31
+style-contract suites (110 tests), and the affected component suites
+(258 tests), all passing.
+
+## 2026-07-17 Build & Run auto-build hardening
+
+The one-click Build & Run auto-build now works across every detected
+ecosystem, on every supported host, including complex builds whose
+dependencies must be installed automatically:
+
+- **Toolchain auto-install is no longer Windows-only.** The pure
+  `planToolchainInstall` mapping now covers winget on Windows (extended from 5
+  ecosystems to Node/Bun, Python, Go, Rust, .NET, Deno, Java via Temurin JDK
+  plus Gradle/Maven, PHP, Ruby with DevKit, Elixir, sbt, Swift, Zig, CMake,
+  and GNU Make), Homebrew on macOS (same coverage plus Composer, Dart,
+  Flutter and the Haskell toolchain; the JDK installs as the `temurin` cask so
+  wrappers and `/usr/bin/java` find it, and brew steps are never elevated),
+  and runtime-provisioned package managers on every platform including Linux:
+  `yarn`/`pnpm` via Corepack, `pipenv`/`poetry` via pip, and Bundler via gem.
+- **Missing-dependency auto-fix covers every dependency-managed ecosystem.**
+  `planRemediation` now receives the plan's install-stage commands and
+  proposes ordered multi-command remediations. Build/run stages that fail on
+  missing packages re-run the profile's install commands (or a sensible
+  ecosystem default) before retrying: Node missing-module errors, Python
+  `ModuleNotFoundError`, `go mod tidy` for missing go.sum entries, `cargo
+  fetch`, `dotnet restore` on NU1101/NETSDK1004, `composer install` on a
+  missing `vendor/autoload.php`, `bundle install` on `Bundler::GemNotFound`,
+  `mix deps.get`, `dart pub get`, `swift package resolve`, `sbt update`, and
+  a bounded plain retry for transient Gradle/Maven resolution failures. The
+  Python venv fix is now correctly scoped to the install stage, and the
+  per-stage retry budget is unchanged.
+- **GUI-launched builds on macOS/Linux now find their toolchains.**
+  `resolveRunEnv` appends the well-known Homebrew and per-user tool
+  directories (`/opt/homebrew/bin`, `/usr/local/bin`, `~/.cargo/bin`,
+  `~/go/bin`, `~/.local/bin`, `~/.deno/bin`, `~/.bun/bin`,
+  `~/.pub-cache/bin`, `~/.dotnet/tools`, `~/.mix/escripts`) to PATH off
+  Windows, mirroring the existing registry-based PATH refresh on Windows, so
+  both the initial probe and the post-install re-check see what a terminal
+  would.
+
+The runner threads install commands into the auto-fix planner and executes
+multi-command remediations sequentially with the existing cancellation
+checks; the Repository settings auto-install copy and the plan/type docs now
+describe the cross-platform behaviour. Focused verification in this
+environment: the rewritten `auto-fix`/`toolchain-install` suites plus the
+existing detect/gitignore suites pass (128 tests), the IPC-contract,
+toolbar-overflow-layout, and post-shell style suites pass (32 tests), and
+repository-wide `tsc --noEmit --skipLibCheck`, changed-file ESLint with the
+repository rule directory, and Prettier are clean. No production UI gate was
+run in this Linux container.
 
 ## 2026-07-17 recovery, custom logos, app functions, and responsive completion
 

@@ -36,11 +36,11 @@
         margin: 0;
 
         .failure {
-          color: $red-500;
+          color: var(--md-sys-color-error);
         }
 
         .pending {
-          color: darken($yellow-700, 10%);
+          color: var(--dm-amber);
         }
       }
 
@@ -66,11 +66,11 @@
       }
 
       .completeness-indicator-success {
-        color: $green-500;
+        color: var(--dm-green);
       }
 
       .completeness-indicator-error {
-        color: $red-500;
+        color: var(--md-sys-color-error);
       }
 
       .donut {
@@ -79,7 +79,7 @@
         > .action_required,
         > .timed_out,
         > .failure {
-          fill: $red-500;
+          fill: var(--md-sys-color-error);
         }
 
         > .expected,
@@ -88,17 +88,17 @@
         > .waiting,
         > .requested,
         > .pending {
-          fill: darken($yellow-700, 10%);
+          fill: var(--dm-amber);
         }
 
         > .success {
-          fill: $green-500;
+          fill: var(--dm-green);
         }
 
         > .neutral,
         > .stale,
         > .skipped {
-          fill: $gray-400;
+          fill: var(--md-sys-color-outline);
         }
       }
     }

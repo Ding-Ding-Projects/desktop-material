@@ -19,17 +19,22 @@ describe('RepositoryLogoLoader', () => {
     const loader = new RepositoryLogoLoader(async () => {
       calls++
       await gate
-      return DefaultRepositoryLogoDesign
+      return { logo: DefaultRepositoryLogoDesign, listNameStyle: null }
     }, 4)
     const repo = repository('/work/shared', 1)
 
-    const first = loader.load(repo)
-    const second = loader.load(repo)
+    // The cached unit is the appearance read; repeated requests share the
+    // exact same promise, and the logo-only wrapper rides the same read.
+    const first = loader.loadAppearance(repo)
+    const second = loader.loadAppearance(repo)
+    const logo = loader.load(repo)
 
     assert.strictEqual(second, first)
     assert.equal(calls, 1)
     complete()
+    assert.strictEqual(await logo, DefaultRepositoryLogoDesign)
     await first
+    assert.equal(calls, 1)
     assert.equal(loader.size, 1)
   })
 
@@ -37,7 +42,7 @@ describe('RepositoryLogoLoader', () => {
     const calls = new Map<string, number>()
     const loader = new RepositoryLogoLoader(async repo => {
       calls.set(repo.path, (calls.get(repo.path) ?? 0) + 1)
-      return DefaultRepositoryLogoDesign
+      return { logo: DefaultRepositoryLogoDesign, listNameStyle: null }
     }, 2)
     const first = repository('/work/first', 1)
     const second = repository('/work/second', 2)
@@ -58,7 +63,7 @@ describe('RepositoryLogoLoader', () => {
     let calls = 0
     const loader = new RepositoryLogoLoader(async () => {
       calls++
-      return DefaultRepositoryLogoDesign
+      return { logo: DefaultRepositoryLogoDesign, listNameStyle: null }
     })
     const repo = repository('/work/event', 1)
     const event = new Event('logo-change')
@@ -79,7 +84,7 @@ describe('RepositoryLogoLoader', () => {
       if (calls === 1) {
         throw new Error('temporary read failure')
       }
-      return DefaultRepositoryLogoDesign
+      return { logo: DefaultRepositoryLogoDesign, listNameStyle: null }
     })
     const repo = repository('/work/retry', 1)
 

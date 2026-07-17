@@ -196,6 +196,15 @@ export class BuildRunSettings extends React.Component<
     })
   }
 
+  private onAutoBuildOnPullChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      autoBuildOnPull: event.currentTarget.checked,
+    })
+  }
+
   private onAutoIgnoreBuildOutputsChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
@@ -264,7 +273,7 @@ export class BuildRunSettings extends React.Component<
             No runnable project profiles were detected in this repository. Build
             &amp; Run looks for supported project manifests and entrypoints
             across common Node, Deno, Rust, Go, .NET, Python, JVM, PHP, Ruby,
-            Swift, Dart, Elixir, Make and CMake projects.
+            Swift, Dart, Elixir, Docker, Make and CMake projects.
           </p>
         </section>
       )
@@ -376,8 +385,8 @@ export class BuildRunSettings extends React.Component<
         <ToggledtippedContent
           className="build-run-toggle-tip"
           ariaLabel="About auto-installing tools"
-          ariaLiveMessage="When a required toolchain is missing, install it automatically with winget or Corepack, refresh PATH, and continue the build. May prompt for administrator access."
-          tooltip="When a required toolchain (Node, Python, Go, Rust, .NET…) is missing, install it automatically with winget or Corepack behind a single UAC prompt, refresh PATH, then continue the build."
+          ariaLiveMessage="When a required toolchain is missing, install it automatically with winget on Windows, Homebrew on macOS, or Corepack, pip and gem anywhere, refresh PATH, and continue the build. May prompt for administrator access on Windows."
+          tooltip="When a required toolchain (Node, Python, Go, Rust, .NET, Java, Ruby, PHP…) is missing, install it automatically — winget behind a single UAC prompt on Windows, Homebrew on macOS, Corepack/pip/gem for package managers — refresh PATH, then continue the build."
         >
           <Octicon symbol={octicons.info} />
         </ToggledtippedContent>
@@ -429,11 +438,26 @@ export class BuildRunSettings extends React.Component<
             }
             onChange={this.onAutoIgnoreBuildOutputsChanged}
           />
+          <Checkbox
+            label={
+              __DARWIN__
+                ? 'Build After Pulling New Commits'
+                : 'Build after pulling new commits'
+            }
+            value={
+              prefs.autoBuildOnPull ?? false
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onAutoBuildOnPullChanged}
+          />
         </div>
         <p className="build-run-section-description">
           Auto-ignore adds the profile's build-output patterns to{' '}
           <code>.gitignore</code> before installing. It uses managed sections,
           so it is idempotent and reversible from the Ignored files tab.
+          Building after a pull starts the selected profile (for example a
+          Docker image or app build) only when the pull brings new commits.
         </p>
       </section>
     )

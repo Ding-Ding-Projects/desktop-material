@@ -150,12 +150,12 @@ body > .tooltip,
     }
 
     button:hover {
-      background: rgba(255, 255, 255, 0.2);
+      background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 20%, transparent);
     }
 
     button:active {
-      background: white;
-      color: #{$gray-900};
+      background: var(--md-sys-color-inverse-on-surface);
+      color: var(--md-sys-color-inverse-surface);
     }
   }
 

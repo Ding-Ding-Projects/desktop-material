@@ -28,6 +28,7 @@ export type BuildRunEcosystem =
   | 'zig'
   | 'make'
   | 'cmake'
+  | 'docker'
 
 /** The three sequential stages a plan may contain. */
 export type BuildStageKind = 'install' | 'build' | 'run'
@@ -142,8 +143,9 @@ export interface IBuildRunPlan {
   readonly elevated: boolean
   /**
    * Attempt to auto-install a missing toolchain before failing the run. When
-   * true, a failed toolchain probe triggers the install layer (winget /
-   * corepack), a PATH refresh, and a single re-check.
+   * true, a failed toolchain probe triggers the install layer (winget on
+   * Windows, Homebrew on macOS, corepack/pip/gem everywhere), a PATH refresh,
+   * and a single re-check.
    */
   readonly autoInstall: boolean
   readonly stages: ReadonlyArray<IBuildRunStage>

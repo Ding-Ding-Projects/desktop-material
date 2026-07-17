@@ -91,7 +91,8 @@ function renderTools(
   revealArchive?: (path: string) => Promise<void>,
   chooseBundleDestination?: (defaultPath: string) => Promise<string | null>,
   chooseBundleToVerify?: () => Promise<string | null>,
-  chooseBundleToImport?: () => Promise<string | null>
+  chooseBundleToImport?: () => Promise<string | null>,
+  chooseFileToBlame?: () => Promise<string | null>
 ) {
   return render(
     <RepositoryTools
@@ -103,6 +104,7 @@ function renderTools(
       chooseBundleDestination={chooseBundleDestination}
       chooseBundleToVerify={chooseBundleToVerify}
       chooseBundleToImport={chooseBundleToImport}
+      chooseFileToBlame={chooseFileToBlame}
     />
   )
 }
@@ -116,9 +118,23 @@ describe('Repository tools', () => {
     assert.ok(screen.getByText('Status summary'))
     assert.ok(screen.getByText('Repository health check'))
     assert.ok(screen.getByText('Audit recent commit signatures'))
+    assert.ok(screen.getByText('Branch sync overview'))
+    assert.ok(screen.getByText('Contributor summary'))
+    assert.ok(screen.getByText('Describe current version'))
+    assert.ok(screen.getByText('Audit whitespace and conflict markers'))
+    assert.ok(screen.getByText('Preview ignored files'))
     assert.ok(screen.getByText('Preview maintenance needs'))
     assert.ok(screen.getByText('Run repository maintenance'))
+    assert.ok(screen.getByText('Find fully merged branches'))
+    assert.ok(screen.getByText('Preview unreachable object pruning'))
+    assert.ok(screen.getByText('Preview untracked cleanup'))
+    assert.ok(screen.getByText('Remove untracked files'))
+    assert.ok(screen.getByText('View commit notes'))
     assert.ok(screen.getByText('View recent ref movements'))
+    assert.ok(screen.getByText('Find unreachable commits'))
+    assert.ok(screen.getByText('Line authorship'))
+    assert.ok(screen.getByText('Search tracked content'))
+    assert.ok(screen.getByText('Edit commit notes'))
     assert.ok(screen.getByText('Export repository artifacts'))
     assert.ok(screen.getByText('Import a branch from a Git bundle'))
     assert.equal(screen.queryByRole('searchbox'), null)
@@ -168,7 +184,13 @@ describe('Repository tools', () => {
     })
     await screen.findByText('git version 2.55.0')
 
-    fireEvent.click(screen.getByRole('button', { name: 'Review and run' }))
+    const maintenanceCard = screen
+      .getByText('Run repository maintenance')
+      .closest('article')
+    assert.ok(maintenanceCard)
+    fireEvent.click(
+      maintenanceCard.querySelector('button') as HTMLButtonElement
+    )
     assert.equal(client.starts.length, 0)
     assert.ok(screen.getByRole('alertdialog'))
     fireEvent.click(screen.getByRole('button', { name: 'Confirm maintenance' }))
@@ -197,6 +219,262 @@ describe('Repository tools', () => {
       screen.getByLabelText('Repository tool results').textContent ?? '',
       /maintenance complete/
     )
+  })
+
+  it('runs the new read-only Git functions through their fixed recipes', async () => {
+    const cases: ReadonlyArray<readonly [string, string]> = [
+      ['Branch sync overview', 'branch-overview'],
+      ['Contributor summary', 'contributor-summary'],
+      ['Describe current version', 'version-describe'],
+      ['Audit whitespace and conflict markers', 'whitespace-audit'],
+      ['Preview ignored files', 'ignored-files-view'],
+      ['Find fully merged branches', 'merged-branch-audit'],
+      ['Preview unreachable object pruning', 'prune-preview'],
+      ['Preview untracked cleanup', 'clean-preview'],
+      ['Find unreachable commits', 'unreachable-commits'],
+    ]
+    for (const [title, id] of cases) {
+      const client = new FakeRepositoryToolsClient()
+      const view = renderTools(client)
+      await screen.findByText('git version 2.55.0')
+
+      const card = screen.getByText(title).closest('article')
+      assert.ok(card, title)
+      fireEvent.click(card.querySelector('button') as HTMLButtonElement)
+      await waitFor(() => assert.equal(client.starts.length, 1))
+      assert.deepStrictEqual(client.starts[0].operation, { id }, title)
+      assert.equal(client.starts[0].confirmed, false, title)
+      assert.equal(screen.queryByRole('alertdialog'), null, title)
+      view.unmount()
+    }
+  })
+
+  it('deletes untracked files only after its own destructive confirmation', async () => {
+    const client = new FakeRepositoryToolsClient()
+    let refreshes = 0
+    renderTools(client, async () => {
+      refreshes++
+    })
+    await screen.findByText('git version 2.55.0')
+
+    const cleanCard = screen
+      .getByText('Remove untracked files')
+      .closest('article')
+    assert.ok(cleanCard)
+    fireEvent.click(cleanCard.querySelector('button') as HTMLButtonElement)
+    assert.equal(client.starts.length, 0)
+
+    const confirmation = screen.getByRole('alertdialog')
+    assert.match(confirmation.textContent ?? '', /deleted permanently/i)
+    fireEvent.click(screen.getByRole('button', { name: 'Go back' }))
+    assert.equal(screen.queryByRole('alertdialog'), null)
+    assert.equal(client.starts.length, 0)
+
+    fireEvent.click(cleanCard.querySelector('button') as HTMLButtonElement)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete untracked files' })
+    )
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, { id: 'clean-run' })
+    assert.equal(client.starts[0].confirmed, true)
+
+    client.emitState({
+      id: client.starts[0].id,
+      state: 'completed',
+      exitCode: 0,
+      signal: null,
+    })
+    await waitFor(() => assert.equal(refreshes, 1))
+  })
+
+  it('shows line authorship only for one contained picked file', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(
+      client,
+      async () => {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      async () => join(uiRepositoryPath, 'src', 'lib', 'app.tsx')
+    )
+    await screen.findByText('git version 2.55.0')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a file…' }))
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'file-blame',
+      path: 'src/lib/app.tsx',
+    })
+    assert.equal(client.starts[0].confirmed, false)
+    assert.equal(screen.queryByRole('alertdialog'), null)
+  })
+
+  it('rejects a picked authorship file outside the repository', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(
+      client,
+      async () => {},
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      async () => join(uiFixtureRoot, 'unrelated', 'outside.ts')
+    )
+    await screen.findByText('git version 2.55.0')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Choose a file…' }))
+    await screen.findByText('Choose a file inside this repository.')
+    assert.equal(client.starts.length, 0)
+  })
+
+  it('searches tracked content and reports a matchless run as complete', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    assert.equal(screen.queryByRole('textbox'), null)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Start content search' })
+    )
+    fireEvent.change(screen.getByLabelText('Search tracked files for'), {
+      target: { value: 'TODO: revisit' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'content-search',
+      pattern: 'TODO: revisit',
+    })
+    assert.equal(client.starts[0].confirmed, false)
+
+    const id = client.starts[0].id
+    client.emitState({ id, state: 'running', exitCode: null, signal: null })
+    client.emitState({ id, state: 'failed', exitCode: 1, signal: null })
+    await screen.findByText('No tracked file contains the search text.')
+    assert.match(
+      screen.getByRole('status').textContent ?? '',
+      /Status: completed/
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Close search' }))
+    assert.equal(screen.queryByRole('textbox'), null)
+  })
+
+  it('scopes content search to one validated revision', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Start content search' })
+    )
+    fireEvent.change(screen.getByLabelText('Search tracked files for'), {
+      target: { value: 'render()' },
+    })
+    fireEvent.change(screen.getByLabelText('At revision (optional)'), {
+      target: { value: 'release/2.0' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'content-search',
+      pattern: 'render()',
+      ref: 'release/2.0',
+    })
+
+    client.emitState({
+      id: client.starts[0].id,
+      state: 'completed',
+      exitCode: 0,
+      signal: null,
+    })
+    await waitFor(() =>
+      assert.match(
+        screen.getByRole('status').textContent ?? '',
+        /Status: completed/
+      )
+    )
+    fireEvent.change(screen.getByLabelText('At revision (optional)'), {
+      target: { value: 'main..dev' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    await screen.findByText(
+      'Enter one branch, tag, HEAD, or commit ID without ranges or options.'
+    )
+    assert.equal(client.starts.length, 1)
+  })
+
+  it('saves and removes one commit note only after its own review', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start note editor' }))
+    fireEvent.change(screen.getByLabelText('Commit'), {
+      target: { value: 'HEAD' },
+    })
+    fireEvent.change(screen.getByLabelText('Note text'), {
+      target: { value: 'Reviewed for release' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Review save' }))
+    assert.equal(client.starts.length, 0)
+
+    const saveDialog = screen.getByRole('alertdialog')
+    assert.match(saveDialog.textContent ?? '', /Save this commit note\?/)
+    assert.match(saveDialog.textContent ?? '', /Reviewed for release/)
+    fireEvent.click(screen.getByRole('button', { name: 'Save note' }))
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, {
+      id: 'notes-edit',
+      oid: 'HEAD',
+      message: 'Reviewed for release',
+    })
+    assert.equal(client.starts[0].confirmed, true)
+    client.emitState({
+      id: client.starts[0].id,
+      state: 'completed',
+      exitCode: 0,
+      signal: null,
+    })
+    await waitFor(() =>
+      assert.match(
+        screen.getByRole('status').textContent ?? '',
+        /Status: completed/
+      )
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Review removal' }))
+    const removeDialog = screen.getByRole('alertdialog')
+    assert.match(removeDialog.textContent ?? '', /Remove this commit note\?/)
+    fireEvent.click(screen.getByRole('button', { name: 'Remove note' }))
+    await waitFor(() => assert.equal(client.starts.length, 2))
+    assert.deepStrictEqual(client.starts[1].operation, {
+      id: 'notes-remove',
+      oid: 'HEAD',
+    })
+    assert.equal(client.starts[1].confirmed, true)
+  })
+
+  it('rejects an invalid commit note target before review', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Start note editor' }))
+    fireEvent.change(screen.getByLabelText('Commit'), {
+      target: { value: 'not-a-sha' },
+    })
+    fireEvent.change(screen.getByLabelText('Note text'), {
+      target: { value: 'note' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Review save' }))
+    await screen.findByText(
+      'Enter HEAD or a commit ID of 7 to 64 hexadecimal characters.'
+    )
+    assert.equal(screen.queryByRole('alertdialog'), null)
+    assert.equal(client.starts.length, 0)
   })
 
   it('streams diagnostics into one buffer and cancels the exact run', async () => {
