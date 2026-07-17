@@ -14,7 +14,7 @@ contract rejects missing, duplicate, or unassigned assets.
 > **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
 > pagination evidence, the Pages accessibility/clipping gate, the inspected July 16 adaptive
 > customization set, the profile app-identity workspace, the clone-style Add Submodule release,
-> and the repository-bound GitHub API Explorer. Exact build, interaction, and
+> and the repository-contextual GitHub API Explorer. Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
 
@@ -26,10 +26,11 @@ corrections. Its exact production source, safety checks, off-screen interaction
 review, and responsive geometry are recorded with the inspected captures below.
 
 The GitHub API Explorer adds a complete searchable catalog of 1,206 REST
-operations, including exactly 10 operations discovered since the March audit,
-alongside a REST/GraphQL request builder. Requests stay on the selected
-repository account and host, mutations require an explicit review, and response
-content is bounded and credential-redacted before display.
+operations, including exactly 10 operations discovered since the prior pinned
+2026-03-10 catalog, alongside a REST/GraphQL request builder. Requests stay on
+the selected repository account and provider host, mutations require an
+explicit review, and response content is bounded and credential-redacted before
+display.
 
 | Asset | Guided workflow shown |
 | --- | --- |
@@ -141,10 +142,11 @@ path; it never force-pushes automatically.
 
 The repository rail now includes a GitHub API Explorer for expert integration
 work. Its complete searchable catalog covers all 1,206 current REST operations
-and can isolate exactly the 10 additions since the March audit. REST and GraphQL
-requests use only the account bound to the selected repository; every mutation
-stops for exact-request review, while returned headers and bodies are bounded
-and credential-redacted before display.
+and can isolate exactly the 10 additions since the prior pinned 2026-03-10
+catalog. REST and GraphQL requests use only the account and provider host bound
+to the selected repository; every mutation stops for exact-request review,
+while returned headers and bodies are bounded and credential-redacted before
+display.
 
 For queued, running, waiting, or pending workflow runs, the current Actions
 surface adds an exact-run cancellation review with available ref/actor/commit
@@ -153,7 +155,7 @@ one normal cancel request, duplicate submission is suppressed, and polling
 continues to a terminal state with explicit authentication, SSO, and conflict
 recovery.
 
-![Repository-bound GitHub API Explorer with a searchable operation catalog, REST request builder, and bounded redacted response](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-api-explorer.png)
+![Repository-contextual GitHub API Explorer with a searchable operation catalog, REST request builder, and bounded redacted response](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-api-explorer.png)
 
 ![Native pull-request creation with bounded metadata](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-native-pull-request.png)
 

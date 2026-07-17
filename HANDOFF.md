@@ -4,9 +4,10 @@
 
 The complete **M0 through M19** Material and guided Git/GitHub roadmap is shipped
 on `main`; it turns audited capabilities into named, interactive app functions.
-The separately guarded expert GitHub API Explorer is repository- and
-account-bound, reviews mutations, and bounds and redacts responses rather than
-acting as an unrestricted command console.
+The separately guarded expert GitHub API Explorer is contextualized by the
+selected repository and bound to its selected account and provider host. It
+reviews mutations and bounds and redacts responses rather than acting as an
+unrestricted command console.
 
 The first four-function P0 wave is implemented, pushed, and production-UI
 verified at exact source SHA `9e946fd527e5843b2fdba5de675a5476b0c80445`:
@@ -47,12 +48,13 @@ tests to those repository-wide and off-screen receipts.
 
 ## 2026-07-16 GitHub API Explorer release
 
-The repository rail now includes a GitHub API Explorer bound to the exact
-selected repository, provider host, and saved account. Its complete searchable
-catalog contains all 1,206 current REST operations and identifies exactly 10
-operations added since the pinned March audit. The request builder supports
-REST and GraphQL, requires exact-request review before a mutation can run, and
-keeps displayed response headers and bodies bounded and credential-redacted.
+The repository rail now includes a GitHub API Explorer contextualized by the
+exact selected repository and bound to its selected saved account and provider
+host. Its complete searchable catalog contains all 1,206 current REST
+operations and identifies exactly 10 operations added since the prior pinned
+2026-03-10 catalog. The request builder supports REST and GraphQL, requires
+exact-request review before a mutation can run, and keeps displayed response
+headers and bodies bounded and credential-redacted.
 
 The accepted evidence uses the deterministic synthetic
 `material-fixture-owner/material-fixture` repository and provider identity. The
@@ -84,8 +86,8 @@ containment-checked fixture root were all confirmed gone after capture.
 
 The wiki now treats the Guided Feature Gallery as a machine-checked visual
 catalog: 56 named, user-facing workflows or states each own one distinct PNG.
-Core History browsing, local Agent access, and the repository-bound GitHub API
-Explorer are included in the manifest and its rendered image body. Eight unused
+Core History browsing, local Agent access, and the repository-contextual GitHub
+API Explorer are included in the manifest and its rendered image body. Eight unused
 legacy captures with obsolete or clipped UI were removed, leaving no tracked
 PNG unassigned and no screenshot reused for a second catalog row. Home, User
 Guide, and Developer Guide link or describe the same canonical catalog, and a

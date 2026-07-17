@@ -9,7 +9,7 @@ focuses on what Desktop Material adds on top.
 The complete M0–M19 roadmap is published on `main`. This guide also covers the current maintenance
 release: adaptive appearance and profile app identity, favorite/portable tabs, Material entry surfaces, guarded tab management, workflow-run
 cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, and compact
-surface corrections, plus the repository-bound GitHub API Explorer. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
+surface corrections, plus the repository-contextual GitHub API Explorer. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
 the repository's `HANDOFF.md` only as each release is verified.
 The [Guided Feature Gallery](Feature-Gallery) is the canonical 56-function visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
@@ -346,7 +346,7 @@ the dialog does not require page-level horizontal scrolling.
 Desktop Material turns useful Git, GitHub CLI, and GitHub API capabilities into **named,
 task-specific workflows**. You choose an action, complete a focused form, review any destructive
 or worktree-changing step, and receive the result in the app. Expert API integration is kept in the
-separate repository-bound Explorer below; it does not turn the guided Git workflows into a raw
+separate repository-contextual Explorer below; it does not turn the guided Git workflows into a raw
 command console.
 
 ### GitHub API Explorer
@@ -356,7 +356,7 @@ the selected repository. The Explorer never falls back to another identity on th
 
 - Search the complete current catalog of **1,206 REST operations** by method, path, summary, or
   operation ID, narrow it by category, or choose the **New operations** scope to see exactly the
-  **10 operations added since the March audit**.
+  **10 operations added since the prior pinned 2026-03-10 catalog**.
 - Select a catalog result to populate its method and repository-aware path, or switch between the
   **REST** and **GraphQL** request builders for an explicit request.
 - Read requests can run directly. REST write methods and GraphQL mutations first show a
@@ -365,7 +365,7 @@ the selected repository. The Explorer never falls back to another identity on th
 - The response view exposes status and allowlisted diagnostic headers, bounds and truncates the
   displayed body, and recursively redacts credential-shaped values before rendering them.
 
-![Repository-bound GitHub API Explorer with a searchable operation catalog, REST request builder, and bounded redacted response](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-api-explorer.png)
+![Repository-contextual GitHub API Explorer with a searchable operation catalog, REST request builder, and bounded redacted response](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-api-explorer.png)
 
 ### Shallow clone
 

@@ -123,7 +123,7 @@ maintenance acceptance items are complete.
 - Compose pull requests with repository templates and metadata, then inspect, update, review, close/reopen, or merge the exact reviewed pull request through a fail-closed lifecycle
 - Browse paginated Actions artifacts, download with bounded redirect and digest checks, and inspect the effective rules that apply to the current branch
 - Browse and manage GitHub Releases and assets with bounded transfers; browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
-- Use the repository-bound GitHub API Explorer to search all 1,206 REST operations, isolate exactly the 10 additions since the March audit, switch between REST and GraphQL, review mutations before they run, and inspect bounded, credential-redacted responses
+- Use the repository-contextual GitHub API Explorer, bound to the selected account and provider host, to search all 1,206 REST operations, isolate exactly the 10 additions since the prior pinned 2026-03-10 catalog, switch between REST and GraphQL, review mutations before they run, and inspect bounded, credential-redacted responses
 
 **Fully Material, everywhere**
 - The remaining stock surfaces — tooltips, menus, banners, autocomplete popups, segmented controls, split-buttons, dialog internals, History/CI surfaces — are re-tinted through the Material token system in both light and dark themes
@@ -160,7 +160,7 @@ set.
 
 | Complete GitHub API Explorer |
 | --- |
-| <img src="docs/assets/screenshots/material-github-api-explorer.png" alt="Repository-bound GitHub API Explorer with a searchable REST catalog, REST and GraphQL request builder, and bounded redacted response" width="720"><br><sub>1,206 REST operations · exactly 10 new since the March audit · reviewed mutations</sub> |
+| <img src="docs/assets/screenshots/material-github-api-explorer.png" alt="Repository-contextual GitHub API Explorer with a searchable REST catalog, REST and GraphQL request builder, and bounded redacted response" width="720"><br><sub>1,206 REST operations · exactly 10 new since the prior pinned 2026-03-10 catalog · reviewed mutations</sub> |
 
 <details>
 <summary><strong>Open 30 more verified screenshots</strong></summary>
