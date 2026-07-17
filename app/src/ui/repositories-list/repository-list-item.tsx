@@ -19,6 +19,8 @@ import {
   IRepositoryLogoLoader,
   repositoryLogoLoader,
 } from '../repository-logo/repository-logo-loader'
+import { RepositoryListFontPreference } from '../../models/appearance-customization'
+import { resolveRepositoryListFont } from './repository-list-font'
 
 export interface IRepositoryLogoChange {
   readonly revision: number
@@ -49,11 +51,18 @@ interface IRepositoryListItemProps {
 
   /** Test seam for exercising async ordering without touching Git. */
   readonly repositoryLogoLoader?: IRepositoryLogoLoader
+
+  /** Test seam for the per-repository list-font read. */
+  readonly repositoryListFontResolver?: (
+    repository: Repository
+  ) => Promise<RepositoryListFontPreference | undefined>
 }
 
 interface IRepositoryListItemState {
   readonly logoDesign: IRepositoryLogoDesign | null
   readonly logoPath: string | null
+  /** The repository's list-row font override; null inherits the UI font. */
+  readonly listFont: RepositoryListFontPreference | null
 }
 
 /** A repository item. */
@@ -66,7 +75,7 @@ export class RepositoryListItem extends React.Component<
 
   public constructor(props: IRepositoryListItemProps) {
     super(props)
-    this.state = { logoDesign: null, logoPath: null }
+    this.state = { logoDesign: null, logoPath: null, listFont: null }
   }
 
   public componentDidMount() {
@@ -124,22 +133,38 @@ export class RepositoryListItem extends React.Component<
     const logoPath = this.getLogoPath(repository)
 
     if (!(repository instanceof Repository) || logoPath === null) {
-      if (this.state.logoDesign !== null || this.state.logoPath !== null) {
-        this.setState({ logoDesign: null, logoPath: null })
+      if (
+        this.state.logoDesign !== null ||
+        this.state.logoPath !== null ||
+        this.state.listFont !== null
+      ) {
+        this.setState({ logoDesign: null, logoPath: null, listFont: null })
       }
       return
     }
 
+    // The list font rides the same request cycle (and the same
+    // RepositoryLogoChangedEvent invalidation) as the logo; a failed font
+    // read simply inherits the interface font.
+    const resolveFont =
+      this.props.repositoryListFontResolver ?? resolveRepositoryListFont
+    const fontRequest = resolveFont(repository).catch(error => {
+      log.warn(`Unable to load repository-list font for ${logoPath}`, error)
+      return undefined
+    })
+
     try {
       const logoDesign = await this.loader.load(repository)
+      const listFont = (await fontRequest) ?? null
       if (
         requestId === this.logoRequestId &&
         this.getLogoPath(this.props.repository) === logoPath
       ) {
-        this.setState({ logoDesign, logoPath })
+        this.setState({ logoDesign, logoPath, listFont })
       }
     } catch (error) {
       log.warn(`Unable to load repository-list logo for ${logoPath}`, error)
+      const listFont = (await fontRequest) ?? null
       if (
         requestId === this.logoRequestId &&
         this.getLogoPath(this.props.repository) === logoPath
@@ -147,6 +172,7 @@ export class RepositoryListItem extends React.Component<
         this.setState({
           logoDesign: getProfileRepositoryLogo(),
           logoPath,
+          listFont,
         })
       }
     }
@@ -171,7 +197,11 @@ export class RepositoryListItem extends React.Component<
     })
 
     return (
-      <div className="repository-list-item" ref={this.listItemRef}>
+      <div
+        className="repository-list-item"
+        data-repo-font={this.state.listFont ?? undefined}
+        ref={this.listItemRef}
+      >
         <Tooltip
           target={this.listItemRef}
           disabled={enableAccessibleListToolTips()}
@@ -267,7 +297,8 @@ export class RepositoryListItem extends React.Component<
   ): boolean {
     if (
       nextState.logoDesign !== this.state.logoDesign ||
-      nextState.logoPath !== this.state.logoPath
+      nextState.logoPath !== this.state.logoPath ||
+      nextState.listFont !== this.state.listFont
     ) {
       return true
     }

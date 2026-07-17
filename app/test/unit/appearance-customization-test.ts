@@ -124,6 +124,33 @@ describe('appearance customization', () => {
     assert.equal(resolved.tabWidth, 'compact')
   })
 
+  it('allowlists the repository-list font and rejects arbitrary strings', () => {
+    const overrides = parseRepositoryAppearanceOverrides(
+      JSON.stringify({
+        version: 1,
+        repositoryListFont: 'monospace',
+      })
+    )
+    assert.deepEqual(overrides, { repositoryListFont: 'monospace' })
+
+    const injected = parseRepositoryAppearanceOverrides(
+      JSON.stringify({
+        version: 1,
+        repositoryListFont: 'Comic Sans MS", cursive; background: url(x)',
+      })
+    )
+    assert.deepEqual(injected, {})
+
+    for (const font of ['serif', 'monospace', 'rounded', 'condensed']) {
+      assert.deepEqual(
+        parseRepositoryAppearanceOverrides(
+          JSON.stringify({ version: 1, repositoryListFont: font })
+        ),
+        { repositoryListFont: font }
+      )
+    }
+  })
+
   it('normalizes a local vector logo while keeping it repository-only', () => {
     const overrides = parseRepositoryAppearanceOverrides(
       JSON.stringify({

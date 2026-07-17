@@ -29,6 +29,16 @@ export type ToolbarLabelPreference = 'auto' | 'labels' | 'icons'
 export type DensityPreference = 'comfortable' | 'compact'
 export type TabWidthPreference = 'compact' | 'standard' | 'wide'
 export type TabCloseButtonPreference = 'hover' | 'always' | 'active'
+/**
+ * The bounded font choices a repository may pick for its repository-list row.
+ * An allow-listed set of CSS-stack aliases (never raw font-family strings) so
+ * untrusted git config can only select, not inject.
+ */
+export type RepositoryListFontPreference =
+  | 'serif'
+  | 'monospace'
+  | 'rounded'
+  | 'condensed'
 
 /** Application-wide appearance defaults saved in the active profile. */
 export interface IAppearanceCustomization {
@@ -61,6 +71,8 @@ export interface IRepositoryAppearanceOverrides {
   readonly toolbarDensity?: DensityPreference
   readonly tabDensity?: DensityPreference
   readonly tabWidth?: TabWidthPreference
+  /** Font shown on this repository's repository-list row; absent inherits. */
+  readonly repositoryListFont?: RepositoryListFontPreference
   readonly repositoryLogo?: IRepositoryLogoDesign
 }
 
@@ -125,6 +137,8 @@ export const tabWidthPreferences: ReadonlyArray<TabWidthPreference> = [
 ]
 export const tabCloseButtonPreferences: ReadonlyArray<TabCloseButtonPreference> =
   ['hover', 'always', 'active']
+export const repositoryListFontPreferences: ReadonlyArray<RepositoryListFontPreference> =
+  ['serif', 'monospace', 'rounded', 'condensed']
 
 const MaxPersistedAppearanceLength = 32_768
 
@@ -237,6 +251,7 @@ export function normalizeRepositoryAppearanceOverrides(
     toolbarDensity?: DensityPreference
     tabDensity?: DensityPreference
     tabWidth?: TabWidthPreference
+    repositoryListFont?: RepositoryListFontPreference
     repositoryLogo?: IRepositoryLogoDesign
   } = {}
 
@@ -257,6 +272,9 @@ export function normalizeRepositoryAppearanceOverrides(
   }
   if (isOneOf(value.tabWidth, tabWidthPreferences)) {
     overrides.tabWidth = value.tabWidth
+  }
+  if (isOneOf(value.repositoryListFont, repositoryListFontPreferences)) {
+    overrides.repositoryListFont = value.repositoryListFont
   }
   if (
     isRecord(value.repositoryLogo) &&

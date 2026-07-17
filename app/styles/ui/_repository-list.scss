@@ -34,6 +34,26 @@
     // name and truncate accordingly
     width: 100%;
 
+    // Per-repository list-row font. The row only ever selects one of these
+    // allow-listed aliases (Repository Settings → Appearance); the stacks
+    // themselves live here so untrusted git config can never inject a
+    // font-family string.
+    &[data-repo-font='serif'] .name {
+      font-family: Georgia, 'Times New Roman', serif;
+    }
+
+    &[data-repo-font='monospace'] .name {
+      font-family: var(--font-family-monospace);
+    }
+
+    &[data-repo-font='rounded'] .name {
+      font-family: ui-rounded, 'SF Pro Rounded', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    &[data-repo-font='condensed'] .name {
+      font-family: 'Roboto Condensed', 'Arial Narrow', 'Liberation Sans Narrow', sans-serif;
+    }
+
     .icon-for-repository {
       // Some room between the icon and repository name
       margin-right: var(--spacing-half);

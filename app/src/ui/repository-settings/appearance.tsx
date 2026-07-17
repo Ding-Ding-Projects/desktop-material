@@ -145,6 +145,14 @@ export class RepositoryAppearance extends React.Component<IRepositoryAppearanceP
               { value: 'wide', label: 'Wide' },
             ])}
           </Row>
+          <Row>
+            {this.renderSelect('repositoryListFont', 'Repository list font', [
+              { value: 'serif', label: 'Serif' },
+              { value: 'monospace', label: 'Monospace' },
+              { value: 'rounded', label: 'Rounded' },
+              { value: 'condensed', label: 'Condensed' },
+            ])}
+          </Row>
         </section>
         <RepositoryLogoStudio
           value={
