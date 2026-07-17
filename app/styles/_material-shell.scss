@@ -163,7 +163,7 @@ body {
     color: var(--md-sys-color-on-surface);
     display: flex;
     gap: 12px;
-    height: 54px;
+    min-height: 54px;
     overflow: hidden;
     padding: 0 18px 0 14px;
     position: relative;
@@ -314,9 +314,12 @@ body {
       background: transparent;
       border-radius: 0;
       box-shadow: none;
+      // Inherit the wrapper's color so the per-state sync-pill vibes below
+      // pair their container background with the matching on-container text.
+      color: inherit;
 
       &:not(:disabled):hover {
-        background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        background: color-mix(in srgb, currentColor 8%, transparent);
         box-shadow: none;
       }
     }

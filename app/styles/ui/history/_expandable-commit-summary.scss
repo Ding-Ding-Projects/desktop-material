@@ -256,7 +256,7 @@
         height: auto;
 
         .ecs-description-text {
-          background: rgba(#959da5, 0.1);
+          background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
         }
       }
     }

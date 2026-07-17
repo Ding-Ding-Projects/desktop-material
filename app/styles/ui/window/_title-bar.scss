@@ -11,14 +11,14 @@
 
   @include darwin {
     height: var(--darwin-title-bar-height);
-    background: linear-gradient(to bottom, #3b3f46 0%, #2b2e33 100%);
-    border-bottom: 1px solid #000;
+    background: var(--md-sys-color-surface-container);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
   }
 
   @include win32 {
     height: var(--win32-title-bar-height);
-    background: var(--win32-title-bar-background-color);
-    border-bottom: 1px solid #000;
+    background: var(--md-sys-color-surface-container);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
 
     .app-icon {
       color: var(--toolbar-button-secondary-color);
@@ -71,7 +71,7 @@
       box-shadow: none;
       border-radius: 0;
 
-      color: #a0a0a0;
+      color: var(--md-sys-color-on-surface-variant);
       background-color: transparent;
       transition: background-color 0.25s ease;
 
@@ -83,16 +83,21 @@
         outline: none;
       }
 
+      &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: -2px;
+      }
+
       &:hover {
-        background-color: #888;
-        color: #fff;
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+        color: var(--md-sys-color-on-surface);
 
         // Doing :hover:active as oposed to just :active is
         // a conscious choice to match how the real Windows
         // controls behave when someone hovers, clicks and then
         // moves away from the hitbox.
         &:active {
-          background-color: #666;
+          background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 18%, transparent);
 
           // Immediate feedback when clicking
           transition: none;
@@ -138,11 +143,11 @@
   .window-controls {
     button {
       &:hover {
-        background-color: #e5e5e5;
-        color: #000;
+        background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+        color: var(--md-sys-color-on-surface);
 
         &:active {
-          background-color: #cccccc;
+          background-color: color-mix(in srgb, var(--md-sys-color-on-surface) 18%, transparent);
         }
       }
 
