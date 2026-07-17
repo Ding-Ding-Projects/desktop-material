@@ -385,8 +385,8 @@ export class BuildRunSettings extends React.Component<
         <ToggledtippedContent
           className="build-run-toggle-tip"
           ariaLabel="About auto-installing tools"
-          ariaLiveMessage="When a required toolchain is missing, install it automatically with winget or Corepack, refresh PATH, and continue the build. May prompt for administrator access."
-          tooltip="When a required toolchain (Node, Python, Go, Rust, .NET…) is missing, install it automatically with winget or Corepack behind a single UAC prompt, refresh PATH, then continue the build."
+          ariaLiveMessage="When a required toolchain is missing, install it automatically with winget on Windows, Homebrew on macOS, or Corepack, pip and gem anywhere, refresh PATH, and continue the build. May prompt for administrator access on Windows."
+          tooltip="When a required toolchain (Node, Python, Go, Rust, .NET, Java, Ruby, PHP…) is missing, install it automatically — winget behind a single UAC prompt on Windows, Homebrew on macOS, Corepack/pip/gem for package managers — refresh PATH, then continue the build."
         >
           <Octicon symbol={octicons.info} />
         </ToggledtippedContent>

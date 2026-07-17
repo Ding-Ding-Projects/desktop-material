@@ -15,7 +15,10 @@ import {
  * (`HKCU\Environment` merged after `HKLM\…\Session Manager\Environment`),
  * expand `%VAR%` references, and overlay it on the current process env.
  *
- * Off Windows this is a no-op passthrough of the base env.
+ * A GUI process on macOS (and Linux) has the launchd/session PATH, which
+ * typically omits Homebrew and per-user toolchain directories entirely. There
+ * we append the well-known tool directories that shells pick up via profile
+ * scripts, so builds find the same toolchains a terminal would.
  */
 
 const HKLM_ENV_SUBKEY =
@@ -86,9 +89,53 @@ export function readUserPathFromRegistry(
 }
 
 /**
+ * Well-known POSIX tool directories that login shells add via profile scripts
+ * but GUI processes don't inherit. Appending a directory that doesn't exist is
+ * harmless, so no disk probing is needed.
+ */
+export function wellKnownPosixToolDirs(env: NodeJS.ProcessEnv): string[] {
+  const dirs = [
+    '/opt/homebrew/bin',
+    '/opt/homebrew/sbin',
+    '/usr/local/bin',
+    '/usr/local/sbin',
+  ]
+  const home = env.HOME ?? ''
+  if (home.length > 0) {
+    dirs.push(
+      `${home}/.cargo/bin`,
+      `${home}/go/bin`,
+      `${home}/.local/bin`,
+      `${home}/.deno/bin`,
+      `${home}/.bun/bin`,
+      `${home}/.pub-cache/bin`,
+      `${home}/.dotnet/tools`,
+      `${home}/.mix/escripts`
+    )
+  }
+  return dirs
+}
+
+/** Append the well-known tool directories to a colon-separated PATH value. */
+export function appendPosixToolDirs(
+  pathValue: string,
+  env: NodeJS.ProcessEnv
+): string {
+  const segments = pathValue.split(':').filter(segment => segment.length > 0)
+  const seen = new Set(segments)
+  for (const dir of wellKnownPosixToolDirs(env)) {
+    if (!seen.has(dir)) {
+      seen.add(dir)
+      segments.push(dir)
+    }
+  }
+  return segments.join(':')
+}
+
+/**
  * Build the environment record a build runs in: the base env overlaid with the
- * registry-resolved PATH (Windows only). On other platforms the base env is
- * returned unchanged.
+ * registry-resolved PATH on Windows, or with the well-known Homebrew and
+ * per-user toolchain directories appended on macOS / Linux.
  */
 export function resolveRunEnv(
   baseEnv: NodeJS.ProcessEnv = process.env
@@ -100,11 +147,15 @@ export function resolveRunEnv(
     }
   }
 
-  const registryPath = readUserPathFromRegistry(baseEnv)
-  if (registryPath != null) {
-    // Windows env keys are case-insensitive; normalize onto `Path`.
-    delete env.PATH
-    env.Path = registryPath
+  if (process.platform === 'win32') {
+    const registryPath = readUserPathFromRegistry(baseEnv)
+    if (registryPath != null) {
+      // Windows env keys are case-insensitive; normalize onto `Path`.
+      delete env.PATH
+      env.Path = registryPath
+    }
+  } else {
+    env.PATH = appendPosixToolDirs(env.PATH ?? '', baseEnv)
   }
 
   return env
