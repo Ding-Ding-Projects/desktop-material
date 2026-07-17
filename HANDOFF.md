@@ -36,6 +36,53 @@ Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
 
+## 2026-07-17 Build & Run auto-build hardening
+
+The one-click Build & Run auto-build now works across every detected
+ecosystem, on every supported host, including complex builds whose
+dependencies must be installed automatically:
+
+- **Toolchain auto-install is no longer Windows-only.** The pure
+  `planToolchainInstall` mapping now covers winget on Windows (extended from 5
+  ecosystems to Node/Bun, Python, Go, Rust, .NET, Deno, Java via Temurin JDK
+  plus Gradle/Maven, PHP, Ruby with DevKit, Elixir, sbt, Swift, Zig, CMake,
+  and GNU Make), Homebrew on macOS (same coverage plus Composer, Dart,
+  Flutter and the Haskell toolchain; the JDK installs as the `temurin` cask so
+  wrappers and `/usr/bin/java` find it, and brew steps are never elevated),
+  and runtime-provisioned package managers on every platform including Linux:
+  `yarn`/`pnpm` via Corepack, `pipenv`/`poetry` via pip, and Bundler via gem.
+- **Missing-dependency auto-fix covers every dependency-managed ecosystem.**
+  `planRemediation` now receives the plan's install-stage commands and
+  proposes ordered multi-command remediations. Build/run stages that fail on
+  missing packages re-run the profile's install commands (or a sensible
+  ecosystem default) before retrying: Node missing-module errors, Python
+  `ModuleNotFoundError`, `go mod tidy` for missing go.sum entries, `cargo
+  fetch`, `dotnet restore` on NU1101/NETSDK1004, `composer install` on a
+  missing `vendor/autoload.php`, `bundle install` on `Bundler::GemNotFound`,
+  `mix deps.get`, `dart pub get`, `swift package resolve`, `sbt update`, and
+  a bounded plain retry for transient Gradle/Maven resolution failures. The
+  Python venv fix is now correctly scoped to the install stage, and the
+  per-stage retry budget is unchanged.
+- **GUI-launched builds on macOS/Linux now find their toolchains.**
+  `resolveRunEnv` appends the well-known Homebrew and per-user tool
+  directories (`/opt/homebrew/bin`, `/usr/local/bin`, `~/.cargo/bin`,
+  `~/go/bin`, `~/.local/bin`, `~/.deno/bin`, `~/.bun/bin`,
+  `~/.pub-cache/bin`, `~/.dotnet/tools`, `~/.mix/escripts`) to PATH off
+  Windows, mirroring the existing registry-based PATH refresh on Windows, so
+  both the initial probe and the post-install re-check see what a terminal
+  would.
+
+The runner threads install commands into the auto-fix planner and executes
+multi-command remediations sequentially with the existing cancellation
+checks; the Repository settings auto-install copy and the plan/type docs now
+describe the cross-platform behaviour. Focused verification in this
+environment: the rewritten `auto-fix`/`toolchain-install` suites plus the
+existing detect/gitignore suites pass (128 tests), the IPC-contract,
+toolbar-overflow-layout, and post-shell style suites pass (32 tests), and
+repository-wide `tsc --noEmit --skipLibCheck`, changed-file ESLint with the
+repository rule directory, and Prettier are clean. No production UI gate was
+run in this Linux container.
+
 ## 2026-07-17 recovery, custom logos, app functions, and responsive completion
 
 Clone account changes now invalidate stale provider selections and reload the

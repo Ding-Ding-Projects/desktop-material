@@ -405,6 +405,8 @@ export class BuildRunner {
     command: ICommand,
     onSpawn?: (pid: number | undefined) => void
   ): Promise<void> {
+    const installCommands =
+      run.plan.stages.find(s => s.kind === 'install')?.commands ?? []
     let current = command
     let attempt = 0
 
@@ -423,7 +425,8 @@ export class BuildRunner {
         run.plan.ecosystem,
         res.tail,
         attempt,
-        run.plan.probeFlags
+        run.plan.probeFlags,
+        installCommands
       )
       if (remediation === null) {
         if (res.spawnError) {
@@ -440,13 +443,15 @@ export class BuildRunner {
       attempt++
       this.emitLog(run, stage, 'meta', remediation.note)
       if (remediation.replacesStage) {
-        current = remediation.command
+        current = remediation.commands[0]
       } else {
-        // Run the remediation as a pre-step, then re-run the original command.
-        this.emitLog(run, stage, 'command', remediation.command.label)
-        await this.exec(run, stage, remediation.command)
-        if (run.cancelled) {
-          throw new CancelledError()
+        // Run the remediations as pre-steps, then re-run the original command.
+        for (const fix of remediation.commands) {
+          this.emitLog(run, stage, 'command', fix.label)
+          await this.exec(run, stage, fix)
+          if (run.cancelled) {
+            throw new CancelledError()
+          }
         }
       }
     }
