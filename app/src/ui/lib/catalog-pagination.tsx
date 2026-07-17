@@ -26,6 +26,11 @@ interface ICatalogPaginationProps {
   readonly onPageSizeChange: (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => void
+  /**
+   * Invoked when the "Go to page" selector changes. When omitted, the direct
+   * page jump is not rendered (the First/Previous/Next/Last buttons remain).
+   */
+  readonly onPageSelect?: (event: React.ChangeEvent<HTMLSelectElement>) => void
 }
 
 /**
@@ -52,9 +57,16 @@ export class CatalogPagination extends React.Component<ICatalogPaginationProps> 
   }
 
   public render() {
-    const { page, navLabel, pageSizeLabel, pageSizeInputId, onPageSizeChange } =
-      this.props
+    const {
+      page,
+      navLabel,
+      pageSizeLabel,
+      pageSizeInputId,
+      onPageSizeChange,
+      onPageSelect,
+    } = this.props
     const disabled = this.props.disabled === true
+    const showJump = onPageSelect !== undefined && page.pageCount > 1
     return (
       <nav className="catalog-pagination" aria-label={navLabel}>
         <div className="catalog-pagination-controls">
@@ -81,6 +93,22 @@ export class CatalogPagination extends React.Component<ICatalogPaginationProps> 
           <span aria-live="polite">
             Page {page.page} of {page.pageCount}
           </span>
+          {showJump ? (
+            <label className="catalog-pagination-jump">
+              Go to page
+              <select
+                value={page.page}
+                disabled={disabled}
+                onChange={onPageSelect}
+              >
+                {Array.from({ length: page.pageCount }, (_value, index) => (
+                  <option key={index + 1} value={index + 1}>
+                    {index + 1}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button
             type="button"
             data-page={page.page + 1}

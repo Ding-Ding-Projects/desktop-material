@@ -656,6 +656,12 @@ export class GitHubAPIExplorer extends React.Component<
     })
   }
 
+  private onCatalogPageSelect = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    this.setState({ catalogPage: Number(event.currentTarget.value) })
+  }
+
   private onOperationClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     const operationId = event.currentTarget.dataset.operationId
     const resolution = resolveCatalogForProps(this.props)
@@ -707,6 +713,12 @@ export class GitHubAPIExplorer extends React.Component<
       graphQLCatalogPageSize: Number(event.currentTarget.value),
       graphQLCatalogPage: 1,
     })
+  }
+
+  private onGraphQLCatalogPageSelect = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    this.setState({ graphQLCatalogPage: Number(event.currentTarget.value) })
   }
 
   private onGraphQLOperationClick = (
@@ -1045,7 +1057,8 @@ export class GitHubAPIExplorer extends React.Component<
     pageSizeLabel: string,
     pageSizeInputId: string,
     onPageChange: (event: React.MouseEvent<HTMLButtonElement>) => void,
-    onPageSizeChange: (event: React.ChangeEvent<HTMLSelectElement>) => void
+    onPageSizeChange: (event: React.ChangeEvent<HTMLSelectElement>) => void,
+    onPageSelect: (event: React.ChangeEvent<HTMLSelectElement>) => void
   ) {
     return (
       <CatalogPagination
@@ -1056,6 +1069,7 @@ export class GitHubAPIExplorer extends React.Component<
         disabled={this.state.loading}
         onPageChange={onPageChange}
         onPageSizeChange={onPageSizeChange}
+        onPageSelect={onPageSelect}
       />
     )
   }
@@ -1219,7 +1233,8 @@ export class GitHubAPIExplorer extends React.Component<
               'Operations per page',
               'github-api-explorer-rest-page-size',
               this.onCatalogPageChange,
-              this.onCatalogPageSizeChange
+              this.onCatalogPageSizeChange,
+              this.onCatalogPageSelect
             )}
       </aside>
     )
@@ -1370,7 +1385,8 @@ export class GitHubAPIExplorer extends React.Component<
               'Roots per page',
               'github-api-explorer-graphql-page-size',
               this.onGraphQLCatalogPageChange,
-              this.onGraphQLCatalogPageSizeChange
+              this.onGraphQLCatalogPageSizeChange,
+              this.onGraphQLCatalogPageSelect
             )}
       </aside>
     )

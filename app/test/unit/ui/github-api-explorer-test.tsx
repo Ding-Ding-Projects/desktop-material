@@ -327,6 +327,55 @@ describe('GitHub API Explorer', () => {
     )
   })
 
+  it('jumps directly to a chosen REST page via the page selector', () => {
+    render(
+      <GitHubAPIExplorer
+        repository={selectedRepository}
+        accounts={[selectedAccount]}
+        client={new FakeExplorerClient()}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Catalog scope'), {
+      target: { value: 'all' },
+    })
+    const nav = screen.getByRole('navigation', {
+      name: 'GitHub API operation pages',
+    })
+
+    // The selector offers exactly one option per page.
+    const jump = within(nav).getByLabelText('Go to page') as HTMLSelectElement
+    assert.equal(jump.options.length, 25)
+
+    fireEvent.change(jump, { target: { value: '13' } })
+    assert.ok(within(nav).getByText('Page 13 of 25'))
+    // Page 13 of 50 => items 601–650.
+    assert.ok(screen.getByText('Showing 601–650 of 1,206'))
+    assert.equal(
+      (within(nav).getByLabelText('Go to page') as HTMLSelectElement).value,
+      '13'
+    )
+  })
+
+  it('hides the page selector when a filter leaves a single page', () => {
+    render(
+      <GitHubAPIExplorer
+        repository={selectedRepository}
+        accounts={[selectedAccount]}
+        client={new FakeExplorerClient()}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Search operations'), {
+      target: { value: 'secret-scanning/list-repo-custom-patterns' },
+    })
+    const nav = screen.getByRole('navigation', {
+      name: 'GitHub API operation pages',
+    })
+    assert.ok(within(nav).getByText('Page 1 of 1'))
+    assert.equal(within(nav).queryByLabelText('Go to page'), null)
+  })
+
   it('resets to the first page when a filter narrows the REST catalog', () => {
     render(
       <GitHubAPIExplorer

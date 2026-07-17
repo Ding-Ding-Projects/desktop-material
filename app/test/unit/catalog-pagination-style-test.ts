@@ -41,6 +41,13 @@ describe('shared catalog pagination styles', () => {
     assert.match(styles, /:focus-visible/)
   })
 
+  it('styles the direct "Go to page" selector', () => {
+    assert.match(
+      styles,
+      /\.catalog-pagination-jump\s*\{[\s\S]*select\s*\{[\s\S]*width:\s*auto/
+    )
+  })
+
   it('uses semantic Material tokens', () => {
     assert.match(styles, /--md-sys-color-outline-variant/)
     assert.match(styles, /--md-sys-color-surface-container/)

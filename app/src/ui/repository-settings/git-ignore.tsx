@@ -240,6 +240,10 @@ export class GitIgnore extends React.Component<
     this.setState({ pageSize: Number(event.currentTarget.value), page: 1 })
   }
 
+  private onPageSelected = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    this.setState({ page: Number(event.currentTarget.value) })
+  }
+
   private renderSuggestions(appliedIds: ReadonlySet<string>) {
     const available = this.state.suggestions.filter(
       s => !appliedIds.has(s.templateId)
@@ -425,6 +429,7 @@ export class GitIgnore extends React.Component<
                     pageSizeInputId="gitignore-catalog-page-size"
                     onPageChange={this.onPageChanged}
                     onPageSizeChange={this.onPageSizeChanged}
+                    onPageSelect={this.onPageSelected}
                   />
                 ) : null}
               </>
