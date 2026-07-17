@@ -68,6 +68,25 @@ class ProviderStateTests(unittest.TestCase):
             {value["ruleset_id"] for value in values}, set(provider.RULESET_IDS)
         )
 
+    def test_github_api_explorer_custom_patterns_are_synthetic_and_bounded(self) -> None:
+        response = self.state.dispatch(
+            "GET",
+            self.repo_path + "/secret-scanning/custom-patterns",
+            self.headers,
+        )
+        self.assertEqual(response.status, 200)
+        patterns = self.json(response)
+        self.assertEqual([value["id"] for value in patterns], [101, 102])
+        self.assertTrue(patterns[0]["push_protection_enabled"])
+        self.assertIn("responsive Explorer", patterns[1]["name"])
+
+        rejected_query = self.state.dispatch(
+            "GET",
+            self.repo_path + "/secret-scanning/custom-patterns?page=2",
+            self.headers,
+        )
+        self.assertEqual(rejected_query.status, 404)
+
     def test_artifact_metadata_matches_exact_archive(self) -> None:
         metadata = self.state.dispatch(
             "GET",

@@ -281,4 +281,27 @@ describe('repository section order', () => {
       4
     )
   })
+
+  it('orders every optional GitHub section before provider triage and tools', () => {
+    assert.deepStrictEqual(getRepositorySections(true, true, true, true), [
+      RepositorySectionTab.Changes,
+      RepositorySectionTab.History,
+      RepositorySectionTab.Actions,
+      RepositorySectionTab.Releases,
+      RepositorySectionTab.Issues,
+      RepositorySectionTab.GitHubAPI,
+      RepositorySectionTab.Triage,
+      RepositorySectionTab.RepositoryTools,
+    ])
+    assert.equal(
+      getRepositorySectionVisualIndex(
+        RepositorySectionTab.GitHubAPI,
+        true,
+        true,
+        true,
+        true
+      ),
+      5
+    )
+  })
 })

@@ -69,6 +69,8 @@ import {
   handleActionsArtifactTransfer,
   handleActionsJobLogTransfer,
 } from './actions-transfer'
+import { updateGitHubReleaseTransferAccounts } from './github-release-transfer'
+import { registerGitHubReleaseTransferIPC } from './github-release-transfer-ipc'
 import {
   releaseAllCompletedActionsArtifactDownloads,
   releaseCompletedActionsArtifactDownload,
@@ -605,9 +607,11 @@ app.on('ready', () => {
 
   registerBuildRunIpc()
   registerCLIWorkbenchIpc()
+  registerGitHubReleaseTransferIPC(ipcMain)
 
   ipcMain.on('update-accounts', (event, accounts) => {
     updateAccounts(accounts)
+    updateGitHubReleaseTransferAccounts(accounts)
     // EndpointToken deliberately omits login and account id. Every account
     // refresh therefore revokes a provenance lease before the fingerprint
     // shortcut: a credential rotation, removal, or login-only change in any

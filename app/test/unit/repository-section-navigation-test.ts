@@ -1,0 +1,35 @@
+import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
+import { describe, it } from 'node:test'
+
+const repositorySource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'ui', 'repository.tsx'),
+  'utf8'
+)
+
+describe('repository section navigation source contract', () => {
+  it('uses one complete visible-section mapping for clicks and keyboard navigation', () => {
+    assert.equal(
+      repositorySource.match(/getRepositorySections\(/g)?.length,
+      1,
+      'repository navigation must not rebuild a partial section list'
+    )
+    assert.match(
+      repositorySource,
+      /private getVisibleRepositorySections\(\)[\s\S]*?this\.supportsGitHubActions\(\)[\s\S]*?this\.showsGitHubReleases\(\)[\s\S]*?this\.showsGitHubIssues\(\)[\s\S]*?this\.showsGitHubAPI\(\)/
+    )
+    assert.match(
+      repositorySource,
+      /const shortcut = this\.getVisibleRepositorySections\(\)\[requestedIndex\]/
+    )
+    assert.match(
+      repositorySource,
+      /const sections = this\.getVisibleRepositorySections\(\)/
+    )
+    assert.match(
+      repositorySource,
+      /const section = this\.getVisibleRepositorySections\(\)\[visualIndex\]/
+    )
+  })
+})

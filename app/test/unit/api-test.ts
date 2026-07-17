@@ -324,6 +324,85 @@ describe('API', () => {
     })
   })
 
+  describe('GitHub API Explorer execution', () => {
+    it('executes a bounded account-host request and redacts its response', async () => {
+      const api = new API('https://api.github.com', 'account-token')
+      const controller = new AbortController()
+      let received:
+        | {
+            readonly method: string
+            readonly path: string
+            readonly signal: AbortSignal | undefined
+          }
+        | undefined
+      Reflect.set(
+        api,
+        'ghRequest',
+        async (
+          method: string,
+          path: string,
+          options?: { signal?: AbortSignal }
+        ) => {
+          received = { method, path, signal: options?.signal }
+          return new Response(
+            JSON.stringify({
+              patterns: [{ name: 'Material key' }],
+              token: 'x',
+            }),
+            {
+              status: 200,
+              headers: {
+                'Content-Type': 'application/json',
+                'X-GitHub-Request-Id': 'explorer-request',
+              },
+            }
+          )
+        }
+      )
+
+      const result = await api.executeGitHubAPIWorkbench(
+        {
+          mode: 'rest',
+          method: 'GET',
+          path: 'repos/material/desktop/secret-scanning/custom-patterns',
+          bodyText: '',
+        },
+        false,
+        controller.signal
+      )
+
+      assert.deepEqual(received, {
+        method: 'GET',
+        path: 'repos/material/desktop/secret-scanning/custom-patterns',
+        signal: controller.signal,
+      })
+      assert.deepEqual(result.body, {
+        patterns: [{ name: 'Material key' }],
+        token: '[redacted]',
+      })
+      assert.equal(result.headers['x-github-request-id'], 'explorer-request')
+    })
+
+    it('never sends a mutation without explicit confirmation', async () => {
+      const api = new API('https://api.github.com', 'account-token')
+      let requests = 0
+      Reflect.set(api, 'ghRequest', async () => {
+        requests++
+        return new Response('{}')
+      })
+
+      await assert.rejects(() =>
+        api.executeGitHubAPIWorkbench({
+          mode: 'rest',
+          method: 'DELETE',
+          path: 'repos/material/desktop/secret-scanning/custom-patterns',
+          bodyText: '{"ids":[1]}',
+        })
+      )
+      assert.equal(requests, 0)
+    })
+  })
+
   describe('fetchOrgRepositories', () => {
     it('requests the encoded organization repository endpoint', async () => {
       const api = new API('https://api.github.com', 'token')

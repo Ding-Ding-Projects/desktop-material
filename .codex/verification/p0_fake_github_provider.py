@@ -926,6 +926,43 @@ class ProviderState:
             )
         if method == "GET" and resource == repo_root:
             return json_response(self.repository)
+        if (
+            method == "GET"
+            and resource == f"{repo_root}/secret-scanning/custom-patterns"
+            and not query
+        ):
+            return json_response(
+                [
+                    {
+                        "id": 101,
+                        "name": "Material production credential",
+                        "pattern": "material_prod_[A-Za-z0-9]{32}",
+                        "slug": "material-production-credential",
+                        "state": "published",
+                        "push_protection_enabled": True,
+                        "created_at": FIXED_TIME,
+                        "updated_at": FIXED_TIME,
+                        "start_delimiter": "\\b",
+                        "end_delimiter": "\\b",
+                        "must_match": ["^material_prod_"],
+                        "must_not_match": ["example", "fixture"],
+                    },
+                    {
+                        "id": 102,
+                        "name": "Long synthetic release signing identity for responsive Explorer verification",
+                        "pattern": "release_signing_[A-F0-9]{40}",
+                        "slug": "long-synthetic-release-signing-identity",
+                        "state": "published",
+                        "push_protection_enabled": False,
+                        "created_at": FIXED_TIME,
+                        "updated_at": FIXED_TIME,
+                        "start_delimiter": None,
+                        "end_delimiter": None,
+                        "must_match": None,
+                        "must_not_match": ["never-a-real-secret"],
+                    },
+                ]
+            )
         if method == "GET" and resource == f"{repo_root}/branches":
             branches = [
                 {"name": DEFAULT_BRANCH, "protected": True},

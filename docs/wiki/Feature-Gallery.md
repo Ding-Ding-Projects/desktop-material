@@ -1,6 +1,6 @@
 # Guided Feature Gallery
 
-This page maps 55 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 56 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
@@ -13,9 +13,10 @@ contract rejects missing, duplicate, or unassigned assets.
 
 > **Publication status:** The gallery includes the July 14, 2026 Actions cache and headless
 > pagination evidence, the Pages accessibility/clipping gate, the inspected July 16 adaptive
-> customization set, the profile app-identity workspace, and the clone-style Add Submodule release. Exact build, interaction, and
-> privacy receipts are retained in `HANDOFF.md`; all current roadmap maintenance is complete, and
-> main, CI, Pages, and the seven-page wiki are verified against the promoted release.
+> customization set, the profile app-identity workspace, the clone-style Add Submodule release,
+> and the repository-bound GitHub API Explorer. Exact build, interaction, and
+> privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
+> Pages, and wiki verification without implying that later maintenance work is complete.
 
 The verified adaptive customization maintenance release adds profile app
 identity, favorite/portable tabs, folder-drop opening, guarded tab close/arrange,
@@ -23,6 +24,12 @@ Actions cancellation, reviewed rebase, repository-account propagation, bounded
 OAuth scopes, and compact Repository Tools, Remote Manager, and Regex Builder
 corrections. Its exact production source, safety checks, off-screen interaction
 review, and responsive geometry are recorded with the inspected captures below.
+
+The GitHub API Explorer adds a complete searchable catalog of 1,206 REST
+operations, including exactly 10 operations discovered since the March audit,
+alongside a REST/GraphQL request builder. Requests stay on the selected
+repository account and host, mutations require an explicit review, and response
+content is bounded and credential-redacted before display.
 
 | Asset | Guided workflow shown |
 | --- | --- |
@@ -44,6 +51,7 @@ review, and responsive geometry are recorded with the inspected captures below.
 | `material-native-pull-request.png` | Native pull-request creation with bounded metadata |
 | `material-stash-manager.png` | Repository-wide stash selection and exact-entry actions |
 | `material-actions-job-log.png` | Searchable in-app Actions job log |
+| `material-github-api-explorer.png` | Repository-bound REST/GraphQL API Explorer with mutation review and bounded responses |
 | `material-actions-artifact-download.png` | Bounded artifact download with a locally computed digest |
 | `material-actions-cache-manager.png` | Actions cache usage, inventory, refs, and deletion controls |
 | `material-actions-pagination-headless.png` | Headless Actions run pagination and page-two sentinel |
@@ -131,12 +139,21 @@ path; it never force-pushes automatically.
 
 ## GitHub lifecycle
 
+The repository rail now includes a GitHub API Explorer for expert integration
+work. Its complete searchable catalog covers all 1,206 current REST operations
+and can isolate exactly the 10 additions since the March audit. REST and GraphQL
+requests use only the account bound to the selected repository; every mutation
+stops for exact-request review, while returned headers and bodies are bounded
+and credential-redacted before display.
+
 For queued, running, waiting, or pending workflow runs, the current Actions
 surface adds an exact-run cancellation review with available ref/actor/commit
 context. Repository/account/run identity and live status are revalidated before
 one normal cancel request, duplicate submission is suppressed, and polling
 continues to a terminal state with explicit authentication, SSO, and conflict
 recovery.
+
+![Repository-bound GitHub API Explorer with a searchable operation catalog, REST request builder, and bounded redacted response](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-api-explorer.png)
 
 ![Native pull-request creation with bounded metadata](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-native-pull-request.png)
 

@@ -4,7 +4,8 @@ import { RepositorySectionTab } from '../lib/app-state'
 export function getRepositorySections(
   supportsGitHubActions: boolean,
   supportsGitHubReleases: boolean = false,
-  supportsGitHubIssues: boolean = false
+  supportsGitHubIssues: boolean = false,
+  supportsGitHubAPI: boolean = false
 ): ReadonlyArray<RepositorySectionTab> {
   const sections = [RepositorySectionTab.Changes, RepositorySectionTab.History]
   if (supportsGitHubActions) {
@@ -16,6 +17,9 @@ export function getRepositorySections(
   if (supportsGitHubIssues) {
     sections.push(RepositorySectionTab.Issues)
   }
+  if (supportsGitHubAPI) {
+    sections.push(RepositorySectionTab.GitHubAPI)
+  }
   sections.push(RepositorySectionTab.Triage)
   sections.push(RepositorySectionTab.RepositoryTools)
   return sections
@@ -25,11 +29,13 @@ export function getRepositorySectionVisualIndex(
   section: RepositorySectionTab,
   supportsGitHubActions: boolean,
   supportsGitHubReleases: boolean = false,
-  supportsGitHubIssues: boolean = false
+  supportsGitHubIssues: boolean = false,
+  supportsGitHubAPI: boolean = false
 ): number {
   return getRepositorySections(
     supportsGitHubActions,
     supportsGitHubReleases,
-    supportsGitHubIssues
+    supportsGitHubIssues,
+    supportsGitHubAPI
   ).indexOf(section)
 }

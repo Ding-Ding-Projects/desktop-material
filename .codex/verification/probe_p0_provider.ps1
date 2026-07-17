@@ -45,6 +45,14 @@ if (
 ) {
   throw 'Provider repository identity contract failed.'
 }
+$customPatterns = Invoke-RestMethod -Method Get -Uri "$repo/secret-scanning/custom-patterns" -Headers $headers
+if (
+  @($customPatterns).Count -ne 2 -or
+  [int](@($customPatterns)[0].id) -ne 101 -or
+  -not ([string](@($customPatterns)[1].name)).Contains('responsive Explorer')
+) {
+  throw 'Provider GitHub API Explorer custom-pattern contract failed.'
+}
 $encodedBranch = [Uri]::EscapeDataString([string]$ready.featureBranch)
 $branch = Invoke-RestMethod -Method Get -Uri "$repo/branches/$encodedBranch" -Headers $headers
 $rules = Invoke-RestMethod -Method Get -Uri "$repo/rules/branches/$encodedBranch`?per_page=100" -Headers $headers
@@ -133,6 +141,7 @@ try {
   htmlUrl = [string]$ready.htmlUrl
   cors = 'pass'
   repository = [string]$repository.full_name
+  customPatterns = @($customPatterns).Count
   branchRules = $rules.Count
   workflows = [int]$workflows.total_count
   runs = [int]$runsPage1.total_count

@@ -3,8 +3,10 @@
 ## Outcome
 
 The complete **M0 through M19** Material and guided Git/GitHub roadmap is shipped
-on `main`; it deliberately turns audited capabilities into named, interactive
-app functions instead of exposing a searchable command/API list.
+on `main`; it turns audited capabilities into named, interactive app functions.
+The separately guarded expert GitHub API Explorer is repository- and
+account-bound, reviews mutations, and bounds and redacts responses rather than
+acting as an unrestricted command console.
 
 The first four-function P0 wave is implemented, pushed, and production-UI
 verified at exact source SHA `9e946fd527e5843b2fdba5de675a5476b0c80445`:
@@ -43,16 +45,52 @@ the same inspected release documentation. A final focused checkout pass added
 37/37 green registration, Pull All, checkbox, compact-style, and Pages-gallery
 tests to those repository-wide and off-screen receipts.
 
+## 2026-07-16 GitHub API Explorer release
+
+The repository rail now includes a GitHub API Explorer bound to the exact
+selected repository, provider host, and saved account. Its complete searchable
+catalog contains all 1,206 current REST operations and identifies exactly 10
+operations added since the pinned March audit. The request builder supports
+REST and GraphQL, requires exact-request review before a mutation can run, and
+keeps displayed response headers and bodies bounded and credential-redacted.
+
+The accepted evidence uses the deterministic synthetic
+`material-fixture-owner/material-fixture` repository and provider identity. The
+catalog's **New operations** scope shows 10 of 10 operations; the selected
+repository custom-pattern read completed with a synthetic 200 response. No
+personal account, credential, or private repository identifier appears in the
+capture.
+
+| Promoted screenshot | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-github-api-explorer.png` | 944×1000 | 129,807 | `0115fb552e5212d7d326eb36197e4499f03dd99707b0ebb18c5c3fddf6082228` |
+
+README, Pages, User Guide, and Feature Gallery sources now reference this
+evidence. The machine-checked guided gallery therefore contains 56 distinct
+named functions or states, each backed by one distinct tracked PNG.
+
+The exact unpackaged production build passed twice through the off-screen MCP
+runner; the final rebuilt-source run exited 0 without a timeout in 126.5
+seconds. The accepted app-native client was 944×1000 physical pixels
+(983×1041 CSS pixels at DPR 0.9599999785), with equal document/body client and
+scroll widths and no element outside the horizontal viewport. The verifier
+confirmed 10 rows and 10 **New** badges, the expanded synthetic repository path,
+the 200 response, and both deterministic custom-pattern names. The disposable
+credential was deleted and read back absent; the saved Electron and provider
+PIDs, their two loopback ports, the uniquely named desktop, and the
+containment-checked fixture root were all confirmed gone after capture.
+
 ## 2026-07-16 function screenshot catalog
 
 The wiki now treats the Guided Feature Gallery as a machine-checked visual
-catalog: 55 named, user-facing workflows or states each own one distinct PNG.
-Core History browsing and local Agent access were added to the manifest and its
-rendered image body. Eight unused legacy captures with obsolete or clipped UI
-were removed, leaving no tracked PNG unassigned and no screenshot reused for a
-second catalog row. Home, User Guide, and Developer Guide link or describe the
-same canonical catalog, and a focused unit contract rejects missing, duplicate,
-unrendered, or unassigned assets.
+catalog: 56 named, user-facing workflows or states each own one distinct PNG.
+Core History browsing, local Agent access, and the repository-bound GitHub API
+Explorer are included in the manifest and its rendered image body. Eight unused
+legacy captures with obsolete or clipped UI were removed, leaving no tracked
+PNG unassigned and no screenshot reused for a second catalog row. Home, User
+Guide, and Developer Guide link or describe the same canonical catalog, and a
+focused unit contract rejects missing, duplicate, unrendered, or unassigned
+assets.
 
 The exact MCP endpoint and scheduled task passed preflight against low-level
 checkout `806d9ba85e4afbc2af58d7499496babfa7c68891`. The service PATH no longer

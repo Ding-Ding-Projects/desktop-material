@@ -143,6 +143,9 @@ export function normalizeGitHubAPIPath(path: string): string {
       )
     }
   }
+  if (/\{[^{}]+\}/.test(decodedPathname)) {
+    throw new Error('Replace every {parameter} in the GitHub API path.')
+  }
   return value
 }
 

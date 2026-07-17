@@ -1,0 +1,617 @@
+.github-api-explorer,
+.github-api-explorer * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.github-api-explorer {
+  display: flex;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  overflow: hidden;
+  color: var(--md-sys-color-on-surface);
+  background: var(--md-sys-color-surface);
+
+  h1,
+  h2,
+  p,
+  span,
+  strong,
+  code,
+  small,
+  dt,
+  dd {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  input,
+  select,
+  textarea {
+    width: 100%;
+    max-width: 100%;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 10px;
+    outline: none;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container-lowest);
+    font: inherit;
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--md-sys-color-primary) 26%, transparent);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+  }
+
+  input,
+  select {
+    min-height: 38px;
+    padding: 7px 9px;
+  }
+
+  textarea {
+    min-height: 118px;
+    padding: 10px;
+    resize: vertical;
+    font-family: var(--font-family-monospace);
+    line-height: 1.45;
+  }
+
+  label {
+    display: grid;
+    gap: 5px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .button-component {
+    max-width: 100%;
+    border-radius: 999px;
+    white-space: normal;
+  }
+}
+
+.github-api-explorer-header,
+.github-api-explorer-catalog > header,
+.github-api-explorer-builder > header,
+.github-api-explorer-response > header,
+.github-api-explorer-operation-heading,
+.github-api-explorer-actions {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.github-api-explorer-header {
+  flex: 0 0 auto;
+
+  h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 650;
+  }
+
+  p {
+    margin: 3px 0 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+  }
+}
+
+.github-api-explorer-account {
+  max-width: min(420px, 48vw);
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+  text-align: right;
+}
+
+.github-api-explorer-layout {
+  display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+  flex: 1 1 auto;
+  grid-template-columns: minmax(260px, 0.38fr) minmax(0, 1fr);
+  gap: 14px;
+  overflow: hidden;
+}
+
+.github-api-explorer-catalog,
+.github-api-explorer-builder,
+.github-api-explorer-state {
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 20px;
+  background: var(--md-sys-color-surface-container-low);
+}
+
+.github-api-explorer-catalog {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  overflow: hidden;
+
+  > header {
+    flex: 0 0 auto;
+
+    h2 {
+      margin: 0;
+      font-size: 15px;
+    }
+
+    p,
+    span {
+      margin: 3px 0 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 10px;
+    }
+  }
+}
+
+.github-api-explorer-filters {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+
+  label:first-child {
+    grid-column: 1 / -1;
+  }
+}
+
+.github-api-explorer-operation-list {
+  display: grid;
+  min-height: 0;
+  flex: 1 1 auto;
+  gap: 6px;
+  align-content: start;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  list-style: none;
+
+  li {
+    min-width: 0;
+  }
+
+  button {
+    display: grid;
+    width: 100%;
+    max-width: 100%;
+    gap: 5px;
+    padding: 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    color: var(--md-sys-color-on-surface);
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+    }
+
+    &.selected {
+      border-color: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary-container);
+      background: var(--md-sys-color-primary-container);
+    }
+
+    code,
+    small {
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-all;
+    }
+
+    code {
+      font-size: 10px;
+    }
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 9px;
+    }
+  }
+}
+
+.github-api-explorer-operation-heading {
+  justify-content: flex-start;
+
+  strong,
+  em {
+    flex: 0 0 auto;
+    padding: 2px 6px;
+    border-radius: 999px;
+    font-size: 9px;
+    font-style: normal;
+    line-height: 1.4;
+  }
+
+  strong {
+    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-secondary-container);
+  }
+
+  em {
+    color: var(--md-sys-color-on-tertiary-container);
+    background: var(--md-sys-color-tertiary-container);
+  }
+
+  span {
+    flex: 1 1 140px;
+    font-size: 11px;
+    font-weight: 650;
+  }
+}
+
+.github-api-explorer-capped {
+  flex: 0 0 auto;
+  margin: 0;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 10px;
+}
+
+.github-api-explorer-builder {
+  min-height: 0;
+  padding: 16px;
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  > header {
+    align-items: flex-start;
+
+    h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    p {
+      margin: 3px 0 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 11px;
+    }
+  }
+
+  form {
+    display: grid;
+    gap: 12px;
+    margin-top: 14px;
+  }
+}
+
+.github-api-explorer-tabs {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--md-sys-color-surface-container-high);
+
+  button {
+    min-height: 32px;
+    padding: 5px 12px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--md-sys-color-on-surface-variant);
+    background: transparent;
+    font: inherit;
+    font-size: 11px;
+    font-weight: 650;
+    cursor: pointer;
+
+    &[aria-selected='true'] {
+      color: var(--md-sys-color-on-primary-container);
+      background: var(--md-sys-color-primary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+.github-api-explorer-form {
+  display: grid;
+  gap: 11px;
+}
+
+.github-api-explorer-rest-target {
+  display: grid;
+  grid-template-columns: minmax(94px, 0.2fr) minmax(0, 1fr);
+  gap: 10px;
+}
+
+.github-api-explorer-graphql-options {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(150px, 0.38fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.github-api-explorer-query {
+  min-height: 180px !important;
+}
+
+.github-api-explorer-operation-summary,
+.github-api-explorer-review,
+.github-api-explorer-response,
+.github-api-explorer-loading,
+.github-api-explorer-error,
+.github-api-explorer-message,
+.github-api-explorer-empty {
+  max-width: 100%;
+  padding: 12px;
+  border-radius: 14px;
+  overflow-x: hidden;
+  background: var(--md-sys-color-surface-container);
+}
+
+.github-api-explorer-operation-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+
+  > div:first-child {
+    display: grid;
+    flex: 1 1 220px;
+    gap: 4px;
+  }
+
+  code {
+    font-size: 10px;
+  }
+}
+
+.github-api-explorer-operation-flags {
+  display: flex;
+  flex: 0 1 auto;
+  flex-wrap: wrap;
+  gap: 5px;
+
+  span {
+    padding: 3px 7px;
+    border-radius: 999px;
+    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-secondary-container);
+    font-size: 9px;
+    font-weight: 650;
+  }
+}
+
+.github-api-explorer-actions {
+  justify-content: flex-start;
+}
+
+.github-api-explorer-review,
+.github-api-explorer-response,
+.github-api-explorer-loading,
+.github-api-explorer-error,
+.github-api-explorer-message {
+  margin-top: 12px;
+}
+
+.github-api-explorer-review {
+  border: 1px solid var(--md-sys-color-tertiary);
+  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-tertiary-container);
+
+  &.destructive {
+    border-color: var(--md-sys-color-error);
+    color: var(--md-sys-color-on-error-container);
+    background: var(--md-sys-color-error-container);
+  }
+
+  h2 {
+    margin: 0 0 7px;
+    font-size: 16px;
+  }
+
+  p {
+    margin: 6px 0;
+    font-size: 11px;
+  }
+
+  code {
+    display: block;
+    max-width: 100%;
+    padding: 8px;
+    border-radius: 8px;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+    background: color-mix(in srgb, var(--md-sys-color-surface) 48%, transparent);
+  }
+}
+
+.github-api-explorer-loading,
+.github-api-explorer-message {
+  color: var(--md-sys-color-on-secondary-container);
+  background: var(--md-sys-color-secondary-container);
+  font-size: 11px;
+}
+
+.github-api-explorer-error {
+  color: var(--md-sys-color-on-error-container);
+  background: var(--md-sys-color-error-container);
+  font-size: 11px;
+}
+
+.github-api-explorer-empty {
+  display: grid;
+  gap: 4px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 11px;
+}
+
+.github-api-explorer-response {
+  border: 1px solid var(--md-sys-color-outline-variant);
+
+  h2 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  > p {
+    margin: 7px 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 10px;
+  }
+
+  dl {
+    display: grid;
+    max-width: 100%;
+    grid-template-columns: minmax(120px, 0.3fr) minmax(0, 1fr);
+    gap: 4px 10px;
+    margin: 10px 0;
+    font-size: 10px;
+  }
+
+  dt {
+    color: var(--md-sys-color-on-surface-variant);
+    font-weight: 650;
+  }
+
+  dd {
+    margin: 0;
+    word-break: break-all;
+  }
+
+  pre {
+    width: 100%;
+    max-width: 100%;
+    max-height: 360px;
+    margin: 10px 0 0;
+    padding: 11px;
+    border-radius: 10px;
+    overflow: auto;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container-lowest);
+    font-family: var(--font-family-monospace);
+    font-size: 10px;
+    line-height: 1.45;
+  }
+}
+
+.github-api-explorer-state {
+  display: grid;
+  min-height: 220px;
+  place-content: center;
+  padding: 24px;
+  overflow-x: hidden;
+  text-align: center;
+
+  h2 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  p {
+    max-width: 520px;
+    margin: 8px auto 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .github-api-explorer {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .github-api-explorer-layout {
+    min-height: auto;
+    grid-template-columns: minmax(0, 1fr);
+    overflow: visible;
+  }
+
+  .github-api-explorer-catalog {
+    min-height: 360px;
+    max-height: 52vh;
+  }
+
+  .github-api-explorer-builder {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 600px) {
+  .github-api-explorer {
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .github-api-explorer-header,
+  .github-api-explorer-builder > header {
+    align-items: flex-start;
+  }
+
+  .github-api-explorer-account {
+    width: 100%;
+    max-width: 100%;
+    text-align: left;
+  }
+
+  .github-api-explorer-filters,
+  .github-api-explorer-rest-target,
+  .github-api-explorer-graphql-options,
+  .github-api-explorer-response dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .github-api-explorer-filters label:first-child {
+    grid-column: auto;
+  }
+
+  .github-api-explorer-catalog {
+    min-height: 320px;
+    max-height: 58vh;
+    border-radius: 16px;
+  }
+
+  .github-api-explorer-builder,
+  .github-api-explorer-state {
+    padding: 12px;
+    border-radius: 16px;
+  }
+
+  .github-api-explorer-tabs {
+    width: 100%;
+
+    button {
+      flex: 1 1 50%;
+    }
+  }
+}

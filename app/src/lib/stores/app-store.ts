@@ -3846,6 +3846,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       selectedSection !== RepositorySectionTab.Actions &&
       selectedSection !== RepositorySectionTab.Releases &&
       selectedSection !== RepositorySectionTab.Issues &&
+      selectedSection !== RepositorySectionTab.GitHubAPI &&
       selectedSection !== RepositorySectionTab.Triage &&
       selectedSection !== RepositorySectionTab.RepositoryTools
     ) {
@@ -4619,6 +4620,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       section === RepositorySectionTab.Actions ||
       section === RepositorySectionTab.Releases ||
       section === RepositorySectionTab.Issues ||
+      section === RepositorySectionTab.GitHubAPI ||
       section === RepositorySectionTab.Triage ||
       section === RepositorySectionTab.RepositoryTools
     ) {

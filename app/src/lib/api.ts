@@ -206,6 +206,12 @@ import {
 } from './actions-response'
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
 import { GitHubOAuthScopes } from './github-oauth-scopes'
+import {
+  GitHubAPIWorkbenchRequest,
+  IGitHubAPIWorkbenchResponse,
+  prepareGitHubAPIWorkbenchExecution,
+  readGitHubAPIWorkbenchResponse,
+} from './github-api-workbench'
 export {
   createGitHubAPIRequestHeaders,
   getGitHubRESTAPIVersion,
@@ -1491,6 +1497,21 @@ export class API {
     this.endpoint = endpoint
     this.token = token
     this.copilotEndpoint = copilotEndpoint
+  }
+
+  /** Execute one reviewed, repository-bound GitHub API Explorer request. */
+  public async executeGitHubAPIWorkbench(
+    request: GitHubAPIWorkbenchRequest,
+    confirmed: boolean = false,
+    signal?: AbortSignal
+  ): Promise<IGitHubAPIWorkbenchResponse> {
+    const execution = prepareGitHubAPIWorkbenchExecution(request, confirmed)
+    const response = await this.ghRequest(execution.method, execution.path, {
+      body:
+        execution.body === undefined ? undefined : (execution.body as Object),
+      signal,
+    })
+    return readGitHubAPIWorkbenchResponse(response)
   }
 
   /**

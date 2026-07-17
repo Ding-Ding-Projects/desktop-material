@@ -5,16 +5,29 @@ import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 
 const ApiVersion = '2026-03-10'
-const SourceCommit = '3b43edf675308c515b5e92a3eb89db17f6e6d806'
+const SourceCommit = 'bf7e007714988319f286ebbd102f1d3cea20dfc2'
+const PreviousSourceCommit = '3b43edf675308c515b5e92a3eb89db17f6e6d806'
 const SourceSha256 =
-  '9b0a095713ff578ebe58b7d7fc284470b6ac7fd005cb384bed2e2c0f7640dc0a'
+  '368e7d20bb84ee4558c65082243040539179deb195d6ad46a6c53e1bd940d3c0'
 const Expected = {
-  paths: 790,
-  operations: 1196,
+  paths: 796,
+  operations: 1206,
   tags: 49,
   categories: 51,
   webhooks: 270,
 }
+const NewOperationIds = [
+  'copilot/copilot-enterprise-repos-one-day-report',
+  'copilot/copilot-organization-repos-one-day-report',
+  'secret-scanning/bulk-create-org-custom-patterns',
+  'secret-scanning/bulk-create-repo-custom-patterns',
+  'secret-scanning/bulk-delete-org-custom-patterns',
+  'secret-scanning/bulk-delete-repo-custom-patterns',
+  'secret-scanning/list-org-custom-patterns',
+  'secret-scanning/list-repo-custom-patterns',
+  'secret-scanning/update-org-custom-pattern',
+  'secret-scanning/update-repo-custom-pattern',
+]
 const Methods = ['get', 'head', 'post', 'put', 'patch', 'delete']
 
 function usage() {
@@ -72,9 +85,14 @@ for (const [path, pathItem] of Object.entries(api.paths)) {
     const github = operation['x-github'] ?? {}
     const category = github.category ?? operation.tags?.[0] ?? 'other'
     categoryCounts.set(category, (categoryCounts.get(category) ?? 0) + 1)
-    const parameters = [...(pathItem.parameters ?? []), ...(operation.parameters ?? [])]
+    const parameters = [
+      ...(pathItem.parameters ?? []),
+      ...(operation.parameters ?? []),
+    ]
       .map(resolveParameter)
-      .filter(parameter => parameter?.in === 'path' || parameter?.in === 'query')
+      .filter(
+        parameter => parameter?.in === 'path' || parameter?.in === 'query'
+      )
       .map(parameter => ({
         name: parameter.name,
         in: parameter.in,
@@ -95,12 +113,21 @@ for (const [path, pathItem] of Object.entries(api.paths)) {
       deprecated: operation.deprecated === true,
       parameters,
       requestBodyRequired: operation.requestBody?.required === true,
-      requestBodyContentTypes: Object.keys(operation.requestBody?.content ?? {}),
+      requestBodyContentTypes: Object.keys(
+        operation.requestBody?.content ?? {}
+      ),
     })
   }
 }
 
 operations.sort((left, right) => left.id.localeCompare(right.id))
+const operationIds = new Set(operations.map(operation => operation.id))
+const missingNewOperations = NewOperationIds.filter(id => !operationIds.has(id))
+if (missingNewOperations.length > 0) {
+  throw new Error(
+    `Expected new operations are missing: ${missingNewOperations.join(', ')}`
+  )
+}
 const inventory = {
   paths: Object.keys(api.paths).length,
   operations: operations.length,
@@ -118,12 +145,14 @@ for (const [name, expected] of Object.entries(Expected)) {
 
 const catalog = {
   purpose:
-    'Coverage evidence for implementing named app functions; not a runtime endpoint-search catalog.',
+    'Complete runtime GitHub REST operation catalog and coverage evidence for named app functions.',
   apiVersion: ApiVersion,
   sourceCommit: SourceCommit,
+  previousSourceCommit: PreviousSourceCommit,
   sourceSha256,
   sourceUrl: `https://github.com/github/rest-api-description/blob/${SourceCommit}/descriptions/api.github.com/api.github.com.json`,
   inventory,
+  newOperationIds: NewOperationIds,
   categories: [...categoryCounts.entries()]
     .sort(([left], [right]) => left.localeCompare(right))
     .map(([name, count]) => ({ name, count })),

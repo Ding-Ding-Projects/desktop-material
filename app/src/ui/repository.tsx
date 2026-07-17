@@ -56,6 +56,7 @@ import {
 } from '../lib/stores/github-releases-store'
 import { GitHubReleasesView } from './github-releases'
 import { GitHubIssuesView } from './github-issues'
+import { GitHubAPIExplorer } from './github-api-explorer'
 import { RepositoryTools } from './repository-tools'
 import { RepositoryProviderTriage } from './repository-tools/provider-triage'
 import { RepositorySettingsTab } from './repository-settings/repository-settings'
@@ -63,6 +64,7 @@ import {
   getRepositorySections,
   getRepositorySectionVisualIndex,
 } from './repository-sections'
+import { getAccountForRepository } from '../lib/get-account-for-repository'
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -228,6 +230,26 @@ export class RepositoryView extends React.Component<
     )
   }
 
+  private showsGitHubAPI() {
+    if (this.props.repository.gitHubRepository === null) {
+      return false
+    }
+    const account = getAccountForRepository(
+      this.props.accounts,
+      this.props.repository
+    )
+    return account === null || account.provider === 'github'
+  }
+
+  private getVisibleRepositorySections() {
+    return getRepositorySections(
+      this.supportsGitHubActions(),
+      this.showsGitHubReleases(),
+      this.showsGitHubIssues(),
+      this.showsGitHubAPI()
+    )
+  }
+
   private readonly refreshRepository = () =>
     this.props.dispatcher.refreshRepository(this.props.repository)
 
@@ -238,7 +260,8 @@ export class RepositoryView extends React.Component<
         !this.supportsGitHubActions()) ||
       (section === RepositorySectionTab.Releases &&
         !this.showsGitHubReleases()) ||
-      (section === RepositorySectionTab.Issues && !this.showsGitHubIssues())
+      (section === RepositorySectionTab.Issues && !this.showsGitHubIssues()) ||
+      (section === RepositorySectionTab.GitHubAPI && !this.showsGitHubAPI())
     ) {
       return RepositorySectionTab.Changes
     }
@@ -286,7 +309,8 @@ export class RepositoryView extends React.Component<
       selectedSection,
       this.supportsGitHubActions(),
       this.showsGitHubReleases(),
-      this.showsGitHubIssues()
+      this.showsGitHubIssues(),
+      this.showsGitHubAPI()
     )
 
     return (
@@ -331,6 +355,14 @@ export class RepositoryView extends React.Component<
               <Octicon symbol={octicons.issueOpened} className="rail-icon" />
             </span>
             <span className="rail-label">Issues</span>
+          </span>
+        )}
+        {this.showsGitHubAPI() && (
+          <span className="rail-item" id="github-api-tab">
+            <span className="rail-pill">
+              <Octicon symbol={octicons.codeSquare} className="rail-icon" />
+            </span>
+            <span className="rail-label">API</span>
           </span>
         )}
         <span className="rail-item" id="triage-tab">
@@ -589,6 +621,7 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
       selectedSection === RepositorySectionTab.Issues ||
+      selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
       selectedSection === RepositorySectionTab.RepositoryTools
     ) {
@@ -612,6 +645,7 @@ export class RepositoryView extends React.Component<
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
       selectedSection === RepositorySectionTab.Issues ||
+      selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
       selectedSection === RepositorySectionTab.RepositoryTools
     ) {
@@ -898,6 +932,13 @@ export class RepositoryView extends React.Component<
           dispatcher={this.props.dispatcher}
         />
       )
+    } else if (selectedSection === RepositorySectionTab.GitHubAPI) {
+      return (
+        <GitHubAPIExplorer
+          repository={this.props.repository}
+          accounts={this.props.accounts}
+        />
+      )
     } else if (selectedSection === RepositorySectionTab.Triage) {
       return (
         <RepositoryProviderTriage
@@ -978,11 +1019,7 @@ export class RepositoryView extends React.Component<
       const requestedIndex = /^[1-9]$/.test(event.key)
         ? Number(event.key) - 1
         : -1
-      const shortcut = getRepositorySections(
-        this.supportsGitHubActions(),
-        this.showsGitHubReleases(),
-        this.showsGitHubIssues()
-      )[requestedIndex]
+      const shortcut = this.getVisibleRepositorySections()[requestedIndex]
       if (shortcut !== undefined) {
         this.props.dispatcher.changeRepositorySection(
           this.props.repository,
@@ -1001,11 +1038,7 @@ export class RepositoryView extends React.Component<
   }
 
   private changeTab() {
-    const sections = getRepositorySections(
-      this.supportsGitHubActions(),
-      this.showsGitHubReleases(),
-      this.showsGitHubIssues()
-    )
+    const sections = this.getVisibleRepositorySections()
     const current = sections.indexOf(this.props.state.selectedSection)
     const section = sections[(current + 1) % sections.length]
 
@@ -1016,11 +1049,7 @@ export class RepositoryView extends React.Component<
   }
 
   private onTabClicked = (visualIndex: number) => {
-    const section = getRepositorySections(
-      this.supportsGitHubActions(),
-      this.showsGitHubReleases(),
-      this.showsGitHubIssues()
-    )[visualIndex]
+    const section = this.getVisibleRepositorySections()[visualIndex]
     if (section === undefined) {
       return
     }

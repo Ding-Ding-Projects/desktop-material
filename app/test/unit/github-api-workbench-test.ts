@@ -20,6 +20,9 @@ describe('GitHub API workbench contract', () => {
     assert.throws(() => normalizeGitHubAPIPath('repos/octo/../admin'))
     assert.throws(() => normalizeGitHubAPIPath('repos%2F..%2Fadmin'))
     assert.throws(() => normalizeGitHubAPIPath('repos/octo/repo#token'))
+    assert.throws(() =>
+      normalizeGitHubAPIPath('repos/octo/repo/deployments/{deployment_id}')
+    )
   })
 
   it('validates bounded REST JSON and GraphQL variables', () => {

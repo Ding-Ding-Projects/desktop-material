@@ -1,16 +1,29 @@
 {
-  "purpose": "Coverage evidence for implementing named app functions; not a runtime endpoint-search catalog.",
+  "purpose": "Complete runtime GitHub REST operation catalog and coverage evidence for named app functions.",
   "apiVersion": "2026-03-10",
-  "sourceCommit": "3b43edf675308c515b5e92a3eb89db17f6e6d806",
-  "sourceSha256": "9b0a095713ff578ebe58b7d7fc284470b6ac7fd005cb384bed2e2c0f7640dc0a",
-  "sourceUrl": "https://github.com/github/rest-api-description/blob/3b43edf675308c515b5e92a3eb89db17f6e6d806/descriptions/api.github.com/api.github.com.json",
+  "sourceCommit": "bf7e007714988319f286ebbd102f1d3cea20dfc2",
+  "previousSourceCommit": "3b43edf675308c515b5e92a3eb89db17f6e6d806",
+  "sourceSha256": "368e7d20bb84ee4558c65082243040539179deb195d6ad46a6c53e1bd940d3c0",
+  "sourceUrl": "https://github.com/github/rest-api-description/blob/bf7e007714988319f286ebbd102f1d3cea20dfc2/descriptions/api.github.com/api.github.com.json",
   "inventory": {
-    "paths": 790,
-    "operations": 1196,
+    "paths": 796,
+    "operations": 1206,
     "tags": 49,
     "categories": 51,
     "webhooks": 270
   },
+  "newOperationIds": [
+    "copilot/copilot-enterprise-repos-one-day-report",
+    "copilot/copilot-organization-repos-one-day-report",
+    "secret-scanning/bulk-create-org-custom-patterns",
+    "secret-scanning/bulk-create-repo-custom-patterns",
+    "secret-scanning/bulk-delete-org-custom-patterns",
+    "secret-scanning/bulk-delete-repo-custom-patterns",
+    "secret-scanning/list-org-custom-patterns",
+    "secret-scanning/list-repo-custom-patterns",
+    "secret-scanning/update-org-custom-pattern",
+    "secret-scanning/update-repo-custom-pattern"
+  ],
   "categories": [
     { "name": "actions", "count": 195 },
     { "name": "activity", "count": 32 },
@@ -29,7 +42,7 @@
     { "name": "codespaces", "count": 48 },
     { "name": "collaborators", "count": 11 },
     { "name": "commits", "count": 14 },
-    { "name": "copilot", "count": 29 },
+    { "name": "copilot", "count": 31 },
     { "name": "copilot-spaces", "count": 28 },
     { "name": "credentials", "count": 1 },
     { "name": "dependabot", "count": 25 },
@@ -59,7 +72,7 @@
     { "name": "releases", "count": 13 },
     { "name": "repos", "count": 73 },
     { "name": "search", "count": 7 },
-    { "name": "secret-scanning", "count": 9 },
+    { "name": "secret-scanning", "count": 17 },
     { "name": "security-advisories", "count": 10 },
     { "name": "teams", "count": 32 },
     { "name": "users", "count": 47 }
@@ -8035,13 +8048,13 @@
       "id": "classroom/get-a-classroom",
       "method": "GET",
       "path": "/classrooms/{classroom_id}",
-      "summary": "Get a classroom",
+      "summary": "Closing down - Get a classroom",
       "category": "classroom",
       "subcategory": "classroom",
-      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#get-a-classroom",
+      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#closing-down---get-a-classroom",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
-      "deprecated": false,
+      "deprecated": true,
       "parameters": [
         {
           "name": "classroom_id",
@@ -8057,13 +8070,13 @@
       "id": "classroom/get-an-assignment",
       "method": "GET",
       "path": "/assignments/{assignment_id}",
-      "summary": "Get an assignment",
+      "summary": "Closing down - Get an assignment",
       "category": "classroom",
       "subcategory": "classroom",
-      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#get-an-assignment",
+      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#closing-down---get-an-assignment",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
-      "deprecated": false,
+      "deprecated": true,
       "parameters": [
         {
           "name": "assignment_id",
@@ -8079,13 +8092,13 @@
       "id": "classroom/get-assignment-grades",
       "method": "GET",
       "path": "/assignments/{assignment_id}/grades",
-      "summary": "Get assignment grades",
+      "summary": "Closing down - Get assignment grades",
       "category": "classroom",
       "subcategory": "classroom",
-      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#get-assignment-grades",
+      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#closing-down---get-assignment-grades",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
-      "deprecated": false,
+      "deprecated": true,
       "parameters": [
         {
           "name": "assignment_id",
@@ -8101,13 +8114,13 @@
       "id": "classroom/list-accepted-assignments-for-an-assignment",
       "method": "GET",
       "path": "/assignments/{assignment_id}/accepted_assignments",
-      "summary": "List accepted assignments for an assignment",
+      "summary": "Closing down - List accepted assignments for an assignment",
       "category": "classroom",
       "subcategory": "classroom",
-      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#list-accepted-assignments-for-an-assignment",
+      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#closing-down---list-accepted-assignments-for-an-assignment",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
-      "deprecated": false,
+      "deprecated": true,
       "parameters": [
         {
           "name": "assignment_id",
@@ -8130,13 +8143,13 @@
       "id": "classroom/list-assignments-for-a-classroom",
       "method": "GET",
       "path": "/classrooms/{classroom_id}/assignments",
-      "summary": "List assignments for a classroom",
+      "summary": "Closing down - List assignments for a classroom",
       "category": "classroom",
       "subcategory": "classroom",
-      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#list-assignments-for-a-classroom",
+      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#closing-down---list-assignments-for-a-classroom",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
-      "deprecated": false,
+      "deprecated": true,
       "parameters": [
         {
           "name": "classroom_id",
@@ -8159,13 +8172,13 @@
       "id": "classroom/list-classrooms",
       "method": "GET",
       "path": "/classrooms",
-      "summary": "List classrooms",
+      "summary": "Closing down - List classrooms",
       "category": "classroom",
       "subcategory": "classroom",
-      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#list-classrooms",
+      "documentationUrl": "https://docs.github.com/rest/classroom/classroom#closing-down---list-classrooms",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
-      "deprecated": false,
+      "deprecated": true,
       "parameters": [
         { "name": "page", "in": "query", "required": false, "type": "integer" },
         {
@@ -11499,6 +11512,29 @@
       "requestBodyContentTypes": []
     },
     {
+      "id": "copilot/copilot-enterprise-repos-one-day-report",
+      "method": "GET",
+      "path": "/enterprises/{enterprise}/copilot/metrics/reports/repos-1-day",
+      "summary": "Get Copilot enterprise repository report for a specific day",
+      "category": "copilot",
+      "subcategory": "copilot-usage-metrics",
+      "documentationUrl": "https://docs.github.com/rest/copilot/copilot-usage-metrics#get-copilot-enterprise-repository-report-for-a-specific-day",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        {
+          "name": "enterprise",
+          "in": "path",
+          "required": true,
+          "type": "string"
+        },
+        { "name": "day", "in": "query", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": false,
+      "requestBodyContentTypes": []
+    },
+    {
       "id": "copilot/copilot-enterprise-usage-metrics",
       "method": "GET",
       "path": "/enterprises/{enterprise}/copilot/metrics/reports/enterprise-28-day/latest",
@@ -11551,6 +11587,24 @@
       "category": "copilot",
       "subcategory": "copilot-usage-metrics",
       "documentationUrl": "https://docs.github.com/rest/copilot/copilot-usage-metrics#get-copilot-organization-usage-metrics-for-a-specific-day",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "org", "in": "path", "required": true, "type": "string" },
+        { "name": "day", "in": "query", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": false,
+      "requestBodyContentTypes": []
+    },
+    {
+      "id": "copilot/copilot-organization-repos-one-day-report",
+      "method": "GET",
+      "path": "/orgs/{org}/copilot/metrics/reports/repos-1-day",
+      "summary": "Get Copilot organization repository report for a specific day",
+      "category": "copilot",
+      "subcategory": "copilot-usage-metrics",
+      "documentationUrl": "https://docs.github.com/rest/copilot/copilot-usage-metrics#get-copilot-organization-repository-report-for-a-specific-day",
       "cloudOnly": false,
       "enabledForGitHubApps": true,
       "deprecated": false,
@@ -27242,6 +27296,76 @@
       "requestBodyContentTypes": []
     },
     {
+      "id": "secret-scanning/bulk-create-org-custom-patterns",
+      "method": "POST",
+      "path": "/orgs/{org}/secret-scanning/custom-patterns",
+      "summary": "Bulk create organization custom patterns",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#bulk-create-organization-custom-patterns",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "org", "in": "path", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": true,
+      "requestBodyContentTypes": ["application/json"]
+    },
+    {
+      "id": "secret-scanning/bulk-create-repo-custom-patterns",
+      "method": "POST",
+      "path": "/repos/{owner}/{repo}/secret-scanning/custom-patterns",
+      "summary": "Bulk create repository custom patterns",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#bulk-create-repository-custom-patterns",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "owner", "in": "path", "required": true, "type": "string" },
+        { "name": "repo", "in": "path", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": true,
+      "requestBodyContentTypes": ["application/json"]
+    },
+    {
+      "id": "secret-scanning/bulk-delete-org-custom-patterns",
+      "method": "DELETE",
+      "path": "/orgs/{org}/secret-scanning/custom-patterns",
+      "summary": "Bulk delete organization custom patterns",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#bulk-delete-organization-custom-patterns",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "org", "in": "path", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": true,
+      "requestBodyContentTypes": ["application/json"]
+    },
+    {
+      "id": "secret-scanning/bulk-delete-repo-custom-patterns",
+      "method": "DELETE",
+      "path": "/repos/{owner}/{repo}/secret-scanning/custom-patterns",
+      "summary": "Bulk delete repository custom patterns",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#bulk-delete-repository-custom-patterns",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "owner", "in": "path", "required": true, "type": "string" },
+        { "name": "repo", "in": "path", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": true,
+      "requestBodyContentTypes": ["application/json"]
+    },
+    {
       "id": "secret-scanning/create-push-protection-bypass",
       "method": "POST",
       "path": "/repos/{owner}/{repo}/secret-scanning/push-protection-bypasses",
@@ -27600,6 +27724,58 @@
       "requestBodyContentTypes": []
     },
     {
+      "id": "secret-scanning/list-org-custom-patterns",
+      "method": "GET",
+      "path": "/orgs/{org}/secret-scanning/custom-patterns",
+      "summary": "List organization custom patterns",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#list-organization-custom-patterns",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "org", "in": "path", "required": true, "type": "string" },
+        {
+          "name": "state",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["published", "unpublished"]
+        },
+        {
+          "name": "push_protection",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["enabled", "disabled"]
+        },
+        {
+          "name": "sort",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["created", "updated", "name"]
+        },
+        {
+          "name": "direction",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["asc", "desc"]
+        },
+        { "name": "page", "in": "query", "required": false, "type": "integer" },
+        {
+          "name": "per_page",
+          "in": "query",
+          "required": false,
+          "type": "integer"
+        }
+      ],
+      "requestBodyRequired": false,
+      "requestBodyContentTypes": []
+    },
+    {
       "id": "secret-scanning/list-org-pattern-configs",
       "method": "GET",
       "path": "/orgs/{org}/secret-scanning/pattern-configurations",
@@ -27612,6 +27788,59 @@
       "deprecated": false,
       "parameters": [
         { "name": "org", "in": "path", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": false,
+      "requestBodyContentTypes": []
+    },
+    {
+      "id": "secret-scanning/list-repo-custom-patterns",
+      "method": "GET",
+      "path": "/repos/{owner}/{repo}/secret-scanning/custom-patterns",
+      "summary": "List repository custom patterns",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#list-repository-custom-patterns",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "owner", "in": "path", "required": true, "type": "string" },
+        { "name": "repo", "in": "path", "required": true, "type": "string" },
+        {
+          "name": "state",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["published", "unpublished"]
+        },
+        {
+          "name": "push_protection",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["enabled", "disabled"]
+        },
+        {
+          "name": "sort",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["created", "updated", "name"]
+        },
+        {
+          "name": "direction",
+          "in": "query",
+          "required": false,
+          "type": "string",
+          "values": ["asc", "desc"]
+        },
+        { "name": "page", "in": "query", "required": false, "type": "integer" },
+        {
+          "name": "per_page",
+          "in": "query",
+          "required": false,
+          "type": "integer"
+        }
       ],
       "requestBodyRequired": false,
       "requestBodyContentTypes": []
@@ -27641,6 +27870,29 @@
       "requestBodyContentTypes": ["application/json"]
     },
     {
+      "id": "secret-scanning/update-org-custom-pattern",
+      "method": "PATCH",
+      "path": "/orgs/{org}/secret-scanning/custom-patterns/{pattern_id}",
+      "summary": "Update an organization custom pattern",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#update-an-organization-custom-pattern",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "org", "in": "path", "required": true, "type": "string" },
+        {
+          "name": "pattern_id",
+          "in": "path",
+          "required": true,
+          "type": "integer"
+        }
+      ],
+      "requestBodyRequired": true,
+      "requestBodyContentTypes": ["application/json"]
+    },
+    {
       "id": "secret-scanning/update-org-pattern-configs",
       "method": "PATCH",
       "path": "/orgs/{org}/secret-scanning/pattern-configurations",
@@ -27653,6 +27905,30 @@
       "deprecated": false,
       "parameters": [
         { "name": "org", "in": "path", "required": true, "type": "string" }
+      ],
+      "requestBodyRequired": true,
+      "requestBodyContentTypes": ["application/json"]
+    },
+    {
+      "id": "secret-scanning/update-repo-custom-pattern",
+      "method": "PATCH",
+      "path": "/repos/{owner}/{repo}/secret-scanning/custom-patterns/{pattern_id}",
+      "summary": "Update a repository custom pattern",
+      "category": "secret-scanning",
+      "subcategory": "custom-patterns",
+      "documentationUrl": "https://docs.github.com/rest/secret-scanning/custom-patterns#update-a-repository-custom-pattern",
+      "cloudOnly": false,
+      "enabledForGitHubApps": true,
+      "deprecated": false,
+      "parameters": [
+        { "name": "owner", "in": "path", "required": true, "type": "string" },
+        { "name": "repo", "in": "path", "required": true, "type": "string" },
+        {
+          "name": "pattern_id",
+          "in": "path",
+          "required": true,
+          "type": "integer"
+        }
       ],
       "requestBodyRequired": true,
       "requestBodyContentTypes": ["application/json"]
