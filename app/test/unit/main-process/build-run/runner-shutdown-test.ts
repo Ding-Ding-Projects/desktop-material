@@ -50,9 +50,8 @@ mock.module('../../../../src/main-process/build-run/elevated-runner', {
 let BuildRunner: typeof import('../../../../src/main-process/build-run/runner').BuildRunner
 
 before(async () => {
-  BuildRunner = (
-    await import('../../../../src/main-process/build-run/runner')
-  ).BuildRunner
+  BuildRunner = (await import('../../../../src/main-process/build-run/runner'))
+    .BuildRunner
 })
 
 function plan(runId: string): IBuildRunPlan {

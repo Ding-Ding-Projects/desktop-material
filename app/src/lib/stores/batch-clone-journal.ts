@@ -1,5 +1,11 @@
-import { constants } from 'fs'
-import { lstat, open, readdir, rename, unlink } from 'fs/promises'
+import {
+  lstat,
+  readdir,
+  readFile,
+  rename,
+  unlink,
+  writeFile,
+} from 'fs/promises'
 import { Buffer } from 'buffer'
 import { randomUUID } from 'crypto'
 import { dirname, join } from 'path'
@@ -496,12 +502,41 @@ function isSerializedStatus(value: unknown): value is ISerializedStatus {
   )
 }
 
-async function readBoundedJournalFile(path: string): Promise<string> {
-  const metadata = await stat(path)
-  if (metadata.size > MaxBatchCloneJournalBytes) {
-    throw new Error('Clone queue journal exceeds its maximum size.')
+/**
+ * Semantic gate for the crash-safe persistence layer: true only when the
+ * payload parses into a supported, bounded clone-queue journal.
+ */
+function isBatchCloneJournal(contents: string): boolean {
+  return parseBatchCloneJournal(contents) !== null
+}
+
+/**
+ * Inspect the on-disk journal before the crash-safe read. Symlinked,
+ * oversized, or unparsable payloads report `invalid` so the caller replaces
+ * them with a redacted quarantine marker — raw bytes from an invalid journal
+ * may embed credentials and must never survive at rest.
+ */
+async function inspectJournalFile(
+  path: string
+): Promise<'missing' | 'valid' | 'invalid'> {
+  let metadata
+  try {
+    metadata = await lstat(path)
+  } catch (error) {
+    return error.code === 'ENOENT' ? 'missing' : 'invalid'
   }
-  return readFile(path, 'utf8')
+
+  if (!metadata.isFile() || metadata.size > MaxBatchCloneJournalBytes) {
+    return 'invalid'
+  }
+
+  try {
+    return isBatchCloneJournal(await readFile(path, 'utf8'))
+      ? 'valid'
+      : 'invalid'
+  } catch {
+    return 'invalid'
+  }
 }
 
 function truncateJournalText(value: string): string {
