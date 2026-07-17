@@ -5,6 +5,7 @@ import { BatchCloneStore } from '../../src/lib/stores/batch-clone-store'
 import { CloningRepositoriesStore } from '../../src/lib/stores/cloning-repositories-store'
 import { CloneOptions } from '../../src/models/clone-options'
 import { ICloneProgress } from '../../src/models/progress'
+import { resolve } from 'path'
 
 type CloneCallbacks = {
   readonly onError?: (error: Error) => void
@@ -19,7 +20,7 @@ describe('BatchCloneStore account binding', () => {
     const item: IBatchCloneItem = {
       url: 'https://github.com/owner/private-repository.git',
       name: 'private-repository',
-      path: 'C:\\clones\\private-repository',
+      path: resolve('batch-clone-account-fixture', 'private-repository'),
       defaultBranch: 'main',
       accountKey: selectedAccountKey,
     }
@@ -58,7 +59,7 @@ describe('BatchCloneStore account binding', () => {
     const item: IBatchCloneItem = {
       url: 'https://example.com/owner/public-repository.git',
       name: 'public-repository',
-      path: 'C:\\clones\\public-repository',
+      path: resolve('batch-clone-account-fixture', 'public-repository'),
     }
 
     const cloningStore = {

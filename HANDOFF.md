@@ -88,6 +88,14 @@ checks passed. The final sequential unit run covered 457 files in two batches:
 intentional skip. The focused script harness also passed all 15 tests; the
 post-review clone/API audit passed all 59 tests.
 
+The first remote CI attempt (`29571690398`) then caught two existing
+account-binding tests whose clone destination was hard-coded as a Windows path;
+the strengthened absolute-path contract correctly rejected that fixture on
+macOS. The tests now derive the same parent/name destination with the host
+platform's `path.resolve` instead of weakening production validation. The
+account-binding, batch model/journal/recovery, and auto-clone retest passed all
+48 tests locally before the corrective push.
+
 The hidden run used only `DesktopMaterialP0_20260717_0139`, saved app PID
 `8700`, provider PIDs `14392`/`6460`, provider port `61130`, and CDP port
 `61241`. The generic alternate-desktop close route failed closed, after which
