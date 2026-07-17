@@ -27,10 +27,6 @@
         }
       }
     }
-
-    .no-pull-requests {
-      margin: var(--spacing) auto;
-    }
   }
 
   .branches-list-item {
@@ -310,29 +306,39 @@
     }
   }
 
-  // Rows: 34x34 radius-11 leading branch-icon chip. The current branch is
-  // marked by a trailing check_circle (see .current-branch-indicator) and a
-  // tinted leading chip, rather than swapping the leading glyph.
+  // Rows (design prototype, branch sheet): a bare 19px branch glyph in
+  // on-surface-variant — no tonal chip — followed by the mono branch name.
+  // The current branch is marked solely by the trailing 20px check_circle
+  // (see .current-branch-indicator), never by tinting the leading glyph.
+  //
+  // Row geometry matches SheetRowHeight in branches-container.tsx: 10px
+  // vertical padding × 2 around a single 22px content line (the 22px line box
+  // covers the 19px glyph and the 12.5px mono name), so 10 + 22 + 10 = 42.
   .branches-list-item {
     // v2 prototype branch-row inset (matches the repository sheet's 10px 12px).
     padding: 10px 12px;
 
     .icon {
-      width: 34px;
-      height: 34px;
+      width: 19px;
+      height: 19px;
       flex-shrink: 0;
       margin-right: 12px;
-      border-radius: 11px;
-      background: var(--md-sys-color-surface-container-high);
+      border-radius: 0;
+      background: transparent;
       color: var(--md-sys-color-on-surface-variant);
-      display: grid;
-      place-items: center;
     }
 
     .name {
       font-family: var(--font-family-monospace);
       font-size: 12.5px;
       font-weight: var(--font-weight-semibold);
+      line-height: 22px;
+    }
+
+    .description {
+      font-size: 11.5px;
+      color: var(--md-sys-color-on-surface-variant);
+      opacity: 0.85;
     }
 
     // Trailing "current branch" marker: 20px check_circle in primary.
@@ -345,9 +351,9 @@
       animation: dmPop 320ms var(--spring);
     }
 
-    &.current-branch .icon {
-      background: var(--md-sys-color-primary-container);
-      color: var(--md-sys-color-on-primary-container);
+    // The cherry-pick "New branch" drop row keeps its compact 30px footprint.
+    &.new-branch-drop {
+      padding: 4px 12px;
     }
   }
 
@@ -374,7 +380,10 @@
     box-shadow: var(--md-sys-elevation-level2);
     font-size: 14px;
     font-weight: 700;
-    animation: dmPop 380ms var(--spring) 240ms backwards;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    animation: dmPop calc(560ms * var(--mdur, 1)) var(--spring-fast) 240ms backwards;
     transition: border-radius 320ms var(--spring), box-shadow 260ms var(--emph), transform 240ms var(--spring-fast), background-color 480ms var(--emph);
 
     &:hover {
@@ -389,7 +398,9 @@
     }
 
     .octicon {
-      margin-left: 6px;
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
     }
   }
 
@@ -412,27 +423,74 @@
   }
 }
 
+// Illustrated "No pull requests" blank slate (design prototype): a large muted
+// merge glyph in a 66px secondary-container tile, heading + caption, centered
+// in the sheet with 40px padding.
 .no-pull-requests {
-  width: 365px;
+  flex: 1;
+  align-self: stretch;
   display: flex;
   flex-direction: column;
 
   align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: var(--spacing);
+  padding: 40px;
+  animation: dmGrow calc(480ms * var(--mdur, 1)) var(--spring);
+
+  .no-pull-requests-icon {
+    width: 66px;
+    height: 66px;
+    border-radius: 22px;
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    display: grid;
+    place-items: center;
+    animation: dmBounce calc(600ms * var(--mdur, 1)) var(--spring-fast);
+    transition: background-color 480ms var(--emph);
+
+    .octicon {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
   .title {
+    font-size: 15px;
     font-weight: var(--font-weight-semibold);
+    margin-top: 16px;
   }
 
-  .no-prs {
-    padding-bottom: var(--spacing);
-  }
-
+  .no-prs,
   .call-to-action {
-    font-size: var(--font-size-sm);
-    .link-button-component {
-      display: unset;
+    font-size: 12.5px;
+    line-height: 1.6;
+    margin-top: 6px;
+    color: var(--md-sys-color-on-surface-variant);
+    max-width: 260px;
+  }
+
+  // Filled call-to-action pill: 42px tall, radius 999 morphing to 14 on hover.
+  .no-pull-requests-action {
+    margin-top: 18px;
+    height: 42px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--md-sys-color-primary);
+    color: var(--md-sys-color-on-primary);
+    font-size: 13.5px;
+    font-weight: 700;
+    transition: border-radius 280ms var(--spring), transform 200ms var(--spring-fast), background-color 480ms var(--emph);
+
+    &:hover {
+      border-radius: 14px;
+      background: var(--md-sys-color-primary);
+      color: var(--md-sys-color-on-primary);
+    }
+
+    &:active {
+      transform: scale(0.94);
     }
   }
 }

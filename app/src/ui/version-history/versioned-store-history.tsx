@@ -518,27 +518,23 @@ export class VersionedStoreHistory extends React.Component<
 
     return (
       <div className="versioned-store-history-toolbar">
-        <div className="versioned-store-history-introduction">
-          <small>{this.props.description}</small>
-        </div>
-        <div className="versioned-store-history-actions">
-          <Button
-            className="versioned-store-history-undo"
-            onClick={this.undo}
-            disabled={busy || page === null || !page.canUndo}
-          >
-            <Octicon symbol={octicons.undo} /> Undo last
-          </Button>
-          <Button
-            onClick={this.redo}
-            disabled={busy || page === null || !page.canRedo}
-          >
-            <Octicon symbol={octicons.redo} /> Redo
-          </Button>
-          <span className="versioned-store-history-count">
-            {page?.total ?? 0} {page?.total === 1 ? 'commit' : 'commits'}
-          </span>
-        </div>
+        <Button
+          className="versioned-store-history-undo"
+          onClick={this.undo}
+          disabled={busy || page === null || !page.canUndo}
+        >
+          <Octicon symbol={octicons.undo} /> Undo
+        </Button>
+        <Button
+          className="versioned-store-history-redo"
+          onClick={this.redo}
+          disabled={busy || page === null || !page.canRedo}
+        >
+          <Octicon symbol={octicons.redo} /> Redo
+        </Button>
+        <span className="versioned-store-history-count">
+          {page?.total ?? 0} {page?.total === 1 ? 'commit' : 'commits'}
+        </span>
       </div>
     )
   }
@@ -861,6 +857,9 @@ export class VersionedStoreHistory extends React.Component<
         aria-busy={this.state.operation !== null}
       >
         {this.renderHeader()}
+        <p className="versioned-store-history-description">
+          {this.props.description}
+        </p>
         {this.renderToolbar()}
         {this.renderError()}
         <div className="versioned-store-history-layout">

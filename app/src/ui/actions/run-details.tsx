@@ -3,7 +3,9 @@ import classNames from 'classnames'
 import { IAPIWorkflowRun } from '../../lib/api'
 import {
   ActionsJobAttemptOptionMaximum,
+  ActionsJobConclusion,
   ActionsJobMaximumPage,
+  ActionsJobStatus,
   canRerunActionsJob,
   getActionsJobAttemptOptions,
   getActionsRunAttempt,
@@ -16,6 +18,34 @@ import { Repository } from '../../models/repository'
 import { ActionsStore } from '../../lib/stores/actions-store'
 import { RunArtifacts } from './run-artifacts'
 import { ActionsRunReviews } from './actions-run-reviews'
+import { Octicon, OcticonSymbol } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
+import { getRunStatusGlyph, getRunTone } from './run-list'
+
+/** Status glyph for an individual job step. */
+function getStepGlyph(step: {
+  readonly status: ActionsJobStatus
+  readonly conclusion: ActionsJobConclusion | null
+}): { readonly symbol: OcticonSymbol; readonly className: string } {
+  if (step.status !== 'completed') {
+    return step.status === 'in_progress'
+      ? { symbol: octicons.sync, className: 'running' }
+      : { symbol: octicons.clock, className: 'pending' }
+  }
+  switch (step.conclusion) {
+    case 'success':
+      return { symbol: octicons.checkCircleFill, className: 'success' }
+    case 'skipped':
+      return { symbol: octicons.skip, className: 'neutral' }
+    case 'cancelled':
+      return { symbol: octicons.circleSlash, className: 'neutral' }
+    case 'neutral':
+    case null:
+      return { symbol: octicons.dotFill, className: 'neutral' }
+    default:
+      return { symbol: octicons.xCircleFill, className: 'failure' }
+  }
+}
 
 interface IRunDetailsProps {
   readonly repository: Repository
@@ -93,16 +123,24 @@ class JobDetails extends React.PureComponent<{
           </div>
         </header>
         <ol className="actions-step-list">
-          {job.steps.map(step => (
-            <li
-              key={step.number}
-              className={classNames(step.status, step.conclusion)}
-            >
-              <span className="step-state" aria-hidden="true" />
-              <span>{step.name}</span>
-              <small>{step.conclusion ?? step.status}</small>
-            </li>
-          ))}
+          {job.steps.map(step => {
+            const glyph = getStepGlyph(step)
+            return (
+              <li
+                key={step.number}
+                className={classNames(step.status, step.conclusion)}
+              >
+                <span
+                  className={classNames('actions-step-icon', glyph.className)}
+                  aria-hidden="true"
+                >
+                  <Octicon symbol={glyph.symbol} />
+                </span>
+                <span>{step.name}</span>
+                <small>{step.conclusion ?? step.status}</small>
+              </li>
+            )
+          })}
         </ol>
       </article>
     )
@@ -159,15 +197,32 @@ export class RunDetails extends React.PureComponent<IRunDetailsProps> {
       latestAttempt,
       this.props.selectedAttempt
     )
+    const glyph = getRunStatusGlyph(run)
+    const status = getRunTone(run)
     return (
       <aside
         className="actions-run-details"
         aria-label={`Run ${run.run_number} details`}
       >
         <header className="actions-details-header">
-          <div>
+          <span
+            className={classNames('actions-run-status-badge', glyph.className)}
+            aria-hidden="true"
+          >
+            <Octicon symbol={glyph.symbol} height={20} />
+          </span>
+          <div className="actions-details-heading">
             <span className="eyebrow">Run #{run.run_number}</span>
             <h2>{run.display_title || run.name}</h2>
+            <div className="actions-details-meta">
+              <span className="branch-chip">
+                <Octicon symbol={octicons.gitBranch} />
+                {run.head_branch ?? 'detached'}
+              </span>
+              <span>
+                {status.label} · {run.event}
+              </span>
+            </div>
           </div>
           <Button onClick={this.props.onClose}>Close</Button>
         </header>

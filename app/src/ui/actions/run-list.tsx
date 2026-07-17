@@ -8,7 +8,10 @@ import {
 import { RelativeTime } from '../relative-time'
 import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
+import { Octicon, OcticonSymbol } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
+import { getWorkflowFileName } from './workflow-templates'
 
 interface IRunListProps {
   readonly runs: ReadonlyArray<IAPIWorkflowRun>
@@ -63,6 +66,30 @@ export function getRunTone(run: IAPIWorkflowRun) {
   }
 }
 
+/** Leading status glyph for a run row, mirroring the prototype icon set. */
+export function getRunStatusGlyph(run: IAPIWorkflowRun): {
+  readonly symbol: OcticonSymbol
+  readonly className: string
+} {
+  if (run.status !== APICheckStatus.Completed) {
+    return run.status === APICheckStatus.InProgress
+      ? { symbol: octicons.sync, className: 'running' }
+      : { symbol: octicons.clock, className: 'pending' }
+  }
+  switch (run.conclusion) {
+    case APICheckConclusion.Success:
+      return { symbol: octicons.checkCircleFill, className: 'success' }
+    case APICheckConclusion.Skipped:
+      return { symbol: octicons.skip, className: 'neutral' }
+    case APICheckConclusion.Canceled:
+      return { symbol: octicons.circleSlash, className: 'neutral' }
+    case APICheckConclusion.Neutral:
+      return { symbol: octicons.dotFill, className: 'neutral' }
+    default:
+      return { symbol: octicons.xCircleFill, className: 'failure' }
+  }
+}
+
 class RunListItem extends React.PureComponent<
   IRunListProps & { readonly run: IAPIWorkflowRun }
 > {
@@ -91,11 +118,13 @@ class RunListItem extends React.PureComponent<
   public render() {
     const { run, selectedRunId, busyRunId } = this.props
     const status = getRunTone(run)
+    const glyph = getRunStatusGlyph(run)
     const failed = run.conclusion === APICheckConclusion.Failure
     const active = isWorkflowRunActive(run)
     const actor = run.actor
     const title = run.display_title || run.name
     const branch = run.head_branch ?? 'detached'
+    const workflowFile = run.path ? getWorkflowFileName(run.path) : run.name
 
     return (
       <li>
@@ -111,12 +140,19 @@ class RunListItem extends React.PureComponent<
             onClick={this.select}
             aria-pressed={selectedRunId === run.id}
           >
-            <span className={classNames('actions-status-chip', status.tone)}>
-              {status.label}
+            <span
+              className={classNames('actions-run-status-icon', glyph.className)}
+              aria-hidden="true"
+            >
+              <Octicon symbol={glyph.symbol} />
             </span>
             <span className="actions-run-summary">
               <strong>{title}</strong>
               <span className="actions-run-meta">
+                <span className="sr-only">{status.label}</span>
+                <span className="actions-run-number">
+                  #{run.run_number ?? run.id}
+                </span>
                 <span className="branch-chip">{branch}</span>
                 <span>{run.event}</span>
                 {actor && (
@@ -128,36 +164,41 @@ class RunListItem extends React.PureComponent<
                 <RelativeTime date={new Date(run.created_at)} />
               </span>
             </span>
-            <span className="actions-run-number">#{run.run_number}</span>
+            <span className="actions-run-wf-chip">{workflowFile}</span>
           </button>
           <span className="actions-run-buttons">
             {active ? (
               <Button
                 size="small"
+                className="actions-run-icon-button"
                 disabled={busyRunId === run.id}
                 onClick={this.requestCancel}
                 ariaLabel={`Cancel workflow run ${run.run_number ?? run.id}`}
                 ariaHaspopup="dialog"
               >
-                Cancel run
+                <Octicon symbol={octicons.stop} />
               </Button>
             ) : (
               <>
                 {failed && (
                   <Button
                     size="small"
+                    className="actions-run-icon-button"
                     disabled={busyRunId === run.id}
                     onClick={this.rerunFailed}
+                    ariaLabel="Re-run failed"
                   >
-                    Re-run failed
+                    <Octicon symbol={octicons.alert} />
                   </Button>
                 )}
                 <Button
                   size="small"
+                  className="actions-run-icon-button"
                   disabled={busyRunId === run.id}
                   onClick={this.rerun}
+                  ariaLabel="Re-run"
                 >
-                  Re-run
+                  <Octicon symbol={octicons.sync} />
                 </Button>
               </>
             )}

@@ -1043,6 +1043,14 @@ dialog#preferences {
   color: var(--md-sys-color-on-surface);
 }
 
+// App menu + context menu v2 (prototype "App menu"/"Context menu" surfaces):
+// flat dropdown menus are split out of the large popover radius above and
+// round at the medium corner (12px) instead.
+.context-menu,
+.toolbar-dropdown .foldout:has(#app-menu-foldout) {
+  border-radius: var(--md-sys-shape-corner-medium);
+}
+
 input:not([type='checkbox']):not([type='radio']),
 textarea,
 .text-box-component input,

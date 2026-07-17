@@ -122,6 +122,79 @@
         }
       }
     }
+
+    // In-sheet search fields (repository + branch sheets): the design's 46px
+    // search pill — radius 999, surface-container-high fill, leading 20px
+    // search glyph in on-surface-variant and a borderless transparent input.
+    // A 2px transparent border doubles as the focus ring (primary on
+    // :focus-within) so the pill never changes size.
+    .filter-field-row {
+      margin: 0 16px 12px;
+      row-gap: 8px;
+    }
+
+    .filter-list-filter-field.text-box-component {
+      flex-direction: row;
+      align-items: center;
+      gap: 5px;
+      height: 46px;
+      box-sizing: border-box;
+      padding: 0 7px 0 16px;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background: var(--md-sys-color-surface-container-high);
+      transition: background-color 300ms var(--emph), border-color 240ms var(--emph);
+
+      &:focus-within {
+        border-color: var(--md-sys-color-primary);
+      }
+
+      .prefixed-icon {
+        position: static;
+        flex-shrink: 0;
+        width: 20px;
+        height: 20px;
+        color: var(--md-sys-color-on-surface-variant);
+      }
+
+      input {
+        flex: 1;
+        min-width: 0;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        border-radius: 0;
+        background: transparent;
+        box-shadow: none;
+        font-size: 13.5px;
+        color: var(--md-sys-color-on-surface);
+
+        &:focus {
+          outline: none;
+          border: 0;
+          box-shadow: none;
+        }
+
+        &::-webkit-input-placeholder {
+          color: var(--md-sys-color-on-surface-variant);
+        }
+      }
+
+      button.clear-button {
+        position: static;
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        color: var(--md-sys-color-on-surface-variant);
+        cursor: pointer;
+        transition: background-color 220ms var(--emph);
+
+        &:hover {
+          background: var(--md-sys-color-surface-container-highest);
+        }
+      }
+    }
   }
 }
 

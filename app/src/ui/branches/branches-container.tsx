@@ -41,6 +41,15 @@ import { Emoji } from '../../lib/emoji'
 import classNames from 'classnames'
 import { BranchSortOrder } from '../../models/branch-sort-order'
 
+/**
+ * Virtualized row height for branch rows inside the branch side sheet.
+ *
+ * Geometry (design prototype, branch sheet rows): 10px vertical padding × 2
+ * around a single 22px content line — the 22px line box covers both the bare
+ * 19px branch glyph and the 12.5px mono branch name. 10 + 22 + 10 = 42.
+ */
+export const SheetRowHeight = 42
+
 interface IBranchesContainerProps {
   readonly dispatcher: Dispatcher
   readonly repository: Repository
@@ -325,6 +334,7 @@ export class BranchesContainer extends React.Component<
         return (
           <BranchList
             repository={this.props.repository}
+            rowHeight={SheetRowHeight}
             defaultBranch={this.props.defaultBranch}
             currentBranch={this.props.currentBranch}
             allBranches={this.props.allBranches}
