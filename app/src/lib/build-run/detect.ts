@@ -66,6 +66,11 @@ const READ_TEXT_ALLOW_LIST = new Set([
   'stack.yaml',
   'cabal.project',
   'build.zig',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-compose.yaml',
+  'compose.yml',
+  'compose.yaml',
 ])
 const MAX_READ_TEXT_BYTES = 256 * 1024
 
@@ -99,6 +104,11 @@ const MANIFEST_MARKERS = [
   'stack.yaml',
   'cabal.project',
   'build.zig',
+  'Dockerfile',
+  'docker-compose.yml',
+  'docker-compose.yaml',
+  'compose.yml',
+  'compose.yaml',
   'main.py',
   'app.py',
   'manage.py',
@@ -134,6 +144,7 @@ function scopeProbe(probe: IRepoFileProbe, dir: string): IScopedProbe {
   return {
     dir,
     platform: probe.platform,
+    repoName: probe.repoName,
     exists: p => probe.exists(`${prefix}${p}`),
     readText: p => probe.readText(`${prefix}${p}`),
     sampleFiles: probe.sampleFiles
@@ -1124,6 +1135,85 @@ const detectMake: Detector = probe => {
   }
 }
 
+// ── Docker ─────────────────────────────────────────────────────────────────
+
+/**
+ * Derive a valid Docker image tag component from a repository / directory
+ * name: lowercase, runs of invalid characters collapsed to a single dash,
+ * leading/trailing separators trimmed. Falls back to `app`.
+ */
+function dockerImageTag(probe: IScopedProbe): string {
+  const dirBase =
+    probe.dir === '' ? '' : probe.dir.slice(probe.dir.lastIndexOf('/') + 1)
+  const raw = [probe.repoName ?? '', dirBase].filter(s => s !== '').join('-')
+  const sanitized = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^[._-]+|[._-]+$/g, '')
+  return sanitized === '' ? 'app' : sanitized
+}
+
+const DOCKER_TOOLCHAIN_HINT =
+  'docker was not found on your PATH. Install Docker Desktop ' +
+  '(https://docs.docker.com/get-docker/) or Docker Engine and try again.'
+
+const detectDocker: Detector = probe => {
+  const results: DetectionResult[] = []
+
+  if (probe.exists('Dockerfile')) {
+    const tag = dockerImageTag(probe)
+    const dockerfile = probe.readText('Dockerfile') ?? ''
+    const reasons = ['Dockerfile found']
+    if (/^\s*EXPOSE\s+\d/m.test(dockerfile)) {
+      reasons.push('EXPOSE present — add -p to publish ports')
+    }
+    results.push({
+      ecosystem: 'docker',
+      label: 'Docker',
+      toolIcon: 'container',
+      build: [cmd('docker', ['build', '-t', tag, '.'])],
+      run: [cmd('docker', ['run', '--rm', tag])],
+      toolchainCheck: {
+        cmd: cmd('docker', ['--version']),
+        missingHint: DOCKER_TOOLCHAIN_HINT,
+      },
+      needsElevation: false,
+      gitignoreTemplateId: '',
+      extraIgnores: [],
+      score: 11,
+      reasons,
+    })
+  }
+
+  const composeFile = [
+    'docker-compose.yml',
+    'docker-compose.yaml',
+    'compose.yml',
+    'compose.yaml',
+  ].find(f => probe.exists(f))
+  if (composeFile !== undefined) {
+    results.push({
+      subId: 'compose',
+      ecosystem: 'docker',
+      label: 'Docker Compose',
+      toolIcon: 'container',
+      build: [cmd('docker', ['compose', 'build'])],
+      run: [cmd('docker', ['compose', 'up'])],
+      toolchainCheck: {
+        cmd: cmd('docker', ['compose', 'version']),
+        missingHint: DOCKER_TOOLCHAIN_HINT,
+      },
+      needsElevation: false,
+      gitignoreTemplateId: '',
+      extraIgnores: [],
+      score: 11,
+      reasons: [`${composeFile} found`],
+    })
+  }
+
+  return results.length > 0 ? results : null
+}
+
 /** All detectors. `detectMake` is a generic fallback, suppressed elsewhere. */
 const DETECTORS: ReadonlyArray<Detector> = [
   detectNode,
@@ -1142,6 +1232,7 @@ const DETECTORS: ReadonlyArray<Detector> = [
   detectZig,
   detectJava,
   detectCmake,
+  detectDocker,
   detectMake,
 ]
 
@@ -1305,5 +1396,6 @@ export async function probeRepository(
     readText: relativePath => texts.get(relativePath) ?? null,
     sampleFiles,
     platform,
+    repoName: Path.basename(repoPath),
   }
 }

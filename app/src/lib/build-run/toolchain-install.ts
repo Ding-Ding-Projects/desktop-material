@@ -97,6 +97,8 @@ function wingetPackage(
       return { id: 'Rustlang.Rustup', label: 'Rust (rustup)' }
     case 'dotnet':
       return { id: 'Microsoft.DotNet.SDK.8', label: '.NET SDK 8' }
+    case 'docker':
+      return { id: 'Docker.DockerDesktop', label: 'Docker Desktop' }
     default:
       break
   }
@@ -114,6 +116,8 @@ function wingetPackage(
       return { id: 'Rustlang.Rustup', label: 'Rust (rustup)' }
     case 'dotnet':
       return { id: 'Microsoft.DotNet.SDK.8', label: '.NET SDK 8' }
+    case 'docker':
+      return { id: 'Docker.DockerDesktop', label: 'Docker Desktop' }
     default:
       return null
   }

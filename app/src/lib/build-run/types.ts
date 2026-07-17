@@ -28,6 +28,7 @@ export type BuildRunEcosystem =
   | 'zig'
   | 'make'
   | 'cmake'
+  | 'docker'
 
 /** The three sequential stages a plan may contain. */
 export type BuildStageKind = 'install' | 'build' | 'run'
@@ -100,6 +101,12 @@ export interface IRepoFileProbe {
   readonly sampleFiles: ReadonlyArray<string>
   /** The host platform, used for path-shape and toolchain decisions. */
   readonly platform: NodeJS.Platform
+  /**
+   * The repository directory basename, used only to derive human-friendly
+   * artifact names (e.g. a Docker image tag). Optional so existing fixture
+   * probes remain valid; detectors must tolerate its absence.
+   */
+  readonly repoName?: string
 }
 
 /**

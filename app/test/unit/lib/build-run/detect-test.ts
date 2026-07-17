@@ -11,6 +11,7 @@ interface IProbeInput {
   readonly files?: ReadonlyArray<string>
   readonly texts?: Readonly<Record<string, string>>
   readonly platform?: NodeJS.Platform
+  readonly repoName?: string
 }
 
 function makeProbe(input: IProbeInput): IRepoFileProbe {
@@ -22,6 +23,7 @@ function makeProbe(input: IProbeInput): IRepoFileProbe {
     readText: p => texts[p] ?? null,
     sampleFiles: files,
     platform: input.platform ?? 'win32',
+    repoName: input.repoName,
   }
 }
 
@@ -441,6 +443,65 @@ describe('detectProfiles', () => {
       })
       const ecosystems = detectProfiles(probe).map(p => p.ecosystem)
       assert.ok(ecosystems.includes('rust'))
+      assert.ok(!ecosystems.includes('make'))
+    })
+  })
+
+  describe('docker', () => {
+    it('detects a Dockerfile with a generic tag when no repo name is known', () => {
+      const probe = makeProbe({ files: ['Dockerfile'] })
+      const [profile] = detectProfiles(probe)
+      assert.equal(profile.ecosystem, 'docker')
+      assert.deepEqual(profile.build?.[0].args, ['build', '-t', 'app', '.'])
+      assert.deepEqual(profile.run?.[0].args, ['run', '--rm', 'app'])
+      assert.equal(profile.toolchainCheck.cmd.exe, 'docker')
+    })
+
+    it('derives a sanitized image tag from the repository name', () => {
+      const probe = makeProbe({
+        files: ['Dockerfile'],
+        repoName: 'My Repo!',
+      })
+      const [profile] = detectProfiles(probe)
+      assert.deepEqual(profile.build?.[0].args, ['build', '-t', 'my-repo', '.'])
+    })
+
+    it('notes EXPOSE in the reasons without publishing ports', () => {
+      const probe = makeProbe({
+        files: ['Dockerfile'],
+        texts: { Dockerfile: 'FROM node:20\nEXPOSE 3000\nCMD ["node","."]\n' },
+      })
+      const [profile] = detectProfiles(probe)
+      assert.ok(profile.reasons.some(r => r.includes('EXPOSE')))
+      assert.ok(!profile.run?.[0].args.includes('-p'))
+    })
+
+    it('detects docker compose as its own profile', () => {
+      const probe = makeProbe({ files: ['docker-compose.yml'] })
+      const [profile] = detectProfiles(probe)
+      assert.equal(profile.ecosystem, 'docker')
+      assert.equal(profile.label, 'Docker Compose')
+      assert.deepEqual(profile.build?.[0].args, ['compose', 'build'])
+      assert.deepEqual(profile.run?.[0].args, ['compose', 'up'])
+    })
+
+    it('tags nested Dockerfiles with the repo and directory name', () => {
+      const probe = makeProbe({
+        files: ['services/api/Dockerfile'],
+        paths: ['services', 'services/api'],
+        repoName: 'shop',
+      })
+      const profiles = detectProfiles(probe)
+      const docker = profiles.find(p => p.ecosystem === 'docker')
+      assert.ok(docker !== undefined)
+      assert.equal(docker.cwd, 'services/api')
+      assert.deepEqual(docker.build?.[0].args, ['build', '-t', 'shop-api', '.'])
+    })
+
+    it('suppresses the make fallback like other real ecosystems', () => {
+      const probe = makeProbe({ files: ['Dockerfile', 'Makefile'] })
+      const ecosystems = detectProfiles(probe).map(p => p.ecosystem)
+      assert.ok(ecosystems.includes('docker'))
       assert.ok(!ecosystems.includes('make'))
     })
   })

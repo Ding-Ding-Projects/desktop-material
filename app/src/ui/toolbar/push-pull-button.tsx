@@ -243,21 +243,27 @@ export class PushPullButton extends React.Component<
     this.setState({ screenReaderStateMessage, actionInProgress })
   }
 
-  /** The common props for all button states */
-  private defaultButtonProps() {
+  /**
+   * The common props for all button states. `op` tags the rendered pill with a
+   * `sync-op-*` class so the shell styles can tint the button's background
+   * per operation (fetch / pull / push / force-push).
+   */
+  private defaultButtonProps(op?: string) {
     return {
-      className: 'push-pull-button',
+      className: classNames('push-pull-button', op && `sync-op-${op}`),
       style: ToolbarButtonStyle.Subtitle,
     }
   }
 
   /** The common props for all dropdown states */
-  private defaultDropdownProps(): Omit<
-    IToolbarDropdownProps,
-    'dropdownContentRenderer'
-  > {
+  private defaultDropdownProps(
+    op?: string
+  ): Omit<IToolbarDropdownProps, 'dropdownContentRenderer'> {
     return {
-      buttonClassName: 'push-pull-button',
+      buttonClassName: classNames(
+        'push-pull-button',
+        op && `sync-op-${op}`
+      ),
       style: ToolbarButtonStyle.Subtitle,
       dropdownStyle: ToolbarDropdownStyle.MultiOption,
       ariaLabel: 'Push, pull, fetch options',
@@ -594,7 +600,7 @@ export class PushPullButton extends React.Component<
     const title = `Fetch ${remoteName}`
     return (
       <ToolbarButton
-        {...this.defaultButtonProps()}
+        {...this.defaultButtonProps('fetch')}
         title={title}
         description={renderLastFetched(lastFetched)}
         icon={syncClockwise}
@@ -624,7 +630,7 @@ export class PushPullButton extends React.Component<
 
     return (
       <ToolbarDropdown
-        {...this.defaultDropdownProps()}
+        {...this.defaultDropdownProps('pull')}
         title={title}
         description={renderLastFetched(lastFetched)}
         icon={octicons.arrowDown}
@@ -649,7 +655,7 @@ export class PushPullButton extends React.Component<
   ) {
     return (
       <ToolbarDropdown
-        {...this.defaultDropdownProps()}
+        {...this.defaultDropdownProps('push')}
         title={`Push ${remoteName}`}
         description={renderLastFetched(lastFetched)}
         icon={octicons.arrowUp}
@@ -672,7 +678,7 @@ export class PushPullButton extends React.Component<
   ) {
     return (
       <ToolbarDropdown
-        {...this.defaultDropdownProps()}
+        {...this.defaultDropdownProps('force-push')}
         title={`Force push ${remoteName}`}
         description={renderLastFetched(lastFetched)}
         icon={forcePushIcon}

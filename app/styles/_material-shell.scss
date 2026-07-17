@@ -297,6 +297,46 @@ body {
     }
   }
 
+  // Per-operation tint: each sync op colors its pill with the matching tonal
+  // container so the button's background matches the operation's "vibe" —
+  // fetch stays neutral-tonal, pull reads green (incoming work), push reads
+  // primary (outgoing work), force-push reads error (destructive potential).
+  .push-pull-button.sync-op-fetch > button {
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+
+    &:not(:disabled):hover {
+      background: var(--md-sys-color-secondary-container);
+    }
+  }
+
+  .toolbar-dropdown:has(.push-pull-button.sync-op-pull) {
+    background: var(--dm-green-container);
+    color: var(--dm-green);
+
+    .toolbar-dropdown-arrow-button > button {
+      box-shadow: inset 1px 0 0 color-mix(in srgb, var(--dm-green) 45%, transparent);
+    }
+  }
+
+  .toolbar-dropdown:has(.push-pull-button.sync-op-push) {
+    background: var(--md-sys-color-primary-container);
+    color: var(--md-sys-color-on-primary-container);
+
+    .toolbar-dropdown-arrow-button > button {
+      box-shadow: inset 1px 0 0 color-mix(in srgb, var(--md-sys-color-on-primary-container) 45%, transparent);
+    }
+  }
+
+  .toolbar-dropdown:has(.push-pull-button.sync-op-force-push) {
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+
+    .toolbar-dropdown-arrow-button > button {
+      box-shadow: inset 1px 0 0 color-mix(in srgb, var(--md-sys-color-on-error-container) 45%, transparent);
+    }
+  }
+
   // Split-button states (push / pull / force-push): main + disclosure arrow
   // are wrapped as one full-radius pill; the inner buttons are flat segments.
   .toolbar-dropdown:has(.push-pull-button) {
@@ -314,9 +354,12 @@ body {
       background: transparent;
       border-radius: 0;
       box-shadow: none;
+      // Inherit the wrapper's color so per-operation tints (sync-op-*) can
+      // pair their container background with the matching on-container text.
+      color: inherit;
 
       &:not(:disabled):hover {
-        background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+        background: color-mix(in srgb, currentColor 8%, transparent);
         box-shadow: none;
       }
     }
