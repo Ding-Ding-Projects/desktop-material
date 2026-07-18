@@ -2,7 +2,7 @@
 
 ## Outcome
 
-The complete **M0 through M19** Material and guided Git/GitHub roadmap is shipped
+The complete **M0 through M20** Material and guided Git/GitHub roadmap is shipped
 on `main`; it turns audited capabilities into named, interactive app functions.
 The separately guarded expert GitHub API Explorer is contextualized by the
 selected repository and bound to its selected account and provider host. It
@@ -27,6 +27,56 @@ The current Pages source, README, and in-repository wiki sources are on `main`.
 Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
+
+## 2026-07-18 complete inbox, Docker-over-SSH, and Releases dashboard
+
+- GitHub notifications now traverse every 50-item page instead of stopping at
+  the first page or an arbitrary cap. GitHub and Local tabs expose **Clear all**
+  with bounded concurrency, cancellation, partial-success retention, and
+  auth/rate-limit stop conditions. The deterministic visual provider has an
+  empty inbox, so the inspected GUI proves the panel and Clear all control
+  render correctly; focused tests prove the complete 249-item pagination and
+  mutation semantics.
+- Repository Settings → Remote can save non-secret SSH working-copy metadata,
+  opt a source remote into Docker Compose deployment after successful normal,
+  scheduled, or Commit & Push All pushes, and run **Deploy Docker now**. The
+  remote flow verifies the exact pushed branch and credential-free URL,
+  requires the server checkout to match, rejects ahead/divergent state, applies
+  only a fast-forward, verifies final HEAD, and then runs
+  `docker compose up --detach --build`. Output is bounded/redacted, and a deploy
+  failure never rewrites a successful push result. No live third-party SSH host
+  was contacted; command construction, identity gates, push wiring, and UI were
+  verified deterministically.
+- The per-repository Releases workspace now presents loaded, published,
+  prerelease, draft, and latest-stable metrics; fuzzy/substring/regex and case
+  search; status filtering; provider links; rich author/date/target and asset
+  metadata; explicit loading/empty/error/retry states; and responsive detail
+  panels. The concurrently shipped public-by-default creation flow remains
+  integrated as **New release**, with an explicit unpublished-draft opt-out.
+- The required no-download production build passed through the fixed
+  low-level MCP server in `214.9s`. The final merged app ran only on the owned
+  off-screen Win32 desktop. Its exact HWND produced a valid low-level capture;
+  because Chromium rejected background input/window actions, the documented
+  app-native CDP hook produced the inspected `1440x960` canonical Releases
+  frame. The promoted PNG is `146835` bytes with SHA-256
+  `98659faa911d505cf0e1d1bfe8556bad994afd904afc959264f49ccdf6e4a856`.
+- Verification passed: focused feature suite `128/128`, all `552` unit-test
+  files in three Windows-safe batches, script tests `16/16`, provider tests
+  `14/14`, provider compilation, TypeScript, targeted ESLint, Prettier, and diff
+  checks. Feature/evidence commit `d9cd85d6735124bde11545b61e2f923dce9830c2`
+  is present on `origin/main`; the final repository-cleanup receipt follows in
+  this handoff.
+- Headless cleanup is complete: owned Electron PIDs and provider PIDs are
+  absent, debug/provider ports are closed, the disposable credential is absent
+  after independent readback, the one desktop handle is closed, and the exact
+  contained run root is removed. No real account or user desktop was used.
+- After remote proof, the clean linked Claude worktree and its merged local
+  branch were removed; the merged `origin/temp-work-branch` was deleted without
+  force; remote/worktree metadata was pruned; and the two exact temporary
+  export-inspection directories were sent to the Recycle Bin after containment
+  checks. Both user-supplied ZIPs remain untouched. The final audit has one
+  `main` worktree, only local/remote `main`, no stash, and `0/0` divergence
+  before this receipt commit.
 
 ## 2026-07-18 multi-account push owner routing
 
