@@ -126,6 +126,34 @@ function selectHubTool(id: string) {
   fireEvent.click(button)
 }
 
+function getHubListItems() {
+  const navigation = screen.getByRole('navigation', {
+    name: 'Repository tool list',
+  })
+  return Array.from(
+    navigation.querySelectorAll<HTMLButtonElement>(
+      '.repository-tools-list-item'
+    )
+  ).map(item => ({
+    title:
+      item.querySelector('.repository-tools-list-item-title')?.textContent ??
+      '',
+    category:
+      item.querySelector('.repository-tools-list-item-category')?.textContent ??
+      '',
+  }))
+}
+
+function distinctCategorySequence(
+  items: ReadonlyArray<{ readonly category: string }>
+) {
+  return items
+    .map(item => item.category)
+    .filter(
+      (category, index, all) => index === 0 || all[index - 1] !== category
+    )
+}
+
 function getSelectedToolCard(title: string) {
   const detail = screen.getByRole('region', {
     name: 'Repository tool detail',
@@ -171,6 +199,131 @@ describe('Repository tools', () => {
     assert.ok(screen.getByRole('searchbox', { name: 'Search tools' }))
     assert.equal(screen.queryByRole('textbox'), null)
     assert.equal(screen.queryByText(/command arguments/i), null)
+  })
+
+  it('groups the catalog into plain-language categories ordered for everyday work', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    // Categories appear in everyday-frequency order; the gated
+    // nested-repositories category is absent without submodules or subtrees.
+    const items = getHubListItems()
+    assert.deepStrictEqual(distinctCategorySequence(items), [
+      'Status & branches',
+      'Search & inspect',
+      'Commits & history',
+      'Cleanup & maintenance',
+      'Share & transfer',
+      'Repair & recovery',
+    ])
+
+    // Entries within each category are listed alphabetically by title.
+    for (const category of distinctCategorySequence(items)) {
+      const titles = items
+        .filter(item => item.category === category)
+        .map(item => item.title)
+      assert.deepStrictEqual(
+        titles,
+        [...titles].sort((left, right) => left.localeCompare(right, 'en')),
+        `${category} entries are alphabetical`
+      )
+    }
+
+    // The filter chips mirror the same order behind an All chip.
+    const chips = screen.getByRole('group', { name: 'Tool categories' })
+    assert.deepStrictEqual(
+      Array.from(chips.querySelectorAll('.repository-tools-filter-chip')).map(
+        chip => chip.textContent
+      ),
+      [
+        'All',
+        'Status & branches',
+        'Search & inspect',
+        'Commits & history',
+        'Cleanup & maintenance',
+        'Share & transfer',
+        'Repair & recovery',
+      ]
+    )
+
+    // Each detail-pane category header carries a one-line subtitle.
+    const detail = screen.getByRole('region', {
+      name: 'Repository tool detail',
+    })
+    assert.equal(
+      detail.querySelector('.repository-tools-category-subtitle')?.textContent,
+      'Everyday questions about your working copy and how your branches line up.'
+    )
+  })
+
+  it('slots the gated nested-repository managers into their own category', async () => {
+    const client = new FakeRepositoryToolsClient()
+    render(
+      <RepositoryTools
+        repositoryPath={uiRepositoryPath}
+        onRefreshRepository={async () => {}}
+        client={client}
+        submoduleCount={2}
+        onOpenSubmoduleManager={() => {}}
+        subtreeCount={1}
+        onOpenSubtreeManager={() => {}}
+      />
+    )
+    await screen.findByText('git version 2.55.0')
+
+    const items = getHubListItems()
+    assert.deepStrictEqual(
+      items
+        .filter(item => item.category === 'Nested repositories')
+        .map(item => item.title),
+      ['Submodule manager', 'Subtree manager']
+    )
+    assert.deepStrictEqual(distinctCategorySequence(items), [
+      'Status & branches',
+      'Search & inspect',
+      'Commits & history',
+      'Nested repositories',
+      'Cleanup & maintenance',
+      'Share & transfer',
+      'Repair & recovery',
+    ])
+    assert.ok(
+      within(screen.getByRole('group', { name: 'Tool categories' })).getByRole(
+        'button',
+        { name: 'Nested repositories' }
+      )
+    )
+  })
+
+  it('matches catalog search across title, description, and category', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    const searchbox = screen.getByRole('searchbox', { name: 'Search tools' })
+    const listedIds = () => {
+      const navigation = screen.getByRole('navigation', {
+        name: 'Repository tool list',
+      })
+      return Array.from(
+        navigation.querySelectorAll<HTMLButtonElement>('[data-hub-tool]')
+      ).map(button => button.dataset.hubTool)
+    }
+
+    // Title match.
+    fireEvent.change(searchbox, { target: { value: 'Line authorship' } })
+    assert.ok(listedIds().includes('line-authorship'))
+
+    // Description-only match ("corruption" appears in no title or category).
+    fireEvent.change(searchbox, { target: { value: 'corruption' } })
+    assert.ok(listedIds().includes('repository-health'))
+
+    // Category-only match keeps every entry of that category listed.
+    fireEvent.change(searchbox, { target: { value: 'transfer' } })
+    const transferMatches = listedIds()
+    assert.ok(transferMatches.includes('export-artifacts'))
+    assert.ok(transferMatches.includes('bundle-import'))
   })
 
   it('runs a status summary through its fixed recipe', async () => {

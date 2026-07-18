@@ -977,6 +977,15 @@
   text-transform: uppercase;
 }
 
+.repository-tools-category-subtitle {
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.45;
+  margin: -4px 0 10px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .repository-tools-results h2 {
   font-size: 16px;
   line-height: 1.35;

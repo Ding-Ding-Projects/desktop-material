@@ -908,7 +908,10 @@ export class RepositoryShallowHistory extends React.Component<
         className="repository-tools-category repository-shallow-history"
         aria-labelledby="repository-shallow-history-title"
       >
-        <h2 id="repository-shallow-history-title">History depth</h2>
+        <h2 id="repository-shallow-history-title">Commits &amp; history</h2>
+        <p className="repository-tools-category-subtitle">
+          Understand where commits came from and annotate them.
+        </p>
         <article className="repository-tool-card repository-shallow-history-card">
           <div>
             <h3>Deepen a shallow repository</h3>

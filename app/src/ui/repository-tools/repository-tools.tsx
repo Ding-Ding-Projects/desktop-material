@@ -98,10 +98,8 @@ type RepositoryToolsHubToolID =
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
-  | 'Inspect'
-  | 'History'
-  | 'Export'
-  | 'Import'
+  | 'Nested repositories'
+  | 'Share & transfer'
 
 type RepositoryToolsHubCategoryFilter = 'All' | RepositoryToolsHubCategory
 
@@ -136,15 +134,68 @@ const RepositoryToolOperationIcons: Record<
   'notes-view': octicons.note,
 }
 
+/**
+ * Catalog section order and the two ordering rules for the whole hub:
+ *
+ * 1. Categories are ordered by everyday frequency — the questions users ask
+ *    daily (status, branches, searching, history) come first, occasional
+ *    repository-shape work (nested repositories, cleanup, transfer) follows,
+ *    and repair/diagnostic tools are intentionally last.
+ * 2. Entries within a category are always listed alphabetically by title
+ *    (enforced by compareHubEntries) so a growing catalog stays scannable
+ *    and new entries land in a predictable place.
+ */
 const HubCategoryOrder: ReadonlyArray<RepositoryToolsHubCategory> = [
-  'Diagnostics',
-  'Inspect',
-  'Maintenance',
-  'Recovery',
-  'History',
-  'Export',
-  'Import',
+  'Status & branches',
+  'Search & inspect',
+  'Commits & history',
+  'Nested repositories',
+  'Cleanup & maintenance',
+  'Share & transfer',
+  'Repair & recovery',
 ]
+
+/**
+ * One-line plain-language subtitle rendered under each category header in
+ * the detail pane, describing what the category is for.
+ */
+const HubCategorySubtitles: Record<RepositoryToolsHubCategory, string> = {
+  'Status & branches':
+    'Everyday questions about your working copy and how your branches line up.',
+  'Search & inspect':
+    'Look inside the tracked files without changing anything.',
+  'Commits & history': 'Understand where commits came from and annotate them.',
+  'Nested repositories':
+    'Manage the submodules and subtrees this repository contains.',
+  'Cleanup & maintenance': 'Reclaim disk space and keep the repository fast.',
+  'Share & transfer':
+    'Move this repository’s work in and out as portable files.',
+  'Repair & recovery': 'Check repository integrity and track down lost work.',
+}
+
+/**
+ * A stable DOM id fragment for a category header, e.g. "Status & branches"
+ * becomes "status-branches" (spaces and punctuation are not valid in ids).
+ */
+function hubCategoryDomId(category: RepositoryToolsHubCategory): string {
+  return category
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+}
+
+/** Category frequency order first, then alphabetical title order within it. */
+function compareHubEntries(
+  left: IRepositoryToolsHubEntry,
+  right: IRepositoryToolsHubEntry
+): number {
+  const byCategory =
+    HubCategoryOrder.indexOf(left.category) -
+    HubCategoryOrder.indexOf(right.category)
+  return byCategory !== 0
+    ? byCategory
+    : left.title.localeCompare(right.title, 'en')
+}
 
 const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
   ...RepositoryToolOperations.map(operation => ({
@@ -159,7 +210,7 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
     title: 'Line authorship',
     description:
       'See the commit, author, and date that last changed every line of one tracked file.',
-    category: 'Inspect',
+    category: 'Search & inspect',
     icon: octicons.person,
   },
   {
@@ -167,7 +218,7 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
     title: 'Search tracked content',
     description:
       'Find literal text across every tracked file, with file and line references.',
-    category: 'Inspect',
+    category: 'Search & inspect',
     icon: octicons.codescan,
   },
   {
@@ -175,42 +226,38 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
     title: 'Edit commit notes',
     description:
       'Save, replace, or remove the Git note attached to one commit without rewriting it.',
-    category: 'Inspect',
+    category: 'Commits & history',
     icon: octicons.pencil,
   },
   {
     id: 'shallow-history',
     title: 'Deepen a shallow repository',
     description:
-      'Detect limited history, fetch a bounded number of older commits, or request all remaining history.',
-    category: 'History',
+      'Fetch older commits when this repository was cloned with only part of its history.',
+    category: 'Commits & history',
     icon: octicons.unfold,
   },
   {
     id: 'export-artifacts',
     title: 'Export repository artifacts',
     description:
-      'Create a ZIP/TAR source archive from HEAD or a portable full-history Git bundle.',
-    category: 'Export',
+      'Package this repository as a ZIP/TAR source archive or a portable full-history Git bundle.',
+    category: 'Share & transfer',
     icon: octicons.upload,
   },
   {
     id: 'bundle-import',
     title: 'Import a branch from a Git bundle',
     description:
-      'Inspect a local bundle, choose one advertised ref, and create one new local branch.',
-    category: 'Import',
+      'Bring one branch from a Git bundle file into this repository as a new local branch.',
+    category: 'Share & transfer',
     icon: octicons.download,
   },
 ]
 
 const RepositoryToolsHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
   ...UnsortedHubEntries,
-].sort(
-  (left, right) =>
-    HubCategoryOrder.indexOf(left.category) -
-    HubCategoryOrder.indexOf(right.category)
-)
+].sort(compareHubEntries)
 
 /**
  * The submodule manager hub entry. Listed only when the current repository
@@ -222,7 +269,7 @@ const SubmoduleManagerHubEntry: IRepositoryToolsHubEntry = {
   title: 'Submodule manager',
   description:
     'Review, clone, update, sync, add, and remove the submodules declared by this repository — managed in place, not as separate repositories.',
-  category: 'Maintenance',
+  category: 'Nested repositories',
   icon: octicons.fileSubmodule,
 }
 
@@ -235,7 +282,7 @@ const SubtreeManagerHubEntry: IRepositoryToolsHubEntry = {
   title: 'Subtree manager',
   description:
     'Review the subtrees recorded in the repository history and pull, push, split, or add them in place.',
-  category: 'Maintenance',
+  category: 'Nested repositories',
   icon: octicons.gitMerge,
 }
 
@@ -602,11 +649,7 @@ export class RepositoryTools extends React.Component<
       ...RepositoryToolsHubEntries,
       ...(submodulesHidden ? [] : [SubmoduleManagerHubEntry]),
       ...(subtreesHidden ? [] : [SubtreeManagerHubEntry]),
-    ].sort(
-      (left, right) =>
-        HubCategoryOrder.indexOf(left.category) -
-        HubCategoryOrder.indexOf(right.category)
-    )
+    ].sort(compareHubEntries)
   }
 
   private getVisibleHubEntries(): ReadonlyArray<IRepositoryToolsHubEntry> {
@@ -1150,6 +1193,20 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderCategoryHeader(
+    category: RepositoryToolsHubCategory,
+    titleId: string
+  ) {
+    return (
+      <React.Fragment>
+        <h2 id={titleId}>{category}</h2>
+        <p className="repository-tools-category-subtitle">
+          {HubCategorySubtitles[category]}
+        </p>
+      </React.Fragment>
+    )
+  }
+
   private renderDetailChips(
     category: RepositoryToolsHubCategory,
     access: string,
@@ -1172,13 +1229,15 @@ export class RepositoryTools extends React.Component<
       return null
     }
     const category = operation.category
-    const categoryTitleId = `repository-tools-${category.toLowerCase()}-title`
+    const categoryTitleId = `repository-tools-${hubCategoryDomId(
+      category
+    )}-title`
     return (
       <section
         className="repository-tools-category"
         aria-labelledby={categoryTitleId}
       >
-        <h2 id={categoryTitleId}>{category}</h2>
+        {this.renderCategoryHeader(category, categoryTitleId)}
         <div className="repository-tools-card-grid">
           <article className="repository-tool-card" key={operation.id}>
             <div>
@@ -1236,7 +1295,10 @@ export class RepositoryTools extends React.Component<
         className="repository-tools-category"
         aria-labelledby="repository-tools-submodules-title"
       >
-        <h2 id="repository-tools-submodules-title">Maintenance</h2>
+        {this.renderCategoryHeader(
+          'Nested repositories',
+          'repository-tools-submodules-title'
+        )}
         <div className="repository-tools-card-grid">
           <article className="repository-tool-card">
             <div>
@@ -1255,7 +1317,7 @@ export class RepositoryTools extends React.Component<
                 adding each submodule as a separate repository.
               </p>
               {this.renderDetailChips(
-                'Maintenance',
+                'Nested repositories',
                 'writes repository',
                 'git · submodule'
               )}
@@ -1285,7 +1347,10 @@ export class RepositoryTools extends React.Component<
         className="repository-tools-category"
         aria-labelledby="repository-tools-subtrees-title"
       >
-        <h2 id="repository-tools-subtrees-title">Maintenance</h2>
+        {this.renderCategoryHeader(
+          'Nested repositories',
+          'repository-tools-subtrees-title'
+        )}
         <div className="repository-tools-card-grid">
           <article className="repository-tool-card">
             <div>
@@ -1304,7 +1369,7 @@ export class RepositoryTools extends React.Component<
                 subtree.
               </p>
               {this.renderDetailChips(
-                'Maintenance',
+                'Nested repositories',
                 'writes repository',
                 'git · subtree'
               )}
@@ -1324,7 +1389,10 @@ export class RepositoryTools extends React.Component<
         className="repository-tools-category"
         aria-labelledby="repository-tools-export-title"
       >
-        <h2 id="repository-tools-export-title">Export</h2>
+        {this.renderCategoryHeader(
+          'Share & transfer',
+          'repository-tools-export-title'
+        )}
         <article className="repository-tool-card repository-archive-card">
           <div>
             <div className="repository-tool-card-heading">
@@ -1339,7 +1407,7 @@ export class RepositoryTools extends React.Component<
               containing every local ref and its reachable history.
             </p>
             {this.renderDetailChips(
-              'Export',
+              'Share & transfer',
               'read-only',
               'git · archive / bundle'
             )}
@@ -1497,7 +1565,11 @@ export class RepositoryTools extends React.Component<
             <li>Choose any tracked file inside this repository.</li>
             <li>Read-only: no file or ref is changed.</li>
           </ul>
-          {this.renderDetailChips('Inspect', 'read-only', 'git · file-blame')}
+          {this.renderDetailChips(
+            'Search & inspect',
+            'read-only',
+            'git · file-blame'
+          )}
         </div>
         <Button disabled={disabled} onClick={this.onChooseFileForBlame}>
           Choose a file…
@@ -1522,7 +1594,7 @@ export class RepositoryTools extends React.Component<
             references. Untracked and ignored files are never searched.
           </p>
           {this.renderDetailChips(
-            'Inspect',
+            'Search & inspect',
             'read-only',
             'git · content-search'
           )}
@@ -1597,7 +1669,7 @@ export class RepositoryTools extends React.Component<
             annotate a commit without rewriting it.
           </p>
           {this.renderDetailChips(
-            'Inspect',
+            'Commits & history',
             'writes notes',
             'git · notes-edit'
           )}
@@ -1669,12 +1741,14 @@ export class RepositoryTools extends React.Component<
       return null
     }
     const disabled = this.isBusy() || !this.state.gitAvailable
+    const category: RepositoryToolsHubCategory =
+      selected === 'commit-notes' ? 'Commits & history' : 'Search & inspect'
     return (
       <section
         className="repository-tools-category"
         aria-labelledby="repository-tools-inspect-title"
       >
-        <h2 id="repository-tools-inspect-title">Inspect and search</h2>
+        {this.renderCategoryHeader(category, 'repository-tools-inspect-title')}
         <div className="repository-tools-card-grid">
           {selected === 'line-authorship' &&
             this.renderLineAuthorshipCard(disabled)}
@@ -1827,6 +1901,15 @@ export class RepositoryTools extends React.Component<
 
   private renderSidebar() {
     const entries = this.getVisibleHubEntries()
+    const allEntries = this.getAllHubEntries()
+    // Only offer category chips that filter to at least one entry; gated
+    // categories (Nested repositories) disappear with their entries.
+    const categories: ReadonlyArray<RepositoryToolsHubCategoryFilter> = [
+      'All',
+      ...HubCategoryOrder.filter(category =>
+        allEntries.some(entry => entry.category === category)
+      ),
+    ]
     return (
       <aside className="repository-tools-sidebar">
         <div className="repository-tools-search">
@@ -1856,7 +1939,7 @@ export class RepositoryTools extends React.Component<
           role="group"
           aria-label="Tool categories"
         >
-          {RepositoryToolsHubCategories.map(category => (
+          {categories.map(category => (
             <button
               type="button"
               key={category}
@@ -1933,7 +2016,7 @@ export class RepositoryTools extends React.Component<
             <div className="repository-tools-heading">
               <h1>Repository tools</h1>
               <p className="repository-tools-introduction">
-                Diagnostics, maintenance, recovery, and transfer tools for{' '}
+                Status, history, cleanup, transfer, and repair tools for{' '}
                 {this.props.repositoryPath} — every function runs a reviewed Git
                 recipe with no shell or editable command line.
               </p>

@@ -69,6 +69,21 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 Repository Tools catalog reorganization
+
+The tools hub's taxonomy was rebuilt for scanability: seven
+plain-language categories ordered by everyday frequency — Status &
+branches, Search & inspect, Commits & history, Nested repositories
+(gated, submodules + subtrees), Cleanup & maintenance, Share & transfer,
+Repair & recovery — with entries alphabetical within each (enforced by a
+shared comparator, rule documented on `HubCategoryOrder`). All 24 entry
+ids and titles are unchanged; ~15 vague descriptions were rewritten as
+one-line "what you'd use this for" sentences. Category headers gained
+one-line subtitles, filter chips derive from the categories actually
+present, and a latent invalid-HTML-id bug in the detail-pane header was
+fixed with a slugifier. Contract, responsive, and RTL suites extended
+additively.
+
 ## 2026-07-18 Git subtree manager
 
 A full subtree vertical slice mirroring the submodule manager (the bundled

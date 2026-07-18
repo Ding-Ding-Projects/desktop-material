@@ -869,7 +869,10 @@ export class RepositoryBundleImport extends React.Component<
         className="repository-tools-category repository-bundle-import"
         aria-labelledby="repository-tools-import-title"
       >
-        <h2 id="repository-tools-import-title">Import</h2>
+        <h2 id="repository-tools-import-title">Share &amp; transfer</h2>
+        <p className="repository-tools-category-subtitle">
+          Move this repository’s work in and out as portable files.
+        </p>
         <article className="repository-tool-card repository-bundle-import-card">
           <div>
             <h3>Import a branch from a Git bundle</h3>

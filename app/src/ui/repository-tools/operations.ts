@@ -7,7 +7,18 @@ import {
 
 export type { RepositoryArchiveFormat } from '../../lib/cli-workbench'
 
-export type RepositoryToolCategory = 'Diagnostics' | 'Maintenance' | 'Recovery'
+/**
+ * The plain-language catalog sections used by the tools hub. Each name answers
+ * "what would I open this for?" rather than naming a Git subsystem, so a Git
+ * novice can scan the sidebar. The hub adds two more sections of its own for
+ * entries that are not registry recipes (see RepositoryToolsHubCategory).
+ */
+export type RepositoryToolCategory =
+  | 'Status & branches'
+  | 'Search & inspect'
+  | 'Commits & history'
+  | 'Cleanup & maintenance'
+  | 'Repair & recovery'
 
 export interface IRepositoryArchiveRequest {
   readonly format: RepositoryArchiveFormat | 'bundle'
@@ -483,8 +494,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'status-summary',
       title: 'Status summary',
       description:
-        'Inspect the current branch plus staged, modified, and untracked files.',
-      category: 'Diagnostics',
+        'See which branch you are on and which files are staged, modified, or untracked.',
+      category: 'Status & branches',
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -492,8 +503,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'repository-health',
       title: 'Repository health check',
       description:
-        'Verify object connectivity and validity without changing repository data.',
-      category: 'Diagnostics',
+        'Check the repository data for corruption or missing objects without changing anything.',
+      category: 'Repair & recovery',
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -501,8 +512,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'signature-audit',
       title: 'Audit recent commit signatures',
       description:
-        'Inspect signature status, signer identity, and subject for the latest 50 commits.',
-      category: 'Diagnostics',
+        'Check which of the latest 50 commits are signed and who signed each one.',
+      category: 'Commits & history',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -515,8 +526,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'maintenance-preview',
       title: 'Preview maintenance needs',
       description:
-        'Inspect loose objects, packs, disk usage, and garbage before maintenance.',
-      category: 'Maintenance',
+        'See how much loose data and reclaimable disk space Git could tidy up before running maintenance.',
+      category: 'Cleanup & maintenance',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -529,8 +540,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'branch-overview',
       title: 'Branch sync overview',
       description:
-        'Inspect every local branch with its tip, upstream, and ahead/behind counts, newest first.',
-      category: 'Diagnostics',
+        'See every local branch and how far it is ahead of or behind its upstream.',
+      category: 'Status & branches',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -543,8 +554,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'contributor-summary',
       title: 'Contributor summary',
       description:
-        'Count commits per author across the history reachable from the current branch.',
-      category: 'Diagnostics',
+        'Count how many commits each author has made on the current branch.',
+      category: 'Commits & history',
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -552,8 +563,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'version-describe',
       title: 'Describe current version',
       description:
-        'Name the current commit from the nearest tag, including the commit distance and a dirty marker.',
-      category: 'Diagnostics',
+        'Get a human-readable name for the current commit based on the nearest tag.',
+      category: 'Commits & history',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -565,8 +576,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'whitespace-audit',
       title: 'Audit whitespace and conflict markers',
       description:
-        'Check uncommitted changes for whitespace errors and leftover conflict markers before committing.',
-      category: 'Diagnostics',
+        'Check your uncommitted changes for whitespace errors and leftover conflict markers before you commit.',
+      category: 'Status & branches',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -579,8 +590,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'ignored-files-view',
       title: 'Preview ignored files',
       description:
-        'List the files and folders in the working tree that Git currently ignores.',
-      category: 'Diagnostics',
+        'List the files and folders in this repository that Git currently ignores.',
+      category: 'Search & inspect',
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -588,8 +599,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'notes-view',
       title: 'View commit notes',
       description:
-        'Inspect the latest 50 commits with any Git notes attached to them.',
-      category: 'Diagnostics',
+        'Read the free-form notes attached to any of the latest 50 commits.',
+      category: 'Commits & history',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -601,8 +612,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'maintenance-run',
       title: 'Run repository maintenance',
       description:
-        'Run Git’s configured foreground maintenance tasks for this repository.',
-      category: 'Maintenance',
+        'Let Git tidy its own storage so everyday operations stay fast.',
+      category: 'Cleanup & maintenance',
       mutatesRepository: true,
       requiresConfirmation: true,
       confirmationDescription:
@@ -613,8 +624,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'merged-branch-audit',
       title: 'Find fully merged branches',
       description:
-        'List local branches whose history is already contained in the current branch.',
-      category: 'Maintenance',
+        'Find the local branches that are already merged into the current branch and safe to delete.',
+      category: 'Status & branches',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -626,8 +637,8 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'prune-preview',
       title: 'Preview unreachable object pruning',
       description:
-        'Report the loose objects Git would remove during pruning, without removing anything.',
-      category: 'Maintenance',
+        'See which orphaned objects Git would remove during pruning, without removing anything.',
+      category: 'Cleanup & maintenance',
       mutatesRepository: false,
       requiresConfirmation: false,
     },
@@ -636,7 +647,7 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       title: 'Preview untracked cleanup',
       description:
         'List the untracked files and directories that Remove untracked files would delete.',
-      category: 'Maintenance',
+      category: 'Cleanup & maintenance',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
@@ -649,7 +660,7 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       title: 'Remove untracked files',
       description:
         'Permanently delete the untracked files and directories in the working tree.',
-      category: 'Maintenance',
+      category: 'Cleanup & maintenance',
       mutatesRepository: true,
       requiresConfirmation: true,
       confirmationDescription:
@@ -664,17 +675,18 @@ export const RepositoryToolOperations: ReadonlyArray<IRepositoryToolOperation> =
       id: 'reflog-view',
       title: 'View recent ref movements',
       description:
-        'Inspect the latest 50 local reflog entries for recovery clues. This view never changes refs.',
-      category: 'Recovery',
+        'See where your branches and HEAD recently pointed — the first place to look for lost work.',
+      category: 'Repair & recovery',
       mutatesRepository: false,
       requiresConfirmation: false,
+      supportingDetails: ['Read-only: this view never changes any ref.'],
     },
     {
       id: 'unreachable-commits',
       title: 'Find unreachable commits',
       description:
-        'List commits and other objects that no branch, tag, or reflog still references.',
-      category: 'Recovery',
+        'Find commits that no branch, tag, or reflog references any more — often work lost to a reset.',
+      category: 'Repair & recovery',
       mutatesRepository: false,
       requiresConfirmation: false,
       supportingDetails: [
