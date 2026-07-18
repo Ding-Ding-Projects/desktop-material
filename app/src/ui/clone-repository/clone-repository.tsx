@@ -38,7 +38,10 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { showOpenDialog, showSaveDialog } from '../main-process-proxy'
 import { isTopMostDialog } from '../dialog/is-top-most'
 import memoizeOne from 'memoize-one'
-import { validateEmptyFolder } from '../../lib/path-validation'
+import {
+  NonEmptyCloneFolderError,
+  validateEmptyFolder,
+} from '../../lib/path-validation'
 import {
   BatchCloneMode,
   IBatchCloneItem,
@@ -630,7 +633,16 @@ export class CloneRepository extends React.Component<
           <span id="providers-tab">GitLab &amp; Bitbucket</span>
         </TabBar>
 
-        {error ? <DialogError>{error.message}</DialogError> : null}
+        {error ? (
+          <DialogError>
+            <span>{error.message}</span>
+            {error instanceof NonEmptyCloneFolderError && (
+              <Button onClick={this.onTryToAddInstead}>
+                Try to add instead
+              </Button>
+            )}
+          </DialogError>
+        ) : null}
 
         <div
           className="clone-repository-tab-panel"
@@ -1515,6 +1527,25 @@ export class CloneRepository extends React.Component<
       ) {
         this.setTabState({ error: pathValidation, path }, tab)
       }
+    }
+  }
+
+  private onTryToAddInstead = async () => {
+    const tab = this.props.selectedTab
+    const path = this.getTabState(tab).path
+    if (path === null) {
+      return
+    }
+
+    const accountKey = this.getAccountSnapshotKey(tab)
+    const accountKeysByPath =
+      accountKey === null ? undefined : new Map([[path, accountKey]])
+    const added = await this.props.dispatcher.addRepositories(
+      [path],
+      accountKeysByPath
+    )
+    if (added.length > 0) {
+      this.props.onDismissed()
     }
   }
 

@@ -48,6 +48,27 @@ provenance rather than current status.
   pre-existing TypeScript error in `app/src/ui/preferences/agent-access.tsx`,
   outside this change. No screenshot was promoted for this non-visual fix.
 
+## 2026-07-18 Build terminal OpenCode handoff and add-instead recovery
+
+- After the user reviews consent and starts **Fix with opencode**, the launch
+  dialog now closes, restores the Build & Run terminal, and leaves the entire
+  OpenCode stream there. The detached repair still re-runs the real build to
+  determine success; it no longer traps progress in a blocking log dialog.
+- Detached `opencode run` has no interactive TUI answer surface. Its scoped
+  config therefore denies the `question` tool (including overriding a global
+  `ask` value for this repair), and the repair prompt tells the agent to make
+  the safest minimal reasonable choice and explain it in terminal output rather
+  than waiting on an invisible question. Existing edit/bash preferences remain
+  preserved unless their scoped defaults were absent.
+- A clone destination containing files now presents **Try to add instead** in
+  the error banner. It sends that exact path through the existing add-repository
+  flow, preserves the selected account binding, and closes only after a
+  repository was successfully added.
+- Repository lint passes and the focused push, path, OpenCode helper/runner,
+  launch-dialog, and Build-panel suites pass 31/31. Production launch remains
+  blocked by the pre-existing `agent-access.tsx` compilation error recorded
+  above, so no misleading screenshot was promoted.
+
 ## 2026-07-18 Build & Run OSS-fleet stress test
 
 A 21-repository open-source corpus (express, vite, fresh, ripgrep, gin,
