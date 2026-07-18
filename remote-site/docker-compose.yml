@@ -1,0 +1,45 @@
+name: desktop-material-remote
+
+services:
+  remote-web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+      WRANGLER_WRITE_LOGS: 'false'
+      WRANGLER_LOG_PATH: /tmp/desktop-material-remote-wrangler.log
+      MINIFLARE_REGISTRY_PATH: /tmp/desktop-material-remote-registry
+    expose:
+      - '3000'
+    init: true
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /tmp:size=32m,mode=1777
+
+  gateway:
+    image: caddy:2.10-alpine
+    depends_on:
+      remote-web:
+        condition: service_healthy
+    environment:
+      REMOTE_SITE_ADDRESS: ${REMOTE_SITE_ADDRESS:-:8080}
+      DESKTOP_MATERIAL_AGENT_URL:
+        ${DESKTOP_MATERIAL_AGENT_URL:?Set the private agent URL}
+    extra_hosts:
+      - 'host.docker.internal:host-gateway'
+    ports:
+      - '${REMOTE_HTTP_PORT:-8080}:8080'
+      - '${REMOTE_ACME_PORT:-80}:80'
+      - '${REMOTE_HTTPS_PORT:-443}:443'
+    read_only: true
+    restart: unless-stopped
+    tmpfs:
+      - /config:size=16m,mode=0700
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  caddy-data:
