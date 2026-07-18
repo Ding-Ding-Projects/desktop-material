@@ -185,10 +185,14 @@ describe('Account switcher v2 rail wiring', () => {
     )
   })
 
-  it('renders the switcher with the sign-in and accounts-tab fallbacks wired', () => {
+  it('renders the switcher with real switching and the sign-in fallback wired', () => {
     assert.match(
       repository,
-      /<AccountSwitcher\s*accounts=\{this\.props\.accounts\}[\s\S]*?onClose=\{this\.onCloseAccountSwitcher\}\s*onSelectAccount=\{this\.onShowAccounts\}\s*onAddAccount=\{this\.onAddAccount\}/
+      /<AccountSwitcher\s*accounts=\{this\.props\.accounts\}[\s\S]*?onClose=\{this\.onCloseAccountSwitcher\}\s*onSelectAccount=\{this\.onSwitchAccount\}\s*onAddAccount=\{this\.onAddAccount\}/
+    )
+    assert.match(
+      repository,
+      /private onSwitchAccount = \(account: Account\) => \{\s*this\.props\.dispatcher\.promoteAccount\(account\)\s*this\.onCloseAccountSwitcher\(\)/
     )
     assert.match(
       repository,
