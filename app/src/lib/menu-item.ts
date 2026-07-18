@@ -1,8 +1,21 @@
 import { invokeContextualMenu } from '../ui/main-process-proxy'
 
+/** An octicon-style symbol descriptor rendered before a menu item's label. */
+export interface IMenuItemIcon {
+  readonly p: string[]
+  readonly w: number
+  readonly h: number
+}
+
 export interface IMenuItem {
   /** The user-facing label. */
   readonly label?: string
+
+  /**
+   * An optional leading icon for the Material in-app menu. Ignored by the
+   * native menu used for spell-checked text fields.
+   */
+  readonly icon?: IMenuItemIcon | Record<PropertyKey, IMenuItemIcon>
 
   /** The action to invoke when the user selects the item. */
   readonly action?: () => void
@@ -78,11 +91,32 @@ export function getPlatformSpecificNameOrSymbolForModifier(
   return modifier
 }
 
-/** Show the given menu items in a contextual menu. */
+/**
+ * Show the given menu items in a contextual menu.
+ *
+ * Menus render as the Material in-app menu (tokened M3 surface with icons
+ * and a type-to-filter bar). Text-field menus that need the OS spell-check
+ * suggestions (addSpellCheckMenu) keep the native popup, which also serves
+ * as the fallback if the in-app menu cannot render.
+ */
 export async function showContextualMenu(
   items: ReadonlyArray<IMenuItem>,
   addSpellCheckMenu = false
 ) {
+  if (!addSpellCheckMenu) {
+    try {
+      // Imported lazily so this lib module has no static ui dependency.
+      const { showMaterialContextMenu } = await import(
+        '../ui/lib/material-context-menu'
+      )
+      const menuItem = await showMaterialContextMenu(items)
+      menuItem?.action?.()
+      return
+    } catch (e) {
+      log.error('Material context menu failed; falling back to native', e)
+    }
+  }
+
   const indices = await invokeContextualMenu(
     serializeMenuItems(items),
     addSpellCheckMenu
@@ -107,6 +141,8 @@ function serializeMenuItems(
   return items.map(item => ({
     ...item,
     action: undefined,
+    // Electron expects a NativeImage for icon; ours is an octicon descriptor.
+    icon: undefined,
     submenu: item.submenu ? serializeMenuItems(item.submenu) : undefined,
   }))
 }

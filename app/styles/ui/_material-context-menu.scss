@@ -1,0 +1,144 @@
+// The Material in-app context menu: an M3 menu surface at the pointer with
+// a type-to-filter bar, optional leading icons, checkbox items, and inline
+// submenu expansion. Drawn exclusively from the --md-sys-* tokens.
+.material-context-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+
+.material-context-menu {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  max-width: min(340px, calc(100vw - 16px));
+  max-height: min(420px, calc(100vh - 16px));
+  padding: 6px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 14px;
+  background: var(--md-sys-color-surface-container);
+  color: var(--md-sys-color-on-surface);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--md-sys-color-shadow) 24%, transparent), 0 2px 6px color-mix(in srgb, var(--md-sys-color-shadow) 18%, transparent);
+  animation: dmDown calc(160ms * var(--mdur, 1)) var(--emph) backwards;
+
+  .context-menu-filter {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 2px 2px 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+
+    .octicon {
+      width: 13px;
+      height: 13px;
+      flex: none;
+      fill: currentColor;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 12.5px;
+      outline: none;
+
+      &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+      }
+    }
+  }
+
+  .context-menu-items {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .context-menu-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 6px 10px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+
+    &.submenu {
+      padding-left: 30px;
+    }
+
+    &:hover:not(:disabled),
+    &.highlighted:not(:disabled) {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:disabled {
+      color: color-mix(in srgb, var(--md-sys-color-on-surface) 38%, transparent);
+      cursor: default;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .context-menu-item-leading {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    flex: none;
+
+    .octicon {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .context-menu-check.unchecked {
+      visibility: hidden;
+    }
+  }
+
+  .context-menu-item-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .context-menu-expand {
+    flex: none;
+    width: 12px;
+    height: 12px;
+    fill: var(--md-sys-color-on-surface-variant);
+  }
+
+  .context-menu-separator {
+    margin: 4px 8px;
+    border: 0;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+  }
+
+  .context-menu-empty {
+    margin: 8px 12px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12.5px;
+  }
+}

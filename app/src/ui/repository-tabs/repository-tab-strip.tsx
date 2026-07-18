@@ -236,6 +236,7 @@ export class RepositoryTabStrip extends React.Component<
     showContextualMenu([
       {
         label: tab.isPinned === true ? 'Unpin Tab' : 'Pin Tab',
+        icon: octicons.pin,
         action: () => this.onTogglePinned(tab),
       },
       {
@@ -243,19 +244,23 @@ export class RepositoryTabStrip extends React.Component<
           tab.isFavorite === true
             ? 'Remove from Favorites'
             : 'Add to Favorites',
+        icon: octicons.star,
         action: () => this.onToggleFavorite(tab),
       },
       {
         label: 'Arrange Tabs…',
+        icon: octicons.arrowSwitch,
         action: () => this.openArrange(anchor),
       },
       { type: 'separator' },
       {
         label: 'Customize Appearance…',
+        icon: octicons.paintbrush,
         action: () => this.openStyleEditor(tab, anchor),
       },
       {
         label: 'View Appearance and Tab History…',
+        icon: octicons.history,
         action: () =>
           this.props.dispatcher.showPopup({ type: PopupType.SettingsHistory }),
       },
@@ -268,6 +273,7 @@ export class RepositoryTabStrip extends React.Component<
       },
       {
         label: 'Copy Profile History Repository Path',
+        icon: octicons.copy,
         enabled: profilePath !== null,
         action:
           profilePath === null
@@ -277,6 +283,7 @@ export class RepositoryTabStrip extends React.Component<
       { type: 'separator' },
       {
         label: 'Close Tab',
+        icon: octicons.x,
         action: () => this.onClose(tab),
       },
       {

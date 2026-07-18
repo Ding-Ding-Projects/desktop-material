@@ -893,6 +893,7 @@ export class CommitList extends React.Component<
         label: __DARWIN__
           ? 'Create Branch from Commit'
           : 'Create branch from commit',
+        icon: octicons.gitBranch,
         action: () => {
           if (this.props.onCreateBranch) {
             this.props.onCreateBranch(commit)
@@ -904,6 +905,7 @@ export class CommitList extends React.Component<
         label: __DARWIN__
           ? 'Create Worktree from Commit…'
           : 'Create worktree from commit…',
+        icon: octicons.fileDirectory,
         action: () => {
           this.props.onCreateWorktreeFromCommit?.(commit)
         },
@@ -911,6 +913,7 @@ export class CommitList extends React.Component<
       },
       {
         label: 'Create Tag…',
+        icon: octicons.tag,
         action: () => this.props.onCreateTag?.(commit.sha),
         enabled: this.props.onCreateTag !== undefined,
       }
@@ -937,10 +940,12 @@ export class CommitList extends React.Component<
       { type: 'separator' },
       {
         label: 'Copy SHA',
+        icon: octicons.copy,
         action: () => clipboard.writeText(commit.sha),
       },
       {
         label: __DARWIN__ ? darwinTagsLabel : windowTagsLabel,
+        icon: octicons.tag,
         action: () => clipboard.writeText(commit.tags.join(' ')),
         enabled: commit.tags.length > 0,
       },
