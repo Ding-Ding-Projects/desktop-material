@@ -168,7 +168,34 @@ describe('detectProfiles', () => {
       assert.equal(profile.ecosystem, 'go')
       assert.deepEqual(profile.install?.[0].args, ['mod', 'download'])
       assert.deepEqual(profile.build?.[0].args, ['build', './...'])
+      assert.deepEqual(profile.run?.[0].args, ['run', '.'])
       assert.equal(profile.score, 13)
+    })
+
+    it('omits run for a library module without a main package', () => {
+      const probe = makeProbe({ files: ['go.mod', 'go.sum', 'gin.go'] })
+      const [profile] = detectProfiles(probe)
+      assert.equal(profile.ecosystem, 'go')
+      assert.equal(profile.run, undefined)
+      assert.ok(profile.reasons.includes('library module (no run target)'))
+    })
+
+    it('runs the cmd package named after the module', () => {
+      const probe = makeProbe({
+        files: ['go.mod', 'cmd/healthcheck/main.go', 'cmd/traefik/traefik.go'],
+        texts: { 'go.mod': 'module github.com/traefik/traefik/v3\n' },
+      })
+      const [profile] = detectProfiles(probe)
+      assert.deepEqual(profile.run?.[0].args, ['run', './cmd/traefik'])
+      assert.ok(profile.reasons.includes('cmd/traefik package'))
+    })
+
+    it('falls back to the first cmd package alphabetically', () => {
+      const probe = makeProbe({
+        files: ['go.mod', 'cmd/server/main.go', 'cmd/agent/main.go'],
+      })
+      const [profile] = detectProfiles(probe)
+      assert.deepEqual(profile.run?.[0].args, ['run', './cmd/agent'])
     })
   })
 
@@ -225,6 +252,20 @@ describe('detectProfiles', () => {
         assert.equal(p.run, undefined)
         assert.ok(p.build?.[0].args.some(a => a.endsWith('.sln')))
       }
+    })
+
+    it('builds an XML solution (.slnx) like a classic .sln', () => {
+      const probe = makeProbe({ files: ['Src/Newtonsoft.Json.slnx'] })
+      const [profile] = detectProfiles(probe)
+      assert.equal(profile.ecosystem, 'dotnet')
+      assert.equal(profile.cwd, 'Src')
+      assert.equal(profile.run, undefined)
+      assert.deepEqual(profile.build?.[0].args, [
+        'build',
+        'Newtonsoft.Json.slnx',
+      ])
+      // 13 (solution) − 4 (nested) = 9
+      assert.equal(profile.score, 9)
     })
 
     it('surfaces a solution build plus a profile per nested project', () => {
@@ -327,6 +368,29 @@ describe('detectProfiles', () => {
       )
       assert.equal(profile.ecosystem, 'ruby')
       assert.deepEqual(profile.run?.[0].args, ['exec', 'rails', 'server'])
+    })
+
+    it('demotes a tooling-only Gemfile beside a primary ecosystem', () => {
+      // Alamofire-style: the Gemfile only installs fastlane, the project
+      // itself is a Swift package.
+      const profiles = detectProfiles(
+        makeProbe({ files: ['Package.swift', 'Gemfile', 'Gemfile.lock'] })
+      )
+      const swift = profiles.find(p => p.ecosystem === 'swift')!
+      const ruby = profiles.find(p => p.ecosystem === 'ruby')!
+      assert.equal(profiles[0].ecosystem, 'swift')
+      assert.ok(swift.score > ruby.score)
+      assert.ok(
+        ruby.reasons.some(r => r.startsWith('auxiliary to another ecosystem'))
+      )
+    })
+
+    it('keeps full Gemfile rank when the repo is a gem', () => {
+      const profiles = detectProfiles(
+        makeProbe({ files: ['Package.swift', 'Gemfile', 'sinatra.gemspec'] })
+      )
+      const ruby = profiles.find(p => p.ecosystem === 'ruby')!
+      assert.equal(ruby.score, 10)
     })
 
     it('detects Swift executable packages', () => {
@@ -508,6 +572,22 @@ describe('detectProfiles', () => {
       assert.equal(docker.id, 'docker:services/api:image')
       // 10 − 4 (nested) = 6
       assert.equal(docker.score, 6)
+    })
+
+    it('demotes a packaging Dockerfile beside a primary ecosystem', () => {
+      // guzzle-style: the Dockerfile containerizes a PHP library whose real
+      // workflow is composer.
+      const probe = makeProbe({
+        files: ['Dockerfile', 'composer.json'],
+        texts: { 'composer.json': pkg({}) },
+      })
+      const profiles = detectProfiles(probe)
+      assert.equal(profiles[0].ecosystem, 'php')
+      const docker = profiles.find(p => p.ecosystem === 'docker')!
+      assert.equal(docker.score, 8)
+      assert.ok(
+        docker.reasons.some(r => r.startsWith('auxiliary to another ecosystem'))
+      )
     })
 
     it('surfaces docker beside other real ecosystems and suppresses make', () => {

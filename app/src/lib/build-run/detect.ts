@@ -112,6 +112,13 @@ const MANIFEST_MARKERS = [
 /** Penalty applied to any profile discovered below the repository root. */
 const NESTED_PENALTY = 4
 
+/**
+ * Penalty applied to a manifest that looks like auxiliary tooling (a
+ * fastlane-style Gemfile, a packaging Dockerfile) when a primary ecosystem is
+ * detected in the same directory.
+ */
+const AUXILIARY_PENALTY = 2
+
 /** Cap on candidate directories to keep detection bounded. */
 const MAX_CANDIDATE_DIRS = 24
 
@@ -165,10 +172,14 @@ function projectName(file: string): string {
 /**
  * A detector's output before the wrapper assigns id / cwd / nested penalty.
  * An optional `subId` disambiguates multiple profiles a single detector may
- * emit for the same directory (e.g. one per .NET project).
+ * emit for the same directory (e.g. one per .NET project). `auxiliary` marks
+ * a manifest that only supports another ecosystem's workflow (tooling-only
+ * Gemfile, packaging Dockerfile) so ranking can demote it when a primary
+ * ecosystem shares the directory.
  */
 type DetectionResult = Omit<IBuildProfile, 'id' | 'cwd'> & {
   readonly subId?: string
+  readonly auxiliary?: boolean
 }
 
 type Detector = (
@@ -447,6 +458,49 @@ const detectRust: Detector = probe => {
 
 // ── Go ───────────────────────────────────────────────────────────────────────
 
+/** The last segment of the go.mod module path, ignoring a trailing /vN. */
+function goModuleBasename(probe: IScopedProbe): string | null {
+  const raw = probe.readText('go.mod')
+  const match = raw?.match(/^\s*module\s+(\S+)/m)
+  if (match == null) {
+    return null
+  }
+  const segments = match[1].split('/')
+  const last = segments[segments.length - 1]
+  return /^v\d+$/.test(last) && segments.length > 1
+    ? segments[segments.length - 2]
+    : last
+}
+
+/**
+ * The run target for a Go module: the module root when it has a root main.go,
+ * otherwise a `cmd/<name>` package (preferring the one named after the
+ * module), otherwise none — `go run .` on a library module always fails.
+ */
+function goRunTarget(
+  probe: IScopedProbe
+): { args: ReadonlyArray<string>; reason: string } | null {
+  if (probe.exists('main.go')) {
+    return { args: ['run', '.'], reason: 'main.go entrypoint' }
+  }
+  const cmdDirs = [
+    ...new Set(
+      probe.sampleFiles
+        .filter(f => /^cmd\/[^/]+\/[^/]+\.go$/.test(f))
+        .map(f => f.split('/')[1])
+    ),
+  ].sort()
+  if (cmdDirs.length === 0) {
+    return null
+  }
+  const moduleName = goModuleBasename(probe)
+  const target =
+    moduleName !== null && cmdDirs.includes(moduleName)
+      ? moduleName
+      : cmdDirs[0]
+  return { args: ['run', `./cmd/${target}`], reason: `cmd/${target} package` }
+}
+
 const detectGo: Detector = probe => {
   if (!probe.exists('go.mod')) {
     return null
@@ -457,13 +511,15 @@ const detectGo: Detector = probe => {
     score += 3
     reasons.push('go.sum')
   }
+  const runTarget = goRunTarget(probe)
+  reasons.push(runTarget?.reason ?? 'library module (no run target)')
   return {
     ecosystem: 'go',
     label: 'Go',
     toolIcon: 'codeSquare',
     install: [cmd('go', ['mod', 'download'])],
     build: [cmd('go', ['build', './...'])],
-    run: [cmd('go', ['run', '.'])],
+    run: runTarget !== null ? [cmd('go', runTarget.args)] : undefined,
     toolchainCheck: {
       cmd: cmd('go', ['version']),
       missingHint:
@@ -523,7 +579,7 @@ function dotnetResult(
 
 const detectDotnet: Detector = probe => {
   const csprojs = globFiles(probe, '.csproj')
-  const slns = globFiles(probe, '.sln')
+  const slns = [...globFiles(probe, '.sln'), ...globFiles(probe, '.slnx')]
   if (csprojs.length === 0 && slns.length === 0) {
     return null
   }
@@ -790,7 +846,16 @@ const detectRuby: Detector = probe => {
     }
   }
 
+  // A Gemfile with no app or gem signals (Rails, Rack, an entrypoint, a
+  // gemspec, a Rakefile) is usually tooling for another ecosystem — fastlane,
+  // Jekyll docs — so let ranking demote it when a primary manifest coexists.
+  const auxiliary =
+    run === undefined &&
+    globFiles(probe, '.gemspec').length === 0 &&
+    !probe.exists('Rakefile')
+
   return {
+    auxiliary,
     ecosystem: 'ruby',
     label: 'Ruby',
     toolIcon: 'code',
@@ -1178,6 +1243,9 @@ const detectDocker: Detector = probe => {
 
   if (hasDockerfile) {
     results.push({
+      // A bare Dockerfile packages whatever the project natively builds, so
+      // it should rank below a real ecosystem detected alongside it.
+      auxiliary: true,
       ecosystem: 'docker',
       label: 'Docker image',
       toolIcon: 'container',
@@ -1233,6 +1301,7 @@ function collectCandidateDirs(probe: IRepoFileProbe): ReadonlyArray<string> {
       MANIFEST_MARKERS.includes(base) ||
       base.endsWith('.csproj') ||
       base.endsWith('.sln') ||
+      base.endsWith('.slnx') ||
       base.endsWith('.cabal')
     if (isMarker) {
       dirs.add(file.slice(0, slash))
@@ -1288,21 +1357,41 @@ export function detectProfiles(
       ? dirResults.filter(r => r.ecosystem !== 'make')
       : dirResults
 
+    // Auxiliary manifests (tooling Gemfile, packaging Dockerfile) rank below
+    // a primary ecosystem detected in the same directory.
+    const hasPrimary = effective.some(
+      r =>
+        r.auxiliary !== true &&
+        r.ecosystem !== 'make' &&
+        r.ecosystem !== 'docker'
+    )
+
     for (const result of effective) {
+      const demoted = hasPrimary && result.auxiliary === true
       const nested = dir !== ''
-      const score = nested ? result.score - NESTED_PENALTY : result.score
+      const score =
+        result.score -
+        (nested ? NESTED_PENALTY : 0) -
+        (demoted ? AUXILIARY_PENALTY : 0)
       if (score <= 0) {
         continue
       }
-      const { subId, ...rest } = result
+      // Strip the ranking-internal fields so they never leak into a profile.
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { subId, auxiliary, ...rest } = result
+      const reasons = [
+        ...result.reasons,
+        ...(demoted
+          ? [`auxiliary to another ecosystem here (−${AUXILIARY_PENALTY})`]
+          : []),
+        ...(nested ? [`nested in ${dir}/ (−${NESTED_PENALTY})`] : []),
+      ]
       profiles.push({
         ...rest,
         id: makeId(result.ecosystem, dir, subId),
         cwd: dir,
         score,
-        reasons: nested
-          ? [...result.reasons, `nested in ${dir}/ (−${NESTED_PENALTY})`]
-          : result.reasons,
+        reasons,
       })
     }
   }

@@ -125,6 +125,52 @@ async function resolveExecutable(
   return exe
 }
 
+/**
+ * Arguments that may safely travel through a cmd.exe command line. Anything
+ * else (quotes, `%`, `^`, `&`, `|`, redirects, spaces, …) could be
+ * reinterpreted by cmd.exe, so the spawn is refused rather than escaped —
+ * repo-derived values like solution file names must never reach a shell parse.
+ */
+const SAFE_BATCH_ARG = /^[A-Za-z0-9._+=:,@/\\-]+$/
+
+interface IBatchSpawnSpec {
+  readonly exe: string
+  readonly args: ReadonlyArray<string>
+}
+
+/**
+ * Build the cmd.exe invocation for a `.cmd` / `.bat` script. Node refuses to
+ * spawn batch scripts without a shell (CVE-2024-27980 hardening throws
+ * EINVAL), and npm, yarn, pnpm, and the Gradle/Maven wrappers are all batch
+ * shims on Windows. The command line is assembled verbatim from an
+ * allow-listed argv so cmd.exe cannot be tricked into running anything else;
+ * returns an error message instead when any part fails validation.
+ */
+export function batchSpawnSpec(
+  exe: string,
+  args: ReadonlyArray<string>,
+  comspec: string | undefined
+): IBatchSpawnSpec | { readonly error: string } {
+  if (/["%^&|<>!]/.test(exe)) {
+    return {
+      error: `Refusing to run "${exe}": the script path contains characters cmd.exe could reinterpret.`,
+    }
+  }
+  const unsafe = args.find(arg => !SAFE_BATCH_ARG.test(arg))
+  if (unsafe !== undefined) {
+    return {
+      error: `Refusing to pass "${unsafe}" to a batch script: it contains characters cmd.exe could reinterpret.`,
+    }
+  }
+  // `/d /s /c "…"`: skip AutoRun, treat everything inside the outer quotes as
+  // the command, quote the script path so spaces survive.
+  const line = [`"${exe}"`, ...args].join(' ')
+  return {
+    exe: comspec ?? 'cmd.exe',
+    args: ['/d', '/s', '/c', `"${line}"`],
+  }
+}
+
 export class BuildRunner {
   private readonly runs = new Map<string, IActiveRun>()
 
@@ -517,7 +563,27 @@ export class BuildRunner {
     command: ICommand,
     onSpawn?: (pid: number | undefined) => void
   ): Promise<IExecResult> {
-    const exe = await resolveExecutable(command.exe, run.env)
+    const resolved = await resolveExecutable(command.exe, run.env)
+
+    // Batch shims (npm.cmd, gradlew.bat, …) cannot be spawned directly with
+    // `shell: false` — route them through cmd.exe with a validated argv.
+    let exe = resolved
+    let args: ReadonlyArray<string> = command.args
+    let verbatim = false
+    if (process.platform === 'win32' && /\.(cmd|bat)$/i.test(resolved)) {
+      const spec = batchSpawnSpec(
+        resolved,
+        command.args,
+        run.env.ComSpec ?? run.env.COMSPEC
+      )
+      if ('error' in spec) {
+        this.emitLog(run, stage, 'meta', spec.error)
+        return { code: -1, tail: spec.error, spawnError: true }
+      }
+      exe = spec.exe
+      args = spec.args
+      verbatim = true
+    }
 
     if (run.cancelled) {
       return { code: -1, tail: '', spawnError: false }
@@ -526,11 +592,14 @@ export class BuildRunner {
     return new Promise<IExecResult>(resolve => {
       let child: ChildProcessWithoutNullStreams
       try {
-        child = spawn(exe, [...command.args], {
+        child = spawn(exe, [...args], {
           cwd: run.plan.cwd,
           env: run.env,
           windowsHide: true,
           shell: false,
+          // Verbatim mode hands cmd.exe the exact `/c "…"` line assembled by
+          // batchSpawnSpec; Node's default re-quoting would corrupt it.
+          windowsVerbatimArguments: verbatim,
           // POSIX cancellation targets the owned process group so command
           // descendants cannot survive a renderer reload or app shutdown.
           detached: process.platform !== 'win32',

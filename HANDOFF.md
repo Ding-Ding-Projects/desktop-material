@@ -28,6 +28,40 @@ Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
 
+## 2026-07-18 Build & Run OSS-fleet stress test
+
+A 21-repository open-source corpus (express, vite, fresh, ripgrep, gin,
+Newtonsoft.Json, flask, junit5, commons-lang, guzzle, sinatra, Alamofire,
+dart args, elixir plug, scalatra, aeson, zls, jq, nlohmann/json,
+awesome-compose, traefik) was cloned and driven through
+`probeRepository`/`detectProfiles`. Findings and fixes:
+
+- **Windows batch shims could never spawn.** Node's CVE-2024-27980 hardening
+  makes `spawn` throw `EINVAL` for `.cmd`/`.bat` targets under
+  `shell: false`, so npm/yarn/pnpm and Gradle/Maven wrapper stages failed
+  instantly on Windows. The runner now routes resolved batch shims through
+  `cmd.exe /d /s /c` with a strict argv allow-list (`batchSpawnSpec`) and
+  verbatim arguments; any argument cmd.exe could reinterpret is refused,
+  never escaped. Verified end-to-end with a real `npm install` in the
+  express clone (exit 0, 403 packages).
+- **Go run targets.** `go run .` was emitted even for library modules (gin)
+  and cmd-layout apps (traefik). Detection now runs the root package only
+  when `main.go` exists, otherwise prefers `cmd/<module-basename>` (parsed
+  from `go.mod`, `/vN`-aware) with an alphabetical fallback; libraries get
+  build-only profiles with an explicit reason.
+- **XML solutions.** `.slnx` files rank and build like `.sln`:
+  Newtonsoft.Json now surfaces `dotnet build Src/Newtonsoft.Json.slnx`
+  (verified `dotnet restore` exit 0 on .NET SDK 11).
+- **Auxiliary manifests.** A tooling-only `Gemfile` (Alamofire's fastlane)
+  and a packaging `Dockerfile` (guzzle) no longer outrank the primary
+  ecosystem in the same directory; both demote with an explicit
+  `auxiliary to another ecosystem here` reason.
+- New env-gated corpus suite
+  `app/test/unit/lib/build-run/real-world-fleet-test.ts` (point
+  `BUILD_RUN_FLEET_DIR` at a directory of clones) asserts non-throwing
+  probing, at least one positive-score profile, shell-free argv commands,
+  and deterministic ranking for every repo; it skips itself entirely in CI.
+
 ## 2026-07-17 Docker builds, sync-pill vibes, auto-build-on-pull, and list typography
 
 The three urgent goals previously recorded at the top of this handoff are
