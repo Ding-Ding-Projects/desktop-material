@@ -357,7 +357,7 @@ export function validateSSHCloneSourceUrl(value: string): string {
     throw new Error('The source remote URL is invalid.')
   }
 
-  if (/^(?:https?|ssh|git):\/\//i.test(normalized)) {
+  if (normalized.includes('://')) {
     let parsed: URL
     try {
       parsed = new URL(normalized)

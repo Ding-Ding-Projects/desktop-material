@@ -86,7 +86,6 @@ export type RequestChannels = {
   'agent-command': (command: IAgentCommandEnvelope) => void
   'agent-command-result': (id: string, result: AgentCommandResult) => void
   'agent-server-status': (status: IAgentServerStatus) => void
-  'set-agent-server-enabled': (enabled: boolean) => void
   'select-all-window-contents': () => void
   'dialog-did-open': () => void
   'update-menu-state': (
@@ -196,6 +195,7 @@ export type RequestResponseChannels = {
     request: IGitHubReleaseAssetUploadRequest
   ) => Promise<GitHubReleaseAssetUploadTransferResult>
   'get-agent-server-status': () => Promise<IAgentServerStatus>
+  'set-agent-server-enabled': (enabled: boolean) => Promise<IAgentServerStatus>
   'initialize-agent-server': (
     configuration: IAgentServerStartupConfiguration
   ) => Promise<IAgentServerStatus>

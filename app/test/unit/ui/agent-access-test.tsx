@@ -44,4 +44,20 @@ describe('Agent access preferences', () => {
     assert.match(source, /direct LAN HTTP does not[\s\S]*?encrypt traffic/)
     assert.match(source, /reverse proxy must forward the gateway Host header/)
   })
+
+  it('persists lifecycle state only after success and removes gateways for YOLO', () => {
+    assert.match(source, /\.invoke\('set-agent-server-enabled', enabled\)/)
+    assert.match(
+      source,
+      /setBoolean\('agent-server-enabled', status\.enabled\)/
+    )
+    assert.match(
+      source,
+      /setBoolean\('agent-server-enabled', previousEnabled\)/
+    )
+    assert.match(
+      source,
+      /mode === 'yolo-lan'[\s\S]*?localStorage\.removeItem\(AgentServerGatewayURLStorageKey\)/
+    )
+  })
 })

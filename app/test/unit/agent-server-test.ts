@@ -552,6 +552,7 @@ describe('agent server', () => {
   it('requires explicit YOLO confirmation and still enforces Host and Origin', async () => {
     await withServer(
       async server => {
+        await server.setGatewayURL('https://agent.example.test')
         await assert.rejects(
           server.configure({ mode: 'yolo-lan' }),
           /explicit confirmation/
@@ -560,6 +561,12 @@ describe('agent server', () => {
           mode: 'yolo-lan',
           yoloConfirmed: true,
         })
+        assert.equal(yolo.gatewayURL, null)
+        assert.equal(yolo.transport, 'lan-http')
+        await assert.rejects(
+          server.setGatewayURL('https://agent.example.test'),
+          /disabled in YOLO LAN mode/
+        )
         const origin = new URL(yolo.siteURL).origin
         const host = `${yolo.lanAddresses[0]}:${yolo.port}`
         const command = await request(yolo.port!, '/api/v1/commands', '', {

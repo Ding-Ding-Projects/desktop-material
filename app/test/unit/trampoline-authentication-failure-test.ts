@@ -12,6 +12,8 @@ import {
   setAuthenticationFailureOrigins,
 } from '../../src/lib/git/authentication-failure-origin'
 import { isPullAllHTTPSAuthenticationFailure } from '../../src/lib/automation/pull-all-account-fallback'
+import { TokenStore } from '../../src/lib/stores'
+import { setMostRecentSSHCredential } from '../../src/lib/ssh/ssh-credential-storage'
 
 const promptsDisabledError = (
   lineEnding: '\n' | '\r\n',
@@ -177,5 +179,46 @@ describe('trampoline authentication failure provenance', () => {
         return true
       }
     )
+  })
+
+  it('rolls back only a newly written SSH vault value after a non-authentication failure', async () => {
+    const originalDeleteItem = TokenStore.deleteItem
+    const deleted: Array<[string, string]> = []
+    TokenStore.deleteItem = async (store, key) => {
+      deleted.push([store, key])
+      return true
+    }
+
+    try {
+      for (const createdDuringOperation of [false, true]) {
+        await assert.rejects(
+          withTrampolineEnv(
+            async trampolineEnv => {
+              const token = (trampolineEnv as Record<string, string>)[
+                'DESKTOP_TRAMPOLINE_TOKEN'
+              ]
+              setMostRecentSSHCredential(
+                token,
+                'SSH vault',
+                createdDuringOperation ? 'new' : 'remembered',
+                createdDuringOperation
+              )
+              throw new Error('SSH transport failed')
+            },
+            process.cwd(),
+            false,
+            undefined,
+            undefined,
+            undefined,
+            'ssh-working-copy:test'
+          ),
+          /SSH transport failed/
+        )
+      }
+    } finally {
+      TokenStore.deleteItem = originalDeleteItem
+    }
+
+    assert.deepEqual(deleted, [['SSH vault', 'new']])
   })
 })

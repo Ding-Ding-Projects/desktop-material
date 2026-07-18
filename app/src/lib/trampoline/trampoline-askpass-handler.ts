@@ -96,8 +96,9 @@ async function handleSSHKeyPassphrase(
   const { secret: passphrase, storeSecret: storePassphrase } =
     await trampolineUIHelper.promptSSHKeyPassphrase(keyPath)
 
-  // If the user wanted us to remember the passphrase, we'll keep it around to
-  // store it later if the git operation succeeds.
+  // If the user wanted us to remember the passphrase, write it to the OS vault
+  // and mark it as new for this operation so an unproven value can be rolled
+  // back if the operation fails.
   // However, when running a git command, it's possible that the user will need
   // to enter the passphrase multiple times if there are failed attempts.
   // Because of that, we need to remove any pending passphrases to be stored

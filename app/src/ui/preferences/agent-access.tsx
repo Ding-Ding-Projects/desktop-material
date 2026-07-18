@@ -503,15 +503,27 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
 
   private onEnabledChanged = (event: React.FormEvent<HTMLInputElement>) => {
     const enabled = event.currentTarget.checked
-    setBoolean('agent-server-enabled', enabled)
+    const previousEnabled = this.state.status?.enabled ?? false
     this.setState(state => ({
       busy: true,
       error: null,
       status:
         state.status === null ? null : { ...state.status, enabled: enabled },
     }))
-    ipcRenderer.send('set-agent-server-enabled', enabled)
-    window.setTimeout(this.refreshStatus, 350)
+    ipcRenderer
+      .invoke('set-agent-server-enabled', enabled)
+      .then(status => {
+        setBoolean('agent-server-enabled', status.enabled)
+        this.applyStatus(status)
+      })
+      .catch(error => {
+        setBoolean('agent-server-enabled', previousEnabled)
+        this.setState({
+          busy: false,
+          error: errorMessage(error, 'Unable to update agent server'),
+        })
+        this.refreshStatus()
+      })
   }
 
   private onModeChanged = (event: React.FormEvent<HTMLSelectElement>) => {
@@ -535,6 +547,9 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
         // Persist YOLO only as a startup sentinel. index.tsx clears it and
         // forces local/off before initializing the next app process.
         localStorage.setItem(AgentServerModeStorageKey, mode)
+        if (mode === 'yolo-lan') {
+          localStorage.removeItem(AgentServerGatewayURLStorageKey)
+        }
         this.applyStatus(status)
       })
       .catch(error =>

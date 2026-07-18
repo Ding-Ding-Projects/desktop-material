@@ -138,6 +138,10 @@ describe('SSH working-copy safety boundary', () => {
       () => validateSSHCloneSourceUrl('/tmp/repository'),
       /must use/
     )
+    assert.throws(
+      () => validateSSHCloneSourceUrl('file:///etc/shadow'),
+      /must use HTTPS, SSH, or Git/
+    )
   })
 
   it('persists only the exact non-secret schema and fails closed on extra keys', () => {

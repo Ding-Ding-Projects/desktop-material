@@ -12,13 +12,16 @@ type SSHCredentialEntry = {
 
   /** Key used to identify the credential in the store (e.g. username or hash). */
   key: string
+
+  /** Whether this operation wrote the value instead of reusing an old one. */
+  createdDuringOperation: boolean
 }
 
 /**
- * This map contains the SSH credentials that are pending to be stored. What this
- * means is that a git operation is currently in progress, and the user wanted
- * to store the passphrase for the SSH key, however we don't want to store it
- * until we know the git operation finished successfully.
+ * Associates the most recently supplied vault credential with its in-flight
+ * operation. Newly written values can be rolled back when the operation does
+ * not prove them; previously remembered values are removed only after an
+ * authentication failure.
  */
 const mostRecentSSHCredentials = new Map<string, SSHCredentialEntry>()
 
@@ -40,7 +43,7 @@ export async function setSSHCredential(
   key: string,
   password: string
 ) {
-  setMostRecentSSHCredential(operationGUID, store, key)
+  setMostRecentSSHCredential(operationGUID, store, key, true)
   await TokenStore.setItem(store, key, password)
 }
 
@@ -58,9 +61,14 @@ export async function setSSHCredential(
 export function setMostRecentSSHCredential(
   operationGUID: string,
   store: string,
-  key: string
+  key: string,
+  createdDuringOperation = false
 ) {
-  mostRecentSSHCredentials.set(operationGUID, { store, key })
+  mostRecentSSHCredentials.set(operationGUID, {
+    store,
+    key,
+    createdDuringOperation,
+  })
 }
 
 /**
@@ -75,9 +83,15 @@ export function removeMostRecentSSHCredential(operationGUID: string) {
  * Deletes the SSH credential from the TokenStore. Used when the git operation
  * fails to authenticate.
  */
-export async function deleteMostRecentSSHCredential(operationGUID: string) {
+export async function deleteMostRecentSSHCredential(
+  operationGUID: string,
+  onlyIfCreatedDuringOperation = false
+) {
   const entry = mostRecentSSHCredentials.get(operationGUID)
-  if (entry) {
+  if (
+    entry &&
+    (!onlyIfCreatedDuringOperation || entry.createdDuringOperation)
+  ) {
     log.info(
       `SSH auth failed, deleting credential for ${entry.store}:${entry.key}`
     )

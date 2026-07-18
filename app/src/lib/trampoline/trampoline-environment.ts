@@ -222,6 +222,12 @@ export async function withTrampolineEnv<T>(
         // have. We're limited by the ASKPASS flow here.
         if (isSSHAuthFailure(e) || credentialFailure?.(e) === true) {
           await deleteMostRecentSSHCredential(token)
+        } else if (sshCredentialScope !== undefined) {
+          // A direct SSH operation which was cancelled, timed out, rejected a
+          // host key, or lost transport did not prove a newly entered secret.
+          // Remove only a value written during this operation; retain an older
+          // remembered credential unless authentication itself rejected it.
+          await deleteMostRecentSSHCredential(token, true)
         }
       }
 

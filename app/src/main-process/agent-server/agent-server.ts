@@ -469,6 +469,12 @@ export class AgentServer {
     if (shouldRestart) {
       await this.stop()
     }
+    // YOLO is intentionally a private-LAN-only escape hatch. Never let a
+    // previously configured public gateway turn its no-auth surface into an
+    // internet-facing endpoint.
+    if (configuration.mode === 'yolo-lan') {
+      this.gatewayURL = null
+    }
     this.mode = configuration.mode
     if (wasEnabled) {
       return this.start()
@@ -497,6 +503,9 @@ export class AgentServer {
   public async setGatewayURL(
     value: string | null
   ): Promise<IAgentServerStatus> {
+    if (this.mode === 'yolo-lan' && value !== null && value.trim().length > 0) {
+      throw new Error('HTTPS gateways are disabled in YOLO LAN mode')
+    }
     this.gatewayURL =
       value === null || value.trim().length === 0
         ? null

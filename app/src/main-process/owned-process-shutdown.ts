@@ -49,8 +49,7 @@ export class OwnedProcessShutdownBarrier {
   public constructor(
     private readonly tasks: ReadonlyArray<IOwnedShutdownTask>,
     private readonly quit: () => void,
-    private readonly timeoutMilliseconds =
-      DefaultOwnedShutdownTimeoutMilliseconds,
+    private readonly timeoutMilliseconds = DefaultOwnedShutdownTimeoutMilliseconds,
     private readonly report = defaultReporter,
     private readonly clock = defaultClock
   ) {}

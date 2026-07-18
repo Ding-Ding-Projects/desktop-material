@@ -618,13 +618,9 @@ app.on('ready', () => {
     }
   )
 
-  ipcMain.on('set-agent-server-enabled', (_event, enabled) => {
-    agentServerController
-      ?.setEnabled(enabled)
-      .catch(error =>
-        log.error('Failed to update agent server lifecycle', error)
-      )
-  })
+  ipcMain.handle('set-agent-server-enabled', async (_event, enabled) =>
+    agentServerController!.setEnabled(enabled)
+  )
   ipcMain.on('agent-command-result', (_event, id, result) => {
     agentServerController?.acceptRendererResult(id, result)
   })
