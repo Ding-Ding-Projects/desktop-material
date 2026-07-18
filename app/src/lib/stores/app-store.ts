@@ -7146,6 +7146,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
 
       const gitStore = this.gitStoreCache.get(repository)
+      const repositoryAccount = getAccountForRepository(
+        this.accounts,
+        repository
+      )
+      const accountKey =
+        repositoryAccount === null
+          ? undefined
+          : getAccountKey(repositoryAccount)
       await gitStore.performFailableOperation(
         async () => {
           let aborted = false
@@ -7157,6 +7165,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             gitStore.tagsToPush,
             {
               onHookFailure: this.onHookFailure(() => (aborted = true)),
+              accountKey,
               ...options,
             },
             progress => {

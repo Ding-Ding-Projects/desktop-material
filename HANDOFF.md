@@ -28,6 +28,26 @@ Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
 
+## 2026-07-18 multi-account push owner routing
+
+- Push now passes the selected repository's resolved `accountKey` to Desktop's
+  in-process credential trampoline. When multiple GitHub accounts share the
+  same host, Git therefore authenticates as the repository owner instead of
+  whichever account the credential helper happens to encounter first.
+- The selector is stable account metadata, never a token, and is stripped
+  before Git starts; it does not enter argv, the child environment, remote
+  URLs, or logs. Explicit repository bindings remain authoritative, while
+  legacy repositories keep the existing endpoint fallback.
+- Regression coverage in `push-authenticated-git-test.ts` proves the account
+  key reaches the credential-only execution option and does not leak into the
+  environment. The focused account/push suite passes 10/10 and repository lint
+  passes.
+- Headless MCP preflight passed after restarting its existing scheduled task
+  (server checkout `beed66ca6ed2503e6170ee1e1158247f1c2f0140`). The required
+  production build could not launch the app because compilation stops on a
+  pre-existing TypeScript error in `app/src/ui/preferences/agent-access.tsx`,
+  outside this change. No screenshot was promoted for this non-visual fix.
+
 ## 2026-07-18 Build & Run OSS-fleet stress test
 
 A 21-repository open-source corpus (express, vite, fresh, ripgrep, gin,
