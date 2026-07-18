@@ -296,6 +296,36 @@ describe('Repository tools', () => {
     )
   })
 
+  it('lists the subtree manager for any git repository even with no subtrees', async () => {
+    const client = new FakeRepositoryToolsClient()
+    render(
+      <RepositoryTools
+        repositoryPath={uiRepositoryPath}
+        onRefreshRepository={async () => {}}
+        client={client}
+        subtreeCount={0}
+        onOpenSubtreeManager={() => {}}
+      />
+    )
+    await screen.findByText('git version 2.55.0')
+
+    const items = getHubListItems()
+    // The subtree manager appears despite the zero count; the submodule
+    // manager stays hidden because no submodule wiring was supplied.
+    assert.deepStrictEqual(
+      items
+        .filter(item => item.category === 'Nested repositories')
+        .map(item => item.title),
+      ['Subtree manager']
+    )
+    assert.ok(
+      within(screen.getByRole('group', { name: 'Tool categories' })).getByRole(
+        'button',
+        { name: 'Nested repositories' }
+      )
+    )
+  })
+
   it('matches catalog search across title, description, and category', async () => {
     const client = new FakeRepositoryToolsClient()
     renderTools(client)

@@ -626,10 +626,27 @@ export class SubtreeManagerDialog extends React.Component<
     }
 
     if (subtrees === null || subtrees.length === 0) {
+      // The availability probe surfaces its own gated explanation through
+      // renderAvailabilityError, so the add affordance is hidden there rather
+      // than offering a button that would only be disabled.
+      const canAdd = this.state.subtreeAvailable !== false
       return (
-        <p className="subtrees-empty">
-          No subtrees are recorded in this repository's history yet.
-        </p>
+        <div className="subtrees-empty-state">
+          <p className="subtrees-empty">
+            No subtrees yet — add one to vendor a folder from another
+            repository.
+          </p>
+          {canAdd && (
+            <Button
+              type="button"
+              onClick={this.onShowAddSubtree}
+              tooltip="Choose a hosted repository or URL to add"
+            >
+              <Octicon symbol={octicons.plus} />
+              Add subtree…
+            </Button>
+          )}
+        </div>
       )
     }
 

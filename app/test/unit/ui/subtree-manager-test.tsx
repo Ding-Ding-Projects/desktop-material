@@ -361,6 +361,74 @@ describe('SubtreeManagerDialog', () => {
       )
     }
   })
+
+  it('guides toward adding a first subtree when none are recorded', async () => {
+    const calls: Array<Popup> = []
+    const dispatcher = {
+      isSubtreeAvailable: async () => true,
+      getSubtrees: async () => [],
+      showPopup: (popup: Popup) => {
+        calls.push(popup)
+      },
+    } as unknown as Dispatcher
+
+    render(
+      <SubtreeManagerDialog
+        repository={repository}
+        dispatcher={dispatcher}
+        accounts={[]}
+        onDismissed={() => undefined}
+        listRemotes={async () => remotes}
+      />
+    )
+
+    const message = await screen.findByText(
+      /no subtrees yet — add one to vendor a folder/i
+    )
+    const emptyState = message.closest('.subtrees-empty-state')
+    assert.ok(emptyState !== null, 'expected the empty-state container')
+
+    fireEvent.click(
+      within(emptyState as HTMLElement).getByRole('button', {
+        name: /add subtree…/i,
+      })
+    )
+    assert.equal(calls.length, 1)
+    assert.equal(calls[0].type, PopupType.AddSubtree)
+  })
+
+  it('hides the empty-state add affordance when git subtree is unavailable', async () => {
+    const dispatcher = {
+      isSubtreeAvailable: async () => false,
+      getSubtrees: async () => [],
+      showPopup: () => undefined,
+    } as unknown as Dispatcher
+
+    render(
+      <SubtreeManagerDialog
+        repository={repository}
+        dispatcher={dispatcher}
+        accounts={[]}
+        onDismissed={() => undefined}
+        listRemotes={async () => remotes}
+      />
+    )
+
+    // The gated explanation surfaces once the availability probe resolves.
+    await screen.findByText(/does not ship the `git subtree`/i)
+
+    const message = screen.getByText(
+      /no subtrees yet — add one to vendor a folder/i
+    )
+    const emptyState = message.closest('.subtrees-empty-state')
+    assert.ok(emptyState !== null, 'expected the empty-state container')
+    assert.equal(
+      within(emptyState as HTMLElement).queryByRole('button', {
+        name: /add subtree…/i,
+      }),
+      null
+    )
+  })
 })
 
 interface IAddCall {

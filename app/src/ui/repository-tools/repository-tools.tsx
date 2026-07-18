@@ -282,8 +282,9 @@ const SubmoduleManagerHubEntry: IRepositoryToolsHubEntry = {
 }
 
 /**
- * The subtree manager hub entry. Listed only when the repository history
- * actually records subtrees, so repositories without subtrees never see it.
+ * The subtree manager hub entry. Listed for every git repository (subtrees are
+ * a pure-git feature); it is the only place to add a first subtree, so gating
+ * it on an existing subtree count would strand repositories with none.
  */
 const SubtreeManagerHubEntry: IRepositoryToolsHubEntry = {
   id: 'subtree-manager',
@@ -658,23 +659,21 @@ export class RepositoryTools extends React.Component<
 
   /**
    * The complete hub catalog for this repository: the static entries plus the
-   * submodule manager when the repository actually declares submodules and
-   * the subtree manager when the history actually records subtrees.
+   * submodule manager when the repository actually declares submodules, the
+   * subtree manager for every git repository (it hosts the add-subtree action,
+   * so a positive count is not required), and the cheap-LFS panel for GitHub
+   * repositories.
    */
   private getAllHubEntries(): ReadonlyArray<IRepositoryToolsHubEntry> {
     const { submoduleCount, onOpenSubmoduleManager } = this.props
-    const { subtreeCount, onOpenSubtreeManager } = this.props
+    const { onOpenSubtreeManager } = this.props
     const { cheapLfs } = this.props
     const submodulesHidden =
       onOpenSubmoduleManager === undefined ||
       submoduleCount === undefined ||
       submoduleCount === null ||
       submoduleCount === 0
-    const subtreesHidden =
-      onOpenSubtreeManager === undefined ||
-      subtreeCount === undefined ||
-      subtreeCount === null ||
-      subtreeCount === 0
+    const subtreesHidden = onOpenSubtreeManager === undefined
     const cheapLfsHidden = cheapLfs === undefined || cheapLfs.available !== true
 
     if (submodulesHidden && subtreesHidden && cheapLfsHidden) {
@@ -1370,14 +1369,11 @@ export class RepositoryTools extends React.Component<
 
   private renderSubtreeManager() {
     const { subtreeCount, onOpenSubtreeManager } = this.props
-    if (
-      onOpenSubtreeManager === undefined ||
-      subtreeCount === undefined ||
-      subtreeCount === null ||
-      subtreeCount === 0
-    ) {
+    if (onOpenSubtreeManager === undefined) {
       return null
     }
+
+    const hasSubtrees = typeof subtreeCount === 'number' && subtreeCount > 0
 
     return (
       <section
@@ -1399,11 +1395,21 @@ export class RepositoryTools extends React.Component<
                 <h3>Subtree manager</h3>
               </div>
               <p>
-                The repository history records {subtreeCount}{' '}
-                {subtreeCount === 1 ? 'subtree' : 'subtrees'}. Manage them in
-                place — pull the latest upstream changes, push local changes
-                back, split a prefix into its own branch, or add another
-                subtree.
+                {hasSubtrees ? (
+                  <>
+                    The repository history records {subtreeCount}{' '}
+                    {subtreeCount === 1 ? 'subtree' : 'subtrees'}. Manage them
+                    in place — pull the latest upstream changes, push local
+                    changes back, split a prefix into its own branch, or add
+                    another subtree.
+                  </>
+                ) : (
+                  <>
+                    No subtrees yet. Open the manager to vendor a folder from
+                    another repository as your first subtree, then pull, push,
+                    or split it in place.
+                  </>
+                )}
               </p>
               {this.renderDetailChips(
                 'Nested repositories',

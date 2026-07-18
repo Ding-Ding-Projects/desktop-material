@@ -100,14 +100,15 @@ describe('submodule clone-surface contracts', () => {
     )
   })
 
-  it('lists the subtree manager on the repo page only when subtrees exist', () => {
+  it('lists the subtree manager on the repo page for every git repository', () => {
     const tools = read('src', 'ui', 'repository-tools', 'repository-tools.tsx')
 
-    // The hub entry is gated on a positive count plus an opener callback,
-    // following the exact submodule gating idiom.
+    // The hub entry is shown whenever the opener is wired (any git repo);
+    // unlike the submodule gate it is decoupled from any subtree count, since
+    // the manager is the only place to add a first subtree.
     assert.match(
       tools,
-      /getAllHubEntries\(\)[\s\S]*?onOpenSubtreeManager === undefined \|\|[\s\S]*?subtreeCount === null \|\|[\s\S]*?subtreeCount === 0/
+      /getAllHubEntries\(\)[\s\S]*?const subtreesHidden = onOpenSubtreeManager === undefined/
     )
     assert.match(tools, /id: 'subtree-manager'/)
     assert.match(
