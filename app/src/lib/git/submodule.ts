@@ -26,6 +26,7 @@ import {
 import { resolveSafeRepositoryPath } from './worktree-path-guard'
 import { validateEmptyFolder } from '../path-validation'
 import { IGitModulesEntry, parseGitModules } from './gitmodules'
+import { removeConfigValueInFile, setConfigValueInFile } from './config'
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
@@ -319,6 +320,14 @@ export interface IManagedSubmodule {
   readonly url: string | null
   /** The configured tracked branch, or null when none is set. */
   readonly branch: string | null
+  /** The configured `submodule update` strategy, or null when none is set. */
+  readonly update: string | null
+  /** The configured dirty-state handling, or null when none is set. */
+  readonly ignore: string | null
+  /** Whether a shallow clone is requested, or null when not configured. */
+  readonly shallow: boolean | null
+  /** The configured fetch recursion mode, or null when none is set. */
+  readonly fetchRecurseSubmodules: string | null
   /** The currently checked-out commit SHA, or null when uninitialized. */
   readonly sha: string | null
   /** The `git describe` output for the checked-out commit, if any. */
@@ -410,6 +419,10 @@ export function reconcileSubmodules(
       path,
       url: config?.url && config.url.length > 0 ? config.url : null,
       branch: config?.branch ?? null,
+      update: config?.update ?? null,
+      ignore: config?.ignore ?? null,
+      shallow: config?.shallow ?? null,
+      fetchRecurseSubmodules: config?.fetchRecurseSubmodules ?? null,
       // `git submodule status` prints the expected commit even for a leading
       // `-` entry. Do not present that commit as checked out until initialized.
       sha: isInitialized ? status?.sha ?? null : null,
@@ -656,6 +669,115 @@ export async function syncSubmodules(
 }
 
 /**
+ * Change the configured URL for the submodule at the given path, then sync the
+ * new URL from `.gitmodules` into the submodule's own configuration.
+ */
+export async function setSubmoduleUrl(
+  repository: Repository,
+  path: string,
+  url: string
+): Promise<void> {
+  await git(
+    ['submodule', 'set-url', '--', path, url],
+    repository.path,
+    'setSubmoduleUrl'
+  )
+  await syncSubmodules(repository, [path])
+}
+
+/**
+ * Change the tracked branch for the submodule at the given path, or reset it
+ * to the remote HEAD when the branch is null.
+ */
+export async function setSubmoduleBranch(
+  repository: Repository,
+  path: string,
+  branch: string | null
+): Promise<void> {
+  const args =
+    branch !== null
+      ? ['submodule', 'set-branch', '--branch', branch, '--', path]
+      : ['submodule', 'set-branch', '--default', '--', path]
+
+  await git(args, repository.path, 'setSubmoduleBranch')
+}
+
+/** The optional `.gitmodules` keys managed through `setSubmoduleConfigKey`. */
+export type SubmoduleConfigKey =
+  | 'update'
+  | 'ignore'
+  | 'shallow'
+  | 'fetchRecurseSubmodules'
+
+/** The values git accepts for each managed `.gitmodules` key. */
+const allowedSubmoduleConfigValues: Record<
+  SubmoduleConfigKey,
+  ReadonlyArray<string>
+> = {
+  update: ['checkout', 'rebase', 'merge', 'none'],
+  ignore: ['all', 'dirty', 'untracked', 'none'],
+  shallow: ['true', 'false'],
+  fetchRecurseSubmodules: ['yes', 'on-demand', 'no'],
+}
+
+/**
+ * Set (or remove, when the value is null) a supported `.gitmodules` key for
+ * the submodule with the given `.gitmodules` name.
+ *
+ * Values are validated against the set git accepts for the key and an error
+ * is thrown on anything else.
+ */
+export async function setSubmoduleConfigKey(
+  repository: Repository,
+  name: string,
+  key: SubmoduleConfigKey,
+  value: string | null
+): Promise<void> {
+  const configName = `submodule.${name}.${key}`
+
+  if (value === null) {
+    return removeConfigValueInFile(repository, '.gitmodules', configName)
+  }
+
+  const allowed = allowedSubmoduleConfigValues[key]
+  if (!allowed.includes(value)) {
+    throw new Error(
+      `Invalid value '${value}' for ${configName}: expected one of ${allowed.join(
+        ', '
+      )}.`
+    )
+  }
+
+  return setConfigValueInFile(repository, '.gitmodules', configName, value)
+}
+
+/** Register the submodule at the given path in the local configuration. */
+export async function initSubmodule(
+  repository: Repository,
+  path: string
+): Promise<void> {
+  await git(['submodule', 'init', '--', path], repository.path, 'initSubmodule')
+}
+
+/**
+ * Unregister the submodule at the given path and clear its working tree.
+ *
+ * @param force - Proceed even when the submodule checkout has local
+ *                modifications.
+ */
+export async function deinitSubmodule(
+  repository: Repository,
+  path: string,
+  force: boolean
+): Promise<void> {
+  await git(
+    ['submodule', 'deinit', ...(force ? ['-f'] : []), '--', path],
+    repository.path,
+    'deinitSubmodule'
+  )
+}
+
+/**
  * Fully remove a submodule from the repository.
  *
  * This performs the complete removal sequence: deinitialize the submodule,
@@ -674,11 +796,7 @@ export async function removeSubmodule(
 ): Promise<void> {
   // Deinit unregisters the submodule and clears its working tree. Force is
   // required to proceed when the submodule has local modifications.
-  await git(
-    ['submodule', 'deinit', '-f', '--', path],
-    repository.path,
-    'deinitSubmodule'
-  )
+  await deinitSubmodule(repository, path, true)
 
   // `git rm` won't clean up the git dir git keeps under .git/modules, so remove
   // it ourselves to leave the repository in a state where a submodule of the

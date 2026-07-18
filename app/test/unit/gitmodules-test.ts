@@ -35,8 +35,62 @@ describe('gitmodules', () => {
           path: 'vendor/tool',
           url: 'https://example.com/owner/tool.git',
           branch: 'main',
+          update: null,
+          ignore: null,
+          shallow: null,
+          fetchRecurseSubmodules: null,
         },
-        { name: 'docs', path: 'docs', url: '../docs.git', branch: null },
+        {
+          name: 'docs',
+          path: 'docs',
+          url: '../docs.git',
+          branch: null,
+          update: null,
+          ignore: null,
+          shallow: null,
+          fetchRecurseSubmodules: null,
+        },
+      ])
+    })
+
+    it('parses update, ignore, shallow, and fetchRecurseSubmodules keys', () => {
+      const entries = parseGitModules(
+        [
+          '[submodule "vendor/tool"]',
+          '\tpath = vendor/tool',
+          '\turl = https://example.com/owner/tool.git',
+          '\tupdate = rebase',
+          '\tignore = dirty',
+          '\tshallow = true',
+          '\tfetchRecurseSubmodules = on-demand',
+          '[submodule "docs"]',
+          '\tpath = docs',
+          '\turl = ../docs.git',
+          '\tshallow = no',
+        ].join('\n')
+      )
+
+      assert.deepEqual(entries, [
+        {
+          name: 'vendor/tool',
+          path: 'vendor/tool',
+          url: 'https://example.com/owner/tool.git',
+          branch: null,
+          update: 'rebase',
+          ignore: 'dirty',
+          shallow: true,
+          fetchRecurseSubmodules: 'on-demand',
+        },
+        {
+          name: 'docs',
+          path: 'docs',
+          url: '../docs.git',
+          branch: null,
+          update: null,
+          ignore: null,
+          shallow: false,
+          fetchRecurseSubmodules: null,
+        },
       ])
     })
 

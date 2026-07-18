@@ -234,6 +234,45 @@ async function setConfigValueInPath(
   await git(flags, path || __dirname, 'setConfigValueInPath', options)
 }
 
+/**
+ * Set a config value by name in the given config file.
+ *
+ * The command runs at the repository path so a relative file name (such as
+ * `.gitmodules`) resolves against the working tree.
+ */
+export async function setConfigValueInFile(
+  repository: Repository,
+  file: string,
+  name: string,
+  value: string
+): Promise<void> {
+  await git(
+    ['config', '-f', file, '--replace-all', name, value],
+    repository.path,
+    'setConfigValueInFile'
+  )
+}
+
+/**
+ * Remove a config value by name from the given config file.
+ *
+ * The command runs at the repository path so a relative file name (such as
+ * `.gitmodules`) resolves against the working tree.
+ */
+export async function removeConfigValueInFile(
+  repository: Repository,
+  file: string,
+  name: string
+): Promise<void> {
+  await git(
+    ['config', '-f', file, '--unset-all', name],
+    repository.path,
+    'removeConfigValueInFile',
+    // Git exits with 5 when the key wasn't set, which is the desired outcome.
+    { successExitCodes: new Set([0, 5]) }
+  )
+}
+
 /** Remove the local config value by name. */
 export async function removeConfigValue(
   repository: Repository,

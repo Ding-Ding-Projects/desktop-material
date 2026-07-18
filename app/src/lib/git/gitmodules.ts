@@ -16,6 +16,14 @@ export interface IGitModulesEntry {
   readonly url: string
   /** The tracked branch, or null when none is configured. */
   readonly branch: string | null
+  /** The `submodule update` strategy, or null when none is configured. */
+  readonly update: string | null
+  /** The dirty-state handling for `git status`, or null when not configured. */
+  readonly ignore: string | null
+  /** Whether a shallow clone is requested, or null when not configured. */
+  readonly shallow: boolean | null
+  /** The fetch recursion mode, or null when none is configured. */
+  readonly fetchRecurseSubmodules: string | null
 }
 
 /**
@@ -23,8 +31,9 @@ export interface IGitModulesEntry {
  *
  * The format is a git-config style INI file: one `[submodule "name"]` header
  * per submodule followed by indented `key = value` pairs. Only the `path`,
- * `url` and (optional) `branch` keys are surfaced. Entries missing a `path`
- * are skipped since they cannot be reconciled against working-tree status.
+ * `url` and optional `branch`, `update`, `ignore`, `shallow` and
+ * `fetchRecurseSubmodules` keys are surfaced. Entries missing a `path` are
+ * skipped since they cannot be reconciled against working-tree status.
  */
 export function parseGitModules(
   contents: string
@@ -35,15 +44,32 @@ export function parseGitModules(
   let path: string | null = null
   let url: string | null = null
   let branch: string | null = null
+  let update: string | null = null
+  let ignore: string | null = null
+  let shallow: boolean | null = null
+  let fetchRecurseSubmodules: string | null = null
 
   const flush = () => {
     if (name !== null && path !== null) {
-      entries.push({ name, path, url: url ?? '', branch })
+      entries.push({
+        name,
+        path,
+        url: url ?? '',
+        branch,
+        update,
+        ignore,
+        shallow,
+        fetchRecurseSubmodules,
+      })
     }
     name = null
     path = null
     url = null
     branch = null
+    update = null
+    ignore = null
+    shallow = null
+    fetchRecurseSubmodules = null
   }
 
   for (const rawLine of contents.split(/\r?\n/)) {
@@ -80,6 +106,21 @@ export function parseGitModules(
       url = value
     } else if (key === 'branch') {
       branch = value.length > 0 ? value : null
+    } else if (key === 'update') {
+      update = value.length > 0 ? value : null
+    } else if (key === 'ignore') {
+      ignore = value.length > 0 ? value : null
+    } else if (key === 'shallow') {
+      // Git-config boolean semantics: true/yes/on/1 and false/no/off/0.
+      // Anything else is left unset rather than guessed at.
+      const bool = value.toLowerCase()
+      if (['true', 'yes', 'on', '1'].includes(bool)) {
+        shallow = true
+      } else if (['false', 'no', 'off', '0'].includes(bool)) {
+        shallow = false
+      }
+    } else if (key === 'fetchrecursesubmodules') {
+      fetchRecurseSubmodules = value.length > 0 ? value : null
     }
   }
 

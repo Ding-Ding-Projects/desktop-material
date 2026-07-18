@@ -25,7 +25,11 @@ import { UnreachableCommitsTab } from '../ui/history/unreachable-commits-dialog'
 import { IAPIComment } from '../lib/api'
 import { ISecretScanResult } from '../ui/secret-scanning/push-protection-error-dialog'
 import { BypassReasonType } from '../ui/secret-scanning/bypass-push-protection-dialog'
-import { TerminalOutput, TerminalOutputListener } from '../lib/git'
+import {
+  IManagedSubmodule,
+  TerminalOutput,
+  TerminalOutputListener,
+} from '../lib/git'
 import type { IBYOKModel, IBYOKProvider } from '../lib/copilot/byok'
 import { WorktreeEntry } from './worktree'
 import { MergeAllMode } from '../lib/automation/merge-all'
@@ -51,6 +55,7 @@ export enum PopupType {
   AddSubmodule = 'AddSubmodule',
   CloneableSubmodules = 'CloneableSubmodules',
   SubmoduleManager = 'SubmoduleManager',
+  SubmoduleConfig = 'SubmoduleConfig',
   AddRepository = 'AddRepository',
   CreateRepository = 'CreateRepository',
   CloneRepository = 'CloneRepository',
@@ -255,6 +260,12 @@ export type PopupDetail =
   | {
       type: PopupType.SubmoduleManager
       repository: Repository
+    }
+  | {
+      type: PopupType.SubmoduleConfig
+      repository: Repository
+      /** The reconciled submodule whose configuration is being edited. */
+      submodule: IManagedSubmodule
     }
   | { type: PopupType.AddRepository; path?: string }
   | { type: PopupType.CreateRepository; path?: string }

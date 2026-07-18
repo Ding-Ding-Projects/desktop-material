@@ -69,6 +69,28 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 Submodule config manager
+
+Every submodule row in the Submodule Manager (and the Repository Settings
+Submodules tab) gained a **Configure** action opening a per-submodule
+config dialog:
+
+- Edits the tracked `.gitmodules` keys — URL (`git submodule set-url` +
+  sync), branch (`set-branch --branch/--default`), update strategy,
+  ignore, shallow (tri-state), and fetchRecurseSubmodules — with an
+  "inherit default" sentinel that clears a key, diff-only saves that call
+  exactly the changed operations in order, and per-step inline errors.
+- Action row: Sync, Init (uninitialized only), and a confirmed
+  force-Deinit.
+- New plumbing: file-targeted `git config -f` helpers in config.ts
+  (idempotent unset), `setSubmoduleUrl` / `setSubmoduleBranch` /
+  `setSubmoduleConfigKey` (value-validated before spawning git) /
+  `initSubmodule` / `deinitSubmodule` in git/submodule.ts (removeSubmodule
+  now reuses deinit), and `.gitmodules` parsing extended so
+  `IManagedSubmodule` carries the four config keys.
+- `PopupType.SubmoduleConfig` registered as a normal modal popup; the
+  submodule contract test and popup-modality test pin the new surface.
+
 ## 2026-07-18 In-app log viewer, verbose logging, Git-backed log history
 
 Logging is now a first-class, inspectable surface:

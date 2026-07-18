@@ -12,8 +12,19 @@ import {
   parseGitModules,
   parseSubmoduleStatus,
   reconcileSubmodules,
+  getSubmodules,
+  setSubmoduleUrl,
+  setSubmoduleBranch,
+  setSubmoduleConfigKey,
+  initSubmodule,
+  deinitSubmodule,
+  SubmoduleConfigKey,
 } from '../../../src/lib/git/submodule'
-import { checkoutBranch, getBranches } from '../../../src/lib/git'
+import {
+  checkoutBranch,
+  getBranches,
+  getConfigValue,
+} from '../../../src/lib/git'
 import { setupFixtureRepository } from '../../helpers/repositories'
 
 describe('git/submodule', () => {
@@ -122,7 +133,31 @@ describe('git/submodule', () => {
         path: 'foo/submodule',
         url: 'https://github.com/owner/repo.git',
         branch: 'main',
+        update: null,
+        ignore: null,
+        shallow: null,
+        fetchRecurseSubmodules: null,
       })
+    })
+
+    it('parses the optional configuration keys', () => {
+      const contents = [
+        '[submodule "foo/submodule"]',
+        '\tpath = foo/submodule',
+        '\turl = https://github.com/owner/repo.git',
+        '\tupdate = merge',
+        '\tignore = untracked',
+        '\tshallow = true',
+        '\tfetchRecurseSubmodules = on-demand',
+      ].join('\n')
+
+      const result = parseGitModules(contents)
+
+      assert.equal(result.length, 1)
+      assert.equal(result[0].update, 'merge')
+      assert.equal(result[0].ignore, 'untracked')
+      assert.equal(result[0].shallow, true)
+      assert.equal(result[0].fetchRecurseSubmodules, 'on-demand')
     })
 
     it('parses multiple stanzas and defaults branch to null', () => {
@@ -208,6 +243,10 @@ describe('git/submodule', () => {
           '\tpath = vendor/b',
           '\turl = https://example.com/b.git',
           '\tbranch = dev',
+          '\tupdate = rebase',
+          '\tignore = dirty',
+          '\tshallow = true',
+          '\tfetchRecurseSubmodules = on-demand',
           '[submodule "a"]',
           '\tpath = vendor/a',
           '\turl = https://example.com/a.git',
@@ -227,11 +266,19 @@ describe('git/submodule', () => {
       assert.equal(result[0].path, 'vendor/a')
       assert.equal(result[0].url, 'https://example.com/a.git')
       assert.equal(result[0].branch, null)
+      assert.equal(result[0].update, null)
+      assert.equal(result[0].ignore, null)
+      assert.equal(result[0].shallow, null)
+      assert.equal(result[0].fetchRecurseSubmodules, null)
       assert.equal(result[0].sha, '1111111111111111111111111111111111111111')
       assert.equal(result[0].status, 'up-to-date')
 
       assert.equal(result[1].path, 'vendor/b')
       assert.equal(result[1].branch, 'dev')
+      assert.equal(result[1].update, 'rebase')
+      assert.equal(result[1].ignore, 'dirty')
+      assert.equal(result[1].shallow, true)
+      assert.equal(result[1].fetchRecurseSubmodules, 'on-demand')
       assert.equal(result[1].status, 'uninitialized')
       assert.equal(result[1].sha, null)
     })
@@ -316,6 +363,159 @@ describe('git/submodule', () => {
 
       const result = await readFile(filePath, { encoding: 'utf8' })
       assert.equal(result, '# submodule-test-case')
+    })
+  })
+
+  describe('setSubmoduleUrl', () => {
+    it('rewrites .gitmodules and syncs the URL into the local config', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const url = 'https://example.com/owner/other.git'
+
+      await setSubmoduleUrl(repository, 'foo/submodule', url)
+
+      const submodules = await getSubmodules(repository)
+      assert.equal(submodules.length, 1)
+      assert.equal(submodules[0].url, url)
+      assert.equal(
+        await getConfigValue(repository, 'submodule.foo/submodule.url', true),
+        url
+      )
+    })
+  })
+
+  describe('setSubmoduleBranch', () => {
+    it('sets the tracked branch and resets it to the default', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+
+      await setSubmoduleBranch(repository, 'foo/submodule', 'feature-branch')
+
+      let submodules = await getSubmodules(repository)
+      assert.equal(submodules[0].branch, 'feature-branch')
+
+      await setSubmoduleBranch(repository, 'foo/submodule', null)
+
+      submodules = await getSubmodules(repository)
+      assert.equal(submodules[0].branch, null)
+    })
+  })
+
+  describe('setSubmoduleConfigKey', () => {
+    it('writes and removes the supported .gitmodules keys', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const name = 'foo/submodule'
+
+      await setSubmoduleConfigKey(repository, name, 'update', 'rebase')
+      await setSubmoduleConfigKey(repository, name, 'ignore', 'dirty')
+      await setSubmoduleConfigKey(repository, name, 'shallow', 'true')
+      await setSubmoduleConfigKey(
+        repository,
+        name,
+        'fetchRecurseSubmodules',
+        'on-demand'
+      )
+
+      let submodules = await getSubmodules(repository)
+      assert.equal(submodules[0].update, 'rebase')
+      assert.equal(submodules[0].ignore, 'dirty')
+      assert.equal(submodules[0].shallow, true)
+      assert.equal(submodules[0].fetchRecurseSubmodules, 'on-demand')
+
+      await setSubmoduleConfigKey(repository, name, 'update', null)
+
+      submodules = await getSubmodules(repository)
+      assert.equal(submodules[0].update, null)
+      assert.equal(submodules[0].ignore, 'dirty')
+    })
+
+    it('tolerates removing a key that is not set', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+
+      await setSubmoduleConfigKey(repository, 'foo/submodule', 'ignore', null)
+
+      const submodules = await getSubmodules(repository)
+      assert.equal(submodules[0].ignore, null)
+    })
+
+    it('rejects values outside the allowed set without spawning git', async () => {
+      const repository = new Repository(
+        'C:/missing/superproject',
+        -1,
+        null,
+        false
+      )
+
+      const invalid: ReadonlyArray<[SubmoduleConfigKey, string]> = [
+        ['update', 'sideways'],
+        ['ignore', 'sometimes'],
+        ['shallow', 'maybe'],
+        ['fetchRecurseSubmodules', 'always'],
+      ]
+
+      for (const [key, value] of invalid) {
+        await assert.rejects(
+          setSubmoduleConfigKey(repository, 'foo/submodule', key, value),
+          (error: Error) =>
+            /Invalid value/.test(error.message) &&
+            /expected one of/.test(error.message)
+        )
+      }
+    })
+  })
+
+  describe('initSubmodule and deinitSubmodule', () => {
+    it('requires force to deinit a modified submodule', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+
+      const filePath = path.join(testRepoPath, 'foo', 'submodule', 'README.md')
+      await writeFile(filePath, 'changed', { encoding: 'utf8' })
+
+      await assert.rejects(deinitSubmodule(repository, 'foo/submodule', false))
+
+      await deinitSubmodule(repository, 'foo/submodule', true)
+
+      const submodules = await getSubmodules(repository)
+      assert.equal(submodules.length, 1)
+      assert.equal(submodules[0].status, 'uninitialized')
+      assert.equal(submodules[0].sha, null)
+    })
+
+    it('re-registers a deinitialized submodule in the local config', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+      const configKey = 'submodule.foo/submodule.url'
+
+      await deinitSubmodule(repository, 'foo/submodule', true)
+      assert.equal(await getConfigValue(repository, configKey, true), null)
+
+      await initSubmodule(repository, 'foo/submodule')
+
+      assert.equal(
+        await getConfigValue(repository, configKey, true),
+        'https://github.com/shiftkey/submodule-test-case'
+      )
     })
   })
 })

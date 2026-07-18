@@ -276,8 +276,14 @@ import {
   updateSubmodules,
   syncSubmodules,
   removeSubmodule,
+  setSubmoduleUrl,
+  setSubmoduleBranch,
+  setSubmoduleConfigKey,
+  initSubmodule,
+  deinitSubmodule,
   IManagedSubmodule,
   IAddSubmoduleOptions,
+  SubmoduleConfigKey,
   IRemoteManagementApplyOptions,
   unstageAll,
   fetchRepositoryShallowHistory,
@@ -9655,6 +9661,56 @@ export class AppStore extends TypedBaseStore<IAppState> {
     name?: string
   ): Promise<void> {
     await removeSubmodule(repository, path, name)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _setSubmoduleUrl(
+    repository: Repository,
+    path: string,
+    url: string
+  ): Promise<void> {
+    await setSubmoduleUrl(repository, path, url)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _setSubmoduleBranch(
+    repository: Repository,
+    path: string,
+    branch: string | null
+  ): Promise<void> {
+    await setSubmoduleBranch(repository, path, branch)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _setSubmoduleConfigKey(
+    repository: Repository,
+    name: string,
+    key: SubmoduleConfigKey,
+    value: string | null
+  ): Promise<void> {
+    await setSubmoduleConfigKey(repository, name, key, value)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _initSubmodule(
+    repository: Repository,
+    path: string
+  ): Promise<void> {
+    await initSubmodule(repository, path)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _deinitSubmodule(
+    repository: Repository,
+    path: string,
+    force: boolean
+  ): Promise<void> {
+    await deinitSubmodule(repository, path, force)
     await this._refreshRepository(repository)
   }
 

@@ -1,0 +1,57 @@
+// The per-submodule configuration dialog: a form seeded from the reconciled
+// submodule (URL, branch, and the optional update/ignore/shallow/fetch keys)
+// plus the in-place Sync / Init / Deinit actions. Field language mirrors the
+// submodule manager's rows in dialogs/_repository-settings.scss.
+#submodule-config {
+  width: min(560px, calc(100vw - 40px));
+
+  .submodule-config-fields {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(min(100%, 180px), 1fr));
+    min-width: 0;
+
+    .text-box-component,
+    .select-component {
+      max-width: 100%;
+      min-width: 0;
+      width: 100%;
+    }
+
+    // The URL spans the row so long remotes stay readable at narrow widths.
+    .text-box-component:first-child {
+      grid-column: 1 / -1;
+    }
+  }
+
+  .submodule-config-shallow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .submodule-config-help {
+    display: grid;
+    gap: 4px;
+    margin-top: 8px;
+    min-width: 0;
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .submodule-config-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+  }
+}

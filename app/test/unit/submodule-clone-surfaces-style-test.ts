@@ -131,4 +131,48 @@ describe('submodule clone-surface contracts', () => {
     const uiManifest = read('styles', '_ui.scss')
     assert.match(uiManifest, /@import 'ui\/cloneable-submodules';/)
   })
+
+  it('opens the per-submodule config dialog from the manager rows', () => {
+    const popup = read('src', 'models', 'popup.ts')
+    assert.match(popup, /SubmoduleConfig = 'SubmoduleConfig'/)
+    assert.match(
+      popup,
+      /type: PopupType\.SubmoduleConfig[\s\S]*?submodule: IManagedSubmodule/
+    )
+
+    // Each manager row offers a Configure action carrying its submodule.
+    const manager = read('src', 'ui', 'repository-settings', 'submodules.tsx')
+    assert.match(
+      manager,
+      /type: PopupType\.SubmoduleConfig,[\s\S]*?repository: this\.props\.repository,[\s\S]*?submodule,/
+    )
+    assert.match(manager, /onClick=\{onConfigure\}[\s\S]*?Configure/)
+
+    const app = read('src', 'ui', 'app.tsx')
+    assert.match(
+      app,
+      /case PopupType\.SubmoduleConfig:[\s\S]*?<SubmoduleConfigDialog[\s\S]*?submodule=\{popup\.submodule\}/
+    )
+
+    // The dialog form diffs against its seed and clears keys via the
+    // inherit-default sentinel.
+    const dialog = read(
+      'src',
+      'ui',
+      'submodules',
+      'submodule-config-dialog.tsx'
+    )
+    assert.match(dialog, /const UseDefault = 'inherit-default'/)
+    assert.match(dialog, /value === UseDefault \? null : value/)
+    assert.match(dialog, /id="submodule-config"/)
+
+    const uiManifest = read('styles', '_ui.scss')
+    assert.match(uiManifest, /@import 'ui\/submodule-config';/)
+
+    const style = read('styles', 'ui', '_submodule-config.scss')
+    assert.match(
+      style,
+      /#submodule-config\s*\{[\s\S]*?\.submodule-config-fields/
+    )
+  })
 })

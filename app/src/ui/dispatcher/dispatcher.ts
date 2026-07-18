@@ -42,6 +42,7 @@ import {
   listWorktrees,
   IManagedSubmodule,
   IAddSubmoduleOptions,
+  SubmoduleConfigKey,
   IRemoteManagementApplyOptions,
   IRepositoryShallowHistoryFetchRequest,
 } from '../../lib/git'
@@ -2500,6 +2501,48 @@ export class Dispatcher {
     name?: string
   ): Promise<void> {
     return this.appStore._removeSubmodule(repository, path, name)
+  }
+
+  /** Change the configured URL for the submodule at the given path. */
+  public setSubmoduleUrl(
+    repository: Repository,
+    path: string,
+    url: string
+  ): Promise<void> {
+    return this.appStore._setSubmoduleUrl(repository, path, url)
+  }
+
+  /** Change (or reset, when null) the submodule's tracked branch. */
+  public setSubmoduleBranch(
+    repository: Repository,
+    path: string,
+    branch: string | null
+  ): Promise<void> {
+    return this.appStore._setSubmoduleBranch(repository, path, branch)
+  }
+
+  /** Set (or remove, when null) a supported `.gitmodules` key by name. */
+  public setSubmoduleConfigKey(
+    repository: Repository,
+    name: string,
+    key: SubmoduleConfigKey,
+    value: string | null
+  ): Promise<void> {
+    return this.appStore._setSubmoduleConfigKey(repository, name, key, value)
+  }
+
+  /** Register the submodule at the given path in the local configuration. */
+  public initSubmodule(repository: Repository, path: string): Promise<void> {
+    return this.appStore._initSubmodule(repository, path)
+  }
+
+  /** Unregister the submodule at the given path and clear its working tree. */
+  public deinitSubmodule(
+    repository: Repository,
+    path: string,
+    force: boolean
+  ): Promise<void> {
+    return this.appStore._deinitSubmodule(repository, path, force)
   }
 
   /** Set whether the user has opted out of stats reporting. */

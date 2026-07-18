@@ -254,6 +254,14 @@ export class Submodules extends React.Component<
     })
   }
 
+  private onConfigure = (submodule: IManagedSubmodule) => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.SubmoduleConfig,
+      repository: this.props.repository,
+      submodule,
+    })
+  }
+
   private renderSummary(): JSX.Element | null {
     const { submodules } = this.state
     if (submodules === null || submodules.length === 0) {
@@ -298,6 +306,7 @@ export class Submodules extends React.Component<
         statusPill={this.renderStatusPill(submodule)}
         onUpdate={this.onUpdate}
         onSyncSubmodule={this.onSyncSubmodule}
+        onConfigure={this.onConfigure}
         onRemove={this.onRemove}
       />
     )
@@ -472,6 +481,7 @@ interface ISubmoduleRowProps {
   readonly statusPill: JSX.Element
   readonly onUpdate: (submodule: IManagedSubmodule) => void
   readonly onSyncSubmodule: (submodule: IManagedSubmodule) => void
+  readonly onConfigure: (submodule: IManagedSubmodule) => void
   readonly onRemove: (submodule: IManagedSubmodule) => void
 }
 
@@ -488,6 +498,10 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
   const onSyncClicked = React.useCallback(
     () => props.onSyncSubmodule(submodule),
     [props.onSyncSubmodule, submodule]
+  )
+  const onConfigure = React.useCallback(
+    () => props.onConfigure(submodule),
+    [props.onConfigure, submodule]
   )
   const onRemove = React.useCallback(
     () => props.onRemove(submodule),
@@ -553,6 +567,14 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
           tooltip="Sync the remote URL from .gitmodules"
         >
           Sync
+        </Button>
+        <Button
+          type="button"
+          disabled={isBusy}
+          onClick={onConfigure}
+          tooltip="Edit this submodule's configuration"
+        >
+          Configure
         </Button>
         <Button
           type="button"

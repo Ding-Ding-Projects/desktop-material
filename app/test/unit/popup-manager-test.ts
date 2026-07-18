@@ -33,6 +33,15 @@ describe('hasModalPopup', () => {
     assert.equal(hasModalPopup([sparseCheckout]), false)
   })
 
+  it('keeps the submodule config dialog modal like the submodule manager', () => {
+    const submoduleConfig: Popup = {
+      type: PopupType.SubmoduleConfig,
+      repository: null as never,
+      submodule: null as never,
+    }
+    assert.equal(hasModalPopup([submoduleConfig]), true)
+  })
+
   it('keeps the branch-rules inspector non-modal while context changes', () => {
     const branchRules: Popup = {
       type: PopupType.BranchRules,

@@ -143,6 +143,7 @@ import {
   CloneableSubmodulesDialog,
 } from './clone-repository'
 import { SubmoduleManagerDialog } from './submodules/submodule-manager-dialog'
+import { SubmoduleConfigDialog } from './submodules/submodule-config-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
 import { InsufficientScopesDialog } from './insufficient-scopes/insufficient-scopes-dialog'
 import { CommandPalette } from './command-palette/command-palette'
@@ -2524,6 +2525,16 @@ export class App extends React.Component<IAppProps, IAppState> {
           <SubmoduleManagerDialog
             key={`submodule-manager-${popup.repository.hash}`}
             repository={popup.repository}
+            dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.SubmoduleConfig:
+        return (
+          <SubmoduleConfigDialog
+            key={`submodule-config-${popup.repository.hash}-${popup.submodule.path}`}
+            repository={popup.repository}
+            submodule={popup.submodule}
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
           />
