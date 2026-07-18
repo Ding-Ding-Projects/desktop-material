@@ -50,7 +50,7 @@ type BusyOperation =
 const BusyOperationLabels: Record<BusyOperation, string> = {
   releases: 'Loading releases…',
   assets: 'Loading release assets…',
-  create: 'Creating release draft…',
+  create: 'Creating release…',
   update: 'Updating release metadata…',
   publish: 'Publishing release…',
   delete: 'Deleting release…',
@@ -1458,7 +1458,7 @@ export class GitHubReleasesView extends React.Component<
             <span>
               {this.state.failedOperation === 'releases'
                 ? 'Retry the provider request from the error message above.'
-                : 'Create an unpublished draft to start the first release.'}
+                : 'Create a public release or save an unpublished draft to start.'}
             </span>
           </div>
         ) : visibleReleases.length === 0 ? (

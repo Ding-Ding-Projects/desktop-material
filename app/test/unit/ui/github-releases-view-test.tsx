@@ -373,7 +373,7 @@ describe('GitHub Releases view', () => {
     await waitFor(() => assert.ok(screen.getByText('No releases yet')))
     assert.ok(
       screen.getByText(
-        'Create an unpublished draft to start the first release.'
+        'Create a public release or save an unpublished draft to start.'
       )
     )
     assert.equal(

@@ -1024,6 +1024,22 @@ scene('remote-manager', async () => {
   await closeAllDialogs()
 })
 
+scene('ssh-docker-deploy', async () => {
+  await openRepositorySettingsTab('Remote')
+  await evaluate(`(() => {
+    const deployControl = document.querySelector(
+      '#repository-settings .ssh-deploy-on-push'
+    )
+    if (!(deployControl instanceof HTMLElement)) return false
+    deployControl.scrollIntoView({ block: 'center' })
+    return true
+  })()`)
+  await sleep(1200)
+  await parkPointer()
+  await capture('material-ssh-docker-deploy')
+  await closeAllDialogs()
+})
+
 scene('add-submodule', async () => {
   await openRepositorySettingsTab('Submodules')
   await clickText('Add submodule…', { within: '#repository-settings' })
