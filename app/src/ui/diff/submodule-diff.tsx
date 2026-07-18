@@ -1,12 +1,16 @@
 import React from 'react'
+import classNames from 'classnames'
 import { parseRepositoryIdentifier } from '../../lib/remote-parsing'
+import { shell } from '../../lib/app-shell'
+import { DefaultAppDisplayName } from '../../models/app-identity'
 import { ISubmoduleDiff } from '../../models/diff'
 import { LinkButton } from '../lib/link-button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { SuggestedAction } from '../suggested-actions'
+import { SuggestedAction, SuggestedActionGroup } from '../suggested-actions'
 import { Ref } from '../lib/ref'
 import { CopyButton } from '../copy-button'
+import { TooltippedContent } from '../lib/tooltipped-content'
 import { shortenSHA } from '../../models/commit'
 
 type SubmoduleItemIcon =
@@ -53,42 +57,67 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
       <div className="changes-interstitial submodule-diff">
         <div className="content">
           <div className="interstitial-header">
+            <div className="interstitial-icon">
+              <Octicon symbol={octicons.fileSubmodule} />
+            </div>
             <div className="text">
               <h1>Submodule changes</h1>
+              <TooltippedContent
+                tagName="div"
+                className="submodule-path"
+                tooltip={this.props.diff.fullPath}
+              >
+                {this.submoduleName}
+              </TooltippedContent>
             </div>
           </div>
-          {this.renderSubmoduleInfo()}
-          {this.renderCommitChangeInfo()}
-          {this.renderSubmodulesChangesInfo()}
-          {this.renderOpenSubmoduleAction()}
+          <div className="submodule-diff-items">
+            {this.renderSubmoduleInfo()}
+            {this.renderCommitChangeInfo()}
+            {this.renderSubmodulesChangesInfo()}
+          </div>
+          {this.renderActions()}
         </div>
       </div>
     )
   }
 
-  private renderSubmoduleInfo() {
-    if (this.props.diff.url === null) {
-      return null
-    }
+  /** Last path segment of the submodule, used as its display name. */
+  private get submoduleName(): string {
+    const { fullPath } = this.props.diff
+    const segments = fullPath.replace(/[/\\]+$/, '').split(/[/\\]/)
+    return segments[segments.length - 1] || fullPath
+  }
 
-    const repoIdentifier = parseRepositoryIdentifier(this.props.diff.url)
-    if (repoIdentifier === null) {
+  /** Parsed owner/name/host of the submodule remote, or null when unavailable. */
+  private get repositoryIdentifier() {
+    const { url } = this.props.diff
+    return url === null ? null : parseRepositoryIdentifier(url)
+  }
+
+  /** Canonical web URL of the submodule's repository, or null when unavailable. */
+  private get repositoryUrl(): string | null {
+    const identifier = this.repositoryIdentifier
+    return identifier === null
+      ? null
+      : `https://${identifier.hostname}/${identifier.owner}/${identifier.name}`
+  }
+
+  private renderSubmoduleInfo() {
+    const identifier = this.repositoryIdentifier
+    if (identifier === null) {
       return null
     }
 
     const hostname =
-      repoIdentifier.hostname === 'github.com'
-        ? ''
-        : ` (${repoIdentifier.hostname})`
+      identifier.hostname === 'github.com' ? '' : ` (${identifier.hostname})`
 
     return this.renderSubmoduleDiffItem(
       { octicon: octicons.info, className: 'info-icon' },
       <>
         This is a submodule based on the repository{' '}
-        <LinkButton
-          uri={`https://${repoIdentifier.hostname}/${repoIdentifier.owner}/${repoIdentifier.name}`}
-        >
-          {repoIdentifier.owner}/{repoIdentifier.name}
+        <LinkButton uri={this.repositoryUrl ?? undefined}>
+          {identifier.owner}/{identifier.name}
           {hostname}
         </LinkButton>
         .
@@ -109,9 +138,12 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
       return this.renderSubmoduleDiffItem(
         { octicon: octicons.diffModified, className: 'modified-icon' },
         <>
-          This submodule changed its commit from{' '}
-          {this.renderCommitSHA(oldSHA, 'previous')} to{' '}
-          {this.renderCommitSHA(newSHA, 'new')}.{suffix}
+          This submodule now points at a different commit.{suffix}
+          <div className="sha-transition">
+            {this.renderCommitSHA(oldSHA, 'previous')}
+            <Octicon className="sha-arrow" symbol={octicons.arrowRight} />
+            {this.renderCommitSHA(newSHA, 'new')}
+          </div>
         </>
       )
     } else if (oldSHA === null && newSHA !== null) {
@@ -139,13 +171,13 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
     const whichInfix = which === undefined ? '' : ` ${which}`
 
     return (
-      <>
+      <span className="sha-chip">
         <Ref>{shortenSHA(sha)}</Ref>
         <CopyButton
           ariaLabel={`Copy the full${whichInfix} SHA`}
           copyContent={sha}
         />
-      </>
+      </span>
     )
   }
 
@@ -179,34 +211,64 @@ export class SubmoduleDiff extends React.Component<ISubmoduleDiffProps> {
   ) {
     return (
       <div className="item">
-        <Octicon symbol={icon.octicon} className={icon.className} />
+        <span className={classNames('item-icon', icon.className)}>
+          <Octicon symbol={icon.octicon} />
+        </span>
         <div className="content">{content}</div>
       </div>
     )
   }
 
-  private renderOpenSubmoduleAction() {
-    // If no url is found for the submodule, it means it can't be opened
-    // This happens if the user is looking at an old commit which references
-    // a submodule that got later deleted.
+  private renderActions() {
+    // If no url is found for the submodule, it can't be opened. This happens
+    // when looking at an old commit referencing a since-deleted submodule.
     if (this.props.diff.url === null) {
       return null
     }
 
     return (
-      <span>
+      <SuggestedActionGroup>
         <SuggestedAction
-          title="Open this submodule on GitHub Desktop"
-          description="You can open this submodule on GitHub Desktop as a normal repository to manage and commit any changes in it."
+          title={`Open in ${DefaultAppDisplayName}`}
+          description={`Open this submodule in ${DefaultAppDisplayName} as a normal repository to manage and commit any changes in it.`}
           buttonText={__DARWIN__ ? 'Open Repository' : 'Open repository'}
+          image={<Octicon symbol={octicons.repoClone} />}
           type="primary"
           onClick={this.onOpenSubmoduleClick}
         />
-      </span>
+        {this.renderViewOnHostAction()}
+      </SuggestedActionGroup>
+    )
+  }
+
+  private renderViewOnHostAction() {
+    const identifier = this.repositoryIdentifier
+    if (identifier === null) {
+      return null
+    }
+
+    const host =
+      identifier.hostname === 'github.com' ? 'GitHub' : identifier.hostname
+
+    return (
+      <SuggestedAction
+        title={`View on ${host}`}
+        description="Browse this submodule's repository, commits, and branches in your web browser."
+        buttonText={__DARWIN__ ? 'Open in Browser' : 'Open in browser'}
+        image={<Octicon symbol={octicons.linkExternal} />}
+        onClick={this.onViewOnHostClick}
+      />
     )
   }
 
   private onOpenSubmoduleClick = () => {
     this.props.onOpenSubmodule?.(this.props.diff.fullPath)
+  }
+
+  private onViewOnHostClick = () => {
+    const { repositoryUrl } = this
+    if (repositoryUrl !== null) {
+      shell.openExternal(repositoryUrl)
+    }
   }
 }

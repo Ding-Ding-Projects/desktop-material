@@ -1,19 +1,66 @@
 .submodule-diff {
+  // Monospace path chip sitting under the centered header title.
+  .submodule-path {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    margin: 4px 0 22px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-sm);
+    color: var(--md-sys-color-on-surface-variant);
+    background: var(--md-sys-color-surface-container-high);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // Tonal cards for each informational line, replacing the flat icon+text row.
+  .submodule-diff-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
   .item {
     display: flex;
     flex-direction: row;
     align-items: flex-start;
+    gap: 12px;
     width: 100%;
+    margin: 0;
+    padding: 14px 16px;
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-low);
     font-size: var(--font-size-md);
-    gap: 0.25em;
-    margin-bottom: 1em;
+    line-height: 1.5;
+    color: var(--md-sys-color-on-surface);
+    animation: dmUp calc(460ms * var(--mdur)) var(--spring) backwards;
 
     .content {
       flex: 1;
+      // Keep long owner/name links and SHAs from forcing horizontal overflow.
+      min-width: 0;
+      overflow-wrap: anywhere;
     }
 
-    .octicon {
-      margin-top: 0.2em;
+    // Semantic-hued icon presented inside a subtle tonal chip. The chip tint is
+    // derived from the icon color so each status keeps its own hue.
+    .item-icon {
+      flex-shrink: 0;
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      background: color-mix(in srgb, currentColor 15%, transparent);
+
+      .octicon {
+        width: 16px;
+        height: 16px;
+      }
 
       &.info-icon {
         color: var(--dialog-information-color);
@@ -27,7 +74,7 @@
         color: var(--color-new);
       }
 
-      &.deleted-icon {
+      &.removed-icon {
         color: var(--color-deleted);
       }
 
@@ -37,6 +84,27 @@
     }
   }
 
+  // old-SHA → new-SHA presentation for the modified case.
+  .sha-transition {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+
+    .sha-arrow {
+      width: 16px;
+      height: 16px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+  }
+
+  .sha-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+
   .copy-button {
     // Removing default button styles
     background: transparent;
@@ -44,14 +112,10 @@
     padding: 0;
     height: auto;
     min-width: 16px;
+    color: var(--md-sys-color-on-surface-variant);
 
-    .octicon {
-      // Reverting margin-top change from .item .octicon
-      margin-top: revert;
-    }
-
-    :hover {
-      color: var(--text-secondary-color);
+    &:hover {
+      color: var(--md-sys-color-primary);
     }
   }
 }
