@@ -20,14 +20,19 @@ import {
   IActionsState,
 } from '../../lib/stores/actions-store'
 import { APIError } from '../../lib/http'
+import classNames from 'classnames'
 import { Select } from '../lib/select'
 import { Button } from '../lib/button'
+import { Octicon, syncClockwise } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 import { RunList } from './run-list'
 import { RunDetails } from './run-details'
 import { WorkflowDispatchDialog } from './workflow-dispatch-dialog'
 import { JobLogViewer } from './job-log-viewer'
 import { ActionsConfirmationDialog } from './actions-confirmation-dialog'
-import { WorkflowStateControl } from './workflow-state-control'
+import { WorkflowManager } from './workflow-manager'
+import { WorkflowCatalogDialog } from './workflow-catalog-dialog'
+import { IWorkflowTemplate } from './workflow-templates'
 import { ActionsCacheManager } from './actions-cache-manager'
 import { isWorkflowRunCancellableStatus } from '../../lib/actions-workflow-runs'
 
@@ -66,6 +71,11 @@ interface IActionsViewState {
   readonly branch: string
   readonly event: string
   readonly status: string
+  readonly runQuery: string
+  readonly runQueryRegex: boolean
+  readonly filtersOpen: boolean
+  readonly workflowManagerOpen: boolean
+  readonly catalogOpen: boolean
   readonly selectedRun: IAPIWorkflowRun | null
   readonly selectedAttempt: number | null
   readonly jobList: IActionsJobList | null
@@ -115,6 +125,11 @@ const initialActionsViewState = (repositoryKey: string): IActionsViewState => ({
   branch: 'all',
   event: 'all',
   status: 'all',
+  runQuery: '',
+  runQueryRegex: false,
+  filtersOpen: true,
+  workflowManagerOpen: true,
+  catalogOpen: false,
   selectedRun: null,
   selectedAttempt: null,
   jobList: null,
@@ -273,6 +288,8 @@ export class ActionsView extends React.Component<
         branch: 'all',
         event: 'all',
         status: 'all',
+        runQuery: '',
+        catalogOpen: false,
         selectedRun: null,
         selectedAttempt: null,
         jobList: null,
@@ -765,6 +782,7 @@ export class ActionsView extends React.Component<
     this.logController = null
     this.setState({
       dispatchOpen: true,
+      catalogOpen: false,
       confirmation: null,
       confirmationError: null,
       confirmationProgress: null,
@@ -775,6 +793,50 @@ export class ActionsView extends React.Component<
     })
   }
   private closeDispatch = () => this.setState({ dispatchOpen: false })
+
+  private toggleWorkflowManager = () =>
+    this.setState(state => ({
+      workflowManagerOpen: !state.workflowManagerOpen,
+    }))
+
+  private toggleFilters = () =>
+    this.setState(state => ({ filtersOpen: !state.filtersOpen }))
+
+  private toggleRunQueryRegex = () =>
+    this.setState(state => ({ runQueryRegex: !state.runQueryRegex }))
+
+  private onRunQueryChange = (event: React.FormEvent<HTMLInputElement>) =>
+    this.setState({ runQuery: event.currentTarget.value })
+
+  private openCatalog = () => {
+    this.logController?.abort()
+    this.logController = null
+    this.setState({
+      catalogOpen: true,
+      dispatchOpen: false,
+      confirmation: null,
+      confirmationError: null,
+      confirmationProgress: null,
+      logJob: null,
+      log: '',
+      logLoading: false,
+      logError: null,
+    })
+  }
+
+  private closeCatalog = () => this.setState({ catalogOpen: false })
+
+  private onTemplateAdded = (
+    template: IWorkflowTemplate,
+    alreadyExisted: boolean
+  ) => {
+    this.setState({
+      actionError: null,
+      actionMessage: alreadyExisted
+        ? `${template.file} already exists in .github/workflows — nothing was overwritten.`
+        : `Added ${template.file} to .github/workflows. Commit and push it to publish the workflow.`,
+    })
+  }
 
   private dispatchWorkflow = async (
     workflowId: number,
@@ -1203,9 +1265,60 @@ export class ActionsView extends React.Component<
     }
   }
 
+  /** The active search expression, or null when it is empty or invalid. */
+  private getRunQueryExpression(): RegExp | null {
+    const query = this.state.runQuery.trim()
+    if (query.length === 0) {
+      return null
+    }
+    if (!this.state.runQueryRegex) {
+      return new RegExp(query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+    }
+    try {
+      return new RegExp(query, 'i')
+    } catch {
+      return null
+    }
+  }
+
+  private isRunQueryInvalid(): boolean {
+    if (!this.state.runQueryRegex) {
+      return false
+    }
+    const query = this.state.runQuery.trim()
+    if (query.length === 0) {
+      return false
+    }
+    try {
+      new RegExp(query, 'i')
+      return false
+    } catch {
+      return true
+    }
+  }
+
   private getFilteredRuns() {
     const { workflow, branch, event, status, actions } = this.state
+    const expression = this.getRunQueryExpression()
+    const workflowNames = new Map(
+      actions.workflows.map(item => [item.id, item.name])
+    )
     return actions.runs.filter(run => {
+      if (expression !== null) {
+        const haystack = [
+          run.display_title ?? '',
+          run.name,
+          run.head_branch ?? '',
+          run.event,
+          run.actor?.login ?? '',
+          `#${run.run_number ?? run.id}`,
+          workflowNames.get(run.workflow_id) ?? '',
+          run.path ?? '',
+        ].join(' ')
+        if (!expression.test(haystack)) {
+          return false
+        }
+      }
       if (workflow !== 'all' && run.workflow_id !== Number(workflow)) {
         return false
       }
@@ -1274,13 +1387,6 @@ export class ActionsView extends React.Component<
           .filter((x): x is string => typeof x === 'string'),
       ]),
     ].sort()
-    const selectedWorkflow =
-      this.state.workflow === 'all'
-        ? null
-        : actions.workflows.find(
-            workflow => workflow.id === Number(this.state.workflow)
-          ) ?? null
-
     if (!actions.supported) {
       return (
         <main className="actions-view actions-empty">
@@ -1292,25 +1398,43 @@ export class ActionsView extends React.Component<
     return (
       <main className="actions-view">
         <header className="actions-header">
-          <div>
-            <span className="eyebrow">Repository automation</span>
-            <h1>GitHub Actions</h1>
-          </div>
+          <h1>Actions</h1>
+          <span className="actions-run-count">
+            {actions.runsTotalCount || actions.runs.length}
+            <span className="sr-only"> workflow runs</span>
+          </span>
           <div className="actions-header-buttons">
-            <Button
-              className="button-component-primary"
-              onClick={this.openDispatch}
-              disabled={!actions.workflows.some(x => x.state === 'active')}
+            <button
+              type="button"
+              className={classNames('actions-icon-button', {
+                on: this.state.workflowManagerOpen,
+              })}
+              onClick={this.toggleWorkflowManager}
+              aria-expanded={this.state.workflowManagerOpen}
+              aria-label="Manage workflows"
             >
-              Run workflow
-            </Button>
-            <Button
-              onButtonRef={this.setRefreshButtonRef}
+              <Octicon symbol={octicons.workflow} />
+            </button>
+            <button
+              type="button"
+              className="actions-icon-button"
+              ref={this.setRefreshButtonRef}
               onClick={this.refresh}
               disabled={actions.loading || actions.runsLoadingMore}
+              aria-label="Refresh"
             >
-              Refresh
-            </Button>
+              <Octicon symbol={syncClockwise} />
+            </button>
+            <button
+              type="button"
+              className="actions-run-workflow-button"
+              onClick={this.openDispatch}
+              disabled={!actions.workflows.some(x => x.state === 'active')}
+              aria-haspopup="dialog"
+            >
+              <Octicon symbol={octicons.play} />
+              Run workflow
+            </button>
           </div>
         </header>
         {this.renderRateLimit()}
@@ -1334,7 +1458,54 @@ export class ActionsView extends React.Component<
             {this.state.actionMessage}
           </div>
         )}
-        <section className="actions-filters" aria-label="Workflow run filters">
+        <div className="actions-search-row">
+          <div
+            className={classNames('actions-search-pill', {
+              invalid: this.isRunQueryInvalid(),
+            })}
+          >
+            <Octicon symbol={octicons.search} />
+            <input
+              value={this.state.runQuery}
+              onChange={this.onRunQueryChange}
+              placeholder="Filter runs — try a branch, event, or actor…"
+              spellCheck={false}
+              aria-label="Filter workflow runs"
+            />
+            <button
+              type="button"
+              className={classNames(
+                'actions-search-toggle',
+                'actions-search-regex',
+                { on: this.state.runQueryRegex }
+              )}
+              aria-pressed={this.state.runQueryRegex}
+              aria-label="Use regular expression"
+              onClick={this.toggleRunQueryRegex}
+            >
+              .*
+            </button>
+            <button
+              type="button"
+              className={classNames('actions-search-toggle', {
+                on: this.state.filtersOpen,
+              })}
+              aria-pressed={this.state.filtersOpen}
+              aria-expanded={this.state.filtersOpen}
+              aria-label="Search filters"
+              onClick={this.toggleFilters}
+            >
+              <Octicon symbol={octicons.filter} />
+            </button>
+          </div>
+        </div>
+        <section
+          className={classNames('actions-filters', {
+            collapsed: !this.state.filtersOpen,
+          })}
+          aria-label="Workflow run filters"
+          hidden={!this.state.filtersOpen}
+        >
           <Select
             name="workflow"
             label="Workflow"
@@ -1387,11 +1558,14 @@ export class ActionsView extends React.Component<
             <option value="failure">Failure</option>
           </Select>
         </section>
-        <WorkflowStateControl
-          workflow={selectedWorkflow}
-          busyWorkflowId={this.state.busyWorkflowId}
-          onRequestChange={this.requestWorkflowStateChange}
-        />
+        {this.state.workflowManagerOpen && (
+          <WorkflowManager
+            workflows={actions.workflows}
+            busyWorkflowId={this.state.busyWorkflowId}
+            onRequestChange={this.requestWorkflowStateChange}
+            onNewWorkflow={this.openCatalog}
+          />
+        )}
         {actions.loading && actions.runs.length === 0 && (
           <div className="actions-loading">Loading workflows…</div>
         )}
@@ -1476,6 +1650,17 @@ export class ActionsView extends React.Component<
             actionsStore={this.props.actionsStore}
             onSubmit={this.dispatchWorkflow}
             onDismissed={this.closeDispatch}
+          />
+        )}
+        {this.state.catalogOpen && (
+          <WorkflowCatalogDialog
+            repository={this.props.repository}
+            workflows={actions.workflows}
+            branchName={
+              this.props.currentBranch ?? this.props.branchNames[0] ?? 'main'
+            }
+            onTemplateAdded={this.onTemplateAdded}
+            onDismissed={this.closeCatalog}
           />
         )}
         {this.state.logJob && (

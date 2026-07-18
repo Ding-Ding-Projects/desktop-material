@@ -28,12 +28,15 @@
   animation: dmSheetR calc(480ms * var(--mdur, 1)) var(--spring);
 }
 
+// Header composition per the v2 prototype (§Undo history manager): a 20px-inset
+// row of tonal icon + two-line title copy + circular close, followed by a
+// full-width description paragraph and the Undo/Redo actions row.
 .versioned-store-history-header {
   display: flex;
   flex-shrink: 0;
   align-items: center;
   gap: 12px;
-  padding: 18px 18px 8px 20px;
+  padding: 20px 20px 6px;
 }
 
 .versioned-store-history-header-icon {
@@ -57,7 +60,7 @@
   min-width: 0;
   flex: 1;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 
   h1 {
     margin: 0;
@@ -91,61 +94,68 @@
   border-radius: 50%;
   background: transparent;
   color: var(--md-sys-color-on-surface-variant);
+  transition: background-color 240ms var(--emph), transform 200ms var(--spring-fast);
 
   &:not([aria-disabled='true']):hover {
     background: var(--md-sys-color-surface-container-high);
   }
+
+  // Prototype close affordance: the glyph twists away as it is pressed.
+  &:not([aria-disabled='true']):active {
+    transform: scale(0.86) rotate(90deg);
+  }
 }
 
+// Full-width explainer under the title row, exactly as the prototype composes
+// the sheet header: 20px side insets, 12px body copy on on-surface-variant.
+.versioned-store-history-description {
+  flex-shrink: 0;
+  margin: 0;
+  padding: 0 20px 12px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+// Actions row (prototype §Undo history manager): tonal secondary-container
+// Undo/Redo pills followed by a trailing neutral count chip.
 .versioned-store-history-toolbar {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  min-height: 76px;
-  padding: 4px 16px 12px;
-  border-bottom: 1px solid var(--md-sys-color-outline-variant);
-}
-
-.versioned-store-history-introduction {
-  display: flex;
-  min-width: 180px;
-  flex-direction: column;
-  gap: 2px;
-
-  small {
-    color: var(--md-sys-color-on-surface-variant);
-    font-size: var(--font-size-sm);
-    line-height: 1.35;
-  }
-}
-
-.versioned-store-history-actions {
-  display: flex;
-  min-width: 0;
-  flex-shrink: 0;
-  flex-wrap: wrap;
-  align-items: center;
   gap: 8px;
+  padding: 0 16px 12px;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
 
   .button-component {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    height: 36px;
-    padding: 0 14px;
+    justify-content: center;
+    gap: 7px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 700;
+    transition: background-color 480ms var(--emph), transform 200ms var(--spring-fast);
+
+    &:not([aria-disabled='true']):active {
+      transform: scale(0.95);
+    }
   }
 
-  .versioned-store-history-undo {
+  // Both history actions carry the same secondary-container tonal fill in the
+  // prototype — Undo no longer outranks Redo with a primary-container tint.
+  .versioned-store-history-undo,
+  .versioned-store-history-redo {
     border-color: transparent;
-    background: var(--md-sys-color-primary-container);
-    color: var(--md-sys-color-on-primary-container);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
   }
 
   // A disabled action (a greyed Redo with nothing to redo, or a greyed Undo at
-  // the start of history) must read as clearly inert — never mistakeable for the
-  // enabled, filled Undo. Flatten the tonal fill to a neutral surface tint and
+  // the start of history) must read as clearly inert — never mistakeable for an
+  // enabled, filled pill. Flatten the tonal fill to a neutral surface tint and
   // drop to the MD3 disabled opacity so enabled vs disabled is unambiguous.
   .button-component[aria-disabled='true'] {
     border-color: transparent;
@@ -156,13 +166,18 @@
 }
 
 .versioned-store-history-count {
-  padding: 7px 11px;
+  display: inline-flex;
+  align-items: center;
+  height: 28px;
+  margin-left: auto;
+  padding: 0 11px;
   border-radius: 999px;
-  background: var(--md-sys-color-surface-container-highest);
+  background: var(--md-sys-color-surface-container-high);
   color: var(--md-sys-color-on-surface-variant);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-semibold);
+  font-size: 11.5px;
+  font-weight: 700;
   white-space: nowrap;
+  transition: background-color 480ms var(--emph);
 }
 
 .versioned-store-history-error {
@@ -245,25 +260,38 @@
 .versioned-store-history-list {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   margin: 0;
-  padding: 8px;
+  padding: 4px 12px 14px;
   list-style: none;
 }
 
+// Log rows per the prototype: radius-14 pills that tint on hover, press down on
+// the fast spring, and stagger in on the shared dmUp entrance.
 .versioned-store-history-entry {
   overflow: hidden;
-  border-radius: var(--md-sys-shape-corner-medium);
+  border-radius: 14px;
   background: transparent;
   // These rows are the primary "Select to inspect" affordance, so make the
   // whole row read as clickable — not just the inner button.
   cursor: pointer;
-  transition: background 120ms ease;
+  transition: background-color 240ms var(--emph), transform 200ms var(--spring-fast);
+  animation: dmUp calc(400ms * var(--mdur, 1)) var(--spring) backwards;
+
+  @for $i from 1 through 8 {
+    &:nth-child(#{$i}) {
+      animation-delay: #{($i - 1) * 30}ms;
+    }
+  }
 
   // Hover state-layer: surface-container-high tint signals the row is
   // interactive before the user commits to a click.
   &:not(.selected):hover {
     background: var(--md-sys-color-surface-container-high);
+  }
+
+  &:active {
+    transform: scale(0.98);
   }
 
   &.selected {
@@ -275,7 +303,6 @@
 .versioned-store-history-entry-row {
   display: flex;
   align-items: center;
-  min-height: 74px;
 }
 
 .versioned-store-history-entry-select {
@@ -283,9 +310,9 @@
   min-width: 0;
   flex: 1;
   grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: start;
+  align-items: center;
   gap: 10px;
-  padding: 11px 6px 11px 12px;
+  padding: 10px 6px 10px 12px;
   border: 0;
   outline: none;
   background: transparent;
@@ -295,17 +322,20 @@
   cursor: pointer;
 
   &:focus-visible {
-    border-radius: var(--md-sys-shape-corner-medium);
+    border-radius: 14px;
     box-shadow: inset 0 0 0 2px var(--md-sys-color-primary);
   }
 
+  // Mono sha chip: 4x8 inset on an 8px radius, per the prototype log rows.
   > code {
-    margin-top: 1px;
-    padding: 3px 6px;
-    border-radius: 6px;
+    padding: 4px 8px;
+    border-radius: 8px;
     background: var(--md-sys-color-surface-container-highest);
     color: var(--md-sys-color-on-surface-variant);
+    font-family: var(--font-family-monospace);
     font-size: 11px;
+    font-weight: var(--font-weight-semibold);
+    transition: background-color 300ms var(--emph);
   }
 }
 
@@ -318,10 +348,11 @@
   display: flex;
   min-width: 0;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 
   strong {
     overflow: hidden;
+    font-size: 12.5px;
     font-weight: var(--font-weight-semibold);
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -333,6 +364,11 @@
 .versioned-store-history-files-empty {
   color: var(--md-sys-color-on-surface-variant);
   font-size: var(--font-size-sm);
+}
+
+.versioned-store-history-entry-time {
+  font-size: 11px;
+  opacity: 0.85;
 }
 
 .selected .versioned-store-history-entry-time,
@@ -366,15 +402,25 @@
   color: inherit;
 }
 
+// Filled-primary HEAD pill that bounces in when history moves, per the
+// prototype log rows.
 .versioned-store-history-head {
-  padding: 3px 7px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 9px;
   border-radius: 999px;
   background: var(--md-sys-color-primary);
   color: var(--md-sys-color-on-primary);
-  font-size: 10px;
-  font-weight: var(--font-weight-semibold);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  animation: dmBounce calc(460ms * var(--mdur, 1)) var(--spring-fast);
 }
 
+// Superset of the prototype's trailing 17px history glyph on non-HEAD rows:
+// here the glyph is a real restore button, dimmed to the prototype's 0.7 until
+// hovered.
 .versioned-store-history-restore.button-component {
   width: 28px;
   height: 28px;
@@ -385,8 +431,18 @@
   background: transparent;
   color: currentColor;
 
+  .octicon {
+    width: 17px;
+    height: 17px;
+    opacity: 0.7;
+  }
+
   &:not([aria-disabled='true']):hover {
     background: var(--md-sys-color-surface-container-highest);
+
+    .octicon {
+      opacity: 1;
+    }
   }
 }
 
@@ -592,17 +648,15 @@
     min-width: 0;
   }
 
+  // At sheet-like widths the actions row matches the prototype exactly: the
+  // two pills stretch to equal halves ahead of the count chip.
   .versioned-store-history-toolbar {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 8px;
-    min-height: 0;
-  }
+    flex-wrap: wrap;
 
-  .versioned-store-history-introduction,
-  .versioned-store-history-actions {
-    width: 100%;
-    min-width: 0;
+    .versioned-store-history-undo,
+    .versioned-store-history-redo {
+      flex: 1;
+    }
   }
 
   .versioned-store-history-layout {
@@ -639,19 +693,19 @@
     height: 32px;
   }
 
+  .versioned-store-history-description {
+    padding: 0 12px 6px;
+    line-height: 1.35;
+  }
+
   .versioned-store-history-toolbar {
     gap: 6px;
-    min-height: 0;
     padding: 4px 10px 8px;
-  }
 
-  .versioned-store-history-introduction small {
-    line-height: 1.2;
-  }
-
-  .versioned-store-history-actions .button-component {
-    height: 32px;
-    padding: 0 10px;
+    .button-component {
+      height: 32px;
+      padding: 0 12px;
+    }
   }
 
   .versioned-store-history-layout {
@@ -666,7 +720,9 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .versioned-store-history-panel {
+  .versioned-store-history-panel,
+  .versioned-store-history-entry,
+  .versioned-store-history-head {
     animation: none;
   }
 }

@@ -2,9 +2,33 @@
 
 #app-menu-foldout {
   display: flex;
-  max-height: 95%; // When at 100%, can cause some brief shifting of components
+  // Design v2 ("App menu" surface): every open pane is its own floating
+  // dropdown card, so panes align to the top and size to their own content
+  // instead of stretching to match their tallest sibling. The row itself is
+  // invisible and click-through (the menu-bar foldout hack disables pointer
+  // events and panes re-enable them), so giving it a definite height only
+  // serves to let each card resolve `max-height: 100%` and scroll internally.
+  // 95% (not 100%) to avoid brief shifting of components.
+  height: 95%;
+  max-height: 95%;
+  align-items: flex-start;
+  gap: 8px;
 }
 
+// v2: the dropdown chrome lives on the individual menu panes below, so the
+// anchoring foldout container must not paint the shared popover surface the
+// shell gives every `.toolbar-dropdown .foldout` (border + level-3 shadow).
+// `:has()` scopes this to the app menu foldout only; the extra specificity it
+// carries lets this outrank the shell rule regardless of import order.
+.toolbar-dropdown .foldout:has(#app-menu-foldout) {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+}
+
+// Base MenuPane styling, shared with the split-button options menu
+// (dropdown-select-button). The app menu's v2 look is layered on top of this
+// under the #app-menu-foldout scope further down.
 .menu-pane {
   overflow-y: auto;
   padding-bottom: var(--spacing-half);
@@ -100,6 +124,118 @@
     height: 0;
     margin: var(--spacing-half);
     border: none;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// App menu v2 — authoritative prototype "App menu" surface: a flat Material
+// dropdown card (250px min, surface-container, outline-variant hairline,
+// medium radius, level-3 elevation, dmDown entrance) holding 34px flat
+// full-width rows with an 18px icon column, flexing label, monospace shortcut
+// column and 8% on-surface hover wash; hairline dividers inset 6px 12px.
+//
+// Visual restyle only — the multi-pane flex layout, keyboard navigation and
+// access-key underline machinery above are untouched. Scoped under
+// #app-menu-foldout so the shared MenuPane consumer (dropdown-select-button)
+// keeps its own look, and so these declarations outrank both the base rules
+// above and the menu-bar transparency hack in ui/window/_app-menu-bar.scss.
+// ---------------------------------------------------------------------------
+#app-menu-foldout .menu-pane {
+  // The menu-bar foldout hack re-points the pane's background and text colors
+  // through these variables at higher specificity than we can reach from here,
+  // so feed the indirection with the v2 tokens instead of fighting it.
+  --app-menu-pane-background-color: var(--md-sys-color-surface-container);
+  --app-menu-pane-color: var(--md-sys-color-on-surface);
+  --app-menu-pane-secondary-color: var(--md-sys-color-on-surface-variant);
+
+  min-width: 250px;
+  max-height: 100%;
+  padding: 8px 0;
+  background: var(--md-sys-color-surface-container);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  // Medium corner (12px): the flat dropdown radius, matching the split rule
+  // for `.context-menu` in _material-shell.scss.
+  border-radius: var(--md-sys-shape-corner-medium);
+  box-shadow: var(--md-sys-elevation-level3);
+  color: var(--md-sys-color-on-surface);
+  animation: dmDown calc(200ms * var(--mdur, 1)) var(--spring-fast) both;
+
+  .menu-item {
+    gap: 10px;
+    height: 34px;
+    // Flat full-width rows: no inset pill.
+    margin: 0;
+    padding: 0 14px;
+    border-radius: 0;
+    font-size: 13px;
+    color: var(--md-sys-color-on-surface);
+    cursor: pointer;
+
+    &.disabled {
+      cursor: default;
+    }
+
+    // Hover wash straight from the prototype's style-hover; selection tracks
+    // hover in this menu and doubles as the keyboard navigation highlight, so
+    // it gets the same treatment (flat wash, no tonal color flip).
+    &.selected,
+    &:hover:not(.disabled) {
+      --text-color: var(--md-sys-color-on-surface);
+      --text-secondary-color: var(--md-sys-color-on-surface-variant);
+
+      background: color-mix(in srgb, var(--md-sys-color-on-surface) 8%, transparent);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    // Pressed feedback: a slightly deeper wash standing in for the
+    // prototype's ripple (which needs markup we don't own here).
+    &:active:not(.disabled) {
+      background: color-mix(in srgb, var(--md-sys-color-on-surface) 12%, transparent);
+    }
+
+    // 18px leading icon column (check / radio glyphs).
+    .icon {
+      flex: none;
+      width: 18px;
+      height: 18px;
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .label {
+      flex: 1;
+      min-width: 0;
+      // Rows without a leading glyph keep the prototype's icon-column indent:
+      // 18px slot + 10px gap.
+      margin-left: 28px;
+      margin-right: 0;
+    }
+
+    &.checked .label {
+      margin-left: 0;
+    }
+
+    // Shortcut column: monospace, quiet, pinned to the trailing edge.
+    .accelerator {
+      flex: none;
+      margin-left: 18px;
+      margin-right: 0;
+      font-family: 'Roboto Mono', var(--font-family-monospace);
+      font-size: 11px;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .submenu-arrow {
+      flex: none;
+      margin-right: 0;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+  }
+
+  // Hairline group dividers, inset from the card edges.
+  hr {
+    margin: 6px 12px;
     border-top: 1px solid var(--md-sys-color-outline-variant);
   }
 }

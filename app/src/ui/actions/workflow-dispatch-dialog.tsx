@@ -1,4 +1,5 @@
 import * as React from 'react'
+import classNames from 'classnames'
 import { Repository } from '../../models/repository'
 import { IAPIWorkflow } from '../../lib/api'
 import {
@@ -8,9 +9,14 @@ import {
   parseWorkflowDispatchInputs,
 } from '../../lib/actions-workflow-inputs'
 import { ActionsStore } from '../../lib/stores/actions-store'
-import { Button } from '../lib/button'
 import { Select } from '../lib/select'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 import { trapActionsDialogFocus } from './actions-dialog-focus'
+import { getWorkflowFileName } from './workflow-templates'
+
+/** How many quick-pick ref chips the popover shows before falling back. */
+export const WorkflowDispatchRefChipMaximum = 6
 
 interface IWorkflowDispatchDialogProps {
   readonly repository: Repository
@@ -124,14 +130,27 @@ export class WorkflowDispatchDialog extends React.Component<
     }
   }
 
-  private onWorkflowChange = (event: React.FormEvent<HTMLSelectElement>) => {
-    this.setState(
-      { workflowId: Number(event.currentTarget.value) },
-      this.loadDefinition
-    )
+  private onWorkflowChipClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    const workflowId = Number(event.currentTarget.dataset.workflowId)
+    if (workflowId !== this.state.workflowId) {
+      this.setState({ workflowId }, this.loadDefinitionCallback)
+    }
   }
 
-  private onRefChange = (event: React.FormEvent<HTMLSelectElement>) =>
+  private loadDefinitionCallback = () => {
+    void this.loadDefinition()
+  }
+
+  private onRefChipClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const ref = event.currentTarget.dataset.ref
+    if (ref !== undefined) {
+      this.setState({ ref })
+    }
+  }
+
+  private onRefSelectChange = (event: React.FormEvent<HTMLSelectElement>) =>
     this.setState({ ref: event.currentTarget.value })
 
   private onInputChange = (
@@ -171,12 +190,46 @@ export class WorkflowDispatchDialog extends React.Component<
     }
   }
 
+  private renderWorkflowChip = (workflow: IAPIWorkflow) => {
+    const on = workflow.id === this.state.workflowId
+    return (
+      <button
+        key={workflow.id}
+        type="button"
+        className={classNames('workflow-dispatch-chip', { on })}
+        aria-pressed={on}
+        aria-label={`Workflow: ${workflow.name}`}
+        data-workflow-id={workflow.id}
+        onClick={this.onWorkflowChipClick}
+      >
+        {getWorkflowFileName(workflow.path) || workflow.name}
+      </button>
+    )
+  }
+
+  private renderRefChip = (ref: string) => {
+    const on = ref === this.state.ref
+    return (
+      <button
+        key={ref}
+        type="button"
+        className={classNames('workflow-dispatch-chip', { on })}
+        aria-pressed={on}
+        aria-label={`Run on ref: ${ref}`}
+        data-ref={ref}
+        onClick={this.onRefChipClick}
+      >
+        {ref}
+      </button>
+    )
+  }
+
   private renderInput(input: IWorkflowDispatchInput) {
     const value = this.state.values[input.name] ?? ''
     return (
       <label className="workflow-input" key={input.name}>
-        <span>
-          {input.name}
+        <span className="workflow-dispatch-label">
+          Input · {input.name}
           {input.required && <strong> *</strong>}
         </span>
         {input.description && <small>{input.description}</small>}
@@ -201,6 +254,7 @@ export class WorkflowDispatchDialog extends React.Component<
             type="text"
             value={value}
             required={input.required}
+            placeholder={`Value for ${input.name}`}
             onChange={this.onInputChange}
           />
         )}
@@ -214,12 +268,18 @@ export class WorkflowDispatchDialog extends React.Component<
       this.props.branchNames.length > 0
         ? this.props.branchNames
         : [this.state.ref]
+    const refChips = [
+      ...new Set([this.props.initialRef, this.state.ref, ...branchNames]),
+    ]
+      .filter(x => x.length > 0)
+      .slice(0, WorkflowDispatchRefChipMaximum)
+    const hasMoreRefs = branchNames.some(x => !refChips.includes(x))
     return (
       <div className="actions-dialog-layer">
         {/* The form dialog handles Escape from any descendant control. */}
         {/* eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions */}
         <form
-          className="workflow-dispatch-dialog"
+          className="workflow-dispatch-dialog workflow-dispatch-popover"
           role="dialog"
           aria-modal="true"
           aria-labelledby="workflow-dispatch-title"
@@ -228,43 +288,64 @@ export class WorkflowDispatchDialog extends React.Component<
           onKeyDown={this.onKeyDown}
           onSubmit={this.submit}
         >
-          <header>
-            <div>
-              <span className="eyebrow">workflow_dispatch</span>
-              <h2 id="workflow-dispatch-title">Run workflow</h2>
-            </div>
-            <Button type="button" onClick={this.props.onDismissed}>
-              Close
-            </Button>
+          <header className="workflow-dispatch-header">
+            <h2 id="workflow-dispatch-title">Run workflow</h2>
+            <button
+              type="button"
+              className="actions-icon-button workflow-dispatch-close"
+              onClick={this.props.onDismissed}
+              aria-label="Close run workflow dialog"
+            >
+              <Octicon symbol={octicons.x} />
+            </button>
           </header>
           {this.state.error && (
             <div className="actions-inline-error" role="alert">
               {this.state.error.message}
             </div>
           )}
-          <div className="workflow-dispatch-selects">
-            <Select
-              label="Workflow"
-              value={String(this.state.workflowId)}
-              onChange={this.onWorkflowChange}
+          <div
+            className="workflow-dispatch-section"
+            role="group"
+            aria-labelledby="workflow-dispatch-workflow-label"
+          >
+            <span
+              className="workflow-dispatch-label"
+              id="workflow-dispatch-workflow-label"
             >
-              {this.props.workflows.map(workflow => (
-                <option key={workflow.id} value={workflow.id}>
-                  {workflow.name}
-                </option>
-              ))}
-            </Select>
-            <Select
-              label="Git ref"
-              value={this.state.ref}
-              onChange={this.onRefChange}
+              Workflow
+            </span>
+            <div className="workflow-dispatch-chips">
+              {this.props.workflows.map(this.renderWorkflowChip)}
+            </div>
+          </div>
+          <div
+            className="workflow-dispatch-section"
+            role="group"
+            aria-labelledby="workflow-dispatch-ref-label"
+          >
+            <span
+              className="workflow-dispatch-label"
+              id="workflow-dispatch-ref-label"
             >
-              {branchNames.map(branch => (
-                <option key={branch} value={branch}>
-                  {branch}
-                </option>
-              ))}
-            </Select>
+              Run on ref
+            </span>
+            <div className="workflow-dispatch-chips">
+              {refChips.map(this.renderRefChip)}
+            </div>
+            {hasMoreRefs && (
+              <Select
+                label="All refs"
+                value={this.state.ref}
+                onChange={this.onRefSelectChange}
+              >
+                {branchNames.map(branch => (
+                  <option key={branch} value={branch}>
+                    {branch}
+                  </option>
+                ))}
+              </Select>
+            )}
           </div>
           <div className="workflow-dispatch-inputs">
             {loadingDefinition ? (
@@ -273,11 +354,15 @@ export class WorkflowDispatchDialog extends React.Component<
               definition.inputs.length > 0 ? (
                 definition.inputs.map(input => this.renderInput(input))
               ) : (
-                <p>This workflow has no inputs.</p>
+                <p className="workflow-dispatch-no-inputs">
+                  This workflow has no inputs.
+                </p>
               )
             ) : (
               <label className="workflow-input">
-                <span>Inputs (optional name=value lines)</span>
+                <span className="workflow-dispatch-label">
+                  Inputs (optional name=value lines)
+                </span>
                 <small>
                   {definition?.error?.message ??
                     'The workflow definition could not provide a generated form.'}
@@ -290,19 +375,16 @@ export class WorkflowDispatchDialog extends React.Component<
               </label>
             )}
           </div>
-          <footer>
-            <Button type="button" onClick={this.props.onDismissed}>
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={
-                submitting || loadingDefinition || this.state.workflowId === 0
-              }
-            >
-              {submitting ? 'Starting…' : 'Run workflow'}
-            </Button>
-          </footer>
+          <button
+            type="submit"
+            className="workflow-dispatch-run-button"
+            disabled={
+              submitting || loadingDefinition || this.state.workflowId === 0
+            }
+          >
+            <Octicon symbol={octicons.play} />
+            {submitting ? 'Starting…' : 'Run workflow'}
+          </button>
         </form>
       </div>
     )

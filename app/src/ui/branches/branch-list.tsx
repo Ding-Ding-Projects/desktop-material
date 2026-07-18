@@ -8,6 +8,8 @@ import { SelectionSource } from '../lib/filter-list'
 import { IMatches } from '../../lib/fuzzy-find'
 import { Button } from '../lib/button'
 import { TextBox } from '../lib/text-box'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 
 import {
   groupBranches,
@@ -544,8 +546,11 @@ export class BranchList extends React.Component<
   }
 
   private onRenderNewButton = () => {
+    // Leading plus glyph per the design's extended-FAB treatment; the branch
+    // sheet lifts this button into a bottom-right FAB purely via CSS.
     return this.props.canCreateNewBranch ? (
       <Button className="new-branch-button" onClick={this.onCreateNewBranch}>
+        <Octicon symbol={octicons.plus} />
         {__DARWIN__ ? 'New Branch' : 'New branch'}
       </Button>
     ) : null

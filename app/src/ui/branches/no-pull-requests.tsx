@@ -1,12 +1,8 @@
 import * as React from 'react'
-import { encodePathAsUrl } from '../../lib/path'
 import { Ref } from '../lib/ref'
-import { LinkButton } from '../lib/link-button'
-
-const BlankSlateImage = encodePathAsUrl(
-  __dirname,
-  'static/empty-no-pull-requests.svg'
-)
+import { Button } from '../lib/button'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 
 interface INoPullRequestsProps {
   /** The name of the repository. */
@@ -28,12 +24,20 @@ interface INoPullRequestsProps {
   readonly isLoadingPullRequests: boolean
 }
 
-/** The placeholder for when there are no open pull requests. */
+/**
+ * The placeholder for when there are no open pull requests.
+ *
+ * Illustrated blank slate per the design prototype: a large muted merge glyph
+ * in a secondary-container tile, a heading, a caption and — when applicable —
+ * a filled call-to-action button, all centered.
+ */
 export class NoPullRequests extends React.Component<INoPullRequestsProps, {}> {
   public render() {
     return (
       <div className="no-pull-requests">
-        <img src={BlankSlateImage} className="blankslate-image" alt="" />
+        <div className="no-pull-requests-icon" aria-hidden="true">
+          <Octicon symbol={octicons.gitMerge} />
+        </div>
         {this.renderTitle()}
         {this.renderCallToAction()}
       </div>
@@ -47,12 +51,12 @@ export class NoPullRequests extends React.Component<INoPullRequestsProps, {}> {
       return <div className="title">Hang tight</div>
     } else {
       return (
-        <div>
-          <div className="title">You're all set!</div>
+        <>
+          <div className="title">No open pull requests</div>
           <div className="no-prs">
             No open pull requests in <Ref>{this.props.repositoryName}</Ref>
           </div>
-        </div>
+        </>
       )
     }
   }
@@ -68,23 +72,31 @@ export class NoPullRequests extends React.Component<INoPullRequestsProps, {}> {
 
     if (this.props.isOnDefaultBranch) {
       return (
-        <div className="call-to-action">
-          Would you like to{' '}
-          <LinkButton onClick={this.props.onCreateBranch}>
-            create a new branch
-          </LinkButton>{' '}
-          and get going on your next project?
-        </div>
+        <>
+          <div className="call-to-action">
+            Would you like to create a new branch and get going?
+          </div>
+          <Button
+            className="no-pull-requests-action"
+            onClick={this.props.onCreateBranch}
+          >
+            {__DARWIN__ ? 'Create New Branch' : 'Create new branch'}
+          </Button>
+        </>
       )
     } else {
       return (
-        <div className="call-to-action">
-          Would you like to{' '}
-          <LinkButton onClick={this.props.onCreatePullRequest}>
-            create a pull request
-          </LinkButton>{' '}
-          from the current branch?
-        </div>
+        <>
+          <div className="call-to-action">
+            Would you like to create a pull request from the current branch?
+          </div>
+          <Button
+            className="no-pull-requests-action"
+            onClick={this.props.onCreatePullRequest}
+          >
+            {__DARWIN__ ? 'Create Pull Request' : 'Create pull request'}
+          </Button>
+        </>
       )
     }
   }
