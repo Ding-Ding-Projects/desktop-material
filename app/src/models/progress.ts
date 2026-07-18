@@ -93,10 +93,43 @@ export interface IPushProgress extends IProgress {
 }
 
 /**
+ * Stage label surfaced while `git clone --recursive` is fetching submodules
+ * after the main working tree has been checked out. Submodule fetches don't
+ * report a reliable aggregate percentage so this stage drives an indeterminate
+ * bar in the UI.
+ */
+export const SubmoduleFetchStage = 'Fetching submodules'
+
+/**
  * An object describing the progression of a fetch operation
  */
 export interface ICloneProgress extends IProgress {
   kind: 'clone'
+
+  /**
+   * The current Git stage, e.g. 'Receiving objects' or 'Checking out files'.
+   * This is the title of the underlying Git progress event and, while cloning
+   * submodules, the {@link SubmoduleFetchStage} label.
+   */
+  readonly stage?: string
+
+  /**
+   * Progress within the current `stage` as a fraction between 0 and 1.
+   * Absent when the stage doesn't report a total (e.g. submodule fetches).
+   */
+  readonly stagePercent?: number
+
+  /**
+   * Transfer speed in bytes per second, when Git reports throughput (during the
+   * receiving-objects stage). Absent otherwise.
+   */
+  readonly speedBytesPerSecond?: number
+
+  /**
+   * Best-effort estimate of the seconds remaining, computed by the store from a
+   * smoothed rate. Absent early on and whenever the rate can't be determined.
+   */
+  readonly etaSeconds?: number
 }
 
 /** An object describing the progression of a revert operation. */

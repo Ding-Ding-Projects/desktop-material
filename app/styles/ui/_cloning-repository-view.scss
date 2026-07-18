@@ -66,10 +66,37 @@
     overflow: hidden;
   }
 
+  /* The current git stage and overall percentage, e.g. "Receiving
+   * objects — 63%". This is the primary progress readout. */
+  .clone-progress-stage {
+    max-width: 100%;
+    font-weight: var(--font-weight-semibold);
+    color: var(--md-sys-color-on-surface);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Transfer speed and estimated time remaining. */
+  .clone-progress-meta {
+    max-width: 100%;
+    margin-top: 2px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The raw git output line, kept as muted secondary context. A tall spacer
+   * below keeps the card visually centred on the ~40% line. */
   .details {
     max-width: 100%;
-    height: 30vh;
-    margin-bottom: 20vh;
+    margin-top: var(--spacing-half);
+    margin-bottom: 30vh;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
     overflow-wrap: anywhere;
     overflow: hidden;
     text-overflow: ellipsis;

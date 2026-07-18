@@ -50,6 +50,18 @@ export interface IBatchCloneItemStatus {
   /** The most recent human-readable progress description from git. */
   readonly description?: string
 
+  /**
+   * The current Git stage while cloning (e.g. 'Receiving objects'), or the
+   * submodule-fetch label. Memory-only, never journaled.
+   */
+  readonly stage?: string
+
+  /** The current transfer rate in bytes per second, when Git reports it. */
+  readonly speedBytesPerSecond?: number
+
+  /** Best-effort seconds remaining for this item, when it can be estimated. */
+  readonly etaSeconds?: number
+
   /** The error that caused a `failed` status, when applicable. */
   readonly error?: Error
 

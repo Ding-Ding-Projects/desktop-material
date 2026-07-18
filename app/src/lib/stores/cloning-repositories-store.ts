@@ -10,6 +10,7 @@ import {
   isCloneAbortError,
 } from '../automation/clone-account-fallback'
 import { ErrorWithMetadata } from '../error-with-metadata'
+import { CloneProgressEtaEstimator } from '../progress/clone-eta'
 import { BaseStore } from './base-store'
 
 /** The store in charge of repository currently being cloned. */
@@ -65,6 +66,10 @@ export class CloningRepositoriesStore extends BaseStore {
     this.stateByID.set(repository.id, { kind: 'clone', title, value: 0 })
     this.emitUpdate()
 
+    // A fresh estimator per clone: the rolling rate window must not carry over
+    // between repositories sharing this store.
+    const etaEstimator = new CloneProgressEtaEstimator()
+
     let success = true
     try {
       const result = await cloneWithAccountFallback(
@@ -77,8 +82,13 @@ export class CloningRepositoriesStore extends BaseStore {
             path,
             options,
             progress => {
-              this.stateByID.set(repository.id, progress)
-              opts?.onProgress?.(progress)
+              const etaSeconds = etaEstimator.record(progress.value)
+              const enriched =
+                etaSeconds !== undefined
+                  ? { ...progress, etaSeconds }
+                  : progress
+              this.stateByID.set(repository.id, enriched)
+              opts?.onProgress?.(enriched)
               this.emitUpdate()
             },
             accountKey,

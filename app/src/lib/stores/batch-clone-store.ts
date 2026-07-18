@@ -743,7 +743,8 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
             },
             onProgress: progress => {
               if (this.statuses.get(item.path)?.kind === 'cloning') {
-                // Progress is intentionally memory-only; lifecycle transitions
+                // Progress (including the stage/speed/ETA the cloning store
+                // derives) is intentionally memory-only; lifecycle transitions
                 // are journaled without turning every Git progress tick into I/O.
                 this.setStatus(
                   item.path,
@@ -751,6 +752,15 @@ export class BatchCloneStore extends TypedBaseStore<IBatchCloneState | null> {
                     kind: 'cloning',
                     progress: progress.value,
                     description: progress.description,
+                    ...(progress.stage !== undefined
+                      ? { stage: progress.stage }
+                      : {}),
+                    ...(progress.speedBytesPerSecond !== undefined
+                      ? { speedBytesPerSecond: progress.speedBytesPerSecond }
+                      : {}),
+                    ...(progress.etaSeconds !== undefined
+                      ? { etaSeconds: progress.etaSeconds }
+                      : {}),
                   },
                   false
                 )

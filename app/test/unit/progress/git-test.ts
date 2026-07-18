@@ -133,6 +133,8 @@ describe('GitProgressParser', () => {
       done: false,
       percent: 99,
       total: 167587,
+      bytesTransferred: 267.24 * 1024 ** 2,
+      bytesPerSecond: 2.4 * 1024 ** 2,
     } as IGitProgressInfo)
   })
 
@@ -148,6 +150,25 @@ describe('GitProgressParser', () => {
       done: true,
       percent: 100,
       total: 167587,
+      bytesTransferred: 279.67 * 1024 ** 2,
+      bytesPerSecond: 2.43 * 1024 ** 2,
+    } as IGitProgressInfo)
+  })
+
+  it('parses sub-KiB throughput units', () => {
+    const result = parse(
+      'Receiving objects:  10% (1/10), 638 bytes | 1.20 KiB/s'
+    )
+
+    assert.deepStrictEqual(result, {
+      title: 'Receiving objects',
+      text: 'Receiving objects:  10% (1/10), 638 bytes | 1.20 KiB/s',
+      value: 1,
+      done: false,
+      percent: 10,
+      total: 10,
+      bytesTransferred: 638,
+      bytesPerSecond: 1.2 * 1024,
     } as IGitProgressInfo)
   })
 

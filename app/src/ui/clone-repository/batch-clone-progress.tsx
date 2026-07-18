@@ -13,6 +13,8 @@ import {
   IBatchCloneState,
   summarizeBatchClone,
 } from '../../models/batch-clone'
+import { SubmoduleFetchStage } from '../../models/progress'
+import { formatCloneEta, formatCloneSpeed } from '../../lib/progress/clone-eta'
 
 interface IBatchCloneProgressProps {
   readonly dispatcher: Dispatcher
@@ -103,13 +105,57 @@ export class BatchCloneProgress extends React.Component<IBatchCloneProgressProps
     }
   }
 
+  /**
+   * The stage/percent line plus the speed and ETA shown beneath a cloning
+   * repository's bar. The raw Git description backs the tooltip.
+   */
+  private renderCloneStatus(status: IBatchCloneItemStatus | undefined) {
+    const stage = status?.stage
+    const isSubmodulePhase = stage === SubmoduleFetchStage
+    const percent =
+      status?.progress !== undefined
+        ? Math.round(status.progress * 100)
+        : undefined
+
+    const label = stage ?? status?.description ?? 'Cloning'
+    const stageText =
+      isSubmodulePhase || percent === undefined
+        ? label
+        : `${label} — ${percent}%`
+
+    const speed =
+      status?.speedBytesPerSecond !== undefined
+        ? formatCloneSpeed(status.speedBytesPerSecond)
+        : ''
+    const eta =
+      status?.etaSeconds !== undefined ? formatCloneEta(status.etaSeconds) : ''
+    const meta = [speed, eta].filter(part => part.length > 0).join(' · ')
+
+    return (
+      <div className="clone-status">
+        <TooltippedContent
+          tagName="span"
+          className="stage"
+          tooltip={status?.description}
+          onlyWhenOverflowed={true}
+        >
+          {stageText}
+        </TooltippedContent>
+        {meta.length > 0 && <span className="meta">{meta}</span>}
+      </div>
+    )
+  }
+
   private renderItem(
     item: IBatchCloneItem,
     status: IBatchCloneItemStatus | undefined
   ) {
     const kind = status?.kind ?? 'pending'
+    const isSubmodulePhase = status?.stage === SubmoduleFetchStage
     const progressValue =
-      kind === 'cloning' ? status?.progress || undefined : undefined
+      kind === 'cloning' && !isSubmodulePhase
+        ? status?.progress || undefined
+        : undefined
 
     return (
       <li key={item.path} className={`batch-clone-item ${kind}`}>
@@ -123,7 +169,12 @@ export class BatchCloneProgress extends React.Component<IBatchCloneProgressProps
           >
             {item.name}
           </TooltippedContent>
-          {kind === 'cloning' && <progress value={progressValue} />}
+          {kind === 'cloning' && (
+            <>
+              <progress value={progressValue} />
+              {this.renderCloneStatus(status)}
+            </>
+          )}
           {(kind === 'failed' || kind === 'review') && status?.error && (
             <TooltippedContent
               tagName="div"

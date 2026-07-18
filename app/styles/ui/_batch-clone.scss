@@ -195,6 +195,29 @@ dialog#batch-clone-progress {
         white-space: nowrap;
       }
 
+      // The stage/percent line and the speed/ETA readout beneath the bar.
+      .clone-status {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: var(--spacing);
+        font-size: var(--font-size-sm);
+        color: var(--md-sys-color-on-surface-variant);
+
+        .stage {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+        }
+
+        .meta {
+          flex-shrink: 0;
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
       progress {
         width: 100%;
       }

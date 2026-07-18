@@ -137,6 +137,21 @@ export interface IGitProgressInfo {
    * for presenting the actual output from Git to the user.
    */
   readonly text: string
+
+  /**
+   * The number of bytes transferred so far, parsed from the throughput segment
+   * of a progress line (e.g. the '272.10 MiB' in
+   * 'Receiving objects:  99% (…), 272.10 MiB | 2.39 MiB/s'). Absent on lines
+   * that don't report throughput.
+   */
+  readonly bytesTransferred?: number
+
+  /**
+   * The current transfer rate in bytes per second, parsed from the throughput
+   * segment of a progress line (e.g. the '2.39 MiB/s' above). Absent on lines
+   * that don't report throughput.
+   */
+  readonly bytesPerSecond?: number
 }
 
 /**
@@ -249,6 +264,20 @@ export class GitProgressParser implements IGitProgressParser {
 const percentRe = /^(\d{1,3})% \((\d+)\/(\d+)\)$/
 const valueOnlyRe = /^\d+$/
 
+// The throughput segment Git appends to receiving-objects lines, e.g.
+// '272.10 MiB | 2.39 MiB/s'. Captures the transferred amount and the rate.
+const throughputRe =
+  /^(\d+(?:\.\d+)?) (bytes|B|KiB|MiB|GiB|TiB) \| (\d+(?:\.\d+)?) (bytes|B|KiB|MiB|GiB|TiB)\/s$/
+
+const throughputUnitBytes: { readonly [unit: string]: number } = {
+  bytes: 1,
+  B: 1,
+  KiB: 1024,
+  MiB: 1024 ** 2,
+  GiB: 1024 ** 3,
+  TiB: 1024 ** 4,
+}
+
 /**
  * Attempts to parse a single line of progress output from Git.
  *
@@ -317,15 +346,40 @@ export function parse(line: string): IGitProgressInfo | null {
   }
 
   let done = false
+  let bytesTransferred: number | undefined = undefined
+  let bytesPerSecond: number | undefined = undefined
 
-  // We don't parse throughput at the moment so let's just loop
-  // through the remaining
+  // The remaining segments carry the ", done" marker and/or the throughput
+  // (e.g. '272.10 MiB | 2.39 MiB/s'), in either order.
   for (let i = 1; i < progressParts.length; i++) {
     if (progressParts[i] === 'done.') {
       done = true
-      break
+      continue
+    }
+
+    const throughput = throughputRe.exec(progressParts[i])
+    if (throughput) {
+      const transferred =
+        parseFloat(throughput[1]) * throughputUnitBytes[throughput[2]]
+      const rate =
+        parseFloat(throughput[3]) * throughputUnitBytes[throughput[4]]
+      if (Number.isFinite(transferred)) {
+        bytesTransferred = transferred
+      }
+      if (Number.isFinite(rate)) {
+        bytesPerSecond = rate
+      }
     }
   }
 
-  return { title, value, percent, total, done, text: line }
+  return {
+    title,
+    value,
+    percent,
+    total,
+    done,
+    text: line,
+    ...(bytesTransferred !== undefined ? { bytesTransferred } : {}),
+    ...(bytesPerSecond !== undefined ? { bytesPerSecond } : {}),
+  }
 }

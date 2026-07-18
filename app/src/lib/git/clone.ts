@@ -2,9 +2,14 @@ import { ChildProcess, spawn } from 'child_process'
 import { realpathSync, statSync } from 'fs'
 import { win32 } from 'path'
 import { git, IGitStringExecutionOptions } from './core'
-import { ICloneProgress } from '../../models/progress'
+import { ICloneProgress, SubmoduleFetchStage } from '../../models/progress'
 import { CloneOptions, getShallowCloneArgs } from '../../models/clone-options'
-import { CloneProgressParser, executionOptionsWithProgress } from '../progress'
+import {
+  CloneProgressParser,
+  executionOptionsWithProgress,
+  IGitOutput,
+  IGitProgress,
+} from '../progress'
 import { getDefaultBranch } from '../helpers/default-branch'
 import { envForRemoteOperation } from './environment'
 
@@ -201,6 +206,72 @@ export function createCloneProcessAbortHandler(
 }
 
 /**
+ * Mutable bookkeeping threaded across the progress stream so we can tell the
+ * main clone apart from the submodule-fetch phase that follows it.
+ */
+export interface ICloneProgressContext {
+  /** Whether any recognized progress step has been reported yet. */
+  sawProgress: boolean
+  /** Whether we've entered the recursive submodule-fetch phase. */
+  inSubmodulePhase: boolean
+}
+
+/**
+ * Translate a single Git progress/context event into an {@link ICloneProgress},
+ * surfacing the current stage, the within-stage fraction, transfer speed, and a
+ * distinct submodule-fetch phase. Exported for direct unit testing since the
+ * live clone stream is awkward to drive deterministically.
+ */
+export function mapCloneProgressEvent(
+  event: IGitProgress | IGitOutput,
+  title: string,
+  context: ICloneProgressContext
+): ICloneProgress {
+  if (event.kind === 'progress') {
+    context.sawProgress = true
+
+    const { details } = event
+    const stagePercent =
+      details.total !== undefined && details.total > 0
+        ? details.value / details.total
+        : undefined
+
+    return {
+      kind: 'clone',
+      title,
+      description: details.text,
+      value: event.percent,
+      stage: context.inSubmodulePhase ? SubmoduleFetchStage : details.title,
+      ...(!context.inSubmodulePhase && stagePercent !== undefined
+        ? { stagePercent }
+        : {}),
+      ...(details.bytesPerSecond !== undefined
+        ? { speedBytesPerSecond: details.bytesPerSecond }
+        : {}),
+    }
+  }
+
+  // `git clone --recursive` prints "Cloning into '<submodule>'..." once the main
+  // working tree is checked out. The main clone's own opening line is ignored
+  // because it arrives before any progress step has been seen.
+  if (
+    !context.inSubmodulePhase &&
+    context.sawProgress &&
+    /^Cloning into /.test(event.text)
+  ) {
+    context.inSubmodulePhase = true
+  }
+
+  return {
+    kind: 'clone',
+    title,
+    description: event.text,
+    value: event.percent,
+    ...(context.inSubmodulePhase ? { stage: SubmoduleFetchStage } : {}),
+  }
+}
+
+/**
  * Clones a repository from a given url into to the specified path.
  *
  * @param url     - The remote repository URL to clone from
@@ -251,16 +322,18 @@ export async function clone(
 
     const title = `Cloning into ${path}`
     const kind = 'clone'
+    const progressContext: ICloneProgressContext = {
+      sawProgress: false,
+      inSubmodulePhase: false,
+    }
 
     opts = await executionOptionsWithProgress(
       { ...opts, trackLFSProgress: true },
       new CloneProgressParser(),
       progress => {
-        const description =
-          progress.kind === 'progress' ? progress.details.text : progress.text
-        const value = progress.percent
-
-        progressCallback({ kind, title, description, value })
+        progressCallback(
+          mapCloneProgressEvent(progress, title, progressContext)
+        )
       }
     )
     throwIfCloneAborted(signal)

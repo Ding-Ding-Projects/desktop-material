@@ -8,7 +8,10 @@ import { EventEmitter } from 'events'
 import {
   clone,
   createCloneProcessAbortHandler,
+  ICloneProgressContext,
+  mapCloneProgressEvent,
 } from '../../../src/lib/git/clone'
+import { SubmoduleFetchStage } from '../../../src/models/progress'
 import { setupEmptyRepository } from '../../helpers/repositories'
 import { makeCommit } from '../../helpers/repository-scaffolding'
 import { createTempDirectory } from '../../helpers/temp'
@@ -124,6 +127,94 @@ describe('git/clone', () => {
 
     assert.ok(progressEvents.length > 0, 'Expected at least one progress event')
     assert.equal(progressEvents[0].kind, 'clone')
+  })
+
+  describe('mapCloneProgressEvent', () => {
+    const title = 'Cloning into /tmp/repo'
+    const freshContext = (): ICloneProgressContext => ({
+      sawProgress: false,
+      inSubmodulePhase: false,
+    })
+
+    it('surfaces the stage, within-stage fraction, and transfer speed', () => {
+      const progress = mapCloneProgressEvent(
+        {
+          kind: 'progress',
+          percent: 0.5,
+          details: {
+            title: 'Receiving objects',
+            value: 50,
+            total: 100,
+            percent: 50,
+            done: false,
+            text: 'Receiving objects:  50% (50/100), 3.30 MiB | 1.29 MiB/s',
+            bytesPerSecond: 1.29 * 1024 ** 2,
+          },
+        },
+        title,
+        freshContext()
+      )
+
+      assert.equal(progress.kind, 'clone')
+      assert.equal(progress.stage, 'Receiving objects')
+      assert.equal(progress.stagePercent, 0.5)
+      assert.equal(progress.value, 0.5)
+      assert.equal(progress.speedBytesPerSecond, 1.29 * 1024 ** 2)
+      assert.equal(
+        progress.description,
+        'Receiving objects:  50% (50/100), 3.30 MiB | 1.29 MiB/s'
+      )
+    })
+
+    it('ignores the main clone opening line before any progress', () => {
+      const context = freshContext()
+      const progress = mapCloneProgressEvent(
+        { kind: 'context', percent: 0, text: "Cloning into 'repo'..." },
+        title,
+        context
+      )
+
+      assert.equal(context.inSubmodulePhase, false)
+      assert.equal(progress.stage, undefined)
+    })
+
+    it('enters the submodule-fetch phase after the main clone', () => {
+      const context = freshContext()
+
+      // A recognized progress step precedes the submodule clone line.
+      mapCloneProgressEvent(
+        {
+          kind: 'progress',
+          percent: 1,
+          details: {
+            title: 'Checking out files',
+            value: 10,
+            total: 10,
+            percent: 100,
+            done: true,
+            text: 'Checking out files: 100% (10/10), done',
+          },
+        },
+        title,
+        context
+      )
+
+      const submodule = mapCloneProgressEvent(
+        { kind: 'context', percent: 1, text: "Cloning into 'vendor/dep'..." },
+        title,
+        context
+      )
+      assert.equal(context.inSubmodulePhase, true)
+      assert.equal(submodule.stage, SubmoduleFetchStage)
+
+      // Subsequent context lines stay in the submodule phase.
+      const follow = mapCloneProgressEvent(
+        { kind: 'context', percent: 1, text: 'Receiving objects: 100% (5/5)' },
+        title,
+        context
+      )
+      assert.equal(follow.stage, SubmoduleFetchStage)
+    })
   })
 
   it('clones with a custom default branch name', async t => {
