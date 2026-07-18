@@ -2251,6 +2251,9 @@ export class App extends React.Component<IAppProps, IAppState> {
             showBranchNameInRepoList={this.state.showBranchNameInRepoList}
             branchSortOrder={this.state.branchSortOrder}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
+            autoSwitchAccountToRepositoryOwner={
+              this.state.autoSwitchAccountToRepositoryOwner
+            }
             onEditGlobalGitConfig={this.editGlobalGitConfig}
             underlineLinks={this.state.underlineLinks}
             showDiffCheckMarks={this.state.showDiffCheckMarks}

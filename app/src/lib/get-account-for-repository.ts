@@ -29,6 +29,50 @@ export function getAccountForRepository(
 }
 
 /**
+ * Determine which signed-in account, if any, should be promoted to the active
+ * identity (positional `accounts[0]`) when the given repository becomes the
+ * selected repository.
+ *
+ * Returns the repository's owning account when auto-switching is enabled and
+ * that account is signed in but not already active; otherwise `null`, meaning
+ * no promotion should happen. In particular we return `null` (rather than the
+ * first account) when the owner is signed out or the explicit binding no longer
+ * matches, so we never clobber a valid binding by silently activating the wrong
+ * identity. Reuses `getAccountForRepository`, so all of the binding rules
+ * (explicit `accountKey`, endpoint-first fallback for unbound repos) apply
+ * unchanged.
+ *
+ * NOTE: GitHub.com accounts always sort ahead of Enterprise accounts (see
+ * `sortAccounts` in accounts-store), so an Enterprise-owned repository cannot
+ * become `accounts[0]` while any GitHub.com account is signed in. In that case
+ * the visible indicator can only partially follow the repo owner.
+ */
+export function getRepositoryOwnerAccountToPromote(
+  accounts: ReadonlyArray<Account>,
+  repository: Repository,
+  autoSwitchEnabled: boolean
+): Account | null {
+  // Nothing to switch to (or from) with a single account, and honour the
+  // opt-out toggle.
+  if (!autoSwitchEnabled || accounts.length <= 1) {
+    return null
+  }
+
+  const owner = getAccountForRepository(accounts, repository)
+  if (owner === null) {
+    return null
+  }
+
+  // Already the active identity — avoid churn and the redundant API refresh
+  // that promoting would trigger via the accounts `onDidUpdate` handler.
+  if (getAccountKey(owner) === getAccountKey(accounts[0])) {
+    return null
+  }
+
+  return owner
+}
+
+/**
  * Get the authenticated account to use for commit message generation.
  */
 export function getAccountForCommitMessageGeneration(

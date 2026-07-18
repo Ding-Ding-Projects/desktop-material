@@ -12,11 +12,15 @@ interface IAdvancedPreferencesProps {
   readonly optOutOfUsageTracking: boolean
   readonly useExternalCredentialHelper: boolean
   readonly repositoryIndicatorsEnabled: boolean
+  readonly autoSwitchAccountToRepositoryOwner: boolean
   readonly onUseWindowsOpenSSHChanged: (checked: boolean) => void
   readonly onVerboseLoggingChanged: (checked: boolean) => void
   readonly onOptOutofReportingChanged: (checked: boolean) => void
   readonly onUseExternalCredentialHelperChanged: (checked: boolean) => void
   readonly onRepositoryIndicatorsEnabledChanged: (enabled: boolean) => void
+  readonly onAutoSwitchAccountToRepositoryOwnerChanged: (
+    enabled: boolean
+  ) => void
 }
 
 interface IAdvancedPreferencesState {
@@ -71,6 +75,14 @@ export class Advanced extends React.Component<
     this.props.onRepositoryIndicatorsEnabledChanged(event.currentTarget.checked)
   }
 
+  private onAutoSwitchAccountToRepositoryOwnerChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onAutoSwitchAccountToRepositoryOwnerChanged(
+      event.currentTarget.checked
+    )
+  }
+
   private onUseWindowsOpenSSHChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
@@ -95,6 +107,29 @@ export class Advanced extends React.Component<
   public render() {
     return (
       <DialogContent>
+        <div className="advanced-section">
+          <h2>Accounts</h2>
+          <Checkbox
+            label="Automatically switch the active account to the selected repository's owner"
+            value={
+              this.props.autoSwitchAccountToRepositoryOwner
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onAutoSwitchAccountToRepositoryOwnerChanged}
+            ariaDescribedBy="auto-switch-account-description"
+          />
+          <div
+            id="auto-switch-account-description"
+            className="settings-description"
+          >
+            <p>
+              When you select a repository, its owning account becomes the
+              active identity so the account indicator and actions that aren't
+              bound to a specific account follow the repository.
+            </p>
+          </div>
+        </div>
         <div className="advanced-section">
           <h2>Background updates</h2>
           <Checkbox

@@ -3,7 +3,10 @@ import assert from 'node:assert'
 import { Account, getAccountKey } from '../../src/models/account'
 import { Repository } from '../../src/models/repository'
 import { getDotComAPIEndpoint } from '../../src/lib/api'
-import { getAccountForRepository } from '../../src/lib/get-account-for-repository'
+import {
+  getAccountForRepository,
+  getRepositoryOwnerAccountToPromote,
+} from '../../src/lib/get-account-for-repository'
 import { gitHubRepoFixture } from '../helpers/github-repo-builder'
 
 const endpoint = getDotComAPIEndpoint()
@@ -74,6 +77,88 @@ describe('getAccountForRepository', () => {
     assert.equal(
       getAccountForRepository([firstAccount, secondAccount], repository),
       firstAccount
+    )
+  })
+})
+
+describe('getRepositoryOwnerAccountToPromote', () => {
+  const boundTo = (account: Account) =>
+    new Repository(
+      '/desktop',
+      1,
+      gitHubRepository,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(account)
+    )
+
+  it('promotes the owning account when it is not already active', () => {
+    // firstAccount is active (accounts[0]) but the repo is owned by secondAccount.
+    assert.equal(
+      getRepositoryOwnerAccountToPromote(
+        [firstAccount, secondAccount],
+        boundTo(secondAccount),
+        true
+      ),
+      secondAccount
+    )
+  })
+
+  it('does nothing when the owner is already the active account', () => {
+    assert.equal(
+      getRepositoryOwnerAccountToPromote(
+        [firstAccount, secondAccount],
+        boundTo(firstAccount),
+        true
+      ),
+      null
+    )
+  })
+
+  it('does nothing when the bound owner is signed out', () => {
+    assert.equal(
+      getRepositoryOwnerAccountToPromote(
+        [firstAccount],
+        boundTo(secondAccount),
+        true
+      ),
+      null
+    )
+  })
+
+  it('does nothing when auto-switching is disabled', () => {
+    assert.equal(
+      getRepositoryOwnerAccountToPromote(
+        [firstAccount, secondAccount],
+        boundTo(secondAccount),
+        false
+      ),
+      null
+    )
+  })
+
+  it('does nothing with a single account', () => {
+    const repository = new Repository('/desktop', 1, gitHubRepository, false)
+
+    assert.equal(
+      getRepositoryOwnerAccountToPromote([firstAccount], repository, true),
+      null
+    )
+  })
+
+  it('does nothing for a repository without a GitHub repository', () => {
+    const repository = new Repository('/local', 2, null, false)
+
+    assert.equal(
+      getRepositoryOwnerAccountToPromote(
+        [firstAccount, secondAccount],
+        repository,
+        true
+      ),
+      null
     )
   })
 })

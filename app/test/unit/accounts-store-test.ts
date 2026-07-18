@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { Account } from '../../src/models/account'
 import { AccountsStore } from '../../src/lib/stores'
 import { getKeyForAccount } from '../../src/lib/auth'
+import { getDotComAPIEndpoint } from '../../src/lib/api'
 import { InMemoryStore, AsyncInMemoryStore } from '../helpers/stores'
 
 describe('AccountsStore', () => {
@@ -91,6 +92,82 @@ describe('AccountsStore', () => {
       const [result] = await reloaded.getAll()
       assert.equal(result.provider, 'gitlab')
       assert.equal(result.token, 'secret-provider-token')
+    })
+  })
+
+  describe('promoteAccount', () => {
+    const dotcom = getDotComAPIEndpoint()
+    const enterprise = 'https://ghe.example.com/api/v3'
+
+    it('moves the account ahead of its same-class peers', async () => {
+      await accountsStore.addAccount(
+        new Account('one', dotcom, 'token-one', [], '', 1, '', 'free')
+      )
+      await accountsStore.addAccount(
+        new Account('two', dotcom, 'token-two', [], '', 2, '', 'free')
+      )
+      const third = new Account(
+        'three',
+        dotcom,
+        'token-three',
+        [],
+        '',
+        3,
+        '',
+        'free'
+      )
+      await accountsStore.addAccount(third)
+
+      await accountsStore.promoteAccount(third)
+
+      const users = await accountsStore.getAll()
+      assert.deepStrictEqual(
+        users.map(x => x.login),
+        ['three', 'one', 'two']
+      )
+    })
+
+    it('keeps GitHub.com accounts ahead of Enterprise when promoting Enterprise', async () => {
+      await accountsStore.addAccount(
+        new Account('dotcom-user', dotcom, 'token-a', [], '', 1, '', 'free')
+      )
+      const enterpriseAccount = new Account(
+        'enterprise-user',
+        enterprise,
+        'token-b',
+        [],
+        '',
+        2,
+        '',
+        'free'
+      )
+      await accountsStore.addAccount(enterpriseAccount)
+
+      await accountsStore.promoteAccount(enterpriseAccount)
+
+      // The dotcom-before-enterprise sort wins, so the Enterprise account
+      // cannot become accounts[0] while a GitHub.com account is signed in.
+      const users = await accountsStore.getAll()
+      assert.deepStrictEqual(
+        users.map(x => x.login),
+        ['dotcom-user', 'enterprise-user']
+      )
+    })
+
+    it('is a no-op for an account that is not signed in', async () => {
+      await accountsStore.addAccount(
+        new Account('present', dotcom, 'token-one', [], '', 1, '', 'free')
+      )
+
+      await accountsStore.promoteAccount(
+        new Account('absent', dotcom, 'token-two', [], '', 99, '', 'free')
+      )
+
+      const users = await accountsStore.getAll()
+      assert.deepStrictEqual(
+        users.map(x => x.login),
+        ['present']
+      )
     })
   })
 

@@ -132,6 +132,7 @@ interface IPreferencesProps {
   readonly showBranchNameInRepoList: ShowBranchNameInRepoListSetting
   readonly branchSortOrder: BranchSortOrder
   readonly repositoryIndicatorsEnabled: boolean
+  readonly autoSwitchAccountToRepositoryOwner: boolean
   readonly onEditGlobalGitConfig: () => void
   readonly underlineLinks: boolean
   readonly showDiffCheckMarks: boolean
@@ -192,6 +193,7 @@ interface IPreferencesState {
    */
   readonly existingLockFilePath?: string
   readonly repositoryIndicatorsEnabled: boolean
+  readonly autoSwitchAccountToRepositoryOwner: boolean
 
   readonly initiallySelectedTheme: ApplicationTheme
   readonly initiallySelectedAppearanceCustomization: IAppearanceCustomization
@@ -288,6 +290,8 @@ export class Preferences extends React.Component<
       branchSortOrder: this.props.branchSortOrder,
       showCommitAuthorInfo: getShowCommitAuthorInfo(),
       repositoryIndicatorsEnabled: this.props.repositoryIndicatorsEnabled,
+      autoSwitchAccountToRepositoryOwner:
+        this.props.autoSwitchAccountToRepositoryOwner,
       initiallySelectedTheme: this.props.selectedTheme,
       initiallySelectedAppearanceCustomization:
         this.props.appearanceCustomization,
@@ -835,6 +839,9 @@ export class Preferences extends React.Component<
             optOutOfUsageTracking={this.state.optOutOfUsageTracking}
             useExternalCredentialHelper={this.state.useExternalCredentialHelper}
             repositoryIndicatorsEnabled={this.state.repositoryIndicatorsEnabled}
+            autoSwitchAccountToRepositoryOwner={
+              this.state.autoSwitchAccountToRepositoryOwner
+            }
             onUseWindowsOpenSSHChanged={this.onUseWindowsOpenSSHChanged}
             onVerboseLoggingChanged={this.onVerboseLoggingChanged}
             onOptOutofReportingChanged={this.onOptOutofReportingChanged}
@@ -843,6 +850,9 @@ export class Preferences extends React.Component<
             }
             onRepositoryIndicatorsEnabledChanged={
               this.onRepositoryIndicatorsEnabledChanged
+            }
+            onAutoSwitchAccountToRepositoryOwnerChanged={
+              this.onAutoSwitchAccountToRepositoryOwnerChanged
             }
           />
         )
@@ -889,6 +899,12 @@ export class Preferences extends React.Component<
     repositoryIndicatorsEnabled: boolean
   ) => {
     this.setState({ repositoryIndicatorsEnabled })
+  }
+
+  private onAutoSwitchAccountToRepositoryOwnerChanged = (
+    autoSwitchAccountToRepositoryOwner: boolean
+  ) => {
+    this.setState({ autoSwitchAccountToRepositoryOwner })
   }
 
   private onAutomationSettingsChanged = (
@@ -1197,6 +1213,15 @@ export class Preferences extends React.Component<
       ) {
         dispatcher.setRepositoryIndicatorsEnabled(
           this.state.repositoryIndicatorsEnabled
+        )
+      }
+
+      if (
+        this.props.autoSwitchAccountToRepositoryOwner !==
+        this.state.autoSwitchAccountToRepositoryOwner
+      ) {
+        dispatcher.setAutoSwitchAccountToRepositoryOwner(
+          this.state.autoSwitchAccountToRepositoryOwner
         )
       }
 

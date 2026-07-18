@@ -4138,6 +4138,14 @@ export class Dispatcher {
   }
 
   /**
+   * Sets whether selecting a repository automatically switches the active
+   * account to that repository's owner.
+   */
+  public setAutoSwitchAccountToRepositoryOwner(value: boolean) {
+    return this.appStore._setAutoSwitchAccountToRepositoryOwnerSetting(value)
+  }
+
+  /**
    * Converts a local repository to use the given fork
    * as its default remote and associated `GitHubRepository`.
    */

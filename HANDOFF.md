@@ -69,6 +69,28 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 Account, clone, and Releases fixes
+
+- **Auto-switch account to the repo owner.** On selecting a repository the
+  active account (positional `accounts[0]`, which drives the rail avatar
+  and the unbound endpoint-fallback) now reorders to the repo's owning
+  account, so the visible identity and unbound actions follow the repo.
+  It reuses `getAccountForRepository`, so explicit bindings are respected
+  and a signed-out/mismatched binding is never clobbered; it only fires
+  when the owner actually differs (no churn), writes no binding, and never
+  re-auths. Global toggle in Advanced preferences, default on.
+- **Multi-clone no longer rejects a non-empty base folder.** The clone
+  dialog only enforces the empty-folder rule for single-repo clones; with
+  more than one repository selected each clones into its own
+  `<base>/<name>` subfolder, validated per-repo by the batch flow.
+- **Releases "could not load safely" now logs its cause.** The releases
+  store logged nothing when it fell back to the guarded message; it now
+  records the operation, status, error name, and a bounded message (no
+  tokens) so the real cause — network/proxy vs. validation vs. scope —
+  shows up in the Log History viewer. Confirmed the list validation is not
+  over-strict (empty release lists load) and that scope failures surface
+  as clear 401/403/404 messages, not the fallback.
+
 ## 2026-07-18 Cheap LFS — 2 GiB streamed uploads and auto-split larger files
 
 - **Streamed uploads:** the release-asset upload path no longer buffers the

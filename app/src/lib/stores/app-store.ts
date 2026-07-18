@@ -225,6 +225,7 @@ import {
   getAccountForCommitMessageGeneration,
   getAccountForCopilotConflictResolution,
   getAccountForRepository,
+  getRepositoryOwnerAccountToPromote,
 } from '../get-account-for-repository'
 import { getForkRepositoryEligibility } from '../fork-repository'
 import {
@@ -659,6 +660,7 @@ const confirmUndoCommitDefault: boolean = true
 const confirmCommitFilteredChangesDefault: boolean = true
 const confirmCommitMessageOverrideDefault: boolean = true
 const confirmWorktreeRemovalDefault: boolean = true
+const autoSwitchAccountToRepositoryOwnerDefault: boolean = true
 const askToMoveToApplicationsFolderKey: string = 'askToMoveToApplicationsFolder'
 const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
 const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
@@ -673,6 +675,8 @@ const confirmCommitFilteredChangesKey: string =
   'confirmCommitFilteredChangesKey'
 const confirmCommitMessageOverrideKey: string = 'confirmCommitMessageOverride'
 const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
+const autoSwitchAccountToRepositoryOwnerKey: string =
+  'autoSwitchAccountToRepositoryOwner'
 
 const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
@@ -848,6 +852,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private confirmCommitMessageOverride: boolean =
     confirmCommitMessageOverrideDefault
   private confirmWorktreeRemoval: boolean = confirmWorktreeRemovalDefault
+  private autoSwitchAccountToRepositoryOwner: boolean =
+    autoSwitchAccountToRepositoryOwnerDefault
   private imageDiffType: ImageDiffType = imageDiffTypeDefault
   private hideWhitespaceInChangesDiff: boolean =
     hideWhitespaceInChangesDiffDefault
@@ -1669,6 +1675,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       askForConfirmationOnCommitMessageOverride:
         this.confirmCommitMessageOverride,
       askForConfirmationOnWorktreeRemoval: this.confirmWorktreeRemoval,
+      autoSwitchAccountToRepositoryOwner:
+        this.autoSwitchAccountToRepositoryOwner,
       uncommittedChangesStrategy: this.uncommittedChangesStrategy,
       selectedExternalEditor: this.selectedExternalEditor,
       imageDiffType: this.imageDiffType,
@@ -2530,6 +2538,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     this.selectedRepository = repository
+    this.maybePromoteAccountForRepository(repository)
     // Never display the previous workspace's appearance while the newly
     // selected repository's local config is loading.
     this.repositoryAppearanceOverrides = {}
@@ -3122,6 +3131,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.confirmWorktreeRemoval = getBoolean(
       confirmWorktreeRemovalKey,
       confirmWorktreeRemovalDefault
+    )
+
+    this.autoSwitchAccountToRepositoryOwner = getBoolean(
+      autoSwitchAccountToRepositoryOwnerKey,
+      autoSwitchAccountToRepositoryOwnerDefault
     )
 
     this.errorPresentationStyle = getErrorPresentationStyle()
@@ -5815,6 +5829,51 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     await this.refreshBranchProtectionState(freshRepo)
     return freshRepo
+  }
+
+  /**
+   * When enabled, make the selected repository's owning account the active
+   * identity so the visible account indicator (positional `accounts[0]`) and
+   * any unbound endpoint-fallback actions follow the repo owner. Bound actions
+   * already resolve per-repo via `getAccountForRepository`, so this only moves
+   * the positional "active" identity — it never changes tokens or re-auths, and
+   * it never writes `repository.accountKey` (auto-binding stays a
+   * settings/triage responsibility).
+   *
+   * The reorder is deliberately fire-and-forget (no `await`): `_selectRepository`
+   * is re-entrant, and `promoteAccount`'s async `save()` only emits an update —
+   * it never recurses back into repository selection. Because
+   * `getRepositoryOwnerAccountToPromote` returns `null` when the owner is
+   * already active, a promotion (and the API refresh it triggers via the
+   * accounts `onDidUpdate` handler) only fires when the active identity actually
+   * changes, not on every selection.
+   */
+  private maybePromoteAccountForRepository(
+    repository: Repository | CloningRepository | null
+  ) {
+    if (
+      repository === null ||
+      !(repository instanceof Repository) ||
+      !isRepositoryWithGitHubRepository(repository)
+    ) {
+      return
+    }
+
+    const owner = getRepositoryOwnerAccountToPromote(
+      this.accounts,
+      repository,
+      this.autoSwitchAccountToRepositoryOwner
+    )
+
+    if (owner === null) {
+      return
+    }
+
+    // Reorder via the AccountsStore directly (a pure array reorder + save; no
+    // token re-fetch). NOTE: GitHub.com accounts always sort ahead of
+    // Enterprise accounts, so an Enterprise-owned repo cannot become
+    // `accounts[0]` while any GitHub.com account is signed in.
+    this.accountsStore.promoteAccount(owner)
   }
 
   /**
@@ -10144,6 +10203,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return Promise.resolve()
   }
 
+  public _setAutoSwitchAccountToRepositoryOwnerSetting(
+    value: boolean
+  ): Promise<void> {
+    this.autoSwitchAccountToRepositoryOwner = value
+    setBoolean(autoSwitchAccountToRepositoryOwnerKey, value)
+
+    this.emitUpdate()
+
+    return Promise.resolve()
+  }
+
   public _setUncommittedChangesStrategySetting(
     value: UncommittedChangesStrategy
   ): Promise<void> {
@@ -11376,6 +11446,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.confirmWorktreeRemoval = getBoolean(
       confirmWorktreeRemovalKey,
       confirmWorktreeRemovalDefault
+    )
+    this.autoSwitchAccountToRepositoryOwner = getBoolean(
+      autoSwitchAccountToRepositoryOwnerKey,
+      autoSwitchAccountToRepositoryOwnerDefault
     )
     this.errorPresentationStyle = getErrorPresentationStyle()
 

@@ -287,6 +287,13 @@ export interface IAppState {
   /** Should the app prompt the user to confirm worktree removal? */
   readonly askForConfirmationOnWorktreeRemoval: boolean
 
+  /**
+   * Should selecting a repository make its owning account the active identity
+   * (positional `accounts[0]`) so the visible indicator and unbound
+   * endpoint-fallback actions follow the repo owner?
+   */
+  readonly autoSwitchAccountToRepositoryOwner: boolean
+
   /** How the app should handle uncommitted changes when switching branches */
   readonly uncommittedChangesStrategy: UncommittedChangesStrategy
 
