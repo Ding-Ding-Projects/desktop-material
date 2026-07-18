@@ -99,6 +99,21 @@ export function githubReleasesError(
       : null
   const rateLimitReset = error instanceof APIError ? error.rateLimitReset : null
   const action = operationLabels[operation]
+  // Preserve the real cause in the Log History viewer before it is replaced by
+  // the bounded, provider-safe message below; without this the operator cannot
+  // tell an auth/scope failure from a validation failure or a network error.
+  // Provider text is already length-bounded and APIError never retains the
+  // response, so only the status, error name, and a clamped message are logged
+  // (never headers or tokens).
+  const errorName = error instanceof Error ? error.name : typeof error
+  const errorMessage = (
+    error instanceof Error ? error.message : String(error)
+  ).slice(0, 256)
+  log.error(
+    `GitHub Releases could not ${action} (status: ${
+      status ?? 'none'
+    }, error: ${errorName}): ${errorMessage}`
+  )
   if (status === 401) {
     return new GitHubReleasesError(
       'authentication',

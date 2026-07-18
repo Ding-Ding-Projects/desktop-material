@@ -1,6 +1,6 @@
 import assert from 'node:assert'
 import { Disposable } from 'event-kit'
-import { describe, it } from 'node:test'
+import { describe, it, mock } from 'node:test'
 import { Account, getAccountKey } from '../../src/models/account'
 import { GitHubRepository } from '../../src/models/github-repository'
 import { Owner } from '../../src/models/owner'
@@ -17,6 +17,7 @@ import {
 import {
   IGitHubRelease,
   IGitHubReleaseAsset,
+  parseGitHubReleaseList,
 } from '../../src/lib/github-releases'
 import { APIError } from '../../src/lib/http'
 
@@ -507,5 +508,94 @@ describe('GitHub Releases store', () => {
     assert.ok(error instanceof GitHubReleasesError)
     assert.equal((error as GitHubReleasesError).kind, 'permission')
     assert.equal(error.message.includes('private-provider-detail'), false)
+  })
+
+  it('logs the underlying cause when it replaces one with a bounded message', () => {
+    const logError = mock.method(log, 'error')
+    try {
+      const error = githubReleasesError(new Error('parser said no'), 'list')
+      assert.ok(error instanceof GitHubReleasesError)
+      assert.equal((error as GitHubReleasesError).kind, 'invalid-response')
+      assert.equal(logError.mock.calls.length, 1)
+      const message = logError.mock.calls[0].arguments[0] as string
+      assert.ok(message.includes('load releases'))
+      assert.ok(message.includes('status: none'))
+      assert.ok(message.includes('Error'))
+      assert.ok(message.includes('parser said no'))
+    } finally {
+      logError.mock.restore()
+    }
+  })
+
+  it('logs the response status when an authenticated request is denied', () => {
+    const logError = mock.method(log, 'error')
+    try {
+      githubReleasesError(
+        new APIError(
+          new Response(JSON.stringify({ message: 'private-provider-detail' }), {
+            status: 403,
+          }),
+          { message: 'private-provider-detail' }
+        ),
+        'publish'
+      )
+      assert.equal(logError.mock.calls.length, 1)
+      const message = logError.mock.calls[0].arguments[0] as string
+      assert.ok(message.includes('publish the release'))
+      assert.ok(message.includes('status: 403'))
+      // The provider detail is safe to keep in the diagnostic log even though
+      // it is stripped from the user-facing GitHubReleasesError message.
+      assert.ok(message.includes('private-provider-detail'))
+    } finally {
+      logError.mock.restore()
+    }
+  })
+
+  it('does not log when a cancellation or already-typed error passes through', () => {
+    const logError = mock.method(log, 'error')
+    try {
+      const aborted = new Error('canceled')
+      aborted.name = 'AbortError'
+      assert.equal(githubReleasesError(aborted, 'list'), aborted)
+      const typed = new GitHubReleasesError('conflict', 'stale')
+      assert.equal(githubReleasesError(typed, 'update'), typed)
+      assert.equal(logError.mock.calls.length, 0)
+    } finally {
+      logError.mock.restore()
+    }
+  })
+
+  it('parses a repository with no releases as a valid empty list', () => {
+    const result = parseGitHubReleaseList([], 1)
+    assert.deepEqual(result.releases, [])
+    assert.equal(result.nextPage, null)
+    assert.equal(result.capped, false)
+  })
+
+  it('loads an empty releases list without an error and without logging', async () => {
+    const accountsStore = new FakeAccountsStore([selected])
+    const logError = mock.method(log, 'error')
+    try {
+      const store = await storeWith(
+        accountsStore,
+        dependencies(() =>
+          fakeAPI({
+            fetchReleases: async () => ({
+              releases: [],
+              page: 1,
+              nextPage: null,
+              capped: false,
+            }),
+          })
+        )
+      )
+      const result = await store.list(repository)
+      assert.deepEqual(result.releases, [])
+      assert.equal(result.nextPage, null)
+      assert.equal(result.capped, false)
+      assert.equal(logError.mock.calls.length, 0)
+    } finally {
+      logError.mock.restore()
+    }
   })
 })
