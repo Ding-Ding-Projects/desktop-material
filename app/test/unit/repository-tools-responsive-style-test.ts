@@ -8,6 +8,7 @@ const readStyle = (name: string) =>
 
 describe('repository tools hub responsive contracts', () => {
   const tools = readStyle('_repository-tools.scss')
+  const cheapLfs = readStyle('_cheap-lfs.scss')
 
   it('keeps every hub descendant border-boxed and shrinkable', () => {
     assert.match(
@@ -87,6 +88,24 @@ describe('repository tools hub responsive contracts', () => {
     assert.match(
       tools,
       /@media \(max-height: 320px\) \{[\s\S]*?\.repository-tools-modal \{[\s\S]*?height: auto;[\s\S]*?max-height: none;[\s\S]*?\.repository-tools-functions \{[\s\S]*?flex: none;[\s\S]*?max-height: 96px;/
+    )
+  })
+
+  it('keeps the cheap LFS panel border-boxed and shrinkable', () => {
+    assert.match(
+      cheapLfs,
+      /\.cheap-lfs,[\s\S]*?box-sizing: border-box;\s*min-width: 0;/
+    )
+  })
+
+  it('stacks the cheap LFS rows and pin form at narrow widths', () => {
+    assert.match(
+      cheapLfs,
+      /@media \(max-width: 700px\) \{[\s\S]*?\.cheap-lfs-row-heading,[\s\S]*?flex-direction: column;/
+    )
+    assert.match(
+      cheapLfs,
+      /@media \(max-width: 700px\) \{[\s\S]*?\.cheap-lfs-pin-form dl,[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
     )
   })
 })

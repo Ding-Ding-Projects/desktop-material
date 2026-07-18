@@ -1,4 +1,6 @@
 export { RepositoryTools } from './repository-tools'
+export { CheapLfs } from './cheap-lfs'
+export type { ICheapLfsDispatcher, ICheapLfsProps } from './cheap-lfs'
 export { RepositoryBundleImport } from './bundle-import'
 export { RepositoryShallowHistory } from './shallow-history'
 export { RepositoryBisectSession } from './bisect-session'

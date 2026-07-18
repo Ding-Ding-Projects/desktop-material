@@ -19,6 +19,22 @@ import type { CopilotFeature, CopilotModelSelections } from './copilot-store'
 import { CommitMessageGenerationCancelledError } from './copilot-store'
 import { FileBatchCloneStagingManager } from './batch-clone-staging'
 import {
+  getGitHubReleasesAccount,
+  GitHubReleasesError,
+  GitHubReleasesStore,
+} from './github-releases-store'
+import {
+  ICheapLfsMaterializeResult,
+  ICheapLfsPinOptions,
+  ICheapLfsPinResult,
+  ICheapLfsPointerEntry,
+  listCheapLfsPointers,
+  materializePointer,
+  pinFileToRelease,
+} from '../cheap-lfs/operations'
+import { IGitHubRelease } from '../github-releases'
+import { IGitHubReleaseTransferProgressEvent } from '../github-release-transfer'
+import {
   IBYOKProvider,
   loadBYOKProviders,
   saveBYOKProviders,
@@ -936,6 +952,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private batchCloneState: IBatchCloneState | null = null
   private readonly autoCloneStore: AutoCloneStore
 
+  /** Account-bound Releases coordinator backing the cheap-LFS delegations. */
+  private readonly githubReleasesStore: GitHubReleasesStore
+
   /** Accounts already audited for missing OAuth scopes this session. */
   private readonly scopeAuditedAccounts = new Set<string>()
 
@@ -963,6 +982,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       undefined,
       new FileBatchCloneStagingManager()
     )
+    this.githubReleasesStore = new GitHubReleasesStore(this.accountsStore)
     this.autoCloneStore = new AutoCloneStore({
       getAccounts: () => this.accounts,
       getApiRepositories: () => this.apiRepositoriesStore.getState(),
@@ -9631,6 +9651,72 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository
   ): Promise<ReadonlyArray<IManagedSubmodule>> {
     return getSubmodules(repository)
+  }
+
+  private requireCheapLfsAccount(repository: Repository): Account {
+    const account = getGitHubReleasesAccount(repository, this.accounts)
+    if (account === null) {
+      throw new GitHubReleasesError(
+        'authentication',
+        'Sign in with the account selected for this repository to use cheap LFS.'
+      )
+    }
+    return account
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _getReleaseByTag(
+    repository: Repository,
+    tag: string
+  ): Promise<IGitHubRelease | null> {
+    return this.githubReleasesStore.getReleaseByTag(repository, tag)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _pinFileToRelease(
+    repository: Repository,
+    options: ICheapLfsPinOptions,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<ICheapLfsPinResult> {
+    const account = this.requireCheapLfsAccount(repository)
+    const result = await pinFileToRelease(
+      this.githubReleasesStore,
+      repository,
+      account,
+      options,
+      signal,
+      onProgress
+    )
+    await this._refreshRepository(repository)
+    return result
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _materializeCheapLfsPointer(
+    repository: Repository,
+    trackedRelativePath: string,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<ICheapLfsMaterializeResult> {
+    const account = this.requireCheapLfsAccount(repository)
+    const result = await materializePointer(
+      this.githubReleasesStore,
+      repository,
+      account,
+      trackedRelativePath,
+      signal,
+      onProgress
+    )
+    await this._refreshRepository(repository)
+    return result
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _listCheapLfsPointers(
+    repository: Repository
+  ): Promise<ReadonlyArray<ICheapLfsPointerEntry>> {
+    return listCheapLfsPointers(repository)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */

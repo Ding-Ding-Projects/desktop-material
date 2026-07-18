@@ -18,6 +18,10 @@ const materialCardStyles = readFileSync(
   join(process.cwd(), 'app', 'styles', 'ui', '_material-cards.scss'),
   'utf8'
 )
+const cheapLfsStyles = readFileSync(
+  join(process.cwd(), 'app', 'styles', 'ui', '_cheap-lfs.scss'),
+  'utf8'
+)
 
 describe('Repository tools responsive styles', () => {
   it('wraps long labels and result output without horizontal clipping', () => {
@@ -82,6 +86,14 @@ describe('Repository tools responsive styles', () => {
     assert.match(
       styles,
       /@media \(max-height: 320px\)[\s\S]*?\.repository-tools-output\s*\{[\s\S]*?height: 48px;[\s\S]*?max-height: 48px;[\s\S]*?min-height: 48px;/
+    )
+  })
+
+  it('wraps the cheap LFS panel rows without horizontal clipping', () => {
+    assert.match(cheapLfsStyles, /\.cheap-lfs[\s\S]*?overflow-wrap: anywhere/)
+    assert.match(
+      cheapLfsStyles,
+      /\.cheap-lfs-rows \{[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/
     )
   })
 })

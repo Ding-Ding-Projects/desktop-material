@@ -12,6 +12,14 @@ import {
   IAPICreatePushProtectionBypassResponse,
 } from '../../lib/api'
 import { getAccountForRepository } from '../../lib/get-account-for-repository'
+import { IGitHubRelease } from '../../lib/github-releases'
+import { IGitHubReleaseTransferProgressEvent } from '../../lib/github-release-transfer'
+import {
+  ICheapLfsMaterializeResult,
+  ICheapLfsPinOptions,
+  ICheapLfsPinResult,
+  ICheapLfsPointerEntry,
+} from '../../lib/cheap-lfs/operations'
 import { shell } from '../../lib/app-shell'
 import {
   CompareAction,
@@ -2465,6 +2473,58 @@ export class Dispatcher {
     repository: Repository
   ): Promise<ReadonlyArray<IManagedSubmodule>> {
     return this.appStore._getSubmodules(repository)
+  }
+
+  /** Look up a repository's GitHub release by its exact tag, or `null`. */
+  public getReleaseByTag(
+    repository: Repository,
+    tag: string
+  ): Promise<IGitHubRelease | null> {
+    return this.appStore._getReleaseByTag(repository, tag)
+  }
+
+  /**
+   * Upload a working-tree file as a GitHub Release asset and replace it with a
+   * committed cheap-LFS pointer, refreshing the repository afterwards. The
+   * optional signal and progress callback let a UI show and cancel the upload.
+   */
+  public pinFileToRelease(
+    repository: Repository,
+    options: ICheapLfsPinOptions,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<ICheapLfsPinResult> {
+    return this.appStore._pinFileToRelease(
+      repository,
+      options,
+      signal,
+      onProgress
+    )
+  }
+
+  /**
+   * Replace a committed cheap-LFS pointer with its verified real bytes. The
+   * optional signal and progress callback let a UI show and cancel the download.
+   */
+  public materializePointer(
+    repository: Repository,
+    trackedRelativePath: string,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<ICheapLfsMaterializeResult> {
+    return this.appStore._materializeCheapLfsPointer(
+      repository,
+      trackedRelativePath,
+      signal,
+      onProgress
+    )
+  }
+
+  /** List the committed cheap-LFS pointers in the repository's working tree. */
+  public listCheapLfsPointers(
+    repository: Repository
+  ): Promise<ReadonlyArray<ICheapLfsPointerEntry>> {
+    return this.appStore._listCheapLfsPointers(repository)
   }
 
   /** Add a submodule at the given path, optionally tracking a branch. */

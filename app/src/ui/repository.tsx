@@ -1121,6 +1121,12 @@ export class RepositoryView extends React.Component<
           onOpenSubmoduleManager={this.onOpenSubmoduleManager}
           subtreeCount={this.state.subtreeCount}
           onOpenSubtreeManager={this.onOpenSubtreeManager}
+          cheapLfs={{
+            repository: this.props.repository,
+            accounts: this.props.accounts,
+            dispatcher: this.props.dispatcher,
+            available: this.showsGitHubReleases(),
+          }}
         />
       )
     } else {

@@ -147,6 +147,34 @@ describe('submodule clone-surface contracts', () => {
     )
   })
 
+  it('lists the cheap LFS panel on the repo page only for GitHub repositories', () => {
+    const tools = read('src', 'ui', 'repository-tools', 'repository-tools.tsx')
+
+    // A dedicated hub category and entry, gated prop-driven like the nested
+    // repository managers (a positive availability flag rather than a count).
+    assert.match(tools, /'Large files & storage'/)
+    assert.match(tools, /id: 'cheap-lfs'/)
+    assert.match(
+      tools,
+      /getAllHubEntries\(\)[\s\S]*?cheapLfsHidden = cheapLfs === undefined \|\| cheapLfs\.available !== true[\s\S]*?return RepositoryToolsHubEntries/
+    )
+    assert.match(tools, /selected === 'cheap-lfs' && this\.renderCheapLfs\(\)/)
+
+    // The repository view supplies the panel wiring only for GitHub repos.
+    const repositoryView = read('src', 'ui', 'repository.tsx')
+    assert.match(
+      repositoryView,
+      /cheapLfs=\{\{[\s\S]*?dispatcher: this\.props\.dispatcher,[\s\S]*?available: this\.showsGitHubReleases\(\),/
+    )
+
+    // The panel owns a registered, compact-safe style partial.
+    const uiManifest = read('styles', '_ui.scss')
+    assert.match(uiManifest, /@import 'ui\/cheap-lfs';/)
+
+    const style = read('styles', 'ui', '_cheap-lfs.scss')
+    assert.match(style, /\.cheap-lfs \{[\s\S]*?\.cheap-lfs-rows/)
+  })
+
   it('manages cloned and uncloned submodules in place', () => {
     const manager = read('src', 'ui', 'repository-settings', 'submodules.tsx')
 

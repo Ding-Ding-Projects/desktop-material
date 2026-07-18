@@ -176,6 +176,7 @@ import {
   parseGitHubReleaseList,
   validateGitHubReleaseIdentifier,
   validateGitHubReleaseRepositoryPart,
+  validateGitHubReleaseTag,
 } from './github-releases'
 import {
   ActionsJobPageSize,
@@ -3451,6 +3452,33 @@ export class API {
     return parseGitHubRelease(
       await boundedGitHubReleaseResponse(response, signal),
       safeReleaseId
+    )
+  }
+
+  /**
+   * Look up one release by its exact tag. Resolves to `null` when GitHub
+   * reports the tag has no release (404) so callers can treat "find or create"
+   * uniformly; every other status still surfaces the typed repository error.
+   */
+  public async fetchReleaseByTag(
+    owner: string,
+    name: string,
+    tag: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubRelease | null> {
+    const safeOwner = validateGitHubReleaseRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubReleaseRepositoryPart(name, 'repository')
+    const safeTag = validateGitHubReleaseTag(tag)
+    const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeName
+    )}/releases/tags/${encodeURIComponent(safeTag)}`
+    const response = await this.ghRequest('GET', path, { signal })
+    if (response.status === 404) {
+      await response.body?.cancel().catch(() => undefined)
+      return null
+    }
+    return parseGitHubRelease(
+      await boundedGitHubReleaseResponse(response, signal)
     )
   }
 

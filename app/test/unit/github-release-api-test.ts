@@ -117,6 +117,32 @@ describe('GitHub Releases API', () => {
     ])
   })
 
+  it('looks up a release by tag and maps a 404 to null', async () => {
+    const api = new API('https://api.github.com', 'secret-token')
+    const requests = new Array<{ method: string; path: string }>()
+    Reflect.set(api, 'ghRequest', async (method: string, path: string) => {
+      requests.push({ method, path })
+      return path.endsWith('/tags/v1.0.0')
+        ? new Response(JSON.stringify(apiRelease))
+        : new Response(JSON.stringify({ message: 'Not Found' }), {
+            status: 404,
+          })
+    })
+
+    const found = await api.fetchReleaseByTag('desktop', 'material', 'v1.0.0')
+    const missing = await api.fetchReleaseByTag('desktop', 'material', 'v9.9.9')
+
+    assert.equal(found?.id, 42)
+    assert.equal(missing, null)
+    assert.deepEqual(requests, [
+      { method: 'GET', path: 'repos/desktop/material/releases/tags/v1.0.0' },
+      { method: 'GET', path: 'repos/desktop/material/releases/tags/v9.9.9' },
+    ])
+    await assert.rejects(() =>
+      api.fetchReleaseByTag('desktop', 'material', ' ')
+    )
+  })
+
   it('creates drafts and publishes only through separate exact mutations', async () => {
     const api = new API('https://api.github.com', 'secret-token')
     const requests = new Array<{

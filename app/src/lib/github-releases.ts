@@ -447,6 +447,14 @@ export function normalizeGitHubReleaseUpdate(
   }
 }
 
+export function validateGitHubReleaseTag(value: string): string {
+  const tag = normalizeField(value, 'Tag', 255, false)
+  if (/\s/.test(tag) || tag.startsWith('-') || tag === '.' || tag === '..') {
+    throw new Error('Tag must not contain whitespace or begin with a dash.')
+  }
+  return tag
+}
+
 export function normalizeGitHubReleaseAssetName(value: string): string {
   const name = normalizeField(value, 'Asset name', 255, false)
   if (name === '.' || name === '..' || invalidAssetNameCharacters.test(name)) {

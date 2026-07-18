@@ -69,6 +69,32 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 Release-backed "cheap LFS"
+
+A new **Large files & storage** tools-hub category hosts a cheap-LFS panel:
+instead of real Git LFS, a chosen large file is uploaded to a GitHub
+Release asset and a small text **pointer file** is committed in its place;
+materialize downloads the asset and restores the real bytes.
+
+- Plumbing: `api.fetchReleaseByTag` + a store `getReleaseByTag`; a pure
+  pointer model (`cheap-lfs/pointer.ts` — serialize/parse, path-safety
+  validator stricter than repository-lfs, CRLF/BOM-tolerant read,
+  stable `\n` write); and `cheap-lfs/operations.ts` with streamed
+  sha256 hashing, `pinFileToRelease` (128 MiB cap enforced before hash,
+  find-or-create-draft-release, upload, write pointer),
+  `materializePointer` (download to a same-volume sibling temp, verify
+  sha256 **and** size, atomically rename over the tracked file — working
+  around the download layer's refuse-to-overwrite), and a bounded
+  `listCheapLfsPointers` working-tree scan.
+- Panel: review-gated, lists pointers with the FilterModeControl search,
+  per-row Materialize with progress/cancel, and a Pin flow (file picker,
+  tracked-path + tag form, inline cap/path validation) — plus explicit
+  copy that this is **not** real Git LFS, other clients see only the
+  pointer text, and draft-release assets are visible only to signed-in
+  app users until published.
+- Honest limits recorded: 128 MiB upload cap (buffered upload), draft vs
+  published visibility, and the same-volume temp-replace assumption.
+
 ## 2026-07-18 Repository Tools catalog reorganization
 
 The tools hub's taxonomy was rebuilt for scanability: seven

@@ -116,6 +116,7 @@ function fakeAPI(
       capped: false,
     }),
     fetchRelease: async () => release,
+    fetchReleaseByTag: async () => release,
     fetchReleaseAssets: async () => ({
       assets: [asset],
       page: 1,

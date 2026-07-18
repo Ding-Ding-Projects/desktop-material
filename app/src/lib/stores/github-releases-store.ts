@@ -201,6 +201,12 @@ export interface IGitHubReleasesAPI {
     releaseId: number,
     signal?: AbortSignal
   ): Promise<IGitHubRelease>
+  fetchReleaseByTag(
+    owner: string,
+    name: string,
+    tag: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubRelease | null>
   fetchReleaseAssets(
     owner: string,
     name: string,
@@ -523,6 +529,22 @@ export class GitHubReleasesStore {
         context.repository.owner.login,
         context.repository.name,
         page,
+        requestSignal
+      )
+    )
+  }
+
+  /** Resolve one release by tag through the repository-selected account. */
+  public getReleaseByTag(
+    repository: Repository,
+    tag: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubRelease | null> {
+    return this.run(repository, 'list', signal, (context, requestSignal) =>
+      context.api.fetchReleaseByTag(
+        context.repository.owner.login,
+        context.repository.name,
+        tag,
         requestSignal
       )
     )

@@ -41,6 +41,9 @@ import {
 } from './operations'
 import { RepositoryBundleImport } from './bundle-import'
 import { RepositoryShallowHistory } from './shallow-history'
+import { CheapLfs, ICheapLfsDispatcher } from './cheap-lfs'
+import { Account } from '../../models/account'
+import { Repository } from '../../models/repository'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -95,11 +98,13 @@ type RepositoryToolsHubToolID =
   | 'bundle-import'
   | 'submodule-manager'
   | 'subtree-manager'
+  | 'cheap-lfs'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
   | 'Nested repositories'
   | 'Share & transfer'
+  | 'Large files & storage'
 
 type RepositoryToolsHubCategoryFilter = 'All' | RepositoryToolsHubCategory
 
@@ -151,6 +156,7 @@ const HubCategoryOrder: ReadonlyArray<RepositoryToolsHubCategory> = [
   'Commits & history',
   'Nested repositories',
   'Cleanup & maintenance',
+  'Large files & storage',
   'Share & transfer',
   'Repair & recovery',
 ]
@@ -168,6 +174,8 @@ const HubCategorySubtitles: Record<RepositoryToolsHubCategory, string> = {
   'Nested repositories':
     'Manage the submodules and subtrees this repository contains.',
   'Cleanup & maintenance': 'Reclaim disk space and keep the repository fast.',
+  'Large files & storage':
+    'Store big files in GitHub Releases instead of the repository.',
   'Share & transfer':
     'Move this repository’s work in and out as portable files.',
   'Repair & recovery': 'Check repository integrity and track down lost work.',
@@ -286,6 +294,20 @@ const SubtreeManagerHubEntry: IRepositoryToolsHubEntry = {
   icon: octicons.gitMerge,
 }
 
+/**
+ * The cheap-LFS hub entry. Listed only for GitHub repositories (a release host
+ * exists to hold the pinned assets), gated prop-driven exactly like the nested
+ * repository managers.
+ */
+const CheapLfsHubEntry: IRepositoryToolsHubEntry = {
+  id: 'cheap-lfs',
+  title: 'Release-backed large files',
+  description:
+    'Store a large file as a GitHub Release asset and commit only a small pointer in its place, then materialize it back on demand.',
+  category: 'Large files & storage',
+  icon: octicons.fileZip,
+}
+
 const RepositoryToolsHubCategories: ReadonlyArray<RepositoryToolsHubCategoryFilter> =
   ['All', ...HubCategoryOrder]
 
@@ -353,6 +375,18 @@ export interface IRepositoryToolsProps {
 
   /** Opens the standalone subtree manager for this repository. */
   readonly onOpenSubtreeManager?: () => void
+
+  /**
+   * The wiring the cheap-LFS panel needs, or undefined when the surface has no
+   * repository/dispatcher to drive it. The `cheap-lfs` hub entry is listed only
+   * when this is present and `available` is true (a GitHub release host exists).
+   */
+  readonly cheapLfs?: {
+    readonly repository: Repository
+    readonly accounts: ReadonlyArray<Account>
+    readonly dispatcher: ICheapLfsDispatcher
+    readonly available: boolean
+  }
 }
 
 type OperationStatus =
@@ -630,6 +664,7 @@ export class RepositoryTools extends React.Component<
   private getAllHubEntries(): ReadonlyArray<IRepositoryToolsHubEntry> {
     const { submoduleCount, onOpenSubmoduleManager } = this.props
     const { subtreeCount, onOpenSubtreeManager } = this.props
+    const { cheapLfs } = this.props
     const submodulesHidden =
       onOpenSubmoduleManager === undefined ||
       submoduleCount === undefined ||
@@ -640,8 +675,9 @@ export class RepositoryTools extends React.Component<
       subtreeCount === undefined ||
       subtreeCount === null ||
       subtreeCount === 0
+    const cheapLfsHidden = cheapLfs === undefined || cheapLfs.available !== true
 
-    if (submodulesHidden && subtreesHidden) {
+    if (submodulesHidden && subtreesHidden && cheapLfsHidden) {
       return RepositoryToolsHubEntries
     }
 
@@ -649,6 +685,7 @@ export class RepositoryTools extends React.Component<
       ...RepositoryToolsHubEntries,
       ...(submodulesHidden ? [] : [SubmoduleManagerHubEntry]),
       ...(subtreesHidden ? [] : [SubtreeManagerHubEntry]),
+      ...(cheapLfsHidden ? [] : [CheapLfsHubEntry]),
     ].sort(compareHubEntries)
   }
 
@@ -1383,6 +1420,29 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderCheapLfs() {
+    const cheapLfs = this.props.cheapLfs
+    if (cheapLfs === undefined || cheapLfs.available !== true) {
+      return null
+    }
+    return (
+      <section
+        className="repository-tools-category"
+        aria-labelledby="repository-tools-cheap-lfs-title"
+      >
+        {this.renderCategoryHeader(
+          'Large files & storage',
+          'repository-tools-cheap-lfs-title'
+        )}
+        <CheapLfs
+          repository={cheapLfs.repository}
+          accounts={cheapLfs.accounts}
+          dispatcher={cheapLfs.dispatcher}
+        />
+      </section>
+    )
+  }
+
   private renderExport() {
     return (
       <section
@@ -1981,6 +2041,7 @@ export class RepositoryTools extends React.Component<
         {this.renderInspection()}
         {selected === 'submodule-manager' && this.renderSubmoduleManager()}
         {selected === 'subtree-manager' && this.renderSubtreeManager()}
+        {selected === 'cheap-lfs' && this.renderCheapLfs()}
         {selected === 'export-artifacts' && this.renderExport()}
         <div
           className="repository-tools-panel"
