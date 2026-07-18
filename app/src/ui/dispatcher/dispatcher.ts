@@ -43,6 +43,10 @@ import {
   IManagedSubmodule,
   IAddSubmoduleOptions,
   SubmoduleConfigKey,
+  IManagedSubtree,
+  ISubtreeMergeOptions,
+  ISubtreeRemoteOptions,
+  ISubtreeSplitOptions,
   IRemoteManagementApplyOptions,
   IRepositoryShallowHistoryFetchRequest,
 } from '../../lib/git'
@@ -2543,6 +2547,63 @@ export class Dispatcher {
     force: boolean
   ): Promise<void> {
     return this.appStore._deinitSubmodule(repository, path, force)
+  }
+
+  /** Whether the bundled Git supports the contrib `git subtree` command. */
+  public isSubtreeAvailable(): Promise<boolean> {
+    return this.appStore._isSubtreeAvailable()
+  }
+
+  /** Discover the subtrees recorded in the repository history. */
+  public getSubtrees(
+    repository: Repository
+  ): Promise<ReadonlyArray<IManagedSubtree>> {
+    return this.appStore._getSubtrees(repository)
+  }
+
+  /** Add a subtree at the given prefix from a source repository and ref. */
+  public addSubtree(
+    repository: Repository,
+    prefix: string,
+    source: string,
+    ref: string,
+    options?: ISubtreeMergeOptions
+  ): Promise<void> {
+    return this.appStore._addSubtree(repository, prefix, source, ref, options)
+  }
+
+  /** Merge the latest upstream changes for the subtree at the given prefix. */
+  public pullSubtree(
+    repository: Repository,
+    prefix: string,
+    source: string,
+    ref: string,
+    options?: ISubtreeMergeOptions
+  ): Promise<void> {
+    return this.appStore._pullSubtree(repository, prefix, source, ref, options)
+  }
+
+  /** Split out and push the subtree at the given prefix to a source and ref. */
+  public pushSubtree(
+    repository: Repository,
+    prefix: string,
+    source: string,
+    ref: string,
+    options?: ISubtreeRemoteOptions
+  ): Promise<void> {
+    return this.appStore._pushSubtree(repository, prefix, source, ref, options)
+  }
+
+  /**
+   * Split the subtree at the given prefix into standalone commits, returning
+   * the SHA of the split head.
+   */
+  public splitSubtree(
+    repository: Repository,
+    prefix: string,
+    options?: ISubtreeSplitOptions
+  ): Promise<string> {
+    return this.appStore._splitSubtree(repository, prefix, options)
   }
 
   /** Set whether the user has opted out of stats reporting. */

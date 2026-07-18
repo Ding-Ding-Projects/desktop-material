@@ -56,6 +56,8 @@ export enum PopupType {
   CloneableSubmodules = 'CloneableSubmodules',
   SubmoduleManager = 'SubmoduleManager',
   SubmoduleConfig = 'SubmoduleConfig',
+  SubtreeManager = 'SubtreeManager',
+  AddSubtree = 'AddSubtree',
   AddRepository = 'AddRepository',
   CreateRepository = 'CreateRepository',
   CloneRepository = 'CloneRepository',
@@ -266,6 +268,15 @@ export type PopupDetail =
       repository: Repository
       /** The reconciled submodule whose configuration is being edited. */
       submodule: IManagedSubmodule
+    }
+  | {
+      type: PopupType.SubtreeManager
+      repository: Repository
+    }
+  | {
+      type: PopupType.AddSubtree
+      repository: Repository
+      onAdded: () => void | Promise<void>
     }
   | { type: PopupType.AddRepository; path?: string }
   | { type: PopupType.CreateRepository; path?: string }

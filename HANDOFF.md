@@ -69,6 +69,30 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 Git subtree manager
+
+A full subtree vertical slice mirroring the submodule manager (the bundled
+dugite git 2.53 ships contrib `git-subtree`, verified by a memoized
+capability probe that still gates the UI defensively):
+
+- Plumbing in `git/subtree.ts`: `discoverSubtrees` (trailer-driven —
+  `git log --grep=git-subtree-dir:` through the existing `getCommits`
+  trailer parsing, deduped by prefix), `addSubtree` / `pullSubtree` /
+  `pushSubtree` (URL-resolved sources, `envForRemoteOperation` +
+  `credentialAccountKey` + auth-error handling, progress via the
+  fetch/push parsers — no `--progress` flag, git-subtree rejects unknown
+  options), `splitSubtree` returning the split-head SHA, and prefix
+  validation that rejects before spawning.
+- `PopupType.SubtreeManager` / `PopupType.AddSubtree` dialogs: discovered
+  list (short split/merge SHAs), required FilterModeControl search,
+  per-row inline Pull/Push/Split editors (remote select + custom-URL
+  fallback, ref, squash on pull, branch on split), and an add dialog
+  composed from the add-submodule building blocks (provider tabs +
+  account picker + URL tab, squash default on).
+- Tools-hub entry (Maintenance) gated by discovered-subtree count,
+  following the pinned submodule gating idiom; contract, modality, and
+  RTL suites extended.
+
 ## 2026-07-18 Submodule config manager
 
 Every submodule row in the Submodule Manager (and the Repository Settings

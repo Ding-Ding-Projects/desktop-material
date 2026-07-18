@@ -284,6 +284,16 @@ import {
   IManagedSubmodule,
   IAddSubmoduleOptions,
   SubmoduleConfigKey,
+  discoverSubtrees,
+  addSubtree,
+  pullSubtree,
+  pushSubtree,
+  splitSubtree,
+  isSubtreeAvailable,
+  IManagedSubtree,
+  ISubtreeMergeOptions,
+  ISubtreeRemoteOptions,
+  ISubtreeSplitOptions,
   IRemoteManagementApplyOptions,
   unstageAll,
   fetchRepositoryShallowHistory,
@@ -9712,6 +9722,65 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<void> {
     await deinitSubmodule(repository, path, force)
     await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _isSubtreeAvailable(): Promise<boolean> {
+    return isSubtreeAvailable()
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public _getSubtrees(
+    repository: Repository
+  ): Promise<ReadonlyArray<IManagedSubtree>> {
+    return discoverSubtrees(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _addSubtree(
+    repository: Repository,
+    prefix: string,
+    source: string,
+    ref: string,
+    options?: ISubtreeMergeOptions
+  ): Promise<void> {
+    await addSubtree(repository, prefix, source, ref, options)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _pullSubtree(
+    repository: Repository,
+    prefix: string,
+    source: string,
+    ref: string,
+    options?: ISubtreeMergeOptions
+  ): Promise<void> {
+    await pullSubtree(repository, prefix, source, ref, options)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _pushSubtree(
+    repository: Repository,
+    prefix: string,
+    source: string,
+    ref: string,
+    options?: ISubtreeRemoteOptions
+  ): Promise<void> {
+    await pushSubtree(repository, prefix, source, ref, options)
+    await this._refreshRepository(repository)
+  }
+
+  /** This shouldn't be called directly. See `Dispatcher`. */
+  public async _splitSubtree(
+    repository: Repository,
+    prefix: string,
+    options?: ISubtreeSplitOptions
+  ): Promise<string> {
+    const sha = await splitSubtree(repository, prefix, options)
+    await this._refreshRepository(repository)
+    return sha
   }
 
   /** Set whether the user has opted out of stats reporting. */

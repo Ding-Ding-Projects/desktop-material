@@ -1,0 +1,523 @@
+// MD3 Subtree manager — the standalone dialog listing the subtrees recorded
+// in the repository history plus its per-row inline Pull / Push / Split
+// editors, and the clone-style Add subtree dialog's review pane. Field
+// language mirrors the submodule manager in dialogs/_repository-settings.scss.
+#subtree-manager {
+  width: min(640px, calc(100vw - 40px));
+
+  .subtrees-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+
+  .subtrees-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .subtrees-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing);
+  }
+
+  .subtrees-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .button-component {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  .subtrees-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-semibold);
+    color: var(--md-sys-color-on-surface);
+
+    .octicon {
+      color: var(--md-sys-color-on-surface-variant);
+      flex-shrink: 0;
+    }
+  }
+
+  .subtrees-empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 13px;
+  }
+
+  .subtrees-error {
+    margin: 0;
+    color: var(--md-sys-color-error);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .subtrees-notice {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+
+  .subtrees-progress {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-family: var(--font-family-monospace);
+    font-size: 12px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  // --- Search -------------------------------------------------------------
+  .subtrees-filter-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .subtrees-filter-search {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .subtrees-filter-text {
+      max-width: 100%;
+      min-width: 0;
+      flex: 1;
+    }
+  }
+
+  // --- Subtree list -------------------------------------------------------
+  .subtree-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .subtree-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 14px;
+    background: var(--md-sys-color-surface-container);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-large);
+    min-width: 0;
+  }
+
+  .subtree-row-body {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing);
+    min-width: 0;
+  }
+
+  .subtree-row-main {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .subtree-row-heading {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .subtree-row-icon {
+    color: var(--md-sys-color-on-surface-variant);
+    flex-shrink: 0;
+  }
+
+  .subtree-row-prefix {
+    font-size: 13.5px;
+    font-weight: var(--font-weight-semibold);
+    color: var(--md-sys-color-on-surface);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .subtree-row-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: 11.5px;
+    color: var(--md-sys-color-on-surface-variant);
+
+    .octicon {
+      width: 12px;
+      height: 12px;
+      margin-right: 4px;
+      vertical-align: -1px;
+    }
+  }
+
+  .subtree-row-sha {
+    display: inline-flex;
+    align-items: center;
+    font-family: var(--font-family-monospace);
+  }
+
+  .subtree-row-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  // --- Inline Pull / Push / Split editor ----------------------------------
+  .subtree-row-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    padding-top: 10px;
+    min-width: 0;
+  }
+
+  .subtree-editor-fields {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(min(100%, 180px), 1fr));
+    min-width: 0;
+
+    .text-box-component,
+    .select-component {
+      max-width: 100%;
+      min-width: 0;
+      width: 100%;
+    }
+  }
+
+  .subtree-editor-help {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .subtree-editor-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    .button-component {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+  }
+
+  // --- Compact width ------------------------------------------------------
+  @media (max-width: 620px) {
+    .subtrees-section-header {
+      align-items: stretch;
+      flex-direction: column;
+
+      .button-component,
+      .subtrees-header-actions {
+        width: 100%;
+        justify-content: center;
+      }
+    }
+
+    .subtree-row-body {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .subtree-row-actions {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+
+      .button-component {
+        flex: 1 1 88px;
+        min-width: min(88px, 100%);
+      }
+    }
+
+    .subtree-editor-fields {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .subtree-editor-actions .button-component {
+      flex: 1 1 120px;
+      min-width: min(120px, 100%);
+      justify-content: center;
+    }
+  }
+}
+
+// The clone-style Add subtree dialog reuses the shell language of the
+// add-submodule dialog; only the review pane's fields differ.
+dialog.clone-repository.add-subtree-dialog {
+  height: min(800px, calc(100vh - 70px));
+  max-height: calc(100vh - 54px);
+
+  > form,
+  > form > fieldset {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .add-subtree-scroll-region {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .add-subtree-inputs {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    border: 0;
+    margin: 0;
+    padding: 0;
+  }
+
+  .add-subtree-hosted-content,
+  .add-subtree-url-content,
+  .add-subtree-sign-in,
+  .add-subtree-review {
+    flex: none;
+    min-height: 0;
+  }
+
+  .add-subtree-hosted-content {
+    padding: 0;
+
+    .account-picker-row {
+      padding: var(--spacing) 20px 0;
+    }
+  }
+
+  .add-subtree-repository-list {
+    margin: 0;
+  }
+
+  .clone-github-repo {
+    height: clamp(200px, 34vh, 340px);
+    min-height: 200px;
+    max-height: 340px;
+  }
+
+  .add-subtree-url-content {
+    display: flex;
+    min-height: 180px;
+    flex-direction: column;
+    justify-content: center;
+    padding: var(--spacing-triple);
+
+    .row-component {
+      margin: 0;
+    }
+  }
+
+  .add-subtree-help {
+    margin: var(--spacing) 0 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+  }
+
+  .add-subtree-review {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(220px, 0.85fr);
+    gap: 10px 18px;
+    border-top: 1px solid var(--md-sys-color-outline-variant);
+    background: var(--md-sys-color-surface-container-low);
+    padding: 16px 20px;
+  }
+
+  .add-subtree-fields,
+  .add-subtree-field-help {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  .add-subtree-fields {
+    grid-column: 1 / -1;
+  }
+
+  .add-subtree-field-help {
+    grid-column: 1 / 2;
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .add-subtree-squash {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+    grid-column: 1 / 2;
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .add-subtree-summary {
+    min-width: 0;
+    grid-column: 2;
+    grid-row: 2 / 4;
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-surface-container);
+    padding: 10px 12px;
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: var(--font-size-sm);
+    }
+
+    dl {
+      display: grid;
+      gap: 5px;
+      margin: 0;
+    }
+
+    dl > div {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(84px, auto) minmax(0, 1fr);
+      gap: 8px;
+    }
+
+    dt {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-xs);
+    }
+
+    dd {
+      min-width: 0;
+      margin: 0;
+      font-family: var(--font-family-monospace);
+      font-size: var(--font-size-xs);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .add-subtree-progress {
+    display: grid;
+    min-width: 0;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 4px 10px;
+    align-items: center;
+    margin: 0 18px;
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-secondary-container);
+    color: var(--md-sys-color-on-secondary-container);
+    padding: 10px 12px;
+
+    > div {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+
+      span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+
+    progress {
+      width: 100%;
+      grid-column: 1 / -1;
+      accent-color: var(--md-sys-color-primary);
+    }
+  }
+
+  @media (max-width: 700px) {
+    .add-subtree-review {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .add-subtree-field-help,
+    .add-subtree-squash,
+    .add-subtree-summary {
+      grid-column: 1;
+      grid-row: auto;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .add-subtree-fields,
+    .add-subtree-field-help {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .add-subtree-summary dl > div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 1px;
+    }
+  }
+
+  @media (max-height: 650px) {
+    height: calc(100vh - 54px);
+
+    .dialog-header {
+      min-height: 48px;
+      padding-block: var(--spacing);
+    }
+
+    .clone-github-repo {
+      height: 210px;
+      min-height: 170px;
+    }
+
+    .add-subtree-url-content {
+      min-height: 120px;
+      padding-block: var(--spacing-double);
+    }
+
+    .add-subtree-review {
+      padding-block: var(--spacing);
+    }
+
+    .dialog-content {
+      min-height: 0;
+    }
+  }
+}

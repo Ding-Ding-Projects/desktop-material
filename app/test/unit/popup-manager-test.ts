@@ -42,6 +42,20 @@ describe('hasModalPopup', () => {
     assert.equal(hasModalPopup([submoduleConfig]), true)
   })
 
+  it('keeps the subtree manager and add-subtree dialogs modal', () => {
+    const subtreeManager: Popup = {
+      type: PopupType.SubtreeManager,
+      repository: null as never,
+    }
+    const addSubtree: Popup = {
+      type: PopupType.AddSubtree,
+      repository: null as never,
+      onAdded: () => undefined,
+    }
+    assert.equal(hasModalPopup([subtreeManager]), true)
+    assert.equal(hasModalPopup([addSubtree]), true)
+  })
+
   it('keeps the branch-rules inspector non-modal while context changes', () => {
     const branchRules: Popup = {
       type: PopupType.BranchRules,

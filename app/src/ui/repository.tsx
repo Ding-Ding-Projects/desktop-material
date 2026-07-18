@@ -188,6 +188,12 @@ interface IRepositoryViewState {
    * while unknown. Gates the tools hub's submodule manager entry.
    */
   readonly submoduleCount: number | null
+
+  /**
+   * How many subtrees the repository history records, or null while unknown.
+   * Gates the tools hub's subtree manager entry.
+   */
+  readonly subtreeCount: number | null
 }
 
 export class RepositoryView extends React.Component<
@@ -217,6 +223,7 @@ export class RepositoryView extends React.Component<
       compareListScrollTop: 0,
       isAccountSwitcherOpen: false,
       submoduleCount: null,
+      subtreeCount: null,
     }
   }
 
@@ -243,6 +250,33 @@ export class RepositoryView extends React.Component<
   private onOpenSubmoduleManager = () => {
     this.props.dispatcher.showPopup({
       type: PopupType.SubmoduleManager,
+      repository: this.props.repository,
+    })
+  }
+
+  private loadSubtreeCount = async () => {
+    const repository = this.props.repository
+    try {
+      const subtrees = await this.props.dispatcher.getSubtrees(repository)
+      if (
+        !this.repositoryViewUnmounted &&
+        this.props.repository.hash === repository.hash
+      ) {
+        this.setState({ subtreeCount: subtrees.length })
+      }
+    } catch {
+      if (
+        !this.repositoryViewUnmounted &&
+        this.props.repository.hash === repository.hash
+      ) {
+        this.setState({ subtreeCount: null })
+      }
+    }
+  }
+
+  private onOpenSubtreeManager = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.SubtreeManager,
       repository: this.props.repository,
     })
   }
@@ -1085,6 +1119,8 @@ export class RepositoryView extends React.Component<
           onRefreshRepository={this.refreshRepository}
           submoduleCount={this.state.submoduleCount}
           onOpenSubmoduleManager={this.onOpenSubmoduleManager}
+          subtreeCount={this.state.subtreeCount}
+          onOpenSubtreeManager={this.onOpenSubtreeManager}
         />
       )
     } else {
@@ -1119,6 +1155,7 @@ export class RepositoryView extends React.Component<
   public componentDidMount() {
     window.addEventListener('keydown', this.onGlobalKeyDown)
     this.loadSubmoduleCount()
+    this.loadSubtreeCount()
   }
 
   public componentWillUnmount() {
@@ -1128,8 +1165,9 @@ export class RepositoryView extends React.Component<
 
   public componentDidUpdate(prevProps: IRepositoryViewProps): void {
     if (prevProps.repository.hash !== this.props.repository.hash) {
-      this.setState({ submoduleCount: null })
+      this.setState({ submoduleCount: null, subtreeCount: null })
       this.loadSubmoduleCount()
+      this.loadSubtreeCount()
     }
 
     if (this.focusChangesNeeded) {

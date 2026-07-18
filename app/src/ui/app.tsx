@@ -144,6 +144,8 @@ import {
 } from './clone-repository'
 import { SubmoduleManagerDialog } from './submodules/submodule-manager-dialog'
 import { SubmoduleConfigDialog } from './submodules/submodule-config-dialog'
+import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
+import { AddSubtreeDialog } from './subtrees/add-subtree-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
 import { InsufficientScopesDialog } from './insufficient-scopes/insufficient-scopes-dialog'
 import { CommandPalette } from './command-palette/command-palette'
@@ -2536,6 +2538,29 @@ export class App extends React.Component<IAppProps, IAppState> {
             repository={popup.repository}
             submodule={popup.submodule}
             dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.SubtreeManager:
+        return (
+          <SubtreeManagerDialog
+            key={`subtree-manager-${popup.repository.hash}`}
+            repository={popup.repository}
+            dispatcher={this.props.dispatcher}
+            accounts={this.state.accounts}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.AddSubtree:
+        return (
+          <AddSubtreeDialog
+            key={`add-subtree-${popup.repository.hash}`}
+            repository={popup.repository}
+            dispatcher={this.props.dispatcher}
+            accounts={this.state.accounts}
+            apiRepositories={this.state.apiRepositories}
+            onRefreshRepositories={this.onRefreshRepositories}
+            onAdded={popup.onAdded}
             onDismissed={onPopupDismissedFn}
           />
         )

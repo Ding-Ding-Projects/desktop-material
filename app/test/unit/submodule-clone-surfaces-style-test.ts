@@ -100,6 +100,53 @@ describe('submodule clone-surface contracts', () => {
     )
   })
 
+  it('lists the subtree manager on the repo page only when subtrees exist', () => {
+    const tools = read('src', 'ui', 'repository-tools', 'repository-tools.tsx')
+
+    // The hub entry is gated on a positive count plus an opener callback,
+    // following the exact submodule gating idiom.
+    assert.match(
+      tools,
+      /getAllHubEntries\(\)[\s\S]*?onOpenSubtreeManager === undefined \|\|[\s\S]*?subtreeCount === null \|\|[\s\S]*?subtreeCount === 0/
+    )
+    assert.match(tools, /id: 'subtree-manager'/)
+    assert.match(
+      tools,
+      /selected === 'subtree-manager' && this\.renderSubtreeManager\(\)/
+    )
+
+    const repositoryView = read('src', 'ui', 'repository.tsx')
+    assert.match(
+      repositoryView,
+      /subtreeCount=\{this\.state\.subtreeCount\}[\s\S]*?onOpenSubtreeManager=\{this\.onOpenSubtreeManager\}/
+    )
+    assert.match(
+      repositoryView,
+      /type: PopupType\.SubtreeManager,[\s\S]*?repository: this\.props\.repository,/
+    )
+
+    const popup = read('src', 'models', 'popup.ts')
+    assert.match(popup, /SubtreeManager = 'SubtreeManager'/)
+    assert.match(popup, /AddSubtree = 'AddSubtree'/)
+
+    const app = read('src', 'ui', 'app.tsx')
+    assert.match(
+      app,
+      /case PopupType\.SubtreeManager:[\s\S]*?<SubtreeManagerDialog/
+    )
+    assert.match(app, /case PopupType\.AddSubtree:[\s\S]*?<AddSubtreeDialog/)
+
+    const uiManifest = read('styles', '_ui.scss')
+    assert.match(uiManifest, /@import 'ui\/subtree-manager';/)
+
+    const style = read('styles', 'ui', '_subtree-manager.scss')
+    assert.match(style, /#subtree-manager\s*\{[\s\S]*?\.subtree-row-editor/)
+    assert.match(
+      style,
+      /dialog\.clone-repository\.add-subtree-dialog\s*\{[\s\S]*?\.add-subtree-review/
+    )
+  })
+
   it('manages cloned and uncloned submodules in place', () => {
     const manager = read('src', 'ui', 'repository-settings', 'submodules.tsx')
 

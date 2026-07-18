@@ -94,6 +94,7 @@ type RepositoryToolsHubToolID =
   | 'export-artifacts'
   | 'bundle-import'
   | 'submodule-manager'
+  | 'subtree-manager'
 
 type RepositoryToolsHubCategory =
   | RepositoryToolCategory
@@ -225,6 +226,19 @@ const SubmoduleManagerHubEntry: IRepositoryToolsHubEntry = {
   icon: octicons.fileSubmodule,
 }
 
+/**
+ * The subtree manager hub entry. Listed only when the repository history
+ * actually records subtrees, so repositories without subtrees never see it.
+ */
+const SubtreeManagerHubEntry: IRepositoryToolsHubEntry = {
+  id: 'subtree-manager',
+  title: 'Subtree manager',
+  description:
+    'Review the subtrees recorded in the repository history and pull, push, split, or add them in place.',
+  category: 'Maintenance',
+  icon: octicons.gitMerge,
+}
+
 const RepositoryToolsHubCategories: ReadonlyArray<RepositoryToolsHubCategoryFilter> =
   ['All', ...HubCategoryOrder]
 
@@ -283,6 +297,15 @@ export interface IRepositoryToolsProps {
 
   /** Opens the standalone submodule manager for this repository. */
   readonly onOpenSubmoduleManager?: () => void
+
+  /**
+   * How many subtrees the repository history records, or null/undefined while
+   * unknown. The subtree manager entry is listed only for a positive count.
+   */
+  readonly subtreeCount?: number | null
+
+  /** Opens the standalone subtree manager for this repository. */
+  readonly onOpenSubtreeManager?: () => void
 }
 
 type OperationStatus =
@@ -554,20 +577,32 @@ export class RepositoryTools extends React.Component<
 
   /**
    * The complete hub catalog for this repository: the static entries plus the
-   * submodule manager when the repository actually declares submodules.
+   * submodule manager when the repository actually declares submodules and
+   * the subtree manager when the history actually records subtrees.
    */
   private getAllHubEntries(): ReadonlyArray<IRepositoryToolsHubEntry> {
     const { submoduleCount, onOpenSubmoduleManager } = this.props
-    if (
+    const { subtreeCount, onOpenSubtreeManager } = this.props
+    const submodulesHidden =
       onOpenSubmoduleManager === undefined ||
       submoduleCount === undefined ||
       submoduleCount === null ||
       submoduleCount === 0
-    ) {
+    const subtreesHidden =
+      onOpenSubtreeManager === undefined ||
+      subtreeCount === undefined ||
+      subtreeCount === null ||
+      subtreeCount === 0
+
+    if (submodulesHidden && subtreesHidden) {
       return RepositoryToolsHubEntries
     }
 
-    return [...RepositoryToolsHubEntries, SubmoduleManagerHubEntry].sort(
+    return [
+      ...RepositoryToolsHubEntries,
+      ...(submodulesHidden ? [] : [SubmoduleManagerHubEntry]),
+      ...(subtreesHidden ? [] : [SubtreeManagerHubEntry]),
+    ].sort(
       (left, right) =>
         HubCategoryOrder.indexOf(left.category) -
         HubCategoryOrder.indexOf(right.category)
@@ -1234,6 +1269,55 @@ export class RepositoryTools extends React.Component<
     )
   }
 
+  private renderSubtreeManager() {
+    const { subtreeCount, onOpenSubtreeManager } = this.props
+    if (
+      onOpenSubtreeManager === undefined ||
+      subtreeCount === undefined ||
+      subtreeCount === null ||
+      subtreeCount === 0
+    ) {
+      return null
+    }
+
+    return (
+      <section
+        className="repository-tools-category"
+        aria-labelledby="repository-tools-subtrees-title"
+      >
+        <h2 id="repository-tools-subtrees-title">Maintenance</h2>
+        <div className="repository-tools-card-grid">
+          <article className="repository-tool-card">
+            <div>
+              <div className="repository-tool-card-heading">
+                <Octicon
+                  symbol={octicons.gitMerge}
+                  className="repository-tool-card-icon"
+                />
+                <h3>Subtree manager</h3>
+              </div>
+              <p>
+                The repository history records {subtreeCount}{' '}
+                {subtreeCount === 1 ? 'subtree' : 'subtrees'}. Manage them in
+                place — pull the latest upstream changes, push local changes
+                back, split a prefix into its own branch, or add another
+                subtree.
+              </p>
+              {this.renderDetailChips(
+                'Maintenance',
+                'writes repository',
+                'git · subtree'
+              )}
+            </div>
+            <Button onClick={onOpenSubtreeManager}>
+              {__DARWIN__ ? 'Open Subtree Manager' : 'Open subtree manager'}
+            </Button>
+          </article>
+        </div>
+      </section>
+    )
+  }
+
   private renderExport() {
     return (
       <section
@@ -1813,6 +1897,7 @@ export class RepositoryTools extends React.Component<
         {this.renderSelectedOperation()}
         {this.renderInspection()}
         {selected === 'submodule-manager' && this.renderSubmoduleManager()}
+        {selected === 'subtree-manager' && this.renderSubtreeManager()}
         {selected === 'export-artifacts' && this.renderExport()}
         <div
           className="repository-tools-panel"
