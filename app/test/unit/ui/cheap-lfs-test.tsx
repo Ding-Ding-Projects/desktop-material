@@ -1,5 +1,6 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
+import * as Path from 'node:path'
 import * as React from 'react'
 import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
@@ -29,12 +30,12 @@ const gitHubRepository = new GitHubRepository(
   new Owner('desktop', 'https://api.github.com', 1),
   1
 )
-const repository = new Repository(
-  'C:\\work\\material',
-  1,
-  gitHubRepository,
-  false
-)
+// Build the repository path with the running platform's separators so the
+// panel's Path.relative/basename default-path logic behaves identically on
+// Windows and POSIX CI runners.
+const repoPath = Path.resolve('work', 'material')
+const pickedFile = (name: string) => Path.join(repoPath, name)
+const repository = new Repository(repoPath, 1, gitHubRepository, false)
 
 function pointerEntry(
   relativePath: string,
@@ -187,7 +188,7 @@ describe('CheapLfs panel', () => {
         repository={repository}
         accounts={[]}
         dispatcher={dispatcher}
-        chooseFileToPin={async () => 'C:\\work\\material\\big.psd'}
+        chooseFileToPin={async () => pickedFile('big.psd')}
         statFileSize={async () => 5 * 1024 * 1024}
       />
     )
@@ -207,10 +208,7 @@ describe('CheapLfs panel', () => {
     await waitFor(() => assert.equal(dispatcher.pinCalls.length, 1))
     assert.equal(dispatcher.pinCalls[0].trackedRelativePath, 'big.psd')
     assert.equal(dispatcher.pinCalls[0].releaseTag, 'assets')
-    assert.equal(
-      dispatcher.pinCalls[0].absoluteFilePath,
-      'C:\\work\\material\\big.psd'
-    )
+    assert.equal(dispatcher.pinCalls[0].absoluteFilePath, pickedFile('big.psd'))
   })
 
   it('rejects a file above the 128 MiB cap before calling the dispatcher', async () => {
@@ -220,7 +218,7 @@ describe('CheapLfs panel', () => {
         repository={repository}
         accounts={[]}
         dispatcher={dispatcher}
-        chooseFileToPin={async () => 'C:\\work\\material\\huge.bin'}
+        chooseFileToPin={async () => pickedFile('huge.bin')}
         statFileSize={async () => 200 * 1024 * 1024}
       />
     )
@@ -244,7 +242,7 @@ describe('CheapLfs panel', () => {
         repository={repository}
         accounts={[]}
         dispatcher={dispatcher}
-        chooseFileToPin={async () => 'C:\\work\\material\\big.psd'}
+        chooseFileToPin={async () => pickedFile('big.psd')}
         statFileSize={async () => 1024}
       />
     )
