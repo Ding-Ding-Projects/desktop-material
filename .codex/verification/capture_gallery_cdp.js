@@ -223,7 +223,9 @@ async function pressEscape(times = 1) {
 async function clickText(label, options = {}) {
   const clicked = await evaluate(`(() => {
     const scope = ${
-      options.within ? `document.querySelector(${JSON.stringify(options.within)})` : 'document'
+      options.within
+        ? `document.querySelector(${JSON.stringify(options.within)})`
+        : 'document'
     }
     if (!scope) return false
     const nodes = [...scope.querySelectorAll('button, [role="button"], a')]
@@ -356,10 +358,7 @@ async function ensureRepository(repositoryPath = fixturePath) {
     `document.querySelector('#add-existing-repository input[type="text"]') !== null`,
     'add repository dialog'
   )
-  await setInput(
-    '#add-existing-repository input[type="text"]',
-    repositoryPath
-  )
+  await setInput('#add-existing-repository input[type="text"]', repositoryPath)
   await sleep(900)
   ;(await clickText('Add repository', { optional: true })) ||
     (await clickText('Add Repository', { optional: true }))
@@ -926,9 +925,12 @@ scene('tab-style', async () => {
 
 scene('app-identity', async () => {
   await ensureRepository()
-  await clickSelector('.app-brand-container button, [data-customization-scope="profile"] button', {
-    optional: true,
-  })
+  await clickSelector(
+    '.app-brand-container button, [data-customization-scope="profile"] button',
+    {
+      optional: true,
+    }
+  )
   const opened = await evaluate(
     `document.querySelector('[class*=app-identity], [class*=identity-editor]') !== null`
   )
@@ -990,10 +992,7 @@ scene('history-power-tools', async () => {
     if (graph instanceof HTMLElement) graph.click()
     return true
   })()`)
-  await setInput(
-    'input[placeholder*="Search commits"]',
-    'provider'
-  )
+  await setInput('input[placeholder*="Search commits"]', 'provider')
   await sleep(1400)
   await parkPointer()
   await capture('material-history-power-tools')

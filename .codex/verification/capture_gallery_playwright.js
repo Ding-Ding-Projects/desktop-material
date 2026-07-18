@@ -43,7 +43,10 @@ function parseArguments(argv) {
 
 const args = parseArguments(process.argv.slice(2))
 const runRoot = args.get('run-root')
-const outDir = path.resolve(repoRoot, args.get('out') ?? 'docs/assets/screenshots')
+const outDir = path.resolve(
+  repoRoot,
+  args.get('out') ?? 'docs/assets/screenshots'
+)
 
 if (!runRoot || !fs.existsSync(runRoot)) {
   if (!args.has('list')) {
