@@ -69,6 +69,22 @@ provenance rather than current status.
   blocked by the pre-existing `agent-access.tsx` compilation error recorded
   above, so no misleading screenshot was promoted.
 
+## 2026-07-18 direct public release creation
+
+- Release Manager now opens **New release** rather than **New draft**. New
+  releases default to **Publish immediately**, show the selected publication
+  state in the immutable review, and submit a single GitHub create-release
+  request with `draft: false`; successful completion reports `Published <tag>`.
+- Turning **Publish immediately** off retains the reviewed unpublished-draft
+  path. Existing drafts still retain their separate **Review publish** action.
+- The previously shipped clone add-instead control now imports its Button
+  component correctly, and the locally declared release API fixtures include
+  the direct-create method. After restoring the already-locked QR dependency,
+  the exact no-download MCP production build succeeds.
+- Release API/store/view coverage passes 29/29, including exact `draft: false`
+  request bodies, public-by-default review, explicit draft opt-out, account
+  routing, stale review protection, and provider-safe failures.
+
 ## 2026-07-18 Build & Run OSS-fleet stress test
 
 A 21-repository open-source corpus (express, vite, fresh, ripgrep, gin,

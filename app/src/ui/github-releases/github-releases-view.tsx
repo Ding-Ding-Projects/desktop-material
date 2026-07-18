@@ -41,6 +41,7 @@ interface IReleaseEditorState extends IGitHubReleaseDraft {
   readonly releaseId: number | null
   readonly reviewing: boolean
   readonly review: IGitHubReleaseMutationReview | null
+  readonly publishImmediately: boolean
 }
 
 interface IAssetUploadState {
@@ -440,6 +441,7 @@ export class GitHubReleasesView extends React.Component<
         prerelease: false,
         reviewing: false,
         review: null,
+        publishImmediately: true,
       },
       upload: null,
       confirmation: null,
@@ -469,6 +471,7 @@ export class GitHubReleasesView extends React.Component<
           prerelease: release.prerelease,
           reviewing: false,
           review,
+          publishImmediately: false,
         },
         upload: null,
         confirmation: null,
@@ -501,6 +504,20 @@ export class GitHubReleasesView extends React.Component<
     if (editor !== null && !editor.reviewing) {
       this.setState({
         editor: { ...editor, prerelease: event.currentTarget.checked },
+      })
+    }
+  }
+
+  private onEditorPublishImmediately = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const editor = this.state.editor
+    if (editor !== null && editor.mode === 'create' && !editor.reviewing) {
+      this.setState({
+        editor: {
+          ...editor,
+          publishImmediately: event.currentTarget.checked,
+        },
       })
     }
   }
@@ -545,9 +562,10 @@ export class GitHubReleasesView extends React.Component<
     try {
       const release =
         editor.mode === 'create'
-          ? await this.props.releasesStore.createDraft(
+          ? await this.props.releasesStore.create(
               this.props.repository,
               editor,
+              editor.publishImmediately,
               operation.controller.signal
             )
           : await this.props.releasesStore.update(
@@ -568,7 +586,9 @@ export class GitHubReleasesView extends React.Component<
       }
       const message =
         editor.mode === 'create'
-          ? `Created unpublished draft ${release.tagName}.`
+          ? release.draft
+            ? `Created unpublished draft ${release.tagName}.`
+            : `Published ${release.tagName}.`
           : `Updated ${release.tagName}.`
       this.finishOperation(operation.controller)
       this.setState(
@@ -1078,12 +1098,12 @@ export class GitHubReleasesView extends React.Component<
             <span>{this.state.releases.length} loaded</span>
           </div>
           <Button disabled={this.state.busy !== null} onClick={this.openCreate}>
-            New draft
+            New release
           </Button>
         </div>
         {this.state.releases.length === 0 && this.state.busy !== 'releases' ? (
           <p className="github-releases-empty-copy">
-            Create an unpublished draft to start the first release.
+            Create a public release now or save an unpublished draft.
           </p>
         ) : (
           <div className="github-releases-list">
@@ -1147,7 +1167,7 @@ export class GitHubReleasesView extends React.Component<
         aria-labelledby="github-release-editor-title"
       >
         <h2 id="github-release-editor-title">
-          {editor.mode === 'create' ? 'Create release draft' : 'Edit release'}
+          {editor.mode === 'create' ? 'Create release' : 'Edit release'}
         </h2>
         {editor.reviewing ? (
           <div
@@ -1156,8 +1176,8 @@ export class GitHubReleasesView extends React.Component<
             aria-label="Release review"
           >
             <p>
-              Review the exact metadata that will be sent to GitHub. Creating a
-              release here always creates an unpublished draft.
+              Review the exact metadata and publication state that will be sent
+              to GitHub.
             </p>
             <dl>
               <dt>Tag</dt>
@@ -1168,6 +1188,16 @@ export class GitHubReleasesView extends React.Component<
               <dd>{editor.name || 'No display name'}</dd>
               <dt>Release type</dt>
               <dd>{editor.prerelease ? 'Pre-release' : 'Standard release'}</dd>
+              {editor.mode === 'create' && (
+                <>
+                  <dt>Publication</dt>
+                  <dd>
+                    {editor.publishImmediately
+                      ? 'Publish immediately'
+                      : 'Save as unpublished draft'}
+                  </dd>
+                </>
+              )}
               <dt>Notes</dt>
               <dd className="github-release-review-notes">
                 {editor.body || 'No release notes'}
@@ -1178,7 +1208,11 @@ export class GitHubReleasesView extends React.Component<
                 disabled={this.state.busy !== null}
                 onClick={this.submitEditor}
               >
-                {editor.mode === 'create' ? 'Create draft' : 'Save changes'}
+                {editor.mode === 'create'
+                  ? editor.publishImmediately
+                    ? 'Publish release'
+                    : 'Create draft'
+                  : 'Save changes'}
               </Button>
               <Button
                 disabled={this.state.busy !== null}
@@ -1247,6 +1281,16 @@ export class GitHubReleasesView extends React.Component<
               />
               <span>Mark as a pre-release</span>
             </label>
+            {editor.mode === 'create' && (
+              <label className="github-release-checkbox">
+                <input
+                  type="checkbox"
+                  checked={editor.publishImmediately}
+                  onChange={this.onEditorPublishImmediately}
+                />
+                <span>Publish immediately</span>
+              </label>
+            )}
             <div className="github-releases-controls">
               <Button onClick={this.reviewEditor}>Review changes</Button>
               <Button onClick={this.closeEditor}>Cancel</Button>
