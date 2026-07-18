@@ -1,3 +1,5 @@
+import { createHash } from 'crypto'
+
 import { TokenStore } from '../stores'
 import {
   getSSHCredentialStoreKey,
@@ -7,6 +9,21 @@ import {
 
 const SSHUserPasswordTokenStoreKey =
   getSSHCredentialStoreKey('SSH user password')
+
+/**
+ * Preserve the legacy user@host account for Git while letting bounded SSH
+ * callers isolate passwords by an opaque endpoint scope (including port).
+ */
+export function getSSHUserPasswordAccountKey(
+  username: string,
+  scope?: string
+): string {
+  if (scope === undefined) {
+    return username
+  }
+  const promptHash = createHash('sha256').update(username).digest('hex')
+  return `${scope}:${promptHash}`
+}
 
 /** Retrieves the password for the given SSH username. */
 export async function getSSHUserPassword(username: string) {

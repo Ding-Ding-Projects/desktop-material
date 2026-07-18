@@ -16,7 +16,13 @@ import {
   RepositoryBundleImport,
   RepositoryTools,
 } from '../../../src/ui/repository-tools'
-import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '../../helpers/ui/render'
 
 const runtime: ICLIWorkbenchRuntime = {
   tools: [
@@ -109,35 +115,60 @@ function renderTools(
   )
 }
 
+function selectHubTool(id: string) {
+  const navigation = screen.getByRole('navigation', {
+    name: 'Repository tool list',
+  })
+  const button = navigation.querySelector<HTMLButtonElement>(
+    `[data-hub-tool="${id}"]`
+  )
+  assert.ok(button, `Expected repository tool ${id}`)
+  fireEvent.click(button)
+}
+
+function getSelectedToolCard(title: string) {
+  const detail = screen.getByRole('region', {
+    name: 'Repository tool detail',
+  })
+  const heading = within(detail).getByRole('heading', { name: title })
+  const card = heading.closest('article')
+  assert.ok(card, `Expected detail card for ${title}`)
+  return card
+}
+
 describe('Repository tools', () => {
-  it('renders named functions without raw command, search, or terminal inputs', async () => {
+  it('renders a searchable named-function hub without raw command or terminal inputs', async () => {
     const client = new FakeRepositoryToolsClient()
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
-    assert.ok(screen.getByText('Status summary'))
-    assert.ok(screen.getByText('Repository health check'))
-    assert.ok(screen.getByText('Audit recent commit signatures'))
-    assert.ok(screen.getByText('Branch sync overview'))
-    assert.ok(screen.getByText('Contributor summary'))
-    assert.ok(screen.getByText('Describe current version'))
-    assert.ok(screen.getByText('Audit whitespace and conflict markers'))
-    assert.ok(screen.getByText('Preview ignored files'))
-    assert.ok(screen.getByText('Preview maintenance needs'))
-    assert.ok(screen.getByText('Run repository maintenance'))
-    assert.ok(screen.getByText('Find fully merged branches'))
-    assert.ok(screen.getByText('Preview unreachable object pruning'))
-    assert.ok(screen.getByText('Preview untracked cleanup'))
-    assert.ok(screen.getByText('Remove untracked files'))
-    assert.ok(screen.getByText('View commit notes'))
-    assert.ok(screen.getByText('View recent ref movements'))
-    assert.ok(screen.getByText('Find unreachable commits'))
-    assert.ok(screen.getByText('Line authorship'))
-    assert.ok(screen.getByText('Search tracked content'))
-    assert.ok(screen.getByText('Edit commit notes'))
-    assert.ok(screen.getByText('Export repository artifacts'))
-    assert.ok(screen.getByText('Import a branch from a Git bundle'))
-    assert.equal(screen.queryByRole('searchbox'), null)
+    for (const title of [
+      'Status summary',
+      'Repository health check',
+      'Audit recent commit signatures',
+      'Branch sync overview',
+      'Contributor summary',
+      'Describe current version',
+      'Audit whitespace and conflict markers',
+      'Preview ignored files',
+      'Preview maintenance needs',
+      'Run repository maintenance',
+      'Find fully merged branches',
+      'Preview unreachable object pruning',
+      'Preview untracked cleanup',
+      'Remove untracked files',
+      'View commit notes',
+      'View recent ref movements',
+      'Find unreachable commits',
+      'Line authorship',
+      'Search tracked content',
+      'Edit commit notes',
+      'Export repository artifacts',
+      'Import a branch from a Git bundle',
+    ]) {
+      assert.ok(screen.getAllByText(title).length >= 1, title)
+    }
+    assert.ok(screen.getByRole('searchbox', { name: 'Search tools' }))
     assert.equal(screen.queryByRole('textbox'), null)
     assert.equal(screen.queryByText(/command arguments/i), null)
   })
@@ -147,8 +178,7 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
-    const card = screen.getByText('Status summary').closest('article')
-    assert.ok(card)
+    const card = getSelectedToolCard('Status summary')
     fireEvent.click(card.querySelector('button') as HTMLButtonElement)
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0], {
@@ -166,10 +196,8 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
-    const card = screen
-      .getByText('View recent ref movements')
-      .closest('article')
-    assert.ok(card)
+    selectHubTool('reflog-view')
+    const card = getSelectedToolCard('View recent ref movements')
     fireEvent.click(card.querySelector('button') as HTMLButtonElement)
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0].operation, { id: 'reflog-view' })
@@ -184,10 +212,8 @@ describe('Repository tools', () => {
     })
     await screen.findByText('git version 2.55.0')
 
-    const maintenanceCard = screen
-      .getByText('Run repository maintenance')
-      .closest('article')
-    assert.ok(maintenanceCard)
+    selectHubTool('maintenance-run')
+    const maintenanceCard = getSelectedToolCard('Run repository maintenance')
     fireEvent.click(
       maintenanceCard.querySelector('button') as HTMLButtonElement
     )
@@ -238,8 +264,8 @@ describe('Repository tools', () => {
       const view = renderTools(client)
       await screen.findByText('git version 2.55.0')
 
-      const card = screen.getByText(title).closest('article')
-      assert.ok(card, title)
+      selectHubTool(id)
+      const card = getSelectedToolCard(title)
       fireEvent.click(card.querySelector('button') as HTMLButtonElement)
       await waitFor(() => assert.equal(client.starts.length, 1))
       assert.deepStrictEqual(client.starts[0].operation, { id }, title)
@@ -257,10 +283,8 @@ describe('Repository tools', () => {
     })
     await screen.findByText('git version 2.55.0')
 
-    const cleanCard = screen
-      .getByText('Remove untracked files')
-      .closest('article')
-    assert.ok(cleanCard)
+    selectHubTool('clean-run')
+    const cleanCard = getSelectedToolCard('Remove untracked files')
     fireEvent.click(cleanCard.querySelector('button') as HTMLButtonElement)
     assert.equal(client.starts.length, 0)
 
@@ -301,6 +325,7 @@ describe('Repository tools', () => {
     )
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('line-authorship')
     fireEvent.click(screen.getByRole('button', { name: 'Choose a file…' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0].operation, {
@@ -325,6 +350,7 @@ describe('Repository tools', () => {
     )
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('line-authorship')
     fireEvent.click(screen.getByRole('button', { name: 'Choose a file…' }))
     await screen.findByText('Choose a file inside this repository.')
     assert.equal(client.starts.length, 0)
@@ -335,6 +361,7 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('content-search')
     assert.equal(screen.queryByRole('textbox'), null)
     fireEvent.click(
       screen.getByRole('button', { name: 'Start content search' })
@@ -367,6 +394,7 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('content-search')
     fireEvent.click(
       screen.getByRole('button', { name: 'Start content search' })
     )
@@ -411,6 +439,7 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('commit-notes')
     fireEvent.click(screen.getByRole('button', { name: 'Start note editor' }))
     fireEvent.change(screen.getByLabelText('Commit'), {
       target: { value: 'HEAD' },
@@ -462,6 +491,7 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('commit-notes')
     fireEvent.click(screen.getByRole('button', { name: 'Start note editor' }))
     fireEvent.change(screen.getByLabelText('Commit'), {
       target: { value: 'not-a-sha' },
@@ -482,8 +512,8 @@ describe('Repository tools', () => {
     renderTools(client)
     await screen.findByText('git version 2.55.0')
 
-    const card = screen.getByText('Repository health check').closest('article')
-    assert.ok(card)
+    selectHubTool('repository-health')
+    const card = getSelectedToolCard('Repository health check')
     fireEvent.click(card.querySelector('button') as HTMLButtonElement)
     await waitFor(() => assert.equal(client.starts.length, 1))
     const id = client.starts[0].id
@@ -519,6 +549,7 @@ describe('Repository tools', () => {
     )
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('export-artifacts')
     fireEvent.click(screen.getByRole('button', { name: 'Export ZIP' }))
     await screen.findByRole('alertdialog')
     assert.equal(choices.length, 1)
@@ -570,6 +601,7 @@ describe('Repository tools', () => {
     )
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('export-artifacts')
     fireEvent.click(
       screen.getByRole('button', { name: 'Export full-history bundle' })
     )
@@ -599,6 +631,7 @@ describe('Repository tools', () => {
       async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
+    selectHubTool('export-artifacts')
     fireEvent.click(screen.getByRole('button', { name: 'Verify a bundle' }))
     await waitFor(() => assert.equal(client.starts.length, 1))
     assert.deepStrictEqual(client.starts[0].operation, {
@@ -626,6 +659,7 @@ describe('Repository tools', () => {
     )
     await screen.findByText('git version 2.55.0')
 
+    selectHubTool('bundle-import')
     fireEvent.click(
       screen.getByRole('button', { name: 'Choose and inspect a bundle' })
     )
@@ -803,6 +837,7 @@ describe('Repository tools', () => {
       async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
+    selectHubTool('bundle-import')
     fireEvent.click(
       screen.getByRole('button', { name: 'Choose and inspect a bundle' })
     )
@@ -1056,6 +1091,7 @@ describe('Repository tools', () => {
       async () => uiRepositoryBundlePath
     )
     await screen.findByText('git version 2.55.0')
+    selectHubTool('bundle-import')
     fireEvent.click(
       screen.getByRole('button', { name: 'Choose and inspect a bundle' })
     )

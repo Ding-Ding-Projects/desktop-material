@@ -5,6 +5,11 @@
  */
 
 export const AgentCommandVersion = 1 as const
+export const DefaultAgentRemoteSiteURL = 'http://127.0.0.1:3000/connect'
+export const AgentServerModeStorageKey = 'agent-server-mode'
+export const AgentServerSiteURLStorageKey = 'agent-server-site-url'
+export const AgentServerGatewayURLStorageKey = 'agent-server-gateway-url'
+export const AgentServerLANPortStorageKey = 'agent-server-lan-port'
 
 export type AgentCommandName =
   | 'list-accounts'
@@ -47,10 +52,71 @@ export type AgentCommandResult =
   | { readonly ok: true; readonly data: unknown }
   | { readonly ok: false; readonly error: IAgentCommandError }
 
+export type AgentServerMode = 'local' | 'paired-lan' | 'yolo-lan'
+export type AgentServerTransport =
+  | 'loopback-http'
+  | 'lan-http'
+  | 'https-gateway'
+
+export interface IAgentPairedDevice {
+  readonly id: string
+  readonly name: string
+  readonly createdAt: string
+}
+
+export interface IAgentPairingStatus {
+  /** One-use secret exposed only to the trusted desktop renderer. */
+  readonly code: string
+  readonly expiresAt: string
+  /** The secret lives in the URL fragment and is not sent to the site host. */
+  readonly qrURL: string
+}
+
+export interface IAgentServerConfiguration {
+  readonly mode: AgentServerMode
+  /** Required only when transitioning into the intentionally unsafe mode. */
+  readonly yoloConfirmed?: boolean
+}
+
+export interface IAgentServerStartupConfiguration {
+  readonly enabled: boolean
+  readonly mode: Exclude<AgentServerMode, 'yolo-lan'>
+  readonly siteURL: string
+  readonly gatewayURL: string | null
+  readonly preferredLANPort: number | null
+}
+
+export interface IAgentPairRequest {
+  readonly code: string
+  readonly deviceName: string
+  /** A client storage choice. The desktop server deliberately does not save it. */
+  readonly stayLoggedIn?: boolean
+}
+
+export interface IAgentPairResult {
+  readonly device: IAgentPairedDevice
+  readonly tokenType: 'Bearer'
+  readonly token: string
+}
+
 export interface IAgentServerStatus {
   readonly enabled: boolean
   readonly running: boolean
   readonly port: number | null
+  readonly preferredLANPort: number | null
+  readonly mode: AgentServerMode
+  /** Effective client URL: HTTPS gateway when configured, otherwise the bind URL. */
+  readonly baseURL: string | null
+  /** Direct private-network URL, intentionally HTTP unless externally wrapped. */
+  readonly lanBaseURL: string | null
+  readonly lanAddresses: ReadonlyArray<string>
+  readonly gatewayURL: string | null
+  readonly transport: AgentServerTransport
+  /** User configuration; loopback hosts are substituted with the selected LAN IP. */
+  readonly siteURLSetting: string
+  readonly siteURL: string
+  readonly pairing: IAgentPairingStatus | null
+  readonly pairedDevices: ReadonlyArray<IAgentPairedDevice>
   /** The token is exposed only through trusted IPC and the mode-0600 config. */
   readonly token: string | null
   readonly configPath: string

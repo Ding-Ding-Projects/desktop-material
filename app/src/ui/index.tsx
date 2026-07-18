@@ -90,7 +90,9 @@ import { TrampolineCommandIdentifier } from '../lib/trampoline/trampoline-comman
 import { createAskpassTrampolineHandler } from '../lib/trampoline/trampoline-askpass-handler'
 import { createCredentialHelperTrampolineHandler } from '../lib/trampoline/trampoline-credential-helper'
 import { installAgentCommandExecutor } from '../lib/agent-command-executor'
-import { getBoolean } from '../lib/local-storage'
+import { setNumber } from '../lib/local-storage'
+import { AgentServerLANPortStorageKey } from '../lib/agent-commands'
+import { restoreAgentServerStartupConfiguration } from '../lib/agent-server-startup'
 import { getCurrentWindowScope } from '../lib/window-scope'
 import {
   configureRendererShutdown,
@@ -475,10 +477,22 @@ installAgentCommandExecutor(
   () => appStore.getState(),
   repositoryTabsStore
 )
-ipcRenderer.send(
-  'set-agent-server-enabled',
-  getBoolean('agent-server-enabled', false)
-)
+void ipcRenderer
+  .invoke(
+    'initialize-agent-server',
+    restoreAgentServerStartupConfiguration(localStorage)
+  )
+  .then(status => {
+    if (status.mode !== 'local' && status.port !== null) {
+      setNumber(AgentServerLANPortStorageKey, status.port)
+    }
+  })
+  .catch(error =>
+    log.error(
+      'Unable to restore the agent server configuration',
+      error instanceof Error ? error : new Error(String(error))
+    )
+  )
 
 dispatcher.registerErrorHandler(defaultErrorHandler)
 dispatcher.registerErrorHandler(upstreamAlreadyExistsHandler)

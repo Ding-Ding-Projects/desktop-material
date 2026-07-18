@@ -38,6 +38,19 @@ function isWindowsOpenSSHUseEnabled() {
 }
 
 /**
+ * Resolve the SSH executable used for direct (non-Git) SSH operations. The
+ * default `ssh` name is resolved from Dugite's bundled PATH by callers. Keep
+ * this in lockstep with `getSSHEnvironment` so the Windows OpenSSH preference
+ * applies consistently.
+ */
+export async function getSSHExecutable(): Promise<string> {
+  const canUseWindowsSSH = await isWindowsOpenSSHAvailable()
+  return canUseWindowsSSH && isWindowsOpenSSHUseEnabled()
+    ? WindowsOpenSSHPath
+    : 'ssh'
+}
+
+/**
  * Returns the git environment variables related to SSH depending on the current
  * context (OS and user settings).
  */

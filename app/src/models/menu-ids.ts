@@ -18,6 +18,7 @@ export type MenuIDs =
   | 'push'
   | 'pull'
   | 'fetch'
+  | 'fork-repository'
   | 'branch'
   | 'repository'
   | 'go-to-commit-message'

@@ -53,6 +53,7 @@
     "p-memoize": "^7.1.1",
     "primer-support": "^4.0.0",
     "prop-types": "^15.7.2",
+    "qrcode.react": "^4.2.0",
     "quick-lru": "^3.0.0",
     "re2js": "^2.0.1",
     "react": "^16.8.4",

@@ -1,8 +1,118 @@
 dialog#create-fork {
-  width: 500px;
+  width: min(560px, calc(100vw - 32px));
+
+  .create-fork-intro {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+
+  .create-fork-icon {
+    display: inline-flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    color: var(--md-sys-color-on-primary-container);
+    background: var(--md-sys-color-primary-container);
+    animation: dmPop calc(460ms * var(--mdur, 1)) var(--spring-fast) backwards;
+  }
+
+  .create-fork-copy {
+    min-width: 0;
+
+    > strong {
+      display: block;
+      margin-bottom: 3px;
+      color: var(--md-sys-color-on-surface);
+      font-size: 15px;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    p {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12.5px;
+      line-height: 1.5;
+    }
+  }
+
+  .create-fork-route {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 28px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+  }
+
+  .create-fork-endpoint {
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container);
+    transition: background-color 300ms var(--emph), border-radius 300ms var(--spring);
+
+    > span {
+      display: block;
+      margin-bottom: 4px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    > strong {
+      display: block;
+      overflow-wrap: anywhere;
+      font-family: var(--font-family-monospace);
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    &--destination {
+      border-color: transparent;
+      color: var(--md-sys-color-on-primary-container);
+      background: var(--md-sys-color-primary-container);
+
+      > span {
+        color: var(--md-sys-color-on-primary-container);
+        opacity: 0.75;
+      }
+    }
+  }
+
+  .create-fork-arrow {
+    justify-self: center;
+    color: var(--md-sys-color-primary);
+    animation: dmPop calc(400ms * var(--mdur, 1)) var(--spring-fast) 80ms backwards;
+  }
+
+  .create-fork-note {
+    margin: 16px 0 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 12px;
+    line-height: 1.55;
+
+    code {
+      padding: 2px 5px;
+      border-radius: 6px;
+      color: var(--md-sys-color-on-surface);
+      background: var(--md-sys-color-surface-container-high);
+      font-family: var(--font-family-monospace);
+    }
+  }
 
   a.link-button-component {
     display: unset;
+  }
+
+  .create-fork-error-copy {
+    line-height: 1.55;
   }
 
   details {
@@ -10,6 +120,16 @@ dialog#create-fork {
     pre {
       white-space: pre-wrap;
       overflow-wrap: break-word;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .create-fork-route {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .create-fork-arrow {
+      transform: rotate(90deg);
     }
   }
 }

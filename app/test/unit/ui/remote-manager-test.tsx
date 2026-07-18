@@ -32,6 +32,7 @@ function renderRemoteManager(customSnapshot = snapshot) {
   let publishes = 0
   const view = render(
     <Remote
+      repositoryPath="C:\\repositories\\project"
       snapshot={customSnapshot}
       preferredRemoteName={customSnapshot.remotes[0]?.name ?? null}
       disabled={false}

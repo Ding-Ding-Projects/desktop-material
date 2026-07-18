@@ -9,11 +9,15 @@ import { trampolineUIHelper } from './trampoline-ui-helper'
 import { parseAddSSHHostPrompt } from '../ssh/ssh'
 import {
   getSSHUserPassword,
+  getSSHUserPasswordAccountKey,
   setMostRecentSSHUserPassword,
   setSSHUserPassword,
 } from '../ssh/ssh-user-password'
 import { removeMostRecentSSHCredential } from '../ssh/ssh-credential-storage'
-import { getIsBackgroundTaskEnvironment } from './trampoline-environment'
+import {
+  getForcedSSHCredentialScope,
+  getIsBackgroundTaskEnvironment,
+} from './trampoline-environment'
 
 async function handleSSHHostAuthenticity(
   operationGUID: string,
@@ -117,12 +121,16 @@ async function handleSSHUserPassword(operationGUID: string, prompt: string) {
   }
 
   const username = matches[1]
+  const credentialKey = getSSHUserPasswordAccountKey(
+    username,
+    getForcedSSHCredentialScope(operationGUID)
+  )
 
-  const storedPassword = await getSSHUserPassword(username)
+  const storedPassword = await getSSHUserPassword(credentialKey)
   if (storedPassword !== null) {
     // Keep this stored password around in case it's not valid and we need to
     // delete it if the git operation fails to authenticate.
-    setMostRecentSSHUserPassword(operationGUID, username)
+    setMostRecentSSHUserPassword(operationGUID, credentialKey)
     return storedPassword
   }
 
@@ -137,7 +145,7 @@ async function handleSSHUserPassword(operationGUID: string, prompt: string) {
     await trampolineUIHelper.promptSSHUserPassword(username)
 
   if (password !== undefined && storePassword) {
-    setSSHUserPassword(operationGUID, username, password)
+    setSSHUserPassword(operationGUID, credentialKey, password)
   } else {
     removeMostRecentSSHCredential(operationGUID)
   }

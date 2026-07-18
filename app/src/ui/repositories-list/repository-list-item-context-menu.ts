@@ -1,4 +1,6 @@
 import { Repository } from '../../models/repository'
+import { Account } from '../../models/account'
+import { getForkRepositoryEligibility } from '../../lib/fork-repository'
 import { IMenuItem } from '../../lib/menu-item'
 import { Repositoryish } from './group-repositories'
 import { clipboard } from 'electron'
@@ -10,10 +12,12 @@ import {
 
 interface IRepositoryListItemContextMenuConfig {
   repository: Repositoryish
+  accounts: ReadonlyArray<Account>
   shellLabel: string | undefined
   externalEditorLabel: string | undefined
   askForConfirmationOnRemoveRepository: boolean
   onViewOnGitHub: (repository: Repositoryish) => void
+  onForkRepository?: (repository: Repositoryish) => void
   onOpenInNewWindow: (repository: Repositoryish) => void
   onOpenInShell: (repository: Repositoryish) => void
   onShowRepository: (repository: Repositoryish) => void
@@ -37,6 +41,10 @@ export const generateRepositoryListContextMenu = (
   const missing = repository instanceof Repository && repository.missing
   const github =
     repository instanceof Repository && repository.gitHubRepository != null
+  const forkEligibility = getForkRepositoryEligibility(
+    config.accounts,
+    repository instanceof Repository ? repository : null
+  )
   const openInExternalEditor = config.externalEditorLabel
     ? `Open in ${config.externalEditorLabel}`
     : DefaultEditorLabel
@@ -80,6 +88,11 @@ export const generateRepositoryListContextMenu = (
       label: 'View on GitHub',
       action: () => config.onViewOnGitHub(repository),
       enabled: github,
+    },
+    {
+      label: __DARWIN__ ? 'Fork Repository…' : 'Fork repository…',
+      action: () => config.onForkRepository?.(repository),
+      enabled: forkEligibility.canFork && config.onForkRepository !== undefined,
     },
     {
       label: openInShell,

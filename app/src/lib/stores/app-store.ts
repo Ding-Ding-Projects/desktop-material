@@ -203,6 +203,7 @@ import {
   getAccountForCopilotConflictResolution,
   getAccountForRepository,
 } from '../get-account-for-repository'
+import { getForkRepositoryEligibility } from '../fork-repository'
 import {
   abortMerge,
   addRemote,
@@ -11264,14 +11265,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _showCreateForkDialog(
     repository: RepositoryWithGitHubRepository
   ) {
-    const account = getAccountForRepository(this.accounts, repository)
-    if (account === null) {
+    const eligibility = getForkRepositoryEligibility(this.accounts, repository)
+    if (!eligibility.canFork) {
+      log.warn(
+        `Create fork dialog suppressed because the repository is not eligible: ${eligibility.reason}`
+      )
       return
     }
     await this._showPopup({
       type: PopupType.CreateFork,
-      repository,
-      account,
+      repository: eligibility.repository,
+      account: eligibility.account,
     })
   }
 

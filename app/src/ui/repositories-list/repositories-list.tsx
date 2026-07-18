@@ -99,6 +99,9 @@ interface IRepositoriesListProps {
   /** Called when the repository should be opened on GitHub in the default web browser. */
   readonly onViewOnGitHub: (repository: Repositoryish) => void
 
+  /** Called when an eligible GitHub repository should be forked. */
+  readonly onForkRepository?: (repository: Repositoryish) => void
+
   /** Called when the repository should be opened in another app window. */
   readonly onOpenInNewWindow: (repository: Repositoryish) => void
 
@@ -455,6 +458,7 @@ export class RepositoriesList extends React.Component<
     event.preventDefault()
 
     const items = generateRepositoryListContextMenu({
+      accounts: this.props.accounts ?? [],
       onRemoveRepository: this.props.onRemoveRepository,
       onShowRepository: this.props.onShowRepository,
       onOpenInShell: this.props.onOpenInShell,
@@ -471,6 +475,7 @@ export class RepositoriesList extends React.Component<
       onChangeRepositoryGroupName: this.onChangeRepositoryGroupName,
       onRemoveRepositoryGroupName: this.onRemoveRepositoryGroupName,
       onViewOnGitHub: this.props.onViewOnGitHub,
+      onForkRepository: this.props.onForkRepository,
       onOpenInNewWindow: this.props.onOpenInNewWindow,
       onCreateWorktree: enableWorktreeSupport()
         ? this.onCreateWorktree

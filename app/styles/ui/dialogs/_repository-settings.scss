@@ -447,6 +447,110 @@
       }
     }
 
+    .ssh-working-copy-manager {
+      background: var(--md-sys-color-surface-container);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--md-sys-shape-corner-large);
+      display: grid;
+      gap: var(--spacing);
+      min-width: 0;
+      overflow: hidden;
+      padding: var(--spacing-double);
+
+      > header {
+        display: grid;
+        gap: var(--spacing-half);
+
+        > div {
+          align-items: center;
+          display: flex;
+          gap: var(--spacing-half);
+        }
+
+        p {
+          color: var(--md-sys-color-on-surface-variant);
+          font-size: var(--font-size-sm);
+          line-height: 1.45;
+        }
+      }
+
+      .ssh-working-copy-picker {
+        display: grid;
+        grid-template-columns: minmax(min(100%, 240px), 0.5fr);
+      }
+
+      .ssh-working-copy-fields {
+        display: grid;
+        gap: var(--spacing);
+        grid-template-columns: repeat(2, minmax(min(100%, 180px), 1fr));
+
+        .text-box-component,
+        .select-component {
+          width: 100%;
+        }
+
+        .ssh-auth-reference,
+        .ssh-destination-path,
+        .ssh-source-remote {
+          grid-column: 1 / -1;
+          overflow-wrap: anywhere;
+        }
+      }
+
+      .ssh-working-copy-security-note {
+        background: var(--md-sys-color-tertiary-container);
+        border-radius: var(--md-sys-shape-corner-medium);
+        color: var(--md-sys-color-on-tertiary-container);
+        font-size: var(--font-size-sm);
+        line-height: 1.45;
+        padding: var(--spacing);
+      }
+
+      .ssh-working-copy-metadata-actions,
+      .ssh-working-copy-command-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--spacing);
+
+        .button-component {
+          align-items: center;
+          display: inline-flex;
+          gap: var(--spacing-half);
+          height: auto;
+          min-height: 32px;
+          white-space: normal;
+        }
+      }
+
+      .ssh-working-copy-metadata-actions {
+        justify-content: flex-end;
+      }
+
+      .ssh-working-copy-results {
+        display: grid;
+        gap: var(--spacing-half);
+
+        > p:first-child {
+          color: var(--md-sys-color-on-surface-variant);
+          font-size: var(--font-size-sm);
+        }
+
+        pre {
+          background: var(--md-sys-color-surface-container-lowest);
+          border: 1px solid var(--md-sys-color-outline-variant);
+          border-radius: var(--md-sys-shape-corner-medium);
+          font-family: var(--font-family-monospace);
+          font-size: var(--font-size-sm);
+          margin: 0;
+          max-height: 180px;
+          overflow: auto;
+          padding: var(--spacing);
+          white-space: pre-wrap;
+          word-break: break-word;
+        }
+      }
+    }
+
     .add-remote-error {
       align-items: flex-start;
       color: var(--md-sys-color-error);
@@ -1010,6 +1114,27 @@
       .add-remote-actions .add-remote-button {
         width: 100%;
         justify-content: center;
+      }
+
+      .ssh-working-copy-manager {
+        .ssh-working-copy-picker,
+        .ssh-working-copy-fields {
+          grid-template-columns: minmax(0, 1fr);
+        }
+
+        .ssh-auth-reference,
+        .ssh-destination-path,
+        .ssh-source-remote {
+          grid-column: 1;
+        }
+
+        .ssh-working-copy-metadata-actions,
+        .ssh-working-copy-command-actions {
+          .button-component {
+            flex: 1 1 160px;
+            justify-content: center;
+          }
+        }
       }
     }
 

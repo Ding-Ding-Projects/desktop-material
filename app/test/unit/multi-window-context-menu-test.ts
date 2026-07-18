@@ -10,6 +10,7 @@ describe('multi-window context actions', () => {
     let opened: Repository | null = null
     const items = generateRepositoryListContextMenu({
       repository,
+      accounts: [],
       shellLabel: undefined,
       externalEditorLabel: undefined,
       askForConfirmationOnRemoveRepository: false,

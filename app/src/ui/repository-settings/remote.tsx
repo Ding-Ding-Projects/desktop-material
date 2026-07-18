@@ -20,8 +20,10 @@ import { Select } from '../lib/select'
 import { DialogContent } from '../dialog'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { SSHWorkingCopyManager } from './ssh-working-copy'
 
 interface IRemoteProps {
+  readonly repositoryPath: string
   readonly snapshot: IRemoteManagementSnapshot
   readonly preferredRemoteName: string | null
   readonly disabled: boolean
@@ -404,6 +406,11 @@ export class Remote extends React.Component<IRemoteProps, IRemoteState> {
               </p>
             )}
           </div>
+          <SSHWorkingCopyManager
+            repositoryPath={this.props.repositoryPath}
+            sourceRemotes={this.props.snapshot.remotes}
+            disabled={this.props.disabled}
+          />
         </div>
       </DialogContent>
     )

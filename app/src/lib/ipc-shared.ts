@@ -25,6 +25,8 @@ import {
 import {
   AgentCommandResult,
   IAgentCommandEnvelope,
+  IAgentServerConfiguration,
+  IAgentServerStartupConfiguration,
   IAgentServerStatus,
 } from './agent-commands'
 import {
@@ -194,7 +196,21 @@ export type RequestResponseChannels = {
     request: IGitHubReleaseAssetUploadRequest
   ) => Promise<GitHubReleaseAssetUploadTransferResult>
   'get-agent-server-status': () => Promise<IAgentServerStatus>
+  'initialize-agent-server': (
+    configuration: IAgentServerStartupConfiguration
+  ) => Promise<IAgentServerStatus>
   'regenerate-agent-server-token': () => Promise<IAgentServerStatus>
+  'configure-agent-server': (
+    configuration: IAgentServerConfiguration
+  ) => Promise<IAgentServerStatus>
+  'regenerate-agent-server-pairing': () => Promise<IAgentServerStatus>
+  'revoke-agent-server-device': (id: string) => Promise<IAgentServerStatus>
+  'set-agent-server-gateway-url': (
+    value: string | null
+  ) => Promise<IAgentServerStatus>
+  'set-agent-server-remote-site-url': (
+    value: string
+  ) => Promise<IAgentServerStatus>
   'get-path': (path: PathType) => Promise<string>
   'get-app-architecture': () => Promise<Architecture>
   'get-app-path': () => Promise<string>

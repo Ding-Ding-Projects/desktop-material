@@ -384,6 +384,11 @@ export function buildDefaultMenuTemplate({
         click: emit('view-repository-on-github'),
       },
       {
+        id: 'fork-repository',
+        label: __DARWIN__ ? 'Fork Repository…' : 'Fork repositor&y…',
+        click: emit('fork-repository'),
+      },
+      {
         id: 'inspect-branch-rules',
         label: __DARWIN__ ? 'Inspect Branch Rules…' : 'I&nspect branch rules…',
         click: emit('inspect-branch-rules'),

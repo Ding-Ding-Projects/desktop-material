@@ -38,6 +38,7 @@ export const getHasRejectedCredentialsForEndpoint = (
 const isBackgroundTaskEnvironment = new Map<string, boolean>()
 const trampolineEnvironmentPath = new Map<string, string>()
 const forcedAccountKeyByToken = new Map<string, string>()
+const forcedSSHCredentialScopeByToken = new Map<string, string>()
 
 export const getTrampolineEnvironmentPath = (trampolineToken: string) =>
   trampolineEnvironmentPath.get(trampolineToken) ?? process.cwd()
@@ -48,6 +49,10 @@ export const getIsBackgroundTaskEnvironment = (trampolineToken: string) =>
 /** Get the stable account identity forced for this trampoline session. */
 export const getForcedAccountKey = (trampolineToken: string) =>
   forcedAccountKeyByToken.get(trampolineToken)
+
+/** Get an operation-specific scope for an SSH password's OS-vault account. */
+export const getForcedSSHCredentialScope = (trampolineToken: string) =>
+  forcedSSHCredentialScopeByToken.get(trampolineToken)
 
 export const getCredentialUrl = (cred: Map<string, string>) => {
   const u = cred.get('url')
@@ -142,13 +147,20 @@ const isNativeHTTPSAuthenticationAmbiguity = (error: GitError): boolean =>
  *
  * @param fn        Function to invoke with all the necessary environment
  *                  variables.
+ * @param credentialFailure Optional classifier for non-Git callers which use
+ *                  the SSH askpass trampoline. A positive result removes a
+ *                  credential that the current operation proved invalid.
+ * @param sshCredentialScope Optional namespace for an SSH password's OS-vault
+ *                  account. The visible prompt remains OpenSSH's user@host.
  */
 export async function withTrampolineEnv<T>(
   fn: (env: object) => Promise<T>,
   path: string,
   isBackgroundTask = false,
   customEnv?: Record<string, string | undefined>,
-  credentialAccountKey?: string
+  credentialAccountKey?: string,
+  credentialFailure?: (error: unknown) => boolean,
+  sshCredentialScope?: string
 ): Promise<T> {
   const sshEnv = await getSSHEnvironment()
 
@@ -160,6 +172,10 @@ export async function withTrampolineEnv<T>(
       forcedAccountKeyByToken.set(token, credentialAccountKey)
     }
 
+    if (sshCredentialScope !== undefined) {
+      forcedSSHCredentialScopeByToken.set(token, sshCredentialScope)
+    }
+
     const existingGitEnvConfig =
       customEnv?.['GIT_CONFIG_PARAMETERS'] ??
       process.env['GIT_CONFIG_PARAMETERS'] ??
@@ -168,15 +184,9 @@ export async function withTrampolineEnv<T>(
     const gitEnvConfigPrefix =
       existingGitEnvConfig.length > 0 ? `${existingGitEnvConfig} ` : ''
 
-    // The code below assumes a few things in order to manage SSH key passphrases
-    // correctly:
-    // 1. `withTrampolineEnv` is only used in the functions `git` (core.ts)
-    // 2. Those two functions always thrown an error when something went wrong,
-    //    and just return a result when everything went fine.
-    //
-    // With those two premises in mind, we can safely assume that right after
-    // `fn` has been invoked, we can store the SSH key passphrase for this git
-    // operation if there was one pending to be stored.
+    // Git and bounded direct-SSH callers both reject when an operation fails.
+    // A resolved `fn` therefore proves that a pending remembered SSH secret was
+    // accepted; a rejected `fn` runs the authentication-failure cleanup below.
     try {
       return await fn({
         DESKTOP_PORT: await trampolineServer.getPort(),
@@ -210,8 +220,8 @@ export async function withTrampolineEnv<T>(
         // askpass handler was rejected. That's not necessarily the case but for
         // practical purposes, it's as good as we can get with the information we
         // have. We're limited by the ASKPASS flow here.
-        if (isSSHAuthFailure(e)) {
-          deleteMostRecentSSHCredential(token)
+        if (isSSHAuthFailure(e) || credentialFailure?.(e) === true) {
+          await deleteMostRecentSSHCredential(token)
         }
       }
 
@@ -272,6 +282,7 @@ export async function withTrampolineEnv<T>(
       hasRejectedCredentialsForEndpoint.delete(token)
       trampolineEnvironmentPath.delete(token)
       forcedAccountKeyByToken.delete(token)
+      forcedSSHCredentialScopeByToken.delete(token)
     }
   })
 }

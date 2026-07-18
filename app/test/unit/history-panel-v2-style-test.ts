@@ -44,7 +44,10 @@ describe('history panel v2: sidebar title header', () => {
 
 describe('history panel v2: filter chip row', () => {
   it('keeps the FilterModeControl while hosting its own regex builder', () => {
-    assert.match(compare, /<FilterModeControl[\s\S]*?showRegexBuilder=\{false\}/)
+    assert.match(
+      compare,
+      /<FilterModeControl[\s\S]*?showRegexBuilder=\{false\}/
+    )
     assert.match(compare, /<RegexBuilder[\s\S]*?targetLabel="Commits"/)
   })
 

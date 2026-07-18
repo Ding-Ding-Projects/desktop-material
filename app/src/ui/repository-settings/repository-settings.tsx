@@ -404,6 +404,7 @@ export class RepositorySettings extends React.Component<
               </DialogContent>
             ) : (
               <Remote
+                repositoryPath={this.props.repository.path}
                 snapshot={snapshot}
                 preferredRemoteName={this.props.remote?.name ?? null}
                 disabled={this.state.disabled}

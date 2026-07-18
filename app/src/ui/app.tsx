@@ -173,6 +173,7 @@ import { hasModalPopup, PopupType, Popup } from '../models/popup'
 import { OversizedFiles } from './changes/oversized-files-warning'
 import { PushNeedsPullWarning } from './push-needs-pull'
 import { getCurrentBranchForcePushState } from '../lib/rebase'
+import { getForkRepositoryEligibility } from '../lib/fork-repository'
 import { Banner, BannerType } from '../models/banner'
 import { StashAndSwitchBranch } from './stash-changes/stash-and-switch-branch-dialog'
 import { ConfirmDiscardStashDialog } from './stashing/confirm-discard-stash'
@@ -339,6 +340,12 @@ const ReadyDelay = 100
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private initializationError: Error | null = null
+  /**
+   * The checklist belongs to a welcome flow completed in this process. Keeping
+   * this transient prevents an app update from presenting existing users with
+   * a new first-run modal before their workspace becomes interactive.
+   */
+  private showFirstRunChecklist = false
   private repositoryFileDragDepth = 0
   private readonly effectiveBranchRulesetCache =
     new EffectiveBranchRulesetCache()
@@ -437,6 +444,9 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     this.state = props.appStore.getState()
     props.appStore.onDidUpdate(state => {
+      if (this.state.showWelcomeFlow && !state.showWelcomeFlow) {
+        this.showFirstRunChecklist = true
+      }
       this.setState(state)
     })
 
@@ -585,6 +595,8 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.pull()
       case 'fetch':
         return this.fetch()
+      case 'fork-repository':
+        return this.forkRepository(this.getRepository())
       case 'show-changes':
         return this.showChanges(true)
       case 'show-history':
@@ -1739,6 +1751,21 @@ export class App extends React.Component<IAppProps, IAppState> {
       repository,
       initialSelectedTab,
     })
+  }
+
+  private forkRepository = (
+    repository: Repository | CloningRepository | null
+  ) => {
+    const eligibility = getForkRepositoryEligibility(
+      this.state.accounts,
+      repository instanceof Repository ? repository : null
+    )
+
+    if (!eligibility.canFork) {
+      return
+    }
+
+    return this.props.dispatcher.showCreateForkDialog(eligibility.repository)
   }
 
   private showRepositoryAccountSettings = () => {
@@ -4126,6 +4153,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         }
         onRemoveRepository={this.removeRepository}
         onViewOnGitHub={this.viewOnGitHub}
+        onForkRepository={this.forkRepository}
         onOpenInNewWindow={this.openRepositoryInNewWindow}
         onOpenInShell={this.openInShell}
         onShowRepository={this.showRepository}
@@ -4355,6 +4383,7 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     const items = generateRepositoryListContextMenu({
+      accounts: this.state.accounts,
       onRemoveRepository: this.removeRepository,
       onShowRepository: this.showRepository,
       onOpenInShell: this.openInShell,
@@ -4367,6 +4396,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       onChangeRepositoryGroupName: onChangeRepositoryGroupName,
       onRemoveRepositoryGroupName: onRemoveRepositoryGroupName,
       onViewOnGitHub: this.viewOnGitHub,
+      onForkRepository: this.forkRepository,
       onOpenInNewWindow: this.openRepositoryInNewWindow,
       onCreateWorktree: enableWorktreeSupport() ? onCreateWorktree : undefined,
       onShowWorktrees: enableWorktreeSupport() ? onShowWorktrees : undefined,
@@ -4942,7 +4972,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private renderFirstRunChecklist() {
-    if (this.state.showWelcomeFlow) {
+    if (this.state.showWelcomeFlow || !this.showFirstRunChecklist) {
       return null
     }
 

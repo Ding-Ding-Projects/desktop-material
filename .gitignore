@@ -158,6 +158,11 @@ dist
 # ──── Desktop Material: Build artifacts ────  (dm-template:build-artifacts)
 .bundle/
 vendor/bundle/
+dist/
+build/
+.next/
+out/
+coverage/
 # ──── end Desktop Material: Build artifacts ────  (dm-template:build-artifacts)
 
 # ──── Desktop Material: Ruby ────  (dm-template:ruby)

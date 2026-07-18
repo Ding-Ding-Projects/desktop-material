@@ -1,10 +1,13 @@
 import {
   AgentCommandResult,
   IAgentCommandEnvelope,
+  IAgentServerConfiguration,
+  IAgentServerStartupConfiguration,
   IAgentServerStatus,
   agentCommandError,
 } from '../../lib/agent-commands'
 import { AgentServer } from './agent-server'
+import { TokenStore } from '../../lib/stores/token-store'
 
 const MaxPendingRendererCommands = 32
 const RendererCommandTimeoutMs = 65_000
@@ -29,8 +32,15 @@ export class AgentServerController {
     private readonly sendToRenderer: SendToRenderer,
     private readonly onStatusChanged: StatusListener
   ) {
-    this.server = new AgentServer(configPath, command =>
-      this.executeInRenderer(command)
+    this.server = new AgentServer(
+      configPath,
+      command => this.executeInRenderer(command),
+      {
+        credentialStore: TokenStore,
+        remoteSiteURL: process.env.DESKTOP_MATERIAL_REMOTE_SITE_URL,
+        gatewayURL: process.env.DESKTOP_MATERIAL_AGENT_GATEWAY_URL,
+        onStatusChanged: status => this.onStatusChanged(status),
+      }
     )
   }
 
@@ -39,13 +49,58 @@ export class AgentServerController {
   }
 
   public async setEnabled(enabled: boolean): Promise<IAgentServerStatus> {
-    return this.queueLifecycle(() =>
-      enabled ? this.server.start() : this.server.stop()
-    )
+    return this.queueLifecycle(async () => {
+      if (enabled) {
+        return this.server.start()
+      }
+      const status = await this.server.stop()
+      return status.mode === 'yolo-lan'
+        ? this.server.configure({ mode: 'local' })
+        : status
+    })
+  }
+
+  public async initialize(
+    configuration: IAgentServerStartupConfiguration
+  ): Promise<IAgentServerStatus> {
+    return this.queueLifecycle(async () => {
+      await this.server.loadPairedDevices()
+      await this.server.setRemoteSiteURL(configuration.siteURL)
+      await this.server.setGatewayURL(configuration.gatewayURL)
+      this.server.setPreferredLANPort(configuration.preferredLANPort)
+      await this.server.configure({ mode: configuration.mode })
+      return configuration.enabled
+        ? this.server.start()
+        : this.server.getStatus()
+    })
   }
 
   public async regenerateToken(): Promise<IAgentServerStatus> {
     return this.queueLifecycle(() => this.server.regenerateToken())
+  }
+
+  public async configure(
+    configuration: IAgentServerConfiguration
+  ): Promise<IAgentServerStatus> {
+    return this.queueLifecycle(() => this.server.configure(configuration))
+  }
+
+  public async regeneratePairing(): Promise<IAgentServerStatus> {
+    return this.queueLifecycle(() => this.server.regeneratePairing())
+  }
+
+  public async revokeDevice(id: string): Promise<IAgentServerStatus> {
+    return this.queueLifecycle(() => this.server.revokeDevice(id))
+  }
+
+  public async setGatewayURL(
+    value: string | null
+  ): Promise<IAgentServerStatus> {
+    return this.queueLifecycle(() => this.server.setGatewayURL(value))
+  }
+
+  public async setRemoteSiteURL(value: string): Promise<IAgentServerStatus> {
+    return this.queueLifecycle(() => this.server.setRemoteSiteURL(value))
   }
 
   public acceptRendererResult(id: string, result: AgentCommandResult): void {

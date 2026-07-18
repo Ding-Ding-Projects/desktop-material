@@ -13,9 +13,11 @@ import {
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { Account } from '../../models/account'
-import { API } from '../../lib/api'
+import { API, IAPIFullRepository } from '../../lib/api'
 import { LinkButton } from '../lib/link-button'
 import { PopupType } from '../../models/popup'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 
 interface ICreateForkDialogProps {
   readonly dispatcher: Dispatcher
@@ -27,6 +29,7 @@ interface ICreateForkDialogProps {
 interface ICreateForkDialogState {
   readonly loading: boolean
   readonly error?: Error
+  readonly createdForkURL?: string
 }
 
 /**
@@ -47,8 +50,9 @@ export class CreateForkDialog extends React.Component<
     this.setState({ loading: true })
     const { gitHubRepository } = this.props.repository
     const api = API.fromAccount(this.props.account)
+    let createdFork: IAPIFullRepository | null = null
     try {
-      const fork = await api.forkRepository(
+      createdFork = await api.forkRepository(
         gitHubRepository.owner.login,
         gitHubRepository.name
       )
@@ -56,28 +60,38 @@ export class CreateForkDialog extends React.Component<
       const updatedRepository =
         await this.props.dispatcher.convertRepositoryToFork(
           this.props.repository,
-          fork
+          createdFork
         )
-      this.setState({ loading: false })
-      this.props.onDismissed()
 
       if (isRepositoryWithForkedGitHubRepository(updatedRepository)) {
+        this.setState({ loading: false })
+        this.props.onDismissed()
         this.props.dispatcher.showPopup({
           type: PopupType.ChooseForkSettings,
           repository: updatedRepository,
         })
+        return
       }
+
+      throw new Error(
+        'The fork was created, but Desktop Material could not connect this local repository to it. Review the repository remotes before pushing.'
+      )
     } catch (e) {
       log.error(`Fork creation through API failed (${e})`)
       sendNonFatalException('forkCreation', e)
-      this.setState({ error: e, loading: false })
+      const error = e instanceof Error ? e : new Error(String(e))
+      this.setState({
+        error,
+        loading: false,
+        createdForkURL: createdFork?.html_url,
+      })
     }
   }
 
   public render() {
     return (
       <Dialog
-        title="Do you want to fork this repository?"
+        title="Fork repository"
         onDismissed={this.props.onDismissed}
         onSubmit={this.state.error ? undefined : this.onSubmit}
         dismissDisabled={this.state.loading}
@@ -90,7 +104,8 @@ export class CreateForkDialog extends React.Component<
           ? renderCreateForkDialogError(
               this.props.repository,
               this.props.account,
-              this.state.error
+              this.state.error,
+              this.state.createdForkURL
             )
           : renderCreateForkDialogContent(
               this.props.repository,
@@ -111,25 +126,48 @@ function renderCreateForkDialogContent(
   return (
     <>
       <DialogContent>
-        <p>
-          {`It looks like you don’t have write access to `}
-          <strong>{repository.gitHubRepository.fullName}</strong>
-          {`. If you should, please check with a repository administrator.`}
-        </p>
-        <p>
-          {` Do you want to create a fork of this repository at `}
-          <strong>
-            {`${account.login}/${repository.gitHubRepository.name}`}
-          </strong>
-          {` to continue?`}
+        <div className="create-fork-intro">
+          <span className="create-fork-icon" aria-hidden="true">
+            <Octicon symbol={octicons.repoForked} height={24} />
+          </span>
+          <div className="create-fork-copy">
+            <strong>Create your own GitHub fork</strong>
+            <p>
+              Work independently while keeping the original repository as an
+              upstream source.
+            </p>
+          </div>
+        </div>
+
+        <div
+          className="create-fork-route"
+          role="group"
+          aria-label="Fork destination"
+        >
+          <div className="create-fork-endpoint">
+            <span>Source</span>
+            <strong>{repository.gitHubRepository.fullName}</strong>
+          </div>
+          <Octicon
+            className="create-fork-arrow"
+            symbol={octicons.arrowRight}
+            height={18}
+          />
+          <div className="create-fork-endpoint create-fork-endpoint--destination">
+            <span>Your fork</span>
+            <strong>{`${account.login}/${repository.gitHubRepository.name}`}</strong>
+          </div>
+        </div>
+
+        <p className="create-fork-note">
+          Desktop Material will point <code>origin</code> at your fork and keep
+          the source repository available as <code>upstream</code>. Your working
+          files and commits stay in place.
         </p>
       </DialogContent>
       <DialogFooter>
         <OkCancelButtonGroup
-          destructive={true}
-          okButtonText={
-            __DARWIN__ ? 'Fork This Repository' : 'Fork this repository'
-          }
+          okButtonText={__DARWIN__ ? 'Fork Repository' : 'Fork repository'}
           okButtonDisabled={loading}
           cancelButtonDisabled={loading}
         />
@@ -142,23 +180,37 @@ function renderCreateForkDialogContent(
 function renderCreateForkDialogError(
   repository: RepositoryWithGitHubRepository,
   account: Account,
-  error: Error
+  error: Error,
+  createdForkURL?: string
 ) {
-  const suggestion =
-    repository.gitHubRepository.htmlURL !== null ? (
+  const suggestionURL =
+    createdForkURL ?? repository.gitHubRepository.htmlURL ?? undefined
+  const suggestion = suggestionURL ? (
+    createdForkURL ? (
       <>
-        {`You can try `}
-        <LinkButton uri={repository.gitHubRepository.htmlURL}>
+        Your fork was created.{' '}
+        <LinkButton uri={suggestionURL}>
+          Open it on GitHub and review this repository’s remotes
+        </LinkButton>
+        .
+      </>
+    ) : (
+      <>
+        You can try{' '}
+        <LinkButton uri={suggestionURL}>
           creating the fork manually on GitHub
         </LinkButton>
         .
       </>
-    ) : undefined
+    )
+  ) : undefined
   return (
     <>
       <DialogContent>
-        <div>
-          {`Creating your fork `}
+        <div className="create-fork-error-copy">
+          {createdForkURL === undefined
+            ? 'Creating your fork '
+            : 'Connecting this repository to your fork '}
           <strong>
             {`${account.login}/${repository.gitHubRepository.name}`}
           </strong>

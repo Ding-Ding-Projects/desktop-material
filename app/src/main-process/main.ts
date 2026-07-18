@@ -92,7 +92,11 @@ import {
   releaseActionsArtifactProvenanceCredentialLease,
   releaseAllActionsArtifactProvenanceCredentialLeases,
 } from './actions-artifact-provenance-credential-lease'
-import { ActionsArtifactProvenanceShutdownBarrier } from './actions-artifact-provenance-shutdown'
+import {
+  IOwnedShutdownTask,
+  OwnedProcessShutdownBarrier,
+  OwnedShutdownEvent,
+} from './owned-process-shutdown'
 import {
   findWindowForRepositoryPath as findOwningWindow,
   nextWindowScope,
@@ -233,58 +237,62 @@ app.on('child-process-gone', (_event, details) => {
   })
 })
 
-async function runOwnedShutdownTask(
-  name: string,
-  task: () => void | Promise<void>
-): Promise<void> {
-  try {
-    await task()
-  } catch (error) {
-    try {
+const ownedShutdownTasks: ReadonlyArray<IOwnedShutdownTask> = [
+  {
+    name: 'Actions provenance verification',
+    run: killAllActionsArtifactProvenanceVerifications,
+  },
+  { name: 'Build & Run processes', run: () => buildRunner.killAll() },
+  { name: 'CLI catalog probes', run: () => cliWorkbenchCatalog.killAll() },
+  {
+    name: 'CLI workbench processes',
+    run: () => cliWorkbenchRunner.killAll(),
+  },
+  {
+    name: 'Actions artifact subject operations',
+    run: cancelAllActionsArtifactSubjectOperations,
+  },
+  {
+    name: 'Actions provenance credential leases',
+    run: releaseAllActionsArtifactProvenanceCredentialLeases,
+  },
+  {
+    name: 'completed Actions artifact downloads',
+    run: releaseAllCompletedActionsArtifactDownloads,
+  },
+  { name: 'agent server', run: () => agentServerController?.stop() },
+  { name: 'desktop notifications', run: terminateDesktopNotifications },
+]
+
+function reportOwnedShutdown(event: OwnedShutdownEvent): void {
+  const duration = `${event.durationMilliseconds}ms`
+  switch (event.kind) {
+    case 'started':
+      log.info(`[shutdown] Stopping ${event.name}`)
+      return
+    case 'completed':
+      log.info(`[shutdown] Stopped ${event.name} in ${duration}`)
+      return
+    case 'failed':
       log.error(
-        `Failed to stop ${name} cleanly`,
-        error instanceof Error ? error : new Error(String(error))
+        `[shutdown] Failed to stop ${event.name} in ${duration}`,
+        event.error
       )
-    } catch {
-      // A diagnostic failure cannot keep the application alive forever.
-    }
+      return
+    case 'timed-out':
+      log.error(
+        `[shutdown] Timed out stopping ${event.name} after ${duration}; continuing quit`,
+        event.error
+      )
+      return
   }
 }
 
-async function shutdownOwnedProcesses(): Promise<void> {
-  await Promise.all([
-    runOwnedShutdownTask(
-      'Actions provenance verification',
-      killAllActionsArtifactProvenanceVerifications
-    ),
-    runOwnedShutdownTask('Build & Run processes', () => buildRunner.killAll()),
-    runOwnedShutdownTask('CLI catalog probes', () =>
-      cliWorkbenchCatalog.killAll()
-    ),
-    runOwnedShutdownTask('CLI workbench processes', () =>
-      cliWorkbenchRunner.killAll()
-    ),
-    runOwnedShutdownTask('Actions artifact subject operations', () =>
-      cancelAllActionsArtifactSubjectOperations()
-    ),
-    runOwnedShutdownTask('Actions provenance credential leases', () =>
-      releaseAllActionsArtifactProvenanceCredentialLeases()
-    ),
-    runOwnedShutdownTask('completed Actions artifact downloads', () =>
-      releaseAllCompletedActionsArtifactDownloads()
-    ),
-    runOwnedShutdownTask('agent server', async () => {
-      await agentServerController?.stop()
-    }),
-    runOwnedShutdownTask('desktop notifications', () =>
-      terminateDesktopNotifications()
-    ),
-  ])
-}
-
-const ownedProcessShutdown = new ActionsArtifactProvenanceShutdownBarrier(
-  shutdownOwnedProcesses,
-  () => app.quit()
+const ownedProcessShutdown = new OwnedProcessShutdownBarrier(
+  ownedShutdownTasks,
+  () => app.quit(),
+  undefined,
+  reportOwnedShutdown
 )
 // Wait until Electron has accepted every window close. A before-quit barrier
 // would permanently disable owned services when update UX cancels that close.
@@ -623,8 +631,26 @@ app.on('ready', () => {
   ipcMain.handle('get-agent-server-status', async () =>
     agentServerController!.getStatus()
   )
+  ipcMain.handle('initialize-agent-server', async (_event, configuration) =>
+    agentServerController!.initialize(configuration)
+  )
   ipcMain.handle('regenerate-agent-server-token', async () =>
     agentServerController!.regenerateToken()
+  )
+  ipcMain.handle('configure-agent-server', async (_event, configuration) =>
+    agentServerController!.configure(configuration)
+  )
+  ipcMain.handle('regenerate-agent-server-pairing', async () =>
+    agentServerController!.regeneratePairing()
+  )
+  ipcMain.handle('revoke-agent-server-device', async (_event, id) =>
+    agentServerController!.revokeDevice(id)
+  )
+  ipcMain.handle('set-agent-server-gateway-url', async (_event, value) =>
+    agentServerController!.setGatewayURL(value)
+  )
+  ipcMain.handle('set-agent-server-remote-site-url', async (_event, value) =>
+    agentServerController!.setRemoteSiteURL(value)
   )
   ipcMain.handle('download-actions-artifact', (event, request) =>
     handleActionsArtifactTransfer(event.sender, request)

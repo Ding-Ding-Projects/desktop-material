@@ -13,6 +13,7 @@ import { hasConflictedFiles } from './status'
 import { findContributionTargetDefaultBranch } from './branch'
 import { enableWorktreeSupport } from './feature-flag'
 import { hasModalPopup } from '../models/popup'
+import { canForkRepository } from './fork-repository'
 
 export interface IMenuItemState {
   readonly enabled?: boolean
@@ -123,6 +124,7 @@ const allMenuIds: ReadonlyArray<MenuIDs> = [
   'push',
   'pull',
   'fetch',
+  'fork-repository',
   'branch',
   'repository',
   'go-to-commit-message',
@@ -162,6 +164,10 @@ function getAllMenusDisabledBuilder(): MenuStateBuilder {
 
 function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
   const selectedState = state.selectedState
+  const selectedRepository =
+    selectedState?.repository instanceof Repository
+      ? selectedState.repository
+      : null
   const isHostedOnGitHub = selectedState
     ? isRepositoryHostedOnGitHub(selectedState.repository)
     : false
@@ -248,6 +254,7 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
     'open-in-shell',
     'open-working-directory',
     'show-repository-settings',
+    'fork-repository',
     'inspect-branch-rules',
     'manage-gitignore',
     'manage-sparse-checkout',
@@ -312,6 +319,10 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
 
     menuStateBuilder.setEnabled('view-repository-on-github', isHostedOnGitHub)
     menuStateBuilder.setEnabled(
+      'fork-repository',
+      canForkRepository(state.accounts, selectedRepository)
+    )
+    menuStateBuilder.setEnabled(
       'inspect-branch-rules',
       isHostedOnGitHub && onBranch && !branchIsUnborn
     )
@@ -373,6 +384,7 @@ function getRepositoryMenuBuilder(state: IAppState): MenuStateBuilder {
     }
 
     menuStateBuilder.disable('view-repository-on-github')
+    menuStateBuilder.disable('fork-repository')
     menuStateBuilder.disable('create-pull-request')
     menuStateBuilder.disable('preview-pull-request')
     if (

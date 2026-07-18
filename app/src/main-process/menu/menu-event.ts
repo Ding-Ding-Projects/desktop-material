@@ -4,6 +4,7 @@ export type MenuEvent =
   | 'force-push'
   | 'pull'
   | 'fetch'
+  | 'fork-repository'
   | 'show-changes'
   | 'show-history'
   | 'show-repository-tools'

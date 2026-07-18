@@ -228,6 +228,21 @@ describe('main-process menu', () => {
       assert.equal(branchRules.click instanceof Function, true)
     })
 
+    it('exposes explicit repository forking in Repository', () => {
+      const template = buildDefaultMenuTemplate(baseParams)
+      const repositoryMenu = template.find(item => item.id === 'repository')
+      assert.ok(repositoryMenu && Array.isArray(repositoryMenu.submenu))
+      const forkRepository = repositoryMenu.submenu.find(
+        item => item.id === 'fork-repository'
+      )
+      assert.ok(forkRepository)
+      assert.match(
+        (forkRepository.label ?? '').replaceAll('&', ''),
+        /Fork repository/i
+      )
+      assert.equal(forkRepository.click instanceof Function, true)
+    })
+
     it('exposes native pull request creation from the Branch menu', () => {
       const template = buildDefaultMenuTemplate(baseParams)
       const branchMenu = template.find(item => item.id === 'branch')

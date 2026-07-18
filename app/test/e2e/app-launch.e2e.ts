@@ -134,6 +134,19 @@ test.describe('GitHub Desktop - App Launch', () => {
 
     await dismissMoveToApplicationsDialog(page)
 
+    // A genuinely new profile gets the post-welcome checklist. Complete it
+    // before opening another modal; upgraded profiles intentionally do not.
+    const firstRunChecklist = page.locator('dialog.first-run-checklist')
+    await firstRunChecklist
+      .waitFor({ state: 'visible', timeout: 10000 })
+      .catch(() => {})
+    if (await firstRunChecklist.isVisible().catch(() => false)) {
+      await firstRunChecklist
+        .getByRole('button', { name: 'Get started' })
+        .click()
+      await firstRunChecklist.waitFor({ state: 'hidden', timeout: 15000 })
+    }
+
     // ── Repository view ─────────────────────────────────────────────
     const repoFile = page
       .locator(`//*[contains(normalize-space(), "${smokeRepoFileName}")]`)
