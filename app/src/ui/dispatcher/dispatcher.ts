@@ -868,12 +868,21 @@ export class Dispatcher {
    * Commit the changes which were marked for inclusion, using the given commit
    * summary and description and optionally any number of commit message trailers
    * which will be merged into the final commit message.
+   *
+   * When `forceAutoPinLargeFiles` is set the over-size auto-pin runs even if the
+   * repository's preference is off (still gated on Releases availability). The
+   * oversized-files warning's "Pin to release" action uses this.
    */
   public async commitIncludedChanges(
     repository: Repository,
-    context: ICommitContext
+    context: ICommitContext,
+    forceAutoPinLargeFiles: boolean = false
   ): Promise<boolean> {
-    return this.appStore._commitIncludedChanges(repository, context)
+    return this.appStore._commitIncludedChanges(
+      repository,
+      context,
+      forceAutoPinLargeFiles
+    )
   }
 
   /** Change the file's includedness. */

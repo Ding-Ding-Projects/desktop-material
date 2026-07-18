@@ -29,6 +29,9 @@ import { filesNotTrackedByLFS } from '../../lib/git/lfs'
 import { getLargeFilePaths } from '../../lib/large-files'
 import { isConflictedFile, hasUnresolvedConflicts } from '../../lib/status'
 import { getAccountForRepository } from '../../lib/get-account-for-repository'
+import { getGitHubReleasesAvailability } from '../../lib/stores/github-releases-store'
+import { shouldAutoPinLargeFilesOnCommit } from '../../lib/cheap-lfs/operations'
+import { defaultBuildRunPreferences } from '../../models/build-run-preferences'
 import { IAheadBehind } from '../../models/branch'
 import { Emoji } from '../../lib/emoji'
 import { FilterChangesList } from './filter-changes-list'
@@ -171,7 +174,16 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
       overSizedFiles
     )
 
-    if (filesIgnoredByLFS.length !== 0) {
+    // When the repository auto-pins large files on commit, every oversized file
+    // will be replaced with a small committable pointer by
+    // `_commitIncludedChanges` before it reaches the tree, so warning about them
+    // here would nag over files that are never actually committed oversized.
+    // Both the warning and the auto-pin trigger at ~100 MB, so an eligible repo
+    // handles all of them — skip the dialog entirely and let the commit proceed.
+    if (
+      filesIgnoredByLFS.length !== 0 &&
+      !this.willAutoPinOversizedFilesOnCommit()
+    ) {
       this.props.dispatcher.showPopup({
         type: PopupType.OversizedFiles,
         oversizedFiles: filesIgnoredByLFS,
@@ -217,6 +229,21 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
     return this.props.dispatcher.commitIncludedChanges(
       this.props.repository,
       context
+    )
+  }
+
+  /**
+   * Whether committing will automatically pin over-size files to a GitHub
+   * Release (see `_commitIncludedChanges`). Mirrors the app store's gate: the
+   * per-repo preference must be enabled (default on) and a Releases-capable
+   * account must be selected for the repository.
+   */
+  private willAutoPinOversizedFilesOnCommit(): boolean {
+    const prefs =
+      this.props.repository.buildRunPreferences ?? defaultBuildRunPreferences
+    return shouldAutoPinLargeFilesOnCommit(
+      prefs.autoPinLargeFilesOnCommit !== false,
+      getGitHubReleasesAvailability(this.props.repository, this.props.accounts)
     )
   }
 

@@ -2972,6 +2972,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             context={popup.context}
             repository={popup.repository}
+            accounts={this.state.accounts}
           />
         )
       case PopupType.CommitConflictsWarning:

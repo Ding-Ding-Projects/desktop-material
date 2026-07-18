@@ -23,5 +23,22 @@
     .recommendation {
       -webkit-margin-after: 0.5em;
     }
+
+    .cheap-lfs-note {
+      -webkit-margin-after: 0;
+    }
+  }
+
+  // Lay the "Pin to release" action on the left and keep the Commit anyway /
+  // Cancel group right-aligned in the same footer row.
+  .dialog-footer .oversized-files-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+
+    .button-group {
+      flex-grow: 1;
+    }
   }
 }

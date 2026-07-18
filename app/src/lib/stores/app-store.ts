@@ -4450,7 +4450,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _commitIncludedChanges(
     repository: Repository,
-    context: ICommitContext
+    context: ICommitContext,
+    // Forces the large-file auto-pin even when the per-repo preference is off,
+    // used by the oversized-files warning's "Pin to release" action; the
+    // Releases-availability gate still applies.
+    forceAutoPinLargeFiles: boolean = false
   ): Promise<boolean> {
     const state = this.repositoryStateCache.get(repository)
     const files = state.changesState.workingDirectory.files
@@ -4469,7 +4473,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       try {
         pinned = await this.autoPinLargeFilesBeforeCommit(
           repository,
-          selectedFiles
+          selectedFiles,
+          forceAutoPinLargeFiles
         )
       } catch (error) {
         this.emitError(
@@ -10296,14 +10301,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /**
    * Pin every selected file over the push-size threshold to a GitHub Release
    * before a commit, replacing it in the working tree with a small pointer.
-   * Runs only when the per-repo preference is enabled (default on) and a
-   * Releases-capable account is selected. The FIRST pin failure re-throws so
-   * `_commitIncludedChanges` can abort the commit without a half-pinned
-   * tree; returns the files it pinned otherwise (empty when none qualified).
+   * Runs when the per-repo preference is enabled (default on) — or when
+   * `forceAutoPin` overrides a disabled preference (the oversized-files
+   * warning's "Pin to release" action) — and a Releases-capable account is
+   * selected. The FIRST pin failure re-throws so `_commitIncludedChanges` can
+   * abort the commit without a half-pinned tree; returns the files it pinned
+   * otherwise (empty when none qualified).
    */
   private autoPinLargeFilesBeforeCommit(
     repository: Repository,
-    selectedFiles: ReadonlyArray<WorkingDirectoryFileChange>
+    selectedFiles: ReadonlyArray<WorkingDirectoryFileChange>,
+    forceAutoPin: boolean = false
   ): Promise<ReadonlyArray<ICheapLfsAutoPinnedFile>> {
     const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
     const availability = getGitHubReleasesAvailability(
@@ -10312,7 +10320,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
     if (
       !shouldAutoPinLargeFilesOnCommit(
-        prefs.autoPinLargeFilesOnCommit !== false,
+        forceAutoPin || prefs.autoPinLargeFilesOnCommit !== false,
         availability
       )
     ) {

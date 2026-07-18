@@ -69,6 +69,26 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 UI fixes: submodule diff, subtree access, oversized→cheap-LFS
+
+- **Submodule changes view revamped.** `submodule-diff.tsx` was restyled to
+  Material Design 3 (tonal icon tile, path chip, info cards, an old → new
+  SHA transition) and its stale "GitHub Desktop" branding fixed to the
+  canonical `DefaultAppDisplayName` ("Desktop Material") — note
+  `package.json`'s `productName`/`__APP_NAME__` is still the old string, so
+  that path would not have fixed it. Added a "View on GitHub" action.
+- **Subtree Manager always reachable.** Ungated the Tools-hub subtree entry
+  from `subtreeCount > 0` so any Git repo shows it (subtrees are a pure-git
+  feature) — the dialog's empty state now guides the user to add a first
+  subtree. Submodule/cheap-LFS gating unchanged.
+- **Oversized files auto-pin to cheap LFS.** When auto-pin-on-commit is on
+  and the repo is Releases-capable, the "Files too large" (100 MB) warning
+  is **pre-empted** — the commit proceeds and `_commitIncludedChanges`
+  pins the oversized files to a release, committing pointers. When auto-pin
+  is off/unavailable the warning still shows but gains a "Pin to release
+  (cheap LFS)" button (a `forceAutoPinLargeFiles` flag through the commit
+  path) gated on releases availability.
+
 ## 2026-07-18 Cheap-LFS automation and Commit & push all
 
 - **Auto-materialize on detect (default on).** After a clone, a pull that
