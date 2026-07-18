@@ -144,6 +144,7 @@ import {
 import { SubmoduleManagerDialog } from './submodules/submodule-manager-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
 import { InsufficientScopesDialog } from './insufficient-scopes/insufficient-scopes-dialog'
+import { CommandPalette } from './command-palette/command-palette'
 import {
   ExportRepositoriesDialog,
   ImportRepositoriesDialog,
@@ -718,7 +719,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'hide-stashed-changes':
         return this.hideStashedChanges()
       case 'find-text':
-        return this.findText()
+        // Ctrl+F opens the master command palette; the previous find-in-view
+        // behavior remains available as the palette's "Find in current view".
+        return this.props.dispatcher.showPopup({
+          type: PopupType.CommandPalette,
+        })
       case 'increase-active-resizable-width':
         return this.resizeActiveResizable('increase-active-resizable-width')
       case 'decrease-active-resizable-width':
@@ -1017,6 +1022,15 @@ export class App extends React.Component<IAppProps, IAppState> {
     this.props.dispatcher.showPopup({
       type: PopupType.CreateRepository,
     })
+  }
+
+  /** Execute a command chosen in the master command palette. */
+  private onPaletteCommand = (event: string) => {
+    if (event === 'palette:find-in-view') {
+      this.findText()
+      return
+    }
+    this.onMenuEvent(event as MenuEvent)
   }
 
   private onReauthorizeAccount = (account: Account) => {
@@ -3239,6 +3253,14 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.CommandPalette:
+        return (
+          <CommandPalette
+            key="command-palette"
+            onExecute={this.onPaletteCommand}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
       case PopupType.InsufficientOAuthScopes:
         return (
           <InsufficientScopesDialog

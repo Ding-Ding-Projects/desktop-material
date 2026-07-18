@@ -1,0 +1,99 @@
+// The Ctrl+F master command palette: search pill plus a ranked, keyboard-
+// navigable command list, all from the --md-sys-* tokens.
+#command-palette {
+  width: min(560px, calc(100vw - 40px));
+
+  .command-palette-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 10px;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+
+    .octicon {
+      width: 14px;
+      height: 14px;
+      flex: none;
+      fill: currentColor;
+    }
+
+    input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      background: transparent;
+      color: var(--md-sys-color-on-surface);
+      font-size: 13.5px;
+      outline: none;
+
+      &::placeholder {
+        color: var(--md-sys-color-on-surface-variant);
+      }
+    }
+  }
+
+  .command-palette-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    max-height: min(380px, 50vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .command-palette-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 7px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover,
+    &.highlighted {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .command-palette-group {
+    flex: none;
+    min-width: 82px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 10.5px;
+    font-weight: var(--font-weight-semibold);
+    letter-spacing: 0.04em;
+    text-align: center;
+    text-transform: uppercase;
+  }
+
+  .command-palette-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .command-palette-empty {
+    margin: 10px 12px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+}

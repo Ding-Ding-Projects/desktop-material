@@ -103,6 +103,7 @@ export enum PopupType {
   WarnResetToPushedCommit = 'WarnResetToPushedCommit',
   InvalidatedToken = 'InvalidatedToken',
   InsufficientOAuthScopes = 'InsufficientOAuthScopes',
+  CommandPalette = 'CommandPalette',
   AddSSHHost = 'AddSSHHost',
   SSHKeyPassphrase = 'SSHKeyPassphrase',
   SSHUserPassword = 'SSHUserPassword',
@@ -461,6 +462,7 @@ export type PopupDetail =
       account: Account
       missingScopes: ReadonlyArray<string>
     }
+  | { type: PopupType.CommandPalette }
   | {
       type: PopupType.InvalidatedToken
       account: Account
