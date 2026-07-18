@@ -16,10 +16,10 @@
 	handle @agent {
 		reverse_proxy {$DESKTOP_MATERIAL_AGENT_URL} {
 			# The browser talks same-origin to this gateway. The private upstream
-			# receives neither browser identity nor cookies, and Desktop Material's
-			# Host validation sees the exact private agent host and port.
+			# receives neither cookies nor referrers. Origin is preserved so the
+			# desktop can validate both same-origin and separately hosted clients;
+			# Host validation sees the exact private LAN agent host and port.
 			header_up -Cookie
-			header_up -Origin
 			header_up -Referer
 			header_up Host {upstream_hostport}
 			header_down Cache-Control "no-store, max-age=0"
@@ -33,6 +33,7 @@
 
 	header {
 		-Server
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http: https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
 		Referrer-Policy "no-referrer"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"

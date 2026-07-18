@@ -1,4 +1,7 @@
 :root {
+  --font-geist-sans: 'Segoe UI Variable Text', 'Segoe UI', system-ui,
+    -apple-system, sans-serif;
+  --font-geist-mono: 'Cascadia Code', 'SFMono-Regular', Consolas, monospace;
   --md-primary: #5b43a4;
   --md-on-primary: #ffffff;
   --md-primary-container: #e8deff;
@@ -442,6 +445,16 @@ code {
   z-index: 1;
 }
 
+.connect-shell.yolo-pending .connect-layout {
+  grid-template-columns: minmax(0, 560px);
+  justify-content: center;
+  margin-top: clamp(28px, 7vh, 72px);
+}
+
+.connect-shell.yolo-pending .connect-copy {
+  display: none;
+}
+
 .connect-copy {
   max-width: 610px;
 }
@@ -707,6 +720,11 @@ select:focus {
 .switch-row:has(input:checked) i::after {
   background: var(--md-on-primary);
   transform: translateX(20px);
+}
+
+.switch-row:has(input:focus-visible) {
+  outline: 3px solid var(--md-primary);
+  outline-offset: 3px;
 }
 
 .check-row {

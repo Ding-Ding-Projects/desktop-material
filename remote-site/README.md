@@ -14,8 +14,9 @@ The safest setup is one browser origin with a private gateway:
 
 1. The browser loads this app over HTTPS.
 2. Requests to the same-origin `/api/v1/*` path go to Caddy.
-3. Caddy removes cookies, `Origin`, and `Referer`, rewrites the upstream `Host`,
-   and forwards only to the configured Desktop Material agent.
+3. Caddy removes cookies and `Referer`, preserves `Origin` for the desktop's
+   exact-origin check, rewrites the upstream `Host`, and forwards only to the
+   configured Desktop Material agent.
 4. Caddy access logging is intentionally not enabled, and agent responses are
    marked `no-store`.
 
@@ -90,9 +91,10 @@ Important variables:
 
 - `REMOTE_SITE_ADDRESS`: `:8080` for private development, or a DNS name such as
   `remote.example.com` for Caddy-managed HTTPS.
-- `DESKTOP_MATERIAL_AGENT_URL`: private upstream address reachable from the
-  gateway container, for example `http://host.docker.internal:51000`. Do not
-  append a token.
+- `DESKTOP_MATERIAL_AGENT_URL`: the exact private LAN address shown by Desktop
+  Material, reachable from the gateway container, for example
+  `http://192.168.1.50:51000`. Do not use `host.docker.internal` (its Host name
+  is intentionally rejected), and do not append a token.
 
 The gateway rewrites `Host` to the exact upstream host and port from
 `DESKTOP_MATERIAL_AGENT_URL`; it never forwards the public site Host.

@@ -27,8 +27,6 @@ services:
       REMOTE_SITE_ADDRESS: ${REMOTE_SITE_ADDRESS:-:8080}
       DESKTOP_MATERIAL_AGENT_URL:
         ${DESKTOP_MATERIAL_AGENT_URL:?Set the private agent URL}
-    extra_hosts:
-      - 'host.docker.internal:host-gateway'
     ports:
       - '${REMOTE_HTTP_PORT:-8080}:8080'
       - '${REMOTE_ACME_PORT:-80}:80'

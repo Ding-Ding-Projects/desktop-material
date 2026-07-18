@@ -29,6 +29,32 @@ interface ExecutionContext {
   passThroughOnException(): void
 }
 
+const ContentSecurityPolicy =
+  "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' http: https:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'"
+
+function withSecurityHeaders(request: Request, response: Response): Response {
+  const headers = new Headers(response.headers)
+  headers.set('Content-Security-Policy', ContentSecurityPolicy)
+  headers.set('Referrer-Policy', 'no-referrer')
+  headers.set('X-Content-Type-Options', 'nosniff')
+  headers.set('X-Frame-Options', 'DENY')
+  headers.set(
+    'Permissions-Policy',
+    'camera=(self), microphone=(), geolocation=()'
+  )
+  if (new URL(request.url).protocol === 'https:') {
+    headers.set(
+      'Strict-Transport-Security',
+      'max-age=31536000; includeSubDomains'
+    )
+  }
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  })
+}
+
 // Image security config. SVG sources with .svg extension auto-skip the
 // optimization endpoint on the client side (served directly, no proxy).
 // To route SVGs through the optimizer (with security headers), set
@@ -45,7 +71,7 @@ const worker = {
 
     if (url.pathname === '/_vinext/image') {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES]
-      return handleImageOptimization(
+      const response = await handleImageOptimization(
         request,
         {
           fetchAsset: path =>
@@ -59,9 +85,10 @@ const worker = {
         },
         allowedWidths
       )
+      return withSecurityHeaders(request, response)
     }
 
-    return handler.fetch(request, env, ctx)
+    return withSecurityHeaders(request, await handler.fetch(request, env, ctx))
   },
 }
 

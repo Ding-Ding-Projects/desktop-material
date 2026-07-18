@@ -64,6 +64,15 @@ interface ActiveConnection {
   readonly yolo: boolean
 }
 
+interface ConnectionRequest {
+  readonly baseUrl: string
+  readonly token: string | null
+  readonly credentialKind: CredentialKind
+  readonly rememberedDevice?: boolean
+  readonly pairedDevice?: PairedDevice | null
+  readonly allowYolo?: boolean
+}
+
 interface PairingInvitation {
   readonly code: string
   readonly agent: string | null
@@ -91,6 +100,11 @@ const DEFAULT_AGENT_BASE = '/api/v1'
 const DEVICE_TOKEN_KEY = 'desktop-material-remote.device-token.v1'
 const SESSION_CONNECTION_KEY = 'desktop-material-remote.session-connection.v1'
 const REQUEST_TIMEOUT_MS = 25_000
+// Commands (clone/fetch/pull/push) legitimately run long on the desktop: the
+// agent budgets 65 seconds per command and holds the HTTP response open for up
+// to 70 (agent-server requestTimeout). Aborting earlier reports false failures
+// for operations that then complete on the desktop.
+const COMMAND_TIMEOUT_MS = 80_000
 
 class RemoteRequestError extends Error {
   public constructor(
@@ -164,12 +178,13 @@ async function requestJson(
     readonly method?: 'GET' | 'POST' | 'DELETE'
     readonly token?: string | null
     readonly body?: JsonRecord
+    readonly timeoutMs?: number
   } = {}
 ): Promise<unknown> {
   const controller = new AbortController()
   const timeout = window.setTimeout(
     () => controller.abort(),
-    REQUEST_TIMEOUT_MS
+    options.timeoutMs ?? REQUEST_TIMEOUT_MS
   )
   try {
     const headers = new Headers({ Accept: 'application/json' })
@@ -240,6 +255,7 @@ async function executeAgentCommand(
       method: 'POST',
       token: connection.token,
       body: { name: command, args },
+      timeoutMs: COMMAND_TIMEOUT_MS,
     })
     return unwrapEnvelope(result)
   } catch (error) {
@@ -254,6 +270,7 @@ async function executeAgentCommand(
           method: 'POST',
           token: connection.token,
           body: args,
+          timeoutMs: COMMAND_TIMEOUT_MS,
         }
       )
       return unwrapEnvelope(legacyResult)
@@ -450,8 +467,25 @@ function normalizeEndpoint(value: string): string {
   if (trimmed === '' || trimmed === DEFAULT_AGENT_BASE) {
     return DEFAULT_AGENT_BASE
   }
-  if (trimmed.startsWith('/')) {
-    return trimmed.replace(/\/+$/, '')
+  if (trimmed.startsWith('/') || trimmed.startsWith('\\')) {
+    if (
+      !trimmed.startsWith('/') ||
+      trimmed.startsWith('//') ||
+      trimmed.includes('\\')
+    ) {
+      throw new RemoteRequestError(
+        'Relative endpoints must stay on this site origin.'
+      )
+    }
+    const relative = new URL(trimmed, window.location.origin)
+    if (relative.origin !== window.location.origin) {
+      throw new RemoteRequestError(
+        'Relative endpoints must stay on this site origin.'
+      )
+    }
+    relative.search = ''
+    relative.hash = ''
+    return relative.pathname.replace(/\/+$/, '') || '/'
   }
   let url: URL
   try {
@@ -494,6 +528,17 @@ function pairingInvitationFromValue(value: string): PairingInvitation | null {
   return { code: trimmed, agent: null }
 }
 
+function pairingInvitationFromURL(value: string): PairingInvitation | null {
+  try {
+    const url = new URL(value.trim())
+    const fragment = new URLSearchParams(url.hash.replace(/^#/, ''))
+    const code = fragment.get('pair')
+    return code ? { code, agent: fragment.get('agent') } : null
+  } catch {
+    return null
+  }
+}
+
 function pairingInvitationFromLocation(): PairingInvitation | null {
   const fragment = new URLSearchParams(window.location.hash.replace(/^#/, ''))
   const code = fragment.get('pair')
@@ -533,7 +578,6 @@ function isRevocationError(error: unknown): boolean {
   return (
     error instanceof RemoteRequestError &&
     (error.status === 401 ||
-      error.status === 403 ||
       error.code?.toLowerCase().includes('revok') === true)
   )
 }
@@ -566,7 +610,9 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
   const [yoloAcknowledged, setYoloAcknowledged] = useState(false)
 
   const [pairCode, setPairCode] = useState('')
-  const [pairingAgent, setPairingAgent] = useState<string | null>(null)
+  const [pairingInvitationReady, setPairingInvitationReady] = useState(false)
+  const pairingInvitationRef = useRef<PairingInvitation | null>(null)
+  const pendingYoloConnectionRef = useRef<ConnectionRequest | null>(null)
   const [deviceName, setDeviceName] = useState('This device')
   const [stayLoggedIn, setStayLoggedIn] = useState(false)
   const [scannerOpen, setScannerOpen] = useState(false)
@@ -616,33 +662,46 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
   }, [])
 
   const establishConnection = useCallback(
-    async (options: {
-      readonly baseUrl: string
-      readonly token: string | null
-      readonly credentialKind: CredentialKind
-      readonly rememberedDevice?: boolean
-      readonly pairedDevice?: PairedDevice | null
-    }) => {
+    async (options: ConnectionRequest) => {
       setPhase('connecting')
       setConnectionError(null)
       try {
-        const [info, statusResult] = await Promise.all([
-          requestJson(options.baseUrl, 'info', { token: options.token }),
-          requestJson(options.baseUrl, 'remote/status', {
-            token: options.token,
-          }).catch(error => {
-            if (
-              error instanceof RemoteRequestError &&
-              (error.status === 404 || error.status === 401)
-            ) {
-              return null
-            }
-            throw error
-          }),
-        ])
+        // Public status is deliberately probed without a credential. This lets
+        // every entry path stop at the YOLO acknowledgement before a token or
+        // repository command crosses the network.
+        const statusResult = await requestJson(
+          options.baseUrl,
+          'remote/status'
+        ).catch(error => {
+          if (
+            error instanceof RemoteRequestError &&
+            (error.status === 404 || error.status === 401)
+          ) {
+            return null
+          }
+          throw error
+        })
         const status = parseRemoteStatus(statusResult)
-        const commands = parseCommands(info, status)
         const yolo = isYoloMode(status)
+        if (yolo && options.allowYolo !== true) {
+          pendingYoloConnectionRef.current = {
+            baseUrl: options.baseUrl,
+            token: null,
+            credentialKind: 'none',
+            allowYolo: true,
+          }
+          setRemoteStatus(status)
+          setConnection(null)
+          setYoloAcknowledged(false)
+          setPhase('idle')
+          setSurface('connect')
+          return
+        }
+
+        const info = await requestJson(options.baseUrl, 'info', {
+          token: yolo ? null : options.token,
+        })
+        const commands = parseCommands(info, status)
         if (!commands.has('list-repositories')) {
           throw new RemoteRequestError(
             'The endpoint connected, but it does not advertise repository discovery.',
@@ -652,8 +711,8 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
         }
         const active: ActiveConnection = {
           baseUrl: options.baseUrl,
-          token: options.token,
-          credentialKind: options.credentialKind,
+          token: yolo ? null : options.token,
+          credentialKind: yolo ? 'none' : options.credentialKind,
           commands,
           remoteStatus: status,
           device: options.pairedDevice ?? deviceFromStatus(status),
@@ -672,6 +731,7 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
         setPhase('connected')
         setSurface('repositories')
         setConnectionError(null)
+        pendingYoloConnectionRef.current = null
         if (options.rememberedDevice) {
           setNotice('Welcome back. This paired device is still authorized.')
         }
@@ -709,9 +769,14 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
 
       const invitation = pairingInvitationFromLocation()
       if (invitation !== null) {
-        setPairCode(invitation.code)
-        setPairingAgent(invitation.agent)
+        pairingInvitationRef.current = invitation
+        setPairCode('')
+        setPairingInvitationReady(true)
         setSurface('connect')
+        setPhase('idle')
+        // An explicit one-time invitation always wins over remembered state.
+        // It remains in component memory and never enters rendered DOM.
+        return
       }
 
       const rememberedDevice = window.localStorage.getItem(DEVICE_TOKEN_KEY)
@@ -816,8 +881,9 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
               ? pairingInvitationFromValue(results[0].rawValue)
               : null
             if (invitation) {
-              setPairCode(invitation.code)
-              setPairingAgent(invitation.agent)
+              pairingInvitationRef.current = invitation
+              setPairCode('')
+              setPairingInvitationReady(true)
               setScannerOpen(false)
               setNotice('Pairing QR read. Confirm the device name to continue.')
               return
@@ -971,7 +1037,8 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
 
   const onPairSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    const invitation = pairingInvitationFromValue(pairCode)
+    const invitation =
+      pairingInvitationRef.current ?? pairingInvitationFromValue(pairCode)
     if (!invitation) {
       setConnectionError('Scan or enter a one-time pairing code.')
       return
@@ -979,7 +1046,7 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
     setPhase('pairing')
     setConnectionError(null)
     try {
-      const advertisedAgent = invitation.agent ?? pairingAgent
+      const advertisedAgent = invitation.agent
       const invitationBase = advertisedAgent
         ? normalizeEndpoint(advertisedAgent)
         : DEFAULT_AGENT_BASE
@@ -1035,7 +1102,8 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
         window.localStorage.removeItem(DEVICE_TOKEN_KEY)
       }
       setPairCode('')
-      setPairingAgent(null)
+      pairingInvitationRef.current = null
+      setPairingInvitationReady(false)
       await establishConnection({
         baseUrl: pairedBase,
         token: result.token,
@@ -1080,11 +1148,14 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
 
   const continueInYoloMode = async () => {
     setYoloAcknowledged(true)
-    await establishConnection({
-      baseUrl: DEFAULT_AGENT_BASE,
-      token: null,
-      credentialKind: 'none',
-    })
+    await establishConnection(
+      pendingYoloConnectionRef.current ?? {
+        baseUrl: DEFAULT_AGENT_BASE,
+        token: null,
+        credentialKind: 'none',
+        allowYolo: true,
+      }
+    )
   }
 
   const signOut = () => {
@@ -1224,7 +1295,11 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
   if (connection === null) {
     const yolo = isYoloMode(remoteStatus)
     return (
-      <main className="connect-shell">
+      <main
+        className={`connect-shell${
+          yolo && !yoloAcknowledged ? ' yolo-pending' : ''
+        }`}
+      >
         <a className="skip-link" href="#connect-card">
           Skip to connection
         </a>
@@ -1367,17 +1442,23 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
                       id="pair-code"
                       value={pairCode}
                       onChange={event => {
-                        const invitation = pairingInvitationFromValue(
-                          event.currentTarget.value
-                        )
-                        setPairCode(event.currentTarget.value)
-                        if (invitation?.agent) setPairingAgent(invitation.agent)
+                        const value = event.currentTarget.value
+                        const invitation = pairingInvitationFromURL(value)
+                        if (invitation === null) {
+                          pairingInvitationRef.current = null
+                          setPairingInvitationReady(false)
+                          setPairCode(value)
+                        } else {
+                          pairingInvitationRef.current = invitation
+                          setPairingInvitationReady(true)
+                          setPairCode('')
+                        }
                       }}
                       autoComplete="one-time-code"
                       autoCapitalize="none"
                       spellCheck={false}
                       placeholder="Paste the QR link or one-time code"
-                      required
+                      required={!pairingInvitationReady}
                     />
                     <button
                       className="icon-button"
@@ -1389,10 +1470,11 @@ export function RemoteApp({ initialSurface }: RemoteAppProps) {
                       ▦
                     </button>
                   </div>
-                  {pairingAgent && (
+                  {pairingInvitationReady && (
                     <p className="field-hint">
-                      Invitation for <strong>{pairingAgent}</strong>. Pairing is
-                      exchanged through this site&apos;s same-origin gateway.
+                      <strong>Secure QR invitation ready.</strong> Its one-time
+                      secret stays in memory and will be exchanged only when you
+                      pair this device.
                     </p>
                   )}
 

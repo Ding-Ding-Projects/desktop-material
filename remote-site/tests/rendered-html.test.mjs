@@ -29,6 +29,13 @@ test('server-renders the Desktop Material Remote pairing route', async () => {
   const response = await render('/connect')
   assert.equal(response.status, 200)
   assert.match(response.headers.get('content-type') ?? '', /^text\/html\b/i)
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer')
+  assert.equal(response.headers.get('x-content-type-options'), 'nosniff')
+  assert.equal(response.headers.get('x-frame-options'), 'DENY')
+  assert.match(
+    response.headers.get('content-security-policy') ?? '',
+    /frame-ancestors 'none'/
+  )
 
   const html = await response.text()
   assert.match(html, /<title>Connect · Desktop Material Remote<\/title>/i)
@@ -42,17 +49,29 @@ test('server-renders the Desktop Material Remote pairing route', async () => {
 })
 
 test('ships the secure remote contract and removes starter artifacts', async () => {
-  const [client, page, layout, css, packageJson, caddy, compose, dockerfile] =
-    await Promise.all([
-      readFile(new URL('app/remote-app.tsx', root), 'utf8'),
-      readFile(new URL('app/page.tsx', root), 'utf8'),
-      readFile(new URL('app/layout.tsx', root), 'utf8'),
-      readFile(new URL('app/globals.css', root), 'utf8'),
-      readFile(new URL('package.json', root), 'utf8'),
-      readFile(new URL('Caddyfile', root), 'utf8'),
-      readFile(new URL('docker-compose.yml', root), 'utf8'),
-      readFile(new URL('Dockerfile', root), 'utf8'),
-    ])
+  const [
+    client,
+    page,
+    layout,
+    css,
+    packageJson,
+    caddy,
+    compose,
+    dockerfile,
+    worker,
+    standaloneFix,
+  ] = await Promise.all([
+    readFile(new URL('app/remote-app.tsx', root), 'utf8'),
+    readFile(new URL('app/page.tsx', root), 'utf8'),
+    readFile(new URL('app/layout.tsx', root), 'utf8'),
+    readFile(new URL('app/globals.css', root), 'utf8'),
+    readFile(new URL('package.json', root), 'utf8'),
+    readFile(new URL('Caddyfile', root), 'utf8'),
+    readFile(new URL('docker-compose.yml', root), 'utf8'),
+    readFile(new URL('Dockerfile', root), 'utf8'),
+    readFile(new URL('worker/index.ts', root), 'utf8'),
+    readFile(new URL('scripts/fix-vinext-standalone.mjs', root), 'utf8'),
+  ])
 
   assert.match(page, /<RemoteApp \/>/)
   assert.match(layout, /Desktop Material Remote/)
@@ -72,6 +91,21 @@ test('ships the secure remote contract and removes starter artifacts', async () 
   assert.match(client, /window\.history\.replaceState/)
   assert.match(client, /window\.localStorage\.setItem\(/)
   assert.match(client, /window\.sessionStorage\.setItem\(/)
+  assert.match(client, /pairingInvitationRef\.current = invitation/)
+  assert.match(client, /setPairCode\(''\)/)
+  assert.doesNotMatch(client, /Invitation for \{pairingAgent\}/)
+  assert.match(client, /trimmed\.startsWith\('\/\/'\)/)
+  assert.match(client, /trimmed\.includes\('\\\\'\)/)
+  assert.ok(
+    client.indexOf("'remote/status'") < client.indexOf("'info'"),
+    'public status must be checked before authenticated info'
+  )
+  const revocationContract = client.slice(
+    client.indexOf('function isRevocationError'),
+    client.indexOf('function formatLastSeen')
+  )
+  assert.match(revocationContract, /error\.status === 401/)
+  assert.doesNotMatch(revocationContract, /error\.status === 403/)
   assert.doesNotMatch(client, /console\.(?:log|info|debug|warn|error)/)
 
   assert.match(css, /--md-primary:/)
@@ -80,13 +114,22 @@ test('ships the secure remote contract and removes starter artifacts', async () 
   assert.match(css, /env\(safe-area-inset-bottom\)/)
 
   assert.match(caddy, /@agent path \/api\/v1/)
-  assert.match(caddy, /header_up -Origin/)
+  assert.doesNotMatch(caddy, /header_up -Origin/)
   assert.match(caddy, /header_up -Cookie/)
+  assert.match(caddy, /header_up Host \{upstream_hostport\}/)
+  assert.match(caddy, /Content-Security-Policy/)
   assert.doesNotMatch(caddy, /^\s*log\s/m)
   assert.match(compose, /DESKTOP_MATERIAL_AGENT_URL/)
+  assert.doesNotMatch(compose, /host\.docker\.internal/)
   assert.match(compose, /read_only:\s*true/)
   assert.match(dockerfile, /FROM node:22\.13-alpine AS runtime/)
+  assert.match(dockerfile, /HOST=0\.0\.0\.0/)
   assert.match(dockerfile, /USER node/)
+  assert.match(packageJson, /dist\/standalone\/server\.js/)
+  assert.match(standaloneFix, /split\(path\.sep\)\.join\("\/"\)/)
+  assert.match(worker, /Content-Security-Policy/)
+  assert.match(worker, /Strict-Transport-Security/)
+  assert.match(worker, /withSecurityHeaders\(request, await handler\.fetch/)
 
   await Promise.all([
     assert.rejects(
