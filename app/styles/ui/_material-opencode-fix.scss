@@ -1,0 +1,149 @@
+// "Fix with opencode" launch dialog — detect / install / auth / run flow.
+//
+// Compact-width safe: the dialog never exceeds the viewport and its streamed
+// log + long working-directory paths wrap or scroll inside their own box rather
+// than forcing the sheet wider.
+
+dialog#opencode-fix {
+  width: min(560px, calc(100vw - var(--spacing-double)));
+  max-width: 100%;
+
+  .dialog-content {
+    min-width: 0;
+  }
+
+  .opencode-fix-intro {
+    color: var(--md-sys-color-on-surface-variant);
+    margin-top: 0;
+  }
+
+  // The exact install command — a copyable, wrapping code block.
+  .opencode-fix-command {
+    background: var(--md-sys-color-surface-container-high);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-surface);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 12.5px;
+    margin: 8px 0;
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  // Long absolute paths must wrap, never widen the sheet.
+  .opencode-fix-path {
+    font-family: 'Roboto Mono', monospace;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .opencode-fix-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 12px 0;
+    min-width: 0;
+
+    > div {
+      display: flex;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    dt {
+      color: var(--md-sys-color-on-surface-variant);
+      flex: none;
+      width: 130px;
+    }
+
+    dd {
+      margin: 0;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  // Info / warning callouts share a leading icon + wrapping copy.
+  .opencode-fix-note,
+  .opencode-fix-warning,
+  .opencode-fix-result {
+    align-items: flex-start;
+    display: flex;
+    gap: 8px;
+    min-width: 0;
+
+    .octicon {
+      flex: none;
+      height: 16px;
+      margin-top: 2px;
+      width: 16px;
+    }
+
+    > span {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .opencode-fix-note {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .opencode-fix-warning {
+    background: var(--md-sys-color-error-container);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-error-container);
+    padding: 10px 12px;
+
+    .octicon {
+      color: var(--md-sys-color-error);
+    }
+  }
+
+  .opencode-fix-result {
+    font-weight: var(--font-weight-semibold);
+
+    &.success .octicon {
+      color: var(--dm-green);
+    }
+
+    &.failure .octicon {
+      color: var(--md-sys-color-error);
+    }
+  }
+
+  // Streamed opencode output — bounded height, scrolls internally.
+  .opencode-fix-log {
+    background: var(--md-sys-color-inverse-surface);
+    border-radius: 8px;
+    color: var(--md-sys-color-inverse-on-surface);
+    font-family: 'Roboto Mono', monospace;
+    font-size: 11.5px;
+    line-height: 1.6;
+    margin-top: 12px;
+    max-height: 220px;
+    min-width: 0;
+    overflow: auto;
+    padding: 8px 10px;
+
+    .opencode-fix-log-line {
+      white-space: pre-wrap;
+      word-break: break-word;
+
+      &.stream-stderr {
+        color: var(--dm-term-stderr);
+      }
+
+      &.stream-command {
+        color: var(--dm-term-command);
+        font-weight: 700;
+      }
+
+      &.stream-meta {
+        color: var(--dm-term-meta);
+      }
+    }
+  }
+}

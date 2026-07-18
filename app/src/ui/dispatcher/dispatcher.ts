@@ -171,6 +171,7 @@ import {
   defaultBuildRunPreferences,
 } from '../../models/build-run-preferences'
 import {
+  BuildStageKind,
   IBuildProfile,
   IBuildRunPlan,
   IBuildRunStage,
@@ -183,7 +184,22 @@ import {
   isActiveBuildRunPhase,
 } from '../../lib/build-run'
 import { readGitIgnoreAtRoot } from '../../lib/git/gitignore'
-import { startBuildRun, cancelBuildRun } from '../main-process-proxy'
+import {
+  startBuildRun,
+  cancelBuildRun,
+  detectOpencode,
+  installOpencode,
+  runOpencodeFix,
+  cancelOpencode,
+  onOpencodeLog,
+} from '../main-process-proxy'
+import {
+  IOpencodeInstallResult,
+  IOpencodeLogEvent,
+  IOpencodeRunResult,
+  IOpencodeStatus,
+} from '../../lib/build-run/opencode'
+import { BuildRunViewPhase } from '../../lib/stores/build-run-store'
 import { resolveWithin } from '../../lib/path'
 import { CherryPickResult } from '../../lib/git/cherry-pick'
 import { sleep } from '../../lib/promise'
@@ -3048,6 +3064,117 @@ export class Dispatcher {
     if (activeRunId !== null) {
       await cancelBuildRun(activeRunId)
     }
+  }
+
+  /** Probe the host for a usable opencode install (installed? authenticated?). */
+  public detectOpencode(): Promise<IOpencodeStatus> {
+    return detectOpencode()
+  }
+
+  /**
+   * Install the opencode CLI, streaming its output into the repository's Build &
+   * Run log panel and to `onLog`. Cancellable via `signal`.
+   */
+  public async installOpencode(
+    repository: Repository,
+    onLog: (line: IOpencodeLogEvent) => void,
+    signal?: AbortSignal
+  ): Promise<IOpencodeInstallResult> {
+    const operationId = randomUUID()
+    const dispose = this.pipeOpencodeLog(repository, operationId, onLog)
+    const onAbort = () => void cancelOpencode(operationId)
+    signal?.addEventListener('abort', onAbort, { once: true })
+    try {
+      return await installOpencode({ operationId })
+    } finally {
+      dispose()
+      signal?.removeEventListener('abort', onAbort)
+    }
+  }
+
+  /**
+   * Launch the opencode agent to fix a failed build, then RE-RUN Build & Run so
+   * success is judged by the real phase transition — never by opencode's exit
+   * code, which is known to report 0 even when its session errored. Streams the
+   * agent's output into the log panel and to `onLog`; cancellable via `signal`.
+   * Resolves with the phase before the fix and the re-run's outcome so the UI
+   * can report the before/after transition.
+   */
+  public async runOpencodeFix(
+    repository: Repository,
+    request: {
+      readonly stageKind: BuildStageKind
+      readonly exitCode: number
+      readonly tailText: string
+      readonly cwd: string
+      readonly autoApprove: boolean
+      readonly model?: string
+    },
+    onLog: (line: IOpencodeLogEvent) => void,
+    signal?: AbortSignal
+  ): Promise<{
+    readonly phaseBefore: BuildRunViewPhase
+    readonly run: IOpencodeRunResult
+  }> {
+    const operationId = randomUUID()
+    const phaseBefore = this.buildRunStore.getStateForRepository(
+      repository.id
+    ).phase
+    const dispose = this.pipeOpencodeLog(repository, operationId, onLog)
+    const onAbort = () => void cancelOpencode(operationId)
+    signal?.addEventListener('abort', onAbort, { once: true })
+    let run: IOpencodeRunResult
+    try {
+      run = await runOpencodeFix({
+        operationId,
+        repoPath: repository.path,
+        cwd: request.cwd,
+        autoApprove: request.autoApprove,
+        stageKind: request.stageKind,
+        exitCode: request.exitCode,
+        tailText: request.tailText,
+        model: request.model,
+      })
+    } finally {
+      dispose()
+      signal?.removeEventListener('abort', onAbort)
+    }
+
+    // Success is measured by a re-run, never opencode's (buggy) exit code. The
+    // resulting phase is observed by the store as the re-run streams state.
+    if (!signal?.aborted) {
+      await this.startBuildRun(repository)
+    }
+    return { phaseBefore, run }
+  }
+
+  /** Cancel an in-flight opencode operation by its id. */
+  public cancelOpencode(operationId: string): Promise<void> {
+    return cancelOpencode(operationId)
+  }
+
+  /**
+   * Subscribe to streamed opencode log lines for one operation, forwarding them
+   * to `onLog` and into the repository's Build & Run log panel. Returns a
+   * disposer that removes the subscription.
+   */
+  private pipeOpencodeLog(
+    repository: Repository,
+    operationId: string,
+    onLog: (line: IOpencodeLogEvent) => void
+  ): () => void {
+    return onOpencodeLog((_event, line) => {
+      if (line.operationId !== operationId) {
+        return
+      }
+      onLog(line)
+      this.buildRunStore.addLocalLogLine(
+        repository.id,
+        'toolchain',
+        line.stream,
+        line.text
+      )
+    })
   }
 
   /** Assemble a serialisable {@link IBuildRunPlan} from a detected profile. */

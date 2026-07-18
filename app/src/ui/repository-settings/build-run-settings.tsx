@@ -223,6 +223,24 @@ export class BuildRunSettings extends React.Component<
     })
   }
 
+  private onOfferOpencodeAutoFixChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      offerOpencodeAutoFix: event.currentTarget.checked,
+    })
+  }
+
+  private onOpencodeAutoApproveChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      opencodeAutoApprove: event.currentTarget.checked,
+    })
+  }
+
   private renderProfileLabel(profile: IBuildProfile): JSX.Element {
     const location = profile.cwd.length === 0 ? 'repository root' : profile.cwd
     const reasons =
@@ -393,6 +411,38 @@ export class BuildRunSettings extends React.Component<
       </span>
     )
 
+    const offerOpencodeLabel = (
+      <span className="build-run-toggle-label">
+        {__DARWIN__
+          ? 'Offer opencode to Fix Build Errors'
+          : 'Offer opencode to fix build errors'}
+        <ToggledtippedContent
+          className="build-run-toggle-tip"
+          ariaLabel="About fixing build errors with opencode"
+          ariaLiveMessage="When a run fails, show a Fix with opencode button that launches the opencode AI coding agent to diagnose and fix the errors. Nothing runs until you launch it, and the launch dialog carries every consent step."
+          tooltip="When a run fails, show a “Fix with opencode” button that launches the opencode AI coding agent to diagnose and fix the errors. Nothing runs until you launch it; the launch dialog carries every consent step."
+        >
+          <Octicon symbol={octicons.info} />
+        </ToggledtippedContent>
+      </span>
+    )
+
+    const opencodeAutoApproveLabel = (
+      <span className="build-run-toggle-label">
+        {__DARWIN__
+          ? 'Auto-Approve opencode in This Repository (yolo)'
+          : 'Auto-approve opencode in this repository (yolo)'}
+        <ToggledtippedContent
+          className="build-run-toggle-tip"
+          ariaLabel="About auto-approving opencode"
+          ariaLiveMessage="Runs opencode in auto-approve mode, applying edits and running shell commands without asking, scoped to this repository. It cannot touch files outside the repository, but it can change and run code here unattended. Leave this off unless you trust it to work on its own."
+          tooltip="Runs opencode in auto-approve (“yolo”) mode: it applies edits and runs shell commands without asking, scoped to this repository. It cannot touch files outside the repository, but it can change and run code here unattended. Leave this off unless you trust it to work on its own."
+        >
+          <Octicon symbol={octicons.alert} />
+        </ToggledtippedContent>
+      </span>
+    )
+
     return (
       <section className="build-run-section">
         <h3 className="build-run-section-title">
@@ -450,6 +500,24 @@ export class BuildRunSettings extends React.Component<
                 : CheckboxValue.Off
             }
             onChange={this.onAutoBuildOnPullChanged}
+          />
+          <Checkbox
+            label={offerOpencodeLabel}
+            value={
+              prefs.offerOpencodeAutoFix ?? false
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onOfferOpencodeAutoFixChanged}
+          />
+          <Checkbox
+            label={opencodeAutoApproveLabel}
+            value={
+              prefs.opencodeAutoApprove ?? false
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onOpencodeAutoApproveChanged}
           />
         </div>
         <p className="build-run-section-description">

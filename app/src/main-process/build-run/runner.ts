@@ -91,7 +91,7 @@ function stageToPhase(kind: BuildStageKind): BuildRunPhase {
  * (`shell: false` is a hard requirement). No-op on POSIX and for paths that are
  * already qualified.
  */
-async function resolveExecutable(
+export async function resolveExecutable(
   exe: string,
   env: Record<string, string>
 ): Promise<string> {

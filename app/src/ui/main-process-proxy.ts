@@ -2,6 +2,7 @@ import { ExecutableMenuItem } from '../models/app-menu'
 import { RequestResponseChannels, RequestChannels } from '../lib/ipc-shared'
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { IBuildRunLogEvent, IBuildRunStateEvent } from '../lib/build-run/types'
+import { IOpencodeLogEvent } from '../lib/build-run/opencode'
 import {
   ICLICommandOutputEvent,
   ICLICommandStateEvent,
@@ -449,6 +450,26 @@ export function onBuildRunState(
   ) => void
 ) {
   ipcRenderer.on('build-run-state', handler)
+}
+
+/** Probe the host for a usable opencode install (installed? authed?). */
+export const detectOpencode = invokeProxy('opencode-detect', 0)
+
+/** Install the opencode CLI; output streams on the `opencode-log` channel. */
+export const installOpencode = invokeProxy('opencode-install', 1)
+
+/** Launch `opencode run` to fix a failed build; output streams on `opencode-log`. */
+export const runOpencodeFix = invokeProxy('opencode-run-fix', 1)
+
+/** Request cancellation of the opencode operation with this id. */
+export const cancelOpencode = invokeProxy('opencode-cancel', 1)
+
+/** Subscribe to streamed opencode log lines pushed from the main process. */
+export function onOpencodeLog(
+  handler: (event: Electron.IpcRendererEvent, log: IOpencodeLogEvent) => void
+): () => void {
+  ipcRenderer.on('opencode-log', handler)
+  return () => ipcRenderer.removeListener('opencode-log', handler)
 }
 
 /** Query tool availability without exposing a command catalog to the UI. */

@@ -34,6 +34,26 @@ export interface IBuildRunPreferences {
   readonly autoBuildOnPull?: boolean
 
   /**
+   * Offer the "Fix with opencode" affordance when a run fails, launching the
+   * opencode AI coding agent to diagnose and fix the errors. Enabled by
+   * default so a failed build always surfaces the offer; merely showing the
+   * button is harmless (clicking opens a consent dialog, and installing
+   * opencode and enabling auto-approve are each separately gated). Optional
+   * for back-compat with preferences persisted before this field existed;
+   * treat an absent value as enabled (see {@link defaultBuildRunPreferences}).
+   */
+  readonly offerOpencodeAutoFix?: boolean
+
+  /**
+   * Run opencode in `--auto` (auto-approve, "yolo") mode, scoped to this
+   * repository, so it applies edits and runs shell commands without prompting.
+   * The enable-yolo-for-this-repo control; defaults FALSE and carries a
+   * prominent warning. When off, opencode runs without `--auto`. Optional for
+   * back-compat; treat an absent value as disabled.
+   */
+  readonly opencodeAutoApprove?: boolean
+
+  /**
    * Per-profile command-line overrides. A blank / absent value for a stage
    * means "use the detected command". Stored as raw command-line strings; the
    * dispatcher tokenises them into an argv array (never a shell string).
@@ -54,4 +74,6 @@ export const defaultBuildRunPreferences: IBuildRunPreferences = {
   autoIgnoreBuildOutputs: true,
   autoInstallMissingTools: true,
   autoBuildOnPull: false,
+  offerOpencodeAutoFix: true,
+  opencodeAutoApprove: false,
 }

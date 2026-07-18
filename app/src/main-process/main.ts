@@ -57,7 +57,7 @@ import {
 } from './notifications'
 import parseCommandLineArgs from 'minimist'
 import { CLIAction } from '../lib/cli-action'
-import { buildRunner, registerBuildRunIpc } from './build-run'
+import { buildRunner, opencodeRunner, registerBuildRunIpc } from './build-run'
 import {
   cliWorkbenchCatalog,
   cliWorkbenchRunner,
@@ -243,6 +243,7 @@ const ownedShutdownTasks: ReadonlyArray<IOwnedShutdownTask> = [
     run: killAllActionsArtifactProvenanceVerifications,
   },
   { name: 'Build & Run processes', run: () => buildRunner.killAll() },
+  { name: 'opencode processes', run: () => opencodeRunner.killAll() },
   { name: 'CLI catalog probes', run: () => cliWorkbenchCatalog.killAll() },
   {
     name: 'CLI workbench processes',

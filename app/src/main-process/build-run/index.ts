@@ -1,7 +1,9 @@
-import * as ipcMain from '../ipc-main'
 import { buildRunner } from './runner'
+import { registerOpencodeIpc } from './opencode-runner'
+import * as ipcMain from '../ipc-main'
 
 export { BuildRunner, buildRunner } from './runner'
+export { OpencodeRunner, opencodeRunner } from './opencode-runner'
 export { killTree } from './kill-tree'
 
 /**
@@ -19,4 +21,6 @@ export function registerBuildRunIpc(): void {
   ipcMain.handle('cancel-build-run', async (_event, runId) => {
     await buildRunner.cancel(runId)
   })
+
+  registerOpencodeIpc()
 }

@@ -64,6 +64,15 @@ describe('hasModalPopup', () => {
     }
     assert.equal(hasModalPopup([branchRules]), false)
   })
+
+  it('keeps the Fix with opencode dialog modal so consent is not bypassed', () => {
+    const opencodeFix: Popup = {
+      type: PopupType.OpencodeFix,
+      repository: null as never,
+      failure: null as never,
+    }
+    assert.equal(hasModalPopup([opencodeFix]), true)
+  })
 })
 
 describe('PopupManager', () => {

@@ -1,5 +1,6 @@
 import * as React from 'react'
 import classNames from 'classnames'
+import { join } from 'path'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
 import {
@@ -12,7 +13,8 @@ import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { Disposable } from 'event-kit'
-import { getBuildProfileDisplayName } from '../../lib/build-run'
+import { BuildStageKind, getBuildProfileDisplayName } from '../../lib/build-run'
+import { PopupType } from '../../models/popup'
 
 interface IBuildRunPanelProps {
   readonly repository: Repository
@@ -162,6 +164,44 @@ export class BuildRunPanel extends React.Component<
     navigator.clipboard.writeText(text).catch(() => {})
   }
 
+  /**
+   * Infer the stage that failed from the last real-stage log line, falling back
+   * to `build`. The store tracks only the terminal `failed` phase, not which
+   * stage tripped it, so the most recent non-toolchain line is the best signal.
+   */
+  private failedStageKind(): BuildStageKind {
+    const { logLines } = this.state.view
+    for (let i = logLines.length - 1; i >= 0; i--) {
+      const stage = logLines[i].stage
+      if (stage === 'install' || stage === 'build' || stage === 'run') {
+        return stage
+      }
+    }
+    return 'build'
+  }
+
+  private onFixWithOpencode = () => {
+    const { view } = this.state
+    const { repository } = this.props
+    const selected = view.detectedProfiles.find(
+      p => p.id === view.selectedProfileId
+    )
+    const cwd =
+      selected !== undefined && selected.cwd.length > 0
+        ? join(repository.path, ...selected.cwd.split('/'))
+        : repository.path
+    this.props.dispatcher.showPopup({
+      type: PopupType.OpencodeFix,
+      repository,
+      failure: {
+        stageKind: this.failedStageKind(),
+        exitCode: view.exitCode ?? 1,
+        tailText: view.logLines.map(l => l.text).join('\n'),
+        cwd,
+      },
+    })
+  }
+
   private renderLine(line: IBuildRunLogLine, index: number) {
     return (
       <div
@@ -228,6 +268,18 @@ export class BuildRunPanel extends React.Component<
             {chip.label}
           </span>
           <div className="header-spacer" />
+          {view.phase === 'failed' &&
+            (this.props.repository.buildRunPreferences.offerOpencodeAutoFix ??
+              true) && (
+              <Button
+                className="header-action fix-opencode"
+                onClick={this.onFixWithOpencode}
+                ariaLabel="Fix with opencode"
+              >
+                <Octicon symbol={octicons.tools} />
+                <span>Fix with opencode</span>
+              </Button>
+            )}
           {isActive && (
             <Button
               className="header-action stop"

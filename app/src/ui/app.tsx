@@ -24,6 +24,7 @@ import {
 import { RepositoryTabStrip } from './repository-tabs/repository-tab-strip'
 import { BuildRunToolbarButton } from './build-run/build-run-toolbar-button'
 import { BuildRunPanel } from './build-run/build-run-panel'
+import { OpencodeFixDialog } from './build-run/opencode-fix-dialog'
 import { assertNever } from '../lib/fatal-error'
 import { shell } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
@@ -2656,6 +2657,17 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             tabsStore={this.props.repositoryTabsStore}
             existingRepositories={popup.existingRepositories}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.OpencodeFix:
+        return (
+          <OpencodeFixDialog
+            key="opencode-fix"
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            failure={popup.failure}
+            buildRunStore={this.props.buildRunStore}
             onDismissed={onPopupDismissedFn}
           />
         )

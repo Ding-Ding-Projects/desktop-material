@@ -245,6 +245,19 @@
         color: var(--md-sys-color-error);
       }
 
+      // "Fix with opencode" — a prominent tinted action shown only when the
+      // most recent run failed. Reads as an offer, not a destructive control.
+      &.fix-opencode {
+        background: var(--md-sys-color-primary);
+        color: var(--md-sys-color-on-primary);
+        font-weight: var(--font-weight-semibold);
+        padding: 0 12px;
+
+        &:hover {
+          background: color-mix(in srgb, var(--md-sys-color-primary) 88%, white);
+        }
+      }
+
       .octicon {
         height: 15px;
         width: 15px;

@@ -35,6 +35,23 @@ import { WorktreeEntry } from './worktree'
 import { MergeAllMode } from '../lib/automation/merge-all'
 import { IGitHubPullRequestTarget } from '../lib/github-pull-request'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
+import { BuildStageKind } from '../lib/build-run/types'
+
+/**
+ * The captured failure context handed to the "Fix with opencode" dialog. Built
+ * by the Build & Run panel from the failed run's view state; the dialog forwards
+ * it to `Dispatcher.runOpencodeFix` (which composes the prompt from it).
+ */
+export interface IOpencodeFixFailure {
+  /** Which build stage failed (`install` / `build` / `run`). */
+  readonly stageKind: BuildStageKind
+  /** The failing stage's process exit code. */
+  readonly exitCode: number
+  /** The tail of the streamed run output, embedded (bounded) in the prompt. */
+  readonly tailText: string
+  /** The working directory the failed profile ran in (the agent's `--dir`). */
+  readonly cwd: string
+}
 
 export enum PopupType {
   RenameBranch = 'RenameBranch',
@@ -153,6 +170,7 @@ export enum PopupType {
   ImportTabSession = 'ImportTabSession',
   MergeAll = 'MergeAll',
   PullAllRepositories = 'PullAllRepositories',
+  OpencodeFix = 'OpencodeFix',
 }
 
 interface IBasePopup {
@@ -683,6 +701,11 @@ export type PopupDetail =
   | {
       type: PopupType.ImportTabSession
       existingRepositories: ReadonlyArray<Repository>
+    }
+  | {
+      type: PopupType.OpencodeFix
+      repository: Repository
+      failure: IOpencodeFixFailure
     }
 export type Popup = IBasePopup & PopupDetail
 

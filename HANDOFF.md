@@ -69,6 +69,34 @@ both themes) instead of borrowing the pull tone, so the pill signals that a
 push will follow the offered pull. The post-shell style contract covers the
 new state alongside the original five.
 
+## 2026-07-18 Build & Run — fix errors with opencode
+
+When a Build & Run stage fails, the panel now offers **Fix with opencode**:
+launch the opencode AI coding agent to diagnose and fix the errors,
+auto-installing it if missing, and running it in repo-scoped auto-approve
+("yolo") mode.
+
+- Plumbing: a pure install planner (npm `opencode-ai@latest` on every
+  platform — no remote-script paths), argv/prompt/config builders
+  (`opencode run --auto --dir <cwd>`, prompt bounded and passed via
+  **stdin** so it never flows through the Windows batch-shim allowlist,
+  a repo-root `opencode.json` permission block scoped `external_directory:
+  deny`), and a main-process `OpencodeRunner` (detect via
+  `opencode --version` + `opencode auth list`, install, run-fix, IPC,
+  shutdown teardown).
+- Success is measured by **re-running Build & Run** after the fix, never
+  by opencode's exit code (it is known to exit 0 on failure).
+- UI: a `PopupType.OpencodeFix` consent dialog — detect → (install with
+  the exact command shown / prompt for `opencode auth login` /
+  ready) → run with live streamed output and cancel → verify via the
+  re-run, reporting Fixed or still-fails.
+- Safety: the **offer** defaults on (so a failed build always surfaces
+  it — merely showing the button is harmless), but **auto-approve
+  (yolo)** defaults **off** and is an explicit per-repo toggle carrying a
+  warning; installing opencode and enabling yolo are each separately
+  consented; the prompt is fed via stdin; and yolo is strictly scoped to
+  the repo's `--dir`.
+
 ## 2026-07-18 GitHub API Explorer — functions-first
 
 The Explorer was reorganized from a browse-first catalog into a

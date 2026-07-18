@@ -23,6 +23,14 @@ import {
   IBuildRunStateEvent,
 } from './build-run/types'
 import {
+  IOpencodeInstallRequest,
+  IOpencodeInstallResult,
+  IOpencodeLogEvent,
+  IOpencodeRunFixRequest,
+  IOpencodeRunResult,
+  IOpencodeStatus,
+} from './build-run/opencode'
+import {
   AgentCommandResult,
   IAgentCommandEnvelope,
   IAgentServerConfiguration,
@@ -158,6 +166,7 @@ export type RequestChannels = {
   'uninstall-windows-cli': () => void
   'build-run-log': (event: IBuildRunLogEvent) => void
   'build-run-state': (event: IBuildRunStateEvent) => void
+  'opencode-log': (event: IOpencodeLogEvent) => void
   'cli-command-output': (event: ICLICommandOutputEvent) => void
   'cli-command-state': (event: ICLICommandStateEvent) => void
 }
@@ -254,6 +263,14 @@ export type RequestResponseChannels = {
   'request-notifications-permission': () => Promise<boolean>
   'start-build-run': (plan: IBuildRunPlan) => Promise<void>
   'cancel-build-run': (runId: string) => Promise<void>
+  'opencode-detect': () => Promise<IOpencodeStatus>
+  'opencode-install': (
+    request: IOpencodeInstallRequest
+  ) => Promise<IOpencodeInstallResult>
+  'opencode-run-fix': (
+    request: IOpencodeRunFixRequest
+  ) => Promise<IOpencodeRunResult>
+  'opencode-cancel': (operationId: string) => Promise<void>
   'get-cli-workbench-runtime': () => Promise<ICLIWorkbenchRuntime>
   'start-cli-command': (request: ICLIWorkbenchOperationRequest) => Promise<void>
   'cancel-cli-command': (id: string) => Promise<boolean>

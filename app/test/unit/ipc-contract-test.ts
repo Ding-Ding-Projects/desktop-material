@@ -88,6 +88,7 @@ describe('IPC channel contract', () => {
     'uninstall-windows-cli',
     'build-run-log',
     'build-run-state',
+    'opencode-log',
     'cli-command-output',
     'cli-command-state',
   ] as const
@@ -139,6 +140,10 @@ describe('IPC channel contract', () => {
     'request-notifications-permission',
     'start-build-run',
     'cancel-build-run',
+    'opencode-detect',
+    'opencode-install',
+    'opencode-run-fix',
+    'opencode-cancel',
     'get-cli-workbench-runtime',
     'start-cli-command',
     'cancel-cli-command',
