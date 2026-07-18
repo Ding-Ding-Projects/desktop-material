@@ -153,6 +153,21 @@ export function resolvedCloneAccountChanged(
 }
 
 /**
+ * True when a hosted clone tab has several repositories checked for a batch
+ * clone. In that mode the chosen path is a *base* directory that each checked
+ * repository is cloned into as its own `<base>/<name>` child (validated per-repo
+ * by the batch clone flow), so the base is expected to already contain other
+ * folders and must not be required to be empty. A single-select clone still
+ * writes directly to `path` and keeps the strict empty-folder requirement.
+ */
+export function isMultiRepositoryCloneSelection(
+  tab: CloneRepositoryTab,
+  checkedUrls: ReadonlySet<string>
+): boolean {
+  return tab !== CloneRepositoryTab.Generic && checkedUrls.size > 1
+}
+
+/**
  * Preserve account affinity while allowing Git to resolve an API 404.
  *
  * GitHub deliberately uses 404 for private repositories an identity cannot
@@ -1248,7 +1263,10 @@ export class CloneRepository extends React.Component<
       checkedUrls.add(url)
     }
 
-    this.setGitHubTabState({ checkedUrls }, tab)
+    // Crossing into (or out of) multi-select mode changes whether `path` is a
+    // per-repo destination or a base directory, so revalidate to clear or
+    // restore the empty-folder error accordingly.
+    this.setGitHubTabState({ checkedUrls }, tab, () => this.validatePath(tab))
   }
 
   private onToggleAllRepositoriesChecked = (
@@ -1269,7 +1287,7 @@ export class CloneRepository extends React.Component<
       }
     }
 
-    this.setGitHubTabState({ checkedUrls }, tab)
+    this.setGitHubTabState({ checkedUrls }, tab, () => this.validatePath(tab))
   }
 
   private onAutoCloneNewRepositoriesChanged = (enabled: boolean) => {
@@ -1464,8 +1482,21 @@ export class CloneRepository extends React.Component<
       tab !== CloneRepositoryTab.Generic &&
       isURLNotEntered &&
       tabState.lastParsedIdentifier === null
+    // Cloning several checked repositories writes each into its own
+    // `<base>/<name>` child, so `path` is a base directory that is expected to
+    // be non-empty; the per-repo destinations are validated by the batch flow.
+    const isMultiRepositoryClone =
+      tab !== CloneRepositoryTab.Generic &&
+      isMultiRepositoryCloneSelection(
+        tab,
+        this.getGitHubTabState(tab).checkedUrls
+      )
 
-    if ((isDefaultPath && isURLNotEntered) || isHostedBaseDirectory) {
+    if (
+      (isDefaultPath && isURLNotEntered) ||
+      isHostedBaseDirectory ||
+      isMultiRepositoryClone
+    ) {
       if (error) {
         this.setTabState({ error: null }, tab)
       }
