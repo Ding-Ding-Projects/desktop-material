@@ -53,6 +53,20 @@ if (
 ) {
   throw 'Provider GitHub API Explorer custom-pattern contract failed.'
 }
+$releases = @(Invoke-RestMethod -Method Get -Uri "$repo/releases?per_page=30&page=1" -Headers $headers)
+$releaseAssets = @(
+  Invoke-RestMethod -Method Get -Uri "$repo/releases/$([int]$releases[0].id)/assets?per_page=100&page=1" -Headers $headers
+)
+if (
+  $releases.Count -ne 3 -or
+  [bool]$releases[0].draft -or
+  [bool]$releases[0].prerelease -or
+  -not [bool]$releases[1].prerelease -or
+  -not [bool]$releases[2].draft -or
+  $releaseAssets.Count -ne 2
+) {
+  throw 'Provider Releases dashboard contract failed.'
+}
 $encodedBranch = [Uri]::EscapeDataString([string]$ready.featureBranch)
 $branch = Invoke-RestMethod -Method Get -Uri "$repo/branches/$encodedBranch" -Headers $headers
 $rules = Invoke-RestMethod -Method Get -Uri "$repo/rules/branches/$encodedBranch`?per_page=100" -Headers $headers
@@ -82,7 +96,7 @@ if (
   $workflows.total_count -ne 1 -or
   $runsPage1.total_count -ne [int]$ready.workflowRunCount -or
   @($runsPage1.workflow_runs).Count -ne 50 -or
-  @($runsPage2.workflow_runs).Count -ne 2 -or
+  @($runsPage2.workflow_runs).Count -ne 3 -or
   $successPage1.total_count -ne [int]$ready.successfulWorkflowRunCount -or
   @($successPage1.workflow_runs).Count -ne 50 -or
   @($successPage2.workflow_runs).Count -ne 1 -or
@@ -142,6 +156,8 @@ try {
   cors = 'pass'
   repository = [string]$repository.full_name
   customPatterns = @($customPatterns).Count
+  releases = $releases.Count
+  releaseAssets = $releaseAssets.Count
   branchRules = $rules.Count
   workflows = [int]$workflows.total_count
   runs = [int]$runsPage1.total_count

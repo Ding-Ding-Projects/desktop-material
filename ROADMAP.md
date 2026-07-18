@@ -24,6 +24,9 @@ implementation details and historical test receipts stay in
   the Ctrl+F master command palette, Actions Runs/Workflows/Caches tabs
   with per-tab filter bars, clone visibility chips (public/private/forked),
   real account switching, and OAuth-scope re-authorization for Releases.
+- Complete GitHub notification pagination with a confirmed, retryable Clear all,
+  plus a repository Releases dashboard with status totals, search/filter modes,
+  rich release and asset metadata, and operation-specific recovery states.
 - Compact-window clipping fixes across dialogs and the tools hub, pointer
   hit-testing fixes in the clone surfaces, and a full 63-image gallery
   refresh captured from this build.
@@ -88,6 +91,7 @@ is described as shipped.
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment. |
 | Repository-wide feature revalidation | **Complete** | Verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and the 52-image documentation gallery. |
 | Documentation gallery expansion | **Complete** | Current adaptive-customization, submodule, and app-identity captures are shared by README, wiki, Pages, and tutorial; the guided gallery now contains 53 images. |
+| Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence. |
 
 ## Acceptance gates
 

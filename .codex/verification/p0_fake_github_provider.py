@@ -36,10 +36,11 @@ WORKFLOW_ID = 84_001
 WORKFLOW_RUN_ID = 84_101
 WORKFLOW_JOB_ID = 84_201
 ARTIFACT_ID = 84_301
-WORKFLOW_RUN_COUNT = 52
+WORKFLOW_RUN_COUNT = 53
 SUCCESS_WORKFLOW_RUN_COUNT = 51
+SUCCESS_WORKFLOW_RUN_BOUNDARY = 52
 WORKFLOW_RUN_PAGE_SIZE = 50
-WORKFLOW_RUN_SENTINEL_ID = WORKFLOW_RUN_ID + SUCCESS_WORKFLOW_RUN_COUNT - 1
+WORKFLOW_RUN_SENTINEL_ID = WORKFLOW_RUN_ID + SUCCESS_WORKFLOW_RUN_BOUNDARY - 1
 INSPECTOR_WORKFLOW_RUN_ID = WORKFLOW_RUN_ID + WORKFLOW_RUN_COUNT - 1
 INSPECTOR_LATEST_ATTEMPT = 2
 INSPECTOR_JOB_COUNT = 51
@@ -58,6 +59,8 @@ ARTIFACT_PAGE_SIZE = 30
 ARTIFACT_SENTINEL_ID = ARTIFACT_ID + ARTIFACT_COUNT - 1
 CACHE_IDS = (87_001, 87_002, 87_003)
 ACTION_CACHE_PAGE_SIZE = 30
+RELEASE_IDS = (88_001, 88_002, 88_003)
+RELEASE_ASSET_IDS = (88_101, 88_102, 88_103)
 RULESET_IDS = (91_001, 91_002)
 FIXTURE_TOKEN = "dm-p0-loopback-token-20260713"
 FIXTURE_HTML_URL = "http://material-provider.invalid"
@@ -254,6 +257,108 @@ class ProviderState:
             "permissions": {"admin": True, "push": True, "pull": True},
         }
 
+    def release_asset(
+        self,
+        asset_id: int,
+        name: str,
+        label: str,
+        size: int,
+        downloads: int,
+        digest_character: str,
+    ) -> dict[str, Any]:
+        return {
+            "id": asset_id,
+            "name": name,
+            "label": label,
+            "state": "uploaded",
+            "content_type": "application/octet-stream",
+            "size": size,
+            "download_count": downloads,
+            "created_at": "2026-07-17T16:00:00Z",
+            "updated_at": "2026-07-18T09:30:00Z",
+            "digest": f"sha256:{digest_character * 64}",
+            "browser_download_url": (
+                f"{self.repository_html_url}/releases/download/"
+                f"v3.6.3-material/{name}"
+            ),
+        }
+
+    @property
+    def releases(self) -> list[dict[str, Any]]:
+        stable_assets = [
+            self.release_asset(
+                RELEASE_ASSET_IDS[0],
+                "DesktopMaterialSetup-x64.exe",
+                "Windows x64 installer",
+                148_897_792,
+                713,
+                "a",
+            ),
+            self.release_asset(
+                RELEASE_ASSET_IDS[1],
+                "checksums.txt",
+                "SHA-256 checksums",
+                1_024,
+                689,
+                "b",
+            ),
+        ]
+        preview_assets = [
+            self.release_asset(
+                RELEASE_ASSET_IDS[2],
+                "DesktopMaterial-preview.zip",
+                "Portable preview",
+                96_468_992,
+                84,
+                "c",
+            )
+        ]
+        author = {"login": ACCOUNT_LOGIN}
+        return [
+            {
+                "id": RELEASE_IDS[0],
+                "tag_name": "v3.6.3-material",
+                "target_commitish": FEATURE_BRANCH,
+                "name": "Desktop Material 3.6.3",
+                "body": (
+                    "Production Material shell with verified Windows installer, "
+                    "release assets, and deterministic off-screen evidence."
+                ),
+                "draft": False,
+                "prerelease": False,
+                "created_at": "2026-07-17T15:30:00Z",
+                "published_at": "2026-07-18T09:30:00Z",
+                "author": author,
+                "assets": stable_assets,
+            },
+            {
+                "id": RELEASE_IDS[1],
+                "tag_name": "v3.7.0-preview.2",
+                "target_commitish": FEATURE_BRANCH,
+                "name": "Material dashboard preview",
+                "body": "Synthetic pre-release used only by the production UI gate.",
+                "draft": False,
+                "prerelease": True,
+                "created_at": "2026-07-18T10:00:00Z",
+                "published_at": "2026-07-18T10:15:00Z",
+                "author": author,
+                "assets": preview_assets,
+            },
+            {
+                "id": RELEASE_IDS[2],
+                "tag_name": "v3.7.0-draft",
+                "target_commitish": DEFAULT_BRANCH,
+                "name": "Next Material maintenance draft",
+                "body": "Unpublished deterministic fixture release.",
+                "draft": True,
+                "prerelease": False,
+                "created_at": "2026-07-18T11:00:00Z",
+                "published_at": None,
+                "author": author,
+                "assets": [],
+            },
+        ]
+
     @property
     def workflow(self) -> dict[str, Any]:
         return {
@@ -274,7 +379,10 @@ class ProviderState:
         if index < 0 or index >= WORKFLOW_RUN_COUNT:
             raise ValueError("Workflow run index is outside the fixture.")
         run_id = WORKFLOW_RUN_ID + index
-        success = index < SUCCESS_WORKFLOW_RUN_COUNT
+        # One run inside the successful fixture range remains in progress so
+        # cancellation UI stays capturable. Keep the range boundary distinct
+        # from the number of runs whose conclusion is actually ``success``.
+        success = index < SUCCESS_WORKFLOW_RUN_BOUNDARY
         sentinel = run_id == WORKFLOW_RUN_SENTINEL_ID
         inspector = run_id == INSPECTOR_WORKFLOW_RUN_ID
         branch = (
@@ -930,6 +1038,28 @@ class ProviderState:
             )
         if method == "GET" and resource == repo_root:
             return json_response(self.repository)
+        if (
+            method == "GET"
+            and resource == f"{repo_root}/releases"
+            and query == {"per_page": ["30"], "page": ["1"]}
+        ):
+            return json_response(self.releases)
+        release_assets_match = re.fullmatch(
+            rf"{re.escape(repo_root)}/releases/(\d+)/assets", resource
+        )
+        if (
+            method == "GET"
+            and release_assets_match is not None
+            and query == {"per_page": ["100"], "page": ["1"]}
+        ):
+            release_id = parse_route_identifier(release_assets_match.group(1))
+            release = next(
+                (value for value in self.releases if value["id"] == release_id),
+                None,
+            )
+            if release is None:
+                return json_response({"message": "Not Found"}, HTTPStatus.NOT_FOUND)
+            return json_response(release["assets"])
         if (
             method == "GET"
             and resource == f"{repo_root}/secret-scanning/custom-patterns"

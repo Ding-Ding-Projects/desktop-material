@@ -6,7 +6,7 @@ focuses on what Desktop Material adds on top.
 
 **Feature guide**
 
-The complete M0–M19 roadmap is published on `main`. This guide also covers the current maintenance
+The complete M0–M20 roadmap is published on `main`. This guide also covers the current maintenance
 release: adaptive appearance and profile app identity, favorite/portable tabs, Material entry surfaces, guarded tab management, workflow-run
 cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, and compact
 surface corrections, plus the repository-contextual GitHub API Explorer. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
@@ -28,6 +28,7 @@ catalogued function or state owns one distinct screenshot rather than borrowing 
 - [One-click commit & push](#one-click-commit--push)
 - [Notification centre](#notification-centre)
 - [GitHub Actions panel](#github-actions-panel)
+- [Repository Releases](#repository-releases)
 - [UI scaling](#ui-scaling)
 - [Automation and merge-all](#automation-and-merge-all)
 - [History search and graph](#history-search-and-graph)
@@ -711,6 +712,30 @@ headers before any cross-origin hop. Download errors also omit signed URLs and q
 live Windows x64 proof below shows the resulting searchable, collapsible log viewer.
 
 ![Windows x64 GitHub Actions job log loaded securely in the searchable in-app viewer](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-actions-job-log.png)
+
+---
+
+## Repository Releases
+
+Open **Releases** from the repository rail to work with the selected GitHub repository without
+losing its account context. The dashboard summarizes the releases currently loaded, including
+stable, prerelease, and draft counts, combined asset/download totals, and the latest stable release.
+
+- Search the loaded catalog with fuzzy, substring, or regular-expression matching, optionally
+  case-sensitive, and combine it with the **Published**, **Pre-release**, or **Draft** status filter.
+  The result count always says how many loaded releases are shown; **Load more releases** expands the
+  catalog before filtering when GitHub reports another bounded page.
+- Select a release to inspect its status, author, tag, target branch or commit, creation and publish
+  times, notes, asset count, and total downloads. Open the exact provider release page when GitHub
+  supplies a validated repository URL.
+- Asset cards show file type, size, upload dates, download count, and digest when available. Existing
+  guarded actions still create or edit drafts, publish or delete a reviewed release, upload or delete
+  an asset, and download an asset through bounded transfer and integrity checks.
+- Initial loading, asset loading, no-releases, no-filter-match, invalid-regex, and provider-error states
+  remain distinct. A failed release or asset request names the failed operation and retries that same
+  scope without discarding already loaded data.
+
+![Releases dashboard with status summary, searchable catalog, selected metadata, and assets](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
 
 ---
 

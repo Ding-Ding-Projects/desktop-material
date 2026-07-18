@@ -87,6 +87,39 @@ class ProviderStateTests(unittest.TestCase):
         )
         self.assertEqual(rejected_query.status, 404)
 
+    def test_releases_dashboard_fixture_has_stable_preview_and_draft_states(self) -> None:
+        response = self.state.dispatch(
+            "GET",
+            self.repo_path + "/releases?per_page=30&page=1",
+            self.headers,
+        )
+        self.assertEqual(response.status, 200)
+        releases = self.json(response)
+        self.assertEqual(
+            [(value["draft"], value["prerelease"]) for value in releases],
+            [(False, False), (False, True), (True, False)],
+        )
+        self.assertEqual(
+            [value["id"] for value in releases],
+            list(provider.RELEASE_IDS),
+        )
+
+        assets = self.state.dispatch(
+            "GET",
+            self.repo_path
+            + f"/releases/{provider.RELEASE_IDS[0]}/assets?per_page=100&page=1",
+            self.headers,
+        )
+        self.assertEqual(assets.status, 200)
+        asset_values = self.json(assets)
+        self.assertEqual(
+            [value["id"] for value in asset_values],
+            list(provider.RELEASE_ASSET_IDS[:2]),
+        )
+        self.assertTrue(
+            all(value["digest"].startswith("sha256:") for value in asset_values)
+        )
+
     def test_artifact_metadata_matches_exact_archive(self) -> None:
         metadata = self.state.dispatch(
             "GET",
@@ -172,7 +205,7 @@ class ProviderStateTests(unittest.TestCase):
         second_body = self.json(second)
         self.assertEqual(first_body["total_count"], provider.WORKFLOW_RUN_COUNT)
         self.assertEqual(len(first_body["workflow_runs"]), 50)
-        self.assertEqual(len(second_body["workflow_runs"]), 2)
+        self.assertEqual(len(second_body["workflow_runs"]), 3)
 
         success_first = self.state.dispatch(
             "GET",

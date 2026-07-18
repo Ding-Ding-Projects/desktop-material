@@ -64,7 +64,7 @@ display.
 | `material-actions-pagination-headless.png` | Headless Actions run pagination and page-two sentinel |
 | `material-actions-artifacts-headless.png` | Headless bounded artifact inventory |
 | `material-actions-sentinel-headless.png` | Headless wrapped sentinel evidence with no clipping |
-| `material-github-releases.png` | Repository-bound Releases and assets workspace |
+| `material-github-releases.png` | Repository-bound Releases dashboard, status summary, metadata, and assets |
 | `material-github-issues.png` | Issue detail, comments, and reviewed lifecycle controls |
 | `material-provider-triage.png` | Account- and repository-bound provider triage |
 | `material-repository-tools.png` | Named Repository Tools administration hub |
@@ -206,7 +206,7 @@ recovery.
 
 ![Native pull-request completion state](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
 
-![Repository-bound Releases and assets workspace](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
+![Repository-bound Releases dashboard with status summary, selected metadata, and assets](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
 
 ![Issue detail, comments, and reviewed lifecycle controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-github-issues.png)
 

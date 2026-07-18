@@ -12,12 +12,12 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ## Product scope
 
-The complete M0–M19 roadmap is shipped on `main`. The compact status summary is
+The complete M0–M20 roadmap is shipped on `main`. The compact status summary is
 below; the implementation ledger is in [`PLAN.md`](PLAN.md), and detailed
 acceptance receipts are in [`HANDOFF.md`](HANDOFF.md).
 
-The post-M19 adaptive customization maintenance release described below is
-shipped on `main`. Its exact production build, off-screen interaction review,
+The M20 platform wave and post-M19 adaptive customization maintenance release
+described below are shipped on `main`. Their exact production build, off-screen interaction review,
 compact and zoomed layout checks, safety boundaries, and seven privacy-safe
 captures are recorded in [`HANDOFF.md`](HANDOFF.md); the existing M0–M19
 receipts remain historical evidence for their original releases. All current
@@ -131,7 +131,7 @@ maintenance acceptance items are complete.
 **Guided GitHub workflows**
 - Compose pull requests with repository templates and metadata, then inspect, update, review, close/reopen, or merge the exact reviewed pull request through a fail-closed lifecycle
 - Browse paginated Actions artifacts, download with bounded redirect and digest checks, and inspect the effective rules that apply to the current branch
-- Browse and manage GitHub Releases and assets with bounded transfers; browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
+- Use the repository Releases dashboard to compare loaded, stable, prerelease, and draft counts; search and status-filter the loaded catalog; inspect authors, publish dates, targets, asset types, digests, and download totals; and keep the existing bounded create, publish, edit, delete, upload, and download workflows. Browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
 - Use the repository-contextual GitHub API Explorer, bound to the selected account and provider host, to search all 1,206 REST operations, isolate exactly the 10 additions since the prior pinned 2026-03-10 catalog, switch between REST and GraphQL, review mutations before they run, and inspect bounded, credential-redacted responses
 
 **Fully Material, everywhere**
@@ -195,7 +195,7 @@ set.
 
 | Pull requests and rules | Actions | Releases, issues, and providers |
 | --- | --- | --- |
-| <img src="docs/assets/screenshots/material-create-pull-request.png" alt="Create pull request success" width="360"><br><sub>Create pull request</sub> | <img src="docs/assets/screenshots/material-actions-job-log.png" alt="Searchable Actions job log" width="360"><br><sub>Job log</sub> | <img src="docs/assets/screenshots/material-github-releases.png" alt="GitHub Releases workspace" width="360"><br><sub>Releases</sub> |
+| <img src="docs/assets/screenshots/material-create-pull-request.png" alt="Create pull request success" width="360"><br><sub>Create pull request</sub> | <img src="docs/assets/screenshots/material-actions-job-log.png" alt="Searchable Actions job log" width="360"><br><sub>Job log</sub> | <img src="docs/assets/screenshots/material-github-releases.png" alt="Releases dashboard with status summary and selected release metadata" width="360"><br><sub>Releases dashboard</sub> |
 | <img src="docs/assets/screenshots/material-effective-branch-rules.png" alt="Effective branch rules" width="360"><br><sub>Branch rules</sub> | <img src="docs/assets/screenshots/material-actions-artifact-download.png" alt="Actions artifact download and digest" width="360"><br><sub>Artifact download</sub> | <img src="docs/assets/screenshots/material-provider-triage.png" alt="Provider-neutral triage" width="360"><br><sub>Provider triage</sub> |
 | <img src="docs/assets/screenshots/material-actions-pending-deployments.png" alt="Pending deployment review" width="360"><br><sub>Deployment review</sub> | <img src="docs/assets/screenshots/material-actions-pagination.png" alt="Actions run pagination" width="360"><br><sub>Run pagination</sub> | <img src="docs/assets/screenshots/material-github-notifications.png" alt="GitHub notifications" width="360"><br><sub>GitHub notifications</sub> |
 | <img src="docs/assets/screenshots/material-actions-jobs-pagination.png" alt="Attempt-aware Actions jobs" width="360"><br><sub>Attempt-aware jobs</sub> | <img src="docs/assets/screenshots/material-actions-artifact-page-two.png" alt="Actions artifact page two" width="360"><br><sub>Artifact pagination</sub> | <img src="docs/assets/screenshots/material-actions-artifacts.png" alt="Actions artifact provenance details" width="360"><br><sub>Artifact provenance</sub> |
