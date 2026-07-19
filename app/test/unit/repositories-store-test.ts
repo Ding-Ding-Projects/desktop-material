@@ -4,7 +4,10 @@ import { join } from 'path'
 import { RepositoriesStore } from '../../src/lib/stores/repositories-store'
 import { TestRepositoriesDatabase } from '../helpers/databases'
 import { IAPIFullRepository, getDotComAPIEndpoint } from '../../src/lib/api'
-import { assertIsRepositoryWithGitHubRepository } from '../../src/models/repository'
+import {
+  assertIsRepositoryWithGitHubRepository,
+  SubmoduleRepository,
+} from '../../src/models/repository'
 import { Account, getAccountKey } from '../../src/models/account'
 
 describe('RepositoriesStore', () => {
@@ -149,6 +152,54 @@ describe('RepositoriesStore', () => {
       assert.equal(rebound.groupName, 'Work')
       assert.equal(rebound.defaultBranch, 'trunk')
       assert.equal(rebound.accountKey, 'https://api.github.com#42')
+    })
+
+    it('rejects every saved-record mutation for a temporary submodule', async () => {
+      const parent = await repositoriesStore.addRepository(
+        '/some/parent/path',
+        '/some/parent/path/.git'
+      )
+      const temporary = new SubmoduleRepository(
+        '/some/parent/path/vendor/child',
+        '/some/parent/path/.git/modules/vendor/child',
+        parent,
+        {
+          name: 'vendor/child',
+          path: 'vendor/child',
+          url: 'https://example.invalid/child.git',
+          branch: null,
+          update: null,
+          ignore: null,
+          shallow: null,
+          fetchRecurseSubmodules: null,
+          sha: '0123456789012345678901234567890123456789',
+          describe: null,
+          status: 'up-to-date',
+        }
+      )
+
+      await assert.rejects(
+        repositoriesStore.updateRepositoryAlias(temporary, 'nope'),
+        /Temporary submodule repositories/
+      )
+      await assert.rejects(
+        repositoriesStore.updateRepositoryGroupName([temporary], 'nope'),
+        /Temporary submodule repositories/
+      )
+      await assert.rejects(
+        repositoriesStore.updateRepositoryMissing(temporary, true),
+        /Temporary submodule repositories/
+      )
+      await assert.rejects(
+        repositoriesStore.removeRepository(temporary),
+        /Temporary submodule repositories/
+      )
+
+      const repositories = await repositoriesStore.getAll()
+      assert.equal(repositories.length, 1)
+      assert.equal(repositories[0].id, parent.id)
+      assert.equal(repositories[0].alias, null)
+      assert.equal(repositories[0].missing, false)
     })
   })
 

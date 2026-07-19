@@ -6,6 +6,7 @@ import {
 } from './lib/application-theme'
 import * as ipcRenderer from '../lib/ipc-renderer'
 import { IAppearanceCustomization } from '../models/appearance-customization'
+import { LanguageModeChangedEvent } from '../lib/i18n'
 
 interface IAppThemeProps {
   readonly theme: ApplicationTheme
@@ -26,6 +27,9 @@ const appearanceAttributes = [
   'data-dm-tab-density',
   'data-dm-tab-width',
   'data-dm-tab-close-buttons',
+  'data-dm-language-mode',
+  'data-dm-submodule-back-style',
+  'data-dm-submodule-back-label',
   'data-dm-highlight-features',
 ] as const
 
@@ -74,7 +78,9 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
 
   private applyAppearance() {
     const body = document.body
+    const root = document.documentElement
     const appearance = this.props.appearance
+    const previousLanguageMode = root.getAttribute('data-language-mode')
     body.setAttribute('data-dm-accent', appearance.accentPalette)
     body.setAttribute(
       'data-dm-update-progress',
@@ -94,10 +100,29 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
     body.setAttribute('data-dm-tab-density', appearance.tabDensity)
     body.setAttribute('data-dm-tab-width', appearance.tabWidth)
     body.setAttribute('data-dm-tab-close-buttons', appearance.tabCloseButtons)
+    body.setAttribute('data-dm-language-mode', appearance.languageMode)
+    root.lang = appearance.languageMode === 'cantonese' ? 'zh-HK' : 'en'
+    root.setAttribute('data-language-mode', appearance.languageMode)
+    body.setAttribute(
+      'data-dm-submodule-back-style',
+      appearance.submoduleBackButtonStyle
+    )
+    body.setAttribute(
+      'data-dm-submodule-back-label',
+      appearance.submoduleBackButtonLabel
+    )
     body.toggleAttribute(
       'data-dm-highlight-features',
       appearance.highlightDesktopMaterialFeatures
     )
+
+    if (previousLanguageMode !== appearance.languageMode) {
+      document.dispatchEvent(
+        new CustomEvent(LanguageModeChangedEvent, {
+          detail: appearance.languageMode,
+        })
+      )
+    }
   }
 
   private appearanceEquals(
@@ -118,6 +143,9 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
       left.tabDensity === right.tabDensity &&
       left.tabWidth === right.tabWidth &&
       left.tabCloseButtons === right.tabCloseButtons &&
+      left.languageMode === right.languageMode &&
+      left.submoduleBackButtonStyle === right.submoduleBackButtonStyle &&
+      left.submoduleBackButtonLabel === right.submoduleBackButtonLabel &&
       left.highlightDesktopMaterialFeatures ===
         right.highlightDesktopMaterialFeatures
     )
@@ -183,6 +211,8 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
     for (const attribute of appearanceAttributes) {
       document.body.removeAttribute(attribute)
     }
+    document.documentElement.lang = 'en'
+    document.documentElement.removeAttribute('data-language-mode')
   }
 
   public render() {

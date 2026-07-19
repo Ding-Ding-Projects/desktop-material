@@ -10,6 +10,11 @@ import {
   RepositoryLogoDesignVersion,
 } from './repository-logo'
 import { ITabTitleStyle, normalizeTabTitleStyle } from './repository-tab'
+import {
+  LanguageMode,
+  languageModes,
+  normalizeLanguageMode,
+} from './language-mode'
 
 /** The persisted appearance schema version. */
 export const AppearanceCustomizationVersion = 1 as const
@@ -31,6 +36,11 @@ export type ToolbarLabelPreference = 'auto' | 'labels' | 'icons'
 export type DensityPreference = 'comfortable' | 'compact'
 export type TabWidthPreference = 'compact' | 'standard' | 'wide'
 export type TabCloseButtonPreference = 'hover' | 'always' | 'active'
+export type SubmoduleBackButtonStyle = 'tonal' | 'filled' | 'outlined'
+export type SubmoduleBackButtonLabel =
+  | 'back-to-parent'
+  | 'parent-name'
+  | 'icon-only'
 
 /** Application-wide appearance defaults saved in the active profile. */
 export interface IAppearanceCustomization {
@@ -48,6 +58,12 @@ export interface IAppearanceCustomization {
   readonly tabDensity: DensityPreference
   readonly tabWidth: TabWidthPreference
   readonly tabCloseButtons: TabCloseButtonPreference
+  /** Persisted app language presentation; never inferred from host locale. */
+  readonly languageMode: LanguageMode
+  /** Visual treatment for the temporary submodule-context Back action. */
+  readonly submoduleBackButtonStyle: SubmoduleBackButtonStyle
+  /** Visible label treatment; the accessible name always identifies the parent. */
+  readonly submoduleBackButtonLabel: SubmoduleBackButtonLabel
   /** Visually identifies entry points added by Desktop Material. */
   readonly highlightDesktopMaterialFeatures: boolean
   readonly appIdentity: IAppIdentityCustomization
@@ -97,6 +113,9 @@ export const DefaultAppearanceCustomization: IAppearanceCustomization = {
   tabDensity: 'comfortable',
   tabWidth: 'standard',
   tabCloseButtons: 'hover',
+  languageMode: 'english',
+  submoduleBackButtonStyle: 'tonal',
+  submoduleBackButtonLabel: 'back-to-parent',
   highlightDesktopMaterialFeatures: false,
   appIdentity: DefaultAppIdentityCustomization,
   repositoryLogo: DefaultRepositoryLogoDesign,
@@ -149,6 +168,10 @@ export const tabWidthPreferences: ReadonlyArray<TabWidthPreference> = [
 ]
 export const tabCloseButtonPreferences: ReadonlyArray<TabCloseButtonPreference> =
   ['hover', 'always', 'active']
+export const submoduleBackButtonStyles: ReadonlyArray<SubmoduleBackButtonStyle> =
+  ['tonal', 'filled', 'outlined']
+export const submoduleBackButtonLabels: ReadonlyArray<SubmoduleBackButtonLabel> =
+  ['back-to-parent', 'parent-name', 'icon-only']
 
 const MaxPersistedAppearanceLength = 32_768
 
@@ -217,6 +240,21 @@ export function normalizeAppearanceCustomization(
     tabCloseButtons: isOneOf(source.tabCloseButtons, tabCloseButtonPreferences)
       ? source.tabCloseButtons
       : defaults.tabCloseButtons,
+    languageMode: isOneOf(source.languageMode, languageModes)
+      ? normalizeLanguageMode(source.languageMode)
+      : defaults.languageMode,
+    submoduleBackButtonStyle: isOneOf(
+      source.submoduleBackButtonStyle,
+      submoduleBackButtonStyles
+    )
+      ? source.submoduleBackButtonStyle
+      : defaults.submoduleBackButtonStyle,
+    submoduleBackButtonLabel: isOneOf(
+      source.submoduleBackButtonLabel,
+      submoduleBackButtonLabels
+    )
+      ? source.submoduleBackButtonLabel
+      : defaults.submoduleBackButtonLabel,
     highlightDesktopMaterialFeatures:
       typeof source.highlightDesktopMaterialFeatures === 'boolean'
         ? source.highlightDesktopMaterialFeatures

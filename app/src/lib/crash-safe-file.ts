@@ -680,6 +680,15 @@ export class CrashSafeFilePersistence {
   }
 
   private async syncDirectory(path: string): Promise<void> {
+    // Node's directory-handle fsync can remain pending indefinitely on
+    // Windows (including Electron renderers). The rename sequence is still
+    // crash-recoverable through its same-directory temp/recovery files, so do
+    // not let an unsupported durability hint strand the primary between the
+    // recovery rename and final install.
+    if (process.platform === 'win32') {
+      return
+    }
+
     let handle: ICrashSafeFileHandle | null = null
     try {
       handle = await this.fileSystem.open(path, constants.O_RDONLY)

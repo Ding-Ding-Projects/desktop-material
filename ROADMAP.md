@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 18, 2026**
+Updated: **July 19, 2026**
 
 Desktop Material's feature roadmap is complete through **M19**, plus the
 **M20 platform wave** below. This file is the compact public source of truth;
@@ -31,19 +31,14 @@ implementation details and historical test receipts stay in
   hit-testing fixes in the clone surfaces, and a full 63-image gallery
   refresh captured from this build.
 
-## Next up (queued)
+## Ongoing maintenance
 
-- Per-repository Appearance revamp: standalone photo-editor-grade logo
-  studio, full color chooser, and Word-grade typography — each element in
-  its own Git-backed history store.
-- Regex builder on **every** search/filter bar (including the Actions job
-  log) with per-bar customizable appearance.
-- Submodule config manager, per-submodule row decoration, a git subtree
-  manager, and beginner-simple submodule documentation.
-- Notification-triggered webhook/script automation builder (context-menu
-  entry), release-backed large-file storage, an in-app log viewer with
-  verbose mode and Git-backed log history, tools-catalog reorganization,
-  and Easter eggs.
+The previously queued appearance, regex, submodule configuration, subtree,
+notification automation, release-backed large-file, log-history, and tools
+catalog work is now represented by completed maintenance rows and its exact
+receipts rather than a stale future-work list. New work must be added with a
+named scope and its own acceptance evidence before it is described as queued or
+shipped.
 
 ## Milestones
 
@@ -70,15 +65,20 @@ implementation details and historical test receipts stay in
 | **M18** | **Complete** | Material Design 3 shell, responsive layouts, keyboard focus, accessibility, and clipping coverage. |
 | **M19** | **Complete** | Guided Git/GitHub/provider parity: PR lifecycle, Releases, Issues, rules, patch series, commit rewrite, signing, LFS, worktrees, remotes, hooks, bisect, and triage. |
 
-No feature wave or current maintenance item is unfinished. New work must close
-a specific issue, pass the acceptance gates below, and be documented before it
-is described as shipped.
+The completed milestone waves remain shipped. The temporary-submodule
+navigation and CI/release hardening items below have completed local acceptance.
+The owned app, provider, CDP listener, credential, headless desktop, and fixture
+root were cleaned after the final post-build regression. Remote `main`, CI,
+release, Pages, wiki, and final repository-publication evidence remains pending
+and must be recorded before publication is called complete.
 
 ## Current maintenance acceptance
 
 | Work | State | Required proof |
 |---|---|---|
-| Profile, repository, and tab appearance customization | **Complete** | Verified all 13 active-profile defaults, including default-off Desktop Material feature highlighting with an explicit fork-only allowlist, profile local-Git history, all six repository-local overrides and inheritance, Word-style per-tab typography plus independent text/background palettes, restart persistence, light/dark/compact layouts, and inspected appearance evidence. |
+| Temporary submodule repository navigation and explicit language modes | **Local acceptance complete; publication pending** | Run `20260718-232824-ci-10-pass-submodule-navigation` opened only initialized submodules; kept temporary children out of the repository list, Recent, tabs, and persisted last selection; returned nested navigation to the persisted root; rejected stale, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets; covered all Back styles/labels and exact English, playful Hong Kong Cantonese, and bilingual modes; and passed restart, keyboard, compact, dark, 200%-requested auto-fit, ten accepted screenshot passes, and a post-build 1440×960 child/read-only/Back regression. A later fresh-bundle race regression synchronously exercised duplicate Open and Back activation: it preserved one persisted repository and tab, restored the root once, and showed no error. The final local gates were 237/237 focused, 66/66 lifecycle, 32/32 localization, all 562 unit-test files (3,986 passing tests and one skipped), and 16/16 script tests. |
+| CI updater port and release gating | **Local acceptance complete; publication pending** | Local contracts verify a per-job exact loopback updater URL at build and runtime, successful exact-SHA CI gating before installer publication, immutable-tag and `origin/main` checks both before packaging and immediately before publication, required non-empty assets, least-privilege release-PR read access, and one publication action. TypeScript, lint, actionlint, diff checks, and the exact MCP production build passed; the authoritative remote Windows packaged E2E and one-release result are deliberately not claimed until the pending `main` run is observed. |
+| Profile, repository, and tab appearance customization | **Complete** | Verified all 17 active-profile defaults, including explicit language and temporary-submodule Back controls plus default-off Desktop Material feature highlighting with an explicit fork-only allowlist, profile local-Git history, all six repository-local overrides and inheritance, Word-style per-tab typography plus independent text/background palettes, restart persistence, light/dark/compact layouts, and inspected appearance evidence. |
 | App identity and portable tab workspace | **Complete** | Verified profile-backed app logo/name typography and effects, favorites, folder-drop tab opening, current-tab session import/export, appropriate right-click customization/history context, unknown-key migration safety, restart persistence, 38 named identity controls, compact no-overflow geometry, and inspected headless evidence. |
 | Measured app-bar overflow | **Complete** | Verified live label measurement, Icons only/compact footprints, Build & Run then Commit & Push overflow order, mounted-state and focus continuity, deterministic widening restore, and `material-toolbar-overflow.png`. |
 | Material Welcome and landing page | **Complete** | Verified the first-run task card and compact fallback, the Material landing structure and keyboard path, and inspected `material-welcome.png`. |
@@ -89,8 +89,8 @@ is described as shipped.
 | Compact Repository Tools, Remote Manager, and Regex Builder | **Complete** | Verified vertical reachability at short heights; readable remote name/URL/control columns before a stacked fallback; reflowed Regex Builder categories/tokens with a scrollable body and reachable footer; named controls, focus, zoom, and no page-level horizontal overflow. |
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on `main`. |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment. |
-| Repository-wide feature revalidation | **Complete** | Verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and the 52-image documentation gallery. |
-| Documentation gallery expansion | **Complete** | Current adaptive-customization, submodule, and app-identity captures are shared by README, wiki, Pages, and tutorial; the guided gallery now contains 53 images. |
+| Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery. |
+| Documentation gallery expansion | **Complete locally; publication pending** | Current adaptive-customization, submodule, and app-identity captures are shared by README, wiki, Pages, and tutorial; the guided gallery now contains 64 distinct tracked images. Remote image delivery remains part of the pending publication proof. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence. |
 
 ## Acceptance gates

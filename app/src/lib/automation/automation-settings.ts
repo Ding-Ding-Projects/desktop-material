@@ -109,6 +109,9 @@ export function saveAutomationSettings(state: IAutomationSettingsState): void {
 export function loadRepositoryAutomationOverrides(
   repositoryId: number
 ): IAutomationSettingsOverrides {
+  if (!Number.isSafeInteger(repositoryId) || repositoryId <= 0) {
+    return {}
+  }
   return coerceOverrides(
     getObject<unknown>(`${RepositoryAutomationSettingsPrefix}${repositoryId}`)
   )
@@ -118,5 +121,8 @@ export function saveRepositoryAutomationOverrides(
   repositoryId: number,
   overrides: IAutomationSettingsOverrides
 ): void {
+  if (!Number.isSafeInteger(repositoryId) || repositoryId <= 0) {
+    return
+  }
   setObject(`${RepositoryAutomationSettingsPrefix}${repositoryId}`, overrides)
 }

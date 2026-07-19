@@ -12,15 +12,23 @@ multi-window workflows, per-account repository tabs, Git-backed settings and not
 triage, configurable bottom-right error notices, and a non-modal dialog framework. Its Material
 first-run experience, adaptive toolbar, profile-backed
 app identity, favorite/portable tabs, and layered appearance controls let the workspace respond to
-both the active profile and the selected repository. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL capabilities
+both the active profile and the selected repository. Initialized submodules can open as temporary
+repositories without entering the saved repository list, with a profile-customizable Back control
+to the persisted root. The completed parity roadmap turns audited Git, `gh`, REST, and GraphQL capabilities
 into named app functions rather than a searchable command or endpoint catalogue.
 
-> **Status:** Desktop Material is in **active development**, with the complete M0–M19 roadmap and
+> **Status:** Desktop Material is in **active development**, with the complete M0–M20 roadmap and
 > the verified post-M19 adaptive customization maintenance release published on `main`. Its exact
 > production build, off-screen interaction review, compact/zoomed geometry checks, and inspected
 > screenshot evidence are recorded alongside the implementation ledger and historical receipts in
 > [`PLAN.md`](https://github.com/codingmachineedge/desktop-material/blob/main/PLAN.md)
 > and [`HANDOFF.md`](https://github.com/codingmachineedge/desktop-material/blob/main/HANDOFF.md).
+> The July 18–19 temporary-submodule navigation and delivery-hardening changes completed ten-pass
+> off-screen local acceptance, post-build child/Back regression, a later fresh-bundle duplicate
+> Open/Back race regression, and owned headless-resource cleanup. The local code gate passed 237
+> focused checks, all 562 unit-test files (3,986 passing tests and one skipped), and 16 script
+> tests. Their new `main`, CI, installer release, Pages, and wiki receipts remain explicitly pending
+> publication.
 
 ![Desktop Material workspace with a profile-customized app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
@@ -51,9 +59,9 @@ for details and the manual-download path.
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 58 named visual functions and states, with automated missing/duplicate coverage checks. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 64 named visual functions and states, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
-| [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
+| [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
 | [Developer Guide](Developer-Guide) | Architecture for contributors — Electron windows, store/dispatcher flow, dugite, profile repos, agent server, CLI routing, and SCSS tokens. |
 | [Agent API](Agent-API) | Shipped MCP, local REST, stdio proxy, and CLI access for safe AI-agent control. |
@@ -93,13 +101,18 @@ receipts as acceptance evidence.
 
 ### Appearance, onboarding, and adaptive layout
 
-Open **Settings → Appearance** to set the 13 app defaults carried by the active profile: **accent
-palette**, **surface palette**, **surface depth**, **interface font**, **code and diff font**,
-**motion**, **toolbar labels**, **toolbar density**, **repository-list density**, **tab density**,
-**tab width**, **tab close-button visibility**, and default-off **Desktop Material feature
-highlighting**. The optional discovery treatment adds an accent edge plus an `M` or **Material**
+Open **Settings → Appearance** to set the 17 app defaults carried by the active profile: **accent
+palette**, **update-progress palette**, **surface palette**, **surface depth**, **interface font**,
+**code and diff font**, **motion**, **toolbar labels**, **toolbar density**, **repository-list
+density**, **tab density**, **tab width**, **tab close-button visibility**, **language mode**,
+**submodule Back style**, **submodule Back label**, and default-off **Desktop Material feature
+highlighting**. Language is an explicit persisted choice among **English**, playful **Hong Kong
+Cantonese**, and compact **Bilingual** copy; English is the fallback rather than a silent
+operating-system-locale replacement. The Back control can be **Tonal**, **Filled accent**, or
+**Outlined**, with **Back to parent**, the parent name, or an icon-only presentation that retains
+its accessible destination. The optional discovery treatment adds an accent edge plus an `M` or **Material**
 badge only to explicitly reviewed fork-only navigation, toolbar, settings, menu, and command entry
-points; it does not change their behavior or label upstream/mixed controls. All 13 settings are
+points; it does not change their behavior or label upstream/mixed controls. All 17 settings are
 captured in that profile's local Git history, so switching profiles switches the appearance context
 and Settings History can audit or restore it.
 
@@ -126,7 +139,7 @@ the tonal workspace preview hides when a compact window needs the space.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
-![Appearance preferences with optional Desktop Material feature highlighting enabled and Material badges on fork-only entry points](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+![Appearance preferences with explicit language and temporary-submodule Back button controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ![Measured narrow toolbar with Build and Run and Commit and Push in the More actions surface](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
 
@@ -154,7 +167,7 @@ the tonal workspace preview hides when a compact window needs the space.
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
 
-### Verified adaptive customization maintenance release
+### Adaptive customization and navigation maintenance
 
 - **Guarded tab close and arrangement** — preserve the original regex **Close Tabs Containing…**
   action and add a case-insensitive literal **Close all tabs except those containing…** review with
@@ -189,6 +202,10 @@ the tonal workspace preview hides when a compact window needs the space.
   the same GitHub.com, Enterprise, URL, and GitLab/Bitbucket selection model as Clone, then review a
   safe repository-relative path and optional branch with exact-account routing, bounded progress,
   cancellation, and managed-list refresh.
+- **Temporary submodule navigation** — choose **Open as repository** on an initialized Submodule
+  Manager row to work in that child without adding it to the repository list, Recent, or persisted
+  last selection. The context bar returns to the saved root repository; invalid or escaping paths
+  fail closed without a partial import.
 
 ![Word-style tab appearance editor with typography, alignment, and independent text and background palettes](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-tab-appearance-word.png)
 
@@ -205,6 +222,8 @@ the tonal workspace preview hides when a compact window needs the space.
 ![Reviewed current-branch rebase with ahead and behind counts and a bounded commit preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-rebase-review.png)
 
 ![Clone-style Add Submodule review with a synthetic URL, checkout path, and tracked branch](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/add-submodule-dialog.png)
+
+![Initialized submodule opened temporarily with a context bar and Back control to the persisted root repository](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-submodule-context.png)
 
 ### Production-verified M0–M19 native Git and GitHub functions
 

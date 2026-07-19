@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { RefNameTextBox } from '../lib/ref-name-text-box'
 import { Row } from '../lib/row'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
-import { addWorktree, listWorktrees } from '../../lib/git/worktree'
+import { listWorktrees } from '../../lib/git/worktree'
 import { BranchAutocompletionProvider } from '../autocompletion/branch-autocompletion-provider'
 import memoizeOne from 'memoize-one'
 import { RepositoryPath } from '../lib/repository-path'
@@ -102,26 +102,38 @@ export class AddWorktreeDialog extends React.Component<
         // Commit-anchored worktree: always a new branch created at the
         // anchoring commit, so the checkout is never detached and never
         // repurposes an existing branch.
-        await addWorktree(this.props.repository, fullPath, {
-          createBranch: effectiveBranchName,
-          commitish: this.props.commitish,
-        })
+        await this.props.dispatcher.addWorktree(
+          this.props.repository,
+          fullPath,
+          {
+            createBranch: effectiveBranchName,
+            commitish: this.props.commitish,
+          }
+        )
       } else if (branch?.type === BranchType.Remote) {
         // Remote branch: create a new local branch from the remote ref
-        await addWorktree(this.props.repository, fullPath, {
-          createBranch: branch.nameWithoutRemote,
-          commitish: branch.ref,
-        })
+        await this.props.dispatcher.addWorktree(
+          this.props.repository,
+          fullPath,
+          {
+            createBranch: branch.nameWithoutRemote,
+            commitish: branch.ref,
+          }
+        )
       } else if (branch) {
         // Existing local branch: check it out in the new worktree
-        await addWorktree(this.props.repository, fullPath, {
-          commitish: branch.name,
-        })
+        await this.props.dispatcher.addWorktree(
+          this.props.repository,
+          fullPath,
+          { commitish: branch.name }
+        )
       } else {
         // New branch: create it in the new worktree
-        await addWorktree(this.props.repository, fullPath, {
-          createBranch: effectiveBranchName,
-        })
+        await this.props.dispatcher.addWorktree(
+          this.props.repository,
+          fullPath,
+          { createBranch: effectiveBranchName }
+        )
       }
     } catch (e) {
       this.props.dispatcher.postError(e)

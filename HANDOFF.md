@@ -28,6 +28,16 @@ Pages deployment remains subject to the protected reviewed `main` promotion
 path; historical branch-only publication receipts below are retained as
 provenance rather than current status.
 
+The July 18–19 temporary-submodule navigation and CI/release-hardening changes
+have completed ten-pass off-screen local acceptance. Initialized children remain
+temporary and return to their persisted root through the profile-customizable
+Back control. The final post-build child/read-only/Back regression, later
+fresh-bundle duplicate Open/Back race regression, and owned runtime cleanup are
+also complete.
+Remote `main`, CI, installer release, CodeQL, Pages, wiki, and final
+repository-publication proof is still pending and is not claimed by this active
+handoff.
+
 ## 2026-07-18 repository-page CI status
 
 ### Internationalization follow-up
@@ -1765,6 +1775,235 @@ describe the default-off discovery treatment.
   invariant after pushing these receipts and confirm the documentation path
   filter does not publish another installer release.
 
+## 2026-07-18–19 CI recovery and temporary submodule navigation
+
+### Local outcome
+
+The July 18–19 changeset repairs the Windows packaged-E2E updater-port failure
+and adds **Open as repository** for initialized Submodule Manager rows. The
+opened child is a temporary negative-ID repository: it is absent from the saved
+repository database, repository list, Recent group, persisted last selection,
+and persisted tab collection. A context bar returns directly to the persisted
+root repository, including from nested temporary navigation. Appearance now
+stores exactly English, playful Hong Kong Cantonese, or bilingual presentation,
+plus Tonal/Filled accent/Outlined and Back to parent/Parent name/Icon only
+presentation for the Back action.
+
+That explicit profile selection supersedes the earlier locale-derived behavior
+recorded in the historical internationalization receipt above. The older text
+remains provenance for its original source rather than a description of the
+current language contract.
+
+The CI action selects one exact loopback `/update` URL for both the production
+bundle and runtime mock server. Installer publication is now downstream of
+successful CI for the exact same-repository `main` SHA; manual dispatch runs the
+same reusable CI gate; existing tags and missing or empty required assets fail;
+and one successful eligible run contains one release-publication action. This
+local receipt does not claim the still-pending remote result.
+
+### Exact build and headless environment
+
+- Run id: `20260718-232824-ci-10-pass-submodule-navigation`.
+- Low-level MCP checkout:
+  `8d6940be6a5f6e7c37de3f73acd2259fa7651efe`, served at
+  `http://127.0.0.1:8765/mcp`.
+- Off-screen Win32 desktop: `DesktopMaterialDebug10-20260718-232824`.
+- It was created exactly once; all app interaction and capture stayed on that
+  desktop, leaving the user's visible desktop and unrelated Electron processes
+  untouched.
+- Owned synthetic provider: PID `12096`, loopback port `50158`.
+- App-native CDP transport: loopback port `62241`. Native HWND targeting was
+  retained for the headless transport proof; app-native CDP was the documented
+  renderer fallback when hidden Chromium actions rejected native automation.
+- The earlier accepted exact production build returned zero in **215.38
+  seconds** (**217 seconds wall time**). After the later stale-parent
+  correction, the same MCP command rebuilt the renderer, but its client stream
+  detached before returning a receipt. The fresh bundle passed the final
+  duplicate Open/Back race regression documented in
+  `.codex/run-manifests/2026-07-19-final-exact-race-regression.md`.
+
+| Runtime stage | PID | HWND |
+| --- | ---: | ---: |
+| Diagnostic launch | 20380 | 67830826 |
+| Accepted passes 1–4 | 6048 | 19464818 |
+| Pass 5 and initial pass 6 | 17732 | 48956738 |
+| Persistence-build verification | 13272 | 19661426 |
+| Tokenized passes 6–9 before localization correction | 8624 | 73991674 |
+| Final localized pass 9 and pass 10 | 32600 | 83101264 |
+| Log-loop-fixed provider launch | 16460 | 90637818 |
+| Fixture published-remote relaunch | 23188 | 56230330 |
+| Final branch-rules environment launch | wrapper 24136; Electron main 5116 | 86050108 |
+| Final post-build regression | wrapper 28356; Electron main 25584 | 62588622 |
+
+The retained verifier state finished at pass 10 with one persistent repository,
+one persisted repository tab, checked-out child `modules/material-widget`, and
+uninitialized control `modules/dormant-addon`. Each pass reset known state before
+interaction, rejected blank/error frames, and advanced the durable pass ledger
+only after all assertions and the final direct CDP capture succeeded.
+
+### Ten accepted passes
+
+| Pass | Accepted capture | Dimensions | Bytes | SHA-256 |
+| ---: | --- | ---: | ---: | --- |
+| 1 | `pass-01-launch-final.png` | 1440×960 | 110,384 | `21f098f11388e1b57028dbcf9288e51272932b9a8a14cd150d6a2e04766a981e` |
+| 2 | `pass-02-manager-final.png` | 1440×960 | 140,353 | `2e883f275f7c888404a959d51be5dac0c88cf46fa39a343d4795315efd53c40d` |
+| 3 | `pass-03-child-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
+| 4 | `pass-04-back-parent.png` | 1440×960 | 122,228 | `bec6bf8e2ae957ab8544df68babf12e6fffe88be179e0e88e996878619119ff5` |
+| 5 | `pass-05-restart-policy.png` | 1440×960 | 140,116 | `a5402d2eb7b2a545c965eb0ce3a217a12a4fa634c7e85695ae050a3205b6e28e` |
+| 6 | `pass-06-appearance-tokenized.png` | 1440×960 | 136,786 | `4e511ff542907575633335ffdd8d8eb379b13b3a2f5c08e32ca6cf51b4298169` |
+| 7 | `pass-07-compact-keyboard.png` | 700×650 | 63,406 | `6cbbf7a893dbb0b5d111057364d040e1a57a6c42d30f2b392cb022fee6c2415d` |
+| 8 | `pass-08-dark-200.png` | 640×480 | 61,722 | `2f79c502ce72fd4cfafe44b12ffd35e58d23ff703d507e6441e4ef846c3f37cf` |
+| 9 | `pass-09-languages-localized.png` | 700×650 | 77,064 | `62c02c1040ecae78bfed9f7f24841b546719815994a772eaa1cd524c4ff9b4f9` |
+| 10 | `pass-10-regression.png` | 1440×960 | 164,471 | `f86886bae8848f73bd35015cc9b87ba0dc3f2438c09791439347f2f697e71f0c` |
+
+The passes proved fresh launch and identity; initialized/uninitialized manager
+gating; child Git scope and persistent-database invariants; exact Back focus and
+parent restoration after child changes; restart fallback without repository or
+tab pollution; Appearance live preview, Save, Cancel, and legacy fallback;
+keyboard-only compact operation; dark and 200%-requested auto-fit behavior; all
+three language modes and localized stale recovery; and final Changes, History,
+Actions, Notifications, Releases, Repository Tools, and Settings regressions.
+
+The additional inspected stale bilingual frame was 1443×993 and 163,335 bytes
+at SHA-256
+`33a595e1faf1b7ade1b523c254ef826c0a9e5239c84a184a84e7cfe6f6b50a6b`.
+The provider regression captures were Actions at 1440×960 and 109,546 bytes
+(`bd682b6f465012f0737fd6e47eb054bdb58333c13d2eaaffdf092523b0529325`)
+and Releases at 1440×960 and 146,415 bytes
+(`8dea0b61a0da101c730cb93e3534b5281d9aa3392c75acef8a1944cc36fbc1fb`).
+The same sweep accepted the effective-branch-rules state at 1440×960, 162,231
+bytes
+(`6a391269c74dd638687100651f023d727667b47960ab2353a1717fde96037ba8`).
+
+Two 2160×1440 pass-1 candidates were rejected because Playwright inherited the
+Windows 150% device scale rather than the requested renderer pixels. Direct
+`Page.captureScreenshot` produced the accepted exact-size frames. Other
+intermediate frames were retained only for debugging when stale tooltip CSS,
+incomplete async waits, or pre-fix localization made them unsuitable for public
+evidence.
+
+### Bugs found and corrected
+
+- The verifier continuously checks the persistent repository database, tab
+  count, and last-selection boundary instead of relying on UI cardinality alone.
+- Toolbar and navigation-rail selectors, async view waits, notification-panel
+  timing/close behavior, and capture-only tooltip cleanup now survive renderer
+  replacement and delayed surfaces without leaking state into later passes.
+- Windows directory `fsync` no longer turns a successful settings write into a
+  platform-specific failure.
+- Profile lock recovery distinguishes a reused process ID from a different
+  renderer lifetime and safely restores the serialized profile writer.
+- A temporary workspace that later fails path/Git revalidation clears its
+  caches and returns to the persisted root with localized error copy.
+- Temporary negative IDs remain memory-only for branch visibility and are
+  ignored by repository automation, pending-tag, settings, hosted-association,
+  worktree-mutation, and repository-bound notification persistence.
+- The log-history profile no longer recursively records its own Git bookkeeping
+  until the renderer stalls. A failing history commit disables and clears its
+  own queue before reporting, and timer/direct commits suppress the history sink.
+- Localized copy now lives in separate resources and renders through semantic
+  localized spans, preserving separators, bilingual hierarchy, and concise
+  accessible names across navigation, configuration, Appearance, and CI status.
+- A comprehensive last-boundary audit guards branch, tag, stash, reset, merge,
+  rebase, network, remote, worktree, submodule, subtree, sparse-checkout,
+  large-file, automation, shell/editor, and window-launch mutations. Temporary
+  Repository Tools is read-only; cache generations, listeners, and abort
+  controllers cannot leak delayed child state back into the root workspace.
+- Installer publication checks immutable-tag availability and exact
+  `origin/main` twice: before packaging and immediately before publication.
+  Query failures are fail-closed, and the release-PR workflow explicitly has
+  `contents: read`.
+
+### Final local code and runtime gates
+
+- Stable focused tests: **237/237**.
+- Temporary-context lifecycle subset: **66/66**.
+- Localization subset: **32/32**.
+- Supervised full `node script/test.mjs`: all **562** test files passed in three
+  batches; **3,986** tests passed, **one** was skipped, and the final batch was
+  **537/537**.
+- Script tests: **16/16**.
+- TypeScript, full lint, changed-workflow actionlint, and `git diff --check`:
+  **passed**.
+- Earlier accepted exact MCP production build: exit `0` in **215.38 seconds**
+  (**217 seconds wall time**). The later stale-parent rebuild had a detached
+  client stream, so no duration or exit code is claimed; its fresh bundle passed
+  the final off-screen race regression.
+
+The final built bundle then reopened the child and confirmed its context bar,
+unchanged persistent repository count, customizable Back control, and read-only
+Repository Tools boundary. The inspected 1440×960 child frame was 134,223 bytes,
+SHA-256
+`53bae0c04eccedbafa4dbb749151b00df4d95fadce701758259ffd049fdc89ad`.
+Back restored the root in a second inspected 1440×960 frame, 159,924 bytes,
+SHA-256
+`e11956f58a18216bd90b65276890f86579e0bdd1b559268a139861fe2f94dcf0`.
+Both were nonblank, unclipped, and private-data-free at original pixels.
+
+The log-history repository remained at HEAD
+`af8c8e91c8d99f0bf99f05dd46c7903d2ef9baf1`, count `22682`, and clean status
+across eight idle seconds. Before its owned run root was deleted, the fixture
+root was at `5f4cc173` with only the expected modified submodule pointer; child
+`modules/material-widget` was clean at `de377c26`.
+
+The exact app/wrapper and provider/launcher processes were stopped. Listeners
+`62241` and `50158`, the owned credential entry, the headless desktop, and the
+entire containment-checked run root were independently confirmed absent. The
+visible desktop and unrelated Electron processes were never touched.
+
+The final privacy audit rejected the first Repository Tools pair because its
+introductory path exposed the verifier account's Temp directory. The pair was
+recaptured from the same production bundle against the synthetic
+`C:\DesktopMaterialEvidence-20260719\fixture` checkout; the compact scene now
+also proves an actual scroll of the function list. Both replacements passed
+original-pixel inspection. Exact PID `5608`, listener `62243`,
+`DesktopMaterialPublicTools-20260719`, and the neutral evidence root were closed
+or removed and confirmed absent.
+
+### Promoted public screenshots
+
+All six frames were inspected at original resolution for exact dimensions,
+nonblank pixels, clipping, theme, synthetic-only data, and private-data absence
+before promotion.
+
+| Asset | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-repository-tools.png` | 1440×960 | 124,544 | `670295d148df32c1796951363a1cde5ddb4aa7b31ce3142e2a50949b7e56c398` |
+| `docs/assets/screenshots/material-repository-tools-scroll.png` | 960×420 | 68,162 | `4b47645776429875394280f0e5584aacf28988d2dcf2ccc79793e929a68f46f3` |
+| `docs/assets/screenshots/material-effective-branch-rules.png` | 1440×960 | 162,231 | `6a391269c74dd638687100651f023d727667b47960ab2353a1717fde96037ba8` |
+| `docs/assets/screenshots/add-submodule-dialog.png` | 1440×960 | 145,009 | `4c441e7d9757b6627e930bb9d43a39c86e38d408cc568b1c1ca874484b808a2a` |
+| `docs/assets/screenshots/material-customization.png` | 1440×960 | 165,740 | `478009bd887a067d007627a531206750bdb9e95508ec9860c609e8c090db2f15` |
+| `docs/assets/screenshots/material-submodule-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
+
+### Publication checkpoint — pending
+
+The following fields are deliberately placeholders. They must be replaced only
+from authoritative remote output after the exact changeset is pushed; no remote
+success is implied by the completed local acceptance above.
+
+- `main` implementation/documentation SHA: **PENDING REMOTE PUBLICATION**.
+- Exact CI run and formerly failing Windows x64 packaged-E2E job:
+  **PENDING REMOTE PUBLICATION**.
+- CodeQL run: **PENDING REMOTE PUBLICATION**.
+- Build Installers run, unique immutable tag, non-draft release target, and
+  required non-empty assets: **PENDING REMOTE PUBLICATION**.
+- Pages deployment, live HTTP result, and byte-identical six-image delivery:
+  **PENDING REMOTE PUBLICATION**.
+- Canonical wiki commit plus live Home/User Guide/Submodules/Feature Gallery
+  image checks: **PENDING REMOTE PUBLICATION**.
+- Owned credential/provider/CDP/desktop/temporary-root cleanup:
+  **COMPLETE LOCALLY**.
+- Final clean one-worktree `main == origin/main`, no-stash,
+  all-source-tips-merged proof after publication:
+  **PENDING PUBLICATION CLEANUP**.
+
+The repair baseline remains CI run `29671087941` at source
+`19c1e2a06d0746f4c371d37a1c102ae961011f90`: only Windows x64 packaged E2E
+failed, while both macOS packaged-E2E jobs, both Windows build jobs, both macOS
+build jobs, and lint succeeded. The failed-SHA release is immutable historical
+state: installer run `29671087924` and release
+`v3.6.3-beta3-b0000000163` are not reused, deleted, or rewritten.
+
 ## Maintenance constraints
 
 - Keep account identity on `endpoint#id`; never collapse provider accounts by
@@ -1789,6 +2028,8 @@ describe the default-off discovery treatment.
 - Keep named Git and GitHub workflows responsive: prefer wrapping and stacked
   controls over page-level sideways scrolling, with spatial code/diff/log
   surfaces as the narrow exception.
-- `build-installers.yml` intentionally publishes a release on qualifying
-  non-documentation pushes to `main`; verify whether a docs-only merge is
-  correctly skipped before reporting the final release state.
+- `build-installers.yml` intentionally publishes exactly one uniquely tagged
+  release after CI succeeds for every same-repository `main` push, including a
+  documentation-only push. Verify the exact SHA, CI gate, release target, and
+  required non-empty assets for each final push; never assume a docs-only push
+  is skipped.

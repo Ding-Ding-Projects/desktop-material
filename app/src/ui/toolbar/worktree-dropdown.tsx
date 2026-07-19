@@ -2,7 +2,7 @@ import * as React from 'react'
 import * as Path from 'path'
 import { Dispatcher } from '../dispatcher'
 import * as octicons from '../octicons/octicons.generated'
-import { Repository } from '../../models/repository'
+import { Repository, SubmoduleRepository } from '../../models/repository'
 import { ToolbarDropdown, DropdownState } from './dropdown'
 import { FoldoutType, IConstrainedValue } from '../../lib/app-state'
 import {
@@ -71,6 +71,9 @@ export class WorktreeDropdown extends React.Component<
   }
 
   private onOpenWorktreeInNewWindow = (path: string) => {
+    if (this.props.repository instanceof SubmoduleRepository) {
+      return
+    }
     this.props.dispatcher.closeFoldout(FoldoutType.Worktree)
     openRepositoryInNewWindow(path)
   }

@@ -15,14 +15,18 @@ this fork.
   architecture contracts, and historical receipts
 - **[Material redesign contract](../MATERIAL_REDESIGN.md)** - design system,
   customization scopes, adaptive app-bar behavior, and entry surfaces
+- **[Feature documentation](features/README.md)** - categorized user workflows,
+  persistence boundaries, failure modes, security notes, and acceptance targets
 
-The current customization work includes 12 active-profile appearance defaults
-in local Git-backed history, six repository-local overrides with app-default
-inheritance, and Word-style profile-backed per-tab typography with independent
-text/background colors. The measured app bar moves Build & Run and then Commit
-& Push into **More** before clipping and restores those mounted actions as space
-returns. The pure Material Welcome and landing redesigns share the same token
-and surface language.
+The appearance model now includes 17 active-profile defaults in local
+Git-backed history. Its language and two temporary-submodule Back fields passed
+the local acceptance run described below. The earlier accepted customization work
+also includes six repository-local overrides with app-default inheritance and
+Word-style profile-backed per-tab typography with independent text/background
+colors. The measured app bar moves Build & Run and then Commit & Push into
+**More** before clipping and restores those mounted actions as space returns.
+The pure Material Welcome and landing redesigns share the same token and surface
+language.
 
 The same shipped maintenance release adds pinned/manual/one-shot tab arrangement,
 preserves the original regex close action, and adds a guarded literal
@@ -35,14 +39,36 @@ items passed the integrated production build, focused and repository-wide
 checks, off-screen interaction review, compact/zoomed geometry gates, and
 privacy review recorded in the acceptance ledger.
 
-The seven inspected acceptance captures are
-[`material-welcome.png`](assets/screenshots/material-welcome.png),
-[`material-customization.png`](assets/screenshots/material-customization.png),
-[`material-toolbar-overflow.png`](assets/screenshots/material-toolbar-overflow.png),
-[`material-tab-appearance-word.png`](assets/screenshots/material-tab-appearance-word.png),
-[`material-tab-arrange.png`](assets/screenshots/material-tab-arrange.png),
-[`material-actions-cancel.png`](assets/screenshots/material-actions-cancel.png),
-and [`material-rebase-review.png`](assets/screenshots/material-rebase-review.png).
+The locally accepted repository-navigation change adds
+**Open as repository** to initialized Submodule Manager rows. The resulting
+workspace is temporary: it does not enter the repository list, Recent group, or
+persisted last selection, and a profile-customizable Back control returns to the
+persisted root repository. The same Appearance section provides explicit
+English, playful Hong Kong Cantonese, and compact bilingual language modes.
+Behavior, persistence, containment checks, and failure recovery are documented
+in [Temporary submodule repository navigation](features/repository-management/submodule-repository-navigation.md).
+The earlier accepted exact production build, ten-pass off-screen evidence, and
+promoted capture hashes are recorded in the [run manifest](../.codex/run-manifests/2026-07-18-ci-10-pass-submodule-navigation.md).
+After the later stale-parent correction, the same MCP command rebuilt the
+renderer but its client stream detached before returning a receipt; the fresh
+bundle then passed the final 1440×960 duplicate Open/Back race regression
+recorded in the [final race manifest](../.codex/run-manifests/2026-07-19-final-exact-race-regression.md).
+Local validation finished at 237/237 focused, 66/66 lifecycle, 32/32
+localization, all 562 unit-test files (3,986 passing tests and one skipped),
+and 16/16 script tests, with TypeScript, lint, workflow checks, and diff checks
+green. Owned app, provider, CDP, credential, desktop, and fixture resources were
+cleaned; remote publication evidence remains pending.
+
+The current six-image local acceptance refresh is
+[`material-repository-tools.png`](assets/screenshots/material-repository-tools.png),
+[`material-repository-tools-scroll.png`](assets/screenshots/material-repository-tools-scroll.png),
+[`material-effective-branch-rules.png`](assets/screenshots/material-effective-branch-rules.png),
+[`add-submodule-dialog.png`](assets/screenshots/add-submodule-dialog.png),
+[`material-customization.png`](assets/screenshots/material-customization.png), and
+[`material-submodule-context.png`](assets/screenshots/material-submodule-context.png).
+The earlier adaptive-maintenance captures and their original hashes remain
+historical evidence in `PLAN.md` and `HANDOFF.md`; the current file hashes are
+the values in this run's manifest.
 
 ## Contributing
 

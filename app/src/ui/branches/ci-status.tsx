@@ -7,7 +7,15 @@ import type { Disposable } from 'event-kit'
 import { Dispatcher } from '../dispatcher'
 import { ICombinedRefCheck, IRefCheck } from '../../lib/ci-checks/ci-checks'
 import { APICheckConclusion, IAPIWorkflowJobStep } from '../../lib/api'
-import { t, TranslationKey } from '../../lib/i18n'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  t,
+  translateForAccessibleName,
+  translatedVariable,
+  TranslationKey,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 interface ICIStatusProps {
   /** The classname for the underlying element. */
@@ -27,6 +35,7 @@ interface ICIStatusProps {
 
 interface ICIStatusState {
   readonly check: ICombinedRefCheck | null
+  readonly languageMode: LanguageMode
 }
 
 /** The little CI status indicator. */
@@ -44,6 +53,7 @@ export class CIStatus extends React.PureComponent<
     )
     this.state = {
       check,
+      languageMode: getPersistedLanguageMode(),
     }
     this.props.onCheckChange?.(check)
   }
@@ -82,11 +92,28 @@ export class CIStatus extends React.PureComponent<
   }
 
   public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.subscribe()
   }
 
   public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.unsubscribe()
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
   }
 
   private onStatus = (check: ICombinedRefCheck | null) => {
@@ -112,7 +139,11 @@ export class CIStatus extends React.PureComponent<
           this.props.className
         )}
         symbol={getSymbolForCheck(check)}
-        title={t('ci.status', { status: getLabelForCheck(check) })}
+        title={translateForAccessibleName(
+          'ci.status',
+          { status: translatedVariable(getTranslationKeyForCheck(check)) },
+          this.state.languageMode
+        )}
       />
     )
   }
@@ -121,6 +152,12 @@ export class CIStatus extends React.PureComponent<
 export function getLabelForCheck(check: {
   readonly conclusion: APICheckConclusion | null
 }): string {
+  return t(getTranslationKeyForCheck(check))
+}
+
+function getTranslationKeyForCheck(check: {
+  readonly conclusion: APICheckConclusion | null
+}): TranslationKey {
   let key: TranslationKey
   switch (check.conclusion) {
     case 'timed_out':
@@ -150,7 +187,7 @@ export function getLabelForCheck(check: {
     default:
       key = 'ci.inProgress'
   }
-  return t(key)
+  return key
 }
 
 export function getSymbolForCheck(

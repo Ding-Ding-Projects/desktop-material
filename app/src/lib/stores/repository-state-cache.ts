@@ -32,6 +32,11 @@ export class RepositoryStateCache {
 
   public constructor(private readonly statsStore: IStatsStore) {}
 
+  /** Drop all in-memory state for a repository that is leaving the session. */
+  public remove(repository: Repository): void {
+    this.repositoryState.delete(repository.hash)
+  }
+
   /** Get the state for the repository. */
   public get(repository: Repository): IRepositoryState {
     const existing = this.repositoryState.get(repository.hash)
@@ -42,6 +47,11 @@ export class RepositoryStateCache {
     const newItem = getInitialRepositoryState()
     this.repositoryState.set(repository.hash, newItem)
     return newItem
+  }
+
+  /** Get existing state without recreating an entry that was already removed. */
+  public getIfPresent(repository: Repository): IRepositoryState | undefined {
+    return this.repositoryState.get(repository.hash)
   }
 
   public update<K extends keyof IRepositoryState>(

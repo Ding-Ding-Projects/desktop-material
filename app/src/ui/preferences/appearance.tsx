@@ -30,7 +30,7 @@ import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { AppIdentity } from './app-identity'
 import { RepositoryLogoStudio } from '../repository-logo/repository-logo-studio'
-import { t } from '../../lib/i18n'
+import { t, translate } from '../../lib/i18n'
 
 type AppearanceSelectKey = Exclude<
   keyof IAppearanceCustomization,
@@ -185,6 +185,70 @@ export class Appearance extends React.Component<
           onChange={this.onHighlightDesktopMaterialFeaturesChanged}
         />
       </section>
+    )
+  }
+
+  private renderLanguageAndNavigation() {
+    const languageMode = this.props.appearanceCustomization.languageMode
+    const localize = (key: Parameters<typeof translate>[0]) =>
+      translate(key, languageMode)
+
+    return (
+      <div className="appearance-section appearance-customization-section appearance-language-navigation">
+        <h2>{localize('appearance.languageAndNavigation')}</h2>
+        <Row>
+          {this.renderCustomizationSelect(
+            'languageMode',
+            localize('appearance.languageMode'),
+            [
+              { value: 'english', label: localize('language.english') },
+              { value: 'cantonese', label: localize('language.cantonese') },
+              { value: 'bilingual', label: localize('language.bilingual') },
+            ]
+          )}
+          {this.renderCustomizationSelect(
+            'submoduleBackButtonStyle',
+            localize('appearance.submoduleBackStyle'),
+            [
+              {
+                value: 'tonal',
+                label: localize('submodule.backStyleTonal'),
+              },
+              {
+                value: 'filled',
+                label: localize('submodule.backStyleFilled'),
+              },
+              {
+                value: 'outlined',
+                label: localize('submodule.backStyleOutlined'),
+              },
+            ]
+          )}
+        </Row>
+        <Row>
+          {this.renderCustomizationSelect(
+            'submoduleBackButtonLabel',
+            localize('appearance.submoduleBackLabel'),
+            [
+              {
+                value: 'back-to-parent',
+                label: localize('submodule.backLabelFull'),
+              },
+              {
+                value: 'parent-name',
+                label: localize('submodule.backLabelParent'),
+              },
+              {
+                value: 'icon-only',
+                label: localize('submodule.backLabelIcon'),
+              },
+            ]
+          )}
+        </Row>
+        <p className="appearance-customization-caption">
+          {localize('appearance.languageModeDescription')}
+        </p>
+      </div>
     )
   }
 
@@ -727,6 +791,7 @@ export class Appearance extends React.Component<
           </div>
         </aside>
         {this.renderFeatureHighlighting()}
+        {this.renderLanguageAndNavigation()}
         <AppIdentity
           value={this.props.appearanceCustomization.appIdentity}
           onChange={this.onAppIdentityChanged}

@@ -26,6 +26,9 @@ interface IOkCancelButtonGroupProps {
   /** Aria description of the ok button */
   readonly okButtonAriaDescribedBy?: string
 
+  /** Optional concise accessible name when the visible label is multilingual. */
+  readonly okButtonAriaLabel?: string
+
   /**
    * An optional event handler for when the Ok button is clicked (either
    * explicitly or as the result of a form keyboard submission). If specified
@@ -44,6 +47,9 @@ interface IOkCancelButtonGroupProps {
 
   /** An optional title (i.e. tooltip) for the Cancel button, defaults to none */
   readonly cancelButtonTitle?: string
+
+  /** Optional concise accessible name when the visible label is multilingual. */
+  readonly cancelButtonAriaLabel?: string
 
   /**
    * Whether or not the cancel button should be rendered. The intention
@@ -163,6 +169,7 @@ export class OkCancelButtonGroup extends React.Component<
           'button-with-icon': okButtonIcon !== null,
         })}
         ariaDescribedBy={this.props.okButtonAriaDescribedBy}
+        ariaLabel={this.props.okButtonAriaLabel}
       >
         {okButtonIcon && <Octicon symbol={okButtonIcon} className="mr" />}
         {this.props.okButtonText || 'Ok'}
@@ -195,6 +202,7 @@ export class OkCancelButtonGroup extends React.Component<
         tooltip={this.props.cancelButtonTitle}
         type={this.props.destructive === true ? 'submit' : 'reset'}
         ariaDescribedBy={this.props.cancelButtonAriaDescribedBy}
+        ariaLabel={this.props.cancelButtonAriaLabel}
       >
         {this.props.cancelButtonText || 'Cancel'}
       </Button>

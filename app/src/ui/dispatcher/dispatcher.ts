@@ -142,6 +142,7 @@ import {
   getGitHubHtmlUrl,
   isRepositoryWithForkedGitHubRepository,
   getNonForkGitHubRepository,
+  SubmoduleRepository,
 } from '../../models/repository'
 import { RetryAction, RetryActionType } from '../../models/retry-actions'
 import {
@@ -1951,6 +1952,17 @@ export class Dispatcher {
     this.appStore._requestDeleteWorktree(repository, worktreePath)
   }
 
+  public addWorktree(
+    repository: Repository,
+    worktreePath: string,
+    options: {
+      readonly createBranch?: string
+      readonly commitish?: string
+    }
+  ): Promise<void> {
+    return this.appStore._addWorktree(repository, worktreePath, options)
+  }
+
   /** Lock or unlock one exact registered linked worktree. */
   public async setWorktreeLocked(
     repository: Repository,
@@ -2609,6 +2621,21 @@ export class Dispatcher {
     return this.appStore._getSubmodules(repository)
   }
 
+  /** Open an initialized submodule as a temporary, non-persisted repository. */
+  public openSubmoduleAsRepository(
+    parent: Repository,
+    submodule: IManagedSubmodule
+  ): Promise<SubmoduleRepository> {
+    return this.appStore._openSubmoduleAsRepository(parent, submodule)
+  }
+
+  /** Return from a temporary submodule workspace to its persisted root. */
+  public returnToParentRepository(
+    repository: SubmoduleRepository
+  ): Promise<Repository> {
+    return this.appStore._returnToParentRepository(repository)
+  }
+
   /** Look up a repository's GitHub release by its exact tag, or `null`. */
   public getReleaseByTag(
     repository: Repository,
@@ -3090,6 +3117,9 @@ export class Dispatcher {
    * the main-process runner, which never re-inspects the working tree.
    */
   public async startBuildRun(repository: Repository): Promise<void> {
+    if (repository instanceof SubmoduleRepository) {
+      return
+    }
     const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
     const runId = randomUUID()
     this.buildRunStore.beginRun(repository.id, runId)
@@ -3249,6 +3279,11 @@ export class Dispatcher {
     readonly phaseBefore: BuildRunViewPhase
     readonly run: IOpencodeRunResult
   }> {
+    if (repository instanceof SubmoduleRepository) {
+      throw new Error(
+        'Automated code execution is unavailable while a submodule is open temporarily.'
+      )
+    }
     const operationId = randomUUID()
     const phaseBefore = this.buildRunStore.getStateForRepository(
       repository.id

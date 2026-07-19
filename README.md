@@ -16,12 +16,24 @@ The complete M0–M20 roadmap is shipped on `main`. The compact status summary i
 below; the implementation ledger is in [`PLAN.md`](PLAN.md), and detailed
 acceptance receipts are in [`HANDOFF.md`](HANDOFF.md).
 
-The M20 platform wave and post-M19 adaptive customization maintenance release
-described below are shipped on `main`. Their exact production build, off-screen interaction review,
-compact and zoomed layout checks, safety boundaries, and seven privacy-safe
-captures are recorded in [`HANDOFF.md`](HANDOFF.md); the existing M0–M19
-receipts remain historical evidence for their original releases. All current
-maintenance acceptance items are complete.
+The M20 platform wave and earlier post-M19 adaptive customization maintenance
+release described below are shipped on `main`. Their exact production build,
+off-screen interaction review, compact and zoomed layout checks, safety
+boundaries, and seven privacy-safe captures are recorded in
+[`HANDOFF.md`](HANDOFF.md); the existing M0–M19 receipts remain historical
+evidence for their original releases. The July 18–19 temporary-submodule
+navigation and delivery-hardening changes have completed ten-pass off-screen
+local acceptance, post-build child/Back regression, a final duplicate Open/Back
+race regression, and owned headless-resource cleanup. The earlier accepted
+exact MCP build returned zero in 215.38 seconds (217 seconds wall time). After
+the later stale-parent correction, the same MCP command rebuilt the renderer,
+but its client stream detached before returning a receipt; the resulting fresh
+bundle passed the final off-screen race regression. The full local gate passed
+237 focused checks, 66 temporary-context lifecycle checks, 32 localization
+checks, all 562 unit-test files (3,986 passing tests and one skipped), and 16
+script tests, plus TypeScript, lint, and workflow validation. Their new `main`
+SHA, CI, installer release, Pages, and wiki receipts remain explicitly pending
+until publication.
 
 **Material Design 3 Expressive shell**
 - App-bar branding with an inline pill menu
@@ -32,10 +44,14 @@ maintenance acceptance items are complete.
 - A pure Material first-run Welcome task card and tonal workspace preview, paired with a Material 3 public landing page built from an expressive app bar, hero surface, principle cards, evidence gallery, and tonal calls to action
 
 **Appearance customization**
-- Fourteen app defaults in **Settings → Appearance**: accent color, update-progress color, surface color, surface depth, interface font, code/diff font, animation, toolbar labels, toolbar density, repository-list density, tab density, tab width, tab-close-button behavior, and opt-in Desktop Material feature highlighting. The thin top-edge bar appears only while an app update is downloading and defaults to the active accent color
-- The current-commit CI tooltip and update-download controls follow the Windows
-  locale in English, Traditional Chinese (Hong Kong/Taiwan), or Simplified
-  Chinese, with a safe English fallback for other locales
+- Seventeen app defaults in **Settings → Appearance**: accent color, update-progress color, surface color, surface depth, interface font, code/diff font, animation, toolbar labels, toolbar density, repository-list density, tab density, tab width, tab-close-button behavior, language mode, the temporary-submodule Back style and label, and opt-in Desktop Material feature highlighting. The thin top-edge bar appears only while an app update is downloading and defaults to the active accent color
+- Choose an explicit, persisted language mode: **English**, respectful and playful
+  **Hong Kong Cantonese**, or a compact **Bilingual** presentation. English is
+  the safe fallback; Desktop Material does not silently replace the selection
+  from the Windows locale
+- Customize the temporary-submodule Back control as **Tonal**, **Filled accent**,
+  or **Outlined**, with **Back to parent**, the parent repository name, or an
+  icon-only presentation whose accessible name still identifies the destination
 - **Highlight Desktop Material features** is off by default. Turn it on to add a non-animated accent edge and an `M` or **Material** badge to explicitly classified fork-only navigation, repository-tab tools, notifications, toolbar, menu, and command entry points; upstream and mixed GitHub Desktop controls stay neutral
 - A live **App identity** editor for the in-app logo, app name, logo geometry/border/shadow, colors, font, width, weight, case, size, spacing, opacity, emphasis, highlight, and text effects. Identity follows the active profile and restores across restart; signed binaries and the operating-system icon remain unchanged
 - A safe vector **Custom repository logo** studio with presets, editable mark/text layers, colors, transforms, live preview, undo/redo, bounded JSON import/export, a profile default, and per-repository inheritance. The resolved design follows the repository into its tab and repository-list row; executable/raw SVG is never stored
@@ -129,6 +145,7 @@ maintenance acceptance items are complete.
 - Manage every named remote with guarded add/rename/update/default/remove operations, and inspect or create exact known client hooks through the effective `core.hooksPath` without displaying hook contents or absolute paths. Remote rows stack before their name, URL, and controls collapse below a readable width, and the Repository Tools workspace keeps its diagnostics and results vertically reachable at compact heights
 - Save a credential-vault-backed SSH working copy in **Repository Settings → Remote** and optionally deploy Docker Compose after this app successfully pushes its matching remote. The remote checkout must be on the pushed branch: Desktop Material fetches that exact branch, permits only a fast-forward merge, then runs `docker compose up --detach --build`; branch mismatches and non-fast-forward updates fail without resetting or force-checking out the server
 - Add a submodule from **Repository settings → Submodules** through the same GitHub.com, Enterprise, URL, and GitLab/Bitbucket chooser used for cloning. The reviewed flow keeps exact-account credential affinity, validates a safe empty repository-relative path and optional branch, streams bounded progress, and offers real cancellation before refreshing the submodule list
+- Open any initialized submodule from the Submodule Manager as a temporary repository in the current workspace. It is not added to the repository list, Recent group, or persisted last selection; a profile-customizable Back control returns to the root repository that opened it. Stale, uninitialized, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets fail without importing anything
 - Pin, hide, solo, and restore branch visibility; preview exact merge-tree conflict paths before a merge changes the worktree
 - Triage bounded Issue and pull-request summaries for the exact selected GitHub, GitLab, or Bitbucket account/repository, including explicit provider-unavailable, unsupported, partial, and capped states
 
@@ -148,7 +165,7 @@ maintenance acceptance items are complete.
 
 ## Roadmap
 
-The complete M0–M19 status, completed maintenance work, and acceptance rules now
+The complete M0–M20 status, completed maintenance work, and acceptance rules now
 live in [`ROADMAP.md`](ROADMAP.md). Detailed implementation and verification
 receipts remain in [`PLAN.md`](PLAN.md) and [`HANDOFF.md`](HANDOFF.md).
 
@@ -161,7 +178,7 @@ set.
 
 | Custom app identity | Material Welcome | Appearance customization | Dynamic toolbar overflow |
 | --- | --- | --- | --- |
-| <img src="docs/assets/screenshots/material-app-identity-workspace.png" alt="Workspace with a customized in-app logo and name plus a favorite repository tab" width="320"><br><sub>Profile app identity</sub> | <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="320"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance preferences with the optional Desktop Material feature-highlighting switch enabled and Material badges on fork-only entry points" width="320"><br><sub>Optional feature discovery</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="320"><br><sub>Measured More behavior</sub> |
+| <img src="docs/assets/screenshots/material-app-identity-workspace.png" alt="Workspace with a customized in-app logo and name plus a favorite repository tab" width="320"><br><sub>Profile app identity</sub> | <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="320"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance preferences with explicit language mode and temporary-submodule Back button style and label controls" width="320"><br><sub>Language and navigation</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="320"><br><sub>Measured More behavior</sub> |
 
 | Word-style tab appearance | Arrange tabs | Actions cancellation | Reviewed rebase |
 | --- | --- | --- | --- |
@@ -184,6 +201,10 @@ set.
 | Custom repository-logo studio | Named API app functions |
 | --- | --- |
 | <img src="docs/assets/screenshots/material-repository-logo-studio.png" alt="Layered custom repository-logo studio with live preview, undo and redo, safe JSON transfer, and repository inheritance" width="520"><br><sub>Safe vector layers · profile default · repository override</sub> | <img src="docs/assets/screenshots/material-api-app-functions.png" alt="Named API app functions extending the selected repository through reviewed REST and GraphQL definitions" width="520"><br><sub>Versioned definitions · exact binding · reviewed execution</sub> |
+
+| Temporary submodule repository navigation |
+| --- |
+| <img src="docs/assets/screenshots/material-submodule-context.png" alt="Initialized submodule opened temporarily in the workspace with a context bar and Back control to the persisted root repository" width="720"><br><sub>No repository import · customizable Back control · root return</sub> |
 
 <details>
 <summary><strong>Open 30 more verified screenshots</strong></summary>

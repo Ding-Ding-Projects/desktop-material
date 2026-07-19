@@ -17,7 +17,7 @@ import {
   IProfileTabsState,
   ITabTitleStyle,
 } from '../../src/models/repository-tab'
-import { Repository } from '../../src/models/repository'
+import { Repository, SubmoduleRepository } from '../../src/models/repository'
 import { ProfileStore } from '../../src/lib/stores/profile-store'
 import { RepositoryTabsStore } from '../../src/lib/stores/repository-tabs-store'
 import { FilterMode } from '../../src/lib/fuzzy-find'
@@ -545,6 +545,56 @@ describe('RepositoryTabsStore window scope', () => {
     )
 
     assert.deepEqual(scopes, ['read:window-2', 'write:window-2'])
+  })
+
+  it('never persists or rebinds a temporary submodule tab', async () => {
+    const writes: IProfileTabsState[] = []
+    const initial: IProfileTabsState = {
+      tabs: [
+        {
+          id: 'root-tab',
+          repositoryId: 502,
+          repositoryPath: 'C:\\repos\\root',
+          customLabel: null,
+          titleStyle: null,
+        },
+      ],
+      activeTabId: 'root-tab',
+    }
+    const profileStore = {
+      readTabs: () => Promise.resolve(initial),
+      writeTabs: (state: IProfileTabsState) => {
+        writes.push(state)
+        return Promise.resolve()
+      },
+    } as unknown as ProfileStore
+    const parent = new Repository('C:\\repos\\root', 502, null, false)
+    const temporary = new SubmoduleRepository(
+      'C:\\repos\\root\\vendor\\child',
+      'C:\\repos\\root\\.git\\modules\\vendor\\child',
+      parent,
+      {
+        name: 'vendor/child',
+        path: 'vendor/child',
+        url: 'https://example.invalid/child.git',
+        branch: null,
+        update: null,
+        ignore: null,
+        shallow: null,
+        fetchRecurseSubmodules: null,
+        sha: '0123456789012345678901234567890123456789',
+        describe: null,
+        status: 'up-to-date',
+      }
+    )
+    const store = new RepositoryTabsStore(profileStore, 'window-temp')
+    await store.initialize()
+
+    await store.ensureTabForRepository(temporary)
+    store.rebindActiveTabToRepository(temporary)
+
+    assert.equal(writes.length, 0)
+    assert.deepEqual(store.getState(), initial)
   })
 })
 

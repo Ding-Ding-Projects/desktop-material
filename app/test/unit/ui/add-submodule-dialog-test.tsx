@@ -10,6 +10,7 @@ import { Repository } from '../../../src/models/repository'
 import { Dispatcher } from '../../../src/ui/dispatcher'
 import { AddSubmoduleDialog } from '../../../src/ui/repository-settings/add-submodule-dialog'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 
 let restoreIpcSend: (() => void) | null = null
 let restoreDialogShow: (() => void) | null = null
@@ -93,6 +94,7 @@ afterEach(() => {
   restoreIpcSend?.()
   restoreDialogShow?.()
   restoreWindowResizeObserver?.()
+  localStorage.removeItem('appearance-customization-v1')
 })
 
 const repository = new Repository('C:/fixtures/superproject', 1, null, false)
@@ -182,6 +184,41 @@ function chooseUrlAndFillSource() {
 }
 
 describe('Clone-style Add Submodule dialog', () => {
+  it('reacts across Cantonese and semantic bilingual copy with one accessible action name', async () => {
+    localStorage.setItem(
+      'appearance-customization-v1',
+      JSON.stringify({ version: 1, languageMode: 'cantonese' })
+    )
+    renderDialog({} as Dispatcher)
+
+    assert.ok(screen.getByRole('dialog', { name: '新增子模組' }))
+    fireEvent.click(screen.getByText('URL'))
+    assert.ok(screen.getByLabelText('Repo URL'))
+    assert.ok(screen.getByRole('button', { name: '新增子模組' }))
+
+    document.dispatchEvent(
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'bilingual' })
+    )
+    await waitFor(() => {
+      assert.ok(screen.getByRole('button', { name: 'Add submodule' }))
+      assert.equal(
+        screen.queryByRole('button', {
+          name: 'Add submodule · 新增子模組',
+        }),
+        null
+      )
+      const title = document.querySelector('#add-submodule-title')
+      assert.equal(
+        title?.querySelector('[lang="en"]')?.textContent,
+        'Add a submodule'
+      )
+      assert.equal(
+        title?.querySelector('[lang="zh-HK"]')?.textContent,
+        '新增子模組'
+      )
+    })
+  })
+
   it('exposes all provider tabs, live path suggestion, review, and validation', () => {
     renderDialog({} as Dispatcher)
 

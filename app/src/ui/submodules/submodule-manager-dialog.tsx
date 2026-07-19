@@ -4,6 +4,8 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
 import { Submodules } from '../repository-settings/submodules'
+import { LocalizedText } from '../lib/localized-text'
+import { translateForAccessibleName } from '../../lib/i18n'
 
 interface ISubmoduleManagerDialogProps {
   readonly repository: Repository
@@ -25,17 +27,24 @@ export class SubmoduleManagerDialog extends React.Component<ISubmoduleManagerDia
     return (
       <Dialog
         id="submodule-manager"
-        title={__DARWIN__ ? 'Submodule Manager' : 'Submodule manager'}
+        title={<LocalizedText translationKey="submodule.managerTitle" />}
+        titleId="submodule-manager-title"
         onSubmit={this.props.onDismissed}
         onDismissed={this.props.onDismissed}
       >
         <Submodules
           repository={this.props.repository}
           dispatcher={this.props.dispatcher}
+          onRepositoryOpened={this.props.onDismissed}
         />
         <DialogFooter>
           <OkCancelButtonGroup
-            okButtonText="Close"
+            okButtonText={
+              <LocalizedText translationKey="submodule.managerClose" />
+            }
+            okButtonAriaLabel={translateForAccessibleName(
+              'submodule.managerClose'
+            )}
             cancelButtonVisible={false}
           />
         </DialogFooter>

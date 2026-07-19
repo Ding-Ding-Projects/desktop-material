@@ -1,4 +1,4 @@
-export { RepositoryTools } from './repository-tools'
+export { RepositoryTools, isRepositoryToolMutation } from './repository-tools'
 export { CheapLfs } from './cheap-lfs'
 export type { ICheapLfsDispatcher, ICheapLfsProps } from './cheap-lfs'
 export { RepositoryBundleImport } from './bundle-import'

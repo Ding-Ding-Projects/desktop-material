@@ -50,6 +50,9 @@ describe('appearance customization', () => {
     assert.equal(parsed.surfacePalette, 'tonal')
     assert.equal(parsed.motion, 'reduced')
     assert.equal(parsed.tabWidth, 'wide')
+    assert.equal(parsed.languageMode, 'english')
+    assert.equal(parsed.submoduleBackButtonStyle, 'tonal')
+    assert.equal(parsed.submoduleBackButtonLabel, 'back-to-parent')
     assert.equal(parsed.highlightDesktopMaterialFeatures, false)
     assert.equal(parsed.appIdentity.displayName, 'Desktop Material')
     assert.equal(parsed.repositoryLogo.version, 1)
@@ -89,11 +92,17 @@ describe('appearance customization', () => {
       ...DefaultAppearanceCustomization,
       toolbarDensity: 'compact',
       uiFont: 'url(javascript:bad)',
+      languageMode: 'bilingual',
+      submoduleBackButtonStyle: 'outlined',
+      submoduleBackButtonLabel: 'parent-name',
       highlightDesktopMaterialFeatures: true,
     })
 
     assert.equal(normalized.toolbarDensity, 'compact')
     assert.equal(normalized.uiFont, 'material')
+    assert.equal(normalized.languageMode, 'bilingual')
+    assert.equal(normalized.submoduleBackButtonStyle, 'outlined')
+    assert.equal(normalized.submoduleBackButtonLabel, 'parent-name')
     assert.equal(normalized.highlightDesktopMaterialFeatures, true)
     assert.equal(
       normalizeAppearanceCustomization({
@@ -101,6 +110,22 @@ describe('appearance customization', () => {
         highlightDesktopMaterialFeatures: 'yes',
       }).highlightDesktopMaterialFeatures,
       false
+    )
+    assert.equal(
+      normalizeAppearanceCustomization({
+        ...DefaultAppearanceCustomization,
+        languageMode: 'zh-CN',
+        submoduleBackButtonStyle: 'javascript:alert(1)',
+        submoduleBackButtonLabel: 'html',
+      }).languageMode,
+      'english'
+    )
+    assert.equal(
+      normalizeAppearanceCustomization({
+        ...DefaultAppearanceCustomization,
+        submoduleBackButtonStyle: 'javascript:alert(1)',
+      }).submoduleBackButtonStyle,
+      'tonal'
     )
   })
 
@@ -113,6 +138,9 @@ describe('appearance customization', () => {
         motion: 'reduced',
         uiFont: 'system',
         toolbarDensity: 'invalid',
+        languageMode: 'cantonese',
+        submoduleBackButtonStyle: 'filled',
+        submoduleBackButtonLabel: 'icon-only',
         highlightDesktopMaterialFeatures: true,
       })
     )
@@ -134,6 +162,9 @@ describe('appearance customization', () => {
     assert.equal(resolved.accentPalette, 'amber')
     assert.equal(resolved.surfacePalette, 'neutral')
     assert.equal(resolved.tabWidth, 'compact')
+    assert.equal(resolved.languageMode, 'english')
+    assert.equal(resolved.submoduleBackButtonStyle, 'tonal')
+    assert.equal(resolved.submoduleBackButtonLabel, 'back-to-parent')
     assert.equal(resolved.highlightDesktopMaterialFeatures, true)
   })
 

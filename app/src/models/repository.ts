@@ -13,6 +13,7 @@ import {
 import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
 import { EditorOverride, getEditorOverrideHash } from './editor-override'
+import type { IManagedSubmodule } from '../lib/git/submodule'
 
 function getBaseName(path: string): string {
   const baseName = Path.basename(path)
@@ -110,6 +111,94 @@ export class Repository {
   public get resolvedGitDir(): string {
     return this.gitDir ?? Path.join(this.path, '.git')
   }
+}
+
+/**
+ * Generate a deterministic, non-database identifier for a submodule workspace.
+ *
+ * Repository database identifiers are positive. Keeping temporary identifiers
+ * negative makes accidental persistence visible while still giving the Git and
+ * repository-state caches a stable key for the lifetime of a parent checkout.
+ */
+export function getSubmoduleRepositoryID(
+  parentRepository: Repository,
+  submodulePath: string
+): number {
+  const normalizedPath = submodulePath.replace(/\\/g, '/')
+  const identity = `${parentRepository.id}\0${Path.resolve(
+    parentRepository.path
+  )}\0${normalizedPath}`
+  let hash = 0x811c9dc5
+
+  for (let i = 0; i < identity.length; i++) {
+    hash ^= identity.charCodeAt(i)
+    hash = Math.imul(hash, 0x01000193)
+  }
+
+  // Avoid negative zero while retaining all 32 bits of the stable hash.
+  return -(hash >>> 0 || 1)
+}
+
+/**
+ * A validated submodule checkout opened as a temporary repository workspace.
+ *
+ * This repository is never stored in the repositories database. Its parent
+ * and reconciled submodule snapshot are retained so callers can return to the
+ * exact persisted workspace and can distinguish this model with `instanceof`.
+ */
+export class SubmoduleRepository extends Repository {
+  public readonly parentRepository: Repository
+  public readonly containingRepository: Repository
+
+  public constructor(
+    path: string,
+    gitDir: string,
+    containingRepository: Repository,
+    public readonly submodule: IManagedSubmodule
+  ) {
+    const parentRepository =
+      containingRepository instanceof SubmoduleRepository
+        ? containingRepository.parentRepository
+        : containingRepository
+    const rootRelativePath = Path.relative(parentRepository.path, path).replace(
+      /\\/g,
+      '/'
+    )
+
+    super(
+      path,
+      getSubmoduleRepositoryID(parentRepository, rootRelativePath),
+      null,
+      false,
+      submodule.name,
+      parentRepository.workflowPreferences,
+      false,
+      gitDir,
+      parentRepository.accountKey,
+      defaultBuildRunPreferences,
+      parentRepository.groupName,
+      null,
+      parentRepository.customEditorOverride
+    )
+
+    this.parentRepository = parentRepository
+    this.containingRepository = containingRepository
+    this.hash = createEqualityHash(
+      this.hash,
+      'temporary-submodule',
+      parentRepository.hash,
+      containingRepository.hash,
+      rootRelativePath,
+      submodule.sha
+    )
+  }
+}
+
+/** Narrow a local repository to a temporary submodule workspace. */
+export function isSubmoduleRepository(
+  repository: unknown
+): repository is SubmoduleRepository {
+  return repository instanceof SubmoduleRepository
 }
 
 /** Identical to `Repository`, except it **must** have a `gitHubRepository` */

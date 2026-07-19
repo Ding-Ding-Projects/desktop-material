@@ -140,6 +140,27 @@ Updater behavior is tested through a local HTTP server defined in
 lets E2E builds point the app at the local mock update server instead of the
 real update service.
 
+CI does not use a shared fixed updater port. The
+`.github/actions/setup-e2e-update-port` action asks the operating system for a
+currently available port on `127.0.0.1`, closes the selection probe, and writes
+the exact `http://127.0.0.1:<port>/update` value to the job environment. The
+production build and packaged test process consume that same value, so the URL
+compiled into the app matches the mock server started at runtime. The mock
+server rejects non-HTTP, non-loopback, credential-bearing, query/fragment, or
+non-`/update` overrides rather than widening its listening surface.
+
+The July 19 local recovery gate also exercised the production bundle through an
+owned loopback provider and off-screen Win32 desktop. Its ten accepted passes
+covered launch, Submodule Manager gating, temporary child context, Back, restart,
+Appearance persistence, compact keyboard operation, dark/auto-fit rendering,
+all language modes, and representative application regressions. A final
+post-build 1440×960 child/read-only/Back regression passed before the owned app,
+provider, CDP listener, credential, desktop, and fixture root were removed. A
+later fresh-bundle race regression synchronously exercised duplicate Open and
+Back activation; it preserved one persisted repository and tab, restored the
+root once, and showed no error. This headless gate complements but does not
+replace the pending installed Windows packaged-E2E result from remote CI.
+
 ### macOS behavior
 
 For macOS, the mock server serves a Squirrel.Mac-style JSON response.
@@ -179,6 +200,8 @@ It currently:
 
 - checks out the repository
 - uses the shared CI environment setup action
+- selects a currently available per-job loopback updater port and exports one
+  exact `/update` URL
 - builds the production app with `DESKTOP_E2E_UPDATES_URL` pointed at the mock
   server
 - uses the shared Windows signing action when needed
@@ -195,6 +218,9 @@ This catches failures that do not show up when running only webpack output.
 
 Windows needed a few extra pieces to keep the suite stable.
 
+- the per-job loopback selection avoids depending on a historical fixed port
+  that may fall inside a Windows excluded range or already belong to another
+  service
 - the smoke suite only runs updater coverage against an installed app path on
   Windows
 - the workflow installs the generated Squirrel setup executable silently and
@@ -237,3 +263,6 @@ useful assertions.
 - Use `yarn test:e2e:packaged` when you need parity with the packaged runtime.
 - Rely on the CI `e2e-smoke` job for the final check against production-like
   packaged and installed artifacts.
+
+For the July 18–19 recovery changeset, the exact remote Windows result remains a
+publication receipt rather than a locally inferred success.

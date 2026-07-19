@@ -1,5 +1,5 @@
 import { setStringArray, getStringArray } from '../../local-storage'
-import { Repository } from '../../../models/repository'
+import { Repository, isSubmoduleRepository } from '../../../models/repository'
 
 /**
  * Store in localStorage the tags to push for the given repository
@@ -11,6 +11,9 @@ export function storeTagsToPush(
   repository: Repository,
   tagsToPush: ReadonlyArray<string>
 ) {
+  if (isSubmoduleRepository(repository)) {
+    return
+  }
   if (tagsToPush.length === 0) {
     clearTagsToPush(repository)
   } else {
@@ -24,6 +27,9 @@ export function storeTagsToPush(
  * @param repository the repository object
  */
 export function getTagsToPush(repository: Repository) {
+  if (isSubmoduleRepository(repository)) {
+    return []
+  }
   return getStringArray(getTagsToPushKey(repository))
 }
 
@@ -33,6 +39,9 @@ export function getTagsToPush(repository: Repository) {
  * @param repository the repository object
  */
 export function clearTagsToPush(repository: Repository) {
+  if (isSubmoduleRepository(repository)) {
+    return
+  }
   localStorage.removeItem(getTagsToPushKey(repository))
 }
 

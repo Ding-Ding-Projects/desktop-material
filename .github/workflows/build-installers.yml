@@ -1,9 +1,10 @@
 name: Build Installers
 
-# Builds the Desktop Material Windows installer and publishes a new GitHub
-# release on every push to main (and on manual dispatch). Each run produces a
-# unique release tagged with the workflow run number so history is preserved.
-# Installers are attached directly to the release (no build artifacts).
+# Builds the Desktop Material Windows installer after the complete CI workflow
+# succeeds on main. Manual dispatch runs that same reusable CI workflow before
+# building. Each run produces a unique release tagged with the workflow run
+# number so history is preserved. Installers are attached directly to the
+# release (no build artifacts).
 #
 # Notes:
 # - Code signing is disabled (no certificates configured), so installers are
@@ -12,16 +13,13 @@ name: Build Installers
 # - macOS builds are intentionally not produced.
 
 on:
-  push:
+  workflow_run:
+    workflows:
+      - CI
+    types:
+      - completed
     branches:
       - main
-    # Skip installer builds for documentation-only pushes to avoid burning CI
-    # minutes; remove this block to build on literally every push.
-    paths-ignore:
-      - 'docs/**'
-      - 'site/**'
-      - '**/*.md'
-      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 concurrency:
@@ -36,14 +34,60 @@ permissions:
   id-token: write
 
 jobs:
+  verify-dispatch:
+    name: Verify manually dispatched release
+    if: >-
+      github.event_name == 'workflow_dispatch' && github.ref ==
+      'refs/heads/main'
+    uses: ./.github/workflows/ci.yml
+    with:
+      repository: ${{ github.repository }}
+      ref: ${{ github.sha }}
+      upload-artifacts: false
+      environment: ''
+      sign: false
+    secrets: inherit
+
   build:
     name: Windows x64
+    needs: verify-dispatch
+    if: >-
+      always() && ((github.event_name == 'workflow_run' &&
+        github.event.workflow_run.event == 'push' &&
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_branch == 'main' &&
+        github.event.workflow_run.head_repository.full_name ==
+      github.repository) ||
+       (github.event_name == 'workflow_dispatch' &&
+        github.ref == 'refs/heads/main' &&
+        needs.verify-dispatch.result == 'success'))
     runs-on: windows-2022
     timeout-minutes: 60
+    env:
+      RELEASE_TARGET_SHA:
+        ${{ github.event.workflow_run.head_sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.RELEASE_TARGET_SHA }}
           submodules: recursive
+      - name: Require the current main commit
+        shell: bash
+        run: |
+          checked_out=$(git rev-parse HEAD)
+          remote_main=$(git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }')
+          if [[ ! "$remote_main" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Unable to resolve the current origin/main commit." >&2
+            exit 1
+          fi
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match release target $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+          if [ "$remote_main" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Release target $RELEASE_TARGET_SHA is stale; origin/main is $remote_main." >&2
+            exit 1
+          fi
       - uses: ./.github/actions/setup-ci-environment
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -67,6 +111,28 @@ jobs:
           node -e "const f='./app/package.json';const p=require(f);p.version='${version}';require('fs').writeFileSync(f, JSON.stringify(p, null, 2) + '\n')"
           echo "version=${version}" >> "$GITHUB_OUTPUT"
           echo "Fork build version: ${version}"
+      - name: Require a new immutable release tag
+        shell: bash
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            0)
+              echo "Release tag $tag already exists; refusing to replace immutable release assets." >&2
+              exit 1
+              ;;
+            2)
+              # --exit-code reserves status 2 for a successful query with no
+              # matching refs. Only that exact result proves the tag is absent.
+              ;;
+            *)
+              echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
+              exit "$status"
+              ;;
+          esac
       - name: Build production app
         run: yarn build:prod
         env:
@@ -116,14 +182,65 @@ jobs:
             done < dist/RELEASES
           fi
           ls -la installers
+      - name: Verify required release assets
+        shell: bash
+        run: |
+          version="${{ steps.version.outputs.version }}"
+          required=(
+            installers/RELEASES
+            installers/GitHubDesktopSetup-x64.exe
+            installers/GitHubDesktopSetup-x64.msi
+            "installers/GitHubDesktop-${version}-full.nupkg"
+            "installers/GitHubDesktop-${version}-x64-full.nupkg"
+          )
+          for asset in "${required[@]}"; do
+            if [ ! -s "$asset" ]; then
+              echo "Missing or empty required release asset: $asset" >&2
+              exit 1
+            fi
+          done
+      - name: Revalidate current main before publishing
+        shell: bash
+        run: |
+          remote_main=$(git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }')
+          if [[ ! "$remote_main" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Unable to resolve the current origin/main commit." >&2
+            exit 1
+          fi
+          if [ "$remote_main" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Release target $RELEASE_TARGET_SHA became stale while building; origin/main is $remote_main." >&2
+            exit 1
+          fi
+      - name: Revalidate immutable release tag before publishing
+        shell: bash
+        run: |
+          tag="v${{ steps.version.outputs.version }}"
+          set +e
+          git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
+          status=$?
+          set -e
+          case "$status" in
+            0)
+              echo "Release tag $tag appeared while building; refusing to update an existing release." >&2
+              exit 1
+              ;;
+            2)
+              # --exit-code reserves status 2 for a successful query with no
+              # matching refs. Only that exact result proves the tag is absent.
+              ;;
+            *)
+              echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
+              exit "$status"
+              ;;
+          esac
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ env.RELEASE_TARGET_SHA }}
           name: Desktop Material ${{ steps.version.outputs.version }}
           body: |
-            Automated Desktop Material Windows build from commit ${{ github.sha }}.
+            Automated Desktop Material Windows build from commit ${{ env.RELEASE_TARGET_SHA }}.
 
             Version `${{ steps.version.outputs.version }}`. Unsigned installer
             built by `.github/workflows/build-installers.yml`.
@@ -133,8 +250,9 @@ jobs:
             from `releases/latest/download/` (see `getUpdatesURL` in
             `script/dist-info.ts`).
           prerelease: false
+          draft: false
           make_latest: true
           files: installers/**
-          fail_on_unmatched_files: false
+          fail_on_unmatched_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

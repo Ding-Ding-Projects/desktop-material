@@ -15,6 +15,7 @@ import {
 } from '../profiles/profile-git'
 import { IProfileHistoryPage } from '../../models/profile'
 import { LogLevel } from '../logging/log-level'
+import { runWithLogSinkSuppressed } from '../logging/renderer/log-sink'
 
 /** The single log file tracked by the log-history repository. */
 export const LogFileName = 'app.log'
@@ -74,7 +75,12 @@ export class LogStore {
     await this.loadOrInitialize(repository)
 
     this.repository = repository
-    this.queue = new ProfileCommitQueue(repository, () => LogCommitDescription)
+    this.queue = new ProfileCommitQueue(
+      repository,
+      () => LogCommitDescription,
+      undefined,
+      flush => this.commitHistory(flush)
+    )
     this.enabled = true
   }
 
@@ -124,7 +130,11 @@ export class LogStore {
       return
     }
     await this.writeChain.catch(() => undefined)
-    await this.queue?.flush()
+    const queue = this.queue
+    if (!this.enabled || queue === null) {
+      return
+    }
+    await this.commitHistory(() => queue.flush())
   }
 
   // --- History source (consumed by the log history manager) ------------------
@@ -138,6 +148,9 @@ export class LogStore {
       return emptyHistoryPage()
     }
     await this.flush()
+    if (!this.enabled) {
+      return emptyHistoryPage()
+    }
     return getProfileHistory(this.repository, skip, limit)
   }
 
@@ -147,6 +160,9 @@ export class LogStore {
       return []
     }
     await this.flush()
+    if (!this.enabled) {
+      return []
+    }
     return getProfileCommitFiles(this.repository, sha)
   }
 
@@ -156,6 +172,9 @@ export class LogStore {
       return ''
     }
     await this.flush()
+    if (!this.enabled) {
+      return ''
+    }
     return getProfileCommitDiff(this.repository, sha, file)
   }
 
@@ -185,11 +204,43 @@ export class LogStore {
       return
     }
     await this.flush()
+    if (!this.enabled) {
+      return
+    }
     await action(this.repository)
     await this.reload()
   }
 
   // --- Internals -------------------------------------------------------------
+
+  /**
+   * Commit the log repository without feeding Git's own output back into the
+   * renderer sink. A persistent failure disables only log history and is
+   * consumed here so ProfileCommitQueue's generic failure logger cannot create
+   * another history entry and restart the same queue.
+   */
+  private async commitHistory(operation: () => Promise<void>): Promise<void> {
+    if (!this.enabled) {
+      return
+    }
+
+    await runWithLogSinkSuppressed(async () => {
+      try {
+        await operation()
+      } catch (error) {
+        // Disable before reporting the error as a second fail-closed barrier:
+        // even an unexpected sink escape cannot schedule another commit.
+        this.enabled = false
+        this.queue = null
+        try {
+          log.error('LogStore history commit failed; disabled', error)
+        } catch {
+          // A logging transport failure must not escape into the queue's own
+          // failure reporter, which would put us back on the recursive path.
+        }
+      }
+    })
+  }
 
   /**
    * Write the log to disk and queue a commit. Writes are serialized behind

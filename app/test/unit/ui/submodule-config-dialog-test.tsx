@@ -7,6 +7,7 @@ import { Repository } from '../../../src/models/repository'
 import { Dispatcher } from '../../../src/ui/dispatcher'
 import { SubmoduleConfigDialog } from '../../../src/ui/submodules/submodule-config-dialog'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 
 let restoreIpcSend: (() => void) | null = null
 let restoreDialogShow: (() => void) | null = null
@@ -90,6 +91,7 @@ afterEach(() => {
   restoreIpcSend?.()
   restoreDialogShow?.()
   restoreWindowResizeObserver?.()
+  localStorage.removeItem('appearance-customization-v1')
 })
 
 const repository = new Repository('C:/fixtures/superproject', 1, null, false)
@@ -208,6 +210,39 @@ function renderDialog(
 }
 
 describe('SubmoduleConfigDialog', () => {
+  it('reacts across Cantonese and semantic bilingual copy with concise accessible controls', async () => {
+    localStorage.setItem(
+      'appearance-customization-v1',
+      JSON.stringify({ version: 1, languageMode: 'cantonese' })
+    )
+    const { dispatcher } = createDispatcher()
+    renderDialog(dispatcher)
+
+    assert.ok(screen.getByRole('dialog', { name: '設定 vendor-lib' }))
+    assert.ok(screen.getByLabelText('遠端 URL'))
+    assert.ok(screen.getByRole('button', { name: '儲存變更' }))
+
+    document.dispatchEvent(
+      new CustomEvent(LanguageModeChangedEvent, { detail: 'bilingual' })
+    )
+    await waitFor(() => {
+      assert.ok(screen.getByRole('button', { name: 'Save changes' }))
+      assert.equal(
+        screen.queryByRole('button', { name: 'Save changes · 儲存變更' }),
+        null
+      )
+      const title = document.querySelector('#submodule-config-title')
+      assert.equal(
+        title?.querySelector('[lang="en"]')?.textContent,
+        'Configure vendor-lib'
+      )
+      assert.equal(
+        title?.querySelector('[lang="zh-HK"]')?.textContent,
+        '設定 vendor-lib'
+      )
+    })
+  })
+
   it('seeds every field from the reconciled submodule', () => {
     const { dispatcher } = createDispatcher()
     renderDialog(dispatcher, {

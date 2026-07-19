@@ -50,6 +50,71 @@
     }
   }
 
+  .submodule-repository-context {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+    min-height: 46px;
+    padding: 6px 12px;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container-low);
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+
+    .submodule-context-back.button-component {
+      display: inline-flex;
+      flex: 0 1 auto;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 40px;
+      max-width: min(360px, 55vw);
+      min-height: 34px;
+      padding: 5px 12px;
+      border-radius: 999px;
+
+      .octicon {
+        flex: 0 0 auto;
+      }
+    }
+
+    .submodule-context-back-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .submodule-context-back-tonal.button-component {
+      color: var(--md-sys-color-on-primary-container);
+      background: var(--md-sys-color-primary-container);
+      border-color: transparent;
+    }
+
+    .submodule-context-back-filled.button-component {
+      color: var(--md-sys-color-on-primary);
+      background: var(--md-sys-color-primary);
+      border-color: transparent;
+    }
+
+    .submodule-context-back-outlined.button-component {
+      color: var(--md-sys-color-primary);
+      background: transparent;
+      border-color: var(--md-sys-color-outline);
+    }
+
+    p {
+      min-width: 0;
+      margin: 0;
+      overflow: hidden;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 12px;
+      line-height: 1.35;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
   &.commit-being-dragged {
     :not(input):not(textarea),
     :not(input):not(textarea)::after,
@@ -129,6 +194,20 @@
           }
         }
       }
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  #desktop-app-contents .submodule-repository-context {
+    gap: 8px;
+    padding-inline: 8px;
+
+    p {
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
     }
   }
 }

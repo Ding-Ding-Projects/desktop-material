@@ -73,6 +73,22 @@ describe('Appearance feature highlighting preference', () => {
       DefaultAppearanceCustomization.repositoryLogo
     )
 
+    fireEvent.change(screen.getByLabelText('Language'), {
+      target: { value: 'bilingual' },
+    })
+    assert.equal(changes[1].languageMode, 'bilingual')
+    assert.equal(changes[1].submoduleBackButtonStyle, 'tonal')
+
+    fireEvent.change(screen.getByLabelText('Submodule Back button style'), {
+      target: { value: 'outlined' },
+    })
+    assert.equal(changes[2].submoduleBackButtonStyle, 'outlined')
+
+    fireEvent.change(screen.getByLabelText('Submodule Back button label'), {
+      target: { value: 'icon-only' },
+    })
+    assert.equal(changes[3].submoduleBackButtonLabel, 'icon-only')
+
     view.rerender(
       <Appearance
         {...commonProps}
@@ -89,6 +105,44 @@ describe('Appearance feature highlighting preference', () => {
         }) as HTMLInputElement
       ).checked,
       true
+    )
+
+    view.rerender(
+      <Appearance
+        {...commonProps}
+        appearanceCustomization={{
+          ...DefaultAppearanceCustomization,
+          languageMode: 'cantonese',
+        }}
+      />
+    )
+    assert.ok(screen.getByRole('heading', { name: '語言同導覽' }))
+    assert.ok(screen.getByLabelText('語言'))
+    assert.ok(screen.getByLabelText('子模組返回掣款式'))
+    assert.ok(screen.getByLabelText('子模組返回掣文字'))
+    assert.ok(screen.getByRole('option', { name: '玩味港式廣東話' }))
+    assert.ok(screen.getByRole('option', { name: '返去主 repo' }))
+
+    view.rerender(
+      <Appearance
+        {...commonProps}
+        appearanceCustomization={{
+          ...DefaultAppearanceCustomization,
+          languageMode: 'bilingual',
+        }}
+      />
+    )
+    assert.ok(
+      screen.getByRole('heading', {
+        name: 'Language and navigation · 語言同導覽',
+      })
+    )
+    assert.ok(screen.getByLabelText('Language · 語言'))
+    assert.ok(
+      screen.getByLabelText('Submodule Back button style · 子模組返回掣款式')
+    )
+    assert.ok(
+      screen.getByLabelText('Submodule Back button label · 子模組返回掣文字')
     )
   })
 })

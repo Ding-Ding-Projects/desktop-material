@@ -12,10 +12,19 @@ and cleanup receipts remain in [`HANDOFF.md`](HANDOFF.md) and the publish-mode
 Post-M19 appearance customization, adaptive app-bar overflow, Material entry
 surfaces, tab management, Actions cancellation, reviewed rebase, repository
 account propagation, OAuth scope alignment, and compact-surface corrections are
-implemented in the current maintenance changeset. Its final integrated build,
-headless interaction/capture review, `main`, CI, Pages, wiki, and cleanup
-receipts are still acceptance work; no later evidence is implied by the ledger
-below.
+shipped and retain their historical build, headless, `main`, CI, Pages, wiki,
+and cleanup receipts below and in `HANDOFF.md`.
+
+The July 18–19 maintenance target also implements temporary navigation from an
+initialized submodule back to its persisted root repository, exact persisted
+English/Hong Kong Cantonese/bilingual language modes, and per-profile Back
+control styling. CI updater tests now choose a per-job loopback port, and release
+publication is gated on successful CI for the exact eligible `main` SHA. The
+exact production build and ten-pass headless local acceptance are complete;
+the post-build child/read-only/Back regression and owned headless-resource
+cleanup are also complete. `main`, CI, installer release, Pages, wiki, and final
+repository-publication receipts remain pending and are not implied by the local
+evidence.
 
 ## Product milestone ledger
 
@@ -80,6 +89,114 @@ below.
 | `material-tab-arrange.png` | 1440×960 | 160,546 | `ce6a43a088b650d14bca158d12776d8dd4dcca5bf89d3f1d52720ddefda85470` |
 | `material-actions-cancel.png` | 1440×960 | 133,083 | `6dceb918e322b2f30ee574a51e815e32f5d4b272f250811b20202a409bec731c` |
 | `material-rebase-review.png` | 1440×960 | 153,207 | `145c5b54320116ce41bdc0b17eb9e726a8cb0dbaf0988886011a862d8cc189de` |
+
+## July 18 submodule navigation and delivery-hardening ledger
+
+| Work | Implementation state | Behavior and required acceptance |
+| --- | --- | --- |
+| **Temporary submodule repository navigation** | **COMPLETE; LOCALLY VERIFIED** | **Open as repository** is available only for an initialized checked-out submodule. The child is an ephemeral repository object: no repository-database row, repository-list/Recent/tab entry, or persisted last selection is written. A context bar returns to the persisted root repository, including after nested temporary navigation. Stale selection, invalid Git state, traversal, sibling-prefix, and symlink/junction escape targets fail closed. Every mutating, process-launching, persistence, cache, and asynchronous lifecycle boundary now revalidates or rejects a temporary child; Repository Tools remains read-only there. Run `20260718-232824-ci-10-pass-submodule-navigation` covered open, Back, restart, persistence, keyboard, compact, dark, scale, stale, lifecycle, and post-build regression behavior. See `app/src/models/repository.ts`, `app/src/lib/git/submodule.ts`, `app/src/lib/stores/app-store.ts`, `app/src/lib/stores/git-store-cache.ts`, `app/src/ui/dispatcher/dispatcher.ts`, `app/src/ui/repository-settings/submodules.tsx`, and `docs/features/repository-management/submodule-repository-navigation.md`. |
+| **Language and Back-control appearance** | **COMPLETE; LOCALLY VERIFIED** | The strict active-profile appearance value adds exact **English**, **Playful Hong Kong Cantonese**, and **Bilingual** modes plus **Tonal**/**Filled accent**/**Outlined** Back styles and **Back to parent**/**Parent name**/**Icon only** labels. English is the fallback, bilingual copy is compact, icon-only retains a destination-specific accessible name, and semantic localized spans keep separators and accessibility text correct. Resources are separate from rendering logic. The ten-pass run covered live/save/cancel, legacy fallback, all language modes, compact geometry, and 200%-requested auto-fit. See `app/src/models/language-mode.ts`, `app/src/models/appearance-customization.ts`, `app/src/lib/i18n.ts`, `app/src/lib/i18n-resources.ts`, `app/src/ui/lib/localized-text.tsx`, and `app/src/ui/preferences/appearance.tsx`. |
+| **Packaged E2E updater port selection** | **COMPLETE; LOCALLY VERIFIED** | A CI setup action asks the operating system for a currently available `127.0.0.1` port and exports one exact `/update` URL for both the production build and mock updater server. The mock accepts only the bounded loopback HTTP endpoint and derives its origin/control URL from that value. Local workflow contracts pass; the authoritative remote Windows packaged-E2E result remains pending. See `.github/actions/setup-e2e-update-port/`, `.github/workflows/ci.yml`, and `app/test/e2e/mock-update-server.ts`. |
+| **Release publication gating** | **COMPLETE; LOCALLY VERIFIED** | Automatic installer publication starts only after successful CI for a same-repository `main` push, including documentation-only pushes. Manual dispatch runs the reusable CI gate first. The workflow verifies the intended SHA and `origin/main`, refuses an existing immutable tag, and repeats those fail-closed checks immediately before publication; it also requires non-empty installer assets and has one release publication action. The release-PR workflow has explicit `contents: read` access. Local contracts pass; the exact remote release/tag/assets are deliberately pending. See `.github/workflows/build-installers.yml` and `.github/workflows/release-pr.yml`. |
+
+### July 18–19 local acceptance receipts
+
+The exact low-level MCP server ran from checkout
+`8d6940be6a5f6e7c37de3f73acd2259fa7651efe` at
+`http://127.0.0.1:8765/mcp`. One off-screen desktop,
+`DesktopMaterialDebug10-20260718-232824`, carried the full run. The synthetic
+provider used PID `12096` and loopback port `50158`; app-native CDP used
+`62241`. The earlier accepted exact production build returned zero in
+**215.38 seconds** (**217 seconds wall time**). After the later stale-parent
+correction, the same MCP command rebuilt the renderer, but its client stream
+detached before returning a receipt; the fresh bundle passed the final off-screen
+duplicate Open/Back race regression recorded in
+`.codex/run-manifests/2026-07-19-final-exact-race-regression.md`.
+
+| Runtime stage | PID | HWND |
+| --- | ---: | ---: |
+| Diagnostic launch | 20380 | 67830826 |
+| Accepted passes 1–4 | 6048 | 19464818 |
+| Pass 5 and initial pass 6 | 17732 | 48956738 |
+| Persistence-build verification | 13272 | 19661426 |
+| Tokenized passes 6–9 before localization correction | 8624 | 73991674 |
+| Final localized pass 9 and pass 10 | 32600 | 83101264 |
+| Log-loop-fixed provider launch | 16460 | 90637818 |
+| Fixture published-remote relaunch | 23188 | 56230330 |
+| Final branch-rules environment launch | wrapper 24136; Electron main 5116 | 86050108 |
+| Final post-build regression | wrapper 28356; Electron main 25584 | 62588622 |
+
+The debug loop and final safety audit corrected both product and verification defects: continuous
+repository-database persistence checks; robust toolbar/rail selectors and async
+waits; capture-only tooltip cleanup; Windows directory `fsync`; profile-lock
+recovery when one process ID owns a different renderer lifetime; localized
+stale-workspace recovery; notification-panel timing and close behavior; and the
+recursive log-history profile Git-bookkeeping loop. Localization now uses
+separate resources and semantic localized spans. Comprehensive temporary-child
+mutation, cache, listener, abort, and asynchronous generation guards reject
+unsafe operations while preserving read-only Repository Tools.
+
+The final stable focused set passed **237/237**; the lifecycle and localization
+sets passed **66/66** and **32/32**, respectively. The supervised full unit
+command passed all **562** test files in three batches: **3,986** tests passed
+and **one** was skipped; the final batch passed **537/537**. Script tests passed
+**16/16**.
+TypeScript, full lint, actionlint, and `git diff --check` also passed.
+
+| Pass | Accepted capture | Dimensions | Bytes | SHA-256 |
+| ---: | --- | ---: | ---: | --- |
+| 1 | `pass-01-launch-final.png` | 1440×960 | 110,384 | `21f098f11388e1b57028dbcf9288e51272932b9a8a14cd150d6a2e04766a981e` |
+| 2 | `pass-02-manager-final.png` | 1440×960 | 140,353 | `2e883f275f7c888404a959d51be5dac0c88cf46fa39a343d4795315efd53c40d` |
+| 3 | `pass-03-child-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
+| 4 | `pass-04-back-parent.png` | 1440×960 | 122,228 | `bec6bf8e2ae957ab8544df68babf12e6fffe88be179e0e88e996878619119ff5` |
+| 5 | `pass-05-restart-policy.png` | 1440×960 | 140,116 | `a5402d2eb7b2a545c965eb0ce3a217a12a4fa634c7e85695ae050a3205b6e28e` |
+| 6 | `pass-06-appearance-tokenized.png` | 1440×960 | 136,786 | `4e511ff542907575633335ffdd8d8eb379b13b3a2f5c08e32ca6cf51b4298169` |
+| 7 | `pass-07-compact-keyboard.png` | 700×650 | 63,406 | `6cbbf7a893dbb0b5d111057364d040e1a57a6c42d30f2b392cb022fee6c2415d` |
+| 8 | `pass-08-dark-200.png` | 640×480 | 61,722 | `2f79c502ce72fd4cfafe44b12ffd35e58d23ff703d507e6441e4ef846c3f37cf` |
+| 9 | `pass-09-languages-localized.png` | 700×650 | 77,064 | `62c02c1040ecae78bfed9f7f24841b546719815994a772eaa1cd524c4ff9b4f9` |
+| 10 | `pass-10-regression.png` | 1440×960 | 164,471 | `f86886bae8848f73bd35015cc9b87ba0dc3f2438c09791439347f2f697e71f0c` |
+
+The inspected supplementary frames were the 1443×993 stale bilingual recovery
+state (`pass-09-stale-error.png`, 163,335 bytes,
+`33a595e1faf1b7ade1b523c254ef826c0a9e5239c84a184a84e7cfe6f6b50a6b`),
+Actions pagination (1440×960, 109,546 bytes,
+`bd682b6f465012f0737fd6e47eb054bdb58333c13d2eaaffdf092523b0529325`),
+and Releases (1440×960, 146,415 bytes,
+`8dea0b61a0da101c730cb93e3534b5281d9aa3392c75acef8a1944cc36fbc1fb`).
+The provider sweep also accepted the effective-branch-rules frame. After the
+final build, a separate 1440×960 child/read-only capture was accepted at 134,223
+bytes (`53bae0c04eccedbafa4dbb749151b00df4d95fadce701758259ffd049fdc89ad`),
+then Back restored the root in a clean 159,924-byte frame
+(`e11956f58a18216bd90b65276890f86579e0bdd1b559268a139861fe2f94dcf0`).
+Both were inspected at original pixels.
+
+The log-history repository remained at
+`af8c8e91c8d99f0bf99f05dd46c7903d2ef9baf1`, count `22682`, and clean status
+across an eight-second idle check. Before disposal, the fixture root was at
+`5f4cc173` with only the expected submodule-pointer modification, while the child
+was clean at `de377c26`. The owned app/provider processes, ports `62241` and
+`50158`, credential entry, headless desktop, and run root were then removed and
+independently confirmed absent.
+
+A final privacy review rejected the first two Repository Tools promotions
+because their explanatory copy exposed the verifier account's Temp path. They
+were recaptured from the same production bundle with the synthetic
+`C:\DesktopMaterialEvidence-20260719\fixture` checkout. The replacement regular
+and real-scrolled frames were inspected at original pixels, promoted with the
+hashes below, and the exact recapture app, port `62243`, hidden desktop, and
+neutral evidence root were then removed and confirmed absent.
+
+| Promoted public capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `material-repository-tools.png` | 1440×960 | 124,544 | `670295d148df32c1796951363a1cde5ddb4aa7b31ce3142e2a50949b7e56c398` |
+| `material-repository-tools-scroll.png` | 960×420 | 68,162 | `4b47645776429875394280f0e5584aacf28988d2dcf2ccc79793e929a68f46f3` |
+| `material-effective-branch-rules.png` | 1440×960 | 162,231 | `6a391269c74dd638687100651f023d727667b47960ab2353a1717fde96037ba8` |
+| `add-submodule-dialog.png` | 1440×960 | 145,009 | `4c441e7d9757b6627e930bb9d43a39c86e38d408cc568b1c1ca874484b808a2a` |
+| `material-customization.png` | 1440×960 | 165,740 | `478009bd887a067d007627a531206750bdb9e95508ec9860c609e8c090db2f15` |
+| `material-submodule-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
+
+Remote publication receipts are pending; no `main` SHA, Actions run, release
+tag, Pages deployment, or wiki commit is claimed by this local ledger.
 
 ## Additional completed product work
 
@@ -184,6 +301,20 @@ below.
 22. Task surfaces use vertical scrolling and responsive stacking before text or
     controls collapse. Page-level horizontal scrolling is not a fallback for
     Repository Tools, Remote Manager, Regex Builder, or confirmation dialogs.
+23. A temporary submodule repository is derived only from a freshly validated,
+    initialized child worktree contained by the selected root repository. It
+    never enters repository persistence, Recent, or last-selection state, and
+    Back always targets the persisted root rather than another temporary child.
+24. Language mode is an explicit, versioned active-profile value with exactly
+    English, playful Hong Kong Cantonese, and bilingual choices. English is the
+    fallback; the host locale does not silently replace a saved selection.
+25. Packaged updater E2E builds and their mock server consume the same validated
+    loopback `/update` URL selected for that job; no shared fixed port is part of
+    the CI contract.
+26. Release publication follows successful CI for the exact eligible `main`
+    SHA. Failed CI publishes nothing; immutable tags are not reused; required
+    installable assets must exist and be non-empty; one eligible run has one
+    release publication action.
 
 ## M19 accepted app-source evidence
 

@@ -1,6 +1,6 @@
 # Guided Feature Gallery
 
-This page maps 63 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 64 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
@@ -17,9 +17,19 @@ contract rejects missing, duplicate, or unassigned assets.
 > the repository-contextual GitHub API Explorer, filtered notification bulk triage, and
 > configurable bottom-right error notices, runtime tab search, History commit actions, and
 > true-bottom Repository Tools scrolling. It now also includes the safe custom repository-logo
-> studio and named API app functions. Exact build, interaction, and
+> studio, named API app functions, and temporary submodule repository context.
+> Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
+
+The July 18–19 temporary-submodule and refreshed six-image set passed its local
+ten-pass off-screen inspection. A final 1440×960 post-build regression reopened
+the child, verified its read-only boundary, and returned to the root; a later
+fresh-bundle race regression synchronously exercised duplicate Open and Back,
+preserved one persisted repository and tab, restored the root once, and showed
+no error. The gallery assets and owned headless-resource cleanup are locally
+complete; their remote `main`, Pages, and wiki delivery remains pending until
+the publication receipts are recorded.
 
 The verified adaptive customization maintenance release adds profile app
 identity, favorite/portable tabs, folder-drop opening, guarded tab close/arrange,
@@ -35,11 +45,16 @@ the selected repository account and provider host, mutations require an
 explicit review, and response content is bounded and credential-redacted before
 display.
 
+The temporary submodule context shows an initialized child in the normal
+workspace without adding it to the repository list, Recent, or persisted last
+selection. Its Back control returns to the persisted root and follows the
+active profile's style, label, and explicit language mode.
+
 | Asset | Guided workflow shown |
 | --- | --- |
 | `material-app-identity-workspace.png` | Restart-restored profile app identity and favorite repository tab |
 | `material-welcome.png` | Material first-run task card and responsive workspace preview |
-| `material-customization.png` | Default-off feature-highlighting preference with Material badges on reviewed fork-only entry points |
+| `material-customization.png` | Explicit language mode and temporary-submodule Back style/label controls |
 | `material-repository-logo-studio.png` | Layered custom repository-logo studio with live preview and safe transfer controls |
 | `material-toolbar-overflow.png` | Measured narrow toolbar with Build & Run and Commit & Push in More |
 | `material-tab-appearance-word.png` | Word-style tab typography, alignment, and independent color palettes |
@@ -50,6 +65,7 @@ display.
 | `material-shallow-clone-safe.png` | Reviewed shallow clone with a bounded commit depth |
 | `material-clone-account-fallback.png` | Generic HTTPS clone completed through exact-origin signed-in account fallback |
 | `add-submodule-dialog.png` | Clone-style Add Submodule review with source, checkout path, and branch |
+| `material-submodule-context.png` | Initialized submodule opened temporarily with context and Back to the persisted root |
 | `material-pull-all-account-fallback.png` | Pull all with per-repository results and exact-origin account retry |
 | `material-sparse-checkout-safe.png` | Validated cone-mode sparse-checkout review |
 | `material-history-deepen.png` | Deepen-history result without exposing the account used |
@@ -118,6 +134,8 @@ customization/history context use the same profile/repository ownership model.
 
 ![Clone-style Add Submodule review with a synthetic URL, checkout path, and tracked branch](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/add-submodule-dialog.png)
 
+![Initialized submodule opened temporarily with a context bar and Back control to the persisted root repository](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-submodule-context.png)
+
 ![Pull all showing a neutral exact-origin signed-in account fallback result](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-pull-all-account-fallback.png)
 
 ![Validated cone-mode sparse-checkout review](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-sparse-checkout-safe.png)
@@ -129,9 +147,12 @@ customization/history context use the same profile/repository ownership model.
 The current Remote Manager layout preserves readable semantic columns and
 stacks a row before its name, fetch/push URLs, or controls collapse. Repository
 Tools owns short-window vertical scrolling so Diagnostics and later results stay
-reachable. **Repository settings → Submodules → Add submodule…** now opens the
+reachable. **Repository settings → Submodules → Add submodule…** opens the
 same provider/URL chooser as Clone, then reviews the safe relative destination
-and optional tracked branch before Git starts. The reviewed current-branch
+and optional tracked branch before Git starts. An initialized manager row can
+also open that child as a temporary repository without persistence; stale,
+invalid, or escaping targets fail closed and leave the manager available. The
+reviewed current-branch
 rebase uses searched target selection, ahead/behind context, a bounded commit
 preview, fresh safety/ref checks, and the existing conflict continue/abort
 path; it never force-pushes automatically.
@@ -240,7 +261,7 @@ overridden locally per repository without accepting executable SVG.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
-![Appearance preferences with optional Desktop Material feature highlighting enabled and Material badges on fork-only entry points](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+![Appearance preferences with explicit language and temporary-submodule Back button controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ![Layered custom repository-logo studio with live preview and safe transfer controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-logo-studio.png)
 

@@ -1,4 +1,5 @@
 import { getObject, setObject } from './local-storage'
+import { Repository, isSubmoduleRepository } from '../models/repository'
 
 export interface IBranchVisibilityState {
   readonly pinned: ReadonlyArray<string>
@@ -70,8 +71,7 @@ export function loadBranchVisibilityState(
   return { pinned, hidden, solo }
 }
 
-export function saveBranchVisibilityState(
-  repositoryId: number,
+function normalizeBranchVisibilityState(
   state: IBranchVisibilityState
 ): IBranchVisibilityState {
   const pinned = normalizeBranchNames(state.pinned)
@@ -79,7 +79,14 @@ export function saveBranchVisibilityState(
     name => !pinned.includes(name)
   )
   const solo = state.solo === null ? null : normalizeBranchName(state.solo)
-  const normalized = { pinned, hidden, solo }
+  return { pinned, hidden, solo }
+}
+
+export function saveBranchVisibilityState(
+  repositoryId: number,
+  state: IBranchVisibilityState
+): IBranchVisibilityState {
+  const normalized = normalizeBranchVisibilityState(state)
   setObject(storageKey(repositoryId), normalized)
   return normalized
 }
@@ -88,4 +95,35 @@ export function clearBranchVisibilityState(
   repositoryId: number
 ): IBranchVisibilityState {
   return saveBranchVisibilityState(repositoryId, DefaultBranchVisibilityState)
+}
+
+/**
+ * Temporary submodule workspaces deliberately have negative, non-database IDs.
+ * Their branch visibility may change in memory for the current visit, but it
+ * must never create an ID-keyed localStorage record.
+ */
+export function loadRepositoryBranchVisibilityState(
+  repository: Repository
+): IBranchVisibilityState {
+  return isSubmoduleRepository(repository)
+    ? DefaultBranchVisibilityState
+    : loadBranchVisibilityState(repository.id)
+}
+
+export function saveRepositoryBranchVisibilityState(
+  repository: Repository,
+  state: IBranchVisibilityState
+): IBranchVisibilityState {
+  const normalized = normalizeBranchVisibilityState(state)
+  return isSubmoduleRepository(repository)
+    ? normalized
+    : saveBranchVisibilityState(repository.id, normalized)
+}
+
+export function clearRepositoryBranchVisibilityState(
+  repository: Repository
+): IBranchVisibilityState {
+  return isSubmoduleRepository(repository)
+    ? DefaultBranchVisibilityState
+    : clearBranchVisibilityState(repository.id)
 }

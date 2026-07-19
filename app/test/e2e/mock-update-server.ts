@@ -7,15 +7,76 @@ import {
   getWindowsIdentifierName,
 } from '../../../script/dist-info'
 
-/** Fixed port used for the mock update server during e2e tests. */
-export const MOCK_UPDATE_PORT = 51789
-export const MOCK_UPDATE_URL = `http://127.0.0.1:${MOCK_UPDATE_PORT}/update`
+const defaultMockUpdateURL = 'http://127.0.0.1:51789/update'
+
+export interface IMockUpdateEndpoint {
+  readonly host: '127.0.0.1'
+  readonly port: number
+  readonly origin: string
+  readonly updateURL: string
+  readonly controlURL: string
+}
+
+/**
+ * Resolve the updater endpoint baked into the E2E build.
+ *
+ * CI selects an available port before compiling and exports the complete URL
+ * through `DESKTOP_E2E_UPDATES_URL`. Local build-only commands retain the
+ * historical port as a deterministic fallback. Keeping the server and the
+ * compiled application on one URL avoids a retry selecting a port the already
+ * built application does not know about.
+ */
+export function getMockUpdateEndpoint(
+  configuredURL = process.env.DESKTOP_E2E_UPDATES_URL
+): IMockUpdateEndpoint {
+  let parsed: URL
+
+  try {
+    parsed = new URL(configuredURL ?? defaultMockUpdateURL)
+  } catch {
+    throw new Error('The E2E update URL must be a valid loopback HTTP URL')
+  }
+
+  if (
+    parsed.protocol !== 'http:' ||
+    parsed.hostname !== '127.0.0.1' ||
+    parsed.username !== '' ||
+    parsed.password !== '' ||
+    parsed.search !== '' ||
+    parsed.hash !== '' ||
+    parsed.pathname !== '/update'
+  ) {
+    throw new Error(
+      'The E2E update URL must use http://127.0.0.1:<port>/update without credentials, query, or fragment'
+    )
+  }
+
+  const port = Number(parsed.port)
+  if (!Number.isInteger(port) || port < 1024 || port > 65535) {
+    throw new Error('The E2E update URL must contain a non-privileged TCP port')
+  }
+
+  const origin = `http://127.0.0.1:${port}`
+  return {
+    host: '127.0.0.1',
+    port,
+    origin,
+    updateURL: `${origin}/update`,
+    controlURL: `${origin}/_control`,
+  }
+}
+
+const mockUpdateEndpoint = getMockUpdateEndpoint()
+
+export const MOCK_UPDATE_PORT = mockUpdateEndpoint.port
+export const MOCK_UPDATE_URL = mockUpdateEndpoint.updateURL
+const MOCK_UPDATE_ORIGIN = mockUpdateEndpoint.origin
 
 /**
  * URL that e2e tests can use to control the mock server behaviour at runtime
  * via simple GET requests (e.g. `/_control/set-behavior/update-available`).
  */
-export const MOCK_CONTROL_URL = `http://127.0.0.1:${MOCK_UPDATE_PORT}/_control`
+export const MOCK_CONTROL_URL = mockUpdateEndpoint.controlURL
 
 const currentWindowsPackageName = getWindowsFullNugetPackageName()
 const nextWindowsPackageName = `${getWindowsIdentifierName()}-99.0.0-full.nupkg`
@@ -172,7 +233,7 @@ export function createMockUpdateServer(): Promise<IMockUpdateServer> {
         // /download/ handler which hangs forever, keeping the app in
         // "downloading" state without completing or erroring.
         const body = JSON.stringify({
-          url: `http://127.0.0.1:${MOCK_UPDATE_PORT}/download/update.zip`,
+          url: `${MOCK_UPDATE_ORIGIN}/download/update.zip`,
           name: '99.0.0',
           notes: 'E2E test update',
           pub_date: new Date().toISOString(),
@@ -194,7 +255,7 @@ export function createMockUpdateServer(): Promise<IMockUpdateServer> {
       sockets.add(socket)
       socket.on('close', () => sockets.delete(socket))
     })
-    server.listen(MOCK_UPDATE_PORT, '127.0.0.1', () => {
+    server.listen(MOCK_UPDATE_PORT, mockUpdateEndpoint.host, () => {
       const instance: IMockUpdateServer = {
         server,
         url: MOCK_UPDATE_URL,

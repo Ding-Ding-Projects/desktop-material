@@ -107,8 +107,53 @@ The status pills, in toy terms:
 | **Conflicted** | Two changes disagree about which version to use. Finish the merge first. |
 
 Each row offers **Clone** (for a box that is not downloaded) or **Update**, plus
-**Sync**, **Configure**, and **Remove**. The header adds **Add submodule…** and
-**Update all**, which clones and updates every box in one go.
+**Sync**, **Configure**, and **Remove**. A downloaded row also offers
+**Open as repository**. The header adds **Add submodule…** and **Update all**,
+which clones and updates every box in one go.
+
+---
+
+## Open a submodule without adding another saved repository
+
+Press **Open as repository** on a downloaded submodule to look inside the small
+box with the normal Changes, History, branch, and repository tools. Desktop
+Material opens it only for the current workspace visit:
+
+- it does not add the submodule to the repository list;
+- it does not add it to **Recent**;
+- it does not replace the saved last-selected repository; and
+- it does not make a second imported copy of the project.
+
+A context bar names the submodule and the big box that opened it. Press its
+**Back to parent** control to return to that saved root repository. If you open
+a box inside another box, Back still returns to the original saved root rather
+than leaving a trail of temporary repository entries. If you click **Open as
+repository** or **Back to parent** twice by accident, Desktop Material treats it
+as one trip: it does not add another tab or saved repository entry.
+
+![An initialized submodule opened temporarily with a context bar and Back control to the persisted root repository](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-submodule-context.png)
+
+The button on a not-yet-downloaded row stays disabled and explains that the
+submodule must be cloned or initialized first. If an initial target moved,
+stopped being a Git worktree, or resolves outside the parent through a tricky
+path or link, the manager stays open and shows an error; nothing is added to the
+saved repository list. If a child becomes unsafe after it is already open,
+Desktop Material clears that temporary context, returns to the saved root, and
+shows a localized error instead of continuing to use the stale worktree.
+
+Choose **Settings → Appearance → Language and navigation** to make the Back
+control **Tonal**, **Filled accent**, or **Outlined**, and label it **Back to
+parent**, with the parent name, or as an icon only. The icon-only choice still
+has an accessible name that says where it goes. The same section stores one of
+three explicit language modes in the active profile: **English**, playful
+**Hong Kong Cantonese**, or compact **Bilingual** copy.
+
+Temporary mode is intentionally inspection-first. Repository Tools remains
+available for safe reading, while branch/tag/stash/history rewrites, remotes,
+worktrees, nested-repository mutation, automation, shell/editor launch, and
+separate-window actions stay disabled or fail closed until you return to the
+saved root. Back also cancels or fences delayed child refreshes so stale results
+cannot replace the root workspace.
 
 ---
 

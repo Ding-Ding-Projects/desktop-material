@@ -28,7 +28,7 @@ import { OpencodeFixDialog } from './build-run/opencode-fix-dialog'
 import { assertNever } from '../lib/fatal-error'
 import { shell } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
-import { t } from '../lib/i18n'
+import { t, translateForAccessibleName } from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
 import { shouldRenderApplicationMenu } from './lib/features'
@@ -43,6 +43,7 @@ import {
 import { MenuEvent, isTestMenuEvent } from '../main-process/menu'
 import {
   Repository,
+  SubmoduleRepository,
   getGitHubHtmlUrl,
   getNonForkGitHubRepository,
   isRepositoryWithGitHubRepository,
@@ -149,6 +150,7 @@ import {
 } from './clone-repository'
 import { SubmoduleManagerDialog } from './submodules/submodule-manager-dialog'
 import { SubmoduleConfigDialog } from './submodules/submodule-config-dialog'
+import { LocalizedText } from './lib/localized-text'
 import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
 import { AddSubtreeDialog } from './subtrees/add-subtree-dialog'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
@@ -305,6 +307,7 @@ import { RenameWorktreeDialog } from './worktrees/rename-worktree-dialog'
 import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
 import { WorktreeEntry } from '../models/worktree'
+import { SubmoduleReturnInFlightGuard } from './submodules/submodule-return-in-flight-guard'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -359,6 +362,7 @@ export const bannerTransitionTimeout = { enter: 500, exit: 400 }
 const ReadyDelay = 100
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
+  private mounted = false
   private initializationError: Error | null = null
   /**
    * The checklist belongs to a welcome flow completed in this process. Keeping
@@ -387,6 +391,14 @@ export class App extends React.Component<IAppProps, IAppState> {
   private updateIntervalHandle?: number
 
   private repositoryViewRef = React.createRef<RepositoryView>()
+  private repositoryDropdownRef = React.createRef<ToolbarDropdown>()
+  private readonly submoduleReturnInFlight = new SubmoduleReturnInFlightGuard(
+    () => {
+      if (this.mounted) {
+        this.forceUpdate()
+      }
+    }
+  )
 
   private readonly refreshRepositoryHandlers = new WeakMap<
     Repository,
@@ -524,6 +536,8 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   public componentWillUnmount() {
+    this.mounted = false
+    this.submoduleReturnInFlight.dispose()
     window.clearInterval(this.updateIntervalHandle)
     document.body.classList.remove('repository-folder-dragging')
     document.removeEventListener('contextmenu', this.onCustomizationContextMenu)
@@ -1283,7 +1297,11 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
 
     const state = this.state.selectedState
-    if (state == null || state.type !== SelectionType.Repository) {
+    if (
+      state == null ||
+      state.type !== SelectionType.Repository ||
+      state.repository instanceof SubmoduleRepository
+    ) {
       return
     }
 
@@ -1343,6 +1361,7 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   public componentDidMount() {
+    this.mounted = true
     document.addEventListener('contextmenu', this.onCustomizationContextMenu)
     document.ondragenter = e => {
       if (
@@ -1756,6 +1775,17 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    if (repository instanceof SubmoduleRepository) {
+      const parentName =
+        repository.parentRepository.alias ?? repository.parentRepository.name
+      void this.props.dispatcher.postError(
+        new Error(
+          t('submodule.temporaryRemovalUnavailable', { parent: parentName })
+        )
+      )
+      return
+    }
+
     if (repository instanceof CloningRepository || repository.missing) {
       this.props.dispatcher.removeRepository(repository, false)
       return
@@ -1803,6 +1833,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (!repository || repository instanceof CloningRepository) {
       return
     }
+    if (repository instanceof SubmoduleRepository) {
+      const parentName =
+        repository.parentRepository.alias ?? repository.parentRepository.name
+      void this.props.dispatcher.postError(
+        new Error(
+          t('submodule.temporarySettingsUnavailable', { parent: parentName })
+        )
+      )
+      return
+    }
     this.props.dispatcher.showPopup({
       type: PopupType.RepositorySettings,
       repository,
@@ -1839,7 +1879,11 @@ export class App extends React.Component<IAppProps, IAppState> {
   private showSparseCheckout() {
     const repository = this.getRepository()
 
-    if (!repository || repository instanceof CloningRepository) {
+    if (
+      !repository ||
+      repository instanceof CloningRepository ||
+      repository instanceof SubmoduleRepository
+    ) {
       return
     }
     this.props.dispatcher.showPopup({
@@ -1878,7 +1922,11 @@ export class App extends React.Component<IAppProps, IAppState> {
   private buildAndRun() {
     const repository = this.getRepository()
 
-    if (!repository || repository instanceof CloningRepository) {
+    if (
+      !repository ||
+      repository instanceof CloningRepository ||
+      repository instanceof SubmoduleRepository
+    ) {
       return
     }
 
@@ -2463,6 +2511,9 @@ export class App extends React.Component<IAppProps, IAppState> {
         )
       }
       case PopupType.SparseCheckout:
+        if (popup.repository instanceof SubmoduleRepository) {
+          return null
+        }
         return (
           <SparseCheckoutManager
             key={`sparse-checkout-${popup.repository.id}`}
@@ -3801,6 +3852,9 @@ export class App extends React.Component<IAppProps, IAppState> {
         )
       }
       case PopupType.AddWorktree: {
+        if (popup.repository instanceof SubmoduleRepository) {
+          return null
+        }
         const allBranches =
           this.state.selectedState?.type === SelectionType.Repository
             ? this.state.selectedState.state.branchesState.allBranches
@@ -4248,6 +4302,125 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  private onReturnToParentRepository = (): Promise<void> => {
+    const selection = this.state.selectedState
+    if (
+      selection === null ||
+      selection.type !== SelectionType.Repository ||
+      !(selection.repository instanceof SubmoduleRepository)
+    ) {
+      return Promise.resolve()
+    }
+
+    const repository = selection.repository
+    const parentName =
+      repository.parentRepository.alias ?? repository.parentRepository.name
+    return this.submoduleReturnInFlight.run(async () => {
+      const currentSelection = this.state.selectedState
+      if (
+        currentSelection === null ||
+        currentSelection.type !== SelectionType.Repository ||
+        currentSelection.repository !== repository
+      ) {
+        return
+      }
+
+      try {
+        await this.props.dispatcher.returnToParentRepository(repository)
+        window.requestAnimationFrame(() => {
+          if (this.mounted) {
+            this.repositoryDropdownRef.current?.focusButton()
+          }
+        })
+      } catch (error) {
+        const selectionAfterFailure = this.state.selectedState
+        if (
+          !this.mounted ||
+          selectionAfterFailure === null ||
+          selectionAfterFailure.type !== SelectionType.Repository ||
+          selectionAfterFailure.repository !== repository
+        ) {
+          return
+        }
+        await this.props.dispatcher.postError(
+          new Error(
+            t('submodule.returnFailed', {
+              parent: parentName,
+              error: String(error),
+            })
+          )
+        )
+      }
+    })
+  }
+
+  private renderSubmoduleRepositoryContext() {
+    const selection = this.state.selectedState
+    if (
+      selection === null ||
+      selection.type !== SelectionType.Repository ||
+      !(selection.repository instanceof SubmoduleRepository)
+    ) {
+      return null
+    }
+
+    const repository = selection.repository
+    const parent = repository.parentRepository
+    const parentName = parent.alias ?? parent.name
+    const accessibleLabel = translateForAccessibleName(
+      'submodule.backToParent',
+      { parent: parentName },
+      this.state.appearanceCustomization.languageMode
+    )
+    const labelPreference =
+      this.state.appearanceCustomization.submoduleBackButtonLabel
+    const visibleLabel: JSX.Element | string | null =
+      labelPreference === 'icon-only' ? null : labelPreference ===
+        'parent-name' ? (
+        parentName
+      ) : (
+        <LocalizedText
+          translationKey="submodule.backToParent"
+          variables={{ parent: parentName }}
+          languageMode={this.state.appearanceCustomization.languageMode}
+        />
+      )
+
+    return (
+      <aside
+        className="submodule-repository-context"
+        role="navigation"
+        aria-label={translateForAccessibleName(
+          'submodule.navigation',
+          {},
+          this.state.appearanceCustomization.languageMode
+        )}
+      >
+        <Button
+          type="button"
+          className={`submodule-context-back submodule-context-back-${this.state.appearanceCustomization.submoduleBackButtonStyle}`}
+          onClick={this.onReturnToParentRepository}
+          disabled={this.submoduleReturnInFlight.pending}
+          ariaLabel={accessibleLabel}
+          tooltip={accessibleLabel}
+          autoFocus={true}
+        >
+          <Octicon symbol={octicons.arrowLeft} />
+          {visibleLabel === null ? null : (
+            <span className="submodule-context-back-label">{visibleLabel}</span>
+          )}
+        </Button>
+        <p>
+          <LocalizedText
+            translationKey="submodule.viewingContext"
+            variables={{ child: repository.name, parent: parentName }}
+            languageMode={this.state.appearanceCustomization.languageMode}
+          />
+        </p>
+      </aside>
+    )
+  }
+
   private renderErrorNotices() {
     return (
       <ErrorNoticeStack
@@ -4280,6 +4453,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         {this.renderRepositoryTabStrip()}
         {this.renderToolbar()}
         {this.renderBanner()}
+        {this.renderSubmoduleRepositoryContext()}
         <CrashProofBoundary
           name="Repository workspace"
           resetKey={repositoryBoundaryKey}
@@ -4389,7 +4563,10 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private openInShell = (repository: Repository | CloningRepository) => {
-    if (!(repository instanceof Repository)) {
+    if (
+      !(repository instanceof Repository) ||
+      repository instanceof SubmoduleRepository
+    ) {
       return
     }
 
@@ -4399,7 +4576,11 @@ export class App extends React.Component<IAppProps, IAppState> {
   private openRepositoryInNewWindow = (
     repository: Repository | CloningRepository | null
   ) => {
-    if (!(repository instanceof Repository) || repository.missing) {
+    if (
+      !(repository instanceof Repository) ||
+      repository instanceof SubmoduleRepository ||
+      repository.missing
+    ) {
       return
     }
     openRepositoryInNewWindow(repository.path)
@@ -4408,7 +4589,9 @@ export class App extends React.Component<IAppProps, IAppState> {
   private openNewWindow = () => {
     const repository = this.getRepository()
     openRepositoryInNewWindow(
-      repository instanceof Repository && !repository.missing
+      repository instanceof Repository &&
+        !(repository instanceof SubmoduleRepository) &&
+        !repository.missing
         ? repository.path
         : null
     )
@@ -4416,6 +4599,9 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private openFileInExternalEditor = (fullPath: string) => {
     const repository = this.state.selectedState?.repository
+    if (repository instanceof SubmoduleRepository) {
+      return
+    }
     this.props.dispatcher.openInExternalEditor(
       fullPath,
       repository instanceof Repository ? repository : null
@@ -4425,7 +4611,10 @@ export class App extends React.Component<IAppProps, IAppState> {
   private openInExternalEditor = (
     repository: Repository | CloningRepository
   ) => {
-    if (!(repository instanceof Repository)) {
+    if (
+      !(repository instanceof Repository) ||
+      repository instanceof SubmoduleRepository
+    ) {
       return
     }
 
@@ -4437,7 +4626,10 @@ export class App extends React.Component<IAppProps, IAppState> {
     customEditor: ICustomIntegration | null
   ) => {
     const repository = this.getRepository()
-    if (!(repository instanceof Repository)) {
+    if (
+      !(repository instanceof Repository) ||
+      repository instanceof SubmoduleRepository
+    ) {
       return
     }
 
@@ -4450,7 +4642,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private onOpenInExternalEditor = (path: string) => {
     const repository = this.state.selectedState?.repository
-    if (repository === undefined) {
+    if (repository === undefined || repository instanceof SubmoduleRepository) {
       return
     }
 
@@ -4538,12 +4730,17 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     return (
       <ToolbarDropdown
+        ref={this.repositoryDropdownRef}
         icon={icon}
         title={title}
         description={__DARWIN__ ? 'Current Repository' : 'Current repository'}
         tooltip={tooltip}
         foldoutStyle={foldoutStyle}
-        onContextMenu={this.onRepositoryToolbarButtonContextMenu}
+        onContextMenu={
+          repository instanceof SubmoduleRepository
+            ? undefined
+            : this.onRepositoryToolbarButtonContextMenu
+        }
         onDropdownStateChanged={this.onRepositoryDropdownStateChanged}
         dropdownContentRenderer={this.renderRepositoryList}
         dropdownState={currentState}
@@ -4554,7 +4751,7 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private onRepositoryToolbarButtonContextMenu = () => {
     const repository = this.state.selectedState?.repository
-    if (repository === undefined) {
+    if (repository === undefined || repository instanceof SubmoduleRepository) {
       return
     }
 
@@ -4835,7 +5032,11 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     const selection = this.state.selectedState
 
-    if (selection == null || selection.type !== SelectionType.Repository) {
+    if (
+      selection == null ||
+      selection.type !== SelectionType.Repository ||
+      selection.repository instanceof SubmoduleRepository
+    ) {
       return null
     }
 
@@ -4995,7 +5196,11 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private renderBuildRunToolbarButton() {
     const selection = this.state.selectedState
-    if (!selection || selection.type !== SelectionType.Repository) {
+    if (
+      !selection ||
+      selection.type !== SelectionType.Repository ||
+      selection.repository instanceof SubmoduleRepository
+    ) {
       return null
     }
 
@@ -5051,7 +5256,11 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private renderBuildRunPanel() {
     const selection = this.state.selectedState
-    if (!selection || selection.type !== SelectionType.Repository) {
+    if (
+      !selection ||
+      selection.type !== SelectionType.Repository ||
+      selection.repository instanceof SubmoduleRepository
+    ) {
       return null
     }
 

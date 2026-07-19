@@ -1,12 +1,16 @@
-import { describe, it } from 'node:test'
+import { beforeEach, describe, it } from 'node:test'
 import assert from 'node:assert'
 import {
   DefaultAutomationSettings,
   coerceAutomationSettingsState,
+  loadRepositoryAutomationOverrides,
   resolveAutomationSettings,
+  saveRepositoryAutomationOverrides,
 } from '../../src/lib/automation/automation-settings'
 
 describe('automation settings', () => {
+  beforeEach(() => localStorage.clear())
+
   it('uses safe defaults for corrupt values', () => {
     assert.deepEqual(coerceAutomationSettingsState(null), {
       global: DefaultAutomationSettings,
@@ -50,5 +54,15 @@ describe('automation settings', () => {
         autoPullInterval: 60,
       }
     )
+  })
+
+  it('does not persist overrides for temporary repository identities', () => {
+    saveRepositoryAutomationOverrides(-42, {
+      autoCommitPushEnabled: true,
+      autoPullEnabled: true,
+    })
+
+    assert.deepEqual(loadRepositoryAutomationOverrides(-42), {})
+    assert.equal(localStorage.length, 0)
   })
 })

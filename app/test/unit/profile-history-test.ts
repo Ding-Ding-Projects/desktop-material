@@ -42,6 +42,27 @@ async function readSettings(repository: Repository) {
 }
 
 describe('profile git history', () => {
+  it('recovers a lock left by a reloaded renderer with the same PID', async t => {
+    const repository = await createProfileRepository(t)
+    const lockPath = `${repository.path}.desktop-material.lock`
+    await writeFile(
+      lockPath,
+      JSON.stringify({
+        version: 1,
+        pid: process.pid,
+        token: 'destroyed-renderer-context',
+      })
+    )
+
+    let ran = false
+    await withProfileRepositoryLock(repository, async () => {
+      ran = true
+    })
+
+    assert.equal(ran, true)
+    await assert.rejects(stat(lockPath), /ENOENT/)
+  })
+
   it('serializes profile mutations across window stores', async t => {
     const repository = await createProfileRepository(t)
     let active = 0

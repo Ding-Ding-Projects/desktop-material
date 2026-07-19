@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto'
 import { TypedBaseStore } from './base-store'
 import { ProfileStore } from './profile-store'
-import { Repository } from '../../models/repository'
+import { Repository, isSubmoduleRepository } from '../../models/repository'
 import { matchExistingRepository } from '../repository-matching'
 import { FilterMode, matchWithMode } from '../fuzzy-find'
 import {
@@ -144,6 +144,10 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
    * corrected id, while an Undo remains redoable immediately after reload.
    */
   public rebindActiveTabToRepository(repository: Repository): void {
+    if (isSubmoduleRepository(repository)) {
+      return
+    }
+
     const activeTab = this.getActiveTab()
     if (
       activeTab === null ||
@@ -186,6 +190,10 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
    * safe to call from every repository-selection entry point.
    */
   public async ensureTabForRepository(repository: Repository): Promise<void> {
+    if (isSubmoduleRepository(repository)) {
+      return
+    }
+
     const existing = this.state.tabs.find(t => t.repositoryId === repository.id)
     if (existing !== undefined) {
       if (this.state.activeTabId !== existing.id) {

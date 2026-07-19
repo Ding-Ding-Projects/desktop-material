@@ -1,7 +1,7 @@
 import './profile-history-test-env'
 import { describe, it, TestContext } from 'node:test'
 import assert from 'node:assert'
-import { readFile } from 'fs/promises'
+import { chmod, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
 import { createTempDirectory } from '../helpers/temp'
 import {
@@ -9,11 +9,20 @@ import {
   LogStore,
   MaxLogFileLines,
 } from '../../src/lib/stores/log-store'
+import { ProfileCommitQueue } from '../../src/lib/profiles/profile-git'
+import {
+  forwardToLogSink,
+  registerLogSink,
+} from '../../src/lib/logging/renderer/log-sink'
+import { Repository } from '../../src/models/repository'
 
 interface ILogStoreHarness {
   enabled: boolean
   lines: ReadonlyArray<string>
   initialization: Promise<void> | null
+  repository: Repository | null
+  queue: ProfileCommitQueue | null
+  commitHistory: (operation: () => Promise<void>) => Promise<void>
   initialize: () => Promise<void>
   initializeAt: (dir: string) => Promise<void>
   persist: (appendedLines: ReadonlyArray<string> | null) => Promise<void>
@@ -76,6 +85,92 @@ describe('LogStore append', () => {
 })
 
 describe('LogStore history', () => {
+  it('fails closed without mirroring or rescheduling persistent commit errors', async t => {
+    const { store, directory } = await createInitializedStore(t)
+    const harness = store as unknown as ILogStoreHarness
+    const repository = harness.repository
+    if (repository === null) {
+      assert.fail('LogStore repository was not initialized')
+    }
+
+    // Use a zero-delay queue wired through the same callback as production so
+    // the timer-driven failure path is exercised without a timing-based wait.
+    const queue = new ProfileCommitQueue(
+      repository,
+      () => 'Capture log activity',
+      0,
+      flush => harness.commitHistory(flush)
+    )
+    harness.queue = queue
+
+    const queueHarness = queue as unknown as {
+      readonly pending: ReadonlyArray<string>
+      readonly timer: ReturnType<typeof setTimeout> | null
+    }
+    const hook = join(directory, '.git', 'hooks', 'pre-commit')
+    await writeFile(hook, '#!/bin/sh\nexit 1\n', 'utf8')
+    await chmod(hook, 0o755)
+
+    const originalLogError = log.error
+    const mirroredAppends = new Array<Promise<void>>()
+    const loggedErrors = new Array<string>()
+    let mirroredMessages = 0
+    let reportFailure = () => {}
+    const failureReported = new Promise<void>(resolve => {
+      reportFailure = resolve
+    })
+    log.error = (message, error) => {
+      loggedErrors.push(message)
+      if (message === 'LogStore history commit failed; disabled') {
+        reportFailure()
+      }
+      forwardToLogSink(
+        'error',
+        `[ui] ${message}${error === undefined ? '' : `: ${error.message}`}`
+      )
+    }
+    registerLogSink((level, message) => {
+      mirroredMessages++
+      mirroredAppends.push(store.append(level, message))
+    })
+    t.after(() => {
+      log.error = originalLogError
+      registerLogSink(null)
+    })
+
+    await store.append('info', 'Trigger a persistently failing commit')
+    await failureReported
+    await Promise.all(mirroredAppends)
+
+    assert.ok(
+      loggedErrors.some(message =>
+        message.includes('exited with an unexpected code')
+      ),
+      'Git should report the persistent commit failure'
+    )
+    assert.ok(
+      loggedErrors.includes('LogStore history commit failed; disabled'),
+      'LogStore should report that history was disabled'
+    )
+    assert.equal(
+      loggedErrors.includes('Failed to commit profile changes'),
+      false
+    )
+    assert.equal(mirroredMessages, 0)
+    assert.equal(harness.enabled, false)
+    assert.equal(harness.queue, null)
+    assert.equal(queueHarness.timer, null)
+    assert.equal(queueHarness.pending.length, 1)
+
+    // Suppression is scoped to the failed commit. The renderer sink resumes,
+    // while the disabled store refuses to schedule another history commit.
+    forwardToLogSink('info', '[ui] Normal logging remains active')
+    await Promise.all(mirroredAppends)
+    assert.equal(mirroredMessages, 1)
+    assert.equal(queueHarness.timer, null)
+    assert.equal(queueHarness.pending.length, 1)
+  })
+
   it('captures appended lines as commits and undoes the latest change', async t => {
     const { store, directory } = await createInitializedStore(t)
 

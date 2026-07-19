@@ -19,6 +19,34 @@ We aim to ship updates to production approximately every two weeks, to ensure a
 continuous flow of improvements to our users. Track our progress in the
 [current milestones](https://github.com/desktop/desktop/milestones?direction=desc&sort=completeness&state=open).
 
+### Desktop Material automated release gate
+
+Desktop Material's repository automation uses CI as the release boundary:
+
+- every same-repository `main` push, including a documentation-only push, runs
+  the test/build workflow first;
+- automatic installer publication starts only from a successful CI workflow
+  run in this repository and uses that run's exact head SHA;
+- manual installer dispatch invokes the reusable CI gate before building;
+- a failed or cancelled CI run publishes no release;
+- the installer workflow checks the intended SHA against `origin/main` and
+  refuses an existing immutable tag both before packaging and again immediately
+  before publication;
+- each expected installer asset must exist and be non-empty; and
+- one successful eligible workflow run has one release-publication action, producing one
+  uniquely tagged, non-draft release.
+
+The release job rechecks the repository, branch, event, conclusion, and SHA
+before packaging and at the final publication boundary. A tag-query transport
+failure fails closed instead of being interpreted as an available tag. The
+release-PR workflow declares `contents: read`, while documentation, wiki, and
+Pages publishing remain separate so release creation cannot start a
+base-repository push loop.
+
+The July 19 local workflow audit passed actionlint and repository workflow
+contracts. It does not substitute for the pending exact-SHA remote CI and release
+receipt.
+
 ## Scheduling Pull Requests
 
 Pull Requests for user-facing changes should have a milestone associated with

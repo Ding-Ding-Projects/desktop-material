@@ -1,9 +1,16 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import * as path from 'path'
-import { mkdir, readFile, writeFile } from 'fs/promises'
+import {
+  mkdir,
+  readFile,
+  realpath,
+  rename,
+  symlink,
+  writeFile,
+} from 'fs/promises'
 
-import { Repository } from '../../../src/models/repository'
+import { Repository, SubmoduleRepository } from '../../../src/models/repository'
 import {
   listSubmodules,
   addSubmodule,
@@ -19,6 +26,8 @@ import {
   initSubmodule,
   deinitSubmodule,
   SubmoduleConfigKey,
+  createSubmoduleRepository,
+  revalidateSubmoduleRepository,
 } from '../../../src/lib/git/submodule'
 import {
   checkoutBranch,
@@ -26,6 +35,7 @@ import {
   getConfigValue,
 } from '../../../src/lib/git'
 import { setupFixtureRepository } from '../../helpers/repositories'
+import { createTempDirectory } from '../../helpers/temp'
 
 describe('git/submodule', () => {
   describe('addSubmodule', () => {
@@ -363,6 +373,117 @@ describe('git/submodule', () => {
 
       const result = await readFile(filePath, { encoding: 'utf8' })
       assert.equal(result, '# submodule-test-case')
+    })
+  })
+
+  describe('createSubmoduleRepository', () => {
+    it('creates a stable negative-id model for an initialized checkout', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const parent = new Repository(testRepoPath, 42, null, false)
+      const [managed] = await getSubmodules(parent)
+
+      const first = await createSubmoduleRepository(parent, managed)
+      const second = await createSubmoduleRepository(parent, managed)
+
+      assert.ok(first instanceof SubmoduleRepository)
+      assert.ok(first.id < 0)
+      assert.equal(first.id, second.id)
+      assert.equal(first.parentRepository, parent)
+      assert.equal(first.containingRepository, parent)
+      assert.equal(
+        first.path,
+        await realpath(path.join(testRepoPath, managed.path))
+      )
+      assert.equal(first.submodule.path, 'foo/submodule')
+      assert.notEqual(first.resolvedGitDir, parent.resolvedGitDir)
+    })
+
+    it('rejects a stale entry after its checkout is deinitialized', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const parent = new Repository(testRepoPath, 43, null, false)
+      const [managed] = await getSubmodules(parent)
+
+      await deinitSubmodule(parent, managed.path, true)
+
+      await assert.rejects(
+        createSubmoduleRepository(parent, managed),
+        /Initialize the submodule/
+      )
+    })
+
+    it('requires the selected parent to be its repository root', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const root = new Repository(testRepoPath, 44, null, false)
+      const [managed] = await getSubmodules(root)
+      const nestedParent = new Repository(
+        path.join(testRepoPath, 'foo'),
+        root.id,
+        null,
+        false
+      )
+
+      await assert.rejects(
+        createSubmoduleRepository(nestedParent, managed),
+        /not a repository root/
+      )
+    })
+
+    it('rejects a checkout redirected through a symlink or junction', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const parent = new Repository(testRepoPath, 45, null, false)
+      const [managed] = await getSubmodules(parent)
+      const checkoutPath = path.join(testRepoPath, 'foo', 'submodule')
+      const outsideRoot = await createTempDirectory(t)
+      const outsidePath = path.join(outsideRoot, 'repository-evil')
+
+      await rename(checkoutPath, outsidePath)
+      await symlink(
+        outsidePath,
+        checkoutPath,
+        process.platform === 'win32' ? 'junction' : 'dir'
+      )
+
+      await assert.rejects(
+        createSubmoduleRepository(parent, managed),
+        /symbolic link|junction/
+      )
+    })
+
+    it('revalidates an open workspace after a junction replacement', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'submodule-basic-setup'
+      )
+      const parent = new Repository(testRepoPath, 46, null, false)
+      const [managed] = await getSubmodules(parent)
+      const temporary = await createSubmoduleRepository(parent, managed)
+      const checkoutPath = path.join(testRepoPath, 'foo', 'submodule')
+      const outsideRoot = await createTempDirectory(t)
+      const outsidePath = path.join(outsideRoot, 'repository-redirected')
+
+      await rename(checkoutPath, outsidePath)
+      await symlink(
+        outsidePath,
+        checkoutPath,
+        process.platform === 'win32' ? 'junction' : 'dir'
+      )
+
+      await assert.rejects(
+        revalidateSubmoduleRepository(temporary),
+        /symbolic link|junction/
+      )
     })
   })
 

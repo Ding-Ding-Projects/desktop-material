@@ -1,6 +1,10 @@
 import { ChildProcess } from 'child_process'
 import { git, IGitStringExecutionOptions } from './core'
-import { Repository } from '../../models/repository'
+import {
+  Repository,
+  SubmoduleRepository,
+  isSubmoduleRepository,
+} from '../../models/repository'
 import { SubmoduleEntry } from '../../models/submodule'
 import { pathExists } from '../path-exists'
 import {
@@ -15,8 +19,9 @@ import {
 import { AuthenticationErrors } from './authentication'
 import { IRemote } from '../../models/remote'
 import { Progress } from '../../models/progress'
+import * as Path from 'path'
 import { join, resolve } from 'path'
-import { readFile, rm } from 'fs/promises'
+import { lstat, readFile, realpath, rm } from 'fs/promises'
 import {
   getSubmoduleBranchError,
   getSubmodulePathError,
@@ -27,6 +32,7 @@ import { resolveSafeRepositoryPath } from './worktree-path-guard'
 import { validateEmptyFolder } from '../path-validation'
 import { IGitModulesEntry, parseGitModules } from './gitmodules'
 import { removeConfigValueInFile, setConfigValueInFile } from './config'
+import { getRepositoryType } from './rev-parse'
 
 function throwIfAborted(signal?: AbortSignal): void {
   if (signal?.aborted) {
@@ -471,6 +477,328 @@ export async function getSubmodules(
   }
 
   return reconcileSubmodules(configEntries, statusEntries)
+}
+
+function pathsEqual(first: string, second: string): boolean {
+  return Path.relative(first, second).length === 0
+}
+
+function isPathWithin(root: string, target: string): boolean {
+  const relative = Path.relative(root, target)
+  return (
+    relative.length === 0 ||
+    (relative !== '..' &&
+      !relative.startsWith(`..${Path.sep}`) &&
+      !Path.isAbsolute(relative))
+  )
+}
+
+function getCurrentManagedSubmodule(
+  submodules: ReadonlyArray<IManagedSubmodule>,
+  requestedPath: string
+): IManagedSubmodule {
+  const normalizedPath = normalizeSubmodulePath(requestedPath)
+  const pathError = getSubmodulePathError(normalizedPath)
+  if (pathError !== null) {
+    throw new Error(pathError)
+  }
+
+  const current = submodules.find(
+    submodule => normalizeSubmodulePath(submodule.path) === normalizedPath
+  )
+  if (current === undefined) {
+    throw new Error(
+      `The submodule at '${normalizedPath}' is no longer declared by this repository.`
+    )
+  }
+  if (current.status === 'uninitialized' || current.sha === null) {
+    throw new Error(
+      `Initialize the submodule at '${normalizedPath}' before opening it as a repository.`
+    )
+  }
+
+  return current
+}
+
+async function getCanonicalGitCommonDirectory(
+  repository: Repository,
+  signal?: AbortSignal
+): Promise<string> {
+  throwIfAborted(signal)
+  const result = await git(
+    ['rev-parse', '--git-common-dir'],
+    repository.path,
+    'openSubmoduleAsRepository',
+    { processCallback: getAbortableProcessCallback(signal) }
+  )
+  throwIfAborted(signal)
+
+  const value = result.stdout.replace(/\r?\n$/, '')
+  if (
+    value.length === 0 ||
+    value.includes('\0') ||
+    value.includes('\r') ||
+    value.includes('\n')
+  ) {
+    throw new Error('Git returned an invalid common directory for the parent.')
+  }
+
+  return realpath(Path.resolve(repository.path, value))
+}
+
+async function validateSubmoduleGitDirectory(
+  parentRepository: Repository,
+  checkoutPath: string,
+  gitDirectory: string,
+  signal?: AbortSignal
+): Promise<string> {
+  throwIfAborted(signal)
+  const markerPath = Path.join(checkoutPath, '.git')
+  let markerStat
+  try {
+    markerStat = await lstat(markerPath)
+  } catch {
+    throw new Error('The initialized submodule does not have Git metadata.')
+  }
+
+  if (
+    markerStat.isSymbolicLink() ||
+    (!markerStat.isFile() && !markerStat.isDirectory())
+  ) {
+    throw new Error('The submodule Git metadata path is not safe to open.')
+  }
+
+  let canonicalGitDirectory: string
+  try {
+    canonicalGitDirectory = await realpath(gitDirectory)
+    const gitDirectoryStat = await lstat(canonicalGitDirectory)
+    if (!gitDirectoryStat.isDirectory() || gitDirectoryStat.isSymbolicLink()) {
+      throw new Error('not a physical directory')
+    }
+  } catch {
+    throw new Error('The submodule Git directory is no longer available.')
+  }
+
+  if (markerStat.isDirectory()) {
+    const canonicalMarker = await realpath(markerPath)
+    if (!pathsEqual(canonicalMarker, canonicalGitDirectory)) {
+      throw new Error(
+        'The submodule Git directory does not match its checkout.'
+      )
+    }
+    return canonicalGitDirectory
+  }
+
+  if (markerStat.size > 4096) {
+    throw new Error('The submodule Git metadata file is invalid.')
+  }
+  const marker = await readFile(markerPath, 'utf8')
+  const match = /^gitdir: ([^\0\r\n]+)\r?\n?$/.exec(marker)
+  if (match === null) {
+    throw new Error('The submodule Git metadata file is invalid.')
+  }
+
+  let markerTarget: string
+  try {
+    markerTarget = await realpath(Path.resolve(checkoutPath, match[1]))
+  } catch {
+    throw new Error('The submodule Git directory is no longer available.')
+  }
+  if (!pathsEqual(markerTarget, canonicalGitDirectory)) {
+    throw new Error('The submodule Git directory does not match its checkout.')
+  }
+
+  const commonDirectory = await getCanonicalGitCommonDirectory(
+    parentRepository,
+    signal
+  )
+  let modulesDirectory: string
+  try {
+    modulesDirectory = await realpath(Path.join(commonDirectory, 'modules'))
+  } catch {
+    throw new Error('The parent repository submodule storage is unavailable.')
+  }
+  if (
+    pathsEqual(modulesDirectory, canonicalGitDirectory) ||
+    !isPathWithin(modulesDirectory, canonicalGitDirectory)
+  ) {
+    throw new Error(
+      'The submodule Git directory is outside the parent repository metadata.'
+    )
+  }
+
+  return canonicalGitDirectory
+}
+
+/**
+ * Validate an initialized submodule checkout and construct its temporary
+ * repository model without adding it to the repositories database.
+ */
+export async function createSubmoduleRepository(
+  parentRepository: Repository,
+  submodule: IManagedSubmodule,
+  signal?: AbortSignal
+): Promise<SubmoduleRepository> {
+  if (parentRepository.missing) {
+    throw new Error('The parent repository is no longer available.')
+  }
+
+  const parentType = await getRepositoryType(parentRepository.path)
+  if (parentType.kind !== 'regular') {
+    throw new Error('The selected parent is not a regular Git repository.')
+  }
+  const [canonicalParentPath, canonicalParentTopLevel, canonicalParentGitDir] =
+    await Promise.all([
+      realpath(parentRepository.path),
+      realpath(parentType.topLevelWorkingDirectory),
+      realpath(parentType.gitDir),
+    ])
+  if (!pathsEqual(canonicalParentPath, canonicalParentTopLevel)) {
+    throw new Error('The selected parent is not a repository root.')
+  }
+  const parentGitDirectoryStat = await lstat(canonicalParentGitDir)
+  if (
+    !parentGitDirectoryStat.isDirectory() ||
+    parentGitDirectoryStat.isSymbolicLink()
+  ) {
+    throw new Error('The parent repository Git directory is not available.')
+  }
+
+  const current = getCurrentManagedSubmodule(
+    await getSubmodules(parentRepository, signal),
+    submodule.path
+  )
+  const physicalPath = await resolveSafeRepositoryPath(
+    parentRepository.path,
+    current.path,
+    signal
+  )
+  if (!physicalPath.exists) {
+    throw new Error(
+      'The initialized submodule checkout is no longer available.'
+    )
+  }
+
+  const [checkoutStat, repositoryType] = await Promise.all([
+    lstat(physicalPath.path),
+    getRepositoryType(physicalPath.path),
+  ])
+  if (!pathsEqual(canonicalParentPath, physicalPath.root)) {
+    throw new Error('The selected parent is not a repository root.')
+  }
+  if (!checkoutStat.isDirectory() || checkoutStat.isSymbolicLink()) {
+    throw new Error(
+      'The initialized submodule checkout is not a safe directory.'
+    )
+  }
+  if (repositoryType.kind !== 'regular') {
+    throw new Error(
+      'The initialized submodule is not a regular Git repository.'
+    )
+  }
+
+  const [canonicalCheckoutPath, canonicalTopLevel] = await Promise.all([
+    realpath(physicalPath.path),
+    realpath(repositoryType.topLevelWorkingDirectory),
+  ])
+  if (
+    pathsEqual(canonicalParentPath, canonicalCheckoutPath) ||
+    !isPathWithin(canonicalParentPath, canonicalCheckoutPath)
+  ) {
+    throw new Error('The submodule checkout is outside the parent repository.')
+  }
+  if (!pathsEqual(canonicalCheckoutPath, canonicalTopLevel)) {
+    throw new Error('The submodule checkout is not its own repository root.')
+  }
+
+  const canonicalGitDirectory = await validateSubmoduleGitDirectory(
+    parentRepository,
+    canonicalCheckoutPath,
+    repositoryType.gitDir,
+    signal
+  )
+
+  // Reconcile one final time after filesystem and Git probes so a concurrently
+  // removed or deinitialized submodule cannot be returned as a valid model.
+  const latest = getCurrentManagedSubmodule(
+    await getSubmodules(parentRepository, signal),
+    current.path
+  )
+
+  // Repeat the no-follow path and Git metadata identity checks after the final
+  // declaration reconcile. This narrows the window in which a concurrent
+  // deinitialize or junction replacement could redirect the returned model.
+  const finalPhysicalPath = await resolveSafeRepositoryPath(
+    parentRepository.path,
+    latest.path,
+    signal
+  )
+  if (!finalPhysicalPath.exists) {
+    throw new Error(
+      'The initialized submodule checkout is no longer available.'
+    )
+  }
+  const [finalCheckoutPath, finalRepositoryType] = await Promise.all([
+    realpath(finalPhysicalPath.path),
+    getRepositoryType(finalPhysicalPath.path),
+  ])
+  if (
+    !pathsEqual(finalPhysicalPath.root, canonicalParentPath) ||
+    !pathsEqual(finalCheckoutPath, canonicalCheckoutPath) ||
+    finalRepositoryType.kind !== 'regular'
+  ) {
+    throw new Error('The submodule checkout changed while it was being opened.')
+  }
+  const finalGitDirectory = await validateSubmoduleGitDirectory(
+    parentRepository,
+    finalCheckoutPath,
+    finalRepositoryType.gitDir,
+    signal
+  )
+  if (!pathsEqual(finalGitDirectory, canonicalGitDirectory)) {
+    throw new Error(
+      'The submodule Git directory changed while it was being opened.'
+    )
+  }
+
+  return new SubmoduleRepository(
+    canonicalCheckoutPath,
+    canonicalGitDirectory,
+    parentRepository,
+    latest
+  )
+}
+
+/**
+ * Re-run the full declaration, physical-containment, repository-root, and Git
+ * metadata checks for an already-open temporary workspace.
+ */
+export async function revalidateSubmoduleRepository(
+  repository: SubmoduleRepository,
+  signal?: AbortSignal
+): Promise<void> {
+  const containingRepository = repository.containingRepository
+  if (containingRepository === repository) {
+    throw new Error('The temporary submodule containment chain is invalid.')
+  }
+  if (isSubmoduleRepository(containingRepository)) {
+    await revalidateSubmoduleRepository(containingRepository, signal)
+  }
+
+  const refreshed = await createSubmoduleRepository(
+    containingRepository,
+    repository.submodule,
+    signal
+  )
+  if (
+    refreshed.id !== repository.id ||
+    !pathsEqual(refreshed.path, repository.path) ||
+    !pathsEqual(refreshed.resolvedGitDir, repository.resolvedGitDir)
+  ) {
+    throw new Error(
+      'The temporary submodule identity changed after it was opened.'
+    )
+  }
 }
 
 export interface IAddSubmoduleOptions {

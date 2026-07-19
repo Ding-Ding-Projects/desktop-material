@@ -157,7 +157,7 @@ describe('submodule clone-surface contracts', () => {
     assert.match(tools, /id: 'cheap-lfs'/)
     assert.match(
       tools,
-      /getAllHubEntries\(\)[\s\S]*?cheapLfsHidden = cheapLfs === undefined \|\| cheapLfs\.available !== true[\s\S]*?return RepositoryToolsHubEntries/
+      /getAllHubEntries\(\)[\s\S]*?cheapLfsHidden =[\s\S]*?isSubmoduleRepository\(this\.props\.repository\)[\s\S]*?cheapLfs === undefined[\s\S]*?cheapLfs\.available !== true[\s\S]*?return RepositoryToolsHubEntries/
     )
     assert.match(tools, /selected === 'cheap-lfs' && this\.renderCheapLfs\(\)/)
 
@@ -180,15 +180,18 @@ describe('submodule clone-surface contracts', () => {
     const manager = read('src', 'ui', 'repository-settings', 'submodules.tsx')
 
     // Summary chips distinguish cloned from not-cloned submodules.
-    assert.match(manager, /submodules-summary-cloned[\s\S]*?\{cloned\} cloned/)
     assert.match(
       manager,
-      /submodules-summary-uncloned[\s\S]*?\{uncloned\} not cloned/
+      /submodules-summary-cloned[\s\S]*?translationKey="submodule\.summaryCloned"[\s\S]*?count: String\(cloned\)/
+    )
+    assert.match(
+      manager,
+      /submodules-summary-uncloned[\s\S]*?translationKey="submodule\.summaryNotCloned"[\s\S]*?count: String\(uncloned\)/
     )
     // Uninitialized submodules get a Clone action, not Update.
     assert.match(
       manager,
-      /submodule\.status === 'uninitialized' \? 'Clone' : 'Update'/
+      /submodule\.status === 'uninitialized'[\s\S]*?translationKey="submodule\.cloneAction"[\s\S]*?translationKey="submodule\.updateAction"/
     )
 
     // The shared styles serve both the settings tab and the standalone
@@ -222,7 +225,10 @@ describe('submodule clone-surface contracts', () => {
       manager,
       /type: PopupType\.SubmoduleConfig,[\s\S]*?repository: this\.props\.repository,[\s\S]*?submodule,/
     )
-    assert.match(manager, /onClick=\{onConfigure\}[\s\S]*?Configure/)
+    assert.match(
+      manager,
+      /onClick=\{onConfigure\}[\s\S]*?translationKey="submodule\.configureAction"/
+    )
 
     const app = read('src', 'ui', 'app.tsx')
     assert.match(

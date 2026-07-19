@@ -1,125 +1,194 @@
-export type SupportedLocale = 'en' | 'zh-HK' | 'zh-CN'
+import { LanguageMode, normalizeLanguageMode } from '../models/language-mode'
+import {
+  cantoneseTranslations,
+  englishTranslations,
+  TranslationKey,
+} from './i18n-resources'
 
-export type TranslationKey =
-  | 'ci.status'
-  | 'ci.successful'
-  | 'ci.failed'
-  | 'ci.inProgress'
-  | 'ci.timedOut'
-  | 'ci.actionRequired'
-  | 'ci.neutral'
-  | 'ci.cancelled'
-  | 'ci.skipped'
-  | 'ci.stale'
-  | 'update.downloadingLabel'
-  | 'update.downloadingValue'
-  | 'appearance.updateProgressColor'
-  | 'appearance.useAccentColor'
-  | 'color.blue'
-  | 'color.violet'
-  | 'color.teal'
-  | 'color.green'
-  | 'color.amber'
-  | 'color.rose'
+export type { TranslationKey } from './i18n-resources'
 
-const english: Record<TranslationKey, string> = {
-  'ci.status': 'CI checks: {status}',
-  'ci.successful': 'successful',
-  'ci.failed': 'failed',
-  'ci.inProgress': 'in progress',
-  'ci.timedOut': 'timed out',
-  'ci.actionRequired': 'action required',
-  'ci.neutral': 'neutral',
-  'ci.cancelled': 'cancelled',
-  'ci.skipped': 'skipped',
-  'ci.stale': 'stale',
-  'update.downloadingLabel': 'Downloading app update',
-  'update.downloadingValue': 'Downloading',
-  'appearance.updateProgressColor': 'Update progress color',
-  'appearance.useAccentColor': 'Use accent color',
-  'color.blue': 'Blue',
-  'color.violet': 'Violet',
-  'color.teal': 'Teal',
-  'color.green': 'Green',
-  'color.amber': 'Amber',
-  'color.rose': 'Rose',
+export type SupportedLocale = 'en' | 'zh-HK'
+export const LanguageModeChangedEvent = 'desktop-material-language-mode-changed'
+
+const BilingualSeparator = ' · '
+const AppearanceStorageKey = 'appearance-customization-v1'
+const BilingualVariableMarker: unique symbol = Symbol(
+  'desktop-material.bilingual-variable'
+)
+
+/**
+ * An explicitly localized interpolation value.
+ *
+ * The private symbol marker makes this distinct from user-controlled strings,
+ * including strings which legitimately contain the bilingual separator.
+ */
+export interface IBilingualVariable {
+  readonly [BilingualVariableMarker]: true
+  readonly english: string
+  readonly cantonese: string
 }
 
-const catalogs: Record<SupportedLocale, Record<TranslationKey, string>> = {
-  en: english,
-  'zh-HK': {
-    'ci.status': 'CI 檢查：{status}',
-    'ci.successful': '成功',
-    'ci.failed': '失敗',
-    'ci.inProgress': '進行中',
-    'ci.timedOut': '逾時',
-    'ci.actionRequired': '需要處理',
-    'ci.neutral': '中性',
-    'ci.cancelled': '已取消',
-    'ci.skipped': '已略過',
-    'ci.stale': '已過期',
-    'update.downloadingLabel': '正在下載應用程式更新',
-    'update.downloadingValue': '正在下載',
-    'appearance.updateProgressColor': '更新進度列顏色',
-    'appearance.useAccentColor': '使用強調色',
-    'color.blue': '藍色',
-    'color.violet': '紫色',
-    'color.teal': '藍綠色',
-    'color.green': '綠色',
-    'color.amber': '琥珀色',
-    'color.rose': '玫瑰色',
-  },
-  'zh-CN': {
-    'ci.status': 'CI 检查：{status}',
-    'ci.successful': '成功',
-    'ci.failed': '失败',
-    'ci.inProgress': '进行中',
-    'ci.timedOut': '超时',
-    'ci.actionRequired': '需要处理',
-    'ci.neutral': '中性',
-    'ci.cancelled': '已取消',
-    'ci.skipped': '已跳过',
-    'ci.stale': '已过期',
-    'update.downloadingLabel': '正在下载应用更新',
-    'update.downloadingValue': '正在下载',
-    'appearance.updateProgressColor': '更新进度条颜色',
-    'appearance.useAccentColor': '使用强调色',
-    'color.blue': '蓝色',
-    'color.violet': '紫色',
-    'color.teal': '蓝绿色',
-    'color.green': '绿色',
-    'color.amber': '琥珀色',
-    'color.rose': '玫瑰色',
-  },
+export type TranslationVariable = string | IBilingualVariable
+export type TranslationVariables = Readonly<Record<string, TranslationVariable>>
+
+/** Create a trusted two-locale interpolation value without encoding it in text. */
+export function bilingualVariable(
+  english: string,
+  cantonese: string
+): IBilingualVariable {
+  return {
+    [BilingualVariableMarker]: true,
+    english,
+    cantonese,
+  }
 }
 
 export function normalizeLocale(locale: string | undefined): SupportedLocale {
   const normalized = locale?.replace('_', '-').toLowerCase()
-  if (normalized === 'zh-hk' || normalized === 'zh-tw') {
-    return 'zh-HK'
-  }
-  if (normalized?.startsWith('zh')) {
-    return 'zh-CN'
-  }
-  return 'en'
+  return normalized?.startsWith('zh') ? 'zh-HK' : 'en'
 }
 
-export function translate(
-  key: TranslationKey,
-  locale: string | undefined,
-  variables: Readonly<Record<string, string>> = {}
+function modeFromLanguageOrLocale(value: string | undefined): LanguageMode {
+  const normalizedMode = normalizeLanguageMode(value)
+  if (normalizedMode !== 'english' || value === 'english') {
+    return normalizedMode
+  }
+  return normalizeLocale(value) === 'zh-HK' ? 'cantonese' : 'english'
+}
+
+function interpolate(
+  template: string,
+  variables: Readonly<Record<string, string>>
 ): string {
-  const template = catalogs[normalizeLocale(locale)][key] ?? english[key]
   return template.replace(/\{([^}]+)\}/g, (_, name: string) => {
     return variables[name] ?? `{${name}}`
   })
 }
 
+function isBilingualVariable(
+  value: TranslationVariable
+): value is IBilingualVariable {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    value[BilingualVariableMarker] === true
+  )
+}
+
+/**
+ * Resolve typed interpolation values for each catalog.
+ *
+ * Plain strings are always copied verbatim to both sides. They are never
+ * parsed for visible punctuation, so repository names such as `A · B` remain
+ * intact.
+ */
+function splitBilingualVariables(variables: TranslationVariables): {
+  readonly english: Readonly<Record<string, string>>
+  readonly cantonese: Readonly<Record<string, string>>
+} {
+  const englishVariables: Record<string, string> = {}
+  const cantoneseVariables: Record<string, string> = {}
+
+  for (const [name, value] of Object.entries(variables)) {
+    if (isBilingualVariable(value)) {
+      englishVariables[name] = value.english
+      cantoneseVariables[name] = value.cantonese
+    } else {
+      englishVariables[name] = value
+      cantoneseVariables[name] = value
+    }
+  }
+
+  return { english: englishVariables, cantonese: cantoneseVariables }
+}
+
+function templateFor(key: TranslationKey, locale: SupportedLocale): string {
+  return locale === 'zh-HK'
+    ? cantoneseTranslations[key] ?? englishTranslations[key]
+    : englishTranslations[key]
+}
+
+export function translate(
+  key: TranslationKey,
+  languageOrLocale: string | undefined,
+  variables: TranslationVariables = {}
+): string {
+  const mode = modeFromLanguageOrLocale(languageOrLocale)
+  const split = splitBilingualVariables(variables)
+
+  if (mode === 'cantonese') {
+    return interpolate(templateFor(key, 'zh-HK'), split.cantonese)
+  }
+  if (mode === 'bilingual') {
+    return `${interpolate(
+      templateFor(key, 'en'),
+      split.english
+    )}${BilingualSeparator}${interpolate(
+      templateFor(key, 'zh-HK'),
+      split.cantonese
+    )}`
+  }
+  return interpolate(templateFor(key, 'en'), split.english)
+}
+
+/** Build a typed interpolation value from a resource key. */
+export function translatedVariable(
+  key: TranslationKey,
+  variables: TranslationVariables = {}
+): IBilingualVariable {
+  return bilingualVariable(
+    translate(key, 'english', variables),
+    translate(key, 'cantonese', variables)
+  )
+}
+
+/** Bilingual controls use English as their concise primary accessible name. */
+export function getPrimaryLanguageMode(
+  mode: LanguageMode
+): Exclude<LanguageMode, 'bilingual'> {
+  return mode === 'cantonese' ? 'cantonese' : 'english'
+}
+
+/** Translate a deterministic single-language accessible name for this mode. */
+export function translateForAccessibleName(
+  key: TranslationKey,
+  variables: TranslationVariables = {},
+  mode: LanguageMode = getPersistedLanguageMode()
+): string {
+  return translate(key, getPrimaryLanguageMode(mode), variables)
+}
+
+/** Read the active profile's explicit mode; the OS locale never overrides it. */
+export function getPersistedLanguageMode(): LanguageMode {
+  if (typeof localStorage === 'undefined') {
+    return 'english'
+  }
+
+  try {
+    const serialized = localStorage.getItem(AppearanceStorageKey)
+    if (serialized === null || serialized.length > 32_768) {
+      return 'english'
+    }
+    const parsed: unknown = JSON.parse(serialized)
+    if (
+      typeof parsed !== 'object' ||
+      parsed === null ||
+      Array.isArray(parsed)
+    ) {
+      return 'english'
+    }
+    const record = parsed as Record<string, unknown>
+    return record.version === 1
+      ? normalizeLanguageMode(record.languageMode)
+      : 'english'
+  } catch {
+    return 'english'
+  }
+}
+
 export function t(
   key: TranslationKey,
-  variables?: Readonly<Record<string, string>>
+  variables?: TranslationVariables
 ): string {
-  const locale =
-    typeof navigator === 'undefined' ? undefined : navigator.language
-  return translate(key, locale, variables)
+  return translate(key, getPersistedLanguageMode(), variables)
 }

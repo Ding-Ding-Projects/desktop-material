@@ -1030,8 +1030,16 @@
     .submodule-row-actions {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
       gap: 6px;
       flex-shrink: 0;
+
+      .submodule-open-repository {
+        color: var(--md-sys-color-on-primary-container);
+        background: var(--md-sys-color-primary-container);
+        border-color: transparent;
+      }
     }
 
     // --- Status pills -----------------------------------------------------

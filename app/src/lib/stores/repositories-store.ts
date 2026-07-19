@@ -15,6 +15,7 @@ import {
   RepositoryWithGitHubRepository,
   assertIsRepositoryWithGitHubRepository,
   isRepositoryWithGitHubRepository,
+  isSubmoduleRepository,
 } from '../../models/repository'
 import { fatalError, assertNonNullable, forceUnwrap } from '../fatal-error'
 import {
@@ -59,6 +60,14 @@ export class RepositoriesStore extends TypedBaseStore<
 
   public constructor(private readonly db: RepositoriesDatabase) {
     super()
+  }
+
+  private assertPersistedRepository(repository: Repository): void {
+    if (isSubmoduleRepository(repository)) {
+      throw new Error(
+        'Temporary submodule repositories cannot change saved repository settings.'
+      )
+    }
   }
 
   /**
@@ -279,6 +288,7 @@ export class RepositoriesStore extends TypedBaseStore<
 
   /** Remove the given repository. */
   public async removeRepository(repository: Repository): Promise<void> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.delete(repository.id)
     clearTagsToPush(repository)
 
@@ -290,6 +300,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     missing: boolean
   ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { missing })
 
     this.emitUpdatedRepositories()
@@ -316,6 +327,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     gitDir: string
   ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { gitDir })
 
     this.emitUpdatedRepositories()
@@ -347,6 +359,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     alias: string | null
   ): Promise<void> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { alias })
 
     this.emitUpdatedRepositories()
@@ -357,6 +370,9 @@ export class RepositoriesStore extends TypedBaseStore<
     repositories: ReadonlyArray<Repository>,
     groupName: string | null
   ): Promise<void> {
+    for (const repository of repositories) {
+      this.assertPersistedRepository(repository)
+    }
     await this.db.transaction('rw', this.db.repositories, () =>
       Promise.all(
         repositories.map(repository =>
@@ -371,6 +387,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     defaultBranch: string | null
   ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { defaultBranch })
     this.emitUpdatedRepositories()
 
@@ -395,6 +412,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     customEditorOverride: EditorOverride | null
   ): Promise<void> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, {
       customEditorOverride,
     })
@@ -411,6 +429,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     workflowPreferences: WorkflowPreferences
   ): Promise<void> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { workflowPreferences })
 
     this.emitUpdatedRepositories()
@@ -426,6 +445,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     buildRunPreferences: IBuildRunPreferences
   ): Promise<void> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { buildRunPreferences })
 
     this.emitUpdatedRepositories()
@@ -442,6 +462,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     accountKey: string | null
   ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, { accountKey })
 
     this.emitUpdatedRepositories()
@@ -470,6 +491,7 @@ export class RepositoriesStore extends TypedBaseStore<
     gitDir: string | undefined,
     missing: boolean = false
   ): Promise<Repository> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, {
       missing,
       path,
@@ -512,6 +534,7 @@ export class RepositoriesStore extends TypedBaseStore<
     missing = false,
     gitDir: string | undefined = repository.gitDir
   ): Promise<{ repository: Repository; existingRepository: boolean }> {
+    this.assertPersistedRepository(repository)
     const existing = await this.db.repositories.get({ path: worktreePath })
 
     if (existing !== undefined) {
@@ -560,6 +583,7 @@ export class RepositoriesStore extends TypedBaseStore<
     repository: Repository,
     date: number = Date.now()
   ): Promise<void> {
+    this.assertPersistedRepository(repository)
     await this.db.repositories.update(repository.id, {
       lastStashCheckDate: date,
     })
@@ -670,6 +694,7 @@ export class RepositoriesStore extends TypedBaseStore<
   }
 
   public async setGitHubRepository(repo: Repository, ghRepo: GitHubRepository) {
+    this.assertPersistedRepository(repo)
     // If nothing has changed we can skip writing to the database and (more
     // importantly) avoid telling store consumers that the repo store has
     // changed and just return the repo that was given to us.

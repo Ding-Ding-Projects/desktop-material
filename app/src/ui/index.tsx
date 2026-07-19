@@ -69,6 +69,7 @@ import {
 } from '../lib/source-map-support'
 import { UiActivityMonitor } from './lib/ui-activity-monitor'
 import { RepositoryStateCache } from '../lib/stores/repository-state-cache'
+import { isSubmoduleRepository } from '../models/repository'
 import { ApiRepositoriesStore } from '../lib/stores/api-repositories-store'
 import { CommitStatusStore } from '../lib/stores/commit-status-store'
 import { PullRequestCoordinator } from '../lib/stores/pull-request-coordinator'
@@ -409,7 +410,10 @@ appStore.onDidUpdate(state => {
   reportWindowRepositoryState()
   if (selected !== null && selected.type === SelectionType.Repository) {
     const repository = selected.repository
-    if (repository.id !== lastEnsuredRepositoryId) {
+    if (
+      !isSubmoduleRepository(repository) &&
+      repository.id !== lastEnsuredRepositoryId
+    ) {
       lastEnsuredRepositoryId = repository.id
       repositoryTabsStore
         .ensureTabForRepository(repository)

@@ -43,13 +43,14 @@ import { RepositoryBundleImport } from './bundle-import'
 import { RepositoryShallowHistory } from './shallow-history'
 import { CheapLfs, ICheapLfsDispatcher } from './cheap-lfs'
 import { Account } from '../../models/account'
-import { Repository } from '../../models/repository'
+import { Repository, isSubmoduleRepository } from '../../models/repository'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import { t } from '../../lib/i18n'
 
 const MaxOutputBytes = 4 * 1024 * 1024
 type RepositoryToolResultID =
@@ -80,6 +81,28 @@ function findRepositoryToolOperation(
   id: RepositoryToolResultID
 ): IRepositoryToolOperation | null {
   return RepositoryToolOperations.find(operation => operation.id === id) ?? null
+}
+
+const DirectRepositoryToolMutationIDs = new Set<CLIWorkbenchOperation['id']>([
+  'bundle-import-fetch-objects',
+  'bundle-import-create-branch',
+  'history-deepen',
+  'history-unshallow',
+  'notes-edit',
+  'notes-remove',
+])
+
+/** Classify every named CLI recipe that can change a repository checkout. */
+export function isRepositoryToolMutation(
+  operation: CLIWorkbenchOperation
+): boolean {
+  const registered = RepositoryToolOperations.find(
+    candidate => candidate.id === operation.id
+  )
+  return (
+    registered?.mutatesRepository === true ||
+    DirectRepositoryToolMutationIDs.has(operation.id)
+  )
 }
 
 /**
@@ -344,6 +367,8 @@ const defaultClient: IRepositoryToolsClient = {
 }
 
 export interface IRepositoryToolsProps {
+  /** Repository identity used to fail closed for temporary child workspaces. */
+  readonly repository?: Repository
   readonly repositoryPath: string
   readonly onRefreshRepository: () => Promise<void>
   readonly client?: IRepositoryToolsClient
@@ -445,6 +470,18 @@ export class RepositoryTools extends React.Component<
     IRepositoryToolOperation,
     () => void
   >()
+  private readonly temporarySafeClient: IRepositoryToolsClient = {
+    getRuntime: () => this.client.getRuntime(),
+    start: request => {
+      const message = this.temporaryToolsReadOnlyMessage
+      return message !== null && isRepositoryToolMutation(request.operation)
+        ? Promise.reject(new Error(message))
+        : this.client.start(request)
+    },
+    cancel: id => this.client.cancel(id),
+    onOutput: handler => this.client.onOutput(handler),
+    onState: handler => this.client.onState(handler),
+  }
 
   public constructor(props: IRepositoryToolsProps) {
     super(props)
@@ -482,6 +519,15 @@ export class RepositoryTools extends React.Component<
     return this.props.client ?? defaultClient
   }
 
+  private get temporaryToolsReadOnlyMessage(): string | null {
+    const repository = this.props.repository
+    return isSubmoduleRepository(repository)
+      ? t('submodule.temporaryToolsReadOnly', {
+          parent: repository.parentRepository.name,
+        })
+      : null
+  }
+
   public componentDidMount() {
     this.mounted = true
     this.unsubscribeOutput = this.client.onOutput(this.onOutput)
@@ -491,7 +537,10 @@ export class RepositoryTools extends React.Component<
   }
 
   public componentDidUpdate(prevProps: IRepositoryToolsProps) {
-    if (prevProps.repositoryPath !== this.props.repositoryPath) {
+    if (
+      prevProps.repositoryPath !== this.props.repositoryPath ||
+      prevProps.repository !== this.props.repository
+    ) {
       this.cancelActiveRun()
       this.setState({
         activeOperation: null,
@@ -674,7 +723,10 @@ export class RepositoryTools extends React.Component<
       submoduleCount === null ||
       submoduleCount === 0
     const subtreesHidden = onOpenSubtreeManager === undefined
-    const cheapLfsHidden = cheapLfs === undefined || cheapLfs.available !== true
+    const cheapLfsHidden =
+      isSubmoduleRepository(this.props.repository) ||
+      cheapLfs === undefined ||
+      cheapLfs.available !== true
 
     if (submodulesHidden && subtreesHidden && cheapLfsHidden) {
       return RepositoryToolsHubEntries
@@ -746,7 +798,7 @@ export class RepositoryTools extends React.Component<
       error: null,
     })
     try {
-      await this.client.start({
+      await this.temporarySafeClient.start({
         id,
         operation,
         repositoryPath: this.props.repositoryPath,
@@ -1265,6 +1317,8 @@ export class RepositoryTools extends React.Component<
       return null
     }
     const category = operation.category
+    const temporaryMutationDisabled =
+      operation.mutatesRepository && this.temporaryToolsReadOnlyMessage !== null
     const categoryTitleId = `repository-tools-${hubCategoryDomId(
       category
     )}-title`
@@ -1304,7 +1358,11 @@ export class RepositoryTools extends React.Component<
                   ? 'repository-tool-write-button'
                   : undefined
               }
-              disabled={this.isBusy() || !this.state.gitAvailable}
+              disabled={
+                this.isBusy() ||
+                !this.state.gitAvailable ||
+                temporaryMutationDisabled
+              }
               onClick={this.getOperationHandler(operation)}
             >
               {operation.requiresConfirmation ? 'Review and run' : 'Run'}
@@ -1518,7 +1576,7 @@ export class RepositoryTools extends React.Component<
           this.state.shallowHistoryBusy ||
           !this.state.gitAvailable
         }
-        client={this.client}
+        client={this.temporarySafeClient}
         onRefreshRepository={this.props.onRefreshRepository}
         onBusyChanged={this.onBundleImportBusyChanged}
         chooseBundleToImport={this.props.chooseBundleToImport}
@@ -1535,7 +1593,7 @@ export class RepositoryTools extends React.Component<
           this.state.bundleImportBusy ||
           !this.state.gitAvailable
         }
-        client={this.client}
+        client={this.temporarySafeClient}
         onRefreshRepository={this.props.onRefreshRepository}
         onBusyChanged={this.onShallowHistoryBusyChanged}
       />
@@ -1563,6 +1621,7 @@ export class RepositoryTools extends React.Component<
           <Button
             className="repository-tool-confirm-button"
             onButtonRef={this.setConfirmButton}
+            disabled={this.temporaryToolsReadOnlyMessage !== null}
             onClick={this.onConfirmOperation}
           >
             {operation.confirmationActionLabel ?? 'Confirm and run'}
@@ -1720,6 +1779,7 @@ export class RepositoryTools extends React.Component<
   }
 
   private renderNoteEditorCard(disabled: boolean) {
+    const mutationDisabled = this.temporaryToolsReadOnlyMessage !== null
     return (
       <article className="repository-tool-card">
         <div>
@@ -1770,6 +1830,7 @@ export class RepositoryTools extends React.Component<
               className="repository-tool-write-button"
               disabled={
                 disabled ||
+                mutationDisabled ||
                 this.state.noteTarget.trim().length === 0 ||
                 this.state.noteMessage.trim().length === 0
               }
@@ -1779,7 +1840,11 @@ export class RepositoryTools extends React.Component<
             </Button>
             <Button
               className="repository-tool-write-button"
-              disabled={disabled || this.state.noteTarget.trim().length === 0}
+              disabled={
+                disabled ||
+                mutationDisabled ||
+                this.state.noteTarget.trim().length === 0
+              }
               onClick={this.reviewNoteRemoval}
             >
               Review removal
@@ -1867,6 +1932,7 @@ export class RepositoryTools extends React.Component<
           <Button
             className="repository-tool-confirm-button"
             onButtonRef={this.setConfirmButton}
+            disabled={this.temporaryToolsReadOnlyMessage !== null}
             onClick={this.onConfirmNote}
           >
             {request.action === 'save' ? 'Save note' : 'Remove note'}
@@ -2096,6 +2162,11 @@ export class RepositoryTools extends React.Component<
               role="alert"
             >
               {this.state.availabilityError}
+            </p>
+          )}
+          {this.temporaryToolsReadOnlyMessage !== null && (
+            <p className="repository-tools-error" role="status">
+              {this.temporaryToolsReadOnlyMessage}
             </p>
           )}
           <div className="repository-tools-layout">

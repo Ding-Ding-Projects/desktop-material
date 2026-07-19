@@ -48,6 +48,18 @@ describe('physical worktree path guard', () => {
     assert.equal(missing.path, resolve(repositoryPath, 'nested/missing.txt'))
   })
 
+  it('rejects an absolute sibling whose name shares the repository prefix', async t => {
+    const { repositoryPath } = await setupNestedRepository(t)
+    const siblingPath = `${repositoryPath}-evil`
+    await mkdir(siblingPath)
+
+    await assert.rejects(
+      resolveSafeRepositoryPath(repositoryPath, siblingPath),
+      (error: unknown) =>
+        error instanceof WorktreePathSafetyError && error.kind === 'path-escape'
+    )
+  })
+
   it('allows a repository-root alias and a linked worktree', async t => {
     const { base, repositoryPath } = await setupNestedRepository(t)
     const aliasPath = join(base, 'repository-alias')

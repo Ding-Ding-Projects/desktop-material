@@ -12,7 +12,7 @@ import {
   SparseCheckoutMutation,
   SparseCheckoutUnavailableError,
 } from '../../lib/git/sparse-checkout'
-import { Repository } from '../../models/repository'
+import { Repository, SubmoduleRepository } from '../../models/repository'
 import { DialogStackContext } from '../dialog'
 import { getNonModalSheetCascadeStyle } from '../dialog/non-modal-sheet-cascade'
 import { Button } from '../lib/button'
@@ -128,7 +128,11 @@ export class SparseCheckoutManager extends React.Component<
     this.wasTopMost = this.context.isTopMost
     window.addEventListener('keydown', this.onWindowKeyDown)
     this.focusPanelIfTopMost()
-    void this.loadState(true)
+    if (this.props.repository instanceof SubmoduleRepository) {
+      this.props.onDismissed()
+    } else {
+      void this.loadState(true)
+    }
   }
 
   public componentDidUpdate(prevProps: ISparseCheckoutProps) {
@@ -389,7 +393,11 @@ export class SparseCheckoutManager extends React.Component<
 
   private confirmMutation = async () => {
     const pending = this.state.pending
-    if (pending === null || this.state.busy) {
+    if (
+      pending === null ||
+      this.state.busy ||
+      this.props.repository instanceof SubmoduleRepository
+    ) {
       return
     }
 

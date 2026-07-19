@@ -19,6 +19,32 @@ const {
   waitFor,
 } = require('./verify_actions_pagination_cdp.js')
 
+const milestoneImageDimensions = Object.freeze({
+  'material-actions-jobs-pagination.png': Object.freeze({
+    width: 960,
+    height: 660,
+  }),
+  'material-actions-pending-deployments.png': Object.freeze({
+    width: 944,
+    height: 808,
+  }),
+  'material-repository-tools.png': Object.freeze({
+    width: 1440,
+    height: 960,
+  }),
+  'material-repository-tools-scroll.png': Object.freeze({
+    width: 960,
+    height: 420,
+  }),
+  'material-effective-branch-rules.png': Object.freeze({
+    width: 1440,
+    height: 960,
+  }),
+  'add-submodule-dialog.png': Object.freeze({ width: 1440, height: 960 }),
+  'material-customization.png': Object.freeze({ width: 1440, height: 960 }),
+  'material-submodule-context.png': Object.freeze({ width: 1440, height: 960 }),
+})
+
 function parseArguments(argv) {
   const values = new Map()
   for (let index = 0; index < argv.length; index += 2) {
@@ -116,9 +142,9 @@ const geometryExpression = `(() => {
       !image.complete || image.naturalWidth === 0 || image.naturalHeight === 0
     ),
     milestoneImages: images.filter(image =>
-      image.src?.includes('material-actions-jobs-pagination') ||
-      image.src?.includes('material-actions-pending-deployments') ||
-      image.src?.includes('add-submodule-dialog')
+      ${JSON.stringify(Object.keys(milestoneImageDimensions))}.some(file =>
+        image.src?.includes(file)
+      )
     ),
     overflow,
     outsideControls,
@@ -126,25 +152,18 @@ const geometryExpression = `(() => {
 })()`
 
 function assertReceipt(receipt, label) {
-  const jobImages = receipt.milestoneImages.filter(image =>
-    image.src?.includes('material-actions-jobs-pagination.png')
+  const exactMilestoneImages = Object.entries(milestoneImageDimensions).every(
+    ([file, dimensions]) => {
+      const matches = receipt.milestoneImages.filter(image =>
+        image.src?.includes(file)
+      )
+      return (
+        matches.length === 1 &&
+        matches[0].naturalWidth === dimensions.width &&
+        matches[0].naturalHeight === dimensions.height
+      )
+    }
   )
-  const deploymentImages = receipt.milestoneImages.filter(image =>
-    image.src?.includes('material-actions-pending-deployments.png')
-  )
-  const addSubmoduleImages = receipt.milestoneImages.filter(image =>
-    image.src?.includes('add-submodule-dialog.png')
-  )
-  const exactMilestoneImages =
-    jobImages.length === 1 &&
-    jobImages[0].naturalWidth === 960 &&
-    jobImages[0].naturalHeight === 660 &&
-    deploymentImages.length === 1 &&
-    deploymentImages[0].naturalWidth === 944 &&
-    deploymentImages[0].naturalHeight === 808 &&
-    addSubmoduleImages.length === 1 &&
-    addSubmoduleImages[0].naturalWidth === 1500 &&
-    addSubmoduleImages[0].naturalHeight === 1032
   if (receipt.documentClientWidth !== receipt.documentScrollWidth) {
     fail(
       `${label} document has horizontal overflow: ${JSON.stringify(receipt)}`
@@ -277,4 +296,9 @@ if (require.main === module) {
   })
 }
 
-module.exports = { assertReceipt, geometryExpression, parseArguments }
+module.exports = {
+  assertReceipt,
+  geometryExpression,
+  milestoneImageDimensions,
+  parseArguments,
+}

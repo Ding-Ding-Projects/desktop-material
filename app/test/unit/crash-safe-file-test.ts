@@ -13,7 +13,7 @@ import {
   writeFile,
 } from 'fs/promises'
 import { tmpdir } from 'os'
-import { basename, join } from 'path'
+import { basename, dirname, join } from 'path'
 import { randomUUID } from 'crypto'
 import { describe, it, TestContext } from 'node:test'
 import assert from 'node:assert'
@@ -75,6 +75,32 @@ function isValidJson(contents: string): boolean {
 }
 
 describe('CrashSafeFilePersistence', () => {
+  it('does not attempt unsupported directory fsync on Windows', async t => {
+    if (process.platform !== 'win32') {
+      t.skip('Windows-specific directory fsync regression')
+      return
+    }
+
+    const target = await temporaryTarget(t)
+    const directory = dirname(target)
+    let directoryOpenAttempts = 0
+    const persistence = new CrashSafeFilePersistence({
+      ...nativeFileSystem,
+      open: async (path, flags, mode) => {
+        if (path === directory) {
+          directoryOpenAttempts++
+          throw new Error('directory fsync should have been skipped')
+        }
+        return open(path, flags, mode)
+      },
+    })
+
+    await persistence.writeText(target, '{"saved":true}')
+
+    assert.equal(directoryOpenAttempts, 0)
+    assert.equal(await readFile(target, 'utf8'), '{"saved":true}')
+  })
+
   it('keeps the previous primary when a temporary write is partial', async t => {
     const target = await temporaryTarget(t)
     await new CrashSafeFilePersistence().writeText(target, '{"old":true}')

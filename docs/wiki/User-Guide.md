@@ -6,12 +6,20 @@ focuses on what Desktop Material adds on top.
 
 **Feature guide**
 
-The complete M0–M20 roadmap is published on `main`. This guide also covers the current maintenance
-release: adaptive appearance and profile app identity, favorite/portable tabs, Material entry surfaces, guarded tab management, workflow-run
-cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, and compact
-surface corrections, plus the repository-contextual GitHub API Explorer. Exact build, off-screen UI, publication, and cleanup receipts are recorded in
-the repository's `HANDOFF.md` only as each release is verified.
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 63-function visual index: every
+The complete M0–M20 roadmap is published on `main`. This guide also covers the current locally
+accepted maintenance changeset: adaptive appearance and profile app identity, favorite/portable tabs, Material entry surfaces, guarded tab management, workflow-run
+cancellation, reviewed rebase, repository-account propagation, bounded OAuth scopes, compact
+surface corrections, temporary submodule navigation, and its explicit language and Back-control
+appearance modes, plus the repository-contextual GitHub API Explorer. Exact build, off-screen UI,
+publication, and cleanup receipts are recorded in the repository's `HANDOFF.md` only as each release
+is verified.
+
+The temporary-submodule changeset has completed its local ten-pass, final
+post-build child/Back, and fresh-bundle duplicate Open/Back race inspections,
+including read-only mutation boundaries and owned headless-resource cleanup; its
+new remote CI, installer, Pages, and wiki publication receipts remain pending.
+
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 64-function visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
@@ -102,9 +110,11 @@ The whole shell has an **animated light/dark theme**. Everything below tells you
 While an app update downloads, a thin indeterminate progress bar appears at the
 top of the workspace. Choose **Settings → Appearance → Update progress color**
 to inherit the accent or select blue, violet, teal, green, amber, or rose.
-These update controls and the current-commit CI status tooltip automatically use
-English, Traditional Chinese, or Simplified Chinese from the operating-system
-locale; unsupported locales fall back to English.
+These update controls, the current-commit CI status tooltip, and the temporary
+submodule-navigation copy use the explicit language mode saved under
+**Language and navigation**: English, playful Hong Kong Cantonese, or a compact
+bilingual presentation. English is the fallback; the operating-system locale
+does not silently replace the saved choice.
 
 ![Desktop Material workspace with a profile-customized app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
@@ -283,21 +293,27 @@ without destructively clearing a usable current session.
 ### App defaults in the active profile
 
 Open **Settings → Appearance**. The callout at the top identifies these controls as app defaults
-for the active profile. All 13 are saved through the profile's local Git-backed settings history:
+for the active profile. All 17 are saved through the profile's local Git-backed settings history:
 
 1. **Accent color** — Blue, Violet, Teal, Green, Amber, or Rose.
-2. **Surface color** — Tonal or Neutral.
-3. **Surface depth** — Standard, Subtle, or Flat.
-4. **Interface font** — Material (Roboto) or the system font.
-5. **Code and diff font** — platform default, Consolas, or SF Mono.
-6. **Animation** — follow the system setting or reduce motion.
-7. **Toolbar labels** — Automatic, Prefer labels, or Icons only.
-8. **Toolbar density** — Comfortable or Compact.
-9. **Repository list density** — Comfortable or Compact.
-10. **Tab density** — Comfortable or Compact.
-11. **Tab width** — Compact, Standard, or Wide.
-12. **Tab close buttons** — On hover, Always, or Active tab only.
-13. **Highlight Desktop Material features** — off by default; when enabled, adds a non-animated
+2. **Update progress color** — follow Accent or use any named accent palette.
+3. **Surface color** — Tonal or Neutral.
+4. **Surface depth** — Standard, Subtle, or Flat.
+5. **Interface font** — Material (Roboto) or the system font.
+6. **Code and diff font** — platform default, Consolas, or SF Mono.
+7. **Animation** — follow the system setting or reduce motion.
+8. **Toolbar labels** — Automatic, Prefer labels, or Icons only.
+9. **Toolbar density** — Comfortable or Compact.
+10. **Repository list density** — Comfortable or Compact.
+11. **Tab density** — Comfortable or Compact.
+12. **Tab width** — Compact, Standard, or Wide.
+13. **Tab close buttons** — On hover, Always, or Active tab only.
+14. **Language** — English, playful Hong Kong Cantonese, or Bilingual. The choice is explicit,
+    persisted, and falls back to English when saved data is unsupported.
+15. **Submodule Back button style** — Tonal, Filled accent, or Outlined.
+16. **Submodule Back button label** — Back to parent, Parent name, or Icon only. Icon only retains
+    a destination-specific accessible name and tooltip.
+17. **Highlight Desktop Material features** — off by default; when enabled, adds a non-animated
     accent edge and an `M` or **Material** badge to reviewed entry points that are not present in
     stock GitHub Desktop.
 
@@ -369,7 +385,7 @@ model.
 
 ![Layered custom repository-logo studio with a live preview and safe vector controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-logo-studio.png)
 
-![Appearance preferences with optional Desktop Material feature highlighting enabled and Material badges on fork-only entry points](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+![Appearance preferences with explicit language and temporary-submodule Back button controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ---
 
@@ -894,6 +910,13 @@ list.
   rows show a submodule badge whose details dialog can clone any submodule as its own repository.
   New to submodules? The beginner-friendly [Submodules](Submodules) page walks the whole workflow
   in plain words and pictures.
+- On any initialized Submodule Manager row, choose **Open as repository** to use that checked-out
+  child in the current workspace without importing it. It does not enter the repository list,
+  Recent, or the persisted last selection. The context bar's Back control returns to the saved
+  root repository; repeated Open or Back activation is coalesced, so it cannot create another tab
+  or repository entry. Its style and label follow **Settings → Appearance → Language and navigation**.
+  Uninitialized, stale, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets
+  fail without changing repository persistence, and the manager stays available for recovery.
 - Use the `.gitignore` manager and one-click Build & Run for project-aware cleanup and execution. Build & Run discovers common nested projects across Node, Deno, Rust, Go, .NET, Python, JVM, PHP, Ruby, Swift, Dart/Flutter, Elixir, Scala, Haskell, Zig, Make, and CMake; choose a profile by its displayed project folder when several projects share a language or toolchain.
 - Open **Repository tools** for the full set of named, reviewed Git functions. Diagnostics cover the
   status summary, repository health check, commit-signature audit, branch sync overview, contributor
@@ -930,6 +953,8 @@ signed-in account.**
 ![Reviewed named-remote administration](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-remote-manager.png)
 
 ![Clone-style Add Submodule review with a synthetic URL, checkout path, and tracked branch](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/add-submodule-dialog.png)
+
+![Initialized submodule opened temporarily with a context bar and Back control to the persisted root repository](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-submodule-context.png)
 
 ![Reviewed gitignore template catalogue](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-gitignore-manager.png)
 

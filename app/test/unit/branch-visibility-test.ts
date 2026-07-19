@@ -3,9 +3,12 @@ import assert from 'node:assert'
 import {
   clearBranchVisibilityState,
   DefaultBranchVisibilityState,
+  loadRepositoryBranchVisibilityState,
   loadBranchVisibilityState,
+  saveRepositoryBranchVisibilityState,
   saveBranchVisibilityState,
 } from '../../src/lib/branch-visibility'
+import { Repository, SubmoduleRepository } from '../../src/models/repository'
 
 describe('branch visibility persistence', () => {
   beforeEach(() => localStorage.clear())
@@ -53,6 +56,42 @@ describe('branch visibility persistence', () => {
 
   it('rejects an invalid repository identity without writing storage', () => {
     assert.throws(() => loadBranchVisibilityState(-1))
+    assert.equal(localStorage.length, 0)
+  })
+
+  it('keeps temporary submodule visibility in memory only', () => {
+    const parent = new Repository('C:/work/main', 7, null, false)
+    const temporary = new SubmoduleRepository(
+      'C:/work/main/modules/widget',
+      'C:/work/main/.git/modules/modules/widget',
+      parent,
+      {
+        name: 'modules/widget',
+        path: 'modules/widget',
+        url: '../widget.git',
+        branch: null,
+        update: null,
+        ignore: null,
+        shallow: null,
+        fetchRecurseSubmodules: null,
+        sha: '0123456789012345678901234567890123456789',
+        describe: null,
+        status: 'up-to-date',
+      }
+    )
+
+    assert.deepEqual(
+      loadRepositoryBranchVisibilityState(temporary),
+      DefaultBranchVisibilityState
+    )
+    assert.deepEqual(
+      saveRepositoryBranchVisibilityState(temporary, {
+        pinned: ['feature/a'],
+        hidden: [],
+        solo: null,
+      }),
+      { pinned: ['feature/a'], hidden: [], solo: null }
+    )
     assert.equal(localStorage.length, 0)
   })
 })

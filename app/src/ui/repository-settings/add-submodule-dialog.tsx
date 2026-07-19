@@ -36,6 +36,16 @@ import {
 } from '../clone-repository'
 import { PopupType } from '../../models/popup'
 import { PreferencesTab } from '../../models/preferences'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { LocalizedText } from '../lib/localized-text'
 
 type HostedTab =
   | CloneRepositoryTab.DotCom
@@ -61,11 +71,17 @@ interface IAddSubmoduleDialogState {
   readonly branch: string
   readonly pathTouched: boolean
   readonly validatingPath: boolean
-  readonly pathValidationError: string | null
+  readonly pathValidationError: ILocalizedMessage | null
   readonly operation: AddSubmoduleOperation
-  readonly progress: string | null
+  readonly progress: ILocalizedMessage | string | null
   readonly progressValue: number
-  readonly error: string | null
+  readonly error: ILocalizedMessage | string | null
+  readonly languageMode: LanguageMode
+}
+
+interface ILocalizedMessage {
+  readonly key: TranslationKey
+  readonly variables?: TranslationVariables
 }
 
 export interface IAddSubmoduleDialogProps {
@@ -84,6 +100,41 @@ const emptyHostedState = (): IHostedTabState => ({
   selectedItem: null,
   selectedOrganization: null,
 })
+
+const ValidationErrorKeys: Readonly<Record<string, TranslationKey>> = {
+  'Enter a path inside this repository.': 'submodule.addPathRequiredError',
+  'Choose a relative path inside this repository.':
+    'submodule.addPathRelativeError',
+  'The path cannot contain empty, current-directory, or parent-directory segments.':
+    'submodule.addPathSegmentsError',
+  'The path cannot use Git metadata directories.':
+    'submodule.addPathGitMetadataError',
+  'A submodule already uses this path.': 'submodule.addPathDuplicateError',
+  'Enter a valid branch name, or leave the branch empty to use the remote default.':
+    'submodule.addBranchInvalidError',
+  'Choose a repository or enter its URL.': 'submodule.addSourceRequiredError',
+  'The repository URL contains unsupported control characters.':
+    'submodule.addSourceControlCharacterError',
+  'Unable to read path on disk. Please check the path and try again.':
+    'submodule.addPathUnreadableError',
+  'This folder contains files. Git can only clone to empty folders.':
+    'submodule.addPathNotEmptyError',
+  'There is already a file with this name. Git can only clone to a folder.':
+    'submodule.addPathIsFileError',
+}
+
+function localizeValidationError(
+  error: string | null
+): ILocalizedMessage | null {
+  if (error === null) {
+    return null
+  }
+
+  const key = ValidationErrorKeys[error]
+  return key === undefined
+    ? { key: 'submodule.addPathValidationFailed', variables: { error } }
+    : { key }
+}
 
 /**
  * Clone-style provider browser for adding one repository as a submodule.
@@ -116,17 +167,61 @@ export class AddSubmoduleDialog extends React.Component<
       progress: null,
       progressValue: 0,
       error: null,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
   public componentDidMount() {
     this.mounted = true
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
   }
 
   public componentWillUnmount() {
     this.mounted = false
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.pathValidationController?.abort()
     this.operationController?.abort()
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translate(key, this.state.languageMode, variables)
+  }
+
+  private accessibleText(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translateForAccessibleName(key, variables, this.state.languageMode)
+  }
+
+  private renderMessage(message: ILocalizedMessage | string): React.ReactNode {
+    return typeof message === 'string' ? (
+      message
+    ) : (
+      <LocalizedText
+        translationKey={message.key}
+        variables={message.variables}
+        languageMode={this.state.languageMode}
+      />
+    )
   }
 
   private getAccountsForTab(tab: HostedTab): ReadonlyArray<Account> {
@@ -201,9 +296,11 @@ export class AddSubmoduleDialog extends React.Component<
   private getSynchronousErrors() {
     const source = this.getSelectedSource()
     return {
-      source: getSubmoduleSourceError(source),
-      path: getSubmodulePathError(this.state.path),
-      branch: getSubmoduleBranchError(this.state.branch),
+      source: localizeValidationError(getSubmoduleSourceError(source)),
+      path: localizeValidationError(getSubmodulePathError(this.state.path)),
+      branch: localizeValidationError(
+        getSubmoduleBranchError(this.state.branch)
+      ),
     }
   }
 
@@ -339,7 +436,9 @@ export class AddSubmoduleDialog extends React.Component<
   }
 
   private onPathBlur = async () => {
-    const syncError = getSubmodulePathError(this.state.path)
+    const syncError = localizeValidationError(
+      getSubmodulePathError(this.state.path)
+    )
     if (syncError !== null) {
       this.setState({ pathValidationError: syncError })
       return
@@ -358,7 +457,10 @@ export class AddSubmoduleDialog extends React.Component<
         controller.signal
       )
       if (this.mounted && sequence === this.pathValidationSequence) {
-        this.setState({ validatingPath: false, pathValidationError: error })
+        this.setState({
+          validatingPath: false,
+          pathValidationError: localizeValidationError(error),
+        })
       }
     } catch (error) {
       if (
@@ -368,10 +470,12 @@ export class AddSubmoduleDialog extends React.Component<
       ) {
         this.setState({
           validatingPath: false,
-          pathValidationError:
-            error instanceof Error
-              ? error.message
-              : 'Desktop could not validate this path.',
+          pathValidationError: {
+            key: 'submodule.addPathValidationFailed',
+            variables: {
+              error: error instanceof Error ? error.message : String(error),
+            },
+          },
         })
       }
     }
@@ -383,7 +487,8 @@ export class AddSubmoduleDialog extends React.Component<
   private onProgress = (progress: string, progressValue: number) => {
     if (this.mounted) {
       this.setState({
-        progress: progress.trim() || 'Adding the submodule…',
+        progress:
+          progress.trim() || ({ key: 'submodule.addAddingProgress' } as const),
         progressValue: Math.max(0, Math.min(progressValue, 1)),
       })
     }
@@ -391,7 +496,7 @@ export class AddSubmoduleDialog extends React.Component<
 
   private cancelOperation = () => {
     this.operationController?.abort()
-    this.setState({ progress: 'Cancelling the Git operation…' })
+    this.setState({ progress: { key: 'submodule.addCancellingProgress' } })
   }
 
   private addSubmodule = async () => {
@@ -413,7 +518,7 @@ export class AddSubmoduleDialog extends React.Component<
       operation: 'adding',
       validatingPath: false,
       error: null,
-      progress: 'Checking the repository and destination…',
+      progress: { key: 'submodule.addCheckingProgress' },
       progressValue: 0,
     })
 
@@ -434,7 +539,7 @@ export class AddSubmoduleDialog extends React.Component<
       if (this.mounted) {
         this.setState({
           operation: 'success',
-          progress: 'Submodule added.',
+          progress: { key: 'submodule.addAddedProgress' },
           progressValue: 1,
         })
       }
@@ -445,10 +550,13 @@ export class AddSubmoduleDialog extends React.Component<
           progress: null,
           progressValue: 0,
           error: controller.signal.aborted
-            ? 'Adding the submodule was cancelled. No further Git work is running.'
-            : error instanceof Error
-            ? error.message
-            : 'Desktop could not add this submodule.',
+            ? { key: 'submodule.addCancelledError' }
+            : {
+                key: 'submodule.addFailed',
+                variables: {
+                  error: error instanceof Error ? error.message : String(error),
+                },
+              },
         })
       }
     } finally {
@@ -471,25 +579,38 @@ export class AddSubmoduleDialog extends React.Component<
     switch (tab) {
       case CloneRepositoryTab.DotCom:
         return (
-          <CallToAction actionTitle="Sign in" onAction={this.signInDotCom}>
-            Sign in to GitHub.com to browse repositories for this submodule.
+          <CallToAction
+            actionTitle={this.text('submodule.addSignInAction')}
+            onAction={this.signInDotCom}
+          >
+            <LocalizedText
+              translationKey="submodule.addDotComSignInGuidance"
+              languageMode={this.state.languageMode}
+            />
           </CallToAction>
         )
       case CloneRepositoryTab.Enterprise:
         return (
-          <CallToAction actionTitle="Sign in" onAction={this.signInEnterprise}>
-            Sign in to GitHub Enterprise to browse repositories for this
-            submodule.
+          <CallToAction
+            actionTitle={this.text('submodule.addSignInAction')}
+            onAction={this.signInEnterprise}
+          >
+            <LocalizedText
+              translationKey="submodule.addEnterpriseSignInGuidance"
+              languageMode={this.state.languageMode}
+            />
           </CallToAction>
         )
       case CloneRepositoryTab.Providers:
         return (
           <CallToAction
-            actionTitle="Add provider account"
+            actionTitle={this.text('submodule.addProviderAccountAction')}
             onAction={this.signInProvider}
           >
-            Add a GitLab or Bitbucket account in Settings to browse its
-            repositories.
+            <LocalizedText
+              translationKey="submodule.addProviderSignInGuidance"
+              languageMode={this.state.languageMode}
+            />
           </CallToAction>
         )
     }
@@ -549,8 +670,19 @@ export class AddSubmoduleDialog extends React.Component<
         {organizationState?.error !== null &&
           organizationState?.error !== undefined && (
             <div className="org-repositories-error" role="alert">
-              <span>Desktop couldn't load every organization repository.</span>
-              <Button onClick={this.onRefreshOrganization}>Try again</Button>
+              <LocalizedText
+                translationKey="submodule.addOrganizationLoadFailed"
+                languageMode={this.state.languageMode}
+              />
+              <Button
+                onClick={this.onRefreshOrganization}
+                ariaLabel={this.accessibleText('submodule.addTryAgainAction')}
+              >
+                <LocalizedText
+                  translationKey="submodule.addTryAgainAction"
+                  languageMode={this.state.languageMode}
+                />
+              </Button>
             </div>
           )}
         <Row className="add-submodule-repository-list">
@@ -568,8 +700,10 @@ export class AddSubmoduleDialog extends React.Component<
             onRefreshRepositories={this.props.onRefreshRepositories}
             onItemClicked={this.onItemClicked}
             filterListId="add-submodule-repositories"
-            filterListLabel="Choose a repository for the submodule"
-            placeholderText="Filter repositories for this submodule"
+            filterListLabel={this.text('submodule.addRepositoryListLabel')}
+            placeholderText={this.text(
+              'submodule.addRepositoryFilterPlaceholder'
+            )}
           />
         </Row>
       </DialogContent>
@@ -582,7 +716,12 @@ export class AddSubmoduleDialog extends React.Component<
         <DialogContent className="add-submodule-url-content">
           <Row>
             <TextBox
-              label="Repository URL"
+              label={
+                <LocalizedText
+                  translationKey="submodule.addRepositoryUrlLabel"
+                  languageMode={this.state.languageMode}
+                />
+              }
               placeholder="https://github.com/owner/repository.git"
               value={this.state.url}
               onValueChanged={this.onUrlChanged}
@@ -592,7 +731,10 @@ export class AddSubmoduleDialog extends React.Component<
             />
           </Row>
           <p id="add-submodule-url-help" className="add-submodule-help">
-            HTTPS, SSH, and local Git remote URLs are supported.
+            <LocalizedText
+              translationKey="submodule.addRepositoryUrlHelp"
+              languageMode={this.state.languageMode}
+            />
           </p>
         </DialogContent>
       )
@@ -609,7 +751,12 @@ export class AddSubmoduleDialog extends React.Component<
       <DialogContent className="add-submodule-review">
         <div className="add-submodule-fields">
           <TextBox
-            label="Path inside repository"
+            label={
+              <LocalizedText
+                translationKey="submodule.addPathLabel"
+                languageMode={this.state.languageMode}
+              />
+            }
             placeholder="vendor/repository"
             value={this.state.path}
             onValueChanged={this.onPathChanged}
@@ -619,8 +766,15 @@ export class AddSubmoduleDialog extends React.Component<
             ariaDescribedBy="add-submodule-path-help"
           />
           <TextBox
-            label="Branch (optional)"
-            placeholder="Remote default branch"
+            label={
+              <LocalizedText
+                translationKey="submodule.addBranchLabel"
+                languageMode={this.state.languageMode}
+              />
+            }
+            placeholder={this.text(
+              'submodule.addRemoteDefaultBranchPlaceholder'
+            )}
             value={this.state.branch}
             onValueChanged={this.onBranchChanged}
             spellcheck={false}
@@ -630,36 +784,76 @@ export class AddSubmoduleDialog extends React.Component<
         <div className="add-submodule-field-help">
           <small id="add-submodule-path-help">
             {this.state.validatingPath
-              ? 'Checking that the destination is safe and empty…'
-              : pathError ??
-                'A relative checkout path; the final segment becomes the default submodule name.'}
+              ? this.renderMessage({ key: 'submodule.addPathChecking' })
+              : this.renderMessage(
+                  pathError ?? { key: 'submodule.addPathHelp' }
+                )}
           </small>
           <small id="add-submodule-branch-help">
-            {errors.branch ??
-              'Leave empty to follow the repository’s remote default branch.'}
+            {this.renderMessage(
+              errors.branch ?? { key: 'submodule.addBranchHelp' }
+            )}
           </small>
         </div>
         <section
           className="add-submodule-summary"
-          aria-label="Submodule review"
+          aria-label={this.accessibleText('submodule.addReviewLabel')}
         >
-          <h2>Review</h2>
+          <h2>
+            <LocalizedText
+              translationKey="submodule.addReviewHeading"
+              languageMode={this.state.languageMode}
+            />
+          </h2>
           <dl>
             <div>
-              <dt>Repository</dt>
-              <dd>{source || 'Choose a source above'}</dd>
+              <dt>
+                <LocalizedText
+                  translationKey="submodule.addReviewRepositoryLabel"
+                  languageMode={this.state.languageMode}
+                />
+              </dt>
+              <dd>
+                {source ||
+                  this.renderMessage({
+                    key: 'submodule.addReviewChooseSource',
+                  })}
+              </dd>
             </div>
             <div>
-              <dt>Superproject</dt>
+              <dt>
+                <LocalizedText
+                  translationKey="submodule.addReviewSuperprojectLabel"
+                  languageMode={this.state.languageMode}
+                />
+              </dt>
               <dd>{this.props.repository.name}</dd>
             </div>
             <div>
-              <dt>Checkout path</dt>
-              <dd>{normalizeSubmodulePath(this.state.path) || 'Not set'}</dd>
+              <dt>
+                <LocalizedText
+                  translationKey="submodule.addReviewCheckoutPathLabel"
+                  languageMode={this.state.languageMode}
+                />
+              </dt>
+              <dd>
+                {normalizeSubmodulePath(this.state.path) ||
+                  this.renderMessage({ key: 'submodule.addReviewNotSet' })}
+              </dd>
             </div>
             <div>
-              <dt>Tracked branch</dt>
-              <dd>{this.state.branch.trim() || 'Remote default'}</dd>
+              <dt>
+                <LocalizedText
+                  translationKey="submodule.addReviewTrackedBranchLabel"
+                  languageMode={this.state.languageMode}
+                />
+              </dt>
+              <dd>
+                {this.state.branch.trim() ||
+                  this.renderMessage({
+                    key: 'submodule.addReviewRemoteDefault',
+                  })}
+              </dd>
             </div>
           </dl>
         </section>
@@ -675,11 +869,20 @@ export class AddSubmoduleDialog extends React.Component<
       <div className="add-submodule-progress" role="status" aria-live="polite">
         <Loading />
         <div>
-          <strong>Adding submodule</strong>
-          <span>{this.state.progress}</span>
+          <strong>
+            <LocalizedText
+              translationKey="submodule.addProgressHeading"
+              languageMode={this.state.languageMode}
+            />
+          </strong>
+          <span>
+            {this.state.progress === null
+              ? null
+              : this.renderMessage(this.state.progress)}
+          </span>
         </div>
         <progress
-          aria-label="Add submodule progress"
+          aria-label={this.accessibleText('submodule.addProgressLabel')}
           max={1}
           value={this.state.progressValue}
         />
@@ -693,18 +896,32 @@ export class AddSubmoduleDialog extends React.Component<
         <DialogContent className="add-submodule-success">
           <Octicon symbol={octicons.checkCircleFill} />
           <div>
-            <h2>Submodule added</h2>
+            <h2>
+              <LocalizedText
+                translationKey="submodule.addSuccessHeading"
+                languageMode={this.state.languageMode}
+              />
+            </h2>
             <p>
-              Git updated <code>.gitmodules</code> and checked out the
-              repository at{' '}
-              <code>{normalizeSubmodulePath(this.state.path)}</code>.
+              <LocalizedText
+                translationKey="submodule.addSuccessDescription"
+                variables={{ path: normalizeSubmodulePath(this.state.path) }}
+                languageMode={this.state.languageMode}
+              />
             </p>
           </div>
         </DialogContent>
         <DialogFooter>
           <div className="button-group">
-            <Button type="button" onClick={this.props.onDismissed}>
-              Done
+            <Button
+              type="button"
+              onClick={this.props.onDismissed}
+              ariaLabel={this.accessibleText('submodule.addDoneAction')}
+            >
+              <LocalizedText
+                translationKey="submodule.addDoneAction"
+                languageMode={this.state.languageMode}
+              />
             </Button>
           </div>
         </DialogFooter>
@@ -718,7 +935,13 @@ export class AddSubmoduleDialog extends React.Component<
       return (
         <Dialog
           className="clone-repository add-submodule-dialog"
-          title="Add a submodule"
+          title={
+            <LocalizedText
+              translationKey="submodule.addDialogTitle"
+              languageMode={this.state.languageMode}
+            />
+          }
+          titleId="add-submodule-title"
           onDismissed={this.props.onDismissed}
         >
           {this.renderSuccess()}
@@ -729,7 +952,13 @@ export class AddSubmoduleDialog extends React.Component<
     return (
       <Dialog
         className="clone-repository add-submodule-dialog"
-        title="Add a submodule"
+        title={
+          <LocalizedText
+            translationKey="submodule.addDialogTitle"
+            languageMode={this.state.languageMode}
+          />
+        }
+        titleId="add-submodule-title"
         onSubmit={this.addSubmodule}
         onDismissed={this.props.onDismissed}
         dismissDisabled={adding}
@@ -745,7 +974,7 @@ export class AddSubmoduleDialog extends React.Component<
           <span id="add-submodule-providers-tab">GitLab &amp; Bitbucket</span>
         </TabBar>
         {this.state.error !== null && (
-          <DialogError>{this.state.error}</DialogError>
+          <DialogError>{this.renderMessage(this.state.error)}</DialogError>
         )}
         <div
           className="add-submodule-scroll-region"
@@ -761,14 +990,33 @@ export class AddSubmoduleDialog extends React.Component<
         {this.renderProgress()}
         <DialogFooter>
           <div className="button-group">
-            <Button type="submit" disabled={!this.canSubmit()}>
-              Add submodule
+            <Button
+              type="submit"
+              disabled={!this.canSubmit()}
+              ariaLabel={this.accessibleText('submodule.addSubmitAction')}
+            >
+              <LocalizedText
+                translationKey="submodule.addSubmitAction"
+                languageMode={this.state.languageMode}
+              />
             </Button>
             <Button
               type="button"
               onClick={adding ? this.cancelOperation : this.props.onDismissed}
+              ariaLabel={this.accessibleText(
+                adding
+                  ? 'submodule.addCancelOperationAction'
+                  : 'submodule.addCancelAction'
+              )}
             >
-              {adding ? 'Cancel operation' : 'Cancel'}
+              <LocalizedText
+                translationKey={
+                  adding
+                    ? 'submodule.addCancelOperationAction'
+                    : 'submodule.addCancelAction'
+                }
+                languageMode={this.state.languageMode}
+              />
             </Button>
           </div>
         </DialogFooter>

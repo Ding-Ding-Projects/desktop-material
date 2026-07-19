@@ -14,6 +14,8 @@
  *   node .codex/verification/capture_gallery_cdp.js \
  *     --run-root %TEMP%\desktop-material-p0-ui-... [--port 9337] \
  *     --scenes seed,dump [--out docs/assets/screenshots]
+ *   node ... --fixture-path C:\DesktopMaterialEvidence\fixture \
+ *     --scenes seed,repository-tools
  *   node ... --probe "expression"
  *   node ... --list
  */
@@ -54,11 +56,36 @@ const ready = runRoot
       fs.readFileSync(path.join(runRoot, 'provider', 'ready.json'), 'utf8')
     )
   : null
-const fixturePath = runRoot ? path.join(runRoot, 'fixture') : null
+const fixturePath = args.get('fixture-path')
+  ? path.resolve(args.get('fixture-path'))
+  : runRoot
+  ? path.join(runRoot, 'fixture')
+  : null
 const fixtureSourcePath = runRoot ? path.join(runRoot, 'git-source') : null
 
 const DefaultWidth = 1440
 const DefaultHeight = 960
+const CaptureWidth = Number(args.get('width') ?? DefaultWidth)
+const CaptureHeight = Number(args.get('height') ?? DefaultHeight)
+
+if (
+  !Number.isInteger(CaptureWidth) ||
+  CaptureWidth <= 0 ||
+  !Number.isInteger(CaptureHeight) ||
+  CaptureHeight <= 0
+) {
+  fail('Capture width and height must be positive integers.')
+}
+
+const SceneSurfaceSelector = [
+  'dialog[open]',
+  '[role="dialog"]',
+  '#foldout-container',
+  '#app-menu-foldout',
+  '.material-context-menu-backdrop',
+].join(', ')
+const SceneErrorSelector = '.error-notice-stack .error-notice'
+const SceneTooltipSelector = '.tooltip, [role="tooltip"]'
 
 function getJSON(target) {
   return new Promise((resolve, reject) => {
@@ -184,6 +211,10 @@ async function setViewport(width = DefaultWidth, height = DefaultHeight) {
   await sleep(350)
 }
 
+async function restoreCaptureViewport() {
+  await setViewport(CaptureWidth, CaptureHeight)
+}
+
 async function capture(name) {
   fs.mkdirSync(outDir, { recursive: true })
   const shot = await client.send('Page.captureScreenshot', { format: 'png' })
@@ -279,32 +310,58 @@ async function setInput(selector, value) {
   }
 }
 
-async function seedProfile() {
-  const account = {
-    endpoint: ready.endpoint.replace(/\/$/, ''),
-    login: 'material-verifier-p0',
-    id: 7130701,
+/** Set a React-controlled select and dispatch the same events as a user edit. */
+async function setSelect(selector, value) {
+  const done = await evaluate(`(() => {
+    const el = document.querySelector(${JSON.stringify(selector)})
+    if (!(el instanceof HTMLSelectElement)) return false
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      'value'
+    ).set
+    setter.call(el, ${JSON.stringify(value)})
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+    return el.value === ${JSON.stringify(value)}
+  })()`)
+  if (!done) {
+    fail(`Unable to set select ${selector} to ${value}.`)
   }
-  const users = JSON.stringify([
-    {
-      token: '',
-      login: account.login,
-      endpoint: account.endpoint,
-      emails: [
-        {
-          email: 'material-verifier@example.invalid',
-          verified: true,
-          primary: true,
-          visibility: 'private',
-        },
-      ],
-      avatarURL: '',
-      id: account.id,
-      name: 'Material Verification Account',
-      plan: 'enterprise',
-      provider: 'github',
-    },
-  ])
+}
+
+async function seedProfile() {
+  const account =
+    ready === null
+      ? null
+      : {
+          endpoint: ready.endpoint.replace(/\/$/, ''),
+          login: 'material-verifier-p0',
+          id: 7130701,
+        }
+  const users = JSON.stringify(
+    account === null
+      ? []
+      : [
+          {
+            token: '',
+            login: account.login,
+            endpoint: account.endpoint,
+            emails: [
+              {
+                email: 'material-verifier@example.invalid',
+                verified: true,
+                primary: true,
+                visibility: 'private',
+              },
+            ],
+            avatarURL: '',
+            id: account.id,
+            name: 'Material Verification Account',
+            plan: 'enterprise',
+            provider: 'github',
+          },
+        ]
+  )
 
   const changed = await evaluate(`(() => {
     const expected = {
@@ -325,11 +382,12 @@ async function seedProfile() {
     let storedUsers = []
     try { storedUsers = JSON.parse(localStorage.getItem('users') || '[]') } catch {}
     const expectedAccount = JSON.parse(expectedUsers)[0]
-    const present = Array.isArray(storedUsers) && storedUsers.some(value =>
-      value?.provider === expectedAccount.provider &&
-      value?.endpoint === expectedAccount.endpoint &&
-      value?.login === expectedAccount.login &&
-      value?.id === expectedAccount.id)
+    const present = expectedAccount === undefined ||
+      (Array.isArray(storedUsers) && storedUsers.some(value =>
+        value?.provider === expectedAccount.provider &&
+        value?.endpoint === expectedAccount.endpoint &&
+        value?.login === expectedAccount.login &&
+        value?.id === expectedAccount.id))
     if (!present) {
       localStorage.setItem('users', expectedUsers)
       changed = true
@@ -404,41 +462,17 @@ async function showSection(label) {
   await sleep(900)
 }
 
-/** Close every open dialog via its own controls, falling back to Escape. */
-async function closeAllDialogs() {
-  for (let attempt = 0; attempt < 6; attempt++) {
-    const open = await evaluate(
-      `[...document.querySelectorAll('dialog')].some(d => d.open)`
-    )
-    if (!open) {
-      return
-    }
-    const closed = await evaluate(`(() => {
-      const dialogs = [...document.querySelectorAll('dialog')].filter(d => d.open)
-      const dialog = dialogs.at(-1)
-      if (!dialog) return false
-      const control =
-        dialog.querySelector('[aria-label="Dismiss"], [aria-label="Close"], .close-button') ??
-        [...dialog.querySelectorAll('button')].find(b =>
-          ['Cancel', 'Close', 'Done', 'Not now'].includes(b.textContent.trim()))
-      if (control instanceof HTMLElement) {
-        control.click()
-        return true
-      }
-      return false
-    })()`)
-    if (!closed) {
-      await pressEscape(1)
-    }
-    await sleep(600)
-  }
-  // Custom overlays (e.g. the job log viewer) close via their own button.
-  await clickText('Close', { optional: true })
-  await sleep(400)
-}
-
 /** Move hover state away so tooltips don't pollute captures. */
 async function parkPointer() {
+  const viewport = await evaluate(`({
+    width: window.innerWidth,
+    height: window.innerHeight,
+  })`)
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: 1,
+    y: Math.max(1, Number(viewport?.height ?? DefaultHeight) - 1),
+  })
   await evaluate(`(() => {
     for (const el of document.querySelectorAll(':hover')) {
       el.dispatchEvent(new MouseEvent('mouseleave', { bubbles: true }))
@@ -452,12 +486,220 @@ async function parkPointer() {
     if (!document.getElementById('gallery-tooltip-suppressor')) {
       const style = document.createElement('style')
       style.id = 'gallery-tooltip-suppressor'
-      style.textContent = 'body > .tooltip { display: none !important; }'
+      style.textContent = ${JSON.stringify(
+        'body > .tooltip, [role="tooltip"] { display: none !important; }'
+      )}
       document.head.appendChild(style)
     }
     return true
   })()`)
   await sleep(400)
+}
+
+async function getSceneLeakState() {
+  return await evaluate(`(() => {
+    const visible = element => {
+      if (!(element instanceof HTMLElement)) return false
+      const style = getComputedStyle(element)
+      const bounds = element.getBoundingClientRect()
+      return style.display !== 'none' && style.visibility !== 'hidden' &&
+        Number(style.opacity || 1) !== 0 && bounds.width > 0 && bounds.height > 0
+    }
+    const describe = element => {
+      const id = element.id ? '#' + element.id : ''
+      const classes = [...element.classList].slice(0, 3).map(name => '.' + name).join('')
+      const role = element.getAttribute('role')
+      const label = element.getAttribute('aria-label')
+      return element.tagName.toLowerCase() + id + classes +
+        (role ? '[role="' + role + '"]' : '') +
+        (label ? '[aria-label="' + label + '"]' : '')
+    }
+    const collect = selector => [...new Set(document.querySelectorAll(selector))]
+      .filter(visible)
+      .map(describe)
+    return {
+      surfaces: collect(${JSON.stringify(SceneSurfaceSelector)}),
+      errors: collect(${JSON.stringify(SceneErrorSelector)}),
+      tooltips: collect(${JSON.stringify(SceneTooltipSelector)}),
+    }
+  })()`)
+}
+
+function hasSceneLeaks(state) {
+  return (
+    state.surfaces.length > 0 ||
+    state.errors.length > 0 ||
+    state.tooltips.length > 0
+  )
+}
+
+async function assertNoSceneLeaks(context) {
+  const state = await getSceneLeakState()
+  if (hasSceneLeaks(state)) {
+    fail(
+      `Scene reset left visible UI leakage before ${context}: ${JSON.stringify(
+        state
+      )}`
+    )
+  }
+}
+
+/**
+ * Dismiss every transient surface through its own control, then Escape.
+ * This deliberately includes non-modal sheets and notices, not only native
+ * <dialog> elements, because those surfaces otherwise leak between scenes.
+ */
+async function dismissSceneSurfaces(context) {
+  await parkPointer()
+
+  for (let attempt = 0; attempt < 20; attempt++) {
+    const state = await getSceneLeakState()
+    if (!hasSceneLeaks(state)) {
+      return
+    }
+
+    const action = await evaluate(`(() => {
+      const visible = element => {
+        if (!(element instanceof HTMLElement)) return false
+        const style = getComputedStyle(element)
+        const bounds = element.getBoundingClientRect()
+        return style.display !== 'none' && style.visibility !== 'hidden' &&
+          Number(style.opacity || 1) !== 0 && bounds.width > 0 && bounds.height > 0
+      }
+
+      const noticeDismiss = [...document.querySelectorAll('.error-notice-dismiss')]
+        .find(visible)
+      if (noticeDismiss instanceof HTMLElement) {
+        noticeDismiss.click()
+        return 'error-notice control'
+      }
+
+      const surfaces = [...new Set(document.querySelectorAll(
+        ${JSON.stringify(SceneSurfaceSelector)}
+      ))].filter(visible)
+      const surface = surfaces.at(-1)
+      if (!(surface instanceof HTMLElement)) return 'escape'
+
+      const controls = [...surface.querySelectorAll('button, [role="button"]')]
+        .filter(visible)
+      const control =
+        surface.querySelector(
+          '[aria-label^="Close"], [aria-label^="Dismiss"], ' +
+          '.side-sheet-close, .close-button, [data-dialog-dismiss]'
+        ) ??
+        controls.find(button =>
+          ['Cancel', 'Close', 'Done', 'Not now'].includes(
+            (button.textContent ?? '').trim()
+          )
+        )
+      if (control instanceof HTMLElement && visible(control)) {
+        control.click()
+        return 'surface control'
+      }
+
+      if (surface.matches('.material-context-menu-backdrop')) {
+        surface.dispatchEvent(new MouseEvent('mousedown', {
+          bubbles: true,
+          cancelable: true,
+        }))
+        return 'context-menu backdrop'
+      }
+
+      const overlay = surface.querySelector('.overlay')
+      if (overlay instanceof HTMLElement && visible(overlay)) {
+        overlay.click()
+        return 'foldout overlay'
+      }
+
+      return 'escape'
+    })()`)
+
+    if (action === 'escape') {
+      await pressEscape(1)
+    } else {
+      await sleep(350)
+    }
+  }
+
+  await assertNoSceneLeaks(context)
+}
+
+/** Backwards-compatible cleanup used by existing scene implementations. */
+async function closeAllDialogs() {
+  await dismissSceneSurfaces('scene cleanup')
+}
+
+const StatePreservingScenes = new Set([
+  'seed',
+  'dump',
+  'raw-feature-highlights',
+  'welcome',
+  'complete-welcome',
+  'state-shot',
+  'dismiss-checklist',
+  'raw-artifacts',
+  'raw-digest',
+  'raw-artifact-pages',
+  'raw-job-log',
+  'raw-deployments',
+])
+
+async function getBaseSurfaceState() {
+  return await evaluate(`(() => {
+    const changes = document.getElementById('changes-tab')
+    const changesTab = changes?.closest('[role="tab"]')
+    return {
+      repositoryRail: document.querySelector('nav.repository-rail') !== null,
+      changesSelected: changesTab?.getAttribute('aria-selected') === 'true',
+      welcome: document.querySelector('#welcome') !== null,
+      noRepositories: document.querySelector('#no-repositories') !== null,
+    }
+  })()`)
+}
+
+async function resetSceneState(name) {
+  await restoreCaptureViewport()
+  await dismissSceneSurfaces(`scene ${name}`)
+  await menuEvent('zoom-reset')
+
+  const preservesState = StatePreservingScenes.has(name)
+  let base = 'preserved workflow state'
+  if (!preservesState) {
+    const before = await getBaseSurfaceState()
+    if (before.repositoryRail) {
+      await menuEvent('show-changes')
+      await waitFor(
+        `document.getElementById('changes-tab')?.closest('[role="tab"]')?.getAttribute('aria-selected') === 'true'`,
+        `Changes base surface before ${name}`
+      )
+      base = 'Changes'
+    } else if (before.welcome) {
+      base = 'Welcome'
+    } else if (before.noRepositories) {
+      base = 'No repositories'
+    } else {
+      fail(`No known base surface is available before ${name}.`)
+    }
+  }
+
+  await parkPointer()
+  await assertNoSceneLeaks(`scene ${name}`)
+
+  if (!preservesState) {
+    const after = await getBaseSurfaceState()
+    const validBase = after.repositoryRail
+      ? after.changesSelected
+      : after.welcome || after.noRepositories
+    if (!validBase) {
+      fail(
+        `Scene ${name} did not reset to a known base surface: ${JSON.stringify(
+          after
+        )}`
+      )
+    }
+  }
+
+  process.stdout.write(`RESET ${name} base=${base}\n`)
 }
 
 /** The compact history mode hides the commit list; bring it back. */
@@ -688,6 +930,26 @@ scene('settings-appearance', async () => {
       `document.body.hasAttribute('data-dm-highlight-features') && document.querySelectorAll('#preferences [data-dm-feature]').length >= 2`,
       'enabled Desktop Material feature markers'
     )
+    await setSelect(
+      '#preferences select[name="submoduleBackButtonStyle"]',
+      'filled'
+    ).catch(async () => {
+      const selectors = await evaluate(`(() =>
+        [...document.querySelectorAll('#preferences .appearance-language-navigation select')]
+          .map(select => ({ value: select.value, options: [...select.options].map(o => o.value) }))
+      )()`)
+      fail(`Unable to select the Back style: ${JSON.stringify(selectors)}`)
+    })
+    await setSelect(
+      '#preferences select[name="submoduleBackButtonLabel"]',
+      'parent-name'
+    )
+    await evaluate(`(() => {
+      const section = document.querySelector('.appearance-language-navigation')
+      if (!(section instanceof HTMLElement)) return false
+      section.scrollIntoView({ block: 'center' })
+      return true
+    })()`)
     await sleep(500)
   })
 })
@@ -730,7 +992,23 @@ scene('gitignore-manager', async () => {
 scene('branch-rules', async () => {
   await ensureRepository()
   await menuEvent('inspect-branch-rules')
-  await sleep(2200)
+  await waitFor(
+    `document.querySelector('.branch-rules-panel')?.getAttribute('aria-busy') === 'false'`,
+    'effective branch rules load',
+    20000
+  )
+  const useful = await evaluate(`(() => {
+    const panel = document.querySelector('.branch-rules-panel')
+    if (!(panel instanceof HTMLElement)) return false
+    const text = panel.textContent ?? ''
+    return !/not supported|sign in to inspect|could not inspect|network error/i.test(text) &&
+      panel.querySelector('.branch-rules-card, .branch-rules-empty') !== null
+  })()`)
+  if (!useful) {
+    fail(
+      'Effective branch rules did not reach a populated deterministic state.'
+    )
+  }
   await parkPointer()
   await capture('material-effective-branch-rules')
   await closeAllDialogs()
@@ -749,14 +1027,18 @@ scene('repository-tools-scroll', async () => {
   await menuEvent('show-repository-tools')
   await sleep(1200)
   await setViewport(960, 420)
-  await evaluate(`(() => {
-    const scroller = document.querySelector('.repository-tools')
-    if (scroller instanceof HTMLElement) scroller.scrollTop = scroller.scrollHeight
-    return true
+  const scrolled = await evaluate(`(() => {
+    const scroller = document.querySelector('.repository-tools-functions')
+    if (!(scroller instanceof HTMLElement)) return false
+    scroller.scrollTop = scroller.scrollHeight
+    return scroller.scrollTop > 0
   })()`)
+  if (!scrolled) {
+    fail('Repository Tools function list did not expose a scroll range.')
+  }
   await sleep(700)
   await capture('material-repository-tools-scroll')
-  await setViewport()
+  await restoreCaptureViewport()
 })
 
 scene('error-notice', async () => {
@@ -775,7 +1057,7 @@ scene('responsive-overflow', async () => {
   await setViewport(640, 480)
   await sleep(900)
   await capture('material-responsive-overflow-fixed')
-  await setViewport()
+  await restoreCaptureViewport()
 })
 
 /** Switch to a GitHub section by its rail label and capture. */
@@ -1012,7 +1294,7 @@ scene('toolbar-overflow', async () => {
   await parkPointer()
   await capture('material-toolbar-overflow')
   await pressEscape(1)
-  await setViewport()
+  await restoreCaptureViewport()
 })
 
 scene('scale-200', async () => {
@@ -1025,7 +1307,7 @@ scene('scale-200', async () => {
   await sleep(1200)
   await capture('material-scale-200-autofit')
   await menuEvent('zoom-reset')
-  await setViewport()
+  await restoreCaptureViewport()
 })
 
 scene('history-power-tools', async () => {
@@ -1087,7 +1369,40 @@ scene('ssh-docker-deploy', async () => {
 scene('add-submodule', async () => {
   await openRepositorySettingsTab('Submodules')
   await clickText('Add submodule…', { within: '#repository-settings' })
-  await sleep(1500)
+  await waitFor(
+    `document.querySelector('.add-submodule-dialog') !== null`,
+    'Add Submodule dialog'
+  )
+  await clickText('URL', { within: '.add-submodule-dialog' })
+  await setInput(
+    '.add-submodule-dialog .add-submodule-url-content input',
+    'https://example.invalid/material-widget.git'
+  )
+  const fields = await evaluate(`(() =>
+    [...document.querySelectorAll('.add-submodule-dialog .add-submodule-fields input')]
+      .map(input => input.getAttribute('placeholder'))
+  )()`)
+  if (!Array.isArray(fields) || fields.length < 2) {
+    fail(
+      `Add Submodule review fields are unavailable: ${JSON.stringify(fields)}`
+    )
+  }
+  await setInput(
+    '.add-submodule-dialog input[placeholder="vendor/repository"]',
+    'vendor/material-widget'
+  )
+  await setInput(
+    '.add-submodule-dialog input[placeholder="Remote default branch"]',
+    'stable'
+  )
+  await waitFor(
+    `!document.querySelector('.add-submodule-dialog')?.textContent?.includes('Checking that the destination is safe and empty')`,
+    'Add Submodule path validation'
+  )
+  await waitFor(
+    `[...document.querySelectorAll('.add-submodule-dialog button')].some(button => button.textContent.trim() === 'Add submodule' && !button.disabled)`,
+    'valid Add Submodule review'
+  )
   await parkPointer()
   await capture('add-submodule-dialog')
   await closeAllDialogs()
@@ -1572,33 +1887,39 @@ async function main() {
 
   client = new CDPClient(page.webSocketDebuggerUrl)
   await client.open()
-  await client.send('Runtime.enable')
-  await client.send('Page.enable')
-  await setViewport(
-    Number(args.get('width') ?? DefaultWidth),
-    Number(args.get('height') ?? DefaultHeight)
-  )
+  try {
+    await client.send('Runtime.enable')
+    await client.send('Page.enable')
+    await restoreCaptureViewport()
 
-  if (args.has('probe')) {
-    const value = await evaluate(args.get('probe'))
-    process.stdout.write(`PROBE ${JSON.stringify(value, null, 1)}\n`)
-  }
-
-  const names = (args.get('scenes') ?? '')
-    .split(',')
-    .map(value => value.trim())
-    .filter(value => value.length > 0)
-
-  for (const name of names) {
-    const run = scenes.get(name)
-    if (run === undefined) {
-      fail(`Unknown scene: ${name}`)
+    if (args.has('probe')) {
+      const value = await evaluate(args.get('probe'))
+      process.stdout.write(`PROBE ${JSON.stringify(value, null, 1)}\n`)
     }
-    process.stdout.write(`SCENE ${name}\n`)
-    await run()
-  }
 
-  client.close()
+    const names = (args.get('scenes') ?? '')
+      .split(',')
+      .map(value => value.trim())
+      .filter(value => value.length > 0)
+
+    for (const name of names) {
+      const run = scenes.get(name)
+      if (run === undefined) {
+        fail(`Unknown scene: ${name}`)
+      }
+      process.stdout.write(`SCENE ${name}\n`)
+      await resetSceneState(name)
+      await run()
+    }
+  } finally {
+    // This style is capture-only state. Leaving it installed breaks normal
+    // hover help (and later accessibility verification) in the renderer.
+    await evaluate(`(() => {
+      document.getElementById('gallery-tooltip-suppressor')?.remove()
+      return true
+    })()`).catch(() => undefined)
+    client.close()
+  }
 }
 
 main().catch(error => {

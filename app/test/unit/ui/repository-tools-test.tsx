@@ -15,7 +15,9 @@ import {
   prepareRepositoryBundleImport,
   RepositoryBundleImport,
   RepositoryTools,
+  isRepositoryToolMutation,
 } from '../../../src/ui/repository-tools'
+import { Repository, SubmoduleRepository } from '../../../src/models/repository'
 import {
   fireEvent,
   render,
@@ -165,6 +167,108 @@ function getSelectedToolCard(title: string) {
 }
 
 describe('Repository tools', () => {
+  it('classifies every direct CLI mutation while retaining read-only recipes', () => {
+    for (const id of [
+      'maintenance-run',
+      'clean-run',
+      'bundle-import-fetch-objects',
+      'bundle-import-create-branch',
+      'history-deepen',
+      'history-unshallow',
+      'notes-edit',
+      'notes-remove',
+    ] as const) {
+      const operation =
+        id === 'bundle-import-fetch-objects'
+          ? { id, bundlePath: 'C:/bundle', sourceRef: 'refs/heads/main' }
+          : id === 'bundle-import-create-branch'
+          ? { id, branchName: 'imported', oid: 'a'.repeat(40) }
+          : id === 'history-deepen'
+          ? { id, remote: 'origin', deepenBy: 10 }
+          : id === 'history-unshallow'
+          ? { id, remote: 'origin' }
+          : id === 'notes-edit'
+          ? { id, oid: 'a'.repeat(40), message: 'note' }
+          : id === 'notes-remove'
+          ? { id, oid: 'a'.repeat(40) }
+          : { id }
+      assert.equal(isRepositoryToolMutation(operation), true, id)
+    }
+
+    for (const operation of [
+      { id: 'status-summary' } as const,
+      { id: 'shallow-history-status' } as const,
+      { id: 'fetch-remote-list' } as const,
+      { id: 'bundle-verify', bundlePath: 'C:/bundle' } as const,
+      { id: 'bundle-import-validate-commit', oid: 'a'.repeat(40) } as const,
+    ]) {
+      assert.equal(isRepositoryToolMutation(operation), false, operation.id)
+    }
+  })
+
+  it('keeps temporary child tools read-only and leaves inspections enabled', async () => {
+    const client = new FakeRepositoryToolsClient()
+    const parent = new Repository(uiFixtureRoot, 701, null, false)
+    const repository = new SubmoduleRepository(
+      uiRepositoryPath,
+      join(uiFixtureRoot, '.git', 'modules', 'repo'),
+      parent,
+      {
+        name: 'repo',
+        path: 'repo',
+        url: 'https://example.invalid/repo.git',
+        branch: null,
+        update: null,
+        ignore: null,
+        shallow: null,
+        fetchRecurseSubmodules: null,
+        sha: 'a'.repeat(40),
+        describe: null,
+        status: 'up-to-date',
+      }
+    )
+    render(
+      <RepositoryTools
+        repository={repository}
+        repositoryPath={repository.path}
+        onRefreshRepository={async () => {}}
+        client={client}
+      />
+    )
+    await screen.findByText('git version 2.55.0')
+
+    assert.ok(
+      screen
+        .getAllByRole('status')
+        .some(status =>
+          /read-only repository tools only/i.test(status.textContent ?? '')
+        )
+    )
+
+    const statusCard = getSelectedToolCard('Status summary')
+    const statusButton = statusCard.querySelector('button') as HTMLButtonElement
+    assert.equal(statusButton.disabled, false)
+    fireEvent.click(statusButton)
+    await waitFor(() => assert.equal(client.starts.length, 1))
+    assert.deepStrictEqual(client.starts[0].operation, { id: 'status-summary' })
+
+    client.emitState({
+      id: client.starts[0].id,
+      state: 'completed',
+      exitCode: 0,
+      signal: null,
+    })
+    selectHubTool('maintenance-run')
+    const mutationButton = getSelectedToolCard(
+      'Run repository maintenance'
+    ).querySelector('button') as HTMLButtonElement
+    await waitFor(() =>
+      assert.equal(mutationButton.getAttribute('aria-disabled'), 'true')
+    )
+    fireEvent.click(mutationButton)
+    assert.equal(client.starts.length, 1)
+  })
+
   it('renders a searchable named-function hub without raw command or terminal inputs', async () => {
     const client = new FakeRepositoryToolsClient()
     renderTools(client)

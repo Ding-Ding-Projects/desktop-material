@@ -1,4 +1,5 @@
 import { appendFile, mkdir, open, readFile, stat, rm } from 'fs/promises'
+import { randomUUID } from 'crypto'
 import { join } from 'path'
 import { git } from '../git/core'
 import { initGitRepository } from '../git/init'
@@ -28,6 +29,7 @@ const fullSHA = /^[0-9a-f]{40}$/i
 const ProfileLockRetryMs = 25
 const ProfileLockWaitMs = 5000
 const ProfileLockStaleMs = 30000
+const ProfileLockOwnerToken = randomUUID()
 const ProfileHistoryScanBatchSize = 100
 const ProfileTabsPath = 'tabs.json'
 
@@ -114,7 +116,14 @@ export async function withProfileRepositoryLock<T>(
     try {
       const handle = await open(lockPath, 'wx')
       try {
-        await handle.writeFile(String(process.pid), 'utf8')
+        await handle.writeFile(
+          JSON.stringify({
+            version: 1,
+            pid: process.pid,
+            token: ProfileLockOwnerToken,
+          }),
+          'utf8'
+        )
         return await action()
       } finally {
         await handle.close()
@@ -166,12 +175,22 @@ async function isAbandonedProfileLock(lockPath: string): Promise<boolean> {
       return true
     }
 
-    const ownerPid = Number(contents)
-    if (!Number.isSafeInteger(ownerPid) || ownerPid <= 0) {
+    const owner = parseProfileLockOwner(contents)
+    if (owner === null) {
       return false
     }
+    if (
+      owner.pid === process.pid &&
+      owner.token !== null &&
+      owner.token !== ProfileLockOwnerToken
+    ) {
+      // Electron can reuse the renderer OS process across a document reload.
+      // A new module context gets a new token, so a same-PID/different-token
+      // lock belongs to the destroyed document and is safe to recover now.
+      return true
+    }
     try {
-      process.kill(ownerPid, 0)
+      process.kill(owner.pid, 0)
       return false
     } catch (error) {
       return (
@@ -183,6 +202,34 @@ async function isAbandonedProfileLock(lockPath: string): Promise<boolean> {
     }
   } catch {
     return false
+  }
+}
+
+function parseProfileLockOwner(
+  contents: string
+): { readonly pid: number; readonly token: string | null } | null {
+  const trimmed = contents.trim()
+  if (/^\d+$/.test(trimmed)) {
+    const pid = Number(trimmed)
+    return Number.isSafeInteger(pid) && pid > 0 ? { pid, token: null } : null
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      readonly version?: unknown
+      readonly pid?: unknown
+      readonly token?: unknown
+    }
+    return parsed.version === 1 &&
+      typeof parsed.pid === 'number' &&
+      Number.isSafeInteger(parsed.pid) &&
+      parsed.pid > 0 &&
+      typeof parsed.token === 'string' &&
+      parsed.token.length > 0
+      ? { pid: parsed.pid, token: parsed.token }
+      : null
+  } catch {
+    return null
   }
 }
 

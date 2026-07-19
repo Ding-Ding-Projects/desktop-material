@@ -30,10 +30,10 @@ import {
   DefaultBranchSortOrder,
 } from '../../models/branch-sort-order'
 import {
-  clearBranchVisibilityState,
+  clearRepositoryBranchVisibilityState,
   IBranchVisibilityState,
-  loadBranchVisibilityState,
-  saveBranchVisibilityState,
+  loadRepositoryBranchVisibilityState,
+  saveRepositoryBranchVisibilityState,
 } from '../../lib/branch-visibility'
 
 const RowHeight = 30
@@ -223,7 +223,7 @@ export class BranchList extends React.Component<
     super(props)
     this.state = {
       commitAuthorDates: new Map<string, Date>(),
-      visibility: loadBranchVisibilityState(props.repository.id),
+      visibility: loadRepositoryBranchVisibilityState(props.repository),
     }
   }
 
@@ -236,7 +236,7 @@ export class BranchList extends React.Component<
   public componentDidUpdate(prevProps: IBranchListProps) {
     if (prevProps.repository.id !== this.props.repository.id) {
       this.setState({
-        visibility: loadBranchVisibilityState(this.props.repository.id),
+        visibility: loadRepositoryBranchVisibilityState(this.props.repository),
       })
     }
     if (prevProps.allBranches !== this.props.allBranches) {
@@ -455,8 +455,8 @@ export class BranchList extends React.Component<
 
   private persistVisibility(visibility: IBranchVisibilityState) {
     this.setState({
-      visibility: saveBranchVisibilityState(
-        this.props.repository.id,
+      visibility: saveRepositoryBranchVisibilityState(
+        this.props.repository,
         visibility
       ),
     })
@@ -503,7 +503,7 @@ export class BranchList extends React.Component<
 
   private onRestoreVisibility = () => {
     this.setState({
-      visibility: clearBranchVisibilityState(this.props.repository.id),
+      visibility: clearRepositoryBranchVisibilityState(this.props.repository),
     })
   }
 

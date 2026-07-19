@@ -1,0 +1,19 @@
+name: Select E2E update port
+description:
+  Select an available loopback port shared by the E2E build and mock updater
+
+outputs:
+  port:
+    description: Selected loopback TCP port
+    value: ${{ steps.select.outputs.port }}
+  url:
+    description: Complete mock updater URL exported to later steps
+    value: ${{ steps.select.outputs.url }}
+
+runs:
+  using: composite
+  steps:
+    - name: Select available loopback port
+      id: select
+      shell: bash
+      run: node "$GITHUB_ACTION_PATH/select-port.js"

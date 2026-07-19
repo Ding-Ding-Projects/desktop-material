@@ -20,10 +20,19 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import {
+  t,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LocalizedText } from '../lib/localized-text'
 
 interface ISubmodulesProps {
   readonly repository: Repository
   readonly dispatcher: Dispatcher
+  /** Dismisses only the popup which owns this submodule surface. */
+  readonly onRepositoryOpened: () => void
 }
 
 interface ISubmodulesState {
@@ -39,11 +48,14 @@ interface ISubmodulesState {
   /** True while an "Update all" operation spanning the repo runs. */
   readonly isBusyGlobal: boolean
 
+  /** True while opening and initially refreshing a temporary child repo. */
+  readonly isOpeningRepository: boolean
+
   /** The latest streamed progress line from an update, if any. */
   readonly progress: string | null
 
   /** The most recent operation error, surfaced inline. */
-  readonly error: string | null
+  readonly error: ILocalizedSubmoduleMessage | null
 
   /** Free-text query narrowing the list by name, path, or URL. */
   readonly filterText: string
@@ -58,26 +70,31 @@ interface ISubmodulesState {
   readonly statusFilter: SubmoduleStatusFilter
 }
 
+interface ILocalizedSubmoduleMessage {
+  readonly key: TranslationKey
+  readonly variables?: TranslationVariables
+}
+
 /** The per-surface persistence id for the submodule search's filter mode. */
 const SubmodulesFilterId = 'submodule-manager'
 
 const StatusFilterLabels: ReadonlyArray<{
   readonly key: SubmoduleStatusFilter
-  readonly label: string
+  readonly labelKey: TranslationKey
 }> = [
-  { key: 'all', label: 'All' },
-  { key: 'cloned', label: 'Cloned' },
-  { key: 'uncloned', label: 'Not cloned' },
-  { key: 'out-of-date', label: 'Out of date' },
-  { key: 'conflicted', label: 'Conflicted' },
+  { key: 'all', labelKey: 'submodule.filterAll' },
+  { key: 'cloned', labelKey: 'submodule.filterCloned' },
+  { key: 'uncloned', labelKey: 'submodule.filterNotCloned' },
+  { key: 'out-of-date', labelKey: 'submodule.filterOutOfDate' },
+  { key: 'conflicted', labelKey: 'submodule.filterConflicted' },
 ]
 
 /** The user-facing label for each submodule status kind. */
-const STATUS_LABEL: Record<SubmoduleStatusKind, string> = {
-  uninitialized: 'Not initialized',
-  'up-to-date': 'Up to date',
-  'out-of-date': 'Out of date',
-  conflicted: 'Conflicted',
+const StatusLabelKey: Record<SubmoduleStatusKind, TranslationKey> = {
+  uninitialized: 'submodule.statusUninitialized',
+  'up-to-date': 'submodule.statusUpToDate',
+  'out-of-date': 'submodule.statusOutOfDate',
+  conflicted: 'submodule.statusConflicted',
 }
 
 /**
@@ -94,6 +111,14 @@ export class Submodules extends React.Component<
   ISubmodulesProps,
   ISubmodulesState
 > {
+  private mounted = false
+
+  /**
+   * Synchronously fences action callbacks before the state update which
+   * disables their controls has rendered.
+   */
+  private openTransitionInFlight = false
+
   public constructor(props: ISubmodulesProps) {
     super(props)
     this.state = {
@@ -101,6 +126,7 @@ export class Submodules extends React.Component<
       isLoading: true,
       busyPaths: new Set<string>(),
       isBusyGlobal: false,
+      isOpeningRepository: false,
       progress: null,
       error: null,
       filterText: '',
@@ -141,7 +167,12 @@ export class Submodules extends React.Component<
   }
 
   public componentDidMount() {
+    this.mounted = true
     this.loadSubmodules()
+  }
+
+  public componentWillUnmount() {
+    this.mounted = false
   }
 
   private loadSubmodules = async () => {
@@ -159,7 +190,10 @@ export class Submodules extends React.Component<
       this.setState({
         submodules: [],
         isLoading: false,
-        error: `Could not list submodules: ${e}`,
+        error: {
+          key: 'submodule.listFailed',
+          variables: { error: String(e) },
+        },
       })
     }
   }
@@ -181,6 +215,10 @@ export class Submodules extends React.Component<
   }
 
   private onUpdateAll = async () => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
     this.setState({ isBusyGlobal: true, error: null, progress: null })
     try {
       await this.props.dispatcher.updateSubmodules(
@@ -190,13 +228,22 @@ export class Submodules extends React.Component<
       )
       await this.loadSubmodules()
     } catch (e) {
-      this.setState({ error: `Failed updating submodules: ${e}` })
+      this.setState({
+        error: {
+          key: 'submodule.updateAllFailed',
+          variables: { error: String(e) },
+        },
+      })
     } finally {
       this.setState({ isBusyGlobal: false, progress: null })
     }
   }
 
   private onUpdate = async (submodule: IManagedSubmodule) => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
     this.setPathBusy(submodule.path, true)
     this.setState({ error: null, progress: null })
     try {
@@ -207,7 +254,12 @@ export class Submodules extends React.Component<
       )
       await this.loadSubmodules()
     } catch (e) {
-      this.setState({ error: `Failed updating ${submodule.path}: ${e}` })
+      this.setState({
+        error: {
+          key: 'submodule.updateFailed',
+          variables: { path: submodule.path, error: String(e) },
+        },
+      })
     } finally {
       this.setPathBusy(submodule.path, false)
       this.setState({ progress: null })
@@ -215,6 +267,10 @@ export class Submodules extends React.Component<
   }
 
   private onSyncSubmodule = async (submodule: IManagedSubmodule) => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
     this.setPathBusy(submodule.path, true)
     this.setState({ error: null })
     try {
@@ -223,13 +279,22 @@ export class Submodules extends React.Component<
       ])
       await this.loadSubmodules()
     } catch (e) {
-      this.setState({ error: `Failed syncing ${submodule.path}: ${e}` })
+      this.setState({
+        error: {
+          key: 'submodule.syncFailed',
+          variables: { path: submodule.path, error: String(e) },
+        },
+      })
     } finally {
       this.setPathBusy(submodule.path, false)
     }
   }
 
   private onRemove = async (submodule: IManagedSubmodule) => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
     this.setPathBusy(submodule.path, true)
     this.setState({ error: null })
     try {
@@ -240,13 +305,22 @@ export class Submodules extends React.Component<
       )
       await this.loadSubmodules()
     } catch (e) {
-      this.setState({ error: `Failed removing ${submodule.path}: ${e}` })
+      this.setState({
+        error: {
+          key: 'submodule.removeFailed',
+          variables: { path: submodule.path, error: String(e) },
+        },
+      })
     } finally {
       this.setPathBusy(submodule.path, false)
     }
   }
 
   private onShowAddSubmodule = () => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
     this.props.dispatcher.showPopup({
       type: PopupType.AddSubmodule,
       repository: this.props.repository,
@@ -255,11 +329,54 @@ export class Submodules extends React.Component<
   }
 
   private onConfigure = (submodule: IManagedSubmodule) => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
     this.props.dispatcher.showPopup({
       type: PopupType.SubmoduleConfig,
       repository: this.props.repository,
       submodule,
     })
+  }
+
+  private onOpenAsRepository = async (submodule: IManagedSubmodule) => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
+    this.openTransitionInFlight = true
+    this.setState({ isOpeningRepository: true, error: null })
+
+    let didOpen = false
+    try {
+      await this.props.dispatcher.openSubmoduleAsRepository(
+        this.props.repository,
+        submodule
+      )
+      didOpen = true
+    } catch (error) {
+      if (this.mounted) {
+        this.setState({
+          error: {
+            key: 'submodule.openFailed',
+            variables: {
+              child: submodule.path,
+              error: String(error),
+            },
+          },
+        })
+      }
+    } finally {
+      this.openTransitionInFlight = false
+      if (this.mounted) {
+        this.setState({ isOpeningRepository: false })
+      }
+    }
+
+    if (didOpen && this.mounted) {
+      this.props.onRepositoryOpened()
+    }
   }
 
   private renderSummary(): JSX.Element | null {
@@ -274,15 +391,27 @@ export class Submodules extends React.Component<
     return (
       <div className="submodules-summary" role="status">
         <span className="submodules-summary-chip">
-          {submodules.length}{' '}
-          {submodules.length === 1 ? 'submodule' : 'submodules'}
+          <LocalizedText
+            translationKey={
+              submodules.length === 1
+                ? 'submodule.summarySingle'
+                : 'submodule.summaryMultiple'
+            }
+            variables={{ count: String(submodules.length) }}
+          />
         </span>
         <span className="submodules-summary-chip submodules-summary-cloned">
-          {cloned} cloned
+          <LocalizedText
+            translationKey="submodule.summaryCloned"
+            variables={{ count: String(cloned) }}
+          />
         </span>
         {uncloned > 0 && (
           <span className="submodules-summary-chip submodules-summary-uncloned">
-            {uncloned} not cloned
+            <LocalizedText
+              translationKey="submodule.summaryNotCloned"
+              variables={{ count: String(uncloned) }}
+            />
           </span>
         )}
       </div>
@@ -291,12 +420,18 @@ export class Submodules extends React.Component<
 
   private renderStatusPill(submodule: IManagedSubmodule): JSX.Element {
     const className = `submodule-status submodule-status-${submodule.status}`
-    return <span className={className}>{STATUS_LABEL[submodule.status]}</span>
+    return (
+      <span className={className}>
+        <LocalizedText translationKey={StatusLabelKey[submodule.status]} />
+      </span>
+    )
   }
 
   private renderRow(submodule: IManagedSubmodule): JSX.Element {
     const isBusy =
-      this.state.busyPaths.has(submodule.path) || this.state.isBusyGlobal
+      this.state.busyPaths.has(submodule.path) ||
+      this.state.isBusyGlobal ||
+      this.state.isOpeningRepository
 
     return (
       <SubmoduleRow
@@ -305,6 +440,7 @@ export class Submodules extends React.Component<
         isBusy={isBusy}
         statusPill={this.renderStatusPill(submodule)}
         onUpdate={this.onUpdate}
+        onOpenAsRepository={this.onOpenAsRepository}
         onSyncSubmodule={this.onSyncSubmodule}
         onConfigure={this.onConfigure}
         onRemove={this.onRemove}
@@ -323,8 +459,8 @@ export class Submodules extends React.Component<
         <div className="submodules-filter-search">
           <TextBox
             className="submodules-filter-text"
-            placeholder="Search submodules by name, path, or URL"
-            ariaLabel="Search submodules"
+            placeholder={t('submodule.searchPlaceholder')}
+            ariaLabel={translateForAccessibleName('submodule.searchAriaLabel')}
             value={this.state.filterText}
             onValueChanged={this.onFilterTextChanged}
           />
@@ -333,7 +469,7 @@ export class Submodules extends React.Component<
             caseSensitive={this.state.filterCaseSensitive}
             onModeChange={this.onFilterModeChanged}
             onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
-            regexBuilderTarget="Submodules"
+            regexBuilderTarget={translateForAccessibleName('submodule.title')}
             getSampleItems={this.getFilterSampleItems}
             filterText={this.state.filterText}
             onRegexPatternApply={this.onRegexPatternApply}
@@ -342,9 +478,9 @@ export class Submodules extends React.Component<
         <div
           className="submodules-filter-chips"
           role="group"
-          aria-label="Filter submodules by status"
+          aria-label={translateForAccessibleName('submodule.filterByStatus')}
         >
-          {StatusFilterLabels.map(({ key, label }) => (
+          {StatusFilterLabels.map(({ key, labelKey }) => (
             <button
               type="button"
               key={key}
@@ -355,9 +491,10 @@ export class Submodules extends React.Component<
                   : 'submodules-filter-chip'
               }
               aria-pressed={this.state.statusFilter === key}
+              aria-label={translateForAccessibleName(labelKey)}
               onClick={this.onStatusChipClick}
             >
-              {label}
+              <LocalizedText translationKey={labelKey} />
             </button>
           ))}
         </div>
@@ -395,7 +532,7 @@ export class Submodules extends React.Component<
     if (isLoading && submodules === null) {
       return (
         <p className="submodules-empty">
-          <Loading /> Loading submodules…
+          <Loading /> <LocalizedText translationKey="submodule.loading" />
         </p>
       )
     }
@@ -403,7 +540,7 @@ export class Submodules extends React.Component<
     if (submodules === null || submodules.length === 0) {
       return (
         <p className="submodules-empty">
-          This repository has no submodules yet.
+          <LocalizedText translationKey="submodule.none" />
         </p>
       )
     }
@@ -413,7 +550,7 @@ export class Submodules extends React.Component<
     if (visible.length === 0) {
       return (
         <p className="submodules-empty">
-          No submodules match the current search and status filter.
+          <LocalizedText translationKey="submodule.noMatches" />
         </p>
       )
     }
@@ -434,27 +571,35 @@ export class Submodules extends React.Component<
             <div className="submodules-section-header">
               <h3 className="submodules-section-title">
                 <Octicon symbol={octicons.fileSubmodule} />
-                Submodules
+                <LocalizedText translationKey="submodule.title" />
               </h3>
               <div className="submodules-header-actions">
                 <Button
                   type="button"
-                  disabled={this.state.isBusyGlobal}
+                  disabled={
+                    this.state.isBusyGlobal || this.state.isOpeningRepository
+                  }
                   onClick={this.onShowAddSubmodule}
-                  tooltip="Choose a hosted repository or URL to add"
+                  ariaLabel={translateForAccessibleName('submodule.addAction')}
+                  tooltip={t('submodule.addTooltip')}
                 >
                   <Octicon symbol={octicons.plus} />
-                  Add submodule…
+                  <LocalizedText translationKey="submodule.addAction" />
                 </Button>
                 {hasSubmodules && (
                   <Button
                     type="button"
-                    disabled={this.state.isBusyGlobal}
+                    disabled={
+                      this.state.isBusyGlobal || this.state.isOpeningRepository
+                    }
                     onClick={this.onUpdateAll}
-                    tooltip="Initialize and update every submodule"
+                    ariaLabel={translateForAccessibleName(
+                      'submodule.updateAllAction'
+                    )}
+                    tooltip={t('submodule.updateAllTooltip')}
                   >
                     {this.state.isBusyGlobal ? <Loading /> : null}
-                    {__DARWIN__ ? 'Update All' : 'Update all'}
+                    <LocalizedText translationKey="submodule.updateAllAction" />
                   </Button>
                 )}
               </div>
@@ -462,10 +607,25 @@ export class Submodules extends React.Component<
             {this.renderSummary()}
             {this.renderFilterControls()}
             {this.state.error !== null && (
-              <p className="submodules-error">{this.state.error}</p>
+              <p
+                className="submodules-error"
+                role="alert"
+                aria-live="assertive"
+              >
+                <LocalizedText
+                  translationKey={this.state.error.key}
+                  variables={this.state.error.variables}
+                />
+              </p>
             )}
             {this.state.progress !== null && (
-              <p className="submodules-progress">{this.state.progress}</p>
+              <p
+                className="submodules-progress"
+                role="status"
+                aria-live="polite"
+              >
+                {this.state.progress}
+              </p>
             )}
             {this.renderList()}
           </section>
@@ -480,6 +640,7 @@ interface ISubmoduleRowProps {
   readonly isBusy: boolean
   readonly statusPill: JSX.Element
   readonly onUpdate: (submodule: IManagedSubmodule) => void
+  readonly onOpenAsRepository: (submodule: IManagedSubmodule) => void
   readonly onSyncSubmodule: (submodule: IManagedSubmodule) => void
   readonly onConfigure: (submodule: IManagedSubmodule) => void
   readonly onRemove: (submodule: IManagedSubmodule) => void
@@ -494,6 +655,10 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
   const onUpdate = React.useCallback(
     () => props.onUpdate(submodule),
     [props.onUpdate, submodule]
+  )
+  const onOpenAsRepository = React.useCallback(
+    () => props.onOpenAsRepository(submodule),
+    [props.onOpenAsRepository, submodule]
   )
   const onSyncClicked = React.useCallback(
     () => props.onSyncSubmodule(submodule),
@@ -550,39 +715,68 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
       <div className="submodule-row-actions">
         <Button
           type="button"
+          className="submodule-open-repository"
+          disabled={isBusy || submodule.status === 'uninitialized'}
+          onClick={onOpenAsRepository}
+          ariaLabel={`${translateForAccessibleName(
+            'submodule.openAsRepository'
+          )}: ${submodule.path}`}
+          tooltip={
+            submodule.status === 'uninitialized'
+              ? t('submodule.openUnavailable')
+              : t('submodule.openAsRepository')
+          }
+        >
+          <Octicon symbol={octicons.repo} />
+          <LocalizedText translationKey="submodule.openAsRepository" />
+        </Button>
+        <Button
+          type="button"
           disabled={isBusy}
           onClick={onUpdate}
           tooltip={
             submodule.status === 'uninitialized'
-              ? 'Clone this submodule into the working tree'
-              : 'Initialize and update this submodule'
+              ? t('submodule.cloneTooltip')
+              : t('submodule.updateTooltip')
           }
+          ariaLabel={translateForAccessibleName(
+            submodule.status === 'uninitialized'
+              ? 'submodule.cloneAction'
+              : 'submodule.updateAction'
+          )}
         >
-          {submodule.status === 'uninitialized' ? 'Clone' : 'Update'}
+          {submodule.status === 'uninitialized' ? (
+            <LocalizedText translationKey="submodule.cloneAction" />
+          ) : (
+            <LocalizedText translationKey="submodule.updateAction" />
+          )}
         </Button>
         <Button
           type="button"
           disabled={isBusy}
           onClick={onSyncClicked}
-          tooltip="Sync the remote URL from .gitmodules"
+          ariaLabel={translateForAccessibleName('submodule.syncAction')}
+          tooltip={t('submodule.syncTooltip')}
         >
-          Sync
+          <LocalizedText translationKey="submodule.syncAction" />
         </Button>
         <Button
           type="button"
           disabled={isBusy}
           onClick={onConfigure}
-          tooltip="Edit this submodule's configuration"
+          ariaLabel={translateForAccessibleName('submodule.configureAction')}
+          tooltip={t('submodule.configureTooltip')}
         >
-          Configure
+          <LocalizedText translationKey="submodule.configureAction" />
         </Button>
         <Button
           type="button"
           disabled={isBusy}
           onClick={onRemove}
-          tooltip="Deinitialize and remove this submodule"
+          ariaLabel={translateForAccessibleName('submodule.removeAction')}
+          tooltip={t('submodule.removeTooltip')}
         >
-          Remove
+          <LocalizedText translationKey="submodule.removeAction" />
         </Button>
       </div>
     </li>

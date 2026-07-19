@@ -4,6 +4,7 @@ import { Remote } from './remote'
 import { GitIgnore } from './git-ignore'
 import { BuildRunSettings } from './build-run-settings'
 import { Submodules } from './submodules'
+import { LocalizedText } from '../lib/localized-text'
 import { assertNever } from '../../lib/fatal-error'
 import {
   IRemote,
@@ -352,7 +353,7 @@ export class RepositorySettings extends React.Component<
             </span>
             <span>
               <Octicon className="icon" symbol={octicons.fileSubmodule} />
-              Submodules
+              <LocalizedText translationKey="submodule.title" />
             </span>
             <span>
               <Octicon className="icon" symbol={octicons.sync} />
@@ -439,6 +440,7 @@ export class RepositorySettings extends React.Component<
           <Submodules
             repository={this.props.repository}
             dispatcher={this.props.dispatcher}
+            onRepositoryOpened={this.props.onDismissed}
           />
         )
       }

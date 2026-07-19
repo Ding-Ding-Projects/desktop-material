@@ -2,10 +2,16 @@ import { GitStore } from './git-store'
 import { Repository } from '../../models/repository'
 import { IAppShell } from '../app-shell'
 import { IStatsStore } from '../stats'
+import { Disposable } from 'event-kit'
+
+interface IGitStoreCacheEntry {
+  readonly store: GitStore
+  readonly subscriptions: ReadonlyArray<Disposable>
+}
 
 export class GitStoreCache {
   /** GitStores keyed by their hash. */
-  private readonly gitStores = new Map<string, GitStore>()
+  private readonly gitStores = new Map<string, IGitStoreCacheEntry>()
 
   public constructor(
     private readonly shell: IAppShell,
@@ -18,21 +24,30 @@ export class GitStoreCache {
   ) {}
 
   public remove(repository: Repository) {
-    if (this.gitStores.has(repository.hash)) {
+    const entry = this.gitStores.get(repository.hash)
+    if (entry !== undefined) {
       this.gitStores.delete(repository.hash)
+      for (const subscription of entry.subscriptions) {
+        subscription.dispose()
+      }
     }
   }
 
   public get(repository: Repository): GitStore {
-    let gitStore = this.gitStores.get(repository.hash)
-    if (gitStore === undefined) {
-      gitStore = new GitStore(repository, this.shell, this.statsStore)
-      gitStore.onDidUpdate(() => this.onGitStoreUpdated(repository, gitStore!))
-      gitStore.onDidError(error => this.onDidError(error))
+    let entry = this.gitStores.get(repository.hash)
+    if (entry === undefined) {
+      const store = new GitStore(repository, this.shell, this.statsStore)
+      entry = {
+        store,
+        subscriptions: [
+          store.onDidUpdate(() => this.onGitStoreUpdated(repository, store)),
+          store.onDidError(error => this.onDidError(error)),
+        ],
+      }
 
-      this.gitStores.set(repository.hash, gitStore)
+      this.gitStores.set(repository.hash, entry)
     }
 
-    return gitStore
+    return entry.store
   }
 }

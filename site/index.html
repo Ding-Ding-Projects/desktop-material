@@ -375,8 +375,11 @@
             have passed the exact production UI gate and are represented in the
             current screenshot gallery. The adaptive customization maintenance
             set uses the same exact production, off-screen interaction,
-            responsive geometry, privacy, and reviewed publication gates. All
-            current roadmap maintenance items have passed those gates.
+            responsive geometry, privacy, and reviewed publication gates. The
+            temporary-submodule changeset has passed its local ten-pass, final
+            post-build child/Back, and fresh-bundle duplicate Open/Back race
+            gates; its new remote CI, release, Pages, and wiki publication
+            receipts remain pending.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -714,6 +717,24 @@
 
             <article class="card">
               <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-link"></use></svg>
+              </div>
+              <h3>
+                Temporary submodule workspaces
+                <span class="tag">No import</span>
+              </h3>
+              <p>
+                Open an initialized submodule in the current workspace without
+                adding it to the repository list, Recent, or persisted last
+                selection. A profile-customizable Back control returns to the
+                saved root; invalid or escaping paths fail closed. Mutation and
+                process-launch surfaces stay guarded while temporary, with
+                Repository Tools limited to safe inspection.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
                 <svg class="material-icon"><use href="#icon-merge"></use></svg>
               </div>
               <h3>
@@ -885,13 +906,13 @@
               >
                 <img
                   src="docs/assets/screenshots/material-customization.png"
-                  alt="Appearance preferences with optional Desktop Material feature highlighting enabled and Material badges on fork-only entry points"
+                  alt="Appearance preferences with explicit language mode and temporary-submodule Back button style and label controls"
                   loading="lazy"
                 />
               </a>
               <figcaption>
-                Feature discovery
-                <span class="tag">Default off</span>
+                Language and navigation
+                <span class="tag">Profile backed</span>
               </figcaption>
             </figure>
 
@@ -1566,6 +1587,24 @@
 
             <figure class="shot">
               <a
+                href="docs/assets/screenshots/material-submodule-context.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-submodule-context.png"
+                  alt="Initialized submodule opened temporarily with a context bar and Back control to the persisted root repository"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Submodule context
+                <span class="tag">Temporary · Back to root</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
                 href="docs/assets/screenshots/material-shallow-clone-safe.png"
                 target="_blank"
                 rel="noopener"
@@ -1919,7 +1958,7 @@
           <div class="cta-card">
             <h2>Build with Desktop Material</h2>
             <p>
-              Clone the repo, follow the wiki, and explore the completed M0–M19
+              Clone the repo, follow the wiki, and explore the completed M0–M20
               Material foundation and function-first Git/GitHub parity roadmap.
             </p>
             <div class="hero-cta">

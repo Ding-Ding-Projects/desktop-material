@@ -7,9 +7,18 @@ import { IManagedSubmodule, SubmoduleConfigKey } from '../../lib/git'
 import { Button } from '../lib/button'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
-import { Ref } from '../lib/ref'
 import { Select } from '../lib/select'
 import { TextBox } from '../lib/text-box'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { LocalizedText } from '../lib/localized-text'
 
 /**
  * The sentinel select value meaning "clear the key so git's default applies".
@@ -57,13 +66,19 @@ interface ISubmoduleConfigDialogState {
   readonly confirmingDeinit: boolean
 
   /** The most recent per-step operation error, surfaced inline. */
-  readonly error: string | null
+  readonly error: ILocalizedMessage | null
+  readonly languageMode: LanguageMode
+}
+
+interface ILocalizedMessage {
+  readonly key: TranslationKey
+  readonly variables?: TranslationVariables
 }
 
 /** A single configuration write derived from diffing the form and its seed. */
 interface ISaveStep {
-  /** Completes "Failed <description>: <error>" in the inline error banner. */
-  readonly description: string
+  readonly errorKey: TranslationKey
+  readonly errorVariables: TranslationVariables
   readonly run: () => Promise<void>
 }
 
@@ -97,19 +112,67 @@ export class SubmoduleConfigDialog extends React.Component<
       isBusy: false,
       confirmingDeinit: false,
       error: null,
+      languageMode: getPersistedLanguageMode(),
     }
+  }
+
+  public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translate(key, this.state.languageMode, variables)
+  }
+
+  private accessibleText(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translateForAccessibleName(key, variables, this.state.languageMode)
+  }
+
+  private renderMessage(message: ILocalizedMessage): JSX.Element {
+    return (
+      <LocalizedText
+        translationKey={message.key}
+        variables={message.variables}
+        languageMode={this.state.languageMode}
+      />
+    )
   }
 
   private formatError(error: unknown): string {
     return error instanceof Error ? error.message : String(error)
   }
 
-  private getUrlError(): string | null {
+  private getUrlError(): ILocalizedMessage | null {
     // set-url cannot clear a declared URL; removal is what Deinit/Remove are
     // for. An empty field is only valid when no URL was declared to begin with.
     return this.state.url.trim().length === 0 &&
       this.props.submodule.url !== null
-      ? 'Enter a remote URL, or use Deinit to retire this submodule instead.'
+      ? { key: 'submodule.configUrlRequired' }
       : null
   }
 
@@ -144,7 +207,8 @@ export class SubmoduleConfigDialog extends React.Component<
     const url = this.state.url.trim()
     if (url.length > 0 && url !== (submodule.url ?? '')) {
       steps.push({
-        description: `setting the URL for ${submodule.path}`,
+        errorKey: 'submodule.configSetUrlFailed',
+        errorVariables: { path: submodule.path },
         run: () => dispatcher.setSubmoduleUrl(repository, submodule.path, url),
       })
     }
@@ -152,7 +216,8 @@ export class SubmoduleConfigDialog extends React.Component<
     const branch = this.state.branch.trim()
     if (branch !== (submodule.branch ?? '')) {
       steps.push({
-        description: `setting the branch for ${submodule.path}`,
+        errorKey: 'submodule.configSetBranchFailed',
+        errorVariables: { path: submodule.path },
         run: () =>
           dispatcher.setSubmoduleBranch(
             repository,
@@ -187,7 +252,10 @@ export class SubmoduleConfigDialog extends React.Component<
     for (const { key, seed, value } of selectKeys) {
       if (value !== seed) {
         steps.push({
-          description: `setting submodule.${submodule.name}.${key}`,
+          errorKey: 'submodule.configSetKeyFailed',
+          errorVariables: {
+            setting: `submodule.${submodule.name}.${key}`,
+          },
           run: () =>
             dispatcher.setSubmoduleConfigKey(
               repository,
@@ -202,7 +270,10 @@ export class SubmoduleConfigDialog extends React.Component<
     if (this.state.shallow !== submodule.shallow) {
       const shallow = this.state.shallow
       steps.push({
-        description: `setting submodule.${submodule.name}.shallow`,
+        errorKey: 'submodule.configSetKeyFailed',
+        errorVariables: {
+          setting: `submodule.${submodule.name}.shallow`,
+        },
         run: () =>
           dispatcher.setSubmoduleConfigKey(
             repository,
@@ -231,7 +302,13 @@ export class SubmoduleConfigDialog extends React.Component<
       } catch (error) {
         this.setState({
           isSaving: false,
-          error: `Failed ${step.description}: ${this.formatError(error)}`,
+          error: {
+            key: step.errorKey,
+            variables: {
+              ...step.errorVariables,
+              error: this.formatError(error),
+            },
+          },
         })
         return
       }
@@ -250,9 +327,13 @@ export class SubmoduleConfigDialog extends React.Component<
     } catch (error) {
       this.setState({
         isBusy: false,
-        error: `Failed syncing ${this.props.submodule.path}: ${this.formatError(
-          error
-        )}`,
+        error: {
+          key: 'submodule.configSyncFailed',
+          variables: {
+            path: this.props.submodule.path,
+            error: this.formatError(error),
+          },
+        },
       })
     }
   }
@@ -268,9 +349,13 @@ export class SubmoduleConfigDialog extends React.Component<
     } catch (error) {
       this.setState({
         isBusy: false,
-        error: `Failed initializing ${
-          this.props.submodule.path
-        }: ${this.formatError(error)}`,
+        error: {
+          key: 'submodule.configInitFailed',
+          variables: {
+            path: this.props.submodule.path,
+            error: this.formatError(error),
+          },
+        },
       })
     }
   }
@@ -298,9 +383,13 @@ export class SubmoduleConfigDialog extends React.Component<
       this.setState({
         isBusy: false,
         confirmingDeinit: false,
-        error: `Failed deinitializing ${
-          this.props.submodule.path
-        }: ${this.formatError(error)}`,
+        error: {
+          key: 'submodule.configDeinitFailed',
+          variables: {
+            path: this.props.submodule.path,
+            error: this.formatError(error),
+          },
+        },
       })
     }
   }
@@ -324,7 +413,12 @@ export class SubmoduleConfigDialog extends React.Component<
         <DialogContent>
           <div className="submodule-config-fields">
             <TextBox
-              label="Remote URL"
+              label={
+                <LocalizedText
+                  translationKey="submodule.configRemoteUrlLabel"
+                  languageMode={this.state.languageMode}
+                />
+              }
               placeholder="https://github.com/owner/repository.git"
               value={this.state.url}
               onValueChanged={this.onUrlChanged}
@@ -332,108 +426,193 @@ export class SubmoduleConfigDialog extends React.Component<
               ariaDescribedBy="submodule-config-url-help"
             />
             <TextBox
-              label="Branch"
-              placeholder="Remote default branch"
+              label={
+                <LocalizedText
+                  translationKey="submodule.configBranchLabel"
+                  languageMode={this.state.languageMode}
+                />
+              }
+              placeholder={this.text(
+                'submodule.addRemoteDefaultBranchPlaceholder'
+              )}
               value={this.state.branch}
               onValueChanged={this.onBranchChanged}
               spellcheck={false}
               ariaDescribedBy="submodule-config-branch-help"
             />
             <Select
-              label="Update strategy"
+              label={this.text('submodule.configUpdateStrategyLabel')}
               value={this.state.update}
               onChange={this.onUpdateStrategyChanged}
             >
-              <option value={UseDefault}>Use default (checkout)</option>
-              <option value="checkout">checkout</option>
-              <option value="rebase">rebase</option>
-              <option value="merge">merge</option>
-              <option value="none">none</option>
+              <option value={UseDefault}>
+                {this.text('submodule.configUseDefaultCheckout')}
+              </option>
+              <option value="checkout">
+                {this.text('submodule.configCheckoutOption')}
+              </option>
+              <option value="rebase">
+                {this.text('submodule.configRebaseOption')}
+              </option>
+              <option value="merge">
+                {this.text('submodule.configMergeOption')}
+              </option>
+              <option value="none">
+                {this.text('submodule.configNoneOption')}
+              </option>
             </Select>
             <Select
-              label="Ignore dirty state"
+              label={this.text('submodule.configIgnoreDirtyLabel')}
               value={this.state.ignore}
               onChange={this.onIgnoreChanged}
             >
-              <option value={UseDefault}>Use default (none)</option>
-              <option value="none">none</option>
-              <option value="untracked">untracked</option>
-              <option value="dirty">dirty</option>
-              <option value="all">all</option>
+              <option value={UseDefault}>
+                {this.text('submodule.configUseDefaultNone')}
+              </option>
+              <option value="none">
+                {this.text('submodule.configNoneOption')}
+              </option>
+              <option value="untracked">
+                {this.text('submodule.configUntrackedOption')}
+              </option>
+              <option value="dirty">
+                {this.text('submodule.configDirtyOption')}
+              </option>
+              <option value="all">
+                {this.text('submodule.configAllOption')}
+              </option>
             </Select>
             <Select
-              label="Fetch recurse submodules"
+              label={this.text('submodule.configFetchRecurseLabel')}
               value={this.state.fetchRecurseSubmodules}
               onChange={this.onFetchRecurseChanged}
             >
-              <option value={UseDefault}>Use default (on-demand)</option>
-              <option value="yes">yes</option>
-              <option value="on-demand">on-demand</option>
-              <option value="no">no</option>
+              <option value={UseDefault}>
+                {this.text('submodule.configUseDefaultOnDemand')}
+              </option>
+              <option value="yes">
+                {this.text('submodule.configYesOption')}
+              </option>
+              <option value="on-demand">
+                {this.text('submodule.configOnDemandOption')}
+              </option>
+              <option value="no">
+                {this.text('submodule.configNoOption')}
+              </option>
             </Select>
             <div className="submodule-config-shallow">
               <Checkbox
-                label="Shallow clone"
+                label={
+                  <LocalizedText
+                    translationKey="submodule.configShallowCloneLabel"
+                    languageMode={this.state.languageMode}
+                  />
+                }
                 value={this.renderShallowValue()}
                 onChange={this.onShallowChanged}
                 ariaDescribedBy="submodule-config-shallow-help"
               />
               {this.state.shallow !== null && (
-                <LinkButton onClick={this.onShallowReset}>
-                  {__DARWIN__ ? 'Use Default' : 'Use default'}
+                <LinkButton
+                  onClick={this.onShallowReset}
+                  ariaLabel={this.accessibleText(
+                    'submodule.configUseDefaultAction'
+                  )}
+                >
+                  <LocalizedText
+                    translationKey="submodule.configUseDefaultAction"
+                    languageMode={this.state.languageMode}
+                  />
                 </LinkButton>
               )}
             </div>
           </div>
           <div className="submodule-config-help">
             <small id="submodule-config-url-help">
-              {urlError ??
-                'Saving a new URL also syncs it into the checked-out submodule.'}
+              {this.renderMessage(
+                urlError ?? { key: 'submodule.configUrlHelp' }
+              )}
             </small>
             <small id="submodule-config-branch-help">
-              Leave empty to track the remote HEAD.
+              <LocalizedText
+                translationKey="submodule.configBranchHelp"
+                languageMode={this.state.languageMode}
+              />
             </small>
             <small id="submodule-config-shallow-help">
-              When neither checked nor unchecked, git's default (full history)
-              applies.
+              <LocalizedText
+                translationKey="submodule.configShallowHelp"
+                languageMode={this.state.languageMode}
+              />
             </small>
           </div>
           <section
             className="submodule-config-actions"
-            aria-label="Submodule actions"
+            aria-label={this.accessibleText('submodule.configActionsLabel')}
           >
             <Button
               type="button"
               disabled={busy}
               onClick={this.onSyncSubmodule}
-              tooltip="Sync the remote URL from .gitmodules"
+              tooltip={this.accessibleText('submodule.syncTooltip')}
+              ariaLabel={this.accessibleText('submodule.syncAction')}
             >
-              Sync
+              <LocalizedText
+                translationKey="submodule.syncAction"
+                languageMode={this.state.languageMode}
+              />
             </Button>
             {submodule.status === 'uninitialized' && (
               <Button
                 type="button"
                 disabled={busy}
                 onClick={this.onInit}
-                tooltip="Register this submodule in the local configuration"
+                tooltip={this.accessibleText('submodule.configInitTooltip')}
+                ariaLabel={this.accessibleText('submodule.configInitAction')}
               >
-                Init
+                <LocalizedText
+                  translationKey="submodule.configInitAction"
+                  languageMode={this.state.languageMode}
+                />
               </Button>
             )}
             <Button
               type="button"
               disabled={busy}
               onClick={this.onDeinitRequested}
-              tooltip="Unregister this submodule and clear its working tree"
+              tooltip={this.accessibleText('submodule.configDeinitTooltip')}
+              ariaLabel={this.accessibleText(
+                'submodule.configDeinitRequestAction'
+              )}
             >
-              Deinit…
+              <LocalizedText
+                translationKey="submodule.configDeinitRequestAction"
+                languageMode={this.state.languageMode}
+              />
             </Button>
           </section>
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
-            okButtonText={__DARWIN__ ? 'Save Changes' : 'Save changes'}
+            okButtonText={
+              <LocalizedText
+                translationKey="submodule.configSaveAction"
+                languageMode={this.state.languageMode}
+              />
+            }
+            okButtonAriaLabel={this.accessibleText(
+              'submodule.configSaveAction'
+            )}
             okButtonDisabled={busy || urlError !== null}
+            cancelButtonText={
+              <LocalizedText
+                translationKey="submodule.configCancelAction"
+                languageMode={this.state.languageMode}
+              />
+            }
+            cancelButtonAriaLabel={this.accessibleText(
+              'submodule.configCancelAction'
+            )}
           />
         </DialogFooter>
       </>
@@ -447,15 +626,34 @@ export class SubmoduleConfigDialog extends React.Component<
       <>
         <DialogContent>
           <p id="submodule-config-deinit-confirmation">
-            Are you sure you want to deinit <Ref>{submodule.path}</Ref>? This
-            unregisters the submodule and clears its working tree, discarding
-            any local changes inside it.
+            <LocalizedText
+              translationKey="submodule.configDeinitConfirmation"
+              variables={{ path: submodule.path }}
+              languageMode={this.state.languageMode}
+            />
           </p>
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
             destructive={true}
-            okButtonText="Deinit"
+            okButtonText={
+              <LocalizedText
+                translationKey="submodule.configDeinitAction"
+                languageMode={this.state.languageMode}
+              />
+            }
+            okButtonAriaLabel={this.accessibleText(
+              'submodule.configDeinitAction'
+            )}
+            cancelButtonText={
+              <LocalizedText
+                translationKey="submodule.configCancelAction"
+                languageMode={this.state.languageMode}
+              />
+            }
+            cancelButtonAriaLabel={this.accessibleText(
+              'submodule.configCancelAction'
+            )}
             onCancelButtonClick={this.onCancelDeinit}
           />
         </DialogFooter>
@@ -465,9 +663,13 @@ export class SubmoduleConfigDialog extends React.Component<
 
   public render() {
     const busy = this.state.isSaving || this.state.isBusy
-    // "Configure" needs no Darwin-specific casing and the submodule name is
-    // preserved verbatim, so the title is identical on every platform.
-    const title = `Configure ${this.props.submodule.name}`
+    const title = (
+      <LocalizedText
+        translationKey="submodule.configTitle"
+        variables={{ name: this.props.submodule.name }}
+        languageMode={this.state.languageMode}
+      />
+    )
 
     // A deinit failure returns to the form, so the confirmation never has an
     // inline error of its own to render.
@@ -476,6 +678,7 @@ export class SubmoduleConfigDialog extends React.Component<
         <Dialog
           id="submodule-config"
           title={title}
+          titleId="submodule-config-title"
           type="warning"
           role="alertdialog"
           ariaDescribedBy="submodule-config-deinit-confirmation"
@@ -493,13 +696,14 @@ export class SubmoduleConfigDialog extends React.Component<
       <Dialog
         id="submodule-config"
         title={title}
+        titleId="submodule-config-title"
         onSubmit={this.onSave}
         onDismissed={this.props.onDismissed}
         disabled={busy}
         loading={busy}
       >
         {this.state.error !== null && (
-          <DialogError>{this.state.error}</DialogError>
+          <DialogError>{this.renderMessage(this.state.error)}</DialogError>
         )}
         {this.renderForm()}
       </Dialog>

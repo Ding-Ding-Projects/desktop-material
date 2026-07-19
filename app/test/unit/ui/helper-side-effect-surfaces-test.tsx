@@ -6,6 +6,7 @@ import { AppTheme } from '../../../src/ui/app-theme'
 import { ApplicationTheme } from '../../../src/ui/lib/application-theme'
 import { DefaultAppearanceCustomization } from '../../../src/models/appearance-customization'
 import { fireEvent, render } from '../../helpers/ui/render'
+import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 
 type TUnlinkBehavior = (path: string) => Promise<void>
 
@@ -32,6 +33,8 @@ afterEach(async () => {
     }
   }
   document.documentElement.style.colorScheme = ''
+  document.documentElement.lang = 'en'
+  document.documentElement.removeAttribute('data-language-mode')
 })
 
 describe('helper side-effect surfaces', () => {
@@ -39,6 +42,11 @@ describe('helper side-effect surfaces', () => {
     const electron = await import('electron')
     const previousSend = electron.ipcRenderer.send
     const sends: Array<[string, string]> = []
+    const languageModes = new Array<string>()
+    const onLanguageModeChanged = (event: Event) => {
+      languageModes.push((event as CustomEvent<string>).detail)
+    }
+    document.addEventListener(LanguageModeChangedEvent, onLanguageModeChanged)
 
     electron.ipcRenderer.send = (channel: string, value: string) => {
       sends.push([channel, value])
@@ -59,10 +67,39 @@ describe('helper side-effect surfaces', () => {
         document.body.hasAttribute('data-dm-highlight-features'),
         false
       )
+      assert.equal(
+        document.body.getAttribute('data-dm-language-mode'),
+        'english'
+      )
+      assert.equal(document.documentElement.lang, 'en')
+      assert.equal(
+        document.documentElement.getAttribute('data-language-mode'),
+        'english'
+      )
+      assert.equal(
+        document.body.getAttribute('data-dm-submodule-back-style'),
+        'tonal'
+      )
       assert.equal(document.documentElement.style.colorScheme, 'dark')
       assert.deepEqual(sends, [
         ['update-window-background-color', 'rgb(1, 2, 3)'],
       ])
+
+      view.rerender(
+        <AppTheme
+          theme={ApplicationTheme.Dark}
+          appearance={{
+            ...DefaultAppearanceCustomization,
+            languageMode: 'cantonese',
+          }}
+        />
+      )
+
+      assert.equal(document.documentElement.lang, 'zh-HK')
+      assert.equal(
+        document.documentElement.getAttribute('data-language-mode'),
+        'cantonese'
+      )
 
       view.rerender(
         <AppTheme
@@ -71,6 +108,9 @@ describe('helper side-effect surfaces', () => {
             ...DefaultAppearanceCustomization,
             accentPalette: 'violet',
             motion: 'reduced',
+            languageMode: 'bilingual',
+            submoduleBackButtonStyle: 'outlined',
+            submoduleBackButtonLabel: 'icon-only',
             highlightDesktopMaterialFeatures: true,
           }}
         />
@@ -81,6 +121,23 @@ describe('helper side-effect surfaces', () => {
       assert.equal(document.body.getAttribute('data-dm-accent'), 'violet')
       assert.equal(document.body.getAttribute('data-dm-motion'), 'reduced')
       assert.equal(
+        document.body.getAttribute('data-dm-language-mode'),
+        'bilingual'
+      )
+      assert.equal(document.documentElement.lang, 'en')
+      assert.equal(
+        document.documentElement.getAttribute('data-language-mode'),
+        'bilingual'
+      )
+      assert.equal(
+        document.body.getAttribute('data-dm-submodule-back-style'),
+        'outlined'
+      )
+      assert.equal(
+        document.body.getAttribute('data-dm-submodule-back-label'),
+        'icon-only'
+      )
+      assert.equal(
         document.body.hasAttribute('data-dm-highlight-features'),
         true
       )
@@ -89,6 +146,7 @@ describe('helper side-effect surfaces', () => {
         'update-window-background-color',
         'rgb(1, 2, 3)',
       ])
+      assert.deepEqual(languageModes, ['english', 'cantonese', 'bilingual'])
 
       view.unmount()
 
@@ -98,7 +156,16 @@ describe('helper side-effect surfaces', () => {
         document.body.hasAttribute('data-dm-highlight-features'),
         false
       )
+      assert.equal(document.documentElement.lang, 'en')
+      assert.equal(
+        document.documentElement.hasAttribute('data-language-mode'),
+        false
+      )
     } finally {
+      document.removeEventListener(
+        LanguageModeChangedEvent,
+        onLanguageModeChanged
+      )
       electron.ipcRenderer.send = previousSend
     }
   })
