@@ -1695,9 +1695,41 @@ exact owned Temp root. The visible desktop and unrelated Electron processes
 were untouched.
 
 The tracked `material-customization.png`, README, Pages, and wiki sources now
-describe the default-off discovery treatment. Diff/staged scan, commit/push,
-CI, wiki, and final clean-state receipts are intentionally left to the final
-publication update rather than being claimed early.
+describe the default-off discovery treatment.
+
+### Publication and cleanup checkpoint
+
+- Final diff review found no unrelated or actionable changes. Diff/staged
+  checks and both pre-stage and staged secret scans passed. Commit
+  `7134b380b166a97240cbed2ceb1a181c1bc61b15` (`Add optional Desktop Material
+  feature highlights`) was pushed without rewriting history, and `origin/main`
+  resolved to that exact source before this receipts-only update.
+- [CI run `29667316652`](https://github.com/codingmachineedge/desktop-material/actions/runs/29667316652)
+  succeeded for that exact SHA. All seven jobs passed: macOS x64, macOS arm64,
+  Windows x64, Windows arm64, both packaged E2E smoke jobs, and Lint.
+- [Installer run `29667316628`](https://github.com/codingmachineedge/desktop-material/actions/runs/29667316628)
+  succeeded for that exact SHA, including build, signing, packaging, collection,
+  and publication. It published non-draft release
+  [`v3.6.3-beta3-b0000000161`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000161)
+  with `RELEASES`, full and x64-full NuGet packages, an x64 EXE, and an x64 MSI;
+  both the lightweight tag and release target resolve to the feature commit.
+- [Pages run `29667316623`](https://github.com/codingmachineedge/desktop-material/actions/runs/29667316623)
+  succeeded for that exact SHA. The live site returned HTTP 200, and its PNG
+  plus raw `main` are byte-identical to the tracked 137,390-byte evidence at
+  SHA-256
+  `3e7cfc236741dc9873e4e3dace1d25e58b57c73464ed026a45e56c44eda53b08`.
+- Wiki `master` was committed and pushed at
+  `b0daf7df5f63ebc055ccf2c07e962bbb4b7ee939` (`Document optional feature
+  highlighting`). Raw Home carries the image and updated `13 app defaults`
+  text. The clean, containment-checked disposable wiki checkout was removed
+  after remote proof.
+- Before this documentation-only receipt update, topology was one clean `main`
+  checkout at exact `origin/main`, only local/remote `main`, no stash or
+  unmerged work, and `0/0` divergence. Both owned headless roots, the temporary
+  wiki checkout, temporary Yarn, and loopback listeners `9347`/`52821` were
+  absent. The user-supplied export ZIPs were untouched. Revalidate that same
+  invariant after pushing these receipts and confirm the documentation path
+  filter does not publish another installer release.
 
 ## Maintenance constraints
 
