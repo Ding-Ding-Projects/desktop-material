@@ -57,7 +57,11 @@ Local validation finished at 237/237 focused, 66/66 lifecycle, 32/32
 localization, all 562 unit-test files (3,986 passing tests and one skipped),
 and 16/16 script tests, with TypeScript, lint, workflow checks, and diff checks
 green. Owned app, provider, CDP, credential, desktop, and fixture resources were
-cleaned; remote publication evidence remains pending.
+cleaned. Initial remote CI exposed a macOS arm64 symlink/junction error-ordering
+issue and correctly emitted no release; correction `98d93ccc` passed the full
+CI matrix, CodeQL, and gated installer publication as
+`v3.6.3-beta3-b0000000165`. Exact Pages, wiki, asset, and cleanup evidence is
+recorded in `HANDOFF.md`.
 
 The current six-image local acceptance refresh is
 [`material-repository-tools.png`](assets/screenshots/material-repository-tools.png),

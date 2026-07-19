@@ -14,10 +14,12 @@ appearance modes, plus the repository-contextual GitHub API Explorer. Exact buil
 publication, and cleanup receipts are recorded in the repository's `HANDOFF.md` only as each release
 is verified.
 
-The temporary-submodule changeset has completed its local ten-pass, final
-post-build child/Back, and fresh-bundle duplicate Open/Back race inspections,
-including read-only mutation boundaries and owned headless-resource cleanup; its
-new remote CI, installer, Pages, and wiki publication receipts remain pending.
+The temporary-submodule changeset completed its local ten-pass, final post-build
+child/Back, and fresh-bundle duplicate Open/Back race inspections, including
+read-only mutation boundaries and owned headless-resource cleanup. Initial
+remote CI caught a macOS error-ordering defect without publishing; correction
+`98d93ccc` passed its full remote CI gate and published
+`v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
 The [Guided Feature Gallery](Feature-Gallery) is the canonical 64-function visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.

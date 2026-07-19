@@ -158,8 +158,9 @@ post-build 1440×960 child/read-only/Back regression passed before the owned app
 provider, CDP listener, credential, desktop, and fixture root were removed. A
 later fresh-bundle race regression synchronously exercised duplicate Open and
 Back activation; it preserved one persisted repository and tab, restored the
-root once, and showed no error. This headless gate complements but does not
-replace the pending installed Windows packaged-E2E result from remote CI.
+root once, and showed no error. This headless gate complements the installed
+Windows x64 packaged-E2E job, which passed in correction CI `29696805239` using
+the same per-job loopback updater URL.
 
 ### macOS behavior
 

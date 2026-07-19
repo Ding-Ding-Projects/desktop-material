@@ -121,9 +121,13 @@
 - Local acceptance: **COMPLETE** on 2026-07-19.
 - Owned local runtime cleanup: **COMPLETE**. The app, provider, CDP listener,
   credential entry, headless desktop, and run root were each confirmed absent.
-- Remote publication and final repository cleanup: **PENDING**; no remote SHA,
-  run, release, Pages deployment, wiki commit, or clean published-checkout result
-  is implied below.
+- Initial implementation publication: `751c9aef03a39f8e26caccbbf0949d221f870174`.
+  Its CI exposed a macOS-arm64 symlink/junction error-ordering defect, so its
+  downstream installer run was skipped and no release was published.
+- Correction publication: `98d93ccc8e6be4b5ae43c8166273157dfc8eef9c` passed
+  CI `29696805239`, CodeQL `29696805243`, and Build Installers `29697597981`.
+  The latter published non-draft immutable tag `v3.6.3-beta3-b0000000165` with
+  five required non-empty assets.
 - Exact low-level MCP checkout:
   `8d6940be6a5f6e7c37de3f73acd2259fa7651efe` at
   `http://127.0.0.1:8765/mcp`.
@@ -271,22 +275,24 @@ absent.
 | `material-customization.png` | 1440×960 | 165,740 | `478009bd887a067d007627a531206750bdb9e95508ec9860c609e8c090db2f15` |
 | `material-submodule-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
 
-### Remote publication and repository-cleanup placeholders
+### Remote implementation publication
 
-- Exact pushed `main` SHA: **PENDING REMOTE PUBLICATION**.
-- Exact CI run, including formerly failing Windows packaged E2E:
-  **PENDING REMOTE PUBLICATION**.
-- CodeQL run: **PENDING REMOTE PUBLICATION**.
-- Build Installers run, unique tag, non-draft release target, and required
-  non-empty assets: **PENDING REMOTE PUBLICATION**.
-- Pages deployment and byte-identical live images:
-  **PENDING REMOTE PUBLICATION**.
-- Canonical wiki commit and live image references:
-  **PENDING REMOTE PUBLICATION**.
+- Initial pushed implementation SHA: `751c9aef03a39f8e26caccbbf0949d221f870174`.
+  Pages `29696036761` and CodeQL `29696036719` succeeded, but CI `29696036744`
+  failed only its macOS arm64 symlink/junction error-ordering tests. Its
+  downstream Build Installers run `29696890850` was skipped, and no release was
+  published.
+- Corrective SHA: `98d93ccc8e6be4b5ae43c8166273157dfc8eef9c`; CI
+  `29696805239` (all seven jobs) and CodeQL `29696805243` succeeded.
+- Build Installers `29697597981` published non-draft, non-prerelease release
+  `v3.6.3-beta3-b0000000165`, targeting exactly the corrective SHA, with
+  `RELEASES`, x64 MSI, x64 EXE, and both full `.nupkg` names present and non-empty.
+- Pages deployment and byte-identical live images: Pages `29696036761` served
+  the six promoted assets at HTTP 200 with their tracked SHA-256 values.
+- The canonical wiki and final topology receipts are recorded after the
+  documentation-only verification cycle so that release automation cannot loop.
 - Owned credential/provider/CDP/headless-desktop/temp-root cleanup:
   **COMPLETE LOCALLY**.
-- Clean one-worktree, no-stash, all-source-tips-merged, zero-divergence remote
-  proof after publication: **PENDING PUBLICATION CLEANUP**.
 
 The pre-repair failed-SHA installer run `29671087924` and its immutable release
 `v3.6.3-beta3-b0000000163` are retained as historical state; the repaired

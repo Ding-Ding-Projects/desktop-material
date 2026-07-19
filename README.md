@@ -31,9 +31,14 @@ but its client stream detached before returning a receipt; the resulting fresh
 bundle passed the final off-screen race regression. The full local gate passed
 237 focused checks, 66 temporary-context lifecycle checks, 32 localization
 checks, all 562 unit-test files (3,986 passing tests and one skipped), and 16
-script tests, plus TypeScript, lint, and workflow validation. Their new `main`
-SHA, CI, installer release, Pages, and wiki receipts remain explicitly pending
-until publication.
+script tests, plus TypeScript, lint, and workflow validation. The first
+implementation commit (`751c9aef`) exposed a macOS arm64 error-ordering defect
+and correctly produced no release. Its focused correction (`98d93ccc`) passed
+the full [CI matrix](https://github.com/codingmachineedge/desktop-material/actions/runs/29696805239)
+and [CodeQL](https://github.com/codingmachineedge/desktop-material/actions/runs/29696805243),
+then published the immutable [Windows release `v3.6.3-beta3-b0000000165`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000165).
+The detailed Pages, wiki, asset, and cleanup receipts are maintained in
+[`HANDOFF.md`](HANDOFF.md).
 
 **Material Design 3 Expressive shell**
 - App-bar branding with an inline pill menu

@@ -44,8 +44,10 @@ Pages publishing remain separate so release creation cannot start a
 base-repository push loop.
 
 The July 19 local workflow audit passed actionlint and repository workflow
-contracts. It does not substitute for the pending exact-SHA remote CI and release
-receipt.
+contracts. Its remote proof caught a macOS arm64 error-ordering defect in the
+first implementation CI and skipped that downstream release. Correction
+`98d93ccc` then passed CI `29696805239` and published the unique non-draft
+release `v3.6.3-beta3-b0000000165` through Build Installers `29697597981`.
 
 ## Scheduling Pull Requests
 

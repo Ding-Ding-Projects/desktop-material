@@ -116,9 +116,13 @@ Repository Tools boundary and unchanged persisted repository count, then used
 Back to restore the root. Both child and parent frames were inspected at
 original pixels. The log-history repository stayed at one clean HEAD and count
 across eight idle seconds, and every owned app/provider/CDP/credential/desktop/
-fixture resource was confirmed absent after cleanup. Remote publication is
-intentionally not claimed until the `main`, CI, release, Pages, and wiki receipts
-are filled.
+fixture resource was confirmed absent after cleanup. Initial remote CI revealed
+that macOS could classify a redirected checkout as uninitialized before the
+path-safety error was reported. Correction `98d93ccc` resolves the declared
+checkout through the no-follow guard before enforcing initialization state; its
+full CI matrix and CodeQL passed, and its gated release is
+`v3.6.3-beta3-b0000000165`. Pages, wiki, asset, and cleanup receipts are in
+`HANDOFF.md`.
 
 See also the [Submodules wiki guide](../../wiki/Submodules.md) and
 [Guided Feature Gallery](../../wiki/Feature-Gallery.md), plus the

@@ -22,9 +22,11 @@ control styling. CI updater tests now choose a per-job loopback port, and releas
 publication is gated on successful CI for the exact eligible `main` SHA. The
 exact production build and ten-pass headless local acceptance are complete;
 the post-build child/read-only/Back regression and owned headless-resource
-cleanup are also complete. `main`, CI, installer release, Pages, wiki, and final
-repository-publication receipts remain pending and are not implied by the local
-evidence.
+cleanup are also complete. Initial remote CI exposed a macOS arm64
+symlink/junction error-ordering issue, correctly withholding a release; the
+focused `98d93ccc` correction passed remote CI and CodeQL and published
+`v3.6.3-beta3-b0000000165`. Exact Pages, wiki, asset, and cleanup receipts are
+recorded in `HANDOFF.md` and the canonical wiki.
 
 ## Product milestone ledger
 
@@ -96,8 +98,8 @@ evidence.
 | --- | --- | --- |
 | **Temporary submodule repository navigation** | **COMPLETE; LOCALLY VERIFIED** | **Open as repository** is available only for an initialized checked-out submodule. The child is an ephemeral repository object: no repository-database row, repository-list/Recent/tab entry, or persisted last selection is written. A context bar returns to the persisted root repository, including after nested temporary navigation. Stale selection, invalid Git state, traversal, sibling-prefix, and symlink/junction escape targets fail closed. Every mutating, process-launching, persistence, cache, and asynchronous lifecycle boundary now revalidates or rejects a temporary child; Repository Tools remains read-only there. Run `20260718-232824-ci-10-pass-submodule-navigation` covered open, Back, restart, persistence, keyboard, compact, dark, scale, stale, lifecycle, and post-build regression behavior. See `app/src/models/repository.ts`, `app/src/lib/git/submodule.ts`, `app/src/lib/stores/app-store.ts`, `app/src/lib/stores/git-store-cache.ts`, `app/src/ui/dispatcher/dispatcher.ts`, `app/src/ui/repository-settings/submodules.tsx`, and `docs/features/repository-management/submodule-repository-navigation.md`. |
 | **Language and Back-control appearance** | **COMPLETE; LOCALLY VERIFIED** | The strict active-profile appearance value adds exact **English**, **Playful Hong Kong Cantonese**, and **Bilingual** modes plus **Tonal**/**Filled accent**/**Outlined** Back styles and **Back to parent**/**Parent name**/**Icon only** labels. English is the fallback, bilingual copy is compact, icon-only retains a destination-specific accessible name, and semantic localized spans keep separators and accessibility text correct. Resources are separate from rendering logic. The ten-pass run covered live/save/cancel, legacy fallback, all language modes, compact geometry, and 200%-requested auto-fit. See `app/src/models/language-mode.ts`, `app/src/models/appearance-customization.ts`, `app/src/lib/i18n.ts`, `app/src/lib/i18n-resources.ts`, `app/src/ui/lib/localized-text.tsx`, and `app/src/ui/preferences/appearance.tsx`. |
-| **Packaged E2E updater port selection** | **COMPLETE; LOCALLY VERIFIED** | A CI setup action asks the operating system for a currently available `127.0.0.1` port and exports one exact `/update` URL for both the production build and mock updater server. The mock accepts only the bounded loopback HTTP endpoint and derives its origin/control URL from that value. Local workflow contracts pass; the authoritative remote Windows packaged-E2E result remains pending. See `.github/actions/setup-e2e-update-port/`, `.github/workflows/ci.yml`, and `app/test/e2e/mock-update-server.ts`. |
-| **Release publication gating** | **COMPLETE; LOCALLY VERIFIED** | Automatic installer publication starts only after successful CI for a same-repository `main` push, including documentation-only pushes. Manual dispatch runs the reusable CI gate first. The workflow verifies the intended SHA and `origin/main`, refuses an existing immutable tag, and repeats those fail-closed checks immediately before publication; it also requires non-empty installer assets and has one release publication action. The release-PR workflow has explicit `contents: read` access. Local contracts pass; the exact remote release/tag/assets are deliberately pending. See `.github/workflows/build-installers.yml` and `.github/workflows/release-pr.yml`. |
+| **Packaged E2E updater port selection** | **COMPLETE; REMOTELY VERIFIED** | A CI setup action asks the operating system for a currently available `127.0.0.1` port and exports one exact `/update` URL for both the production build and mock updater server. The mock accepts only the bounded loopback HTTP endpoint and derives its origin/control URL from that value. The correction CI’s Windows x64 packaged-E2E job passed, proving the per-job loopback URL at build and runtime. See `.github/actions/setup-e2e-update-port/`, `.github/workflows/ci.yml`, and `app/test/e2e/mock-update-server.ts`. |
+| **Release publication gating** | **COMPLETE; REMOTELY VERIFIED** | Automatic installer publication starts only after successful CI for a same-repository `main` push, including documentation-only pushes. Manual dispatch runs the reusable CI gate first. The workflow verifies the intended SHA and `origin/main`, refuses an existing immutable tag, and repeats those fail-closed checks immediately before publication; it also requires non-empty installer assets and has one release publication action. The failed initial CI created only a skipped downstream run; successful correction CI `29696805239` drove Build Installers `29697597981`, which published five non-empty assets under immutable tag `v3.6.3-beta3-b0000000165`. See `.github/workflows/build-installers.yml` and `.github/workflows/release-pr.yml`. |
 
 ### July 18–19 local acceptance receipts
 
@@ -195,8 +197,12 @@ neutral evidence root were then removed and confirmed absent.
 | `material-customization.png` | 1440×960 | 165,740 | `478009bd887a067d007627a531206750bdb9e95508ec9860c609e8c090db2f15` |
 | `material-submodule-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
 
-Remote publication receipts are pending; no `main` SHA, Actions run, release
-tag, Pages deployment, or wiki commit is claimed by this local ledger.
+Remote implementation receipts are complete: initial implementation `751c9aef`
+reached Pages and CodeQL but failed macOS arm64 error-ordering tests and produced
+no release; correction `98d93ccc` passed CI `29696805239`, CodeQL `29696805243`,
+and Build Installers `29697597981`, which published
+`v3.6.3-beta3-b0000000165`. The corresponding Pages, wiki, asset, and cleanup
+details are recorded in `HANDOFF.md`.
 
 ## Additional completed product work
 

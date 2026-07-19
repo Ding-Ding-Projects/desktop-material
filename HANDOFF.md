@@ -1975,27 +1975,39 @@ before promotion.
 | `docs/assets/screenshots/material-customization.png` | 1440×960 | 165,740 | `478009bd887a067d007627a531206750bdb9e95508ec9860c609e8c090db2f15` |
 | `docs/assets/screenshots/material-submodule-context.png` | 1440×960 | 103,250 | `25de28cb43ea3031f20788a52638095b0272b73424f4e36d7e43657ab7f381b0` |
 
-### Publication checkpoint — pending
+### Publication checkpoint — implementation and correction
 
-The following fields are deliberately placeholders. They must be replaced only
-from authoritative remote output after the exact changeset is pushed; no remote
-success is implied by the completed local acceptance above.
-
-- `main` implementation/documentation SHA: **PENDING REMOTE PUBLICATION**.
-- Exact CI run and formerly failing Windows x64 packaged-E2E job:
-  **PENDING REMOTE PUBLICATION**.
-- CodeQL run: **PENDING REMOTE PUBLICATION**.
-- Build Installers run, unique immutable tag, non-draft release target, and
-  required non-empty assets: **PENDING REMOTE PUBLICATION**.
-- Pages deployment, live HTTP result, and byte-identical six-image delivery:
-  **PENDING REMOTE PUBLICATION**.
-- Canonical wiki commit plus live Home/User Guide/Submodules/Feature Gallery
-  image checks: **PENDING REMOTE PUBLICATION**.
-- Owned credential/provider/CDP/desktop/temporary-root cleanup:
-  **COMPLETE LOCALLY**.
-- Final clean one-worktree `main == origin/main`, no-stash,
-  all-source-tips-merged proof after publication:
-  **PENDING PUBLICATION CLEANUP**.
+- Initial implementation SHA
+  `751c9aef03a39f8e26caccbbf0949d221f870174` reached
+  [Pages 29696036761](https://github.com/codingmachineedge/desktop-material/actions/runs/29696036761)
+  and [CodeQL 29696036719](https://github.com/codingmachineedge/desktop-material/actions/runs/29696036719).
+  CI [29696036744](https://github.com/codingmachineedge/desktop-material/actions/runs/29696036744)
+  failed only on macOS arm64: Git classified a redirected checkout as
+  uninitialized before the no-follow guard could report its symlink/junction.
+  The downstream Build Installers run `29696890850` was therefore skipped and
+  did not create a release.
+- Corrective SHA `98d93ccc8e6be4b5ae43c8166273157dfc8eef9c` separates declared
+  submodule lookup from initialization enforcement and resolves the physical
+  path first. All seven jobs in
+  [CI 29696805239](https://github.com/codingmachineedge/desktop-material/actions/runs/29696805239)
+  passed, including macOS arm64 and Windows x64 packaged E2E; [CodeQL
+  29696805243](https://github.com/codingmachineedge/desktop-material/actions/runs/29696805243)
+  also passed.
+- [Build Installers 29697597981](https://github.com/codingmachineedge/desktop-material/actions/runs/29697597981)
+  passed and published non-draft, non-prerelease
+  [`v3.6.3-beta3-b0000000165`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000165)
+  targeting exactly `98d93ccc8e6be4b5ae43c8166273157dfc8eef9c`. Its five
+  non-empty assets are `RELEASES` (102 bytes), x64 MSI (309,559,296 bytes), x64
+  EXE (309,954,048 bytes), and the canonical and x64 full `.nupkg` files
+  (309,832,995 bytes each). Their API digests are recorded in the release.
+- Pages `29696036761` returned HTTP 200 for the live site and all six promoted
+  screenshots; each PNG was byte-identical to its tracked SHA-256 record in the
+  table above. The initial deployment remains valid because the correction did
+  not modify the promoted assets.
+- Owned credential/provider/CDP/desktop/temporary-root cleanup: **COMPLETE
+  LOCALLY**. The succeeding documentation-only publication and final clean
+  topology proof are deliberately recorded in the canonical wiki after its own
+  independent CI/release cycle, preventing a base-repository release loop.
 
 The repair baseline remains CI run `29671087941` at source
 `19c1e2a06d0746f4c371d37a1c102ae961011f90`: only Windows x64 packaged E2E

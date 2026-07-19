@@ -27,8 +27,10 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > off-screen local acceptance, post-build child/Back regression, a later fresh-bundle duplicate
 > Open/Back race regression, and owned headless-resource cleanup. The local code gate passed 237
 > focused checks, all 562 unit-test files (3,986 passing tests and one skipped), and 16 script
-> tests. Their new `main`, CI, installer release, Pages, and wiki receipts remain explicitly pending
-> publication.
+> tests. Initial remote CI correctly withheld a release after surfacing a macOS arm64 symlink-error
+> ordering defect. Correction `98d93ccc` passed the full CI matrix and CodeQL, then published
+> [`v3.6.3-beta3-b0000000165`](https://github.com/codingmachineedge/desktop-material/releases/tag/v3.6.3-beta3-b0000000165).
+> Exact Pages, wiki, asset, and cleanup receipts are in `HANDOFF.md`.
 
 ![Desktop Material workspace with a profile-customized app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 

@@ -27,9 +27,11 @@ ten-pass off-screen inspection. A final 1440×960 post-build regression reopened
 the child, verified its read-only boundary, and returned to the root; a later
 fresh-bundle race regression synchronously exercised duplicate Open and Back,
 preserved one persisted repository and tab, restored the root once, and showed
-no error. The gallery assets and owned headless-resource cleanup are locally
-complete; their remote `main`, Pages, and wiki delivery remains pending until
-the publication receipts are recorded.
+no error. The gallery assets and owned headless-resource cleanup are complete.
+The six refreshed assets were delivered byte-identically by Pages; initial
+remote CI withheld a release after a macOS error-ordering failure, and correction
+`98d93ccc` passed the full matrix and published
+`v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
 The verified adaptive customization maintenance release adds profile app
 identity, favorite/portable tabs, folder-drop opening, guarded tab close/arrange,
