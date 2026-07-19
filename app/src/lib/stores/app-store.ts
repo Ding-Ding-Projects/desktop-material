@@ -3061,21 +3061,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
         context
       await this._changeIncludeAllFiles(repository, true)
       this.setOneClickCommitPushPhase(repository, 'committing')
-
-      const state = this.repositoryStateCache.get(repository)
-      const message = await formatCommitMessage(repository, context)
-      const committed = await this.withIsCommitting(repository, async () => {
-        await this.withTemporaryRepositoryMutationGuard(repository, () =>
-          createCommit(repository, message, files, {
-            noVerify: state.skipCommitHooks,
-            signOff: state.signOffCommits,
-            onHookFailure: async () => 'abort',
-          })
-        )
-        return true
-      })
+      // Keep scheduled commits on the same path as the commit composer. Besides
+      // preserving hook and selection behavior, this is where oversized files
+      // are replaced with cheap-LFS pointers before Git creates the commit.
+      const committed = await this._commitIncludedChanges(repository, context)
       if (!committed) {
-        throw new Error('Another commit started before automation could run.')
+        throw new Error('The automatic commit did not complete.')
       }
       await this._refreshRepository(repository)
 
@@ -8148,25 +8139,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     await this._changeIncludeAllFiles(repository, true)
-    const includedState = this.repositoryStateCache.get(repository)
-    const includedFiles = includedState.changesState.workingDirectory.files
     const context: ICommitContext = { summary, description: null }
-    const message = await formatCommitMessage(repository, context)
 
     report(`Committing ${files.length} change${files.length === 1 ? '' : 's'}.`)
-    const committed = await this.withIsCommitting(repository, async () => {
-      await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        createCommit(repository, message, includedFiles, {
-          noVerify: includedState.skipCommitHooks,
-          signOff: includedState.signOffCommits,
-          onHookFailure: async () => 'abort',
-        })
-      )
-      return true
-    })
+    // Reuse the guarded commit path so commit-and-push-all cannot bypass
+    // automatic cheap-LFS pinning for files over the GitHub receive limit.
+    const committed = await this._commitIncludedChanges(repository, context)
 
     if (!committed) {
-      throw new Error('Another commit is already in progress.')
+      throw new Error('The commit did not complete.')
     }
 
     await this._refreshRepository(repository)

@@ -38,6 +38,26 @@ Remote `main`, CI, installer release, CodeQL, Pages, wiki, and final
 repository-publication proof is still pending and is not claimed by this active
 handoff.
 
+## 2026-07-19 cheap-LFS commit routing fix
+
+- Scheduled commit-and-push and multi-repository commit-and-push-all no longer
+  call Git's `createCommit` directly. Both route through
+  `_commitIncludedChanges`, so selected files over 100 MiB receive the same
+  release-backed cheap-LFS pinning and multipart handling as the commit composer.
+- The concrete `lowlevel-computer-use-mcp` reproduction contains an untracked
+  7,318,016,000-byte Windows ISO. The running app entered its commit state, and
+  its logs showed repeated 25–30 second full-file diff reads before the pin
+  finished; the source pipeline plans four release assets for that size.
+- Focused cheap-LFS behavior and entry-point regression tests cover the shared
+  routing. The required off-screen production verification was preflighted via
+  the exact HTTP MCP checkout at `ed1427f69b20dcd66df1de2ae3c6ba6591e2e640`,
+  but the build stopped before GUI launch. The user authorized downloading the
+  initially missing locked `qrcode.react` package; a second build then exposed
+  pre-existing unbuilt local native packages (`desktop-notifications` and
+  `desktop-trampoline`) plus their downstream type errors. No headless desktop
+  was created, and no disposable fixture or user-data directory required
+  cleanup.
+
 ## 2026-07-18 repository-page CI status
 
 ### Internationalization follow-up
