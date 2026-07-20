@@ -23,6 +23,47 @@ not Prettier-clean. Pages `29710664112` passed and installer run `29710722904`
 skipped. The correction formats that generator without changing any generated
 SVG content; the repository-wide Prettier gate and a fresh generator run pass.
 
+## 2026-07-20 M23 handoff — implementation integrated; publication proof pending
+
+This is the live handoff for the user-directed **full Ollama model manager**
+wave. Its scope is Ollama model lifecycle management only; the separate
+submodule-manager and general regex-builder requests are not part of M23.
+
+- **Settings → Copilot → Providers** now includes an **Ollama (local)** preset
+  and opens a dedicated **Manage models** workspace for a saved provider.
+  Health/version, installed and running inventories, search plus a running-only
+  filter, selected-model details, streamed pull/cancel, copy, guarded rename,
+  load/unload, exact-name confirmed deletion, and provider-model
+  synchronization are implemented.
+- Native management is loopback-only. The saved provider URL must use an exact
+  `/v1` base on `localhost`, `127.0.0.0/8`, or `[::1]`; remote HTTP and HTTPS
+  hosts, arbitrary prefixes, a saved `/api` base, embedded credentials, query
+  strings, and fragments are rejected. The manager derives the loopback origin
+  and calls only fixed native `/api/*` routes. Provider credentials are not
+  placed in management URLs, process arguments, logs, or documentation.
+- The manager preserves independent partial/unavailable states, bounds response
+  and displayed metadata, aborts stale provider work, keeps pull cancellation
+  scoped to the active pull, and reports a successful Ollama mutation followed
+  by a failed provider save as a split outcome. All manager labels,
+  confirmations, announcements, and accessible names follow English, playful
+  Hong Kong Cantonese, or bilingual mode.
+- Deterministic loopback fixtures and an off-screen capture scene are tracked,
+  but this documentation checkpoint does **not** claim the final exact MCP
+  production build, lifecycle exercise, original-resolution visual inspection,
+  Windows CI, Pages, wiki publication, or topology cleanup. Those receipts must
+  be added only after their authoritative runs finish.
+- The required image target is
+  `docs/assets/screenshots/material-ollama-model-manager.png`. It is
+  intentionally absent from this docs-only checkpoint: do not fabricate,
+  substitute, or publish a placeholder. The root verifier must promote the real
+  privacy-safe off-screen capture, confirm that it contains no personal path,
+  account, email, credential, token, or user repository content, and record its
+  dimensions and SHA-256 before this publication bundle reaches `main`.
+- README, Pages, the feature guide/index, roadmap/plan, and the actual Markdown
+  wiki sources are prepared to reference that exact asset. The wiki image uses
+  the raw `main` URL under the canonical `Ding-Ding-Projects/desktop-material`
+  repository so it will render after the separate wiki repository is synced.
+
 ## 2026-07-20 M22 handoff — implementation pushed; visual refresh paused
 
 This section is the live handoff for the current user-directed wave. Do not
