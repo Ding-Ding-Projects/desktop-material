@@ -500,6 +500,18 @@ class ProviderStateTests(unittest.TestCase):
         )
         self.assertEqual(len(self.state.pull_requests), 1)
 
+        repeated = self.state.dispatch(
+            "POST",
+            self.repo_path + "/pulls",
+            self.headers,
+            json.dumps(request).encode("utf-8"),
+        )
+        repeated_created = self.json(repeated)
+        self.assertEqual(repeated.status, 201)
+        self.assertEqual(created["number"], 73)
+        self.assertEqual(repeated_created["number"], 74)
+        self.assertEqual(len(self.state.pull_requests), 2)
+
         wrong_ref = dict(request, base="release")
         rejected = self.state.dispatch(
             "POST",
@@ -508,7 +520,7 @@ class ProviderStateTests(unittest.TestCase):
             json.dumps(wrong_ref).encode("utf-8"),
         )
         self.assertEqual(rejected.status, 422)
-        self.assertEqual(len(self.state.pull_requests), 1)
+        self.assertEqual(len(self.state.pull_requests), 2)
 
     def test_rejects_every_other_mutation(self) -> None:
         response = self.state.dispatch(

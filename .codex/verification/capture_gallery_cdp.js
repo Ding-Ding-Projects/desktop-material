@@ -2553,6 +2553,8 @@ scene('pull-request-open', async () => {
   await ensureRepository()
   const pullRequestPath = /\/repos\/[^/]+\/[^/]+\/pulls(?:\?|$)/
   const before = countProviderRequests('POST', pullRequestPath)
+  const expectedPullRequestNumber = 73 + before
+  const expectedPullRequestReceipt = `Pull request #${expectedPullRequestNumber} created`
   await menuEvent('preview-pull-request')
   await waitFor(
     `document.querySelector('.open-pull-request') !== null`,
@@ -2620,7 +2622,9 @@ scene('pull-request-open', async () => {
     within: '#create-github-pull-request',
   })
   await waitFor(
-    `document.querySelector('.create-github-pull-request-success[role="status"]')?.textContent?.includes('Pull request #73 created') === true`,
+    `document.querySelector('.create-github-pull-request-success[role="status"]')?.textContent?.includes(${JSON.stringify(
+      expectedPullRequestReceipt
+    )}) === true`,
     'native pull-request success receipt',
     30000
   )
