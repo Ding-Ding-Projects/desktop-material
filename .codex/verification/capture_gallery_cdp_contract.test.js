@@ -564,7 +564,7 @@ test('both pull-request scenes refresh the non-empty origin/main comparison', ()
   }
 })
 
-test('native pull-request review retries readiness and activation atomically', () => {
+test('native pull-request review handles aria-only disablement at most once', () => {
   const helperStart = source.indexOf('async function clickTextWhenEnabled(')
   const helperEnd = source.indexOf(
     '\nasync function clickSelector(',
@@ -592,11 +592,27 @@ test('native pull-request review retries readiness and activation atomically', (
   assert.match(helper, /target\.click\(\)\s+return true/)
   assert.match(helper, /if \(clicked\) \{\s+return\s+\}/)
   assert.equal(helper.match(/target\.click\(\)/g)?.length, 1)
+  assert.equal(source.match(/await clickTextWhenEnabled\(/g)?.length, 1)
   assert.ok(scene.includes("clickTextWhenEnabled('Review pull request'"))
   assert.ok(scene.includes("within: '#create-github-pull-request'"))
   assert.ok(scene.includes('timeout: 30000'))
   assert.ok(!scene.includes("'enabled pull-request review action'"))
   assert.ok(!scene.includes("clickText('Review pull request'"))
+
+  const reviewGuard = scene.indexOf(
+    "const afterReview = countProviderRequests('POST', pullRequestPath)"
+  )
+  const providerMutation = scene.indexOf(
+    "clickText('Create pull request'",
+    reviewGuard
+  )
+  assert.notEqual(reviewGuard, -1)
+  assert.notEqual(providerMutation, -1)
+  assert.ok(scene.includes('if (afterReview !== before)'))
+  assert.ok(
+    reviewGuard < providerMutation,
+    'the non-mutating Review guard must precede Create'
+  )
 })
 
 test('canonical workflow scenes use current reviewed controls and outcomes', () => {

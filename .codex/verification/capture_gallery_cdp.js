@@ -3437,6 +3437,14 @@ scene('pull-request-open', async () => {
     `document.querySelector('.create-github-pull-request-review') !== null && document.querySelector('.create-github-pull-request-context')?.textContent?.includes('feature/material-verification → main') === true`,
     'reviewed feature-to-main pull-request route'
   )
+  const afterReview = countProviderRequests('POST', pullRequestPath)
+  if (afterReview !== before) {
+    fail(
+      `Reviewing the native pull request sent ${
+        afterReview - before
+      } provider POSTs before confirmation.`
+    )
+  }
   await clickText('Create pull request', {
     within: '#create-github-pull-request',
   })
