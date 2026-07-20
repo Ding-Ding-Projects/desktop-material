@@ -222,6 +222,39 @@ test('submodule context capture waits for its final unanimated surface', () => {
   )
 })
 
+test('merge-all capture preserves main and cleans only its evidence branch', () => {
+  const mergeAll = sceneSource('merge-all')
+  for (const contract of [
+    'assertOwnedDisposableFixture()',
+    "'symbolic-ref', 'refs/remotes/origin/HEAD'",
+    '`refs/remotes/origin/${ready.defaultBranch}`',
+    'startingBranch !== ready.featureBranch',
+    'rows.length !== 1',
+    "'gallery/merge-all-evidence'",
+    "textContent?.trim() === 'up-to-date'",
+    "'Already up to date; cleaned up and deleted.'",
+    "textContent?.trim() === 'main'",
+    "'refs/heads/main'",
+    "'refs/heads/gallery/merge-all-evidence'",
+    'survivingBranch !== ready.defaultBranch',
+    '!mainExists',
+    'evidenceExists',
+    'single safe Merge All result',
+  ]) {
+    assert.ok(mergeAll.includes(contract), `merge-all gate misses ${contract}`)
+  }
+  assert.ok(
+    mergeAll.indexOf('single safe Merge All result') <
+      mergeAll.indexOf("capture('material-branch-merge-all')"),
+    'the exact result gate must run before capture'
+  )
+  assert.ok(
+    mergeAll.indexOf('survivingBranch !== ready.defaultBranch') <
+      mergeAll.indexOf("capture('material-branch-merge-all')"),
+    'the post-operation Git proof must run before capture'
+  )
+})
+
 test('new prerequisite scenes use deterministic synthetic owner flows', () => {
   const expected = new Map([
     ['anchored-appearance', 'material-customization'],

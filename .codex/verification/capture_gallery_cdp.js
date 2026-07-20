@@ -3619,7 +3619,26 @@ scene('merge-all', async () => {
   if (fixturePath === null) {
     fail('Merge All requires a disposable fixture path.')
   }
+  assertOwnedDisposableFixture()
   await ensureRepository()
+  const originHead = execFileSync(
+    'git',
+    ['-C', fixturePath, 'symbolic-ref', 'refs/remotes/origin/HEAD'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  if (originHead !== `refs/remotes/origin/${ready.defaultBranch}`) {
+    fail(`Fixture remote HEAD disagrees with its default branch: ${originHead}`)
+  }
+  const startingBranch = execFileSync(
+    'git',
+    ['-C', fixturePath, 'branch', '--show-current'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  if (startingBranch !== ready.featureBranch) {
+    fail(
+      `Merge All fixture must start on ${ready.featureBranch}: ${startingBranch}`
+    )
+  }
   for (const [branch, startPoint] of [
     ['main', 'origin/main'],
     ['gallery/merge-all-evidence', 'origin/main'],
@@ -3653,10 +3672,68 @@ scene('merge-all', async () => {
   )
   await clickText('Merge all into default')
   await waitFor(
-    `document.querySelector('#merge-all .merge-all-summary')?.textContent?.trim().startsWith('Complete.') === true && document.querySelectorAll('#merge-all .merge-all-results tbody tr').length > 0`,
-    'completed Merge All evidence',
+    `(() => {
+      const summary = document.querySelector('#merge-all .merge-all-summary')
+      const rows = [...document.querySelectorAll('#merge-all .merge-all-results tbody tr')]
+      if (summary?.textContent?.trim() !== 'Complete. No push was needed.' || rows.length !== 1) {
+        return false
+      }
+      const row = rows[0]
+      return row.querySelector('td[data-label="Branch"]')?.textContent?.trim() ===
+          'gallery/merge-all-evidence' &&
+        row.querySelector('.merge-result')?.textContent?.trim() === 'up-to-date' &&
+        row.querySelector('td[data-label="Details"]')?.textContent?.trim() ===
+          'Already up to date; cleaned up and deleted.' &&
+        !rows.some(candidate =>
+          candidate.querySelector('td[data-label="Branch"]')?.textContent?.trim() === 'main'
+        )
+    })()`,
+    'single safe Merge All result',
     45000
   )
+  const survivingBranch = execFileSync(
+    'git',
+    ['-C', fixturePath, 'branch', '--show-current'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  let mainExists = true
+  let evidenceExists = true
+  try {
+    execFileSync(
+      'git',
+      ['-C', fixturePath, 'show-ref', '--verify', '--quiet', 'refs/heads/main'],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+  } catch {
+    mainExists = false
+  }
+  try {
+    execFileSync(
+      'git',
+      [
+        '-C',
+        fixturePath,
+        'show-ref',
+        '--verify',
+        '--quiet',
+        'refs/heads/gallery/merge-all-evidence',
+      ],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+  } catch {
+    evidenceExists = false
+  }
+  if (
+    survivingBranch !== ready.defaultBranch ||
+    !mainExists ||
+    evidenceExists
+  ) {
+    fail(
+      `Merge All branch cleanup violated the default-branch contract: ${JSON.stringify(
+        { survivingBranch, mainExists, evidenceExists }
+      )}`
+    )
+  }
   await parkPointer()
   await capture('material-branch-merge-all')
   await closeAllDialogs()
