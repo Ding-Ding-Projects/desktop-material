@@ -128,7 +128,7 @@ test('gallery presentation state is seeded, observed, and receipted fail closed'
   const sceneLoop = source.slice(loopStart, loopEnd)
   const reset = sceneLoop.indexOf('await resetSceneState(name)')
   const resetGate = sceneLoop.indexOf(
-    'await assertRequestedPresentationState(`reset before scene ${name}`)'
+    'await assertRequestedPresentationState(`reset before scene ${name}`,'
   )
   const run = sceneLoop.indexOf('await run()')
   const completionGate = sceneLoop.indexOf(
@@ -137,6 +137,42 @@ test('gallery presentation state is seeded, observed, and receipted fail closed'
   assert.ok(
     reset >= 0 && reset < resetGate && resetGate < run && run < completionGate
   )
+})
+
+test('canonical Appearance verification waits for the welcome transition', () => {
+  const scenes = frozenStringArray('CanonicalGalleryScenes')
+  assert.deepEqual(scenes.slice(0, 3), ['welcome', 'complete-welcome', 'seed'])
+
+  const mainStart = source.indexOf('async function main()')
+  const main = source.slice(mainStart)
+  const sceneLoop = main.indexOf('for (const name of names)')
+  const sceneRun = main.indexOf('await run()', sceneLoop)
+  const deferredGate = main.indexOf(
+    "if (canonical && name === 'complete-welcome')",
+    sceneRun
+  )
+  const canonicalReceipt = main.indexOf(
+    'Canonical gallery did not validate the Appearance language surface.',
+    deferredGate
+  )
+
+  assert.ok(sceneLoop >= 0)
+  assert.ok(sceneRun > sceneLoop)
+  assert.ok(deferredGate > sceneRun)
+  assert.ok(canonicalReceipt > deferredGate)
+  assert.match(
+    source,
+    /requireAppearanceSurface = appearanceLanguageSurfaceReceipt !== null/
+  )
+  assert.match(
+    main,
+    /reset before scene \$\{name\}`,[\s\S]*requireAppearanceSurface: appearanceLanguageValidated/
+  )
+  assert.match(
+    main,
+    /completed scene \$\{name\}`,[\s\S]*requireAppearanceSurface: appearanceLanguageValidated/
+  )
+  assert.match(main, /validated Appearance language surface after welcome/)
 })
 
 test('every requested scene resets before its runner executes', () => {

@@ -1048,7 +1048,10 @@ async function readPresentationState() {
 
 async function assertRequestedPresentationState(
   context,
-  { expectedTheme = requestedTheme, requireAppearanceSurface = true } = {}
+  {
+    expectedTheme = requestedTheme,
+    requireAppearanceSurface = appearanceLanguageSurfaceReceipt !== null,
+  } = {}
 ) {
   if (!CaptureThemes.includes(expectedTheme)) {
     fail(`Unsupported expected capture theme: ${expectedTheme}`)
@@ -6716,6 +6719,7 @@ async function main() {
       assertOwnedDisposableFixture()
     }
 
+    let appearanceLanguageValidated = false
     if (names.length > 0) {
       const initialPresentationReceipt = await applyRequestedPresentationState(
         'initial requested presentation'
@@ -6723,10 +6727,14 @@ async function main() {
       process.stdout.write(
         `PRESENTATION_STATE ${JSON.stringify(initialPresentationReceipt)}\n`
       )
-      await validateAppearanceLanguageSurface()
-      await assertRequestedPresentationState(
-        'validated Appearance language surface'
-      )
+
+      if (!canonical) {
+        await validateAppearanceLanguageSurface()
+        appearanceLanguageValidated = true
+        await assertRequestedPresentationState(
+          'validated Appearance language surface'
+        )
+      }
     }
 
     if (auditDesign) {
@@ -6743,10 +6751,22 @@ async function main() {
       }
       process.stdout.write(`SCENE ${name}\n`)
       await resetSceneState(name)
-      await assertRequestedPresentationState(`reset before scene ${name}`)
+      await assertRequestedPresentationState(`reset before scene ${name}`, {
+        requireAppearanceSurface: appearanceLanguageValidated,
+      })
       await run()
+
+      if (canonical && name === 'complete-welcome') {
+        await validateAppearanceLanguageSurface()
+        appearanceLanguageValidated = true
+        await assertRequestedPresentationState(
+          'validated Appearance language surface after welcome'
+        )
+      }
+
       const scenePresentationReceipt = await assertRequestedPresentationState(
-        `completed scene ${name}`
+        `completed scene ${name}`,
+        { requireAppearanceSurface: appearanceLanguageValidated }
       )
       process.stdout.write(
         `SCENE_STATE ${JSON.stringify({
@@ -6757,6 +6777,11 @@ async function main() {
     }
 
     if (canonical) {
+      if (!appearanceLanguageValidated) {
+        fail(
+          'Canonical gallery did not validate the Appearance language surface.'
+        )
+      }
       const expected = [...CanonicalGalleryOutputs].sort()
       const actual = [...capturedNames].sort()
       if (
