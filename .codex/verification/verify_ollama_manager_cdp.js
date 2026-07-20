@@ -1227,7 +1227,7 @@ const FinalSurfaceExpression = String.raw`(() => {
     .filter(value => !bundledAsset(value))
   const privacyText = [document.body.innerText, ...visibleValues,
     ...visibleAttributes].join('\n')
-  const privateMatch = /C:\\Users\\|C:\/Users\/|ADMINI~1|AppData[\\/]|(?:^|[\\/])Temp[\\/]|desktop-material-p0-ui-|cntow|codingmachineedge|DingDingChae|Ding-Ding-Projects/i.exec(privacyText)
+  const privateMatch = /C:\\Users\\|C:\/Users\/|ADMINI~1|AppData[\\/]|(?:^|[\\/])Temp[\\/]|desktop-material-(?:p0-ui|ollama)-|[A-Z0-9._%+-]+@(?!example\.invalid(?:\s|$))[A-Z0-9.-]+\.[A-Z]{2,}/i.exec(privacyText)
   const requiredVerifications = [
     'ollama-manager', 'ollama-refresh', 'ollama-endpoint-status',
     'ollama-pull-name', 'ollama-pull', 'ollama-filter', 'ollama-scope',
