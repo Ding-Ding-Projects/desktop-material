@@ -14,6 +14,7 @@ import {
   quotePOSIXShellWord,
   sanitizeSSHWorkingCopyOutput,
   saveSSHWorkingCopies,
+  validateSSHCloneBranch,
   validateSSHCloneSourceUrl,
   validateSSHRemoteDestinationPath,
   validateSSHWorkingCopyDefinition,
@@ -66,6 +67,10 @@ describe('SSH working-copy safety boundary', () => {
     assert.throws(
       () => validateSSHRemoteDestinationPath('C:\\work\\project'),
       /absolute POSIX path/
+    )
+    assert.equal(
+      validateSSHRemoteDestinationPath('~/projects/project'),
+      '~/projects/project'
     )
     assert.equal(
       validateSSHWorkingCopyDefinition({
@@ -225,6 +230,29 @@ describe('SSH working-copy safety boundary', () => {
       () => validateSSHCloneSourceUrl('file:///etc/shadow'),
       /must use HTTPS, SSH, or Git/
     )
+  })
+
+  it('quotes and validates an optional clone branch on the remote host', () => {
+    const command = buildSSHWorkingCopyCommand(
+      definition,
+      'clone',
+      'https://example.test/team/project.git',
+      "release/user's-choice"
+    )
+    assert.match(command, /check-ref-format --branch "\$branch"/)
+    assert.match(command, /git clone --branch "\$branch" --/)
+    assert.match(command, /branch='release\/user'"'"'s-choice'/)
+    assert.equal(validateSSHCloneBranch(' feature/site '), 'feature/site')
+    assert.throws(() => validateSSHCloneBranch('-upload-pack=bad'), /invalid/)
+    assert.throws(() => validateSSHCloneBranch('main\nmalicious'), /invalid/)
+
+    const homeCommand = buildSSHWorkingCopyCommand(
+      { ...definition, destinationPath: "~/sites/user's-project" },
+      'clone',
+      'https://example.test/team/project.git'
+    )
+    assert.match(homeCommand, /destination="\$HOME"\/'sites\/user'/)
+    assert.doesNotMatch(homeCommand, /destination='~\//)
   })
 
   it('persists only the exact non-secret schema and fails closed on extra keys', () => {

@@ -1,6 +1,8 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import {
+  cheapLfsPointerTextSizeInBytes,
+  CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_PART_SIZE_BYTES,
   CHEAP_LFS_POINTER_VERSION,
   ICheapLfsPointer,
@@ -95,8 +97,33 @@ describe('cheap LFS pointer', () => {
     assert.deepEqual(parseCheapLfsPointer(text), compressed)
   })
 
-  it('rejects parts that exceed the bounded release-asset size', () => {
-    const oversized = CHEAP_LFS_PART_SIZE_BYTES + 1
+  it('accepts legacy 2 GiB parts but plans new uploads below 2 GiB', () => {
+    const legacyTwoGiB = CHEAP_LFS_PART_SIZE_BYTES + 1
+    const legacy: ICheapLfsPointer = {
+      ...pointer,
+      assetName: 'legacy.iso',
+      sizeInBytes: legacyTwoGiB,
+      parts: [
+        {
+          name: 'legacy.iso.part001',
+          sizeInBytes: legacyTwoGiB,
+          sha256: 'b'.repeat(64),
+        },
+      ],
+    }
+
+    assert.deepEqual(
+      parseCheapLfsPointer(serializeCheapLfsPointer(legacy)),
+      legacy
+    )
+    assert.deepEqual(planFileParts(legacyTwoGiB, CHEAP_LFS_PART_SIZE_BYTES), [
+      { index: 0, offset: 0, length: CHEAP_LFS_PART_SIZE_BYTES },
+      { index: 1, offset: CHEAP_LFS_PART_SIZE_BYTES, length: 1 },
+    ])
+  })
+
+  it('rejects parts that exceed the legacy release-asset size', () => {
+    const oversized = CHEAP_LFS_PART_SIZE_BYTES + 2
     const text = [
       `version ${CHEAP_LFS_POINTER_VERSION}`,
       'release-tag v2.0.0',
@@ -180,6 +207,22 @@ describe('cheap LFS pointer', () => {
   it('tolerates CRLF line endings, a leading BOM, and surrounding whitespace', () => {
     const crlf = serializeCheapLfsPointer(pointer).replace(/\n/g, '\r\n')
     assert.deepEqual(parseCheapLfsPointer(`${BOM}\n  ${crlf}  \n`), pointer)
+  })
+
+  it('enforces the pointer limit in serialized UTF-8 bytes', () => {
+    const valid = serializeCheapLfsPointer(pointer)
+    const oversizedUtf8 =
+      valid +
+      '\u00a0'.repeat(Math.ceil(CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES / 2))
+
+    assert.ok(oversizedUtf8.length < CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES)
+    assert.ok(
+      cheapLfsPointerTextSizeInBytes(oversizedUtf8) >
+        CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES
+    )
+    // Non-breaking space is trim whitespace, so the old code-unit-only guard
+    // would have accepted this as `valid` after trimming it.
+    assert.equal(parseCheapLfsPointer(oversizedUtf8), null)
   })
 
   it('rejects every malformation and returns null', () => {

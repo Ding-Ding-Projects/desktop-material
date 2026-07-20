@@ -323,6 +323,64 @@ describe('autoPinLargeFilesForCommit', () => {
     assert.equal(result[0].sizeInBytes, 200)
   })
 
+  it('reports preparation before pinning and a terminal upload state', async () => {
+    const progress = new Array<{
+      phase: string
+      completedFiles: number
+      currentPath: string | null
+      transferredBytes: number
+    }>()
+    const result = await autoPinLargeFilesForCommit(
+      repository(),
+      ['windows.iso'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async (target, _signal, onProgress) => {
+          assert.equal(progress.at(-1)?.phase, 'preparing')
+          onProgress({
+            operationId: 'upload',
+            direction: 'upload',
+            transferredBytes: 100,
+            totalBytes: 200,
+          })
+          return pinResult(target.relativePath)
+        },
+      },
+      undefined,
+      update => progress.push(update)
+    )
+
+    assert.equal(result.length, 1)
+    assert.deepEqual(progress, [
+      {
+        phase: 'preparing',
+        completedFiles: 0,
+        totalFiles: 1,
+        currentPath: 'windows.iso',
+        transferredBytes: 0,
+        totalBytes: 200,
+      },
+      {
+        phase: 'uploading',
+        completedFiles: 0,
+        totalFiles: 1,
+        currentPath: 'windows.iso',
+        transferredBytes: 100,
+        totalBytes: 200,
+      },
+      {
+        phase: 'uploading',
+        completedFiles: 1,
+        totalFiles: 1,
+        currentPath: null,
+        transferredBytes: 200,
+        totalBytes: 200,
+      },
+    ])
+  })
+
   it('never pins an under-threshold file', async () => {
     let pinCalls = 0
     const result = await autoPinLargeFilesForCommit(

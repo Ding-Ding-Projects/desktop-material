@@ -25,10 +25,40 @@ import {
   INamedAPIFunctionDefinition,
   prepareNamedAPIFunctionInvocation,
 } from './named-api-functions'
+import {
+  ISSHWorkingCopyDefinition,
+  ISSHWorkingCopyStorage,
+  loadSSHWorkingCopies,
+  runSSHWorkingCopyAction,
+  sanitizeSSHWorkingCopyOutput,
+  validateSSHCloneBranch,
+  validateSSHCloneSourceUrl,
+  validateSSHRemoteDestinationPath,
+  validateSSHWorkingCopyDefinition,
+} from './ssh/ssh-working-copy'
 
 const CommandTimeoutMs = 60_000
 const MaxQueuedPerRepository = 16
 const MaxQueuedTotal = 64
+const MaxAgentSSHRepositories = 256
+const MaxAgentSSHHosts = 128
+
+export interface IAgentSSHCommandDependencies {
+  readonly storage?: ISSHWorkingCopyStorage
+  readonly runAction?: typeof runSSHWorkingCopyAction
+}
+
+interface IAgentSSHHostTarget {
+  readonly repositoryPath: string
+  readonly definition: ISSHWorkingCopyDefinition
+}
+
+export interface ISerializedAgentSSHHost {
+  readonly id: string
+  readonly name: string
+  readonly address: string
+  readonly available: true
+}
 
 interface IAutomationDispatcher {
   oneClickCommitAndPush(repository: Repository): Promise<void>
@@ -129,6 +159,17 @@ function numberArg(
   return value
 }
 
+function assertOnlyArgs(
+  args: Readonly<Record<string, unknown>>,
+  allowed: ReadonlyArray<string>
+): void {
+  const names = new Set(allowed)
+  const unexpected = Object.keys(args).find(name => !names.has(name))
+  if (unexpected !== undefined) {
+    throw new Error(`Unexpected command argument '${unexpected}'`)
+  }
+}
+
 function repositoryFromArgs(
   args: Readonly<Record<string, unknown>>,
   getState: GetState,
@@ -211,8 +252,82 @@ function serializeRepository(repository: Repository) {
   }
 }
 
+/** Serialize only display-safe endpoint metadata for the remote site. */
+export function serializeAgentSSHHost(
+  definition: ISSHWorkingCopyDefinition
+): ISerializedAgentSSHHost {
+  const validated = validateSSHWorkingCopyDefinition(definition)
+  const hostname = validated.host
+  const formattedHost = hostname.includes(':') ? `[${hostname}]` : hostname
+  return {
+    id: validated.id,
+    name: validated.label,
+    address:
+      validated.port === null
+        ? formattedHost
+        : `${formattedHost}:${validated.port}`,
+    available: true,
+  }
+}
+
+function collectAgentSSHHostTargets(
+  repositoryPaths: ReadonlyArray<string>,
+  storage: ISSHWorkingCopyStorage
+): ReadonlyArray<IAgentSSHHostTarget> {
+  const paths: string[] = []
+  const seenPaths = new Set<string>()
+  for (const repositoryPath of repositoryPaths) {
+    const key = Path.resolve(repositoryPath).toLocaleLowerCase()
+    if (seenPaths.has(key)) {
+      continue
+    }
+    seenPaths.add(key)
+    paths.push(repositoryPath)
+    if (paths.length === MaxAgentSSHRepositories) {
+      break
+    }
+  }
+
+  // An identifier collision is omitted entirely. That keeps a listed id bound
+  // to exactly one saved, validated endpoint even if local metadata is edited.
+  const targets = new Map<string, IAgentSSHHostTarget>()
+  const ambiguousIds = new Set<string>()
+  for (const repositoryPath of paths) {
+    for (const definition of loadSSHWorkingCopies(repositoryPath, storage)) {
+      if (ambiguousIds.has(definition.id)) {
+        continue
+      }
+      if (targets.has(definition.id)) {
+        targets.delete(definition.id)
+        ambiguousIds.add(definition.id)
+        continue
+      }
+      targets.set(definition.id, { repositoryPath, definition })
+    }
+  }
+  return [...targets.values()].slice(0, MaxAgentSSHHosts)
+}
+
+export function listAgentSSHHosts(
+  repositoryPaths: ReadonlyArray<string>,
+  storage: ISSHWorkingCopyStorage
+): ReadonlyArray<ISerializedAgentSSHHost> {
+  return collectAgentSSHHostTargets(repositoryPaths, storage).map(target =>
+    serializeAgentSSHHost(target.definition)
+  )
+}
+
+function sshRepositoryPaths(getState: GetState): ReadonlyArray<string> {
+  return getState().repositories.flatMap(repository =>
+    repository instanceof Repository ? [repository.path] : []
+  )
+}
+
 function queueKey(command: IAgentCommandEnvelope): string {
   const { repositoryId, path } = command.args
+  if (command.name === 'clone-to-ssh') {
+    return `ssh:${String(command.args.hostId)}:${String(path)}`
+  }
   if (typeof repositoryId === 'number') {
     return `repository:${repositoryId}`
   }
@@ -323,7 +438,8 @@ async function execute(
   command: IAgentCommandEnvelope,
   dispatcher: Dispatcher,
   getState: GetState,
-  tabs: RepositoryTabsStore
+  tabs: RepositoryTabsStore,
+  sshDependencies: IAgentSSHCommandDependencies
 ): Promise<unknown> {
   const args = command.args
   switch (command.name) {
@@ -416,6 +532,65 @@ async function execute(
           : BatchCloneMode.Parallel
       await dispatcher.cloneBatch(items, mode)
       return { accepted: items.length, mode }
+    }
+    case 'list-ssh-hosts':
+      assertOnlyArgs(args, [])
+      return listAgentSSHHosts(
+        sshRepositoryPaths(getState),
+        sshDependencies.storage ?? localStorage
+      )
+    case 'clone-to-ssh': {
+      assertOnlyArgs(args, ['hostId', 'url', 'path', 'branch'])
+      const hostId = stringArg(args, 'hostId')!
+      if (!/^[a-f0-9]{32}$/.test(hostId)) {
+        throw new Error("'hostId' must be a saved SSH host identifier")
+      }
+      const sourceUrl = validateSSHCloneSourceUrl(stringArg(args, 'url')!)
+      const destinationPath = validateSSHRemoteDestinationPath(
+        stringArg(args, 'path')!
+      )
+      const rawBranch = stringArg(args, 'branch', false)
+      const branch =
+        rawBranch === undefined ? undefined : validateSSHCloneBranch(rawBranch)
+      const targets = collectAgentSSHHostTargets(
+        sshRepositoryPaths(getState),
+        sshDependencies.storage ?? localStorage
+      )
+      const target = targets.find(value => value.definition.id === hostId)
+      if (target === undefined) {
+        throw new Error('The saved SSH host is not available to this profile.')
+      }
+      const definition = validateSSHWorkingCopyDefinition({
+        ...target.definition,
+        destinationPath,
+      })
+      const runAction = sshDependencies.runAction ?? runSSHWorkingCopyAction
+      try {
+        await runAction(
+          target.repositoryPath,
+          definition,
+          'clone',
+          sourceUrl,
+          undefined,
+          branch
+        )
+      } catch (error) {
+        const rawMessage =
+          error instanceof Error ? error.message : 'SSH clone failed.'
+        const withoutIdentityPath =
+          definition.authenticationReference === null
+            ? rawMessage
+            : rawMessage
+                .split(definition.authenticationReference)
+                .join('[redacted identity file]')
+        throw new Error(sanitizeSSHWorkingCopyOutput(withoutIdentityPath))
+      }
+      return {
+        cloned: true,
+        host: serializeAgentSSHHost(definition),
+        path: destinationPath,
+        branch: branch ?? null,
+      }
     }
     case 'commit': {
       const repository = repositoryFromArgs(args, getState)
@@ -645,7 +820,8 @@ export async function executeAgentCommand(
   command: IAgentCommandEnvelope,
   dispatcher: Dispatcher,
   getState: GetState,
-  tabs: RepositoryTabsStore
+  tabs: RepositoryTabsStore,
+  sshDependencies: IAgentSSHCommandDependencies = {}
 ): Promise<AgentCommandResult> {
   if (
     command.version !== AgentCommandVersion ||
@@ -660,7 +836,13 @@ export async function executeAgentCommand(
   }
   try {
     assertSafeAgentArgs(command.args)
-    const data = await execute(command, dispatcher, getState, tabs)
+    const data = await execute(
+      command,
+      dispatcher,
+      getState,
+      tabs,
+      sshDependencies
+    )
     return { ok: true, data: redactAgentValue(data) }
   } catch (error) {
     return agentCommandError(

@@ -1,9 +1,21 @@
 import assert from 'node:assert'
 import { createHash } from 'node:crypto'
-import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  symlink,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { basename, dirname, join } from 'node:path'
 import { describe, it } from 'node:test'
+import { promisify } from 'node:util'
+import { deflateRaw as deflateRawCallback } from 'node:zlib'
 import { Disposable } from 'event-kit'
 import { Account, getAccountKey } from '../../../src/models/account'
 import { GitHubRepository } from '../../../src/models/github-repository'
@@ -22,9 +34,12 @@ import {
 import {
   defaultCheapLfsFileSystem,
   ICheapLfsFileSystem,
+  ICheapLfsReleasesGateway,
   listCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
+  selectCheapLfsAutoPinTargets,
+  writeCheapLfsPointerAtomically,
 } from '../../../src/lib/cheap-lfs/operations'
 import {
   CHEAP_LFS_PART_SIZE_BYTES,
@@ -43,13 +58,17 @@ const selected = new Account(
   2,
   'Selected'
 )
+const deflateRaw = promisify(deflateRawCallback)
 const gitHubRepository = new GitHubRepository(
   'material',
   new Owner('desktop', 'https://api.github.com', 1),
   1
 )
 
-function repositoryAt(path: string): Repository {
+function repositoryAt(
+  path: string,
+  defaultBranch: string | null = 'trunk'
+): Repository {
   return new Repository(
     path,
     1,
@@ -59,7 +78,10 @@ function repositoryAt(path: string): Repository {
     {},
     false,
     undefined,
-    getAccountKey(selected)
+    getAccountKey(selected),
+    undefined,
+    null,
+    defaultBranch
   )
 }
 
@@ -181,15 +203,121 @@ async function withTempRepository(
   }
 }
 
+function inMemoryReleaseGateway(
+  currentRelease: () => IGitHubRelease,
+  uploadAsset: ICheapLfsReleasesGateway['uploadAsset'],
+  deleteAsset: ICheapLfsReleasesGateway['deleteAsset']
+): ICheapLfsReleasesGateway {
+  return {
+    getReleaseByTag: async () => currentRelease(),
+    createDraft: async () => currentRelease(),
+    createMutationReview: (_repository, reviewedRelease, reviewedAsset) => ({
+      repositoryFingerprint: 'fixture',
+      accountKey: 'fixture',
+      accountGeneration: 1,
+      releaseId: reviewedRelease.id,
+      releaseFingerprint: 'fixture',
+      assetId: reviewedAsset?.id ?? null,
+      assetFingerprint: reviewedAsset == null ? null : 'fixture',
+    }),
+    uploadAsset,
+    deleteAsset,
+    downloadAsset: async () => {
+      throw new Error('download not expected')
+    },
+  }
+}
+
 describe('cheap LFS operations', () => {
+  it('leaves the original file and no temp when pointer writing fails', async () => {
+    await withTempRepository(async (dir, _repository) => {
+      const trackedPath = join(dir, 'large.iso')
+      const original = Buffer.from('original multi-gigabyte file stand-in')
+      await writeFile(trackedPath, original)
+
+      await assert.rejects(
+        writeCheapLfsPointerAtomically(
+          trackedPath,
+          serializeCheapLfsPointer({
+            version: CHEAP_LFS_POINTER_VERSION,
+            releaseTag: 'v-pointer-write-failure',
+            assetName: 'large.iso',
+            sizeInBytes: original.length,
+            sha256: createHash('sha256').update(original).digest('hex'),
+          }),
+          async (tempFile, text) => {
+            await tempFile.writeFile(text.slice(0, 12), 'utf8')
+            throw new Error('simulated pointer temp-write failure')
+          }
+        ),
+        /simulated pointer temp-write failure/
+      )
+
+      assert.deepEqual(await readFile(trackedPath), original)
+      assert.deepEqual(
+        (await readdir(dir)).filter(name => name.startsWith('.cheeplfs-')),
+        []
+      )
+    })
+  })
+
+  it('uses a bounded sibling temp name for a near-limit source name', async () => {
+    await withTempRepository(async (dir, _repository) => {
+      const trackedPath = join(dir, 'a'.repeat(255))
+      const tempPath = defaultCheapLfsFileSystem.temporaryPathFor(trackedPath)
+
+      assert.equal(dirname(tempPath), dir)
+      assert.match(basename(tempPath), /^\.cheeplfs-[a-f0-9]{16}\.tmp$/)
+      assert.ok(basename(tempPath).length < 255)
+    })
+  })
+
+  it('sizes a selected symlink itself instead of its large target', async t => {
+    await withTempRepository(async (dir, repository) => {
+      const targetPath = join(dir, 'large-target.bin')
+      const linkPath = join(dir, 'large-link.bin')
+      await writeFile(targetPath, Buffer.alloc(1024))
+      try {
+        await symlink('large-target.bin', linkPath, 'file')
+      } catch (error) {
+        if (
+          process.platform === 'win32' &&
+          ((error as NodeJS.ErrnoException).code === 'EPERM' ||
+            (error as NodeJS.ErrnoException).code === 'EACCES')
+        ) {
+          t.skip('Creating symlinks requires Windows Developer Mode.')
+          return
+        }
+        throw error
+      }
+
+      const targets = await selectCheapLfsAutoPinTargets(
+        repository,
+        ['large-link.bin'],
+        100,
+        {
+          statSize: defaultCheapLfsFileSystem.statSize,
+          readPointerText: async () => 'not a pointer\n',
+        }
+      )
+
+      assert.equal(targets.length, 0)
+      assert.ok((await defaultCheapLfsFileSystem.statSize(linkPath)) < 100)
+    })
+  })
+
   it('pins a file: hashes it, uploads it, and writes a matching pointer', async () => {
     await withTempRepository(async (dir, repository) => {
       const filePath = join(dir, 'blob.bin')
       const content = Buffer.from('the quick brown fox '.repeat(1000))
       await writeFile(filePath, content)
+      if (process.platform !== 'win32') {
+        await chmod(filePath, 0o751)
+      }
       const expectedSha = createHash('sha256').update(content).digest('hex')
 
       const draft: IGitHubRelease = { ...release, assets: [] }
+      let createdTargetCommitish: string | undefined
       let uploaded: { sourcePath: string; name: string } | undefined
       let uploadedBytes: Buffer | undefined
       const store = await storeWith(
@@ -197,7 +325,10 @@ describe('cheap LFS operations', () => {
           () =>
             fakeAPI({
               fetchReleaseByTag: async () => null,
-              createReleaseDraft: async () => draft,
+              createReleaseDraft: async (_owner, _name, releaseDraft) => {
+                createdTargetCommitish = releaseDraft.targetCommitish
+                return draft
+              },
               fetchRelease: async () => draft,
             }),
           {
@@ -230,30 +361,29 @@ describe('cheap LFS operations', () => {
       assert.equal(result.pointer.sha256, expectedSha)
       assert.equal(result.pointer.sizeInBytes, content.length)
       assert.equal(result.pointer.releaseTag, 'v1.0.0')
-      assert.equal(result.pointer.assetName, 'blob.bin.deflate')
-      assert.equal(result.pointer.parts?.length, 1)
-      assert.ok((result.pointer.parts?.[0].deflatedSizeInBytes ?? 0) > 0)
-      assert.ok(
-        (result.pointer.parts?.[0].deflatedSizeInBytes ?? content.length) <
-          content.length
-      )
+      assert.equal(result.pointer.assetName, 'blob.bin')
+      assert.equal(result.pointer.parts, undefined)
       assert.equal(result.releaseId, draft.id)
-      assert.notEqual(uploaded?.sourcePath, filePath)
-      assert.equal(uploaded?.name, 'blob.bin.deflate')
+      assert.equal(createdTargetCommitish, 'trunk')
+      assert.equal(uploaded?.sourcePath, filePath)
+      assert.equal(uploaded?.name, 'blob.bin')
 
       const written = await readFile(filePath, 'utf8')
       assert.equal(written, serializeCheapLfsPointer(result.pointer))
       assert.deepEqual(parseCheapLfsPointer(written), result.pointer)
+      if (process.platform !== 'win32') {
+        assert.equal((await stat(filePath)).mode & 0o777, 0o751)
+      }
 
-      const compressedAsset = {
+      const uploadedAsset = {
         ...asset,
-        name: result.pointer.parts![0].name,
+        name: result.pointer.assetName,
         sizeInBytes: uploadedBytes!.length,
       }
       const releaseWithAsset: IGitHubRelease = {
         ...draft,
         tagName: 'v1.0.0',
-        assets: [compressedAsset],
+        assets: [uploadedAsset],
       }
       const restoreStore = await storeWith(
         dependencies(
@@ -280,6 +410,72 @@ describe('cheap LFS operations', () => {
       )
       await materializePointer(restoreStore, repository, selected, 'blob.bin')
       assert.deepEqual(await readFile(filePath), content)
+      if (process.platform !== 'win32') {
+        assert.equal((await stat(filePath)).mode & 0o777, 0o751)
+      }
+    })
+  })
+
+  it('uses the checked-out branch when no default branch is stored', async () => {
+    await withTempRepository(async (dir, _repository) => {
+      const repository = repositoryAt(dir, null)
+      let createdTargetCommitish: string | undefined
+      const draft: IGitHubRelease = { ...release, assets: [] }
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => null,
+              createReleaseDraft: async (_owner, _name, releaseDraft) => {
+                createdTargetCommitish = releaseDraft.targetCommitish
+                return draft
+              },
+              fetchRelease: async () => draft,
+            }),
+          {
+            uploadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _sourcePath,
+              name
+            ) => ({
+              ok: true,
+              asset: { ...asset, name },
+              bytes: 4,
+              localDigest: `sha256:${'a'.repeat(64)}`,
+            }),
+          }
+        )
+      )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        statSize: async () => 4,
+        hashFileParts: async () => ({
+          sha256: 'a'.repeat(64),
+          sizeInBytes: 4,
+          parts: [{ offset: 0, length: 4, sha256: 'a'.repeat(64) }],
+        }),
+        hashFile: async () => ({ sha256: 'a'.repeat(64), sizeInBytes: 4 }),
+        writePointer: async () => undefined,
+        resolveReleaseTargetCommitish: async () => 'feature/current',
+      }
+
+      await pinFileToRelease(
+        store,
+        repository,
+        selected,
+        {
+          absoluteFilePath: join(dir, 'branch-target.bin'),
+          trackedRelativePath: 'branch-target.bin',
+          releaseTag: 'v-current-branch',
+        },
+        undefined,
+        undefined,
+        fs
+      )
+
+      assert.equal(createdTargetCommitish, 'feature/current')
     })
   })
 
@@ -449,7 +645,10 @@ describe('cheap LFS operations', () => {
                 ok: true,
                 asset: { ...asset, name, sizeInBytes: range?.length ?? 0 },
                 bytes: range?.length ?? 0,
-                localDigest: `sha256:${'0'.repeat(64)}`,
+                localDigest: `sha256:${
+                  hashedParts.find(part => part.offset === range?.offset)!
+                    .sha256
+                }`,
               }
             },
           }
@@ -457,7 +656,11 @@ describe('cheap LFS operations', () => {
       )
       const fs: ICheapLfsFileSystem = {
         ...defaultCheapLfsFileSystem,
-        compressRange: undefined,
+        statSize: async () => total,
+        hashFile: async () => ({
+          sha256: wholeSha,
+          sizeInBytes: total,
+        }),
         hashFileParts: async () => ({
           sha256: wholeSha,
           sizeInBytes: total,
@@ -515,7 +718,187 @@ describe('cheap LFS operations', () => {
     })
   })
 
-  it('adaptively compresses multipart assets and reports logical progress', async () => {
+  it('rejects an oversized multipart pointer before uploading any part', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const partCount = 2000
+      const projectedSize = CHEAP_LFS_PART_SIZE_BYTES * (partCount - 1) + 1
+      const draft: IGitHubRelease = { ...release, assets: [] }
+      let uploadCount = 0
+      let hashCount = 0
+      let releaseLookupCount = 0
+      let releaseDraftCount = 0
+      let pointerWritten = false
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => {
+                releaseLookupCount++
+                return draft
+              },
+              createReleaseDraft: async () => {
+                releaseDraftCount++
+                return draft
+              },
+              fetchRelease: async () => draft,
+            }),
+          {
+            uploadAsset: async () => {
+              uploadCount++
+              throw new Error('upload must not start')
+            },
+          }
+        )
+      )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        statSize: async () => projectedSize,
+        hashFileParts: async () => {
+          hashCount++
+          throw new Error('hashing must not start')
+        },
+        writePointer: async () => {
+          pointerWritten = true
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          store,
+          repository,
+          selected,
+          {
+            absoluteFilePath: join(dir, 'x'.repeat(255)),
+            trackedRelativePath: 'huge.bin',
+            releaseTag: 'v-pointer-too-large',
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        /pointer larger than the 512 KiB safety limit/
+      )
+      assert.equal(uploadCount, 0)
+      assert.equal(hashCount, 0)
+      assert.equal(releaseLookupCount, 0)
+      assert.equal(releaseDraftCount, 0)
+      assert.equal(pointerWritten, false)
+    })
+  })
+
+  it('removes only attempt-owned multipart assets after cancellation', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'cancel.bin')
+      await writeFile(filePath, 'original bytes')
+      const preexisting = { ...asset, id: 19, name: 'keep.bin' }
+      let remoteAssets = new Array<IGitHubReleaseAsset>(preexisting)
+      const deletedAssetIds = new Array<number>()
+      let uploadCount = 0
+      let pointerWritten = false
+      const currentRelease = (): IGitHubRelease => ({
+        ...release,
+        tagName: 'v-cancel',
+        assets: [...remoteAssets],
+      })
+      const gateway: ICheapLfsReleasesGateway = {
+        getReleaseByTag: async () => currentRelease(),
+        createDraft: async () => currentRelease(),
+        createMutationReview: (
+          _repository,
+          reviewedRelease,
+          reviewedAsset
+        ) => ({
+          repositoryFingerprint: 'fixture',
+          accountKey: 'fixture',
+          accountGeneration: 1,
+          releaseId: reviewedRelease.id,
+          releaseFingerprint: 'fixture',
+          assetId: reviewedAsset?.id ?? null,
+          assetFingerprint: reviewedAsset === null ? null : 'fixture',
+        }),
+        uploadAsset: async (
+          _repository,
+          _review,
+          _sourcePath,
+          name,
+          _label,
+          _signal,
+          _onProgress,
+          range
+        ) => {
+          uploadCount++
+          if (uploadCount === 2) {
+            const canceled = new Error('multipart upload canceled')
+            canceled.name = 'AbortError'
+            throw canceled
+          }
+          const uploaded = {
+            ...asset,
+            id: 100 + uploadCount,
+            name,
+            sizeInBytes: range!.length,
+          }
+          remoteAssets.push(uploaded)
+          return {
+            asset: uploaded,
+            bytes: range!.length,
+            localDigest: `sha256:${'b'.repeat(64)}`,
+          }
+        },
+        deleteAsset: async (_repository, review) => {
+          assert.notEqual(review.assetId, null)
+          deletedAssetIds.push(review.assetId!)
+          remoteAssets = remoteAssets.filter(
+            candidate => candidate.id !== review.assetId
+          )
+        },
+        downloadAsset: async () => {
+          throw new Error('download not expected')
+        },
+      }
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        hashFileParts: async () => ({
+          sha256: 'a'.repeat(64),
+          sizeInBytes: 20,
+          parts: [
+            { offset: 0, length: 10, sha256: 'b'.repeat(64) },
+            { offset: 10, length: 10, sha256: 'c'.repeat(64) },
+          ],
+        }),
+        writePointer: async () => {
+          pointerWritten = true
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'cancel.bin',
+            releaseTag: 'v-cancel',
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        { name: 'AbortError' }
+      )
+
+      assert.equal(pointerWritten, false)
+      assert.deepEqual(deletedAssetIds, [101])
+      assert.deepEqual(
+        remoteAssets.map(candidate => candidate.id),
+        [19]
+      )
+      assert.equal(await readFile(filePath, 'utf8'), 'original bytes')
+    })
+  })
+
+  it('uploads multipart assets raw and reports logical progress', async () => {
     await withTempRepository(async (dir, repository) => {
       const cap = CHEAP_LFS_PART_SIZE_BYTES
       const total = 2 * cap + 100
@@ -551,9 +934,7 @@ describe('cheap LFS operations', () => {
               range
             ) => {
               uploads.push({ sourcePath, name, range })
-              const bytes =
-                range?.length ??
-                (name.includes('part003') ? 50 : Math.floor(cap / 2))
+              const bytes = range?.length ?? 0
               onProgress?.({
                 operationId: name,
                 transferredBytes: bytes,
@@ -564,7 +945,9 @@ describe('cheap LFS operations', () => {
                 ok: true,
                 asset: { ...asset, name, sizeInBytes: bytes },
                 bytes,
-                localDigest: `sha256:${'0'.repeat(64)}`,
+                localDigest: `sha256:${
+                  parts.find(part => part.offset === range?.offset)!.sha256
+                }`,
               }
             },
           }
@@ -573,13 +956,16 @@ describe('cheap LFS operations', () => {
       const filePath = join(dir, 'mixed.bin')
       const fs: ICheapLfsFileSystem = {
         ...defaultCheapLfsFileSystem,
+        statSize: async () => total,
+        hashFile: async () => ({
+          sha256: 'a'.repeat(64),
+          sizeInBytes: total,
+        }),
         hashFileParts: async () => ({
           sha256: 'a'.repeat(64),
           sizeInBytes: total,
           parts,
         }),
-        compressRange: async (_source, _destination, offset, length) =>
-          offset === cap ? length : Math.floor(length / 2),
       }
 
       const result = await pinFileToRelease(
@@ -598,75 +984,113 @@ describe('cheap LFS operations', () => {
 
       assert.deepEqual(
         uploads.map(upload => upload.name),
-        [
-          'mixed.bin.part001.deflate',
-          'mixed.bin.part002',
-          'mixed.bin.part003.deflate',
-        ]
+        ['mixed.bin.part001', 'mixed.bin.part002', 'mixed.bin.part003']
       )
-      assert.equal(uploads[0].range, undefined)
+      assert.deepEqual(uploads[0].range, { offset: 0, length: cap })
       assert.deepEqual(uploads[1].range, { offset: cap, length: cap })
-      assert.equal(uploads[2].range, undefined)
+      assert.deepEqual(uploads[2].range, { offset: 2 * cap, length: 100 })
+      assert.ok(uploads.every(upload => upload.sourcePath === filePath))
       assert.deepEqual(
         result.pointer.parts?.map(part => part.deflatedSizeInBytes),
-        [Math.floor(cap / 2), undefined, 50]
+        [undefined, undefined, undefined]
       )
       assert.equal(logicalProgress.at(-1), total)
     })
   })
 
-  it('cleans a multipart compression temp when compression fails', async () => {
+  it('dedupes the exact truncated names of near-limit multipart assets', async () => {
     await withTempRepository(async (dir, repository) => {
-      const draft: IGitHubRelease = { ...release, assets: [] }
+      const baseName = 'a'.repeat(255)
+      const filePath = join(dir, baseName)
+      const wholeSha = 'a'.repeat(64)
+      const partShas = ['b'.repeat(64), 'c'.repeat(64)]
+      const rawFirstName = `${'a'.repeat(247)}.part001`
+      const hashedFirstName = `${'a'.repeat(239)}-aaaaaaa.part001`
+      const draft: IGitHubRelease = {
+        ...release,
+        assets: [
+          { ...asset, id: 20, name: rawFirstName, sizeInBytes: 10 },
+          { ...asset, id: 21, name: hashedFirstName, sizeInBytes: 10 },
+        ],
+      }
+      const uploadedNames = new Array<string>()
       const store = await storeWith(
-        dependencies(() =>
-          fakeAPI({
-            fetchReleaseByTag: async () => draft,
-            fetchRelease: async () => draft,
-          })
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => draft,
+              fetchRelease: async () => draft,
+            }),
+          {
+            uploadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _path,
+              name,
+              _label,
+              _signal,
+              _onProgress,
+              range
+            ) => {
+              uploadedNames.push(name)
+              const index = range!.offset === 0 ? 0 : 1
+              return {
+                ok: true,
+                asset: { ...asset, name, sizeInBytes: range!.length },
+                bytes: range!.length,
+                localDigest: `sha256:${partShas[index]}`,
+              }
+            },
+          }
         )
       )
-      const filePath = join(dir, 'failure.bin')
-      let compressedPath: string | undefined
       const fs: ICheapLfsFileSystem = {
         ...defaultCheapLfsFileSystem,
+        statSize: async () => 20,
+        hashFile: async () => ({
+          sha256: wholeSha,
+          sizeInBytes: 20,
+        }),
         hashFileParts: async () => ({
-          sha256: 'a'.repeat(64),
+          sha256: wholeSha,
           sizeInBytes: 20,
           parts: [
-            { offset: 0, length: 10, sha256: 'b'.repeat(64) },
-            { offset: 10, length: 10, sha256: 'c'.repeat(64) },
+            { offset: 0, length: 10, sha256: partShas[0] },
+            { offset: 10, length: 10, sha256: partShas[1] },
           ],
         }),
-        compressRange: async (_source, destination) => {
-          compressedPath = destination
-          await writeFile(destination, 'partial compressed data')
-          throw new Error('compression interrupted')
-        },
+        writePointer: async () => undefined,
       }
 
-      await assert.rejects(
-        pinFileToRelease(
-          store,
-          repository,
-          selected,
-          {
-            absoluteFilePath: filePath,
-            trackedRelativePath: 'failure.bin',
-            releaseTag: 'v4.2.0',
-          },
-          undefined,
-          undefined,
-          fs
-        ),
-        /compression interrupted/
+      const result = await pinFileToRelease(
+        store,
+        repository,
+        selected,
+        {
+          absoluteFilePath: filePath,
+          trackedRelativePath: 'long-name.bin',
+          releaseTag: 'v4.2.0',
+        },
+        undefined,
+        undefined,
+        fs
       )
-      assert.notEqual(compressedPath, undefined)
-      await assert.rejects(stat(compressedPath!))
+
+      assert.equal(uploadedNames.length, 2)
+      assert.ok(uploadedNames.every(name => name.length === 255))
+      assert.equal(uploadedNames[0].endsWith('-aaaaaaa-2.part001'), true)
+      assert.equal(uploadedNames[1].endsWith('-aaaaaaa-2.part002'), true)
+      assert.notEqual(uploadedNames[0], rawFirstName)
+      assert.notEqual(uploadedNames[0], hashedFirstName)
+      assert.deepEqual(
+        result.pointer.parts?.map(part => part.name),
+        uploadedNames
+      )
     })
   })
 
-  it('keeps compressed names within the release asset limit', async () => {
+  it('keeps raw names within the release asset limit', async () => {
     await withTempRepository(async (dir, repository) => {
       const baseName = 'a'.repeat(255)
       const filePath = join(dir, baseName)
@@ -690,9 +1114,9 @@ describe('cheap LFS operations', () => {
               uploadedName = name
               return {
                 ok: true,
-                asset: { ...asset, name, sizeInBytes: 50 },
-                bytes: 50,
-                localDigest: `sha256:${'0'.repeat(64)}`,
+                asset: { ...asset, name, sizeInBytes: 100 },
+                bytes: 100,
+                localDigest: `sha256:${'a'.repeat(64)}`,
               }
             },
           }
@@ -700,12 +1124,16 @@ describe('cheap LFS operations', () => {
       )
       const fs: ICheapLfsFileSystem = {
         ...defaultCheapLfsFileSystem,
+        statSize: async () => 100,
+        hashFile: async () => ({
+          sha256: 'a'.repeat(64),
+          sizeInBytes: 100,
+        }),
         hashFileParts: async () => ({
           sha256: 'a'.repeat(64),
           sizeInBytes: 100,
           parts: [{ offset: 0, length: 100, sha256: 'b'.repeat(64) }],
         }),
-        compressRange: async () => 50,
         writePointer: async () => undefined,
       }
 
@@ -724,18 +1152,24 @@ describe('cheap LFS operations', () => {
       )
 
       assert.equal(uploadedName.length, 255)
-      assert.equal(uploadedName.endsWith('.deflate'), true)
+      assert.equal(uploadedName.endsWith('.deflate'), false)
     })
   })
 
-  it('keeps an incompressible file raw as a single asset with no parts', async () => {
+  it('advances a truncated single-asset name past prior retry uploads', async () => {
     await withTempRepository(async (dir, repository) => {
-      const filePath = join(dir, 'small.bin')
-      const content = Buffer.from('a modest payload '.repeat(100))
-      await writeFile(filePath, content)
-
-      const draft: IGitHubRelease = { ...release, assets: [] }
-      let uploadCount = 0
+      const baseName = `${'a'.repeat(251)}.iso`
+      const filePath = join(dir, baseName)
+      const wholeSha = 'a'.repeat(64)
+      const firstRetryName = `${'a'.repeat(243)}-aaaaaaa.iso`
+      const draft: IGitHubRelease = {
+        ...release,
+        assets: [
+          { ...asset, id: 20, name: baseName, sizeInBytes: 100 },
+          { ...asset, id: 21, name: firstRetryName, sizeInBytes: 100 },
+        ],
+      }
+      let uploadedName = ''
       const store = await storeWith(
         dependencies(
           () =>
@@ -749,24 +1183,30 @@ describe('cheap LFS operations', () => {
               _repository,
               _releaseId,
               _sourcePath,
-              name,
-              _label,
-              _signal,
-              _onProgress,
-              range
+              name
             ) => {
-              uploadCount++
-              assert.equal(range, undefined)
+              uploadedName = name
               return {
                 ok: true,
-                asset: { ...asset, name },
-                bytes: content.length,
-                localDigest: asset.digest!,
+                asset: { ...asset, name, sizeInBytes: 100 },
+                bytes: 100,
+                localDigest: `sha256:${wholeSha}`,
               }
             },
           }
         )
       )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        statSize: async () => 100,
+        hashFile: async () => ({ sha256: wholeSha, sizeInBytes: 100 }),
+        hashFileParts: async () => ({
+          sha256: wholeSha,
+          sizeInBytes: 100,
+          parts: [{ offset: 0, length: 100, sha256: wholeSha }],
+        }),
+        writePointer: async () => undefined,
+      }
 
       const result = await pinFileToRelease(
         store,
@@ -774,27 +1214,385 @@ describe('cheap LFS operations', () => {
         selected,
         {
           absoluteFilePath: filePath,
-          trackedRelativePath: 'small.bin',
-          releaseTag: 'v4.5.0',
+          trackedRelativePath: 'retry.iso',
+          releaseTag: 'v4.3.1',
         },
         undefined,
         undefined,
-        {
-          ...defaultCheapLfsFileSystem,
-          compressRange: async () => content.length,
-        }
+        fs
       )
 
-      assert.equal(uploadCount, 1)
-      assert.equal(result.pointer.parts, undefined)
-      assert.equal(result.pointer.assetName, 'small.bin')
+      assert.equal(uploadedName.length, 255)
+      assert.equal(uploadedName.endsWith('-aaaaaaa-2.iso'), true)
+      assert.notEqual(uploadedName, baseName)
+      assert.notEqual(uploadedName, firstRetryName)
+      assert.equal(result.pointer.assetName, uploadedName)
     })
   })
 
-  it('materializes a multi-part pointer: downloads, verifies, concatenates, replaces', async () => {
+  it('rolls back only the attempt-owned single asset on response mismatch', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'changing.bin')
+      const content = Buffer.from('original bytes')
+      await writeFile(filePath, content)
+      const expectedSha = createHash('sha256').update(content).digest('hex')
+      const preexisting = { ...asset, id: 19, name: 'keep.bin' }
+      let remoteAssets = new Array<IGitHubReleaseAsset>(preexisting)
+      const deletedAssetIds = new Array<number>()
+      const currentRelease = (): IGitHubRelease => ({
+        ...release,
+        tagName: 'v4.4.0',
+        assets: [...remoteAssets],
+      })
+      const gateway = inMemoryReleaseGateway(
+        currentRelease,
+        async (_repository, _review, _path, name) => {
+          const uploaded = {
+            ...asset,
+            id: 101,
+            name,
+            sizeInBytes: content.length,
+          }
+          remoteAssets.push(uploaded)
+          return {
+            asset: uploaded,
+            bytes: content.length,
+            localDigest: `sha256:${'f'.repeat(64)}`,
+          }
+        },
+        async (_repository, review) => {
+          assert.notEqual(review.assetId, null)
+          deletedAssetIds.push(review.assetId!)
+          remoteAssets = remoteAssets.filter(
+            candidate => candidate.id !== review.assetId
+          )
+        }
+      )
+
+      await assert.rejects(
+        pinFileToRelease(gateway, repository, selected, {
+          absoluteFilePath: filePath,
+          trackedRelativePath: 'changing.bin',
+          releaseTag: 'v4.4.0',
+        }),
+        /no longer matches/
+      )
+      assert.notEqual(expectedSha, 'f'.repeat(64))
+      assert.deepEqual(deletedAssetIds, [101])
+      assert.deepEqual(
+        remoteAssets.map(candidate => candidate.id),
+        [19]
+      )
+      assert.deepEqual(await readFile(filePath), content)
+    })
+  })
+
+  it('rolls back a single asset when pointer writing fails', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'pointer-failure.bin')
+      const content = Buffer.from('pointer write failure bytes')
+      await writeFile(filePath, content)
+      const expectedSha = createHash('sha256').update(content).digest('hex')
+      let remoteAssets = new Array<IGitHubReleaseAsset>()
+      const deletedAssetIds = new Array<number>()
+      const currentRelease = (): IGitHubRelease => ({
+        ...release,
+        tagName: 'v-pointer-failure',
+        assets: [...remoteAssets],
+      })
+      const gateway = inMemoryReleaseGateway(
+        currentRelease,
+        async (_repository, _review, _path, name) => {
+          const uploaded = {
+            ...asset,
+            id: 102,
+            name,
+            sizeInBytes: content.length,
+          }
+          remoteAssets.push(uploaded)
+          return {
+            asset: uploaded,
+            bytes: content.length,
+            localDigest: `sha256:${expectedSha}`,
+          }
+        },
+        async (_repository, review) => {
+          assert.notEqual(review.assetId, null)
+          deletedAssetIds.push(review.assetId!)
+          remoteAssets = remoteAssets.filter(
+            candidate => candidate.id !== review.assetId
+          )
+        }
+      )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        writePointer: async () => {
+          throw new Error('simulated pointer write failure')
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'pointer-failure.bin',
+            releaseTag: 'v-pointer-failure',
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        /simulated pointer write failure/
+      )
+
+      assert.deepEqual(deletedAssetIds, [102])
+      assert.deepEqual(remoteAssets, [])
+      assert.deepEqual(await readFile(filePath), content)
+    })
+  })
+
+  it('uses a fresh signal to roll back a single asset after cancellation', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'cancel-single.bin')
+      const content = Buffer.from('single asset cancellation bytes')
+      await writeFile(filePath, content)
+      const expectedSha = createHash('sha256').update(content).digest('hex')
+      const controller = new AbortController()
+      let remoteAssets = new Array<IGitHubReleaseAsset>()
+      const deletedAssetIds = new Array<number>()
+      let pointerWritten = false
+      const currentRelease = (): IGitHubRelease => ({
+        ...release,
+        tagName: 'v-cancel-single',
+        assets: [...remoteAssets],
+      })
+      const gateway = inMemoryReleaseGateway(
+        currentRelease,
+        async (_repository, _review, _path, name) => {
+          const uploaded = {
+            ...asset,
+            id: 103,
+            name,
+            sizeInBytes: content.length,
+          }
+          remoteAssets.push(uploaded)
+          controller.abort()
+          return {
+            asset: uploaded,
+            bytes: content.length,
+            localDigest: `sha256:${expectedSha}`,
+          }
+        },
+        async (_repository, review, cleanupSignal) => {
+          assert.equal(cleanupSignal?.aborted, false)
+          assert.notEqual(review.assetId, null)
+          deletedAssetIds.push(review.assetId!)
+          remoteAssets = remoteAssets.filter(
+            candidate => candidate.id !== review.assetId
+          )
+        }
+      )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        writePointer: async () => {
+          pointerWritten = true
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'cancel-single.bin',
+            releaseTag: 'v-cancel-single',
+          },
+          controller.signal,
+          undefined,
+          fs
+        ),
+        { name: 'AbortError' }
+      )
+
+      assert.equal(pointerWritten, false)
+      assert.deepEqual(deletedAssetIds, [103])
+      assert.deepEqual(remoteAssets, [])
+      assert.deepEqual(await readFile(filePath), content)
+    })
+  })
+
+  it('does not write a multipart pointer when a raw part byte count changed', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'changing-huge.bin')
+      await writeFile(filePath, 'original bytes')
+      const draft: IGitHubRelease = { ...release, assets: [] }
+      const partShas = ['b'.repeat(64), 'c'.repeat(64)]
+      let pointerWritten = false
+      let uploadIndex = 0
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => draft,
+              fetchRelease: async () => draft,
+            }),
+          {
+            uploadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _path,
+              name,
+              _label,
+              _signal,
+              _onProgress,
+              range
+            ) => {
+              const index = uploadIndex++
+              const expectedBytes = range!.length
+              return {
+                ok: true,
+                asset: { ...asset, name, sizeInBytes: expectedBytes },
+                bytes: index === 0 ? expectedBytes : expectedBytes - 1,
+                localDigest: `sha256:${partShas[index]}`,
+              }
+            },
+          }
+        )
+      )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        hashFileParts: async () => ({
+          sha256: 'a'.repeat(64),
+          sizeInBytes: 20,
+          parts: [
+            { offset: 0, length: 10, sha256: partShas[0] },
+            { offset: 10, length: 10, sha256: partShas[1] },
+          ],
+        }),
+        writePointer: async () => {
+          pointerWritten = true
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          store,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'changing-huge.bin',
+            releaseTag: 'v4.5.0',
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        /no longer matches/
+      )
+      assert.equal(pointerWritten, false)
+      assert.equal(await readFile(filePath, 'utf8'), 'original bytes')
+    })
+  })
+
+  it('does not replace a multipart source that changed after upload', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'growing-huge.bin')
+      const original = Buffer.from('0123456789abcdefghij')
+      const appended = Buffer.from('new tail')
+      await writeFile(filePath, original)
+      const digest = (bytes: Buffer) =>
+        createHash('sha256').update(bytes).digest('hex')
+      const first = original.subarray(0, 10)
+      const second = original.subarray(10)
+      const parts = [
+        { offset: 0, length: first.length, sha256: digest(first) },
+        { offset: first.length, length: second.length, sha256: digest(second) },
+      ]
+      const wholeSha = digest(original)
+      const draft: IGitHubRelease = { ...release, assets: [] }
+      let uploadIndex = 0
+      let pointerWritten = false
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => draft,
+              fetchRelease: async () => draft,
+            }),
+          {
+            uploadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _path,
+              name,
+              _label,
+              _signal,
+              _onProgress,
+              range
+            ) => {
+              const index = uploadIndex++
+              if (index === parts.length - 1) {
+                await writeFile(filePath, Buffer.concat([original, appended]))
+              }
+              return {
+                ok: true,
+                asset: { ...asset, name, sizeInBytes: range!.length },
+                bytes: range!.length,
+                localDigest: `sha256:${parts[index].sha256}`,
+              }
+            },
+          }
+        )
+      )
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        hashFileParts: async () => ({
+          sha256: wholeSha,
+          sizeInBytes: original.length,
+          parts,
+        }),
+        writePointer: async () => {
+          pointerWritten = true
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          store,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'growing-huge.bin',
+            releaseTag: 'v4.6.0',
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        /source changed after it was uploaded/
+      )
+      assert.equal(pointerWritten, false)
+      assert.deepEqual(
+        await readFile(filePath),
+        Buffer.concat([original, appended])
+      )
+    })
+  })
+
+  it('materializes raw parts and a legacy compressed part', async () => {
     await withTempRepository(async (dir, repository) => {
       const first = Buffer.from('the first part '.repeat(300))
       const second = Buffer.from('the second part '.repeat(200))
+      const storedSecond = await deflateRaw(second)
       const whole = Buffer.concat([first, second])
       const partSha = (buffer: Buffer) =>
         createHash('sha256').update(buffer).digest('hex')
@@ -811,9 +1609,10 @@ describe('cheap LFS operations', () => {
             sha256: partSha(first),
           },
           {
-            name: 'huge.bin.part002',
+            name: 'huge.bin.part002.deflate',
             sizeInBytes: second.length,
             sha256: partSha(second),
+            deflatedSizeInBytes: storedSecond.length,
           },
         ],
       }
@@ -822,7 +1621,7 @@ describe('cheap LFS operations', () => {
 
       const byName = new Map([
         ['huge.bin.part001', first],
-        ['huge.bin.part002', second],
+        ['huge.bin.part002.deflate', storedSecond],
       ])
       const releaseWithParts: IGitHubRelease = {
         ...release,

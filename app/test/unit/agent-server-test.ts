@@ -166,6 +166,8 @@ describe('agent server', () => {
       const info = await request(port, '/api/v1/info', token)
       assert.equal(info.status, 200)
       assert.ok(info.body.commands.includes('list-repositories'))
+      assert.ok(info.body.commands.includes('list-ssh-hosts'))
+      assert.ok(info.body.commands.includes('clone-to-ssh'))
       assert.ok(info.body.commands.includes('github_api_fixture_read'))
       assert.equal(JSON.stringify(info.body).includes(token), false)
 

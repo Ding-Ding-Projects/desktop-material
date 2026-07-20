@@ -14,19 +14,32 @@
 export const CHEAP_LFS_POINTER_VERSION = 'desktop-material/cheap-lfs/v1'
 
 /**
- * The per-part upload size a whole file is split into when it exceeds a single
- * release asset. Must mirror `GitHubReleaseAssetMaximumUploadBytes` (2 GiB) —
- * each part is uploaded as its own asset, so every part must fit the per-asset
- * upload cap. Kept as a literal here so this module stays import-free.
+ * The largest legacy pointer part that remains valid when materializing files.
+ * GitHub historically documented this as a 2 GiB cap, and existing pointers
+ * may therefore contain a part of exactly that size.
  */
-export const CHEAP_LFS_PART_SIZE_BYTES = 2 * 1024 * 1024 * 1024
+const CheapLfsLegacyMaximumPartSizeBytes = 2 * 1024 * 1024 * 1024
+
+/**
+ * The per-part size used for new uploads. GitHub requires each release asset to
+ * be under 2 GiB, so leave one byte of headroom while retaining parser support
+ * for legacy pointers whose parts are exactly 2 GiB.
+ */
+export const CHEAP_LFS_PART_SIZE_BYTES = CheapLfsLegacyMaximumPartSizeBytes - 1
 
 /**
  * Pointers are small, but a multi-part pointer for a very large file lists one
  * line per part, so the guard is generous rather than tiny. A part line is well
  * under 350 bytes, so this still bounds the text far below any real binary.
  */
-const MaximumPointerTextBytes = 512 * 1024
+export const CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES = 512 * 1024
+
+const utf8Encoder = new TextEncoder()
+
+/** Return the exact UTF-8 byte count used by the on-disk pointer. */
+export function cheapLfsPointerTextSizeInBytes(text: string): number {
+  return utf8Encoder.encode(text).byteLength
+}
 
 const sha256Hex = /^[a-f0-9]{64}$/
 const nonNegativeInteger = /^(?:0|[1-9][0-9]*)$/
@@ -145,7 +158,13 @@ export function serializeCheapLfsPointer(pointer: ICheapLfsPointer): string {
  * single-asset pointers have no part lines and parse with no `parts`.
  */
 export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
-  if (typeof text !== 'string' || text.length > MaximumPointerTextBytes) {
+  if (
+    typeof text !== 'string' ||
+    // UTF-8 cannot use fewer bytes than UTF-16 code units. This cheap first
+    // guard avoids allocating an encoded copy for obviously oversized input.
+    text.length > CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES ||
+    cheapLfsPointerTextSizeInBytes(text) > CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES
+  ) {
     return null
   }
   if (text.includes('\u0000')) {
@@ -238,7 +257,7 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     if (
       !Number.isSafeInteger(partSize) ||
       partSize < 0 ||
-      partSize > CHEAP_LFS_PART_SIZE_BYTES
+      partSize > CheapLfsLegacyMaximumPartSizeBytes
     ) {
       return null
     }
@@ -251,7 +270,7 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
       if (
         !Number.isSafeInteger(deflatedSizeInBytes) ||
         deflatedSizeInBytes < 1 ||
-        deflatedSizeInBytes > CHEAP_LFS_PART_SIZE_BYTES ||
+        deflatedSizeInBytes > CheapLfsLegacyMaximumPartSizeBytes ||
         deflatedSizeInBytes >= partSize
       ) {
         return null

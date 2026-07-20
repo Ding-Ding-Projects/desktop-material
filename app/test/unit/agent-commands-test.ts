@@ -16,6 +16,41 @@ describe('agent command contract', () => {
     assert.equal(isAgentCommandName('delete-everything'), false)
   })
 
+  it('advertises exact, credential-free SSH host command schemas', () => {
+    const list = AgentToolDefinitions.find(x => x.name === 'list-ssh-hosts')
+    const clone = AgentToolDefinitions.find(x => x.name === 'clone-to-ssh')
+    assert.deepEqual(list?.inputSchema, {
+      type: 'object',
+      additionalProperties: false,
+      properties: {},
+    })
+    assert.deepEqual(clone?.inputSchema, {
+      type: 'object',
+      additionalProperties: false,
+      required: ['hostId', 'url', 'path'],
+      properties: {
+        hostId: {
+          type: 'string',
+          minLength: 32,
+          maxLength: 32,
+          pattern: '^[a-f0-9]{32}$',
+        },
+        url: { type: 'string', minLength: 1, maxLength: 2048 },
+        path: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 512,
+          pattern: '^(?:/|~/)',
+        },
+        branch: { type: 'string', minLength: 1, maxLength: 255 },
+      },
+    })
+    assert.equal(
+      JSON.stringify(clone).match(/password|privateKey|token/g),
+      null
+    )
+  })
+
   it('redacts credential-shaped properties recursively', () => {
     assert.deepEqual(
       redactAgentValue({

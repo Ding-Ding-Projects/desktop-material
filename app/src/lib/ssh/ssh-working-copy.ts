@@ -159,21 +159,22 @@ const validateAuthenticationReference = (
   return normalized
 }
 
-/** Validate an absolute POSIX checkout path without normalizing away traversal. */
+/** Validate an absolute or ~/ POSIX path without normalizing away traversal. */
 export function validateSSHRemoteDestinationPath(value: string): string {
   const normalized = value.trim()
+  const homeRelative = normalized.startsWith('~/')
   if (
     normalized.length < 2 ||
     normalized.length > 512 ||
     hasControlCharacters(normalized) ||
-    !normalized.startsWith('/') ||
+    (!normalized.startsWith('/') && !homeRelative) ||
     normalized.endsWith('/')
   ) {
     throw new Error(
-      'Remote destination must be an absolute POSIX path below the filesystem root.'
+      'Remote destination must be an absolute POSIX path or a path below ~/.'
     )
   }
-  const segments = normalized.slice(1).split('/')
+  const segments = normalized.slice(homeRelative ? 2 : 1).split('/')
   if (
     segments.some(
       segment =>
@@ -427,6 +428,20 @@ export function validateSSHCloneSourceUrl(value: string): string {
   return normalized
 }
 
+/** Validate a requested clone branch before it reaches the remote shell. */
+export function validateSSHCloneBranch(value: string): string {
+  const normalized = value.trim()
+  if (
+    normalized.length === 0 ||
+    normalized.length > 255 ||
+    hasControlCharacters(normalized) ||
+    normalized.startsWith('-')
+  ) {
+    throw new Error('The requested clone branch is invalid.')
+  }
+  return normalized
+}
+
 export function buildSSHWorkingCopyCommand(
   definition: ISSHWorkingCopyDefinition,
   action: SSHWorkingCopyAction,
@@ -434,7 +449,9 @@ export function buildSSHWorkingCopyCommand(
   expectedBranch?: string
 ): string {
   const validated = validateSSHWorkingCopyDefinition(definition)
-  const destination = quotePOSIXShellWord(validated.destinationPath)
+  const destination = validated.destinationPath.startsWith('~/')
+    ? `"$HOME"/${quotePOSIXShellWord(validated.destinationPath.slice(2))}`
+    : quotePOSIXShellWord(validated.destinationPath)
 
   switch (action) {
     case 'test':
@@ -447,7 +464,16 @@ export function buildSSHWorkingCopyCommand(
       }
       const source = quotePOSIXShellWord(validateSSHCloneSourceUrl(sourceUrl))
       const remote = quotePOSIXShellWord(validated.sourceRemoteName ?? 'origin')
-      return `set -eu; destination=${destination}; remote=${remote}; parent=$(dirname "$destination"); mkdir -p "$parent"; if [ -e "$destination" ]; then printf 'Remote destination already exists.\\n' >&2; exit 17; fi; git clone -- ${source} "$destination"; if [ "$remote" != origin ]; then git -C "$destination" remote rename origin "$remote"; fi`
+      const branch =
+        expectedBranch === undefined
+          ? null
+          : quotePOSIXShellWord(validateSSHCloneBranch(expectedBranch))
+      const branchSetup =
+        branch === null
+          ? ''
+          : ` branch=${branch}; git check-ref-format --branch "$branch" >/dev/null;`
+      const branchArgument = branch === null ? '' : ' --branch "$branch"'
+      return `set -eu; destination=${destination}; remote=${remote};${branchSetup} parent=$(dirname "$destination"); mkdir -p "$parent"; if [ -e "$destination" ]; then printf 'Remote destination already exists.\\n' >&2; exit 17; fi; git clone${branchArgument} -- ${source} "$destination"; if [ "$remote" != origin ]; then git -C "$destination" remote rename origin "$remote"; fi`
     }
     case 'status':
       return `set -eu; git -C ${destination} status --short --branch`

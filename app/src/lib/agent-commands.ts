@@ -18,6 +18,8 @@ export type AgentCommandName =
   | 'get-status'
   | 'clone'
   | 'clone-batch'
+  | 'list-ssh-hosts'
+  | 'clone-to-ssh'
   | 'commit'
   | 'push'
   | 'pull'
@@ -214,6 +216,38 @@ export const AgentToolDefinitions: ReadonlyArray<IAgentToolDefinition> = [
             },
           },
         },
+      },
+    },
+  },
+  {
+    name: 'list-ssh-hosts',
+    description:
+      'List bounded, non-secret metadata for saved SSH working-copy hosts.',
+    inputSchema: emptySchema,
+  },
+  {
+    name: 'clone-to-ssh',
+    description:
+      'Clone a credential-free repository URL to an absolute or home-relative path on a saved SSH host.',
+    inputSchema: {
+      type: 'object',
+      additionalProperties: false,
+      required: ['hostId', 'url', 'path'],
+      properties: {
+        hostId: {
+          type: 'string',
+          minLength: 32,
+          maxLength: 32,
+          pattern: '^[a-f0-9]{32}$',
+        },
+        url: { type: 'string', minLength: 1, maxLength: 2048 },
+        path: {
+          type: 'string',
+          minLength: 2,
+          maxLength: 512,
+          pattern: '^(?:/|~/)',
+        },
+        branch: { type: 'string', minLength: 1, maxLength: 255 },
       },
     },
   },
