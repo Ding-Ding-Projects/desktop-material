@@ -65,10 +65,15 @@
   Feature Gallery all contain the new evidence reference.
 - During final evidence review, the application checkpoint reached
   `origin/main` as `7c98044bcebe5f65e51aee60af1036080fbd5110` and triggered CI
-  `29709506204`, code scanning `29709506207`, and Pages `29709506220`. The
-  reviewed evidence/gallery follow-up still requires its own ordinary push;
-  after that, verify both exact heads, Pages, and exactly one new immutable
-  non-draft installer release per successful push (two distinct releases total
-  beyond baseline `v3.6.3-beta3-b0000000171` if both runs pass), plus raw/Pages
-  image parity, separate-wiki delivery, and final topology cleanup. No remote
-  conclusion is claimed by this pre-final-push receipt.
+  `29709506204`, code scanning `29709506207`, and Pages `29709506220`. Code
+  scanning passed. The checkpoint CI found one deterministic stale test label:
+  the Windows x64 assertion still expected **Pull all** after the shipped
+  control became **Sync repositories**. The reviewed evidence commit corrects
+  that assertion, and the complete 4,161-test local rerun passed afterward.
+  Pages failed before assembly because GitHub's Configure Pages API returned
+  HTTP 503, not because of a source defect. The failed checkpoint cannot
+  produce an installer release. The corrected evidence/gallery follow-up still
+  requires its own ordinary push; after that, verify its exact head, Pages,
+  exactly one new uniquely tagged non-draft installer release beyond baseline
+  `v3.6.3-beta3-b0000000171`, raw/Pages image parity, separate-wiki delivery,
+  and final topology cleanup.

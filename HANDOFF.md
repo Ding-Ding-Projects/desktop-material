@@ -113,12 +113,15 @@ compact bilingual mode contract with English fallback.
   promoted capture. The application checkpoint reached `origin/main` as
   `7c98044bcebe5f65e51aee60af1036080fbd5110` while the final evidence tree was
   still being reviewed, triggering CI `29709506204`, code scanning
-  `29709506207`, and Pages `29709506220`. Their conclusions, the downstream
-  installer/release, the final evidence commit, raw/Pages image parity, and
-  separate-wiki delivery remain post-commit checks. The project publishes one
-  unique release for every successful push, so the application checkpoint and
-  its final evidence follow-up must each own exactly one distinct release if
-  both CI runs pass; this receipt makes no premature success claim.
+  `29709506207`, and Pages `29709506220`. Code scanning passed. Windows x64 CI
+  found one deterministic stale test label: the assertion still expected
+  **Pull all** after the shipped control became **Sync repositories**. The
+  reviewed evidence commit corrects that assertion, and the complete
+  4,161-test local rerun passed afterward. Pages failed before assembly because
+  GitHub's Configure Pages API returned HTTP 503, not because of a source
+  defect. The failed checkpoint cannot produce an installer release. The
+  corrected evidence commit, raw/Pages image parity, its one uniquely tagged
+  non-draft release, and separate-wiki delivery remain post-commit checks.
 
 ## 2026-07-19 cheap-LFS commit routing fix
 
