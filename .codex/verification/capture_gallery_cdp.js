@@ -2014,8 +2014,8 @@ scene('scale-200', async () => {
     await menuEvent('zoom-in')
   }
   await waitFor(
-    `Math.round(require('electron').webFrame.getZoomFactor() * 100) === 200`,
-    'requested 200% renderer scale'
+    `Number(localStorage.getItem('zoom-factor')) === 2 && localStorage.getItem('zoom-auto-fit-enabled') === '1' && require('electron').webFrame.getZoomFactor() >= 0.5 && require('electron').webFrame.getZoomFactor() < 2`,
+    'requested 200% base with fitted renderer scale'
   )
   await sleep(1200)
   await capture('material-scale-200-autofit')

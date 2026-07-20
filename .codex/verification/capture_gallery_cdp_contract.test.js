@@ -409,6 +409,20 @@ test('advanced workflow and Cheap-LFS scenes use exact enabled controls', () => 
   }
 })
 
+test('requested 200% scale proves the base and a lower auto-fit factor', () => {
+  const scale = sceneSource('scale-200')
+  for (const contract of [
+    "Number(localStorage.getItem('zoom-factor')) === 2",
+    "localStorage.getItem('zoom-auto-fit-enabled') === '1'",
+    "require('electron').webFrame.getZoomFactor() >= 0.5",
+    "require('electron').webFrame.getZoomFactor() < 2",
+    "await capture('material-scale-200-autofit')",
+  ]) {
+    assert.ok(scale.includes(contract), `scale-200 misses ${contract}`)
+  }
+  assert.ok(!scale.includes('getZoomFactor() * 100) === 200'))
+})
+
 test('capture scenes prove PR, sparse, scale, merge, and distinct artifact states', () => {
   for (const contract of [
     "setInput('.sparse-checkout-editor', 'docs/')",
@@ -432,5 +446,4 @@ test('capture scenes prove PR, sparse, scale, merge, and distinct artifact state
     source,
     /scene\('scale-200',[\s\S]*?for \(let index = 0; index < 5; index\+\+\)/
   )
-  assert.ok(source.includes('=== 200`'))
 })
