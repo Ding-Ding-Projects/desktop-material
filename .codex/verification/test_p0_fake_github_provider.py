@@ -545,6 +545,88 @@ class ProviderStateTests(unittest.TestCase):
         self.assertEqual(rejected.status, 422)
         self.assertEqual(len(self.state.pull_requests), 2)
 
+    def test_issue_and_triage_fixtures_are_complete_and_nonempty(self) -> None:
+        issues = self.json(
+            self.state.dispatch(
+                "GET",
+                self.repo_path + "/issues?state=open&per_page=30&page=1",
+                self.headers,
+            )
+        )
+        self.assertEqual(len(issues), 1)
+        issue = issues[0]
+        self.assertEqual(issue["number"], provider.ISSUE_NUMBER)
+        self.assertEqual(issue["labels"], [self.state.issue_label])
+        self.assertEqual(issue["assignees"][0]["login"], provider.ACCOUNT_LOGIN)
+        self.assertEqual(issue["milestone"], self.state.issue_milestone)
+        self.assertEqual(issue["comments"], 1)
+
+        detail = self.json(
+            self.state.dispatch(
+                "GET",
+                self.repo_path + f"/issues/{provider.ISSUE_NUMBER}",
+                self.headers,
+            )
+        )
+        self.assertEqual(detail, issue)
+        comments = self.json(
+            self.state.dispatch(
+                "GET",
+                self.repo_path
+                + f"/issues/{provider.ISSUE_NUMBER}/comments?per_page=30&page=1",
+                self.headers,
+            )
+        )
+        self.assertEqual(len(comments), 1)
+        self.assertIn("synthetic", comments[0]["body"].lower())
+        self.assertEqual(
+            self.json(
+                self.state.dispatch(
+                    "GET", self.repo_path + "/labels", self.headers
+                )
+            ),
+            [self.state.issue_label],
+        )
+        self.assertEqual(
+            self.json(
+                self.state.dispatch(
+                    "GET", self.repo_path + "/assignees", self.headers
+                )
+            )[0]["login"],
+            provider.ACCOUNT_LOGIN,
+        )
+        self.assertEqual(
+            self.json(
+                self.state.dispatch(
+                    "GET", self.repo_path + "/milestones", self.headers
+                )
+            ),
+            [self.state.issue_milestone],
+        )
+
+        pull_requests = self.json(
+            self.state.dispatch(
+                "GET",
+                self.repo_path + "/pulls?state=open&per_page=50&page=1",
+                self.headers,
+            )
+        )
+        self.assertEqual(len(pull_requests), 1)
+        pull_request = pull_requests[0]
+        self.assertEqual(
+            pull_request["number"], provider.TRIAGE_PULL_REQUEST_NUMBER
+        )
+        self.assertEqual(pull_request["head"]["sha"], provider.HEAD_SHA)
+        self.assertEqual(
+            pull_request["requested_reviewers"][0]["login"],
+            provider.ACCOUNT_LOGIN,
+        )
+        self.assertEqual(
+            pull_request["head"]["ref"], provider.TRIAGE_PULL_REQUEST_BRANCH
+        )
+        self.assertNotEqual(pull_request["head"]["ref"], provider.FEATURE_BRANCH)
+        self.assertEqual(self.state.pull_requests, [])
+
     def test_rejects_every_other_mutation(self) -> None:
         response = self.state.dispatch(
             "POST",

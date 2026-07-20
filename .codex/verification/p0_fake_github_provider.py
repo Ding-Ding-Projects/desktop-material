@@ -62,6 +62,13 @@ ACTION_CACHE_PAGE_SIZE = 30
 RELEASE_IDS = (88_001, 88_002, 88_003)
 RELEASE_ASSET_IDS = (88_101, 88_102, 88_103)
 RULESET_IDS = (91_001, 91_002)
+ISSUE_ID = 92_001
+ISSUE_NUMBER = 41
+ISSUE_LABEL_ID = 92_101
+ISSUE_COMMENT_ID = 92_201
+ISSUE_MILESTONE_NUMBER = 3
+TRIAGE_PULL_REQUEST_NUMBER = 72
+TRIAGE_PULL_REQUEST_BRANCH = "review/material-evidence"
 FIXTURE_TOKEN = "dm-p0-loopback-token-20260713"
 FIXTURE_HTML_URL = "http://material-provider.invalid"
 ENTERPRISE_VERSION = "3.21.0"
@@ -255,6 +262,89 @@ class ProviderState:
             "allow_squash_merge": True,
             "allow_rebase_merge": True,
             "permissions": {"admin": True, "push": True, "pull": True},
+        }
+
+    @property
+    def issue_label(self) -> dict[str, Any]:
+        return {
+            "id": ISSUE_LABEL_ID,
+            "name": "visual-verification",
+            "color": "0969da",
+            "description": "Requires deterministic production UI evidence.",
+        }
+
+    @property
+    def issue_milestone(self) -> dict[str, Any]:
+        return {
+            "number": ISSUE_MILESTONE_NUMBER,
+            "title": "M22 publication",
+            "state": "open",
+            "due_on": "2026-07-31T23:59:59Z",
+        }
+
+    @property
+    def issue(self) -> dict[str, Any]:
+        return {
+            "id": ISSUE_ID,
+            "number": ISSUE_NUMBER,
+            "title": "Verify the complete Windows gallery before publication",
+            "body": (
+                "Review all synthetic production frames at original resolution, "
+                "then publish the exact accepted set."
+            ),
+            "state": "open",
+            "state_reason": None,
+            "user": self.identity,
+            "created_at": "2026-07-11T13:00:00Z",
+            "updated_at": FIXED_TIME,
+            "closed_at": None,
+            "html_url": f"{self.repository_html_url}/issues/{ISSUE_NUMBER}",
+            "labels": [self.issue_label],
+            "assignees": [self.identity],
+            "milestone": self.issue_milestone,
+            "comments": 1,
+            "locked": False,
+        }
+
+    @property
+    def issue_comments(self) -> list[dict[str, Any]]:
+        return [
+            {
+                "id": ISSUE_COMMENT_ID,
+                "body": "The fixture is synthetic, bounded, and ready for visual review.",
+                "user": self.identity,
+                "created_at": FIXED_TIME,
+                "updated_at": FIXED_TIME,
+                "html_url": (
+                    f"{self.repository_html_url}/issues/{ISSUE_NUMBER}"
+                    f"#issuecomment-{ISSUE_COMMENT_ID}"
+                ),
+            }
+        ]
+
+    @property
+    def triage_pull_request(self) -> dict[str, Any]:
+        return {
+            "number": TRIAGE_PULL_REQUEST_NUMBER,
+            "title": "Review deterministic Windows publication evidence",
+            "created_at": "2026-07-10T12:00:00Z",
+            "updated_at": FIXED_TIME,
+            "user": self.identity,
+            "assignees": [],
+            "requested_reviewers": [self.identity],
+            "head": {
+                "ref": TRIAGE_PULL_REQUEST_BRANCH,
+                "sha": HEAD_SHA,
+                "repo": self.repository,
+            },
+            "base": {
+                "ref": DEFAULT_BRANCH,
+                "sha": "6" * 40,
+                "repo": self.repository,
+            },
+            "body": "Synthetic provider-backed review item.",
+            "state": "open",
+            "draft": True,
         }
 
     def release_asset(
@@ -1399,17 +1489,24 @@ class ProviderState:
             return json_response({"attestations": [{"fixture": True}]})
 
         if method == "GET" and resource == f"{repo_root}/pulls":
-            # The creation receipt is intentionally in-memory only. Returning
-            # a partial PR object to a background list refresh would violate
-            # the larger IAPIPullRequest contract, so the list remains empty.
-            return json_response([])
-        if method == "GET" and resource in {
-            f"{repo_root}/issues",
-            f"{repo_root}/labels",
-            f"{repo_root}/milestones",
-            f"{repo_root}/mentionables/users",
-        }:
-            return json_response([])
+            return json_response([self.triage_pull_request, *self.pull_requests])
+        if method == "GET" and resource == f"{repo_root}/issues":
+            return json_response([self.issue])
+        if method == "GET" and resource == f"{repo_root}/issues/{ISSUE_NUMBER}":
+            return json_response(self.issue)
+        if (
+            method == "GET"
+            and resource == f"{repo_root}/issues/{ISSUE_NUMBER}/comments"
+        ):
+            return json_response(self.issue_comments)
+        if method == "GET" and resource == f"{repo_root}/labels":
+            return json_response([self.issue_label])
+        if method == "GET" and resource == f"{repo_root}/assignees":
+            return json_response([self.identity])
+        if method == "GET" and resource == f"{repo_root}/milestones":
+            return json_response([self.issue_milestone])
+        if method == "GET" and resource == f"{repo_root}/mentionables/users":
+            return json_response([self.identity])
         if method == "POST" and resource == f"{repo_root}/pulls":
             try:
                 request = json.loads(body.decode("utf-8"))
@@ -1452,12 +1549,22 @@ class ProviderState:
                     "body": request["body"],
                     "state": "open",
                     "draft": request["draft"],
+                    "created_at": FIXED_TIME,
+                    "updated_at": FIXED_TIME,
+                    "user": self.identity,
+                    "assignees": [],
+                    "requested_reviewers": [],
                     "head": {
                         "ref": head_ref,
                         "label": head_label,
-                        "repo": {"full_name": f"{OWNER}/{REPOSITORY}"},
+                        "sha": HEAD_SHA,
+                        "repo": self.repository,
                     },
-                    "base": {"ref": request["base"]},
+                    "base": {
+                        "ref": request["base"],
+                        "sha": "6" * 40,
+                        "repo": self.repository,
+                    },
                     "html_url": f"{self.repository_html_url}/pull/{number}",
                 }
                 self.pull_requests.append(created)

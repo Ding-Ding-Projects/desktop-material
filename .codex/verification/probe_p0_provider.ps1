@@ -66,6 +66,29 @@ if (
 ) {
   throw 'Provider Releases dashboard contract failed.'
 }
+$issues = @(Invoke-RestMethod -Method Get -Uri "$repo/issues?state=open&per_page=30&page=1" -Headers $headers)
+$issue = $issues[0]
+$issueComments = @(Invoke-RestMethod -Method Get -Uri "$repo/issues/$([int]$issue.number)/comments?per_page=30&page=1" -Headers $headers)
+$issueLabels = @(Invoke-RestMethod -Method Get -Uri "$repo/labels?per_page=100&page=1" -Headers $headers)
+$issueAssignees = @(Invoke-RestMethod -Method Get -Uri "$repo/assignees?per_page=100&page=1" -Headers $headers)
+$issueMilestones = @(Invoke-RestMethod -Method Get -Uri "$repo/milestones?state=all&per_page=100&page=1" -Headers $headers)
+$triagePullRequests = @(Invoke-RestMethod -Method Get -Uri "$repo/pulls?state=open&per_page=50&page=1" -Headers $headers)
+if (
+  $issues.Count -ne 1 -or
+  [int]$issue.number -ne 41 -or
+  @($issue.labels).Count -ne 1 -or
+  @($issue.assignees).Count -ne 1 -or
+  [int]$issue.comments -ne 1 -or
+  $issueComments.Count -ne 1 -or
+  $issueLabels.Count -ne 1 -or
+  $issueAssignees.Count -ne 1 -or
+  $issueMilestones.Count -ne 1 -or
+  $triagePullRequests.Count -ne 1 -or
+  [int]$triagePullRequests[0].number -ne 72 -or
+  @($triagePullRequests[0].requested_reviewers).Count -ne 1
+) {
+  throw 'Provider Issues and triage contract failed.'
+}
 $encodedBranch = [Uri]::EscapeDataString([string]$ready.featureBranch)
 $branch = Invoke-RestMethod -Method Get -Uri "$repo/branches/$encodedBranch" -Headers $headers
 $rules = Invoke-RestMethod -Method Get -Uri "$repo/rules/branches/$encodedBranch`?per_page=100" -Headers $headers
@@ -157,6 +180,9 @@ try {
   customPatterns = @($customPatterns).Count
   releases = @($releases).Count
   releaseAssets = @($releaseAssets).Count
+  issues = $issues.Count
+  issueComments = $issueComments.Count
+  triagePullRequests = $triagePullRequests.Count
   branchRules = $rules.Count
   workflows = [int]$workflows.total_count
   runs = [int]$runsPage1.total_count
