@@ -498,6 +498,14 @@ export type TranslationKey =
   | 'projects.kindNote'
   | 'projects.kindUnavailable'
   | 'projects.loading'
+  | 'reviewRequest.manage'
+  | 'reviewRequest.openInBrowser'
+  | 'reviewRequest.reviewRequested'
+  | 'reviewRequest.statusDraft'
+  | 'reviewRequest.statusOpen'
+  | 'reviewRequest.noDescription'
+  | 'reviewRequest.markdownBodyAriaLabel'
+  | 'reviewRequest.quickViewAriaLabel'
   | 'globalIgnore.title'
   | 'globalIgnore.description'
   | 'globalIgnore.pathLabel'
@@ -1577,6 +1585,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'projects.kindNote': 'Note',
   'projects.kindUnavailable': 'Unavailable item',
   'projects.loading': 'Loading a bounded Projects snapshot…',
+  'reviewRequest.manage': 'Manage review request…',
+  'reviewRequest.openInBrowser': 'Open review request in browser',
+  'reviewRequest.reviewRequested': 'Review requested',
+  'reviewRequest.statusDraft': 'Draft',
+  'reviewRequest.statusOpen': 'Open',
+  'reviewRequest.noDescription': 'No description provided.',
+  'reviewRequest.markdownBodyAriaLabel': 'Review request markdown body',
+  'reviewRequest.quickViewAriaLabel': 'Review request #{number} quick view',
   'globalIgnore.title': 'Global ignore rules',
   'globalIgnore.description':
     "These rules apply to every local repository through Git's core.excludesFile. Repository .gitignore files remain separate and can add repository-specific rules.",
@@ -2660,6 +2676,14 @@ export const cantoneseTranslations: Readonly<
   'projects.kindNote': '記事',
   'projects.kindUnavailable': '暫時睇唔到嘅項目',
   'projects.loading': '載入緊有安全上限嘅 Projects 快照…',
+  'reviewRequest.manage': '管理審閱請求…',
+  'reviewRequest.openInBrowser': '喺瀏覽器打開審閱請求',
+  'reviewRequest.reviewRequested': '已要求審閱',
+  'reviewRequest.statusDraft': '草稿',
+  'reviewRequest.statusOpen': '開放',
+  'reviewRequest.noDescription': '未有提供描述。',
+  'reviewRequest.markdownBodyAriaLabel': '審閱請求 Markdown 內容',
+  'reviewRequest.quickViewAriaLabel': '審閱請求 #{number} 快速預覽',
   'globalIgnore.title': '全域忽略規則',
   'globalIgnore.description':
     '呢啲規則會透過 Git 嘅 core.excludesFile 套用到每個本機 repo。各 repo 嘅 .gitignore 會保持獨立，可以再加專屬規則。',

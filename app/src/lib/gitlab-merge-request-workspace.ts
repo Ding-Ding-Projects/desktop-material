@@ -14,7 +14,10 @@ import {
   getGitHubPullRequestContextVersion,
 } from './github-pull-request'
 import { validateGitLabMergeRequestBranch } from './gitlab-merge-request'
-import { buildProviderTriageURL } from './provider-triage'
+import {
+  buildProviderTriageURL,
+  validateProviderTriageCoordinate,
+} from './provider-triage'
 
 export interface IGitLabMergeRequestWorkspaceRoute {
   readonly repositoryId: string
@@ -32,6 +35,11 @@ export interface IGitLabMergeRequestBranchContext {
   readonly targetBranches: ReadonlyArray<string>
   readonly initialTargetBranch: string | null
 }
+
+export type PullRequestInteractionRoute =
+  | 'github-native'
+  | 'gitlab-native'
+  | 'provider-browser'
 
 function validGitLabBranch(value: string | null): string | null {
   if (value === null) {
@@ -85,6 +93,27 @@ export function getPullRequestProviderForRepository(
     hostedRepository !== null &&
     accountEndpointMatches(account, hostedRepository.endpoint)
     ? account.provider
+    : null
+}
+
+/** Select native or browser review-request handling from the exact account. */
+export function getPullRequestInteractionRoute(
+  repository: Repository,
+  accounts: ReadonlyArray<Account>
+): PullRequestInteractionRoute | null {
+  const provider = getPullRequestProviderForRepository(repository, accounts)
+  if (provider === 'github') {
+    return 'github-native'
+  }
+  if (
+    provider === 'gitlab' &&
+    isRepositoryWithGitHubRepository(repository) &&
+    repository.gitHubRepository.parent === null
+  ) {
+    return 'gitlab-native'
+  }
+  return provider === 'gitlab' || provider === 'bitbucket'
+    ? 'provider-browser'
     : null
 }
 
@@ -204,6 +233,50 @@ export function buildGitLabMergeRequestBranchContext(
   }
 }
 
+/** Enumerate exact-remote targets without assuming the checked-out MR source. */
+export function buildGitLabMergeRequestManageBranchContext(
+  allBranches: ReadonlyArray<Branch>,
+  defaultBranch: Branch | null,
+  remoteName: string | null
+): IGitLabMergeRequestBranchContext {
+  if (remoteName === null) {
+    return {
+      sourceBranch: null,
+      targetBranches: [],
+      initialTargetBranch: null,
+    }
+  }
+  const targets = new Set<string>()
+  for (const branch of allBranches) {
+    const name = validGitLabBranch(
+      getGitHubPullRequestBaseBranchName(branch, remoteName)
+    )
+    if (name !== null) {
+      targets.add(name)
+    }
+  }
+  const fallback = validGitLabBranch(
+    defaultBranch === null
+      ? null
+      : getGitHubPullRequestBaseBranchName(defaultBranch, remoteName)
+  )
+  const initialTargetBranch =
+    fallback !== null && targets.has(fallback)
+      ? fallback
+      : [...targets][0] ?? null
+  if (initialTargetBranch !== null) {
+    targets.delete(initialTargetBranch)
+  }
+  return {
+    sourceBranch: null,
+    targetBranches:
+      initialTargetBranch === null
+        ? [...targets]
+        : [initialTargetBranch, ...targets],
+    initialTargetBranch,
+  }
+}
+
 /** Capture every create-route input which can change during publish/push. */
 export function getGitLabMergeRequestWorkspaceVersion(
   repository: Repository,
@@ -265,6 +338,62 @@ export function getPullRequestBrowserURL(
       'pull-request',
       pullRequest.pullRequestNumber
     )
+  } catch {
+    return null
+  }
+}
+
+/** Construct a provider composer URL from the exact account origin and target. */
+export function getPullRequestCreationBrowserURL(
+  repository: Repository,
+  accounts: ReadonlyArray<Account>
+): string | null {
+  const account = accountForWorkspace(repository, accounts)
+  if (
+    account === null ||
+    (account.provider !== 'gitlab' && account.provider !== 'bitbucket') ||
+    !isRepositoryWithGitHubRepository(repository)
+  ) {
+    return null
+  }
+  const target = getNonForkGitHubRepository(repository)
+  if (
+    !accountEndpointMatches(account, repository.gitHubRepository.endpoint) ||
+    !accountEndpointMatches(account, target.endpoint)
+  ) {
+    return null
+  }
+  try {
+    const coordinate = validateProviderTriageCoordinate(
+      target.owner.login,
+      target.name,
+      account.provider === 'gitlab'
+    )
+    const base = new URL(getHTMLURL(account.endpoint))
+    if (
+      (base.protocol !== 'https:' && base.protocol !== 'http:') ||
+      base.username.length > 0 ||
+      base.password.length > 0 ||
+      base.search.length > 0 ||
+      base.hash.length > 0
+    ) {
+      return null
+    }
+    const prefix = base.pathname.replace(/\/+$/, '')
+    const project = [...coordinate.owner.split('/'), coordinate.name]
+      .map(encodeURIComponent)
+      .join('/')
+    const suffix =
+      account.provider === 'gitlab'
+        ? '-/merge_requests/new'
+        : 'pull-requests/new'
+    const result = new URL(
+      `${prefix}/${project}/${suffix}`.replace(/^\/+/, '/'),
+      base.origin
+    )
+    return result.origin === base.origin && !result.username && !result.password
+      ? result.toString()
+      : null
   } catch {
     return null
   }

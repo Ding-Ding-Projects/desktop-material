@@ -8,10 +8,13 @@ import { PullRequest, PullRequestRef } from '../../src/models/pull-request'
 import { Repository } from '../../src/models/repository'
 import {
   buildGitLabMergeRequestBranchContext,
+  buildGitLabMergeRequestManageBranchContext,
   getGitLabMergeRequestWorkspaceRoute,
   getGitLabMergeRequestManageVersion,
   getGitLabMergeRequestWorkspaceVersion,
   getPullRequestBrowserURL,
+  getPullRequestCreationBrowserURL,
+  getPullRequestInteractionRoute,
   getPullRequestProviderForRepository,
 } from '../../src/lib/gitlab-merge-request-workspace'
 
@@ -114,6 +117,53 @@ describe('GitLab merge request workspace routing', () => {
       getPullRequestProviderForRepository(repository(bitbucket), [bitbucket]),
       'bitbucket'
     )
+    assert.equal(
+      getPullRequestInteractionRoute(repository(github), [github]),
+      'github-native'
+    )
+    assert.equal(
+      getPullRequestInteractionRoute(repository(bitbucket), [bitbucket]),
+      'provider-browser'
+    )
+  })
+
+  it('uses native GitLab only for same-project review requests', () => {
+    const selected = account(2)
+    const sameProject = repository(selected)
+    assert.equal(
+      getPullRequestInteractionRoute(sameProject, [selected]),
+      'gitlab-native'
+    )
+
+    const parent = sameProject.gitHubRepository
+    assert.notEqual(parent, null)
+    const forkHosted = new GitHubRepository(
+      'material-fork',
+      new Owner('contributor', endpoint, 88),
+      88,
+      false,
+      'https://gitlab.example.test/contributor/material-fork',
+      null,
+      null,
+      null,
+      null,
+      parent
+    )
+    const fork = new Repository(
+      'C:\\work\\material-fork',
+      8,
+      forkHosted,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    assert.equal(
+      getPullRequestInteractionRoute(fork, [selected]),
+      'provider-browser'
+    )
   })
 
   it('fails closed for an unbound repository with ambiguous accounts', () => {
@@ -130,6 +180,7 @@ describe('GitLab merge request workspace routing', () => {
       getPullRequestProviderForRepository(unbound, [first, second]),
       null
     )
+    assert.equal(getPullRequestInteractionRoute(unbound, [first, second]), null)
     assert.equal(
       getGitLabMergeRequestWorkspaceRoute(unbound, [first, second]),
       null
@@ -201,6 +252,18 @@ describe('GitLab merge request workspace routing', () => {
         'origin'
       ).sourceBranch,
       null
+    )
+    assert.deepEqual(
+      buildGitLabMergeRequestManageBranchContext(
+        [topic, release, main, other],
+        main,
+        'origin'
+      ),
+      {
+        sourceBranch: null,
+        targetBranches: ['main', 'topic', 'release'],
+        initialTargetBranch: 'main',
+      }
     )
   })
 
@@ -294,6 +357,75 @@ describe('GitLab merge request workspace routing', () => {
     )
     assert.equal(
       getPullRequestBrowserURL(repo, [selected], mispairedPullRequest),
+      null
+    )
+  })
+
+  it('constructs provider composers from exact account origins, not persisted HTML URLs', () => {
+    const selected = account(2)
+    const hosted = new GitHubRepository(
+      'material',
+      new Owner('group/subgroup', endpoint, 77),
+      77,
+      false,
+      'https://attacker.invalid/redirect'
+    )
+    const gitlab = new Repository(
+      'C:\\work\\material',
+      7,
+      hosted,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(selected)
+    )
+    assert.equal(
+      getPullRequestCreationBrowserURL(gitlab, [selected]),
+      'https://gitlab.example.test/group/subgroup/material/-/merge_requests/new'
+    )
+
+    const bitbucketEndpoint = 'https://api.bitbucket.org/2.0'
+    const bitbucket = new Account(
+      'workspace',
+      bitbucketEndpoint,
+      'token-bitbucket',
+      [],
+      '',
+      9,
+      'Workspace',
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+      'bitbucket'
+    )
+    const bitbucketHosted = new GitHubRepository(
+      'material',
+      new Owner('workspace', bitbucketEndpoint, 9),
+      9,
+      false,
+      'https://attacker.invalid/redirect'
+    )
+    const bitbucketRepository = new Repository(
+      'C:\\work\\bitbucket-material',
+      9,
+      bitbucketHosted,
+      false,
+      null,
+      {},
+      false,
+      undefined,
+      getAccountKey(bitbucket)
+    )
+    assert.equal(
+      getPullRequestCreationBrowserURL(bitbucketRepository, [bitbucket]),
+      'https://bitbucket.org/workspace/material/pull-requests/new'
+    )
+    assert.equal(
+      getPullRequestCreationBrowserURL(bitbucketRepository, [selected]),
       null
     )
   })
