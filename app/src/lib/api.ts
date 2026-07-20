@@ -6514,6 +6514,28 @@ export class GitLabAPI extends ThirdPartyAPI {
     )
   }
 
+  private async fetchOptionalGitLabMergeRequestApproval(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestApprovalState | null> {
+    try {
+      return await this.getGitLabMergeRequestApprovalState(
+        project,
+        mergeRequestIID,
+        signal
+      )
+    } catch (error) {
+      if (
+        (error as Error)?.name === 'AbortError' ||
+        error instanceof GitLabMergeRequestContextChangedError
+      ) {
+        throw error
+      }
+      return null
+    }
+  }
+
   /** List a bounded project MR collection with conservative readiness data. */
   public async listGitLabMergeRequests(
     project: GitLabProjectIdentifier,
@@ -6547,12 +6569,14 @@ export class GitLabAPI extends ThirdPartyAPI {
       mergeRequestIID,
       signal
     )
-    const approval = await this.getGitLabMergeRequestApprovalState(
+    const approval = await this.fetchOptionalGitLabMergeRequestApproval(
       project,
       mergeRequestIID,
       signal
     )
-    return withGitLabMergeRequestApproval(mergeRequest, approval)
+    return approval === null
+      ? mergeRequest
+      : withGitLabMergeRequestApproval(mergeRequest, approval)
   }
 
   public async createGitLabMergeRequest(
@@ -6572,12 +6596,14 @@ export class GitLabAPI extends ThirdPartyAPI {
       await boundedGitLabMergeRequestResponse(response, signal),
       getHTMLURL(this.endpoint)
     )
-    const approval = await this.getGitLabMergeRequestApprovalState(
+    const approval = await this.fetchOptionalGitLabMergeRequestApproval(
       project,
       created.iid,
       signal
     )
-    return withGitLabMergeRequestApproval(created, approval)
+    return approval === null
+      ? created
+      : withGitLabMergeRequestApproval(created, approval)
   }
 
   /** Update an exact reviewed HEAD and reject stale mutation responses. */
@@ -6624,12 +6650,14 @@ export class GitLabAPI extends ThirdPartyAPI {
     if (updated.headSHA !== safeHeadSHA) {
       throw new GitLabMergeRequestContextChangedError()
     }
-    const approval = await this.getGitLabMergeRequestApprovalState(
+    const approval = await this.fetchOptionalGitLabMergeRequestApproval(
       project,
       safeIID,
       signal
     )
-    return withGitLabMergeRequestApproval(updated, approval)
+    return approval === null
+      ? updated
+      : withGitLabMergeRequestApproval(updated, approval)
   }
 
   public async setGitLabMergeRequestState(
@@ -6702,16 +6730,20 @@ export class GitLabAPI extends ThirdPartyAPI {
       { sha: safeHeadSHA },
       signal
     )
-    parseGitLabMergeRequestApprovalState(
+    const approval = parseGitLabMergeRequestApprovalState(
       await boundedGitLabMergeRequestResponse(response, signal),
       getHTMLURL(this.endpoint),
       safeIID
     )
-    const current = await this.getGitLabMergeRequest(project, safeIID, signal)
-    if (current.headSHA !== safeHeadSHA || current.approval === null) {
+    const current = await this.fetchGitLabMergeRequestLifecycle(
+      project,
+      safeIID,
+      signal
+    )
+    if (current.headSHA !== safeHeadSHA) {
       throw new GitLabMergeRequestContextChangedError()
     }
-    return current.approval
+    return approval
   }
 
   /** Unapprove only after and before publishing the exact reviewed HEAD. */
@@ -6738,16 +6770,20 @@ export class GitLabAPI extends ThirdPartyAPI {
       undefined,
       signal
     )
-    parseGitLabMergeRequestApprovalState(
+    const approval = parseGitLabMergeRequestApprovalState(
       await boundedGitLabMergeRequestResponse(response, signal),
       getHTMLURL(this.endpoint),
       safeIID
     )
-    const current = await this.getGitLabMergeRequest(project, safeIID, signal)
-    if (current.headSHA !== safeHeadSHA || current.approval === null) {
+    const current = await this.fetchGitLabMergeRequestLifecycle(
+      project,
+      safeIID,
+      signal
+    )
+    if (current.headSHA !== safeHeadSHA) {
       throw new GitLabMergeRequestContextChangedError()
     }
-    return current.approval
+    return approval
   }
 
   private async mapMergeRequests(
