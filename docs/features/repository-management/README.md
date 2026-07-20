@@ -37,6 +37,17 @@ Material is displaying or how a repository is represented in the application.
   navigation](submodule-repository-navigation.md) — open an initialized
   submodule in the current workspace without importing it, then return to the
   persisted root repository.
+- [Release-backed large-file
+  storage](release-backed-cheap-lfs.md) — replace large tracked bytes with a
+  verified GitHub Release pointer and materialize raw single or multipart
+  assets safely.
+- [Parent-folder repository
+  discovery](parent-folder-repository-discovery.md) — preview and register a
+  bounded, link-safe set of working trees below one selected folder.
+- [Submodule, subtree, and remote creation
+  workflows](submodule-subtree-and-remote-creation.md) — manage dependency
+  topology and create an initialized account-bound remote before adding it as a
+  submodule.
 
 ## API applicability
 

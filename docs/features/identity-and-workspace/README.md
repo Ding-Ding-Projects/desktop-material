@@ -11,6 +11,10 @@ Material installation manages many identities, repositories, and branches.
   pinning](repository-sidebar-and-pinning.md)
 - [Branch switcher
   workflows](branch-switcher-workflows.md)
+- [Owner-scoped appearance and
+  history](owner-scoped-appearance-and-history.md)
+- [Collection bulk actions and regex
+  safety](collection-bulk-and-regex-safety.md)
 
 ## API applicability
 

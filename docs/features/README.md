@@ -11,6 +11,8 @@ the implemented feature contracts.
 
 ## Categories
 
+- [Agent API](agent-api/README.md) — opt-in REST and MCP automation,
+  authentication, transport boundaries, and executable Postman requests.
 - [Repository management](repository-management/README.md) — opening,
   organizing, and safely navigating repositories and nested repositories.
 - [Integrations](integrations/README.md) — user-level Git, editor, shell, and

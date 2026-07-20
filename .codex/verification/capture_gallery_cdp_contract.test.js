@@ -215,7 +215,7 @@ test('canonical workflow scenes use current reviewed controls and outcomes', () 
     "clickSelector('.history-filter-chips-toggle')",
     "clickSelector('.history-regex-builder-chip')",
     "document.querySelector('#regex-builder-title')",
-    '\'#choose-branch [role="option"][aria-label^="main"]\'',
+    '\'#choose-branch [role="option"][aria-label^="origin/main"]\'',
     "document.querySelector('.rebase-route')",
     "document.querySelector('.rebase-ahead-behind')",
     "document.querySelector('.rebase-commit-preview')",
@@ -238,7 +238,6 @@ test('Actions captures prove inspector pagination, logs, reviews, and cancellati
     'async function openInspectorRun()',
     'async function loadInspectorPageTwo()',
     '50 loaded of ${ready.workflowRunCount} workflow runs',
-    '50 loaded of ${ready.inspectorJobCount} jobs for attempt 2',
     'Page-two current-attempt Windows packaging sentinel',
     'Exact workflow job ${ready?.inspectorCurrentJobSentinelId}',
     '[aria-label="Cancel workflow run 74"]',
@@ -251,6 +250,10 @@ test('Actions captures prove inspector pagination, logs, reviews, and cancellati
       `missing Actions contract: ${contract}`
     )
   }
+  assert.match(
+    source,
+    /50 loaded of \$\{\s*ready\.inspectorJobCount\s*\} jobs for attempt 2/
+  )
   assert.ok(!source.includes('WARN no cancellable run found'))
 })
 

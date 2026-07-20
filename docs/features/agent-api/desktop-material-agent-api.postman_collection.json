@@ -1,0 +1,1010 @@
+{
+  "info": {
+    "_postman_id": "8f6ab4cd-8045-4cec-a323-2bd024069755",
+    "name": "Desktop Material — Agent API",
+    "description": "Executable contract for every shipped Desktop Material Agent HTTP route and all 24 static version 1 commands. Defaults contain no credentials and point to an unreachable loopback port. Read request descriptions before sending mutations.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{agentToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Server information",
+      "item": [
+        {
+          "name": "Get API information and command catalog",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{agentBaseUrl}}/api/v1/info",
+            "description": "Returns API version 1 metadata, exact limits, all 24 static commands, and any active `github_api_<name>` functions."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Version 1 REST command catalog",
+      "description": "Every static command through the preferred `POST /api/v1/commands` envelope. Replace variables only for a request you intend to run; many commands mutate repositories, files, or provider state.",
+      "item": [
+        {
+          "name": "list-accounts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"list-accounts\",\n  \"args\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Lists signed-in account metadata without credentials.\n\nStatic command: `list-accounts`."
+          }
+        },
+        {
+          "name": "list-repositories",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"list-repositories\",\n  \"args\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Lists repositories known to the active profile.\n\nStatic command: `list-repositories`."
+          }
+        },
+        {
+          "name": "list-tabs",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"list-tabs\",\n  \"args\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Lists repository tabs and the active tab.\n\nStatic command: `list-tabs`."
+          }
+        },
+        {
+          "name": "get-status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get-status\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Reads status for the exact repository selector.\n\nStatic command: `get-status`."
+          }
+        },
+        {
+          "name": "list-branches",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"list-branches\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Lists local and remote branches for the exact repository.\n\nStatic command: `list-branches`."
+          }
+        },
+        {
+          "name": "list-ssh-hosts",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"list-ssh-hosts\",\n  \"args\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Lists bounded non-secret metadata for saved SSH working-copy hosts.\n\nStatic command: `list-ssh-hosts`."
+          }
+        },
+        {
+          "name": "get-automation-status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"get-automation-status\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Reads effective automation settings and current phases.\n\nStatic command: `get-automation-status`."
+          }
+        },
+        {
+          "name": "list-api-functions",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"list-api-functions\",\n  \"args\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Lists validated profile-backed named GitHub API functions without credentials.\n\nStatic command: `list-api-functions`."
+          }
+        },
+        {
+          "name": "open-repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"open-repository\",\n  \"args\": {\n    \"path\": \"{{repositoryPath}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Adds an existing local repository path and selects it. Mutates the visible workspace.\n\nStatic command: `open-repository`."
+          }
+        },
+        {
+          "name": "select-repository",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"select-repository\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Selects a known repository and ensures its tab is open.\n\nStatic command: `select-repository`."
+          }
+        },
+        {
+          "name": "select-tab",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"select-tab\",\n  \"args\": {\n    \"tabId\": \"{{tabId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Activates an existing repository tab.\n\nStatic command: `select-tab`."
+          }
+        },
+        {
+          "name": "close-tab",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"close-tab\",\n  \"args\": {\n    \"tabId\": \"{{tabId}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Closes an existing repository tab.\n\nStatic command: `close-tab`."
+          }
+        },
+        {
+          "name": "clone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"clone\",\n  \"args\": {\n    \"url\": \"{{cloneUrl}}\",\n    \"path\": \"{{cloneDestination}}\",\n    \"branch\": \"{{workflowRef}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Clones one credential-free URL to an explicit local path. Creates files.\n\nStatic command: `clone`."
+          }
+        },
+        {
+          "name": "clone-batch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"clone-batch\",\n  \"args\": {\n    \"mode\": \"sequential\",\n    \"items\": [\n      {\n        \"url\": \"{{cloneUrl}}\",\n        \"path\": \"{{cloneDestination}}\",\n        \"branch\": \"{{workflowRef}}\"\n      }\n    ]\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Clones 1–50 repositories in parallel or sequential mode. Creates files.\n\nStatic command: `clone-batch`."
+          }
+        },
+        {
+          "name": "clone-to-ssh",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"clone-to-ssh\",\n  \"args\": {\n    \"hostId\": \"{{sshHostId}}\",\n    \"url\": \"{{cloneUrl}}\",\n    \"path\": \"{{sshDestination}}\",\n    \"branch\": \"{{workflowRef}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Clones to a prevalidated saved SSH host. Creates a remote working copy.\n\nStatic command: `clone-to-ssh`."
+          }
+        },
+        {
+          "name": "commit",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"commit\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}},\n    \"summary\": \"Postman fixture commit\",\n    \"description\": \"\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Commits changes already included in Desktop Material. Mutates Git history.\n\nStatic command: `commit`."
+          }
+        },
+        {
+          "name": "fetch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"fetch\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Fetches all refs for the repository. Contacts its remotes.\n\nStatic command: `fetch`."
+          }
+        },
+        {
+          "name": "pull",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"pull\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Pulls the current branch. Can change the worktree and refs.\n\nStatic command: `pull`."
+          }
+        },
+        {
+          "name": "push",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"push\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Pushes the current branch. Changes remote state.\n\nStatic command: `push`."
+          }
+        },
+        {
+          "name": "create-branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"create-branch\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}},\n    \"name\": \"{{branchName}}\",\n    \"startPoint\": \"{{workflowRef}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Creates and checks out a branch. Mutates refs and visible selection.\n\nStatic command: `create-branch`."
+          }
+        },
+        {
+          "name": "merge-branch",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"merge-branch\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}},\n    \"branch\": \"{{sourceBranch}}\",\n    \"squash\": false\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Merges a named branch into the current branch. Mutates the worktree and refs.\n\nStatic command: `merge-branch`."
+          }
+        },
+        {
+          "name": "run-automation",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"run-automation\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}},\n    \"action\": \"{{automationAction}}\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Starts one supported reviewed automation action. Mutates repository or remote state.\n\nStatic command: `run-automation`."
+          }
+        },
+        {
+          "name": "trigger-workflow",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"trigger-workflow\",\n  \"args\": {\n    \"repositoryId\": {{repositoryId}},\n    \"workflowId\": {{workflowId}},\n    \"ref\": \"{{workflowRef}}\",\n    \"inputs\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Dispatches a GitHub Actions workflow. Changes provider state.\n\nStatic command: `trigger-workflow`."
+          }
+        },
+        {
+          "name": "invoke-api-function",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"invoke-api-function\",\n  \"args\": {\n    \"name\": \"{{apiFunctionName}}\",\n    \"arguments\": {}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Invokes a validated named read function. Write/destructive definitions fail back to interactive app review.\n\nStatic command: `invoke-api-function`."
+          }
+        }
+      ]
+    },
+    {
+      "name": "REST route forms and dynamic functions",
+      "item": [
+        {
+          "name": "Preferred command envelope (parameterized)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{commandName}}\",\n  \"args\": {{commandArgs}}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "The preferred REST form. `commandArgs` must expand to one JSON object and the resulting body may contain only `name` and `args`."
+          }
+        },
+        {
+          "name": "Legacy named command route",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{{commandArgs}}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/command/{{commandName}}",
+            "description": "Compatibility form used by the shipped CLI. The body is the argument object itself."
+          }
+        },
+        {
+          "name": "Direct dynamic named API function",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{dynamicToolName}}\",\n  \"args\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/commands",
+            "description": "Calls an active `github_api_<name>` route advertised by `/api/v1/info`. The `args` object must match its generated closed schema."
+          }
+        }
+      ]
+    },
+    {
+      "name": "MCP over HTTP",
+      "description": "Sessionless MCP JSON-RPC. HTTP authentication and transport limits are shared with REST.",
+      "item": [
+        {
+          "name": "Initialize",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 1,\n  \"method\": \"initialize\",\n  \"params\": {}\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp",
+            "description": "Negotiates the implemented MCP protocol version `2025-03-26`."
+          }
+        },
+        {
+          "name": "Ping",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 2,\n  \"method\": \"ping\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp",
+            "description": "Checks the MCP handler without executing an app command."
+          }
+        },
+        {
+          "name": "List tools",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 3,\n  \"method\": \"tools/list\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp",
+            "description": "Returns the 24 static tool schemas plus validated active `github_api_<name>` tools."
+          }
+        },
+        {
+          "name": "Call tool",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"id\": 4,\n  \"method\": \"tools/call\",\n  \"params\": {\n    \"name\": \"{{commandName}}\",\n    \"arguments\": {{commandArgs}}\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp",
+            "description": "Calls one MCP tool. Replace `commandName` and ensure `commandArgs` expands to a JSON object."
+          }
+        },
+        {
+          "name": "Initialized notification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"notifications/initialized\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/mcp",
+            "description": "A JSON-RPC notification has no `id`; Desktop Material acknowledges accepted `notifications/*` messages with HTTP 202 and no response body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Remote access mode lifecycle",
+      "description": "These routes are hosted by the same server. Status is public transport metadata. Pairing exists only in Paired LAN mode. Local mode remains the recommended default. The collection never stores a pairing code or returned device token.",
+      "item": [
+        {
+          "name": "Get public remote status",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": "{{agentBaseUrl}}/api/v1/remote/status",
+            "description": "Returns mode, transport, gateway host policy, pairing availability, and route names without returning a pairing code or token."
+          }
+        },
+        {
+          "name": "Exchange one-use pairing code",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"code\": \"{{pairingCode}}\",\n  \"deviceName\": \"{{deviceName}}\",\n  \"stayLoggedIn\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{agentBaseUrl}}/api/v1/remote/pair",
+            "description": "Paired LAN mode only. Exchanges the current five-minute one-use code for a per-device token exactly once. Move the returned token to a private secret environment variable; never save it in this collection."
+          }
+        },
+        {
+          "name": "List paired devices",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{agentBaseUrl}}/api/v1/remote/devices",
+            "description": "Lists bounded device display metadata. Requires the desktop token or a valid paired-device token, except in explicitly confirmed YOLO LAN mode."
+          }
+        },
+        {
+          "name": "Revoke paired device",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": "{{agentBaseUrl}}/api/v1/remote/devices/{{pairedDeviceId}}",
+            "description": "Deletes one paired-device credential and returns HTTP 204. This is destructive and cannot be undone."
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "agentBaseUrl",
+      "value": "http://127.0.0.1:0",
+      "type": "string",
+      "description": "Replace with the exact displayed base URL. Port 0 is intentionally unreachable."
+    },
+    {
+      "key": "agentToken",
+      "value": "",
+      "type": "string",
+      "description": "Keep the real value in an unexported secret environment variable."
+    },
+    {
+      "key": "commandName",
+      "value": "list-repositories",
+      "type": "string",
+      "description": "One advertised static or dynamic command name."
+    },
+    {
+      "key": "commandArgs",
+      "value": "{}",
+      "type": "string",
+      "description": "A JSON object inserted into parameterized raw request bodies."
+    },
+    {
+      "key": "repositoryId",
+      "value": "0",
+      "type": "string",
+      "description": "Replace with an ID returned by list-repositories."
+    },
+    {
+      "key": "repositoryPath",
+      "value": "C:/replace/repository",
+      "type": "string",
+      "description": "JSON-safe absolute Windows path for a disposable repository."
+    },
+    {
+      "key": "tabId",
+      "value": "replace-tab-id",
+      "type": "string",
+      "description": "Replace with an ID returned by list-tabs."
+    },
+    {
+      "key": "cloneUrl",
+      "value": "https://example.invalid/owner/repository.git",
+      "type": "string",
+      "description": "Credential-free clone URL. The .invalid default cannot resolve."
+    },
+    {
+      "key": "cloneDestination",
+      "value": "C:/replace/clone-destination",
+      "type": "string",
+      "description": "Nonexistent disposable destination."
+    },
+    {
+      "key": "sshHostId",
+      "value": "00000000000000000000000000000000",
+      "type": "string",
+      "description": "Replace with an ID returned by list-ssh-hosts."
+    },
+    {
+      "key": "sshDestination",
+      "value": "~/replace/repository",
+      "type": "string",
+      "description": "Nonexistent absolute or home-relative POSIX path."
+    },
+    {
+      "key": "branchName",
+      "value": "agent/postman-example",
+      "type": "string",
+      "description": "Branch to create."
+    },
+    {
+      "key": "sourceBranch",
+      "value": "feature/replace-me",
+      "type": "string",
+      "description": "Existing branch to merge."
+    },
+    {
+      "key": "automationAction",
+      "value": "commit-and-push",
+      "type": "string",
+      "description": "commit-and-push, merge-branches, or merge-worktrees."
+    },
+    {
+      "key": "workflowId",
+      "value": "1",
+      "type": "string",
+      "description": "Numeric workflow ID."
+    },
+    {
+      "key": "workflowRef",
+      "value": "main",
+      "type": "string",
+      "description": "Git ref or optional clone branch."
+    },
+    {
+      "key": "apiFunctionName",
+      "value": "example_read",
+      "type": "string",
+      "description": "Name returned by list-api-functions, without the transport prefix."
+    },
+    {
+      "key": "dynamicToolName",
+      "value": "github_api_example_read",
+      "type": "string",
+      "description": "Exact dynamic command advertised by /api/v1/info."
+    },
+    {
+      "key": "pairingCode",
+      "value": "",
+      "type": "string",
+      "description": "One-use Paired LAN code; keep only in a private environment."
+    },
+    {
+      "key": "deviceName",
+      "value": "Postman client",
+      "type": "string",
+      "description": "Bounded display name for a paired client."
+    },
+    {
+      "key": "pairedDeviceId",
+      "value": "",
+      "type": "string",
+      "description": "Device ID returned by pairing or remote/devices."
+    }
+  ]
+}

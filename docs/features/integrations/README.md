@@ -13,3 +13,5 @@ credentials or machine-specific state in a repository.
 - [One-click editor actions](one-click-editor-actions.md)
 - [Broad editor support](broad-editor-support.md)
 - [Copilot commit-message controls](copilot-commit-message-controls.md)
+- [SSH working copies and remote
+  clone](ssh-working-copy-and-remote-clone.md)

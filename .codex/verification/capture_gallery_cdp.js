@@ -506,6 +506,31 @@ async function clickSelector(selector, options = {}) {
   return clicked
 }
 
+/** Exercise list rows whose selection contract is owned by mouse down/up. */
+async function clickPointerSelector(selector) {
+  const clicked = await evaluate(`(() => {
+    const target = document.querySelector(${JSON.stringify(selector)})
+    if (!(target instanceof HTMLElement)) return false
+    target.scrollIntoView({ block: 'nearest' })
+    const bounds = target.getBoundingClientRect()
+    const init = {
+      bubbles: true,
+      cancelable: true,
+      clientX: bounds.left + Math.min(24, bounds.width / 2),
+      clientY: bounds.top + Math.min(16, bounds.height / 2),
+      button: 0,
+      buttons: 1,
+    }
+    target.dispatchEvent(new MouseEvent('mousedown', init))
+    target.dispatchEvent(new MouseEvent('mouseup', { ...init, buttons: 0 }))
+    target.dispatchEvent(new MouseEvent('click', { ...init, buttons: 0 }))
+    return true
+  })()`)
+  if (!clicked) {
+    fail(`Unable to pointer-click ${selector}.`)
+  }
+}
+
 /** Open the editor owned by a concrete element through its pointer contract. */
 async function contextMenuSelector(selector) {
   const opened = await evaluate(`(() => {
@@ -779,6 +804,63 @@ async function seedProfile() {
   }
   if (await clickText('Skip for now', { optional: true })) {
     await sleep(1800)
+  }
+  if (account !== null) {
+    const hydrated = await evaluate(`(async () => {
+      const root = document.querySelector('#desktop-app-container')
+      const node = root?.querySelector('*')
+      const fiberKey = node && Object.keys(node).find(key =>
+        key.startsWith('__reactFiber$') ||
+        key.startsWith('__reactInternalInstance$')
+      )
+      let fiber = fiberKey ? node[fiberKey] : null
+      let appStore = null
+      for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+        if (fiber.stateNode?.props?.appStore) {
+          appStore = fiber.stateNode.props.appStore
+          break
+        }
+      }
+      if (!appStore) return { appStore: false }
+
+      // The fixture writes account metadata before it owns a signed-in UI
+      // surface. Re-read that shared metadata through the store's public
+      // cross-window contract, then match the already-open repository.
+      await appStore.accountsStore.reloadFromStore()
+      const accounts = await appStore.accountsStore.getAll()
+      const repository = appStore.selectedRepository
+      const freshRepository = repository
+        ? await appStore.repositoryWithRefreshedGitHubRepository(repository)
+        : null
+      await new Promise(resolve => setTimeout(resolve, 500))
+      return {
+        appStore: true,
+        accounts: accounts.map(value => ({
+          login: value.login,
+          endpoint: value.endpoint,
+          tokenPresent: typeof value.token === 'string' && value.token.length > 0,
+        })),
+        repositoryMatched: Boolean(freshRepository?.gitHubRepository),
+        selectedRepositoryMatched: Boolean(
+          appStore.selectedRepository?.gitHubRepository
+        ),
+      }
+    })()`)
+    if (
+      hydrated?.appStore !== true ||
+      hydrated?.accounts?.length !== 1 ||
+      hydrated.accounts[0]?.login !== account.login ||
+      hydrated.accounts[0]?.endpoint !== account.endpoint ||
+      hydrated.accounts[0]?.tokenPresent !== true ||
+      hydrated?.repositoryMatched !== true ||
+      hydrated?.selectedRepositoryMatched !== true
+    ) {
+      fail(
+        `Disposable fixture account/repository hydration failed: ${JSON.stringify(
+          hydrated
+        )}`
+      )
+    }
   }
   process.stdout.write(`SEEDED changed=${changed}\n`)
 }
@@ -2211,7 +2293,9 @@ scene('rebase-review', async () => {
     `document.querySelector('#choose-branch') !== null`,
     'rebase branch chooser'
   )
-  await clickSelector('#choose-branch [role="option"][aria-label^="main"]')
+  await clickPointerSelector(
+    '#choose-branch [role="option"][aria-label^="origin/main"]'
+  )
   await waitFor(
     `document.querySelector('.rebase-route') !== null && document.querySelector('.rebase-ahead-behind') !== null && document.querySelector('.rebase-commit-preview') !== null`,
     'bounded rebase review'
@@ -2221,32 +2305,75 @@ scene('rebase-review', async () => {
   await closeAllDialogs()
 })
 
+function ensurePullRequestMergeBase() {
+  if (fixturePath === null) {
+    fail('Pull-request scenes require a disposable fixture path.')
+  }
+  try {
+    execFileSync(
+      'git',
+      ['-C', fixturePath, 'merge-base', 'HEAD', 'origin/main'],
+      {
+        windowsHide: true,
+        stdio: 'ignore',
+      }
+    )
+  } catch {
+    execFileSync(
+      'git',
+      [
+        '-C',
+        fixturePath,
+        'fetch',
+        '--deepen=1',
+        '--no-write-fetch-head',
+        'origin',
+      ],
+      { windowsHide: true, stdio: 'ignore' }
+    )
+  }
+  execFileSync(
+    'git',
+    ['-C', fixturePath, 'merge-base', 'HEAD', 'origin/main'],
+    {
+      windowsHide: true,
+      stdio: 'ignore',
+    }
+  )
+  const shallow = execFileSync(
+    'git',
+    ['-C', fixturePath, 'rev-parse', '--is-shallow-repository'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  if (shallow !== 'true') {
+    fail(
+      'Pull-request merge-base preparation unexpectedly removed the shallow boundary.'
+    )
+  }
+}
+
 scene('pull-request-compose', async () => {
+  ensurePullRequestMergeBase()
   await ensureRepository()
   await menuEvent('preview-pull-request')
   await waitFor(
     `document.querySelector('.open-pull-request') !== null`,
     'pull-request comparison'
   )
-  const selectedBase = await evaluate(`(() =>
-    document.querySelector('.open-pull-request .popover-dropdown-component button')
-      ?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
-  )()`)
-  if (!/base:\s*main/i.test(selectedBase)) {
-    await clickSelector(
-      '.open-pull-request .popover-dropdown-component > button'
-    )
-    await waitFor(
-      `document.querySelector('.popover-dropdown-popover [role="option"][aria-label^="main"]') !== null`,
-      'main pull-request base option'
-    )
-    await clickSelector(
-      '.popover-dropdown-popover [role="option"][aria-label^="main"]'
-    )
-  }
+  // Always reselect the base. Account hydration may replace the repository
+  // model while the remembered label remains origin/main, leaving an old
+  // commit selection behind until the branch selection contract runs again.
+  await clickSelector('.open-pull-request .popover-dropdown-component > button')
   await waitFor(
-    `document.querySelector('.pull-request-files-changed') !== null && /Merge [1-9][0-9]* commits? into\s+main\s+from\s+feature\/material-verification/i.test(document.querySelector('.base-branch-details')?.textContent ?? '')`,
-    'non-empty feature-to-main pull-request comparison',
+    `document.querySelector('.popover-dropdown-popover [role="option"][aria-label^="origin/main"]') !== null`,
+    'origin/main pull-request base option'
+  )
+  await clickPointerSelector(
+    '.popover-dropdown-popover [role="option"][aria-label^="origin/main"]'
+  )
+  await waitFor(
+    `document.querySelector('.pull-request-files-changed') !== null && /Merge [1-9][0-9]* commits? into\\s+base:origin[/]main\\s+from\\s+feature[/]material-verification/i.test(document.querySelector('.base-branch-details')?.textContent ?? '')`,
+    'non-empty feature-to-origin/main pull-request comparison',
     30000
   )
   const comparison = await evaluate(`(() => ({
@@ -2272,10 +2399,40 @@ scene('pull-request-compose', async () => {
 })
 
 scene('pull-request-open', async () => {
+  ensurePullRequestMergeBase()
   await ensureRepository()
   const pullRequestPath = /\/repos\/[^/]+\/[^/]+\/pulls(?:\?|$)/
   const before = countProviderRequests('POST', pullRequestPath)
-  await menuEvent('open-pull-request')
+  await menuEvent('preview-pull-request')
+  await waitFor(
+    `document.querySelector('.open-pull-request') !== null`,
+    'pull-request comparison before native creation'
+  )
+  await clickSelector('.open-pull-request .popover-dropdown-component > button')
+  await waitFor(
+    `document.querySelector('.popover-dropdown-popover [role="option"][aria-label^="origin/main"]') !== null`,
+    'origin/main native pull-request base option'
+  )
+  await clickPointerSelector(
+    '.popover-dropdown-popover [role="option"][aria-label^="origin/main"]'
+  )
+  await waitFor(
+    `document.querySelector('.pull-request-files-changed') !== null && /Merge [1-9][0-9]* commits? into\\s+base:origin[/]main\\s+from\\s+feature[/]material-verification/i.test(document.querySelector('.base-branch-details')?.textContent ?? '')`,
+    'non-empty comparison before native pull-request creation',
+    30000
+  )
+  await clickText('Create pull request', { within: '.open-pull-request' })
+  await waitFor(
+    `document.querySelector('#create-github-pull-request') !== null || document.querySelector('#push-branch-commits') !== null`,
+    'native pull-request creation handoff'
+  )
+  if (
+    await evaluate(`document.querySelector('#push-branch-commits') !== null`)
+  ) {
+    await clickText('Create without pushing', {
+      within: '#push-branch-commits',
+    })
+  }
   await waitFor(
     `document.querySelector('#create-github-pull-request') !== null`,
     'native pull-request dialog'
