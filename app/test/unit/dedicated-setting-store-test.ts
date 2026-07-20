@@ -2,7 +2,7 @@ import './profile-history-test-env'
 
 import assert from 'node:assert'
 import { describe, it, TestContext } from 'node:test'
-import { mkdir, readFile, rm, stat, writeFile } from 'fs/promises'
+import { mkdir, readFile, realpath, rm, stat, writeFile } from 'fs/promises'
 import { join, sep } from 'path'
 
 import {
@@ -145,8 +145,14 @@ describe('DedicatedSettingStore', () => {
         'secondDedicatedSettingRoot'
       ),
     ])
-    assert.equal(firstRoot.stdout.trim(), firstDirectory.replace(/\\/g, '/'))
-    assert.equal(secondRoot.stdout.trim(), secondDirectory.replace(/\\/g, '/'))
+    assert.equal(
+      await realpath(firstRoot.stdout.trim()),
+      await realpath(firstDirectory)
+    )
+    assert.equal(
+      await realpath(secondRoot.stdout.trim()),
+      await realpath(secondDirectory)
+    )
   })
 
   it('normalizes values, commits immediately, and exposes files and diffs', async t => {

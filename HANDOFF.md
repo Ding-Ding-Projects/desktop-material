@@ -85,6 +85,12 @@ finished.
   incomplete gallery output was promoted; existing published screenshots remain
   unchanged. Resume later with the exact MCP capture workflow and complete the
   privacy/dimension audit before claiming a full visual refresh.
+- Remote CI `29716801845` for the integrated M22 checkpoint failed only the
+  Windows x64 unit assertion that compared a Git-reported long path with the
+  same temporary directory's Windows 8.3 spelling. The correction compares both
+  paths through `realpath` without changing the production setting-store path or
+  Copy behavior; its focused suite passes 9/9 locally. Fresh remote CI and
+  installer proof remain pending for the correction commit.
 - Current topology has only local/remote `main`, no stash, and one primary
   worktree after the tested checkpoint worktree was removed following remote
   proof. Final acceptance still requires committing and pushing every intended
