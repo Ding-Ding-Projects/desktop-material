@@ -115,14 +115,51 @@ const AdvancedWorkflowRemoteTagNames = Object.freeze([
   'v1.0.0',
   'v1.1.0',
 ])
+const AdvancedWorkflowGitTimeoutMs = 30_000
+const AdvancedWorkflowGitMaxBufferBytes = 1024 * 1024
+const AdvancedWorkflowGitNullDevice = 'NUL'
+
+function getAdvancedWorkflowGitEnvironment(overrides = {}) {
+  const environment = { ...process.env, ...overrides }
+  for (const key of Object.keys(environment)) {
+    if (/^GIT_CONFIG(?:_|$)/i.test(key)) {
+      delete environment[key]
+    }
+  }
+
+  return {
+    ...environment,
+    GIT_CONFIG_GLOBAL: AdvancedWorkflowGitNullDevice,
+    GIT_CONFIG_SYSTEM: AdvancedWorkflowGitNullDevice,
+    GIT_CONFIG_NOSYSTEM: '1',
+  }
+}
 
 function runAdvancedWorkflowGit(repositoryPath, gitArguments, options = {}) {
-  return execFileSync('git', ['-C', repositoryPath, ...gitArguments], {
-    encoding: 'utf8',
-    windowsHide: true,
-    stdio: 'pipe',
-    ...options,
-  }).trim()
+  const { env: environmentOverrides, ...execOptions } = options
+  return execFileSync(
+    'git',
+    [
+      '-c',
+      'tag.gpgSign=false',
+      '-c',
+      'push.gpgSign=false',
+      '-c',
+      `core.hooksPath=${AdvancedWorkflowGitNullDevice}`,
+      '-C',
+      repositoryPath,
+      ...gitArguments,
+    ],
+    {
+      encoding: 'utf8',
+      windowsHide: true,
+      stdio: 'pipe',
+      ...execOptions,
+      env: getAdvancedWorkflowGitEnvironment(environmentOverrides),
+      timeout: AdvancedWorkflowGitTimeoutMs,
+      maxBuffer: AdvancedWorkflowGitMaxBufferBytes,
+    }
+  ).trim()
 }
 
 function readAdvancedWorkflowTagRefs(repositoryPath) {
@@ -241,10 +278,18 @@ function prepareAdvancedWorkflowTagFixture() {
   const createAnnotatedTag = (name, target, message, taggerDate) => {
     runAdvancedWorkflowGit(
       ownedFixture,
-      ['tag', '--annotate', '--force', '--message', message, name, target],
+      [
+        'tag',
+        '--no-sign',
+        '--annotate',
+        '--force',
+        '--message',
+        message,
+        name,
+        target,
+      ],
       {
         env: {
-          ...process.env,
           GIT_COMMITTER_NAME: 'Material Fixture',
           GIT_COMMITTER_EMAIL: 'material-fixture@example.invalid',
           GIT_COMMITTER_DATE: taggerDate,
@@ -277,6 +322,8 @@ function prepareAdvancedWorkflowTagFixture() {
   ])
   runAdvancedWorkflowGit(ownedFixture, [
     'push',
+    '--no-signed',
+    '--no-verify',
     '--force',
     ownedBare,
     'refs/tags/v1.0.0:refs/tags/v1.0.0',

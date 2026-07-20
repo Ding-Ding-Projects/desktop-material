@@ -810,6 +810,61 @@ test('advanced workflow seeds and proves the exact owned tag topology', () => {
   )
 })
 
+test('advanced workflow Git subprocesses are bounded and hermetic', () => {
+  const helperStart = source.indexOf(
+    'const AdvancedWorkflowGitTimeoutMs = 30_000'
+  )
+  const helperEnd = source.indexOf(
+    'function readAdvancedWorkflowTagRefs(',
+    helperStart
+  )
+  assert.notEqual(helperStart, -1)
+  assert.notEqual(helperEnd, -1)
+  const helper = source.slice(helperStart, helperEnd)
+
+  for (const contract of [
+    'const AdvancedWorkflowGitMaxBufferBytes = 1024 * 1024',
+    "const AdvancedWorkflowGitNullDevice = 'NUL'",
+    'const environment = { ...process.env, ...overrides }',
+    '/^GIT_CONFIG(?:_|$)/i.test(key)',
+    'delete environment[key]',
+    'GIT_CONFIG_GLOBAL: AdvancedWorkflowGitNullDevice',
+    'GIT_CONFIG_SYSTEM: AdvancedWorkflowGitNullDevice',
+    "GIT_CONFIG_NOSYSTEM: '1'",
+    "'tag.gpgSign=false'",
+    "'push.gpgSign=false'",
+    '`core.hooksPath=${AdvancedWorkflowGitNullDevice}`',
+    'env: getAdvancedWorkflowGitEnvironment(environmentOverrides)',
+    'timeout: AdvancedWorkflowGitTimeoutMs',
+    'maxBuffer: AdvancedWorkflowGitMaxBufferBytes',
+  ]) {
+    assert.ok(helper.includes(contract), `tag Git helper misses ${contract}`)
+  }
+  const callerOptions = helper.indexOf('...execOptions')
+  const timeout = helper.indexOf('timeout: AdvancedWorkflowGitTimeoutMs')
+  const maxBuffer = helper.indexOf(
+    'maxBuffer: AdvancedWorkflowGitMaxBufferBytes'
+  )
+  assert.ok(callerOptions >= 0 && callerOptions < timeout)
+  assert.ok(callerOptions < maxBuffer)
+
+  const fixtureStart = source.indexOf(
+    'function prepareAdvancedWorkflowTagFixture()'
+  )
+  const fixtureEnd = source.indexOf('const DefaultWidth', fixtureStart)
+  assert.notEqual(fixtureStart, -1)
+  assert.notEqual(fixtureEnd, -1)
+  const fixture = source.slice(fixtureStart, fixtureEnd)
+  for (const contract of ["'--no-sign'", "'--no-signed'", "'--no-verify'"]) {
+    assert.ok(
+      fixture.includes(contract),
+      `tag fixture command misses ${contract}`
+    )
+  }
+  assert.match(fixture, /'tag',\s*'--no-sign',\s*'--annotate',\s*'--force'/)
+  assert.match(fixture, /'push',\s*'--no-signed',\s*'--no-verify',\s*'--force'/)
+})
+
 test('requested 200% scale proves the base and a lower auto-fit factor', () => {
   const scale = sceneSource('scale-200')
   for (const contract of [
