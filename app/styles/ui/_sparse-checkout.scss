@@ -462,6 +462,10 @@
   gap: 8px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
 
+  &.is-single {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
   div {
     padding: 8px;
     border-radius: var(--md-sys-shape-corner-small);

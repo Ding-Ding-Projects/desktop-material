@@ -69,6 +69,7 @@ interface ISparseCheckoutManagerState {
   readonly validation: ISparseCheckoutDirectoryValidation
   readonly showValidation: boolean
   readonly pending: IPendingSparseCheckoutMutation | null
+  readonly guideResult: boolean
 }
 
 const EmptyValidation: ISparseCheckoutDirectoryValidation = {
@@ -116,6 +117,7 @@ export class SparseCheckoutManager extends React.Component<
       validation: EmptyValidation,
       showValidation: false,
       pending: null,
+      guideResult: false,
     }
   }
 
@@ -158,6 +160,7 @@ export class SparseCheckoutManager extends React.Component<
           validation: EmptyValidation,
           showValidation: false,
           pending: null,
+          guideResult: false,
         },
         () => void this.loadState(true)
       )
@@ -312,6 +315,7 @@ export class SparseCheckoutManager extends React.Component<
       validation: parseSparseCheckoutDirectories(input),
       showValidation: true,
       status: null,
+      guideResult: false,
     })
   }
 
@@ -341,6 +345,7 @@ export class SparseCheckoutManager extends React.Component<
         pending: { kind, input, directories },
         error: null,
         status: null,
+        guideResult: false,
       },
       () => this.confirmButton?.focus()
     )
@@ -380,7 +385,10 @@ export class SparseCheckoutManager extends React.Component<
       return
     }
 
-    void this.loadState(true)
+    this.setState(
+      { guideResult: false, status: null, error: null },
+      () => void this.loadState(true)
+    )
   }
 
   private isCurrentMutation(sequence: number, repositoryPath: string) {
@@ -410,6 +418,7 @@ export class SparseCheckoutManager extends React.Component<
         busy: true,
         pending: null,
         error: null,
+        guideResult: false,
         status:
           pending.kind === 'disable'
             ? 'Disabling sparse checkout…'
@@ -491,6 +500,7 @@ export class SparseCheckoutManager extends React.Component<
               ? 'Operation cancelled. Repository state refreshed.'
               : status,
           error: errors.length === 0 ? null : errors.join(' '),
+          guideResult: true,
         },
         () => this.refreshButton?.focus()
       )
@@ -515,7 +525,7 @@ export class SparseCheckoutManager extends React.Component<
   }
 
   private getGuideStep(): 1 | 2 | 3 {
-    if (this.state.busy) {
+    if (this.state.busy || this.state.guideResult) {
       return 3
     }
     return this.state.pending === null ? 1 : 2
@@ -539,7 +549,10 @@ export class SparseCheckoutManager extends React.Component<
         }
     const steps = [
       firstStep,
-      { title: 'Review impact', description: 'Check the exact change' },
+      {
+        title: 'Review selection',
+        description: 'Check every normalized entry',
+      },
       { title: 'Apply and refresh', description: 'Let Git update files' },
     ]
     return (
@@ -550,24 +563,24 @@ export class SparseCheckoutManager extends React.Component<
       >
         <ol aria-label="Sparse checkout workflow">
           {steps.map((step, index) => {
-            const number = (index + 1) as 1 | 2 | 3
+            const stepNumber = (index + 1) as 1 | 2 | 3
             const stateClass =
-              number === activeStep
+              stepNumber === activeStep
                 ? 'is-active'
-                : number < activeStep
+                : stepNumber < activeStep
                 ? 'is-complete'
                 : ''
             return (
               <li
                 key={step.title}
                 className={stateClass}
-                aria-current={number === activeStep ? 'step' : undefined}
+                aria-current={stepNumber === activeStep ? 'step' : undefined}
               >
                 <span
                   className="sparse-checkout-step-number"
                   aria-hidden="true"
                 >
-                  {number}
+                  {stepNumber}
                 </span>
                 <span className="sparse-checkout-step-copy">
                   <strong>{step.title}</strong>
@@ -670,6 +683,34 @@ export class SparseCheckoutManager extends React.Component<
     )
   }
 
+  private getNextHint(): string {
+    if (this.state.busy) {
+      return 'Step 3 is running. You can cancel while Git is changing the worktree.'
+    }
+    if (this.state.pending !== null) {
+      return 'Step 2 is locked to the reviewed selection. Go back to edit it.'
+    }
+    if (this.state.guideResult) {
+      return 'Step 3 finished. Review the result, then edit the selection or refresh to start again.'
+    }
+
+    if (this.state.input.trim().length === 0) {
+      return 'Add at least one repository-relative directory to continue.'
+    }
+
+    const issueCount = this.state.validation.issues.length
+    if (issueCount > 0) {
+      return `Fix ${issueCount.toLocaleString()} validation ${
+        issueCount === 1 ? 'issue' : 'issues'
+      } before review.`
+    }
+
+    const directoryCount = this.state.validation.directories.length
+    return `Ready to review ${directoryCount.toLocaleString()} directory ${
+      directoryCount === 1 ? 'root' : 'roots'
+    }.`
+  }
+
   private renderEditor(state: ISparseCheckoutState) {
     const blocked = this.getBlockedReason(state)
     if (blocked !== null || (state.enabled && !state.coneMode)) {
@@ -713,9 +754,8 @@ export class SparseCheckoutManager extends React.Component<
             : 'directories'}
         </span>
         {this.renderValidation()}
-        <p className="sparse-checkout-next-hint">
-          Next, review the exact selection and its local file impact before Git
-          changes the worktree.
+        <p className="sparse-checkout-next-hint" aria-live="polite">
+          {this.getNextHint()}
         </p>
         <div className="sparse-checkout-controls">
           <Button
@@ -810,10 +850,10 @@ export class SparseCheckoutManager extends React.Component<
 
   private renderDirectoryReview(pending: IPendingSparseCheckoutMutation) {
     const sparseState = this.state.sparseState
-    const currentDirectories =
+    const comparingExisting =
       sparseState?.enabled === true && sparseState.coneMode
-        ? sparseState.entries
-        : []
+    const currentDirectories =
+      comparingExisting && sparseState !== null ? sparseState.entries : []
     const current = new Set(currentDirectories)
     const reviewed = new Set(pending.directories)
     const added = pending.directories.filter(
@@ -823,8 +863,6 @@ export class SparseCheckoutManager extends React.Component<
       directory => !reviewed.has(directory)
     )
     const unchanged = pending.directories.length - added.length
-    const visibleDirectories = pending.directories.slice(0, 12)
-    const hiddenCount = pending.directories.length - visibleDirectories.length
     return (
       <div
         className="sparse-checkout-review"
@@ -836,36 +874,49 @@ export class SparseCheckoutManager extends React.Component<
             {pending.directories.length === 1 ? 'root' : 'roots'} will be
             applied.
           </strong>{' '}
-          Cone mode may also keep required parent files visible.
+          This is the complete normalized selection Git will receive. Cone mode
+          may also keep required parent files visible.
         </p>
-        <dl className="sparse-checkout-review-metrics">
-          <div>
-            <dt>Added</dt>
-            <dd>{added.length.toLocaleString()}</dd>
-          </div>
-          <div>
-            <dt>Removed</dt>
-            <dd>{removed.length.toLocaleString()}</dd>
-          </div>
-          <div>
-            <dt>Unchanged</dt>
-            <dd>{unchanged.toLocaleString()}</dd>
-          </div>
+        <dl
+          className={`sparse-checkout-review-metrics ${
+            comparingExisting ? '' : 'is-single'
+          }`}
+          aria-label={
+            comparingExisting
+              ? 'Selection entry changes'
+              : 'Reviewed selection size'
+          }
+        >
+          {comparingExisting ? (
+            <>
+              <div>
+                <dt>Added roots</dt>
+                <dd>{added.length.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>Removed roots</dt>
+                <dd>{removed.length.toLocaleString()}</dd>
+              </div>
+              <div>
+                <dt>Unchanged roots</dt>
+                <dd>{unchanged.toLocaleString()}</dd>
+              </div>
+            </>
+          ) : (
+            <div>
+              <dt>Selected roots</dt>
+              <dd>{pending.directories.length.toLocaleString()}</dd>
+            </div>
+          )}
         </dl>
         <h3>Reviewed directory selection</h3>
         <ul aria-label="Reviewed directory selection">
-          {visibleDirectories.map(directory => (
+          {pending.directories.map(directory => (
             <li key={directory}>
               <code>{directory}</code>
             </li>
           ))}
         </ul>
-        {hiddenCount > 0 ? (
-          <p className="sparse-checkout-note">
-            Plus {hiddenCount.toLocaleString()} more reviewed{' '}
-            {hiddenCount === 1 ? 'directory' : 'directories'}.
-          </p>
-        ) : null}
       </div>
     )
   }

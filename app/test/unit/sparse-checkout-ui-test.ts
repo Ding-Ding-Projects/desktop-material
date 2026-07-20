@@ -49,6 +49,12 @@ describe('Sparse checkout native UI contracts', () => {
     assert.match(component, /aria-current=/)
     assert.match(component, /data-verification="sparse-checkout-review"/)
     assert.match(component, /Reviewed directory selection/)
+    assert.match(component, /Step 2 is locked to the reviewed selection/)
+    assert.match(component, /Step 3 finished/)
+    assert.match(component, /Selected roots/)
+    assert.match(component, /Added roots/)
+    assert.match(component, /pending\.directories\.map/)
+    assert.doesNotMatch(component, /pending\.directories\.slice/)
   })
 
   it('keeps all commands shell-free with fixed argv and stdin patterns', () => {
