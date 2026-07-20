@@ -196,6 +196,32 @@ test('multi-window capture opens the selected repository context menu', () => {
   )
 })
 
+test('submodule context capture waits for its final unanimated surface', () => {
+  const submodule = sceneSource('submodule-context')
+  for (const contract of [
+    "document.querySelector('#submodule-manager') === null",
+    "document.querySelector('.changes-interstitial')",
+    "heading?.textContent?.trim() === 'No local changes'",
+    "document.querySelector('.submodule-repository-context')",
+    "document.querySelector('#repository-sidebar')",
+    'root.getAnimations({ subtree: true })',
+    'iterations !== Infinity',
+    'animation.pending',
+    "animation.playState === 'running'",
+    'activeFiniteAnimations.length === 0',
+    'settled temporary submodule Changes surface',
+    'requestAnimationFrame(() => requestAnimationFrame(',
+  ]) {
+    assert.ok(submodule.includes(contract), `submodule gate misses ${contract}`)
+  }
+  assert.ok(!submodule.includes('await sleep(900)'))
+  assert.ok(
+    submodule.indexOf('settled temporary submodule Changes surface') <
+      submodule.indexOf("capture('material-submodule-context')"),
+    'the final surface and animation gates must run before capture'
+  )
+})
+
 test('new prerequisite scenes use deterministic synthetic owner flows', () => {
   const expected = new Map([
     ['anchored-appearance', 'material-customization'],

@@ -2750,7 +2750,32 @@ scene('submodule-context', async () => {
     `document.querySelector('.submodule-context-back')?.getAttribute('aria-label')?.length > 0`,
     'named Back control'
   )
-  await sleep(900)
+  await waitFor(
+    `(() => {
+      const context = document.querySelector('.submodule-repository-context')
+      const sidebar = document.querySelector('#repository-sidebar')
+      const interstitial = document.querySelector('.changes-interstitial')
+      const heading = interstitial?.querySelector('h1')
+      if (!(context instanceof HTMLElement) || !(sidebar instanceof HTMLElement) ||
+          !(interstitial instanceof HTMLElement)) return false
+      const activeFiniteAnimations = [context, sidebar, interstitial]
+        .flatMap(root => root.getAnimations({ subtree: true }))
+        .filter((animation, index, animations) => animations.indexOf(animation) === index)
+        .filter(animation => {
+          const iterations = animation.effect?.getTiming().iterations ?? 1
+          return iterations !== Infinity &&
+            (animation.pending || animation.playState === 'running')
+        })
+      return document.querySelector('#submodule-manager') === null &&
+        heading?.textContent?.trim() === 'No local changes' &&
+        activeFiniteAnimations.length === 0
+    })()`,
+    'settled temporary submodule Changes surface',
+    30000
+  )
+  await evaluate(
+    `new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))`
+  )
   await parkPointer()
   await capture('material-submodule-context')
 
