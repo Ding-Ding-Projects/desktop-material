@@ -2,11 +2,14 @@
 
 ## Current status
 
-Milestones **M0 through M21 are shipped on `main`**. The concise public status
-and current maintenance gates live in [`ROADMAP.md`](ROADMAP.md); this document
-keeps the detailed implementation ledger, architecture contracts, and
-historical acceptance evidence. Build, screenshot, CI, Pages, wiki, privacy,
-and cleanup receipts remain in [`HANDOFF.md`](HANDOFF.md) and the publish-mode
+Milestones **M0 through M21 are shipped on `main`**. M22 owner-scoped management
+remains in its separately tracked visual-publication acceptance, while the M23
+Ollama model manager is implementation-complete and entering publication
+acceptance. The concise public status and current maintenance gates live in
+[`ROADMAP.md`](ROADMAP.md); this document keeps the detailed implementation
+ledger, architecture contracts, and historical acceptance evidence. Build,
+screenshot, CI, Pages, wiki, privacy, and cleanup receipts remain in
+[`HANDOFF.md`](HANDOFF.md) and the publish-mode
 [run manifests](.codex/run-manifests/).
 
 Post-M19 appearance customization, adaptive app-bar overflow, Material entry
@@ -43,6 +46,21 @@ repository, Git, provider, store/dispatcher, and Material UI contracts rather
 than introducing a new application HTTP endpoint, so no new Postman collection
 is applicable.
 
+M23 adds a purpose-built local Ollama lifecycle workspace to Copilot provider
+preferences. It separates health/version, installed inventory, running state,
+and selected-model details; supports search/filter, streamed pull with
+cancellation, copy and guarded rename, load/unload, and confirmed delete; and
+synchronizes the authoritative installed inventory back to the provider's
+selectable Copilot model list. Endpoint validation requires one terminal `/v1`,
+permits loopback HTTP or deliberate remote HTTPS with reverse-proxy prefixes,
+and derives fixed native manager routes while rejecting credential-bearing or
+ambiguous URLs.
+
+All visible and accessible strings follow English, playful Hong Kong Cantonese,
+or bilingual mode. The complete workflow, failure, privacy, and API contracts
+are in
+[`docs/features/integrations/ollama-model-manager.md`](docs/features/integrations/ollama-model-manager.md).
+
 ## Product milestone ledger
 
 | Milestone | Status | Delivered capability | Important implementation paths |
@@ -69,6 +87,8 @@ is applicable.
 | **M19 — Guided Git, GitHub, and provider parity** | **COMPLETE** | Native P0/P1/P2/Later workflows: PR lifecycle, Actions artifacts and effective rules, patch series, structured commit rewrite, signing, LFS, worktrees, branch visibility, merge-tree conflict preview, bisect, complete stash/remote/hooks administration, Releases/assets, richer GitHub Issues, and provider-neutral triage. Exact app source `e282eb2fce` is built and accepted off-screen; current `main` documentation and screenshot evidence are complete. | `app/src/ui/repository-tools/`, `app/src/ui/actions/`, `app/src/ui/github-pull-request-lifecycle/`, `app/src/ui/github-releases/`, `app/src/ui/github-issues/`, `app/src/ui/worktrees/`, `app/src/ui/stashing/`, `app/src/lib/provider-triage.ts` |
 | **M20 — Platform wave** | **COMPLETE** | Secure LAN agent access, full notification/Releases depth, submodule workflows, Material context menus, compact-surface corrections, and refreshed gallery evidence. | `app/src/main-process/agent-server/`, `app/src/ui/notifications/`, `app/src/ui/github-releases/`, `app/src/ui/submodules/`, `app/styles/ui/`, `docs/assets/screenshots/` |
 | **M21 — Advanced workflow completeness** | **COMPLETE** | All 30 demand-backed identity/workspace, PR, stash/tag, history/navigation, diff, editor/integration, network, and live/offline Projects requests, with reviewed mutation boundaries and exact-context guards. | `app/src/lib/github-pull-request*`, `app/src/lib/git/`, `app/src/ui/github-pull-request-lifecycle/`, `app/src/ui/repository-tools/`, `app/src/ui/github-projects/`, `app/src/ui/stashing/`, `app/src/ui/tag/`, `docs/features/` |
+| **M22 — Owner-scoped management and complete visual refresh** | **IMPLEMENTATION COMPLETE; VISUAL REFRESH PAUSED** | Owner-scoped anchored appearance/history, raw split cheap LFS, repository discovery and submodule/subtree expansion, and safe cross-manager bulk/regex coverage. Its original 68-image visual-refresh acceptance remains tracked separately. | `app/src/ui/appearance/`, `app/src/lib/cheap-lfs/`, `app/src/ui/submodules/`, `app/src/ui/subtrees/`, `ROADMAP.md`, `.codex/run-manifests/` |
+| **M23 — Full Ollama model manager** | **IMPLEMENTATION COMPLETE; PUBLICATION ACCEPTANCE IN PROGRESS** | Local health/version, installed/running inventory, search/filter/details, cancellable pull progress, copy/rename, load/unload, confirmed delete, provider-model synchronization, guarded endpoints, and localized accessible states. | `app/src/lib/ollama/`, `app/src/ui/copilot/ollama-model-manager.tsx`, `app/styles/ui/_ollama-model-manager.scss`, `docs/features/integrations/ollama-model-manager.md` |
 
 ## M19 guided parity implementation ledger
 

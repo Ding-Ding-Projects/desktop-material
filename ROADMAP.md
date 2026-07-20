@@ -4,9 +4,10 @@ Updated: **July 20, 2026**
 
 Desktop Material's feature roadmap is complete through the **M21 advanced
 workflow wave** below, with the **M22 owner-scoped management and publication
-wave** now in active acceptance. This file is the compact public source of truth;
-implementation details and historical test receipts stay in
-[`PLAN.md`](PLAN.md) and [`HANDOFF.md`](HANDOFF.md).
+wave** in its separately tracked visual acceptance and the **M23 full Ollama
+model manager** entering publication acceptance. This file is the compact
+public source of truth; implementation details and historical test receipts
+stay in [`PLAN.md`](PLAN.md) and [`HANDOFF.md`](HANDOFF.md).
 
 ## Platform support
 
@@ -15,6 +16,29 @@ x64/arm64 builds, the Windows x64 full-unit and packaged-E2E lanes, and the
 Windows x64 installer/release workflow. macOS and Linux application runtimes
 and packages are outside the roadmap; non-Windows runners may still host
 platform-neutral repository automation.
+
+## M23 — Full Ollama model management (July 20, 2026) — **Implementation complete; publication acceptance in progress**
+
+- **Settings → Copilot → Providers** offers an Ollama preset and a dedicated
+  **Manage models** workspace instead of requiring native API editing.
+- Health/version, installed inventory, running inventory, search/filter, and
+  bounded model metadata remain separately refreshable, with explicit empty,
+  unavailable, and partial states.
+- Pull streams bounded progress and supports cancellation. Copy and guarded
+  rename, load/unload, and exact-name confirmed deletion refresh the affected
+  inventories without allowing concurrent actions to retarget another model.
+- Successful inventory changes synchronize Ollama's installed models back to
+  the provider's selectable Copilot models while retaining matching model
+  settings and reporting any persistence split outcome.
+- Plain HTTP is loopback-only; deliberate remote endpoints require HTTPS. The
+  saved provider ends in terminal `/v1`, optional reverse-proxy prefixes are
+  retained, native `/api/*` routes are fixed, and embedded credentials, query
+  strings, fragments, oversized responses, and stale requests fail closed or
+  remain bounded.
+- The complete workspace follows English, playful Hong Kong Cantonese, and
+  bilingual language modes plus keyboard, status-announcement, compact-window,
+  and reduced-motion contracts. See the
+  [Ollama model manager feature guide](docs/features/integrations/ollama-model-manager.md).
 
 ## M22 — Owner-scoped management and complete visual refresh (July 19–20, 2026) — **Implementation complete; visual refresh paused**
 
@@ -115,6 +139,7 @@ shipped.
 | **M20** | **Complete** | Secure LAN agent access, provider inbox and Releases depth, submodule workflows, Material context menus, compact-surface fixes, and refreshed gallery evidence. |
 | **M21** | **Complete** | Thirty demand-backed identity, PR, stash/tag, navigation, diff, integration, and Projects workflow closures with bounded safety contracts. |
 | **M22** | **Implementation complete; visual refresh paused** | Owner-scoped anchored appearance/history, raw split cheap LFS, repository discovery and submodule/subtree expansion, safe cross-manager bulk/regex coverage, verified by build/tests; 68-image publication refresh remains pending. |
+| **M23** | **Implementation complete; publication acceptance in progress** | Full Ollama health/version, installed/running inventory, search/filter/details, cancellable pull, copy/rename, load/unload, confirmed delete, authoritative provider-model sync, guarded endpoints, and localized accessible states. |
 
 The completed milestone waves remain shipped. The temporary-submodule
 navigation and CI/release hardening items below completed local acceptance and
@@ -128,6 +153,7 @@ in `HANDOFF.md` and the canonical wiki.
 
 | Work | State | Required proof |
 |---|---|---|
+| M23 full Ollama model manager | **Implementation complete; publication acceptance in progress** | Endpoint/parser, lifecycle, synchronization, stale-request, localization, accessibility, and responsive-layout tests; exact low-level-MCP production build; deterministic loopback Ollama exercise; original-resolution privacy-safe manager capture; pushed Windows CI, Pages, wiki, and cleanup receipts. |
 | M22 integrated owner-scoped management wave | **Implementation merged locally; final acceptance in progress** | Cheap-LFS/SSH/discovery checkpoint `cdedb4afb8` is already on `origin/main`. The combined owner-scoped appearance/repository-management commit is rebased locally as `04581544cf`; TypeScript and 166 focused tests pass. Remote-repository submodule creation is implemented and focused-tested. Remaining proof is the expanded bulk/regex audit, final exact MCP build, full 68-image privacy-safe headless refresh, full unit/lint/format gates, push, remote CI/CodeQL/Pages/wiki verification, and topology cleanup. |
 | Temporary submodule repository navigation and explicit language modes | **Complete; release verified** | Run `20260718-232824-ci-10-pass-submodule-navigation` opened only initialized submodules; kept temporary children out of the repository list, Recent, tabs, and persisted last selection; returned nested navigation to the persisted root; rejected stale, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets; covered all Back styles/labels and exact English, playful Hong Kong Cantonese, and bilingual modes; and passed restart, keyboard, compact, dark, 200%-requested auto-fit, ten accepted screenshot passes, and a post-build 1440×960 child/read-only/Back regression. A later fresh-bundle race regression synchronously exercised duplicate Open and Back activation: it preserved one persisted repository and tab, restored the root once, and showed no error. Initial remote CI exposed a macOS arm64 symlink-error ordering issue; correction `98d93ccc` passed all seven CI jobs and published `v3.6.3-beta3-b0000000165`. |
 | CI updater port and release gating | **Complete; release verified** | Local contracts verify a per-job exact loopback updater URL at build and runtime, successful exact-SHA CI gating before installer publication, immutable-tag and `origin/main` checks both before packaging and immediately before publication, required non-empty assets, least-privilege release-PR read access, and one publication action. The original failed CI correctly skipped its downstream installer run. The correction passed remote Windows packaged E2E, all remaining matrix jobs, CodeQL, and [Build Installers 29697597981](https://github.com/codingmachineedge/desktop-material/actions/runs/29697597981), which published the five required assets in `v3.6.3-beta3-b0000000165`. |
