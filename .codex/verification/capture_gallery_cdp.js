@@ -1660,9 +1660,10 @@ async function seedProfile() {
         fixtureTokenPresent:
           typeof fixtureAccount?.token === 'string' &&
           fixtureAccount.token.length > 0,
-        fixtureCopilotEnabled:
-          fixtureAccount?.isCopilotDesktopEnabled === true &&
-          fixtureAccount?.copilotLicenseType === 'COPILOT_INDIVIDUAL',
+        fixtureCopilotFeatureEnabled:
+          fixtureAccount?.features?.includes(
+            'desktop_enable_copilot_sdk_commit_message_generation'
+          ) === true,
         repositoryMatched: Boolean(freshRepository?.gitHubRepository),
         selectedRepositoryMatched: Boolean(
           appStore.selectedRepository?.gitHubRepository
@@ -1674,7 +1675,8 @@ async function seedProfile() {
       hydrated?.accountCount !== 1 ||
       hydrated?.fixtureAccountMatched !== true ||
       hydrated?.fixtureTokenPresent !== true ||
-      (ollamaFixture !== null && hydrated?.fixtureCopilotEnabled !== true) ||
+      (ollamaFixture !== null &&
+        hydrated?.fixtureCopilotFeatureEnabled !== true) ||
       hydrated?.repositoryMatched !== true ||
       hydrated?.selectedRepositoryMatched !== true
     ) {

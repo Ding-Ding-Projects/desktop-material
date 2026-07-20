@@ -686,7 +686,9 @@ test('fixture account hydration returns only privacy-safe receipts', () => {
     'accountCount: accounts.length',
     'fixtureAccountMatched: fixtureAccount !== undefined',
     'fixtureTokenPresent:',
-    'fixtureCopilotEnabled:',
+    'fixtureCopilotFeatureEnabled:',
+    "fixtureAccount?.features?.includes(",
+    "'desktop_enable_copilot_sdk_commit_message_generation'",
     'repositoryMatched: Boolean(freshRepository?.gitHubRepository)',
     'selectedRepositoryMatched: Boolean(',
   ]) {
@@ -695,6 +697,8 @@ test('fixture account hydration returns only privacy-safe receipts', () => {
       `missing hydration contract: ${contract}`
     )
   }
+  assert.ok(!seed.includes('fixtureAccount?.isCopilotDesktopEnabled'))
+  assert.ok(!seed.includes('fixtureAccount?.copilotLicenseType'))
   for (const leak of [
     'login: value.login',
     'endpoint: value.endpoint',
