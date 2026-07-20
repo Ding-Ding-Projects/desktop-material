@@ -73,9 +73,9 @@ before this manifest can be marked complete.
 - Run id: `m23-49bcbf-a7e3`.
 - Exact MCP endpoint: `http://127.0.0.1:8765/mcp`; scheduled task and checkout
   were revalidated at `547a102a49169d41da876de217856229ab7c03a1`.
-- Exact application build: source `2d33b2b277d5cb4224462f7273d1c3f276726416`;
+- Exact application build: source `c1425854144bc9e9b51224c971e88876384d14d5`;
   the required unpackaged production command returned `client_ok: true`, exit
-  code 0, and no timeout after 196.26 seconds.
+  code 0, and no timeout after 198.99 seconds.
 - Owned P0 root: `%TEMP%\desktop-material-p0-ui-m23-49bcbf-a7e3`;
   isolated profile, fixture clone, capture directory, and provider state are
   contained beneath it. Synthetic provider PID `20484`, loopback port `58441`,
