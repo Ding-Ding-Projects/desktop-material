@@ -335,10 +335,11 @@ describe('GitLab merge request store', () => {
       })
     )
     const repo = repository()
-    const review = store.createMutationReview(repo, mergeRequest)
+    const reviewedMergeRequest = await store.get(repo, 7)
+    const review = store.createMutationReview(repo, reviewedMergeRequest)
 
-    await store.update(repo, review, { title: 'Updated' })
-    await store.setState(repo, review, 'close')
+    const updated = await store.update(repo, review, { title: 'Updated' })
+    const stateChanged = await store.setState(repo, review, 'close')
     await store.approve(repo, review)
     await store.unapprove(repo, review)
 
@@ -348,6 +349,10 @@ describe('GitLab merge request store', () => {
       assert.equal(call[2], headSHA)
       assert.ok(call.at(-1) instanceof AbortSignal)
     }
+    assert.equal(calls[0][3], mergeRequest.updatedAt)
+    assert.equal(calls[1][3], mergeRequest.updatedAt)
+    assert.doesNotThrow(() => store.createMutationReview(repo, updated))
+    assert.doesNotThrow(() => store.createMutationReview(repo, stateChanged))
 
     accountsStore.update([selected.withToken('rotated-token')])
     await assert.rejects(
@@ -355,5 +360,46 @@ describe('GitLab merge request store', () => {
       GitLabMergeRequestContextChangedError
     )
     assert.equal(calls.length, 4)
+  })
+
+  it('rejects arbitrary and cross-repository snapshots with colliding IDs and HEADs', async () => {
+    const accountsStore = new FakeAccountsStore([selected])
+    const snapshot = { ...mergeRequest }
+    const store = await storeWith(accountsStore, () =>
+      fakeAPI({
+        listGitLabMergeRequests: async () => ({
+          items: [snapshot],
+          capped: false,
+        }),
+      })
+    )
+    const firstRepository = repository(selected, 'first')
+    const collidingRepository = repository(selected, 'second')
+    const issued = (await store.list(firstRepository)).items[0]
+    const issuedReview = store.createMutationReview(firstRepository, issued)
+
+    assert.throws(
+      () => store.createMutationReview(collidingRepository, issued),
+      GitLabMergeRequestContextChangedError
+    )
+    assert.throws(
+      () =>
+        store.createMutationReview(firstRepository, {
+          ...issued,
+          projectId: issued.projectId,
+          iid: issued.iid,
+          headSHA: issued.headSHA,
+        }),
+      GitLabMergeRequestContextChangedError
+    )
+    Object.assign(issued, { iid: 8 })
+    assert.throws(
+      () => store.createMutationReview(firstRepository, issued),
+      GitLabMergeRequestContextChangedError
+    )
+    await assert.rejects(
+      store.approve(firstRepository, { ...issuedReview }),
+      GitLabMergeRequestContextChangedError
+    )
   })
 })

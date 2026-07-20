@@ -11,6 +11,7 @@ import {
 import {
   boundedGitLabMergeRequestResponse,
   parseGitLabMergeRequest,
+  parseGitLabMergeRequestApprovalMutation,
   parseGitLabMergeRequestApprovalState,
   parseGitLabMergeRequestMemberPage,
   parseGitLabMergeRequestPage,
@@ -82,6 +83,38 @@ describe('GitLab merge request bounded model', () => {
     )
     assert.equal(approval.approvalsLeft, 1)
     assert.equal(approval.approvedBy[0].user.username, 'approver')
+
+    const approvalWithoutAuthoritativeState = {
+      iid: 7,
+      approvals_required: 2,
+      approvals_left: 0,
+      approved_by: [],
+    }
+    assert.throws(
+      () =>
+        parseGitLabMergeRequestApprovalState(
+          approvalWithoutAuthoritativeState,
+          webRoot,
+          7
+        ),
+      GitLabMergeRequestError
+    )
+    assert.doesNotThrow(() =>
+      parseGitLabMergeRequestApprovalMutation(
+        approvalWithoutAuthoritativeState,
+        webRoot,
+        7
+      )
+    )
+    assert.throws(
+      () =>
+        parseGitLabMergeRequestApprovalMutation(
+          { ...approvalWithoutAuthoritativeState, approved: 'true' },
+          webRoot,
+          7
+        ),
+      GitLabMergeRequestError
+    )
 
     const members = parseGitLabMergeRequestMemberPage(
       [{ ...user(5, 'maintainer'), access_level: 40 }],
@@ -218,6 +251,14 @@ describe('GitLab merge request bounded model', () => {
     )
     assert.equal(parsed.readiness.kind, 'blocked')
     assert.equal(parsed.readiness.hasConflicts, true)
+    assert.throws(
+      () =>
+        parseGitLabMergeRequest(
+          mergeRequest({ has_conflicts: undefined }),
+          webRoot
+        ),
+      GitLabMergeRequestError
+    )
   })
 
   it('rejects malformed provider shapes, paths, and oversized pages', () => {

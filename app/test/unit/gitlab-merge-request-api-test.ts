@@ -4,11 +4,13 @@ import { getGitLabAPIEndpoint, GitLabAPI } from '../../src/lib/api'
 import {
   GitLabMergeRequestContextChangedError,
   GitLabMergeRequestError,
+  GitLabMergeRequestMutationOutcomeUnknownError,
 } from '../../src/lib/gitlab-merge-request'
 
 const endpoint = 'https://gitlab.example.test/gitlab'
 const webRoot = endpoint
 const headSHA = 'a'.repeat(40)
+const updatedAt = '2026-07-20T10:00:00Z'
 
 function user(id: number, username = `user-${id}`) {
   return {
@@ -42,7 +44,7 @@ function mergeRequest(
     reviewers: [],
     web_url: `${webRoot}/group/project/-/merge_requests/${iid}`,
     created_at: '2026-07-19T10:00:00Z',
-    updated_at: '2026-07-20T10:00:00Z',
+    updated_at: updatedAt,
     merged_at: null,
     closed_at: null,
     detailed_merge_status: 'mergeable',
@@ -77,17 +79,20 @@ interface IRequestRecord {
 async function withFetchQueue(
   work: (
     api: GitLabAPI,
-    responses: Response[],
+    responses: Array<Response | Error>,
     requests: IRequestRecord[]
   ) => Promise<void>
 ) {
   const originalFetch = globalThis.fetch
-  const responses = new Array<Response>()
+  const responses = new Array<Response | Error>()
   const requests = new Array<IRequestRecord>()
   globalThis.fetch = async (url, options) => {
     requests.push({ url: String(url), options })
     const response = responses.shift()
     assert.ok(response, `unexpected request to ${String(url)}`)
+    if (response instanceof Error) {
+      throw response
+    }
     return response
   }
   try {
@@ -158,6 +163,7 @@ describe('GitLab merge request API', () => {
         'group/subgroup/project',
         7,
         headSHA,
+        updatedAt,
         {
           title: 'Renamed',
           targetBranch: 'release',
@@ -184,12 +190,16 @@ describe('GitLab merge request API', () => {
         'group/subgroup/project',
         7,
         headSHA,
+        updatedAt,
         'close'
       )
       assert.equal(closed.state, 'closed')
       assert.deepEqual(JSON.parse(String(requests[6].options?.body)), {
         state_event: 'close',
       })
+      assert.ok(
+        requests.every(request => request.options?.redirect === 'error')
+      )
     })
   })
 
@@ -236,6 +246,7 @@ describe('GitLab merge request API', () => {
         'group/subgroup/project',
         7,
         headSHA,
+        updatedAt,
         { title: 'Updated' }
       )
       assert.equal(updated.title, 'Updated')
@@ -243,6 +254,35 @@ describe('GitLab merge request API', () => {
       assert.equal(requests[5].options?.method, 'PUT')
       assert.match(requests[6].url, /\/merge_requests\/7\/approvals$/)
       assert.equal(requests.length, 7)
+    })
+  })
+
+  it('preflights the reviewed HEAD and timestamp and sends no stale PUT', async () => {
+    await withFetchQueue(async (api, responses, requests) => {
+      for (const stale of [
+        { updated_at: '2026-07-20T10:00:01Z' },
+        { sha: 'b'.repeat(40) },
+      ]) {
+        const before = requests.length
+        responses.push(jsonResponse(mergeRequest(7, stale)))
+        await assert.rejects(
+          api.updateGitLabMergeRequest(
+            'group/subgroup/project',
+            7,
+            headSHA,
+            updatedAt,
+            { title: 'Must not be sent' }
+          ),
+          GitLabMergeRequestContextChangedError
+        )
+        const attempted = requests.slice(before)
+        assert.equal(attempted.length, 1)
+        assert.equal(attempted[0].options?.method, 'GET')
+        assert.equal(
+          attempted.some(request => request.options?.method === 'PUT'),
+          false
+        )
+      }
     })
   })
 
@@ -292,6 +332,81 @@ describe('GitLab merge request API', () => {
         /projects\/group%2Fsubgroup%2Fproject\/members\/all\?page=1&per_page=100/
       )
 
+      const mergeRequestCollection =
+        `${endpoint}/api/v4/projects/group%2Fsubgroup%2Fproject/merge_requests` +
+        '?state=opened&order_by=updated_at&sort=desc' +
+        '&with_merge_status_recheck=true'
+      responses.push(
+        jsonResponse(
+          Array.from({ length: 100 }, (_, index) => mergeRequest(index + 1)),
+          200,
+          {
+            Link: `<${mergeRequestCollection}&page=2&per_page=100>; rel="next"`,
+          }
+        ),
+        jsonResponse([mergeRequest(101)], 200, {
+          Link: `<${mergeRequestCollection}&page=1&per_page=100>; rel="prev"`,
+        })
+      )
+      const linkPaginated = await api.listGitLabMergeRequests(
+        'group/subgroup/project'
+      )
+      assert.equal(linkPaginated.items.length, 101)
+      assert.equal(linkPaginated.capped, false)
+      assert.equal(
+        requests[5].url,
+        `${mergeRequestCollection}&page=2&per_page=100`
+      )
+
+      const beforeCrossOrigin = requests.length
+      responses.push(
+        jsonResponse([mergeRequest(1)], 200, {
+          Link: '<https://attacker.example/steal?page=2&per_page=100>; rel="next"',
+        })
+      )
+      await assert.rejects(
+        api.listGitLabMergeRequests('group/subgroup/project'),
+        (error: unknown) =>
+          error instanceof GitLabMergeRequestError &&
+          error.kind === 'invalid-response'
+      )
+      assert.equal(requests.length, beforeCrossOrigin + 1)
+      assert.ok(
+        requests.every(request => request.options?.redirect === 'error')
+      )
+
+      const beforeQueryDrift = requests.length
+      responses.push(
+        jsonResponse([mergeRequest(1)], 200, {
+          Link: `<${mergeRequestCollection.replace(
+            'state=opened',
+            'state=closed'
+          )}&page=2&per_page=100>; rel="next"`,
+        })
+      )
+      await assert.rejects(
+        api.listGitLabMergeRequests('group/subgroup/project'),
+        (error: unknown) =>
+          error instanceof GitLabMergeRequestError &&
+          error.kind === 'invalid-response'
+      )
+      assert.equal(requests.length, beforeQueryDrift + 1)
+
+      const beforeHeaderDisagreement = requests.length
+      responses.push(
+        jsonResponse([mergeRequest(1)], 200, {
+          'x-next-page': '',
+          Link: `<${mergeRequestCollection}&page=2&per_page=100>; rel="next"`,
+        })
+      )
+      await assert.rejects(
+        api.listGitLabMergeRequests('group/subgroup/project'),
+        (error: unknown) =>
+          error instanceof GitLabMergeRequestError &&
+          error.kind === 'invalid-response'
+      )
+      assert.equal(requests.length, beforeHeaderDisagreement + 1)
+
       responses.push(
         jsonResponse([mergeRequest(1)], 200, { 'x-next-page': '4' })
       )
@@ -319,7 +434,15 @@ describe('GitLab merge request API', () => {
 
   it('pins approvals to the reviewed HEAD and guards unapprove staleness', async () => {
     await withFetchQueue(async (api, responses, requests) => {
+      const mutationReceipt = {
+        iid: 7,
+        approvals_required: 1,
+        approvals_left: 0,
+        approved_by: [],
+      }
       responses.push(
+        jsonResponse(mergeRequest(7)),
+        jsonResponse(mutationReceipt),
         jsonResponse(approval(7, true)),
         jsonResponse(mergeRequest(7))
       )
@@ -329,13 +452,16 @@ describe('GitLab merge request API', () => {
         headSHA
       )
       assert.equal(approved.approved, true)
-      assert.match(requests[0].url, /\/merge_requests\/7\/approve$/)
-      assert.deepEqual(JSON.parse(String(requests[0].options?.body)), {
+      assert.equal(requests[1].options?.method, 'POST')
+      assert.match(requests[1].url, /\/merge_requests\/7\/approve$/)
+      assert.deepEqual(JSON.parse(String(requests[1].options?.body)), {
         sha: headSHA,
       })
+      assert.match(requests[2].url, /\/merge_requests\/7\/approvals$/)
 
       responses.push(
         jsonResponse(mergeRequest(7)),
+        jsonResponse({ ...mutationReceipt, approvals_left: 1 }),
         jsonResponse(approval(7, false)),
         jsonResponse(mergeRequest(7))
       )
@@ -345,15 +471,122 @@ describe('GitLab merge request API', () => {
         headSHA
       )
       assert.equal(unapproved.approved, false)
-      assert.match(requests[3].url, /\/merge_requests\/7\/unapprove$/)
-      assert.equal(requests[3].options?.body, undefined)
+      assert.equal(requests[5].options?.method, 'POST')
+      assert.match(requests[5].url, /\/merge_requests\/7\/unapprove$/)
+      assert.equal(requests[5].options?.body, undefined)
+      assert.match(requests[6].url, /\/merge_requests\/7\/approvals$/)
 
       responses.push(jsonResponse(mergeRequest(7, { sha: 'b'.repeat(40) })))
       await assert.rejects(
         api.unapproveGitLabMergeRequest('group/subgroup/project', 7, headSHA),
         GitLabMergeRequestContextChangedError
       )
-      assert.equal(requests.length, 6)
+      assert.equal(requests.length, 9)
+
+      responses.push(
+        jsonResponse(mergeRequest(7)),
+        jsonResponse(mutationReceipt),
+        jsonResponse(approval(7, true)),
+        jsonResponse(mergeRequest(7, { sha: 'b'.repeat(40) }))
+      )
+      await assert.rejects(
+        api.approveGitLabMergeRequest('group/subgroup/project', 7, headSHA),
+        GitLabMergeRequestMutationOutcomeUnknownError
+      )
+      assert.equal(requests[10].options?.method, 'POST')
+      assert.equal(requests.length, 13)
+      assert.ok(
+        requests.every(request => request.options?.redirect === 'error')
+      )
+    })
+  })
+
+  it('does not approve while GitLab is still checking readiness', async () => {
+    await withFetchQueue(async (api, responses, requests) => {
+      for (const status of [
+        'checking',
+        'approvals_syncing',
+        'preparing',
+        'unchecked',
+      ]) {
+        const before = requests.length
+        responses.push(
+          jsonResponse(mergeRequest(7, { detailed_merge_status: status }))
+        )
+        await assert.rejects(
+          api.approveGitLabMergeRequest('group/subgroup/project', 7, headSHA),
+          (error: unknown) =>
+            error instanceof GitLabMergeRequestError &&
+            error.kind === 'conflict'
+        )
+        const attempted = requests.slice(before)
+        assert.equal(attempted.length, 1)
+        assert.equal(attempted[0].options?.method, 'GET')
+        assert.equal(
+          attempted.some(request => request.options?.method === 'POST'),
+          false
+        )
+      }
+    })
+  })
+
+  it('distinguishes dispatched mutation uncertainty from definite failures', async () => {
+    await withFetchQueue(async (api, responses, requests) => {
+      const draft = {
+        sourceBranch: 'topic/outcome',
+        targetBranch: 'main',
+        title: 'Outcome',
+        description: '',
+        draft: false,
+        reviewerIds: [],
+        assigneeIds: [],
+      }
+
+      responses.push(new Error('connection ended after dispatch'))
+      await assert.rejects(
+        api.createGitLabMergeRequest('group/subgroup/project', draft),
+        (error: unknown) =>
+          error instanceof GitLabMergeRequestMutationOutcomeUnknownError &&
+          error.kind === 'outcome-unknown'
+      )
+
+      responses.push(jsonResponse({ message: 'conflict' }, 409))
+      await assert.rejects(
+        api.createGitLabMergeRequest('group/subgroup/project', draft),
+        (error: unknown) =>
+          error instanceof GitLabMergeRequestError &&
+          !(error instanceof GitLabMergeRequestMutationOutcomeUnknownError) &&
+          error.kind === 'conflict'
+      )
+
+      responses.push(new Response('{', { status: 201 }))
+      await assert.rejects(
+        api.createGitLabMergeRequest('group/subgroup/project', draft),
+        GitLabMergeRequestMutationOutcomeUnknownError
+      )
+
+      const beforeAbort = requests.length
+      const controller = new AbortController()
+      controller.abort()
+      await assert.rejects(
+        api.createGitLabMergeRequest(
+          'group/subgroup/project',
+          draft,
+          controller.signal
+        ),
+        (error: unknown) => (error as Error)?.name === 'AbortError'
+      )
+      assert.equal(requests.length, beforeAbort)
+
+      responses.push(new Error('read failed'))
+      await assert.rejects(
+        api.getGitLabMergeRequest('group/subgroup/project', 7),
+        (error: unknown) =>
+          error instanceof GitLabMergeRequestError && error.kind === 'network'
+      )
+      assert.ok(
+        requests.every(request => request.options?.redirect === 'error')
+      )
     })
   })
 

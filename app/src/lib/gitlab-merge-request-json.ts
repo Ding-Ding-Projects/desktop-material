@@ -377,7 +377,7 @@ export function parseGitLabMergeRequest(
   )
   const draft = draftState(mergeRequest, rawTitle)
   const status = detailedStatus(mergeRequest.detailed_merge_status)
-  const hasConflicts = requiredBoolean(mergeRequest.has_conflicts, false)
+  const hasConflicts = requiredBoolean(mergeRequest.has_conflicts)
   const blockingDiscussionsResolved = requiredBoolean(
     mergeRequest.blocking_discussions_resolved,
     false
@@ -457,11 +457,16 @@ export function parseGitLabMergeRequestPage(
   )
 }
 
-export function parseGitLabMergeRequestApprovalState(
+function parseGitLabMergeRequestApprovalResponse(
   value: unknown,
   webRoot: string,
   expectedIID?: number
-): IGitLabMergeRequestApprovalState {
+): {
+  readonly approval: Readonly<Record<string, unknown>>
+  readonly approvalsRequired: number
+  readonly approvalsLeft: number
+  readonly approvedBy: ReadonlyArray<IGitLabMergeRequestApprovalUser>
+} {
   const approval = record(value)
   if (
     expectedIID !== undefined &&
@@ -483,14 +488,42 @@ export function parseGitLabMergeRequestApprovalState(
   })
   const approvalsRequired = nonNegativeInteger(approval.approvals_required, 0)
   const approvalsLeft = nonNegativeInteger(approval.approvals_left, 0)
+  return { approval, approvalsRequired, approvalsLeft, approvedBy }
+}
+
+/** Parse the authoritative all-tier GET /approvals response. */
+export function parseGitLabMergeRequestApprovalState(
+  value: unknown,
+  webRoot: string,
+  expectedIID?: number
+): IGitLabMergeRequestApprovalState {
+  const { approval, approvalsRequired, approvalsLeft, approvedBy } =
+    parseGitLabMergeRequestApprovalResponse(value, webRoot, expectedIID)
   return {
-    approved: requiredBoolean(
-      approval.approved,
-      approvalsRequired === 0 || approvalsLeft === 0
-    ),
+    approved: requiredBoolean(approval.approved),
     approvalsRequired,
     approvalsLeft,
     approvedBy,
+  }
+}
+
+/**
+ * Validate an approve/unapprove mutation receipt. GitLab mutation receipts can
+ * omit `approved`, so callers must refresh GET /approvals before publishing a
+ * state rather than deriving edition-specific semantics from counts.
+ */
+export function parseGitLabMergeRequestApprovalMutation(
+  value: unknown,
+  webRoot: string,
+  expectedIID?: number
+): void {
+  const { approval } = parseGitLabMergeRequestApprovalResponse(
+    value,
+    webRoot,
+    expectedIID
+  )
+  if (approval.approved !== undefined) {
+    requiredBoolean(approval.approved)
   }
 }
 
