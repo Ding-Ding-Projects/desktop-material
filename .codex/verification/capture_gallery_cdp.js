@@ -3414,6 +3414,16 @@ scene('actions-artifact-page-two', async () => {
 scene('actions-sentinel', async () => {
   requireInspectorFixture()
   await captureSection('Actions', null, 2500)
+  const detailsClosed = await clickText('Close', {
+    within: '.actions-run-details',
+    optional: true,
+  })
+  if (detailsClosed) {
+    await waitFor(
+      `document.querySelector('.actions-run-details') === null`,
+      'closed Actions run details before sentinel evidence'
+    )
+  }
   for (let round = 0; round < 4; round++) {
     const more = await clickText('Load more runs', { optional: true })
     if (!more) {
@@ -3432,14 +3442,65 @@ scene('actions-sentinel', async () => {
     'Actions run page-two sentinel',
     30000
   )
-  await evaluate(`(() => {
-    const column = document.querySelector('.actions-run-column')
-    if (column instanceof HTMLElement) column.scrollTop = column.scrollHeight
-    const main = document.querySelector('.actions-view')
-    if (main instanceof HTMLElement) main.scrollTop = main.scrollHeight
+  const positioned = await evaluate(`(() => {
+    const title = ${JSON.stringify(InspectorRunTitle)}
+    const content = document.querySelector('.actions-content')
+    const list = document.querySelector('.actions-run-list')
+    const run = [...document.querySelectorAll('button.actions-run-select')]
+      .find(button => button.textContent?.includes(title))
+    if (!(content instanceof HTMLElement) || !(list instanceof HTMLElement) ||
+        !(run instanceof HTMLButtonElement)) return false
+    content.scrollTop = 0
+    const listBounds = list.getBoundingClientRect()
+    const runBounds = run.closest('.actions-run-card')?.getBoundingClientRect()
+    if (runBounds === undefined) return false
+    list.scrollTop += runBounds.top - listBounds.top -
+      Math.max(0, (list.clientHeight - runBounds.height) / 2)
     return true
   })()`)
-  await sleep(900)
+  if (!positioned) {
+    fail('The exact Actions inspector sentinel could not be positioned.')
+  }
+  await evaluate(
+    `new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve(true))))`
+  )
+  await sleep(520)
+  await waitFor(
+    `(() => {
+      const content = document.querySelector('.actions-content')
+      const list = document.querySelector('.actions-run-list')
+      const run = [...document.querySelectorAll('button.actions-run-select')]
+        .find(button => button.querySelector('.actions-run-summary strong')?.textContent?.trim() ===
+          ${JSON.stringify(InspectorRunTitle)})
+      const card = run?.closest('.actions-run-card')
+      const pagination = document.querySelector('.actions-run-pagination')
+      if (!(content instanceof HTMLElement) || !(list instanceof HTMLElement) ||
+          !(run instanceof HTMLButtonElement) || !(card instanceof HTMLElement) ||
+          !(pagination instanceof HTMLElement)) return false
+      const contentBounds = content.getBoundingClientRect()
+      const listBounds = list.getBoundingClientRect()
+      const cardBounds = card.getBoundingClientRect()
+      const paginationBounds = pagination.getBoundingClientRect()
+      const inside = (inner, outer) =>
+        inner.width > 0 && inner.height > 0 &&
+        inner.left >= outer.left - 0.5 && inner.top >= outer.top - 0.5 &&
+        inner.right <= outer.right + 0.5 && inner.bottom <= outer.bottom + 0.5
+      return content.scrollTop === 0 && list.scrollTop > 0 &&
+        document.querySelector('.actions-run-details') === null &&
+        run.getAttribute('aria-pressed') === 'false' &&
+        card.querySelector('.actions-run-number')?.textContent?.trim() === '#125' &&
+        pagination.textContent?.includes('${ready.workflowRunCount} loaded of ${
+      ready.workflowRunCount
+    } workflow runs') === true &&
+        document.querySelector('.actions-loading, .actions-inline-error[role="alert"]') === null &&
+        inside(cardBounds, listBounds) && inside(listBounds, contentBounds) &&
+        inside(paginationBounds, contentBounds) &&
+        contentBounds.left >= 0 && contentBounds.top >= 0 &&
+        contentBounds.right <= window.innerWidth && contentBounds.bottom <= window.innerHeight
+    })()`,
+    'visible exact Actions inspector sentinel',
+    30000
+  )
   await parkPointer()
   await capture('material-actions-sentinel-headless')
 })
