@@ -480,6 +480,7 @@
 
   .regex-test-sample {
     min-width: 0;
+    min-height: calc(4.5em + 16px);
     max-width: 100%;
     resize: none;
     border: 0;
@@ -489,7 +490,9 @@
     color: var(--md-sys-color-on-surface);
     font-family: var(--font-family-monospace, monospace);
     font-size: 12px;
+    line-height: 1.5;
     outline: none;
+    overflow-y: auto;
   }
 
   .regex-test-preview {

@@ -150,7 +150,7 @@ export class RegexTestArea extends React.Component<IRegexTestAreaProps> {
         <textarea
           className="regex-test-sample"
           aria-label="Sample text for testing the regular expression"
-          rows={2}
+          rows={3}
           spellCheck={false}
           value={this.props.sample}
           onChange={this.onSampleChanged}

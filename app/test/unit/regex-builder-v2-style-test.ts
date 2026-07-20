@@ -8,6 +8,7 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
 const styles = read('app/styles/ui/_regex-builder.scss')
 const builder = read('app/src/ui/lib/regex-builder/regex-builder.tsx')
 const guide = read('app/src/ui/lib/regex-builder/regex-builder-guide.tsx')
+const tester = read('app/src/ui/lib/regex-builder/regex-test-area.tsx')
 
 describe('Regex builder v2 style contract', () => {
   it('keeps a 50px margin between the dialog and the viewport edges', () => {
@@ -109,6 +110,14 @@ describe('Regex builder v2 style contract', () => {
     assert.ok(guide.includes('[0-9a-f]{7}'))
     assert.ok(guide.includes('(\\\\w+)-\\\\1'))
     assert.ok(guide.includes('ui/(?!lib)'))
+  })
+
+  it('shows the first summary, body row, and hash without clipping', () => {
+    assert.match(tester, /className="regex-test-sample"[\s\S]*?rows=\{3\}/)
+    assert.match(
+      styles,
+      /\.regex-test-sample\s*\{[\s\S]*?min-height: calc\(4\.5em \+ 16px\);[\s\S]*?font-size: 12px;[\s\S]*?line-height: 1\.5;[\s\S]*?overflow-y: auto;/
+    )
   })
 
   it('uses design tokens only — no literal colors', () => {
