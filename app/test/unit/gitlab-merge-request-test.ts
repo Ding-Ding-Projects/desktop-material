@@ -110,6 +110,7 @@ describe('GitLab merge request bounded model', () => {
       mergeRequest({ title: 'Draft: Report', draft: true }),
       webRoot
     )
+    assert.equal(current.title, 'Report')
     const update = normalizeGitLabMergeRequestUpdate(current, {
       title: 'Renamed',
       draft: false,
@@ -134,6 +135,45 @@ describe('GitLab merge request bounded model', () => {
         }),
       GitLabMergeRequestError
     )
+  })
+
+  it('uses strict legacy draft fallbacks without contradictory metadata', () => {
+    assert.equal(
+      parseGitLabMergeRequest(
+        mergeRequest({
+          title: 'WIP: Legacy report',
+          draft: undefined,
+          work_in_progress: true,
+        }),
+        webRoot
+      ).draft,
+      true
+    )
+    const titleFallback = parseGitLabMergeRequest(
+      mergeRequest({ title: 'Draft: Prefix only', draft: undefined }),
+      webRoot
+    )
+    assert.equal(titleFallback.draft, true)
+    assert.equal(titleFallback.title, 'Prefix only')
+    assert.equal(
+      parseGitLabMergeRequest(
+        mergeRequest({ draft: undefined, work_in_progress: false }),
+        webRoot
+      ).draft,
+      false
+    )
+
+    for (const overrides of [
+      { draft: 'true' },
+      { draft: undefined, work_in_progress: 'true' },
+      { draft: true, work_in_progress: false },
+      { title: 'Draft: Conflict', draft: false },
+    ]) {
+      assert.throws(
+        () => parseGitLabMergeRequest(mergeRequest(overrides), webRoot),
+        GitLabMergeRequestError
+      )
+    }
   })
 
   it('rejects malformed provider shapes, paths, and oversized pages', () => {
@@ -186,6 +226,29 @@ describe('GitLab merge request bounded model', () => {
         error.kind === 'permission' &&
         !error.message.includes(secret)
     )
+
+    let reads = 0
+    let cancellations = 0
+    const neverFinishingBody = {
+      cancel: async () => {
+        cancellations++
+      },
+      getReader: () => {
+        reads++
+        return { read: () => new Promise(() => undefined) }
+      },
+    }
+    const unsuccessful = {
+      ok: false,
+      status: 500,
+      body: neverFinishingBody,
+    } as unknown as Response
+    await assert.rejects(
+      boundedGitLabMergeRequestResponse(unsuccessful),
+      GitLabMergeRequestError
+    )
+    assert.equal(cancellations, 1)
+    assert.equal(reads, 0)
   })
 
   it('prevents an ignored abort from publishing a stale completion', async () => {

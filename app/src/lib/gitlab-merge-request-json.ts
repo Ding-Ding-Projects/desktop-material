@@ -11,6 +11,7 @@ import {
   IGitLabMergeRequestMember,
   IGitLabMergeRequestUser,
   mergeReadiness,
+  removeGitLabDraftTitlePrefix,
   validateGitLabMergeRequestBranch,
   validateGitLabMergeRequestHeadSHA,
   validateGitLabMergeRequestIID,
@@ -170,13 +171,9 @@ export async function boundedGitLabMergeRequestResponse(
   signal?: AbortSignal
 ): Promise<unknown> {
   if (!response.ok) {
-    try {
-      await readBoundedGitLabMergeRequestJSON(response, signal)
-    } catch (error) {
-      if ((error as Error)?.name === 'AbortError') {
-        throw error
-      }
-    }
+    throwIfAborted(signal)
+    await response.body?.cancel().catch(() => undefined)
+    throwIfAborted(signal)
     throw statusError(response.status)
   }
   return readBoundedGitLabMergeRequestJSON(response, signal)
@@ -329,6 +326,38 @@ function detailedStatus(
     : 'unknown'
 }
 
+function draftState(
+  mergeRequest: Readonly<Record<string, unknown>>,
+  rawTitle: string
+): boolean {
+  const draft = mergeRequest.draft
+  const workInProgress = mergeRequest.work_in_progress
+  if (draft !== undefined && typeof draft !== 'boolean') {
+    return invalidResponse()
+  }
+  if (workInProgress !== undefined && typeof workInProgress !== 'boolean') {
+    return invalidResponse()
+  }
+  if (
+    typeof draft === 'boolean' &&
+    typeof workInProgress === 'boolean' &&
+    draft !== workInProgress
+  ) {
+    return invalidResponse()
+  }
+  const prefixed = removeGitLabDraftTitlePrefix(rawTitle) !== rawTitle
+  const declared =
+    typeof draft === 'boolean'
+      ? draft
+      : typeof workInProgress === 'boolean'
+      ? workInProgress
+      : prefixed
+  if (prefixed && !declared) {
+    return invalidResponse()
+  }
+  return declared
+}
+
 export function parseGitLabMergeRequest(
   value: unknown,
   webRoot: string,
@@ -343,7 +372,10 @@ export function parseGitLabMergeRequest(
     return invalidResponse()
   }
   const mergeRequestState = state(mergeRequest.state)
-  const draft = requiredBoolean(mergeRequest.draft)
+  const rawTitle = validateGitLabMergeRequestTitle(
+    requiredString(mergeRequest.title, GitLabMergeRequestTitleMaximumLength)
+  )
+  const draft = draftState(mergeRequest, rawTitle)
   const status = detailedStatus(mergeRequest.detailed_merge_status)
   const hasConflicts = requiredBoolean(mergeRequest.has_conflicts, false)
   const blockingDiscussionsResolved = requiredBoolean(
@@ -358,8 +390,10 @@ export function parseGitLabMergeRequest(
     id: positiveInteger(mergeRequest.id),
     iid,
     projectId: positiveInteger(mergeRequest.project_id),
+    // Keep the title/editor field independent from the provider's legacy
+    // Draft:/WIP: transport prefix. `draft` above remains authoritative.
     title: validateGitLabMergeRequestTitle(
-      requiredString(mergeRequest.title, GitLabMergeRequestTitleMaximumLength)
+      removeGitLabDraftTitlePrefix(rawTitle)
     ),
     description: description ?? '',
     state: mergeRequestState,
