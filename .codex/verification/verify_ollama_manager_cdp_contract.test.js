@@ -150,6 +150,7 @@ function validSurface() {
     detailsText: 'material-chat:7b 7B Q4_K_M completion tools',
     managerContained: true,
     preferencesContained: true,
+    managerAboveFooter: true,
     documentOverflow: false,
     bodyOverflow: false,
     managerOverflow: false,
@@ -158,6 +159,7 @@ function validSurface() {
       name: value,
     })),
     controlsContained: true,
+    controlsAboveFooter: true,
     controlsNamed: true,
     overlaps: [],
     managerLabelled: true,
@@ -346,6 +348,12 @@ describe('Ollama manager attach-only verifier contract', () => {
       /ipcRenderer\.emit\('menu-event', \{\}, 'show-preferences'\)/
     )
     assert.doesNotMatch(source, /ipcRenderer\.emit\('show-preferences'\)/)
+    assert.match(
+      source,
+      /querySelector\('#preferences-tab-copilot'\)[\s\S]*?closest\('button\[role="tab"\]'\)[\s\S]*?aria-selected/
+    )
+    assert.match(source, /'zoom-factor': '1'/)
+    assert.match(source, /'zoom-auto-fit-enabled': '0'/)
     assert.doesNotThrow(
       () => new Function(`return (${FinalSurfaceExpression})`)
     )
@@ -409,6 +417,13 @@ describe('Ollama manager attach-only verifier contract', () => {
 
   it('rejects clipped, inaccessible, or private final surfaces', () => {
     assert.doesNotThrow(() => assertFinalSurface(validSurface()))
+    assert.doesNotThrow(() =>
+      assertFinalSurface({ ...validSurface(), devicePixelRatio: 1.00000003 })
+    )
+    assert.throws(
+      () => assertFinalSurface({ ...validSurface(), devicePixelRatio: 1.01 }),
+      /failed its gate/
+    )
     assert.throws(
       () => assertFinalSurface({ ...validSurface(), privacySafe: false }),
       /failed its gate/
@@ -419,6 +434,16 @@ describe('Ollama manager attach-only verifier contract', () => {
     )
     assert.throws(
       () => assertFinalSurface({ ...validSurface(), filterLabelled: false }),
+      /failed its gate/
+    )
+    assert.throws(
+      () =>
+        assertFinalSurface({ ...validSurface(), managerAboveFooter: false }),
+      /failed its gate/
+    )
+    assert.throws(
+      () =>
+        assertFinalSurface({ ...validSurface(), controlsAboveFooter: false }),
       /failed its gate/
     )
   })

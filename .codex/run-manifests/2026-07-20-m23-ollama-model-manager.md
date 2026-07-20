@@ -68,14 +68,14 @@ paths and ports, headless desktop name, create state, Electron PID, and resolved
 HWND before launching the app. Every created resource must be verified absent
 before this manifest can be marked complete.
 
-## Execution ledger (in progress)
+## Execution ledger (complete)
 
 - Run id: `m23-49bcbf-a7e3`.
 - Exact MCP endpoint: `http://127.0.0.1:8765/mcp`; scheduled task and checkout
   were revalidated at `547a102a49169d41da876de217856229ab7c03a1`.
-- Exact application build: source `0c3b72ba0d2d67fe0ac046c913d047a563c024f7`;
+- Exact application build: source `27ffc1af7dd1223809c69ea0f72ddab369869f31`;
   the required unpackaged production command returned `client_ok: true`, exit
-  code 0, and no timeout after 178.64 seconds.
+  code 0, and no timeout after 213.16 seconds.
 - Owned P0 root: `%TEMP%\desktop-material-p0-ui-m23-49bcbf-a7e3`;
   isolated profile, fixture clone, capture directory, and provider state are
   contained beneath it. Synthetic provider PID `20484`, loopback port `58441`,
@@ -92,10 +92,35 @@ before this manifest can be marked complete.
 - The first Ollama-start wrapper retained an output pipe after the child became
   ready. Only the wedged MCP scheduled task was restarted; both owned fixture
   PIDs survived, and the full MCP preflight plus Ollama probe passed afterward.
-- Electron launch PID: pending first launch.
-- Dynamically resolved Desktop Material HWND: pending first launch.
-- Candidate capture and receipt: pending beneath the owned P0 `captures`
-  directory; neither tracked screenshot nor documentation has been changed.
-- Cleanup state: pending. Required order is exact HWND/PID, disposable
-  credential, P0 provider, Ollama fixture, desktop, then containment-checked
-  owned roots and CDP listener verification.
+- Initial validation launch PID `8140` and dynamically resolved Desktop
+  Material HWND `25035724` were revalidated before every action. The targeted
+  Win32 shortcut was accepted but did not navigate Chromium, so the run used
+  only the owned loopback CDP fallback. The strict gate found and fixed an
+  over-tall manager layout; the exact saved PID was then terminated after the
+  HWND close request was ignored, and both PID and CDP listener were absent
+  before rebuilding.
+- Final post-rebuild Electron PID `31564` and dynamically resolved HWND
+  `4392214` ran on the same owned desktop. The attach-only verifier exercised
+  health/version, inventory/details, capability search, running scope,
+  pull-progress cancellation with atomic rollback, successful pull, provider
+  synchronization, copy, rename, load, unload, confirmed deletion, and reset.
+- The first otherwise-valid capture, SHA-256
+  `49581c28dbd7b946e323cb86d96cadfea4dc9d0f2991c01c2fbedb3cc5f1fae5`,
+  was rejected during original-resolution review because the settings footer
+  visually covered the lower editors. It was removed from the owned root, the
+  product layout and verifier contract were fixed, and the application was
+  rebuilt before the final run.
+- Accepted capture: `material-ollama-model-manager.png`, 128,903 bytes,
+  1452×1001, SHA-256
+  `f1735c664248cd1b10a64e672dbbab24c95dabab99a62deeaf93557145a36509`.
+  The receipt reports varied pixels, zero control overlaps, no horizontal
+  overflow, manager/preferences containment, all controls above the footer,
+  named accessible controls, and `privacySafe: true`. The promoted tracked
+  image matched those bytes exactly.
+- Cleanup completed in order: the exact HWND close attempt was ignored, the
+  revalidated saved PID was terminated, the CDP listener disappeared, the
+  disposable credential was deleted and independently verified absent, the P0
+  provider was stopped, both containment-checked fixture roots were removed,
+  and the one headless desktop was closed. Final checks found no owned PIDs,
+  process command-line references, or listeners on ports `58441`, `55326`, or
+  `60586`; reopening the desktop name failed with Win32 error 2 as expected.
