@@ -85,6 +85,22 @@ if (
   throw "Fixture is missing required remote branches: $($remoteBranches -join ', ')"
 }
 
+$submodulePreparationScript = Join-Path $PSScriptRoot 'prepare_submodule_navigation_fixture.ps1'
+if (-not (Test-Path -LiteralPath $submodulePreparationScript -PathType Leaf)) {
+  throw "Submodule fixture preparation script is missing: $submodulePreparationScript"
+}
+$submoduleReceiptLines = @(
+  & $submodulePreparationScript -RunRoot $resolvedRoot
+)
+if ($submoduleReceiptLines.Count -ne 1) {
+  throw "Submodule fixture preparation emitted an invalid receipt: $($submoduleReceiptLines -join '; ')"
+}
+try {
+  $submoduleReceipt = $submoduleReceiptLines[0] | ConvertFrom-Json
+} catch {
+  throw "Submodule fixture preparation did not return JSON: $($_.Exception.Message)"
+}
+
 [ordered]@{
   fixture = [IO.Path]::GetFullPath($fixture)
   storedRemote = $storedURL
@@ -94,4 +110,5 @@ if (
   upstream = $upstream
   visibleCommitCount = [int](& git -C $fixture rev-list --count HEAD).Trim()
   remoteBranches = $remoteBranches
-} | ConvertTo-Json -Compress
+  submoduleFixture = $submoduleReceipt
+} | ConvertTo-Json -Depth 7 -Compress
