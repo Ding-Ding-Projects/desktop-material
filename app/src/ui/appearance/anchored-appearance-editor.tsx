@@ -1,4 +1,5 @@
 import * as React from 'react'
+import * as ReactDOM from 'react-dom'
 
 import classNames from 'classnames'
 import { clipboard } from 'electron'
@@ -391,7 +392,7 @@ export class AnchoredAppearanceEditor extends React.Component<
       return null
     }
 
-    return (
+    const editor = (
       <span className="anchored-appearance-editor-mount">
         <Popover
           anchor={anchor}
@@ -427,6 +428,11 @@ export class AnchoredAppearanceEditor extends React.Component<
         </Popover>
       </span>
     )
+
+    const foldoutContainer = anchor.closest<HTMLElement>('#foldout-container')
+    return foldoutContainer === null
+      ? editor
+      : ReactDOM.createPortal(editor, foldoutContainer)
   }
 
   public render(): JSX.Element | null {

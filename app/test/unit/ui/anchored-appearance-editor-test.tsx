@@ -66,6 +66,7 @@ interface IHarnessProps {
   readonly historySource?: IVersionedStoreHistorySource
   readonly onMutation?: () => void
   readonly contentOwnsHeader?: boolean
+  readonly insideFoldout?: boolean
 }
 
 function Harness(props: IHarnessProps) {
@@ -73,7 +74,7 @@ function Harness(props: IHarnessProps) {
 
   const open = (element: HTMLButtonElement) => setAnchor(element)
 
-  return (
+  const editor = (
     <div>
       <button
         type="button"
@@ -106,6 +107,16 @@ function Harness(props: IHarnessProps) {
           : 'Toolbar settings'}
       </AnchoredAppearanceEditor>
     </div>
+  )
+
+  return props.insideFoldout === true ? (
+    <div id="foldout-container">
+      <div className="foldout" style={{ overflow: 'hidden' }}>
+        {editor}
+      </div>
+    </div>
+  ) : (
+    editor
   )
 }
 
@@ -193,6 +204,49 @@ describe('anchored appearance editor', () => {
 
     fireEvent.keyDown(anchor, { key: 'F10', shiftKey: true })
     assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
+  })
+
+  it('portals a foldout editor outside the clipping ancestor without changing dismissal or focus behavior', async () => {
+    render(<Harness insideFoldout={true} />)
+    const anchor = screen.getByRole('button', { name: 'Toolbar' })
+    anchor.focus()
+
+    fireEvent.contextMenu(anchor)
+    const editor = screen.getByRole('dialog', {
+      name: 'Toolbar appearance',
+    })
+    const mount = editor.parentElement
+    assert.ok(mount)
+    assert.equal(
+      mount.classList.contains('anchored-appearance-editor-mount'),
+      true
+    )
+    assert.equal(editor.closest('.foldout'), null)
+    assert.equal(mount.parentElement?.id, 'foldout-container')
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Customize' }))
+    assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Outside' }))
+    await waitFor(() => {
+      assert.equal(
+        screen.queryByRole('dialog', { name: 'Toolbar appearance' }),
+        null
+      )
+      assert.equal(document.activeElement, anchor)
+    })
+
+    fireEvent.contextMenu(anchor)
+    assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
+    fireEvent.keyDown(window, { key: 'Escape' })
+    await waitFor(() => {
+      assert.equal(
+        screen.queryByRole('dialog', { name: 'Toolbar appearance' }),
+        null
+      )
+      assert.equal(document.activeElement, anchor)
+      assert.ok(document.getElementById('foldout-container'))
+    })
   })
 
   it('renders the element history with full undo, redo, and restore mutations', async () => {

@@ -170,18 +170,31 @@ function AppearanceRow(props: {
   readonly onBackgroundContextMenu?: () => void
 }) {
   return (
-    <div onContextMenu={props.onBackgroundContextMenu}>
-      <RepositoryListItem
-        repository={new Repository(RepositoryPath, 1, null, false)}
-        needsDisambiguation={false}
-        matches={{ title: [], subtitle: [] }}
-        aheadBehind={null}
-        changedFilesCount={0}
-        branchName={null}
-        dispatcher={props.dispatcher}
-      />
+    <div id="foldout-container">
+      <div className="foldout" onContextMenu={props.onBackgroundContextMenu}>
+        <RepositoryListItem
+          repository={new Repository(RepositoryPath, 1, null, false)}
+          needsDisambiguation={false}
+          matches={{ title: [], subtitle: [] }}
+          aheadBehind={null}
+          changedFilesCount={0}
+          branchName={null}
+          dispatcher={props.dispatcher}
+        />
+      </div>
     </div>
   )
+}
+
+function assertPortaledOutsideFoldout(editor: HTMLElement): void {
+  const mount = editor.parentElement
+  assert.ok(mount)
+  assert.equal(
+    mount.classList.contains('anchored-appearance-editor-mount'),
+    true
+  )
+  assert.equal(editor.closest('.foldout'), null)
+  assert.equal(mount.parentElement?.id, 'foldout-container')
 }
 
 function ListNameHarness() {
@@ -256,7 +269,7 @@ describe('repository element appearance editors', () => {
     const editor = await screen.findByRole('dialog', {
       name: 'desktop-material list-name appearance',
     })
-    assert.ok(editor)
+    assertPortaledOutsideFoldout(editor)
     assert.equal(
       screen.getByTitle(PrivatePathTitle).textContent,
       getAppearanceRepositoryDisplayPath(ListNameSettingsPath)
@@ -296,11 +309,10 @@ describe('repository element appearance editors', () => {
     assert.equal(screen.queryByRole('dialog'), null)
 
     fireEvent.keyDown(logoTarget, { key: 'F10', shiftKey: true })
-    assert.ok(
-      await screen.findByRole('dialog', {
-        name: 'desktop-material repository logo',
-      })
-    )
+    const editor = await screen.findByRole('dialog', {
+      name: 'desktop-material repository logo',
+    })
+    assertPortaledOutsideFoldout(editor)
     assert.equal(
       screen.getByTitle(PrivatePathTitle).textContent,
       getAppearanceRepositoryDisplayPath(LogoSettingsPath)
