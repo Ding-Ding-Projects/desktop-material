@@ -95,6 +95,11 @@ New-Item -ItemType Directory -Path (Split-Path -Parent $bare) -Force | Out-Null
 if ($LASTEXITCODE -ne 0) {
   throw 'bare clone failed'
 }
+Invoke-FixtureGit $bare symbolic-ref HEAD 'refs/heads/main'
+$bareHead = (& git -C $bare symbolic-ref HEAD).Trim()
+if ($LASTEXITCODE -ne 0 -or $bareHead -cne 'refs/heads/main') {
+  throw "Bare repository default branch mismatch: $bareHead"
+}
 Invoke-FixtureGit $bare config http.receivepack false
 Invoke-FixtureGit $bare update-server-info
 

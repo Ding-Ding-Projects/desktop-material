@@ -16,6 +16,7 @@ from urllib.request import Request, urlopen
 
 
 MODULE_PATH = Path(__file__).with_name("p0_fake_github_provider.py")
+PREPARE_FIXTURE_PATH = Path(__file__).with_name("prepare_p0_fixture.ps1")
 SPEC = importlib.util.spec_from_file_location("p0_fake_github_provider", MODULE_PATH)
 assert SPEC is not None and SPEC.loader is not None
 provider = importlib.util.module_from_spec(SPEC)
@@ -546,6 +547,86 @@ class ProviderStateTests(unittest.TestCase):
         self.assertEqual(self.state.rerun_job_ids, set())
 
 
+class FixtureContractTests(unittest.TestCase):
+    def test_prepared_bare_repository_matches_api_default_branch(self) -> None:
+        if sys.platform != "win32":
+            self.skipTest("The P0 fixture generator is Windows-only")
+
+        git = shutil.which("git")
+        powershell = shutil.which("pwsh") or shutil.which("powershell")
+        if git is None:
+            self.skipTest("git is unavailable")
+        if powershell is None:
+            self.skipTest("PowerShell is unavailable")
+
+        with tempfile.TemporaryDirectory(
+            prefix="desktop-material-p0-ui-contract-parent-"
+        ) as temporary:
+            run_root = Path(temporary) / "desktop-material-p0-ui-fixture-contract"
+            prepared = subprocess.run(
+                [
+                    powershell,
+                    "-NoProfile",
+                    "-NonInteractive",
+                    "-ExecutionPolicy",
+                    "Bypass",
+                    "-File",
+                    str(PREPARE_FIXTURE_PATH),
+                    "-RunRoot",
+                    str(run_root),
+                ],
+                check=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                timeout=60,
+            )
+            receipt_lines = [
+                line
+                for line in prepared.stdout.splitlines()
+                if line.strip().startswith("{")
+            ]
+            self.assertTrue(receipt_lines, prepared.stdout)
+            receipt = json.loads(receipt_lines[-1])
+            source = Path(receipt["source"])
+            bare = Path(receipt["bare"])
+
+            def run(*arguments: str, cwd: Path) -> str:
+                result = subprocess.run(
+                    [git, *arguments],
+                    cwd=cwd,
+                    check=True,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    timeout=30,
+                )
+                return result.stdout.strip()
+
+            expected_default_ref = f"refs/heads/{provider.DEFAULT_BRANCH}"
+            self.assertEqual(run("symbolic-ref", "HEAD", cwd=bare), expected_default_ref)
+            self.assertTrue(
+                run("show-ref", "--verify", expected_default_ref, cwd=bare).endswith(
+                    expected_default_ref
+                )
+            )
+            self.assertEqual(
+                run("branch", "--show-current", cwd=source), provider.FEATURE_BRANCH
+            )
+            provider.validate_bare_repository(git, bare)
+
+            run(
+                "symbolic-ref",
+                "HEAD",
+                f"refs/heads/{provider.FEATURE_BRANCH}",
+                cwd=bare,
+            )
+            with self.assertRaisesRegex(
+                SystemExit, r"HEAD must match the API default branch \(refs/heads/main\)"
+            ):
+                provider.validate_bare_repository(git, bare)
+
+
 class ProviderHTTPIntegrationTests(unittest.TestCase):
     def test_cors_proxy_clone_deepen_and_receive_pack_gate(self) -> None:
         git = shutil.which("git")
@@ -600,7 +681,14 @@ class ProviderHTTPIntegrationTests(unittest.TestCase):
                 )
             bare.parent.mkdir(parents=True)
             run("clone", "--bare", str(source), str(bare))
+            run(
+                "symbolic-ref",
+                "HEAD",
+                f"refs/heads/{provider.DEFAULT_BRANCH}",
+                cwd=bare,
+            )
             run("config", "http.receivepack", "false", cwd=bare)
+            provider.validate_bare_repository(git, bare)
 
             provider.make_deterministic_artifact(artifact)
             state = provider.ProviderState(artifact)
@@ -639,6 +727,9 @@ class ProviderHTTPIntegrationTests(unittest.TestCase):
                 self.assertEqual(
                     repository["clone_url"], state.repository_clone_url
                 )
+                self.assertEqual(
+                    repository["default_branch"], provider.DEFAULT_BRANCH
+                )
 
                 mutation_path = (
                     f"/api/v3/repos/{provider.OWNER}/{provider.REPOSITORY}"
@@ -665,6 +756,22 @@ class ProviderHTTPIntegrationTests(unittest.TestCase):
                 self.assertEqual(state.rerun_job_ids, set())
 
                 proxy = f"http://127.0.0.1:{port}"
+                advertised_head = run(
+                    "-c",
+                    f"http.proxy={proxy}",
+                    "ls-remote",
+                    "--symref",
+                    state.repository_clone_url,
+                    "HEAD",
+                ).splitlines()
+                self.assertEqual(
+                    advertised_head[0],
+                    f"ref: refs/heads/{provider.DEFAULT_BRANCH}\tHEAD",
+                )
+                self.assertEqual(
+                    advertised_head[1],
+                    f"{run('rev-parse', provider.DEFAULT_BRANCH, cwd=bare)}\tHEAD",
+                )
                 run(
                     "-c",
                     f"http.proxy={proxy}",

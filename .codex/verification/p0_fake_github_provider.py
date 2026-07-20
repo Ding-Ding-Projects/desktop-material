@@ -1776,6 +1776,37 @@ def ensure_contained(path: Path, root: Path) -> Path:
     return resolved
 
 
+def validate_bare_repository(git: str, bare_repository: Path) -> None:
+    expected_default_ref = f"refs/heads/{DEFAULT_BRANCH}"
+    default_head = subprocess.run(
+        [git, "-C", str(bare_repository), "symbolic-ref", "HEAD"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    if (
+        default_head.returncode != 0
+        or default_head.stdout.strip() != expected_default_ref
+    ):
+        raise SystemExit(
+            "The fixture bare repository HEAD must match the API default branch "
+            f"({expected_default_ref})."
+        )
+
+    receive_pack = subprocess.run(
+        [git, "-C", str(bare_repository), "config", "--bool", "http.receivepack"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    if receive_pack.returncode != 0 or receive_pack.stdout.strip() != "false":
+        raise SystemExit("The fixture bare repository must disable HTTP pushes.")
+
+
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     if args.bind != "127.0.0.1":
@@ -1800,16 +1831,7 @@ def main(argv: list[str]) -> int:
     bare_repository = git_project_root / OWNER / f"{REPOSITORY}.git"
     if not bare_repository.is_dir() or not (bare_repository / "config").is_file():
         raise SystemExit("The exact fixture bare repository does not exist.")
-    receive_pack = subprocess.run(
-        [args.git, "-C", str(bare_repository), "config", "--bool", "http.receivepack"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        check=False,
-        timeout=10,
-    )
-    if receive_pack.returncode != 0 or receive_pack.stdout.strip() != "false":
-        raise SystemExit("The fixture bare repository must disable HTTP pushes.")
+    validate_bare_repository(args.git, bare_repository)
 
     artifact_file = ensure_contained(args.artifact_file, owned_root)
     request_log = ensure_contained(args.request_log, owned_root)
