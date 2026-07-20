@@ -4515,15 +4515,63 @@ scene('advanced-workflows', async () => {
 })
 
 scene('cheap-lfs-preparing', async () => {
-  if (fixturePath === null) {
-    fail('Cheap-LFS preparation requires a disposable fixture path.')
+  if (fixturePath === null || ready === null) {
+    fail(
+      'Cheap-LFS preparation requires a disposable provider-backed fixture.'
+    )
   }
+  assertOwnedDisposableFixture()
   const cheapLfsBranch = 'gallery/cheap-lfs-evidence'
+  const cheapLfsBaseRef = `refs/heads/${ready.featureBranch}^{commit}`
+  const cheapLfsBaseHead = execFileSync(
+    'git',
+    ['-C', fixturePath, 'rev-parse', '--verify', cheapLfsBaseRef],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
   execFileSync(
     'git',
-    ['-C', fixturePath, 'checkout', '--quiet', '-B', cheapLfsBranch],
+    [
+      '-C',
+      fixturePath,
+      'checkout',
+      '--quiet',
+      '-B',
+      cheapLfsBranch,
+      cheapLfsBaseRef,
+    ],
     { windowsHide: true, stdio: 'ignore' }
   )
+  const checkedOutBranch = execFileSync(
+    'git',
+    ['-C', fixturePath, 'branch', '--show-current'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  const checkedOutHead = execFileSync(
+    'git',
+    ['-C', fixturePath, 'rev-parse', 'HEAD'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  const baseStatus = execFileSync(
+    'git',
+    ['-C', fixturePath, 'status', '--porcelain=v1', '--untracked-files=all'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  if (
+    checkedOutBranch !== cheapLfsBranch ||
+    checkedOutHead !== cheapLfsBaseHead ||
+    baseStatus !== ''
+  ) {
+    fail(
+      `Cheap-LFS evidence branch did not start from the clean prepared fixture: ${JSON.stringify(
+        {
+          checkedOutBranch,
+          checkedOutHead,
+          cheapLfsBaseHead,
+          baseStatus,
+        }
+      )}`
+    )
+  }
   const largeFileName = 'windows-enterprise-evaluation.iso'
   const largeFilePath = path.join(fixturePath, largeFileName)
   const descriptor = fs.openSync(largeFilePath, 'wx')
@@ -4537,6 +4585,23 @@ scene('cheap-lfs-preparing', async () => {
     fs.ftruncateSync(descriptor, 100 * 1024 * 1024 + 4096)
   } finally {
     fs.closeSync(descriptor)
+  }
+  const preparedStatus = execFileSync(
+    'git',
+    ['-C', fixturePath, 'status', '--porcelain=v1', '--untracked-files=all'],
+    { encoding: 'utf8', windowsHide: true }
+  )
+    .trim()
+    .split(/\r?\n/)
+  if (
+    preparedStatus.length !== 1 ||
+    preparedStatus[0] !== `?? ${largeFileName}`
+  ) {
+    fail(
+      `Cheap-LFS fixture did not contain exactly the owned large file: ${JSON.stringify(
+        preparedStatus
+      )}`
+    )
   }
 
   await ensureRepository()

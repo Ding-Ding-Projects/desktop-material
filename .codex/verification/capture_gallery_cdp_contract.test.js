@@ -817,14 +817,30 @@ test('advanced workflow and Cheap-LFS scenes use exact enabled controls', () => 
   assert.ok(!advanced.includes("clickText('Load remote'"))
 
   const cheap = sceneSource('cheap-lfs-preparing')
-  const checkout = cheap.indexOf("['-C', fixturePath, 'checkout'")
+  const checkout = cheap.indexOf("'checkout',")
   const create = cheap.indexOf("fs.openSync(largeFilePath, 'wx')")
+  const cleanBase = cheap.indexOf("baseStatus !== ''")
+  const exactPreparedStatus = cheap.indexOf(
+    'preparedStatus[0] !== `?? ${largeFileName}`'
+  )
   assert.notEqual(checkout, -1)
   assert.notEqual(create, -1)
-  assert.ok(checkout < create)
+  assert.notEqual(cleanBase, -1)
+  assert.notEqual(exactPreparedStatus, -1)
+  assert.ok(checkout < cleanBase)
+  assert.ok(cleanBase < create)
+  assert.ok(create < exactPreparedStatus)
   for (const contract of [
     "const cheapLfsBranch = 'gallery/cheap-lfs-evidence'",
+    'assertOwnedDisposableFixture()',
+    'const cheapLfsBaseRef = `refs/heads/${ready.featureBranch}^{commit}`',
+    "'rev-parse', '--verify', cheapLfsBaseRef",
     "'--quiet', '-B', cheapLfsBranch",
+    'cheapLfsBaseRef',
+    "'branch', '--show-current'",
+    "'status', '--porcelain=v1', '--untracked-files=all'",
+    'checkedOutHead !== cheapLfsBaseHead',
+    'preparedStatus.length !== 1',
     'isolated Cheap-LFS evidence branch',
     "setInput('.summary-field input'",
     "getAttribute('aria-disabled') !== 'true'",
