@@ -35,6 +35,7 @@ PRIVATE_TOKEN = "desktop-material-gitlab-token"
 PROJECT_ID = 4242
 PROJECT_PATH = "material-labs/platform/desktop-material"
 ENCODED_PROJECT_PATH = quote(PROJECT_PATH, safe="")
+DEFAULT_STATE_ORIGIN = "https://gitlab.example.test"
 FIXED_TIME = "2026-07-20T16:00:00.000Z"
 MAX_REQUEST_BODY_BYTES = 64 * 1024
 MAX_PAGE = 1_000
@@ -162,7 +163,6 @@ USERS: dict[int, dict[str, Any]] = {
         "state": "active",
         "locked": False,
         "avatar_url": None,
-        "web_url": "https://gitlab.example.test/ada-maintainer",
         "access_level": 40,
     },
     102: {
@@ -172,7 +172,6 @@ USERS: dict[int, dict[str, Any]] = {
         "state": "active",
         "locked": False,
         "avatar_url": None,
-        "web_url": "https://gitlab.example.test/river-author",
         "access_level": 30,
     },
     103: {
@@ -182,7 +181,6 @@ USERS: dict[int, dict[str, Any]] = {
         "state": "active",
         "locked": False,
         "avatar_url": None,
-        "web_url": "https://gitlab.example.test/mina-reviewer",
         "access_level": 30,
     },
     104: {
@@ -192,7 +190,6 @@ USERS: dict[int, dict[str, Any]] = {
         "state": "active",
         "locked": False,
         "avatar_url": None,
-        "web_url": "https://gitlab.example.test/kai-assignee",
         "access_level": 30,
     },
 }
@@ -268,8 +265,14 @@ def resolve_owned_paths(
     )
 
 
-def _user_payload(user_id: int, *, include_access: bool = False) -> dict[str, Any]:
+def _user_payload(
+    user_id: int,
+    *,
+    include_access: bool = False,
+    origin: str = DEFAULT_STATE_ORIGIN,
+) -> dict[str, Any]:
     user = copy.deepcopy(USERS[user_id])
+    user["web_url"] = f"{origin.rstrip('/')}/{quote(user['username'], safe='')}"
     if not include_access:
         user.pop("access_level", None)
     return user
@@ -392,16 +395,18 @@ class GitLabMRFixtureState:
             self.audit_log.record("mutation", operation="reset")
             return self.snapshot()
 
-    def project(self) -> dict[str, Any]:
+    def project(self, *, origin: str = DEFAULT_STATE_ORIGIN) -> dict[str, Any]:
+        normalized_origin = origin.rstrip("/")
+        origin_host = urlsplit(normalized_origin).hostname or "gitlab.example.test"
         return {
             "id": PROJECT_ID,
             "name": "desktop-material",
             "path": "desktop-material",
             "path_with_namespace": PROJECT_PATH,
             "default_branch": "main",
-            "web_url": f"https://gitlab.example.test/{PROJECT_PATH}",
-            "http_url_to_repo": f"https://gitlab.example.test/{PROJECT_PATH}.git",
-            "ssh_url_to_repo": f"git@gitlab.example.test:{PROJECT_PATH}.git",
+            "web_url": f"{normalized_origin}/{PROJECT_PATH}",
+            "http_url_to_repo": f"{normalized_origin}/{PROJECT_PATH}.git",
+            "ssh_url_to_repo": f"git@{origin_host}:{PROJECT_PATH}.git",
             "visibility": "private",
             "namespace": {
                 "id": 4200,
@@ -412,13 +417,20 @@ class GitLabMRFixtureState:
             },
         }
 
-    def current_user(self) -> dict[str, Any]:
-        user = _user_payload(CURRENT_USER_ID)
+    def current_user(
+        self, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> dict[str, Any]:
+        user = _user_payload(CURRENT_USER_ID, origin=origin)
         user.update({"email": "ada@example.test", "public_email": None})
         return user
 
-    def members(self) -> list[dict[str, Any]]:
-        return [_user_payload(user_id, include_access=True) for user_id in sorted(USERS)]
+    def members(
+        self, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> list[dict[str, Any]]:
+        return [
+            _user_payload(user_id, include_access=True, origin=origin)
+            for user_id in sorted(USERS)
+        ]
 
     def _derived_status(self, merge_request: MergeRequest) -> str:
         if merge_request.state != "opened":
@@ -438,10 +450,23 @@ class GitLabMRFixtureState:
             return status
         return self._derived_status(self._merge_requests[iid])
 
-    def _render(self, merge_request: MergeRequest, *, advance: bool) -> dict[str, Any]:
+    def _render(
+        self,
+        merge_request: MergeRequest,
+        *,
+        advance: bool,
+        origin: str = DEFAULT_STATE_ORIGIN,
+    ) -> dict[str, Any]:
+        normalized_origin = origin.rstrip("/")
         status = self._status_for(merge_request.iid, advance=advance)
-        reviewers = [_user_payload(user_id) for user_id in merge_request.reviewer_ids]
-        assignees = [_user_payload(user_id) for user_id in merge_request.assignee_ids]
+        reviewers = [
+            _user_payload(user_id, origin=normalized_origin)
+            for user_id in merge_request.reviewer_ids
+        ]
+        assignees = [
+            _user_payload(user_id, origin=normalized_origin)
+            for user_id in merge_request.assignee_ids
+        ]
         return {
             "id": 9000 + merge_request.iid,
             "iid": merge_request.iid,
@@ -456,7 +481,9 @@ class GitLabMRFixtureState:
             "source_project_id": PROJECT_ID,
             "target_project_id": PROJECT_ID,
             "sha": merge_request.sha,
-            "author": _user_payload(merge_request.author_id),
+            "author": _user_payload(
+                merge_request.author_id, origin=normalized_origin
+            ),
             "reviewers": reviewers,
             "assignees": assignees,
             "assignee": assignees[0] if assignees else None,
@@ -474,7 +501,7 @@ class GitLabMRFixtureState:
                 "full": f"{PROJECT_PATH}!{merge_request.iid}",
             },
             "web_url": (
-                f"https://gitlab.example.test/{PROJECT_PATH}/-/merge_requests/"
+                f"{normalized_origin}/{PROJECT_PATH}/-/merge_requests/"
                 f"{merge_request.iid}"
             ),
             "remove_source_branch": merge_request.remove_source_branch,
@@ -490,7 +517,10 @@ class GitLabMRFixtureState:
         }
 
     def list_merge_requests(
-        self, query: Mapping[str, Sequence[str]]
+        self,
+        query: Mapping[str, Sequence[str]],
+        *,
+        origin: str = DEFAULT_STATE_ORIGIN,
     ) -> tuple[list[dict[str, Any]], int, int, int]:
         page = _query_integer(query, "page", default=1, minimum=1, maximum=MAX_PAGE)
         per_page = _query_integer(
@@ -556,17 +586,27 @@ class GitLabMRFixtureState:
                 values.reverse()
             total = len(values)
             page_values = values[offset : offset + per_page]
-            rendered = [self._render(item, advance=False) for item in page_values]
+            rendered = [
+                self._render(item, advance=False, origin=origin)
+                for item in page_values
+            ]
             return rendered, page, per_page, total
 
-    def get_merge_request(self, iid: int) -> dict[str, Any]:
+    def get_merge_request(
+        self, iid: int, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> dict[str, Any]:
         with self._lock:
             merge_request = self._merge_requests.get(iid)
             if merge_request is None:
                 raise FixtureAPIError(HTTPStatus.NOT_FOUND, "404 Not found")
-            return self._render(merge_request, advance=True)
+            return self._render(merge_request, advance=True, origin=origin)
 
-    def create_merge_request(self, request: Mapping[str, Any]) -> dict[str, Any]:
+    def create_merge_request(
+        self,
+        request: Mapping[str, Any],
+        *,
+        origin: str = DEFAULT_STATE_ORIGIN,
+    ) -> dict[str, Any]:
         allowed = {
             "source_branch",
             "target_branch",
@@ -618,10 +658,14 @@ class GitLabMRFixtureState:
                 reviewerIds=list(reviewer_ids),
                 assigneeIds=list(assignee_ids),
             )
-            return self._render(merge_request, advance=False)
+            return self._render(merge_request, advance=False, origin=origin)
 
     def update_merge_request(
-        self, iid: int, request: Mapping[str, Any]
+        self,
+        iid: int,
+        request: Mapping[str, Any],
+        *,
+        origin: str = DEFAULT_STATE_ORIGIN,
     ) -> dict[str, Any]:
         allowed = {
             "title",
@@ -694,14 +738,16 @@ class GitLabMRFixtureState:
                 assigneeIds=list(updated.assignee_ids),
                 state=updated.state,
             )
-            return self._render(updated, advance=False)
+            return self._render(updated, advance=False, origin=origin)
 
-    def approval_state(self, iid: int) -> dict[str, Any]:
+    def approval_state(
+        self, iid: int, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> dict[str, Any]:
         with self._lock:
             if iid not in self._merge_requests:
                 raise FixtureAPIError(HTTPStatus.NOT_FOUND, "404 Not found")
             approved_by = [
-                {"user": _user_payload(user_id)}
+                {"user": _user_payload(user_id, origin=origin)}
                 for user_id in sorted(self._approvals[iid])
             ]
             approved = bool(approved_by)
@@ -713,11 +759,14 @@ class GitLabMRFixtureState:
                         "name": "Desktop Material reviewers",
                         "rule_type": "regular",
                         "eligible_approvers": [
-                            _user_payload(101),
-                            _user_payload(103),
+                            _user_payload(101, origin=origin),
+                            _user_payload(103, origin=origin),
                         ],
                         "approvals_required": 1,
-                        "users": [_user_payload(101), _user_payload(103)],
+                        "users": [
+                            _user_payload(101, origin=origin),
+                            _user_payload(103, origin=origin),
+                        ],
                         "groups": [],
                         "contains_hidden_groups": False,
                         "approved_by": approved_by,
@@ -727,13 +776,21 @@ class GitLabMRFixtureState:
                 ],
             }
 
-    def approvals(self, iid: int) -> dict[str, Any]:
+    def approvals(
+        self, iid: int, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> dict[str, Any]:
         with self._lock:
             if iid not in self._merge_requests:
                 raise FixtureAPIError(HTTPStatus.NOT_FOUND, "404 Not found")
-            return self._approval_summary(iid)
+            return self._approval_summary(iid, origin=origin)
 
-    def approve(self, iid: int, request: Mapping[str, Any]) -> dict[str, Any]:
+    def approve(
+        self,
+        iid: int,
+        request: Mapping[str, Any],
+        *,
+        origin: str = DEFAULT_STATE_ORIGIN,
+    ) -> dict[str, Any]:
         _reject_unknown_fields(request, {"sha"})
         with self._lock:
             merge_request = self._merge_requests.get(iid)
@@ -759,9 +816,11 @@ class GitLabMRFixtureState:
             self.audit_log.record(
                 "mutation", operation="approve", iid=iid, changed=changed
             )
-            return self._approval_summary(iid)
+            return self._approval_summary(iid, origin=origin)
 
-    def unapprove(self, iid: int) -> dict[str, Any]:
+    def unapprove(
+        self, iid: int, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> dict[str, Any]:
         with self._lock:
             if iid not in self._merge_requests:
                 raise FixtureAPIError(HTTPStatus.NOT_FOUND, "404 Not found")
@@ -770,13 +829,15 @@ class GitLabMRFixtureState:
             self.audit_log.record(
                 "mutation", operation="unapprove", iid=iid, changed=changed
             )
-            return self._approval_summary(iid)
+            return self._approval_summary(iid, origin=origin)
 
-    def _approval_summary(self, iid: int) -> dict[str, Any]:
+    def _approval_summary(
+        self, iid: int, *, origin: str = DEFAULT_STATE_ORIGIN
+    ) -> dict[str, Any]:
         merge_request = self._merge_requests[iid]
         approved_by = [
             {
-                "user": _user_payload(user_id),
+                "user": _user_payload(user_id, origin=origin),
                 "approved_at": FIXED_TIME,
             }
             for user_id in sorted(self._approvals[iid])
@@ -1159,7 +1220,9 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
         if path == f"{API_PREFIX}/user":
             if method != "GET":
                 return self._method_not_allowed("GET"), "current-user"
-            return json_response(self.server.state.current_user()), "current-user"
+            return json_response(
+                self.server.state.current_user(origin=self.server.endpoint)
+            ), "current-user"
 
         project_suffix = self._project_suffix(path)
         if project_suffix is None:
@@ -1169,7 +1232,9 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
         if project_suffix == "":
             if method != "GET":
                 return self._method_not_allowed("GET"), "project"
-            return json_response(self.server.state.project()), "project"
+            return json_response(
+                self.server.state.project(origin=self.server.endpoint)
+            ), "project"
         if project_suffix == "members/all":
             if method != "GET":
                 return self._method_not_allowed("GET"), "members-all"
@@ -1186,7 +1251,7 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
             )
             if set(query) - {"page", "per_page"}:
                 raise FixtureAPIError(HTTPStatus.BAD_REQUEST, "unsupported members filter")
-            members = self.server.state.members()
+            members = self.server.state.members(origin=self.server.endpoint)
             offset = (page - 1) * per_page
             if offset > MAX_OFFSET:
                 raise FixtureAPIError(HTTPStatus.BAD_REQUEST, "pagination offset is too large")
@@ -1203,7 +1268,9 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
             ), "members-all"
         if project_suffix == "merge_requests":
             if method == "GET":
-                values, page, per_page, total = self.server.state.list_merge_requests(query)
+                values, page, per_page, total = self.server.state.list_merge_requests(
+                    query, origin=self.server.endpoint
+                )
                 headers = _pagination_headers(
                     endpoint=self.server.endpoint,
                     route_path=(
@@ -1218,7 +1285,9 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
             if method == "POST":
                 request = self._read_json_object(required=True)
                 return json_response(
-                    self.server.state.create_merge_request(request),
+                    self.server.state.create_merge_request(
+                        request, origin=self.server.endpoint
+                    ),
                     HTTPStatus.CREATED,
                 ), "merge-request-create"
             return self._method_not_allowed("GET, POST"), "merge-request-list"
@@ -1243,7 +1312,9 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
                         "approvals are temporarily unavailable",
                     )
                 ), "approvals"
-            return json_response(self.server.state.approvals(iid)), "approvals"
+            return json_response(
+                self.server.state.approvals(iid, origin=self.server.endpoint)
+            ), "approvals"
         if operation == "approval_state":
             if method != "GET":
                 return self._method_not_allowed("GET"), "approval-state"
@@ -1254,13 +1325,18 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
                         "approval state is temporarily unavailable",
                     )
                 ), "approval-state"
-            return json_response(self.server.state.approval_state(iid)), "approval-state"
+            return json_response(
+                self.server.state.approval_state(iid, origin=self.server.endpoint)
+            ), "approval-state"
         if operation == "approve":
             if method != "POST":
                 return self._method_not_allowed("POST"), "approve"
             request = self._read_json_object(required=False)
             return json_response(
-                self.server.state.approve(iid, request), HTTPStatus.CREATED
+                self.server.state.approve(
+                    iid, request, origin=self.server.endpoint
+                ),
+                HTTPStatus.CREATED,
             ), "approve"
         if operation == "unapprove":
             if method != "POST":
@@ -1268,19 +1344,27 @@ class GitLabMRFixtureHandler(BaseHTTPRequestHandler):
             request = self._read_json_object(required=False)
             if request:
                 raise FixtureAPIError(HTTPStatus.BAD_REQUEST, "unapprove body must be empty")
-            return json_response(self.server.state.unapprove(iid)), "unapprove"
+            return json_response(
+                self.server.state.unapprove(iid, origin=self.server.endpoint)
+            ), "unapprove"
         if method == "GET":
             if set(query) - {"with_merge_status_recheck"}:
                 raise FixtureAPIError(HTTPStatus.BAD_REQUEST, "unsupported merge request query")
             if "with_merge_status_recheck" in query:
                 _query_boolean(query, "with_merge_status_recheck")
-            return json_response(self.server.state.get_merge_request(iid)), "merge-request-single"
+            return json_response(
+                self.server.state.get_merge_request(
+                    iid, origin=self.server.endpoint
+                )
+            ), "merge-request-single"
         if method == "PUT":
             if query:
                 raise FixtureAPIError(HTTPStatus.BAD_REQUEST, "update query is invalid")
             request = self._read_json_object(required=True)
             return json_response(
-                self.server.state.update_merge_request(iid, request)
+                self.server.state.update_merge_request(
+                    iid, request, origin=self.server.endpoint
+                )
             ), "merge-request-update"
         return self._method_not_allowed("GET, PUT"), "merge-request-single"
 

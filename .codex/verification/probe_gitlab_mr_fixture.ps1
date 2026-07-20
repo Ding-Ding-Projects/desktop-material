@@ -90,6 +90,35 @@ function Read-GitLabMRAuditEvents {
   )
 }
 
+function Assert-GitLabMRSameOriginUrls {
+  param(
+    [Parameter(Mandatory = $true)][object[]]$Urls,
+    [Parameter(Mandatory = $true)][string]$Label
+  )
+
+  if ($Urls.Count -lt 1) {
+    throw "$Label did not expose a web_url for same-origin validation."
+  }
+  $expectedOrigin = [Uri]$endpoint
+  foreach ($url in $Urls) {
+    try {
+      $actual = [Uri]([string]$url)
+    } catch {
+      throw "$Label exposed an invalid web_url."
+    }
+    if (
+      -not $actual.IsAbsoluteUri -or
+      $actual.Scheme -ne $expectedOrigin.Scheme -or
+      $actual.Host -ne $expectedOrigin.Host -or
+      $actual.Port -ne $expectedOrigin.Port -or
+      -not [string]::IsNullOrEmpty($actual.Query) -or
+      -not [string]::IsNullOrEmpty($actual.Fragment)
+    ) {
+      throw "$Label exposed a web_url outside the bound fixture origin."
+    }
+  }
+}
+
 $null = Invoke-GitLabMRJson -Method Post -Path '/__fixture__/reset' -Body @{} -NoAuth
 $health = Invoke-GitLabMRJson -Method Get -Path '/__fixture__/health' -NoAuth
 if (
@@ -116,6 +145,12 @@ if (
 ) {
   throw 'Encoded GitLab project lookup failed.'
 }
+Assert-GitLabMRSameOriginUrls -Label 'project' -Urls @($project.web_url)
+if (-not ([string]$project.http_url_to_repo).StartsWith("$endpoint/")) {
+  throw 'GitLab project clone URL does not use the bound fixture origin.'
+}
+$currentUser = Invoke-GitLabMRJson -Method Get -Path '/api/v4/user'
+Assert-GitLabMRSameOriginUrls -Label 'current user' -Urls @($currentUser.web_url)
 Assert-GitLabMRStatus -Method Get -Path "/api/v4/projects/$($script:GitLabMRProjectPath)/merge_requests" -ExpectedStatus 404
 
 # Offset pagination must be bounded and expose GitLab Link plus X headers.
@@ -135,6 +170,15 @@ if (
 ) {
   throw 'GitLab offset pagination contract failed.'
 }
+$pageUrls = @(
+  $pageValues | ForEach-Object {
+    $_.web_url
+    $_.author.web_url
+    @($_.reviewers) | ForEach-Object { $_.web_url }
+    @($_.assignees) | ForEach-Object { $_.web_url }
+  }
+)
+Assert-GitLabMRSameOriginUrls -Label 'merge-request list' -Urls $pageUrls
 Assert-GitLabMRStatus -Method Get -Path "$projectApi/merge_requests?per_page=101" -ExpectedStatus 400
 Assert-GitLabMRStatus -Method Get -Path "$projectApi/merge_requests?page=1000&per_page=100" -ExpectedStatus 400
 
@@ -150,6 +194,13 @@ if (
 ) {
   throw 'GitLab detailed_merge_status readiness progression failed.'
 }
+$singleUrls = @(
+  $third.web_url
+  $third.author.web_url
+  @($third.reviewers) | ForEach-Object { $_.web_url }
+  @($third.assignees) | ForEach-Object { $_.web_url }
+)
+Assert-GitLabMRSameOriginUrls -Label 'single merge request' -Urls $singleUrls
 $headSha = [string]$third.sha
 
 # Create a draft, then update title, reviewers, assignees, and state.
@@ -170,6 +221,13 @@ if (
 ) {
   throw 'GitLab merge-request create contract failed.'
 }
+$createdUrls = @(
+  $created.web_url
+  $created.author.web_url
+  @($created.reviewers) | ForEach-Object { $_.web_url }
+  @($created.assignees) | ForEach-Object { $_.web_url }
+)
+Assert-GitLabMRSameOriginUrls -Label 'created merge request' -Urls $createdUrls
 $updated = Invoke-GitLabMRJson -Method Put -Path "$projectApi/merge_requests/$createdIid" -Body @{
   title = 'Probe native GitLab review'
   reviewer_ids = @(103)
@@ -184,6 +242,13 @@ if (
 ) {
   throw 'GitLab merge-request update contract failed.'
 }
+$updatedUrls = @(
+  $updated.web_url
+  $updated.author.web_url
+  @($updated.reviewers) | ForEach-Object { $_.web_url }
+  @($updated.assignees) | ForEach-Object { $_.web_url }
+)
+Assert-GitLabMRSameOriginUrls -Label 'updated merge request' -Urls $updatedUrls
 $null = Invoke-GitLabMRJson -Method Put -Path "$projectApi/merge_requests/$createdIid" -Body @{
   state_event = 'reopen'
 }
@@ -199,6 +264,9 @@ if (
 ) {
   throw "GitLab project members/all contract failed (count=$($members.Count), underprivileged=$($underprivilegedMembers.Count))."
 }
+Assert-GitLabMRSameOriginUrls -Label 'project members' -Urls @(
+  $members | ForEach-Object { $_.web_url }
+)
 
 # A stale SHA must conflict without approval; the current HEAD can approve.
 Assert-GitLabMRStatus -Method Post -Path "$singlePath/approve" -ExpectedStatus 409 -Body @{
@@ -226,6 +294,18 @@ if (
 ) {
   throw 'GitLab approval contract failed.'
 }
+Assert-GitLabMRSameOriginUrls -Label 'approval aggregate' -Urls @(
+  $approvalState.approved_by | ForEach-Object { $_.user.web_url }
+)
+$approvalRuleState = Invoke-GitLabMRJson -Method Get -Path "$singlePath/approval_state"
+$approvalRuleUrls = @(
+  $approvalRuleState.rules | ForEach-Object {
+    @($_.eligible_approvers) | ForEach-Object { $_.web_url }
+    @($_.users) | ForEach-Object { $_.web_url }
+    @($_.approved_by) | ForEach-Object { $_.user.web_url }
+  }
+)
+Assert-GitLabMRSameOriginUrls -Label 'approval rule details' -Urls $approvalRuleUrls
 $unapproved = Invoke-GitLabMRJson -Method Post -Path "$singlePath/unapprove" -Body @{}
 if ([int]$unapproved.approvals_left -ne 1) {
   throw 'GitLab unapprove contract failed.'
@@ -358,6 +438,7 @@ $null = Invoke-GitLabMRJson -Method Post -Path '/__fixture__/reset' -Body @{} -N
   members = $members.Count
   transientStatuses = @('checking', 'approvals_syncing', 'not_approved')
   faultModes = @('unavailable', 'error', 'malformed', 'partial', 'delayed')
+  dynamicUrls = 'pass'
   cancellation = 'pass'
   mutationEvents = @($events | Where-Object { $_.kind -eq 'mutation' }).Count
   requestEvents = @($events | Where-Object { $_.kind -eq 'request' }).Count
