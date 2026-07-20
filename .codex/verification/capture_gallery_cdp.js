@@ -22,6 +22,7 @@
  */
 
 const fs = require('fs')
+const crypto = require('crypto')
 const { execFileSync } = require('child_process')
 const http = require('http')
 const path = require('path')
@@ -362,6 +363,54 @@ async function restoreCaptureViewport() {
   await setViewport(CaptureWidth, CaptureHeight)
 }
 
+async function assertCapturePrivacy(name) {
+  const evidence = await evaluate(`(() => {
+    const visible = element => {
+      if (!(element instanceof HTMLElement)) return false
+      const style = getComputedStyle(element)
+      const bounds = element.getBoundingClientRect()
+      return style.display !== 'none' && style.visibility !== 'hidden' &&
+        Number(style.opacity || 1) !== 0 && bounds.width > 0 && bounds.height > 0
+    }
+    const values = [...document.querySelectorAll('input, textarea')]
+      .filter(visible)
+      .map(element => element.value)
+    const attributes = [...document.querySelectorAll('[title], a[href], img[src]')]
+      .filter(visible)
+      .flatMap(element => [
+        element.getAttribute('title') ?? '',
+        element.getAttribute('href') ?? '',
+        element.getAttribute('src') ?? '',
+      ])
+    return {
+      text: document.body.innerText,
+      values,
+      attributes,
+    }
+  })()`)
+  const serialized = [
+    evidence?.text ?? '',
+    ...(evidence?.values ?? []),
+    ...(evidence?.attributes ?? []),
+  ].join('\n')
+  const privatePath =
+    /C:\\Users\\|C:\/Users\/|ADMINI~1|AppData[\\/]|(?:^|[\\/])Temp[\\/]|desktop-material-p0-ui-/i
+  const match = privatePath.exec(serialized)
+  if (match !== null) {
+    const start = Math.max(0, match.index - 80)
+    const end = Math.min(serialized.length, match.index + match[0].length + 80)
+    fail(
+      `Capture ${name} exposed a private path near ${JSON.stringify(
+        serialized.slice(start, end)
+      )}.`
+    )
+  }
+}
+
+function sha256File(file) {
+  return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
+}
+
 async function capture(name) {
   if (outDir === null) {
     fail('Capture scenes require an explicit disposable --out directory.')
@@ -381,6 +430,7 @@ async function capture(name) {
   ) {
     fail('Capture candidates must be reviewed in Temp before promotion.')
   }
+  await assertCapturePrivacy(name)
   fs.mkdirSync(outDir, { recursive: true })
   const shot = await client.send('Page.captureScreenshot', { format: 'png' })
   const file = path.join(outDir, `${name}.png`)
@@ -391,6 +441,7 @@ async function capture(name) {
   if (size < 20000) {
     process.stdout.write(`WARN ${name}.png is suspiciously small\n`)
   }
+  return file
 }
 
 /** Emit a menu event directly to the renderer's ipc listener. */
@@ -537,6 +588,84 @@ async function setInput(selector, value) {
   if (!done) {
     fail(`Unable to set input ${selector}.`)
   }
+}
+
+async function setSelect(selector, value) {
+  const done = await evaluate(`(() => {
+    const element = document.querySelector(${JSON.stringify(selector)})
+    if (!(element instanceof HTMLSelectElement)) return false
+    if (![...element.options].some(option => option.value === ${JSON.stringify(
+      value
+    )})) return false
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLSelectElement.prototype,
+      'value'
+    ).set
+    setter.call(element, ${JSON.stringify(value)})
+    element.dispatchEvent(new Event('change', { bubbles: true }))
+    return true
+  })()`)
+  if (!done) {
+    fail(`Unable to select ${JSON.stringify(value)} in ${selector}.`)
+  }
+}
+
+/** Replace private fixture-only pixels without changing the React state. */
+async function maskVisibleValue(selector, value) {
+  const masked = await evaluate(`(() => {
+    const element = document.querySelector(${JSON.stringify(selector)})
+    if (!(element instanceof HTMLInputElement) &&
+        !(element instanceof HTMLTextAreaElement)) return false
+    const proto = element instanceof HTMLTextAreaElement
+      ? window.HTMLTextAreaElement.prototype
+      : window.HTMLInputElement.prototype
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value').set
+    setter.call(element, ${JSON.stringify(value)})
+    element.removeAttribute('title')
+    return true
+  })()`)
+  if (!masked) {
+    fail(`Unable to mask visible value ${selector}.`)
+  }
+}
+
+async function maskSparseCheckoutRepositoryPath() {
+  const masked = await evaluate(`(() => {
+    const path = document.querySelector('.sparse-checkout-heading-copy small')
+    if (!(path instanceof HTMLElement)) return false
+    path.textContent = 'C:\\Synthetic\\material-fixture'
+    path.setAttribute('title', 'C:\\Synthetic\\material-fixture')
+    return true
+  })()`)
+  if (!masked) {
+    fail('Unable to mask the Sparse Checkout fixture path.')
+  }
+}
+
+async function maskRepositoryToolsIntroduction() {
+  const masked = await evaluate(`(() => {
+    const introduction = document.querySelector('.repository-tools-introduction')
+    if (!(introduction instanceof HTMLElement)) return false
+    introduction.textContent =
+      'Status, history, cleanup, transfer, and repair tools for the synthetic fixture — every function runs a reviewed Git recipe with no shell or editable command line.'
+    return true
+  })()`)
+  if (!masked) {
+    fail('Unable to mask the Repository Tools fixture path.')
+  }
+}
+
+function countProviderRequests(method, pathPattern) {
+  if (providerRequestLog === null || !fs.existsSync(providerRequestLog)) {
+    return 0
+  }
+  return fs
+    .readFileSync(providerRequestLog, 'utf8')
+    .split(/\r?\n/)
+    .filter(line => line.trim() !== '')
+    .map(line => JSON.parse(line))
+    .filter(entry => entry.method === method && pathPattern.test(entry.path))
+    .length
 }
 
 function ensureDirectFixtureProviderRemote() {
@@ -1183,7 +1312,11 @@ scene('settings-history', async () => {
 scene('sparse-checkout', async () => {
   await ensureRepository()
   await menuEvent('manage-sparse-checkout')
-  await sleep(1500)
+  await waitFor(
+    `document.querySelector('.sparse-checkout-panel')?.getAttribute('aria-busy') === 'false'`,
+    'loaded Sparse Checkout panel'
+  )
+  await maskSparseCheckoutRepositoryPath()
   await parkPointer()
   await capture('material-sparse-checkout')
   await closeAllDialogs()
@@ -1226,7 +1359,11 @@ scene('branch-rules', async () => {
 scene('repository-tools', async () => {
   await ensureRepository()
   await menuEvent('show-repository-tools')
-  await sleep(1800)
+  await waitFor(
+    `document.querySelector('.repository-tools-sidebar') !== null`,
+    'Repository Tools sidebar'
+  )
+  await maskRepositoryToolsIntroduction()
   await parkPointer()
   await capture('material-repository-tools')
 })
@@ -1234,7 +1371,11 @@ scene('repository-tools', async () => {
 scene('repository-tools-scroll', async () => {
   await ensureRepository()
   await menuEvent('show-repository-tools')
-  await sleep(1200)
+  await waitFor(
+    `document.querySelector('.repository-tools-sidebar') !== null`,
+    'Repository Tools sidebar'
+  )
+  await maskRepositoryToolsIntroduction()
   await setViewport(960, 420)
   const scrolled = await evaluate(`(() => {
     const scroller = document.querySelector('.repository-tools-functions')
@@ -1395,16 +1536,90 @@ scene('actions-load-more', async () => {
   await capture('material-actions-pagination-headless')
 })
 
-scene('actions-run-details', async () => {
+const InspectorRunTitle =
+  'Actions run inspector verifies attempt navigation, page-two job recovery, deployment review, fork approval, and zero sideways scrolling'
+const InspectorSentinelJobTitle =
+  'Page-two current-attempt Windows packaging sentinel with an intentionally long responsive name'
+
+function requireInspectorFixture() {
+  const values = [
+    ready?.workflowRunCount,
+    ready?.inspectorJobCount,
+    ready?.inspectorCurrentJobSentinelId,
+  ]
+  if (!values.every(Number.isSafeInteger)) {
+    fail('Actions inspector scenes require the deterministic provider fixture.')
+  }
+}
+
+async function openInspectorRun() {
+  requireInspectorFixture()
   await captureSection('Actions', null, 2500)
-  await evaluate(`(() => {
-    const row = document.querySelector('.actions-run-row, [class*=actions-run-] button, .actions-run-column .list-item')
-    if (row instanceof HTMLElement) { row.click(); return true }
-    const anyRun = [...document.querySelectorAll('.actions-view button')].find(b => /Run|workflow/i.test(b.textContent))
-    if (anyRun) { anyRun.click(); return true }
-    return false
+  await waitFor(
+    `document.querySelector('.actions-run-pagination')?.textContent?.includes('50 loaded of ${ready.workflowRunCount} workflow runs') === true`,
+    'first 50 Actions runs',
+    30000
+  )
+  await clickText('Load more runs', { within: '.actions-view' })
+  await waitFor(
+    `document.querySelector('.actions-run-pagination')?.textContent?.includes('${ready.workflowRunCount} loaded of ${ready.workflowRunCount} workflow runs') === true`,
+    'complete Actions run inventory',
+    30000
+  )
+  const opened = await evaluate(`(() => {
+    const title = ${JSON.stringify(InspectorRunTitle)}
+    const run = [...document.querySelectorAll('button.actions-run-select')]
+      .find(button => button.textContent?.includes(title))
+    if (!(run instanceof HTMLElement)) return false
+    run.scrollIntoView({ block: 'center' })
+    run.click()
+    return true
   })()`)
-  await sleep(3000)
+  if (!opened) {
+    fail('The exact Actions inspector run is absent after pagination.')
+  }
+  await waitFor(
+    `document.querySelector('.actions-run-details')?.textContent?.includes(${JSON.stringify(
+      InspectorRunTitle
+    )}) === true && document.querySelector('.actions-job-pagination')?.textContent?.includes('50 loaded of ${
+      ready.inspectorJobCount
+    } jobs for attempt 2') === true`,
+    'Actions inspector attempt-two jobs',
+    30000
+  )
+}
+
+async function loadInspectorPageTwo() {
+  requireInspectorFixture()
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const complete = await evaluate(
+      `document.querySelector('.actions-job-pagination')?.textContent?.includes('${ready.inspectorJobCount} loaded of ${ready.inspectorJobCount} jobs for attempt 2') === true`
+    )
+    if (complete) {
+      break
+    }
+    await clickText('Load more jobs', { within: '.actions-run-details' })
+    await waitFor(
+      `document.querySelector('.actions-job-pagination')?.textContent?.includes('${ready.inspectorJobCount} loaded of ${ready.inspectorJobCount} jobs for attempt 2') === true || (document.querySelector('.actions-job-error') !== null && [...document.querySelectorAll('.actions-run-details button')].some(button => button.textContent.trim() === 'Load more jobs' && !button.disabled))`,
+      'Actions inspector page-two response',
+      30000
+    )
+  }
+  await waitFor(
+    `document.querySelector('.actions-job-pagination')?.textContent?.includes('${
+      ready.inspectorJobCount
+    } loaded of ${
+      ready.inspectorJobCount
+    } jobs for attempt 2') === true && [...document.querySelectorAll('.actions-job-card')].some(card => card.textContent?.includes(${JSON.stringify(
+      InspectorSentinelJobTitle
+    )}))`,
+    'Actions inspector page-two sentinel',
+    30000
+  )
+}
+
+scene('actions-run-details', async () => {
+  await openInspectorRun()
   await parkPointer()
   await capture('material-actions-jobs-pagination')
 })
@@ -1485,7 +1700,17 @@ scene('notification-github', async () => {
 scene('tab-search', async () => {
   await ensureRepository()
   await clickAria('Search tabs')
-  await sleep(1000)
+  await waitFor(
+    `document.querySelector('.tab-search-result-copy > span') !== null`,
+    'tab search result'
+  )
+  await evaluate(`(() => {
+    for (const path of document.querySelectorAll('.tab-search-result-copy > span')) {
+      path.textContent = 'C:\\Synthetic\\material-fixture'
+      path.removeAttribute('title')
+    }
+    return true
+  })()`)
   await parkPointer()
   await capture('material-tab-search')
   await pressEscape(1)
@@ -1553,9 +1778,13 @@ scene('scale-200', async () => {
   await ensureRepository()
   await menuEvent('show-changes')
   await setViewport(640, 480)
-  for (let index = 0; index < 4; index++) {
+  for (let index = 0; index < 5; index++) {
     await menuEvent('zoom-in')
   }
+  await waitFor(
+    `Math.round(require('electron').webFrame.getZoomFactor() * 100) === 200`,
+    'requested 200% renderer scale'
+  )
   await sleep(1200)
   await capture('material-scale-200-autofit')
   await menuEvent('zoom-reset')
@@ -1686,7 +1915,27 @@ scene('repository-folder-detection', async () => {
 
 scene('remote-manager', async () => {
   await openRepositorySettingsTab('Remote')
-  await sleep(1200)
+  await waitFor(
+    `document.querySelector('.remotes-manager') !== null && document.querySelector('.remote-row') !== null && document.querySelector('.remote-manager-results') !== null`,
+    'populated Remote Manager'
+  )
+  const remoteState = await evaluate(`(() => {
+    const settings = document.querySelector('#repository-settings')
+    return {
+      error: settings?.querySelector('[role="alert"], .add-remote-error')?.textContent ?? '',
+      text: settings?.textContent ?? '',
+    }
+  })()`)
+  if (
+    remoteState?.error.trim() !== '' ||
+    /could not inspect/i.test(remoteState?.text ?? '')
+  ) {
+    fail(
+      `Remote Manager did not reach a useful state: ${JSON.stringify(
+        remoteState
+      )}`
+    )
+  }
   await parkPointer()
   await capture('material-remote-manager')
   await closeAllDialogs()
@@ -1853,6 +2102,7 @@ scene('submodule-context', async () => {
     `document.querySelector('[data-hub-tool="submodule-manager"]') !== null`,
     'Submodule Manager tool'
   )
+  await maskRepositoryToolsIntroduction()
   await clickSelector('[data-hub-tool="submodule-manager"]')
   await clickText('Open submodule manager', {
     within: 'main.repository-tools',
@@ -1957,9 +2207,15 @@ scene('stash-manager', async () => {
 scene('rebase-review', async () => {
   await ensureRepository()
   await menuEvent('rebase-branch')
-  await sleep(1500)
-  await clickText('main', { optional: true })
-  await sleep(1200)
+  await waitFor(
+    `document.querySelector('#choose-branch') !== null`,
+    'rebase branch chooser'
+  )
+  await clickSelector('#choose-branch [role="option"][aria-label^="main"]')
+  await waitFor(
+    `document.querySelector('.rebase-route') !== null && document.querySelector('.rebase-ahead-behind') !== null && document.querySelector('.rebase-commit-preview') !== null`,
+    'bounded rebase review'
+  )
   await parkPointer()
   await capture('material-rebase-review')
   await closeAllDialogs()
@@ -1968,7 +2224,48 @@ scene('rebase-review', async () => {
 scene('pull-request-compose', async () => {
   await ensureRepository()
   await menuEvent('preview-pull-request')
-  await sleep(2500)
+  await waitFor(
+    `document.querySelector('.open-pull-request') !== null`,
+    'pull-request comparison'
+  )
+  const selectedBase = await evaluate(`(() =>
+    document.querySelector('.open-pull-request .popover-dropdown-component button')
+      ?.textContent?.replace(/\s+/g, ' ').trim() ?? ''
+  )()`)
+  if (!/base:\s*main/i.test(selectedBase)) {
+    await clickSelector(
+      '.open-pull-request .popover-dropdown-component > button'
+    )
+    await waitFor(
+      `document.querySelector('.popover-dropdown-popover [role="option"][aria-label^="main"]') !== null`,
+      'main pull-request base option'
+    )
+    await clickSelector(
+      '.popover-dropdown-popover [role="option"][aria-label^="main"]'
+    )
+  }
+  await waitFor(
+    `document.querySelector('.pull-request-files-changed') !== null && /Merge [1-9][0-9]* commits? into\s+main\s+from\s+feature\/material-verification/i.test(document.querySelector('.base-branch-details')?.textContent ?? '')`,
+    'non-empty feature-to-main pull-request comparison',
+    30000
+  )
+  const comparison = await evaluate(`(() => ({
+    text: document.querySelector('.open-pull-request')?.textContent ?? '',
+    added: document.querySelector('.lines-added')?.textContent ?? '',
+    removed: document.querySelector('.lines-deleted')?.textContent ?? '',
+    errors: [...document.querySelectorAll('.open-pull-request [role="alert"]')]
+      .map(node => node.textContent ?? ''),
+  }))()`)
+  if (
+    /There are no changes|Could not find a default branch/i.test(
+      comparison?.text ?? ''
+    ) ||
+    (comparison?.errors ?? []).some(value => value.trim() !== '') ||
+    (/^0\s/.test(comparison?.added ?? '') &&
+      /^0\s/.test(comparison?.removed ?? ''))
+  ) {
+    fail(`Pull-request comparison is not useful: ${JSON.stringify(comparison)}`)
+  }
   await parkPointer()
   await capture('material-native-pull-request')
   await closeAllDialogs()
@@ -1976,8 +2273,73 @@ scene('pull-request-compose', async () => {
 
 scene('pull-request-open', async () => {
   await ensureRepository()
+  const pullRequestPath = /\/repos\/[^/]+\/[^/]+\/pulls(?:\?|$)/
+  const before = countProviderRequests('POST', pullRequestPath)
   await menuEvent('open-pull-request')
-  await sleep(2500)
+  await waitFor(
+    `document.querySelector('#create-github-pull-request') !== null`,
+    'native pull-request dialog'
+  )
+  await waitFor(
+    `document.querySelector('#create-github-pull-request select[aria-label="Base branch"]') !== null && document.querySelector('#create-github-pull-request input[aria-label="Title"]') !== null && !document.querySelector('#create-github-pull-request')?.textContent?.includes('Native pull request creation is unavailable')`,
+    'available native pull-request form',
+    30000
+  )
+  await setSelect(
+    '#create-github-pull-request select[aria-label="Base branch"]',
+    'main'
+  )
+  await setInput(
+    '#create-github-pull-request input[aria-label="Title"]',
+    'Verify deterministic Windows desktop material evidence'
+  )
+  await setInput(
+    '#create-github-pull-request textarea[aria-label="Description (optional)"]',
+    'Synthetic provider-backed completion proof for the reviewed feature-to-main route.'
+  )
+  await waitFor(
+    `[...document.querySelectorAll('#create-github-pull-request button')].some(button => button.textContent.trim() === 'Review pull request' && !button.disabled)`,
+    'enabled pull-request review action',
+    30000
+  )
+  await clickText('Review pull request', {
+    within: '#create-github-pull-request',
+  })
+  await waitFor(
+    `document.querySelector('.create-github-pull-request-review') !== null && document.querySelector('.create-github-pull-request-context')?.textContent?.includes('feature/material-verification → main') === true`,
+    'reviewed feature-to-main pull-request route'
+  )
+  await clickText('Create pull request', {
+    within: '#create-github-pull-request',
+  })
+  await waitFor(
+    `document.querySelector('.create-github-pull-request-success[role="status"]')?.textContent?.includes('Pull request #73 created') === true`,
+    'native pull-request success receipt',
+    30000
+  )
+  const nativeState = await evaluate(`(() => ({
+    text: document.querySelector('#create-github-pull-request')?.textContent ?? '',
+    errors: [...document.querySelectorAll('#create-github-pull-request [role="alert"]')]
+      .map(node => node.textContent ?? ''),
+  }))()`)
+  if (
+    /Native pull request creation is unavailable|upstream does not belong|There are no changes/i.test(
+      nativeState?.text ?? ''
+    ) ||
+    (nativeState?.errors ?? []).some(value => value.trim() !== '')
+  ) {
+    fail(
+      `Native pull-request completion failed: ${JSON.stringify(nativeState)}`
+    )
+  }
+  const after = countProviderRequests('POST', pullRequestPath)
+  if (after !== before + 1) {
+    fail(
+      `Native pull-request completion sent ${
+        after - before
+      } provider POSTs instead of exactly one.`
+    )
+  }
   await parkPointer()
   await capture('material-create-pull-request')
   await closeAllDialogs()
@@ -2005,6 +2367,10 @@ scene('shallow-clone-dialog', async () => {
     return true
   })()`)
   await sleep(900)
+  await maskVisibleValue(
+    'dialog.clone-repository input[placeholder="repository path"]',
+    'C:\\Synthetic\\material-fixture'
+  )
   await parkPointer()
   await capture('material-shallow-clone')
   // The reviewed state: depth field visible with its bounded value focused.
@@ -2023,25 +2389,29 @@ scene('shallow-clone-dialog', async () => {
 scene('sparse-checkout-safe', async () => {
   await ensureRepository()
   await menuEvent('manage-sparse-checkout')
-  await sleep(1500)
-  const input = await evaluate(`(() => {
-    const field = [...document.querySelectorAll('dialog input[type=text], dialog textarea')]
-      .find(x => x.closest('dialog')?.open)
-    return field !== null && field !== undefined
-  })()`)
-  if (input) {
-    await evaluate(`(() => {
-      const field = [...document.querySelectorAll('dialog input[type=text], dialog textarea')]
-        .find(x => x.closest('dialog')?.open)
-      if (!field) return false
-      const proto = field instanceof HTMLTextAreaElement
-        ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
-      Object.getOwnPropertyDescriptor(proto, 'value').set.call(field, 'docs/')
-      field.dispatchEvent(new Event('input', { bubbles: true }))
-      return true
-    })()`)
-    await sleep(900)
+  await waitFor(
+    `document.querySelector('.sparse-checkout-panel')?.getAttribute('aria-busy') === 'false' && document.querySelector('.sparse-checkout-editor') !== null`,
+    'editable Sparse Checkout panel'
+  )
+  await maskSparseCheckoutRepositoryPath()
+  await setInput('.sparse-checkout-editor', 'docs/')
+  await waitFor(
+    `document.querySelector('.sparse-checkout-editor-count')?.textContent?.trim() === '1 valid directory' && [...document.querySelectorAll('.sparse-checkout-write-button')].some(button => /^Review (enable|directory update)$/.test(button.textContent.trim()) && !button.disabled)`,
+    'one valid reviewed sparse directory'
+  )
+  const reviewLabel = await evaluate(`(() =>
+    [...document.querySelectorAll('.sparse-checkout-write-button')]
+      .find(button => /^Review (enable|directory update)$/.test(button.textContent.trim()) && !button.disabled)
+      ?.textContent.trim() ?? null
+  )()`)
+  if (reviewLabel === null) {
+    fail('Sparse Checkout review action is unavailable.')
   }
+  await clickText(reviewLabel, { within: '.sparse-checkout-panel' })
+  await waitFor(
+    `document.querySelector('.sparse-checkout-confirmation') !== null`,
+    'Sparse Checkout confirmation'
+  )
   await parkPointer()
   await capture('material-sparse-checkout-safe')
   await closeAllDialogs()
@@ -2050,9 +2420,21 @@ scene('sparse-checkout-safe', async () => {
 scene('pull-all', async () => {
   await ensureRepository()
   await menuEvent('choose-repository')
-  await sleep(1200)
-  await clickText('Pull all', { optional: true })
-  await sleep(2500)
+  await waitFor(
+    `[...document.querySelectorAll('button')].some(button => button.textContent.trim() === 'Sync repositories')`,
+    'repository batch-sync action'
+  )
+  await clickText('Sync repositories')
+  await waitFor(
+    `document.querySelector('#pull-all-repositories [aria-label="Repository batch review"]') !== null`,
+    'repository batch review'
+  )
+  await clickText('Start pull', { within: '#pull-all-repositories' })
+  await waitFor(
+    `document.querySelector('#pull-all-repositories')?.textContent?.includes('Pull complete') === true && document.querySelector('#pull-all-repositories')?.textContent?.includes('Every repository has a final result.') === true && document.querySelector('#pull-all-repositories .pull-all-summary') !== null`,
+    'completed reviewed repository sync',
+    45000
+  )
   await parkPointer()
   await capture('material-pull-all-account-fallback')
   await closeAllDialogs()
@@ -2073,6 +2455,10 @@ scene('clone-fallback', async () => {
     'http://localhost:57520/material-fixture-owner/material-fixture.git'
   )
   await sleep(2200)
+  await maskVisibleValue(
+    'dialog.clone-repository input[placeholder="repository path"]',
+    'C:\\Synthetic\\material-fixture'
+  )
   await parkPointer()
   await capture('material-clone-account-fallback')
   await closeAllDialogs()
@@ -2083,41 +2469,91 @@ scene('regex-builder', async () => {
   await menuEvent('show-history')
   await sleep(1200)
   await ensureCommitList()
-  await clickAria('Search filters', { optional: true })
-  await sleep(700)
-  ;(await clickText('Regex builder', { optional: true })) ||
-    (await clickAria('Regex builder', { optional: true })) ||
-    (await clickAria('Open regex builder', { optional: true }))
-  await sleep(1500)
+  await clickSelector('.history-filter-chips-toggle')
+  await waitFor(
+    `document.querySelector('.history-filter-chips') !== null`,
+    'History filter chips'
+  )
+  await clickSelector('.history-regex-builder-chip')
+  await waitFor(
+    `document.querySelector('#regex-builder-title') !== null`,
+    'Regex Builder dialog'
+  )
   await parkPointer()
   await capture('regex-builder')
   await closeAllDialogs()
 })
 
-scene('history-deepen', async () => {
+async function openShallowHistoryTool() {
   await ensureRepository()
   await menuEvent('show-repository-tools')
-  await sleep(1500)
-  await clickText('Deepen a shallow repository', { optional: true })
-  await sleep(1200)
-  ;(await clickText('Fetch 25 older commits', { optional: true })) ||
-    (await clickText('Deepen by 25', { optional: true })) ||
-    (await clickText('Deepen', { optional: true }))
-  await sleep(3500)
+  await waitFor(
+    `document.querySelector('[data-hub-tool="shallow-history"]') !== null`,
+    'Shallow History tool'
+  )
+  await maskRepositoryToolsIntroduction()
+  await clickSelector('[data-hub-tool="shallow-history"]')
+  await waitFor(
+    `document.querySelector('.repository-shallow-history') !== null`,
+    'Shallow History panel'
+  )
+  await clickText('Check history status', {
+    within: '.repository-shallow-history',
+  })
+  await waitFor(
+    `document.querySelector('.repository-shallow-history')?.textContent?.includes('This repository is shallow.') === true && [...document.querySelectorAll('.repository-shallow-history button')].some(button => button.textContent.trim() === 'Review bounded deepen' && !button.disabled)`,
+    'confirmed shallow repository',
+    30000
+  )
+}
+
+scene('history-deepen', async () => {
+  await openShallowHistoryTool()
+  await setInput('#repository-shallow-history-count', '1')
+  await clickText('Review bounded deepen', {
+    within: '.repository-shallow-history',
+  })
+  await waitFor(
+    `[...document.querySelectorAll('.repository-shallow-history-confirmation button')].some(button => button.textContent.trim() === 'Deepen by 1 commits')`,
+    'bounded deepen confirmation'
+  )
+  await clickText('Deepen by 1 commits', {
+    within: '.repository-shallow-history-confirmation',
+  })
+  await waitFor(
+    `document.querySelector('.repository-shallow-history')?.textContent?.includes('Fetched 1 additional commits of history from origin. The repository still has a shallow boundary.') === true`,
+    'bounded deepen completion',
+    45000
+  )
   await parkPointer()
   await capture('material-history-deepen')
 })
 
 scene('history-deepening', async () => {
-  await ensureRepository()
-  await menuEvent('show-repository-tools')
-  await sleep(1200)
-  await clickText('Deepen a shallow repository', { optional: true })
-  await sleep(1000)
-  ;(await clickText('Fetch all remaining history', { optional: true })) ||
-    (await clickText('Fetch all history', { optional: true })) ||
-    (await clickText('Unshallow', { optional: true }))
-  await sleep(4500)
+  await openShallowHistoryTool()
+  await clickText('Review full history', {
+    within: '.repository-shallow-history',
+  })
+  await waitFor(
+    `[...document.querySelectorAll('.repository-shallow-history-confirmation button')].some(button => button.textContent.trim() === 'Fetch full history')`,
+    'full-history confirmation'
+  )
+  await clickText('Fetch full history', {
+    within: '.repository-shallow-history-confirmation',
+  })
+  await waitFor(
+    `document.querySelector('.repository-shallow-history')?.textContent?.includes('Fetched full history from origin. This repository is no longer shallow.') === true`,
+    'full-history completion',
+    45000
+  )
+  const shallow = execFileSync(
+    'git',
+    ['-C', fixturePath, 'rev-parse', '--is-shallow-repository'],
+    { encoding: 'utf8', windowsHide: true }
+  ).trim()
+  if (shallow !== 'false') {
+    fail(`Full-history scene left the fixture shallow: ${shallow}`)
+  }
   await parkPointer()
   await capture('material-history-deepening')
 })
@@ -2187,11 +2623,24 @@ scene('actions-artifact-page-two', async () => {
   })()`)
   await sleep(900)
   await parkPointer()
-  await capture('material-actions-artifact-page-two')
-  await capture('material-actions-artifacts-headless')
+  const pageTwo = await capture('material-actions-artifact-page-two')
+  await evaluate(`(() => {
+    const heading = [...document.querySelectorAll('h2, h3, h4')]
+      .find(node => /artifact/i.test(node.textContent ?? ''))
+    if (!(heading instanceof HTMLElement)) return false
+    heading.scrollIntoView({ block: 'start' })
+    return true
+  })()`)
+  await sleep(800)
+  await parkPointer()
+  const inventory = await capture('material-actions-artifacts-headless')
+  if (sha256File(pageTwo) === sha256File(inventory)) {
+    fail('Artifact page-two and inventory captures are byte-identical.')
+  }
 })
 
 scene('actions-sentinel', async () => {
+  requireInspectorFixture()
   await captureSection('Actions', null, 2500)
   for (let round = 0; round < 4; round++) {
     const more = await clickText('Load more runs', { optional: true })
@@ -2200,6 +2649,17 @@ scene('actions-sentinel', async () => {
     }
     await sleep(2500)
   }
+  await waitFor(
+    `document.querySelector('.actions-run-pagination')?.textContent?.includes('${
+      ready?.workflowRunCount
+    } loaded of ${
+      ready?.workflowRunCount
+    } workflow runs') === true && [...document.querySelectorAll('button.actions-run-select')].some(button => button.textContent?.includes(${JSON.stringify(
+      InspectorRunTitle
+    )}))`,
+    'Actions run page-two sentinel',
+    30000
+  )
   await evaluate(`(() => {
     const column = document.querySelector('.actions-run-column')
     if (column instanceof HTMLElement) column.scrollTop = column.scrollHeight
@@ -2213,87 +2673,75 @@ scene('actions-sentinel', async () => {
 })
 
 scene('actions-job-log', async () => {
-  await captureSection('Actions', null, 2500)
-  // Not every synthetic run serves logs; walk runs until the viewer has
-  // real content instead of the transfer error.
-  for (let index = 0; index < 4; index++) {
-    await evaluate(`(() => {
-      const rows = [...document.querySelectorAll('button.actions-run-select')]
-      const row = rows[${index}]
-      if (row instanceof HTMLElement) row.click()
-      return true
-    })()`)
-    await sleep(2500)
-    const openedLog =
-      (await clickText('View logs', { optional: true })) ||
-      (await clickAria('View logs', { optional: true }))
-    if (!openedLog) {
-      continue
-    }
-    await sleep(2500)
-    const failed = await evaluate(
-      `/could not transfer/i.test(document.body.textContent ?? '')`
-    )
-    if (!failed) {
-      break
-    }
-    await clickText('Close', { optional: true })
-    await sleep(700)
+  await openInspectorRun()
+  await loadInspectorPageTwo()
+  const openedLog = await evaluate(`(() => {
+    const title = ${JSON.stringify(InspectorSentinelJobTitle)}
+    const card = [...document.querySelectorAll('.actions-job-card')]
+      .find(node => node.textContent?.includes(title))
+    const button = card === undefined
+      ? null
+      : [...card.querySelectorAll('button')]
+          .find(node => node.textContent.trim() === 'View logs')
+    if (!(button instanceof HTMLElement)) return false
+    button.click()
+    return true
+  })()`)
+  if (!openedLog) {
+    fail('The exact Actions page-two sentinel log action is unavailable.')
   }
+  await waitFor(
+    `document.querySelector('.actions-log-viewer')?.textContent?.includes('Exact workflow job ${ready?.inspectorCurrentJobSentinelId}') === true`,
+    'exact Actions sentinel log',
+    30000
+  )
   await parkPointer()
   await capture('material-actions-job-log')
-  await closeAllDialogs()
+  await clickText('Close', { within: '.actions-log-viewer' })
+  await waitFor(
+    `document.querySelector('.actions-log-viewer') === null`,
+    'closed Actions log viewer'
+  )
 })
 
 scene('actions-cancel', async () => {
   await captureSection('Actions', null, 2500)
-  for (let round = 0; round < 4; round++) {
-    const found = await evaluate(`(() => {
-      return [...document.querySelectorAll('.actions-view button')]
-        .some(b => /cancel/i.test(b.getAttribute('aria-label') ?? b.textContent ?? ''))
-    })()`)
-    if (found) {
-      break
-    }
-    const more = await clickText('Load more runs', { optional: true })
-    if (!more) {
-      break
-    }
-    await sleep(2500)
-  }
-  const requested = await evaluate(`(() => {
-    const cancel = [...document.querySelectorAll('.actions-view button')]
-      .find(b => /cancel/i.test(b.getAttribute('aria-label') ?? b.textContent ?? ''))
-    if (cancel instanceof HTMLElement) { cancel.click(); return true }
-    return false
-  })()`)
-  if (!requested) {
-    process.stdout.write('WARN no cancellable run found\n')
-    return
-  }
-  await sleep(1500)
+  await waitFor(
+    `document.querySelector('[aria-label="Cancel workflow run 74"]') !== null`,
+    'deterministic cancellable Actions run'
+  )
+  await clickSelector('[aria-label="Cancel workflow run 74"]')
+  await waitFor(
+    `document.querySelector('.actions-confirmation-dialog[role="alertdialog"]')?.textContent?.includes('Cancel workflow run?') === true && document.querySelector('.actions-confirmation-dialog')?.textContent?.includes('#74') === true`,
+    'Actions cancellation confirmation'
+  )
   await parkPointer()
   await capture('material-actions-cancel')
-  ;(await clickText('Keep running', { optional: true })) ||
-    (await clickText('Go back', { optional: true })) ||
-    (await closeAllDialogs())
+  await clickText('Keep current state', {
+    within: '.actions-confirmation-dialog',
+  })
+  await waitFor(
+    `document.querySelector('.actions-confirmation-dialog') === null`,
+    'closed Actions cancellation confirmation'
+  )
 })
 
 scene('actions-pending-deployments', async () => {
-  await captureSection('Actions', null, 2500)
+  await openInspectorRun()
+  await waitFor(
+    `document.querySelectorAll('.actions-pending-environment').length === 2 && document.querySelector('.actions-run-reviews')?.textContent?.includes('Locked deployment environment') === true`,
+    'two pending deployment environments',
+    30000
+  )
   await evaluate(`(() => {
-    const waiting = [...document.querySelectorAll('.actions-run-column .list-item, .actions-run-column li, .actions-run-column article')]
-      .find(r => /waiting|pending|review/i.test(r.textContent ?? ''))
-    if (waiting instanceof HTMLElement) { waiting.click(); return true }
-    return false
+    const reviews = document.querySelector('.actions-run-reviews')
+    if (!(reviews instanceof HTMLElement)) return false
+    reviews.scrollIntoView({ block: 'start' })
+    return true
   })()`)
-  await sleep(2500)
-  ;(await clickText('Review deployments', { optional: true })) ||
-    (await clickText('Review pending deployments', { optional: true }))
-  await sleep(1800)
+  await sleep(800)
   await parkPointer()
   await capture('material-actions-pending-deployments')
-  await closeAllDialogs()
 })
 
 // "Raw" scenes assume the Actions run details pane is already open and
@@ -2351,34 +2799,92 @@ scene('raw-artifact-pages', async () => {
 })
 
 scene('raw-job-log', async () => {
-  await clickText('View logs', { optional: true })
-  await sleep(2500)
+  await loadInspectorPageTwo()
+  const opened = await evaluate(`(() => {
+    const card = [...document.querySelectorAll('.actions-job-card')]
+      .find(node => node.textContent?.includes(${JSON.stringify(
+        InspectorSentinelJobTitle
+      )}))
+    const button = card === undefined
+      ? null
+      : [...card.querySelectorAll('button')]
+          .find(node => node.textContent.trim() === 'View logs')
+    if (!(button instanceof HTMLElement)) return false
+    button.click()
+    return true
+  })()`)
+  if (!opened) fail('Unable to open the exact raw sentinel log.')
+  await waitFor(
+    `document.querySelector('.actions-log-viewer')?.textContent?.includes('Exact workflow job ${ready?.inspectorCurrentJobSentinelId}') === true`,
+    'raw exact Actions sentinel log'
+  )
   await parkPointer()
   await capture('material-actions-job-log')
-  await clickText('Close', { optional: true })
-  await sleep(600)
+  await clickText('Close', { within: '.actions-log-viewer' })
+  await waitFor(
+    `document.querySelector('.actions-log-viewer') === null`,
+    'closed raw Actions log'
+  )
 })
 
 scene('raw-deployments', async () => {
-  ;(await clickText('Review deployments', { optional: true })) ||
-    (await clickText('Review pending deployments', { optional: true })) ||
-    (await evaluate(`(() => {
-      const b = [...document.querySelectorAll('button')].find(x => /deployment/i.test(x.textContent ?? ''))
-      if (b instanceof HTMLElement) { b.click(); return true }
-      return false
-    })()`))
-  await sleep(1800)
+  await waitFor(
+    `document.querySelectorAll('.actions-pending-environment').length === 2 && document.querySelector('.actions-run-reviews')?.textContent?.includes('Locked deployment environment') === true`,
+    'raw pending deployment environments'
+  )
+  await evaluate(`(() => {
+    const reviews = document.querySelector('.actions-run-reviews')
+    if (!(reviews instanceof HTMLElement)) return false
+    reviews.scrollIntoView({ block: 'start' })
+    return true
+  })()`)
+  await sleep(800)
   await parkPointer()
   await capture('material-actions-pending-deployments')
-  await closeAllDialogs()
 })
 
 scene('merge-all', async () => {
+  if (fixturePath === null) {
+    fail('Merge All requires a disposable fixture path.')
+  }
   await ensureRepository()
-  await menuEvent('show-worktrees')
-  await sleep(1500)
-  await clickText('Merge all worktrees', { optional: true })
-  await sleep(2500)
+  for (const [branch, startPoint] of [
+    ['main', 'origin/main'],
+    ['gallery/merge-all-evidence', 'origin/main'],
+  ]) {
+    try {
+      execFileSync(
+        'git',
+        [
+          '-C',
+          fixturePath,
+          'show-ref',
+          '--verify',
+          '--quiet',
+          `refs/heads/${branch}`,
+        ],
+        { windowsHide: true, stdio: 'ignore' }
+      )
+    } catch {
+      execFileSync('git', ['-C', fixturePath, 'branch', branch, startPoint], {
+        windowsHide: true,
+        stdio: 'ignore',
+      })
+    }
+  }
+  await evaluate(`require('electron').ipcRenderer.emit('focus'), true`)
+  await sleep(1800)
+  await menuEvent('show-branches')
+  await waitFor(
+    `document.querySelector('.merge-all-button') !== null`,
+    'Merge All branches action'
+  )
+  await clickText('Merge all into default')
+  await waitFor(
+    `document.querySelector('#merge-all .merge-all-summary')?.textContent?.trim().startsWith('Complete.') === true && document.querySelectorAll('#merge-all .merge-all-results tbody tr').length > 0`,
+    'completed Merge All evidence',
+    45000
+  )
   await parkPointer()
   await capture('material-branch-merge-all')
   await closeAllDialogs()
@@ -2392,6 +2898,7 @@ scene('advanced-workflows', async () => {
     `document.querySelector('.repository-tools-sidebar') !== null`,
     'Repository Tools sidebar'
   )
+  await maskRepositoryToolsIntroduction()
   await setInput('.repository-tools-search-input', 'Tag lifecycle')
   await waitFor(
     `document.querySelector('[data-hub-tool="tag-lifecycle"]') !== null`,

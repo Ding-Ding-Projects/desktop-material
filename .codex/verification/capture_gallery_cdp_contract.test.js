@@ -176,3 +176,106 @@ test('capture candidates cannot overwrite tracked screenshots directly', () => {
   assert.ok(source.includes("{ flag: 'wx' }"))
   assert.ok(!source.includes("args.get('out') ?? 'docs/assets/screenshots'"))
 })
+
+test('every screenshot passes the universal private-path gate', () => {
+  const privacy = source.indexOf('async function assertCapturePrivacy(name)')
+  const screenshot = source.indexOf("client.send('Page.captureScreenshot'")
+  assert.notEqual(privacy, -1)
+  assert.notEqual(screenshot, -1)
+  assert.ok(privacy < screenshot)
+  assert.ok(source.includes('await assertCapturePrivacy(name)'))
+  for (const marker of [
+    'C:\\\\Users\\\\',
+    'C:\\/Users\\/',
+    'ADMINI~1',
+    'AppData',
+    'desktop-material-p0-ui-',
+    '.repository-tools-introduction',
+    '.sparse-checkout-heading-copy small',
+    '.tab-search-result-copy > span',
+    'C:\\\\Synthetic\\\\material-fixture',
+  ]) {
+    assert.ok(source.includes(marker), `missing privacy contract: ${marker}`)
+  }
+})
+
+test('canonical workflow scenes use current reviewed controls and outcomes', () => {
+  for (const contract of [
+    "clickText('Sync repositories')",
+    "clickText('Start pull'",
+    'Every repository has a final result.',
+    '\'[data-hub-tool="shallow-history"]\'',
+    "clickText('Check history status'",
+    "clickText('Review bounded deepen'",
+    "clickText('Deepen by 1 commits'",
+    'Fetched 1 additional commits of history from origin.',
+    "clickText('Review full history'",
+    "clickText('Fetch full history'",
+    'This repository is no longer shallow.',
+    "clickSelector('.history-filter-chips-toggle')",
+    "clickSelector('.history-regex-builder-chip')",
+    "document.querySelector('#regex-builder-title')",
+    '\'#choose-branch [role="option"][aria-label^="main"]\'',
+    "document.querySelector('.rebase-route')",
+    "document.querySelector('.rebase-ahead-behind')",
+    "document.querySelector('.rebase-commit-preview')",
+  ]) {
+    assert.ok(source.includes(contract), `missing reviewed state: ${contract}`)
+  }
+  for (const stale of [
+    "clickText('Pull all'",
+    'Fetch 25 older commits',
+    'Deepen by 25',
+    'Fetch all remaining history',
+    'Review deployments',
+  ]) {
+    assert.ok(!source.includes(stale), `stale control remains: ${stale}`)
+  }
+})
+
+test('Actions captures prove inspector pagination, logs, reviews, and cancellation', () => {
+  for (const contract of [
+    'async function openInspectorRun()',
+    'async function loadInspectorPageTwo()',
+    '50 loaded of ${ready.workflowRunCount} workflow runs',
+    '50 loaded of ${ready.inspectorJobCount} jobs for attempt 2',
+    'Page-two current-attempt Windows packaging sentinel',
+    'Exact workflow job ${ready?.inspectorCurrentJobSentinelId}',
+    '[aria-label="Cancel workflow run 74"]',
+    "clickText('Keep current state'",
+    "document.querySelectorAll('.actions-pending-environment').length === 2",
+    'Locked deployment environment',
+  ]) {
+    assert.ok(
+      source.includes(contract),
+      `missing Actions contract: ${contract}`
+    )
+  }
+  assert.ok(!source.includes('WARN no cancellable run found'))
+})
+
+test('capture scenes prove PR, sparse, scale, merge, and distinct artifact states', () => {
+  for (const contract of [
+    "setInput('.sparse-checkout-editor', 'docs/')",
+    "document.querySelector('.sparse-checkout-confirmation')",
+    "document.querySelector('.pull-request-files-changed')",
+    "document.querySelector('#create-github-pull-request')",
+    "clickText('Review pull request'",
+    "clickText('Create pull request'",
+    'Pull request #73 created',
+    "countProviderRequests('POST', pullRequestPath)",
+    "document.querySelector('#merge-all .merge-all-summary')",
+    "document.querySelectorAll('#merge-all .merge-all-results tbody tr')",
+    'sha256File(pageTwo) === sha256File(inventory)',
+  ]) {
+    assert.ok(
+      source.includes(contract),
+      `missing outcome contract: ${contract}`
+    )
+  }
+  assert.match(
+    source,
+    /scene\('scale-200',[\s\S]*?for \(let index = 0; index < 5; index\+\+\)/
+  )
+  assert.ok(source.includes('=== 200`'))
+})

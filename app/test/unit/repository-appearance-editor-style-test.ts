@@ -7,11 +7,11 @@ const read = (...parts: ReadonlyArray<string>) =>
   readFileSync(join(process.cwd(), ...parts), 'utf8')
 
 /**
- * The per-repository appearance editor is a rich editor — colour swatches,
- * segmented controls, an inline typography editor, and a live preview — not a
- * stack of dropdowns. This pins the load-bearing pieces of that treatment.
+ * Repository visuals are edited from their actual list-row owners. The
+ * anchored name and logo editors keep their rich controls while persistence
+ * and history stay outside the retired Repository Settings appearance tab.
  */
-describe('repository appearance editor', () => {
+describe('repository owner appearance editors', () => {
   it('styles colour swatches, segmented chips, and the live preview', () => {
     const style = read('app', 'styles', 'ui', '_repository-logo.scss')
 
@@ -36,23 +36,39 @@ describe('repository appearance editor', () => {
     assert.match(style, /\.repository-appearance-preview-row \{/)
   })
 
-  it('drives the controls from data attributes, not per-item closures', () => {
-    const component = read(
+  it('opens owner-scoped name and logo editors from the repository row', () => {
+    const row = read(
       'app',
       'src',
       'ui',
-      'repository-settings',
-      'appearance.tsx'
+      'repositories-list',
+      'repository-list-item.tsx'
     )
-    // A single delegated click handler keyed by data-field / data-value.
-    assert.match(component, /onClick=\{this\.onFieldClick\}/)
-    assert.match(component, /data-field="accentPalette"/)
-    assert.match(component, /accentOptions/)
-    // The live preview and the typography editor are present.
-    assert.match(component, /renderPreview\(\)/)
-    assert.match(component, /renderStyleToggles\(\)/)
-    assert.match(component, /renderTextColor\(\)/)
-    // No leftover appearance dropdown <Select name=…> scaffolding.
-    assert.doesNotMatch(component, /renderSelect\(/)
+    const editors = read(
+      'app',
+      'src',
+      'ui',
+      'appearance',
+      'repository-element-appearance-editors.tsx'
+    )
+
+    assert.match(
+      row,
+      /openAppearanceEditorFromContextMenu\(event, this\.openNameAppearanceEditor\)/
+    )
+    assert.match(
+      row,
+      /openAppearanceEditorFromContextMenu\(event, this\.openLogoAppearanceEditor\)/
+    )
+    assert.match(row, /getRepositoryAppearanceHistorySource/)
+    assert.match(row, /getRepositoryAppearanceRepositoryPath/)
+    assert.match(row, /<AnchoredAppearanceEditor/)
+    assert.match(row, /<RepositoryListNameAppearanceEditor/)
+    assert.match(row, /<RepositoryLogoAppearanceEditor/)
+
+    assert.match(editors, /class RepositoryListNameAppearanceEditor/)
+    assert.match(editors, /aria-label="Live name preview"/)
+    assert.match(editors, /class RepositoryLogoAppearanceEditor/)
+    assert.match(editors, /<RepositoryLogoStudio/)
   })
 })

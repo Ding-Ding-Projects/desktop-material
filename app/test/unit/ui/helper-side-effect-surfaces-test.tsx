@@ -139,7 +139,9 @@ describe('helper side-effect surfaces', () => {
       )
       assert.equal(
         document.body.hasAttribute('data-dm-highlight-features'),
-        true
+        // Highlighting is owned by each concrete appearance surface. The
+        // retired body-wide flag must stay absent after legacy state reloads.
+        false
       )
       assert.equal(document.documentElement.style.colorScheme, 'light')
       assert.deepEqual(sends.at(-1), [

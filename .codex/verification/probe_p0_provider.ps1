@@ -15,6 +15,7 @@ if (
 $readyPath = Join-Path $resolvedRoot 'provider\ready.json'
 $ready = Get-Content -LiteralPath $readyPath -Raw | ConvertFrom-Json
 $api = [string]$ready.endpoint
+$accountOrigin = ([Uri]$api).GetLeftPart([UriPartial]::Authority)
 $repo = "$api/repos/$($ready.owner)/$($ready.repository)"
 $headers = @{ Authorization = "Bearer $($ready.token)" }
 
@@ -41,7 +42,7 @@ if (
 $repository = Invoke-RestMethod -Method Get -Uri $repo -Headers $headers
 if (
   $repository.full_name -ne "$($ready.owner)/$($ready.repository)" -or
-  $repository.clone_url -ne "$($ready.htmlUrl)/$($ready.owner)/$($ready.repository).git"
+  $repository.clone_url -ne "$accountOrigin/$($ready.owner)/$($ready.repository).git"
 ) {
   throw 'Provider repository identity contract failed.'
 }
