@@ -346,6 +346,10 @@ describe('Ollama manager attach-only verifier contract', () => {
       /ipcRenderer\.emit\('menu-event', \{\}, 'show-preferences'\)/
     )
     assert.doesNotMatch(source, /ipcRenderer\.emit\('show-preferences'\)/)
+    assert.match(
+      source,
+      /querySelector\('#preferences-tab-copilot'\)[\s\S]*?closest\('button\[role="tab"\]'\)[\s\S]*?aria-selected/
+    )
     assert.doesNotThrow(
       () => new Function(`return (${FinalSurfaceExpression})`)
     )

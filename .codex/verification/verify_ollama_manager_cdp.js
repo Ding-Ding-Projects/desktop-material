@@ -717,6 +717,7 @@ async function openManager(client) {
   await waitForExpression(
     client,
     `document.querySelector('#preferences-tab-copilot')
+      ?.closest('button[role="tab"]')
       ?.getAttribute('aria-selected') === 'true'`,
     'selected Copilot preferences tab'
   )
