@@ -139,6 +139,7 @@ describe('GitLab merge request API', () => {
       const headers = new Headers(requests[0].options?.headers)
       assert.equal(headers.get('PRIVATE-TOKEN'), 'exact-private-token')
       assert.equal(headers.get('Authorization'), null)
+      assert.match(requests[1].url, /\/merge_requests\/7\/approvals$/)
 
       responses.push(
         jsonResponse(mergeRequest(7)),
@@ -189,6 +190,59 @@ describe('GitLab merge request API', () => {
       assert.deepEqual(JSON.parse(String(requests[6].options?.body)), {
         state_event: 'close',
       })
+    })
+  })
+
+  it('keeps successful lifecycle responses when approval metadata is partial', async () => {
+    await withFetchQueue(async (api, responses, requests) => {
+      responses.push(
+        jsonResponse(mergeRequest(7)),
+        jsonResponse({ message: 'approval unavailable' }, 403)
+      )
+      const loaded = await api.getGitLabMergeRequest(
+        'group/subgroup/project',
+        7
+      )
+      assert.equal(loaded.approval, null)
+      assert.match(requests[1].url, /\/merge_requests\/7\/approvals$/)
+
+      responses.push(
+        jsonResponse(mergeRequest(8)),
+        jsonResponse({ message: 'approval unavailable' }, 500)
+      )
+      const created = await api.createGitLabMergeRequest(
+        'group/subgroup/project',
+        {
+          sourceBranch: 'topic-partial',
+          targetBranch: 'main',
+          title: 'Partial approval',
+          description: '',
+          draft: false,
+          reviewerIds: [],
+          assigneeIds: [],
+        }
+      )
+      assert.equal(created.iid, 8)
+      assert.equal(created.approval, null)
+      assert.equal(requests[2].options?.method, 'POST')
+      assert.match(requests[3].url, /\/merge_requests\/8\/approvals$/)
+
+      responses.push(
+        jsonResponse(mergeRequest(7)),
+        jsonResponse(mergeRequest(7, { title: 'Updated' })),
+        jsonResponse({ message: 'approval unavailable' }, 403)
+      )
+      const updated = await api.updateGitLabMergeRequest(
+        'group/subgroup/project',
+        7,
+        headSHA,
+        { title: 'Updated' }
+      )
+      assert.equal(updated.title, 'Updated')
+      assert.equal(updated.approval, null)
+      assert.equal(requests[5].options?.method, 'PUT')
+      assert.match(requests[6].url, /\/merge_requests\/7\/approvals$/)
+      assert.equal(requests.length, 7)
     })
   })
 
@@ -267,8 +321,7 @@ describe('GitLab merge request API', () => {
     await withFetchQueue(async (api, responses, requests) => {
       responses.push(
         jsonResponse(approval(7, true)),
-        jsonResponse(mergeRequest(7)),
-        jsonResponse(approval(7, true))
+        jsonResponse(mergeRequest(7))
       )
       const approved = await api.approveGitLabMergeRequest(
         'group/subgroup/project',
@@ -284,8 +337,7 @@ describe('GitLab merge request API', () => {
       responses.push(
         jsonResponse(mergeRequest(7)),
         jsonResponse(approval(7, false)),
-        jsonResponse(mergeRequest(7)),
-        jsonResponse(approval(7, false))
+        jsonResponse(mergeRequest(7))
       )
       const unapproved = await api.unapproveGitLabMergeRequest(
         'group/subgroup/project',
@@ -293,15 +345,15 @@ describe('GitLab merge request API', () => {
         headSHA
       )
       assert.equal(unapproved.approved, false)
-      assert.match(requests[4].url, /\/merge_requests\/7\/unapprove$/)
-      assert.equal(requests[4].options?.body, undefined)
+      assert.match(requests[3].url, /\/merge_requests\/7\/unapprove$/)
+      assert.equal(requests[3].options?.body, undefined)
 
       responses.push(jsonResponse(mergeRequest(7, { sha: 'b'.repeat(40) })))
       await assert.rejects(
         api.unapproveGitLabMergeRequest('group/subgroup/project', 7, headSHA),
         GitLabMergeRequestContextChangedError
       )
-      assert.equal(requests.length, 8)
+      assert.equal(requests.length, 6)
     })
   })
 
