@@ -292,6 +292,12 @@ accessible name follows the selected **English**, playful **Hong Kong
 Cantonese**, or **English / 香港粵語** mode. The manager is keyboard reachable
 and reflows for compact Preferences windows.
 
+The accepted 1452×1001 off-screen scene exercised health, inventory, search,
+running-state filtering, pull cancellation and rollback, completed pull, copy,
+rename, load, unload, confirmed deletion, and provider synchronization. It uses
+synthetic fixture data, passes privacy inspection, and has no overlapping or
+horizontally overflowing manager controls.
+
 ![Ollama model manager with endpoint health, installed and running inventory, details, and lifecycle controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-ollama-model-manager.png)
 
 ---

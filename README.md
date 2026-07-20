@@ -19,9 +19,11 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 The complete M0–M21 roadmap is shipped on `main`. M22 owner-scoped management
 keeps its separately tracked visual-publication acceptance, and M23 adds the
-full Ollama model manager described below. The compact status summary is below;
-the implementation ledger is in [`PLAN.md`](PLAN.md), and detailed acceptance
-receipts are in [`HANDOFF.md`](HANDOFF.md).
+full Ollama model manager described below. M23 has completed its production
+build, deterministic lifecycle, privacy, layout, and cleanup acceptance; final
+exact-`main` CI, Pages, and wiki publication checks remain pending. The compact
+status summary is below; the implementation ledger is in [`PLAN.md`](PLAN.md),
+and detailed acceptance receipts are in [`HANDOFF.md`](HANDOFF.md).
 
 The M20 platform wave and earlier post-M19 adaptive customization maintenance
 release described below are shipped on `main`. Their exact production build,
@@ -86,6 +88,11 @@ The detailed Pages, wiki, asset, and cleanup receipts are maintained in
   workspace follows English, playful Hong Kong Cantonese, or bilingual mode.
   See the
   [feature guide](docs/features/integrations/ollama-model-manager.md)
+
+The accepted off-screen manager capture is a privacy-safe synthetic scene at
+1452×1001. Its full health, inventory, search, running-state, pull cancellation
+and rollback, completed pull, copy, rename, load, unload, confirmed-delete, and
+provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 **Material Design 3 Expressive shell**
 - App-bar branding with an inline pill menu

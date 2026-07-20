@@ -273,6 +273,11 @@ credential-bearing URL, query, and fragment fails validation. The complete
 surface follows English, playful Hong Kong Cantonese, and bilingual language
 modes, with keyboard access and live status announcements.
 
+The accepted 1452×1001 synthetic-only capture passed original-resolution
+privacy review. Its geometry receipt reports the manager, Preferences shell,
+and lifecycle controls contained above the footer, with zero overlaps and no
+horizontal overflow.
+
 ![Ollama model manager showing endpoint health, installed and running inventory, model details, and lifecycle actions](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-ollama-model-manager.png)
 
 ## Provider triage

@@ -95,5 +95,16 @@ parsing, health/version and partial inventory behavior, streamed pull progress
 and cancellation, copy/rename partial results, load/unload, confirmed deletion,
 provider-model synchronization, stale-request suppression, language modes,
 keyboard/accessibility semantics, responsive styling, and a deterministic
-loopback Ollama fixture. Publication evidence is recorded separately in the
-milestone run manifest and `HANDOFF.md`.
+loopback Ollama fixture.
+
+Exact source `27ffc1af7dd1223809c69ea0f72ddab369869f31` completed the
+required low-level-MCP production build in 213.16 seconds. The deterministic
+lifecycle exercise covered health, inventory, search, running state, pull
+cancellation with rollback, completed pull, copy, rename, load, unload,
+confirmed delete, and provider synchronization. Its accepted synthetic-only
+capture is 1452×1001, 128,903 bytes, and SHA-256
+`f1735c664248cd1b10a64e672dbbab24c95dabab99a62deeaf93557145a36509`.
+The manager, Preferences shell, and controls remain contained above the footer
+with zero overlaps and no horizontal overflow; privacy inspection passed and
+owned runtime cleanup completed. Final exact-`main` Windows CI, Pages, and wiki
+publication checks are intentionally recorded later in `HANDOFF.md`.
