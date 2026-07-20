@@ -44,10 +44,14 @@ export const GitLabDetailedMergeStatuses = [
 ] as const
 
 export type GitLabDetailedMergeStatus =
-  (typeof GitLabDetailedMergeStatuses)[number] | 'unknown'
+  | typeof GitLabDetailedMergeStatuses[number]
+  | 'unknown'
 
 export type GitLabMergeReadinessKind =
-  'ready' | 'checking' | 'blocked' | 'unknown'
+  | 'ready'
+  | 'checking'
+  | 'blocked'
+  | 'unknown'
 
 export interface IGitLabMergeReadiness {
   readonly kind: GitLabMergeReadinessKind
@@ -465,10 +469,10 @@ export function mergeReadiness(
     state === 'opened' && !draft && status === 'mergeable'
       ? 'ready'
       : checking.has(status)
-        ? 'checking'
-        : status === 'unknown'
-          ? 'unknown'
-          : 'blocked'
+      ? 'checking'
+      : status === 'unknown'
+      ? 'unknown'
+      : 'blocked'
   return { kind, status, hasConflicts, blockingDiscussionsResolved }
 }
 

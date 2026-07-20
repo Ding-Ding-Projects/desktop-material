@@ -180,6 +180,34 @@ import {
   parseGitLabTriagePullRequests,
 } from './provider-triage-json'
 import {
+  encodeGitLabProjectIdentifier,
+  GitLabMergeRequestContextChangedError,
+  GitLabMergeRequestError,
+  GitLabMergeRequestMaximumPages,
+  GitLabMergeRequestPageSize,
+  GitLabProjectIdentifier,
+  IGitLabMergeRequest as IGitLabMergeRequestLifecycle,
+  IGitLabMergeRequestApprovalState,
+  IGitLabMergeRequestDraft,
+  IGitLabMergeRequestList,
+  IGitLabMergeRequestMemberList,
+  IGitLabMergeRequestQuery,
+  IGitLabMergeRequestUpdate,
+  normalizeGitLabMergeRequestDraft,
+  normalizeGitLabMergeRequestQuery,
+  normalizeGitLabMergeRequestUpdate,
+  validateGitLabMergeRequestHeadSHA,
+  validateGitLabMergeRequestIID,
+  withGitLabMergeRequestApproval,
+} from './gitlab-merge-request'
+import {
+  boundedGitLabMergeRequestResponse,
+  parseGitLabMergeRequest,
+  parseGitLabMergeRequestApprovalState,
+  parseGitLabMergeRequestMemberPage,
+  parseGitLabMergeRequestPage,
+} from './gitlab-merge-request-json'
+import {
   GitHubReleaseAssetMaximumPages,
   GitHubReleaseAssetPageSize,
   GitHubReleaseMaximumPages,
@@ -5617,17 +5645,28 @@ export async function fetchUser(
 }
 
 export function getGitLabAPIEndpoint(endpoint = 'https://gitlab.com'): string {
-  const url = new window.URL(
+  const url = new globalThis.URL(
     /^[a-z][a-z\d+.-]*:\/\//i.test(endpoint) ? endpoint : `https://${endpoint}`
   )
+  if (
+    (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+    url.hostname.length === 0 ||
+    url.username.length > 0 ||
+    url.password.length > 0 ||
+    url.search.length > 0 ||
+    url.hash.length > 0
+  ) {
+    throw new GitLabMergeRequestError(
+      'validation',
+      'The GitLab server endpoint is not valid.'
+    )
+  }
   const path = url.pathname.replace(/\/+$/, '')
   if (!path.endsWith('/api/v4')) {
     url.pathname = `${path}/api/v4`
   } else {
     url.pathname = path
   }
-  url.search = ''
-  url.hash = ''
   return url.toString().replace(/\/$/, '')
 }
 
@@ -6193,14 +6232,15 @@ abstract class ThirdPartyAPI extends API {
     path: string,
     headers: HeadersInit,
     reloadCache = false,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    body?: Object
   ): Promise<Response> {
     return request(
       this.endpoint,
       null,
       method,
       path,
-      undefined,
+      body,
       headers,
       reloadCache,
       undefined,
@@ -6267,14 +6307,16 @@ export class GitLabAPI extends ThirdPartyAPI {
     method: HTTPMethod,
     path: string,
     reloadCache = false,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    body?: Object
   ) {
     return this.providerRequest(
       method,
       path,
       { 'PRIVATE-TOKEN': this.token },
       reloadCache,
-      signal
+      signal,
+      body
     )
   }
 
@@ -6373,6 +6415,339 @@ export class GitLabAPI extends ThirdPartyAPI {
         protocol === 'ssh' ? project.ssh_url_to_repo : project.http_url_to_repo,
       defaultBranch: project.default_branch ?? undefined,
     }
+  }
+
+  private async requestGitLabMergeRequest(
+    method: HTTPMethod,
+    path: string,
+    body?: Object,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    signal?.throwIfAborted()
+    try {
+      return await this.requestGitLab(method, path, false, signal, body)
+    } catch (error) {
+      if ((error as Error)?.name === 'AbortError') {
+        throw error
+      }
+      if (error instanceof GitLabMergeRequestError) {
+        throw error
+      }
+      throw new GitLabMergeRequestError(
+        'network',
+        'GitLab could not be reached for the merge request operation.'
+      )
+    }
+  }
+
+  private async fetchBoundedGitLabCollection<T>(
+    path: string,
+    parsePage: (value: unknown) => ReadonlyArray<T>,
+    signal?: AbortSignal
+  ): Promise<{ readonly items: ReadonlyArray<T>; readonly capped: boolean }> {
+    const items = new Array<T>()
+    const separator = path.includes('?') ? '&' : '?'
+    for (let page = 1; page <= GitLabMergeRequestMaximumPages; page++) {
+      signal?.throwIfAborted()
+      const response = await this.requestGitLabMergeRequest(
+        'GET',
+        `${path}${separator}page=${page}&per_page=${GitLabMergeRequestPageSize}`,
+        undefined,
+        signal
+      )
+      const pageItems = parsePage(
+        await boundedGitLabMergeRequestResponse(response, signal)
+      )
+      items.push(...pageItems)
+
+      const declaredPage = response.headers.get('x-page')
+      const declaredPageSize = response.headers.get('x-per-page')
+      const nextPage = response.headers.get('x-next-page')
+      if (
+        (declaredPage !== null && declaredPage !== String(page)) ||
+        (declaredPageSize !== null &&
+          declaredPageSize !== String(GitLabMergeRequestPageSize)) ||
+        (nextPage !== null &&
+          nextPage.length > 0 &&
+          (!/^\d+$/.test(nextPage) ||
+            !Number.isSafeInteger(Number(nextPage)) ||
+            Number(nextPage) !== page + 1 ||
+            pageItems.length === 0))
+      ) {
+        throw new GitLabMergeRequestError(
+          'invalid-response',
+          'GitLab returned invalid merge request pagination metadata.'
+        )
+      }
+      if (nextPage === null || nextPage.length === 0) {
+        return {
+          items,
+          capped:
+            nextPage === null &&
+            pageItems.length === GitLabMergeRequestPageSize,
+        }
+      }
+      if (page === GitLabMergeRequestMaximumPages) {
+        return { items, capped: true }
+      }
+    }
+    return { items, capped: true }
+  }
+
+  private async fetchGitLabMergeRequestLifecycle(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestLifecycle> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const safeIID = validateGitLabMergeRequestIID(mergeRequestIID)
+    const response = await this.requestGitLabMergeRequest(
+      'GET',
+      `projects/${safeProject}/merge_requests/${safeIID}`,
+      undefined,
+      signal
+    )
+    return parseGitLabMergeRequest(
+      await boundedGitLabMergeRequestResponse(response, signal),
+      getHTMLURL(this.endpoint),
+      safeIID
+    )
+  }
+
+  /** List a bounded project MR collection with conservative readiness data. */
+  public async listGitLabMergeRequests(
+    project: GitLabProjectIdentifier,
+    query: IGitLabMergeRequestQuery = {},
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestList> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const safeQuery = normalizeGitLabMergeRequestQuery(query)
+    const root = `projects/${safeProject}/merge_requests?state=${safeQuery.state}&order_by=${safeQuery.orderBy}&sort=${safeQuery.sort}&with_merge_status_recheck=true`
+    const result = await this.fetchBoundedGitLabCollection(
+      root,
+      value =>
+        parseGitLabMergeRequestPage(
+          value,
+          getHTMLURL(this.endpoint),
+          GitLabMergeRequestPageSize
+        ),
+      signal
+    )
+    return result
+  }
+
+  /** Load one MR and its all-tier approval state. */
+  public async getGitLabMergeRequest(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestLifecycle> {
+    const mergeRequest = await this.fetchGitLabMergeRequestLifecycle(
+      project,
+      mergeRequestIID,
+      signal
+    )
+    const approval = await this.getGitLabMergeRequestApprovalState(
+      project,
+      mergeRequestIID,
+      signal
+    )
+    return withGitLabMergeRequestApproval(mergeRequest, approval)
+  }
+
+  public async createGitLabMergeRequest(
+    project: GitLabProjectIdentifier,
+    draft: IGitLabMergeRequestDraft,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestLifecycle> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const body = normalizeGitLabMergeRequestDraft(draft)
+    const response = await this.requestGitLabMergeRequest(
+      'POST',
+      `projects/${safeProject}/merge_requests`,
+      body,
+      signal
+    )
+    const created = parseGitLabMergeRequest(
+      await boundedGitLabMergeRequestResponse(response, signal),
+      getHTMLURL(this.endpoint)
+    )
+    const approval = await this.getGitLabMergeRequestApprovalState(
+      project,
+      created.iid,
+      signal
+    )
+    return withGitLabMergeRequestApproval(created, approval)
+  }
+
+  /** Update an exact reviewed HEAD and reject stale mutation responses. */
+  public async updateGitLabMergeRequest(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    expectedHeadSHA: string,
+    update: IGitLabMergeRequestUpdate,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestLifecycle> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const safeIID = validateGitLabMergeRequestIID(mergeRequestIID)
+    const safeHeadSHA = validateGitLabMergeRequestHeadSHA(expectedHeadSHA)
+    const current = await this.fetchGitLabMergeRequestLifecycle(
+      project,
+      safeIID,
+      signal
+    )
+    if (current.headSHA !== safeHeadSHA) {
+      throw new GitLabMergeRequestContextChangedError()
+    }
+    if (
+      (update.stateEvent === 'close' && current.state !== 'opened') ||
+      (update.stateEvent === 'reopen' && current.state !== 'closed') ||
+      current.state === 'merged'
+    ) {
+      throw new GitLabMergeRequestError(
+        'validation',
+        'The GitLab merge request state cannot be changed as requested.'
+      )
+    }
+    const body = normalizeGitLabMergeRequestUpdate(current, update)
+    const response = await this.requestGitLabMergeRequest(
+      'PUT',
+      `projects/${safeProject}/merge_requests/${safeIID}`,
+      body,
+      signal
+    )
+    const updated = parseGitLabMergeRequest(
+      await boundedGitLabMergeRequestResponse(response, signal),
+      getHTMLURL(this.endpoint),
+      safeIID
+    )
+    if (updated.headSHA !== safeHeadSHA) {
+      throw new GitLabMergeRequestContextChangedError()
+    }
+    const approval = await this.getGitLabMergeRequestApprovalState(
+      project,
+      safeIID,
+      signal
+    )
+    return withGitLabMergeRequestApproval(updated, approval)
+  }
+
+  public async setGitLabMergeRequestState(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    expectedHeadSHA: string,
+    stateEvent: 'close' | 'reopen',
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestLifecycle> {
+    return this.updateGitLabMergeRequest(
+      project,
+      mergeRequestIID,
+      expectedHeadSHA,
+      { stateEvent },
+      signal
+    )
+  }
+
+  /** Retrieve direct, inherited, and invited project members. */
+  public async listGitLabProjectMembers(
+    project: GitLabProjectIdentifier,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestMemberList> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    return this.fetchBoundedGitLabCollection(
+      `projects/${safeProject}/members/all`,
+      value =>
+        parseGitLabMergeRequestMemberPage(
+          value,
+          getHTMLURL(this.endpoint),
+          GitLabMergeRequestPageSize
+        ),
+      signal
+    )
+  }
+
+  public async getGitLabMergeRequestApprovalState(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestApprovalState> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const safeIID = validateGitLabMergeRequestIID(mergeRequestIID)
+    const response = await this.requestGitLabMergeRequest(
+      'GET',
+      `projects/${safeProject}/merge_requests/${safeIID}/approvals`,
+      undefined,
+      signal
+    )
+    return parseGitLabMergeRequestApprovalState(
+      await boundedGitLabMergeRequestResponse(response, signal),
+      getHTMLURL(this.endpoint),
+      safeIID
+    )
+  }
+
+  /** GitLab atomically rejects approval when the reviewed HEAD SHA changed. */
+  public async approveGitLabMergeRequest(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    expectedHeadSHA: string,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestApprovalState> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const safeIID = validateGitLabMergeRequestIID(mergeRequestIID)
+    const safeHeadSHA = validateGitLabMergeRequestHeadSHA(expectedHeadSHA)
+    const response = await this.requestGitLabMergeRequest(
+      'POST',
+      `projects/${safeProject}/merge_requests/${safeIID}/approve`,
+      { sha: safeHeadSHA },
+      signal
+    )
+    parseGitLabMergeRequestApprovalState(
+      await boundedGitLabMergeRequestResponse(response, signal),
+      getHTMLURL(this.endpoint),
+      safeIID
+    )
+    const current = await this.getGitLabMergeRequest(project, safeIID, signal)
+    if (current.headSHA !== safeHeadSHA || current.approval === null) {
+      throw new GitLabMergeRequestContextChangedError()
+    }
+    return current.approval
+  }
+
+  /** Unapprove only after and before publishing the exact reviewed HEAD. */
+  public async unapproveGitLabMergeRequest(
+    project: GitLabProjectIdentifier,
+    mergeRequestIID: number,
+    expectedHeadSHA: string,
+    signal?: AbortSignal
+  ): Promise<IGitLabMergeRequestApprovalState> {
+    const safeProject = encodeGitLabProjectIdentifier(project)
+    const safeIID = validateGitLabMergeRequestIID(mergeRequestIID)
+    const safeHeadSHA = validateGitLabMergeRequestHeadSHA(expectedHeadSHA)
+    const before = await this.fetchGitLabMergeRequestLifecycle(
+      project,
+      safeIID,
+      signal
+    )
+    if (before.headSHA !== safeHeadSHA) {
+      throw new GitLabMergeRequestContextChangedError()
+    }
+    const response = await this.requestGitLabMergeRequest(
+      'POST',
+      `projects/${safeProject}/merge_requests/${safeIID}/unapprove`,
+      undefined,
+      signal
+    )
+    parseGitLabMergeRequestApprovalState(
+      await boundedGitLabMergeRequestResponse(response, signal),
+      getHTMLURL(this.endpoint),
+      safeIID
+    )
+    const current = await this.getGitLabMergeRequest(project, safeIID, signal)
+    if (current.headSHA !== safeHeadSHA || current.approval === null) {
+      throw new GitLabMergeRequestContextChangedError()
+    }
+    return current.approval
   }
 
   private async mapMergeRequests(
