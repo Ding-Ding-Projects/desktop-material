@@ -103,7 +103,3 @@ export function isTrustedOllamaEndpoint(value: string): boolean {
     return false
   }
 }
-
-export function getOllamaApiUrl(endpoint: string, operation: string): string {
-  return `${endpoint}/api/${operation}`
-}

@@ -16,6 +16,7 @@ export type OllamaClientErrorKind =
   | 'response'
   | 'server'
   | 'timeout'
+  | 'validation'
 
 /** A bounded, credential-safe failure returned by the Ollama client. */
 export class OllamaClientError extends Error {
