@@ -138,6 +138,7 @@ try {
   $probe = & $probeScript -RunRoot $firstRoot | ConvertFrom-Json
   if (
     [string]$probe.fixture -ne 'desktop-material-gitlab-mr' -or
+    [string]$probe.dynamicUrls -ne 'pass' -or
     [string]$probe.cancellation -ne 'pass' -or
     @($probe.transientStatuses).Count -ne 3 -or
     @($probe.faultModes).Count -ne 5

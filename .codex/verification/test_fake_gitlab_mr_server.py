@@ -19,6 +19,7 @@ from concurrent.futures import ThreadPoolExecutor
 from http.client import HTTPConnection
 from pathlib import Path
 from typing import Any, Mapping
+from urllib.parse import urlsplit
 
 
 MODULE_PATH = Path(__file__).with_name("fake_gitlab_mr_server.py")
@@ -44,6 +45,22 @@ class GitLabMRFixtureStateTests(unittest.TestCase):
         snapshot = self.state.snapshot()
         self.assertTrue(snapshot["tokenRequired"])
         self.assertNotIn(fixture.PRIVATE_TOKEN, json.dumps(snapshot, sort_keys=True))
+
+    def test_pure_state_urls_keep_a_deterministic_default_origin(self) -> None:
+        project = self.state.project()
+        current_user = self.state.current_user()
+        merge_request = self.state.get_merge_request(41)
+        self.assertEqual(
+            project["web_url"],
+            f"{fixture.DEFAULT_STATE_ORIGIN}/{fixture.PROJECT_PATH}",
+        )
+        self.assertTrue(current_user["web_url"].startswith(fixture.DEFAULT_STATE_ORIGIN))
+        self.assertTrue(merge_request["web_url"].startswith(fixture.DEFAULT_STATE_ORIGIN))
+        self.assertTrue(
+            merge_request["author"]["web_url"].startswith(
+                fixture.DEFAULT_STATE_ORIGIN
+            )
+        )
 
     def test_seed_inventory_and_transient_merge_readiness_are_deterministic(self) -> None:
         values, page, per_page, total = self.state.list_merge_requests(
@@ -245,6 +262,32 @@ class GitLabMRFixtureHTTPTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(result["faultMode"], mode)
 
+    def assert_web_urls_have_bound_origin(self, value: Any) -> None:
+        expected = urlsplit(self.server.endpoint)
+        web_urls: list[str] = []
+
+        def collect(candidate: Any) -> None:
+            if isinstance(candidate, dict):
+                for key, child in candidate.items():
+                    if key == "web_url":
+                        self.assertIsInstance(child, str)
+                        web_urls.append(child)
+                    else:
+                        collect(child)
+            elif isinstance(candidate, list):
+                for child in candidate:
+                    collect(child)
+
+        collect(value)
+        self.assertGreater(len(web_urls), 0)
+        for web_url in web_urls:
+            parsed = urlsplit(web_url)
+            self.assertEqual(
+                (parsed.scheme, parsed.netloc),
+                (expected.scheme, expected.netloc),
+            )
+            self.assertTrue(web_url.startswith(f"{self.server.endpoint}/"))
+
     def test_health_and_state_are_credential_free(self) -> None:
         status, _, health = self.json_request(
             "GET", "/__fixture__/health", authenticate=False
@@ -260,6 +303,73 @@ class GitLabMRFixtureHTTPTests(unittest.TestCase):
             fixture.PRIVATE_TOKEN,
             json.dumps({"health": health, "state": state}, sort_keys=True),
         )
+
+    def test_all_http_payload_web_urls_use_the_bound_loopback_origin(self) -> None:
+        status, _, current_user = self.json_request("GET", f"{fixture.API_PREFIX}/user")
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(current_user)
+
+        status, _, project = self.json_request("GET", self.project_api)
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(project)
+        self.assertTrue(project["http_url_to_repo"].startswith(self.server.endpoint))
+        status, _, hostile_host_project = self.json_request(
+            "GET", self.project_api, headers={"Host": "attacker.invalid"}
+        )
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(hostile_host_project)
+
+        status, _, merge_requests = self.json_request(
+            "GET", f"{self.project_api}/merge_requests?per_page=100"
+        )
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(merge_requests)
+
+        single_path = f"{self.project_api}/merge_requests/41"
+        status, _, single = self.json_request("GET", single_path)
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(single)
+
+        status, _, created = self.json_request(
+            "POST",
+            f"{self.project_api}/merge_requests",
+            {
+                "source_branch": "feature/dynamic-origin",
+                "target_branch": "main",
+                "title": "Prove dynamic fixture origin",
+                "reviewer_ids": [103],
+                "assignee_ids": [104],
+            },
+        )
+        self.assertEqual(status, 201)
+        self.assert_web_urls_have_bound_origin(created)
+        status, _, updated = self.json_request(
+            "PUT",
+            f"{self.project_api}/merge_requests/{created['iid']}",
+            {"reviewer_ids": [101, 103], "assignee_ids": [101]},
+        )
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(updated)
+
+        status, _, members = self.json_request(
+            "GET", f"{self.project_api}/members/all?per_page=100"
+        )
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(members)
+
+        status, _, approved = self.json_request(
+            "POST", f"{single_path}/approve", {"sha": single["sha"]}
+        )
+        self.assertEqual(status, 201)
+        self.assert_web_urls_have_bound_origin(approved)
+        status, _, approvals = self.json_request("GET", f"{single_path}/approvals")
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(approvals)
+        status, _, approval_state = self.json_request(
+            "GET", f"{single_path}/approval_state"
+        )
+        self.assertEqual(status, 200)
+        self.assert_web_urls_have_bound_origin(approval_state)
 
     def test_private_token_header_is_exact_and_alternatives_are_rejected(self) -> None:
         path = f"{self.project_api}/merge_requests"
