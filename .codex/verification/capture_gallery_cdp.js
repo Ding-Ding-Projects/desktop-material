@@ -554,6 +554,35 @@ const CanonicalGalleryOutputs = Object.freeze([
   'advanced-workflows',
   'material-cheap-lfs-preparing',
 ])
+
+/**
+ * Privacy-safe profile state used only while capturing the restored app
+ * identity workspace. The scene restores the profile's prior identity after
+ * the evidence frame so later canonical scenes keep their own clean baseline.
+ */
+const GalleryAppIdentity = Object.freeze({
+  displayName: 'Material Studio',
+  logo: 'sparkle',
+  customLogoPath: null,
+  logoColor: '#6750a4',
+  logoShape: 'circle',
+  showLogo: true,
+  logoSize: 28,
+  logoInset: 4,
+  logoRotation: -6,
+  logoBorder: 'strong',
+  logoBorderColor: '#d0bcff',
+  logoShadow: 'soft',
+  brandGap: 12,
+  fontSize: 14,
+  fontWeight: 700,
+  fontWidth: 'expanded',
+  fontColor: '#21005d',
+  highlightStyle: 'soft',
+  highlightColor: '#eaddff',
+  bold: true,
+  characterSpacing: 0.5,
+})
 const capturedNames = []
 const capturedHashes = new Map()
 
@@ -755,6 +784,41 @@ function sha256File(file) {
   return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 }
 
+/** Remove unrelated transient chrome and focus paint from documentation frames. */
+async function prepareCaptureSurface(name) {
+  const receipt = await evaluate(`(() => {
+    const undo = document.querySelector('#undo-commit')
+    if (undo instanceof HTMLElement) {
+      undo.style.setProperty('display', 'none', 'important')
+      undo.setAttribute('data-capture-suppressed', 'true')
+    }
+    const focused = document.activeElement
+    if (focused instanceof HTMLElement) focused.blur()
+    return new Promise(resolve => requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        const suppressed = document.querySelector('#undo-commit')
+        const bounds = suppressed instanceof HTMLElement
+          ? suppressed.getBoundingClientRect()
+          : null
+        resolve({
+          undoPresent: suppressed instanceof HTMLElement,
+          undoHidden: !(suppressed instanceof HTMLElement) ||
+            getComputedStyle(suppressed).display === 'none' ||
+            bounds.width === 0 || bounds.height === 0,
+          activeTag: document.activeElement?.tagName ?? null,
+        })
+      })
+    ))
+  })()`)
+  if (receipt?.undoHidden !== true) {
+    fail(
+      `Capture ${name} retained unrelated Undo commit chrome: ${JSON.stringify(
+        receipt
+      )}`
+    )
+  }
+}
+
 async function capture(name) {
   if (outDir === null) {
     fail('Capture scenes require an explicit disposable --out directory.')
@@ -774,6 +838,7 @@ async function capture(name) {
   ) {
     fail('Capture candidates must be reviewed in Temp before promotion.')
   }
+  await prepareCaptureSurface(name)
   await assertCapturePrivacy(name)
   fs.mkdirSync(outDir, { recursive: true })
   const shot = await client.send('Page.captureScreenshot', { format: 'png' })
@@ -2259,7 +2324,49 @@ scene('releases', async () => {
 })
 
 scene('issues', async () => {
-  await captureSection('Issues', 'material-github-issues', 3500)
+  await captureSection('Issues', null, 3500)
+  await waitFor(
+    `(() => {
+      const rows = [...document.querySelectorAll('.github-issue-row')]
+      const count = document.querySelector('.github-issues-list-panel .github-issues-panel-heading span')
+      const loading = document.querySelector('.github-issues-busy, .github-issues-metadata-note')
+      const errors = [...document.querySelectorAll('.github-issues-error, [role="alert"]')]
+        .filter(node => (node.textContent ?? '').trim().length > 0)
+      return rows.length === 1 && count?.textContent?.trim() === '1 on page 1' &&
+        loading === null && errors.length === 0
+    })()`,
+    'populated GitHub Issues list and metadata',
+    30000
+  )
+  await clickSelector('.github-issue-row')
+  await waitFor(
+    `(() => {
+      const detail = document.querySelector('.github-issue-detail')
+      const title = detail?.querySelector('#selected-issue-title')
+      const comments = detail?.querySelectorAll('.github-issue-comment-list article')
+      const controls = [...(detail?.querySelectorAll('button') ?? [])]
+        .map(button => button.textContent?.trim())
+      const errors = [...document.querySelectorAll('.github-issues-error, [role="alert"]')]
+        .filter(node => (node.textContent ?? '').trim().length > 0)
+      return detail instanceof HTMLElement &&
+        title?.textContent?.trim() === 'Verify the complete Windows gallery before publication' &&
+        comments?.length === 1 &&
+        ['Open on GitHub', 'Edit', 'Add comment', 'Close issue']
+          .every(label => controls.includes(label)) &&
+        errors.length === 0
+    })()`,
+    'selected issue detail, lifecycle controls, and comments',
+    30000
+  )
+  await evaluate(`(() => {
+    const detail = document.querySelector('.github-issue-detail')
+    if (!(detail instanceof HTMLElement)) return false
+    detail.scrollTop = 0
+    return detail.scrollTop === 0
+  })()`)
+  await sleep(700)
+  await parkPointer()
+  await capture('material-github-issues')
 })
 
 scene('provider-triage', async () => {
@@ -2280,12 +2387,14 @@ scene('provider-triage', async () => {
       const tab = item?.closest('button[role="tab"]')
       const view = document.querySelector('main.provider-triage-view')
       const channels = view?.querySelectorAll('.provider-triage-channel.ready')
+      const items = view?.querySelectorAll('.provider-triage-item')
       const heading = view?.querySelector('.provider-triage-results-heading strong')
       const bounds = view?.getBoundingClientRect()
       return tab?.getAttribute('aria-selected') === 'true' &&
         view instanceof HTMLElement &&
         channels?.length === 2 &&
-        /^\\d+ of \\d+ work items$/.test(heading?.textContent?.trim() ?? '') &&
+        items?.length === 2 &&
+        heading?.textContent?.trim() === '2 of 2 work items' &&
         bounds !== undefined && bounds.width > 0 && bounds.height > 0 &&
         bounds.left >= 0 && bounds.top >= 0 &&
         bounds.right <= window.innerWidth && bounds.bottom <= window.innerHeight
@@ -2674,16 +2783,303 @@ scene('tab-style', async () => {
 
 scene('app-identity', async () => {
   await ensureRepository()
-  await contextMenuSelector('[data-customization-surface="app-identity"]')
-  await waitForPrivacySafeAnchoredEditor('app-identity owner appearance editor')
+
+  const original = await evaluate(`(async () => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let app = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (
+        fiber.stateNode?.props?.appStore &&
+        fiber.stateNode?.props?.repositoryTabsStore &&
+        fiber.stateNode?.props?.dispatcher
+      ) {
+        app = fiber.stateNode
+        break
+      }
+    }
+    if (!app) return { appFound: false }
+
+    const { appStore, dispatcher, repositoryTabsStore } = app.props
+    const appearance = appStore.getState().appearanceCustomization
+    const activeTab = repositoryTabsStore.getActiveTab()
+    if (!activeTab) return { appFound: true, activeTabFound: false }
+
+    const originalIdentity = appearance.appIdentity
+    const originalFavorite = activeTab.isFavorite === true
+    const expectedIdentity = ${JSON.stringify(GalleryAppIdentity)}
+    await dispatcher.setAppearanceCustomization({
+      ...appearance,
+      appIdentity: { ...originalIdentity, ...expectedIdentity },
+    })
+    await repositoryTabsStore.setTabFavorite(activeTab.id, true)
+
+    const appliedIdentity = appStore.getState().appearanceCustomization.appIdentity
+    const appliedTab = repositoryTabsStore.getState().tabs.find(
+      tab => tab.id === activeTab.id
+    )
+    return {
+      appFound: true,
+      activeTabFound: true,
+      activeTabId: activeTab.id,
+      originalIdentity,
+      originalFavorite,
+      identityMatches: Object.entries(expectedIdentity).every(
+        ([key, value]) => appliedIdentity[key] === value
+      ),
+      favoriteApplied: appliedTab?.isFavorite === true,
+      displayName: appliedIdentity.displayName,
+      logo: appliedIdentity.logo,
+    }
+  })()`)
+  if (
+    original?.appFound !== true ||
+    original?.activeTabFound !== true ||
+    original?.identityMatches !== true ||
+    original?.favoriteApplied !== true
+  ) {
+    fail(
+      `Unable to persist the deterministic app identity/favorite state: ${JSON.stringify(
+        {
+          appFound: original?.appFound,
+          activeTabFound: original?.activeTabFound,
+          identityMatches: original?.identityMatches,
+          favoriteApplied: original?.favoriteApplied,
+          displayName: original?.displayName,
+          logo: original?.logo,
+        }
+      )}`
+    )
+  }
+
   await waitFor(
-    `document.querySelector('.app-identity-section') !== null`,
-    'app identity controls'
+    `(() => {
+      const brand = document.querySelector(
+        '#desktop-app-title-bar [data-customization-surface="app-identity"] .app-brand'
+      )
+      const tab = document.querySelector(
+        '.repository-tab.active.favorite[role="tab"][aria-selected="true"]'
+      )
+      const favorite = tab?.querySelector('.repository-tab-favorite')
+      return brand?.textContent?.trim() === ${JSON.stringify(
+        GalleryAppIdentity.displayName
+      )} && favorite?.getAttribute('aria-pressed') === 'true'
+    })()`,
+    'live customized app identity and favorite repository tab'
   )
-  await sleep(900)
+
+  const beforeReloadTimeOrigin = await evaluate('performance.timeOrigin')
+  await evaluate('window.location.reload(), true')
+  await sleep(2500)
+  await client.send('Runtime.enable')
+  await waitFor(
+    `document.querySelector('nav.repository-rail') !== null &&
+      document.querySelector('#desktop-app-title-bar .app-brand') !== null`,
+    'repository workspace after app-identity renderer reload',
+    25000
+  )
+
+  // Reload can replay provider notices, sheets, hover state, or a prior section.
+  // Re-establish the closed Changes workspace before accepting the frame.
+  await resetSceneState('restored app-identity workspace')
+  await waitFor(
+    `(() => {
+      const root = document.querySelector('#desktop-app-container')
+      if (!(root instanceof HTMLElement)) return false
+      const activeFiniteAnimations = root
+        .getAnimations({ subtree: true })
+        .filter(animation => {
+          const iterations = Number(animation.effect?.getTiming().iterations ?? 1)
+          return iterations !== Infinity &&
+            animation.playState !== 'finished' &&
+            animation.playState !== 'idle'
+        })
+      return activeFiniteAnimations.length === 0
+    })()`,
+    'stable restored app-identity workspace'
+  )
+  await evaluate(`new Promise(resolve =>
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve(true)))
+  )`)
   await parkPointer()
+
+  const restored = await evaluate(`(() => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let app = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (
+        fiber.stateNode?.props?.appStore &&
+        fiber.stateNode?.props?.repositoryTabsStore
+      ) {
+        app = fiber.stateNode
+        break
+      }
+    }
+    if (!app) return { appFound: false }
+
+    const expectedIdentity = ${JSON.stringify(GalleryAppIdentity)}
+    const identity = app.props.appStore.getState().appearanceCustomization.appIdentity
+    const activeTab = app.props.repositoryTabsStore.getActiveTab()
+    const brandContainer = document.querySelector(
+      '#desktop-app-title-bar [data-customization-surface="app-identity"]'
+    )
+    const brand = brandContainer?.querySelector('.app-brand')
+    const logo = brandContainer?.querySelector('.app-brand-logo')
+    const tab = document.querySelector(
+      '.repository-tab.active.favorite[role="tab"][aria-selected="true"]'
+    )
+    const favorite = tab?.querySelector('.repository-tab-favorite')
+    const changes = document.getElementById('changes-tab')?.closest('[role="tab"]')
+    const bounds = element => {
+      if (!(element instanceof HTMLElement)) return null
+      const rect = element.getBoundingClientRect()
+      return {
+        width: rect.width,
+        height: rect.height,
+        withinViewport:
+          rect.width > 0 && rect.height > 0 &&
+          rect.left >= 0 && rect.top >= 0 &&
+          rect.right <= window.innerWidth && rect.bottom <= window.innerHeight,
+      }
+    }
+    return {
+      appFound: true,
+      identityMatches: Object.entries(expectedIdentity).every(
+        ([key, value]) => identity[key] === value
+      ),
+      activeTabMatches: activeTab?.id === ${JSON.stringify(
+        original.activeTabId
+      )},
+      favoriteRestored: activeTab?.isFavorite === true,
+      displayName: identity.displayName,
+      logo: identity.logo,
+      brandText: brand?.textContent?.trim() ?? null,
+      brandBounds: bounds(brandContainer),
+      logoBounds: bounds(logo),
+      tabBounds: bounds(tab),
+      favoritePressed: favorite?.getAttribute('aria-pressed') === 'true',
+      changesSelected: changes?.getAttribute('aria-selected') === 'true',
+      editorClosed:
+        document.querySelector('.app-identity-section') === null &&
+        document.querySelector('.anchored-appearance-editor') === null &&
+        document.querySelector('#preferences') === null,
+      navigationType:
+        performance.getEntriesByType('navigation')[0]?.type ?? null,
+      timeOrigin: performance.timeOrigin,
+    }
+  })()`)
+  if (
+    restored?.appFound !== true ||
+    restored?.identityMatches !== true ||
+    restored?.activeTabMatches !== true ||
+    restored?.favoriteRestored !== true ||
+    restored?.displayName !== GalleryAppIdentity.displayName ||
+    restored?.logo !== GalleryAppIdentity.logo ||
+    restored?.brandText !== GalleryAppIdentity.displayName ||
+    restored?.brandBounds?.withinViewport !== true ||
+    restored?.logoBounds?.withinViewport !== true ||
+    restored?.tabBounds?.withinViewport !== true ||
+    restored?.favoritePressed !== true ||
+    restored?.changesSelected !== true ||
+    restored?.editorClosed !== true ||
+    restored?.navigationType !== 'reload' ||
+    !(restored?.timeOrigin > beforeReloadTimeOrigin)
+  ) {
+    fail(
+      `Restored app identity workspace failed its persistence/geometry gate: ${JSON.stringify(
+        restored
+      )}`
+    )
+  }
+  await assertNoSceneLeaks('restored app-identity workspace')
+  process.stdout.write(
+    `APP_IDENTITY_RELOAD ${JSON.stringify({
+      displayName: restored.displayName,
+      logo: restored.logo,
+      favorite: restored.favoriteRestored,
+      navigationType: restored.navigationType,
+      beforeReloadTimeOrigin,
+      restoredTimeOrigin: restored.timeOrigin,
+    })}\n`
+  )
   await capture('material-app-identity-workspace')
-  await closeAllDialogs()
+
+  const cleanup = await evaluate(`(async () => {
+    const root = document.querySelector('#desktop-app-container')
+    const node = root?.querySelector('*')
+    const fiberKey = node && Object.keys(node).find(key =>
+      key.startsWith('__reactFiber$') ||
+      key.startsWith('__reactInternalInstance$')
+    )
+    let fiber = fiberKey ? node[fiberKey] : null
+    let app = null
+    for (let depth = 0; fiber && depth < 120; depth++, fiber = fiber.return) {
+      if (
+        fiber.stateNode?.props?.appStore &&
+        fiber.stateNode?.props?.repositoryTabsStore &&
+        fiber.stateNode?.props?.dispatcher
+      ) {
+        app = fiber.stateNode
+        break
+      }
+    }
+    if (!app) return { appFound: false }
+
+    const { appStore, dispatcher, repositoryTabsStore } = app.props
+    const currentAppearance = appStore.getState().appearanceCustomization
+    const originalIdentity = ${JSON.stringify(original.originalIdentity)}
+    await dispatcher.setAppearanceCustomization({
+      ...currentAppearance,
+      appIdentity: originalIdentity,
+    })
+    const originalTab = repositoryTabsStore.getState().tabs.find(
+      tab => tab.id === ${JSON.stringify(original.activeTabId)}
+    )
+    if (
+      originalTab &&
+      (originalTab.isFavorite === true) !== ${JSON.stringify(
+        original.originalFavorite
+      )}
+    ) {
+      await repositoryTabsStore.setTabFavorite(
+        originalTab.id,
+        ${JSON.stringify(original.originalFavorite)}
+      )
+    }
+    const restoredIdentity = appStore.getState().appearanceCustomization.appIdentity
+    const restoredTab = repositoryTabsStore.getState().tabs.find(
+      tab => tab.id === ${JSON.stringify(original.activeTabId)}
+    )
+    return {
+      appFound: true,
+      identityRestored:
+        JSON.stringify(restoredIdentity) === JSON.stringify(originalIdentity),
+      tabFound: restoredTab !== undefined,
+      favoriteRestored:
+        (restoredTab?.isFavorite === true) === ${JSON.stringify(
+          original.originalFavorite
+        )},
+    }
+  })()`)
+  if (
+    cleanup?.appFound !== true ||
+    cleanup?.identityRestored !== true ||
+    cleanup?.tabFound !== true ||
+    cleanup?.favoriteRestored !== true
+  ) {
+    fail(`App identity scene cleanup failed: ${JSON.stringify(cleanup)}`)
+  }
 })
 
 scene('multi-window-menu', async () => {
@@ -2765,8 +3161,22 @@ scene('history-power-tools', async () => {
     if (graph instanceof HTMLElement) graph.click()
     return true
   })()`)
-  await setInput('input[placeholder*="Search commits"]', 'provider')
-  await sleep(1400)
+  await setInput('input[placeholder*="Search commits"]', 'submodules')
+  await waitFor(
+    `(() => {
+      const commits = [...document.querySelectorAll('#commit-list .commit')]
+      const summaries = commits.map(commit =>
+        commit.querySelector('.summary')?.textContent?.trim() ?? ''
+      )
+      const historyText = document.querySelector('#history')?.textContent ?? ''
+      return commits.length === 1 &&
+        summaries[0] === 'Add deterministic initialized and dormant submodules' &&
+        !historyText.includes('No matching commits')
+    })()`,
+    'positive submodule history search result',
+    30000
+  )
+  await sleep(700)
   await parkPointer()
   await capture('material-history-power-tools')
   await setInput('input[placeholder*="Search commits"]', '')
@@ -3176,6 +3586,7 @@ scene('logo-studio', async () => {
       const editor = document.querySelector('.repository-logo-anchored-editor')
       const content = editor?.querySelector('.anchored-appearance-editor-content')
       const studio = editor?.querySelector('.repository-logo-studio')
+      const workbenchScroll = studio?.querySelector('.repository-logo-editor-scroll')
       const mount = editor?.closest('.anchored-appearance-editor-mount')
       const popover = editor?.closest('.popover-component')
       const foldoutContainer = document.querySelector('#foldout-container')
@@ -3184,13 +3595,28 @@ scene('logo-studio', async () => {
       const preview = studio?.querySelector('[aria-label^="Live logo preview for "]')
       const presets = studio?.querySelector('[aria-label="Logo presets"]')
       if (!(editor instanceof HTMLElement) || !(content instanceof HTMLElement) ||
-          !(studio instanceof HTMLElement) || !(mount instanceof HTMLElement) ||
+          !(studio instanceof HTMLElement) || !(workbenchScroll instanceof HTMLElement) ||
+          !(mount instanceof HTMLElement) ||
           !(popover instanceof HTMLElement) || !(foldoutContainer instanceof HTMLElement) ||
           !(foldout instanceof HTMLElement) || !(heading instanceof HTMLElement) ||
           !(preview instanceof HTMLElement) || !(presets instanceof HTMLElement)) return false
+      const headingText = heading.firstChild
+      if (!(headingText instanceof Text) || headingText.data !== 'Custom repository logo') {
+        return false
+      }
+      const firstGlyphRange = document.createRange()
+      firstGlyphRange.setStart(headingText, 0)
+      firstGlyphRange.setEnd(headingText, 1)
+      const firstGlyphBounds = firstGlyphRange.getBoundingClientRect()
       const popoverBounds = popover.getBoundingClientRect()
       const foldoutBounds = foldout.getBoundingClientRect()
       const studioBounds = studio.getBoundingClientRect()
+      const contentStyle = getComputedStyle(content)
+      const workbenchScrollStyle = getComputedStyle(workbenchScroll)
+      const contentOwnsScroll = contentStyle.overflowY === 'auto' &&
+        content.scrollHeight > content.clientHeight + 1
+      const workbenchOwnsScroll = ['auto', 'scroll'].includes(workbenchScrollStyle.overflowY) &&
+        workbenchScroll.scrollHeight > workbenchScroll.clientHeight + 1
       const namedControls = [heading, preview, presets].map(element =>
         element.getBoundingClientRect()
       )
@@ -3201,9 +3627,14 @@ scene('logo-studio', async () => {
         popoverBounds.left >= 0 && popoverBounds.top >= 0 &&
         popoverBounds.right <= window.innerWidth && popoverBounds.bottom <= window.innerHeight &&
         content.clientHeight >= Math.min(320, window.innerHeight - 200) &&
-        getComputedStyle(content).overflowY === 'auto' &&
+        contentOwnsScroll && !workbenchOwnsScroll &&
+        workbenchScrollStyle.overflowY === 'visible' &&
+        content.scrollLeft === 0 && workbenchScroll.scrollLeft === 0 &&
         studioBounds.width > 0 && studioBounds.height > 0 &&
         studioBounds.left >= popoverBounds.left && studioBounds.right <= popoverBounds.right &&
+        firstGlyphBounds.width > 0 && firstGlyphBounds.height > 0 &&
+        firstGlyphBounds.left >= studioBounds.left + 4 &&
+        firstGlyphBounds.right <= studioBounds.right &&
         namedControls.every(bounds => bounds.width > 0 && bounds.height > 0)
     })()`,
     'unclipped repository logo studio portal'
@@ -3364,6 +3795,18 @@ scene('pull-request-compose', async () => {
   ) {
     fail(`Pull-request comparison is not useful: ${JSON.stringify(comparison)}`)
   }
+  await waitFor(
+    `(() => {
+      const clean = document.querySelector('.open-pull-request .pr-merge-status-clean')
+      return clean instanceof HTMLElement &&
+        clean.textContent?.includes('Able to merge.') === true &&
+        document.querySelector('.open-pull-request .pr-merge-status-loading') === null &&
+        document.querySelector('.open-pull-request .pr-merge-status-invalid') === null &&
+        document.querySelector('.open-pull-request .pr-merge-status-conflicts') === null
+    })()`,
+    'stable clean pull-request mergeability',
+    30000
+  )
   await parkPointer()
   await capture('material-native-pull-request')
   await closeAllDialogs()
@@ -3616,6 +4059,56 @@ scene('regex-builder', async () => {
   await waitFor(
     `document.querySelector('#regex-builder-title') !== null`,
     'Regex Builder dialog'
+  )
+  await evaluate(`(() => {
+    const sample = document.querySelector('.regex-test-sample')
+    const preview = document.querySelector('.regex-test-preview')
+    if (!(sample instanceof HTMLTextAreaElement) || !(preview instanceof HTMLElement)) {
+      return false
+    }
+    sample.scrollTop = 0
+    preview.scrollTop = 0
+    return true
+  })()`)
+  await waitFor(
+    `(() => {
+      const dialog = document.querySelector('.regex-builder-dialog')
+      const sample = document.querySelector('.regex-test-sample')
+      const preview = document.querySelector('.regex-test-preview')
+      if (!(dialog instanceof HTMLElement) || !(sample instanceof HTMLTextAreaElement) ||
+          !(preview instanceof HTMLElement)) return false
+      const lines = sample.value.split(/\\r?\\n/)
+      const hashLineIndex = lines.findIndex(line =>
+        /[0-9a-f]{40}.*[0-9a-f]{7}/i.test(line)
+      )
+      if (hashLineIndex < 0) return false
+      const hashLine = lines[hashLineIndex]
+      const style = getComputedStyle(sample)
+      const lineHeight = Number.parseFloat(style.lineHeight)
+      const contentHeight = sample.clientHeight -
+        Number.parseFloat(style.paddingTop) - Number.parseFloat(style.paddingBottom)
+      const dialogBounds = dialog.getBoundingClientRect()
+      const sampleBounds = sample.getBoundingClientRect()
+      const previewBounds = preview.getBoundingClientRect()
+      const previewText = preview.querySelector('span')?.firstChild
+      if (!(previewText instanceof Text)) return false
+      const hashOffset = previewText.data.indexOf(hashLine)
+      if (hashOffset < 0) return false
+      const hashRange = document.createRange()
+      hashRange.setStart(previewText, hashOffset)
+      hashRange.setEnd(previewText, hashOffset + hashLine.length)
+      const hashBounds = hashRange.getBoundingClientRect()
+      return Number.isFinite(lineHeight) && lineHeight > 0 &&
+        sample.rows >= hashLineIndex + 1 &&
+        contentHeight >= lineHeight * (hashLineIndex + 1) - 0.5 &&
+        sample.scrollTop === 0 && preview.scrollTop === 0 &&
+        sampleBounds.left >= dialogBounds.left && sampleBounds.right <= dialogBounds.right &&
+        sampleBounds.top >= dialogBounds.top && sampleBounds.bottom <= dialogBounds.bottom &&
+        hashBounds.width > 0 && hashBounds.height > 0 &&
+        hashBounds.top >= previewBounds.top - 0.5 &&
+        hashBounds.bottom <= previewBounds.bottom + 0.5
+    })()`,
+    'fully visible first regex sample hash line'
   )
   await parkPointer()
   await capture('regex-builder')

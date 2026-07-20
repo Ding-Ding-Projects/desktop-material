@@ -59,6 +59,38 @@ test('reset covers every transient surface that contaminated captures', () => {
   }
 })
 
+test('every capture suppresses unrelated Undo chrome and incidental focus paint', () => {
+  const prepareStart = source.indexOf('async function prepareCaptureSurface(')
+  const prepareEnd = source.indexOf('\nasync function capture(', prepareStart)
+  const captureEnd = source.indexOf('\n/** Emit a menu event', prepareEnd)
+  assert.notEqual(prepareStart, -1)
+  assert.notEqual(prepareEnd, -1)
+  assert.notEqual(captureEnd, -1)
+
+  const prepare = source.slice(prepareStart, prepareEnd)
+  const capture = source.slice(prepareEnd, captureEnd)
+  for (const contract of [
+    "document.querySelector('#undo-commit')",
+    "style.setProperty('display', 'none', 'important')",
+    "setAttribute('data-capture-suppressed', 'true')",
+    'focused.blur()',
+    'requestAnimationFrame(() =>',
+    'receipt?.undoHidden !== true',
+    'retained unrelated Undo commit chrome',
+  ]) {
+    assert.ok(prepare.includes(contract), `capture hygiene misses ${contract}`)
+  }
+  assert.ok(
+    prepare.match(/requestAnimationFrame\(/g)?.length >= 2,
+    'capture hygiene must settle for two animation frames'
+  )
+
+  const hygiene = capture.indexOf('await prepareCaptureSurface(name)')
+  const privacy = capture.indexOf('await assertCapturePrivacy(name)')
+  const screenshot = capture.indexOf("client.send('Page.captureScreenshot'")
+  assert.ok(hygiene >= 0 && hygiene < privacy && privacy < screenshot)
+})
+
 test('contaminated gallery scenes always restore the Changes base', () => {
   const match = source.match(
     /const StatePreservingScenes = new Set\(\[([\s\S]*?)\]\)/
@@ -90,8 +122,6 @@ test('appearance captures open the actual owners instead of retired settings tab
   for (const contract of [
     "scene('anchored-appearance'",
     "contextMenuSelector('#desktop-app-toolbar')",
-    "scene('app-identity'",
-    '\'[data-customization-surface="app-identity"]\'',
     "scene('logo-studio'",
     "contextMenuSelector('.repository-list-logo-appearance-target')",
     "scene('tab-style'",
@@ -104,6 +134,59 @@ test('appearance captures open the actual owners instead of retired settings tab
   assert.ok(!source.includes("captureSettingsTab('Appearance'"))
   assert.ok(!source.includes("openRepositorySettingsTab('Appearance')"))
   assert.ok(!source.includes("scene('settings-appearance'"))
+})
+
+test('app identity capture proves a reload-restored closed workspace', () => {
+  const identity = sceneSource('app-identity')
+  for (const contract of [
+    'const GalleryAppIdentity = Object.freeze({',
+    "displayName: 'Material Studio'",
+    "logo: 'sparkle'",
+  ]) {
+    assert.ok(
+      source.includes(contract),
+      `app identity state misses ${contract}`
+    )
+  }
+
+  for (const contract of [
+    'repositoryTabsStore.getActiveTab()',
+    'dispatcher.setAppearanceCustomization({',
+    'repositoryTabsStore.setTabFavorite(activeTab.id, true)',
+    "'live customized app identity and favorite repository tab'",
+    "await evaluate('window.location.reload(), true')",
+    "resetSceneState('restored app-identity workspace')",
+    "'stable restored app-identity workspace'",
+    '.getAnimations({ subtree: true })',
+    'activeFiniteAnimations.length === 0',
+    'requestAnimationFrame(() => requestAnimationFrame(',
+    '\'.repository-tab.active.favorite[role="tab"][aria-selected="true"]\'',
+    "document.querySelector('.app-identity-section') === null",
+    "document.querySelector('.anchored-appearance-editor') === null",
+    "document.querySelector('#preferences') === null",
+    "restored?.navigationType !== 'reload'",
+    "assertNoSceneLeaks('restored app-identity workspace')",
+    'APP_IDENTITY_RELOAD',
+    'appIdentity: originalIdentity',
+    'identityRestored:',
+    'tabFound:',
+    'favoriteRestored:',
+  ]) {
+    assert.ok(
+      identity.includes(contract),
+      `app identity gate misses ${contract}`
+    )
+  }
+
+  assert.ok(!identity.includes('contextMenuSelector('))
+  assert.ok(!identity.includes('waitForPrivacySafeAnchoredEditor('))
+  const persistenceGate = identity.indexOf(
+    'Restored app identity workspace failed its persistence/geometry gate'
+  )
+  const capture = identity.indexOf("capture('material-app-identity-workspace')")
+  const cleanup = identity.indexOf('appIdentity: originalIdentity')
+  assert.ok(persistenceGate >= 0 && persistenceGate < capture)
+  assert.ok(capture < cleanup)
 })
 
 test('settings captures select distinct settled Preferences tabs', () => {
@@ -176,7 +259,14 @@ test('repository logo capture proves its foldout portal and scroll range', () =>
     'mount.parentElement === foldoutContainer',
     'popoverBounds.width > foldoutBounds.width',
     'content.clientHeight >= Math.min(320, window.innerHeight - 200)',
-    "getComputedStyle(content).overflowY === 'auto'",
+    "studio?.querySelector('.repository-logo-editor-scroll')",
+    "headingText.data !== 'Custom repository logo'",
+    'firstGlyphRange.setEnd(headingText, 1)',
+    "contentStyle.overflowY === 'auto'",
+    "workbenchScrollStyle.overflowY === 'visible'",
+    'contentOwnsScroll && !workbenchOwnsScroll',
+    'content.scrollLeft === 0 && workbenchScroll.scrollLeft === 0',
+    'firstGlyphBounds.left >= studioBounds.left + 4',
     "studio?.querySelector('#repository-logo-studio-heading')",
     'studio?.querySelector(\'[aria-label^="Live logo preview for "]\')',
     'studio?.querySelector(\'[aria-label="Logo presets"]\')',
@@ -198,6 +288,30 @@ test('repository logo capture proves its foldout portal and scroll range', () =>
   )
 })
 
+test('regex builder capture proves the first sample hash is fully visible', () => {
+  const regex = sceneSource('regex-builder')
+  for (const contract of [
+    "document.querySelector('.regex-test-sample')",
+    "document.querySelector('.regex-test-preview')",
+    'sample.scrollTop = 0',
+    'preview.scrollTop = 0',
+    '/[0-9a-f]{40}.*[0-9a-f]{7}/i',
+    'sample.rows >= hashLineIndex + 1',
+    'contentHeight >= lineHeight * (hashLineIndex + 1) - 0.5',
+    'hashRange.setStart(previewText, hashOffset)',
+    'hashBounds.top >= previewBounds.top - 0.5',
+    'hashBounds.bottom <= previewBounds.bottom + 0.5',
+    'fully visible first regex sample hash line',
+  ]) {
+    assert.ok(regex.includes(contract), `regex capture gate misses ${contract}`)
+  }
+  assert.ok(
+    regex.indexOf('fully visible first regex sample hash line') <
+      regex.indexOf("capture('regex-builder')"),
+    'the sample-row geometry gate must pass before capture'
+  )
+})
+
 test('provider triage capture waits for the exact settled surface', () => {
   const triage = sceneSource('provider-triage')
   for (const contract of [
@@ -206,7 +320,8 @@ test('provider triage capture waits for the exact settled surface', () => {
     "getAttribute('aria-selected') === 'true'",
     "document.querySelector('main.provider-triage-view')",
     "querySelectorAll('.provider-triage-channel.ready')",
-    '/^\\\\d+ of \\\\d+ work items$/',
+    "querySelectorAll('.provider-triage-item')",
+    "heading?.textContent?.trim() === '2 of 2 work items'",
     'settled exact provider triage surface',
   ]) {
     assert.ok(triage.includes(contract), `provider triage misses ${contract}`)
@@ -215,6 +330,30 @@ test('provider triage capture waits for the exact settled surface', () => {
     triage.indexOf('settled exact provider triage surface') <
       triage.indexOf("capture('material-provider-triage')"),
     'the settled triage gate must run before capture'
+  )
+})
+
+test('issues capture proves a populated list and useful selected detail', () => {
+  const issues = sceneSource('issues')
+  for (const contract of [
+    "captureSection('Issues', null, 3500)",
+    "document.querySelectorAll('.github-issue-row')",
+    "count?.textContent?.trim() === '1 on page 1'",
+    "document.querySelector('.github-issues-busy, .github-issues-metadata-note')",
+    "clickSelector('.github-issue-row')",
+    "title?.textContent?.trim() === 'Verify the complete Windows gallery before publication'",
+    'comments?.length === 1',
+    "['Open on GitHub', 'Edit', 'Add comment', 'Close issue']",
+    'selected issue detail, lifecycle controls, and comments',
+  ]) {
+    assert.ok(
+      issues.includes(contract),
+      `GitHub Issues gate misses ${contract}`
+    )
+  }
+  assert.ok(
+    issues.indexOf('selected issue detail, lifecycle controls, and comments') <
+      issues.indexOf("capture('material-github-issues')")
   )
 })
 
@@ -562,6 +701,48 @@ test('both pull-request scenes refresh the non-empty origin/main comparison', ()
       assert.ok(scene.includes(contract), `${name} misses ${contract}`)
     }
   }
+})
+
+test('native pull-request capture waits for final clean mergeability', () => {
+  const scene = sceneSource('pull-request-compose')
+  for (const contract of [
+    "document.querySelector('.open-pull-request .pr-merge-status-clean')",
+    "clean.textContent?.includes('Able to merge.') === true",
+    "document.querySelector('.open-pull-request .pr-merge-status-loading') === null",
+    "document.querySelector('.open-pull-request .pr-merge-status-invalid') === null",
+    "document.querySelector('.open-pull-request .pr-merge-status-conflicts') === null",
+    'stable clean pull-request mergeability',
+  ]) {
+    assert.ok(
+      scene.includes(contract),
+      `PR mergeability gate misses ${contract}`
+    )
+  }
+  assert.ok(
+    scene.indexOf('stable clean pull-request mergeability') <
+      scene.indexOf("capture('material-native-pull-request')")
+  )
+})
+
+test('history power-tools capture proves a positive fixture result', () => {
+  const scene = sceneSource('history-power-tools')
+  for (const contract of [
+    "setInput('input[placeholder*=\"Search commits\"]', 'submodules')",
+    "document.querySelectorAll('#commit-list .commit')",
+    "commit.querySelector('.summary')",
+    "summaries[0] === 'Add deterministic initialized and dormant submodules'",
+    "!historyText.includes('No matching commits')",
+    'positive submodule history search result',
+  ]) {
+    assert.ok(
+      scene.includes(contract),
+      `history result gate misses ${contract}`
+    )
+  }
+  assert.ok(
+    scene.indexOf('positive submodule history search result') <
+      scene.indexOf("capture('material-history-power-tools')")
+  )
 })
 
 test('native pull-request review handles aria-only disablement at most once', () => {
