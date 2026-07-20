@@ -174,6 +174,7 @@ export type GitLabMergeRequestErrorKind =
   | 'service'
   | 'network'
   | 'invalid-response'
+  | 'outcome-unknown'
   | 'unsupported'
 
 /** A provider-safe error which never retains a response body or credential. */
@@ -192,6 +193,20 @@ export class GitLabMergeRequestContextChangedError extends Error {
   public constructor() {
     super('The selected GitLab account, repository, or merge request changed.')
     this.name = 'GitLabMergeRequestContextChangedError'
+  }
+}
+
+/**
+ * A mutation was dispatched, but its final provider state could not be
+ * confirmed. Callers must refresh instead of assuming that it failed.
+ */
+export class GitLabMergeRequestMutationOutcomeUnknownError extends GitLabMergeRequestError {
+  public constructor() {
+    super(
+      'outcome-unknown',
+      'GitLab may have completed the merge request operation. Refresh before retrying.'
+    )
+    this.name = 'GitLabMergeRequestMutationOutcomeUnknownError'
   }
 }
 
@@ -269,6 +284,15 @@ export function validateGitLabMergeRequestHeadSHA(value: string): string {
     : invalid('HEAD SHA')
 }
 
+export function validateGitLabMergeRequestUpdatedAt(value: string): string {
+  return typeof value === 'string' &&
+    value.length > 0 &&
+    value.length <= 64 &&
+    Number.isFinite(Date.parse(value))
+    ? value
+    : invalid('updated timestamp')
+}
+
 export function validateGitLabMergeRequestBranch(
   value: string,
   field: 'source branch' | 'target branch'
@@ -310,7 +334,8 @@ export function validateGitLabMergeRequestDescription(value: string): string {
   )
 }
 
-const DraftTitlePrefix = /^(?:(?:draft|wip):\s*)+/i
+/** GitLab draft spellings plus the legacy WIP transport prefix. */
+const DraftTitlePrefix = /^(?:(?:\[draft\]|\(draft\)|draft:|wip:)\s*)+/i
 
 export function removeGitLabDraftTitlePrefix(value: string): string {
   return value.replace(DraftTitlePrefix, '')
@@ -466,7 +491,7 @@ export function mergeReadiness(
     'unchecked',
   ])
   const kind: GitLabMergeReadinessKind =
-    state === 'opened' && !draft && status === 'mergeable'
+    state === 'opened' && !draft && status === 'mergeable' && !hasConflicts
       ? 'ready'
       : checking.has(status)
       ? 'checking'

@@ -106,6 +106,27 @@ describe('GitLab merge request bounded model', () => {
     assert.equal(draft.title, 'Draft: Report')
     assert.deepEqual(draft.reviewer_ids, [2, 3])
 
+    for (const title of [
+      '[Draft] Report',
+      '(Draft) Report',
+      'Draft: Report',
+      'WIP: Report',
+      '[Draft] (Draft) WIP: Report',
+    ]) {
+      assert.equal(
+        normalizeGitLabMergeRequestDraft({
+          sourceBranch: 'topic/report',
+          targetBranch: 'main',
+          title,
+          description: 'Body',
+          draft: true,
+          reviewerIds: [],
+          assigneeIds: [],
+        }).title,
+        'Draft: Report'
+      )
+    }
+
     const current = parseGitLabMergeRequest(
       mergeRequest({ title: 'Draft: Report', draft: true }),
       webRoot
@@ -155,6 +176,20 @@ describe('GitLab merge request bounded model', () => {
     )
     assert.equal(titleFallback.draft, true)
     assert.equal(titleFallback.title, 'Prefix only')
+
+    for (const title of [
+      '[Draft] Bracket prefix',
+      '(Draft) Parenthesized prefix',
+      '[Draft] Draft: Repeated prefix',
+    ]) {
+      const parsed = parseGitLabMergeRequest(
+        mergeRequest({ title, draft: undefined, work_in_progress: undefined }),
+        webRoot
+      )
+      assert.equal(parsed.draft, true)
+      assert.equal(parsed.title.endsWith('prefix'), true)
+      assert.equal(parsed.title.includes('Draft'), false)
+    }
     assert.equal(
       parseGitLabMergeRequest(
         mergeRequest({ draft: undefined, work_in_progress: false }),
@@ -174,6 +209,15 @@ describe('GitLab merge request bounded model', () => {
         GitLabMergeRequestError
       )
     }
+  })
+
+  it('never reports conflicting merge metadata as ready', () => {
+    const parsed = parseGitLabMergeRequest(
+      mergeRequest({ detailed_merge_status: 'mergeable', has_conflicts: true }),
+      webRoot
+    )
+    assert.equal(parsed.readiness.kind, 'blocked')
+    assert.equal(parsed.readiness.hasConflicts, true)
   })
 
   it('rejects malformed provider shapes, paths, and oversized pages', () => {
