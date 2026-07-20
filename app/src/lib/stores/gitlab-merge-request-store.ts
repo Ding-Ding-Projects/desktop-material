@@ -43,6 +43,7 @@ export interface IGitLabMergeRequestAPI {
     project: string,
     mergeRequestIID: number,
     expectedHeadSHA: string,
+    expectedUpdatedAt: string,
     update: IGitLabMergeRequestUpdate,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest>
@@ -50,6 +51,7 @@ export interface IGitLabMergeRequestAPI {
     project: string,
     mergeRequestIID: number,
     expectedHeadSHA: string,
+    expectedUpdatedAt: string,
     stateEvent: 'close' | 'reopen',
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest>
@@ -98,6 +100,16 @@ interface IRequestContext {
   readonly generation: number
 }
 
+interface IGitLabMergeRequestProvenance {
+  readonly repositoryFingerprint: string
+  readonly accountKey: string
+  readonly accountGeneration: number
+  readonly project: string
+  readonly mergeRequestIID: number
+  readonly headSHA: string
+  readonly updatedAt: string
+}
+
 export interface IGitLabMergeRequestMutationReview {
   readonly repositoryFingerprint: string
   readonly accountKey: string
@@ -105,6 +117,7 @@ export interface IGitLabMergeRequestMutationReview {
   readonly project: string
   readonly mergeRequestIID: number
   readonly headSHA: string
+  readonly reviewedUpdatedAt: string
 }
 
 function abortError(): Error {
@@ -220,6 +233,12 @@ export class GitLabMergeRequestStore {
   private readonly listGate = new GitLabMergeRequestRequestGate()
   private readonly detailGate = new GitLabMergeRequestRequestGate()
   private readonly membersGate = new GitLabMergeRequestRequestGate()
+  private readonly mergeRequestProvenance = new WeakMap<
+    IGitLabMergeRequest,
+    IGitLabMergeRequestProvenance
+  >()
+  private readonly issuedMutationReviews =
+    new WeakSet<IGitLabMergeRequestMutationReview>()
 
   public constructor(
     accountsStore: AccountsStore,
@@ -329,7 +348,8 @@ export class GitLabMergeRequestStore {
   private async run<T>(
     repository: Repository,
     signal: AbortSignal | undefined,
-    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>
+    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>,
+    accept?: (context: IRequestContext, result: T) => T
   ): Promise<T> {
     const context = this.context(repository)
     const controller = new AbortController()
@@ -342,7 +362,7 @@ export class GitLabMergeRequestStore {
     try {
       const result = await work(context, controller.signal)
       this.assertContextCurrent(repository, context, controller.signal)
-      return result
+      return accept === undefined ? result : accept(context, result)
     } catch (error) {
       throw safeError(error)
     } finally {
@@ -355,12 +375,52 @@ export class GitLabMergeRequestStore {
     gate: GitLabMergeRequestRequestGate,
     repository: Repository,
     signal: AbortSignal | undefined,
-    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>
+    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>,
+    accept?: (context: IRequestContext, result: T) => T
   ): Promise<T> {
     return gate.run(
-      requestSignal => this.run(repository, requestSignal, work),
+      requestSignal => this.run(repository, requestSignal, work, accept),
       signal
     )
+  }
+
+  private provenance(
+    context: IRequestContext,
+    mergeRequest: IGitLabMergeRequest
+  ): IGitLabMergeRequestProvenance {
+    return {
+      repositoryFingerprint: context.repositoryFingerprint,
+      accountKey: context.accountKey,
+      accountGeneration: context.generation,
+      project: context.project,
+      mergeRequestIID: mergeRequest.iid,
+      headSHA: mergeRequest.headSHA,
+      updatedAt: mergeRequest.updatedAt,
+    }
+  }
+
+  private recordMergeRequest(
+    context: IRequestContext,
+    mergeRequest: IGitLabMergeRequest
+  ): IGitLabMergeRequest {
+    this.mergeRequestProvenance.set(
+      mergeRequest,
+      this.provenance(context, mergeRequest)
+    )
+    return mergeRequest
+  }
+
+  private recordMergeRequestList(
+    context: IRequestContext,
+    list: IGitLabMergeRequestList
+  ): IGitLabMergeRequestList {
+    for (const mergeRequest of list.items) {
+      this.mergeRequestProvenance.set(
+        mergeRequest,
+        this.provenance(context, mergeRequest)
+      )
+    }
+    return list
   }
 
   public list(
@@ -377,7 +437,8 @@ export class GitLabMergeRequestStore {
           context.project,
           query,
           requestSignal
-        )
+        ),
+      (context, result) => this.recordMergeRequestList(context, result)
     )
   }
 
@@ -395,7 +456,8 @@ export class GitLabMergeRequestStore {
           context.project,
           mergeRequestIID,
           requestSignal
-        )
+        ),
+      (context, result) => this.recordMergeRequest(context, result)
     )
   }
 
@@ -417,12 +479,16 @@ export class GitLabMergeRequestStore {
     draft: IGitLabMergeRequestDraft,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest> {
-    return this.run(repository, signal, (context, requestSignal) =>
-      context.api.createGitLabMergeRequest(
-        context.project,
-        draft,
-        requestSignal
-      )
+    return this.run(
+      repository,
+      signal,
+      (context, requestSignal) =>
+        context.api.createGitLabMergeRequest(
+          context.project,
+          draft,
+          requestSignal
+        ),
+      (context, result) => this.recordMergeRequest(context, result)
     )
   }
 
@@ -431,14 +497,30 @@ export class GitLabMergeRequestStore {
     mergeRequest: IGitLabMergeRequest
   ): IGitLabMergeRequestMutationReview {
     const context = this.context(repository)
-    return Object.freeze({
+    const provenance = this.mergeRequestProvenance.get(mergeRequest)
+    if (
+      provenance === undefined ||
+      provenance.repositoryFingerprint !== context.repositoryFingerprint ||
+      provenance.accountKey !== context.accountKey ||
+      provenance.accountGeneration !== context.generation ||
+      provenance.project !== context.project ||
+      provenance.mergeRequestIID !== mergeRequest.iid ||
+      provenance.headSHA !== mergeRequest.headSHA ||
+      provenance.updatedAt !== mergeRequest.updatedAt
+    ) {
+      throw new GitLabMergeRequestContextChangedError()
+    }
+    const review = Object.freeze({
       repositoryFingerprint: context.repositoryFingerprint,
       accountKey: context.accountKey,
       accountGeneration: context.generation,
       project: context.project,
-      mergeRequestIID: mergeRequest.iid,
-      headSHA: mergeRequest.headSHA,
+      mergeRequestIID: provenance.mergeRequestIID,
+      headSHA: provenance.headSHA,
+      reviewedUpdatedAt: provenance.updatedAt,
     })
+    this.issuedMutationReviews.add(review)
+    return review
   }
 
   private validateMutationReview(
@@ -447,6 +529,7 @@ export class GitLabMergeRequestStore {
     review: IGitLabMergeRequestMutationReview
   ): void {
     if (
+      !this.issuedMutationReviews.has(review) ||
       review.repositoryFingerprint !== repositoryFingerprint(repository) ||
       review.repositoryFingerprint !== context.repositoryFingerprint ||
       review.accountKey !== context.accountKey ||
@@ -463,16 +546,22 @@ export class GitLabMergeRequestStore {
     update: IGitLabMergeRequestUpdate,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest> {
-    return this.run(repository, signal, (context, requestSignal) => {
-      this.validateMutationReview(repository, context, review)
-      return context.api.updateGitLabMergeRequest(
-        context.project,
-        review.mergeRequestIID,
-        review.headSHA,
-        update,
-        requestSignal
-      )
-    })
+    return this.run(
+      repository,
+      signal,
+      (context, requestSignal) => {
+        this.validateMutationReview(repository, context, review)
+        return context.api.updateGitLabMergeRequest(
+          context.project,
+          review.mergeRequestIID,
+          review.headSHA,
+          review.reviewedUpdatedAt,
+          update,
+          requestSignal
+        )
+      },
+      (context, result) => this.recordMergeRequest(context, result)
+    )
   }
 
   public setState(
@@ -481,16 +570,22 @@ export class GitLabMergeRequestStore {
     stateEvent: 'close' | 'reopen',
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest> {
-    return this.run(repository, signal, (context, requestSignal) => {
-      this.validateMutationReview(repository, context, review)
-      return context.api.setGitLabMergeRequestState(
-        context.project,
-        review.mergeRequestIID,
-        review.headSHA,
-        stateEvent,
-        requestSignal
-      )
-    })
+    return this.run(
+      repository,
+      signal,
+      (context, requestSignal) => {
+        this.validateMutationReview(repository, context, review)
+        return context.api.setGitLabMergeRequestState(
+          context.project,
+          review.mergeRequestIID,
+          review.headSHA,
+          review.reviewedUpdatedAt,
+          stateEvent,
+          requestSignal
+        )
+      },
+      (context, result) => this.recordMergeRequest(context, result)
+    )
   }
 
   public approve(
