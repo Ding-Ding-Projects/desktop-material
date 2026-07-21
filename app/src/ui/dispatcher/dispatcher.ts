@@ -202,6 +202,7 @@ import type { IVersionedStoreHistorySource } from '../version-history/versioned-
 
 import { ApplicationTheme } from '../lib/application-theme'
 import { installCLI } from '../lib/install-cli'
+import { redactLocalPaths } from '../lib/redact-local-paths'
 import {
   executeMenuItem,
   moveToApplicationsFolder,
@@ -652,11 +653,9 @@ export class Dispatcher {
     file?: string,
     scope?: SettingsHistoryScope
   ): Promise<string> {
-    return this.profileStore.getSettingsHistoryDiff(
-      sha,
-      file,
-      settingsHistoryFilter(scope)
-    )
+    return this.profileStore
+      .getSettingsHistoryDiff(sha, file, settingsHistoryFilter(scope))
+      .then(redactLocalPaths)
   }
 
   /** Append an undo commit and reload every profile-backed renderer surface. */
