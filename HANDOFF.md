@@ -1,6 +1,38 @@
 # Desktop Material — Active parity handoff
 
-## 2026-07-21 Screenshot renewal — infrastructure proven, blocked on driver
+## 2026-07-21 Screenshot renewal — 58 of 66 delivered
+
+**58 of 66 gallery screenshots were recaptured from the shipped Material UI**
+and promoted (commits `dc40ffb316` renewing 57 and `bf86e6c6a3` renewing the
+welcome screen). Every promoted image passed the driver's per-capture privacy
+and dimension gate (synthetic fixture only; no home/profile/Temp/credential or
+user repository content) and shows the full Material Design 3 UI with Material
+Symbols iconography.
+
+Getting there required reconciling the codex capture driver
+(`.codex/verification/capture_gallery_cdp.js`, committed in `dc40ffb316`) with
+the migrated UI: a `vt` helper injected into every renderer evaluation to read
+visible text with aria-hidden Material Symbol ligatures excluded; rail
+navigation and the functions-first API surface; and a `--resilient` mode that
+banks every scene that renders and reports any it cannot. A real product
+privacy fix also landed (`7b319f92d8`): the settings history diff no longer
+exposes local paths.
+
+**Not renewed this pass (existing Material-era images kept, low marginal
+value):** `material-ollama-model-manager` (its scene needs a Copilot-enabled
+provider plus a separate Ollama server via `--ollama-run-root`);
+`material-app-identity-workspace` (React-fiber appearance reload times out);
+`material-repository-logo-studio` (logo-studio portal timing);
+`material-create-pull-request` and `material-native-pull-request`
+(`pull-request-open` deepens and removes the shallow boundary, which also
+cascades to the clone/pull scenes); `material-pull-all-account-fallback`,
+`material-shallow-clone`, `material-shallow-clone-safe`, and
+`material-clone-account-fallback` (clone-dialog / batch-sync state after that
+shallow-boundary mutation). These need targeted per-scene fixture/state work or
+the extra Ollama+Copilot fixture stack; they were left rather than shipping a
+broken or non-deterministic capture.
+
+Earlier attempt notes retained below for provenance.
 
 The full gallery renewal against the shipped Material UI was attempted end to
 end. Everything except the driver's assertions works: fresh production build
