@@ -113,8 +113,16 @@ describe('undo history manager v2 styles', () => {
   })
 
   it('labels the pills Undo and Redo with their matching glyphs', () => {
-    assert.match(component, /<Octicon symbol=\{octicons\.undo\} \/> Undo\s*</)
-    assert.match(component, /<Octicon symbol=\{octicons\.redo\} \/> Redo\s*</)
+    assert.match(
+      component,
+      /<Octicon symbol=\{octicons\.undo\} \/> \{this\.strings\.undo\}\s*</
+    )
+    assert.match(
+      component,
+      /<Octicon symbol=\{octicons\.redo\} \/> \{this\.strings\.redo\}\s*</
+    )
+    assert.match(component, /undo: 'Undo'/)
+    assert.match(component, /redo: 'Redo'/)
   })
 
   it('suppresses the entrance choreography under reduced motion', () => {
