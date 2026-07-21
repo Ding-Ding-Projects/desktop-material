@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { readFileSync } from 'fs'
+import { readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { describe, it } from 'node:test'
 import { getMockUpdateEndpoint } from '../e2e/mock-update-server'
@@ -21,6 +21,13 @@ const releasePRWorkflow = readFileSync(
   join(root, '.github', 'workflows', 'release-pr.yml'),
   'utf8'
 )
+const workflowDirectory = join(root, '.github', 'workflows')
+const workflowSources = readdirSync(workflowDirectory)
+  .filter(file => /\.ya?ml$/.test(file))
+  .map(file => ({
+    file,
+    source: readFileSync(join(workflowDirectory, file), 'utf8'),
+  }))
 
 describe('CI workflow safety', () => {
   it('uses one configurable loopback endpoint for the E2E build and server', () => {
@@ -79,9 +86,19 @@ describe('CI workflow safety', () => {
       installerWorkflow,
       /required=\([\s\S]*?"installers\/GitHub Desktop-x64\.zip"/
     )
+    assert.match(installerWorkflow, /fetch-depth: 0/)
+    assert.match(
+      installerWorkflow,
+      /Generate bounded exact-SHA release notes[\s\S]*?generate-automated-release-notes\.ts[\s\S]*?--release-sha "\$RELEASE_TARGET_SHA"/
+    )
+    assert.match(
+      installerWorkflow,
+      /body_path: \$\{\{ runner\.temp \}\}\/desktop-material-release-notes\.md/
+    )
+    assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('runs CI on every branch push', () => {
+  it('runs independent CI on every branch push without cancelling older workflows', () => {
     assert.match(ciWorkflow, /on:\s*\n\s*push:\s*\n/)
     const pushTrigger = ciWorkflow.match(
       /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
@@ -89,6 +106,27 @@ describe('CI workflow safety', () => {
     assert.notEqual(pushTrigger, null)
     assert.doesNotMatch(pushTrigger?.[1] ?? '', /branches:/)
     assert.doesNotMatch(pushTrigger?.[1] ?? '', /^\s*(?:paths|paths-ignore):/m)
+    assert.match(
+      ciWorkflow,
+      /group: ci-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
+    )
+    assert.match(ciWorkflow, /cancel-in-progress: false/)
+
+    for (const { file, source } of workflowSources) {
+      assert.doesNotMatch(
+        source,
+        /cancel-in-progress:\s*true/,
+        `${file} must not cancel an older in-progress workflow run`
+      )
+
+      if (/^concurrency:/m.test(source)) {
+        assert.match(
+          source,
+          /^\s+cancel-in-progress:\s*false$/m,
+          `${file} concurrency must preserve the older run`
+        )
+      }
+    }
   })
 
   it('builds, packages, and exercises the Windows application only', () => {

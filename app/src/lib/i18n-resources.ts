@@ -11,6 +11,7 @@ export type TranslationKey =
   | 'ci.stale'
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
+  | 'update.comingSoon'
   | 'appearance.updateProgressColor'
   | 'appearance.useAccentColor'
   | 'appearance.languageMode'
@@ -1233,6 +1234,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ci.stale': 'stale',
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
+  'update.comingSoon': 'New update coming soon',
   'appearance.updateProgressColor': 'Update progress color',
   'appearance.useAccentColor': 'Use accent color',
   'appearance.languageMode': 'Language',
@@ -2723,6 +2725,7 @@ export const cantoneseTranslations: Readonly<
   'ci.stale': '資料舊咗',
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
+  'update.comingSoon': '新版本就快焗好出爐',
   'appearance.updateProgressColor': '更新進度列顏色',
   'appearance.useAccentColor': '跟強調色',
   'appearance.languageMode': '語言',

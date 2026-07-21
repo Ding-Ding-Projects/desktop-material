@@ -54,6 +54,57 @@ maps every asset back to the original repository-relative path.
 The manager, repository-section mapping, scroll contract, and all three language
 modes pass **48/48 focused tests** across six suites. This checkpoint does not
 claim a live multi-gigabyte upload or final packaged-app visual receipt.
+## 2026-07-21 CI update-coming-soon and exact-SHA Release notes checkpoint
+
+The updater now distinguishes “no release yet” from “GitHub Actions is actively
+packaging a newer commit.” After Squirrel reports no update, a bounded
+unauthenticated provider probe derives only the configured HTTPS GitHub release
+feed, reads the existing `build-installers.yml` run data, and requires an
+in-progress `main` workflow-run/manual-dispatch SHA. Bounded job data must also
+prove that run's exact `Windows x64` packaging job is itself in progress for the
+same run ID and SHA, so a manual dispatch still executing prerequisite CI does
+not qualify. GitHub's compare endpoint must then prove that exact SHA is ahead
+of the installed exact `__SHA__`; equality, behind/diverged state, malformed
+data, a non-GitHub feed, network failure, and rate limiting all retain the
+ordinary no-update state.
+
+The accepted state is the new in-memory `UpdateComingSoon` enum and is never
+stored. About renders **New update coming soon**, **新版本就快焗好出爐**, or the
+compact bilingual composition from the existing persisted language preference.
+The ordinary last-check timestamp remains compatible. An update-transition
+generation prevents a delayed Actions/compare result from overwriting a real
+Squirrel available/downloaded event, and the check button plus existing
+four-hour schedule continue to use the normal release feed after publication.
+
+`Build Installers` now checks out full history at the same exact
+`RELEASE_TARGET_SHA` already protected by the initial and pre-publication main
+checks. A new TypeScript generator reads the latest published Release through a
+256 KiB authenticated response, resolves its tag, requires ancestry and exact
+`HEAD`, collects at most 50 newest exact commit IDs/subjects in the range, and
+caps the final body at 24,000 characters. Subjects are whitespace/control
+normalized, limited to 180 characters, and neutralized for Markdown, HTML, and
+mentions. The notes expose the exact range and commit links, report omitted
+history, preserve the update-feed explanation, and reach the single release
+action through `body_path`; mismatches fail before publication.
+
+CI now makes its overlap contract explicit: each invocation has a unique
+`run_id`/`run_attempt` concurrency group and `cancel-in-progress: false`, so a
+newer push can run without cancelling or queueing an older in-progress run.
+Installer and Pages publication keep their shared serialization groups but also
+keep cancellation disabled, and the workflow source contract scans every YAML
+workflow to reject a future `cancel-in-progress: true` regression.
+
+Focused updater, persisted-state, race, English/Cantonese/bilingual,
+non-cancelling workflow concurrency, exact Git range, sanitization, bound, and
+first-release checks pass **32/32**.
+Root app TypeScript and script TypeScript pass. The implementation has not been
+pushed or exercised by remote Actions, so no CI run or sample published Release
+is claimed. The fixed low-level MCP preflight passed after its stalled scheduled
+task was restarted, but the mandated no-download production-build command could
+not start because this host has no `yarn` executable; no headless GUI capture is
+claimed. Integration must preserve the exact workflow filename and include the
+generator, workflow, runtime, tests, feature docs, wiki, Pages, roadmap, and this
+handoff together.
 
 ## 2026-07-21 Cheap-LFS recovery, output controls, and portable-ZIP checkpoint
 

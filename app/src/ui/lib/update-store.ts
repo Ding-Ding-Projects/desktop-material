@@ -25,6 +25,7 @@ import { gte, SemVer } from 'semver'
 import { getVersion } from './app-proxy'
 import { getUserAgent } from '../../lib/http'
 import { runAfterRendererShutdown } from './renderer-shutdown'
+import { isNewerDesktopMaterialBuildInProgress } from '../../lib/desktop-material-update-build'
 
 /** The last version a showcase was seen. */
 export const lastShowCaseVersionSeen = 'version-of-last-showcase'
@@ -45,6 +46,9 @@ export enum UpdateStatus {
 
   /** We have not checked for an update yet. */
   UpdateNotChecked,
+
+  /** A newer commit is actively being packaged, but no release exists yet. */
+  UpdateComingSoon,
 }
 
 export interface IUpdateState {
@@ -56,13 +60,22 @@ export interface IUpdateState {
   prioritizeUpdateInfoUrl: string | undefined
 }
 
+interface IUpdateStoreDependencies {
+  readonly generateReleaseSummary?: typeof generateReleaseSummary
+  readonly probeForNewerBuild?: typeof isNewerDesktopMaterialBuildInProgress
+  readonly subscribeToUpdaterEvents?: boolean
+}
+
 /** A store which contains the current state of the auto updater. */
-class UpdateStore {
+export class UpdateStore {
   private emitter = new Emitter()
   private status = UpdateStatus.UpdateNotChecked
   private lastSuccessfulCheck: Date | null = null
   private newReleases: ReadonlyArray<ReleaseSummary> | null = null
   private isX64ToARM64ImmediateAutoUpdate: boolean = false
+  private updateTransitionGeneration = 0
+  private readonly generateReleaseSummary: typeof generateReleaseSummary
+  private readonly probeForNewerBuild: typeof isNewerDesktopMaterialBuildInProgress
 
   /** Is the most recent update check user initiated? */
   private userInitiatedUpdate = true
@@ -77,18 +90,24 @@ class UpdateStore {
     return this._prioritizeUpdateInfoUrl
   }
 
-  public constructor() {
+  public constructor(dependencies: IUpdateStoreDependencies = {}) {
+    this.generateReleaseSummary =
+      dependencies.generateReleaseSummary ?? generateReleaseSummary
+    this.probeForNewerBuild =
+      dependencies.probeForNewerBuild ?? isNewerDesktopMaterialBuildInProgress
     const lastSuccessfulCheckTime = getNumber(lastSuccessfulCheckKey, 0)
 
     if (lastSuccessfulCheckTime > 0) {
       this.lastSuccessfulCheck = new Date(lastSuccessfulCheckTime)
     }
 
-    onAutoUpdaterError(this.onAutoUpdaterError)
-    onAutoUpdaterCheckingForUpdate(this.onCheckingForUpdate)
-    onAutoUpdaterUpdateAvailable(this.onUpdateAvailable)
-    onAutoUpdaterUpdateNotAvailable(this.onUpdateNotAvailable)
-    onAutoUpdaterUpdateDownloaded(this.onUpdateDownloaded)
+    if (dependencies.subscribeToUpdaterEvents !== false) {
+      onAutoUpdaterError(this.onAutoUpdaterError)
+      onAutoUpdaterCheckingForUpdate(this.onCheckingForUpdate)
+      onAutoUpdaterUpdateAvailable(this.onUpdateAvailable)
+      onAutoUpdaterUpdateNotAvailable(this.onUpdateNotAvailable)
+      onAutoUpdaterUpdateDownloaded(this.onUpdateDownloaded)
+    }
   }
 
   private touchLastChecked() {
@@ -98,6 +117,7 @@ class UpdateStore {
   }
 
   private onAutoUpdaterError = (e: Electron.IpcRendererEvent, error: Error) => {
+    this.updateTransitionGeneration++
     this.status = UpdateStatus.UpdateNotAvailable
 
     if (__WIN32__) {
@@ -109,26 +129,43 @@ class UpdateStore {
   }
 
   private onCheckingForUpdate = () => {
+    this.updateTransitionGeneration++
     this.status = UpdateStatus.CheckingForUpdates
     this.emitDidChange()
   }
 
   private onUpdateAvailable = () => {
+    this.updateTransitionGeneration++
     this.touchLastChecked()
     this.status = UpdateStatus.UpdateAvailable
     this.emitDidChange()
   }
 
   private onUpdateNotAvailable = async () => {
+    const generation = ++this.updateTransitionGeneration
     // This is so we can check for pretext changelog for showcasing a recent update
-    this.newReleases = await generateReleaseSummary()
+    const [newReleases, newerBuildInProgress] = await Promise.all([
+      this.generateReleaseSummary(),
+      this.isNewerBuildInProgress(),
+    ])
+    if (generation !== this.updateTransitionGeneration) {
+      return
+    }
+    this.newReleases = newReleases
     this.touchLastChecked()
-    this.status = UpdateStatus.UpdateNotAvailable
+    this.status = newerBuildInProgress
+      ? UpdateStatus.UpdateComingSoon
+      : UpdateStatus.UpdateNotAvailable
     this.emitDidChange()
   }
 
   private onUpdateDownloaded = async () => {
-    this.newReleases = await generateReleaseSummary()
+    const generation = ++this.updateTransitionGeneration
+    const newReleases = await this.generateReleaseSummary()
+    if (generation !== this.updateTransitionGeneration) {
+      return
+    }
+    this.newReleases = newReleases
     // We know it's an "immediate" auto-update from x64 to arm64 if the app is
     // running on arm64 under x64 emulation and there is only one new release
     // and it's the same version we have right now (which means we spoofed
@@ -143,6 +180,18 @@ class UpdateStore {
     this.emitDidChange()
 
     this.updatePriorityUpdateStatus()
+  }
+
+  private async isNewerBuildInProgress(): Promise<boolean> {
+    try {
+      return await this.probeForNewerBuild({
+        updatesURL: __UPDATES_URL__,
+        installedSHA: __SHA__,
+      })
+    } catch (error) {
+      log.warn('Unable to check for an update build in progress.', error)
+      return false
+    }
   }
 
   /**

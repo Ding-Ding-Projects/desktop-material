@@ -37,6 +37,13 @@ on:
       DESKTOP_OAUTH_CLIENT_ID:
       DESKTOP_OAUTH_CLIENT_SECRET:
 
+# Every invocation owns a unique group so a newer push, pull request, manual
+# dispatch, or installer verification can run immediately without cancelling
+# or queueing an older in-progress CI run.
+concurrency:
+  group: ci-${{ github.run_id }}-${{ github.run_attempt }}
+  cancel-in-progress: false
+
 env:
   NODE_VERSION: 24.15.0
   DESKTOP_ERROR_REPORTING_ENDPOINT: ${{ inputs.error-reporting-endpoint }}

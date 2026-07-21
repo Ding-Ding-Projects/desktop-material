@@ -356,6 +356,17 @@ the packaged executable. The focused archive/workflow contract is green; a
 complete local production package and the first remote publication containing
 this ZIP are still pending.
 
+When GitHub Actions is actively packaging a newer exact commit but has not yet
+published its Release, the About updater reports **New update coming soon** in
+the selected English, playful Hong Kong Cantonese, or bilingual mode. The state
+is transient and fails closed; normal Squirrel update behavior resumes on the
+next check after publication. Automated Release notes list bounded, sanitized
+commit subjects from the previous published release through the exact release
+SHA. CI push runs remain independent and never cancel an older in-progress run;
+serialized installer and Pages runs wait instead of cancelling. See [Automated
+update build status and release
+notes](docs/features/integrations/automated-updates-and-release-notes.md).
+
 ## Building
 
 Full instructions live in [`docs/contributing/setup.md`](docs/contributing/setup.md). In short, with Node 24.15.0:

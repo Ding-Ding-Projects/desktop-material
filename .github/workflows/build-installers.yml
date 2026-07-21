@@ -70,6 +70,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.RELEASE_TARGET_SHA }}
+          fetch-depth: 0
           submodules: recursive
       - name: Require the current main commit
         shell: bash
@@ -234,22 +235,24 @@ jobs:
               exit "$status"
               ;;
           esac
+      - name: Generate bounded exact-SHA release notes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          yarn --silent ts-node -P script/tsconfig.json \
+            script/generate-automated-release-notes.ts \
+            --repository "$GITHUB_REPOSITORY" \
+            --version "${{ steps.version.outputs.version }}" \
+            --release-sha "$RELEASE_TARGET_SHA" \
+            --output "$RUNNER_TEMP/desktop-material-release-notes.md"
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.version.outputs.version }}
           target_commitish: ${{ env.RELEASE_TARGET_SHA }}
           name: Desktop Material ${{ steps.version.outputs.version }}
-          body: |
-            Automated Desktop Material Windows build from commit ${{ env.RELEASE_TARGET_SHA }}.
-
-            Version `${{ steps.version.outputs.version }}`. Unsigned installer
-            built by `.github/workflows/build-installers.yml`.
-
-            This release doubles as the auto-update feed: the `RELEASES` manifest
-            and `*-full.nupkg` attached here are what the in-app updater pulls
-            from `releases/latest/download/` (see `getUpdatesURL` in
-            `script/dist-info.ts`).
+          body_path: ${{ runner.temp }}/desktop-material-release-notes.md
           prerelease: false
           draft: false
           make_latest: true

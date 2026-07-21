@@ -82,6 +82,8 @@ export class AboutTestDialog extends React.Component<
   private onCheckForNonStaggeredUpdates = async () => {
     this.setUpdateState({ status: UpdateStatus.CheckingForUpdates })
     await this.delay(5000)
+    this.setUpdateState({ status: UpdateStatus.UpdateComingSoon })
+    await this.delay(5000)
     this.setUpdateState({ status: UpdateStatus.UpdateAvailable })
     await this.delay(10000)
 

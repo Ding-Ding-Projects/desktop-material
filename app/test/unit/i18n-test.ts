@@ -73,6 +73,10 @@ describe('recent UI internationalization', () => {
       translate('appearance.useAccentColor', 'fr-CA'),
       'Use accent color'
     )
+    assert.equal(
+      translate('update.comingSoon', 'bilingual'),
+      'New update coming soon · 新版本就快焗好出爐'
+    )
   })
 
   it('localizes stalled release-upload recovery in all three modes', () => {

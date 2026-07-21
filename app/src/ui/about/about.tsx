@@ -19,6 +19,7 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { formatDate } from '../../lib/format-date'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { t } from '../../lib/i18n'
 
 interface IAboutProps {
   /**
@@ -108,6 +109,7 @@ export class About extends React.Component<IAboutProps> {
           </Row>
         )
       case UpdateStatus.UpdateNotAvailable:
+      case UpdateStatus.UpdateComingSoon:
       case UpdateStatus.CheckingForUpdates:
       case UpdateStatus.UpdateAvailable:
       case UpdateStatus.UpdateNotChecked:
@@ -115,6 +117,7 @@ export class About extends React.Component<IAboutProps> {
           ![
             UpdateStatus.UpdateNotChecked,
             UpdateStatus.UpdateNotAvailable,
+            UpdateStatus.UpdateComingSoon,
           ].includes(updateStatus) || isOSNoLongerSupportedByElectron()
 
         const buttonTitle = 'Check for Updates'
@@ -158,6 +161,8 @@ export class About extends React.Component<IAboutProps> {
         return <UpdateInfo message="Checking for updates…" loading={true} />
       case UpdateStatus.UpdateAvailable:
         return <UpdateInfo message="Downloading update…" loading={true} />
+      case UpdateStatus.UpdateComingSoon:
+        return <UpdateInfo message={t('update.comingSoon')} />
       case UpdateStatus.UpdateNotAvailable:
         if (!lastSuccessfulCheck) {
           return null

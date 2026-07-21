@@ -346,8 +346,14 @@
               packaging also produces a portable
               <code>GitHub Desktop-x64.zip</code> beside the installer assets;
               extract it before running the packaged executable. Review remote
-              code before running it. The first full package and remote release
-              containing the new ZIP are still pending.
+              code before running it. While Actions packages a newer exact
+              commit, About shows a transient localized “New update coming soon”
+              status. Published automated Release notes list bounded, sanitized
+              commit subjects through that exact release SHA. Independent CI
+              push runs never cancel or queue an older in-progress run, while
+              serialized installer and Pages runs wait instead of cancelling.
+              The first full package and remote release containing the new ZIP
+              are still pending.
             </p>
             <div class="hero-cta install-links">
               <a
