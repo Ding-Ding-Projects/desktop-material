@@ -7,8 +7,9 @@ contracts that span more than one user workflow.
 
 - [Responsiveness and resource
   lifecycle](responsiveness-and-resource-lifecycle.md) — avoid redundant remote
-  discovery, serialize credential prompts, coalesce high-frequency appearance
-  writes, and release request and markdown-preview resources deterministically.
+  discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,
+  serialize credential prompts, coalesce high-frequency appearance writes, and
+  release request and markdown-preview resources deterministically.
 
 ## API applicability
 

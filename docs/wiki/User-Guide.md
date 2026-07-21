@@ -276,8 +276,11 @@ During background fetch, a local `refs/remotes/<remote>/HEAD` is reused only whe
 that exact remote namespace and its target still exists. This avoids an expensive online
 default-branch scan on every scheduled refresh. Missing, malformed, dangling, or cross-remote refs
 still run one lookup with the repository's selected account. An explicit Fetch always refreshes
-the default with a five-second hard bound, so a generic host's rename is detected even when its old
-branch still exists.
+the default with a five-second discovery deadline plus one final five-second process-cleanup grace
+window, so a generic host's rename is detected even when its old branch still exists and a missing
+child-process close event cannot hang the completed fetch. Concurrent preparations for the same
+remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
+timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
 
 ---
 

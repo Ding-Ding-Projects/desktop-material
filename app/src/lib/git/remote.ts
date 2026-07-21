@@ -10,6 +10,48 @@ import {
 } from './process-abort'
 import { getSymbolicRef } from './refs'
 
+type RemoteHEADTerminationOutcome = 'closed' | 'failed' | 'timed-out'
+
+/**
+ * Remote-HEAD discovery is advisory work performed after the real fetch. Give
+ * process-tree cleanup one bounded grace window, but do not let an unobservable
+ * child `close` event strand fetch completion forever. Clone cancellation uses
+ * the same abort owner without this bounded wrapper and therefore retains its
+ * strict full-close barrier.
+ */
+async function waitForBoundedRemoteHEADTermination(
+  termination: Promise<void>,
+  timeoutMs: number,
+  remoteName: string
+): Promise<void> {
+  let timeout: ReturnType<typeof setTimeout> | undefined
+  const observed = termination.then<
+    RemoteHEADTerminationOutcome,
+    RemoteHEADTerminationOutcome
+  >(
+    () => 'closed',
+    error => {
+      log.warn(`Failed terminating ${remoteName} remote HEAD discovery.`, error)
+      return 'failed'
+    }
+  )
+  const deadline = new Promise<RemoteHEADTerminationOutcome>(resolve => {
+    timeout = setTimeout(() => resolve('timed-out'), Math.max(1, timeoutMs))
+  })
+
+  const outcome = await Promise.race([observed, deadline])
+  if (timeout !== undefined) {
+    clearTimeout(timeout)
+  }
+  if (outcome === 'timed-out') {
+    // The observed promise keeps its rejection handler after this function
+    // returns, so a late taskkill/SIGKILL failure cannot become unhandled.
+    log.warn(
+      `Stopped waiting for ${remoteName} remote HEAD process cleanup after ${timeoutMs}ms.`
+    )
+  }
+}
+
 /**
  * List the remotes, sorted alphabetically by `name`, for a repository.
  */
@@ -192,10 +234,16 @@ export async function updateRemoteHEAD(
     if (timeout !== undefined) {
       clearTimeout(timeout)
     }
-    // A signal alone can leave SSH, helpers, or hooks alive on Windows. Do not
-    // report timeout completion until the owned process tree has closed.
+    // A signal alone can leave SSH, helpers, or hooks alive on Windows. Give
+    // tree termination a second grace window equal to the discovery deadline,
+    // but keep this advisory lookup within a hard 2x total bound if a child
+    // never emits `close`. Clone cancellation deliberately has no such escape.
     if (controller.signal.aborted) {
-      await processAbort.abortAndWait()
+      await waitForBoundedRemoteHEADTermination(
+        processAbort.abortAndWait(),
+        discoveryTimeoutMs,
+        remote.name
+      )
     } else {
       await processAbort.waitForTermination()
     }

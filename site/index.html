@@ -876,7 +876,10 @@
                 scheduled sync. Older unassigned organization repositories
                 prefer a verified write-capable identity; re-authentication,
                 permission, and organization-SSO recovery stay distinct from
-                unassigned state.
+                unassigned state. Remote-default discovery has a five-second
+                lookup deadline plus five-second cleanup grace, while concurrent
+                preparation shares one in-flight system proxy resolver per exact
+                URL.
               </p>
             </article>
 

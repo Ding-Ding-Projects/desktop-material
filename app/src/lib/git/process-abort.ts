@@ -146,9 +146,28 @@ export function createGitProcessAbortHandler(
   let activeChild: ChildProcess | null = null
   let termination: Promise<void> | null = null
 
+  const startTermination = (child: ChildProcess) => {
+    if (termination !== null) {
+      return
+    }
+
+    try {
+      termination = terminate(child)
+    } catch (error) {
+      termination = Promise.reject(error)
+    }
+
+    // Aborts are delivered from an event listener, before the operation which
+    // owns this handler necessarily reaches its cleanup path. Attach a handler
+    // immediately so a failing asynchronous terminator can never become an
+    // unhandled rejection during that gap. The original promise remains
+    // rejected, allowing an eventual waiter to log or propagate the failure.
+    void termination.catch(() => undefined)
+  }
+
   const abortActive = () => {
     if (activeChild !== null) {
-      termination ??= terminate(activeChild)
+      startTermination(activeChild)
     }
   }
 
@@ -161,7 +180,7 @@ export function createGitProcessAbortHandler(
         void observeProcessClose(child)
         activeChild = child
         const abort = () => {
-          termination ??= terminate(child)
+          startTermination(child)
         }
         const cleanup = () => {
           signal.removeEventListener('abort', abort)

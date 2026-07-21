@@ -115,7 +115,9 @@ receipts as acceptance evidence.
   settings. GitHub organizations expose their complete repository lists and can be selected when
   publishing. GitLab endpoints use PAT authentication and Bitbucket uses app passwords; both
   providers can browse and clone repositories without exposing credentials to the renderer or
-  agent API.
+  agent API. Background fetch reuses a validated local remote default; explicit discovery has a
+  five-second lookup deadline plus five-second cleanup grace, and concurrent work shares one
+  in-flight system proxy resolver per exact URL.
 - **Per-account settings in a local git repo** — every settings or tabs change, including the
   versioned appearance defaults, auto-commits. Open
   **Edit → Settings History…** (`Ctrl+Alt+Z`) for a non-modal timeline with lazy diffs, undo, redo,

@@ -45,6 +45,40 @@ describe('git/environmnent', () => {
       )
     })
 
+    it('coalesces repeated in-flight proxy resolution for the same URL', async () => {
+      let resolverCalls = 0
+      let releaseResolver: (value: string | undefined) => void = () => {}
+      const resolverResult = new Promise<string | undefined>(resolve => {
+        releaseResolver = resolve
+      })
+      const hangingResolver = async () => {
+        resolverCalls++
+        return await resolverResult
+      }
+
+      const first = envForProxy(
+        'https://coalesced.example/',
+        {},
+        hangingResolver
+      )
+      const second = envForProxy(
+        'https://coalesced.example/',
+        {},
+        hangingResolver
+      )
+      await Promise.resolve()
+
+      assert.equal(resolverCalls, 1)
+      releaseResolver('http://proxy.example:8080/')
+      assert.deepStrictEqual(await Promise.all([first, second]), [
+        { https_proxy: 'http://proxy.example:8080/' },
+        { https_proxy: 'http://proxy.example:8080/' },
+      ])
+
+      await envForProxy('https://coalesced.example/', {}, hangingResolver)
+      assert.equal(resolverCalls, 2)
+    })
+
     it('sets the correct environment variable based on protocol', async () => {
       assert.deepStrictEqual(
         await envForProxy('https://github.com/', {}, defaultResolver),

@@ -43,6 +43,32 @@ describe('git/clone', () => {
     assert.equal(terminated, child)
   })
 
+  it('keeps clone cancellation behind the full termination barrier', async () => {
+    const controller = new AbortController()
+    const child = new EventEmitter() as ChildProcess
+    let releaseTermination: () => void = () => {}
+    const termination = new Promise<void>(resolve => {
+      releaseTermination = resolve
+    })
+    const abort = createCloneProcessAbortHandler(
+      controller.signal,
+      async () => await termination
+    )
+    abort.processCallback(undefined)(child)
+
+    controller.abort()
+    let settled = false
+    const waiting = abort.abortAndWait().then(() => {
+      settled = true
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(settled, false)
+
+    releaseTermination()
+    await waiting
+    assert.equal(settled, true)
+  })
+
   it('terminates the owned process when progress setup throws', async () => {
     const controller = new AbortController()
     const child = new EventEmitter() as ChildProcess

@@ -1,5 +1,40 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-21 remote discovery hard-total-bound follow-up
+
+The responsiveness correction is rebased additively onto
+`910f7de5be3b577e4492d65c1162fcea962d7652`. Remote default-branch discovery
+still receives five seconds, including proxy environment preparation. If that
+deadline aborts an owned Git process, process-tree termination receives one
+final five-second grace window. The advisory post-fetch lookup therefore has a
+ten-second hard settlement bound even when taskkill/SIGKILL completes without
+an observable child `close`. Its termination promise receives a rejection
+observer as soon as abort starts, including after the caller's bounded wait has
+ended. Clone cancellation continues to use the unbounded strict-close barrier.
+
+Repeated environment preparations for the same exact URL and resolver now
+share one in-flight system proxy promise. A timed-out caller can stop awaiting
+without starting duplicate unresolved operating-system work; success or failure
+evicts the entry and authentication environment assembly remains per operation.
+Electron exposes no abort signal for proxy resolution, so one permanently
+stalled entry can remain for each distinct URL until resolution or restart.
+
+The Windows helper audit found only the existing environment-derived
+`SystemRoot` pattern (and equivalent `WINDIR` guesses) in this Node/Electron
+codebase, not an authoritative `GetSystemDirectoryW` binding. The correction
+therefore preserves the existing realpath/type/basename/containment validation
+and `C:\Windows` fallback instead of substituting a different guess. Independent
+Windows-installation-directory authentication remains a defense-in-depth item.
+
+Deterministic focused coverage passes **30/30**: injected never-settling and
+late-rejecting terminators, the normal cleanup barrier, same-URL proxy
+coalescing and eviction, and clone's unchanged strict termination barrier join
+the existing remote-HEAD/account/clone tests. The exact rebased changed-test,
+Pages, and wiki set passes **84/84**. Root and script TypeScript, changed-source
+ESLint and Prettier, categorized feature Markdown, and diff integrity pass on
+the same tree. This local checkpoint claims no push, CI, package, wiki
+deployment, or Release.
+
 ## 2026-07-21 temporary submodule viewer and dialog-wheel checkpoint
 
 The changed/new submodule commit card no longer calls the permanent

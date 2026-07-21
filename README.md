@@ -135,9 +135,13 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 - Repository-bound HTTPS Git fetch, pull, push, post-push refresh, scheduled
   sync, refspec fetch, and remote-HEAD discovery use the exact selected account.
   Background sync reuses a namespace- and target-validated local remote HEAD;
-  an explicit fetch performs a five-second-bounded refresh so a renamed default
-  is still discovered even when the old branch exists. Missing or invalid refs
-  still perform one authenticated discovery. Legacy unbound organization repositories prefer a
+  an explicit fetch gives discovery five seconds and process-tree cleanup one
+  final five-second grace window, so the advisory refresh has a ten-second hard
+  settlement bound even when a child never reports closure. A renamed default
+  is still discovered when the old branch exists. Concurrent callers share one
+  in-flight system proxy lookup per URL instead of multiplying abandoned
+  resolver work. Missing or invalid refs still perform one authenticated
+  discovery. Legacy unbound organization repositories prefer a
   verified write-capable same-host identity, while a missing explicit binding
   fails closed instead of silently using another account
 - GitHub browser sign-in requests the bounded feature scopes used by the app: repository/user access, workflow-file updates, notifications, and read-only organization membership. Unrelated destructive and administrative OAuth scopes are intentionally excluded

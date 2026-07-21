@@ -7,6 +7,48 @@ import {
 } from '../../models/repository'
 import { IRemote } from '../../models/remote'
 
+type GitProxyResolver = (url: string) => Promise<string | undefined>
+
+// Electron's proxy resolver does not accept an AbortSignal. Keep at most one
+// unresolved resolver call per URL and resolver implementation so repeated
+// callers which time out can abandon their own wait without starting an
+// unbounded number of identical operating-system proxy lookups.
+const inFlightProxyResolutions = new WeakMap<
+  GitProxyResolver,
+  Map<string, Promise<string | undefined>>
+>()
+
+function resolveProxyCoalesced(
+  remoteUrl: string,
+  resolve: GitProxyResolver
+): Promise<string | undefined> {
+  let resolutions = inFlightProxyResolutions.get(resolve)
+  if (resolutions === undefined) {
+    resolutions = new Map()
+    inFlightProxyResolutions.set(resolve, resolutions)
+  }
+  const activeResolutions = resolutions
+
+  const existing = activeResolutions.get(remoteUrl)
+  if (existing !== undefined) {
+    return existing
+  }
+
+  // Normalize a synchronous resolver throw into the same rejected-promise
+  // path as an asynchronous failure.
+  const pending = Promise.resolve().then(() => resolve(remoteUrl))
+  activeResolutions.set(remoteUrl, pending)
+  const removeIfCurrent = () => {
+    if (activeResolutions.get(remoteUrl) === pending) {
+      activeResolutions.delete(remoteUrl)
+    }
+  }
+  // Both handlers return normally, so the ignored observer cannot create a
+  // second unhandled rejection while the original result remains observable.
+  void pending.then(removeIfCurrent, removeIfCurrent)
+  return pending
+}
+
 /**
  * For many remote operations it's well known what the primary remote
  * url is (clone, push, fetch etc). But in some cases it's not as easy.
@@ -93,7 +135,7 @@ export async function envForRemoteOperation(remoteUrl: string) {
 export async function envForProxy(
   remoteUrl: string,
   env: NodeJS.ProcessEnv = process.env,
-  resolve: (url: string) => Promise<string | undefined> = resolveGitProxy
+  resolve: GitProxyResolver = resolveGitProxy
 ): Promise<Record<string, string | undefined> | undefined> {
   const protocolMatch = /^(https?):\/\//i.exec(remoteUrl)
 
@@ -130,10 +172,12 @@ export async function envForProxy(
     return
   }
 
-  const proxyUrl = await resolve(remoteUrl).catch(err => {
-    log.error('Failed resolving Git proxy', err)
-    return undefined
-  })
+  const proxyUrl = await resolveProxyCoalesced(remoteUrl, resolve).catch(
+    err => {
+      log.error('Failed resolving Git proxy', err)
+      return undefined
+    }
+  )
 
   return proxyUrl === undefined ? undefined : { [envKey]: proxyUrl }
 }

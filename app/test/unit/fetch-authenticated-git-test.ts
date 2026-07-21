@@ -251,7 +251,7 @@ describe('authenticated fetch Git execution', () => {
       remote,
       false,
       accountKey,
-      10,
+      50,
       async child => {
         terminationCount++
         terminatedChild = child
@@ -265,16 +265,62 @@ describe('authenticated fetch Git execution', () => {
       settled = true
     })
 
-    await settlesWithin(terminationStarted, 100)
+    await settlesWithin(terminationStarted, 200)
     await new Promise<void>(resolve => setImmediate(resolve))
     assert.equal(settled, false)
     assert.notEqual(terminatedChild, null)
     assert.equal(typeof invocations[0].options.processCallback, 'function')
 
     releaseTermination()
-    await settlesWithin(update, 100)
+    await settlesWithin(update, 200)
     assert.equal(settled, true)
     assert.equal(terminationCount, 1)
+  })
+
+  it('hard-bounds cleanup when an injected terminator never settles', async () => {
+    const { updateRemoteHEAD } = await import('../../src/lib/git/remote')
+    resetGitMocks()
+    remoteHEADDiscoveryNeverResolves = true
+    remoteHEADDiscoveryExposesProcess = true
+
+    let terminationCount = 0
+    await settlesWithin(
+      updateRemoteHEAD(repository, remote, false, accountKey, 10, async () => {
+        terminationCount++
+        return await new Promise<never>(() => {})
+      }),
+      100
+    )
+
+    assert.equal(terminationCount, 1)
+    assert.equal((invocations[0].options.signal as AbortSignal).aborted, true)
+  })
+
+  it('observes a termination rejection which arrives after the cleanup bound', async () => {
+    const { updateRemoteHEAD } = await import('../../src/lib/git/remote')
+    resetGitMocks()
+    remoteHEADDiscoveryNeverResolves = true
+    remoteHEADDiscoveryExposesProcess = true
+
+    let rejectTermination: (error: Error) => void = () => {}
+    const update = updateRemoteHEAD(
+      repository,
+      remote,
+      false,
+      accountKey,
+      10,
+      async () =>
+        await new Promise<void>((_resolve, reject) => {
+          rejectTermination = reject
+        })
+    )
+
+    await settlesWithin(update, 100)
+    rejectTermination(new Error('late injected termination failure'))
+    // node:test treats an unhandled rejection as a test failure. Let both the
+    // promise reaction and the runner's rejection audit complete.
+    await new Promise<void>(resolve => setImmediate(resolve))
+    await new Promise<void>(resolve => setImmediate(resolve))
   })
 
   it('includes remote environment preparation in the discovery deadline', async () => {

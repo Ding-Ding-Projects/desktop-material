@@ -17,9 +17,14 @@ Publication verification is pending.
 
 - Valid, locally resolvable remote defaults no longer trigger a potentially
   multi-minute online `git remote set-head -a` scan during background sync.
-  Explicit fetches refresh the default with a five-second hard bound, so a
-  rename is detected even if the old target still exists. Missing, invalid, or
-  dangling refs retain exact-account discovery.
+  Explicit fetches give discovery five seconds and process-tree cleanup one
+  final five-second grace window, so a rename is detected even if the old
+  target still exists and a missing child `close` cannot exceed the ten-second
+  hard settlement bound. Clone cancellation retains strict full-close waiting.
+  Missing, invalid, or dangling refs retain exact-account discovery.
+- Concurrent environment preparation shares one in-flight proxy resolver per
+  exact URL. Repeated timeout callers cannot multiply identical unresolved
+  operating-system work; settled or failed entries are evicted.
 - Concurrent GitHub, Git, and SSH credential prompts settle through one
   recoverable FIFO instead of allowing popup de-duplication or forced removal
   to strand a caller. Replaced popup owners receive one explicit replacement
@@ -30,8 +35,10 @@ Publication verification is pending.
 - Failed/cancelled Electron requests release their same-origin tracking entry,
   and unmounted sandboxed Markdown previews remove capture listeners, cancel
   deferred work, and release iframe references.
-- Deterministic regressions cover a never-settling remote scan, every prompt
-  family, a 500-update burst, failed request-ID reuse, and 25 Markdown reloads.
+- Deterministic regressions cover a never-settling remote scan and terminator,
+  late termination rejection, same-URL proxy coalescing, the strict clone
+  barrier, every prompt family, a 500-update burst, failed request-ID reuse, and
+  25 Markdown reloads.
   Exact rebased-source full tests, low-level-MCP production build, off-screen UI
   evidence, push, CI, Pages, wiki, and release receipts remain to be recorded.
 
