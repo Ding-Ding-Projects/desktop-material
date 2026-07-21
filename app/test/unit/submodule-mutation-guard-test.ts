@@ -297,8 +297,8 @@ describe('temporary submodule mutation guard contract', () => {
 
     for (const method of [
       'startBuildRun',
-      'runOpencodeFix',
-      'runOpencodePrompt',
+      'runBuildFixProvider',
+      'runBuildFixPrompt',
     ]) {
       assert.match(
         getMethodBody(dispatcher, method),
@@ -306,6 +306,14 @@ describe('temporary submodule mutation guard contract', () => {
         `${method} must reject temporary repositories`
       )
     }
+    assert.match(
+      getMethodBody(dispatcher, 'runOpencodeFix'),
+      /this\.runBuildFixProvider\(/
+    )
+    assert.match(
+      getMethodBody(dispatcher, 'runOpencodePrompt'),
+      /this\.runBuildFixPrompt\(/
+    )
     assert.match(addWorktreeDialog, /dispatcher\.addWorktree/)
     assert.doesNotMatch(addWorktreeDialog, /await addWorktree\(/)
     assert.match(sparseCheckout, /repository instanceof SubmoduleRepository/)
