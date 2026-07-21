@@ -734,6 +734,14 @@ export class RepositoryView extends React.Component<
     })
   }
 
+  private onManualCheapLfsUpload = () => {
+    this.props.dispatcher.requestManualCheapLfsUpload(this.props.repository)
+  }
+
+  private onCancelCheapLfsCommit = () => {
+    this.props.dispatcher.cancelCheapLfsCommit(this.props.repository)
+  }
+
   private renderChangesSidebar(): JSX.Element {
     const tip = this.props.state.branchesState.tip
 
@@ -784,6 +792,8 @@ export class RepositoryView extends React.Component<
             ? this.onShowCommitProgress
             : undefined
         }
+        onManualCheapLfsUpload={this.onManualCheapLfsUpload}
+        onCancelCheapLfsCommit={this.onCancelCheapLfsCommit}
         isGeneratingCommitMessage={this.props.state.isGeneratingCommitMessage}
         shouldShowGenerateCommitMessageCallOut={
           this.props.shouldShowGenerateCommitMessageCallOut

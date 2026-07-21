@@ -83,14 +83,7 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
 import { getShowCommitAuthorInfo } from '../../models/commit-author-display'
-
-/** Cheap LFS uses upload progress completion while it re-hashes the source. */
-const isCheapLfsVerificationPhase = (phase: CommitOperationPhase | null) =>
-  phase?.kind === 'cheap-lfs' &&
-  phase.progress.phase === 'uploading' &&
-  phase.progress.currentPath !== null &&
-  phase.progress.totalBytes > 0 &&
-  phase.progress.transferredBytes >= phase.progress.totalBytes
+import { bilingualVariable, t, translate } from '../../lib/i18n'
 
 interface ICreateCommitOptions {
   warnUnknownAuthors: boolean
@@ -124,6 +117,8 @@ interface ICommitMessageProps {
   readonly commitOperationPhase: CommitOperationPhase | null
   readonly hookProgress: HookProgress | null
   readonly onShowCommitProgress: (() => void) | undefined
+  readonly onManualCheapLfsUpload?: () => void
+  readonly onCancelCheapLfsCommit?: () => void
   readonly isGeneratingCommitMessage?: boolean
   readonly shouldShowGenerateCommitMessageCallOut?: boolean
   readonly commitToAmend: Commit | null
@@ -419,9 +414,7 @@ export class CommitMessage extends React.Component<
       (previousCommitPhase?.kind === 'cheap-lfs' &&
         currentCommitPhase?.kind === 'cheap-lfs' &&
         previousCommitPhase.progress.phase !==
-          currentCommitPhase.progress.phase) ||
-      isCheapLfsVerificationPhase(previousCommitPhase) !==
-        isCheapLfsVerificationPhase(currentCommitPhase)
+          currentCommitPhase.progress.phase)
     if (
       this.props.isCommitting &&
       (prevProps.isCommitting !== this.props.isCommitting || commitPhaseChanged)
@@ -1588,6 +1581,69 @@ export class CommitMessage extends React.Component<
     return isAmending ? amendVerb : commitVerb
   }
 
+  /** Localize one cheap-LFS phase without hiding what the operation is doing. */
+  private getCheapLfsOperationText(): string | null {
+    const phase = this.props.commitOperationPhase
+    if (phase?.kind !== 'cheap-lfs') {
+      return null
+    }
+
+    const { progress } = phase
+    const count = progress.totalFiles
+    const fileKey = count === 1 ? 'cheapLfs.files.one' : 'cheapLfs.files.many'
+    const countVariable = { count: count.toString() }
+    const files = bilingualVariable(
+      translate(fileKey, 'english', countVariable),
+      translate(fileKey, 'cantonese', countVariable)
+    )
+    const amend =
+      this.props.commitToAmend === null
+        ? ''
+        : bilingualVariable(
+            translate('cheapLfs.progress.amendSuffix', 'english'),
+            translate('cheapLfs.progress.amendSuffix', 'cantonese')
+          )
+    const variables = { files, amend }
+
+    switch (progress.phase) {
+      case 'preparing':
+        return t('cheapLfs.progress.preparing', variables)
+      case 'hashing':
+        return t('cheapLfs.progress.hashing', variables)
+      case 'release':
+        return t('cheapLfs.progress.release', variables)
+      case 'uploading': {
+        if (progress.totalBytes <= 0 || progress.transferredBytes <= 0) {
+          return t('cheapLfs.progress.uploadStarting', variables)
+        }
+
+        const percentage = Math.min(
+          100,
+          Math.floor((progress.transferredBytes / progress.totalBytes) * 100)
+        )
+        return t('cheapLfs.progress.uploading', {
+          ...variables,
+          percentage: percentage.toString(),
+        })
+      }
+      case 'verifying':
+        return t('cheapLfs.progress.verifying', variables)
+      case 'manual-preparing':
+        return t('cheapLfs.progress.manualPreparing', { amend })
+      case 'manual-waiting':
+        return t('cheapLfs.progress.manualWaiting', { amend })
+      case 'manual-verifying':
+        return t('cheapLfs.progress.manualVerifying', { amend })
+      case 'manual-detected':
+        return t('cheapLfs.progress.manualDetected', { amend })
+      default:
+        return assertNever(
+          progress.phase,
+          'Unknown cheap-LFS commit operation phase'
+        )
+    }
+  }
+
   /** Describe the real stage inside the broader commit operation lock. */
   private getCommitOperationButtonText(): string | null {
     if (!this.props.isCommitting) {
@@ -1608,27 +1664,7 @@ export class CommitMessage extends React.Component<
         return `Preparing ${count} ${count === 1 ? 'file' : 'files'} for commit`
       }
       case 'cheap-lfs': {
-        const { progress } = phase
-        const count = progress.totalFiles
-        const files = `${count} large ${count === 1 ? 'file' : 'files'}`
-        const amendSuffix =
-          this.props.commitToAmend === null ? '' : ' before amending'
-        if (progress.phase === 'preparing') {
-          return `Preparing ${files} for cheap LFS${amendSuffix}`
-        }
-        if (isCheapLfsVerificationPhase(phase)) {
-          return `Verifying ${files} for cheap LFS${amendSuffix}`
-        }
-        const percentage =
-          progress.totalBytes > 0
-            ? Math.min(
-                100,
-                Math.floor(
-                  (progress.transferredBytes / progress.totalBytes) * 100
-                )
-              )
-            : 0
-        return `Uploading ${files} to cheap LFS (${percentage}%)${amendSuffix}`
+        return this.getCheapLfsOperationText()
       }
       case 'git-commit': {
         const count = phase.cheapLfsPointerCount
@@ -1864,8 +1900,52 @@ export class CommitMessage extends React.Component<
   }
 
   private renderCommitProgress() {
-    const { isCommitting, hookProgress, onShowCommitProgress } = this.props
-    if (!isCommitting || !hookProgress) {
+    const {
+      isCommitting,
+      commitOperationPhase,
+      hookProgress,
+      onShowCommitProgress,
+    } = this.props
+    if (!isCommitting) {
+      return null
+    }
+
+    if (commitOperationPhase?.kind === 'cheap-lfs') {
+      const { phase } = commitOperationPhase.progress
+      const canSwitchToManual = phase === 'uploading'
+      const showManualUpload =
+        canSwitchToManual && this.props.onManualCheapLfsUpload !== undefined
+      const showCancel = this.props.onCancelCheapLfsCommit !== undefined
+
+      if (!showManualUpload && !showCancel) {
+        return null
+      }
+
+      return (
+        <div className="commit-progress cheap-lfs-progress">
+          {showManualUpload && (
+            <Button
+              type="button"
+              className="cheap-lfs-action"
+              onClick={this.props.onManualCheapLfsUpload}
+            >
+              {t('cheapLfs.manualUpload')}
+            </Button>
+          )}
+          {showCancel && (
+            <Button
+              type="button"
+              className="cheap-lfs-action cheap-lfs-cancel"
+              onClick={this.props.onCancelCheapLfsCommit}
+            >
+              {t('cheapLfs.cancel')}
+            </Button>
+          )}
+        </div>
+      )
+    }
+
+    if (!hookProgress) {
       return null
     }
 

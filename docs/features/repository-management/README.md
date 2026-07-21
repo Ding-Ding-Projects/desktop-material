@@ -42,7 +42,8 @@ Material is displaying or how a repository is represented in the application.
   persisted root repository.
 - [Release-backed large-file
   storage](release-backed-cheap-lfs.md) — replace large tracked bytes with a
-  verified GitHub Release pointer and materialize raw single or multipart
+  verified GitHub Release pointer, recover a stalled automatic upload through a
+  verified whole-batch browser handoff, and materialize raw single or multipart
   assets safely.
 - [Parent-folder repository
   discovery](parent-folder-repository-discovery.md) — preview and register a

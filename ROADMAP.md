@@ -99,7 +99,10 @@ platform-neutral repository automation.
   preferences.
 - Files over 100 MiB route through release-backed cheap LFS before every commit
   entry point. New uploads skip compression, remain raw, and split into verified
-  ordered parts below GitHub's release-asset limit.
+  ordered parts below GitHub's release-asset limit. The commit composer streams
+  accepted-byte progress and can switch a stalled upload to one temporary,
+  whole-batch browser handoff whose newly uploaded assets are downloaded,
+  hashed, and source-revalidated before any pointer is written.
 - Add Local Repository performs bounded parent-folder discovery. Repository
   Settings is wider and includes temporary submodule navigation, a full subtree
   manager, and a create-remote-repository-and-add-as-submodule workflow.

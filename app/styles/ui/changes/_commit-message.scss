@@ -91,6 +91,23 @@
       }
     }
 
+    &.cheap-lfs-progress {
+      flex-wrap: wrap;
+      gap: var(--spacing-half);
+
+      button.cheap-lfs-action {
+        flex: 1 1 auto;
+        width: auto;
+        min-width: min(100%, 88px);
+        min-height: 30px;
+        height: auto;
+        padding: var(--spacing-half) var(--spacing);
+        border-radius: var(--button-border-radius);
+        line-height: 1.25;
+        white-space: normal;
+      }
+    }
+
     > svg.octicon {
       margin-right: 3px;
       height: 12px;

@@ -19,7 +19,9 @@ import { Repository } from '../../models/repository'
 import {
   IGitHubRelease,
   IGitHubReleaseAsset,
+  IGitHubReleaseAssetList,
   IGitHubReleaseDraft,
+  GitHubReleaseAssetMaximumPages,
   normalizeGitHubReleaseAssetName,
 } from '../github-releases'
 import {
@@ -209,6 +211,9 @@ export interface ICheapLfsPinResult {
   readonly asset: IGitHubReleaseAsset
   readonly releaseId: number
 }
+
+/** Fine-grained stages shared by automatic and manual pin workflows. */
+export type CheapLfsPinStage = 'hashing' | 'release' | 'uploading' | 'verifying'
 
 export interface ICheapLfsMaterializeResult {
   readonly path: string
@@ -632,9 +637,13 @@ function insertAssetNameHash(name: string, shortHash: string): string {
 function dedupeAssetName(
   name: string,
   assets: ReadonlyArray<IGitHubReleaseAsset>,
-  sha256: string
+  sha256: string,
+  reservedNames: ReadonlySet<string> = new Set()
 ): string {
-  const assetNames = new Set(assets.map(asset => asset.name))
+  const assetNames = new Set([
+    ...assets.map(asset => asset.name),
+    ...reservedNames,
+  ])
   if (!assetNames.has(name)) {
     return name
   }
@@ -962,7 +971,8 @@ export async function pinFileToRelease(
   options: ICheapLfsPinOptions,
   signal?: AbortSignal,
   onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
-  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
+  onStage?: (stage: CheapLfsPinStage) => void
 ): Promise<ICheapLfsPinResult> {
   const trackedRelativePath = validateCheapLfsTrackedPath(
     options.trackedRelativePath
@@ -980,11 +990,13 @@ export async function pinFileToRelease(
   const sourceSizeInBytes = await fs.statSize(options.absoluteFilePath)
   preflightProjectedPointer(sourceSizeInBytes, options.releaseTag, baseName)
 
+  onStage?.('hashing')
   const hashed = await fs.hashFileParts(
     options.absoluteFilePath,
     CHEAP_LFS_PART_SIZE_BYTES,
     signal
   )
+  onStage?.('release')
   const existing = await releases.getReleaseByTag(
     repository,
     options.releaseTag,
@@ -1020,6 +1032,7 @@ export async function pinFileToRelease(
     const preexistingAssetIds = new Set(release.assets.map(asset => asset.id))
     const attemptAssets = new Array<IGitHubReleaseAsset>()
     try {
+      onStage?.('uploading')
       const review = releases.createMutationReview(repository, release)
       const upload = await releases.uploadAsset(
         repository,
@@ -1034,6 +1047,7 @@ export async function pinFileToRelease(
       // mismatch still means GitHub accepted an asset that this attempt owns.
       attemptAssets.push(upload.asset)
       ensureRawUploadMatchesHash(upload, part.length, hashed.sha256)
+      onStage?.('verifying')
       await ensureSourceStillMatchesHash(
         fs,
         options.absoluteFilePath,
@@ -1090,6 +1104,7 @@ export async function pinFileToRelease(
   // asset, so the mutation review must reflect the release's current state.
   let currentRelease = release
   try {
+    onStage?.('uploading')
     for (let index = 0; index < hashed.parts.length; index++) {
       const part = hashed.parts[index]
       const pointerPart = parts[index]
@@ -1130,6 +1145,7 @@ export async function pinFileToRelease(
       transferred += part.length
     }
 
+    onStage?.('verifying')
     await ensureSourceStillMatchesHash(
       fs,
       options.absoluteFilePath,
@@ -1156,6 +1172,203 @@ export async function pinFileToRelease(
       attemptAssets
     )
   }
+}
+
+/** Release methods needed only by the browser-assisted manual fallback. */
+export interface ICheapLfsManualReleasesGateway
+  extends ICheapLfsReleasesGateway {
+  listAssets(
+    repository: Repository,
+    releaseId: number,
+    page?: number,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAssetList>
+}
+
+/** One exact release asset and eventual pointer in a manual batch. */
+export interface ICheapLfsManualFilePlan {
+  readonly absoluteFilePath: string
+  readonly trackedRelativePath: string
+  readonly pointer: ICheapLfsPointer
+  readonly pointerText: string
+  readonly assetName: string
+  readonly sizeInBytes: number
+  readonly sha256: string
+}
+
+/** One release rendezvous containing every remaining selected large file. */
+export interface ICheapLfsManualPinPlan {
+  readonly release: IGitHubRelease
+  readonly files: ReadonlyArray<ICheapLfsManualFilePlan>
+  readonly preexistingAssetIds: ReadonlySet<number>
+}
+
+async function listAllCheapLfsReleaseAssets(
+  releases: ICheapLfsManualReleasesGateway,
+  repository: Repository,
+  releaseId: number,
+  signal?: AbortSignal
+): Promise<ReadonlyArray<IGitHubReleaseAsset>> {
+  const assets = new Array<IGitHubReleaseAsset>()
+  const assetIds = new Set<number>()
+  let page = 1
+  for (let request = 0; request < GitHubReleaseAssetMaximumPages; request++) {
+    const result = await releases.listAssets(
+      repository,
+      releaseId,
+      page,
+      signal
+    )
+    for (const asset of result.assets) {
+      if (assetIds.has(asset.id)) {
+        throw new Error('GitHub returned duplicate release asset ids.')
+      }
+      assetIds.add(asset.id)
+      assets.push(asset)
+    }
+    if (result.capped) {
+      throw new Error(
+        'This release has too many assets to choose a collision-safe manual cheap LFS name.'
+      )
+    }
+    if (result.nextPage === null) {
+      return assets
+    }
+    if (result.nextPage <= page) {
+      throw new Error('GitHub returned an invalid release asset page.')
+    }
+    page = result.nextPage
+  }
+  throw new Error(
+    'This release has too many assets to choose a collision-safe manual cheap LFS name.'
+  )
+}
+
+/**
+ * Prepare one browser-upload batch without mutating the working tree. Every
+ * selected source must fit one asset under 2 GiB; the complete batch shares a
+ * single paginated preexisting snapshot and reserves names across all files.
+ */
+export async function planCheapLfsManualUpload(
+  releases: ICheapLfsManualReleasesGateway,
+  repository: Repository,
+  account: Account,
+  options: ReadonlyArray<ICheapLfsPinOptions>,
+  signal?: AbortSignal,
+  onStage?: (stage: CheapLfsPinStage) => void,
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
+): Promise<ICheapLfsManualPinPlan> {
+  if (options.length === 0) {
+    throw new Error('Cheap LFS has no files to prepare for manual upload.')
+  }
+  const releaseTag = options[0].releaseTag
+  if (options.some(candidate => candidate.releaseTag !== releaseTag)) {
+    throw new Error('A manual cheap LFS batch must use one release tag.')
+  }
+  ensureReleasesAccount(repository, account)
+  onStage?.('hashing')
+  const hashedFiles = new Array<{
+    readonly options: ICheapLfsPinOptions
+    readonly trackedRelativePath: string
+    readonly baseName: string
+    readonly hashed: Awaited<ReturnType<ICheapLfsFileSystem['hashFileParts']>>
+  }>()
+  for (const candidate of options) {
+    const trackedRelativePath = validateCheapLfsTrackedPath(
+      candidate.trackedRelativePath
+    )
+    if (trackedRelativePath === null) {
+      throw new Error(
+        'Choose a safe repository-relative path without parent traversal or Git metadata to track with cheap LFS.'
+      )
+    }
+    const baseName = normalizeGitHubReleaseAssetName(
+      basename(candidate.absoluteFilePath)
+    )
+    const sourceSize = await fs.statSize(candidate.absoluteFilePath)
+    preflightProjectedPointer(sourceSize, releaseTag, baseName)
+    if (sourceSize > CHEAP_LFS_PART_SIZE_BYTES) {
+      throw new Error(
+        `“${trackedRelativePath}” needs multipart assets. Manual cheap LFS upload currently supports files under 2 GiB; use the automatic upload for this file.`
+      )
+    }
+    const hashed = await fs.hashFileParts(
+      candidate.absoluteFilePath,
+      CHEAP_LFS_PART_SIZE_BYTES,
+      signal
+    )
+    if (hashed.parts.length !== 1) {
+      throw new Error(
+        `“${trackedRelativePath}” cannot be represented as one manual cheap LFS release asset.`
+      )
+    }
+    hashedFiles.push({
+      options: candidate,
+      trackedRelativePath,
+      baseName,
+      hashed,
+    })
+  }
+
+  onStage?.('release')
+  const existing = await releases.getReleaseByTag(
+    repository,
+    releaseTag,
+    signal
+  )
+  const release =
+    existing ??
+    (await releases.createDraft(
+      repository,
+      {
+        tagName: releaseTag,
+        targetCommitish: await releaseTargetCommitish(
+          repository,
+          options[0],
+          fs
+        ),
+        name: options[0].releaseName ?? releaseTag,
+        body: '',
+        prerelease: false,
+      },
+      signal
+    ))
+  const allAssets = await listAllCheapLfsReleaseAssets(
+    releases,
+    repository,
+    release.id,
+    signal
+  )
+  const preexistingAssetIds = new Set(allAssets.map(asset => asset.id))
+  const reservedNames = new Set(allAssets.map(asset => asset.name))
+  const files = hashedFiles.map(file => {
+    const assetName = dedupeAssetName(
+      file.baseName,
+      allAssets,
+      file.hashed.sha256,
+      reservedNames
+    )
+    reservedNames.add(assetName)
+    const pointer: ICheapLfsPointer = {
+      version: CHEAP_LFS_POINTER_VERSION,
+      releaseTag,
+      assetName,
+      sizeInBytes: file.hashed.sizeInBytes,
+      sha256: file.hashed.sha256,
+    }
+    const pointerText = serializeCheapLfsPointer(pointer)
+    ensurePointerFitsOnDisk(pointerText)
+    return {
+      absoluteFilePath: file.options.absoluteFilePath,
+      trackedRelativePath: file.trackedRelativePath,
+      pointer,
+      pointerText,
+      assetName,
+      sizeInBytes: file.hashed.sizeInBytes,
+      sha256: file.hashed.sha256,
+    }
+  })
+  return { release, files, preexistingAssetIds }
 }
 
 function resolveReleaseAsset(
@@ -1467,8 +1680,14 @@ export interface ICheapLfsBatchProgress {
   readonly totalBytes: number
 }
 
-/** The two observable stages of automatic cheap-LFS pinning before a commit. */
-export type CheapLfsAutoPinPhase = 'preparing' | 'uploading'
+/** Observable automatic and browser-assisted cheap-LFS commit stages. */
+export type CheapLfsAutoPinPhase =
+  | CheapLfsPinStage
+  | 'preparing'
+  | 'manual-preparing'
+  | 'manual-waiting'
+  | 'manual-verifying'
+  | 'manual-detected'
 
 /** Batch progress with enough phase detail for honest commit UI messaging. */
 export interface ICheapLfsAutoPinProgress extends ICheapLfsBatchProgress {
@@ -1582,7 +1801,8 @@ export interface ICheapLfsAutoPinDependencies {
   readonly pin: (
     target: ICheapLfsAutoPinTarget,
     signal: AbortSignal | undefined,
-    onProgress: (progress: IGitHubReleaseTransferProgressEvent) => void
+    onProgress: (progress: IGitHubReleaseTransferProgressEvent) => void,
+    onStage?: (stage: CheapLfsAutoPinPhase) => void
   ) => Promise<ICheapLfsPinResult>
 }
 
@@ -1645,7 +1865,8 @@ export async function autoPinLargeFilesForCommit(
   thresholdBytes: number,
   deps: ICheapLfsAutoPinDependencies,
   signal?: AbortSignal,
-  onProgress?: (progress: ICheapLfsAutoPinProgress) => void
+  onProgress?: (progress: ICheapLfsAutoPinProgress) => void,
+  onPinned?: (file: ICheapLfsAutoPinnedFile) => void
 ): Promise<ReadonlyArray<ICheapLfsAutoPinnedFile>> {
   const targets = await selectCheapLfsAutoPinTargets(
     repository,
@@ -1673,21 +1894,28 @@ export async function autoPinLargeFilesForCommit(
       transferredBytes: transferredBefore,
       totalBytes,
     })
-    const result = await deps.pin(target, signal, progress =>
+    const emit = (phase: CheapLfsAutoPinPhase, transferred = 0) =>
       onProgress?.({
-        phase: 'uploading',
+        phase,
         completedFiles: index,
         totalFiles: targets.length,
         currentPath: target.relativePath,
-        transferredBytes: transferredBefore + progress.transferredBytes,
+        transferredBytes: transferredBefore + transferred,
         totalBytes,
       })
+    const result = await deps.pin(
+      target,
+      signal,
+      progress => emit('uploading', progress.transferredBytes),
+      stage => emit(stage)
     )
-    pinned.push({
+    const pinnedFile = {
       relativePath: target.relativePath,
       sizeInBytes: target.sizeInBytes,
       result,
-    })
+    }
+    pinned.push(pinnedFile)
+    onPinned?.(pinnedFile)
     completedBytes += target.sizeInBytes
     onProgress?.({
       phase: 'uploading',

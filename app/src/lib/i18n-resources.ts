@@ -1101,6 +1101,21 @@ export type TranslationKey =
   | 'buildRun.sendAutoApproveWarning'
   | 'buildRun.sendAutoApproveNote'
   | 'buildRun.sendRunningTitle'
+  | 'cheapLfs.files.one'
+  | 'cheapLfs.files.many'
+  | 'cheapLfs.manualUpload'
+  | 'cheapLfs.cancel'
+  | 'cheapLfs.progress.amendSuffix'
+  | 'cheapLfs.progress.preparing'
+  | 'cheapLfs.progress.hashing'
+  | 'cheapLfs.progress.release'
+  | 'cheapLfs.progress.uploadStarting'
+  | 'cheapLfs.progress.uploading'
+  | 'cheapLfs.progress.verifying'
+  | 'cheapLfs.progress.manualPreparing'
+  | 'cheapLfs.progress.manualWaiting'
+  | 'cheapLfs.progress.manualVerifying'
+  | 'cheapLfs.progress.manualDetected'
   | 'workflowDispatch.searchPlaceholder'
   | 'workflowDispatch.searchAriaLabel'
   | 'workflowDispatch.listAriaLabel'
@@ -2454,6 +2469,25 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'buildRun.sendAutoApproveNote':
     'opencode will ask before editing files or running commands. Turn on auto-approve above to let it work unattended in this repository.',
   'buildRun.sendRunningTitle': 'opencode is working on your request…',
+  'cheapLfs.files.one': '{count} large file',
+  'cheapLfs.files.many': '{count} large files',
+  'cheapLfs.manualUpload': 'Manual upload',
+  'cheapLfs.cancel': 'Cancel',
+  'cheapLfs.progress.amendSuffix': ' before amending',
+  'cheapLfs.progress.preparing': 'Preparing {files} for cheap LFS{amend}',
+  'cheapLfs.progress.hashing': 'Hashing {files} for cheap LFS{amend}',
+  'cheapLfs.progress.release':
+    'Preparing the GitHub Release for {files}{amend}',
+  'cheapLfs.progress.uploadStarting':
+    'Starting the cheap-LFS upload for {files}{amend}',
+  'cheapLfs.progress.uploading':
+    'Uploading {files} to cheap LFS ({percentage}%){amend}',
+  'cheapLfs.progress.verifying': 'Verifying {files} for cheap LFS{amend}',
+  'cheapLfs.progress.manualPreparing': 'Preparing the manual upload handoff',
+  'cheapLfs.progress.manualWaiting':
+    'Upload all prepared files and save the GitHub release',
+  'cheapLfs.progress.manualVerifying': 'Checking your manual upload',
+  'cheapLfs.progress.manualDetected': 'Manual upload detected and verified',
   'workflowDispatch.searchPlaceholder': 'Filter workflows by name or file…',
   'workflowDispatch.searchAriaLabel': 'Filter workflows',
   'workflowDispatch.listAriaLabel': 'Workflows',
@@ -3682,6 +3716,24 @@ export const cantoneseTranslations: Readonly<
   'buildRun.sendAutoApproveNote':
     'opencode 改檔案或者行指令之前會問你。撳上面嗰個自動批准，佢就可以喺呢個 repo 度自己搞掂。',
   'buildRun.sendRunningTitle': 'opencode 幫緊你搞緊個要求…',
+  'cheapLfs.files.one': '{count} 個大檔案',
+  'cheapLfs.files.many': '{count} 個大檔案',
+  'cheapLfs.manualUpload': '手動上載',
+  'cheapLfs.cancel': '取消',
+  'cheapLfs.progress.amendSuffix': '，跟住先改上一個 commit',
+  'cheapLfs.progress.preparing': '幫 {files} 準備 cheap LFS{amend}',
+  'cheapLfs.progress.hashing': '幫 {files} 計緊雜湊，準備放入 cheap LFS{amend}',
+  'cheapLfs.progress.release': '幫 {files} 準備緊 GitHub Release{amend}',
+  'cheapLfs.progress.uploadStarting':
+    '準備開始上載 {files} 去 cheap LFS{amend}',
+  'cheapLfs.progress.uploading':
+    '上載緊 {files} 去 cheap LFS（{percentage}%）{amend}',
+  'cheapLfs.progress.verifying': '核實緊 {files} 嘅 cheap LFS 資料{amend}',
+  'cheapLfs.progress.manualPreparing': '執緊手動上載交接資料夾',
+  'cheapLfs.progress.manualWaiting':
+    '喺 GitHub 上載晒準備好嘅檔案，跟住撳儲存 Release',
+  'cheapLfs.progress.manualVerifying': '核實緊你手動上載嘅檔案',
+  'cheapLfs.progress.manualDetected': '見到手動上載喇，亦都核實完成',
   'workflowDispatch.searchPlaceholder': '打字搵 workflow，睇個名或者檔案…',
   'workflowDispatch.searchAriaLabel': '篩 workflow',
   'workflowDispatch.listAriaLabel': 'Workflow 清單',

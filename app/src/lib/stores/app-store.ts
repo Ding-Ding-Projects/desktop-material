@@ -32,6 +32,7 @@ import {
 import {
   autoPinLargeFilesForCommit,
   defaultCheapLfsFileSystem,
+  ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinnedFile,
   ICheapLfsMaterializeResult,
   ICheapLfsPinOptions,
@@ -41,9 +42,14 @@ import {
   materializeCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
+  selectCheapLfsAutoPinTargets,
   shouldAutoMaterializeCheapLfs,
   shouldAutoPinLargeFilesOnCommit,
 } from '../cheap-lfs/operations'
+import {
+  getCheapLfsReleaseUploadURL,
+  manualPinFilesToRelease,
+} from '../cheap-lfs/manual-upload'
 import { CheapLfsPinThresholdBytes } from '../large-files'
 import { IGitHubRelease } from '../github-releases'
 import { IGitHubReleaseTransferProgressEvent } from '../github-release-transfer'
@@ -878,6 +884,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
     number,
     AbortController
   >()
+
+  /** The currently cancelable automatic or browser-assisted commit pin. */
+  private readonly cheapLfsCommitControllers = new Map<
+    number,
+    AbortController
+  >()
+  /** Reinterprets the next automatic-pin abort as a manual-upload handoff. */
+  private readonly cheapLfsManualUploadRequests = new Set<number>()
+  /** Explicit cancel requests, kept distinct from account/repository aborts. */
+  private readonly cheapLfsCommitCancelRequests = new Set<number>()
 
   private currentBranchPruner: BranchPruner | null = null
 
@@ -2887,6 +2903,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.mergeAllControllers?.delete(repository.id)
     this.cheapLfsMaterializeControllers?.get(repository.id)?.abort()
     this.cheapLfsMaterializeControllers?.delete(repository.id)
+    this.cheapLfsCommitControllers?.get(repository.id)?.abort()
+    this.cheapLfsCommitControllers?.delete(repository.id)
+    this.cheapLfsManualUploadRequests?.delete(repository.id)
+    this.cheapLfsCommitCancelRequests?.delete(repository.id)
 
     this.gitStoreCache.remove(repository)
     this.repositoryStateCache.remove(repository)
@@ -4998,12 +5018,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
           forceAutoPinLargeFiles
         )
       } catch (error) {
+        const wasUserCanceled =
+          (error as Error)?.name === 'AbortError' &&
+          this.cheapLfsCommitCancelRequests.delete(repository.id)
         if (!this.isTemporaryRepositoryActive(repository)) {
           return false
         }
-        this.emitError(
-          error instanceof Error ? error : new Error(String(error))
-        )
+        if (!wasUserCanceled) {
+          this.emitError(
+            error instanceof Error ? error : new Error(String(error))
+          )
+        }
         // A prior file in this batch might already have been replaced by its
         // pointer. Defer the refresh until `withIsCommitting` clears the
         // cheap-LFS phase; refreshing here would intentionally suppress the
@@ -11905,6 +11930,38 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.cheapLfsMaterializeControllers.get(repository.id)?.abort()
   }
 
+  /** Switch the current automatic commit pin to the manual browser rendezvous. */
+  public _requestManualCheapLfsUpload(repository: Repository): void {
+    const controller = this.cheapLfsCommitControllers.get(repository.id)
+    if (
+      controller === undefined ||
+      !this.isTemporaryRepositoryActive(repository)
+    ) {
+      return
+    }
+    const state = this.repositoryStateCache.get(repository)
+    const phase = state.commitOperationPhase
+    if (
+      !state.isCommitting ||
+      phase?.kind !== 'cheap-lfs' ||
+      phase.progress.phase !== 'uploading'
+    ) {
+      return
+    }
+    this.cheapLfsManualUploadRequests.add(repository.id)
+    controller.abort()
+  }
+
+  /** Cancel either automatic transfer or manual handoff/polling for a commit. */
+  public _cancelCheapLfsCommit(repository: Repository): void {
+    this.cheapLfsManualUploadRequests.delete(repository.id)
+    const controller = this.cheapLfsCommitControllers.get(repository.id)
+    if (controller !== undefined) {
+      this.cheapLfsCommitCancelRequests.add(repository.id)
+      controller.abort()
+    }
+  }
+
   /**
    * Pin every selected file over the push-size threshold to a GitHub Release
    * before a commit, replacing it in the working tree with a small pointer.
@@ -11915,13 +11972,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * abort the commit without a half-pinned tree; returns the files it pinned
    * otherwise (empty when none qualified).
    */
-  private autoPinLargeFilesBeforeCommit(
+  private async autoPinLargeFilesBeforeCommit(
     repository: Repository,
     selectedFiles: ReadonlyArray<WorkingDirectoryFileChange>,
     forceAutoPin: boolean = false
   ): Promise<ReadonlyArray<ICheapLfsAutoPinnedFile>> {
     if (isSubmoduleRepository(repository)) {
-      return Promise.resolve([])
+      return []
     }
     const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
     const availability = getGitHubReleasesAvailability(
@@ -11934,46 +11991,166 @@ export class AppStore extends TypedBaseStore<IAppState> {
         availability
       )
     ) {
-      return Promise.resolve([])
+      return []
     }
-    return autoPinLargeFilesForCommit(
-      repository,
-      selectedFiles.map(file => file.path),
-      CheapLfsPinThresholdBytes,
-      {
-        statSize: defaultCheapLfsFileSystem.statSize,
-        readPointerText: defaultCheapLfsFileSystem.readPointerText,
-        pin: (target, signal, onProgress) =>
-          pinFileToRelease(
-            this.githubReleasesStore,
-            repository,
-            this.requireCheapLfsAccount(repository),
-            {
-              absoluteFilePath: target.absolutePath,
-              trackedRelativePath: target.relativePath,
-              // The manual pin control defaults to this tag too, so automatic
-              // and manual pins share one release per repository.
-              releaseTag: 'assets',
-            },
-            signal,
-            onProgress
-          ),
-      },
-      undefined,
-      progress => {
-        if (!this.isTemporaryRepositoryActive(repository)) {
-          return
-        }
-        const state = this.repositoryStateCache.get(repository)
-        if (!state.isCommitting) {
-          return
-        }
-        this.repositoryStateCache.update(repository, () => ({
-          commitOperationPhase: { kind: 'cheap-lfs', progress },
-        }))
-        this.emitUpdate()
+    const selectedPaths = selectedFiles.map(file => file.path)
+    const reportProgress = (progress: ICheapLfsAutoPinProgress) => {
+      if (!this.isTemporaryRepositoryActive(repository)) {
+        return
       }
-    )
+      const state = this.repositoryStateCache.get(repository)
+      if (!state.isCommitting) {
+        return
+      }
+      this.repositoryStateCache.update(repository, () => ({
+        commitOperationPhase: { kind: 'cheap-lfs', progress },
+      }))
+      this.emitUpdate()
+    }
+    const dependencies = {
+      statSize: defaultCheapLfsFileSystem.statSize,
+      readPointerText: defaultCheapLfsFileSystem.readPointerText,
+      pin: (
+        target: {
+          readonly absolutePath: string
+          readonly relativePath: string
+          readonly sizeInBytes: number
+        },
+        signal: AbortSignal | undefined,
+        onProgress: (progress: IGitHubReleaseTransferProgressEvent) => void,
+        onStage?: (stage: ICheapLfsAutoPinProgress['phase']) => void
+      ) =>
+        pinFileToRelease(
+          this.githubReleasesStore,
+          repository,
+          this.requireCheapLfsAccount(repository),
+          {
+            absoluteFilePath: target.absolutePath,
+            trackedRelativePath: target.relativePath,
+            releaseTag: 'assets',
+          },
+          signal,
+          onProgress,
+          defaultCheapLfsFileSystem,
+          stage => onStage?.(stage)
+        ),
+    }
+    let controller = new AbortController()
+    const automaticallyPinned = new Array<ICheapLfsAutoPinnedFile>()
+    this.cheapLfsCommitCancelRequests.delete(repository.id)
+    this.cheapLfsManualUploadRequests.delete(repository.id)
+    this.cheapLfsCommitControllers.set(repository.id, controller)
+    try {
+      try {
+        const result = await autoPinLargeFilesForCommit(
+          repository,
+          selectedPaths,
+          CheapLfsPinThresholdBytes,
+          dependencies,
+          controller.signal,
+          reportProgress,
+          file => automaticallyPinned.push(file)
+        )
+        if (controller.signal.aborted) {
+          const canceled = new Error(
+            'The cheap LFS commit upload was canceled.'
+          )
+          canceled.name = 'AbortError'
+          throw canceled
+        }
+        this.cheapLfsCommitCancelRequests.delete(repository.id)
+        return result
+      } catch (error) {
+        if (
+          (error as Error)?.name !== 'AbortError' ||
+          !this.cheapLfsManualUploadRequests.delete(repository.id)
+        ) {
+          throw error
+        }
+      }
+
+      controller = new AbortController()
+      this.cheapLfsCommitControllers.set(repository.id, controller)
+      const remaining = await selectCheapLfsAutoPinTargets(
+        repository,
+        selectedPaths,
+        CheapLfsPinThresholdBytes,
+        dependencies
+      )
+      if (controller.signal.aborted) {
+        const canceled = new Error('The cheap LFS commit upload was canceled.')
+        canceled.name = 'AbortError'
+        throw canceled
+      }
+      if (remaining.length === 0) {
+        return automaticallyPinned
+      }
+      const completedBytes = automaticallyPinned.reduce(
+        (sum, file) => sum + file.sizeInBytes,
+        0
+      )
+      const remainingBytes = remaining.reduce(
+        (sum, file) => sum + file.sizeInBytes,
+        0
+      )
+      const manual = await manualPinFilesToRelease(
+        this.githubReleasesStore,
+        repository,
+        this.requireCheapLfsAccount(repository),
+        remaining.map(
+          (target): ICheapLfsPinOptions => ({
+            absoluteFilePath: target.absolutePath,
+            trackedRelativePath: target.relativePath,
+            releaseTag: 'assets',
+          })
+        ),
+        controller.signal,
+        {
+          onStage: stage =>
+            reportProgress({
+              phase: stage,
+              completedFiles: automaticallyPinned.length,
+              totalFiles: automaticallyPinned.length + remaining.length,
+              currentPath: null,
+              transferredBytes: completedBytes,
+              totalBytes: completedBytes + remainingBytes,
+            }),
+          onReady: async (handoff, plan) => {
+            if (!this.isTemporaryRepositoryActive(repository)) {
+              const inactive = new Error(
+                'The repository was closed during manual cheap LFS upload.'
+              )
+              inactive.name = 'AbortError'
+              throw inactive
+            }
+            const releaseURL = getCheapLfsReleaseUploadURL(
+              repository,
+              plan.release
+            )
+            if (!(await shell.openExternal(releaseURL))) {
+              throw new Error(
+                'Could not open the GitHub Release upload page for manual cheap LFS upload.'
+              )
+            }
+            // Leave Explorer in front so the prepared files can be dragged
+            // onto the already-open release editor immediately.
+            shell.showFolderContents(handoff.uploadDirectoryPath)
+          },
+        }
+      )
+      if (controller.signal.aborted) {
+        const canceled = new Error('The cheap LFS commit upload was canceled.')
+        canceled.name = 'AbortError'
+        throw canceled
+      }
+      this.cheapLfsCommitCancelRequests.delete(repository.id)
+      return [...automaticallyPinned, ...manual]
+    } finally {
+      this.cheapLfsManualUploadRequests.delete(repository.id)
+      if (this.cheapLfsCommitControllers.get(repository.id) === controller) {
+        this.cheapLfsCommitControllers.delete(repository.id)
+      }
+    }
   }
 
   /** Post a notification listing the files auto-pinned before a commit. */

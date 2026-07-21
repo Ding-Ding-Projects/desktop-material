@@ -1155,6 +1155,16 @@ export class Dispatcher {
     )
   }
 
+  /** Switch the active cheap-LFS commit operation to its manual handoff. */
+  public requestManualCheapLfsUpload(repository: Repository): void {
+    this.appStore._requestManualCheapLfsUpload(repository)
+  }
+
+  /** Cancel automatic or manual cheap-LFS work for the active commit. */
+  public cancelCheapLfsCommit(repository: Repository): void {
+    this.appStore._cancelCheapLfsCommit(repository)
+  }
+
   /** Change the file's includedness. */
   public changeFileIncluded(
     repository: Repository,

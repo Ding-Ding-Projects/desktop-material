@@ -14,6 +14,9 @@ import {
   WorkingDirectoryFileChange,
 } from '../../../src/models/status'
 import { CommitMessage } from '../../../src/ui/changes/commit-message'
+import { Button } from '../../../src/ui/lib/button'
+import { translate } from '../../../src/lib/i18n'
+import type { CheapLfsAutoPinPhase } from '../../../src/lib/cheap-lfs/operations'
 
 const PreviewFeaturesEnv = 'GITHUB_DESKTOP_PREVIEW_FEATURES'
 const previousPreviewFeatures = process.env[PreviewFeaturesEnv]
@@ -23,9 +26,13 @@ type CopilotButtonProps = {
   readonly ariaLabel?: string
   readonly disabled?: boolean
 }
+type TestButtonProps = React.ComponentProps<typeof Button> & {
+  readonly children?: React.ReactNode
+}
 
 type CommitMessageTestInstance = {
   readonly renderCopilotButton: () => React.ReactElement | null
+  readonly renderCommitProgress: () => React.ReactElement | null
   readonly getButtonText: () => React.ReactNode
   readonly getButtonTitle: () => string
   readonly onCopilotButtonClick: (
@@ -108,6 +115,8 @@ function createProps(
     commitOperationPhase: null,
     hookProgress: null,
     onShowCommitProgress: undefined,
+    onManualCheapLfsUpload: () => {},
+    onCancelCheapLfsCommit: () => {},
     isGeneratingCommitMessage: true,
     shouldShowGenerateCommitMessageCallOut: false,
     commitToAmend: null,
@@ -148,6 +157,21 @@ function createProps(
 
 function toTestInstance(component: CommitMessage): CommitMessageTestInstance {
   return component as unknown as CommitMessageTestInstance
+}
+
+function isButtonElement(
+  node: React.ReactNode
+): node is React.ReactElement<TestButtonProps> {
+  return React.isValidElement(node) && node.type === Button
+}
+
+function getCommitProgressButtons(component: CommitMessageTestInstance) {
+  const progress = component.renderCommitProgress()
+  if (progress === null) {
+    throw new Error('Expected commit progress to render')
+  }
+
+  return React.Children.toArray(progress.props.children).filter(isButtonElement)
 }
 
 function isElementWithCopilotButtonProps(
@@ -249,7 +273,7 @@ describe('CommitMessage', () => {
           commitOperationPhase: {
             kind: 'cheap-lfs',
             progress: {
-              phase: 'uploading',
+              phase: 'verifying',
               completedFiles: 0,
               totalFiles: 1,
               currentPath: 'windows.iso',
@@ -280,6 +304,186 @@ describe('CommitMessage', () => {
     assert.equal(
       committingPointer.getButtonText(),
       'Committing 1 cheap-LFS pointer to main'
+    )
+  })
+
+  it('describes every cheap-LFS transfer and manual handoff stage honestly', () => {
+    const textFor = (
+      phase: CheapLfsAutoPinPhase,
+      transferredBytes = 0,
+      totalBytes = 200
+    ) =>
+      toTestInstance(
+        new CommitMessage(
+          createProps({
+            isCommitting: true,
+            isGeneratingCommitMessage: false,
+            commitOperationPhase: {
+              kind: 'cheap-lfs',
+              progress: {
+                phase,
+                completedFiles: 0,
+                totalFiles: 2,
+                currentPath: 'windows.iso',
+                transferredBytes,
+                totalBytes,
+              },
+            },
+          })
+        )
+      ).getButtonText()
+
+    assert.equal(textFor('hashing'), 'Hashing 2 large files for cheap LFS')
+    assert.equal(
+      textFor('release'),
+      'Preparing the GitHub Release for 2 large files'
+    )
+    assert.equal(
+      textFor('uploading'),
+      'Starting the cheap-LFS upload for 2 large files'
+    )
+    assert.doesNotMatch(String(textFor('uploading')), /0%/)
+    assert.equal(
+      textFor('uploading', 101),
+      'Uploading 2 large files to cheap LFS (50%)'
+    )
+    assert.equal(
+      textFor('verifying', 200),
+      'Verifying 2 large files for cheap LFS'
+    )
+    assert.equal(
+      textFor('manual-preparing'),
+      'Preparing the manual upload handoff'
+    )
+    assert.equal(
+      textFor('manual-waiting'),
+      'Upload all prepared files and save the GitHub release'
+    )
+    assert.equal(textFor('manual-verifying'), 'Checking your manual upload')
+    assert.equal(
+      textFor('manual-detected'),
+      'Manual upload detected and verified'
+    )
+  })
+
+  it('offers manual upload and an explicit cancel control during cheap-LFS work', () => {
+    let manualUploadCount = 0
+    let cancelCount = 0
+    const component = toTestInstance(
+      new CommitMessage(
+        createProps({
+          isCommitting: true,
+          isGeneratingCommitMessage: false,
+          onManualCheapLfsUpload: () => {
+            manualUploadCount++
+          },
+          onCancelCheapLfsCommit: () => {
+            cancelCount++
+          },
+          commitOperationPhase: {
+            kind: 'cheap-lfs',
+            progress: {
+              phase: 'uploading',
+              completedFiles: 0,
+              totalFiles: 1,
+              currentPath: 'windows.iso',
+              transferredBytes: 0,
+              totalBytes: 200,
+            },
+          },
+        })
+      )
+    )
+
+    const buttons = getCommitProgressButtons(component)
+    assert.equal(buttons.length, 2)
+    assert.equal(buttons[0].props.children, 'Manual upload')
+    assert.equal(buttons[1].props.children, 'Cancel')
+
+    buttons[0].props.onClick?.({} as React.MouseEvent<HTMLButtonElement>)
+    buttons[1].props.onClick?.({} as React.MouseEvent<HTMLButtonElement>)
+    assert.equal(manualUploadCount, 1)
+    assert.equal(cancelCount, 1)
+  })
+
+  it('keeps cancel available after switching to the manual handoff', () => {
+    const component = toTestInstance(
+      new CommitMessage(
+        createProps({
+          isCommitting: true,
+          isGeneratingCommitMessage: false,
+          commitOperationPhase: {
+            kind: 'cheap-lfs',
+            progress: {
+              phase: 'manual-waiting',
+              completedFiles: 0,
+              totalFiles: 1,
+              currentPath: 'windows.iso',
+              transferredBytes: 0,
+              totalBytes: 200,
+            },
+          },
+        })
+      )
+    )
+
+    const buttons = getCommitProgressButtons(component)
+    assert.equal(buttons.length, 1)
+    assert.equal(buttons[0].props.children, 'Cancel')
+  })
+
+  it('offers manual fallback only during the automatic upload phase', () => {
+    const phasesWithoutManualFallback: ReadonlyArray<CheapLfsAutoPinPhase> = [
+      'preparing',
+      'hashing',
+      'release',
+      'verifying',
+      'manual-preparing',
+      'manual-waiting',
+      'manual-verifying',
+      'manual-detected',
+    ]
+
+    for (const phase of phasesWithoutManualFallback) {
+      const component = toTestInstance(
+        new CommitMessage(
+          createProps({
+            isCommitting: true,
+            isGeneratingCommitMessage: false,
+            commitOperationPhase: {
+              kind: 'cheap-lfs',
+              progress: {
+                phase,
+                completedFiles: 0,
+                totalFiles: 1,
+                currentPath: 'windows.iso',
+                transferredBytes: 0,
+                totalBytes: 200,
+              },
+            },
+          })
+        )
+      )
+
+      const buttons = getCommitProgressButtons(component)
+      assert.deepEqual(
+        buttons.map(button => button.props.children),
+        ['Cancel'],
+        `unexpected manual fallback in ${phase}`
+      )
+    }
+  })
+
+  it('provides Hong Kong Cantonese copy for manual upload controls', () => {
+    assert.equal(translate('cheapLfs.manualUpload', 'cantonese'), '手動上載')
+    assert.equal(translate('cheapLfs.cancel', 'cantonese'), '取消')
+    assert.equal(
+      translate('cheapLfs.progress.manualWaiting', 'cantonese'),
+      '喺 GitHub 上載晒準備好嘅檔案，跟住撳儲存 Release'
+    )
+    assert.equal(
+      translate('cheapLfs.manualUpload', 'bilingual'),
+      'Manual upload · 手動上載'
     )
   })
 
@@ -349,7 +553,7 @@ describe('CommitMessage', () => {
       commitOperationPhase: {
         kind: 'cheap-lfs',
         progress: {
-          phase: 'uploading',
+          phase: 'verifying',
           completedFiles: 0,
           totalFiles: 1,
           currentPath: 'windows.iso',

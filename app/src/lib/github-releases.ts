@@ -41,6 +41,8 @@ export interface IGitHubRelease {
   readonly createdAt: Date
   readonly publishedAt: Date | null
   readonly authorLogin: string
+  /** Provider web page for this exact release, absent on older GHES versions. */
+  readonly htmlURL?: string | null
   readonly assets: ReadonlyArray<IGitHubReleaseAsset>
 }
 
@@ -101,6 +103,7 @@ export function getGitHubReleaseFingerprint(release: IGitHubRelease): string {
     release.createdAt.toISOString(),
     release.publishedAt?.toISOString() ?? null,
     release.authorLogin,
+    release.htmlURL ?? null,
     [...release.assets]
       .sort((left, right) => left.id - right.id)
       .map(getGitHubReleaseAssetFingerprint),
@@ -303,6 +306,10 @@ function parseRelease(value: unknown): IGitHubRelease {
     createdAt: date(input.created_at, 'release creation date'),
     publishedAt: nullableDate(input.published_at, 'release publication date'),
     authorLogin: boundedText(author.login, 'release author login', 255),
+    htmlURL:
+      input.html_url === null || input.html_url === undefined
+        ? null
+        : boundedText(input.html_url, 'release HTML URL', 4096),
     assets,
   }
 }

@@ -106,4 +106,92 @@ describe('cheap LFS commit status diff refresh', () => {
       'refreshed-with-phase-false',
     ])
   })
+
+  it('offers manual fallback only during upload and records explicit cancel separately', () => {
+    const repository = new Repository('C:/repo', 1, null, false)
+    const store = Object.create(AppStore.prototype) as AppStore
+    const controllers = new Map<number, AbortController>()
+    const manualRequests = new Set<number>()
+    const cancelRequests = new Set<number>()
+    let phase = 'hashing'
+    Object.assign(store, {
+      cheapLfsCommitControllers: controllers,
+      cheapLfsManualUploadRequests: manualRequests,
+      cheapLfsCommitCancelRequests: cancelRequests,
+      isTemporaryRepositoryActive: () => true,
+      repositoryStateCache: {
+        get: () => ({
+          isCommitting: true,
+          commitOperationPhase: {
+            kind: 'cheap-lfs',
+            progress: { phase },
+          },
+        }),
+      },
+    })
+
+    const hashing = new AbortController()
+    controllers.set(repository.id, hashing)
+    store._requestManualCheapLfsUpload(repository)
+    assert.equal(hashing.signal.aborted, false)
+
+    phase = 'uploading'
+    store._requestManualCheapLfsUpload(repository)
+    assert.equal(hashing.signal.aborted, true)
+    assert.equal(manualRequests.has(repository.id), true)
+    assert.equal(cancelRequests.has(repository.id), false)
+
+    const waiting = new AbortController()
+    controllers.set(repository.id, waiting)
+    manualRequests.clear()
+    phase = 'manual-waiting'
+    store._requestManualCheapLfsUpload(repository)
+    assert.equal(waiting.signal.aborted, false)
+    store._cancelCheapLfsCommit(repository)
+    assert.equal(waiting.signal.aborted, true)
+    assert.equal(cancelRequests.has(repository.id), true)
+  })
+
+  it('reports unrelated aborts but suppresses an explicit cheap-LFS cancel', async () => {
+    for (const explicitlyCanceled of [false, true]) {
+      const repository = new Repository('C:/repo', 1, null, false)
+      const store = Object.create(AppStore.prototype) as AppStore
+      const errors = new Array<Error>()
+      const cancelRequests = new Set<number>()
+      if (explicitlyCanceled) {
+        cancelRequests.add(repository.id)
+      }
+      Object.assign(store, {
+        cheapLfsCommitCancelRequests: cancelRequests,
+        assertTemporaryRepositoryIsSafe: async () => undefined,
+        isTemporaryRepositoryActive: () => true,
+        repositoryStateCache: {
+          get: () => ({
+            changesState: { workingDirectory: { files: [] } },
+          }),
+        },
+        gitStoreCache: { get: () => ({}) },
+        withIsCommitting: async (
+          _repository: Repository,
+          operation: () => Promise<boolean>
+        ) => await operation(),
+        autoPinLargeFilesBeforeCommit: async () => {
+          const error = new Error('account drift aborted the request')
+          error.name = 'AbortError'
+          throw error
+        },
+        emitError: (error: Error) => errors.push(error),
+        _refreshRepository: async () => undefined,
+      })
+
+      assert.equal(
+        await store._commitIncludedChanges(
+          repository,
+          {} as Parameters<AppStore['_commitIncludedChanges']>[1]
+        ),
+        false
+      )
+      assert.equal(errors.length, explicitlyCanceled ? 0 : 1)
+    }
+  })
 })

@@ -761,11 +761,25 @@ see [Automation](Automation).
 
 When a selected file is larger than GitHub's ordinary 100 MiB object limit and release-backed
 **cheap LFS** is available, every commit entry point prepares it before invoking Git. The commit
-button reports **Preparing…**, upload progress, and final source verification; only the small-pointer
-commit says **Committing … to _branch_**. New uploads skip compression: a file fitting the release-asset cap is
-stored as one raw asset, while a larger file is split into ordered raw ranges. Downloads verify each
-range and the complete file before replacing the pointer. Existing compressed cheap-LFS pointers
-remain readable for backward compatibility.
+button reports hashing, real accepted-byte upload progress, and final source verification; only the
+small-pointer commit says **Committing … to _branch_**. If an automatic upload stalls, choose
+**Manual upload** beside the progress controls. Desktop Material stops that attempt, places all
+remaining files that fit one Release asset into one temporary **upload-these-files** folder using
+symlinks, hardlinks, or copies. It opens the exact `assets` Release edit/upload page first, then puts
+that folder in front: select all prepared files, drag them onto GitHub's asset drop zone, and let the
+browser finish the upload (then choose its save/update action if shown). The app detects only new
+exact-name assets, downloads and hashes all of them, rechecks every source, writes the pointers, and
+resumes the same commit automatically. Older GitHub Enterprise versions safely fall back to the
+repository Releases listing. **Cancel** stops
+either path. Multipart files continue through the automatic ranged uploader. New uploads otherwise
+skip compression: a file fitting the release-asset cap is stored as one raw asset, while a larger
+file is split into ordered raw ranges. Downloads verify each range and the complete file before
+replacing the pointer. Existing compressed cheap-LFS pointers remain readable for backward
+compatibility.
+
+The prepared folder is flat because GitHub Release assets cannot contain subfolders. Cheap LFS still
+remembers every original repository-relative path: files in nested folders return to those exact
+paths, and duplicate basenames receive distinct hash-suffixed asset names.
 
 ---
 

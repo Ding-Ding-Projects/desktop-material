@@ -63,6 +63,8 @@ interface IChangesSidebarProps {
   readonly commitOperationPhase: CommitOperationPhase | null
   readonly hookProgress: HookProgress | null
   readonly onShowCommitProgress: (() => void) | undefined
+  readonly onManualCheapLfsUpload: () => void
+  readonly onCancelCheapLfsCommit: () => void
   readonly isGeneratingCommitMessage: boolean
   readonly shouldShowGenerateCommitMessageCallOut: boolean
   readonly commitToAmend: Commit | null
@@ -493,6 +495,8 @@ export class ChangesSidebar extends React.Component<IChangesSidebarProps, {}> {
           commitOperationPhase={this.props.commitOperationPhase}
           hookProgress={this.props.hookProgress}
           onShowCommitProgress={this.props.onShowCommitProgress}
+          onManualCheapLfsUpload={this.props.onManualCheapLfsUpload}
+          onCancelCheapLfsCommit={this.props.onCancelCheapLfsCommit}
           isGeneratingCommitMessage={this.props.isGeneratingCommitMessage}
           shouldShowGenerateCommitMessageCallOut={
             this.props.shouldShowGenerateCommitMessageCallOut

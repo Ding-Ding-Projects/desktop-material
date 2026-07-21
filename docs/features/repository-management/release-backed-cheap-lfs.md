@@ -26,9 +26,29 @@ default for compatibility:
   clone, pull, user fetch, or open under one cancelable per-repository batch.
   The panel also offers explicit per-file and Materialize all actions.
 
-Automatic pinning reports separate preparing and uploading phases, pins files
-sequentially, reloads status, and stages the pointer rather than the original
-binary. The first pin failure aborts the commit.
+Automatic pinning reports separate hashing, release preparation, upload, and
+verification phases, streams accepted-byte progress, pins files sequentially,
+reloads status, and stages the pointer rather than the original binary. The
+first pin failure aborts the commit.
+
+While an automatic upload is active, **Manual upload** switches the same commit
+operation to a browser-assisted handoff. Desktop Material stops the current
+automatic attempt, plans every remaining file that fits one Release asset,
+creates one random temporary folder containing the exact asset names, opens
+the exact validated release editor and then that folder in front for drag and
+drop, and waits for the user to upload and save all files to the `assets`
+release. Older GitHub Enterprise responses without a usable release web URL
+fall back to the validated repository Releases listing. File symlinks are
+preferred; the app falls back to hardlinks and then streamed copies when the
+host or volume cannot create a link. **Cancel** stops either the automatic or
+manual phase. Manual handoff deliberately rejects multipart files, which must
+use the automatic ranged uploader.
+
+GitHub Release assets have no folder hierarchy, so the handoff directory is
+flat even when selected files live in nested repository folders. The manifest
+maps every prepared asset back to its original repository-relative path, and
+same-named files from different folders receive collision-safe hash suffixes.
+After verification, each pointer is written at that exact original path.
 
 ## Persistence
 
@@ -58,6 +78,14 @@ what stayed as pointers. In an automatic pin batch, an earlier file may already
 have become a valid pointer when a later pin fails, but the commit is aborted
 and repository status is refreshed so no half-pinned selection is committed.
 
+The manual handoff waits for a bounded ten-minute window and scans every
+bounded Release-asset page. A timeout, cancel, unsupported multipart source,
+changed source, missing or duplicate expected name, wrong size or digest,
+download mismatch, or pointer-write failure aborts the commit. Files pinned
+before the switch remain valid pointers. Assets that the user uploaded in the
+browser are left on the Release for explicit review; the app never treats them
+as attempt-owned assets that it may delete automatically.
+
 ## Security considerations
 
 Tracked paths must remain repository-relative and cannot traverse parents or
@@ -72,6 +100,18 @@ feature never puts provider credentials in a pointer. Temporary downloads are
 cleaned on success and failure, and unverified bytes never replace a tracked
 file.
 
+Manual mode snapshots every pre-existing asset ID through bounded pagination
+before opening the handoff. It accepts only a new exact-name and exact-size
+asset, downloads and hashes every detected asset, then re-hashes every source
+before writing any pointer. Cross-file asset names are reserved as one batch,
+including duplicate basenames from different subfolders.
+The release URL is supplied by GitHub, checked against the account-bound
+provider origin and repository path, and converted only from its validated
+`/releases/tag/<slug>` route to `/releases/edit/<slug>`; no token is placed in
+the browser URL. Handoff cleanup removes only the random directory entries whose
+filesystem identities the operation created, so a replaced path is not
+deleted.
+
 ## Verification
 
 `cheap-lfs/pointer-test.ts` covers canonical single/multipart pointers, legacy
@@ -79,10 +119,15 @@ deflated compatibility, size limits, part totals, path normalization, and the
 below-2-GiB upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
 deduplicated asset names, mutation reviews, attempt-owned cleanup, source race
 checks, cancellation, per-part and whole-file verification, and atomic
-materialization. `cheap-lfs/automation-test.ts`,
+materialization. `cheap-lfs/manual-upload-test.ts` covers whole-batch handoff
+names, symlink/hardlink/copy fallbacks, pagination and pre-existing-asset
+exclusion, cancel-safe cleanup, remote and source hash verification, and
+provider-bound Releases URLs. `cheap-lfs/automation-test.ts`,
 `cheap-lfs/commit-entry-points-test.ts`, and
 `cheap-lfs/commit-status-refresh-test.ts` cover the 100-MiB commit gate, every
-routed commit entry point, preparing/uploading progress, preference/account
-gating, failure aborts, and status reload before commit. `cheap-lfs-test.tsx`
-and `build-run-cheap-lfs-settings-test.tsx` cover the reviewed panel actions,
-inventory, cancellation, progress, and persisted preferences.
+routed commit entry point, phase and byte progress, manual switching,
+preference/account gating, failure aborts, and status reload before commit.
+`commit-message-test.tsx`, `cheap-lfs-test.tsx`, and
+`build-run-cheap-lfs-settings-test.tsx` cover the localized manual/cancel
+controls, reviewed panel actions, inventory, cancellation, progress, and
+persisted preferences.

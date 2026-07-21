@@ -1,5 +1,57 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-21 Cheap-LFS 0% transport repair and manual Release handoff
+
+The automatic Release-asset upload's 0% deadlock was traced to Electron's
+`ClientRequest.write()` contract: it returns `void`, while the old pump treated
+that value as Node backpressure, paused the source, and waited for a `drain`
+event Electron never emits. Commit `c4403f2a0faf6e96fb53be3c5a9f4587f4a219c7`
+now advances the stream from Electron's write callback and reports accepted-byte
+progress. It was fast-forwarded to `origin/main`; [CI 29853767664](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29853767664),
+[CodeQL 29853768026](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29853768026),
+and [Build Installers 29855717704](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29855717704)
+all passed. The exact commit is published as non-draft release
+[`v3.6.3-beta3-b0000000266`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000000266)
+with the canonical/full x64 NuGet packages, x64 EXE, x64 MSI, and `RELEASES`.
+
+The follow-up manual fallback is implementation-complete. **Manual upload** is
+available beside **Cancel** only during an automatic upload. It stops that
+attempt, plans every remaining single-asset file as one collision-safe batch,
+creates a random `upload-these-files` handoff using symlink, hardlink, then a
+bounded streamed-copy fallback, opens the validated exact GitHub Release editor
+before bringing Explorer to the front, and polls for the user's drag/drop
+upload. GitHub Release assets are flat, but the manifest and pointers preserve
+every original repository-relative subfolder; duplicate basenames receive
+hash-suffixed asset names. Only newly created exact-name/exact-size asset IDs
+are accepted. Every asset is downloaded and SHA-256 verified, every source is
+rehashed before any pointer is written, and the original commit resumes
+automatically. Explicit cancel is distinct from account/repository aborts.
+Multipart files remain on the automatic ranged uploader by design.
+
+Local acceptance passed **104/104 focused tests** across the transfer pump,
+cheap-LFS operations/automation/manual flow, GitHub Release parsing/API/store,
+asset download, and commit UI. TypeScript no-emit, scoped ESLint, scoped
+Prettier, and `git diff --check` passed. The exact low-level-MCP production build
+(`RELEASE_CHANNEL=development`, `DESKTOP_SKIP_PACKAGE=1`) returned
+`client_ok: true` after 840.62 seconds. The resulting app launched on the
+uniquely owned `DesktopMaterialCheapLfsManual20260721` off-screen desktop with
+only a synthetic Git fixture and isolated user data. Its 960×660 client capture
+was nonblank, unclipped, light-themed, private-data-free, and SHA-256
+`4267b4e51261c170ee994b70696080207f4df1f47f13488d55f025f525e537b3`.
+The server's generic resize/close helpers could not resolve their own headless
+HWND; the exact saved Electron PID was therefore terminated as the documented
+fallback. The window list reached zero, the desktop closed, and the validated
+Temp run root was removed. No public screenshot was promoted.
+
+No live browser drag/drop was performed; direct draft/GHES editor routes,
+pagination, pre-existing-ID exclusion, basename collision handling, remote and
+source corruption, cancel cleanup, and link/copy fallbacks are deterministic
+unit coverage. During final verification the user's still-running visible app
+was read-only inspected and found to be build `b0000000256`, started before the
+repair was published. It therefore cannot contain either the `b0000000266`
+transport correction or this follow-up manual fallback; the visible process was
+not closed or replaced by the verifier.
+
 ## 2026-07-21 Screenshot renewal — 58 of 66 delivered
 
 **58 of 66 gallery screenshots were recaptured from the shipped Material UI**
