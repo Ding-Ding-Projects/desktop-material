@@ -1,5 +1,70 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-21 Backend handoff for Codex
+
+Division of labor (user-directed 2026-07-21): Claude owns the frontend
+(`app/src/ui/**`, `app/styles/**`); Codex (GPT 5.6 Terra Ultra) owns the
+backend (`app/src/lib/**`, `app/src/main-process/**`). The items below were
+found by an adversarially-verified bug hunt over the pushed `main` tip
+(each confirmed by a 3-lens majority). They are backend and are **left for
+Codex** — not fixed by Claude.
+
+1. **`wip-title-nondraft-parse-throws` (high)** —
+   [gitlab-merge-request-json.ts:355](app/src/lib/gitlab-merge-request-json.ts:355)
+   with `DraftTitlePrefix` at [gitlab-merge-request.ts:338](app/src/lib/gitlab-merge-request.ts:338).
+   `draftState()` throws `invalid-response` when a title carries the legacy
+   `wip:` prefix but the provider reports `draft=false`/`work_in_progress=false`.
+   On GitLab ≥14 `WIP:` is ordinary title text, so a non-draft MR titled
+   `WIP: …` deterministically breaks the whole MR list/dialog. Fix: trust the
+   declared draft/work_in_progress booleans as authoritative; never throw
+   because a legacy title prefix disagrees (drop `wip:` from the draft-prefix
+   regex, or treat the prefix as non-authoritative when a boolean is present).
+
+2. **`scheduled-automation-survives-repository-switch` (medium)** —
+   [app-store.ts:3156](app/src/lib/stores/app-store.ts:3156). `runScheduledCommitPush`/
+   `runScheduledPull` check `selectedRepository === repository` once, then
+   `await _refreshRepository` (and `isMergeHeadSet`) and proceed without
+   re-checking. A repo switch during that await lets an auto commit+push (or
+   pull) run against the deselected repo — a durable remote side effect. Fix:
+   re-validate selection after each await (and before commit/push/pull), or
+   thread a cancellation token from `AutomationScheduler.stop()` into the
+   in-flight callback.
+
+3. **`gitlab-mr-mutation-success-reported-as-canceled` (low)** —
+   [gitlab-merge-request-store.ts:364](app/src/lib/stores/gitlab-merge-request-store.ts:364).
+   `run()` calls `assertContextCurrent()` after the mutation already resolved
+   server-side; an accounts-update mid-flight makes a completed create/update
+   report as canceled. Fix: a server-confirmed mutation should report success
+   (or "succeeded, refresh") rather than a spurious cancel.
+
+4. **`hardlink-publish-fails-on-exfat-fat-network-share` (medium)** —
+   [github-release-asset-download.ts:147](app/src/lib/github-release-asset-download.ts:147).
+   `publishWithoutOverwrite()` installs assets via `fs.link` and only tolerates
+   `EEXIST`; exFAT/FAT/network-share targets (the cheap-LFS large-binary case)
+   don't support hard links, so publish fails fatally. Fix: fall back to
+   copy+rename on `EXDEV`/`EPERM`/`ENOTSUP`/etc.
+
+5. **`stale-guard-readopts-superseded-live-run` (medium)** —
+   [build-run-store.ts:231](app/src/lib/stores/build-run-store.ts:231).
+   `onState()`'s stale guard only drops events from a superseded run once that
+   run is terminal, so late non-terminal events from a still-live superseded
+   run (e.g. an opencode fix running after a new run started) are re-adopted.
+   Fix: reject events whose `runId !== activeRunId` regardless of the old run's
+   phase.
+
+6. **`replace-import-duplicate-tabs-same-repository` (medium)** —
+   [repository-tabs-store.ts:790](app/src/lib/stores/repository-tabs-store.ts:790).
+   `parseTabSession()`/`comparablePath()` don't canonicalize paths (no
+   `..`/`.`/dup-separator collapsing), so an imported session with two
+   spellings of the same repo path creates duplicate tabs. Fix: `Path.normalize`
+   before deduping.
+
+Refuted (not real, do not action): two candidates were dropped by the
+verification panel. One frontend bug from the same hunt —
+`anchored-editor-capture-escape-preempts-nested-overlays`
+([anchored-appearance-editor.tsx:207](app/src/ui/appearance/anchored-appearance-editor.tsx:207)) —
+is **owned by Claude (frontend)** and tracked separately.
+
 ## 2026-07-20 ultracode audit and completion wave
 
 This section records the July 20 audit of the outstanding `codex/report-gitlab-*`
