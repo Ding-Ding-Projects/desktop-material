@@ -1,10 +1,13 @@
 # Release-backed large-file storage
 
-The **Large files & storage** panel can pin a working-tree file to one or more
-GitHub Release assets and leave a small, human-readable pointer at its tracked
-path. It is intentionally not Git LFS: a client without Desktop Material sees
-the pointer text, and collaborators need access to the referenced release to
-materialize the original bytes.
+The repository rail's **Large files** manager can pin a working-tree file to
+one or more GitHub Release assets and leave a small, human-readable pointer at
+its tracked path. It is intentionally not Git LFS: a client without Desktop
+Material sees the pointer text, and collaborators need access to the referenced
+release to materialize the original bytes. The manager lists and searches
+committed pointers, restores one or all files, and removes the need to browse or
+decode the backing Release asset names. The same panel remains available from
+Repository Tools for users who enter through the tools hub.
 
 ## Behavior and configuration
 
@@ -37,21 +40,14 @@ default for compatibility:
 Automatic pinning reports separate hashing, release preparation, upload, and
 verification phases, pins files sequentially, reloads status, and stages the
 pointer rather than the original binary. The first pin failure aborts the
-commit. The Electron transport removes the fixed-length header at its final
-request boundary and enables chunked encoding before writing, preventing
-Electron from retaining an entire multi-gigabyte asset in process memory. Its
-visible progress samples Electron's actual network-upload counter rather than
-the source-read callbacks; 100% is reserved until a valid provider response or
-reconciled asset proves acceptance. If that counter makes no forward progress
-for two minutes, Desktop Material aborts the native request instead of leaving
-the operation indefinitely at 0% or 1%. Exact source-range checks still reject
-files that grow or shrink after validation.
+commit. Production first uses the trusted GitHub CLI exact-length transport.
+This avoids opening Electron's native upload data pipe, which can terminate the
+app with a Mojo failed-precondition when the remote consumer closes during a
+write. Exact source-range checks still reject files that grow or shrink after
+validation, and 100% remains reserved until a valid provider response or a
+reconciled asset proves acceptance.
 
-A stalled native request automatically enters the bounded GitHub CLI fallback.
-The same fallback handles HTTP 411, where GitHub requires an exact
-`Content-Length` that conflicts with Electron's memory-safe chunked mode, and
-HTTP 502, which can leave an asset in an ambiguous processing state. Before it
-uploads again, Desktop Material scans the selected Release's complete bounded
+Before a CLI upload, Desktop Material scans the selected Release's complete bounded
 inventory once—up to ten 100-object pages. If it finds one exact-name object,
 it polls only that immutable asset ID. An already completed exact-size,
 exact-label, exact-digest object is reused; a persistent `starter` or other
@@ -69,6 +65,13 @@ used, and the directory is deleted afterward. The process has bounded output,
 inactivity and total-runtime limits, runs without a shell, and is terminated and
 awaited on cancel. A failed CLI request receives one more bounded reconciliation
 because GitHub may have accepted the bytes before returning an error.
+
+If that trusted CLI cannot be resolved, the app retains a compatibility
+Electron transport. It removes the fixed-length header at the final request
+boundary and enables chunked encoding before writing, so it does not retain an
+entire multi-gigabyte asset in process memory. Its watchdog aborts two minutes
+without forward network progress. The manual browser handoff below is the
+recommended recovery if this compatibility path cannot complete safely.
 
 While an automatic upload is active, **Manual upload** switches the same commit
 operation to a browser-assisted handoff. Desktop Material stops the current

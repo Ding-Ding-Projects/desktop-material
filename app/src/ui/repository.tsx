@@ -57,7 +57,7 @@ import {
 import { GitHubReleasesView } from './github-releases'
 import { GitHubIssuesView } from './github-issues'
 import { GitHubAPIExplorer } from './github-api-explorer'
-import { RepositoryTools } from './repository-tools'
+import { CheapLfs, RepositoryTools } from './repository-tools'
 import { RepositoryProviderTriage } from './repository-tools/provider-triage'
 import { RepositorySettingsTab } from './repository-settings/repository-settings'
 import {
@@ -71,6 +71,7 @@ import {
   setGitHubAPITabHidden,
 } from '../lib/github-api-tab-visibility'
 import { MaterialSymbol } from './lib/material-symbol'
+import { t } from '../lib/i18n'
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -346,6 +347,8 @@ export class RepositoryView extends React.Component<
         !this.supportsGitHubActions()) ||
       (section === RepositorySectionTab.Releases &&
         !this.showsGitHubReleases()) ||
+      (section === RepositorySectionTab.CheapLfs &&
+        !this.showsGitHubReleases()) ||
       (section === RepositorySectionTab.Issues && !this.showsGitHubIssues()) ||
       (section === RepositorySectionTab.GitHubAPI && !this.showsGitHubAPI())
     ) {
@@ -483,6 +486,22 @@ export class RepositoryView extends React.Component<
               </span>
             </span>
             <span className="rail-label">Releases</span>
+          </span>
+        )}
+        {this.showsGitHubReleases() && (
+          <span className="rail-item" id="cheap-lfs-tab" data-dm-feature={true}>
+            <span className="rail-pill">
+              <span className="rail-icon">
+                <MaterialSymbol
+                  name="database"
+                  size={22}
+                  fill={
+                    selectedSection === RepositorySectionTab.CheapLfs ? 1 : 0
+                  }
+                />
+              </span>
+            </span>
+            <span className="rail-label">{t('cheapLfs.managerRail')}</span>
           </span>
         )}
         {this.showsGitHubIssues() && (
@@ -894,6 +913,7 @@ export class RepositoryView extends React.Component<
     } else if (
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
+      selectedSection === RepositorySectionTab.CheapLfs ||
       selectedSection === RepositorySectionTab.Issues ||
       selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
@@ -918,6 +938,7 @@ export class RepositoryView extends React.Component<
     if (
       selectedSection === RepositorySectionTab.Actions ||
       selectedSection === RepositorySectionTab.Releases ||
+      selectedSection === RepositorySectionTab.CheapLfs ||
       selectedSection === RepositorySectionTab.Issues ||
       selectedSection === RepositorySectionTab.GitHubAPI ||
       selectedSection === RepositorySectionTab.Triage ||
@@ -1196,6 +1217,16 @@ export class RepositoryView extends React.Component<
           accounts={this.props.accounts}
           releasesStore={this.props.releasesStore}
         />
+      )
+    } else if (selectedSection === RepositorySectionTab.CheapLfs) {
+      return (
+        <div className="cheap-lfs-manager-view">
+          <CheapLfs
+            repository={this.props.repository}
+            accounts={this.props.accounts}
+            dispatcher={this.props.dispatcher}
+          />
+        </div>
       )
     } else if (selectedSection === RepositorySectionTab.Issues) {
       return (

@@ -90,6 +90,19 @@ describe('recent UI internationalization', () => {
     }
   })
 
+  it('localizes the direct Cheap LFS manager in all three modes', () => {
+    for (const key of [
+      'cheapLfs.managerRail',
+      'cheapLfs.managerTitle',
+      'cheapLfs.managerIntro',
+    ] as const) {
+      const english = translate(key, 'english')
+      const cantonese = translate(key, 'cantonese')
+      assert.notEqual(english, cantonese)
+      assert.equal(translate(key, 'bilingual'), `${english} · ${cantonese}`)
+    }
+  })
+
   it('explains an uninitialized submodule in all three modes', () => {
     assert.equal(
       translate('submodule.openUnavailable', 'english'),

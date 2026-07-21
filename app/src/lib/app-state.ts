@@ -555,6 +555,7 @@ export enum RepositorySectionTab {
   Issues,
   Triage,
   GitHubAPI,
+  CheapLfs,
 }
 
 /**

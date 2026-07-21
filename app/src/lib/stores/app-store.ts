@@ -4608,6 +4608,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } else if (
       selectedSection !== RepositorySectionTab.Actions &&
       selectedSection !== RepositorySectionTab.Releases &&
+      selectedSection !== RepositorySectionTab.CheapLfs &&
       selectedSection !== RepositorySectionTab.Issues &&
       selectedSection !== RepositorySectionTab.GitHubAPI &&
       selectedSection !== RepositorySectionTab.Triage &&
@@ -5555,6 +5556,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     } else if (
       section === RepositorySectionTab.Actions ||
       section === RepositorySectionTab.Releases ||
+      section === RepositorySectionTab.CheapLfs ||
       section === RepositorySectionTab.Issues ||
       section === RepositorySectionTab.GitHubAPI ||
       section === RepositorySectionTab.Triage ||

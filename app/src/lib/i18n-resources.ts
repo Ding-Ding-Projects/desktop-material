@@ -1110,6 +1110,9 @@ export type TranslationKey =
   | 'buildRun.sendRunningTitle'
   | 'cheapLfs.files.one'
   | 'cheapLfs.files.many'
+  | 'cheapLfs.managerRail'
+  | 'cheapLfs.managerTitle'
+  | 'cheapLfs.managerIntro'
   | 'cheapLfs.manualUpload'
   | 'cheapLfs.cancel'
   | 'cheapLfs.progress.amendSuffix'
@@ -2489,6 +2492,10 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'buildRun.sendRunningTitle': 'opencode is working on your request…',
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
+  'cheapLfs.managerRail': 'Large files',
+  'cheapLfs.managerTitle': 'Cheap LFS manager',
+  'cheapLfs.managerIntro':
+    'Find, pin, search, and restore repository large files here. You do not need to browse GitHub Releases or decode asset names.',
   'cheapLfs.manualUpload': 'Manual upload',
   'cheapLfs.cancel': 'Cancel',
   'cheapLfs.progress.amendSuffix': ' before amending',
@@ -3747,6 +3754,10 @@ export const cantoneseTranslations: Readonly<
   'buildRun.sendRunningTitle': 'opencode 幫緊你搞緊個要求…',
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
+  'cheapLfs.managerRail': '大檔案',
+  'cheapLfs.managerTitle': 'Cheap LFS 管理器',
+  'cheapLfs.managerIntro':
+    '喺呢度就可以搵、釘選、搜尋同還原 repo 嘅大檔案，唔使自己走入 GitHub Releases 猜資產檔名。',
   'cheapLfs.manualUpload': '手動上載',
   'cheapLfs.cancel': '取消',
   'cheapLfs.progress.amendSuffix': '，跟住先改上一個 commit',

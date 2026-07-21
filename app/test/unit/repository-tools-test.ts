@@ -419,6 +419,7 @@ describe('repository section order', () => {
       RepositorySectionTab.History,
       RepositorySectionTab.Actions,
       RepositorySectionTab.Releases,
+      RepositorySectionTab.CheapLfs,
       RepositorySectionTab.Issues,
       RepositorySectionTab.GitHubAPI,
       RepositorySectionTab.Triage,
@@ -432,7 +433,7 @@ describe('repository section order', () => {
         true,
         true
       ),
-      5
+      6
     )
   })
 })

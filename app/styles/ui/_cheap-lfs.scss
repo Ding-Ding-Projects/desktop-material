@@ -4,6 +4,15 @@
   min-width: 0;
 }
 
+#repository > .cheap-lfs-manager-view {
+  min-height: 0;
+  padding: 22px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
 .cheap-lfs {
   display: flex;
   flex-direction: column;

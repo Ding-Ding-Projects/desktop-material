@@ -13,6 +13,7 @@ export function getRepositorySections(
   }
   if (supportsGitHubReleases) {
     sections.push(RepositorySectionTab.Releases)
+    sections.push(RepositorySectionTab.CheapLfs)
   }
   if (supportsGitHubIssues) {
     sections.push(RepositorySectionTab.Issues)

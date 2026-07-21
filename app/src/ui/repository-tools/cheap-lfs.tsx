@@ -26,6 +26,7 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { showOpenDialog } from '../main-process-proxy'
+import { t } from '../../lib/i18n'
 
 /**
  * The dispatcher surface the cheap-LFS panel drives. The real `Dispatcher`
@@ -626,6 +627,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     )
     return (
       <div className="cheap-lfs-intro">
+        <h2>{t('cheapLfs.managerTitle')}</h2>
+        <p>{t('cheapLfs.managerIntro')}</p>
         <p>
           Store a large file as a GitHub Release asset and commit only a small
           text pointer in its place. This is <strong>not</strong> Git LFS: other

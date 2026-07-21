@@ -7,6 +7,10 @@ const repositorySource = readFileSync(
   join(process.cwd(), 'app', 'src', 'ui', 'repository.tsx'),
   'utf8'
 )
+const cheapLfsStyles = readFileSync(
+  join(process.cwd(), 'app', 'styles', 'ui', '_cheap-lfs.scss'),
+  'utf8'
+)
 
 describe('repository section navigation source contract', () => {
   it('uses one complete visible-section mapping for clicks and keyboard navigation', () => {
@@ -30,6 +34,22 @@ describe('repository section navigation source contract', () => {
     assert.match(
       repositorySource,
       /const section = this\.getVisibleRepositorySections\(\)\[visualIndex\]/
+    )
+  })
+
+  it('opens the Cheap LFS manager directly without routing through Releases', () => {
+    assert.match(
+      repositorySource,
+      /id="cheap-lfs-tab"[\s\S]*?RepositorySectionTab\.CheapLfs/
+    )
+    assert.match(
+      repositorySource,
+      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?<CheapLfs/
+    )
+    assert.match(repositorySource, /className="cheap-lfs-manager-view"/)
+    assert.match(
+      cheapLfsStyles,
+      /#repository > \.cheap-lfs-manager-view[\s\S]*?overflow-y: auto/
     )
   })
 })

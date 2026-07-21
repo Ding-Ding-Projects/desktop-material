@@ -1,14 +1,35 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-21 Cheap-LFS CLI-first crash containment and direct manager
+
+Production Release-asset uploads now try the trusted, exact-length GitHub CLI
+transport before Electron. This prevents the reported fatal `mojo result not
+ok: 9` path when a validated `gh.exe` is available: Electron's native chunked
+upload data pipe is never opened for that attempt. GitHub CLI credentials remain
+isolated, progress stays bounded, and cancellation/quit still tears down the
+owned child process. The memory-bounded Electron uploader remains only as the
+compatibility path when the trusted CLI cannot be resolved.
+
+The repository rail now has a direct, localized **Large files** destination.
+Its Cheap LFS manager lists committed pointers from nested folders, searches by
+path, pins reviewed files, materializes one or all objects, and owns a stable
+vertical scroll region. Users no longer need to locate or decode assets in the
+GitHub Releases catalog. The existing Release editor plus flat temporary-folder
+handoff remains available for explicit browser recovery; its manifest still
+maps every asset back to the original repository-relative path.
+
+The manager, repository-section mapping, scroll contract, and all three language
+modes pass **48/48 focused tests** across six suites. This checkpoint does not
+claim a live multi-gigabyte upload or final packaged-app visual receipt.
+
 ## 2026-07-21 Cheap-LFS recovery, output controls, and portable-ZIP checkpoint
 
-The current follow-up removes two misleading Cheap-LFS progress states. Native
-Electron uploads now sample `ClientRequest.getUploadProgress()` so the visible
-counter reflects bytes actually moving over the network rather than bytes merely
-accepted by Electron's local write callback. A two-minute no-forward-progress
-watchdog aborts the owned request, and the transfer reserves 100% until an exact
-provider response or reconciled asset proves GitHub accepted the object. This is
-the bounded recovery for the reported indefinite 0%/1% state.
+This earlier checkpoint removed two misleading Cheap-LFS progress states from
+the compatibility Electron path. A two-minute no-forward-progress watchdog
+aborts its owned request, and the transfer reserves 100% until an exact provider
+response or reconciled asset proves GitHub accepted the object. The later
+CLI-first checkpoint above prevents that native data pipe from opening whenever
+the trusted GitHub CLI is available.
 
 A stalled request now retries automatically through a fixed `gh api` transport.
 HTTP 411 also selects that exact-length path because GitHub requires

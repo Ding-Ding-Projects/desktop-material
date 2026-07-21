@@ -767,19 +767,23 @@ see [Automation](Automation).
 
 When a selected file is larger than GitHub's ordinary 100 MiB object limit and release-backed
 **cheap LFS** is available, every commit entry point prepares it before invoking Git. The commit
-button reports hashing, actual Electron network-upload progress, and final source verification;
-100% appears only after GitHub accepts or the app reconciles the exact asset, and only the
-small-pointer commit says **Committing … to _branch_**. Two minutes without network progress aborts
-the native request instead of leaving the panel indefinitely at 0% or 1%.
+button reports hashing, bounded upload progress, and final source verification; 100% appears only
+after GitHub accepts or the app reconciles the exact asset, and only the small-pointer commit says
+**Committing … to _branch_**.
 
-After a native stall, HTTP 411, or HTTP 502, Desktop Material automatically tries a bounded
-exact-length `gh api` upload when GitHub CLI exists in its trusted Program Files location. The app
+Desktop Material first uses a bounded exact-length `gh api` upload when GitHub CLI exists in its
+trusted Program Files location. This avoids opening Electron's native upload pipe, which can crash
+the app if its remote data-pipe consumer closes during a write. The app
 uses the selected account and host, streams and hashes only the validated file range, passes the
 token through an isolated temporary child environment rather than the command line, and tears down
 the CLI on cancel or app quit. Before uploading again, it scans all ten bounded Release pages once;
 if an exact-name object exists, later checks poll only its ID. A completed exact-size/digest asset is
 reused, while a persistent `starter` asset fails closed so it cannot be overwritten or mistaken for
 success.
+
+If the trusted CLI is unavailable, Desktop Material retains Electron's memory-bounded chunked
+compatibility transport. Two minutes without forward network progress aborts that request instead
+of leaving the panel indefinitely at 0% or 1%; choose the manual flow below if it cannot complete.
 
 For explicit recovery, choose **Manual upload** beside the progress controls. Desktop Material
 stops that attempt and places all remaining files that fit one Release asset into one temporary
@@ -800,8 +804,12 @@ manual batch always stays together; if the current bucket lacks enough slots, ev
 group moves to the next Release and its pointer stores the exact tag. Assets still marked
 `starter` by GitHub reserve a slot but remain unavailable until GitHub reports them uploaded.
 
-Automatic assets are sent with Electron's memory-bounded chunked request mode. Even a multi-gigabyte
-part is read incrementally instead of being retained as one in-process request body.
+The compatibility Electron path reads even a multi-gigabyte part incrementally
+instead of retaining one in-process request body.
+
+Open the repository rail's **Large files** destination to manage the pointers directly. It lists
+and searches original repository-relative paths, pins reviewed files, and materializes one or all
+objects without requiring you to find their backing assets in GitHub Releases.
 
 The prepared folder is flat because GitHub Release assets cannot contain subfolders. Cheap LFS still
 remembers every original repository-relative path: files in nested folders return to those exact

@@ -157,17 +157,20 @@ customization/history context use the same profile/repository ownership model.
 Oversized files are prepared and uploaded through release-backed cheap LFS before
 Git creates the branch commit. New uploads use raw bytes, retain one asset when
 it fits the release limit, and use ordered raw ranges when it does not. The
-composer names hashing, release preparation, actual network-upload progress,
-and verification separately, then reserves **Committing to _branch_** for the
-small pointer commit. Electron sends each part in memory-bounded chunked mode
-rather than buffering the full request. Two minutes without network progress,
-HTTP 411, or HTTP 502 moves automatically to an isolated trusted GitHub CLI
-exact-range transport; its bounded reconciliation scans the full asset inventory
+composer names hashing, release preparation, upload progress, and verification
+separately, then reserves **Committing to _branch_** for the small pointer
+commit. An isolated trusted GitHub CLI exact-range transport runs first so the
+crash-prone Electron upload pipe is not opened when `gh` is available; its
+bounded reconciliation scans the full asset inventory
 once and then polls only one exact object ID. The adjacent **Manual upload**
 action remains the explicit recovery: it stops the automatic transfer, opens one
 temporary folder containing every remaining single-asset file, and resumes only
 after newly detected browser uploads and all local sources pass SHA-256
 verification.
+
+The repository rail's direct **Large files** manager lists and searches the
+original nested pointer paths, pins reviewed files, and materializes one or all
+objects without sending users through GitHub Releases.
 
 Every repository bucket is bounded to GitHub's 1,000-object Release limit.
 Whole multipart files and whole manual batches roll together from `assets` to

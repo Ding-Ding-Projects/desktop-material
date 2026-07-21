@@ -100,11 +100,11 @@ host platform-neutral repository automation.
 - Files over 100 MiB route through release-backed cheap LFS before every commit
   entry point. New uploads skip compression, remain raw, and split into verified
   ordered parts below GitHub's release-asset limit. The commit composer uses
-  Electron's chunked request mode so multi-gigabyte assets stay memory-bounded,
-  reports the actual network-upload counter, and aborts after two minutes without
-  forward progress. A stall or native HTTP 411/502 response automatically enters
-  a trusted `Program Files` GitHub CLI exact-length fallback with isolated
-  credentials, bounded progress and teardown, a single complete 1,000-object
+  the trusted `Program Files` GitHub CLI exact-length transport first, with
+  isolated credentials, bounded progress, and teardown. This avoids Electron's
+  crash-prone native upload data pipe when `gh` is available; the memory-bounded
+  native request remains a compatibility fallback. Upload recovery performs one
+  complete 1,000-object
   inventory followed by exact-ID polling, and fail-closed incomplete-asset
   handling. The one-folder whole-batch browser handoff remains the explicit
   recovery path. Its newly uploaded assets are downloaded, hashed, and
@@ -219,7 +219,7 @@ in `HANDOFF.md` and the canonical wiki.
 
 | Work | State | Required proof |
 |---|---|---|
-| Cheap-LFS native watchdog and trusted GitHub CLI recovery | **Local acceptance complete; remote verification pending** | Electron progress now reflects real network movement, a two-minute no-progress watchdog ends the 0%/1% hang, and stall/411/502 routes through an isolated trusted `gh api` exact-range transport. Complete bounded inventory, exact-ID polling, incomplete-object failure, manual recovery, and quit teardown are covered by the 21/21 transfer checkpoint; 13/13 localization checks also pass. The combined changed-surface gate passes 165/165. Exact production build, push/CI/release, and live large-file proof remain. |
+| Cheap-LFS crash containment and direct manager | **Focused acceptance complete; production verification pending** | Production now selects an isolated trusted `gh api` exact-range upload before opening Electron's crash-prone native data pipe. The repository rail exposes a scroll-owning **Large files** manager for listing, searching, pinning, and materializing pointers without browsing Releases. Complete bounded inventory, exact-ID polling, incomplete-object failure, manual recovery, and quit teardown remain covered; the direct manager/navigation/localization checkpoint passes 48/48 focused tests. Exact production package and live large-file proof remain. |
 | Build & Run output navigation and display controls | **Local acceptance complete; production verification pending** | The one-shot bottom jump, persisted auto-scroll with history-reading pause/resume, persisted display-only line truncation, full copy text, explicit pressed state, and English/Cantonese/bilingual labels pass 42/42 focused UI/style/localization checks and the combined changed-surface gate passes 165/165. Exact production UI/package proof remains. |
 | Windows x64 portable ZIP beside installers | **Focused packaging contract complete; full package and remote verification pending** | Local `yarn package` and the gated installer workflow now require `GitHub Desktop-x64.zip`; native tar streams an atomic ZIP, validates it by listing, rejects unsafe destinations, and removes stale/partial output. Portable-ZIP/CI checks pass 11/11 plus script TypeScript and focused lint/format/diff checks. A complete local production package has not yet run, so no full-size ZIP/installer receipt is claimed; remote release publication is also pending. |
 | Repository-toolbar text color and complete font controls | **Local regression acceptance complete; visual publication pending** | The existing toolbar owner now covers safe color, curated family, bounded size, emphasis, case, spacing, effects, and alignment with profile defaults, partial per-repository inheritance, localized controls, live preview, legacy-document compatibility, and overflow-measurement invalidation. It is included in the 66-test maintenance gate plus TypeScript; the combined audit owns fresh off-screen visual proof. |

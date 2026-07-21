@@ -131,6 +131,15 @@ function rowFor(path: string): HTMLElement {
 }
 
 describe('CheapLfs panel', () => {
+  it('identifies itself as the manager without requiring Releases browsing', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher([])
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    assert.ok(await screen.findByText('Cheap LFS manager'))
+    assert.ok(screen.getByText(/do not need to browse GitHub Releases/i))
+  })
+
   it('lists committed pointers with path, tag, asset, and size', async () => {
     const dispatcher = new FakeCheapLfsDispatcher(pointers)
     render(
