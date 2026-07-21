@@ -187,6 +187,18 @@ describe('PopupManager', () => {
       assert.equal(popupsOfType.length, 1)
     })
 
+    it('notifies a duplicate popup that it was not added', () => {
+      const popupManager = new PopupManager()
+      let removed = 0
+      popupManager.addPopup({ type: PopupType.About })
+      popupManager.addPopup({
+        type: PopupType.About,
+        onRemoved: () => removed++,
+      })
+
+      assert.equal(removed, 1)
+    })
+
     it('replaces branch-rules context and keeps trailing errors foremost', () => {
       const popupManager = new PopupManager()
       const firstRepository = { id: 1 } as never
@@ -251,6 +263,26 @@ describe('PopupManager', () => {
       }
     })
 
+    it('retargets an existing sign-in popup without declining the replacement', () => {
+      const popupManager = new PopupManager()
+      const first = popupManager.addPopup({ type: PopupType.SignIn })
+      let removed = 0
+      const replacement = popupManager.addPopup({
+        type: PopupType.SignIn,
+        isCredentialHelperSignIn: true,
+        credentialHelperUrl: 'https://github.com',
+        onRemoved: () => removed++,
+      })
+
+      assert.equal(replacement.id, first.id)
+      assert.equal(removed, 0)
+      assert.equal(popupManager.getPopupsOfType(PopupType.SignIn).length, 1)
+      assert.equal(popupManager.currentPopup?.type, PopupType.SignIn)
+      if (popupManager.currentPopup?.type === PopupType.SignIn) {
+        assert.equal(popupManager.currentPopup.isCredentialHelperSignIn, true)
+      }
+    })
+
     it('adds multiple popups of different types', () => {
       const popupManager = new PopupManager()
       popupManager.addPopup({ type: PopupType.About })
@@ -267,7 +299,11 @@ describe('PopupManager', () => {
 
     it('trims oldest popup when limit is reached', () => {
       const popupManager = new PopupManager(2)
-      popupManager.addPopup({ type: PopupType.About })
+      let removed = 0
+      popupManager.addPopup({
+        type: PopupType.About,
+        onRemoved: () => removed++,
+      })
       popupManager.addPopup({ type: PopupType.SignIn })
       popupManager.addPopup({ type: PopupType.TermsAndConditions })
 
@@ -285,6 +321,7 @@ describe('PopupManager', () => {
         termsAndConditionsPoups.at(0)?.type,
         PopupType.TermsAndConditions
       )
+      assert.equal(removed, 1)
     })
   })
 
@@ -405,6 +442,20 @@ describe('PopupManager', () => {
       const signInPopups = popupManager.getPopupsOfType(PopupType.SignIn)
       assert.equal(signInPopups.length, 1)
     })
+
+    it('notifies a removed popup exactly once', () => {
+      const popupManager = new PopupManager()
+      let removed = 0
+      const popup = popupManager.addPopup({
+        type: PopupType.About,
+        onRemoved: () => removed++,
+      })
+
+      popupManager.removePopup(popup)
+      popupManager.removePopup(popup)
+
+      assert.equal(removed, 1)
+    })
   })
 
   describe('removePopupByType', () => {
@@ -420,6 +471,19 @@ describe('PopupManager', () => {
 
       const signInPopups = popupManager.getPopupsOfType(PopupType.SignIn)
       assert.equal(signInPopups.length, 1)
+    })
+
+    it('notifies popups removed by type', () => {
+      const popupManager = new PopupManager()
+      let removed = 0
+      popupManager.addPopup({
+        type: PopupType.About,
+        onRemoved: () => removed++,
+      })
+
+      popupManager.removePopupByType(PopupType.About)
+
+      assert.equal(removed, 1)
     })
   })
 
@@ -441,6 +505,20 @@ describe('PopupManager', () => {
 
       const signInPopups = popupManager.getPopupsOfType(PopupType.SignIn)
       assert.equal(signInPopups.length, 1)
+    })
+
+    it('notifies popups removed by id', () => {
+      const popupManager = new PopupManager()
+      let removed = 0
+      const popup = popupManager.addPopup({
+        type: PopupType.About,
+        onRemoved: () => removed++,
+      })
+
+      assert.notEqual(popup.id, undefined)
+      popupManager.removePopupById(popup.id!)
+
+      assert.equal(removed, 1)
     })
   })
 

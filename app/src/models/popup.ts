@@ -203,6 +203,13 @@ interface IBasePopup {
    * Unique id of the popup that it receives upon adding to the stack.
    */
   readonly id?: number
+
+  /**
+   * Called when the manager removes or declines the popup, whether through its
+   * normal UI, explicit cleanup, de-duplication, or the stack limit.
+   * Promise-backed popups use this to settle if their UI vanishes.
+   */
+  readonly onRemoved?: () => void
 }
 
 /**

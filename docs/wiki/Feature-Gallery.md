@@ -62,7 +62,7 @@ active profile's style, label, and explicit language mode.
 | --- | --- |
 | `material-app-identity-workspace.png` | Restart-restored profile app identity and favorite repository tab |
 | `material-welcome.png` | Material first-run task card and responsive workspace preview |
-| `material-customization.png` | Editor anchored beside its actual visual owner with dedicated Git history and repository path |
+| `material-customization.png` | Editor anchored beside its actual visual owner with burst-coalesced persistence, dedicated Git history, and repository path |
 | `material-repository-logo-studio.png` | Layered custom repository-logo studio with live preview and safe transfer controls |
 | `material-toolbar-overflow.png` | Measured narrow toolbar with Build & Run and Commit & Push in More |
 | `material-tab-appearance-word.png` | Word-style tab typography, alignment, and independent color palettes |
@@ -326,9 +326,14 @@ text layers, transforms and colors in a live preview with undo/redo and safe
 JSON transfer; a repository can inherit or edit its profile default without
 accepting executable SVG. Measured toolbar overflow remains unchanged.
 
+High-frequency visual controls now collapse each synchronous burst into the
+latest normalized owner value before one durable write and notification. Queued
+`get()` reads, flushes, and History remain ordering barriers, so the responsive
+path does not weaken the dedicated audit timeline.
+
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
-![Appearance editor anchored beside its actual owner with History and a dedicated local Git path](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+![Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ![Layered custom repository-logo studio with live preview and safe transfer controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-logo-studio.png)
 

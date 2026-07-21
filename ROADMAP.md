@@ -11,6 +11,27 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [`PLAN.md`](PLAN.md) and
 [`HANDOFF.md`](HANDOFF.md).
 
+## July 21 responsiveness hardening — **Local implementation complete**
+
+Publication verification is pending.
+
+- Valid, locally resolvable remote defaults no longer trigger a potentially
+  multi-minute online `git remote set-head -a` scan after every fetch. Missing,
+  invalid, or dangling refs retain exact-account discovery.
+- Concurrent GitHub, Git, and SSH credential prompts settle through one
+  recoverable FIFO instead of allowing popup de-duplication or forced removal
+  to strand a caller.
+- High-frequency appearance updates coalesce into one latest-value store
+  mutation without crossing queued `get()` reads, flushes, or owner-history
+  operations.
+- Failed/cancelled Electron requests release their same-origin tracking entry,
+  and unmounted sandboxed Markdown previews remove capture listeners, cancel
+  deferred work, and release iframe references.
+- Deterministic regressions cover a never-settling remote scan, every prompt
+  family, a 500-update burst, failed request-ID reuse, and 25 Markdown reloads.
+  Exact rebased-source full tests, low-level-MCP production build, off-screen UI
+  evidence, push, CI, Pages, wiki, and release receipts remain to be recorded.
+
 ## M25 — Repository-bound API functions — **Implementation complete; verification pending**
 
 - Eligible GitHub repositories automatically receive a curated set of
@@ -123,7 +144,7 @@ host platform-neutral repository automation.
   stay one-at-a-time under a documented exclusion. Every actual search field is
   registered against the shared regex-builder and invalid-pattern contract, and
   a frozen registry with an enforcing test fails any unregistered search input.
-- All 68 published app screenshots used by README, Pages, and the wiki will be
+- All 66 published app screenshots used by README, Pages, and the wiki will be
   recaptured from a synthetic production build on an off-screen Win32 desktop.
   The new anchored-editor proof must display a privacy-safe collapsed local-repo
   path while its Copy action retains the exact path.
@@ -203,7 +224,7 @@ shipped.
 | **M19** | **Complete** | Guided Git/GitHub/provider parity: PR lifecycle, Releases, Issues, rules, patch series, commit rewrite, signing, LFS, worktrees, remotes, hooks, bisect, and triage. |
 | **M20** | **Complete** | Secure LAN agent access, provider inbox and Releases depth, submodule workflows, Material context menus, compact-surface fixes, and refreshed gallery evidence. |
 | **M21** | **Complete** | Thirty demand-backed identity, PR, stash/tag, navigation, diff, integration, and Projects workflow closures with bounded safety contracts. |
-| **M22** | **Implementation complete; visual refresh paused** | Owner-scoped anchored appearance/history, raw split cheap LFS, repository discovery and submodule/subtree expansion, safe cross-manager bulk/regex coverage, verified by build/tests; 68-image publication refresh remains pending. |
+| **M22** | **Implementation complete; visual refresh paused** | Owner-scoped anchored appearance/history, raw split cheap LFS, repository discovery and submodule/subtree expansion, safe cross-manager bulk/regex coverage, verified by build/tests; 66-image publication refresh remains pending. |
 | **M23** | **Complete; published** | Full Ollama health/version, installed/running inventory, search/filter/details, cancellable pull, copy/rename, load/unload, confirmed delete, authoritative provider-model sync, guarded endpoints, localized accessible states, and accepted privacy-safe off-screen evidence. |
 | **M24** | **Local acceptance complete; publication verification pending** | Persistent Choose/Adjust/Restore → Review selection → Apply and refresh sparse-checkout guidance, exact normalized review and cone-mode diff, retained result state, compact non-overlapping layout, production-build proof, and two inspected privacy-safe off-screen captures. |
 
@@ -227,7 +248,7 @@ in `HANDOFF.md` and the canonical wiki.
 | Tab-title appearance profile-transition guard | **Local regression acceptance complete; combined publication pending** | The installed-release right-click crash was traced to strict history lookup during owner-store replacement. Nullable accessors, startup ordering, clicked-tab rehydration, localized loading guidance, request invalidation, and profile/revision fencing pass 29 focused tests plus TypeScript, targeted lint/format, and diff checks. The combined audit owns the next exact-source headless build and publication receipts. |
 | M24 guided sparse-checkout workflow | **Local acceptance complete; publication verification pending** | Exact source `255ad0c228` passed 23 focused behavior/safety/layout checks, TypeScript, targeted lint/format, the 41-test gallery contract, the required 254.90-second low-level-MCP production build, deterministic off-screen Choose/Review interaction, original-resolution privacy inspection, byte-for-byte promotion, and owned-resource cleanup. Final pushed-SHA CI, Pages, release, wiki, public-asset, and topology checks remain. |
 | M23 full Ollama model manager | **Complete; published** | Endpoint/parser, lifecycle, synchronization, stale-request, localization, accessibility, and responsive-layout tests; exact low-level-MCP production build; deterministic loopback Ollama exercise; original-resolution privacy-safe manager capture; runtime cleanup; pushed Windows CI and CodeQL; canonical wiki synchronization; live Pages and public-asset verification; and final topology cleanup are complete. |
-| M22 integrated owner-scoped management wave | **Implementation merged locally; final acceptance in progress** | Cheap-LFS/SSH/discovery checkpoint `cdedb4afb8` is already on `origin/main`. The combined owner-scoped appearance/repository-management commit is rebased locally as `04581544cf`; TypeScript and 166 focused tests pass. Remote-repository submodule creation is implemented and focused-tested. Remaining proof is the expanded bulk/regex audit, final exact MCP build, full 68-image privacy-safe headless refresh, full unit/lint/format gates, push, remote CI/CodeQL/Pages/wiki verification, and topology cleanup. |
+| M22 integrated owner-scoped management wave | **Implementation merged locally; final acceptance in progress** | Cheap-LFS/SSH/discovery checkpoint `cdedb4afb8` is already on `origin/main`. The combined owner-scoped appearance/repository-management commit is rebased locally as `04581544cf`; TypeScript and 166 focused tests pass. Remote-repository submodule creation is implemented and focused-tested. Remaining proof is the expanded bulk/regex audit, final exact MCP build, full 66-image privacy-safe headless refresh, full unit/lint/format gates, push, remote CI/CodeQL/Pages/wiki verification, and topology cleanup. |
 | Temporary submodule repository navigation and explicit language modes | **Complete; release verified** | Run `20260718-232824-ci-10-pass-submodule-navigation` opened only initialized submodules; kept temporary children out of the repository list, Recent, tabs, and persisted last selection; returned nested navigation to the persisted root; rejected stale, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets; covered all Back styles/labels and exact English, playful Hong Kong Cantonese, and bilingual modes; and passed restart, keyboard, compact, dark, 200%-requested auto-fit, ten accepted screenshot passes, and a post-build 1440×960 child/read-only/Back regression. A later fresh-bundle race regression synchronously exercised duplicate Open and Back activation: it preserved one persisted repository and tab, restored the root once, and showed no error. Initial remote CI exposed a macOS arm64 symlink-error ordering issue; correction `98d93ccc` passed all seven CI jobs and published `v3.6.3-beta3-b0000000165`. |
 | CI updater port and release gating | **Complete; release verified** | Local contracts verify a per-job exact loopback updater URL at build and runtime, successful exact-SHA CI gating before installer publication, immutable-tag and `origin/main` checks both before packaging and immediately before publication, required non-empty assets, least-privilege release-PR read access, and one publication action. The original failed CI correctly skipped its downstream installer run. The correction passed remote Windows packaged E2E, all remaining matrix jobs, CodeQL, and [Build Installers 29697597981](https://github.com/codingmachineedge/desktop-material/actions/runs/29697597981), which published the five required assets in `v3.6.3-beta3-b0000000165`. |
 | Profile, repository, feature, and tab appearance customization | **Owner-scoped implementation complete locally; publication pending** | Each actual visual owner opens its own anchored editor and owns an independent strict setting, local Git repository, and mutable history. Repository owners inherit matching profile owners without sharing commits; toolbar typography supports partial property inheritance, and individual tab titles and feature IDs stay isolated. Tab-title opening now waits for the clicked owner, fails safely with localized loading guidance during a profile transition, and rejects stale prior-profile completions. Focused behavior, race, recovery, focus, and history tests pass; final visual and remote acceptance remains part of M22. |
@@ -242,7 +263,7 @@ in `HANDOFF.md` and the canonical wiki.
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on `main`. |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment. |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery. |
-| Documentation gallery expansion | **M22 full refresh in progress** | README, wiki, and Pages now declare 68 app screenshots. All 68 must be recaptured from the final production build with synthetic data; stale monolithic appearance scenes are being replaced by actual-owner anchored scenes, and specialized large-file, repository-discovery, and submodule-management frames are being added. Final completion requires original-resolution privacy inspection and byte-identical Pages/wiki delivery. |
+| Documentation gallery expansion | **M22 full refresh in progress** | README, wiki, and Pages now declare 66 app screenshots. All 66 must be recaptured from the final production build with synthetic data; stale monolithic appearance scenes are being replaced by actual-owner anchored scenes, and specialized large-file, repository-discovery, and submodule-management frames are being added. Final completion requires original-resolution privacy inspection and byte-identical Pages/wiki delivery. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence. |
 
 ## Acceptance gates

@@ -124,6 +124,14 @@ export async function updateRemoteHEAD(
   /** Stable account identity to force for this remote lookup. Never a token. */
   accountKey?: string
 ): Promise<void> {
+  // Discovering the remote's default branch requires contacting the remote and
+  // can be disproportionately expensive for repositories with many refs. If
+  // the local remote HEAD already points within this remote's namespace, it is
+  // usable as-is and no network lookup is necessary.
+  if ((await getRemoteHEAD(repository, remote.name)) !== null) {
+    return
+  }
+
   const options = {
     successExitCodes: new Set([0, 1, 128]),
     env: await envForRemoteOperation(remote.url),
@@ -150,6 +158,20 @@ export async function getRemoteHEAD(
     match.length > remoteNamespace.length &&
     match.startsWith(remoteNamespace)
   ) {
+    // A fetch with pruning, a remote URL change, or a default-branch rename can
+    // leave the symbolic ref behind after its target has disappeared. Treat a
+    // dangling remote HEAD as missing so callers can repair it instead of
+    // indefinitely reusing a stale branch name.
+    const target = await git(
+      ['show-ref', '--verify', '--quiet', '--', match],
+      repository.path,
+      'getRemoteHEADTarget',
+      { successExitCodes: new Set([0, 1, 128]) }
+    )
+    if (target.exitCode !== 0) {
+      return null
+    }
+
     // strip out everything related to the remote because this
     // is likely to be a tracked branch locally
     // e.g. `main`, `develop`, etc

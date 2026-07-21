@@ -98,7 +98,8 @@ export class PopupManager {
     if (existingPopup.length > 0) {
       if (
         popupToAdd.type === PopupType.BranchRules ||
-        popupToAdd.type === PopupType.SparseCheckout
+        popupToAdd.type === PopupType.SparseCheckout ||
+        popupToAdd.type === PopupType.SignIn
       ) {
         const popup = { ...popupToAdd, id: existingPopup[0].id }
         this.popupStack = this.popupStack.filter(
@@ -110,6 +111,7 @@ export class PopupManager {
       log.warn(
         `Attempted to add a popup of already existing type - ${popupToAdd.type}.`
       )
+      this.notifyPopupRemoved(popupToAdd)
       return popupToAdd
     }
 
@@ -168,6 +170,7 @@ export class PopupManager {
         )
       )
       this.popupStack = this.popupStack.slice(1)
+      this.notifyPopupRemoved(oldest)
     }
   }
 
@@ -202,21 +205,41 @@ export class PopupManager {
       log.warn(`Attempted to remove a popup without an id.`)
       return
     }
+    const removed = this.popupStack.filter(p => p.id === popup.id)
     this.popupStack = this.popupStack.filter(p => p.id !== popup.id)
+    for (const removedPopup of removed) {
+      this.notifyPopupRemoved(removedPopup)
+    }
   }
 
   /**
    * Removes any popup of the given type from the stack
    */
   public removePopupByType(popupType: PopupType) {
+    const removed = this.popupStack.filter(p => p.type === popupType)
     this.popupStack = this.popupStack.filter(p => p.type !== popupType)
+    for (const removedPopup of removed) {
+      this.notifyPopupRemoved(removedPopup)
+    }
   }
 
   /**
    * Removes popup from the stack by it's id
    */
   public removePopupById(popupId: number) {
+    const removed = this.popupStack.filter(p => p.id === popupId)
     this.popupStack = this.popupStack.filter(p => p.id !== popupId)
+    for (const removedPopup of removed) {
+      this.notifyPopupRemoved(removedPopup)
+    }
+  }
+
+  private notifyPopupRemoved(popup: Popup) {
+    try {
+      popup.onRemoved?.()
+    } catch (error) {
+      log.error(`Popup removal callback failed for ${popup.type}.`, error)
+    }
   }
 
   /**

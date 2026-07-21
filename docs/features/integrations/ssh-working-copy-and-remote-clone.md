@@ -43,6 +43,13 @@ the operating-system credential vault under a scope derived from user, host,
 and effective port. The source URL is resolved only for the operation and is
 not saved with the host.
 
+Every askpass surface shares one FIFO UI queue. Host-key acceptance, SSH key
+passphrases, SSH user passwords, generic Git credentials, and GitHub sign-in
+therefore appear one at a time. Concurrent requests of the same popup type are
+not discarded by popup de-duplication, and each caller settles from its own
+visible prompt. If the popup manager must remove or evict an active prompt, its
+caller receives the corresponding cancellation result and the queue continues.
+
 ## Failure modes and recovery
 
 Invalid host, port, user, identity path, source URL, branch, or destination
@@ -56,6 +63,12 @@ non-fast-forward work. Deployment refuses branch or source mismatches and a
 remote checkout containing commits outside the fetched branch. Fix the saved
 metadata or host state, test the connection again, and retry the explicit
 action; no failed operation silently resets the remote checkout.
+
+If popup dispatch itself fails, that caller receives the failure and later
+prompts continue from a normalized queue tail. A prompt that is awaiting user
+input intentionally holds later credential prompts in order; cancelling or
+submitting it advances the queue. Removing a GitHub sign-in popup also resets
+its retained sign-in callback instead of leaving store state alive without UI.
 
 ## Security considerations
 
@@ -83,3 +96,6 @@ credential-free source selection, action progress, cancellation, and metadata
 removal. `agent-command-executor-test.ts` and `agent-commands-test.ts` verify
 bounded redacted discovery, duplicate-ID omission, advertised schemas, saved
 host resolution, clone routing, branch forwarding, and failure redaction.
+`popup-manager-test.ts` and `trampoline-ui-helper-test.ts` verify strict FIFO
+settlement for every prompt family, existing sign-in reuse, external removal,
+sign-in reset, and recovery after an asynchronous popup-dispatch failure.

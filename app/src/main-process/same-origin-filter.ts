@@ -94,4 +94,7 @@ export function installSameOriginFilter(orderedWebRequest: OrderedWebRequest) {
   orderedWebRequest.onCompleted.addEventListener(details =>
     requestOrigin.delete(details.id)
   )
+  orderedWebRequest.onErrorOccurred.addEventListener(details =>
+    requestOrigin.delete(details.id)
+  )
 }

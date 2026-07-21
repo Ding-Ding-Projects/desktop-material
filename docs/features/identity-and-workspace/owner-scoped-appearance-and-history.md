@@ -41,8 +41,13 @@ histories stable when the working copy moves.
 
 The former aggregate appearance value is read only as a migration seed and
 bounded startup projection. Owner repositories are authoritative after
-initialization. Writes are crash-safe, serialized across renderer activity,
-and coalesced for 250 milliseconds before their owner-local commit.
+initialization. Writes are crash-safe and serialized across renderer activity.
+Adjacent synchronous updates to one owner collapse into the latest normalized
+value before the durable write and state notification, preventing sliders and
+color controls from queuing hundreds of redundant file operations. Queued
+`get()` reads, flushes, and history actions close that burst and preserve call
+order; separately awaited writes retain sequential behavior. Durable changes
+remain coalesced for 250 milliseconds before their owner-local commit.
 
 ## Failure modes and recovery
 
@@ -88,9 +93,10 @@ or Git history.
 
 ## Verification
 
-`dedicated-setting-store-test.ts` covers independent roots, debounced commits,
-append-only undo/redo/restore, recovery, corruption, external edits, and path
-escape refusal. `element-appearance-coordinator-test.ts` covers profile,
+`dedicated-setting-store-test.ts` covers independent roots, a 500-call
+latest-value burst, ordering barriers, failed-batch recovery, debounced commits,
+append-only undo/redo/restore, corruption, external edits, and path escape
+refusal. `element-appearance-coordinator-test.ts` covers profile,
 feature, tab, and repository isolation plus migration and UUID races.
 `anchored-appearance-editor-test.tsx`,
 `repository-element-appearance-editors-test.tsx`, and

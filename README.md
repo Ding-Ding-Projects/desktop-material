@@ -111,7 +111,13 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
   the safe fallback; Desktop Material does not silently replace the selection
   from the Windows locale
 - Right-click an actual visual owner—or focus it and press `Shift+F10`—to open its editor beside that element. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Specialized Git context menus keep priority on their surrounding hit areas
-- Every appearance owner has one versioned `setting.json` in its own local Git repository and its own **History** manager with lazy diffs, undo, redo, and restore. History actions append audit commits; the editor footer exposes the exact local path. Profile owners, feature IDs, repository instances, and tab instances never share a mutable timeline
+- Every appearance owner has one versioned `setting.json` in its own local Git
+  repository and its own **History** manager with lazy diffs, undo, redo, and
+  restore. History actions append audit commits; the editor footer exposes the
+  exact local path. Profile owners, feature IDs, repository instances, and tab
+  instances never share a mutable timeline. A rapid slider/color burst persists
+  only its latest normalized value before the existing commit debounce, while
+  queued setting reads and History remain strict ordering barriers
 - Repository-scoped workspace, toolbar, tab-strip, list-name, and logo values can inherit their profile owner. Toolbar appearance includes safe text color plus curated family, bounded size, emphasis, case, spacing, effect, and alignment controls; a repository can inherit those typography properties individually or clear its whole local layer. A local `desktop-material.appearance-id` UUID keeps those dedicated repositories stable when the working copy moves; the old aggregate config is migration/startup compatibility only
 - The temporary-submodule Back owner offers **Tonal**, **Filled accent**, or **Outlined**, plus label choices. The vector repository-logo studio keeps bounded JSON import/export and safe code-native layers; an inherited row can jump to the profile default beside the same actual logo
 - Toolbar measurement respects Icons only and compact density. Build & Run overflows first, followed by Commit & Push; widening the window or shortening a dynamic label restores the same mounted controls deterministically, while an open **More** surface remains stable until it closes
@@ -126,7 +132,13 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 **Multi-account**
 - Multiple accounts including multiple identities per host; per-account tabs, repos, and settings
-- Repository-bound HTTPS Git fetch, pull, push, post-push refresh, scheduled sync, refspec fetch, and remote-HEAD discovery use the exact selected account. Legacy unbound organization repositories prefer a verified write-capable same-host identity, while a missing explicit binding fails closed instead of silently using another account
+- Repository-bound HTTPS Git fetch, pull, push, post-push refresh, scheduled
+  sync, refspec fetch, and remote-HEAD discovery use the exact selected account.
+  A namespace-validated local remote HEAD skips the redundant online
+  default-branch scan after fetch; missing or invalid refs still perform one
+  authenticated discovery. Legacy unbound organization repositories prefer a
+  verified write-capable same-host identity, while a missing explicit binding
+  fails closed instead of silently using another account
 - GitHub browser sign-in requests the bounded feature scopes used by the app: repository/user access, workflow-file updates, notifications, and read-only organization membership. Unrelated destructive and administrative OAuth scopes are intentionally excluded
 - Browse complete GitHub organization repository lists, filter cloning by organization, and choose an organization when publishing
 - Add GitLab accounts, including self-hosted endpoints, with a personal access token; add Bitbucket accounts with an app password, then browse and clone their repositories from the provider tab
@@ -149,6 +161,9 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 - Preferences rebuilt as an MD3 940×660 dialog with a left rail, an Active chip, and a pill footer
 - Repository and branch pickers are MD3 side sheets; the clone dialog is restyled to match
 - Acknowledgement-only application errors default to dismissible red notices at the bottom right; choose traditional blocking dialogs in **Settings → Notifications**, while errors that require a decision, retry, sign-in, or remediation always remain dialogs. An error that names the affected repository's stale `.git/index.lock` offers a scoped **Remove lock file** action after Desktop confirms the repository is idle and the lock is old and unchanged
+- GitHub sign-in and Git/SSH credential prompts use one recoverable FIFO, so
+  concurrent host-key, passphrase, password, and generic authentication
+  requests cannot be dropped by popup de-duplication
 
 **Notification centre**
 - A bell and right-hand side sheet backed by its own local git repo — search by title, message, or repository metadata; filter by event type; select all visible results; bulk mark read/unread or delete; and visibly confirm **Clear all**, with every change recoverable from Git-backed history
@@ -215,6 +230,18 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 - Use the repository Releases dashboard to compare loaded, stable, prerelease, and draft counts; search and status-filter its wider, larger-target catalog; inspect authors, dates, targets, asset types, digests, and download totals; create reviewed releases publicly in one operation or save them as drafts; and keep bounded edit, publish, delete, upload, and download workflows. Browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
 - Use the repository-contextual GitHub API functions surface, bound to the selected account and provider host, to run automatically added repository, issues, pull-request, release, and workflow actions as buttons; hide the API rail item when it is not needed, and reveal the full REST/GraphQL catalog only for advanced custom functions
 
+### Responsiveness and resource lifecycle
+
+- Reuse a valid local remote default instead of rescanning every server ref after
+  each fetch; first-time, invalid, and dangling states retain exact-account
+  discovery
+- Collapse synchronous appearance bursts into one latest-value write without
+  crossing queued `get()` reads, flushes, or owner-history operations
+- Release same-origin request records on success, failure, and cancellation,
+  preventing failed network requests from growing process-lifetime state
+- Sandboxed Markdown previews remove capture listeners, cancel deferred scroll
+  work, and release iframe references on unmount
+
 **Fully Material, everywhere**
 - The remaining stock surfaces — tooltips, menus, banners, autocomplete popups, segmented controls, split-buttons, dialog internals, History/CI surfaces — are re-tinted through the Material token system in both light and dark themes
 - Every button now exposes a shared hover and keyboard-focus hint derived from its explicit help text, accessible name, or visible label; icon-only native buttons mounted later by dialogs and virtualized views receive the same non-native tooltip treatment
@@ -245,7 +272,7 @@ automation, and account isolation. The diagrams are reproducible with
 
 | Custom app identity | Material Welcome | Appearance customization | Dynamic toolbar overflow |
 | --- | --- | --- | --- |
-| <img src="docs/assets/screenshots/material-app-identity-workspace.png" alt="Workspace with a customized in-app logo and name plus a favorite repository tab" width="320"><br><sub>Profile app identity</sub> | <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="320"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance editor anchored beside its actual element with History and the dedicated local Git repository path" width="320"><br><sub>Anchored owner · independent history</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="320"><br><sub>Measured More behavior</sub> |
+| <img src="docs/assets/screenshots/material-app-identity-workspace.png" alt="Workspace with a customized in-app logo and name plus a favorite repository tab" width="320"><br><sub>Profile app identity</sub> | <img src="docs/assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="320"><br><sub>Material Welcome</sub> | <img src="docs/assets/screenshots/material-customization.png" alt="Appearance editor anchored beside its actual element with History, a dedicated local Git path, and burst-safe persistence" width="320"><br><sub>Anchored owner · burst-safe history</sub> | <img src="docs/assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="320"><br><sub>Measured More behavior</sub> |
 
 | Word-style tab appearance | Arrange tabs | Actions cancellation | Reviewed rebase |
 | --- | --- | --- | --- |

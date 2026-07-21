@@ -81,6 +81,16 @@ interface ILoadedSetting<T> {
   readonly source: 'primary' | 'backup' | 'recovery'
 }
 
+interface IPendingSetBatch<T> {
+  canonical: T
+  commitDescription: string
+}
+
+interface IOpenSetBatch<T> {
+  readonly batch: IPendingSetBatch<T>
+  readonly operation: Promise<void>
+}
+
 /**
  * One element setting, one explicit directory, one append-only Git timeline.
  *
@@ -113,6 +123,8 @@ export class DedicatedSettingStore<T> extends TypedBaseStore<
 
   /** A non-poisoning tail that preserves public-call mutation order. */
   private mutationTail: Promise<void> = Promise.resolve()
+  /** Adjacent `set` calls may supersede this batch until its mutation starts. */
+  private pendingSetBatch: IOpenSetBatch<T> | null = null
   private readonly pendingDescriptions = new Array<string>()
   private commitTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -171,6 +183,8 @@ export class DedicatedSettingStore<T> extends TypedBaseStore<
   /**
    * Persist one canonical setting. Equal canonical values are no-ops. The
    * returned promise includes the Git commit when `commitDelayMs` is zero.
+   * Adjacent synchronous calls share one promise and persist only the latest
+   * value unless another queued public operation separates them.
    */
   public set(
     value: T,
@@ -182,33 +196,17 @@ export class DedicatedSettingStore<T> extends TypedBaseStore<
     )
     const commitDescription = normalizeDescription(description)
 
-    return this.enqueue(async () => {
-      await this.initialize()
-      const repository = this.requireRepository()
+    const pending = this.pendingSetBatch
+    if (pending !== null) {
+      pending.batch.canonical = canonical
+      pending.batch.commitDescription = commitDescription
+      return pending.operation
+    }
 
-      await withProfileRepositoryLock(repository, async () => {
-        await this.assertOwnedRepositoryLocation()
-        await assertOwnedDirectoryContents(this.repositoryPath)
-        await this.assertWorkingSettingMatches(repository)
-        if (settingsEqual(this.setting, canonical)) {
-          if (this.commitDelayMs === 0) {
-            await this.flushPendingLocked(repository)
-          }
-          return
-        }
-
-        await this.writeSetting(repository, canonical)
-        this.setting = canonical
-        this.pendingDescriptions.push(commitDescription)
-        this.emitState()
-
-        if (this.commitDelayMs === 0) {
-          await this.flushPendingLocked(repository)
-        } else {
-          this.scheduleCommit()
-        }
-      })
-    })
+    const batch: IPendingSetBatch<T> = { canonical, commitDescription }
+    const operation = this.enqueueOperation(() => this.persistSetBatch(batch))
+    this.pendingSetBatch = { batch, operation }
+    return operation
   }
 
   /** Commit every durable setting write invoked before this call. */
@@ -343,7 +341,52 @@ export class DedicatedSettingStore<T> extends TypedBaseStore<
     })
   }
 
+  private async persistSetBatch(batch: IPendingSetBatch<T>): Promise<void> {
+    // Promise callbacks never run in the creating call stack, so synchronous
+    // callers can replace the batch above. Once this mutation starts, later
+    // sets must enqueue behind it instead of changing the value in flight.
+    if (this.pendingSetBatch?.batch === batch) {
+      this.pendingSetBatch = null
+    }
+
+    const { canonical, commitDescription } = batch
+    await this.initialize()
+    const repository = this.requireRepository()
+
+    await withProfileRepositoryLock(repository, async () => {
+      await this.assertOwnedRepositoryLocation()
+      await assertOwnedDirectoryContents(this.repositoryPath)
+      await this.assertWorkingSettingMatches(repository)
+      if (settingsEqual(this.setting, canonical)) {
+        if (this.commitDelayMs === 0) {
+          await this.flushPendingLocked(repository)
+        }
+        return
+      }
+
+      await this.writeSetting(repository, canonical)
+      this.setting = canonical
+      this.pendingDescriptions.push(commitDescription)
+      this.emitState()
+
+      if (this.commitDelayMs === 0) {
+        await this.flushPendingLocked(repository)
+      } else {
+        this.scheduleCommit()
+      }
+    })
+  }
+
   private enqueue<TResult>(action: () => Promise<TResult>): Promise<TResult> {
+    // Reads, flushes, and history operations are ordering barriers. A set made
+    // after one of them must not supersede a set made before it.
+    this.pendingSetBatch = null
+    return this.enqueueOperation(action)
+  }
+
+  private enqueueOperation<TResult>(
+    action: () => Promise<TResult>
+  ): Promise<TResult> {
     const operation = this.mutationTail.then(action)
     this.mutationTail = operation.then(
       () => undefined,

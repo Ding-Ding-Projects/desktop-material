@@ -22,3 +22,8 @@ credentials or machine-specific state in a repository.
   clone](ssh-working-copy-and-remote-clone.md)
 - [GitHub CLI push credential
   fallback](gh-cli-push-fallback.md)
+
+Credential and sign-in prompts are serialized through one recoverable FIFO so
+concurrent Git/SSH requests cannot lose their visible completion path. See the
+cross-cutting [responsiveness and resource lifecycle
+contract](../quality-and-reliability/responsiveness-and-resource-lifecycle.md).

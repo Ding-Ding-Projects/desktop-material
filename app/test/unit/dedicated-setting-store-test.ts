@@ -186,7 +186,123 @@ describe('DedicatedSettingStore', () => {
     assert.deepEqual(await store.get(), setting('green', 'canonical label'))
   })
 
-  it('debounces writes into one deterministic multi-description commit', async t => {
+  it('coalesces 500 synchronous superseding writes into one mutation', async t => {
+    const { directory, store } = await createStore(t, 'coalesced-burst')
+    await store.initialize()
+
+    const updates = new Array<IDedicatedSettingState<ITestSetting>>()
+    const subscription = store.onDidUpdate(state => updates.push(state))
+    t.after(() => subscription.dispose())
+
+    const colors: ReadonlyArray<ITestSetting['color']> = [
+      'red',
+      'green',
+      'blue',
+    ]
+    const operations = Array.from({ length: 500 }, (_, index) =>
+      store.set(
+        setting(colors[index % colors.length], `value ${index}`),
+        `Choose value ${index}`
+      )
+    )
+    const operation = operations[0]
+    assert.ok(operation !== undefined)
+    assert.ok(operations.every(candidate => candidate === operation))
+
+    await Promise.all(operations)
+
+    const expected = setting('green', 'value 499')
+    assert.equal(updates.length, 1)
+    assert.deepEqual(updates[0].setting, expected)
+    assert.deepEqual(await store.get(), expected)
+    assert.deepEqual(await readSettingFile(directory), expected)
+
+    const history = await store.getHistory()
+    assert.equal(history.total, 2)
+    assert.equal(history.entries[0].summary, 'Choose value 499')
+  })
+
+  it('keeps reads and history mutations as synchronous set barriers', async t => {
+    const { store } = await createStore(t, 'set-ordering')
+    await store.initialize()
+
+    const beforeRead = store.set(setting('green'), 'Before read')
+    const read = store.get()
+    const afterRead = store.set(setting('blue'), 'After read')
+    assert.notStrictEqual(beforeRead, afterRead)
+    assert.deepEqual(await read, setting('green'))
+    await Promise.all([beforeRead, afterRead])
+    assert.deepEqual(await store.get(), setting('blue'))
+
+    const beforeHistory = store.set(setting('red'), 'Before history')
+    const history = store.getHistory()
+    const afterHistory = store.set(setting('green'), 'After history')
+    assert.notStrictEqual(beforeHistory, afterHistory)
+    await beforeHistory
+    assert.equal((await history).entries[0].summary, 'Before history')
+    await afterHistory
+    assert.deepEqual(await store.get(), setting('green'))
+
+    const beforeUndo = store.set(setting('blue'), 'Before undo')
+    const undo = store.undoLastChange()
+    const afterUndo = store.set(setting('red'), 'After undo')
+    assert.notStrictEqual(beforeUndo, afterUndo)
+    await Promise.all([beforeUndo, undo, afterUndo])
+    assert.deepEqual(await store.get(), setting('red'))
+    assert.ok((await store.getHistory()).entries.some(entry => entry.undoOf))
+  })
+
+  it('keeps flush between synchronous set batches', async t => {
+    const { store } = await createStore(t, 'flush-ordering', {
+      commitDelayMs: 60_000,
+    })
+    await store.initialize()
+
+    const beforeFlush = store.set(setting('green'), 'Before flush')
+    const flush = store.flush()
+    const afterFlush = store.set(setting('blue'), 'After flush')
+    assert.notStrictEqual(beforeFlush, afterFlush)
+    await Promise.all([beforeFlush, flush, afterFlush])
+
+    const history = await store.getHistory()
+    assert.equal(history.total, 3)
+    assert.equal(history.entries[0].summary, 'After flush')
+    assert.equal(history.entries[1].summary, 'Before flush')
+    assert.deepEqual(await store.get(), setting('blue'))
+  })
+
+  it('rejects every failed batch caller without poisoning later work', async t => {
+    const { directory, store } = await createStore(t, 'failed-batch')
+    await store.initialize()
+    await writeFile(join(directory, 'foreign.txt'), 'not store-owned')
+
+    const operations = Array.from({ length: 20 }, (_, index) =>
+      store.set(
+        setting(index % 2 === 0 ? 'green' : 'blue', `blocked ${index}`),
+        `Blocked ${index}`
+      )
+    )
+    const operation = operations[0]
+    assert.ok(operation !== undefined)
+    assert.ok(operations.every(candidate => candidate === operation))
+
+    const results = await Promise.allSettled(operations)
+    for (const result of results) {
+      assert.equal(result.status, 'rejected')
+      if (result.status === 'rejected') {
+        assert.match(String(result.reason), /unowned entry: foreign\.txt/)
+      }
+    }
+
+    await rm(join(directory, 'foreign.txt'))
+    await store.set(setting('green', 'recovered'), 'Recovered mutation')
+    assert.deepEqual(await store.get(), setting('green', 'recovered'))
+    const history = await store.getHistory()
+    assert.equal(history.total, 2)
+    assert.equal(history.entries[0].summary, 'Recovered mutation')
+  })
+
+  it('collects sequential writes into one deterministic debounced commit', async t => {
     const { store } = await createStore(t, 'debounced', {
       commitDelayMs: 60_000,
     })

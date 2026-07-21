@@ -176,6 +176,65 @@ repair was published. It therefore cannot contain either the `b0000000266`
 transport correction or this follow-up manual fallback; the visible process was
 not closed or replaced by the verifier.
 
+## 2026-07-21 — lag, hang, and resource lifecycle hardening
+
+This milestone is implemented in the isolated
+`codex/fix-lag-hangs-20260721` worktree. It started from
+`c4403f2a0faf6e96fb53be3c5a9f4587f4a219c7`; the primary checkout's unrelated
+dirty feature set remains preserved and untouched. Concurrent upstream work
+advanced through `41ce24d6b8`, `e90f176501`, and `09b3a0ee89`; this task is
+rebased onto `09b3a0ee89f520621f0db6be077f0ab70b2b4221` without overwriting it.
+
+### Proven defects and fixes
+
+- Upstream issue
+  [desktop/desktop#22039](https://github.com/desktop/desktop/issues/22039)
+  records a roughly 10-second fetch followed by repeated 365–371-second
+  `git remote set-head -a` calls on a very large ref inventory. Desktop Material
+  now validates and reuses an existing local remote-HEAD symref only while its
+  target exists. Missing, dangling, malformed, empty, and cross-remote values
+  retain exactly one authenticated discovery with the selected account and
+  background mode.
+- `PopupManager` intentionally de-duplicates popup types, but concurrent
+  askpass calls previously created a second promise without a second visible
+  prompt, leaving that caller unresolved forever. `TrampolineUIHelper` now
+  serializes host-key, key-passphrase, SSH password, generic Git credential, and
+  GitHub sign-in prompts through a non-poisoning FIFO. Manager de-duplication,
+  explicit removal, and stack eviction now settle promise-backed popups; a
+  removed sign-in flow also clears its retained store callback.
+- Appearance sliders could enqueue hundreds of full ownership checks,
+  crash-safe file writes, state emissions, and local-Git work in one gesture.
+  `DedicatedSettingStore.set()` now coalesces adjacent synchronous calls into
+  one latest-value mutation while keeping queued `get()` reads, flushes, and
+  history actions as ordering barriers. Sequential awaited writes and the
+  250-millisecond commit debounce retain their prior semantics.
+- Failed/cancelled Electron requests ended at `onErrorOccurred`, but the
+  same-origin filter deleted request IDs only from `onCompleted`. It now removes
+  either terminal path, preventing process-lifetime map growth while preserving
+  cross-origin authorization stripping.
+- `SandboxedMarkdown` registered its document scroll listener in capture mode
+  but removed it without the capture flag. Unmount now performs matching
+  removal, cancels pending debounced scroll work, and clears iframe document and
+  frame references.
+
+### Current local evidence
+
+- The combined remote-HEAD, prompt FIFO, appearance-store, and same-origin gate
+  passes **27/27** tests. The real-DOM Markdown lifecycle regression passes
+  **1/1** after 25 content reloads and verifies that a post-unmount scroll no
+  longer invokes the component.
+- Each implementation lane also passed full app TypeScript, targeted ESLint and
+  Prettier, and `git diff --check` before integration.
+- The pre-change full unit run completed 1,593 passes and one intentional skip;
+  its only failure occurred before app code because Strawberry OpenSSL pointed
+  at missing `Z:/extlib/_5040x__/ssl/openssl.cnf`. The final exact-source run
+  uses Git for Windows OpenSSL and its present configuration rather than
+  suppressing that test.
+- Exact rebased-source full tests, the required no-download production build
+  through low-level MCP, off-screen Windows interaction/capture, final diff and
+  secret review, push, CI, Pages, wiki, installer release, and topology cleanup
+  remain pending. No publication success is claimed yet.
+
 ## 2026-07-21 Screenshot renewal — 58 of 66 delivered
 
 **58 of 66 gallery screenshots were recaptured from the shipped Material UI**
@@ -356,7 +415,7 @@ rather than being reported done.
   repository-bound API-functions wave has passed focused source, style, and
   navigation checks, but the exact no-download production build and the
   off-screen UI acceptance still require the MCP build/capture window.
-- **M22 68-image visual refresh.** The full synthetic-fixture screenshot
+- **M22 66-image visual refresh.** The full synthetic-fixture screenshot
   recapture across README, Pages, and the wiki, including the privacy-safe
   collapsed anchored-editor path proof, still requires the off-screen desktop
   and remains paused.

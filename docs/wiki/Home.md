@@ -83,7 +83,7 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 68 named visual functions and states, with automated missing/duplicate coverage checks. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 66 named visual functions and states, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
@@ -135,7 +135,8 @@ Every owner has its own strict setting, local Git repository path, and History m
 feature, repository-instance, and tab-instance changes never share a mutable timeline; undo, redo,
 and restore append audit commits. Repository workspace, toolbar, tabs, list-name, and logo owners
 can inherit their matching profile owner. A local appearance UUID keeps those histories stable when
-the working copy moves. Repository Settings therefore has no Appearance tab.
+the working copy moves. Rapid visual-control bursts persist only their latest normalized owner
+value before the commit debounce. Repository Settings therefore has no Appearance tab.
 
 The app identity editor can replace the in-app name and logo, then tune geometry, colors,
 typography, spacing, emphasis, and effects. It restores with the profile but does not rename the
@@ -150,7 +151,7 @@ the tonal workspace preview hides when a compact window needs the space.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-welcome.png)
 
-![Appearance editor anchored beside its actual owner with History and a dedicated local Git path](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+![Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ![Measured narrow toolbar with Build and Run and Commit and Push in the More actions surface](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-toolbar-overflow.png)
 

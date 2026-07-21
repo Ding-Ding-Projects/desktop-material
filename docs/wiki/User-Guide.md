@@ -263,6 +263,12 @@ GitHub.com identity. For an older unassigned repository, Desktop Material verifi
 accounts against the remote and prefers an account that can push before a read-only account, then
 saves that verified choice for later operations.
 
+After fetch, a local `refs/remotes/<remote>/HEAD` is reused only when it points inside that exact
+remote namespace. This avoids an expensive online default-branch scan on every refresh. Missing,
+malformed, or cross-remote refs still run one lookup with the repository's selected account. If a
+generic host renames its default branch, update it in Remote Manager or remove the stale local ref
+to request fresh discovery.
+
 ---
 
 ## Local Ollama model management
@@ -431,6 +437,10 @@ and copies that exact path and opens the owner's **History** manager. Undo, redo
 audit commits; they never reset or rewrite a successful timeline. Switching profiles switches the
 profile, feature, repository-element, and tab-element repository roots and closes stale editors.
 
+Rapid slider, palette, and typography events are collapsed into the latest normalized owner value
+before one durable write and state update. A queued `get()` read, explicit flush, or History action
+remains an ordering barrier, and separately awaited changes keep their original sequence.
+
 The app identity editor covers the code-native logo and in-app name, geometry, color, typography,
 spacing, emphasis, and effects. It does not rename the signed executable or operating-system icon.
 
@@ -476,7 +486,7 @@ localized status asks you to try again instead of taking down the app window.
 
 ![Layered custom repository-logo studio with a live preview and safe vector controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-logo-studio.png)
 
-![Appearance editor anchored beside its actual owner with History and a dedicated local Git path](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
+![Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-customization.png)
 
 ---
 
@@ -1096,7 +1106,8 @@ list.
   that exact branch, requires a fast-forward merge, and then runs
   `docker compose up --detach --build`. A mismatched branch or non-fast-forward update stops without
   a reset, force operation, or automatic checkout. **Deploy Docker now** runs the same bounded,
-  output-redacted SSH recipe on demand.
+  output-redacted SSH recipe on demand. Host-key, passphrase, password, generic Git credential, and
+  GitHub sign-in prompts share one FIFO, so concurrent prompts appear and settle one at a time.
 - Open the wider **Repository settings → Submodules** surface and choose **Add submodule…** to browse GitHub.com,
   Enterprise, GitLab, or Bitbucket with the appropriate exact account, or enter an HTTPS, SSH, or
   local Git URL. Review the repository-relative checkout path and optional branch; Desktop rechecks

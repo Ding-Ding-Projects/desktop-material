@@ -23,3 +23,5 @@ the implemented feature contracts.
   activity, and other provider-backed teamwork.
 - [Review and diff](review-and-diff/README.md) — changed-file navigation and
   safe text, structured-data, and image inspection.
+- [Quality and reliability](quality-and-reliability/README.md) — cross-cutting
+  responsiveness, lifecycle cleanup, failure recovery, and regression gates.

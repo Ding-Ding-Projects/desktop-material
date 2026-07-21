@@ -18,6 +18,11 @@ Material installation manages many identities, repositories, and branches.
 - [Collection bulk actions and regex
   safety](collection-bulk-and-regex-safety.md)
 
+High-frequency visual edits are coalesced before persistence, while remote
+default-branch lookup reuses only a namespace-validated local symbolic ref.
+The cross-cutting lifecycle contract is documented under
+[Quality and reliability](../quality-and-reliability/README.md).
+
 ## API applicability
 
 Account-bound provider calls use the application's existing GitHub, GitLab,

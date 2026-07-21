@@ -14,6 +14,8 @@ import { Emoji } from '../../lib/emoji'
 import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 
+const DocumentScrollListenerCapture = true
+
 interface ISandboxedMarkdownProps {
   /** A string of unparsed markdown to display */
   readonly markdown: string
@@ -119,9 +121,11 @@ export class SandboxedMarkdown extends React.PureComponent<
   public async componentDidMount() {
     this.renderMarkdown()
 
-    document.addEventListener('scroll', this.onDocumentScroll, {
-      capture: true,
-    })
+    document.addEventListener(
+      'scroll',
+      this.onDocumentScroll,
+      DocumentScrollListenerCapture
+    )
   }
 
   public renderMarkdown = async () => {
@@ -209,7 +213,14 @@ export class SandboxedMarkdown extends React.PureComponent<
   }
 
   public componentWillUnmount() {
-    document.removeEventListener('scroll', this.onDocumentScroll)
+    document.removeEventListener(
+      'scroll',
+      this.onDocumentScroll,
+      DocumentScrollListenerCapture
+    )
+    this.onDocumentScroll.cancel()
+    this.currentDocument = null
+    this.frameRef = null
   }
 
   /**

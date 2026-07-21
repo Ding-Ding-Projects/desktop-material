@@ -9,10 +9,19 @@ interface IInvocation {
 }
 
 const invocations: IInvocation[] = []
+const remoteOperationURLs: string[] = []
+
+let symbolicRefExitCode = 1
+let symbolicRefStdout = ''
+let remoteHEADTargetExitCode = 0
+let remoteHEADDiscoveryNeverResolves = false
 
 mock.module('../../src/lib/git/environment', {
   namedExports: {
-    envForRemoteOperation: async () => ({ HTTPS_PROXY: 'proxy-safe' }),
+    envForRemoteOperation: async (url: string) => {
+      remoteOperationURLs.push(url)
+      return { HTTPS_PROXY: 'proxy-safe' }
+    },
   },
 })
 
@@ -25,10 +34,63 @@ mock.module('../../src/lib/git/core', {
       options: Record<string, unknown>
     ) => {
       invocations.push({ name, args, options })
+
+      if (name === 'getSymbolicRef') {
+        return {
+          exitCode: symbolicRefExitCode,
+          stdout: symbolicRefStdout,
+          stderr: '',
+          gitError: null,
+        }
+      }
+
+      if (name === 'getRemoteHEADTarget') {
+        return {
+          exitCode: remoteHEADTargetExitCode,
+          stdout: '',
+          stderr: '',
+          gitError: null,
+        }
+      }
+
+      if (name === 'updateRemoteHEAD' && remoteHEADDiscoveryNeverResolves) {
+        return await new Promise<never>(() => {})
+      }
+
       return { exitCode: 0, stdout: '', stderr: '', gitError: null }
     },
   },
 })
+
+const resetGitMocks = () => {
+  invocations.length = 0
+  remoteOperationURLs.length = 0
+  symbolicRefExitCode = 1
+  symbolicRefStdout = ''
+  remoteHEADTargetExitCode = 0
+  remoteHEADDiscoveryNeverResolves = false
+}
+
+const settlesWithin = async <T>(promise: Promise<T>, timeoutMs: number) => {
+  let timeout: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<never>((_resolve, reject) => {
+        timeout = setTimeout(
+          () =>
+            reject(new Error(`Promise did not settle within ${timeoutMs}ms`)),
+          timeoutMs
+        )
+      }),
+    ])
+  } finally {
+    if (timeout !== undefined) {
+      clearTimeout(timeout)
+    }
+  }
+}
 
 describe('authenticated fetch Git execution', () => {
   const repository = new Repository('C:\\proof', -1, null, false)
@@ -54,7 +116,7 @@ describe('authenticated fetch Git execution', () => {
 
   it('forces the selected account for a normal fetch', async () => {
     const { fetch } = await import('../../src/lib/git/fetch')
-    invocations.length = 0
+    resetGitMocks()
 
     await fetch(repository, remote, undefined, false, accountKey)
 
@@ -70,7 +132,7 @@ describe('authenticated fetch Git execution', () => {
 
   it('forces the selected account for a refspec fetch', async () => {
     const { fetchRefspec } = await import('../../src/lib/git/fetch')
-    invocations.length = 0
+    resetGitMocks()
 
     await fetchRefspec(repository, remote, 'refs/pull/1/head', accountKey)
 
@@ -83,19 +145,93 @@ describe('authenticated fetch Git execution', () => {
     assertCredentialScope(invocations[0])
   })
 
-  it('forces the selected account while discovering remote HEAD', async () => {
+  it('skips a hanging remote HEAD discovery when the local symref is valid', async () => {
     const { updateRemoteHEAD } = await import('../../src/lib/git/remote')
-    invocations.length = 0
+    resetGitMocks()
+    symbolicRefExitCode = 0
+    symbolicRefStdout = 'refs/remotes/origin/main\n'
+    remoteHEADDiscoveryNeverResolves = true
+
+    await settlesWithin(
+      updateRemoteHEAD(repository, remote, false, accountKey),
+      100
+    )
+
+    assert.equal(invocations.length, 2)
+    assert.equal(invocations[0].name, 'getSymbolicRef')
+    assert.deepStrictEqual(invocations[0].args, [
+      'symbolic-ref',
+      '-q',
+      'refs/remotes/origin/HEAD',
+    ])
+    assert.equal(invocations[1].name, 'getRemoteHEADTarget')
+    assert.deepStrictEqual(invocations[1].args, [
+      'show-ref',
+      '--verify',
+      '--quiet',
+      '--',
+      'refs/remotes/origin/main',
+    ])
+    assert.equal(remoteOperationURLs.length, 0)
+  })
+
+  it('repairs a namespace-valid remote HEAD whose target is missing', async () => {
+    const { updateRemoteHEAD } = await import('../../src/lib/git/remote')
+    resetGitMocks()
+    symbolicRefExitCode = 0
+    symbolicRefStdout = 'refs/remotes/origin/retired\n'
+    remoteHEADTargetExitCode = 1
 
     await updateRemoteHEAD(repository, remote, false, accountKey)
 
-    assert.equal(invocations.length, 1)
-    assert.deepStrictEqual(invocations[0].args, [
+    assert.equal(invocations.length, 3)
+    assert.equal(invocations[0].name, 'getSymbolicRef')
+    assert.equal(invocations[1].name, 'getRemoteHEADTarget')
+    assert.equal(invocations[2].name, 'updateRemoteHEAD')
+    assertCredentialScope(invocations[2])
+    assert.deepStrictEqual(remoteOperationURLs, [remote.url])
+  })
+
+  it('uses the selected account and background mode for missing remote HEAD', async () => {
+    const { updateRemoteHEAD } = await import('../../src/lib/git/remote')
+    resetGitMocks()
+
+    await updateRemoteHEAD(repository, remote, true, accountKey)
+
+    assert.equal(invocations.length, 2)
+    assert.equal(invocations[0].name, 'getSymbolicRef')
+    assert.equal(invocations[1].name, 'updateRemoteHEAD')
+    assert.deepStrictEqual(invocations[1].args, [
       'remote',
       'set-head',
       '-a',
       'origin',
     ])
-    assertCredentialScope(invocations[0])
+    assertCredentialScope(invocations[1])
+    assert.equal(invocations[1].options.isBackgroundTask, true)
+    assert.deepStrictEqual(remoteOperationURLs, [remote.url])
   })
+
+  for (const [description, symbolicRef] of [
+    ['malformed', ''],
+    ['outside the remote namespace', 'refs/remotes/upstream/main'],
+  ] as const) {
+    it(`discovers remote HEAD exactly once when the local symref is ${description}`, async () => {
+      const { updateRemoteHEAD } = await import('../../src/lib/git/remote')
+      resetGitMocks()
+      symbolicRefExitCode = 0
+      symbolicRefStdout = symbolicRef
+
+      await updateRemoteHEAD(repository, remote, false, accountKey)
+
+      assert.equal(
+        invocations.filter(invocation => invocation.name === 'updateRemoteHEAD')
+          .length,
+        1
+      )
+      assertCredentialScope(invocations[1])
+      assert.equal(invocations[1].options.isBackgroundTask, false)
+      assert.deepStrictEqual(remoteOperationURLs, [remote.url])
+    })
+  }
 })
