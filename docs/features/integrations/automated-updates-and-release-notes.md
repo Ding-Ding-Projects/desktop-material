@@ -37,13 +37,16 @@ download flow as soon as the release is published.
 
 ## Automated release notes
 
-`Build Installers` checks out the exact `RELEASE_TARGET_SHA` with full history,
-then runs `script/generate-automated-release-notes.ts` before the single publish
-action. The generator:
+`Build Installers / Express Release` checks out the exact
+`RELEASE_TARGET_SHA` with full history, then runs
+`script/generate-automated-release-notes.ts` before the single publish action.
+The generator:
 
 1. requires `HEAD` to equal the exact release SHA;
-2. reads the latest published GitHub Release through a bounded authenticated
-   response and resolves its tag to an exact commit;
+2. scans bounded published Release pages for the newest non-draft,
+   non-prerelease installer tag that contains `RELEASES` and a full Squirrel
+   package, ignoring Cheap LFS asset buckets, then resolves its tag to an exact
+   commit;
 3. requires that previous release commit to be an ancestor of the release
    target;
 4. reads at most the newest 50 commit IDs and subjects from the exact
@@ -53,11 +56,48 @@ action. The generator:
 6. caps the complete notes at 24,000 characters and records any omitted count;
    and
 7. writes exact commit links and the visible exact range to a new temporary
-   file consumed through `body_path`.
+   file consumed by `gh release create --notes-file`.
 
 The first release has no previous tag, so it uses the exact target's reachable
 history with the same limits. A mismatched checkout, tag target, ancestry,
 provider response, Git object ID, or output bound stops publication.
+
+## Express installer release
+
+The same workflow has two deliberately different entry paths:
+
+- A push-triggered `CI` run on the current `main` commit enters packaging
+  directly. A successful CI may publish; a failed/cancelled CI may retain the
+  installer artifact but can never publish a Release.
+- A `workflow_dispatch` from `main` is the express recovery path. Linux lint,
+  Windows x64 trampoline/unit/script tests, and the Windows x64 build/package
+  job run in parallel; publication waits for all three.
+
+The version is derived from the package version plus the zero-padded commit
+count reachable from the exact target. Re-running the same commit therefore
+selects the same immutable tag and fails closed instead of publishing duplicate
+assets. Immediately before publication, the workflow proves that the target is
+still `origin/main` and that the tag is still absent. One create-only
+`gh release create` command publishes the installer, MSI, Squirrel packages,
+`RELEASES`, portable ZIP, and generated notes. It never edits or replaces an
+existing Release.
+
+The packaging job uploads the verified installer directory as an uncompressed,
+three-day Actions artifact before release-note generation, then preserves the
+notes separately. A failed CI, notes error, tag race, or GitHub Release failure
+therefore leaves the exact installer payload downloadable from that workflow
+run for manual recovery whenever the Windows build/package itself succeeded.
+
+Windows jobs restore an exact-content cache of the installed root and app
+`node_modules` trees plus Playwright's external FFmpeg payload. Its key includes
+operating system, runner and target
+architecture, Node/Python versions, both lockfiles and package manifests,
+install configuration, the post-install script, the setup action, pinned Yarn,
+and local native-vendor sources. A hit must contain reviewed generic,
+target-specific Copilot, Electron-runtime, and Playwright sentinels; there are
+no partial restore keys. Python setup remains unconditional for native builds.
+Build output, `dist`, installers, Release assets, credentials, and runtime
+configuration are never cached.
 
 ## Workflow concurrency
 
@@ -80,6 +120,10 @@ concurrency group, including CodeQL, remain independently runnable.
   `.github/workflows/ci.yml` and `.github/workflows/build-installers.yml`.
 - The release-note step receives `GITHUB_TOKEN` through its environment. It is
   never accepted as a command-line value or written to the notes.
+- Manual express release must be dispatched from `main`. A failed CI conclusion
+  permits package-only recovery but blocks publication. A wrong/stale CI
+  trigger, stale dispatch SHA, existing tag, or changed default-branch tip
+  stops before publication.
 
 ## Failure modes and security
 
@@ -93,9 +137,18 @@ existing feed can do that.
 Commit subjects and release metadata are untrusted. The generator invokes Git
 without a shell, validates tag refs and object IDs, bounds subprocess output,
 neutralizes active Markdown/HTML/mention syntax, and uses create-new output-file
-semantics. After notes generation, the workflow immediately revalidates
+semantics. Release discovery reads at most twenty five-release pages and caps
+each response at 8 MiB; the larger per-page byte bound accommodates the asset
+metadata from full 1,000-object Cheap LFS buckets without retaining an
+unbounded response. After notes generation, the workflow immediately revalidates
 `origin/main` and immutable tag absence before publishing the same
 `RELEASE_TARGET_SHA` as the release target.
+
+An invalid dependency cache fails instead of silently installing into a mixed
+tree. Cache misses perform the normal bounded install retries and save only
+after a successful job. Release creation is intentionally non-idempotent: a
+same-tag race has one winner and every later contender fails without changing
+the winner.
 
 ## Verification
 
@@ -105,8 +158,7 @@ malformed/stale fail-closed behavior, transient storage, the updater-event race,
 all three language modes, non-cancelling independent CI/installer/Pages runs,
 workflow wiring, exact Git range collection, subject sanitization, output
 limits, and first-release handling. The app and script TypeScript
-projects, targeted formatting/lint, and workflow YAML are also checked locally.
-Remote Actions and release publication remain required after integration. The
-fixed headless service preflight passed, but its required no-download production
-build could not start because the host does not provide `yarn`; no GUI capture
-is claimed for this checkpoint.
+projects, targeted formatting/lint, workflow YAML, express-path gates,
+create-only publication, retained artifacts, and exact dependency-cache keys
+are also checked locally. Remote Actions and release publication remain
+required after integration.

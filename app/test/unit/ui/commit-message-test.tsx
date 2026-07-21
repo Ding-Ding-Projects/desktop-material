@@ -353,7 +353,11 @@ describe('CommitMessage', () => {
     )
     assert.equal(
       textFor('manual-preparing'),
-      'Preparing the manual upload handoff'
+      'Preparing the manual upload handoff (0%)'
+    )
+    assert.equal(
+      textFor('manual-preparing', 101),
+      'Preparing the manual upload handoff (50%)'
     )
     assert.equal(
       textFor('manual-waiting'),

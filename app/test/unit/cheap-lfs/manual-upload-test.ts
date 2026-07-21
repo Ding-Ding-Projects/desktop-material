@@ -266,6 +266,183 @@ describe('manual cheap LFS upload', () => {
     })
   })
 
+  it('reserves three case-insensitive flat handoff names', async () => {
+    await withTempRepository(async (directory, repository) => {
+      const sources = [
+        ['one/Foo.bin', 'same bytes'],
+        ['two/foo.bin', 'same bytes'],
+        ['three/FOO.BIN', 'same bytes'],
+      ] as const
+      for (const [relativePath, contents] of sources) {
+        const absolutePath = join(directory, relativePath)
+        await mkdir(dirname(absolutePath), { recursive: true })
+        await writeFile(absolutePath, contents)
+      }
+
+      const plan = await planCheapLfsManualUpload(
+        gateway({}),
+        repository,
+        selected,
+        sources.map(([relativePath]) => ({
+          absoluteFilePath: join(directory, relativePath),
+          trackedRelativePath: relativePath,
+          releaseTag: 'assets',
+        }))
+      )
+
+      const names = plan.files.map(file => file.assetName)
+      assert.equal(new Set(names.map(name => name.toLowerCase())).size, 3)
+      assert.equal(names[0], 'Foo.bin')
+      assert.match(names[1], /^foo-[a-f0-9]{7}\.bin$/)
+      assert.match(names[2], /^FOO-[a-f0-9]{7}-2\.BIN$/)
+      const handoff = await createCheapLfsManualHandoff(
+        plan,
+        new AbortController().signal
+      )
+      try {
+        assert.equal((await readdir(handoff.uploadDirectoryPath)).length, 3)
+      } finally {
+        await handoff.cleanup()
+      }
+    })
+  })
+
+  it('folds Unicode case variants before creating the flat handoff', async () => {
+    await withTempRepository(async (directory, repository) => {
+      const sources = ['one/sigma-σ.bin', 'two/sigma-ς.bin']
+      for (const relativePath of sources) {
+        const absolutePath = join(directory, relativePath)
+        await mkdir(dirname(absolutePath), { recursive: true })
+        await writeFile(absolutePath, 'same Unicode collision bytes')
+      }
+
+      const plan = await planCheapLfsManualUpload(
+        gateway({}),
+        repository,
+        selected,
+        sources.map(relativePath => ({
+          absoluteFilePath: join(directory, relativePath),
+          trackedRelativePath: relativePath,
+          releaseTag: 'assets',
+        }))
+      )
+
+      assert.notEqual(plan.files[0].assetName, plan.files[1].assetName)
+      assert.match(plan.files[1].assetName, /-[a-f0-9]{7}\.bin$/)
+      const handoff = await createCheapLfsManualHandoff(
+        plan,
+        new AbortController().signal
+      )
+      try {
+        assert.equal((await readdir(handoff.uploadDirectoryPath)).length, 2)
+      } finally {
+        await handoff.cleanup()
+      }
+    })
+  })
+
+  it('stages, detects, verifies, and commits every multipart asset', async () => {
+    await withTempRepository(async (directory, repository) => {
+      const sourcePath = join(directory, 'nested', 'large.lib')
+      const sourceBytes = Buffer.from('abcdef')
+      const firstPart = sourceBytes.subarray(0, 3)
+      const secondPart = sourceBytes.subarray(3)
+      await mkdir(dirname(sourcePath), { recursive: true })
+      await writeFile(sourcePath, sourceBytes)
+
+      const uploaded = new Array<IGitHubReleaseAsset>()
+      const uploadedBytes = new Map<string, Buffer>()
+      const preparationProgress = new Array<number>()
+      let opened = false
+      const releases = gateway({
+        listAssets: async () => ({
+          assets: opened ? uploaded : [],
+          page: 1,
+          nextPage: null,
+          capped: false,
+        }),
+        downloadAsset: async (_repository, _releaseId, remote, destination) => {
+          const bytes = uploadedBytes.get(remote.name)
+          assert.ok(bytes)
+          await writeFile(destination, bytes)
+          return { path: destination, bytes: bytes.byteLength }
+        },
+      })
+
+      const result = await manualPinFilesToRelease(
+        releases,
+        repository,
+        selected,
+        [
+          {
+            absoluteFilePath: sourcePath,
+            trackedRelativePath: 'nested/large.lib',
+            releaseTag: 'assets',
+          },
+        ],
+        new AbortController().signal,
+        {
+          onPreparationProgress: progress => {
+            assert.equal(progress.totalBytes, sourceBytes.byteLength * 2)
+            preparationProgress.push(progress.processedBytes)
+          },
+          onReady: async (handoff, plan) => {
+            assert.equal(plan.files.length, 1)
+            assert.equal(plan.files[0].assets.length, 2)
+            assert.equal(plan.files[0].pointer.parts?.length, 2)
+            assert.deepEqual(
+              handoff.assets.map(item => item.name),
+              ['large.lib.part001', 'large.lib.part002']
+            )
+            assert.ok(handoff.assets.every(item => item.method === 'copy'))
+            assert.deepEqual(await readFile(handoff.assets[0].path), firstPart)
+            assert.deepEqual(await readFile(handoff.assets[1].path), secondPart)
+            for (const [index, item] of handoff.assets.entries()) {
+              const bytes = await readFile(item.path)
+              uploadedBytes.set(item.name, bytes)
+              uploaded.push(asset(200 + index, item.name, bytes.byteLength))
+            }
+            opened = true
+          },
+        },
+        {
+          ...defaultCheapLfsFileSystem,
+          hashFileParts: async () => ({
+            sha256: createHash('sha256').update(sourceBytes).digest('hex'),
+            sizeInBytes: sourceBytes.byteLength,
+            parts: [
+              {
+                offset: 0,
+                length: firstPart.byteLength,
+                sha256: createHash('sha256').update(firstPart).digest('hex'),
+              },
+              {
+                offset: firstPart.byteLength,
+                length: secondPart.byteLength,
+                sha256: createHash('sha256').update(secondPart).digest('hex'),
+              },
+            ],
+          }),
+        },
+        { maximumPollAttempts: 1, pollIntervalMs: 0 }
+      )
+
+      assert.equal(result.length, 1)
+      assert.ok(preparationProgress.length >= 4)
+      assert.deepEqual(
+        [...preparationProgress].sort((a, b) => a - b),
+        preparationProgress
+      )
+      assert.equal(preparationProgress.at(-1), sourceBytes.byteLength * 2)
+      const pointer = parseCheapLfsPointer(await readFile(sourcePath, 'utf8'))
+      assert.equal(pointer?.parts?.length, 2)
+      assert.deepEqual(
+        pointer?.parts?.map(part => part.name),
+        ['large.lib.part001', 'large.lib.part002']
+      )
+    })
+  })
+
   it('rejects same-size corrupt remote bytes before changing any source', async () => {
     await withTempRepository(async (directory, repository) => {
       const sourcePath = join(directory, 'large.bin')
@@ -430,6 +607,78 @@ describe('manual cheap LFS upload', () => {
     })
   })
 
+  it('fences cancellation before the first pointer write', async () => {
+    await withTempRepository(async (directory, repository) => {
+      const sourcePath = join(directory, 'large.bin')
+      const sourceBytes = Buffer.from('cancel-before-pointer')
+      await writeFile(sourcePath, sourceBytes)
+      const controller = new AbortController()
+      let uploaded: IGitHubReleaseAsset | undefined
+      let uploadedBytes = Buffer.alloc(0)
+      let hashCalls = 0
+      let pointerWrites = 0
+      const releases = gateway({
+        listAssets: async () => ({
+          assets: uploaded === undefined ? [] : [uploaded],
+          page: 1,
+          nextPage: null,
+          capped: false,
+        }),
+        downloadAsset: async (_repository, _releaseId, _asset, destination) => {
+          await writeFile(destination, uploadedBytes)
+          return { path: destination, bytes: uploadedBytes.byteLength }
+        },
+      })
+      const fs = {
+        ...defaultCheapLfsFileSystem,
+        hashFile: async (path: string) => {
+          const result = await defaultCheapLfsFileSystem.hashFile(path)
+          hashCalls++
+          if (hashCalls === 2) {
+            controller.abort()
+          }
+          return result
+        },
+        writePointer: async () => {
+          pointerWrites++
+        },
+      }
+
+      await assert.rejects(
+        manualPinFilesToRelease(
+          releases,
+          repository,
+          selected,
+          [
+            {
+              absoluteFilePath: sourcePath,
+              trackedRelativePath: 'large.bin',
+              releaseTag: 'assets',
+            },
+          ],
+          controller.signal,
+          {
+            onReady: async (handoff, plan) => {
+              uploadedBytes = await readFile(handoff.assets[0].path)
+              uploaded = asset(
+                49,
+                plan.files[0].assetName,
+                uploadedBytes.byteLength
+              )
+            },
+          },
+          fs,
+          { maximumPollAttempts: 1, pollIntervalMs: 0 }
+        ),
+        (error: Error) => error.name === 'AbortError'
+      )
+
+      assert.equal(hashCalls, 2)
+      assert.equal(pointerWrites, 0)
+      assert.deepEqual(await readFile(sourcePath), sourceBytes)
+    })
+  })
+
   it('never accepts an asset id that existed before the browser opened', async () => {
     await withTempRepository(async (directory, repository) => {
       const sourcePath = join(directory, 'large.bin')
@@ -499,11 +748,13 @@ describe('manual cheap LFS upload', () => {
       }
       let derivedRelease: IGitHubRelease | undefined
       const createdTags = new Array<string>()
+      let createdPrerelease: boolean | undefined
       const releases = gateway({
         getReleaseByTag: async (_repository, tag) =>
           tag === 'assets' ? baseRelease : derivedRelease ?? null,
         createDraft: async (_repository, draft) => {
           createdTags.push(draft.tagName)
+          createdPrerelease = draft.prerelease
           derivedRelease = {
             ...release,
             id: 8,
@@ -546,6 +797,7 @@ describe('manual cheap LFS upload', () => {
         ['assets-2', 'assets-2']
       )
       assert.deepEqual(createdTags, ['assets-2'])
+      assert.equal(createdPrerelease, true)
       assert.equal(plan.preexistingAssetIds.size, 0)
       assert.equal(baseRelease.assets.length, 999)
     })
@@ -726,35 +978,62 @@ describe('manual cheap LFS upload', () => {
     })
   })
 
-  it('rejects multipart sources before starting an expensive hash pass', async () => {
+  it('plans multipart sources as ordered browser-upload assets', async () => {
     await withTempRepository(async (_directory, repository) => {
       let hashCalls = 0
-      await assert.rejects(
-        planCheapLfsManualUpload(
-          gateway({}),
-          repository,
-          selected,
-          [
-            {
-              absoluteFilePath: join(repository.path, 'too-large.bin'),
-              trackedRelativePath: 'too-large.bin',
-              releaseTag: 'assets',
-            },
-          ],
-          undefined,
-          undefined,
+      const plan = await planCheapLfsManualUpload(
+        gateway({}),
+        repository,
+        selected,
+        [
           {
-            ...defaultCheapLfsFileSystem,
-            statSize: async () => CHEAP_LFS_PART_SIZE_BYTES + 1,
-            hashFileParts: async () => {
-              hashCalls++
-              throw new Error('hash should not run')
-            },
-          }
-        ),
-        /multipart assets/
+            absoluteFilePath: join(repository.path, 'too-large.bin'),
+            trackedRelativePath: 'too-large.bin',
+            releaseTag: 'assets',
+          },
+        ],
+        undefined,
+        undefined,
+        {
+          ...defaultCheapLfsFileSystem,
+          statSize: async () => CHEAP_LFS_PART_SIZE_BYTES + 1,
+          hashFileParts: async () => {
+            hashCalls++
+            return {
+              sha256: 'a'.repeat(64),
+              sizeInBytes: CHEAP_LFS_PART_SIZE_BYTES + 1,
+              parts: [
+                {
+                  offset: 0,
+                  length: CHEAP_LFS_PART_SIZE_BYTES,
+                  sha256: 'b'.repeat(64),
+                },
+                {
+                  offset: CHEAP_LFS_PART_SIZE_BYTES,
+                  length: 1,
+                  sha256: 'c'.repeat(64),
+                },
+              ],
+            }
+          },
+        }
       )
-      assert.equal(hashCalls, 0)
+      assert.equal(hashCalls, 1)
+      assert.deepEqual(
+        plan.files[0].assets.map(item => [
+          item.assetName,
+          item.offset,
+          item.sizeInBytes,
+        ]),
+        [
+          ['too-large.bin.part001', 0, CHEAP_LFS_PART_SIZE_BYTES],
+          ['too-large.bin.part002', CHEAP_LFS_PART_SIZE_BYTES, 1],
+        ]
+      )
+      assert.deepEqual(
+        plan.files[0].pointer.parts?.map(part => part.name),
+        ['too-large.bin.part001', 'too-large.bin.part002']
+      )
     })
   })
 
@@ -811,6 +1090,14 @@ describe('manual cheap LFS upload', () => {
             assetName: 'asset.bin',
             sizeInBytes: bytes.byteLength,
             sha256,
+            assets: [
+              {
+                assetName: 'asset.bin',
+                offset: 0,
+                sizeInBytes: bytes.byteLength,
+                sha256,
+              },
+            ],
           },
         ],
       }
@@ -855,6 +1142,50 @@ describe('manual cheap LFS upload', () => {
       )
       await rm(guarded.rootPath, { recursive: true, force: true })
     })
+  })
+
+  it('rejects handoff staging when the temporary volume cannot fit it', async () => {
+    const enormousBytes = 4_000_000_000_000_000
+    const plan: ICheapLfsManualPinPlan = {
+      release,
+      preexistingAssetIds: new Set(),
+      files: [
+        {
+          absoluteFilePath: join(tmpdir(), 'not-opened.bin'),
+          trackedRelativePath: 'not-opened.bin',
+          pointer: {
+            version: 'https://desktop.github.com/cheap-lfs/v1',
+            releaseTag: 'assets',
+            assetName: 'not-opened.bin',
+            sizeInBytes: enormousBytes,
+            sha256: 'a'.repeat(64),
+          },
+          pointerText: 'unused',
+          assetName: 'not-opened.bin',
+          sizeInBytes: enormousBytes,
+          sha256: 'a'.repeat(64),
+          assets: [
+            {
+              assetName: 'not-opened.bin.part001',
+              offset: 0,
+              sizeInBytes: 1,
+              sha256: 'b'.repeat(64),
+            },
+            {
+              assetName: 'not-opened.bin.part002',
+              offset: 1,
+              sizeInBytes: 1,
+              sha256: 'c'.repeat(64),
+            },
+          ],
+        },
+      ],
+    }
+
+    await assert.rejects(
+      createCheapLfsManualHandoff(plan, new AbortController().signal),
+      /more free temporary-disk space/
+    )
   })
 
   it('opens a validated direct release editor with a safe listing fallback', () => {

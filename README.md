@@ -204,6 +204,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 - Run commit-and-push immediately, or merge all branches/worktrees with per-target progress and Copilot-assisted conflict handling
 - Browse GitHub Actions runs in the repository rail, filter by workflow/branch/event/status, re-run all or failed jobs, inspect jobs and steps, securely download and search logs, and dispatch workflows with inputs
 - Cancel only queued, running, waiting, or pending workflow runs from a Material confirmation that identifies the exact workflow/run, ref, actor, and commit when available. The app revalidates repository, account, run identity, and cancellable status before one normal cancellation request, prevents duplicate submission, then refreshes until GitHub reports a terminal state
+- Dispatch **Build Installers / Express Release** from `main` when a release is urgent: lint, Windows x64 trampoline/unit/script tests, and packaging run in parallel, exact installed dependencies are content-cached, the complete installer payload is retained as a workflow artifact before publication, and one create-only command publishes deterministic exact-commit notes without replacing an existing tag
 
 **Agent access and command line**
 - Enable an opt-in, token-gated local agent server from **Settings → Agent access**; it exposes MCP and REST on a random loopback-only port and never returns account credentials
@@ -221,7 +222,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 **Guided Git and provider administration**
 - Manage cone-mode sparse checkout through a three-step **Choose/Adjust/Restore → Review selection → Apply and refresh** guide that remains visible above the scrolling editor and review content. State-aware guidance distinguishes empty, invalid, ready, running, and completed states; review freezes and shows every bounded normalized selection entry before Git updates and refreshes the worktree
-- Exchange reviewed patch series, rewrite local commits from an explicit plan, configure commit/tag signing, administer Git LFS, and run bounded guided bisect sessions from named Repository Tools panels. The repository rail's direct **Large files** manager lists, searches, pins, and materializes release-backed cheap-LFS pointers without asking users to browse Release asset names. Automatic uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding Electron's crash-prone native upload pipe when GitHub CLI is available; the memory-bounded native path remains a compatibility fallback. Reconciliation scans up to 1,000 objects once then polls only an exact asset ID, fails closed on an incomplete object, retains the exact Release editor plus verified whole-batch drag/drop recovery, maps flat assets back to original nested paths, keeps at most 1,000 objects in each `assets`, `assets-2`, … Release without splitting a multipart file or manual batch, and transparently verifies/reassembles the original bytes
+- Exchange reviewed patch series, rewrite local commits from an explicit plan, configure commit/tag signing, administer Git LFS, and run bounded guided bisect sessions from named Repository Tools panels. The repository rail's direct **Large files** manager lists, searches, pins, and materializes release-backed cheap-LFS pointers without asking users to browse Release asset names. Automatic uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding Electron's crash-prone native upload pipe when GitHub CLI is available; the memory-bounded native path remains a compatibility fallback. Reconciliation scans up to 1,000 assets once then polls only an exact asset ID, fails closed on an incomplete asset, retains the exact Release editor plus verified whole-batch drag/drop recovery (including throttled hash/staging progress, worst-case temporary-space preflight, six-hour cancelable polling, and ordered `.partNNN` range files above the per-asset limit), maps flat case-safe assets back to original nested paths, keeps at most 1,000 assets in each prerelease `assets`, `assets-2`, … bucket without splitting a multipart file or manual batch, shares one inventory per Release across Materialize all, and transparently verifies/reassembles the original bytes
 - Rebase the current branch onto a searched target through a reviewed current→target summary with ahead/behind context and a bounded commit preview. Fresh preflight state blocks dirty or conflicted repositories and ongoing operations, exact refs are revalidated before Git starts, conflicts remain in the existing continue/abort flow, and Desktop Material never force-pushes automatically
 - Manage every named remote with guarded add/rename/update/default/remove operations, and inspect or create exact known client hooks through the effective `core.hooksPath` without displaying hook contents or absolute paths. Remote rows stack before their name, URL, and controls collapse below a readable width, and the Repository Tools workspace keeps its diagnostics and results vertically reachable at compact heights
 - Save a credential-vault-backed SSH working copy in **Repository Settings → Remote**, then Clone, inspect Status, Fetch, Pull, Push, or deploy Docker Compose. The paired remote site can list the same redacted host definitions and request a reviewed clone without receiving a password or key. Updates are fast-forward-only on the configured branch; Desktop never resets or force-checks out the host. Public site hosting remains explicit server configuration: point DNS at that SSH host and configure its reverse proxy, TLS certificate, and container port outside Desktop Material
@@ -339,16 +340,21 @@ automation, and account isolation. The diagrams are reproducible with
 Desktop Material's automated releases provide a per-user x64 Windows installer.
 The Windows package command also creates `dist/GitHub Desktop-x64.zip`, and the
 gated release workflow requires that portable archive beside the installer
-assets. Run this one line in Windows PowerShell 5.1 or PowerShell 7; it does not
-require an administrator shell:
+assets. A successful main CI run enters packaging directly; a manual express
+dispatch runs lint, Windows x64 trampoline/unit/script tests, and packaging in
+parallel. The packaging
+job preserves the complete payload as a short-lived Actions artifact before
+attempting its create-only GitHub Release, so installers remain available when
+publication alone fails. Run this one line in Windows PowerShell 5.1 or
+PowerShell 7; it does not require an administrator shell:
 
 ```powershell
 Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression
 ```
 
 The [tracked installer script](script/install-windows.ps1) asks GitHub for this
-exact repository's newest published release, accepts only the installer for the
-native architecture, verifies its release-asset size and GitHub SHA-256 digest,
+exact repository's latest stable installer release, accepts only the installer
+for the native architecture, verifies its release-asset size and GitHub SHA-256 digest,
 checks any Authenticode signature, runs the Squirrel installer silently with
 `/S`, and removes its controlled temporary directory. The current release
 workflow publishes unsigned x64 builds, so the script reports that status and
@@ -365,7 +371,7 @@ has not yet published its Release, the About updater reports **New update coming
 soon** in the selected English, playful Hong Kong Cantonese, or bilingual mode.
 The state is transient and fails closed; normal Squirrel update behavior resumes
 on the next check after publication. Automated Release notes list bounded,
-sanitized commit subjects from the previous published release through the exact
+sanitized commit subjects from the previous installer release through the exact
 release SHA. CI, installer, and Pages runs use unique groups so a newer
 invocation never cancels or replaces older running or pending work. See
 [Automated update build status and release

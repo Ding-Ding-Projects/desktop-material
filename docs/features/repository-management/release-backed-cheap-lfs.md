@@ -13,14 +13,16 @@ Repository Tools for users who enter through the tools hub.
 
 A manual pin reviews the source file, repository-relative pointer path,
 release tag, optional release name, and byte size. The default tag is `assets`;
-if it has no release, the app creates an unpublished draft. A file at or below
+if it has no release, the app creates an unpublished prerelease draft so an
+asset bucket can never replace the installer's `/releases/latest` update feed.
+A file at or below
 the release-asset cap uploads as one raw asset. A larger file is split into
 ordered raw parts smaller than 2 GiB, and the pointer records every part's name,
 size, and SHA-256 as well as the whole-file size and digest. Current uploads do
 not add a compression pass; legacy deflated pointers remain readable.
 
 GitHub permits 1,000 assets per Release. Cheap LFS inventories all ten bounded
-100-item pages and keeps at most 1,000 objects in each repository Release
+100-item pages and keeps at most 1,000 assets in each repository Release
 bucket. The configured tag names the first bucket (normally `assets`), followed
 by `assets-2`, `assets-3`, and so on. A single multipart file or one complete
 manual batch is allocated atomically: when it would cross the remaining slots,
@@ -48,10 +50,10 @@ validation, and 100% remains reserved until a valid provider response or a
 reconciled asset proves acceptance.
 
 Before a CLI upload, Desktop Material scans the selected Release's complete bounded
-inventory once—up to ten 100-object pages. If it finds one exact-name object,
+inventory once—up to ten 100-asset pages. If it finds one exact-name asset,
 it polls only that immutable asset ID. An already completed exact-size,
 exact-label, exact-digest object is reused; a persistent `starter` or other
-incomplete object fails closed. The inventory is not repeatedly reloaded for
+incomplete asset fails closed. The inventory is not repeatedly reloaded for
 each poll.
 
 When no prior object exists, Desktop Material launches only the real-path
@@ -75,22 +77,36 @@ recommended recovery if this compatibility path cannot complete safely.
 
 While an automatic upload is active, **Manual upload** switches the same commit
 operation to a browser-assisted handoff. Desktop Material stops the current
-automatic attempt, plans every remaining file that fits one Release asset,
-creates one random temporary folder containing the exact asset names, opens
+automatic attempt, plans every remaining file, splits sources above the Release
+limit into ordered `.partNNN` assets, creates one random temporary folder
+containing the exact asset names, opens
 the exact validated release editor and then that folder in front for drag and
 drop, and waits for the user to upload and save all files to the selected
 `assets` bucket. Older GitHub Enterprise responses without a usable release web URL
 fall back to the validated repository Releases listing. File symlinks are
 preferred; the app falls back to hardlinks and then streamed copies when the
-host or volume cannot create a link. **Cancel** stops either the automatic or
-manual phase. Manual handoff deliberately rejects multipart files, which must
-use the automatic ranged uploader.
+host or volume cannot create a link. Multipart ranges cannot be linked, so they
+are copied with one bounded 1 MiB buffer per active range. **Cancel** stops
+either phase until the verified pointer commit begins and removes only the
+operation-owned handoff entries. The browser rendezvous backs polling off to a
+30-second interval and remains cancelable for roughly six hours, so a slow
+multi-gigabyte upload does not expire after ten minutes.
+
+Hashing and handoff staging report byte progress across both passes, so a
+multi-gigabyte source advances visibly instead of remaining at 0%. Before any
+handoff starts, the app requires enough free temporary-disk space for the
+worst-case copy fallback of every source, the largest verification download,
+and a safety reserve.
+An insufficient volume fails clearly instead of filling the disk mid-copy.
 
 GitHub Release assets have no folder hierarchy, so the handoff directory is
 flat even when selected files live in nested repository folders. The manifest
 maps every prepared asset back to its original repository-relative path, and
 same-named files from different folders receive collision-safe hash suffixes.
-After verification, each pointer is written at that exact original path.
+Reservation uses Windows' case-insensitive comparison, so `Foo.bin` and
+`foo.bin` cannot collide in the flat folder.
+The app waits for every new part, verifies each downloaded part and then the
+whole source, and writes each pointer at its exact original path.
 
 ## Persistence
 
@@ -104,14 +120,20 @@ Materialization downloads to sibling temporary files. A single asset is
 renamed over the pointer only after its size and digest match. Multipart files
 verify every part, assemble them in order while calculating the whole digest,
 and replace the pointer atomically only after the final verification succeeds.
+One Materialize-all run caches release metadata by tag. When the bounded
+release preview does not already contain every required uploaded name, it also
+caches one complete paginated asset inventory by release ID. Pointers in the
+same `assets` bucket therefore do not issue thousands of duplicate inventory
+requests.
 
 ## Failure modes and recovery
 
 An unavailable Releases account, missing release or asset, stale release
 review, upload/download error, missing trusted GitHub CLI, CLI timeout or
 failure, changed source file, digest or size mismatch, oversized pointer
-projection, or cancellation leaves the original source or tracked pointer in
-place. Failed multipart pins attempt to delete only assets uploaded by that
+projection, invalid part layout, insufficient temporary space, or cancellation
+before pointer commit leaves the original source or tracked pointer in place.
+Failed multipart pins attempt to delete only assets uploaded by that
 attempt and report any cleanup failure without touching pre-existing assets.
 CLI-unavailable, CLI-failed, and incomplete-asset messages direct the user to
 retry or use the explicit manual handoff.
@@ -134,12 +156,16 @@ have become a valid pointer when a later pin fails, but the commit is aborted
 and repository status is refreshed so no half-pinned selection is committed.
 
 The manual handoff waits for a bounded ten-minute window and scans every
-bounded Release-asset page. A timeout, cancel, unsupported multipart source,
-changed source, missing or duplicate expected name, wrong size or digest,
-download mismatch, or pointer-write failure aborts the commit. Files pinned
-before the switch remain valid pointers. Assets that the user uploaded in the
-browser are left on the Release for explicit review; the app never treats them
-as attempt-owned assets that it may delete automatically.
+bounded Release-asset page. A timeout, cancel, changed source, missing or
+duplicate expected name, wrong size or digest, download mismatch, or
+pointer-write failure aborts the commit. Cancellation is fenced immediately
+before pointer commit; after the first per-file atomic write begins, the app
+finishes the reviewed writes instead of reporting a misleading canceled result.
+A later pointer-write failure can leave earlier files as valid pointers, but
+the commit is aborted and status is refreshed. Files pinned before the switch
+remain valid pointers. Assets that the user uploaded in the browser are left on
+the Release for explicit review; the app never treats them as attempt-owned
+assets that it may delete automatically.
 
 ## Security considerations
 
@@ -181,11 +207,13 @@ deleted.
 `cheap-lfs/pointer-test.ts` covers canonical single/multipart pointers, legacy
 deflated compatibility, size limits, part totals, path normalization, and the
 below-2-GiB upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
-deduplicated asset names, 1,000-object rollover without splitting groups,
+deduplicated asset names, 1,000-asset rollover without splitting groups,
 mutation reviews, attempt-owned cleanup, source race checks, cancellation,
-per-part and whole-file verification, and atomic materialization.
+per-part and whole-file verification, paginated inventory reuse, and atomic
+materialization.
 `cheap-lfs/manual-upload-test.ts` covers whole-batch handoff names, atomic
-bucket rollover, symlink/hardlink/copy fallbacks, pagination and
+bucket rollover, Windows case-insensitive reservation, live preparation
+progress, free-space preflight, symlink/hardlink/copy fallbacks, pagination and
 pre-existing-asset exclusion, cancel-safe cleanup, remote and source hash
 verification, and provider-bound Releases URLs. Release model/API and transfer
 tests prove a complete 1,000-record exact response remains bounded, incomplete
@@ -204,7 +232,7 @@ removed only at that boundary, required headers remain, source chunks are
 advanced one at a time, native network-progress sampling and stall
 cancellation, trusted CLI resolution, sanitized token/config isolation,
 exact-range stdin streaming and digest, GitHub.com/GHE host mapping, bounded
-output/process teardown, one complete 1,000-object scan followed by ID polling,
+output/process teardown, one complete 1,000-asset scan followed by ID polling,
 late completion reconciliation, fail-closed persistent `starter` handling,
 automatic stall/411/502 fallback, 100%-only-after-acceptance progress, and
 application-quit teardown. The latest transfer and localization checkpoint

@@ -16,15 +16,45 @@ inputs:
 runs:
   using: composite
   steps:
+    - name: Restore exact installed dependencies
+      id: installed-dependencies
+      uses: actions/cache@v5
+      with:
+        path: |
+          node_modules
+          app/node_modules
+          ~/.cache/ms-playwright
+          ~/AppData/Local/ms-playwright
+        key: >-
+          installed-deps-v4-${{ runner.os }}-${{ runner.arch }}-target-${{
+          inputs.arch }}-node-${{ inputs.node-version }}-py311-${{
+          hashFiles('package.json', 'yarn.lock', 'app/package.json',
+          'app/yarn.lock', '.yarnrc', 'app/.yarnrc', 'app/.npmrc',
+          'script/post-install.ts',
+          '.github/actions/setup-ci-environment/action.yml',
+          'vendor/yarn-1.21.1.js', 'vendor/printenvz/**',
+          'vendor/windows-argv-parser/**', 'vendor/desktop-notifications/**',
+          'vendor/desktop-trampoline/**') }}
+
     - uses: actions/setup-python@v6
       with:
         python-version: '3.11'
 
-    - name: Use Node.js ${{ inputs.node-version }}
+    - name: Use Node.js ${{ inputs.node-version }} with installed dependencies
+      if: steps.installed-dependencies.outputs.cache-hit == 'true'
+      uses: actions/setup-node@v6
+      with:
+        node-version: ${{ inputs.node-version }}
+
+    - name: Use Node.js ${{ inputs.node-version }} with Yarn download cache
+      if: steps.installed-dependencies.outputs.cache-hit != 'true'
       uses: actions/setup-node@v6
       with:
         node-version: ${{ inputs.node-version }}
         cache: yarn
+        cache-dependency-path: |
+          yarn.lock
+          app/yarn.lock
 
     - name: Install ffmpeg
       if: ${{ runner.os == 'Windows' && inputs.install-ffmpeg == 'true' }}
@@ -32,6 +62,7 @@ runs:
       run: choco install ffmpeg --yes --no-progress
 
     - name: Install and build dependencies
+      if: steps.installed-dependencies.outputs.cache-hit != 'true'
       shell: bash
       run: |
         # Native packages such as dugite download platform archives during
@@ -56,6 +87,7 @@ runs:
         TARGET_ARCH: ${{ inputs.arch }}
 
     - name: Install cross-compilation copilot package
+      if: steps.installed-dependencies.outputs.cache-hit != 'true'
       shell: bash
       run: |
         # Map runner.os to Node's process.platform naming
@@ -87,4 +119,51 @@ runs:
             echo "Failed to install ${PKG}@${PKG_VERSION} after 3 attempts."
             exit 1
           fi
+        fi
+
+    - name: Verify installed dependencies before use
+      shell: bash
+      run: |
+        required=(
+          node_modules/webpack/package.json
+          node_modules/electron/package.json
+          app/node_modules/dugite/package.json
+          app/node_modules/@github/copilot/package.json
+        )
+        case "$RUNNER_OS" in
+          Windows)
+            required+=(
+              node_modules/electron/dist/electron.exe
+              "app/node_modules/@github/copilot-win32-${{ inputs.arch }}/package.json"
+            )
+            ;;
+          macOS)
+            required+=(
+              node_modules/electron/dist/Electron.app/Contents/MacOS/Electron
+              "app/node_modules/@github/copilot-darwin-${{ inputs.arch }}/package.json"
+            )
+            ;;
+          Linux)
+            required+=(
+              node_modules/electron/dist/electron
+              "app/node_modules/@github/copilot-linux-${{ inputs.arch }}/package.json"
+            )
+            ;;
+        esac
+        for path in "${required[@]}"; do
+          if [ ! -f "$path" ]; then
+            echo "Installed dependency cache is incomplete: $path" >&2
+            exit 1
+          fi
+        done
+        playwright_ffmpeg=false
+        for root in "$HOME/.cache/ms-playwright" "$HOME/AppData/Local/ms-playwright"; do
+          if [ -d "$root" ] && find "$root" -type f \( -name ffmpeg -o -name ffmpeg.exe \) -print -quit | grep -q .; then
+            playwright_ffmpeg=true
+            break
+          fi
+        done
+        if [ "$playwright_ffmpeg" != true ]; then
+          echo "Installed dependencies are missing Playwright ffmpeg; refusing to save or use this exact cache key." >&2
+          exit 1
         fi

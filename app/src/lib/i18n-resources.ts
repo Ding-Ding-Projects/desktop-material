@@ -2775,7 +2775,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.progress.uploading':
     'Uploading {files} to cheap LFS ({percentage}%){amend}',
   'cheapLfs.progress.verifying': 'Verifying {files} for cheap LFS{amend}',
-  'cheapLfs.progress.manualPreparing': 'Preparing the manual upload handoff',
+  'cheapLfs.progress.manualPreparing':
+    'Preparing the manual upload handoff ({percentage}%)',
   'cheapLfs.progress.manualWaiting':
     'Upload all prepared files and save the GitHub release',
   'cheapLfs.progress.manualVerifying': 'Checking your manual upload',
@@ -4175,7 +4176,8 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.progress.uploading':
     '上載緊 {files} 去 cheap LFS（{percentage}%）{amend}',
   'cheapLfs.progress.verifying': '核實緊 {files} 嘅 cheap LFS 資料{amend}',
-  'cheapLfs.progress.manualPreparing': '執緊手動上載交接資料夾',
+  'cheapLfs.progress.manualPreparing':
+    '執緊手動上載交接資料夾（{percentage}%）',
   'cheapLfs.progress.manualWaiting':
     '喺 GitHub 上載晒準備好嘅檔案，跟住撳儲存 Release',
   'cheapLfs.progress.manualVerifying': '核實緊你手動上載嘅檔案',

@@ -140,7 +140,7 @@ About updater can show **New update coming soon** (or the selected Cantonese or
 bilingual equivalent). This remote state is never persisted and cannot make an
 update installable. Once the Release exists, the next normal update check takes
 over. Each automated Release lists bounded, sanitized commit subjects from the
-previous published release through its exact target SHA. CI, installer, and
+previous installer release through its exact target SHA. CI, installer, and
 Pages invocations use independent per-run groups, so a newer run never cancels
 or replaces older running or pending work.
 
@@ -812,34 +812,43 @@ compatibility transport. Two minutes without forward network progress aborts tha
 of leaving the panel indefinitely at 0% or 1%; choose the manual flow below if it cannot complete.
 
 For explicit recovery, choose **Manual upload** beside the progress controls. Desktop Material
-stops that attempt and places all remaining files that fit one Release asset into one temporary
-**upload-these-files** folder using symlinks, hardlinks, or copies. It opens the exact selected
+stops that attempt and places all remaining files into one temporary **upload-these-files** folder.
+Whole-file assets use symlinks, hardlinks, or copies; files above the Release limit become ordered
+`.partNNN` range copies made with a bounded buffer. The commit button shows live preparation
+percentage while the app hashes and stages those bytes. It checks the temporary volume before the
+worst-case handoff copy and reports insufficient space instead of filling the disk. It opens the exact selected
 Release edit/upload page first, then puts that folder in front: select all prepared files, drag them
 onto GitHub's asset drop zone, and let the browser finish the upload (then choose its save/update
 action if shown). The app detects only new exact-name assets, downloads and hashes all of them,
 rechecks every source, writes the pointers, and resumes the same commit automatically. Older GitHub
 Enterprise versions safely fall back to the repository Releases listing. **Cancel** stops either
-path. Multipart files continue through the automatic ranged uploader. New uploads otherwise skip
-compression: a file fitting the release-asset cap is stored as one raw asset, while a larger file is
-split into ordered raw ranges. Downloads verify each range and the complete file before replacing
-the pointer. Existing compressed cheap-LFS pointers remain readable for backward compatibility.
+path until the verified pointer commit begins; that short final mutation phase finishes as one
+reviewed operation. The app waits for and verifies every multipart asset before writing the pointer. New uploads
+otherwise skip compression: a file fitting the release-asset cap is stored as one raw asset, while a
+larger file is split into ordered raw ranges. Downloads verify each range and the complete file before
+replacing the pointer. Existing compressed cheap-LFS pointers remain readable for backward
+compatibility.
 
-Each Cheap LFS Release holds at most 1,000 objects. Desktop Material counts all ten asset pages and
+Each Cheap LFS Release holds at most 1,000 assets. Desktop Material counts all ten asset pages and
 uses `assets`, then `assets-2`, `assets-3`, and later buckets as needed. A multipart file or one
-manual batch always stays together; if the current bucket lacks enough slots, every object in that
+manual batch always stays together; if the current bucket lacks enough slots, every asset in that
 group moves to the next Release and its pointer stores the exact tag. Assets still marked
-`starter` by GitHub reserve a slot but remain unavailable until GitHub reports them uploaded.
+`starter` by GitHub reserve a slot but remain unavailable until GitHub reports them uploaded. New
+asset buckets are prerelease drafts, so publishing one cannot replace the installer update feed.
 
 The compatibility Electron path reads even a multi-gigabyte part incrementally
 instead of retaining one in-process request body.
 
 Open the repository rail's **Large files** destination to manage the pointers directly. It lists
 and searches original repository-relative paths, pins reviewed files, and materializes one or all
-objects without requiring you to find their backing assets in GitHub Releases.
+pointer files without requiring you to find their backing assets in GitHub Releases. Materialize all
+reuses one paginated inventory per Release instead of repeating the same API pages for every pointer.
 
 The prepared folder is flat because GitHub Release assets cannot contain subfolders. Cheap LFS still
 remembers every original repository-relative path: files in nested folders return to those exact
 paths, and duplicate basenames receive distinct hash-suffixed asset names.
+The flat names are reserved case-insensitively, so names that differ only by Windows casing remain
+distinct too.
 
 ---
 

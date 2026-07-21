@@ -162,17 +162,19 @@ separately, then reserves **Committing to _branch_** for the small pointer
 commit. An isolated trusted GitHub CLI exact-range transport runs first so the
 crash-prone Electron upload pipe is not opened when `gh` is available; its
 bounded reconciliation scans the full asset inventory
-once and then polls only one exact object ID. The adjacent **Manual upload**
+once and then polls only one exact asset ID. The adjacent **Manual upload**
 action remains the explicit recovery: it stops the automatic transfer, opens one
-temporary folder containing every remaining single-asset file, and resumes only
+temporary folder containing every remaining whole-file or ordered `.partNNN`
+asset, reports throttled hash/staging progress after a worst-case temp-space
+preflight, and resumes only
 after newly detected browser uploads and all local sources pass SHA-256
 verification.
 
 The repository rail's direct **Large files** manager lists and searches the
 original nested pointer paths, pins reviewed files, and materializes one or all
-objects without sending users through GitHub Releases.
+pointer files without sending users through GitHub Releases.
 
-Every repository bucket is bounded to GitHub's 1,000-object Release limit.
+Every repository bucket is bounded to GitHub's 1,000-asset Release limit.
 Whole multipart files and whole manual batches roll together from `assets` to
 `assets-2`, `assets-3`, and later exact pointer tags; processing assets count
 toward capacity but cannot be downloaded until GitHub marks them uploaded.

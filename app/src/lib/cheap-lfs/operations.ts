@@ -71,6 +71,8 @@ const CheapLfsMaximumPointerEntries = 256
 const CheapLfsMaximumReleaseBuckets = 1000
 /** Only the first bytes of a file are read to classify it as a pointer. */
 const CheapLfsSniffBytes = 4096
+/** Keep streamed preprocessing from flooding the renderer/store update path. */
+const CheapLfsProgressReportIntervalMs = 250
 /** Directories skipped by the pointer-listing walk. */
 const CheapLfsSkipDirectories = new Set([
   '.git',
@@ -165,6 +167,13 @@ export interface ICheapLfsHashedPart {
   readonly sha256: string
 }
 
+/** Byte progress for one streamed Cheap LFS preprocessing pass. */
+export interface ICheapLfsFileProgress {
+  readonly processedBytes: number
+  readonly totalBytes: number
+  readonly currentPath: string
+}
+
 /** Injectable disk seam so the flow can run against fakes or the real OS. */
 export interface ICheapLfsFileSystem {
   hashFile(
@@ -174,7 +183,8 @@ export interface ICheapLfsFileSystem {
   hashFileParts(
     path: string,
     partSize: number,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    onProgress?: (processedBytes: number) => void
   ): Promise<{
     readonly sha256: string
     readonly sizeInBytes: number
@@ -273,7 +283,8 @@ function hashFileRange(
   length: number,
   whole: ReturnType<typeof createHash>,
   part: ReturnType<typeof createHash>,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onChunk?: (bytes: number) => void
 ): Promise<number> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -292,6 +303,7 @@ function hashFileRange(
       streamed += chunk.length
       whole.update(chunk)
       part.update(chunk)
+      onChunk?.(chunk.length)
     })
     stream.once('error', error => {
       signal?.removeEventListener('abort', onAbort)
@@ -313,7 +325,8 @@ function hashFileRange(
 export async function hashFilePartsSha256(
   path: string,
   partSize: number,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onProgress?: (processedBytes: number) => void
 ): Promise<{
   readonly sha256: string
   readonly sizeInBytes: number
@@ -323,6 +336,25 @@ export async function hashFilePartsSha256(
   const plan = planFileParts(sizeInBytes, partSize)
   const whole = createHash('sha256')
   const parts = new Array<ICheapLfsHashedPart>()
+  let processedBytes = 0
+  let lastReportedBytes = -1
+  let lastReportedAt = 0
+  const reportProgress = (bytes: number, force: boolean = false) => {
+    if (onProgress === undefined || bytes === lastReportedBytes) {
+      return
+    }
+    const now = Date.now()
+    if (
+      force ||
+      lastReportedBytes < 0 ||
+      now - lastReportedAt >= CheapLfsProgressReportIntervalMs
+    ) {
+      lastReportedBytes = bytes
+      lastReportedAt = now
+      onProgress(bytes)
+    }
+  }
+  reportProgress(0, true)
   for (const range of plan) {
     if (signal?.aborted) {
       throw abortError('Cheap LFS hashing canceled.')
@@ -335,7 +367,11 @@ export async function hashFilePartsSha256(
         range.length,
         whole,
         partHash,
-        signal
+        signal,
+        bytes => {
+          processedBytes += bytes
+          reportProgress(processedBytes)
+        }
       )
       if (streamed !== range.length) {
         throw new Error(
@@ -349,6 +385,7 @@ export async function hashFilePartsSha256(
       sha256: partHash.digest('hex'),
     })
   }
+  reportProgress(sizeInBytes, true)
   return { sha256: whole.digest('hex'), sizeInBytes, parts }
 }
 
@@ -644,6 +681,21 @@ function insertAssetNameHash(name: string, shortHash: string): string {
   return appendAssetNameSuffix(name, `-${shortHash}`)
 }
 
+/**
+ * Manual handoffs are created on Windows' case-insensitive filesystem. Reserve
+ * names with the same canonical comparison so two nested sources such as
+ * `A/Foo.bin` and `B/foo.bin` cannot target one flat handoff entry.
+ */
+function manualAssetNameCollisionKey(name: string): string {
+  // Uppercase folding deliberately unifies context-sensitive lowercase forms
+  // such as Greek sigma/final-sigma. Trimming trailing dots/spaces mirrors the
+  // Win32 path-name comparison used by the flat handoff folder.
+  return name
+    .normalize('NFC')
+    .toUpperCase()
+    .replace(/[ .]+$/u, '')
+}
+
 /** Append a short content hash before the extension to dodge a name clash. */
 function dedupeAssetName(
   name: string,
@@ -652,20 +704,20 @@ function dedupeAssetName(
   reservedNames: ReadonlySet<string> = new Set()
 ): string {
   const assetNames = new Set([
-    ...assets.map(asset => asset.name),
-    ...reservedNames,
+    ...assets.map(asset => manualAssetNameCollisionKey(asset.name)),
+    ...[...reservedNames].map(manualAssetNameCollisionKey),
   ])
-  if (!assetNames.has(name)) {
+  if (!assetNames.has(manualAssetNameCollisionKey(name))) {
     return name
   }
 
   const short = sha256.slice(0, 7)
-  for (let attempt = 0; attempt <= assets.length; attempt++) {
+  for (let attempt = 0; attempt <= assetNames.size; attempt++) {
     const candidate = insertAssetNameHash(
       name,
       attempt === 0 ? short : `${short}-${attempt + 1}`
     )
-    if (!assetNames.has(candidate)) {
+    if (!assetNames.has(manualAssetNameCollisionKey(candidate))) {
       return candidate
     }
   }
@@ -681,12 +733,20 @@ function dedupeMultiPartBaseName(
   name: string,
   assets: ReadonlyArray<IGitHubReleaseAsset>,
   sha256: string,
-  partCount: number
+  partCount: number,
+  reservedNames: ReadonlySet<string> = new Set()
 ): string {
-  const assetNames = new Set(assets.map(asset => asset.name))
+  const assetNames = new Set([
+    ...assets.map(asset => manualAssetNameCollisionKey(asset.name)),
+    ...[...reservedNames].map(manualAssetNameCollisionKey),
+  ])
   const collides = (base: string) => {
     for (let index = 0; index < partCount; index++) {
-      if (assetNames.has(partAssetName(base, index, partCount))) {
+      if (
+        assetNames.has(
+          manualAssetNameCollisionKey(partAssetName(base, index, partCount))
+        )
+      ) {
         return true
       }
     }
@@ -699,7 +759,7 @@ function dedupeMultiPartBaseName(
   const width = Math.max(3, String(partCount).length)
   const maximumBaseLength = 255 - `.part${'0'.repeat(width)}`.length
   const short = sha256.slice(0, 7)
-  for (let attempt = 0; attempt <= assets.length; attempt++) {
+  for (let attempt = 0; attempt <= assetNames.size; attempt++) {
     const suffix = attempt === 0 ? `-${short}` : `-${short}-${attempt + 1}`
     const candidate = appendAssetNameSuffix(name, suffix, maximumBaseLength)
     if (!collides(candidate)) {
@@ -1033,7 +1093,9 @@ export async function pinFileToRelease(
           ),
           name: releaseName,
           body: '',
-          prerelease: false,
+          // Asset buckets must never replace the installer's /releases/latest
+          // update feed if a user later publishes the draft.
+          prerelease: true,
         },
         signal
       ),
@@ -1204,7 +1266,15 @@ export async function pinFileToRelease(
 /** Release methods used by the browser-assisted manual fallback. */
 export type ICheapLfsManualReleasesGateway = ICheapLfsReleasesGateway
 
-/** One exact release asset and eventual pointer in a manual batch. */
+/** One exact browser-upload asset, backed by a bounded source-file range. */
+export interface ICheapLfsManualAssetPlan {
+  readonly assetName: string
+  readonly offset: number
+  readonly sizeInBytes: number
+  readonly sha256: string
+}
+
+/** One source file, its browser-upload assets, and its eventual pointer. */
 export interface ICheapLfsManualFilePlan {
   readonly absoluteFilePath: string
   readonly trackedRelativePath: string
@@ -1213,6 +1283,7 @@ export interface ICheapLfsManualFilePlan {
   readonly assetName: string
   readonly sizeInBytes: number
   readonly sha256: string
+  readonly assets: ReadonlyArray<ICheapLfsManualAssetPlan>
 }
 
 /** One release rendezvous containing every remaining selected large file. */
@@ -1482,9 +1553,9 @@ async function allocateCheapLfsReleaseBucket(
 }
 
 /**
- * Prepare one browser-upload batch without mutating the working tree. Every
- * selected source must fit one asset under 2 GiB; the complete batch shares a
- * single paginated preexisting snapshot and reserves names across all files.
+ * Prepare one browser-upload batch without mutating the working tree. Sources
+ * above the per-asset cap become ordered range assets in the same Release; the
+ * complete batch shares one paginated snapshot and reserves every part name.
  */
 export async function planCheapLfsManualUpload(
   releases: ICheapLfsManualReleasesGateway,
@@ -1493,7 +1564,8 @@ export async function planCheapLfsManualUpload(
   options: ReadonlyArray<ICheapLfsPinOptions>,
   signal?: AbortSignal,
   onStage?: (stage: CheapLfsPinStage) => void,
-  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
+  onHashProgress?: (progress: ICheapLfsFileProgress) => void
 ): Promise<ICheapLfsManualPinPlan> {
   if (options.length === 0) {
     throw new Error('Cheap LFS has no files to prepare for manual upload.')
@@ -1510,12 +1582,13 @@ export async function planCheapLfsManualUpload(
   ensureCheapLfsReleaseFamilyTag(baseReleaseTag)
   ensureReleasesAccount(repository, account)
   onStage?.('hashing')
-  const hashedFiles = new Array<{
+  const preflightFiles = new Array<{
     readonly options: ICheapLfsPinOptions
     readonly trackedRelativePath: string
     readonly baseName: string
-    readonly hashed: Awaited<ReturnType<ICheapLfsFileSystem['hashFileParts']>>
+    readonly sourceSize: number
   }>()
+  let projectedAssetCount = 0
   for (const candidate of options) {
     const trackedRelativePath = validateCheapLfsTrackedPath(
       candidate.trackedRelativePath
@@ -1530,25 +1603,91 @@ export async function planCheapLfsManualUpload(
     )
     const sourceSize = await fs.statSize(candidate.absoluteFilePath)
     preflightProjectedPointer(sourceSize, baseReleaseTag, baseName)
-    if (sourceSize > CHEAP_LFS_PART_SIZE_BYTES) {
-      throw new Error(
-        `“${trackedRelativePath}” needs multipart assets. Manual cheap LFS upload currently supports files under 2 GiB; use the automatic upload for this file.`
-      )
-    }
-    const hashed = await fs.hashFileParts(
-      candidate.absoluteFilePath,
-      CHEAP_LFS_PART_SIZE_BYTES,
-      signal
+    projectedAssetCount += Math.max(
+      1,
+      Math.ceil(sourceSize / CHEAP_LFS_PART_SIZE_BYTES)
     )
-    if (hashed.parts.length !== 1) {
+    if (projectedAssetCount > GitHubReleaseAssetMaximumCount) {
       throw new Error(
-        `“${trackedRelativePath}” cannot be represented as one manual cheap LFS release asset.`
+        `One manual cheap LFS batch can contain at most ${GitHubReleaseAssetMaximumCount} release assets after multipart splitting.`
       )
     }
-    hashedFiles.push({
+    preflightFiles.push({
       options: candidate,
       trackedRelativePath,
       baseName,
+      sourceSize,
+    })
+  }
+
+  const hashedFiles = new Array<{
+    readonly options: ICheapLfsPinOptions
+    readonly trackedRelativePath: string
+    readonly baseName: string
+    readonly hashed: Awaited<ReturnType<ICheapLfsFileSystem['hashFileParts']>>
+  }>()
+  const totalHashBytes = preflightFiles.reduce(
+    (sum, file) => sum + file.sourceSize,
+    0
+  )
+  let completedHashBytes = 0
+  let requiredAssetCount = 0
+  for (const file of preflightFiles) {
+    const hashed = await fs.hashFileParts(
+      file.options.absoluteFilePath,
+      CHEAP_LFS_PART_SIZE_BYTES,
+      signal,
+      processedBytes =>
+        onHashProgress?.({
+          processedBytes: completedHashBytes + processedBytes,
+          totalBytes: totalHashBytes,
+          currentPath: file.trackedRelativePath,
+        })
+    )
+    if (hashed.sizeInBytes !== file.sourceSize) {
+      throw new Error(
+        `The cheap LFS source “${file.trackedRelativePath}” changed size while the manual upload was being planned.`
+      )
+    }
+    if (hashed.parts.length === 0) {
+      throw new Error('Cheap LFS produced no manual upload assets for a file.')
+    }
+    let expectedOffset = 0
+    if (
+      !/^[a-f0-9]{64}$/.test(hashed.sha256) ||
+      hashed.parts.some(part => {
+        const invalid =
+          part.offset !== expectedOffset ||
+          !Number.isSafeInteger(part.length) ||
+          part.length < 0 ||
+          part.length > CHEAP_LFS_PART_SIZE_BYTES ||
+          (part.length === 0 && hashed.sizeInBytes !== 0) ||
+          !/^[a-f0-9]{64}$/.test(part.sha256)
+        expectedOffset += part.length
+        return invalid
+      }) ||
+      expectedOffset !== hashed.sizeInBytes
+    ) {
+      throw new Error(
+        `Cheap LFS produced an invalid manual upload part layout for “${file.trackedRelativePath}”.`
+      )
+    }
+    completedHashBytes += hashed.sizeInBytes
+    onHashProgress?.({
+      processedBytes: completedHashBytes,
+      totalBytes: totalHashBytes,
+      currentPath: file.trackedRelativePath,
+    })
+    requiredAssetCount += hashed.parts.length
+    if (requiredAssetCount > GitHubReleaseAssetMaximumCount) {
+      throw new Error(
+        `One manual cheap LFS batch can contain at most ${GitHubReleaseAssetMaximumCount} release assets after multipart splitting.`
+      )
+    }
+    hashedFiles.push({
+      options: file.options,
+      trackedRelativePath: file.trackedRelativePath,
+      baseName: file.baseName,
       hashed,
     })
   }
@@ -1559,7 +1698,7 @@ export async function planCheapLfsManualUpload(
     repository,
     baseReleaseTag,
     options[0].releaseName,
-    hashedFiles.length,
+    requiredAssetCount,
     async (releaseTag, releaseName) =>
       await releases.createDraft(
         repository,
@@ -1572,7 +1711,9 @@ export async function planCheapLfsManualUpload(
           ),
           name: releaseName,
           body: '',
-          prerelease: false,
+          // Asset buckets must never replace the installer's /releases/latest
+          // update feed if a user later publishes the draft.
+          prerelease: true,
         },
         signal
       ),
@@ -1582,13 +1723,33 @@ export async function planCheapLfsManualUpload(
   const preexistingAssetIds = new Set(allAssets.map(asset => asset.id))
   const reservedNames = new Set(allAssets.map(asset => asset.name))
   const files = hashedFiles.map(file => {
-    const assetName = dedupeAssetName(
-      file.baseName,
-      allAssets,
-      file.hashed.sha256,
-      reservedNames
-    )
-    reservedNames.add(assetName)
+    const multipart = file.hashed.parts.length > 1
+    const assetName = multipart
+      ? dedupeMultiPartBaseName(
+          file.baseName,
+          allAssets,
+          file.hashed.sha256,
+          file.hashed.parts.length,
+          reservedNames
+        )
+      : dedupeAssetName(
+          file.baseName,
+          allAssets,
+          file.hashed.sha256,
+          reservedNames
+        )
+    const assets: ReadonlyArray<ICheapLfsManualAssetPlan> =
+      file.hashed.parts.map((part, index) => ({
+        assetName: multipart
+          ? partAssetName(assetName, index, file.hashed.parts.length)
+          : assetName,
+        offset: part.offset,
+        sizeInBytes: part.length,
+        sha256: part.sha256,
+      }))
+    for (const asset of assets) {
+      reservedNames.add(asset.assetName)
+    }
     preflightProjectedPointer(
       file.hashed.sizeInBytes,
       releaseTag,
@@ -1600,6 +1761,13 @@ export async function planCheapLfsManualUpload(
       assetName,
       sizeInBytes: file.hashed.sizeInBytes,
       sha256: file.hashed.sha256,
+      parts: multipart
+        ? assets.map(asset => ({
+            name: asset.assetName,
+            sizeInBytes: asset.sizeInBytes,
+            sha256: asset.sha256,
+          }))
+        : undefined,
     }
     const pointerText = serializeCheapLfsPointer(pointer)
     ensurePointerFitsOnDisk(pointerText)
@@ -1611,6 +1779,7 @@ export async function planCheapLfsManualUpload(
       assetName,
       sizeInBytes: file.hashed.sizeInBytes,
       sha256: file.hashed.sha256,
+      assets,
     }
   })
   return { release, files, preexistingAssetIds }
@@ -1800,6 +1969,37 @@ async function materializeMultiPart(
   }
 }
 
+/** One batch-local cache for release metadata and complete asset inventories. */
+export interface ICheapLfsMaterializeCache {
+  readonly releasesByTag: Map<string, Promise<IGitHubRelease | null>>
+  readonly completeReleasesById: Map<number, Promise<IGitHubRelease>>
+}
+
+export function createCheapLfsMaterializeCache(): ICheapLfsMaterializeCache {
+  return {
+    releasesByTag: new Map(),
+    completeReleasesById: new Map(),
+  }
+}
+
+function requiredPointerAssetNames(
+  pointer: ICheapLfsPointer
+): ReadonlyArray<string> {
+  return pointer.parts?.map(part => part.name) ?? [pointer.assetName]
+}
+
+function releaseContainsUploadedAssets(
+  release: IGitHubRelease,
+  names: ReadonlyArray<string>
+): boolean {
+  const uploadedNames = new Set(
+    release.assets
+      .filter(isUploadedGitHubReleaseAsset)
+      .map(candidate => candidate.name)
+  )
+  return names.every(name => uploadedNames.has(name))
+}
+
 /**
  * Replace a committed pointer with its real bytes.
  *
@@ -1816,7 +2016,8 @@ export async function materializePointer(
   trackedRelativePath: string,
   signal?: AbortSignal,
   onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
-  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
+  cache?: ICheapLfsMaterializeCache
 ): Promise<ICheapLfsMaterializeResult> {
   const relativePath = validateCheapLfsTrackedPath(trackedRelativePath)
   if (relativePath === null) {
@@ -1832,22 +2033,65 @@ export async function materializePointer(
     throw new Error('This file is not a cheap LFS pointer.')
   }
 
-  const release = await releases.getReleaseByTag(
-    repository,
-    pointer.releaseTag,
-    signal
-  )
+  let releasePromise = cache?.releasesByTag.get(pointer.releaseTag)
+  if (releasePromise === undefined) {
+    releasePromise = releases.getReleaseByTag(
+      repository,
+      pointer.releaseTag,
+      signal
+    )
+    cache?.releasesByTag.set(pointer.releaseTag, releasePromise)
+  }
+  let release: IGitHubRelease | null
+  try {
+    release = await releasePromise
+  } catch (error) {
+    if (cache?.releasesByTag.get(pointer.releaseTag) === releasePromise) {
+      cache.releasesByTag.delete(pointer.releaseTag)
+    }
+    throw error
+  }
   if (release === null) {
     throw new Error(
       `No release tagged “${pointer.releaseTag}” holds this pointer's asset.`
     )
+  }
+  const requiredNames = requiredPointerAssetNames(pointer)
+  let completeRelease = release
+  if (!releaseContainsUploadedAssets(release, requiredNames)) {
+    let completeReleasePromise = cache?.completeReleasesById.get(release.id)
+    if (completeReleasePromise === undefined) {
+      completeReleasePromise = (async () => {
+        const listedAssets = await listAllCheapLfsReleaseAssets(
+          releases,
+          repository,
+          release.id,
+          signal
+        )
+        return {
+          ...release,
+          assets: mergeCheapLfsReleaseAssetSnapshots(release, listedAssets),
+        }
+      })()
+      cache?.completeReleasesById.set(release.id, completeReleasePromise)
+    }
+    try {
+      completeRelease = await completeReleasePromise
+    } catch (error) {
+      if (
+        cache?.completeReleasesById.get(release.id) === completeReleasePromise
+      ) {
+        cache.completeReleasesById.delete(release.id)
+      }
+      throw error
+    }
   }
 
   if (pointer.parts === undefined) {
     return await materializeSingleAsset(
       releases,
       repository,
-      release,
+      completeRelease,
       pointer,
       trackedPath,
       signal,
@@ -1858,7 +2102,7 @@ export async function materializePointer(
   return await materializeMultiPart(
     releases,
     repository,
-    release,
+    completeRelease,
     pointer,
     pointer.parts,
     trackedPath,

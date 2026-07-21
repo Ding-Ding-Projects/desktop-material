@@ -6,6 +6,7 @@ import {
   mkdtemp,
   open,
   rmdir,
+  statfs,
   symlink,
   unlink,
 } from 'fs/promises'
@@ -26,7 +27,8 @@ import {
   defaultCheapLfsFileSystem,
   ICheapLfsAutoPinnedFile,
   ICheapLfsFileSystem,
-  ICheapLfsManualFilePlan,
+  ICheapLfsFileProgress,
+  ICheapLfsManualAssetPlan,
   ICheapLfsManualPinPlan,
   ICheapLfsManualReleasesGateway,
   ICheapLfsPinOptions,
@@ -34,8 +36,11 @@ import {
 } from './operations'
 
 const ManualUploadCopyBufferBytes = 1024 * 1024
-const DefaultManualUploadPollAttempts = 120
+const ManualUploadFreeSpaceReserveBytes = 64 * 1024 * 1024
+const ManualUploadProgressReportIntervalMs = 250
+const DefaultManualUploadPollAttempts = 720
 const DefaultManualUploadPollIntervalMs = 5000
+const DefaultManualUploadMaximumPollIntervalMs = 30000
 
 function manualAbortError(): Error {
   const error = new Error('The manual cheap LFS upload was canceled.')
@@ -113,24 +118,61 @@ async function writeExclusiveText(path: string, text: string): Promise<void> {
   }
 }
 
-async function copyWithBoundedBuffer(
+async function copyRangeWithBoundedBuffer(
   sourcePath: string,
   destinationPath: string,
-  expectedBytes: number,
-  signal: AbortSignal
+  expectedSourceBytes: number,
+  sourceOffset: number,
+  rangeBytes: number,
+  signal: AbortSignal,
+  onProgress?: (copiedBytes: number) => void
 ): Promise<void> {
+  if (
+    !Number.isSafeInteger(expectedSourceBytes) ||
+    !Number.isSafeInteger(sourceOffset) ||
+    !Number.isSafeInteger(rangeBytes) ||
+    expectedSourceBytes < 0 ||
+    sourceOffset < 0 ||
+    rangeBytes < 0 ||
+    sourceOffset + rangeBytes > expectedSourceBytes
+  ) {
+    throw new Error('Cheap LFS refused an invalid manual upload file range.')
+  }
   const source = await open(sourcePath, 'r')
   let destination: Awaited<ReturnType<typeof open>> | undefined
   try {
     destination = await open(destinationPath, 'wx')
     const buffer = Buffer.allocUnsafe(
-      Math.min(ManualUploadCopyBufferBytes, Math.max(1, expectedBytes))
+      Math.min(ManualUploadCopyBufferBytes, Math.max(1, rangeBytes))
     )
-    let offset = 0
-    while (offset < expectedBytes) {
+    let copied = 0
+    let lastReportedBytes = -1
+    let lastReportedAt = 0
+    const reportProgress = (bytes: number, force: boolean = false) => {
+      if (onProgress === undefined || bytes === lastReportedBytes) {
+        return
+      }
+      const now = Date.now()
+      if (
+        force ||
+        lastReportedBytes < 0 ||
+        now - lastReportedAt >= ManualUploadProgressReportIntervalMs
+      ) {
+        lastReportedBytes = bytes
+        lastReportedAt = now
+        onProgress(bytes)
+      }
+    }
+    reportProgress(0, true)
+    while (copied < rangeBytes) {
       throwIfAborted(signal)
-      const requested = Math.min(buffer.byteLength, expectedBytes - offset)
-      const read = await source.read(buffer, 0, requested, offset)
+      const requested = Math.min(buffer.byteLength, rangeBytes - copied)
+      const read = await source.read(
+        buffer,
+        0,
+        requested,
+        sourceOffset + copied
+      )
       if (read.bytesRead === 0) {
         throw new Error(
           'The cheap LFS source became shorter while preparing the manual upload.'
@@ -142,21 +184,23 @@ async function copyWithBoundedBuffer(
           buffer,
           written,
           read.bytesRead - written,
-          offset + written
+          copied + written
         )
         if (result.bytesWritten === 0) {
           throw new Error('Could not copy the manual cheap LFS handoff file.')
         }
         written += result.bytesWritten
       }
-      offset += read.bytesRead
+      copied += read.bytesRead
+      reportProgress(copied)
     }
-    if ((await source.stat()).size !== expectedBytes) {
+    if ((await source.stat()).size !== expectedSourceBytes) {
       throw new Error(
         'The cheap LFS source changed size while preparing the manual upload.'
       )
     }
     await destination.sync()
+    reportProgress(rangeBytes, true)
   } catch (error) {
     await destination?.close().catch(() => undefined)
     destination = undefined
@@ -201,11 +245,38 @@ const defaultHandoffLinker: ICheapLfsManualHandoffLinker = {
 export async function createCheapLfsManualHandoff(
   plan: ICheapLfsManualPinPlan,
   signal: AbortSignal,
-  linker: ICheapLfsManualHandoffLinker = defaultHandoffLinker
+  linker: ICheapLfsManualHandoffLinker = defaultHandoffLinker,
+  onProgress?: (progress: ICheapLfsFileProgress) => void
 ): Promise<ICheapLfsManualHandoff> {
   throwIfAborted(signal)
-  if (plan.files.some(file => basename(file.assetName) !== file.assetName)) {
+  if (
+    plan.files.some(file =>
+      file.assets.some(asset => basename(asset.assetName) !== asset.assetName)
+    )
+  ) {
     throw new Error('Cheap LFS produced an unsafe manual asset name.')
+  }
+  const totalBytes = plan.files.reduce((sum, file) => sum + file.sizeInBytes, 0)
+  const stagedWorstCaseBytes = plan.files.reduce(
+    (sum, file) => sum + BigInt(file.sizeInBytes),
+    0n
+  )
+  const largestVerificationBytes = plan.files.reduce(
+    (largest, file) =>
+      Math.max(largest, ...file.assets.map(asset => asset.sizeInBytes)),
+    0
+  )
+  const requiredTemporaryBytes =
+    stagedWorstCaseBytes +
+    BigInt(largestVerificationBytes) +
+    BigInt(ManualUploadFreeSpaceReserveBytes)
+  const temporaryVolume = await statfs(tmpdir())
+  const availableTemporaryBytes =
+    BigInt(temporaryVolume.bavail) * BigInt(temporaryVolume.bsize)
+  if (availableTemporaryBytes < requiredTemporaryBytes) {
+    throw new Error(
+      'Cheap LFS needs more free temporary-disk space to prepare and verify this manual upload.'
+    )
   }
   const owned = new Array<IOwnedPathIdentity>()
   const cleanup = async () => {
@@ -221,29 +292,66 @@ export async function createCheapLfsManualHandoff(
     await mkdir(uploadDirectoryPath)
     owned.push(await captureOwnedPath(uploadDirectoryPath, 'directory'))
     const assets = new Array<ICheapLfsManualHandoffAsset>()
+    let completedBytes = 0
     for (const file of plan.files) {
-      throwIfAborted(signal)
-      const assetPath = join(uploadDirectoryPath, file.assetName)
-      let method: CheapLfsManualHandoffMethod
-      try {
-        await linker.symlink(file.absoluteFilePath, assetPath)
-        method = 'symlink'
-      } catch {
-        try {
-          await linker.hardlink(file.absoluteFilePath, assetPath)
-          method = 'hardlink'
-        } catch {
-          await copyWithBoundedBuffer(
+      let preparedFileBytes = 0
+      const reportFileProgress = (processedBytes: number) => {
+        preparedFileBytes = processedBytes
+        onProgress?.({
+          processedBytes: completedBytes + processedBytes,
+          totalBytes,
+          currentPath: file.trackedRelativePath,
+        })
+      }
+      reportFileProgress(0)
+      for (const asset of file.assets) {
+        throwIfAborted(signal)
+        const assetPath = join(uploadDirectoryPath, asset.assetName)
+        let method: CheapLfsManualHandoffMethod
+        const isWholeSource =
+          file.assets.length === 1 &&
+          asset.offset === 0 &&
+          asset.sizeInBytes === file.sizeInBytes
+        if (isWholeSource) {
+          try {
+            await linker.symlink(file.absoluteFilePath, assetPath)
+            method = 'symlink'
+          } catch {
+            try {
+              await linker.hardlink(file.absoluteFilePath, assetPath)
+              method = 'hardlink'
+            } catch {
+              await copyRangeWithBoundedBuffer(
+                file.absoluteFilePath,
+                assetPath,
+                file.sizeInBytes,
+                asset.offset,
+                asset.sizeInBytes,
+                signal,
+                copiedBytes => reportFileProgress(asset.offset + copiedBytes)
+              )
+              method = 'copy'
+            }
+          }
+        } else {
+          await copyRangeWithBoundedBuffer(
             file.absoluteFilePath,
             assetPath,
             file.sizeInBytes,
-            signal
+            asset.offset,
+            asset.sizeInBytes,
+            signal,
+            copiedBytes => reportFileProgress(asset.offset + copiedBytes)
           )
           method = 'copy'
         }
+        owned.push(await captureOwnedPath(assetPath, 'entry'))
+        assets.push({ name: asset.assetName, path: assetPath, method })
       }
-      owned.push(await captureOwnedPath(assetPath, 'entry'))
-      assets.push({ name: file.assetName, path: assetPath, method })
+      if (preparedFileBytes !== file.sizeInBytes) {
+        reportFileProgress(file.sizeInBytes)
+      }
+      completedBytes += file.sizeInBytes
     }
 
     const manifestPath = join(rootPath, 'handoff.json')
@@ -251,15 +359,25 @@ export async function createCheapLfsManualHandoff(
       manifestPath,
       `${JSON.stringify(
         {
-          version: 1,
+          version: 2,
           files: plan.files.map(file => {
-            const handoff = assets.find(asset => asset.name === file.assetName)!
             return {
               trackedPath: file.trackedRelativePath,
-              assetName: file.assetName,
               sizeInBytes: file.sizeInBytes,
               sha256: file.sha256,
-              handoffMethod: handoff.method,
+              pointerAssetName: file.assetName,
+              assets: file.assets.map(asset => {
+                const handoff = assets.find(
+                  candidate => candidate.name === asset.assetName
+                )!
+                return {
+                  assetName: asset.assetName,
+                  offset: asset.offset,
+                  sizeInBytes: asset.sizeInBytes,
+                  sha256: asset.sha256,
+                  handoffMethod: handoff.method,
+                }
+              }),
             }
           }),
         },
@@ -283,11 +401,13 @@ export async function createCheapLfsManualHandoff(
 export interface ICheapLfsManualUploadPolicy {
   readonly maximumPollAttempts: number
   readonly pollIntervalMs: number
+  readonly maximumPollIntervalMs?: number
 }
 
 const defaultManualUploadPolicy: ICheapLfsManualUploadPolicy = {
   maximumPollAttempts: DefaultManualUploadPollAttempts,
   pollIntervalMs: DefaultManualUploadPollIntervalMs,
+  maximumPollIntervalMs: DefaultManualUploadMaximumPollIntervalMs,
 }
 
 async function waitForPoll(ms: number, signal: AbortSignal): Promise<void> {
@@ -364,6 +484,13 @@ async function waitForNewAssets(
   signal: AbortSignal,
   policy: ICheapLfsManualUploadPolicy
 ): Promise<ReadonlyMap<string, IGitHubReleaseAsset>> {
+  const expectedAssets = plan.files.flatMap(file => file.assets)
+  const expectedByName = new Map(
+    expectedAssets.map(asset => [asset.assetName, asset] as const)
+  )
+  if (expectedByName.size !== expectedAssets.length) {
+    throw new Error('Cheap LFS produced duplicate manual upload asset names.')
+  }
   for (let attempt = 0; attempt < policy.maximumPollAttempts; attempt++) {
     throwIfAborted(signal)
     const assets = await listAllAssets(
@@ -373,33 +500,40 @@ async function waitForNewAssets(
       signal
     )
     const detected = new Map<string, IGitHubReleaseAsset>()
-    for (const file of plan.files) {
-      const named = assets.filter(
-        asset =>
-          isUploadedGitHubReleaseAsset(asset) &&
-          asset.name === file.assetName &&
-          !plan.preexistingAssetIds.has(asset.id)
-      )
-      if (named.length > 1) {
+    for (const asset of assets) {
+      if (
+        !isUploadedGitHubReleaseAsset(asset) ||
+        plan.preexistingAssetIds.has(asset.id)
+      ) {
+        continue
+      }
+      const expected = expectedByName.get(asset.name)
+      if (expected === undefined) {
+        continue
+      }
+      if (detected.has(asset.name)) {
         throw new Error(
-          `GitHub returned multiple new assets named “${file.assetName}”.`
+          `GitHub returned multiple new assets named “${asset.name}”.`
         )
       }
-      if (named.length === 1) {
-        const asset = named[0]
-        if (asset.sizeInBytes !== file.sizeInBytes) {
-          throw new Error(
-            `The manually uploaded “${file.assetName}” asset has the wrong byte size.`
-          )
-        }
-        detected.set(file.assetName, asset)
+      if (asset.sizeInBytes !== expected.sizeInBytes) {
+        throw new Error(
+          `The manually uploaded “${asset.name}” asset has the wrong byte size.`
+        )
       }
+      detected.set(asset.name, asset)
     }
-    if (detected.size === plan.files.length) {
+    if (detected.size === expectedAssets.length) {
       return detected
     }
     if (attempt + 1 < policy.maximumPollAttempts) {
-      await waitForPoll(policy.pollIntervalMs, signal)
+      const maximumInterval = Math.max(
+        policy.pollIntervalMs,
+        policy.maximumPollIntervalMs ?? policy.pollIntervalMs
+      )
+      const backoff =
+        policy.pollIntervalMs * Math.pow(1.5, Math.min(attempt, 20))
+      await waitForPoll(Math.min(maximumInterval, backoff), signal)
     }
   }
   throw new Error(
@@ -411,7 +545,7 @@ async function verifyDownloadedAsset(
   releases: ICheapLfsManualReleasesGateway,
   repository: Repository,
   releaseId: number,
-  file: ICheapLfsManualFilePlan,
+  file: ICheapLfsManualAssetPlan,
   asset: IGitHubReleaseAsset,
   rootPath: string,
   signal: AbortSignal,
@@ -464,6 +598,7 @@ async function verifyDownloadedAsset(
 
 export interface ICheapLfsManualUploadHooks {
   readonly onStage?: (stage: CheapLfsAutoPinPhase) => void
+  readonly onPreparationProgress?: (progress: ICheapLfsFileProgress) => void
   readonly onReady: (
     handoff: ICheapLfsManualHandoff,
     plan: ICheapLfsManualPinPlan
@@ -486,6 +621,7 @@ export async function manualPinFilesToRelease(
   policy: ICheapLfsManualUploadPolicy = defaultManualUploadPolicy
 ): Promise<ReadonlyArray<ICheapLfsAutoPinnedFile>> {
   hooks.onStage?.('manual-preparing')
+  let totalSourceBytes = 0
   const plan = await planCheapLfsManualUpload(
     releases,
     repository,
@@ -493,9 +629,32 @@ export async function manualPinFilesToRelease(
     options,
     signal,
     undefined,
-    fs
+    fs,
+    progress => {
+      totalSourceBytes = progress.totalBytes
+      hooks.onPreparationProgress?.({
+        ...progress,
+        totalBytes: progress.totalBytes * 2,
+      })
+    }
   )
-  const handoff = await createCheapLfsManualHandoff(plan, signal)
+  if (totalSourceBytes === 0) {
+    totalSourceBytes = plan.files.reduce(
+      (sum, file) => sum + file.sizeInBytes,
+      0
+    )
+  }
+  const handoff = await createCheapLfsManualHandoff(
+    plan,
+    signal,
+    undefined,
+    progress =>
+      hooks.onPreparationProgress?.({
+        ...progress,
+        processedBytes: totalSourceBytes + progress.processedBytes,
+        totalBytes: totalSourceBytes * 2,
+      })
+  )
   try {
     await hooks.onReady(handoff, plan)
     hooks.onStage?.('manual-waiting')
@@ -508,16 +667,18 @@ export async function manualPinFilesToRelease(
     )
     hooks.onStage?.('manual-verifying')
     for (const file of plan.files) {
-      await verifyDownloadedAsset(
-        releases,
-        repository,
-        plan.release.id,
-        file,
-        assets.get(file.assetName)!,
-        handoff.rootPath,
-        signal,
-        fs
-      )
+      for (const expectedAsset of file.assets) {
+        await verifyDownloadedAsset(
+          releases,
+          repository,
+          plan.release.id,
+          expectedAsset,
+          assets.get(expectedAsset.assetName)!,
+          handoff.rootPath,
+          signal,
+          fs
+        )
+      }
     }
     // Rehash every source before mutating any source path. This makes a changed
     // member fail the whole rendezvous while all original files remain intact.
@@ -532,7 +693,11 @@ export async function manualPinFilesToRelease(
         )
       }
     }
+    throwIfAborted(signal)
     hooks.onStage?.('manual-detected')
+    // Cancellation is fenced immediately before the mutation phase. Once the
+    // first per-file atomic pointer write starts, finish the reviewed batch so
+    // the caller never reports "canceled" after silently converting files.
     for (const file of plan.files) {
       await fs.writePointer(
         join(repository.path, file.trackedRelativePath),
@@ -544,7 +709,7 @@ export async function manualPinFilesToRelease(
       sizeInBytes: file.sizeInBytes,
       result: {
         pointer: file.pointer,
-        asset: assets.get(file.assetName)!,
+        asset: assets.get(file.assets[0].assetName)!,
         releaseId: plan.release.id,
       },
     }))

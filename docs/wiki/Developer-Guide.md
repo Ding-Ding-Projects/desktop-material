@@ -222,6 +222,13 @@ publication, release, or cleanup evidence.
   cancellable/terminal status contract. Cancellation must GET/revalidate the exact
   repository/account/run immediately before one normal POST, deduplicate in-flight submission, and
   poll a terminal state; do not surface force-cancel as the primary action.
+  `.github/workflows/build-installers.yml` is also the express Windows x64 release lane: a successful
+  exact-main CI run packages directly, while a manual main dispatch runs Linux lint, Windows x64
+  trampoline/unit/script tests, and packaging in parallel. It preserves the package as a short-lived artifact before one
+  create-only `gh release create`, uses a deterministic commit-count version, and never replaces an
+  existing tag. `.github/actions/setup-ci-environment/action.yml` may cache exact installed
+  dependencies, but never build output, installers, release assets, credentials, or runtime
+  configuration.
 - **Guided Git administration** — named Repository Tools panels live in
   `app/src/ui/repository-tools/`; bounded models and operations live in
   `app/src/lib/git/format-patch.ts`, `app/src/lib/git/structured-commit-rewrite.ts`,

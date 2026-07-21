@@ -31,6 +31,7 @@ import {
 } from './gitlab-merge-request-store'
 import {
   autoPinLargeFilesForCommit,
+  createCheapLfsMaterializeCache,
   defaultCheapLfsFileSystem,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinnedFile,
@@ -12034,6 +12035,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const controller = new AbortController()
     this.cheapLfsMaterializeControllers.set(repository.id, controller)
     try {
+      const materializeCache = createCheapLfsMaterializeCache()
       const summary = await materializeCheapLfsPointers(
         entries,
         (relativePath, signal, onProgress) =>
@@ -12044,7 +12046,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
               this.requireCheapLfsAccount(repository),
               relativePath,
               signal,
-              onProgress
+              onProgress,
+              defaultCheapLfsFileSystem,
+              materializeCache
             )
           ),
         controller.signal
@@ -12301,6 +12305,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
         ),
         controller.signal,
         {
+          onPreparationProgress: progress => {
+            const preparationFraction =
+              progress.totalBytes <= 0
+                ? 0
+                : Math.min(1, progress.processedBytes / progress.totalBytes)
+            reportProgress({
+              phase: 'manual-preparing',
+              completedFiles: automaticallyPinned.length,
+              totalFiles: automaticallyPinned.length + remaining.length,
+              currentPath: progress.currentPath,
+              transferredBytes:
+                completedBytes + remainingBytes * preparationFraction,
+              totalBytes: completedBytes + remainingBytes,
+            })
+          },
           onStage: stage =>
             reportProgress({
               phase: stage,
@@ -12333,11 +12352,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           },
         }
       )
-      if (controller.signal.aborted) {
-        const canceled = new Error('The cheap LFS commit upload was canceled.')
-        canceled.name = 'AbortError'
-        throw canceled
-      }
+      // manualPinFilesToRelease fences cancellation before its pointer commit.
+      // A late cancel must not turn a successfully committed batch into a
+      // misleading canceled result.
       this.cheapLfsCommitCancelRequests.delete(repository.id)
       return [...automaticallyPinned, ...manual]
     } finally {

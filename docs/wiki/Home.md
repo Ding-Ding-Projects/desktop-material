@@ -68,8 +68,8 @@ Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.co
 ```
 
 The [tracked script](https://github.com/codingmachineedge/desktop-material/blob/main/script/install-windows.ps1)
-resolves the newest published release from this exact repository, requires the
-matching GitHub SHA-256 asset digest, checks any Authenticode signature, installs
+resolves the latest stable installer release from this exact repository,
+requires the matching GitHub SHA-256 asset digest, checks any Authenticode signature, installs
 silently for the current user, and cleans up its temporary download. Current
 builds are unsigned; the script reports that fact and refuses an unsupported
 architecture or an unverified download. See the [User Guide](User-Guide#install-on-windows)

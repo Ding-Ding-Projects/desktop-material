@@ -1,16 +1,10 @@
-name: Build Installers
+name: Build Installers / Express Release
 
-# Builds the Desktop Material Windows installer after the complete CI workflow
-# succeeds on main. Manual dispatch runs that same reusable CI workflow before
-# building. Each run produces a unique release tagged with the workflow run
-# number so history is preserved. Installers are attached directly to the
-# release (no build artifacts).
-#
-# Notes:
-# - Code signing is disabled (no certificates configured), so installers are
-#   unsigned. Provide AZURE_* secrets and flip the signing input to produce
-#   signed builds.
-# - Desktop Material is Windows-only; non-Windows installers are not produced.
+# A successful main CI run still publishes automatically. Manual dispatch is
+# the express lane: lint, Windows x64 unit/script tests, and the x64 build run in parallel,
+# then one create-only publisher releases the exact main commit. Installed
+# dependencies use an exact content cache; build and release outputs are never
+# cached because they embed the source SHA, version, and runtime configuration.
 
 on:
   workflow_run:
@@ -30,92 +24,110 @@ env:
   NODE_VERSION: 24.15.0
 
 permissions:
-  contents: write
-  id-token: write
+  actions: read
+  contents: read
 
 jobs:
-  verify-dispatch:
-    name: Verify manually dispatched release
-    if: >-
-      github.event_name == 'workflow_dispatch' && github.ref ==
-      'refs/heads/main'
-    uses: ./.github/workflows/ci.yml
-    with:
-      repository: ${{ github.repository }}
-      ref: ${{ github.sha }}
-      upload-artifacts: false
-      environment: ''
-      sign: false
-    secrets: inherit
-
-  build:
-    name: Windows x64
-    needs: verify-dispatch
-    if: >-
-      always() && ((github.event_name == 'workflow_run' &&
-        github.event.workflow_run.event == 'push' &&
-        github.event.workflow_run.conclusion == 'success' &&
-        github.event.workflow_run.head_branch == 'main' &&
-        github.event.workflow_run.head_repository.full_name ==
-      github.repository) ||
-       (github.event_name == 'workflow_dispatch' &&
-        github.ref == 'refs/heads/main' &&
-        needs.verify-dispatch.result == 'success'))
-    runs-on: windows-2022
-    timeout-minutes: 60
-    env:
-      RELEASE_TARGET_SHA:
-        ${{ github.event.workflow_run.head_sha || github.sha }}
+  prepare:
+    name: Resolve exact main release
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.target.outputs.sha }}
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+      publish: ${{ steps.target.outputs.publish }}
     steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ env.RELEASE_TARGET_SHA }}
-          fetch-depth: 0
-          submodules: recursive
-      - name: Require the current main commit
+      - name: Require a successful main CI or a main dispatch
+        id: target
         shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          DISPATCH_REF: ${{ github.ref }}
+          DISPATCH_SHA: ${{ github.sha }}
+          CI_EVENT: ${{ github.event.workflow_run.event }}
+          CI_CONCLUSION: ${{ github.event.workflow_run.conclusion }}
+          CI_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          CI_REPOSITORY:
+            ${{ github.event.workflow_run.head_repository.full_name }}
+          CI_SHA: ${{ github.event.workflow_run.head_sha }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          checked_out=$(git rev-parse HEAD)
-          remote_main=$(git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }')
+          if [ "$EVENT_NAME" = "workflow_run" ]; then
+            if [ "$CI_EVENT" != "push" ] || \
+               [ "$CI_BRANCH" != "main" ] || \
+               [ "$CI_REPOSITORY" != "$GITHUB_REPOSITORY" ]; then
+              echo "Installer packaging blocked: the trigger is not this repository's main push CI." >&2
+              exit 1
+            fi
+            target="$CI_SHA"
+            if [ "$CI_CONCLUSION" = "success" ]; then
+              ci_can_publish=true
+            else
+              ci_can_publish=false
+              echo "CI concluded '$CI_CONCLUSION'; packaging an artifact but blocking Release publication."
+            fi
+          else
+            if [ "$DISPATCH_REF" != "refs/heads/main" ]; then
+              echo "Express Release must be dispatched from main." >&2
+              exit 1
+            fi
+            target="$DISPATCH_SHA"
+            ci_can_publish=true
+          fi
+
+          if [[ ! "$target" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Release target is not an exact commit SHA." >&2
+            exit 1
+          fi
+          remote_main=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/main" --jq .object.sha)
           if [[ ! "$remote_main" =~ ^[0-9a-f]{40}$ ]]; then
             echo "Unable to resolve the current origin/main commit." >&2
             exit 1
           fi
-          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
-            echo "Checked-out commit $checked_out does not match release target $RELEASE_TARGET_SHA." >&2
-            exit 1
+          if [ "$remote_main" != "$target" ]; then
+            if [ "$EVENT_NAME" = "workflow_run" ]; then
+              publish=false
+              echo "Release target $target is no longer current main; preserving its exact installer artifact without publishing."
+            else
+              echo "Release target $target is stale; origin/main is $remote_main." >&2
+              exit 1
+            fi
+          else
+            publish="$ci_can_publish"
           fi
-          if [ "$remote_main" != "$RELEASE_TARGET_SHA" ]; then
-            echo "Release target $RELEASE_TARGET_SHA is stale; origin/main is $remote_main." >&2
-            exit 1
-          fi
-      - uses: ./.github/actions/setup-ci-environment
+          echo "sha=$target" >> "$GITHUB_OUTPUT"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/checkout@v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          arch: x64
-      - name: Stamp monotonic build version
+          ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 0
+
+      - name: Stamp deterministic monotonic release version
         id: version
         shell: bash
-        # Squirrel only offers an update when the feed's newest package version
-        # is strictly greater than the installed one. The committed app version
-        # is constant across pushes, so append the ever-increasing run number as
-        # a fixed-width SemVer-1-compatible suffix (e.g. 3.6.3-beta3 ->
-        # 3.6.3-beta3-b0000000067). electron-winstaller bundles NuGet 2.8,
-        # which normalizes dotted SemVer-2 prerelease identifiers and causes
-        # script/package.ts to look for a nupkg filename Squirrel never wrote.
-        # The alphanumeric, zero-padded suffix is preserved by NuGet 2.8 and
-        # compares lexically in run order for both JS semver and Squirrel.
+        env:
+          RELEASE_TARGET_SHA: ${{ steps.target.outputs.sha }}
         run: |
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
           base=$(node -p "require('./app/package.json').version")
-          printf -v build '%010d' "${{ github.run_number }}"
+          count=$(git rev-list --count "$RELEASE_TARGET_SHA")
+          printf -v build '%010d' "$count"
           version="${base}-b${build}"
-          node -e "const f='./app/package.json';const p=require(f);p.version='${version}';require('fs').writeFileSync(f, JSON.stringify(p, null, 2) + '\n')"
-          echo "version=${version}" >> "$GITHUB_OUTPUT"
-          echo "Fork build version: ${version}"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
       - name: Require a new immutable release tag
+        if: steps.target.outputs.publish == 'true'
         shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.version.outputs.tag }}
         run: |
-          tag="v${{ steps.version.outputs.version }}"
+          tag="$RELEASE_TAG"
           set +e
           git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
           status=$?
@@ -125,15 +137,99 @@ jobs:
               echo "Release tag $tag already exists; refusing to replace immutable release assets." >&2
               exit 1
               ;;
-            2)
-              # --exit-code reserves status 2 for a successful query with no
-              # matching refs. Only that exact result proves the tag is absent.
-              ;;
+            2) ;;
             *)
               echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
               exit "$status"
               ;;
           esac
+
+  lint:
+    name: Express lint
+    if: github.event_name == 'workflow_dispatch'
+    needs: prepare
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          submodules: recursive
+      - uses: ./.github/actions/setup-ci-environment
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          arch: x64
+      - run: yarn validate-electron-version
+      - run: yarn lint
+      - run: yarn validate-changelog
+      - name: Ensure a clean working directory
+        run: git diff --name-status --exit-code
+
+  test:
+    name: Express tests Windows x64
+    if: github.event_name == 'workflow_dispatch'
+    needs: prepare
+    runs-on: windows-2022
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          submodules: recursive
+      - uses: ./.github/actions/setup-ci-environment
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          arch: x64
+      - name: Run desktop-trampoline tests
+        run: |
+          cd vendor/desktop-trampoline
+          yarn install
+          yarn test
+      - name: Prepare testing environment
+        run: yarn test:setup
+        env:
+          npm_config_arch: x64
+          TARGET_ARCH: x64
+      - name: Run unit tests
+        run: yarn test:unit
+      - name: Run script tests
+        run: yarn test:script
+
+  package:
+    name: Windows x64
+    needs: prepare
+    runs-on: windows-2022
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+          submodules: recursive
+      - name: Require the prepared exact commit
+        shell: bash
+        run: |
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match release target $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+      - uses: ./.github/actions/setup-ci-environment
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          arch: x64
+      - name: Apply prepared release version
+        shell: bash
+        run: |
+          node -e "const f='./app/package.json';const p=require(f);p.version='$RELEASE_VERSION';require('fs').writeFileSync(f, JSON.stringify(p, null, 2) + '\n')"
       - name: Build production app
         run: yarn build:prod
         env:
@@ -149,51 +245,43 @@ jobs:
         run: yarn package
         env:
           npm_config_arch: x64
+          TARGET_ARCH: x64
       - name: Collect installers
         shell: bash
         run: |
-          mkdir -p installers
+          mkdir -p release-payload/installers
           shopt -s nullglob
           for f in \
             "dist/GitHub Desktop-x64.zip" \
             dist/GitHubDesktop-*.nupkg \
             "dist/GitHubDesktopSetup-x64.exe" \
             "dist/GitHubDesktopSetup-x64.msi"; do
-            [ -e "$f" ] && cp "$f" installers/
+            [ -e "$f" ] && cp "$f" release-payload/installers/
           done
-          # Publish the Squirrel update feed so the app can auto-update from this
-          # repo's releases (feed base = releases/latest/download/, wired up by
-          # getUpdatesURL in script/dist-info.ts). The RELEASES manifest
-          # references each nupkg by the name Squirrel generated (without the
-          # -x64 arch infix that script/package.ts adds afterwards), so attach a
-          # copy of each package under the exact referenced name — otherwise
-          # releases/latest/download/<name> would 404 during the client update.
           if [ -e dist/RELEASES ]; then
-            cp dist/RELEASES installers/
-            # Squirrel may omit the final newline, so process a populated EOF record.
+            cp dist/RELEASES release-payload/installers/
             while read -r _sha name _size || [[ -n "$name" ]]; do
               [ -z "$name" ] && continue
-              [ -e "installers/$name" ] && continue
+              [ -e "release-payload/installers/$name" ] && continue
               case "$name" in
                 *-full.nupkg) src=$(ls dist/*-full.nupkg 2>/dev/null | head -n1) ;;
                 *-delta.nupkg) src=$(ls dist/*-delta.nupkg 2>/dev/null | head -n1) ;;
                 *) src="" ;;
               esac
-              [ -n "$src" ] && [ -e "$src" ] && cp "$src" "installers/$name"
+              [ -n "$src" ] && [ -e "$src" ] && cp "$src" "release-payload/installers/$name"
             done < dist/RELEASES
           fi
-          ls -la installers
+          ls -la release-payload/installers
       - name: Verify required release assets
         shell: bash
         run: |
-          version="${{ steps.version.outputs.version }}"
           required=(
-            installers/RELEASES
-            "installers/GitHub Desktop-x64.zip"
-            installers/GitHubDesktopSetup-x64.exe
-            installers/GitHubDesktopSetup-x64.msi
-            "installers/GitHubDesktop-${version}-full.nupkg"
-            "installers/GitHubDesktop-${version}-x64-full.nupkg"
+            release-payload/installers/RELEASES
+            "release-payload/installers/GitHub Desktop-x64.zip"
+            release-payload/installers/GitHubDesktopSetup-x64.exe
+            release-payload/installers/GitHubDesktopSetup-x64.msi
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
           )
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
@@ -201,6 +289,14 @@ jobs:
               exit 1
             fi
           done
+      - name: Preserve express installer payload
+        uses: actions/upload-artifact@v7
+        with:
+          name: express-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/installers/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 3
       - name: Generate bounded exact-SHA release notes
         shell: bash
         env:
@@ -209,9 +305,59 @@ jobs:
           yarn --silent ts-node -P script/tsconfig.json \
             script/generate-automated-release-notes.ts \
             --repository "$GITHUB_REPOSITORY" \
-            --version "${{ steps.version.outputs.version }}" \
+            --version "$RELEASE_VERSION" \
             --release-sha "$RELEASE_TARGET_SHA" \
-            --output "$RUNNER_TEMP/desktop-material-release-notes.md"
+            --output "release-payload/release-notes.md"
+      - name: Preserve exact release notes
+        uses: actions/upload-artifact@v7
+        with:
+          name:
+            express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/release-notes.md
+          if-no-files-found: error
+          retention-days: 3
+      - name: Preserve the upstream CI failure result
+        if: needs.prepare.outputs.publish != 'true'
+        shell: bash
+        run: |
+          echo "Installer recovery artifacts were preserved, but this run cannot publish because its CI failed or its source is no longer current main." >&2
+          exit 1
+
+  publish:
+    name: Publish GitHub release
+    needs:
+      - prepare
+      - lint
+      - test
+      - package
+    if: >-
+      always() && needs.prepare.result == 'success' && needs.package.result ==
+      'success' && needs.prepare.outputs.publish == 'true' && (github.event_name
+      == 'workflow_run' ||
+       (needs.lint.result == 'success' && needs.test.result == 'success'))
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: write
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+      RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
+      RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - uses: actions/download-artifact@v7
+        with:
+          name: express-release-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/installers
+      - uses: actions/download-artifact@v7
+        with:
+          name:
+            express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload
       - name: Revalidate current main before publishing
         shell: bash
         run: |
@@ -227,7 +373,7 @@ jobs:
       - name: Revalidate immutable release tag before publishing
         shell: bash
         run: |
-          tag="v${{ steps.version.outputs.version }}"
+          tag="$RELEASE_TAG"
           set +e
           git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1
           status=$?
@@ -237,26 +383,49 @@ jobs:
               echo "Release tag $tag appeared while building; refusing to update an existing release." >&2
               exit 1
               ;;
-            2)
-              # --exit-code reserves status 2 for a successful query with no
-              # matching refs. Only that exact result proves the tag is absent.
-              ;;
+            2) ;;
             *)
               echo "Unable to prove release tag $tag is absent (git ls-remote exited $status)." >&2
               exit "$status"
               ;;
           esac
+      - name: Verify downloaded release payload
+        shell: bash
+        run: |
+          required=(
+            release-payload/installers/RELEASES
+            "release-payload/installers/GitHub Desktop-x64.zip"
+            release-payload/installers/GitHubDesktopSetup-x64.exe
+            release-payload/installers/GitHubDesktopSetup-x64.msi
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
+            "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+            release-payload/release-notes.md
+          )
+          for asset in "${required[@]}"; do
+            if [ ! -s "$asset" ]; then
+              echo "Missing or empty downloaded release payload: $asset" >&2
+              exit 1
+            fi
+          done
       - name: Publish GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}
-          target_commitish: ${{ env.RELEASE_TARGET_SHA }}
-          name: Desktop Material ${{ steps.version.outputs.version }}
-          body_path: ${{ runner.temp }}/desktop-material-release-notes.md
-          prerelease: false
-          draft: false
-          make_latest: true
-          files: installers/**
-          fail_on_unmatched_files: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release create "$RELEASE_TAG" release-payload/installers/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$RELEASE_TARGET_SHA" \
+            --title "Desktop Material $RELEASE_VERSION" \
+            --notes-file release-payload/release-notes.md \
+            --latest
+      - name: Verify published release target
+        shell: bash
+        run: |
+          git fetch origin "refs/tags/$RELEASE_TAG"
+          published=$(git rev-parse 'FETCH_HEAD^{commit}')
+          if [ "$published" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Published tag resolves to $published, expected $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+          if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
+            echo "Published release unexpectedly remained a draft." >&2
+            exit 1
+          fi

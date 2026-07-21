@@ -1,5 +1,54 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-21 manual multipart Cheap LFS and express release checkpoint
+
+The browser-assisted Cheap LFS fallback no longer rejects a file merely because
+it exceeds GitHub's per-asset size limit. Planning first stats the complete
+batch, fails before expensive hashing when projected parts exceed one Release's
+1,000-asset cap, streams whole/part SHA-256 values, allocates one bucket with
+room for the complete batch, and reserves collision-safe names. A large source
+becomes ordered `.partNNN` files in the private handoff folder using 1 MiB
+bounded range copies. Small sources retain symlink, hardlink, then bounded-copy
+fallbacks. Hash and copy callbacks are time-throttled before they reach the
+renderer, the preflight reserves the worst-case copy fallback plus verification
+space, and Unicode/Win32 case variants cannot collide in the flat folder.
+
+The existing single action opens the exact Release editor and the prepared
+Explorer folder. Polling remains cancelable for roughly six hours, backs off to
+30 seconds, scans the bounded paginated inventory once per attempt, accepts
+only new uploaded IDs with exact names and sizes, downloads
+and hashes every part sequentially, then rehashes every source before writing
+any pointer. A version-2 handoff manifest records original nested paths and all
+flat asset ranges. Materialization uses the bounded preview when sufficient and
+otherwise caches the complete paginated Release inventory before resolving
+pointer parts, so assets beyond the preview page are not reported missing.
+Subfolders remain encoded in each tracked pointer; they
+do not need matching Release folders.
+
+`Build Installers / Express Release` keeps the automatic successful-main-CI
+path and adds a manual main-only fast path whose Linux lint, Windows x64
+trampoline/unit/script tests, and Windows x64 build/package jobs run in
+parallel. A failed or cancelled main CI still runs the package lane for a
+recoverable Actions artifact but cannot publish. The package job
+uploads the exact ZIP/EXE/MSI/Squirrel payload as a three-day uncompressed
+artifact before release-note generation and publication. The publisher
+revalidates current main and tag
+absence, then uses one create-only `gh release create --notes-file` call. A
+deterministic package-version-plus-commit-count tag prevents reruns from
+inventing a second release for the same source commit.
+
+The shared CI setup action restores only an exact installed-dependency
+cache keyed by platform, target architecture, toolchain, manifests, lockfiles,
+install configuration, post-install logic, and local vendor inputs. It includes
+Playwright's external FFmpeg payload; Python setup remains unconditional. Cache
+hits and cold installs validate package sentinels before use or cache save;
+misses retain bounded install retries. Build output,
+installers, Release payloads, credentials, and runtime configuration are not
+cached. Focused Cheap LFS, UI, workflow-safety, setup-action, and release-note
+tests currently pass **72/72**. Remote CI, cache-hit
+timing, live multi-gigabyte browser upload, and Release publication remain
+external verification rather than claims in this checkpoint.
+
 ## 2026-07-21 remote discovery hard-total-bound follow-up
 
 The responsiveness correction is rebased additively onto
@@ -292,9 +341,11 @@ with the canonical/full x64 NuGet packages, x64 EXE, x64 MSI, and `RELEASES`.
 
 The follow-up manual fallback is implementation-complete. **Manual upload** is
 available beside **Cancel** only during an automatic upload. It stops that
-attempt, plans every remaining single-asset file as one collision-safe batch,
-creates a random `upload-these-files` handoff using symlink, hardlink, then a
-bounded streamed-copy fallback, opens the validated exact GitHub Release editor
+attempt, plans every remaining file as one collision-safe batch, splits sources
+above the Release limit into ordered `.partNNN` assets, and creates a random
+`upload-these-files` handoff. Whole files use symlink, hardlink, then a bounded
+streamed-copy fallback; multipart ranges use bounded 1 MiB streamed copies. It
+opens the validated exact GitHub Release editor
 before bringing Explorer to the front, and polls for the user's drag/drop
 upload. GitHub Release assets are flat, but the manifest and pointers preserve
 every original repository-relative subfolder; duplicate basenames receive
@@ -302,7 +353,8 @@ hash-suffixed asset names. Only newly created exact-name/exact-size asset IDs
 are accepted. Every asset is downloaded and SHA-256 verified, every source is
 rehashed before any pointer is written, and the original commit resumes
 automatically. Explicit cancel is distinct from account/repository aborts.
-Multipart files remain on the automatic ranged uploader by design.
+Every multipart part counts toward the 1,000-asset bucket cap and remains in one
+release with its logical file.
 
 A later live multi-gigabyte attempt exposed a separate 1%/out-of-memory failure:
 Electron buffers a `ClientRequest` body internally when chunked encoding is not

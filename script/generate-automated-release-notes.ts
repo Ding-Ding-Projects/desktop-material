@@ -6,13 +6,19 @@ import { writeFile } from 'fs/promises'
 const ObjectIDPattern = /^[0-9a-f]{40}$/
 const RepositoryPattern = /^[A-Za-z0-9_.-]{1,100}\/[A-Za-z0-9_.-]{1,100}$/
 const VersionPattern = /^[0-9A-Za-z.+-]{1,128}$/
-const MaximumAPIBytes = 256 * 1024
+// Release list responses include every asset object. Cheap LFS buckets can
+// legitimately contain 1,000 assets, so keep each page small while allowing a
+// bounded response large enough for several full buckets.
+const MaximumAPIBytes = 8 * 1024 * 1024
 const MaximumGitBytes = 2 * 1024 * 1024
 const NetworkTimeoutMilliseconds = 15_000
 const GitTimeoutMilliseconds = 30_000
 const MaximumCommitCount = 50
 const MaximumSubjectCharacters = 180
 const MaximumReleaseNotesCharacters = 24_000
+const InstallerReleaseTagPattern = /^v[0-9A-Za-z.+-]{1,96}-b[0-9]{10}$/
+const MaximumReleaseLookupPages = 20
+const ReleaseLookupPageSize = 5
 
 export interface IAutomatedReleaseCommit {
   readonly sha: string
@@ -150,42 +156,65 @@ export async function getLatestPublishedRelease(
   if (token.length === 0) {
     throw new Error('GITHUB_TOKEN is required to inspect the previous release.')
   }
-  const response = await fetcher(
-    `https://api.github.com/repos/${repository}/releases/latest`,
-    {
-      headers: {
-        Accept: 'application/vnd.github+json',
-        Authorization: `Bearer ${token}`,
-        'User-Agent': 'desktop-material-release-workflow',
-        'X-GitHub-Api-Version': '2022-11-28',
-      },
-      signal: AbortSignal.timeout(NetworkTimeoutMilliseconds),
+  for (let page = 1; page <= MaximumReleaseLookupPages; page++) {
+    const response = await fetcher(
+      `https://api.github.com/repos/${repository}/releases?per_page=${ReleaseLookupPageSize}&page=${page}`,
+      {
+        headers: {
+          Accept: 'application/vnd.github+json',
+          Authorization: `Bearer ${token}`,
+          'User-Agent': 'desktop-material-release-workflow',
+          'X-GitHub-Api-Version': '2022-11-28',
+        },
+        signal: AbortSignal.timeout(NetworkTimeoutMilliseconds),
+      }
+    )
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined)
+      throw new Error(`GitHub release lookup failed with ${response.status}.`)
     }
+    const input = await readBoundedJSON(response)
+    if (!Array.isArray(input) || input.length > ReleaseLookupPageSize) {
+      throw new Error('GitHub returned invalid previous-release metadata.')
+    }
+    for (const candidate of input) {
+      const release = record(candidate)
+      if (
+        release === null ||
+        release.draft === true ||
+        release.prerelease === true ||
+        typeof release.tag_name !== 'string' ||
+        !InstallerReleaseTagPattern.test(release.tag_name) ||
+        typeof release.target_commitish !== 'string' ||
+        release.target_commitish.length < 1 ||
+        release.target_commitish.length > 256 ||
+        !Array.isArray(release.assets)
+      ) {
+        continue
+      }
+      const assetNames = new Set(
+        release.assets
+          .map(asset => record(asset)?.name)
+          .filter((name): name is string => typeof name === 'string')
+      )
+      if (
+        !assetNames.has('RELEASES') ||
+        ![...assetNames].some(name => name.endsWith('-full.nupkg'))
+      ) {
+        continue
+      }
+      return {
+        tagName: release.tag_name,
+        targetCommitish: release.target_commitish,
+      }
+    }
+    if (input.length < ReleaseLookupPageSize) {
+      return null
+    }
+  }
+  throw new Error(
+    'GitHub returned too many releases to locate the previous installer safely.'
   )
-  if (response.status === 404) {
-    await response.body?.cancel().catch(() => undefined)
-    return null
-  }
-  if (!response.ok) {
-    await response.body?.cancel().catch(() => undefined)
-    throw new Error(`GitHub release lookup failed with ${response.status}.`)
-  }
-  const input = record(await readBoundedJSON(response))
-  if (
-    input === null ||
-    typeof input.tag_name !== 'string' ||
-    input.tag_name.length < 1 ||
-    input.tag_name.length > 128 ||
-    typeof input.target_commitish !== 'string' ||
-    input.target_commitish.length < 1 ||
-    input.target_commitish.length > 256
-  ) {
-    throw new Error('GitHub returned invalid previous-release metadata.')
-  }
-  return {
-    tagName: input.tag_name,
-    targetCommitish: input.target_commitish,
-  }
 }
 
 function git(args: ReadonlyArray<string>, maximumBytes = MaximumGitBytes) {

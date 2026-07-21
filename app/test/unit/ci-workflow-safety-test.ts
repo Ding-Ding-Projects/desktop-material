@@ -57,34 +57,52 @@ describe('CI workflow safety', () => {
     }
   })
 
-  it('publishes once only after automatic or manual CI succeeds', () => {
+  it('publishes once after automatic CI or parallel express gates succeed', () => {
     assert.match(installerWorkflow, /workflow_run:/)
     assert.match(installerWorkflow, /workflows:\s*\n\s*- CI/)
     assert.doesNotMatch(installerWorkflow, /^  push:/m)
-    assert.match(installerWorkflow, /conclusion == 'success'/)
+    assert.match(installerWorkflow, /CI_CONCLUSION.*workflow_run\.conclusion/)
+    assert.match(installerWorkflow, /CI_CONCLUSION" = "success"/)
     assert.match(
       installerWorkflow,
-      /needs\.verify-dispatch\.result == 'success'/
+      /packaging an artifact but blocking Release publication/
     )
-    assert.match(installerWorkflow, /github\.ref == 'refs\/heads\/main'/)
-    assert.equal(
-      installerWorkflow.match(/git ls-remote origin refs\/heads\/main/g)
-        ?.length,
-      2
+    assert.match(
+      installerWorkflow,
+      /needs\.prepare\.outputs\.publish == 'true'/
     )
+    assert.match(installerWorkflow, /name: Express lint/)
+    assert.match(installerWorkflow, /name: Express tests Windows x64/)
+    assert.match(
+      installerWorkflow,
+      /name: Run unit tests[\s\S]*?yarn test:unit/
+    )
+    assert.match(
+      installerWorkflow,
+      /name: Run script tests[\s\S]*?yarn test:script/
+    )
+    assert.match(
+      installerWorkflow,
+      /needs\.lint\.result == 'success' && needs\.test\.result == 'success'/
+    )
+    assert.match(installerWorkflow, /DISPATCH_REF: \$\{\{ github\.ref \}\}/)
+    assert.match(installerWorkflow, /DISPATCH_REF" != "refs\/heads\/main"/)
+    assert.match(installerWorkflow, /git\/ref\/heads\/main/)
+    assert.match(installerWorkflow, /git ls-remote origin refs\/heads\/main/)
     assert.match(
       installerWorkflow,
       /Release target \$RELEASE_TARGET_SHA became stale while building/
     )
-    assert.match(installerWorkflow, /draft: false/)
-    assert.match(installerWorkflow, /fail_on_unmatched_files: true/)
+    assert.doesNotMatch(installerWorkflow, /softprops\/action-gh-release/)
     assert.equal(
-      installerWorkflow.match(/softprops\/action-gh-release@v2/g)?.length,
+      installerWorkflow.match(/gh release create "\$RELEASE_TAG"/g)?.length,
       1
     )
+    assert.match(installerWorkflow, /actions\/upload-artifact@v7/)
+    assert.match(installerWorkflow, /compression-level: 0/)
     assert.match(
       installerWorkflow,
-      /required=\([\s\S]*?"installers\/GitHub Desktop-x64\.zip"/
+      /required=\([\s\S]*?"release-payload\/installers\/GitHub Desktop-x64\.zip"/
     )
     assert.match(installerWorkflow, /fetch-depth: 0/)
     assert.match(
@@ -93,11 +111,24 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /Generate bounded exact-SHA release notes[\s\S]*?Revalidate current main before publishing[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Publish GitHub release/
+      /Verify required release assets[\s\S]*?Preserve express installer payload[\s\S]*?Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes[\s\S]*?Revalidate current main before publishing[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Publish GitHub release/
     )
     assert.match(
       installerWorkflow,
-      /body_path: \$\{\{ runner\.temp \}\}\/desktop-material-release-notes\.md/
+      /--notes-file release-payload\/release-notes\.md/
+    )
+    assert.doesNotMatch(installerWorkflow, /--fail-on-no-commits/)
+    assert.match(
+      installerWorkflow,
+      /permissions:\s*\n\s*actions: read\s*\n\s*contents: read/
+    )
+    assert.match(
+      installerWorkflow,
+      /no longer current main; preserving its exact installer artifact without publishing/
+    )
+    assert.match(
+      installerWorkflow,
+      /Preserve the upstream CI failure result[\s\S]*?exit 1/
     )
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })

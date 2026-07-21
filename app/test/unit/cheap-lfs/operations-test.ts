@@ -32,7 +32,9 @@ import {
   IGitHubReleaseAsset,
 } from '../../../src/lib/github-releases'
 import {
+  createCheapLfsMaterializeCache,
   defaultCheapLfsFileSystem,
+  hashFilePartsSha256,
   ICheapLfsFileSystem,
   ICheapLfsReleasesGateway,
   listCheapLfsPointers,
@@ -296,6 +298,21 @@ function fakeAPI(
   }
 }
 
+function fakeAPIForRelease(releaseByTag: IGitHubRelease): IGitHubReleasesAPI {
+  return fakeAPI({
+    fetchReleaseByTag: async () => releaseByTag,
+    fetchReleaseAssets: async () => ({
+      assets: releaseByTag.assets.map((releaseAsset, index) => ({
+        ...releaseAsset,
+        id: 10_000 + index,
+      })),
+      page: 1,
+      nextPage: null,
+      capped: false,
+    }),
+  })
+}
+
 function dependencies(
   apiFor: IGitHubReleasesStoreDependencies['apiFor'],
   transfer: Partial<IGitHubReleasesStoreDependencies> = {}
@@ -371,6 +388,30 @@ function inMemoryReleaseGateway(
 }
 
 describe('cheap LFS operations', () => {
+  it('throttles streamed hash progress while always reporting completion', async () => {
+    await withTempRepository(async dir => {
+      const sourcePath = join(dir, 'progress.bin')
+      const sizeInBytes = 4 * 1024 * 1024
+      await writeFile(sourcePath, Buffer.alloc(sizeInBytes, 0x5a))
+      const progress = new Array<number>()
+
+      const result = await hashFilePartsSha256(
+        sourcePath,
+        sizeInBytes * 2,
+        undefined,
+        bytes => progress.push(bytes)
+      )
+
+      assert.equal(result.sizeInBytes, sizeInBytes)
+      assert.equal(progress[0], 0)
+      assert.equal(progress.at(-1), sizeInBytes)
+      assert.ok(
+        progress.length <= 16,
+        `expected throttled progress, received ${progress.length} events`
+      )
+    })
+  })
+
   it('leaves the original file and no temp when pointer writing fails', async () => {
     await withTempRepository(async (dir, _repository) => {
       const trackedPath = join(dir, 'large.iso')
@@ -464,6 +505,7 @@ describe('cheap LFS operations', () => {
         assets: [],
       }
       let createdTargetCommitish: string | undefined
+      let createdAsPrerelease: boolean | undefined
       let uploaded: { sourcePath: string; name: string } | undefined
       let uploadedBytes: Buffer | undefined
       const store = await storeWith(
@@ -473,6 +515,7 @@ describe('cheap LFS operations', () => {
               fetchReleaseByTag: async () => null,
               createReleaseDraft: async (_owner, _name, releaseDraft) => {
                 createdTargetCommitish = releaseDraft.targetCommitish
+                createdAsPrerelease = releaseDraft.prerelease
                 return { ...draft, tagName: releaseDraft.tagName }
               },
               fetchRelease: async () => draft,
@@ -511,6 +554,7 @@ describe('cheap LFS operations', () => {
       assert.equal(result.pointer.parts, undefined)
       assert.equal(result.releaseId, draft.id)
       assert.equal(createdTargetCommitish, 'trunk')
+      assert.equal(createdAsPrerelease, true)
       assert.equal(uploaded?.sourcePath, filePath)
       assert.equal(uploaded?.name, 'blob.bin')
 
@@ -532,27 +576,24 @@ describe('cheap LFS operations', () => {
         assets: [uploadedAsset],
       }
       const restoreStore = await storeWith(
-        dependencies(
-          () => fakeAPI({ fetchReleaseByTag: async () => releaseWithAsset }),
-          {
-            downloadAsset: async (
-              _account,
-              _repository,
-              _releaseId,
-              _asset,
-              destination
-            ) => {
-              await writeFile(destination, uploadedBytes!)
-              return {
-                ok: true,
-                path: destination,
-                bytes: uploadedBytes!.length,
-                localDigest: 'sha256:unused',
-                matchesGitHubDigest: null,
-              }
-            },
-          }
-        )
+        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            destination
+          ) => {
+            await writeFile(destination, uploadedBytes!)
+            return {
+              ok: true,
+              path: destination,
+              bytes: uploadedBytes!.length,
+              localDigest: 'sha256:unused',
+              matchesGitHubDigest: null,
+            }
+          },
+        })
       )
       await materializePointer(restoreStore, repository, selected, 'blob.bin')
       assert.deepEqual(await readFile(filePath), content)
@@ -652,28 +693,25 @@ describe('cheap LFS operations', () => {
       }
       let destination: string | undefined
       const store = await storeWith(
-        dependencies(
-          () => fakeAPI({ fetchReleaseByTag: async () => releaseWithAsset }),
-          {
-            downloadAsset: async (
-              _account,
-              _repository,
-              _releaseId,
-              _asset,
-              dest
-            ) => {
-              destination = dest
-              await writeFile(dest, content)
-              return {
-                ok: true,
-                path: dest,
-                bytes: content.length,
-                localDigest: `sha256:${sha256}`,
-                matchesGitHubDigest: true,
-              }
-            },
-          }
-        )
+        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            dest
+          ) => {
+            destination = dest
+            await writeFile(dest, content)
+            return {
+              ok: true,
+              path: dest,
+              bytes: content.length,
+              localDigest: `sha256:${sha256}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
       )
 
       const result = await materializePointer(
@@ -716,30 +754,27 @@ describe('cheap LFS operations', () => {
       }
       let destination: string | undefined
       const store = await storeWith(
-        dependencies(
-          () => fakeAPI({ fetchReleaseByTag: async () => releaseWithAsset }),
-          {
-            downloadAsset: async (
-              _account,
-              _repository,
-              _releaseId,
-              _asset,
-              dest
-            ) => {
-              destination = dest
-              await writeFile(dest, corrupted)
-              return {
-                ok: true,
-                path: dest,
-                bytes: corrupted.length,
-                localDigest: `sha256:${createHash('sha256')
-                  .update(corrupted)
-                  .digest('hex')}`,
-                matchesGitHubDigest: true,
-              }
-            },
-          }
-        )
+        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            dest
+          ) => {
+            destination = dest
+            await writeFile(dest, corrupted)
+            return {
+              ok: true,
+              path: dest,
+              bytes: corrupted.length,
+              localDigest: `sha256:${createHash('sha256')
+                .update(corrupted)
+                .digest('hex')}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
       )
 
       await assert.rejects(
@@ -1874,29 +1909,26 @@ describe('cheap LFS operations', () => {
       }
       const destinations = new Array<string>()
       const store = await storeWith(
-        dependencies(
-          () => fakeAPI({ fetchReleaseByTag: async () => releaseWithParts }),
-          {
-            downloadAsset: async (
-              _account,
-              _repository,
-              _releaseId,
-              downloadedAsset,
-              dest
-            ) => {
-              destinations.push(dest)
-              const content = byName.get(downloadedAsset.name)!
-              await writeFile(dest, content)
-              return {
-                ok: true,
-                path: dest,
-                bytes: content.length,
-                localDigest: `sha256:${partSha(content)}`,
-                matchesGitHubDigest: true,
-              }
-            },
-          }
-        )
+        dependencies(() => fakeAPIForRelease(releaseWithParts), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            downloadedAsset,
+            dest
+          ) => {
+            destinations.push(dest)
+            const content = byName.get(downloadedAsset.name)!
+            await writeFile(dest, content)
+            return {
+              ok: true,
+              path: dest,
+              bytes: content.length,
+              localDigest: `sha256:${partSha(content)}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
       )
 
       const result = await materializePointer(
@@ -1915,6 +1947,313 @@ describe('cheap LFS operations', () => {
       for (const destination of destinations) {
         await assert.rejects(stat(destination))
       }
+    })
+  })
+
+  it('materializes multipart assets discovered beyond the release preview page', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const first = Buffer.from('first paginated part')
+      const second = Buffer.from('second paginated part')
+      const whole = Buffer.concat([first, second])
+      const digest = (buffer: Buffer) =>
+        createHash('sha256').update(buffer).digest('hex')
+      const firstAsset: IGitHubReleaseAsset = {
+        ...asset,
+        id: 1_201,
+        name: 'paged.bin.part001',
+        sizeInBytes: first.length,
+        digest: `sha256:${digest(first)}`,
+      }
+      const secondAsset: IGitHubReleaseAsset = {
+        ...asset,
+        id: 1_202,
+        name: 'paged.bin.part002',
+        sizeInBytes: second.length,
+        digest: `sha256:${digest(second)}`,
+      }
+      const releasePreview: IGitHubRelease = {
+        ...release,
+        tagName: 'v6.1.0',
+        assets: [firstAsset],
+      }
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: releasePreview.tagName,
+        assetName: 'paged.bin',
+        sizeInBytes: whole.length,
+        sha256: digest(whole),
+        parts: [
+          {
+            name: firstAsset.name,
+            sizeInBytes: first.length,
+            sha256: digest(first),
+          },
+          {
+            name: secondAsset.name,
+            sizeInBytes: second.length,
+            sha256: digest(second),
+          },
+        ],
+      }
+      const trackedPath = join(dir, 'paged.bin')
+      await writeFile(trackedPath, serializeCheapLfsPointer(pointer), 'utf8')
+
+      const requestedPages = new Array<number>()
+      const byName = new Map([
+        [firstAsset.name, first],
+        [secondAsset.name, second],
+      ])
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => releasePreview,
+              fetchReleaseAssets: async (
+                _owner,
+                _name,
+                _releaseId,
+                page = 1
+              ) => {
+                requestedPages.push(page)
+                return page === 1
+                  ? {
+                      assets: [firstAsset],
+                      page,
+                      nextPage: 2,
+                      capped: false,
+                    }
+                  : {
+                      assets: [secondAsset],
+                      page,
+                      nextPage: null,
+                      capped: false,
+                    }
+              },
+            }),
+          {
+            downloadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              downloadedAsset,
+              destination
+            ) => {
+              const content = byName.get(downloadedAsset.name)!
+              await writeFile(destination, content)
+              return {
+                ok: true,
+                path: destination,
+                bytes: content.length,
+                localDigest: `sha256:${digest(content)}`,
+                matchesGitHubDigest: true,
+              }
+            },
+          }
+        )
+      )
+
+      const result = await materializePointer(
+        store,
+        repository,
+        selected,
+        'paged.bin'
+      )
+
+      assert.deepEqual(requestedPages, [1, 2])
+      assert.equal(result.bytes, whole.length)
+      assert.deepEqual(await readFile(trackedPath), whole)
+    })
+  })
+
+  it('reuses one complete release inventory across a materialize batch', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const content = Buffer.from('shared release payload')
+      const sha256 = createHash('sha256').update(content).digest('hex')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'v6.2.0',
+        assetName: 'shared.bin',
+        sizeInBytes: content.length,
+        sha256,
+      }
+      await writeFile(
+        join(dir, 'first.bin'),
+        serializeCheapLfsPointer(pointer),
+        'utf8'
+      )
+      await writeFile(
+        join(dir, 'second.bin'),
+        serializeCheapLfsPointer(pointer),
+        'utf8'
+      )
+      const sharedAsset: IGitHubReleaseAsset = {
+        ...asset,
+        id: 1_301,
+        name: pointer.assetName,
+        sizeInBytes: content.length,
+        digest: `sha256:${sha256}`,
+      }
+      const preview: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: [],
+      }
+      let releaseRequests = 0
+      let inventoryRequests = 0
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => {
+                releaseRequests++
+                return preview
+              },
+              fetchReleaseAssets: async () => {
+                inventoryRequests++
+                return {
+                  assets: [sharedAsset],
+                  page: 1,
+                  nextPage: null,
+                  capped: false,
+                }
+              },
+            }),
+          {
+            downloadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _asset,
+              destination
+            ) => {
+              await writeFile(destination, content)
+              return {
+                ok: true,
+                path: destination,
+                bytes: content.length,
+                localDigest: `sha256:${sha256}`,
+                matchesGitHubDigest: true,
+              }
+            },
+          }
+        )
+      )
+      const cache = createCheapLfsMaterializeCache()
+
+      await materializePointer(
+        store,
+        repository,
+        selected,
+        'first.bin',
+        undefined,
+        undefined,
+        defaultCheapLfsFileSystem,
+        cache
+      )
+      await materializePointer(
+        store,
+        repository,
+        selected,
+        'second.bin',
+        undefined,
+        undefined,
+        defaultCheapLfsFileSystem,
+        cache
+      )
+
+      assert.equal(releaseRequests, 1)
+      assert.equal(inventoryRequests, 1)
+      assert.deepEqual(await readFile(join(dir, 'first.bin')), content)
+      assert.deepEqual(await readFile(join(dir, 'second.bin')), content)
+    })
+  })
+
+  it('evicts rejected release metadata from a shared materialize cache', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const content = Buffer.from('retry release metadata')
+      const sha256 = createHash('sha256').update(content).digest('hex')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'v6.3.0',
+        assetName: 'retry.bin',
+        sizeInBytes: content.length,
+        sha256,
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      await writeFile(join(dir, 'first.bin'), pointerText, 'utf8')
+      await writeFile(join(dir, 'second.bin'), pointerText, 'utf8')
+      const uploadedAsset: IGitHubReleaseAsset = {
+        ...asset,
+        id: 1_302,
+        name: pointer.assetName,
+        sizeInBytes: content.length,
+        digest: `sha256:${sha256}`,
+      }
+      let releaseRequests = 0
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => {
+                releaseRequests++
+                if (releaseRequests === 1) {
+                  throw new Error('transient release lookup')
+                }
+                return {
+                  ...release,
+                  tagName: pointer.releaseTag,
+                  assets: [uploadedAsset],
+                }
+              },
+            }),
+          {
+            downloadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _asset,
+              destination
+            ) => {
+              await writeFile(destination, content)
+              return {
+                ok: true,
+                path: destination,
+                bytes: content.length,
+                localDigest: `sha256:${sha256}`,
+                matchesGitHubDigest: true,
+              }
+            },
+          }
+        )
+      )
+      const cache = createCheapLfsMaterializeCache()
+
+      await assert.rejects(
+        materializePointer(
+          store,
+          repository,
+          selected,
+          'first.bin',
+          undefined,
+          undefined,
+          defaultCheapLfsFileSystem,
+          cache
+        ),
+        /could not load releases safely/
+      )
+      await materializePointer(
+        store,
+        repository,
+        selected,
+        'second.bin',
+        undefined,
+        undefined,
+        defaultCheapLfsFileSystem,
+        cache
+      )
+
+      assert.equal(releaseRequests, 2)
+      assert.deepEqual(await readFile(join(dir, 'second.bin')), content)
     })
   })
 
@@ -1963,29 +2302,26 @@ describe('cheap LFS operations', () => {
       }
       const destinations = new Array<string>()
       const store = await storeWith(
-        dependencies(
-          () => fakeAPI({ fetchReleaseByTag: async () => releaseWithParts }),
-          {
-            downloadAsset: async (
-              _account,
-              _repository,
-              _releaseId,
-              downloadedAsset,
-              dest
-            ) => {
-              destinations.push(dest)
-              const content = byName.get(downloadedAsset.name)!
-              await writeFile(dest, content)
-              return {
-                ok: true,
-                path: dest,
-                bytes: content.length,
-                localDigest: `sha256:${partSha(content)}`,
-                matchesGitHubDigest: true,
-              }
-            },
-          }
-        )
+        dependencies(() => fakeAPIForRelease(releaseWithParts), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            downloadedAsset,
+            dest
+          ) => {
+            destinations.push(dest)
+            const content = byName.get(downloadedAsset.name)!
+            await writeFile(dest, content)
+            return {
+              ok: true,
+              path: dest,
+              bytes: content.length,
+              localDigest: `sha256:${partSha(content)}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
       )
 
       await assert.rejects(
@@ -2040,28 +2376,25 @@ describe('cheap LFS operations', () => {
       }
       let downloads = 0
       const store = await storeWith(
-        dependencies(
-          () => fakeAPI({ fetchReleaseByTag: async () => releaseWithParts }),
-          {
-            downloadAsset: async (
-              _account,
-              _repository,
-              _releaseId,
-              _asset,
-              dest
-            ) => {
-              downloads++
-              await writeFile(dest, first)
-              return {
-                ok: true,
-                path: dest,
-                bytes: first.length,
-                localDigest: `sha256:${partSha(first)}`,
-                matchesGitHubDigest: true,
-              }
-            },
-          }
-        )
+        dependencies(() => fakeAPIForRelease(releaseWithParts), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            dest
+          ) => {
+            downloads++
+            await writeFile(dest, first)
+            return {
+              ok: true,
+              path: dest,
+              bytes: first.length,
+              localDigest: `sha256:${partSha(first)}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
       )
 
       await assert.rejects(

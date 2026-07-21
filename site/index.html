@@ -317,10 +317,10 @@
             </h2>
             <p class="section-sub">
               Open Windows PowerShell 5.1 or PowerShell 7 as your normal user.
-              The tracked installer resolves this repository's latest release,
-              verifies GitHub's SHA-256 asset digest and any Authenticode
-              signature, installs silently, and cleans up its temporary
-              download.
+              The tracked installer resolves this repository's latest stable
+              installer release, verifies GitHub's SHA-256 asset digest and any
+              Authenticode signature, installs silently, and cleans up its
+              temporary download.
             </p>
             <div class="install-command-shell">
               <pre
@@ -351,9 +351,12 @@
               soon” status. Published automated Release notes list bounded,
               sanitized commit subjects through that exact release SHA. CI,
               installer, and Pages runs use unique groups so newer work never
-              cancels or replaces an older running or pending invocation. The
-              first full package and remote release containing the new ZIP is
-              still pending.
+              cancels or replaces an older running or pending invocation. A
+              manual main dispatch runs lint, Windows x64 trampoline/unit/script
+              tests, and packaging in parallel. A failed or superseded CI run
+              still retains its installer payload for three days, then ends red
+              without publishing. The first full package and remote release
+              containing the new ZIP is still pending.
             </p>
             <div class="hero-cta install-links">
               <a
@@ -689,10 +692,13 @@
                 data pipe when <code>gh</code> is available. Reconciliation
                 scans up to 1,000 assets once, then polls one exact ID and fails
                 closed if it remains incomplete. The exact Release editor and
-                temporary drag/drop folder remain the manual recovery path.
-                Complete multipart files and manual batches roll together
-                through <code>assets</code>, <code>assets-2</code>, and later
-                exact pointer tags.
+                temporary drag/drop folder remain the manual recovery path;
+                oversized sources appear there as ordered part files and are
+                staged with bounded memory and visible progress, then detected
+                automatically after drag-and-drop. Complete multipart files and
+                manual batches roll together through <code>assets</code>,
+                <code>assets-2</code>, and later prerelease pointer tags without
+                replacing the installer feed.
               </p>
             </article>
 

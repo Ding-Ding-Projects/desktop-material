@@ -9,6 +9,30 @@ const setupAction = readFileSync(
 )
 
 describe('CI environment setup', () => {
+  it('uses an exact installed-dependency cache and skips cold setup only on a hit', () => {
+    assert.match(setupAction, /uses: actions\/cache@v5/)
+    assert.match(setupAction, /node_modules\s+app\/node_modules/)
+    assert.match(setupAction, /AppData\/Local\/ms-playwright/)
+    assert.match(
+      setupAction,
+      /installed-deps-v4-\$\{\{ runner\.os \}\}-\$\{\{ runner\.arch \}\}-target-/
+    )
+    assert.doesNotMatch(setupAction, /restore-keys:/)
+    assert.match(
+      setupAction,
+      /Verify installed dependencies before use[\s\S]*?Installed dependency cache is incomplete/
+    )
+    assert.match(
+      setupAction,
+      /Install and build dependencies[\s\S]*?cache-hit != 'true'/
+    )
+    assert.match(setupAction, /cache-dependency-path:[\s\S]*?app\/yarn\.lock/)
+    assert.match(setupAction, /actions\/setup-python@v6/)
+    assert.match(setupAction, /missing Playwright ffmpeg/)
+    assert.match(setupAction, /refusing to save or use this exact cache key/)
+    assert.match(setupAction, /copilot-win32-\$\{\{ inputs\.arch \}\}/)
+  })
+
   it('pins and retries the cross-compilation Copilot package install', () => {
     assert.match(
       setupAction,

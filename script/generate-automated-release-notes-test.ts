@@ -110,23 +110,58 @@ describe('automated release notes', () => {
     const missing = await getLatestPublishedRelease(
       'codingmachineedge/desktop-material',
       'test-token',
-      async () => new Response(null, { status: 404 })
+      async () => new Response('[]', { status: 200 })
     )
     assert.equal(missing, null)
 
+    await assert.rejects(
+      getLatestPublishedRelease(
+        'codingmachineedge/desktop-material',
+        'test-token',
+        async () => new Response(null, { status: 404 })
+      ),
+      /release lookup failed with 404/
+    )
+
+    const requestedPages = new Array<number>()
     const release = await getLatestPublishedRelease(
       'codingmachineedge/desktop-material',
       'test-token',
-      async (_input, init) => {
+      async (input, init) => {
+        const page = Number(new URL(String(input)).searchParams.get('page'))
+        assert.equal(new URL(String(input)).searchParams.get('per_page'), '5')
+        requestedPages.push(page)
         assert.match(
           new Headers(init?.headers).get('authorization') ?? '',
           /^Bearer /
         )
+        if (page === 1) {
+          return new Response(
+            JSON.stringify(
+              Array.from({ length: 5 }, (_, index) => ({
+                tag_name: `assets-${index + 1}`,
+                target_commitish: 'main',
+                draft: false,
+                prerelease: index > 0,
+                assets: [{ name: `large-object-${index}.bin` }],
+              }))
+            ),
+            { status: 200 }
+          )
+        }
         return new Response(
-          JSON.stringify({
-            tag_name: 'v3.6.3-beta3-b0000000998',
-            target_commitish: '1'.repeat(40),
-          }),
+          JSON.stringify([
+            {
+              tag_name: 'v3.6.3-beta3-b0000000998',
+              target_commitish: '1'.repeat(40),
+              draft: false,
+              prerelease: false,
+              assets: [
+                { name: 'RELEASES' },
+                { name: 'GitHubDesktop-3.6.3-full.nupkg' },
+              ],
+            },
+          ]),
           { status: 200 }
         )
       }
@@ -135,5 +170,44 @@ describe('automated release notes', () => {
       tagName: 'v3.6.3-beta3-b0000000998',
       targetCommitish: '1'.repeat(40),
     })
+    assert.deepEqual(requestedPages, [1, 2])
+
+    let boundedPages = 0
+    await assert.rejects(
+      getLatestPublishedRelease(
+        'codingmachineedge/desktop-material',
+        'test-token',
+        async () => {
+          boundedPages++
+          return new Response(
+            JSON.stringify(
+              Array.from({ length: 5 }, (_, index) => ({
+                tag_name: `assets-${boundedPages}-${index}`,
+                target_commitish: 'main',
+                draft: false,
+                prerelease: true,
+                assets: [],
+              }))
+            ),
+            { status: 200 }
+          )
+        }
+      ),
+      /too many releases/
+    )
+    assert.equal(boundedPages, 20)
+
+    await assert.rejects(
+      getLatestPublishedRelease(
+        'codingmachineedge/desktop-material',
+        'test-token',
+        async () =>
+          new Response('[]', {
+            status: 200,
+            headers: { 'content-length': String(8 * 1024 * 1024 + 1) },
+          })
+      ),
+      /oversized release metadata/
+    )
   })
 })

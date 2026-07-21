@@ -1628,8 +1628,21 @@ export class CommitMessage extends React.Component<
       }
       case 'verifying':
         return t('cheapLfs.progress.verifying', variables)
-      case 'manual-preparing':
-        return t('cheapLfs.progress.manualPreparing', { amend })
+      case 'manual-preparing': {
+        const percentage =
+          progress.totalBytes <= 0
+            ? 0
+            : Math.min(
+                100,
+                Math.floor(
+                  (progress.transferredBytes / progress.totalBytes) * 100
+                )
+              )
+        return t('cheapLfs.progress.manualPreparing', {
+          amend,
+          percentage: percentage.toString(),
+        })
+      }
       case 'manual-waiting':
         return t('cheapLfs.progress.manualWaiting', { amend })
       case 'manual-verifying':
