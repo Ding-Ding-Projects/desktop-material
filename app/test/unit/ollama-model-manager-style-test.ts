@@ -59,4 +59,23 @@ describe('Ollama model manager style contracts', () => {
       /@media \(prefers-reduced-motion: reduce\)[\s\S]*progress:indeterminate[\s\S]*animation: none;/
     )
   })
+
+  it('bounds the multi-chat workspace and applies only curated chat palettes', () => {
+    assert.match(
+      styles,
+      /\.ollama-chat-workspace\s*\{[\s\S]*grid-template-columns: minmax\(180px, 230px\) minmax\(0, 1fr\);/
+    )
+    assert.match(
+      styles,
+      /&\[data-chat-accent='violet'\][\s\S]*--ollama-chat-accent: #6f43c0;/
+    )
+    assert.match(
+      styles,
+      /@container ollama-model-manager \(max-width: 460px\)[\s\S]*\.ollama-chat-workspace[\s\S]*grid-template-columns: minmax\(0, 1fr\);/
+    )
+    assert.match(
+      styles,
+      /\.ollama-chat-settings\s*\{[\s\S]*max-height: 360px;[\s\S]*overflow-y: auto;/
+    )
+  })
 })

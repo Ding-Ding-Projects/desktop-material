@@ -352,9 +352,6 @@ function draftState(
       : typeof workInProgress === 'boolean'
       ? workInProgress
       : prefixed
-  if (prefixed && !declared) {
-    return invalidResponse()
-  }
   return declared
 }
 
@@ -390,10 +387,11 @@ export function parseGitLabMergeRequest(
     id: positiveInteger(mergeRequest.id),
     iid,
     projectId: positiveInteger(mergeRequest.project_id),
-    // Keep the title/editor field independent from the provider's legacy
-    // Draft:/WIP: transport prefix. `draft` above remains authoritative.
+    // A declared draft flag is authoritative. In particular, GitLab 14+
+    // treats WIP: as ordinary title text, so preserve any prefix when the
+    // provider explicitly reports that the merge request is not a draft.
     title: validateGitLabMergeRequestTitle(
-      removeGitLabDraftTitlePrefix(rawTitle)
+      draft ? removeGitLabDraftTitlePrefix(rawTitle) : rawTitle
     ),
     description: description ?? '',
     state: mergeRequestState,

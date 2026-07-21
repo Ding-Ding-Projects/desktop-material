@@ -66,6 +66,7 @@ const cloned: IManagedSubmodule = {
   fetchRecurseSubmodules: null,
   sha: '1111111111111111111111111111111111111111',
   describe: null,
+  topology: 'valid',
   status: 'up-to-date',
 }
 
@@ -83,6 +84,16 @@ const clonedSibling: IManagedSubmodule = {
   path: 'vendor/shared',
   url: 'https://example.invalid/shared.git',
   sha: '2222222222222222222222222222222222222222',
+}
+
+const missingGitlink: IManagedSubmodule = {
+  ...cloned,
+  name: 'bambu-build',
+  path: 'vendor/bambu-build',
+  url: 'https://example.invalid/bambu-build.git',
+  sha: null,
+  topology: 'missing-gitlink',
+  status: null,
 }
 
 afterEach(() => {
@@ -173,6 +184,125 @@ describe('Submodule Manager temporary repository navigation', () => {
     const sync = screen.getAllByRole('button', { name: 'Sync' })[0]
     assert.equal(sync.querySelector('[lang="en"]')?.textContent, 'Sync')
     assert.equal(sync.querySelector('[lang="zh-HK"]')?.textContent, '同步')
+  })
+
+  it('separates a dangling declaration from cloneable submodule state', async () => {
+    let updateCalls = 0
+    const removed = new Array<{
+      path: string
+      name: string | undefined
+      topology: string | undefined
+    }>()
+    const dispatcher = {
+      getSubmodules: async () => [cloned, uninitialized, missingGitlink],
+      updateSubmodules: async () => {
+        updateCalls += 1
+      },
+      removeSubmodule: async (
+        _repository: Repository,
+        path: string,
+        name?: string,
+        topology?: string
+      ) => {
+        removed.push({ path, name, topology })
+      },
+    } as unknown as Dispatcher
+
+    const englishView = render(
+      <Submodules
+        repository={parent}
+        dispatcher={dispatcher}
+        onRepositoryOpened={() => undefined}
+      />
+    )
+
+    await screen.findByText('Missing Git link')
+    const summary = englishView.container.querySelector('.submodules-summary')
+    assert.match(
+      summary?.textContent ?? '',
+      /1 cloned.*1 not cloned.*1 need repair/
+    )
+
+    const danglingRow = screen
+      .getByText('vendor/bambu-build')
+      .closest<HTMLElement>('.submodule-row')
+    assert.ok(danglingRow !== null)
+    const actions = within(danglingRow)
+    assert.equal(actions.queryByRole('button', { name: 'Clone' }), null)
+    for (const name of [
+      'Open & manage: vendor/bambu-build',
+      'Update',
+      'Sync',
+      'Configure',
+    ]) {
+      assert.equal(
+        actions.getByRole('button', { name }).getAttribute('aria-disabled'),
+        'true'
+      )
+    }
+    assert.ok(
+      screen.getAllByText(
+        'This .gitmodules path is not tracked as a submodule. Restore its Git link or remove the stale entry.'
+      ).length >= 1
+    )
+    fireEvent.click(actions.getByRole('button', { name: 'Update' }))
+    assert.equal(updateCalls, 0)
+    const remove = actions.getByRole('button', { name: 'Remove' })
+    assert.equal(remove.getAttribute('aria-disabled'), null)
+    fireEvent.click(remove)
+    await waitFor(() =>
+      assert.deepEqual(removed, [
+        {
+          path: 'vendor/bambu-build',
+          name: 'bambu-build',
+          topology: 'missing-gitlink',
+        },
+      ])
+    )
+    englishView.unmount()
+
+    localStorage.setItem(LanguageModeStorageKey, 'cantonese')
+    const cantoneseView = render(
+      <Submodules
+        repository={parent}
+        dispatcher={dispatcher}
+        onRepositoryOpened={() => undefined}
+      />
+    )
+    await screen.findByText('Git link 唔見咗')
+    assert.match(
+      cantoneseView.container.querySelector('.submodules-summary')
+        ?.textContent ?? '',
+      /1 個要修復/
+    )
+    assert.ok(
+      screen.getAllByText(
+        '呢條 .gitmodules 路徑未有當子模組追蹤；請還原 Git link，或者移除過時設定。'
+      ).length >= 1
+    )
+    cantoneseView.unmount()
+
+    localStorage.setItem(LanguageModeStorageKey, 'bilingual')
+    const bilingualView = render(
+      <Submodules
+        repository={parent}
+        dispatcher={dispatcher}
+        onRepositoryOpened={() => undefined}
+      />
+    )
+    await waitFor(() => {
+      assert.equal(
+        bilingualView.container.querySelector(
+          '.submodule-status-missing-gitlink'
+        )?.textContent,
+        'Missing Git link · Git link 唔見咗'
+      )
+    })
+    assert.match(
+      bilingualView.container.querySelector('.submodules-summary')
+        ?.textContent ?? '',
+      /1 need repair · 1 個要修復/
+    )
   })
 
   it('stages Back button appearance with a live temporary-workspace preview', async () => {

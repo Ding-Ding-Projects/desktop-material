@@ -714,6 +714,298 @@
     gap: 10px;
   }
 
+  .ollama-chat-workspace {
+    --ollama-chat-accent: #0969da;
+    --ollama-chat-on-accent: #ffffff;
+    --ollama-chat-accent-container: #dbeafe;
+    --ollama-chat-on-accent-container: #052c65;
+
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 420px;
+    grid-template-columns: minmax(180px, 230px) minmax(0, 1fr);
+    gap: 10px;
+
+    &[data-chat-accent='violet'] {
+      --ollama-chat-accent: #6f43c0;
+      --ollama-chat-accent-container: #ebddff;
+      --ollama-chat-on-accent-container: #25005a;
+    }
+
+    &[data-chat-accent='teal'] {
+      --ollama-chat-accent: #006a60;
+      --ollama-chat-accent-container: #74f8e5;
+      --ollama-chat-on-accent-container: #00201c;
+    }
+
+    &[data-chat-accent='green'] {
+      --ollama-chat-accent: #176b34;
+      --ollama-chat-accent-container: #a7f2b8;
+      --ollama-chat-on-accent-container: #00210b;
+    }
+
+    &[data-chat-accent='amber'] {
+      --ollama-chat-accent: #765a00;
+      --ollama-chat-accent-container: #ffe169;
+      --ollama-chat-on-accent-container: #241a00;
+    }
+
+    &[data-chat-accent='rose'] {
+      --ollama-chat-accent: #984061;
+      --ollama-chat-accent-container: #ffd9e3;
+      --ollama-chat-on-accent-container: #3e001d;
+    }
+
+    &[data-chat-surface='neutral'] .ollama-chat-conversation,
+    &[data-chat-surface='neutral'] .ollama-chat-sidebar {
+      background: var(--md-sys-color-surface-container-lowest);
+    }
+
+    > .ollama-chat-error {
+      position: absolute;
+      right: 8px;
+      bottom: 8px;
+      max-width: min(520px, calc(100% - 16px));
+      box-shadow: 0 4px 18px rgb(0 0 0 / 20%);
+    }
+  }
+
+  .ollama-chat-sidebar,
+  .ollama-chat-conversation {
+    min-width: 0;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-surface-container);
+  }
+
+  .ollama-chat-sidebar {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    padding: 8px;
+
+    > header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 2px 2px 8px;
+    }
+
+    > ul {
+      display: flex;
+      min-height: 0;
+      flex: 1;
+      flex-direction: column;
+      gap: 5px;
+      margin: 0;
+      padding: 0;
+      overflow-y: auto;
+      list-style: none;
+    }
+
+    li {
+      display: grid;
+      min-width: 0;
+      grid-template-columns: minmax(0, 1fr);
+      border-radius: var(--md-sys-shape-corner-small);
+
+      &.is-active {
+        background: var(--ollama-chat-accent-container);
+        color: var(--ollama-chat-on-accent-container);
+      }
+
+      > input {
+        min-width: 0;
+        margin: 4px;
+      }
+    }
+  }
+
+  .ollama-chat-session-select {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: inherit;
+    padding: 8px;
+    text-align: left;
+    cursor: pointer;
+
+    span,
+    small {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    small {
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    &:focus-visible {
+      box-shadow: inset 0 0 0 2px var(--ollama-chat-accent);
+    }
+  }
+
+  .ollama-chat-session-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    padding: 0 5px 5px;
+
+    .button-component {
+      min-width: 0;
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  .ollama-chat-delete-confirm {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 5px;
+    border: 1px solid var(--md-sys-color-error);
+    border-radius: var(--md-sys-shape-corner-small);
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+    padding: 7px;
+
+    p {
+      grid-column: 1 / -1;
+      font-size: var(--font-size-xs);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .ollama-chat-conversation {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+
+    &.is-empty {
+      align-items: center;
+      justify-content: center;
+      color: var(--md-sys-color-on-surface-variant);
+      text-align: center;
+    }
+  }
+
+  .ollama-chat-conversation-toolbar {
+    display: flex;
+    min-width: 0;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    label {
+      display: flex;
+      min-width: min(240px, 100%);
+      flex: 1;
+      flex-direction: column;
+      gap: 3px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  .ollama-chat-settings {
+    display: flex;
+    max-height: 360px;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-surface-container-low);
+    padding: 10px;
+    overflow-y: auto;
+
+    > p {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-xs);
+    }
+
+    > section {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      border-top: 1px solid var(--md-sys-color-outline-variant);
+      padding-top: 8px;
+    }
+  }
+
+  .ollama-chat-appearance-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  .ollama-chat-message {
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    &.is-user {
+      background: var(--ollama-chat-accent-container);
+      color: var(--ollama-chat-on-accent-container);
+    }
+  }
+
+  .ollama-chat-message-images,
+  .ollama-chat-composer-images {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    img {
+      width: 80px;
+      height: 64px;
+      border-radius: var(--md-sys-shape-corner-small);
+      object-fit: cover;
+    }
+  }
+
+  .ollama-chat-composer-images {
+    grid-column: 1 / -1;
+
+    > span {
+      position: relative;
+      display: inline-flex;
+
+      .button-component {
+        position: absolute;
+        top: 2px;
+        right: 2px;
+        min-width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        padding: 0;
+        justify-content: center;
+      }
+    }
+  }
+
+  .ollama-chat-version-history {
+    min-height: 520px;
+    max-height: min(720px, 75vh);
+  }
+
   .ollama-chat-controls {
     display: grid;
     min-width: 0;
@@ -869,6 +1161,18 @@
 
     .ollama-chat-message {
       max-width: 100%;
+    }
+
+    .ollama-chat-workspace {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .ollama-chat-sidebar {
+      max-height: 190px;
+    }
+
+    .ollama-chat-appearance-fields {
+      grid-template-columns: minmax(0, 1fr);
     }
   }
 

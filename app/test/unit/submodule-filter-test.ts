@@ -9,31 +9,42 @@ const submodules = [
     name: 'vendor/tool',
     path: 'vendor/tool',
     url: 'https://example.com/owner/tool.git',
+    topology: 'valid',
     status: 'up-to-date',
   },
   {
     name: 'docs',
     path: 'docs',
     url: 'https://example.com/owner/docs.git',
+    topology: 'valid',
     status: 'uninitialized',
   },
   {
     name: 'engine',
     path: 'modules/engine',
     url: null,
+    topology: 'valid',
     status: 'out-of-date',
   },
   {
     name: 'assets',
     path: 'assets',
     url: 'https://example.com/owner/assets.git',
+    topology: 'valid',
     status: 'conflicted',
+  },
+  {
+    name: 'dangling',
+    path: 'vendor/dangling',
+    url: 'https://example.com/owner/dangling.git',
+    topology: 'missing-gitlink',
+    status: null,
   },
 ]
 
 describe('submodule manager filtering', () => {
   it('narrows by status scope', () => {
-    assert.equal(filterSubmodules(submodules, '', 'all').length, 4)
+    assert.equal(filterSubmodules(submodules, '', 'all').length, 5)
     assert.deepEqual(
       filterSubmodules(submodules, '', 'cloned').map(s => s.name),
       ['vendor/tool', 'engine', 'assets']
@@ -50,6 +61,8 @@ describe('submodule manager filtering', () => {
       filterSubmodules(submodules, '', 'conflicted').map(s => s.name),
       ['assets']
     )
+    assert.equal(filterSubmodules(submodules, 'dangling', 'cloned').length, 0)
+    assert.equal(filterSubmodules(submodules, 'dangling', 'uncloned').length, 0)
   })
 
   it('matches name, path, and URL case-insensitively', () => {

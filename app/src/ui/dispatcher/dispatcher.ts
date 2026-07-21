@@ -54,6 +54,7 @@ import {
   IManagedSubmodule,
   IAddSubmoduleOptions,
   SubmoduleConfigKey,
+  SubmoduleTopologyKind,
   IManagedSubtree,
   ISubtreeMergeOptions,
   ISubtreeRemoteOptions,
@@ -3179,9 +3180,10 @@ export class Dispatcher {
   public removeSubmodule(
     repository: Repository,
     path: string,
-    name?: string
+    name?: string,
+    topology?: SubmoduleTopologyKind
   ): Promise<void> {
-    return this.appStore._removeSubmodule(repository, path, name)
+    return this.appStore._removeSubmodule(repository, path, name, topology)
   }
 
   /** Change the configured URL for the submodule at the given path. */

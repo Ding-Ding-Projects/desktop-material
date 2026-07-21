@@ -156,6 +156,10 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
    * panel and enter the `detecting` phase.
    */
   public beginRun(repositoryId: number, runId: string): void {
+    const supersededRunId = this.getStateForRepository(repositoryId).activeRunId
+    if (supersededRunId !== null && supersededRunId !== runId) {
+      this.runToRepository.delete(supersededRunId)
+    }
     this.runToRepository.set(runId, repositoryId)
     this.mutate(repositoryId, {
       phase: 'detecting',
@@ -250,6 +254,9 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
     if (repositoryId === undefined) {
       return
     }
+    if (this.getStateForRepository(repositoryId).activeRunId !== log.runId) {
+      return
+    }
     this.appendLine(
       repositoryId,
       { stage: log.stage, stream: log.stream, text: log.text },
@@ -259,13 +266,10 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
 
   private onState(state: IBuildRunStateEvent): void {
     const repositoryId = state.repositoryId
-    // Ignore stale events from a run we've already superseded.
     const current = this.getStateForRepository(repositoryId)
-    if (
-      current.activeRunId !== null &&
-      current.activeRunId !== state.runId &&
-      !this.runToRepository.has(state.runId)
-    ) {
+    // Only the currently active run may mutate this repository's view. This
+    // also rejects non-terminal events from a still-live superseded process.
+    if (current.activeRunId !== state.runId) {
       return
     }
 

@@ -362,6 +362,49 @@ describe('GitLab merge request store', () => {
     assert.equal(calls.length, 4)
   })
 
+  it('returns a server-confirmed mutation after its account context changes', async () => {
+    const accountsStore = new FakeAccountsStore([selected])
+    const confirmed = {
+      ...mergeRequest,
+      title: 'Confirmed before context change',
+      updatedAt: '2026-07-20T11:00:00Z',
+    }
+    let finishMutation!: (value: IGitLabMergeRequest) => void
+    let mutationSignal: AbortSignal | undefined
+    const store = await storeWith(accountsStore, () =>
+      fakeAPI({
+        updateGitLabMergeRequest: async (
+          _project,
+          _mergeRequestIID,
+          _expectedHeadSHA,
+          _expectedUpdatedAt,
+          _update,
+          signal
+        ) => {
+          mutationSignal = signal
+          return new Promise(resolve => {
+            finishMutation = resolve
+          })
+        },
+      })
+    )
+    const repo = repository()
+    const current = await store.get(repo, 7)
+    const review = store.createMutationReview(repo, current)
+    const mutation = store.update(repo, review, { title: confirmed.title })
+
+    accountsStore.update([selected.withToken('rotated-token')])
+    assert.equal(mutationSignal?.aborted, true)
+    finishMutation(confirmed)
+
+    const result = await mutation
+    assert.equal(result.title, confirmed.title)
+    assert.throws(
+      () => store.createMutationReview(repo, result),
+      GitLabMergeRequestContextChangedError
+    )
+  })
+
   it('rejects arbitrary and cross-repository snapshots with colliding IDs and HEADs', async () => {
     const accountsStore = new FakeAccountsStore([selected])
     const snapshot = { ...mergeRequest }

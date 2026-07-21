@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import * as path from 'path'
+import { exec } from 'dugite'
 import {
   mkdir,
   readFile,
@@ -28,13 +29,18 @@ import {
   SubmoduleConfigKey,
   createSubmoduleRepository,
   revalidateSubmoduleRepository,
+  updateSubmodules,
+  removeSubmodule,
 } from '../../../src/lib/git/submodule'
 import {
   checkoutBranch,
   getBranches,
   getConfigValue,
 } from '../../../src/lib/git'
-import { setupFixtureRepository } from '../../helpers/repositories'
+import {
+  setupEmptyRepository,
+  setupFixtureRepository,
+} from '../../helpers/repositories'
 import { createTempDirectory } from '../../helpers/temp'
 
 describe('git/submodule', () => {
@@ -281,6 +287,7 @@ describe('git/submodule', () => {
       assert.equal(result[0].shallow, null)
       assert.equal(result[0].fetchRecurseSubmodules, null)
       assert.equal(result[0].sha, '1111111111111111111111111111111111111111')
+      assert.equal(result[0].topology, 'valid')
       assert.equal(result[0].status, 'up-to-date')
 
       assert.equal(result[1].path, 'vendor/b')
@@ -289,11 +296,12 @@ describe('git/submodule', () => {
       assert.equal(result[1].ignore, 'dirty')
       assert.equal(result[1].shallow, true)
       assert.equal(result[1].fetchRecurseSubmodules, 'on-demand')
+      assert.equal(result[1].topology, 'valid')
       assert.equal(result[1].status, 'uninitialized')
       assert.equal(result[1].sha, null)
     })
 
-    it('surfaces config-only submodules as uninitialized', () => {
+    it('surfaces config-only paths as missing gitlinks', () => {
       const config = parseGitModules(
         [
           '[submodule "c"]',
@@ -306,7 +314,8 @@ describe('git/submodule', () => {
 
       assert.equal(result.length, 1)
       assert.equal(result[0].path, 'vendor/c')
-      assert.equal(result[0].status, 'uninitialized')
+      assert.equal(result[0].topology, 'missing-gitlink')
+      assert.equal(result[0].status, null)
       assert.equal(result[0].sha, null)
     })
 
@@ -322,7 +331,203 @@ describe('git/submodule', () => {
       // No config entry, so name falls back to the path and url is null.
       assert.equal(result[0].name, 'orphan/sub')
       assert.equal(result[0].url, null)
+      assert.equal(result[0].topology, 'missing-declaration')
       assert.equal(result[0].status, 'up-to-date')
+    })
+  })
+
+  describe('updateSubmodules topology guard', () => {
+    it('rejects a dangling .gitmodules path before Git sees the pathspec', async t => {
+      const repository = await setupEmptyRepository(t)
+      await writeFile(
+        path.join(repository.path, '.gitmodules'),
+        [
+          '[submodule "vendor/bambu-build"]',
+          '\tpath = vendor/bambu-build',
+          '\turl = https://example.invalid/bambu-build.git',
+          '',
+        ].join('\n')
+      )
+      assert.equal(
+        (await exec(['add', '--', '.gitmodules'], repository.path)).exitCode,
+        0
+      )
+
+      const before = await exec(['status', '--porcelain=v1'], repository.path)
+      const listed = await getSubmodules(repository)
+      assert.equal(listed.length, 1)
+      assert.equal(listed[0].topology, 'missing-gitlink')
+      assert.equal(listed[0].status, null)
+
+      await assert.rejects(
+        updateSubmodules(repository, ['vendor/bambu-build']),
+        (error: Error) =>
+          /not tracked as a submodule in this repository's index/.test(
+            error.message
+          ) && !/pathspec/.test(error.message)
+      )
+
+      const after = await exec(['status', '--porcelain=v1'], repository.path)
+      assert.equal(after.stdout, before.stdout)
+    })
+
+    it('keeps an indexed but uninitialized submodule cloneable', async t => {
+      const testRepoPath = await setupFixtureRepository(
+        t,
+        'test-submodule-checkouts'
+      )
+      const repository = new Repository(testRepoPath, -1, null, false)
+
+      await deinitSubmodule(repository, 'inner', true)
+      const before = await getSubmodules(repository)
+      assert.equal(before.length, 1)
+      assert.equal(before[0].topology, 'valid')
+      assert.equal(before[0].status, 'uninitialized')
+
+      await updateSubmodules(repository, ['inner'])
+
+      const after = await getSubmodules(repository)
+      assert.equal(after[0].topology, 'valid')
+      assert.equal(after[0].status, 'up-to-date')
+    })
+
+    it('validates a nested temporary workspace against the child index', async t => {
+      const parent = await setupEmptyRepository(t)
+      const indexedOnlySha = '1111111111111111111111111111111111111111'
+      assert.equal(
+        (
+          await exec(
+            [
+              'update-index',
+              '--add',
+              '--info-only',
+              '--cacheinfo',
+              `160000,${indexedOnlySha},vendor/bambu-build`,
+            ],
+            parent.path
+          )
+        ).exitCode,
+        0
+      )
+
+      const childPath = path.join(parent.path, 'library')
+      await mkdir(childPath)
+      assert.equal((await exec(['init'], childPath)).exitCode, 0)
+      await writeFile(
+        path.join(childPath, '.gitmodules'),
+        [
+          '[submodule "vendor/bambu-build"]',
+          '\tpath = vendor/bambu-build',
+          '\turl = https://example.invalid/bambu-build.git',
+          '',
+        ].join('\n')
+      )
+      assert.equal(
+        (await exec(['add', '--', '.gitmodules'], childPath)).exitCode,
+        0
+      )
+
+      const temporary = new SubmoduleRepository(
+        childPath,
+        path.join(childPath, '.git'),
+        parent,
+        {
+          name: 'library',
+          path: 'library',
+          url: null,
+          branch: null,
+          update: null,
+          ignore: null,
+          shallow: null,
+          fetchRecurseSubmodules: null,
+          sha: indexedOnlySha,
+          describe: null,
+          topology: 'valid',
+          status: 'up-to-date',
+        }
+      )
+
+      await assert.rejects(
+        updateSubmodules(temporary, ['vendor/bambu-build']),
+        /not tracked as a submodule in this repository's index/
+      )
+    })
+  })
+
+  describe('removeSubmodule topology repair', () => {
+    it('removes only a stale declaration and preserves an ordinary directory', async t => {
+      const repository = await setupEmptyRepository(t)
+      const relativePath = 'vendor/bambu-build'
+      const occupiedPath = path.join(repository.path, relativePath)
+      await mkdir(occupiedPath, { recursive: true })
+      await writeFile(path.join(occupiedPath, 'keep.txt'), 'user data\n')
+      await writeFile(
+        path.join(repository.path, '.gitmodules'),
+        [
+          '[submodule "bambu-build"]',
+          `\tpath = ${relativePath}`,
+          '\turl = https://example.invalid/bambu-build.git',
+          '',
+        ].join('\n')
+      )
+      assert.equal(
+        (await exec(['add', '--', '.gitmodules'], repository.path)).exitCode,
+        0
+      )
+
+      await removeSubmodule(
+        repository,
+        relativePath,
+        'bambu-build',
+        'missing-gitlink'
+      )
+
+      assert.equal(
+        await readFile(path.join(occupiedPath, 'keep.txt'), 'utf8'),
+        'user data\n'
+      )
+      assert.equal((await getSubmodules(repository)).length, 0)
+      const staged = await exec(
+        ['diff', '--cached', '--name-only'],
+        repository.path
+      )
+      assert.match(staged.stdout, /^\.gitmodules\r?$/m)
+    })
+
+    it('rejects a stale topology snapshot before changing the repository', async t => {
+      const repository = await setupEmptyRepository(t)
+      await writeFile(
+        path.join(repository.path, '.gitmodules'),
+        [
+          '[submodule "bambu-build"]',
+          '\tpath = vendor/bambu-build',
+          '\turl = https://example.invalid/bambu-build.git',
+          '',
+        ].join('\n')
+      )
+      assert.equal(
+        (await exec(['add', '--', '.gitmodules'], repository.path)).exitCode,
+        0
+      )
+      const before = await readFile(
+        path.join(repository.path, '.gitmodules'),
+        'utf8'
+      )
+
+      await assert.rejects(
+        removeSubmodule(
+          repository,
+          'vendor/bambu-build',
+          'bambu-build',
+          'valid'
+        ),
+        /topology.*changed/
+      )
+
+      assert.equal(
+        await readFile(path.join(repository.path, '.gitmodules'), 'utf8'),
+        before
+      )
     })
   })
 

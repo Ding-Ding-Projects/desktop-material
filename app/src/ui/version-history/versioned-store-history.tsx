@@ -51,6 +51,80 @@ export interface IVersionedStoreHistorySource {
   readonly restoreTo?: (sha: string) => Promise<void>
 }
 
+/**
+ * User-facing copy for the shared history manager. Callers with their own
+ * language contract can replace any label without changing existing users.
+ */
+export interface IVersionedStoreHistoryStrings {
+  readonly searchLabel: string
+  readonly searchPlaceholder: string
+  readonly regexBuilderTarget: string
+  readonly searchStatus: string
+  readonly matchingCount: (visible: number, loaded: number) => string
+  readonly undo: string
+  readonly redo: string
+  readonly commitCount: (count: number) => string
+  readonly loadingFiles: string
+  readonly selectToInspect: string
+  readonly noFiles: string
+  readonly restoreLabel: (summary: string) => string
+  readonly restoreTooltip: string
+  readonly restoreConfirmation: string
+  readonly cancel: string
+  readonly restore: string
+  readonly loadingHistory: string
+  readonly noHistoryTitle: string
+  readonly noHistoryDescription: string
+  readonly noMatchesTitle: string
+  readonly noMatchesDescription: string
+  readonly loading: string
+  readonly loadMore: string
+  readonly loadingDiff: string
+  readonly noTextChanges: string
+  readonly diffLabel: string
+  readonly selectCommit: string
+  readonly retry: string
+  readonly closeLabel: (title: string) => string
+  readonly commitsLabel: (title: string) => string
+  readonly detailsLabel: (title: string) => string
+}
+
+export const DefaultVersionedStoreHistoryStrings: IVersionedStoreHistoryStrings =
+  {
+    searchLabel: 'Search version history',
+    searchPlaceholder: 'Search messages, hashes, dates, or files',
+    regexBuilderTarget: 'version history',
+    searchStatus: 'Search the loaded timeline',
+    matchingCount: (visible, loaded) =>
+      `${visible} of ${loaded} loaded commits match`,
+    undo: 'Undo',
+    redo: 'Redo',
+    commitCount: count => (count === 1 ? '1 commit' : `${count} commits`),
+    loadingFiles: 'Loading files…',
+    selectToInspect: 'Select to inspect',
+    noFiles: 'No files',
+    restoreLabel: summary => `Restore ${summary}`,
+    restoreTooltip: 'Restore to this point',
+    restoreConfirmation: 'Restore this point? This creates a new commit.',
+    cancel: 'Cancel',
+    restore: 'Restore',
+    loadingHistory: 'Loading history…',
+    noHistoryTitle: 'No version history yet',
+    noHistoryDescription: 'The first committed change will appear here.',
+    noMatchesTitle: 'No matching history',
+    noMatchesDescription: 'Try another term or matching mode.',
+    loading: 'Loading…',
+    loadMore: 'Load more',
+    loadingDiff: 'Loading diff…',
+    noTextChanges: 'No textual changes for this selection.',
+    diffLabel: 'Version change diff',
+    selectCommit: 'Select a commit to inspect its changes.',
+    retry: 'Retry',
+    closeLabel: title => `Close ${title}`,
+    commitsLabel: title => `${title} commits`,
+    detailsLabel: title => `${title} details`,
+  }
+
 export interface IVersionedStoreHistoryProps {
   readonly title: string
   readonly timelineLabel: string
@@ -61,6 +135,16 @@ export interface IVersionedStoreHistoryProps {
   readonly source: IVersionedStoreHistorySource
   readonly onStoreMutated?: () => Promise<void> | void
   readonly onDismissed: () => void
+  /** Optional localized copy. Omitted values retain the established English UI. */
+  readonly strings?: Partial<IVersionedStoreHistoryStrings>
+  /** Translate app-generated commit subjects while preserving raw Git data. */
+  readonly formatEntrySummary?: (summary: string) => string
+  /** Render timestamps in the embedding surface's explicit language mode. */
+  readonly formatCommittedAt?: (date: Date) => string
+  /** Replace raw store exceptions with bounded, localized copy. */
+  readonly errorMessage?: string
+  /** Hide the shared mode/regex controls for compact, localized embeddings. */
+  readonly showAdvancedFilterControls?: boolean
   /**
    * Render an inspect-only timeline: hide undo, redo, and restore. Used for
    * scoped views whose subject cannot be mutated without affecting the rest of
@@ -151,6 +235,13 @@ export class VersionedStoreHistory extends React.Component<
     string,
     Promise<ReadonlyArray<string> | null>
   >()
+
+  private get strings(): IVersionedStoreHistoryStrings {
+    return {
+      ...DefaultVersionedStoreHistoryStrings,
+      ...this.props.strings,
+    }
+  }
 
   public constructor(props: IVersionedStoreHistoryProps) {
     super(props)
@@ -253,7 +344,7 @@ export class VersionedStoreHistory extends React.Component<
       this.setState({
         loadingHistory: false,
         loadingMore: false,
-        error: getErrorMessage(error),
+        error: this.formatError(error),
       })
     }
   }
@@ -289,7 +380,7 @@ export class VersionedStoreHistory extends React.Component<
       return files
     } catch (error) {
       if (this.isMountedFlag && this.state.selectedSha === sha) {
-        this.setState({ error: getErrorMessage(error) })
+        this.setState({ error: this.formatError(error) })
       }
       return null
     } finally {
@@ -337,7 +428,7 @@ export class VersionedStoreHistory extends React.Component<
         this.setState({
           diff: null,
           loadingDiff: false,
-          error: getErrorMessage(error),
+          error: this.formatError(error),
         })
       }
     }
@@ -396,7 +487,7 @@ export class VersionedStoreHistory extends React.Component<
       }
     } catch (error) {
       if (this.isMountedFlag) {
-        this.setState({ error: getErrorMessage(error) })
+        this.setState({ error: this.formatError(error) })
       }
     } finally {
       if (this.isMountedFlag) {
@@ -457,8 +548,23 @@ export class VersionedStoreHistory extends React.Component<
 
   private getFilterSamples = () =>
     (this.state.page?.entries ?? []).map(entry =>
-      [entry.summary, entry.body, entry.shortSha].filter(Boolean).join(' · ')
+      [
+        entry.summary,
+        this.formatEntrySummary(entry.summary),
+        entry.body,
+        entry.shortSha,
+      ]
+        .filter(Boolean)
+        .join(' · ')
     )
+
+  private formatEntrySummary(summary: string): string {
+    return this.props.formatEntrySummary?.(summary) ?? summary
+  }
+
+  private formatError(error: unknown): string {
+    return this.props.errorMessage ?? getErrorMessage(error)
+  }
 
   private getFilteredEntries() {
     const entries = this.state.page?.entries ?? []
@@ -473,6 +579,7 @@ export class VersionedStoreHistory extends React.Component<
       entries,
       entry => [
         entry.summary,
+        this.formatEntrySummary(entry.summary),
         entry.body,
         entry.sha,
         entry.shortSha,
@@ -501,24 +608,26 @@ export class VersionedStoreHistory extends React.Component<
             searchSurfaceId="version-history"
             className="versioned-store-history-filter-input"
             type="search"
-            ariaLabel="Search version history"
-            placeholder="Search messages, hashes, dates, or files"
+            ariaLabel={this.strings.searchLabel}
+            placeholder={this.strings.searchPlaceholder}
             value={filterText}
             displayClearButton={true}
             prefixedIcon={octicons.search}
             onValueChanged={this.onFilterTextChanged}
           />
-          <FilterModeControl
-            searchSurfaceId="version-history"
-            mode={filterMode}
-            caseSensitive={filterCaseSensitive}
-            onModeChange={this.onFilterModeChanged}
-            onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
-            regexBuilderTarget="version history"
-            getSampleItems={this.getFilterSamples}
-            filterText={filterText}
-            onRegexPatternApply={this.onFilterTextChanged}
-          />
+          {this.props.showAdvancedFilterControls === false ? null : (
+            <FilterModeControl
+              searchSurfaceId="version-history"
+              mode={filterMode}
+              caseSensitive={filterCaseSensitive}
+              onModeChange={this.onFilterModeChanged}
+              onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
+              regexBuilderTarget={this.strings.regexBuilderTarget}
+              getSampleItems={this.getFilterSamples}
+              filterText={filterText}
+              onRegexPatternApply={this.onFilterTextChanged}
+            />
+          )}
         </div>
         <div
           className="versioned-store-history-filter-status"
@@ -530,11 +639,13 @@ export class VersionedStoreHistory extends React.Component<
             </span>
           ) : filterText.length > 0 ? (
             <span>
-              {result.entries.length} of {page?.entries.length ?? 0} loaded
-              commits match
+              {this.strings.matchingCount(
+                result.entries.length,
+                page?.entries.length ?? 0
+              )}
             </span>
           ) : (
-            <span>Search the loaded timeline</span>
+            <span>{this.strings.searchStatus}</span>
           )}
         </div>
       </div>
@@ -554,19 +665,19 @@ export class VersionedStoreHistory extends React.Component<
               onClick={this.undo}
               disabled={busy || page === null || !page.canUndo}
             >
-              <Octicon symbol={octicons.undo} /> Undo
+              <Octicon symbol={octicons.undo} /> {this.strings.undo}
             </Button>
             <Button
               className="versioned-store-history-redo"
               onClick={this.redo}
               disabled={busy || page === null || !page.canRedo}
             >
-              <Octicon symbol={octicons.redo} /> Redo
+              <Octicon symbol={octicons.redo} /> {this.strings.redo}
             </Button>
           </>
         )}
         <span className="versioned-store-history-count">
-          {page?.total ?? 0} {page?.total === 1 ? 'commit' : 'commits'}
+          {this.strings.commitCount(page?.total ?? 0)}
         </span>
       </div>
     )
@@ -578,15 +689,17 @@ export class VersionedStoreHistory extends React.Component<
       return (
         <span className="versioned-store-history-files-loading">
           {this.state.selectedSha === sha
-            ? 'Loading files…'
-            : 'Select to inspect'}
+            ? this.strings.loadingFiles
+            : this.strings.selectToInspect}
         </span>
       )
     }
 
     if (files.length === 0) {
       return (
-        <span className="versioned-store-history-files-empty">No files</span>
+        <span className="versioned-store-history-files-empty">
+          {this.strings.noFiles}
+        </span>
       )
     }
 
@@ -601,6 +714,7 @@ export class VersionedStoreHistory extends React.Component<
     const selected = entry.sha === this.state.selectedSha
     const confirming = entry.sha === this.state.confirmRestoreSha
     const busy = this.state.operation !== null
+    const summary = this.formatEntrySummary(entry.summary)
 
     return (
       <li
@@ -622,9 +736,13 @@ export class VersionedStoreHistory extends React.Component<
           >
             <code>{entry.shortSha}</code>
             <span className="versioned-store-history-entry-copy">
-              <strong>{entry.summary}</strong>
+              <strong>{summary}</strong>
               <span className="versioned-store-history-entry-time">
-                <RelativeTime date={entry.committedAt} />
+                {this.props.formatCommittedAt === undefined ? (
+                  <RelativeTime date={entry.committedAt} />
+                ) : (
+                  this.props.formatCommittedAt(entry.committedAt)
+                )}
               </span>
               <span className="versioned-store-history-entry-files">
                 {this.renderFileChips(entry.sha)}
@@ -638,8 +756,8 @@ export class VersionedStoreHistory extends React.Component<
             <Button
               className="versioned-store-history-restore"
               size="small"
-              ariaLabel={`Restore ${entry.summary}`}
-              tooltip="Restore to this point"
+              ariaLabel={this.strings.restoreLabel(summary)}
+              tooltip={this.strings.restoreTooltip}
               disabled={busy}
               // eslint-disable-next-line react/jsx-no-bind
               onClick={() => this.confirmRestore(entry.sha)}
@@ -653,9 +771,9 @@ export class VersionedStoreHistory extends React.Component<
             className="versioned-store-history-restore-confirmation"
             role="group"
           >
-            <span>Restore this point? This creates a new commit.</span>
+            <span>{this.strings.restoreConfirmation}</span>
             <Button size="small" onClick={this.cancelRestore}>
-              Cancel
+              {this.strings.cancel}
             </Button>
             <Button
               size="small"
@@ -663,7 +781,7 @@ export class VersionedStoreHistory extends React.Component<
               // eslint-disable-next-line react/jsx-no-bind
               onClick={() => this.restore(entry.sha)}
             >
-              Restore
+              {this.strings.restore}
             </Button>
           </div>
         ) : null}
@@ -677,7 +795,8 @@ export class VersionedStoreHistory extends React.Component<
     if (loadingHistory) {
       return (
         <div className="versioned-store-history-empty">
-          <Octicon className="spin" symbol={octicons.sync} /> Loading history…
+          <Octicon className="spin" symbol={octicons.sync} />{' '}
+          {this.strings.loadingHistory}
         </div>
       )
     }
@@ -686,10 +805,11 @@ export class VersionedStoreHistory extends React.Component<
       return (
         <div className="versioned-store-history-empty">
           <Octicon symbol={octicons.history} />
-          <strong>{this.props.emptyTitle ?? 'No version history yet'}</strong>
+          <strong>
+            {this.props.emptyTitle ?? this.strings.noHistoryTitle}
+          </strong>
           <span>
-            {this.props.emptyDescription ??
-              'The first committed change will appear here.'}
+            {this.props.emptyDescription ?? this.strings.noHistoryDescription}
           </span>
         </div>
       )
@@ -703,8 +823,8 @@ export class VersionedStoreHistory extends React.Component<
         {result.entries.length === 0 ? (
           <div className="versioned-store-history-empty filtered">
             <Octicon symbol={octicons.search} />
-            <strong>No matching history</strong>
-            <span>Try another term or matching mode.</span>
+            <strong>{this.strings.noMatchesTitle}</strong>
+            <span>{this.strings.noMatchesDescription}</span>
           </div>
         ) : (
           <ol className="versioned-store-history-list" role="listbox">
@@ -719,7 +839,7 @@ export class VersionedStoreHistory extends React.Component<
             onClick={this.loadMore}
             disabled={loadingMore}
           >
-            {loadingMore ? 'Loading…' : 'Load more'}
+            {loadingMore ? this.strings.loading : this.strings.loadMore}
           </Button>
         ) : null}
       </>
@@ -729,9 +849,9 @@ export class VersionedStoreHistory extends React.Component<
   private renderEntryBadges(entry: IVersionHistoryEntry) {
     return (
       <div className="versioned-store-history-entry-badges">
-        {entry.undoOf !== null ? <span>Undo</span> : null}
-        {entry.redoOf !== null ? <span>Redo</span> : null}
-        {entry.restoreOf !== null ? <span>Restore</span> : null}
+        {entry.undoOf !== null ? <span>{this.strings.undo}</span> : null}
+        {entry.redoOf !== null ? <span>{this.strings.redo}</span> : null}
+        {entry.restoreOf !== null ? <span>{this.strings.restore}</span> : null}
       </div>
     )
   }
@@ -740,7 +860,8 @@ export class VersionedStoreHistory extends React.Component<
     if (this.state.loadingDiff) {
       return (
         <div className="versioned-store-history-diff-empty">
-          <Octicon className="spin" symbol={octicons.sync} /> Loading diff…
+          <Octicon className="spin" symbol={octicons.sync} />{' '}
+          {this.strings.loadingDiff}
         </div>
       )
     }
@@ -749,7 +870,7 @@ export class VersionedStoreHistory extends React.Component<
       return (
         <div className="versioned-store-history-diff-empty">
           <Octicon symbol={octicons.fileDiff} />
-          <span>No textual changes for this selection.</span>
+          <span>{this.strings.noTextChanges}</span>
         </div>
       )
     }
@@ -758,7 +879,7 @@ export class VersionedStoreHistory extends React.Component<
       <pre
         className="versioned-store-history-diff"
         role="region"
-        aria-label="Version change diff"
+        aria-label={this.strings.diffLabel}
       >
         {this.state.diff.split('\n').map((line, index) => (
           <span
@@ -784,22 +905,27 @@ export class VersionedStoreHistory extends React.Component<
       return (
         <div className="versioned-store-history-details-empty">
           <Octicon symbol={octicons.gitCommit} />
-          <span>Select a commit to inspect its changes.</span>
+          <span>{this.strings.selectCommit}</span>
         </div>
       )
     }
 
     const files = this.state.filesBySha[entry.sha] ?? []
+    const summary = this.formatEntrySummary(entry.summary)
 
     return (
       <>
         <div className="versioned-store-history-details-header">
           <div className="versioned-store-history-details-title">
             <div>
-              <h2>{entry.summary}</h2>
+              <h2>{summary}</h2>
               <span>
                 <code>{entry.shortSha}</code> ·{' '}
-                <RelativeTime date={entry.committedAt} onlyRelative={false} />
+                {this.props.formatCommittedAt === undefined ? (
+                  <RelativeTime date={entry.committedAt} onlyRelative={false} />
+                ) : (
+                  this.props.formatCommittedAt(entry.committedAt)
+                )}
               </span>
             </div>
             {this.renderEntryBadges(entry)}
@@ -842,7 +968,7 @@ export class VersionedStoreHistory extends React.Component<
           // eslint-disable-next-line react/jsx-no-bind
           onClick={() => this.loadHistory(true)}
         >
-          Retry
+          {this.strings.retry}
         </Button>
       </div>
     )
@@ -869,8 +995,8 @@ export class VersionedStoreHistory extends React.Component<
         ) : null}
         <Button
           className="versioned-store-history-close"
-          ariaLabel={`Close ${this.props.title}`}
-          tooltip={`Close ${this.props.title}`}
+          ariaLabel={this.strings.closeLabel(this.props.title)}
+          tooltip={this.strings.closeLabel(this.props.title)}
           onClick={this.props.onDismissed}
         >
           <Octicon symbol={octicons.x} />
@@ -900,13 +1026,13 @@ export class VersionedStoreHistory extends React.Component<
         <div className="versioned-store-history-layout">
           <section
             className="versioned-store-history-master"
-            aria-label={`${this.props.title} commits`}
+            aria-label={this.strings.commitsLabel(this.props.title)}
           >
             {this.renderHistoryList()}
           </section>
           <section
             className="versioned-store-history-details"
-            aria-label={`${this.props.title} details`}
+            aria-label={this.strings.detailsLabel(this.props.title)}
           >
             {this.renderDetails()}
           </section>

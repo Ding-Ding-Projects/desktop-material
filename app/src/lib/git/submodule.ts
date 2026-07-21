@@ -295,6 +295,18 @@ export type SubmoduleStatusKind =
   | 'out-of-date'
   | 'conflicted'
 
+/**
+ * Whether the two pieces which define a submodule agree on its path.
+ *
+ * Checkout status is meaningful only for a path tracked as a mode-160000
+ * gitlink. Keeping topology separate prevents a stale `.gitmodules` stanza
+ * from being presented as a valid, merely-uninitialized submodule.
+ */
+export type SubmoduleTopologyKind =
+  | 'valid'
+  | 'missing-gitlink'
+  | 'missing-declaration'
+
 // The pure `.gitmodules` helpers live in ./gitmodules so UI surfaces and
 // node-only tests can use them without importing this dugite-backed module;
 // they are re-exported here for the existing consumers.
@@ -338,8 +350,10 @@ export interface IManagedSubmodule {
   readonly sha: string | null
   /** The `git describe` output for the checked-out commit, if any. */
   readonly describe: string | null
-  /** The working-tree state relative to the superproject index. */
-  readonly status: SubmoduleStatusKind
+  /** Whether `.gitmodules` and the superproject index agree on this path. */
+  readonly topology: SubmoduleTopologyKind
+  /** The working-tree state, or null when no indexed gitlink exists. */
+  readonly status: SubmoduleStatusKind | null
 }
 
 /** Map a leading `git submodule status` character to a status kind. */
@@ -395,11 +409,11 @@ export function parseSubmoduleStatus(
  * Merge the declarative `.gitmodules` configuration with live working-tree
  * status, keyed by submodule path.
  *
- * The union of both sources is returned so that submodules declared in
- * `.gitmodules` but not yet initialized (hence absent from a successful status
- * run) still appear, and submodules present in the working tree but missing
- * from `.gitmodules` (an inconsistent repository) are not silently dropped.
- * Results are sorted by path for a stable UI ordering.
+ * The union of both sources is returned so inconsistent paths remain visible,
+ * but topology is kept separate from checkout status. A valid uninitialized
+ * submodule is still emitted by `git submodule status` with a leading `-`;
+ * therefore a config-only path is a stale declaration, not an uninitialized
+ * checkout. Results are sorted by path for a stable UI ordering.
  */
 export function reconcileSubmodules(
   configEntries: ReadonlyArray<IGitModulesEntry>,
@@ -418,7 +432,14 @@ export function reconcileSubmodules(
   for (const path of paths) {
     const config = configByPath.get(path)
     const status = statusByPath.get(path)
-    const isInitialized = status?.status !== 'uninitialized'
+    const topology: SubmoduleTopologyKind =
+      config === undefined
+        ? 'missing-declaration'
+        : status === undefined
+        ? 'missing-gitlink'
+        : 'valid'
+    const isInitialized =
+      status !== undefined && status.status !== 'uninitialized'
 
     submodules.push({
       name: config?.name ?? path,
@@ -433,9 +454,8 @@ export function reconcileSubmodules(
       // `-` entry. Do not present that commit as checked out until initialized.
       sha: isInitialized ? status?.sha ?? null : null,
       describe: isInitialized ? status?.describe ?? null : null,
-      // A submodule that is declared but never reported by status is, by
-      // definition, not yet initialized.
-      status: status?.status ?? 'uninitialized',
+      topology,
+      status: status?.status ?? null,
     })
   }
 
@@ -459,18 +479,17 @@ export async function getSubmodules(
     .then(parseGitModules)
     .catch(() => [] as ReadonlyArray<IGitModulesEntry>)
 
-  const { stdout, exitCode } = await git(
+  const { stdout } = await git(
     ['submodule', 'status', '--'],
     repository.path,
     'getSubmodules',
     {
-      successExitCodes: new Set([0, 128]),
       processCallback: getAbortableProcessCallback(signal),
     }
   )
   throwIfAborted(signal)
 
-  const statusEntries = exitCode === 128 ? [] : parseSubmoduleStatus(stdout)
+  const statusEntries = parseSubmoduleStatus(stdout)
 
   if (configEntries.length === 0 && statusEntries.length === 0) {
     return []
@@ -519,7 +538,11 @@ function requireInitializedManagedSubmodule(
   submodule: IManagedSubmodule
 ): IManagedSubmodule {
   const normalizedPath = normalizeSubmodulePath(submodule.path)
-  if (submodule.status === 'uninitialized' || submodule.sha === null) {
+  if (
+    submodule.topology !== 'valid' ||
+    submodule.status === 'uninitialized' ||
+    submodule.sha === null
+  ) {
     throw new Error(
       `Initialize the submodule at '${normalizedPath}' before opening it as a repository.`
     )
@@ -935,6 +958,59 @@ export async function addSubmodule(
   options?.onProgress?.('Submodule added.', 1)
 }
 
+function submodulePathKey(path: string): string {
+  const normalized = normalizeSubmodulePath(path)
+  return __WIN32__ ? normalized.toLocaleLowerCase() : normalized
+}
+
+/** Parse only mode-160000 entries from NUL-delimited `git ls-files --stage`. */
+function parseIndexedSubmodulePaths(stdout: string): ReadonlySet<string> {
+  const paths = new Set<string>()
+
+  for (const record of stdout.split('\0')) {
+    if (record.length === 0) {
+      continue
+    }
+
+    const match = /^160000 [0-9a-fA-F]{40,64} [0-3]\t([\s\S]+)$/.exec(record)
+    if (match !== null) {
+      paths.add(submodulePathKey(match[1]))
+    }
+  }
+
+  return paths
+}
+
+/**
+ * Re-read the index at the final asynchronous boundary before a path-scoped
+ * update. The manager's topology snapshot can become stale after rendering;
+ * this guard prevents a removed gitlink from falling through to Git as a raw
+ * pathspec failure.
+ */
+async function assertIndexedSubmodulePaths(
+  repository: Repository,
+  paths?: ReadonlyArray<string>
+): Promise<void> {
+  if (paths === undefined || paths.length === 0) {
+    return
+  }
+
+  const { stdout } = await git(
+    ['ls-files', '--stage', '-z', '--', ...paths],
+    repository.path,
+    'validateSubmoduleUpdatePaths'
+  )
+  const indexedPaths = parseIndexedSubmodulePaths(stdout)
+
+  for (const path of paths) {
+    if (!indexedPaths.has(submodulePathKey(path))) {
+      throw new Error(
+        `The path '${path}' is declared in .gitmodules but is not tracked as a submodule in this repository's index. Restore its Git link or remove the stale .gitmodules entry before updating.`
+      )
+    }
+  }
+}
+
 /**
  * Initialize and update the given submodules (or all of them when no paths are
  * supplied) via `git submodule update --init --recursive`, streaming coarse
@@ -949,12 +1025,20 @@ export async function updateSubmodules(
   onProgress?: (line: string, percent: number) => void
 ): Promise<void> {
   const args = ['submodule', 'update', '--init', '--recursive']
+  const selectedPaths = paths?.map(path => normalizeSubmodulePath(path))
 
-  if (paths && paths.length > 0) {
-    args.push('--', ...paths)
+  if (selectedPaths && selectedPaths.length > 0) {
+    for (const path of selectedPaths) {
+      const pathError = getSubmodulePathError(path)
+      if (pathError !== null) {
+        throw new Error(pathError)
+      }
+    }
+    args.push('--', ...selectedPaths)
   }
 
   if (!onProgress) {
+    await assertIndexedSubmodulePaths(repository, selectedPaths)
     await git(args, repository.path, 'updateSubmodules')
     return
   }
@@ -989,6 +1073,7 @@ export async function updateSubmodules(
     }
   )
 
+  await assertIndexedSubmodulePaths(repository, selectedPaths)
   await git(args, repository.path, 'updateSubmodules', progressOpts)
 }
 
@@ -1134,16 +1219,82 @@ export async function deinitSubmodule(
 export async function removeSubmodule(
   repository: Repository,
   path: string,
-  name?: string
+  name?: string,
+  expectedTopology?: SubmoduleTopologyKind
 ): Promise<void> {
+  const normalizedPath = normalizeSubmodulePath(path)
+  const current = (await getSubmodules(repository)).find(
+    submodule =>
+      normalizeSubmodulePath(submodule.path) === normalizedPath &&
+      (name === undefined || submodule.name === name)
+  )
+  if (current === undefined) {
+    throw new Error(
+      `The submodule at '${normalizedPath}' changed before it could be removed.`
+    )
+  }
+  if (expectedTopology !== undefined && current.topology !== expectedTopology) {
+    throw new Error(
+      `The submodule topology at '${normalizedPath}' changed before it could be removed.`
+    )
+  }
+
+  if (current.topology === 'missing-gitlink') {
+    // This path is only a stale .gitmodules declaration. Never run `git rm`
+    // here: an ordinary user-owned directory may now occupy the same path.
+    // Remove the exact, freshly revalidated stanza and stage only that config
+    // edit. Best-effort local config cleanup contains no working-tree data.
+    const section = `submodule.${current.name}`
+    await git(
+      ['config', '-f', '.gitmodules', '--remove-section', section],
+      repository.path,
+      'removeStaleSubmoduleDeclaration'
+    )
+    await git(
+      ['config', '--local', '--remove-section', section],
+      repository.path,
+      'removeStaleSubmoduleLocalConfig'
+    ).catch(error => {
+      // An uninitialized stale declaration commonly has no matching local
+      // section. Local config is only cleanup; never turn that absence into a
+      // half-completed repair after the tracked declaration is already gone.
+      log.debug(
+        `removeSubmodule: no removable local config for ${section}`,
+        error
+      )
+    })
+    await git(
+      ['add', '--', '.gitmodules'],
+      repository.path,
+      'stageStaleSubmoduleRemoval'
+    )
+    return
+  }
+
+  if (current.topology === 'missing-declaration') {
+    // The index still owns this path as a gitlink but no declaration exists to
+    // deinitialize. Remove that exact gitlink without guessing at module-data
+    // directories or touching any unrelated .gitmodules section.
+    await git(
+      ['rm', '-f', '--', normalizedPath],
+      repository.path,
+      'removeUndeclaredSubmodule'
+    )
+    return
+  }
+
   // Deinit unregisters the submodule and clears its working tree. Force is
   // required to proceed when the submodule has local modifications.
-  await deinitSubmodule(repository, path, true)
+  await deinitSubmodule(repository, normalizedPath, true)
 
   // `git rm` won't clean up the git dir git keeps under .git/modules, so remove
   // it ourselves to leave the repository in a state where a submodule of the
   // same name can be re-added cleanly.
-  const moduleDir = join(repository.resolvedGitDir, 'modules', name ?? path)
+  const moduleDir = join(
+    repository.resolvedGitDir,
+    'modules',
+    current.name ?? normalizedPath
+  )
   await rm(moduleDir, { recursive: true, force: true }).catch(err => {
     log.warn(
       `removeSubmodule: unable to remove module directory ${moduleDir}`,
@@ -1153,5 +1304,9 @@ export async function removeSubmodule(
 
   // Remove the submodule from the index and working tree. Modern git also
   // stages the corresponding `.gitmodules` edit as part of this step.
-  await git(['rm', '-f', '--', path], repository.path, 'removeSubmodule')
+  await git(
+    ['rm', '-f', '--', normalizedPath],
+    repository.path,
+    'removeSubmodule'
+  )
 }

@@ -32,6 +32,7 @@ function managedSubmodule(path: string, name = path) {
     fetchRecurseSubmodules: null,
     sha: '0123456789012345678901234567890123456789',
     describe: null,
+    topology: 'valid' as const,
     status: 'up-to-date' as const,
   }
 }

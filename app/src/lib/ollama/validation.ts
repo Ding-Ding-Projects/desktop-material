@@ -24,6 +24,13 @@ export const MaxOllamaMetadataValueLength = 2_048
 export const MaxOllamaLargeTextLength = 64 * 1_024
 export const MaxOllamaChatMessageLength = MaxOllamaLargeTextLength
 export const MaxOllamaChatMessages = 256
+export const MaxOllamaChatImagesPerMessage = 4
+export const MaxOllamaChatImageBase64Length = 3 * 1024 * 1024
+export const MaxOllamaChatImagesTotalBase64Length = 8 * 1024 * 1024
+export const MaxOllamaChatImagesTranscriptBase64Length = 16 * 1024 * 1024
+
+const OllamaImageBase64Pattern =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/
 
 const OllamaChatRoles: ReadonlySet<string> = new Set<OllamaChatRole>([
   'system',
@@ -363,8 +370,8 @@ export function parsePullProgress(value: unknown): IOllamaPullProgress {
 
 /**
  * Validate and normalize an outbound chat transcript. Roles are restricted to
- * the known set, content is bounded, and only the two wire fields are kept so
- * no caller-attached metadata is serialized to the endpoint.
+ * the known set, content and optional vision inputs are bounded, and only
+ * allowlisted wire fields are serialized to the endpoint.
  */
 export function normalizeOllamaChatMessages(
   messages: ReadonlyArray<IOllamaChatMessage>
@@ -381,6 +388,7 @@ export function normalizeOllamaChatMessages(
       'The Ollama chat transcript is too long.'
     )
   }
+  let transcriptImageLength = 0
   return messages.map(message => {
     if (
       message === null ||
@@ -394,7 +402,55 @@ export function normalizeOllamaChatMessages(
         'The Ollama chat message is invalid.'
       )
     }
-    return { role: message.role, content: message.content }
+    let images: ReadonlyArray<string> | undefined
+    if (message.images !== undefined) {
+      if (
+        !Array.isArray(message.images) ||
+        message.images.length === 0 ||
+        message.images.length > MaxOllamaChatImagesPerMessage
+      ) {
+        throw new OllamaClientError(
+          'validation',
+          'The Ollama chat images are invalid.'
+        )
+      }
+      let totalLength = 0
+      images = message.images.map((image: unknown) => {
+        if (
+          typeof image !== 'string' ||
+          image.length === 0 ||
+          image.length > MaxOllamaChatImageBase64Length ||
+          image.length % 4 !== 0 ||
+          !OllamaImageBase64Pattern.test(image)
+        ) {
+          throw new OllamaClientError(
+            'validation',
+            'The Ollama chat image is invalid.'
+          )
+        }
+        totalLength += image.length
+        transcriptImageLength += image.length
+        if (totalLength > MaxOllamaChatImagesTotalBase64Length) {
+          throw new OllamaClientError(
+            'validation',
+            'The Ollama chat images are too large.'
+          )
+        }
+        if (transcriptImageLength > MaxOllamaChatImagesTranscriptBase64Length) {
+          throw new OllamaClientError(
+            'validation',
+            'The Ollama chat transcript images are too large.'
+          )
+        }
+        return image
+      })
+    }
+
+    return {
+      role: message.role,
+      content: message.content,
+      ...(images === undefined ? {} : { images }),
+    }
   })
 }
 

@@ -24,6 +24,10 @@
   `.codex/verification/capture_gallery_cdp.js` was not Prettier-clean; CodeQL
   run `29848536828` was canceled. This run must replace both with exact-SHA
   green receipts before completion.
+- CI recovery receipt: commit `c01143ee90ebc32ebfe23386df4cab8be27fe36b`
+  restored the last compatible `gemoji` image-bearing revision. Exact-SHA CI
+  run `29850099785` and CodeQL run `29850099766` both completed successfully;
+  downstream installer run `29852404077` is the publication gate for that SHA.
 
 ## Completion scope
 
@@ -37,15 +41,24 @@
    import deduplication.
 3. Resume the preserved chat-expansion work and finish the remaining requested
    feature lanes: cheap-LFS background/prerelease rollover, clone progress
-   pause/resume, Actions auto-fix, background action/API queue management, and
-   durable Docker-host handoff without storing credentials or pretending a
-   powered-off local machine is still reachable.
+   pause/resume, automatic size-bounded multi-batch pushes, Actions auto-fix,
+   background action/API queue management, and durable Docker-host handoff
+   without storing credentials or pretending a powered-off local machine is
+   still reachable. Local `act` execution is explicitly skipped because this
+   machine does not support the required Docker runtime.
 4. Reconcile the already merged Ollama chat, command-palette, Build & Run,
    repository-list, organization visibility, workflow picker, and
    send-to-OpenCode feature wave with tests and documentation.
 5. Close every reproducible design-parity screenshot gap. Any scene that cannot
    be made deterministic must retain honest, exact evidence in `HANDOFF.md` and
    `ROADMAP.md`; it may not be reported as renewed.
+6. Repair `.gitmodules`-only dangling submodule entries so they are never
+   presented as cloneable gitlinks, and add a race-safe preflight before every
+   path-scoped submodule update.
+7. Add a cancelable manual cheap-LFS upload handoff beside commit progress:
+   prepare an owned temporary folder without copying secrets, open it with the
+   exact draft-release upload page, validate the expected asset set through the
+   signed-in API, and resume pointer/commit work only after exact verification.
 
 ## Headless build and UI contract
 
@@ -61,8 +74,9 @@
   `--user-data-dir`, and only the disposable fixture via `--cli-open`.
 - Ordered acceptance surfaces: welcome; repository workspace; Ollama manager
   chat; multi-chat/history; clone organization state; clone progress
-  pause/resume; Actions workflow picker and auto-fix; background/API queue; and
-  Build & Run/OpenCode.
+  pause/resume; Actions workflow picker and auto-fix; background/API queue;
+  dangling-submodule integrity; manual cheap-LFS upload handoff; and Build &
+  Run/OpenCode.
 - Capture targets: the eight retained Material-era gallery scenes named in the
   July 21 handoff plus any new canonical feature scenes needed by the gallery.
 - Theme/language/dimensions: English light at 1440x960 for canonical gallery;

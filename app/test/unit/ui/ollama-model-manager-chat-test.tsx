@@ -1,5 +1,8 @@
 import assert from 'node:assert'
 import { describe, it } from 'node:test'
+import { randomUUID } from 'node:crypto'
+import { join } from 'node:path'
+import { tmpdir } from 'node:os'
 import * as React from 'react'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 import {
@@ -131,6 +134,10 @@ function renderManager(
     <OllamaModelManager
       provider={configuredProvider}
       client={client}
+      chatSessionsRootPath={join(
+        tmpdir(),
+        `desktop-material-chat-ui-${randomUUID()}`
+      )}
       onProviderModelsChanged={() => {}}
     />
   )
@@ -143,11 +150,42 @@ function verification(
   return container.querySelector(`[data-verification="${value}"]`)
 }
 
+function sessionButton(
+  container: HTMLElement,
+  title: string
+): HTMLButtonElement | null {
+  return (
+    Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.ollama-chat-session-select'
+      )
+    ).find(button => button.textContent?.includes(title)) ?? null
+  )
+}
+
 async function expandChat() {
   await waitFor(() =>
     assert.ok(screen.getByRole('button', { name: 'Select alpha' }))
   )
   fireEvent.click(screen.getByRole('button', { name: 'Chat' }))
+  await waitFor(
+    () =>
+      assert.ok(
+        document.querySelector('[data-verification="ollama-chat-model"]')
+      ),
+    { timeout: 5_000 }
+  )
+}
+
+async function waitForAssistant(container: HTMLElement, text: RegExp) {
+  await waitFor(
+    () =>
+      assert.match(
+        verification(container, 'ollama-chat-assistant')?.textContent ?? '',
+        text
+      ),
+    { timeout: 5_000 }
+  )
 }
 
 describe('OllamaModelManager chat panel', () => {
@@ -171,10 +209,11 @@ describe('OllamaModelManager chat panel', () => {
     fireEvent.change(input, { target: { value: 'Hi model' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
 
-    await waitFor(() => assert.ok(screen.getByText('Hello')))
-    assert.ok(screen.getByText('Hi model'))
-    assert.ok(verification(view.container, 'ollama-chat-user'))
-    assert.ok(verification(view.container, 'ollama-chat-assistant'))
+    await waitForAssistant(view.container, /Hello/)
+    assert.match(
+      verification(view.container, 'ollama-chat-user')?.textContent ?? '',
+      /Hi model/
+    )
     assert.deepStrictEqual(client.lastChatMessages, [
       { role: 'user', content: 'Hi model' },
     ])
@@ -216,7 +255,7 @@ describe('OllamaModelManager chat panel', () => {
     const stop = await screen.findByRole('button', { name: 'Stop' })
     assert.ok(verification(view.container, 'ollama-chat-streaming'))
     // The partial assistant delta streamed before the gate is retained.
-    assert.ok(screen.getByText('Hello'))
+    await waitForAssistant(view.container, /Hello/)
 
     fireEvent.click(stop)
     assert.strictEqual(client.lastChatSignal?.aborted, true)
@@ -227,7 +266,44 @@ describe('OllamaModelManager chat panel', () => {
     )
   })
 
-  it('clears the transcript when the chat model changes', async () => {
+  it('aborts and clears an in-flight reply when another chat is opened', async () => {
+    const client = new ChatTestClient(['alpha'])
+    client.chatGate = deferred<void>()
+    const view = renderManager(provider('switch-during-stream', []), client)
+    await expandChat()
+
+    fireEvent.change(
+      verification(view.container, 'ollama-chat-input') as HTMLTextAreaElement,
+      { target: { value: 'old chat' } }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitForAssistant(view.container, /Hello/)
+
+    fireEvent.click(verification(view.container, 'ollama-chat-new')!)
+    await waitFor(
+      () => {
+        assert.equal(client.lastChatSignal?.aborted, true)
+        assert.equal(
+          verification(view.container, 'ollama-chat-streaming'),
+          null
+        )
+        assert.equal(
+          verification(view.container, 'ollama-chat-assistant'),
+          null
+        )
+      },
+      { timeout: 5_000 }
+    )
+    assert.equal(
+      screen
+        .getByRole('button', { name: 'Send' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+    client.chatGate.resolve()
+  })
+
+  it('persists the transcript when the chat model changes', async () => {
     const client = new ChatTestClient(['alpha', 'beta'])
     const view = renderManager(provider('switch', []), client)
     await expandChat()
@@ -237,13 +313,99 @@ describe('OllamaModelManager chat panel', () => {
       { target: { value: 'first message' } }
     )
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    await waitFor(() => assert.ok(screen.getByText('Hello')))
+    await waitForAssistant(view.container, /Hello/)
 
     fireEvent.change(verification(view.container, 'ollama-chat-model')!, {
       target: { value: 'beta' },
     })
-    assert.strictEqual(screen.queryByText('first message'), null)
-    assert.ok(screen.getByText('Start a conversation with the selected model.'))
+    await waitFor(() =>
+      assert.strictEqual(
+        (verification(view.container, 'ollama-chat-model') as HTMLSelectElement)
+          .value,
+        'beta'
+      )
+    )
+    assert.match(
+      verification(view.container, 'ollama-chat-user')?.textContent ?? '',
+      /first message/
+    )
+    assert.match(
+      verification(view.container, 'ollama-chat-assistant')?.textContent ?? '',
+      /Hello/
+    )
+  })
+
+  it('creates and switches between independent persistent chats', async () => {
+    const client = new ChatTestClient(['alpha'])
+    const view = renderManager(provider('multiple', []), client)
+    await expandChat()
+
+    fireEvent.change(
+      verification(view.container, 'ollama-chat-input') as HTMLTextAreaElement,
+      { target: { value: 'first conversation' } }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitForAssistant(view.container, /Hello/)
+    await waitFor(
+      () => assert.ok(sessionButton(view.container, 'first conversation')),
+      { timeout: 5_000 }
+    )
+
+    fireEvent.click(verification(view.container, 'ollama-chat-new')!)
+    await waitFor(
+      () =>
+        assert.equal(
+          view.container.querySelectorAll('.ollama-chat-session-select').length,
+          2
+        ),
+      { timeout: 5_000 }
+    )
+    assert.equal(verification(view.container, 'ollama-chat-user'), null)
+
+    fireEvent.change(
+      verification(view.container, 'ollama-chat-input') as HTMLTextAreaElement,
+      { target: { value: 'second conversation' } }
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitForAssistant(view.container, /Hello/)
+
+    const first = sessionButton(view.container, 'first conversation')
+    assert.ok(first)
+    fireEvent.click(first)
+    await waitFor(
+      () =>
+        assert.match(
+          verification(view.container, 'ollama-chat-user')?.textContent ?? '',
+          /first conversation/
+        ),
+      { timeout: 5_000 }
+    )
+    assert.doesNotMatch(
+      verification(view.container, 'ollama-chat-user')?.textContent ?? '',
+      /second conversation/
+    )
+
+    const second = sessionButton(view.container, 'second conversation')
+    assert.ok(second)
+    const secondRow = second.closest('li')
+    const deleteButton = Array.from(
+      secondRow?.querySelectorAll('button') ?? []
+    ).find(button => button.textContent === 'Delete')
+    assert.ok(deleteButton)
+    fireEvent.click(deleteButton)
+    fireEvent.click(verification(view.container, 'ollama-chat-delete-confirm')!)
+    await waitFor(
+      () =>
+        assert.equal(
+          sessionButton(view.container, 'second conversation'),
+          null
+        ),
+      { timeout: 5_000 }
+    )
+    assert.match(
+      verification(view.container, 'ollama-chat-user')?.textContent ?? '',
+      /first conversation/
+    )
   })
 
   it('prompts to install a model when the endpoint has none', async () => {
@@ -254,7 +416,9 @@ describe('OllamaModelManager chat panel', () => {
     )
     fireEvent.click(screen.getByRole('button', { name: 'Chat' }))
 
-    assert.ok(screen.getByText('Install a model to start chatting.'))
+    await waitFor(() =>
+      assert.ok(screen.getByText('Install a model to start chatting.'))
+    )
     assert.strictEqual(screen.queryByRole('button', { name: 'Send' }), null)
     assert.strictEqual(verification(view.container, 'ollama-chat-input'), null)
   })

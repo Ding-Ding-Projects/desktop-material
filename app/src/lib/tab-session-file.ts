@@ -50,10 +50,20 @@ function isAbsoluteRepositoryPath(value: unknown): value is string {
 }
 
 function comparablePath(value: string): string {
-  const normalized = value.replace(/[\\/]+$/, '').replace(/\\/g, '/')
-  return /^[a-z]:\//i.test(normalized)
-    ? normalized.toLocaleLowerCase()
-    : normalized
+  // path.win32.isAbsolute('/repo') is true because Win32 treats it as rooted
+  // on the current drive. In a portable session file that spelling is POSIX,
+  // so classify Windows paths by their explicit drive/UNC syntax instead.
+  const isWindowsPath =
+    /^[a-z]:[\\/]/i.test(value) ||
+    value.startsWith('\\\\') ||
+    /^\/\/[^/]/.test(value)
+  const normalized = isWindowsPath
+    ? Path.win32.normalize(value).replace(/\\/g, '/').replace(/\/+$/, '')
+    : Path.posix.normalize(value).replace(/\/+$/, '')
+  // Drive, UNC, and extended-length Windows paths are all case-insensitive.
+  // Lower-case the complete canonical spelling, not only drive-letter paths,
+  // so imported network repositories cannot create duplicate tabs either.
+  return isWindowsPath ? normalized.toLocaleLowerCase() : normalized
 }
 
 function normalizeLabel(value: unknown): string | null {

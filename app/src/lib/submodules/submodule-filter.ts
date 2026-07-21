@@ -16,7 +16,8 @@ export interface IFilterableSubmodule {
   readonly name: string
   readonly path: string
   readonly url: string | null
-  readonly status: string
+  readonly topology: string
+  readonly status: string | null
 }
 
 function matchesStatus(
@@ -27,13 +28,19 @@ function matchesStatus(
     case 'all':
       return true
     case 'cloned':
-      return submodule.status !== 'uninitialized'
+      return (
+        submodule.topology === 'valid' && submodule.status !== 'uninitialized'
+      )
     case 'uncloned':
-      return submodule.status === 'uninitialized'
+      return (
+        submodule.topology === 'valid' && submodule.status === 'uninitialized'
+      )
     case 'out-of-date':
-      return submodule.status === 'out-of-date'
+      return (
+        submodule.topology === 'valid' && submodule.status === 'out-of-date'
+      )
     case 'conflicted':
-      return submodule.status === 'conflicted'
+      return submodule.topology === 'valid' && submodule.status === 'conflicted'
   }
 }
 

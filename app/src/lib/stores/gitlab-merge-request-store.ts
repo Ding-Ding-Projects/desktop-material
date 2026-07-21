@@ -349,7 +349,8 @@ export class GitLabMergeRequestStore {
     repository: Repository,
     signal: AbortSignal | undefined,
     work: (context: IRequestContext, signal: AbortSignal) => Promise<T>,
-    accept?: (context: IRequestContext, result: T) => T
+    accept?: (context: IRequestContext, result: T) => T,
+    assertContextAfterWork = true
   ): Promise<T> {
     const context = this.context(repository)
     const controller = new AbortController()
@@ -361,7 +362,9 @@ export class GitLabMergeRequestStore {
     }
     try {
       const result = await work(context, controller.signal)
-      this.assertContextCurrent(repository, context, controller.signal)
+      if (assertContextAfterWork) {
+        this.assertContextCurrent(repository, context, controller.signal)
+      }
       return accept === undefined ? result : accept(context, result)
     } catch (error) {
       throw safeError(error)
@@ -369,6 +372,21 @@ export class GitLabMergeRequestStore {
       signal?.removeEventListener('abort', cancel)
       this.activeControllers.delete(controller)
     }
+  }
+
+  /**
+   * A fulfilled mutation response confirms that GitLab accepted the durable
+   * side effect. An account update can abort the request while that response is
+   * in flight, but must not turn the server-confirmed success into a canceled
+   * result. Rejected API calls still retain their original cancellation/error.
+   */
+  private runMutation<T>(
+    repository: Repository,
+    signal: AbortSignal | undefined,
+    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>,
+    accept?: (context: IRequestContext, result: T) => T
+  ): Promise<T> {
+    return this.run(repository, signal, work, accept, false)
   }
 
   private runLatest<T>(
@@ -479,7 +497,7 @@ export class GitLabMergeRequestStore {
     draft: IGitLabMergeRequestDraft,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest> {
-    return this.run(
+    return this.runMutation(
       repository,
       signal,
       (context, requestSignal) =>
@@ -546,7 +564,7 @@ export class GitLabMergeRequestStore {
     update: IGitLabMergeRequestUpdate,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest> {
-    return this.run(
+    return this.runMutation(
       repository,
       signal,
       (context, requestSignal) => {
@@ -570,7 +588,7 @@ export class GitLabMergeRequestStore {
     stateEvent: 'close' | 'reopen',
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequest> {
-    return this.run(
+    return this.runMutation(
       repository,
       signal,
       (context, requestSignal) => {
@@ -593,7 +611,7 @@ export class GitLabMergeRequestStore {
     review: IGitLabMergeRequestMutationReview,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequestApprovalState> {
-    return this.run(repository, signal, (context, requestSignal) => {
+    return this.runMutation(repository, signal, (context, requestSignal) => {
       this.validateMutationReview(repository, context, review)
       return context.api.approveGitLabMergeRequest(
         context.project,
@@ -609,7 +627,7 @@ export class GitLabMergeRequestStore {
     review: IGitLabMergeRequestMutationReview,
     signal?: AbortSignal
   ): Promise<IGitLabMergeRequestApprovalState> {
-    return this.run(repository, signal, (context, requestSignal) => {
+    return this.runMutation(repository, signal, (context, requestSignal) => {
       this.validateMutationReview(repository, context, review)
       return context.api.unapproveGitLabMergeRequest(
         context.project,

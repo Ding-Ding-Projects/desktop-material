@@ -966,6 +966,11 @@
       color: var(--md-sys-color-on-tertiary-container);
     }
 
+    .submodules-summary-repair {
+      background: var(--md-sys-color-error-container);
+      color: var(--md-sys-color-on-error-container);
+    }
+
     // --- Search + status filter -------------------------------------------
     .submodules-filter-row {
       display: flex;
@@ -1137,7 +1142,9 @@
       color: var(--md-sys-color-on-tertiary-container);
     }
 
-    .submodule-status-conflicted {
+    .submodule-status-conflicted,
+    .submodule-status-missing-gitlink,
+    .submodule-status-missing-declaration {
       background: var(--md-sys-color-error-container);
       color: var(--md-sys-color-on-error-container);
     }
@@ -1163,6 +1170,18 @@
         gap: 6px;
       }
     }
+  }
+}
+
+.submodule-row-topology-guidance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-half);
+  color: var(--md-sys-color-error);
+  font-size: var(--font-size-sm);
+
+  .octicon {
+    flex: 0 0 auto;
   }
 }
 

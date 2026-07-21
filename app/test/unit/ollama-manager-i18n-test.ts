@@ -5,6 +5,7 @@ import {
   cantoneseTranslations,
   englishTranslations,
 } from '../../src/lib/i18n-resources'
+import { getOllamaModelManagerStrings } from '../../src/ui/copilot/ollama-model-manager-localization'
 
 const ollamaManagerTranslationKeys: ReadonlyArray<TranslationKey> = [
   'ollama.manager.openAction',
@@ -95,6 +96,82 @@ const ollamaManagerTranslationKeys: ReadonlyArray<TranslationKey> = [
   'ollama.manager.chatYou',
   'ollama.manager.chatAssistant',
   'ollama.manager.chatMessageLabel',
+  'ollama.manager.chatSystem',
+  'ollama.manager.chatSessionsHeading',
+  'ollama.manager.chatDefaultTitle',
+  'ollama.manager.chatNew',
+  'ollama.manager.chatRename',
+  'ollama.manager.chatDelete',
+  'ollama.manager.chatCancel',
+  'ollama.manager.chatConfirmDelete',
+  'ollama.manager.chatSelectPrompt',
+  'ollama.manager.chatLoading',
+  'ollama.manager.chatLoadError',
+  'ollama.manager.chatCopy',
+  'ollama.manager.chatAttachImage',
+  'ollama.manager.chatRemoveImage',
+  'ollama.manager.chatUnsupportedImage',
+  'ollama.manager.chatImageTooLarge',
+  'ollama.manager.chatClearDraft',
+  'ollama.manager.chatCustomize',
+  'ollama.manager.chatHistory',
+  'ollama.manager.chatAppearanceHeading',
+  'ollama.manager.chatAccentLabel',
+  'ollama.manager.chatSurfaceLabel',
+  'ollama.manager.chatSurfaceTonal',
+  'ollama.manager.chatSurfaceNeutral',
+  'ollama.manager.chatMessageFont',
+  'ollama.manager.chatComposerFont',
+  'ollama.manager.chatSettingsHint',
+  'ollama.manager.chatHistoryTitle',
+  'ollama.manager.chatHistoryTimeline',
+  'ollama.manager.chatHistoryDescription',
+  'ollama.manager.chatHistorySearchLabel',
+  'ollama.manager.chatHistorySearchPlaceholder',
+  'ollama.manager.chatHistorySearchStatus',
+  'ollama.manager.chatHistoryMatchingCount',
+  'ollama.manager.chatHistoryUndo',
+  'ollama.manager.chatHistoryRedo',
+  'ollama.manager.chatHistoryCommitSingular',
+  'ollama.manager.chatHistoryCommitCount',
+  'ollama.manager.chatHistoryLoadingFiles',
+  'ollama.manager.chatHistorySelectToInspect',
+  'ollama.manager.chatHistoryNoFiles',
+  'ollama.manager.chatHistoryRestoreLabel',
+  'ollama.manager.chatHistoryRestoreTooltip',
+  'ollama.manager.chatHistoryRestoreConfirmation',
+  'ollama.manager.chatHistoryRestore',
+  'ollama.manager.chatHistoryLoading',
+  'ollama.manager.chatHistoryNoHistoryTitle',
+  'ollama.manager.chatHistoryNoHistoryDescription',
+  'ollama.manager.chatHistoryNoMatchesTitle',
+  'ollama.manager.chatHistoryNoMatchesDescription',
+  'ollama.manager.chatHistoryLoadingMore',
+  'ollama.manager.chatHistoryLoadMore',
+  'ollama.manager.chatHistoryLoadingDiff',
+  'ollama.manager.chatHistoryNoTextChanges',
+  'ollama.manager.chatHistoryDiffLabel',
+  'ollama.manager.chatHistorySelectCommit',
+  'ollama.manager.chatHistoryRetry',
+  'ollama.manager.chatHistoryCloseLabel',
+  'ollama.manager.chatHistoryCommitsLabel',
+  'ollama.manager.chatHistoryDetailsLabel',
+  'ollama.manager.chatHistoryChangeCreate',
+  'ollama.manager.chatHistoryChangeMessage',
+  'ollama.manager.chatHistoryChangeTurn',
+  'ollama.manager.chatHistoryChangeRename',
+  'ollama.manager.chatHistoryChangeModel',
+  'ollama.manager.chatHistoryChangeAppearance',
+  'ollama.manager.chatHistoryChangeFont',
+  'ollama.manager.chatHistoryChangeRecover',
+  'ollama.manager.chatHistoryChangeUndo',
+  'ollama.manager.chatHistoryChangeRedo',
+  'ollama.manager.chatHistoryChangeRestorePoint',
+  'ollama.manager.chatHistoryError',
+  'ollama.manager.chatDeletePrompt',
+  'ollama.manager.chatMessageCount',
+  'ollama.manager.chatImageAlt',
+  'ollama.manager.chatImageLimit',
   'ollama.manager.unknown',
   'ollama.manager.never',
   'ollama.manager.showing',
@@ -118,7 +195,7 @@ describe('Ollama model manager internationalization', () => {
     const expectedKeys = [...ollamaManagerTranslationKeys].sort()
 
     assert.deepEqual(actualKeys, expectedKeys)
-    assert.equal(ollamaManagerTranslationKeys.length, 101)
+    assert.equal(ollamaManagerTranslationKeys.length, 177)
 
     for (const key of ollamaManagerTranslationKeys) {
       assert.equal(typeof englishTranslations[key], 'string', key)
@@ -236,6 +313,31 @@ describe('Ollama model manager internationalization', () => {
     assert.equal(
       translate('ollama.manager.chatModelLabel', 'bilingual'),
       'Chat model · 傾偈模型'
+    )
+
+    const cantonese = getOllamaModelManagerStrings('cantonese')
+    assert.equal(cantonese.chatDefaultTitle, '新對話')
+    assert.equal(cantonese.chatHistoryStrings.undo, '復原')
+    assert.equal(
+      cantonese.chatHistoryStrings.matchingCount(2, 5),
+      '2/5 個已載入 commit 符合'
+    )
+    assert.equal(
+      cantonese.chatHistorySummary('Undo Add chat message'),
+      '復原：加入對話訊息'
+    )
+    assert.equal(
+      getOllamaModelManagerStrings('bilingual').chatHistorySummary(
+        'Redo Update chat appearance'
+      ),
+      'Redo: Update chat appearance · 重做：更新對話外觀'
+    )
+    assert.equal(cantonese.chatHistoryError, '未能完成對話歷史操作。')
+    assert.match(
+      getOllamaModelManagerStrings('bilingual').chatHistoryTimestamp(
+        new Date('2026-07-21T12:00:00Z')
+      ),
+      / · /
     )
   })
 

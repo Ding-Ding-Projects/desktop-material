@@ -10,6 +10,7 @@ import {
   OllamaClientError,
   OllamaFetch,
 } from '../../../src/lib/ollama/types'
+import { MaxOllamaChatImageBase64Length } from '../../../src/lib/ollama/validation'
 
 interface ICapturedRequest {
   readonly url: string
@@ -235,6 +236,57 @@ describe('Ollama chat streaming', () => {
       }
     )
     assert.equal(requests, 0)
+  })
+
+  it('serializes only bounded base64 vision inputs', async () => {
+    let captured: ICapturedRequest | null = null
+    const client = new OllamaClient('http://localhost:11434', {
+      fetcher: async (input, init) => {
+        captured = { url: requestUrl(input), init: init ?? {} }
+        return ndjsonResponse([
+          '{"message":{"role":"assistant","content":"seen"},"done":true}',
+        ])
+      },
+    })
+
+    await client.chat('llava', [
+      { role: 'user', content: 'look', images: ['iVBORw=='] },
+    ])
+    assert.ok(captured)
+    assert.deepEqual(jsonBody(captured).messages, [
+      { role: 'user', content: 'look', images: ['iVBORw=='] },
+    ])
+
+    captured = null
+    await assert.rejects(
+      client.chat('llava', [
+        { role: 'user', content: 'look', images: ['data:image/png;base64,x'] },
+      ]),
+      (error: unknown) => {
+        assert.ok(error instanceof OllamaClientError)
+        assert.equal(error.kind, 'validation')
+        return true
+      }
+    )
+    assert.equal(captured, null)
+
+    const maximumImage = 'A'.repeat(MaxOllamaChatImageBase64Length)
+    await assert.rejects(
+      client.chat(
+        'llava',
+        Array.from({ length: 6 }, () => ({
+          role: 'user' as const,
+          content: 'bounded',
+          images: [maximumImage],
+        }))
+      ),
+      (error: unknown) => {
+        assert.ok(error instanceof OllamaClientError)
+        assert.equal(error.kind, 'validation')
+        return true
+      }
+    )
+    assert.equal(captured, null)
   })
 
   it('rejects a non-loopback endpoint before constructing the client', () => {

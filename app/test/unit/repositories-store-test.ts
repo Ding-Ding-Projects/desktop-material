@@ -174,6 +174,7 @@ describe('RepositoriesStore', () => {
           fetchRecurseSubmodules: null,
           sha: '0123456789012345678901234567890123456789',
           describe: null,
+          topology: 'valid',
           status: 'up-to-date',
         }
       )

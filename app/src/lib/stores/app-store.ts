@@ -364,6 +364,7 @@ import {
   initSubmodule,
   deinitSubmodule,
   IManagedSubmodule,
+  SubmoduleTopologyKind,
   IAddSubmoduleOptions,
   SubmoduleConfigKey,
   discoverSubtrees,
@@ -859,6 +860,30 @@ export const showChangesFilterKey = 'show-changes-filter'
 const selectedCopilotModelsKey = 'selected-copilot-models'
 export const showChangesFilterDefault = true
 
+interface IScheduledAutomationFence {
+  readonly repositoryIdentity: string
+  readonly selectionEpoch: number
+}
+
+function scheduledAutomationRepositoryIdentity(
+  repository: Repository | CloningRepository | null
+): string | null {
+  if (
+    !(repository instanceof Repository) ||
+    isSubmoduleRepository(repository)
+  ) {
+    return null
+  }
+
+  // Repository models are immutable and are routinely replaced after API or
+  // account refreshes. The database id plus canonical Windows path identifies
+  // the persisted checkout without coupling an in-flight run to one model
+  // instance.
+  return `${repository.id}\0${Path.win32
+    .normalize(repository.path)
+    .toLocaleLowerCase()}`
+}
+
 export class AppStore extends TypedBaseStore<IAppState> {
   private readonly gitStoreCache: GitStoreCache
 
@@ -873,6 +898,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** The background fetcher for the currently selected repository. */
   private currentBackgroundFetcher: BackgroundFetcher | null = null
   private currentAutomationScheduler: AutomationScheduler | null = null
+  /**
+   * Changes only when selection moves to a different persisted checkout.
+   * Equivalent immutable Repository replacements deliberately retain the
+   * epoch, while a switch away and back fences the abandoned scheduler run.
+   */
+  private scheduledAutomationSelectionEpoch = 0
   private readonly mergeAllControllers = new Map<number, AbortController>()
 
   /**
@@ -2987,6 +3018,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const previouslySelectedRepository = this.selectedRepository
+    if (
+      scheduledAutomationRepositoryIdentity(previouslySelectedRepository) !==
+      scheduledAutomationRepositoryIdentity(repository)
+    ) {
+      this.scheduledAutomationSelectionEpoch++
+    }
 
     // do this quick check to see if we have a tutorial repository
     // cause if its not we can quickly hide the tutorial pane
@@ -3288,24 +3325,38 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private async runScheduledCommitPush(repository: Repository): Promise<void> {
-    if (this.selectedRepository !== repository) {
+    const fence = this.captureScheduledAutomationFence(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
       return
     }
     await this._refreshRepository(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return
+    }
     const guard = canAutoCommitPush(this.getAutomationGuardState(repository))
     if (!guard.safe) {
       log.info(`Automatic commit and push skipped: ${guard.reason}`)
       return
     }
-    await this.performScheduledCommitPush(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return
+    }
+    await this.performScheduledCommitPush(repository, fence)
   }
 
   private async runScheduledPull(repository: Repository): Promise<void> {
-    if (this.selectedRepository !== repository) {
+    const fence = this.captureScheduledAutomationFence(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
       return
     }
     await this._refreshRepository(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return
+    }
     const mergeHeadSet = await isMergeHeadSet(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return
+    }
     const guard = canAutoPull(
       this.getAutomationGuardState(repository, mergeHeadSet)
     )
@@ -3314,7 +3365,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return
     }
 
-    await this.performScheduledPull(repository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return
+    }
+    const pulled = await this.performScheduledPull(repository, fence)
+    if (!pulled) {
+      return
+    }
     this.postNotification({
       kind: 'auto-pull',
       title: 'Automatic pull completed',
@@ -3325,8 +3382,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private async performScheduledCommitPush(
-    repository: Repository
+    repository: Repository,
+    fence: IScheduledAutomationFence = this.captureScheduledAutomationFence(
+      repository
+    )
   ): Promise<void> {
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return
+    }
     const initial = this.repositoryStateCache.get(repository)
     const files = initial.changesState.workingDirectory.files
     let context = buildFallbackCommitMessage(files, new Date())
@@ -3336,7 +3399,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
       context =
         (await this.generateAutomationCommitMessage(repository, files)) ??
         context
+      if (!this.isScheduledAutomationFenceCurrent(fence)) {
+        return
+      }
       await this._changeIncludeAllFiles(repository, true)
+      if (!this.isScheduledAutomationFenceCurrent(fence)) {
+        return
+      }
       this.setOneClickCommitPushPhase(repository, 'committing')
       // Keep scheduled commits on the same path as the commit composer. Besides
       // preserving hook and selection behavior, this is where oversized files
@@ -3345,10 +3414,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (!committed) {
         throw new Error('The automatic commit did not complete.')
       }
+
+      // Once Git reports a successful commit, the paired push is no longer
+      // optional. A model refresh or user selection switch must not strand an
+      // automation-created commit locally, so the remainder runs unfenced
+      // against the checkout that owns that commit.
       await this._refreshRepository(repository)
 
       this.setOneClickCommitPushPhase(repository, 'pushing')
-      await this.performScheduledPush(repository)
+      const pushed = await this.performScheduledPush(repository, null)
+      if (!pushed) {
+        throw new Error('The automatic push did not start.')
+      }
       this.postNotification({
         kind: 'auto-commit',
         title: 'Automatic commit and push completed',
@@ -3361,15 +3438,35 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
-  private async performScheduledPush(repository: Repository): Promise<void> {
+  private async performScheduledPush(
+    repository: Repository,
+    fence: IScheduledAutomationFence | null = this.captureScheduledAutomationFence(
+      repository
+    )
+  ): Promise<boolean> {
+    if (!this.canContinueScheduledAutomation(fence)) {
+      return false
+    }
     const resolvedRepository =
       await this.repositoryWithRefreshedGitHubRepository(repository)
-    return this.performScheduledPushWithResolvedRepository(resolvedRepository)
+    if (!this.canContinueScheduledAutomation(fence)) {
+      return false
+    }
+    return this.performScheduledPushWithResolvedRepository(
+      resolvedRepository,
+      fence
+    )
   }
 
   private async performScheduledPushWithResolvedRepository(
-    repository: Repository
-  ): Promise<void> {
+    repository: Repository,
+    fence: IScheduledAutomationFence | null = this.captureScheduledAutomationFence(
+      repository
+    )
+  ): Promise<boolean> {
+    if (!this.canContinueScheduledAutomation(fence)) {
+      return false
+    }
     const state = this.repositoryStateCache.get(repository)
     const remote = state.remote
     const tip = state.branchesState.tip
@@ -3388,7 +3485,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repository
     )
 
+    let pushed = false
     await this.withPushPullFetch(repository, async () => {
+      if (!this.canContinueScheduledAutomation(fence)) {
+        return
+      }
       await pushRepo(
         repository,
         safeRemote,
@@ -3397,21 +3498,46 @@ export class AppStore extends TypedBaseStore<IAppState> {
         gitStore.tagsToPush,
         { onHookFailure: async () => 'abort', accountKey }
       )
+      pushed = true
+
+      // Once the remote mutation succeeds, always finish its local cleanup.
+      // Selection fencing is only a gate before the irreversible operation.
       gitStore.clearTagsToPush()
       await this._refreshRepository(repository)
       await this.deployDockerAfterPush(repository, remoteName, pushedBranchName)
     })
+    return pushed
   }
 
-  private async performScheduledPull(repository: Repository): Promise<void> {
+  private async performScheduledPull(
+    repository: Repository,
+    fence: IScheduledAutomationFence = this.captureScheduledAutomationFence(
+      repository
+    )
+  ): Promise<boolean> {
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return false
+    }
     const resolvedRepository =
       await this.repositoryWithRefreshedGitHubRepository(repository)
-    return this.performScheduledPullWithResolvedRepository(resolvedRepository)
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return false
+    }
+    return this.performScheduledPullWithResolvedRepository(
+      resolvedRepository,
+      fence
+    )
   }
 
   private async performScheduledPullWithResolvedRepository(
-    repository: Repository
-  ): Promise<void> {
+    repository: Repository,
+    fence: IScheduledAutomationFence = this.captureScheduledAutomationFence(
+      repository
+    )
+  ): Promise<boolean> {
+    if (!this.isScheduledAutomationFenceCurrent(fence)) {
+      return false
+    }
     const state = this.repositoryStateCache.get(repository)
     const remote = state.remote
     if (remote === null) {
@@ -3426,11 +3552,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
       repository
     )
 
+    let pulled = false
     await this.withPushPullFetch(repository, async () => {
       // This path deliberately bypasses performFailableOperation: scheduler
       // failures are logged and posted to the notification centre, never
       // promoted to an interrupting error dialog.
+      if (!this.isScheduledAutomationFenceCurrent(fence)) {
+        return
+      }
       await pullRepo(repository, remote, { accountKey })
+      pulled = true
+
+      // Pull has mutated the checkout. Finish reconciliation even if the user
+      // changes the visible repository while Git is running.
       await updateRemoteHEAD(repository, remote, false, accountKey).catch(
         error =>
           log.error(
@@ -3440,6 +3574,36 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
       await this._refreshRepository(repository)
     })
+    return pulled
+  }
+
+  private captureScheduledAutomationFence(
+    repository: Repository
+  ): IScheduledAutomationFence {
+    return {
+      repositoryIdentity:
+        scheduledAutomationRepositoryIdentity(repository) ?? '',
+      // Object.create(AppStore.prototype) is used by focused unit tests; keep
+      // those structural stores equivalent to a newly constructed store.
+      selectionEpoch: this.scheduledAutomationSelectionEpoch ?? 0,
+    }
+  }
+
+  private isScheduledAutomationFenceCurrent(
+    fence: IScheduledAutomationFence
+  ): boolean {
+    return (
+      fence.repositoryIdentity.length > 0 &&
+      fence.repositoryIdentity ===
+        scheduledAutomationRepositoryIdentity(this.selectedRepository) &&
+      fence.selectionEpoch === (this.scheduledAutomationSelectionEpoch ?? 0)
+    )
+  }
+
+  private canContinueScheduledAutomation(
+    fence: IScheduledAutomationFence | null
+  ): boolean {
+    return fence === null || this.isScheduledAutomationFenceCurrent(fence)
   }
 
   private refreshMentionables(repository: GitHubRepository) {
@@ -8869,7 +9033,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // Reuse the scheduler push: raw pushRepo (no force, user identity/hooks)
     // that throws on failure so a push error is isolated per repository instead
     // of raising a global error dialog or publishing an unpublished repo.
-    await this.performScheduledPush(repository)
+    await this.performScheduledPush(repository, null)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -12218,10 +12382,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   public async _removeSubmodule(
     repository: Repository,
     path: string,
-    name?: string
+    name?: string,
+    topology?: SubmoduleTopologyKind
   ): Promise<void> {
     await this.withTemporaryRepositoryMutationGuard(repository, () =>
-      removeSubmodule(repository, path, name)
+      removeSubmodule(repository, path, name, topology)
     )
     await this._refreshRepository(repository)
   }

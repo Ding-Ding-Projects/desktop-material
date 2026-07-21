@@ -118,10 +118,15 @@ export type TranslationKey =
   | 'submodule.summaryMultiple'
   | 'submodule.summaryCloned'
   | 'submodule.summaryNotCloned'
+  | 'submodule.summaryNeedsRepair'
   | 'submodule.statusUninitialized'
   | 'submodule.statusUpToDate'
   | 'submodule.statusOutOfDate'
   | 'submodule.statusConflicted'
+  | 'submodule.statusMissingGitlink'
+  | 'submodule.statusMissingDeclaration'
+  | 'submodule.missingGitlinkTooltip'
+  | 'submodule.missingDeclarationTooltip'
   | 'submodule.searchPlaceholder'
   | 'submodule.searchAriaLabel'
   | 'submodule.filterByStatus'
@@ -1009,6 +1014,82 @@ export type TranslationKey =
   | 'ollama.manager.chatYou'
   | 'ollama.manager.chatAssistant'
   | 'ollama.manager.chatMessageLabel'
+  | 'ollama.manager.chatSystem'
+  | 'ollama.manager.chatSessionsHeading'
+  | 'ollama.manager.chatDefaultTitle'
+  | 'ollama.manager.chatNew'
+  | 'ollama.manager.chatRename'
+  | 'ollama.manager.chatDelete'
+  | 'ollama.manager.chatCancel'
+  | 'ollama.manager.chatConfirmDelete'
+  | 'ollama.manager.chatSelectPrompt'
+  | 'ollama.manager.chatLoading'
+  | 'ollama.manager.chatLoadError'
+  | 'ollama.manager.chatCopy'
+  | 'ollama.manager.chatAttachImage'
+  | 'ollama.manager.chatRemoveImage'
+  | 'ollama.manager.chatUnsupportedImage'
+  | 'ollama.manager.chatImageTooLarge'
+  | 'ollama.manager.chatClearDraft'
+  | 'ollama.manager.chatCustomize'
+  | 'ollama.manager.chatHistory'
+  | 'ollama.manager.chatAppearanceHeading'
+  | 'ollama.manager.chatAccentLabel'
+  | 'ollama.manager.chatSurfaceLabel'
+  | 'ollama.manager.chatSurfaceTonal'
+  | 'ollama.manager.chatSurfaceNeutral'
+  | 'ollama.manager.chatMessageFont'
+  | 'ollama.manager.chatComposerFont'
+  | 'ollama.manager.chatSettingsHint'
+  | 'ollama.manager.chatHistoryTitle'
+  | 'ollama.manager.chatHistoryTimeline'
+  | 'ollama.manager.chatHistoryDescription'
+  | 'ollama.manager.chatHistorySearchLabel'
+  | 'ollama.manager.chatHistorySearchPlaceholder'
+  | 'ollama.manager.chatHistorySearchStatus'
+  | 'ollama.manager.chatHistoryMatchingCount'
+  | 'ollama.manager.chatHistoryUndo'
+  | 'ollama.manager.chatHistoryRedo'
+  | 'ollama.manager.chatHistoryCommitSingular'
+  | 'ollama.manager.chatHistoryCommitCount'
+  | 'ollama.manager.chatHistoryLoadingFiles'
+  | 'ollama.manager.chatHistorySelectToInspect'
+  | 'ollama.manager.chatHistoryNoFiles'
+  | 'ollama.manager.chatHistoryRestoreLabel'
+  | 'ollama.manager.chatHistoryRestoreTooltip'
+  | 'ollama.manager.chatHistoryRestoreConfirmation'
+  | 'ollama.manager.chatHistoryRestore'
+  | 'ollama.manager.chatHistoryLoading'
+  | 'ollama.manager.chatHistoryNoHistoryTitle'
+  | 'ollama.manager.chatHistoryNoHistoryDescription'
+  | 'ollama.manager.chatHistoryNoMatchesTitle'
+  | 'ollama.manager.chatHistoryNoMatchesDescription'
+  | 'ollama.manager.chatHistoryLoadingMore'
+  | 'ollama.manager.chatHistoryLoadMore'
+  | 'ollama.manager.chatHistoryLoadingDiff'
+  | 'ollama.manager.chatHistoryNoTextChanges'
+  | 'ollama.manager.chatHistoryDiffLabel'
+  | 'ollama.manager.chatHistorySelectCommit'
+  | 'ollama.manager.chatHistoryRetry'
+  | 'ollama.manager.chatHistoryCloseLabel'
+  | 'ollama.manager.chatHistoryCommitsLabel'
+  | 'ollama.manager.chatHistoryDetailsLabel'
+  | 'ollama.manager.chatHistoryChangeCreate'
+  | 'ollama.manager.chatHistoryChangeMessage'
+  | 'ollama.manager.chatHistoryChangeTurn'
+  | 'ollama.manager.chatHistoryChangeRename'
+  | 'ollama.manager.chatHistoryChangeModel'
+  | 'ollama.manager.chatHistoryChangeAppearance'
+  | 'ollama.manager.chatHistoryChangeFont'
+  | 'ollama.manager.chatHistoryChangeRecover'
+  | 'ollama.manager.chatHistoryChangeUndo'
+  | 'ollama.manager.chatHistoryChangeRedo'
+  | 'ollama.manager.chatHistoryChangeRestorePoint'
+  | 'ollama.manager.chatHistoryError'
+  | 'ollama.manager.chatDeletePrompt'
+  | 'ollama.manager.chatMessageCount'
+  | 'ollama.manager.chatImageAlt'
+  | 'ollama.manager.chatImageLimit'
   | 'ollama.manager.unknown'
   | 'ollama.manager.never'
   | 'ollama.manager.showing'
@@ -1267,10 +1348,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'submodule.summaryMultiple': '{count} submodules',
   'submodule.summaryCloned': '{count} cloned',
   'submodule.summaryNotCloned': '{count} not cloned',
+  'submodule.summaryNeedsRepair': '{count} need repair',
   'submodule.statusUninitialized': 'Not initialized',
   'submodule.statusUpToDate': 'Up to date',
   'submodule.statusOutOfDate': 'Out of date',
   'submodule.statusConflicted': 'Conflicted',
+  'submodule.statusMissingGitlink': 'Missing Git link',
+  'submodule.statusMissingDeclaration': 'Missing .gitmodules entry',
+  'submodule.missingGitlinkTooltip':
+    'This .gitmodules path is not tracked as a submodule. Restore its Git link or remove the stale entry.',
+  'submodule.missingDeclarationTooltip':
+    'This indexed submodule has no matching .gitmodules entry. Restore its configuration before managing it.',
   'submodule.searchPlaceholder': 'Search submodules by name, path, or URL',
   'submodule.searchAriaLabel': 'Search submodules',
   'submodule.filterByStatus': 'Filter submodules by status',
@@ -2369,6 +2457,94 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ollama.manager.chatYou': 'You',
   'ollama.manager.chatAssistant': 'Assistant',
   'ollama.manager.chatMessageLabel': 'Message',
+  'ollama.manager.chatSystem': 'System',
+  'ollama.manager.chatSessionsHeading': 'Chats',
+  'ollama.manager.chatDefaultTitle': 'New chat',
+  'ollama.manager.chatNew': 'New chat',
+  'ollama.manager.chatRename': 'Rename',
+  'ollama.manager.chatDelete': 'Delete',
+  'ollama.manager.chatCancel': 'Cancel',
+  'ollama.manager.chatConfirmDelete': 'Delete chat',
+  'ollama.manager.chatSelectPrompt': 'Select a chat or start a new one.',
+  'ollama.manager.chatLoading': 'Loading chats…',
+  'ollama.manager.chatLoadError':
+    'The local chat workspace could not be loaded.',
+  'ollama.manager.chatCopy': 'Copy',
+  'ollama.manager.chatAttachImage': 'Attach image',
+  'ollama.manager.chatRemoveImage': 'Remove image',
+  'ollama.manager.chatUnsupportedImage':
+    'Choose a PNG, JPEG, GIF, or WebP image.',
+  'ollama.manager.chatImageTooLarge': 'That image is too large to attach.',
+  'ollama.manager.chatClearDraft': 'Clear draft',
+  'ollama.manager.chatCustomize': 'Customize',
+  'ollama.manager.chatHistory': 'History',
+  'ollama.manager.chatAppearanceHeading': 'Chat appearance and fonts',
+  'ollama.manager.chatAccentLabel': 'Accent',
+  'ollama.manager.chatSurfaceLabel': 'Surface',
+  'ollama.manager.chatSurfaceTonal': 'Tonal',
+  'ollama.manager.chatSurfaceNeutral': 'Neutral',
+  'ollama.manager.chatMessageFont': 'Message font',
+  'ollama.manager.chatComposerFont': 'Composer font',
+  'ollama.manager.chatSettingsHint':
+    'These settings belong only to this chat and are committed to its local history.',
+  'ollama.manager.chatHistoryTitle': 'Chat history',
+  'ollama.manager.chatHistoryTimeline': 'Conversation Git history',
+  'ollama.manager.chatHistoryDescription':
+    'Every message and setting change is committed in this chat’s own local Git repository. Undo, redo, and restore create new commits.',
+  'ollama.manager.chatHistorySearchLabel': 'Search chat history',
+  'ollama.manager.chatHistorySearchPlaceholder':
+    'Search messages, hashes, dates, or files',
+  'ollama.manager.chatHistorySearchStatus': 'Search the loaded timeline',
+  'ollama.manager.chatHistoryMatchingCount':
+    '{visible} of {loaded} loaded commits match',
+  'ollama.manager.chatHistoryUndo': 'Undo',
+  'ollama.manager.chatHistoryRedo': 'Redo',
+  'ollama.manager.chatHistoryCommitSingular': '1 commit',
+  'ollama.manager.chatHistoryCommitCount': '{count} commits',
+  'ollama.manager.chatHistoryLoadingFiles': 'Loading files…',
+  'ollama.manager.chatHistorySelectToInspect': 'Select to inspect',
+  'ollama.manager.chatHistoryNoFiles': 'No files',
+  'ollama.manager.chatHistoryRestoreLabel': 'Restore {summary}',
+  'ollama.manager.chatHistoryRestoreTooltip': 'Restore to this point',
+  'ollama.manager.chatHistoryRestoreConfirmation':
+    'Restore this point? This creates a new commit.',
+  'ollama.manager.chatHistoryRestore': 'Restore',
+  'ollama.manager.chatHistoryLoading': 'Loading history…',
+  'ollama.manager.chatHistoryNoHistoryTitle': 'No chat history yet',
+  'ollama.manager.chatHistoryNoHistoryDescription':
+    'The first committed chat change will appear here.',
+  'ollama.manager.chatHistoryNoMatchesTitle': 'No matching chat history',
+  'ollama.manager.chatHistoryNoMatchesDescription': 'Try another search term.',
+  'ollama.manager.chatHistoryLoadingMore': 'Loading…',
+  'ollama.manager.chatHistoryLoadMore': 'Load more',
+  'ollama.manager.chatHistoryLoadingDiff': 'Loading diff…',
+  'ollama.manager.chatHistoryNoTextChanges':
+    'No textual changes for this selection.',
+  'ollama.manager.chatHistoryDiffLabel': 'Chat history change diff',
+  'ollama.manager.chatHistorySelectCommit':
+    'Select a commit to inspect its changes.',
+  'ollama.manager.chatHistoryRetry': 'Retry',
+  'ollama.manager.chatHistoryCloseLabel': 'Close chat history',
+  'ollama.manager.chatHistoryCommitsLabel': 'Chat history commits',
+  'ollama.manager.chatHistoryDetailsLabel': 'Chat history details',
+  'ollama.manager.chatHistoryChangeCreate': 'Create chat',
+  'ollama.manager.chatHistoryChangeMessage': 'Add chat message',
+  'ollama.manager.chatHistoryChangeTurn': 'Add chat turn',
+  'ollama.manager.chatHistoryChangeRename': 'Rename chat',
+  'ollama.manager.chatHistoryChangeModel': 'Change chat model',
+  'ollama.manager.chatHistoryChangeAppearance': 'Update chat appearance',
+  'ollama.manager.chatHistoryChangeFont': 'Update chat font',
+  'ollama.manager.chatHistoryChangeRecover': 'Recover chat session',
+  'ollama.manager.chatHistoryChangeUndo': 'Undo: {change}',
+  'ollama.manager.chatHistoryChangeRedo': 'Redo: {change}',
+  'ollama.manager.chatHistoryChangeRestorePoint': 'Restore chat to {point}',
+  'ollama.manager.chatHistoryError':
+    'The chat history operation could not be completed.',
+  'ollama.manager.chatDeletePrompt':
+    'Delete “{title}” and its complete local history?',
+  'ollama.manager.chatMessageCount': '{count} messages',
+  'ollama.manager.chatImageAlt': 'Attached image {index}',
+  'ollama.manager.chatImageLimit': 'You can attach up to {count} images.',
   'ollama.manager.unknown': 'Unknown',
   'ollama.manager.never': 'Never',
   'ollama.manager.showing': 'Showing {visible} of {total} models',
@@ -2656,10 +2832,17 @@ export const cantoneseTranslations: Readonly<
   'submodule.summaryMultiple': '{count} 個子模組',
   'submodule.summaryCloned': '{count} 個已複製',
   'submodule.summaryNotCloned': '{count} 個未複製',
+  'submodule.summaryNeedsRepair': '{count} 個要修復',
   'submodule.statusUninitialized': '未初始化',
   'submodule.statusUpToDate': '已經最新',
   'submodule.statusOutOfDate': '未追到最新',
   'submodule.statusConflicted': '有衝突',
+  'submodule.statusMissingGitlink': 'Git link 唔見咗',
+  'submodule.statusMissingDeclaration': '欠咗 .gitmodules 設定',
+  'submodule.missingGitlinkTooltip':
+    '呢條 .gitmodules 路徑未有當子模組追蹤；請還原 Git link，或者移除過時設定。',
+  'submodule.missingDeclarationTooltip':
+    '呢個已索引子模組搵唔到對應嘅 .gitmodules 設定；請先還原設定再管理。',
   'submodule.searchPlaceholder': '用名稱、路徑或者 URL 搵子模組',
   'submodule.searchAriaLabel': '搜尋子模組',
   'submodule.filterByStatus': '按狀態篩選子模組',
@@ -3636,6 +3819,88 @@ export const cantoneseTranslations: Readonly<
   'ollama.manager.chatYou': '你',
   'ollama.manager.chatAssistant': '助手',
   'ollama.manager.chatMessageLabel': '訊息',
+  'ollama.manager.chatSystem': '系統',
+  'ollama.manager.chatSessionsHeading': '對話',
+  'ollama.manager.chatDefaultTitle': '新對話',
+  'ollama.manager.chatNew': '開新對話',
+  'ollama.manager.chatRename': '改名',
+  'ollama.manager.chatDelete': '刪除',
+  'ollama.manager.chatCancel': '取消',
+  'ollama.manager.chatConfirmDelete': '刪除對話',
+  'ollama.manager.chatSelectPrompt': '揀一個對話，或者開個新嘅先。',
+  'ollama.manager.chatLoading': '載入緊對話…',
+  'ollama.manager.chatLoadError': '本機對話工作區載入唔到。',
+  'ollama.manager.chatCopy': '複製',
+  'ollama.manager.chatAttachImage': '附加圖片',
+  'ollama.manager.chatRemoveImage': '移除圖片',
+  'ollama.manager.chatUnsupportedImage': '請揀 PNG、JPEG、GIF 或 WebP 圖片。',
+  'ollama.manager.chatImageTooLarge': '張圖太大，附加唔到。',
+  'ollama.manager.chatClearDraft': '清空草稿',
+  'ollama.manager.chatCustomize': '自訂',
+  'ollama.manager.chatHistory': '歷史',
+  'ollama.manager.chatAppearanceHeading': '對話外觀同字款',
+  'ollama.manager.chatAccentLabel': '主色',
+  'ollama.manager.chatSurfaceLabel': '表面',
+  'ollama.manager.chatSurfaceTonal': '色調',
+  'ollama.manager.chatSurfaceNeutral': '中性',
+  'ollama.manager.chatMessageFont': '訊息字款',
+  'ollama.manager.chatComposerFont': '輸入框字款',
+  'ollama.manager.chatSettingsHint':
+    '呢啲設定只屬於呢個對話，亦會 commit 入佢嘅本機歷史。',
+  'ollama.manager.chatHistoryTitle': '對話歷史',
+  'ollama.manager.chatHistoryTimeline': '對話 Git 歷史',
+  'ollama.manager.chatHistoryDescription':
+    '每段訊息同設定變更都會 commit 入呢個對話自己嘅本機 Git repo。復原、重做同還原都會建立新 commit，條歷史唔會失蹤。',
+  'ollama.manager.chatHistorySearchLabel': '搜尋對話歷史',
+  'ollama.manager.chatHistorySearchPlaceholder': '搜尋訊息、hash、日期或者檔案',
+  'ollama.manager.chatHistorySearchStatus': '喺已載入嘅時間線度搜尋',
+  'ollama.manager.chatHistoryMatchingCount':
+    '{visible}/{loaded} 個已載入 commit 符合',
+  'ollama.manager.chatHistoryUndo': '復原',
+  'ollama.manager.chatHistoryRedo': '重做',
+  'ollama.manager.chatHistoryCommitSingular': '1 個 commit',
+  'ollama.manager.chatHistoryCommitCount': '{count} 個 commit',
+  'ollama.manager.chatHistoryLoadingFiles': '載入緊檔案…',
+  'ollama.manager.chatHistorySelectToInspect': '揀一個嚟睇',
+  'ollama.manager.chatHistoryNoFiles': '冇檔案',
+  'ollama.manager.chatHistoryRestoreLabel': '還原「{summary}」',
+  'ollama.manager.chatHistoryRestoreTooltip': '還原到呢一點',
+  'ollama.manager.chatHistoryRestoreConfirmation':
+    '還原到呢一點？系統會建立新 commit，舊歷史唔會消失。',
+  'ollama.manager.chatHistoryRestore': '還原',
+  'ollama.manager.chatHistoryLoading': '載入緊歷史…',
+  'ollama.manager.chatHistoryNoHistoryTitle': '仲未有對話歷史',
+  'ollama.manager.chatHistoryNoHistoryDescription':
+    '第一個已 commit 嘅對話變更會喺呢度出現。',
+  'ollama.manager.chatHistoryNoMatchesTitle': '搵唔到符合嘅對話歷史',
+  'ollama.manager.chatHistoryNoMatchesDescription': '換個關鍵字再試下。',
+  'ollama.manager.chatHistoryLoadingMore': '載入緊…',
+  'ollama.manager.chatHistoryLoadMore': '載入更多',
+  'ollama.manager.chatHistoryLoadingDiff': '載入緊差異…',
+  'ollama.manager.chatHistoryNoTextChanges': '呢個選項冇文字變更。',
+  'ollama.manager.chatHistoryDiffLabel': '對話歷史變更差異',
+  'ollama.manager.chatHistorySelectCommit': '揀一個 commit 嚟睇佢改咗啲乜。',
+  'ollama.manager.chatHistoryRetry': '再試',
+  'ollama.manager.chatHistoryCloseLabel': '關閉對話歷史',
+  'ollama.manager.chatHistoryCommitsLabel': '對話歷史 commit',
+  'ollama.manager.chatHistoryDetailsLabel': '對話歷史詳情',
+  'ollama.manager.chatHistoryChangeCreate': '建立對話',
+  'ollama.manager.chatHistoryChangeMessage': '加入對話訊息',
+  'ollama.manager.chatHistoryChangeTurn': '加入一輪對話',
+  'ollama.manager.chatHistoryChangeRename': '改對話名',
+  'ollama.manager.chatHistoryChangeModel': '更改對話模型',
+  'ollama.manager.chatHistoryChangeAppearance': '更新對話外觀',
+  'ollama.manager.chatHistoryChangeFont': '更新對話字款',
+  'ollama.manager.chatHistoryChangeRecover': '修復對話工作階段',
+  'ollama.manager.chatHistoryChangeUndo': '復原：{change}',
+  'ollama.manager.chatHistoryChangeRedo': '重做：{change}',
+  'ollama.manager.chatHistoryChangeRestorePoint': '還原對話到 {point}',
+  'ollama.manager.chatHistoryError': '未能完成對話歷史操作。',
+  'ollama.manager.chatDeletePrompt':
+    '刪除「{title}」同佢成份本機歷史？刪咗冇得救喎。',
+  'ollama.manager.chatMessageCount': '{count} 段訊息',
+  'ollama.manager.chatImageAlt': '附加圖片 {index}',
+  'ollama.manager.chatImageLimit': '最多可以附加 {count} 張圖片。',
   'ollama.manager.unknown': '未知',
   'ollama.manager.never': '永不',
   'ollama.manager.showing': '顯示緊 {visible}/{total} 個模型',

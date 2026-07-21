@@ -2,7 +2,11 @@ import * as React from 'react'
 import { DialogContent } from '../dialog'
 import { Repository } from '../../models/repository'
 import { Dispatcher } from '../dispatcher'
-import { IManagedSubmodule, SubmoduleStatusKind } from '../../lib/git'
+import {
+  IManagedSubmodule,
+  SubmoduleStatusKind,
+  SubmoduleTopologyKind,
+} from '../../lib/git'
 import { Button } from '../lib/button'
 import { Loading } from '../lib/loading'
 import { Octicon } from '../octicons'
@@ -105,6 +109,22 @@ const StatusLabelKey: Record<SubmoduleStatusKind, TranslationKey> = {
   'up-to-date': 'submodule.statusUpToDate',
   'out-of-date': 'submodule.statusOutOfDate',
   conflicted: 'submodule.statusConflicted',
+}
+
+const TopologyLabelKey: Record<
+  Exclude<SubmoduleTopologyKind, 'valid'>,
+  TranslationKey
+> = {
+  'missing-gitlink': 'submodule.statusMissingGitlink',
+  'missing-declaration': 'submodule.statusMissingDeclaration',
+}
+
+const TopologyTooltipKey: Record<
+  Exclude<SubmoduleTopologyKind, 'valid'>,
+  TranslationKey
+> = {
+  'missing-gitlink': 'submodule.missingGitlinkTooltip',
+  'missing-declaration': 'submodule.missingDeclarationTooltip',
 }
 
 /**
@@ -311,7 +331,8 @@ export class Submodules extends React.Component<
       await this.props.dispatcher.removeSubmodule(
         this.props.repository,
         submodule.path,
-        submodule.name
+        submodule.name,
+        submodule.topology
       )
       await this.loadSubmodules()
     } catch (e) {
@@ -395,8 +416,10 @@ export class Submodules extends React.Component<
       return null
     }
 
-    const uncloned = submodules.filter(s => s.status === 'uninitialized').length
-    const cloned = submodules.length - uncloned
+    const valid = submodules.filter(s => s.topology === 'valid')
+    const uncloned = valid.filter(s => s.status === 'uninitialized').length
+    const cloned = valid.length - uncloned
+    const needsRepair = submodules.length - valid.length
 
     return (
       <div className="submodules-summary" role="status">
@@ -424,15 +447,41 @@ export class Submodules extends React.Component<
             />
           </span>
         )}
+        {needsRepair > 0 && (
+          <span className="submodules-summary-chip submodules-summary-repair">
+            <LocalizedText
+              translationKey="submodule.summaryNeedsRepair"
+              variables={{ count: String(needsRepair) }}
+            />
+          </span>
+        )}
       </div>
     )
   }
 
   private renderStatusPill(submodule: IManagedSubmodule): JSX.Element {
-    const className = `submodule-status submodule-status-${submodule.status}`
+    if (submodule.topology !== 'valid') {
+      const topology = submodule.topology
+      return (
+        <span className={`submodule-status submodule-status-${topology}`}>
+          <LocalizedText translationKey={TopologyLabelKey[topology]} />
+        </span>
+      )
+    }
+
+    const status = submodule.status
+    if (status === null) {
+      return (
+        <span className="submodule-status submodule-status-missing-gitlink">
+          <LocalizedText translationKey="submodule.statusMissingGitlink" />
+        </span>
+      )
+    }
+
+    const className = `submodule-status submodule-status-${status}`
     return (
       <span className={className}>
-        <LocalizedText translationKey={StatusLabelKey[submodule.status]} />
+        <LocalizedText translationKey={StatusLabelKey[status]} />
       </span>
     )
   }
@@ -785,6 +834,12 @@ interface ISubmoduleRowProps {
  */
 function SubmoduleRow(props: ISubmoduleRowProps) {
   const { submodule, isBusy, statusPill } = props
+  const hasValidTopology = submodule.topology === 'valid'
+  const isUninitialized =
+    hasValidTopology && submodule.status === 'uninitialized'
+  const topologyTooltip = hasValidTopology
+    ? null
+    : t(TopologyTooltipKey[submodule.topology])
   const onUpdate = React.useCallback(
     () => props.onUpdate(submodule),
     [props.onUpdate, submodule]
@@ -843,21 +898,30 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
             <Octicon symbol={octicons.gitCommit} />
             {shortSha}
           </TooltippedContent>
+          {!hasValidTopology && (
+            <span className="submodule-row-topology-guidance">
+              <Octicon symbol={octicons.alert} />
+              <LocalizedText
+                translationKey={TopologyTooltipKey[submodule.topology]}
+              />
+            </span>
+          )}
         </div>
       </div>
       <div className="submodule-row-actions">
         <Button
           type="button"
           className="submodule-open-repository"
-          disabled={isBusy || submodule.status === 'uninitialized'}
+          disabled={isBusy || !hasValidTopology || isUninitialized}
           onClick={onOpenAsRepository}
           ariaLabel={`${translateForAccessibleName(
             'submodule.openAsRepository'
           )}: ${submodule.path}`}
           tooltip={
-            submodule.status === 'uninitialized'
+            topologyTooltip ??
+            (isUninitialized
               ? t('submodule.openUnavailable')
-              : t('submodule.temporaryOpenDescription')
+              : t('submodule.temporaryOpenDescription'))
           }
         >
           <Octicon symbol={octicons.repo} />
@@ -865,20 +929,19 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
         </Button>
         <Button
           type="button"
-          disabled={isBusy}
+          disabled={isBusy || !hasValidTopology}
           onClick={onUpdate}
           tooltip={
-            submodule.status === 'uninitialized'
+            topologyTooltip ??
+            (isUninitialized
               ? t('submodule.cloneTooltip')
-              : t('submodule.updateTooltip')
+              : t('submodule.updateTooltip'))
           }
           ariaLabel={translateForAccessibleName(
-            submodule.status === 'uninitialized'
-              ? 'submodule.cloneAction'
-              : 'submodule.updateAction'
+            isUninitialized ? 'submodule.cloneAction' : 'submodule.updateAction'
           )}
         >
-          {submodule.status === 'uninitialized' ? (
+          {isUninitialized ? (
             <LocalizedText translationKey="submodule.cloneAction" />
           ) : (
             <LocalizedText translationKey="submodule.updateAction" />
@@ -886,19 +949,19 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
         </Button>
         <Button
           type="button"
-          disabled={isBusy}
+          disabled={isBusy || !hasValidTopology}
           onClick={onSyncClicked}
           ariaLabel={translateForAccessibleName('submodule.syncAction')}
-          tooltip={t('submodule.syncTooltip')}
+          tooltip={topologyTooltip ?? t('submodule.syncTooltip')}
         >
           <LocalizedText translationKey="submodule.syncAction" />
         </Button>
         <Button
           type="button"
-          disabled={isBusy}
+          disabled={isBusy || !hasValidTopology}
           onClick={onConfigure}
           ariaLabel={translateForAccessibleName('submodule.configureAction')}
-          tooltip={t('submodule.configureTooltip')}
+          tooltip={topologyTooltip ?? t('submodule.configureTooltip')}
         >
           <LocalizedText translationKey="submodule.configureAction" />
         </Button>
@@ -907,7 +970,7 @@ function SubmoduleRow(props: ISubmoduleRowProps) {
           disabled={isBusy}
           onClick={onRemove}
           ariaLabel={translateForAccessibleName('submodule.removeAction')}
-          tooltip={t('submodule.removeTooltip')}
+          tooltip={topologyTooltip ?? t('submodule.removeTooltip')}
         >
           <LocalizedText translationKey="submodule.removeAction" />
         </Button>

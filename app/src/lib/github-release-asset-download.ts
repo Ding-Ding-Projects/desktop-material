@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'crypto'
 import { dirname, isAbsolute, join, parse, resolve } from 'path'
-import { FileHandle, link, open, unlink } from 'fs/promises'
+import { FileHandle, link, lstat, open, unlink } from 'fs/promises'
 import {
   GitHubReleaseAssetMaximumDownloadBytes,
   IGitHubReleaseAsset,
@@ -82,6 +82,91 @@ function destinationCandidate(destination: string, index: number): string {
   return join(parsed.dir, `${parsed.name} (${index})${parsed.ext}`)
 }
 
+/** Filesystem errors that commonly mean the target volume cannot hard-link. */
+const unsupportedHardLinkErrorCodes = new Set([
+  'EACCES',
+  'EINVAL',
+  'ENOSYS',
+  'ENOTSUP',
+  'EOPNOTSUPP',
+  'EPERM',
+  'EXDEV',
+  'UNKNOWN',
+])
+
+function isUnsupportedHardLinkError(error: unknown): boolean {
+  return unsupportedHardLinkErrorCodes.has(
+    (error as NodeJS.ErrnoException).code ?? ''
+  )
+}
+
+const fallbackCopyBufferBytes = 1024 * 1024
+
+interface IFileIdentity {
+  readonly device: bigint
+  readonly inode: bigint
+  readonly birthtimeNanoseconds: bigint
+}
+
+interface IOwnedPath {
+  readonly path: string
+  readonly identity: IFileIdentity
+}
+
+async function fileIdentity(handle: FileHandle): Promise<IFileIdentity> {
+  const stats = await handle.stat({ bigint: true })
+  return {
+    device: stats.dev,
+    inode: stats.ino,
+    birthtimeNanoseconds: stats.birthtimeNs,
+  }
+}
+
+async function pathStillOwned(owned: IOwnedPath): Promise<boolean> {
+  try {
+    const stats = await lstat(owned.path, { bigint: true })
+    return (
+      stats.dev === owned.identity.device &&
+      stats.ino === owned.identity.inode &&
+      stats.birthtimeNs === owned.identity.birthtimeNanoseconds
+    )
+  } catch {
+    return false
+  }
+}
+
+async function openOwnedPath(
+  path: string
+): Promise<{ readonly handle: FileHandle; readonly owned: IOwnedPath } | null> {
+  let handle: FileHandle
+  try {
+    handle = await open(path, 'wx')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'EEXIST') {
+      return null
+    }
+    throw error
+  }
+  try {
+    return {
+      handle,
+      owned: { path, identity: await fileIdentity(handle) },
+    }
+  } catch (error) {
+    // The still-open exclusive handle proves this path was created by us.
+    await unlink(path).catch(() => undefined)
+    await handle.close().catch(() => undefined)
+    throw error
+  }
+}
+
+/** Remove a path only while it still identifies the file created by us. */
+async function unlinkOwnedPath(owned: IOwnedPath): Promise<void> {
+  if (await pathStillOwned(owned)) {
+    await unlink(owned.path).catch(() => undefined)
+  }
+}
+
 async function createPartialFile(destination: string): Promise<{
   readonly path: string
   readonly handle: FileHandle
@@ -134,28 +219,129 @@ async function writeAll(handle: FileHandle, bytes: Uint8Array) {
   }
 }
 
+/**
+ * Claim a final name without replacement and copy the verified partial into
+ * that owned file using bounded memory. Keeping the exclusive-create handle
+ * removes the reserve/check/rename race: no later operation can overwrite a
+ * path another process substituted for our file.
+ */
+async function publishFallbackCopyWithoutOverwrite(
+  partialPath: string,
+  candidate: string,
+  signal: AbortSignal
+): Promise<IOwnedPath | null> {
+  const created = await openOwnedPath(candidate)
+  if (created === null) {
+    return null
+  }
+
+  const { handle: destinationHandle, owned } = created
+  let sourceHandle: FileHandle | null = null
+  try {
+    sourceHandle = await open(partialPath, 'r')
+    const buffer = Buffer.allocUnsafe(fallbackCopyBufferBytes)
+    let position = 0
+    while (true) {
+      throwIfAborted(signal)
+      const { bytesRead } = await sourceHandle.read(
+        buffer,
+        0,
+        buffer.byteLength,
+        position
+      )
+      if (bytesRead === 0) {
+        break
+      }
+      await writeAll(destinationHandle, buffer.subarray(0, bytesRead))
+      position += bytesRead
+    }
+    await destinationHandle.sync()
+    throwIfAborted(signal)
+
+    // On file systems which permit unlink/replacement while a handle remains
+    // open, fail closed if the visible name no longer identifies our file.
+    if (!(await pathStillOwned(owned))) {
+      throw new GitHubReleaseAssetDownloadError(
+        'The release asset destination changed before it could be published.',
+        'destination'
+      )
+    }
+    return owned
+  } catch (error) {
+    await unlinkOwnedPath(owned)
+    throw error
+  } finally {
+    await sourceHandle?.close().catch(() => undefined)
+    await destinationHandle.close().catch(() => undefined)
+  }
+}
+
 async function publishWithoutOverwrite(
   partialPath: string,
   destination: string,
   signal: AbortSignal
 ): Promise<string> {
-  let published: string | null = null
+  let published: IOwnedPath | null = null
   try {
+    const partialStats = await lstat(partialPath, { bigint: true })
+    const partialIdentity = {
+      device: partialStats.dev,
+      inode: partialStats.ino,
+      birthtimeNanoseconds: partialStats.birthtimeNs,
+    }
+    let fallbackIndex: number | null = null
     for (let index = 1; index <= 1000; index++) {
       const candidate = destinationCandidate(destination, index)
       try {
+        // A same-directory hard link claims the name atomically and never
+        // replaces a file that another process published first.
         await link(partialPath, candidate)
-        published = candidate
+        published = { path: candidate, identity: partialIdentity }
         break
       } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+        const code = (error as NodeJS.ErrnoException).code
+        if (code === 'EEXIST') {
+          continue
+        }
+        if (!isUnsupportedHardLinkError(error)) {
           throw new GitHubReleaseAssetDownloadError(
             'The release asset could not be published at the selected destination.',
             'destination'
           )
         }
+        fallbackIndex = index
+        break
       }
     }
+
+    if (published === null && fallbackIndex !== null) {
+      for (let index = fallbackIndex; index <= 1000; index++) {
+        const candidate = destinationCandidate(destination, index)
+        try {
+          published = await publishFallbackCopyWithoutOverwrite(
+            partialPath,
+            candidate,
+            signal
+          )
+        } catch (error) {
+          if (
+            (error as Error).name === 'AbortError' ||
+            error instanceof GitHubReleaseAssetDownloadError
+          ) {
+            throw error
+          }
+          throw new GitHubReleaseAssetDownloadError(
+            'The release asset could not be published at the selected destination.',
+            'destination'
+          )
+        }
+        if (published === null) {
+          continue
+        }
+        break
+      }
+    }
+
     if (published === null) {
       throw new GitHubReleaseAssetDownloadError(
         'Too many files already use this release asset name.',
@@ -165,12 +351,12 @@ async function publishWithoutOverwrite(
     throwIfAborted(signal)
     await unlink(partialPath)
     throwIfAborted(signal)
-    const completed = published
+    const completed = published.path
     published = null
     return completed
   } catch (error) {
     if (published !== null) {
-      await unlink(published).catch(() => undefined)
+      await unlinkOwnedPath(published)
     }
     throw error
   }

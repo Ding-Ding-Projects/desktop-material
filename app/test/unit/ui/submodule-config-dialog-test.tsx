@@ -112,6 +112,7 @@ const baseSubmodule: IManagedSubmodule = {
   fetchRecurseSubmodules: null,
   sha: 'abc1234def5678000000000000000000deadbeef',
   describe: null,
+  topology: 'valid',
   status: 'up-to-date',
 }
 

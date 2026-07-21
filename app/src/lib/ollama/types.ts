@@ -87,6 +87,8 @@ export type OllamaChatRole = 'system' | 'user' | 'assistant'
 export interface IOllamaChatMessage {
   readonly role: OllamaChatRole
   readonly content: string
+  /** Raw base64 image payloads supported by Ollama vision models. */
+  readonly images?: ReadonlyArray<string>
 }
 
 /** One decoded NDJSON chat chunk: an assistant delta plus completion state. */

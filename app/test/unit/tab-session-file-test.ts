@@ -103,6 +103,87 @@ describe('tab session files', () => {
     assert.equal(parsed.activeRepositoryPath, 'C:\\WORK\\ALPHA\\')
   })
 
+  it('deduplicates canonical Windows path spellings before import', () => {
+    const activeRepositoryPath = 'C:\\work\\other\\..\\desktop-material\\.'
+    const parsed = parseTabSession(
+      JSON.stringify({
+        format: TabSessionFormat,
+        version: TabSessionVersion,
+        activeRepositoryPath,
+        tabs: [
+          {
+            repositoryPath: 'C:\\work\\desktop-material',
+            customLabel: 'Keep first',
+          },
+          {
+            repositoryPath: 'c:/work//scratch/../desktop-material/.',
+            customLabel: 'Duplicate using forward slashes',
+          },
+          {
+            repositoryPath: 'C:\\work\\.\\desktop-material\\nested\\..\\',
+            customLabel: 'Duplicate using dot segments',
+          },
+        ],
+      })
+    )
+
+    assert.ok(parsed)
+    assert.equal(parsed.tabs.length, 1)
+    assert.equal(parsed.tabs[0].repositoryPath, 'C:\\work\\desktop-material')
+    assert.equal(parsed.tabs[0].customLabel, 'Keep first')
+    assert.equal(parsed.activeRepositoryPath, activeRepositoryPath)
+  })
+
+  it('deduplicates canonical UNC repository path spellings', () => {
+    const parsed = parseTabSession(
+      JSON.stringify({
+        format: TabSessionFormat,
+        version: TabSessionVersion,
+        tabs: [
+          { repositoryPath: '\\\\Server\\Team\\desktop-material' },
+          {
+            repositoryPath:
+              '\\\\server\\team\\scratch\\..\\desktop-material\\.',
+          },
+        ],
+      })
+    )
+
+    assert.ok(parsed)
+    assert.equal(parsed.tabs.length, 1)
+    assert.equal(
+      parsed.tabs[0].repositoryPath,
+      '\\\\Server\\Team\\desktop-material'
+    )
+  })
+
+  it('keeps POSIX paths case-sensitive and preserves backslashes as characters', () => {
+    const parsed = parseTabSession(
+      JSON.stringify({
+        format: TabSessionFormat,
+        version: TabSessionVersion,
+        tabs: [
+          { repositoryPath: '/Work/desktop-material' },
+          { repositoryPath: '/work/desktop-material' },
+          { repositoryPath: '/Work/team\\repository' },
+          { repositoryPath: '/Work/team/repository' },
+          { repositoryPath: '/Work/tmp/../desktop-material/.' },
+        ],
+      })
+    )
+
+    assert.ok(parsed)
+    assert.deepEqual(
+      parsed.tabs.map(tab => tab.repositoryPath),
+      [
+        '/Work/desktop-material',
+        '/work/desktop-material',
+        '/Work/team\\repository',
+        '/Work/team/repository',
+      ]
+    )
+  })
+
   it('rejects malformed, empty, relative-only, and oversized sessions', () => {
     assert.equal(parseTabSession('{'), null)
     assert.equal(

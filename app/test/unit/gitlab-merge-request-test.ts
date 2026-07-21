@@ -191,7 +191,7 @@ describe('GitLab merge request bounded model', () => {
     )
   })
 
-  it('uses strict legacy draft fallbacks without contradictory metadata', () => {
+  it('uses legacy draft fallbacks and authoritative declared metadata', () => {
     assert.equal(
       parseGitLabMergeRequest(
         mergeRequest({
@@ -232,10 +232,34 @@ describe('GitLab merge request bounded model', () => {
     )
 
     for (const overrides of [
+      { title: 'WIP: Ordinary title', draft: false },
+      {
+        title: 'WIP: Ordinary title',
+        draft: undefined,
+        work_in_progress: false,
+      },
+      {
+        title: 'WIP: Ordinary title',
+        draft: false,
+        work_in_progress: false,
+      },
+    ]) {
+      const parsed = parseGitLabMergeRequest(mergeRequest(overrides), webRoot)
+      assert.equal(parsed.draft, false)
+      assert.equal(parsed.title, 'WIP: Ordinary title')
+    }
+
+    const declaredNonDraft = parseGitLabMergeRequest(
+      mergeRequest({ title: 'Draft: Ordinary title', draft: false }),
+      webRoot
+    )
+    assert.equal(declaredNonDraft.draft, false)
+    assert.equal(declaredNonDraft.title, 'Draft: Ordinary title')
+
+    for (const overrides of [
       { draft: 'true' },
       { draft: undefined, work_in_progress: 'true' },
       { draft: true, work_in_progress: false },
-      { title: 'Draft: Conflict', draft: false },
     ]) {
       assert.throws(
         () => parseGitLabMergeRequest(mergeRequest(overrides), webRoot),

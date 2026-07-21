@@ -248,6 +248,7 @@ describe('Repository tools', () => {
         fetchRecurseSubmodules: null,
         sha: 'a'.repeat(40),
         describe: null,
+        topology: 'valid',
         status: 'up-to-date',
       }
     )
