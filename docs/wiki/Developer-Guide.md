@@ -93,7 +93,8 @@ settings:
   catalog when restored or externally edited state is invalid.
 - Per-tab title/background styling is migrated out of `tabs.json` into that tab's dedicated element
   repository; `tabs.json` remains structural. The bounded recent-color list is an ordinary profile
-  setting.
+  setting. History/path reads are nullable during owner startup; editor opening ensures the clicked
+  tab and fences async completion by coordinator, profile key, tab existence, and edit revision.
 - Optional `isPinned` and `openedAt` values share that serialized tab model. Missing legacy values
   keep migration-safe defaults and profile serialization preserves unknown newer fields. Close and
   arrange mutations must use `RepositoryTabsStore` so they remain ordered on the same profile queue
@@ -190,7 +191,10 @@ publication, release, or cleanup evidence.
   `app/src/ui/repository-logo/` renders the safe SVG projection, full studio,
   and bounded 128-entry shared async cache. It never accepts raw SVG or image bytes.
   `app/src/ui/app-theme.tsx` applies only normalized data attributes and tokens, including the
-  finite profile/repository attributes. Feature highlighting is gated per
+  finite profile/repository attributes. Toolbar typography reuses the safe tab-text model with a
+  20 px toolbar ceiling, strips background highlighting, projects only bounded CSS variables, and
+  publishes a stable signature so `toolbar.tsx` invalidates retained overflow measurements.
+  Feature highlighting is gated per
   `[data-dm-feature][data-dm-feature-highlighted]`, never by one global body switch. Explicit
   entry-point markers keep upstream and mixed controls neutral.
   `app/src/ui/toolbar/toolbar-overflow-layout.ts` keeps
@@ -321,7 +325,9 @@ The Material Design 3 look is built from a layered SCSS system under `app/styles
   workspace chrome, surfaces, elevation, and layout that give the app its M3 structure. Normalized
   resolved profile/repository appearance values become finite `data-dm-*` attributes on the
   document body; per-feature owners use their own data attribute. Selectors map only those bounded
-  values back to tokens instead of accepting arbitrary CSS.
+  values back to tokens instead of accepting arbitrary CSS. Toolbar text color, family, size,
+  emphasis, case, spacing, effect, and alignment are safe variables guarded by the toolbar
+  typography signature; they target labels rather than icons or semantic progress chrome.
 - **`app/styles/ui/` partials** — one partial **per component** (`_changes.scss`, `_dialog.scss`,
   `_branches.scss`, `_ci-status.scss`, …). Components pull colors and shape from the token layer
   rather than hard-coding hex values.

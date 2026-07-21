@@ -303,12 +303,15 @@ export class ElementAppearanceCoordinator extends TypedBaseStore<IElementAppeara
     )
   }
 
-  public getTabTitleHistorySource(tabId: string): IVersionedStoreHistorySource {
-    return historySource(this.requireTabStore(tabId))
+  public getTabTitleHistorySource(
+    tabId: string
+  ): IVersionedStoreHistorySource | null {
+    const store = this.getInitializedTabStore(tabId)
+    return store === null ? null : historySource(store)
   }
 
-  public getTabTitleRepositoryPath(tabId: string): string {
-    return this.requireTabStore(tabId).getRepositoryPath()
+  public getTabTitleRepositoryPath(tabId: string): string | null {
+    return this.getInitializedTabStore(tabId)?.getRepositoryPath() ?? null
   }
 
   public async ensureRepositoryElements(
@@ -587,11 +590,20 @@ export class ElementAppearanceCoordinator extends TypedBaseStore<IElementAppeara
   private requireTabStore(
     tabId: string
   ): DedicatedSettingStore<IElementAppearanceDocument<ITabTitleAppearance>> {
-    const store = this.tabStores.get(stableElementKey(tabId))
-    if (store === undefined || !store.getState().initialized) {
+    const store = this.getInitializedTabStore(tabId)
+    if (store === null) {
       throw new Error('Tab title appearance is not initialized')
     }
     return store
+  }
+
+  private getInitializedTabStore(
+    tabId: string
+  ): DedicatedSettingStore<
+    IElementAppearanceDocument<ITabTitleAppearance>
+  > | null {
+    const store = this.tabStores.get(stableElementKey(tabId))
+    return store !== undefined && store.getState().initialized ? store : null
   }
 
   private requireRepositoryStore<K extends RepositoryAppearanceElementId>(
@@ -804,6 +816,7 @@ function repositorySeeds(
     [RepositoryAppearanceElementId.Toolbar]: {
       toolbarLabels: overrides.toolbarLabels ?? null,
       toolbarDensity: overrides.toolbarDensity ?? null,
+      toolbarTextStyle: overrides.toolbarTextStyle ?? null,
     },
     [RepositoryAppearanceElementId.Tabs]: {
       tabDensity: overrides.tabDensity ?? null,
@@ -852,6 +865,14 @@ function normalizeRepositoryElement<K extends RepositoryAppearanceElementId>(
           combined.toolbarDensity === null
             ? null
             : normalizedLegacy.toolbarDensity,
+        ...(Object.prototype.hasOwnProperty.call(combined, 'toolbarTextStyle')
+          ? {
+              toolbarTextStyle:
+                combined.toolbarTextStyle === null
+                  ? null
+                  : normalizedLegacy.toolbarTextStyle,
+            }
+          : {}),
       } as IRepositoryAppearanceElementSettings[K]
     case RepositoryAppearanceElementId.Tabs:
       return {

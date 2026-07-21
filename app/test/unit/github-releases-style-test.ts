@@ -33,4 +33,17 @@ describe('GitHub Releases responsive Material styles', () => {
     assert.match(styles, /\.github-releases-loading-indicator/)
     assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
   })
+
+  it('keeps the desktop release list materially wide with readable controls', () => {
+    assert.match(
+      styles,
+      /grid-template-columns:\s*clamp\(420px, 34vw, 560px\) minmax\(0, 1fr\)/
+    )
+    assert.match(
+      styles,
+      /\.github-releases-bulk-toolbar[\s\S]*?min-height:\s*36px/
+    )
+    assert.match(styles, /\.github-release-row[\s\S]*?min-height:\s*64px/)
+    assert.match(styles, /@media \(max-width: 900px\)/)
+  })
 })

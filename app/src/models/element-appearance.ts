@@ -20,6 +20,7 @@ import {
   monospaceFontPreferences,
   motionPreferences,
   normalizeAppearanceCustomization,
+  normalizeToolbarTextStyle,
   submoduleBackButtonLabels,
   submoduleBackButtonStyles,
   surfacePalettes,
@@ -103,6 +104,8 @@ export interface IUpdateProgressAppearance {
 export interface IToolbarAppearance {
   readonly toolbarLabels: ToolbarLabelPreference
   readonly toolbarDensity: DensityPreference
+  /** Optional keeps pre-typography setting.json documents structurally valid. */
+  readonly toolbarTextStyle?: ITabTitleStyle | null
 }
 
 export interface IRepositoryListAppearance {
@@ -136,6 +139,8 @@ export interface IRepositoryWorkspaceAppearance {
 export interface IRepositoryToolbarAppearance {
   readonly toolbarLabels: ToolbarLabelPreference | null
   readonly toolbarDensity: DensityPreference | null
+  /** Null or absent inherits the profile; an object is a partial local layer. */
+  readonly toolbarTextStyle?: ITabTitleStyle | null
 }
 
 export interface IRepositoryTabsOverrideAppearance {
@@ -208,6 +213,7 @@ export const DefaultProfileAppearanceElementSettings: IProfileAppearanceElementS
     [ProfileAppearanceElementId.Toolbar]: {
       toolbarLabels: DefaultAppearanceCustomization.toolbarLabels,
       toolbarDensity: DefaultAppearanceCustomization.toolbarDensity,
+      toolbarTextStyle: DefaultAppearanceCustomization.toolbarTextStyle,
     },
     [ProfileAppearanceElementId.RepositoryList]: {
       repositoryListDensity:
@@ -242,6 +248,7 @@ export const DefaultRepositoryAppearanceElementSettings: IRepositoryAppearanceEl
     [RepositoryAppearanceElementId.Toolbar]: {
       toolbarLabels: null,
       toolbarDensity: null,
+      toolbarTextStyle: null,
     },
     [RepositoryAppearanceElementId.Tabs]: {
       tabDensity: null,
@@ -270,6 +277,7 @@ export function splitProfileAppearance(
     [ProfileAppearanceElementId.Toolbar]: {
       toolbarLabels: normalized.toolbarLabels,
       toolbarDensity: normalized.toolbarDensity,
+      toolbarTextStyle: normalized.toolbarTextStyle,
     },
     [ProfileAppearanceElementId.RepositoryList]: {
       repositoryListDensity: normalized.repositoryListDensity,
@@ -368,6 +376,13 @@ export function normalizeProfileAppearanceElement<
           densityPreferences,
           DefaultAppearanceCustomization.toolbarDensity
         ),
+        ...(Object.prototype.hasOwnProperty.call(source, 'toolbarTextStyle')
+          ? {
+              toolbarTextStyle: normalizeToolbarTextStyle(
+                source.toolbarTextStyle
+              ),
+            }
+          : {}),
       } as IProfileAppearanceElementSettings[K]
     case ProfileAppearanceElementId.RepositoryList:
       return {

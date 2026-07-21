@@ -23,6 +23,67 @@ not Prettier-clean. Pages `29710664112` passed and installer run `29710722904`
 skipped. The correction formats that generator without changing any generated
 SVG content; the repository-wide Prettier gate and a fresh generator run pass.
 
+## 2026-07-20 — toolbar typography and readable Releases catalog
+
+The repository-toolbar appearance owner now includes a complete, responsive
+typography surface alongside label and density controls. It supports a curated
+font family, 10–20 px title size, safe hex text color, bold, italic, underline,
+strikethrough, small caps, letter case, character spacing, text effect, and
+left/center/right alignment with a live toolbar preview. All new copy follows
+English, playful Hong Kong Cantonese, and bilingual presentation.
+
+- Profile values can return to Material theme defaults. A repository stores a
+  partial typography layer: clearing one property inherits that property from
+  the profile, while **Inherit profile** clears the complete local layer. The
+  existing toolbar owner retains its dedicated setting, History, undo, redo,
+  restore, and exact local path.
+- Legacy profile and repository toolbar documents that contain only labels and
+  density remain structurally valid. New values reuse the injection-safe tab
+  text normalizer, reject arbitrary CSS, remove unsupported background
+  highlighting, and clamp toolbar size before CSS variables reach the body.
+- Toolbar and More-surface label selectors consume only those bounded
+  variables. A stable typography signature invalidates retained width
+  measurements, so growing or shrinking text recalculates overflow instead of
+  clipping or leaving actions unnecessarily hidden.
+- The Repository Releases catalog now reserves a 420–560 px desktop list pane,
+  uses larger row and control targets, and waits until 900 px before stacking.
+  Its narrow fallback remains contained and scrollable.
+- TypeScript passes. The combined focused gate passes 66 tests across the
+  appearance model/config/coordinator/dispatcher, profile/repository editors,
+  runtime theme projection, toolbar overflow, tab startup/profile races, tab
+  interactions, and Releases style contracts. Targeted lint, formatting, and
+  diff checks and 15 Pages/wiki accessibility/catalog checks pass. A fresh
+  production build and screenshot acceptance remain with the separately owned
+  combined UI audit; this checkout did not compete for its headless/MCP window.
+
+## 2026-07-20 — tab-title appearance startup/profile-switch containment
+
+An installed `3.6.3-beta3-b0000000240` session reached the root crash boundary
+after the user right-clicked a tab title. The sanitized production log recorded
+`Tab title appearance is not initialized` from the tab-history lookup while an
+account/profile transition was rebuilding owner-scoped appearance stores.
+
+- Selected-repository tab creation now waits for both the repository-tab store
+  and the appearance coordinator. Existing tabs are rehydrated for the active
+  profile, while a new structural tab can still open safely if appearance
+  startup has not completed.
+- Tab-history/path accessors return an unavailable state instead of throwing.
+  The clicked tab—also when inactive—is initialized before its editor opens. If
+  a profile transition is still running, the editor stays closed and the live
+  status region gives localized English, playful Hong Kong Cantonese, or
+  bilingual retry guidance.
+- Async title loads are fenced by coordinator instance, active profile key,
+  tab existence, and optimistic-edit revision. A delayed result from a signed-
+  out profile therefore cannot overwrite the replacement profile or a newer
+  title edit. Newer editor requests and component teardown also invalidate an
+  earlier right-click request.
+- The focused local regression gate passes 29 tests: seven coordinator tests,
+  two runtime-wiring tests, five dedicated-tab-history/profile-race tests, and
+  fifteen repository-tab interaction tests. TypeScript, targeted ESLint with
+  the repository rules, targeted Prettier, and `git diff --check` also pass.
+  A fresh exact-source headless production build and pushed-SHA publication
+  receipts remain pending the separately owned combined UI-audit window.
+
 ## 2026-07-20 M25 — repository-bound API functions in buttons
 
 This worktree implements the user-requested functions-first GitHub API

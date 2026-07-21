@@ -5,7 +5,11 @@ import {
   getCurrentlyAppliedTheme,
 } from './lib/application-theme'
 import * as ipcRenderer from '../lib/ipc-renderer'
-import { IAppearanceCustomization } from '../models/appearance-customization'
+import {
+  IAppearanceCustomization,
+  normalizeToolbarTextStyle,
+} from '../models/appearance-customization'
+import { tabTitleStyleToCss } from '../models/repository-tab'
 import { LanguageModeChangedEvent } from '../lib/i18n'
 
 interface IAppThemeProps {
@@ -23,6 +27,7 @@ const appearanceAttributes = [
   'data-dm-motion',
   'data-dm-toolbar-labels',
   'data-dm-toolbar-density',
+  'data-dm-toolbar-typography',
   'data-dm-repository-list-density',
   'data-dm-tab-density',
   'data-dm-tab-width',
@@ -30,6 +35,21 @@ const appearanceAttributes = [
   'data-dm-language-mode',
   'data-dm-submodule-back-style',
   'data-dm-submodule-back-label',
+] as const
+
+const toolbarTypographyProperties = [
+  '--dm-toolbar-text-color',
+  '--dm-toolbar-font-family',
+  '--dm-toolbar-title-font-size',
+  '--dm-toolbar-description-font-size',
+  '--dm-toolbar-font-weight',
+  '--dm-toolbar-font-style',
+  '--dm-toolbar-text-decoration',
+  '--dm-toolbar-font-variant',
+  '--dm-toolbar-text-transform',
+  '--dm-toolbar-letter-spacing',
+  '--dm-toolbar-text-shadow',
+  '--dm-toolbar-text-align',
 ] as const
 
 /**
@@ -92,6 +112,7 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
     body.setAttribute('data-dm-motion', appearance.motion)
     body.setAttribute('data-dm-toolbar-labels', appearance.toolbarLabels)
     body.setAttribute('data-dm-toolbar-density', appearance.toolbarDensity)
+    this.applyToolbarTypography()
     body.setAttribute(
       'data-dm-repository-list-density',
       appearance.repositoryListDensity
@@ -120,6 +141,61 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
     }
   }
 
+  private applyToolbarTypography() {
+    const body = document.body
+    for (const property of toolbarTypographyProperties) {
+      body.style.removeProperty(property)
+    }
+
+    const style = normalizeToolbarTextStyle(
+      this.props.appearance.toolbarTextStyle
+    )
+    if (style === null) {
+      body.removeAttribute('data-dm-toolbar-typography')
+      return
+    }
+
+    const css = tabTitleStyleToCss(style)
+    const signature = JSON.stringify({
+      fontSize: style.fontSize,
+      color: style.color,
+      fontFamily: style.fontFamily,
+      bold: style.bold,
+      italic: style.italic,
+      underline: style.underline,
+      strikeThrough: style.strikeThrough,
+      smallCaps: style.smallCaps,
+      textCase: style.textCase,
+      characterSpacing: style.characterSpacing,
+      textEffect: style.textEffect,
+      textAlign: style.textAlign,
+    })
+    body.setAttribute('data-dm-toolbar-typography', signature)
+
+    const setProperty = (name: string, value: unknown) => {
+      if (typeof value === 'string' || typeof value === 'number') {
+        body.style.setProperty(name, String(value))
+      }
+    }
+    setProperty('--dm-toolbar-text-color', css.color)
+    setProperty('--dm-toolbar-font-family', css.fontFamily)
+    setProperty('--dm-toolbar-font-weight', css.fontWeight)
+    setProperty('--dm-toolbar-font-style', css.fontStyle)
+    setProperty('--dm-toolbar-text-decoration', css.textDecoration)
+    setProperty('--dm-toolbar-font-variant', css.fontVariant)
+    setProperty('--dm-toolbar-text-transform', css.textTransform)
+    setProperty('--dm-toolbar-letter-spacing', css.letterSpacing)
+    setProperty('--dm-toolbar-text-shadow', css.textShadow)
+    setProperty('--dm-toolbar-text-align', css.textAlign)
+    if (typeof style.fontSize === 'number') {
+      setProperty('--dm-toolbar-title-font-size', `${style.fontSize}px`)
+      setProperty(
+        '--dm-toolbar-description-font-size',
+        `${Math.max(10, style.fontSize - 3)}px`
+      )
+    }
+  }
+
   private appearanceEquals(
     left: IAppearanceCustomization,
     right: IAppearanceCustomization
@@ -134,6 +210,8 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
       left.motion === right.motion &&
       left.toolbarLabels === right.toolbarLabels &&
       left.toolbarDensity === right.toolbarDensity &&
+      JSON.stringify(normalizeToolbarTextStyle(left.toolbarTextStyle)) ===
+        JSON.stringify(normalizeToolbarTextStyle(right.toolbarTextStyle)) &&
       left.repositoryListDensity === right.repositoryListDensity &&
       left.tabDensity === right.tabDensity &&
       left.tabWidth === right.tabWidth &&
@@ -203,6 +281,9 @@ export class AppTheme extends React.PureComponent<IAppThemeProps> {
   private clearAppearance() {
     for (const attribute of appearanceAttributes) {
       document.body.removeAttribute(attribute)
+    }
+    for (const property of toolbarTypographyProperties) {
+      document.body.style.removeProperty(property)
     }
     document.documentElement.lang = 'en'
     document.documentElement.removeAttribute('data-language-mode')

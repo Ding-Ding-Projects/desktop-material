@@ -18,12 +18,24 @@ describe('repository appearance config', () => {
     const saved = await setRepositoryAppearanceOverrides(repository, {
       accentPalette: 'rose',
       toolbarDensity: 'compact',
+      toolbarTextStyle: {
+        fontFamily: 'Consolas',
+        fontSize: 18,
+        color: '#006493',
+        underline: true,
+      },
       tabWidth: 'wide',
     })
 
     assert.deepEqual(saved, {
       accentPalette: 'rose',
       toolbarDensity: 'compact',
+      toolbarTextStyle: {
+        fontFamily: 'Consolas',
+        fontSize: 18,
+        color: '#006493',
+        underline: true,
+      },
       tabWidth: 'wide',
     })
     assert.deepEqual(await getRepositoryAppearanceOverrides(repository), saved)

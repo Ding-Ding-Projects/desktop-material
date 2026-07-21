@@ -581,9 +581,11 @@ describe('TabSearchPopover', () => {
 })
 
 describe('RepositoryTab title appearance', () => {
-  it('opens the title-owned anchored editor and its independent Git history', async () => {
+  it('opens the clicked inactive title editor and its independent Git history', async () => {
     const alpha = new Repository('/work/alpha', 1, null, false)
+    const beta = new Repository('/work/beta', 2, null, false)
     let style: IRepositoryTab['titleStyle'] = null
+    const ensuredTabs = new Array<string>()
     const historySource: IVersionedStoreHistorySource = {
       getHistory: async () => ({
         entries: [],
@@ -599,11 +601,15 @@ describe('RepositoryTab title appearance', () => {
       restoreTo: async () => undefined,
     }
     const coordinator = {
+      getState: () => ({ initialized: true, activeProfileKey: 'local' }),
       flush: async () => undefined,
       ensureTabTitleElement: async (
-        _tabId: string,
+        tabId: string,
         seed: IRepositoryTab['titleStyle']
-      ) => ({ style: style ?? seed }),
+      ) => {
+        ensuredTabs.push(tabId)
+        return { style: style ?? seed }
+      },
       setTabTitleElement: async (
         _tabId: string,
         next: IRepositoryTab['titleStyle']
@@ -611,14 +617,106 @@ describe('RepositoryTab title appearance', () => {
         style = next
       },
       getTabTitleHistorySource: () => historySource,
-      getTabTitleRepositoryPath: () =>
-        'C:\\appearance-elements\\alpha-tab\\title-style',
+      getTabTitleRepositoryPath: (tabId: string) =>
+        `C:\\appearance-elements\\${tabId}\\title-style`,
+    } as unknown as ElementAppearanceCoordinator
+    const store = await createStore(
+      [makeTab('alpha-tab', alpha), makeTab('beta-tab', beta)],
+      'alpha-tab',
+      coordinator
+    )
+    ensuredTabs.length = 0
+    const dispatcher = {
+      selectRepository: () => undefined,
+      showFoldout: () => undefined,
+      setNotificationCentreOpen: () => undefined,
+    } as unknown as Dispatcher
+    const stateManager = {
+      get: () => {
+        throw new Error('status cache should not be read by the style editor')
+      },
+    } as unknown as RepositoryStateCache
+
+    render(
+      <RepositoryTabStrip
+        tabsStore={store}
+        repositories={[alpha, beta]}
+        dispatcher={dispatcher}
+        repositoryStateManager={stateManager}
+        unreadNotificationCount={0}
+        isNotificationCentreOpen={false}
+      />
+    )
+
+    const label = screen.getByText('beta')
+    assert.equal(label.classList.contains('repository-tab-label'), true)
+    fireEvent.contextMenu(label)
+
+    await waitFor(() => {
+      assert.ok(screen.getByText('Tab appearance'))
+      assert.ok(
+        screen.getByText(
+          getAppearanceRepositoryDisplayPath(
+            'C:\\appearance-elements\\beta-tab\\title-style'
+          )
+        )
+      )
+    })
+    assert.deepEqual(ensuredTabs, ['beta-tab'])
+    assert.equal(store.getState().activeTabId, 'alpha-tab')
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Open tab appearance history' })
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('dialog', { name: 'beta tab title history' }))
+    )
+    assert.ok(screen.getByText('Element-local Git history'))
+    assert.ok(screen.getByRole('button', { name: 'Undo' }))
+    assert.ok(screen.getByRole('button', { name: 'Redo' }))
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close beta tab title history' })
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close beta tab title' })
+    )
+    await waitFor(() => assert.equal(document.activeElement, label))
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: 'beta' }))
+    assert.equal(
+      screen.queryByText('Tab appearance'),
+      null,
+      'the surrounding frame keeps its tab-command context menu'
+    )
+    const contextMenuBackdrop = document.querySelector<HTMLElement>(
+      '.material-context-menu-backdrop'
+    )
+    if (contextMenuBackdrop !== null) {
+      fireEvent.mouseDown(contextMenuBackdrop)
+    }
+  })
+
+  it('guides the user instead of crashing while title appearance reloads', async () => {
+    localStorage.removeItem('language-mode-v1')
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    let initialized = true
+    const coordinator = {
+      getState: () => ({ initialized, activeProfileKey: 'local' }),
+      flush: async () => undefined,
+      ensureTabTitleElement: async (
+        _tabId: string,
+        seed: IRepositoryTab['titleStyle']
+      ) => ({ style: seed }),
+      getTabTitleHistorySource: () => null,
+      getTabTitleRepositoryPath: () => null,
     } as unknown as ElementAppearanceCoordinator
     const store = await createStore(
       [makeTab('alpha-tab', alpha)],
       'alpha-tab',
       coordinator
     )
+    initialized = false
     const dispatcher = {
       selectRepository: () => undefined,
       showFoldout: () => undefined,
@@ -641,43 +739,15 @@ describe('RepositoryTab title appearance', () => {
       />
     )
 
-    const label = screen.getByText('alpha')
-    assert.equal(label.classList.contains('repository-tab-label'), true)
-    fireEvent.contextMenu(label)
-
-    assert.ok(screen.getByText('Tab appearance'))
-    assert.ok(
-      screen.getByText(
-        getAppearanceRepositoryDisplayPath(
-          'C:\\appearance-elements\\alpha-tab\\title-style'
-        )
-      )
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Open tab appearance history' })
-    )
+    fireEvent.contextMenu(screen.getByText('alpha'))
 
     await waitFor(() =>
-      assert.ok(screen.getByRole('dialog', { name: 'alpha tab title history' }))
+      assert.equal(
+        screen.getByRole('status').textContent,
+        'Tab appearance is still loading. Try again.'
+      )
     )
-    assert.ok(screen.getByText('Element-local Git history'))
-    assert.ok(screen.getByRole('button', { name: 'Undo' }))
-    assert.ok(screen.getByRole('button', { name: 'Redo' }))
-
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Close alpha tab title history' })
-    )
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Close alpha tab title' })
-    )
-    await waitFor(() => assert.equal(document.activeElement, label))
-
-    fireEvent.contextMenu(screen.getByRole('tab', { name: 'alpha' }))
-    assert.equal(
-      screen.queryByText('Tab appearance'),
-      null,
-      'the surrounding frame keeps its tab-command context menu'
-    )
+    assert.equal(screen.queryByText('Tab appearance'), null)
   })
 })
 
@@ -797,6 +867,7 @@ describe('RepositoryTabStrip drag arrangement', () => {
     fireEvent.click(searchButton)
     const input = screen.getByRole('combobox', { name: 'Search open tabs' })
     fireEvent.change(input, { target: { value: 'beta alias' } })
+    await waitFor(() => assert.ok(screen.getByRole('option', { name: 'beta' })))
     fireEvent.keyDown(input, { key: 'Enter' })
 
     await waitFor(() => assert.equal(store.getState().activeTabId, 'beta'))

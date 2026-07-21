@@ -111,6 +111,14 @@ describe('helper side-effect surfaces', () => {
             languageMode: 'bilingual',
             submoduleBackButtonStyle: 'outlined',
             submoduleBackButtonLabel: 'icon-only',
+            toolbarTextStyle: {
+              fontFamily: 'Georgia',
+              fontSize: 20,
+              color: '#a93a5b',
+              bold: true,
+              italic: true,
+              textAlign: 'center',
+            },
             highlightDesktopMaterialFeatures: true,
           }}
         />
@@ -136,6 +144,22 @@ describe('helper side-effect surfaces', () => {
       assert.equal(
         document.body.getAttribute('data-dm-submodule-back-label'),
         'icon-only'
+      )
+      assert.match(
+        document.body.getAttribute('data-dm-toolbar-typography') ?? '',
+        /Georgia/
+      )
+      assert.equal(
+        document.body.style.getPropertyValue('--dm-toolbar-text-color'),
+        '#a93a5b'
+      )
+      assert.equal(
+        document.body.style.getPropertyValue('--dm-toolbar-title-font-size'),
+        '20px'
+      )
+      assert.match(
+        document.body.style.getPropertyValue('--dm-toolbar-font-family'),
+        /Georgia/
       )
       assert.equal(
         document.body.hasAttribute('data-dm-highlight-features'),

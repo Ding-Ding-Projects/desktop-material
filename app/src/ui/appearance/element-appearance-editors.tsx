@@ -1,6 +1,7 @@
 /* eslint-disable react/jsx-no-bind -- controlled editor callbacks capture the current owner value */
 import * as React from 'react'
 
+import { t } from '../../lib/i18n'
 import { IAppIdentityCustomization } from '../../models/app-identity'
 import {
   AccentPalette,
@@ -32,6 +33,7 @@ import {
   AppearanceEditorElementId,
   AppearanceEditorPanel,
 } from './appearance-editor-panel'
+import { ToolbarTextStyleEditor } from './toolbar-text-style-editor'
 
 export interface IControlledAppearanceEditorProps<T> {
   readonly value: T
@@ -57,7 +59,8 @@ export type ICodeDiffAppearance = Pick<
 export type IToolbarAppearance = Pick<
   IAppearanceCustomization,
   'toolbarLabels' | 'toolbarDensity'
->
+> &
+  Partial<Pick<IAppearanceCustomization, 'toolbarTextStyle'>>
 
 export type IRepositoryListAppearance = Pick<
   IAppearanceCustomization,
@@ -241,9 +244,10 @@ export function ToolbarAppearanceEditor(
   return (
     <AppearanceEditorPanel
       elementId={AppearanceEditorElementId.Toolbar}
-      title="Toolbar appearance"
-      description="Customize toolbar labels and spacing."
+      title={t('appearance.toolbarEditorTitle')}
+      description={t('appearance.toolbarEditorDescription')}
       onShowHistory={props.onShowHistory}
+      wide={true}
     >
       <div className="element-appearance-editor-grid">
         <AppearanceSelect
@@ -267,6 +271,12 @@ export function ToolbarAppearanceEditor(
           }
         />
       </div>
+      <ToolbarTextStyleEditor
+        value={props.value.toolbarTextStyle ?? null}
+        onChange={toolbarTextStyle =>
+          props.onChange({ ...props.value, toolbarTextStyle })
+        }
+      />
     </AppearanceEditorPanel>
   )
 }
@@ -512,9 +522,10 @@ export function RepositoryToolbarAppearanceEditor(
   return (
     <AppearanceEditorPanel
       elementId={AppearanceEditorElementId.RepositoryToolbar}
-      title="Repository toolbar appearance"
-      description="Override toolbar labels and spacing only while this repository is active."
+      title={t('appearance.repositoryToolbarEditorTitle')}
+      description={t('appearance.repositoryToolbarEditorDescription')}
       onShowHistory={props.onShowHistory}
+      wide={true}
     >
       <ProfileDefaultAction onEditProfileDefault={props.onEditProfileDefault} />
       <div className="element-appearance-editor-grid">
@@ -558,6 +569,14 @@ export function RepositoryToolbarAppearanceEditor(
           <option value="compact">Compact</option>
         </Select>
       </div>
+      <ToolbarTextStyleEditor
+        value={props.value.toolbarTextStyle ?? null}
+        inherited={props.inherited.toolbarTextStyle}
+        repositoryScoped={true}
+        onChange={toolbarTextStyle =>
+          props.onChange({ ...props.value, toolbarTextStyle })
+        }
+      />
     </AppearanceEditorPanel>
   )
 }

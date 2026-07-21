@@ -42,6 +42,7 @@ const originalWindowResizeObserver = (window as any).ResizeObserver
 const originalGlobalResizeObserver = globalThis.ResizeObserver
 let originalToolbarLabels: string | null = null
 let originalToolbarDensity: string | null = null
+let originalToolbarTypography: string | null = null
 let originalUIFont: string | null = null
 
 beforeEach(() => {
@@ -52,9 +53,13 @@ beforeEach(() => {
   ;(globalThis as any).ResizeObserver = ControlledResizeObserver
   originalToolbarLabels = document.body.getAttribute('data-dm-toolbar-labels')
   originalToolbarDensity = document.body.getAttribute('data-dm-toolbar-density')
+  originalToolbarTypography = document.body.getAttribute(
+    'data-dm-toolbar-typography'
+  )
   originalUIFont = document.body.getAttribute('data-dm-ui-font')
   document.body.removeAttribute('data-dm-toolbar-labels')
   document.body.removeAttribute('data-dm-toolbar-density')
+  document.body.removeAttribute('data-dm-toolbar-typography')
   document.body.removeAttribute('data-dm-ui-font')
 })
 
@@ -78,6 +83,14 @@ afterEach(() => {
     document.body.removeAttribute('data-dm-ui-font')
   } else {
     document.body.setAttribute('data-dm-ui-font', originalUIFont)
+  }
+  if (originalToolbarTypography === null) {
+    document.body.removeAttribute('data-dm-toolbar-typography')
+  } else {
+    document.body.setAttribute(
+      'data-dm-toolbar-typography',
+      originalToolbarTypography
+    )
   }
 })
 
@@ -210,6 +223,21 @@ describe('responsive toolbar overflow', () => {
     // Font changes are presentation changes too and may restore an action.
     scrollWidth = 60
     document.body.setAttribute('data-dm-ui-font', 'system')
+    await waitFor(() =>
+      assert.equal(
+        screen.queryByRole('button', { name: /More toolbar actions/ }),
+        null
+      )
+    )
+
+    // Owner-scoped typography changes also invalidate the retained width.
+    scrollWidth = 90
+    document.body.setAttribute('data-dm-toolbar-typography', '{"fontSize":20}')
+    await screen.findByRole('button', {
+      name: 'More toolbar actions (1)',
+    })
+    scrollWidth = 60
+    document.body.setAttribute('data-dm-toolbar-typography', '{"fontSize":12}')
     await waitFor(() =>
       assert.equal(
         screen.queryByRole('button', { name: /More toolbar actions/ }),

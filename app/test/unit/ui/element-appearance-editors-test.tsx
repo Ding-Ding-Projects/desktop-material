@@ -12,6 +12,7 @@ import {
   DefaultRepositoryLogoAppearanceEditor,
   FeatureHighlightingAppearanceEditor,
   RepositoryListAppearanceEditor,
+  RepositoryToolbarAppearanceEditor,
   RepositoryTabsAppearanceEditor,
   ToolbarAppearanceEditor,
   UpdateProgressAppearanceEditor,
@@ -171,5 +172,82 @@ describe('element appearance editor content', () => {
       })
     )
     assert.ok(screen.getByRole('heading', { name: 'Custom repository logo' }))
+  })
+
+  it('edits complete toolbar typography and clears repository overrides back to the profile', () => {
+    let profileValue: React.ComponentProps<
+      typeof ToolbarAppearanceEditor
+    >['value'] = {
+      toolbarLabels: 'auto' as const,
+      toolbarDensity: 'comfortable' as const,
+      toolbarTextStyle: null,
+    }
+
+    function ProfileHarness() {
+      const [value, setValue] = React.useState(profileValue)
+      return (
+        <ToolbarAppearanceEditor
+          value={value}
+          onChange={next => {
+            profileValue = next
+            setValue(next)
+          }}
+          onShowHistory={() => undefined}
+        />
+      )
+    }
+
+    const view = render(<ProfileHarness />)
+    fireEvent.change(screen.getByLabelText('Font family'), {
+      target: { value: 'Georgia' },
+    })
+    fireEvent.change(screen.getByLabelText('Font size'), {
+      target: { value: '20' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Bold' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Align center' }))
+    fireEvent.change(screen.getByLabelText('Custom text color'), {
+      target: { value: '#a93a5b' },
+    })
+
+    assert.deepEqual(profileValue.toolbarTextStyle, {
+      fontFamily: 'Georgia',
+      fontSize: 20,
+      bold: true,
+      textAlign: 'center',
+      color: '#a93a5b',
+    })
+
+    let repositoryValue: React.ComponentProps<
+      typeof RepositoryToolbarAppearanceEditor
+    >['value'] = {
+      toolbarLabels: null,
+      toolbarDensity: null,
+      toolbarTextStyle: null,
+    }
+    function RepositoryHarness() {
+      const [value, setValue] = React.useState(repositoryValue)
+      return (
+        <RepositoryToolbarAppearanceEditor
+          value={value}
+          inherited={profileValue}
+          onChange={next => {
+            repositoryValue = next
+            setValue(next)
+          }}
+          onEditProfileDefault={() => undefined}
+          onShowHistory={() => undefined}
+        />
+      )
+    }
+
+    view.rerender(<RepositoryHarness />)
+    assert.ok(screen.getByText('Inheriting profile typography'))
+    fireEvent.click(screen.getByRole('button', { name: 'Italic' }))
+    assert.deepEqual(repositoryValue.toolbarTextStyle, { italic: true })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Inherit profile', exact: true })
+    )
+    assert.equal(repositoryValue.toolbarTextStyle, null)
   })
 })

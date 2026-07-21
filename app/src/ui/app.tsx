@@ -4963,6 +4963,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       surfacePalette: workspace.surfacePalette ?? undefined,
       toolbarLabels: toolbar.toolbarLabels ?? undefined,
       toolbarDensity: toolbar.toolbarDensity ?? undefined,
+      toolbarTextStyle: toolbar.toolbarTextStyle ?? undefined,
       tabDensity: tabs.tabDensity ?? undefined,
       tabWidth: tabs.tabWidth ?? undefined,
       listNameStyle: listName.style ?? undefined,

@@ -22,6 +22,14 @@ describe('element appearance runtime wiring', () => {
       source,
       /name: 'element appearance settings',[\s\S]*?await elementAppearanceCoordinatorInitialization[\s\S]*?await elementAppearanceCoordinator\.flush\(\)/
     )
+    assert.match(
+      source,
+      /let repositoryTabsInitialized = false[\s\S]*?if \(!repositoryTabsInitialized \|\| !elementAppearanceState\.initialized\)[\s\S]*?repositoryTabsStore\.initialize\(\)[\s\S]*?repositoryTabsInitialized = true[\s\S]*?ensureSelectedRepositoryTab\(currentState\)/
+    )
+    assert.match(
+      source,
+      /lastEnsuredAppearanceProfileKey !==[\s\S]*?elementAppearanceState\.activeProfileKey[\s\S]*?lastEnsuredRepositoryId = null[\s\S]*?ensureTabForRepository\(repository\)[\s\S]*?lastEnsuredRepositoryId = null/
+    )
   })
 
   it('treats coordinator updates as canonical and rolls failed edits back', async () => {

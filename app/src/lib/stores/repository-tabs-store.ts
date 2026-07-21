@@ -271,6 +271,9 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
 
     const existing = this.state.tabs.find(t => t.repositoryId === repository.id)
     if (existing !== undefined) {
+      if (this.elementAppearanceCoordinator !== undefined) {
+        await this.reloadTabStyleFromElement(existing.id)
+      }
       if (this.state.activeTabId !== existing.id) {
         await this.persist(
           { ...this.state, activeTabId: existing.id },
@@ -288,7 +291,7 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       titleStyle: null,
       openedAt: this.now(),
     }
-    if (this.elementAppearanceCoordinator !== undefined) {
+    if (this.elementAppearanceCoordinator?.getState().initialized === true) {
       await this.elementAppearanceCoordinator.ensureTabTitleElement(
         tab.id,
         null
@@ -915,11 +918,37 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       return
     }
 
+    const coordinatorState = coordinator.getState()
+    if (!coordinatorState.initialized) {
+      return
+    }
+
+    const profileKey = coordinatorState.activeProfileKey
+    const revision = this.tabStyleRevisions.get(id) ?? 0
+
     const appearance = await coordinator.ensureTabTitleElement(
       id,
       current.titleStyle
     )
-    this.tabStyleRevisions.set(id, (this.tabStyleRevisions.get(id) ?? 0) + 1)
+
+    // A profile switch clears and recreates every dedicated tab store. Ignore
+    // a delayed result from the prior profile, or one superseded by a newer
+    // optimistic edit, instead of overlaying stale appearance into this tab.
+    const latestCoordinatorState = coordinator.getState()
+    const currentAfterInitialization = this.state.tabs.find(
+      tab => tab.id === id
+    )
+    if (
+      this.elementAppearanceCoordinator !== coordinator ||
+      !latestCoordinatorState.initialized ||
+      latestCoordinatorState.activeProfileKey !== profileKey ||
+      currentAfterInitialization === undefined ||
+      (this.tabStyleRevisions.get(id) ?? 0) !== revision
+    ) {
+      return
+    }
+
+    this.tabStyleRevisions.set(id, revision + 1)
     this.state = {
       ...this.state,
       tabs: this.state.tabs.map(tab =>
@@ -927,5 +956,37 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
       ),
     }
     this.emitUpdate(this.state)
+  }
+
+  /**
+   * Initialize the clicked tab's dedicated appearance before its editor opens.
+   * A temporary false result is expected while a profile switch is in flight.
+   */
+  public async ensureTabStyleAvailable(id: string): Promise<boolean> {
+    if (!this.state.tabs.some(tab => tab.id === id)) {
+      return false
+    }
+
+    const coordinator = this.elementAppearanceCoordinator
+    if (coordinator === undefined) {
+      return true
+    }
+
+    const coordinatorState = coordinator.getState()
+    if (!coordinatorState.initialized) {
+      return false
+    }
+
+    const profileKey = coordinatorState.activeProfileKey
+    await this.reloadTabStyleFromElement(id)
+
+    const latestCoordinatorState = coordinator.getState()
+    return (
+      this.elementAppearanceCoordinator === coordinator &&
+      latestCoordinatorState.initialized &&
+      latestCoordinatorState.activeProfileKey === profileKey &&
+      this.getTabStyleHistorySource(id) !== null &&
+      this.getTabStyleRepositoryPath(id) !== null
+    )
   }
 }

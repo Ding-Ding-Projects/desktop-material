@@ -29,6 +29,7 @@ import {
   repositoryTabStatusRank,
   visibleTabLabel,
 } from './tab-action-helpers'
+import { t } from '../../lib/i18n'
 
 interface IRepositoryTabStripProps {
   readonly tabsStore: RepositoryTabsStore
@@ -58,6 +59,7 @@ export class RepositoryTabStrip extends React.Component<
 > {
   private disposable: Disposable | null = null
   private readonly stripRef = React.createRef<HTMLDivElement>()
+  private styleEditorRequest = 0
 
   public constructor(props: IRepositoryTabStripProps) {
     super(props)
@@ -81,6 +83,7 @@ export class RepositoryTabStrip extends React.Component<
   }
 
   public componentWillUnmount() {
+    this.styleEditorRequest++
     this.disposable?.dispose()
     this.disposable = null
   }
@@ -219,6 +222,7 @@ export class RepositoryTabStrip extends React.Component<
   }
 
   private onStyleEditorClose = () => {
+    this.styleEditorRequest++
     this.setState({ styleEditorTabId: null, styleEditorAnchor: null })
   }
 
@@ -229,8 +233,37 @@ export class RepositoryTabStrip extends React.Component<
       : this.props.tabsStore.reloadTabStyleFromElement(styleEditorTabId)
   }
 
-  private openStyleEditor = (tab: IRepositoryTab, anchor: HTMLElement) => {
-    this.setState({ styleEditorTabId: tab.id, styleEditorAnchor: anchor })
+  private openStyleEditor = async (
+    tab: IRepositoryTab,
+    anchor: HTMLElement
+  ): Promise<void> => {
+    const request = ++this.styleEditorRequest
+    this.setState({
+      styleEditorTabId: null,
+      styleEditorAnchor: null,
+      announcement: '',
+    })
+
+    try {
+      const available = await this.props.tabsStore.ensureTabStyleAvailable(
+        tab.id
+      )
+      if (request !== this.styleEditorRequest || !anchor.isConnected) {
+        return
+      }
+
+      if (!available) {
+        this.setState({ announcement: t('tabs.appearanceLoading') })
+        return
+      }
+
+      this.setState({ styleEditorTabId: tab.id, styleEditorAnchor: anchor })
+    } catch (error) {
+      log.error('Failed to initialize tab appearance', error)
+      if (request === this.styleEditorRequest && anchor.isConnected) {
+        this.setState({ announcement: t('tabs.appearanceLoading') })
+      }
+    }
   }
 
   private onContextMenu = (

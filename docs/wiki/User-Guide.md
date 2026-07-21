@@ -431,6 +431,12 @@ route. Right-click the actual repository-list name for Word-style typography or 
 the safe vector studio. A repository can inherit the profile owner; **Edit profile default** keeps
 that profile editor anchored beside the same real logo.
 
+The toolbar editor includes text color, curated font family, 10–20 px title size, bold, italic,
+underline, strikethrough, small caps, case, character spacing, text effects, alignment, and a live
+toolbar preview. Profile controls can return to the Material theme. A repository stores only the
+properties it changes, so individual controls can inherit the profile or **Inherit profile** can
+clear the complete local typography layer.
+
 A local `desktop-material.appearance-id` UUID identifies the working copy across path moves. Each
 workspace, toolbar, tabs, list-name, and logo value still owns a separate local Git repository. The
 old aggregate `desktop-material.appearance` payload is read only as a migration/startup compatibility
@@ -451,7 +457,9 @@ Logo JSON is capped at 16 KiB, text and layer counts are bounded, and every valu
 the supported model. The studio never stores uploaded image bytes, HTML, or executable/raw SVG.
 Tabs and repository-list rows render only the app's code-generated SVG projection. Right-click an
 actual tab title for its own typography/color editor, dedicated repository, and history; structural
-tab state remains separate.
+tab state remains separate. Desktop Material initializes the clicked title before opening its editor.
+If an account/profile transition is still rebuilding that title owner, the editor stays closed and a
+localized status asks you to try again instead of taking down the app window.
 
 ![Layered custom repository-logo studio with a live preview and safe vector controls](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-repository-logo-studio.png)
 
@@ -876,6 +884,8 @@ live Windows x64 proof below shows the resulting searchable, collapsible log vie
 Open **Releases** from the repository rail to work with the selected GitHub repository without
 losing its account context. The dashboard summarizes the releases currently loaded, including
 stable, prerelease, and draft counts, combined asset/download totals, and the latest stable release.
+The desktop catalog uses a wider 420–560 px pane and larger rows and controls; below 900 px it
+stacks above the detail pane instead of squeezing text.
 
 - Search the loaded catalog with fuzzy, substring, or regular-expression matching, optionally
   case-sensitive, and combine it with the **Published**, **Pre-release**, or **Draft** status filter.
