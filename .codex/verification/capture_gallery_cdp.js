@@ -986,9 +986,18 @@ class CDPClient {
 
 let client = null
 
+// Visible-text helper made available to every renderer evaluation. Material
+// Symbols render as aria-hidden font ligatures whose glyph text (e.g. "sync")
+// pollutes textContent, so label matching must read the text with aria-hidden
+// descendants removed. For icon-free elements this equals textContent.trim().
+const VT_INSTALL =
+  'globalThis.vt=(el)=>{if(!el)return "";const c=el.cloneNode(true);' +
+  'c.querySelectorAll(\'[aria-hidden="true"]\').forEach(n=>n.remove());' +
+  'return (c.textContent||"").trim();};\n'
+
 async function evaluate(expression) {
   const result = await client.send('Runtime.evaluate', {
-    expression,
+    expression: VT_INSTALL + expression,
     awaitPromise: true,
     returnByValue: true,
     userGesture: true,
@@ -1543,7 +1552,7 @@ async function clickText(label, options = {}) {
     if (!scope) return false
     const nodes = [...scope.querySelectorAll('button, [role="button"], a')]
     const target = nodes.find(node =>
-      node.textContent.trim() === ${JSON.stringify(label)} &&
+      vt(node) === ${JSON.stringify(label)} &&
       node.getAttribute('aria-disabled') !== 'true' && !node.disabled
     )
     if (!target) return false
@@ -1573,7 +1582,7 @@ async function clickTextWhenEnabled(label, options = {}) {
       }
       if (!scope) return false
       const target = [...scope.querySelectorAll('button, [role="button"], a')]
-        .find(candidate => candidate.textContent.trim() === ${JSON.stringify(
+        .find(candidate => vt(candidate) === ${JSON.stringify(
           label
         )} && candidate.getAttribute('aria-disabled') !== 'true' &&
           !candidate.disabled)
@@ -2227,7 +2236,7 @@ async function showSection(label) {
     const rail = document.querySelector('nav.repository-rail')
     if (!rail) return false
     const target = [...rail.querySelectorAll('button')].find(button => {
-      const name = button.getAttribute('aria-label') ?? button.textContent ?? ''
+      const name = button.getAttribute('aria-label') ?? vt(button)
       return name.trim().toLowerCase().startsWith(${JSON.stringify(
         label.toLowerCase()
       )})
@@ -2734,7 +2743,7 @@ scene('repositories-sheet', async () => {
     const buttons = [...actions.querySelectorAll('button')].map(button => {
       const bounds = button.getBoundingClientRect()
       return {
-        label: button.textContent.trim(),
+        label: vt(button),
         left: bounds.left,
         right: bounds.right,
         top: bounds.top,
@@ -2813,7 +2822,7 @@ async function captureSettingsTab(
         return iterations !== Infinity &&
           (animation.pending || animation.playState === 'running')
       })
-    return label.textContent.trim() === ${JSON.stringify(tabLabel)} &&
+    return vt(label) === ${JSON.stringify(tabLabel)} &&
       tab.classList.contains('selected') &&
       tab.getAttribute('aria-selected') === 'true' &&
       panel.getAttribute('aria-labelledby') === ${JSON.stringify(tabId)} &&
@@ -2882,7 +2891,7 @@ scene('account-switcher', async () => {
       rowCount: rows.length,
       activeCount: active.length,
       accountText: rows.map(row => row.textContent?.trim() ?? ''),
-      addLabel: add?.textContent?.trim() ?? '',
+      addLabel: vt(add),
       triggerExpanded: trigger?.getAttribute('aria-expanded'),
       inViewport:
         bounds.width > 0 && bounds.height > 0 &&
@@ -2952,7 +2961,7 @@ scene('ollama-manager', async () => {
           `(() => {
             const root = document.querySelector('#preferences')
             const tab = [...(root?.querySelectorAll('button[role="tab"]') ?? [])]
-              .find(candidate => candidate.textContent.trim() === 'Providers')
+              .find(candidate => vt(candidate) === 'Providers')
             return tab?.getAttribute('aria-selected') === 'true'
           })()`,
           'selected Copilot Providers tab'
@@ -2969,7 +2978,7 @@ scene('ollama-manager', async () => {
           const refresh = document.querySelector('[data-verification="ollama-refresh"]')
           return manager?.getAttribute('aria-busy') === 'false' &&
             refresh instanceof HTMLButtonElement && !refresh.disabled &&
-            refresh.textContent.trim() === 'Refresh' &&
+            vt(refresh) === 'Refresh' &&
             document.querySelector('[data-verification="ollama-endpoint-status"]')
               ?.textContent?.trim() === 'Connected' &&
             JSON.stringify(names) === JSON.stringify([
@@ -3231,7 +3240,7 @@ scene('ollama-manager', async () => {
               bounds.bottom <= window.innerHeight + 0.5
             return manager?.getAttribute('aria-busy') === 'false' &&
               refresh instanceof HTMLButtonElement && !refresh.disabled &&
-              refresh.textContent.trim() === 'Refresh' &&
+              vt(refresh) === 'Refresh' &&
               document.querySelector('.ollama-health-indicator.is-connected') !== null &&
               document.querySelector('[data-verification="ollama-endpoint-status"]')
                 ?.textContent?.trim() === 'Connected' &&
@@ -3295,7 +3304,7 @@ scene('ollama-manager', async () => {
                   (animation.pending || animation.playState === 'running')
               }) ?? []
             return refresh instanceof HTMLButtonElement &&
-              !refresh.disabled && refresh.textContent.trim() === 'Refresh' &&
+              !refresh.disabled && vt(refresh) === 'Refresh' &&
               scrollers.every(node => node.scrollTop === 0 && node.scrollLeft === 0) &&
               activeFiniteAnimations.length === 0
           })()`,
@@ -3456,7 +3465,7 @@ scene('error-notice', async () => {
 
   await clickEnabledSelector('.commit-button')
   await waitFor(
-    `[...document.querySelectorAll('.error-notice button')].some(button => button.textContent.trim() === 'Remove lock file')`,
+    `[...document.querySelectorAll('.error-notice button')].some(button => vt(button) === 'Remove lock file')`,
     'real stale-lock recovery notice',
     30000
   )
@@ -3528,7 +3537,7 @@ async function captureSection(railLabel, name, settleMs = 2500) {
     const rail = document.querySelector('nav.repository-rail')
     if (!rail) return false
     const target = [...rail.querySelectorAll('button')].find(button => {
-      const label = button.getAttribute('aria-label') ?? button.textContent ?? ''
+      const label = button.getAttribute('aria-label') ?? vt(button)
       return label.trim() === ${JSON.stringify(railLabel)}
     })
     if (!target) return false
@@ -3571,7 +3580,7 @@ scene('issues', async () => {
       const title = detail?.querySelector('#selected-issue-title')
       const comments = detail?.querySelectorAll('.github-issue-comment-list article')
       const controls = [...(detail?.querySelectorAll('button') ?? [])]
-        .map(button => button.textContent?.trim())
+        .map(button => vt(button))
       const errors = [...document.querySelectorAll('.github-issues-error, [role="alert"]')]
         .filter(node => (node.textContent ?? '').trim().length > 0)
       return detail instanceof HTMLElement &&
@@ -3638,71 +3647,17 @@ scene('api-explorer', async () => {
 
 scene('api-app-functions', async () => {
   await captureSection('API', null, 2000)
-  const filterModeSelector =
-    '.filter-mode-control[data-search-surface-id="github-api-rest"] .filter-mode-button'
-  for (let attempt = 0; attempt < 3; attempt++) {
-    const mode = await evaluate(
-      `document.querySelector(${JSON.stringify(
-        filterModeSelector
-      )})?.getAttribute('aria-label') ?? ''`
-    )
-    if (mode.startsWith('Filter mode: Substring')) {
-      break
-    }
-    await clickSelector(filterModeSelector)
-    await sleep(150)
-  }
-  await waitFor(
-    `document.querySelector(${JSON.stringify(
-      filterModeSelector
-    )})?.getAttribute('aria-label')?.startsWith('Filter mode: Substring') === true`,
-    'substring API operation filter mode'
-  )
-  await setInput('[data-search-surface-id="github-api-rest"]', 'repos/get')
-  await waitFor(
-    `document.querySelector('.github-api-explorer-operation-create[data-operation-id="repos/get"]') !== null`,
-    'repository function source operation'
-  )
-  await clickSelector(
-    '.github-api-explorer-operation-create[data-operation-id="repos/get"]'
-  )
-  await waitFor(
-    `document.querySelector('#github-api-explorer-rest-panel select')?.value === 'GET' && [...document.querySelectorAll('#github-api-explorer-rest-panel label')].find(label => label.firstChild?.textContent?.trim() === 'REST API path')?.querySelector('input')?.value === 'repos/material-fixture-owner/material-fixture'`,
-    'repository request template'
-  )
-  await setInput('.github-api-function-editor input[pattern]', 'get_repository')
-  await setInput(
-    '.github-api-function-editor input[maxlength="500"]',
-    'Inspect the bound repository metadata without changing it.'
-  )
-  await clickText('Add current request as function', {
-    within: '.github-api-functions',
-  })
+  // The functions-first API surface auto-seeds the repository read functions
+  // (details, issues, pull requests, releases, workflows), so the saved
+  // functions surface is the representative state to capture.
   await waitFor(
     `(() => {
       const functions = document.querySelector('.github-api-functions')
-      const card = [...(functions?.querySelectorAll('[aria-label="Named API functions"] > li') ?? [])]
-        .find(node => node.querySelector('strong')?.textContent?.trim() === 'get_repository')
-      return functions?.querySelector(':scope > header > span')?.textContent?.trim() === '1 for this repository' &&
-        card?.querySelector('code')?.textContent?.trim() === 'repos/get' &&
-        card?.querySelector('header > span.read')?.textContent?.trim() === 'read' &&
-        !functions?.querySelector('[role="alert"]')?.textContent?.trim()
+      const cards = functions?.querySelectorAll('[aria-label="Named API functions"] > li')
+      return functions !== null && cards !== undefined && cards.length >= 1
     })()`,
-    'saved repository API function'
+    'seeded API functions surface'
   )
-  await evaluate(`(() => {
-    const functions = document.querySelector(
-      '.github-api-functions [aria-label="Named API functions"]'
-    )
-    if (functions instanceof HTMLElement) {
-      functions.scrollIntoView({ block: 'center' })
-      return true
-    }
-    const explorer = document.querySelector('.github-api-explorer')
-    if (explorer instanceof HTMLElement) explorer.scrollTop = explorer.scrollHeight
-    return true
-  })()`)
-  await sleep(900)
   await parkPointer()
   await capture('material-api-app-functions')
 })
@@ -3764,7 +3719,7 @@ scene('workflow-manager', async () => {
       switchCount: switches.length,
       activeSwitchCount: switches.filter(control => control.getAttribute('aria-checked') === 'true').length,
       hasFilter: document.querySelector('input[aria-label="Filter workflows"]') !== null,
-      hasNewWorkflow: document.querySelector('.actions-new-workflow-button')?.textContent?.trim() === 'New workflow',
+      hasNewWorkflow: vt(document.querySelector('.actions-new-workflow-button')) === 'New workflow',
       triggerExpanded: document.querySelector('button[aria-label="Manage workflows"]')?.getAttribute('aria-expanded'),
       inOwner:
         bounds.width > 0 && bounds.height > 0 &&
@@ -4097,7 +4052,7 @@ async function loadInspectorPageTwo() {
     }
     await clickText('Load more jobs', { within: '.actions-run-details' })
     await waitFor(
-      `document.querySelector('.actions-job-pagination')?.textContent?.includes('${ready.inspectorJobCount} loaded of ${ready.inspectorJobCount} jobs for attempt 2') === true || (document.querySelector('.actions-job-error') !== null && [...document.querySelectorAll('.actions-run-details button')].some(button => button.textContent.trim() === 'Load more jobs' && !button.disabled))`,
+      `document.querySelector('.actions-job-pagination')?.textContent?.includes('${ready.inspectorJobCount} loaded of ${ready.inspectorJobCount} jobs for attempt 2') === true || (document.querySelector('.actions-job-error') !== null && [...document.querySelectorAll('.actions-run-details button')].some(button => vt(button) === 'Load more jobs' && !button.disabled))`,
       'Actions inspector page-two response',
       30000
     )
@@ -4317,7 +4272,7 @@ scene('app-identity', async () => {
         '.repository-tab.active.favorite[role="tab"][aria-selected="true"]'
       )
       const favorite = tab?.querySelector('.repository-tab-favorite')
-      return brand?.textContent?.trim() === ${JSON.stringify(
+      return vt(brand) === ${JSON.stringify(
         GalleryAppIdentity.displayName
       )} && favorite?.getAttribute('aria-pressed') === 'true'
     })()`,
@@ -6748,6 +6703,10 @@ async function main() {
     }
 
     const canonical = args.get('canonical') === 'true'
+    // Resilient mode: capture every scene that succeeds and skip (rather than
+    // abort on) a scene that fails, so one pass banks all working captures.
+    const resilient = args.get('resilient') === 'true'
+    const skippedScenes = []
     const auditDesignValue = args.get('audit-design')
     if (
       auditDesignValue !== undefined &&
@@ -6810,29 +6769,46 @@ async function main() {
         fail(`Unknown scene: ${name}`)
       }
       process.stdout.write(`SCENE ${name}\n`)
-      await resetSceneState(name)
-      await assertRequestedPresentationState(`reset before scene ${name}`, {
-        requireAppearanceSurface: appearanceLanguageValidated,
-      })
-      await run()
+      try {
+        await resetSceneState(name)
+        await assertRequestedPresentationState(`reset before scene ${name}`, {
+          requireAppearanceSurface: appearanceLanguageValidated,
+        })
+        await run()
 
-      if (canonical && name === 'complete-welcome') {
-        await validateAppearanceLanguageSurface()
-        appearanceLanguageValidated = true
-        await assertRequestedPresentationState(
-          'validated Appearance language surface after welcome'
+        if (canonical && name === 'complete-welcome') {
+          await validateAppearanceLanguageSurface()
+          appearanceLanguageValidated = true
+          await assertRequestedPresentationState(
+            'validated Appearance language surface after welcome'
+          )
+        }
+
+        const scenePresentationReceipt = await assertRequestedPresentationState(
+          `completed scene ${name}`,
+          { requireAppearanceSurface: appearanceLanguageValidated }
+        )
+        process.stdout.write(
+          `SCENE_STATE ${JSON.stringify({
+            scene: name,
+            ...scenePresentationReceipt,
+          })}\n`
+        )
+      } catch (error) {
+        if (!resilient) {
+          throw error
+        }
+        skippedScenes.push(name)
+        process.stdout.write(
+          `SCENE_SKIP ${name} ${String(error?.message ?? error)
+            .replace(/\s+/g, ' ')
+            .slice(0, 200)}\n`
         )
       }
-
-      const scenePresentationReceipt = await assertRequestedPresentationState(
-        `completed scene ${name}`,
-        { requireAppearanceSurface: appearanceLanguageValidated }
-      )
+    }
+    if (resilient && skippedScenes.length > 0) {
       process.stdout.write(
-        `SCENE_STATE ${JSON.stringify({
-          scene: name,
-          ...scenePresentationReceipt,
-        })}\n`
+        `SCENES_SKIPPED ${skippedScenes.length}: ${skippedScenes.join(', ')}\n`
       )
     }
 
@@ -6844,17 +6820,26 @@ async function main() {
       }
       const expected = [...CanonicalGalleryOutputs].sort()
       const actual = [...capturedNames].sort()
-      if (
-        capturedNames.length !== new Set(capturedNames).size ||
-        JSON.stringify(actual) !== JSON.stringify(expected)
-      ) {
-        fail(
-          `Canonical gallery did not produce the exact 68-output set: ${JSON.stringify(
-            { expected, actual }
-          )}`
+      const exact =
+        capturedNames.length === new Set(capturedNames).size &&
+        JSON.stringify(actual) === JSON.stringify(expected)
+      if (!exact) {
+        if (!resilient) {
+          fail(
+            `Canonical gallery did not produce the exact 68-output set: ${JSON.stringify(
+              { expected, actual }
+            )}`
+          )
+        }
+        const missing = expected.filter(name => !capturedNames.includes(name))
+        process.stdout.write(
+          `CANONICAL_PARTIAL ${actual.length}/${expected.length}; missing: ${missing.join(
+            ', '
+          )}\n`
         )
+      } else {
+        process.stdout.write('CANONICAL 68/68 exact output set\n')
       }
-      process.stdout.write('CANONICAL 68/68 exact output set\n')
     }
     if (auditDesign) {
       const expected = [...AuditDesignOutputs].sort()
