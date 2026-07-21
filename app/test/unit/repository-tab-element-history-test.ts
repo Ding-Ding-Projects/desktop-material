@@ -9,6 +9,7 @@ import { ElementAppearanceCoordinator } from '../../src/lib/stores/element-appea
 import { ProfileStore } from '../../src/lib/stores/profile-store'
 import { RepositoryTabsStore } from '../../src/lib/stores/repository-tabs-store'
 import { IProfileTabsState } from '../../src/models/repository-tab'
+import { Repository } from '../../src/models/repository'
 import { createTempDirectory } from '../helpers/temp'
 
 function profileWithTabs(
@@ -161,5 +162,134 @@ describe('RepositoryTabsStore dedicated appearance history', () => {
       bold: true,
       color: '#123456',
     })
+  })
+
+  it('rehydrates an existing tab after its appearance profile changes', async t => {
+    localStorage.clear()
+    const root = await createTempDirectory(t)
+    const initial: IProfileTabsState = {
+      tabs: [
+        {
+          id: 'profile-tab',
+          repositoryId: 7,
+          repositoryPath: 'C:\\work\\profile-tab',
+          customLabel: null,
+          titleStyle: { bold: true },
+        },
+      ],
+      activeTabId: 'profile-tab',
+    }
+    const profile = profileWithTabs(initial, [])
+    const firstCoordinator = new ElementAppearanceCoordinator(profile)
+    await firstCoordinator.initialize(join(root, 'appearance-elements-first'))
+    const store = new RepositoryTabsStore(
+      profile,
+      'primary',
+      Date.now,
+      firstCoordinator
+    )
+    await store.initialize()
+    assert.notEqual(store.getTabStyleHistorySource('profile-tab'), null)
+
+    const replacementRoot = join(root, 'appearance-elements-replacement')
+    const replacementSeedCoordinator = new ElementAppearanceCoordinator(profile)
+    await replacementSeedCoordinator.initialize(replacementRoot)
+    await replacementSeedCoordinator.ensureTabTitleElement('profile-tab', {
+      italic: true,
+    })
+    await replacementSeedCoordinator.flush()
+
+    const replacementCoordinator = new ElementAppearanceCoordinator(profile)
+    await replacementCoordinator.initialize(replacementRoot)
+    Reflect.set(store, 'elementAppearanceCoordinator', replacementCoordinator)
+    assert.equal(store.getTabStyleHistorySource('profile-tab'), null)
+    assert.equal(store.getTabStyleRepositoryPath('profile-tab'), null)
+
+    await store.ensureTabForRepository(
+      new Repository('C:\\work\\profile-tab', 7, null, false)
+    )
+
+    assert.notEqual(store.getTabStyleHistorySource('profile-tab'), null)
+    assert.notEqual(store.getTabStyleRepositoryPath('profile-tab'), null)
+    assert.deepEqual(store.getActiveTab()?.titleStyle, { italic: true })
+  })
+
+  it('ignores a delayed title load from the previous appearance profile', async () => {
+    localStorage.clear()
+    const initial: IProfileTabsState = {
+      tabs: [
+        {
+          id: 'race-tab',
+          repositoryId: 9,
+          repositoryPath: 'C:\\work\\race-tab',
+          customLabel: null,
+          titleStyle: null,
+        },
+      ],
+      activeTabId: 'race-tab',
+    }
+    const profile = profileWithTabs(initial, [])
+    let profileKey = 'profile-a'
+    let delayNextLoad = false
+    let releaseLoad: ((value: { style: { bold: true } }) => void) | null = null
+    const coordinator = {
+      getState: () => ({ initialized: true, activeProfileKey: profileKey }),
+      flush: async () => undefined,
+      ensureTabTitleElement: async () => {
+        if (!delayNextLoad) {
+          return { style: null }
+        }
+        return new Promise<{ style: { bold: true } }>(resolve => {
+          releaseLoad = resolve
+        })
+      },
+      getTabTitleHistorySource: () => null,
+      getTabTitleRepositoryPath: () => null,
+    } as unknown as ElementAppearanceCoordinator
+    const store = new RepositoryTabsStore(
+      profile,
+      'primary',
+      Date.now,
+      coordinator
+    )
+    await store.initialize()
+
+    delayNextLoad = true
+    const reload = store.reloadTabStyleFromElement('race-tab')
+    profileKey = 'profile-b'
+    assert.notEqual(releaseLoad, null)
+    releaseLoad!({ style: { bold: true } })
+    await reload
+
+    assert.equal(store.getActiveTab()?.titleStyle, null)
+  })
+
+  it('opens a structural tab safely while appearance startup is pending', async () => {
+    localStorage.clear()
+    const profile = profileWithTabs({ tabs: [], activeTabId: null }, [])
+    let ensureCalls = 0
+    const coordinator = {
+      getState: () => ({ initialized: false, activeProfileKey: 'local' }),
+      flush: async () => undefined,
+      ensureTabTitleElement: async () => {
+        ensureCalls++
+        throw new Error('appearance startup is pending')
+      },
+    } as unknown as ElementAppearanceCoordinator
+    const store = new RepositoryTabsStore(
+      profile,
+      'primary',
+      Date.now,
+      coordinator
+    )
+    await store.initialize()
+
+    await store.ensureTabForRepository(
+      new Repository('C:\\work\\startup-tab', 12, null, false)
+    )
+
+    assert.equal(ensureCalls, 0)
+    assert.equal(store.getActiveTab()?.repositoryId, 12)
+    assert.equal(store.getActiveTab()?.titleStyle, null)
   })
 })

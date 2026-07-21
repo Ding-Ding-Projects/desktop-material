@@ -195,31 +195,36 @@ describe('ElementAppearanceCoordinator', () => {
       /stable bounded id/
     )
 
+    assert.equal(coordinator.getTabTitleHistorySource('tab-alpha'), null)
+    assert.equal(coordinator.getTabTitleRepositoryPath('tab-alpha'), null)
+
     await coordinator.ensureTabTitleElement('tab-alpha', { bold: true })
     await coordinator.ensureTabTitleElement('../../tab-beta', { italic: true })
     const alphaTabPath = coordinator.getTabTitleRepositoryPath('tab-alpha')
     const betaTabPath = coordinator.getTabTitleRepositoryPath('../../tab-beta')
+    assert.notEqual(alphaTabPath, null)
+    assert.notEqual(betaTabPath, null)
     assert.notEqual(alphaTabPath, betaTabPath)
-    assertPathIsWithin(root, alphaTabPath)
-    assertPathIsWithin(root, betaTabPath)
-    assert.deepEqual((await readSetting(alphaTabPath)).value, {
+    assertPathIsWithin(root, alphaTabPath!)
+    assertPathIsWithin(root, betaTabPath!)
+    assert.deepEqual((await readSetting(alphaTabPath!)).value, {
       style: { bold: true },
     })
-    assert.deepEqual((await readSetting(betaTabPath)).value, {
+    assert.deepEqual((await readSetting(betaTabPath!)).value, {
       style: { italic: true },
     })
 
     await coordinator.setTabTitleElement('tab-alpha', { underline: true })
     await coordinator.flush()
     assert.equal(
-      (await coordinator.getTabTitleHistorySource('tab-alpha').getHistory())
+      (await coordinator.getTabTitleHistorySource('tab-alpha')!.getHistory())
         .total,
       2
     )
     assert.equal(
       (
         await coordinator
-          .getTabTitleHistorySource('../../tab-beta')
+          .getTabTitleHistorySource('../../tab-beta')!
           .getHistory()
       ).total,
       1
@@ -263,7 +268,7 @@ describe('ElementAppearanceCoordinator', () => {
       true
     )
     assert.equal(
-      (await coordinator.getTabTitleHistorySource('shared-tab').getHistory())
+      (await coordinator.getTabTitleHistorySource('shared-tab')!.getHistory())
         .total,
       1
     )
@@ -444,6 +449,12 @@ describe('ElementAppearanceCoordinator', () => {
       repository,
       RepositoryAppearanceElementId.Workspace
     )
+    await first.setRepositoryElement(
+      repository,
+      RepositoryAppearanceElementId.Toolbar,
+      { toolbarLabels: 'icons', toolbarDensity: 'compact' }
+    )
+    await first.flush()
 
     await writeFile(
       join(profilePath, 'setting.json'),
@@ -453,7 +464,7 @@ describe('ElementAppearanceCoordinator', () => {
       })
     )
     await writeFile(
-      join(tabPath, 'setting.json'),
+      join(tabPath!, 'setting.json'),
       JSON.stringify({ version: 1, value: { style: { fontSize: 'huge' } } })
     )
     await writeFile(
@@ -478,6 +489,12 @@ describe('ElementAppearanceCoordinator', () => {
         RepositoryAppearanceElementId.Workspace
       ],
       { accentPalette: 'violet', surfacePalette: 'neutral' }
+    )
+    assert.deepEqual(
+      (await reopened.ensureRepositoryElements(repository, {}))[
+        RepositoryAppearanceElementId.Toolbar
+      ],
+      { toolbarLabels: 'icons', toolbarDensity: 'compact' }
     )
   })
 

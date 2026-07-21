@@ -18,6 +18,52 @@ export type TranslationKey =
   | 'appearance.languageAndNavigation'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
+  | 'appearance.toolbarEditorTitle'
+  | 'appearance.toolbarEditorDescription'
+  | 'appearance.repositoryToolbarEditorTitle'
+  | 'appearance.repositoryToolbarEditorDescription'
+  | 'appearance.toolbarTypographyHeading'
+  | 'appearance.toolbarTypographyProfile'
+  | 'appearance.toolbarTypographyRepositoryInherited'
+  | 'appearance.toolbarTypographyRepositoryOverride'
+  | 'appearance.toolbarTypographyThemeDefaults'
+  | 'appearance.toolbarTypographyInheritProfile'
+  | 'appearance.toolbarTypographyPreview'
+  | 'appearance.toolbarTypographyPreviewTitle'
+  | 'appearance.toolbarTypographyPreviewDescription'
+  | 'appearance.toolbarFontStyle'
+  | 'appearance.toolbarBold'
+  | 'appearance.toolbarItalic'
+  | 'appearance.toolbarUnderline'
+  | 'appearance.toolbarStrikethrough'
+  | 'appearance.toolbarAlignment'
+  | 'appearance.toolbarAlignLeft'
+  | 'appearance.toolbarAlignCenter'
+  | 'appearance.toolbarAlignRight'
+  | 'appearance.toolbarFont'
+  | 'appearance.toolbarThemeFont'
+  | 'appearance.toolbarInheritFont'
+  | 'appearance.toolbarSize'
+  | 'appearance.toolbarThemeSize'
+  | 'appearance.toolbarInheritSize'
+  | 'appearance.toolbarLetterCase'
+  | 'appearance.toolbarNormalCase'
+  | 'appearance.toolbarUppercase'
+  | 'appearance.toolbarLowercase'
+  | 'appearance.toolbarCapitalize'
+  | 'appearance.toolbarSmallCaps'
+  | 'appearance.toolbarSpacing'
+  | 'appearance.toolbarThemeSpacing'
+  | 'appearance.toolbarInheritSpacing'
+  | 'appearance.toolbarTextEffect'
+  | 'appearance.toolbarNoEffect'
+  | 'appearance.toolbarSoftShadow'
+  | 'appearance.toolbarStrongShadow'
+  | 'appearance.toolbarTextColor'
+  | 'appearance.toolbarThemeColor'
+  | 'appearance.toolbarInheritColor'
+  | 'appearance.toolbarCustomColor'
+  | 'tabs.appearanceLoading'
   | 'language.english'
   | 'language.cantonese'
   | 'language.bilingual'
@@ -828,6 +874,55 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.languageAndNavigation': 'Language',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
+  'appearance.toolbarEditorTitle': 'Toolbar appearance',
+  'appearance.toolbarEditorDescription':
+    'Customize toolbar labels, spacing, text color, and typography.',
+  'appearance.repositoryToolbarEditorTitle': 'Repository toolbar appearance',
+  'appearance.repositoryToolbarEditorDescription':
+    'Override labels, spacing, text color, and typography while this repository is active.',
+  'appearance.toolbarTypographyHeading': 'Toolbar typography',
+  'appearance.toolbarTypographyProfile': 'Profile customization',
+  'appearance.toolbarTypographyRepositoryInherited':
+    'Inheriting profile typography',
+  'appearance.toolbarTypographyRepositoryOverride': 'Repository override',
+  'appearance.toolbarTypographyThemeDefaults': 'Use theme defaults',
+  'appearance.toolbarTypographyInheritProfile': 'Inherit profile',
+  'appearance.toolbarTypographyPreview': 'Live toolbar preview',
+  'appearance.toolbarTypographyPreviewTitle': 'Current repository',
+  'appearance.toolbarTypographyPreviewDescription': 'Current branch',
+  'appearance.toolbarFontStyle': 'Font style',
+  'appearance.toolbarBold': 'Bold',
+  'appearance.toolbarItalic': 'Italic',
+  'appearance.toolbarUnderline': 'Underline',
+  'appearance.toolbarStrikethrough': 'Strikethrough',
+  'appearance.toolbarAlignment': 'Text alignment',
+  'appearance.toolbarAlignLeft': 'Align left',
+  'appearance.toolbarAlignCenter': 'Align center',
+  'appearance.toolbarAlignRight': 'Align right',
+  'appearance.toolbarFont': 'Font family',
+  'appearance.toolbarThemeFont': 'Use theme font',
+  'appearance.toolbarInheritFont': 'Inherit profile font',
+  'appearance.toolbarSize': 'Font size',
+  'appearance.toolbarThemeSize': 'Use theme size',
+  'appearance.toolbarInheritSize': 'Inherit profile size',
+  'appearance.toolbarLetterCase': 'Letter case',
+  'appearance.toolbarNormalCase': 'Normal case',
+  'appearance.toolbarUppercase': 'Uppercase',
+  'appearance.toolbarLowercase': 'Lowercase',
+  'appearance.toolbarCapitalize': 'Capitalize words',
+  'appearance.toolbarSmallCaps': 'Small caps',
+  'appearance.toolbarSpacing': 'Character spacing',
+  'appearance.toolbarThemeSpacing': 'Use theme spacing',
+  'appearance.toolbarInheritSpacing': 'Inherit profile spacing',
+  'appearance.toolbarTextEffect': 'Text effect',
+  'appearance.toolbarNoEffect': 'No text effect',
+  'appearance.toolbarSoftShadow': 'Soft shadow',
+  'appearance.toolbarStrongShadow': 'Strong shadow',
+  'appearance.toolbarTextColor': 'Text color',
+  'appearance.toolbarThemeColor': 'Use theme color',
+  'appearance.toolbarInheritColor': 'Inherit profile color',
+  'appearance.toolbarCustomColor': 'Custom text color',
+  'tabs.appearanceLoading': 'Tab appearance is still loading. Try again.',
   'language.english': 'English',
   'language.cantonese': 'Playful Hong Kong Cantonese',
   'language.bilingual': 'Bilingual',
@@ -1821,6 +1916,54 @@ export const cantoneseTranslations: Readonly<
   'appearance.languageAndNavigation': '語言',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
+  'appearance.toolbarEditorTitle': '工具列外觀',
+  'appearance.toolbarEditorDescription':
+    '自訂工具列標籤、間距、文字顏色同字款。',
+  'appearance.repositoryToolbarEditorTitle': 'Repo 工具列外觀',
+  'appearance.repositoryToolbarEditorDescription':
+    '只喺呢個 repo 啟用嗰陣覆寫標籤、間距、文字顏色同字款。',
+  'appearance.toolbarTypographyHeading': '工具列字款',
+  'appearance.toolbarTypographyProfile': 'Profile 自訂款式',
+  'appearance.toolbarTypographyRepositoryInherited': '沿用 profile 字款',
+  'appearance.toolbarTypographyRepositoryOverride': 'Repo 專用覆寫',
+  'appearance.toolbarTypographyThemeDefaults': '用返主題預設',
+  'appearance.toolbarTypographyInheritProfile': '沿用 profile',
+  'appearance.toolbarTypographyPreview': '工具列即時預覽',
+  'appearance.toolbarTypographyPreviewTitle': '目前 repo',
+  'appearance.toolbarTypographyPreviewDescription': '目前分支',
+  'appearance.toolbarFontStyle': '字款樣式',
+  'appearance.toolbarBold': '粗體',
+  'appearance.toolbarItalic': '斜體',
+  'appearance.toolbarUnderline': '底線',
+  'appearance.toolbarStrikethrough': '刪除線',
+  'appearance.toolbarAlignment': '文字對齊',
+  'appearance.toolbarAlignLeft': '靠左',
+  'appearance.toolbarAlignCenter': '置中',
+  'appearance.toolbarAlignRight': '靠右',
+  'appearance.toolbarFont': '字型',
+  'appearance.toolbarThemeFont': '用主題字型',
+  'appearance.toolbarInheritFont': '沿用 profile 字型',
+  'appearance.toolbarSize': '字體大小',
+  'appearance.toolbarThemeSize': '用主題大小',
+  'appearance.toolbarInheritSize': '沿用 profile 大小',
+  'appearance.toolbarLetterCase': '英文字母大小寫',
+  'appearance.toolbarNormalCase': '一般大小寫',
+  'appearance.toolbarUppercase': '全大寫',
+  'appearance.toolbarLowercase': '全小寫',
+  'appearance.toolbarCapitalize': '每字首大寫',
+  'appearance.toolbarSmallCaps': '小型大寫字母',
+  'appearance.toolbarSpacing': '字元間距',
+  'appearance.toolbarThemeSpacing': '用主題間距',
+  'appearance.toolbarInheritSpacing': '沿用 profile 間距',
+  'appearance.toolbarTextEffect': '文字效果',
+  'appearance.toolbarNoEffect': '無文字效果',
+  'appearance.toolbarSoftShadow': '柔和陰影',
+  'appearance.toolbarStrongShadow': '明顯陰影',
+  'appearance.toolbarTextColor': '文字顏色',
+  'appearance.toolbarThemeColor': '用主題顏色',
+  'appearance.toolbarInheritColor': '沿用 profile 顏色',
+  'appearance.toolbarCustomColor': '自訂文字顏色',
+  'tabs.appearanceLoading': '分頁外觀仲載入緊，等陣再試。',
   'language.english': '英文',
   'language.cantonese': '玩味港式廣東話',
   'language.bilingual': '雙語',

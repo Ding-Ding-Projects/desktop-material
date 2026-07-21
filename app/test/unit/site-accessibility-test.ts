@@ -86,12 +86,13 @@ describe('Pages accessibility contracts', () => {
     assert.match(markup, /<h3>Upstream<\/h3>/)
   })
 
-  it('publishes the repository-bound GitHub API Explorer evidence', () => {
+  it('publishes the repository-bound GitHub API functions evidence', () => {
     const markup = read('site/index.html')
     const source = 'docs/assets/screenshots/material-github-api-explorer.png'
 
-    assert.match(markup, /<h3>\s*GitHub API Explorer/)
-    assert.match(markup, /1,206 REST operations/)
+    assert.match(markup, /<h3>\s*GitHub API functions/)
+    assert.match(markup, /repository, issue, pull-request/)
+    assert.match(markup, /REST\/GraphQL builder/)
     assert.ok(markup.includes(`href="${source}"`))
     assert.ok(markup.includes(`src="${source}"`))
   })

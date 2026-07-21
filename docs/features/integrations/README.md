@@ -15,5 +15,6 @@ credentials or machine-specific state in a repository.
 - [Copilot commit-message controls](copilot-commit-message-controls.md)
 - [Ollama model manager](ollama-model-manager.md)
 - [Repository-bound GitHub API functions](github-api-functions.md)
+- [Repository Releases dashboard](repository-releases-dashboard.md)
 - [SSH working copies and remote
   clone](ssh-working-copy-and-remote-clone.md)

@@ -399,12 +399,52 @@ const appStore = new AppStore(
 )
 
 let lastEnsuredRepositoryId: number | null = null
+let lastEnsuredAppearanceProfileKey: string | null = null
+let repositoryTabsInitialized = false
 let selectedRepositoryPath: string | null = null
 const reportWindowRepositoryState = () => {
   setWindowRepositoryState(
     selectedRepositoryPath,
     repositoryTabsStore.getState().tabs.map(tab => tab.repositoryPath)
   )
+}
+
+const ensureSelectedRepositoryTab = (state: IAppState) => {
+  const elementAppearanceState = elementAppearanceCoordinator.getState()
+  if (!repositoryTabsInitialized || !elementAppearanceState.initialized) {
+    lastEnsuredRepositoryId = null
+    lastEnsuredAppearanceProfileKey = null
+    return
+  }
+  if (
+    lastEnsuredAppearanceProfileKey !== elementAppearanceState.activeProfileKey
+  ) {
+    lastEnsuredRepositoryId = null
+    lastEnsuredAppearanceProfileKey = elementAppearanceState.activeProfileKey
+  }
+
+  const selected = state.selectedState
+  if (selected !== null && selected.type === SelectionType.Repository) {
+    const repository = selected.repository
+    if (
+      !isSubmoduleRepository(repository) &&
+      repository.id !== lastEnsuredRepositoryId
+    ) {
+      lastEnsuredRepositoryId = repository.id
+      repositoryTabsStore.ensureTabForRepository(repository).catch(err => {
+        if (
+          lastEnsuredRepositoryId === repository.id &&
+          lastEnsuredAppearanceProfileKey ===
+            elementAppearanceState.activeProfileKey
+        ) {
+          lastEnsuredRepositoryId = null
+        }
+        log.error('Failed to ensure repository tab', err)
+      })
+    }
+  } else {
+    lastEnsuredRepositoryId = null
+  }
 }
 
 repositoryTabsStore.onDidUpdate(reportWindowRepositoryState)
@@ -415,20 +455,7 @@ appStore.onDidUpdate(state => {
   const selected = state.selectedState
   selectedRepositoryPath = selected?.repository.path ?? null
   reportWindowRepositoryState()
-  if (selected !== null && selected.type === SelectionType.Repository) {
-    const repository = selected.repository
-    if (
-      !isSubmoduleRepository(repository) &&
-      repository.id !== lastEnsuredRepositoryId
-    ) {
-      lastEnsuredRepositoryId = repository.id
-      repositoryTabsStore
-        .ensureTabForRepository(repository)
-        .catch(err => log.error('Failed to ensure repository tab', err))
-    }
-  } else {
-    lastEnsuredRepositoryId = null
-  }
+  ensureSelectedRepositoryTab(state)
 })
 
 const profileStoreInitialization = profileStore.initialize()
@@ -437,14 +464,18 @@ const elementAppearanceCoordinatorInitialization =
     elementAppearanceCoordinator.initialize()
   )
 elementAppearanceCoordinatorInitialization
-  .then(() => {
+  .then(async () => {
     try {
       namedAPIFunctionsStore.migrate()
       profileStore.onAppStateChanged()
     } catch (error) {
       log.error('Failed to migrate named API functions', error)
     }
-    return repositoryTabsStore.initialize()
+    await repositoryTabsStore.initialize()
+    repositoryTabsInitialized = true
+    if (currentState !== null) {
+      ensureSelectedRepositoryTab(currentState)
+    }
   })
   .catch(err => log.error('Failed to initialize profile stores', err))
 

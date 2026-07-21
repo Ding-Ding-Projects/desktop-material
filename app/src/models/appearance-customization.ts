@@ -54,6 +54,8 @@ export interface IAppearanceCustomization {
   readonly motion: MotionPreference
   readonly toolbarLabels: ToolbarLabelPreference
   readonly toolbarDensity: DensityPreference
+  /** Validated typography applied to toolbar title and description text. */
+  readonly toolbarTextStyle: ITabTitleStyle | null
   readonly repositoryListDensity: DensityPreference
   readonly tabDensity: DensityPreference
   readonly tabWidth: TabWidthPreference
@@ -80,6 +82,8 @@ export interface IRepositoryAppearanceOverrides {
   readonly surfacePalette?: SurfacePalette
   readonly toolbarLabels?: ToolbarLabelPreference
   readonly toolbarDensity?: DensityPreference
+  /** Partial repository typography layered over the active profile style. */
+  readonly toolbarTextStyle?: ITabTitleStyle
   readonly tabDensity?: DensityPreference
   readonly tabWidth?: TabWidthPreference
   readonly repositoryLogo?: IRepositoryLogoDesign
@@ -98,6 +102,52 @@ export interface IRepositoryAppearanceOverrides {
  */
 export const MaxListNameFontSize = 18
 
+/** Toolbar labels stay bounded so two-line controls can grow without clipping. */
+export const MaxToolbarFontSize = 20
+
+/** The title size used by the Material toolbar when no override is present. */
+export const DefaultToolbarFontSize = 15
+
+/**
+ * Normalize the shared safe text model for toolbar use. Toolbar text does not
+ * support a background highlight, and its font-size ceiling is intentionally
+ * tighter than a repository tab's resizable frame.
+ */
+export function normalizeToolbarTextStyle(
+  value: unknown
+): ITabTitleStyle | null {
+  const normalized = normalizeTabTitleStyle(value)
+  if (normalized === null) {
+    return null
+  }
+
+  const result: Record<string, unknown> = { ...normalized }
+  delete result.backgroundColor
+  if (
+    typeof result.fontSize === 'number' &&
+    result.fontSize > MaxToolbarFontSize
+  ) {
+    result.fontSize = MaxToolbarFontSize
+  }
+
+  return Object.keys(result).length === 0 ? null : (result as ITabTitleStyle)
+}
+
+/** Resolve a repository's partial toolbar style over its profile style. */
+export function resolveToolbarTextStyle(
+  profileStyle: ITabTitleStyle | null,
+  repositoryStyle?: ITabTitleStyle | null
+): ITabTitleStyle | null {
+  const profile = normalizeToolbarTextStyle(profileStyle)
+  if (repositoryStyle === undefined || repositoryStyle === null) {
+    return profile
+  }
+  return normalizeToolbarTextStyle({
+    ...(profile ?? {}),
+    ...repositoryStyle,
+  })
+}
+
 export const DefaultAppearanceCustomization: IAppearanceCustomization = {
   version: AppearanceCustomizationVersion,
   accentPalette: 'blue',
@@ -109,6 +159,7 @@ export const DefaultAppearanceCustomization: IAppearanceCustomization = {
   motion: 'system',
   toolbarLabels: 'auto',
   toolbarDensity: 'comfortable',
+  toolbarTextStyle: null,
   repositoryListDensity: 'comfortable',
   tabDensity: 'comfortable',
   tabWidth: 'standard',
@@ -225,6 +276,7 @@ export function normalizeAppearanceCustomization(
     toolbarDensity: isOneOf(source.toolbarDensity, densityPreferences)
       ? source.toolbarDensity
       : defaults.toolbarDensity,
+    toolbarTextStyle: normalizeToolbarTextStyle(source.toolbarTextStyle),
     repositoryListDensity: isOneOf(
       source.repositoryListDensity,
       densityPreferences
@@ -307,6 +359,7 @@ export function normalizeRepositoryAppearanceOverrides(
     surfacePalette?: SurfacePalette
     toolbarLabels?: ToolbarLabelPreference
     toolbarDensity?: DensityPreference
+    toolbarTextStyle?: ITabTitleStyle
     tabDensity?: DensityPreference
     tabWidth?: TabWidthPreference
     repositoryLogo?: IRepositoryLogoDesign
@@ -324,6 +377,12 @@ export function normalizeRepositoryAppearanceOverrides(
   }
   if (isOneOf(value.toolbarDensity, densityPreferences)) {
     overrides.toolbarDensity = value.toolbarDensity
+  }
+  if (isRecord(value.toolbarTextStyle)) {
+    const toolbarTextStyle = normalizeToolbarTextStyle(value.toolbarTextStyle)
+    if (toolbarTextStyle !== null) {
+      overrides.toolbarTextStyle = toolbarTextStyle
+    }
   }
   if (isOneOf(value.tabDensity, densityPreferences)) {
     overrides.tabDensity = value.tabDensity
@@ -384,5 +443,12 @@ export function resolveAppearanceCustomization(
   customization: IAppearanceCustomization,
   overrides: IRepositoryAppearanceOverrides
 ): IAppearanceCustomization {
-  return normalizeAppearanceCustomization({ ...customization, ...overrides })
+  return normalizeAppearanceCustomization({
+    ...customization,
+    ...overrides,
+    toolbarTextStyle: resolveToolbarTextStyle(
+      customization.toolbarTextStyle,
+      overrides.toolbarTextStyle
+    ),
+  })
 }

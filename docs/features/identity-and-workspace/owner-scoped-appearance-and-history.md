@@ -15,6 +15,14 @@ workspace, toolbar, tabs, list name, and logo values; a null override inherits
 the matching profile owner. Feature highlights and individual tab titles have
 their own stable owner IDs and never share a mutable timeline.
 
+The toolbar owner includes labels and density plus a responsive typography
+studio: curated font family, bounded size, safe text color, bold, italic,
+underline, strikethrough, small caps, case, spacing, effect, and alignment.
+Profile typography can return to theme defaults. Repository typography is a
+partial layer, so clearing one field inherits that profile field and clearing
+the layer inherits the complete profile style. A live pill preview reflects the
+resolved result before the owner-local commit.
+
 The editor applies normalized, schema-checked values to only the selected
 owner. Its footer identifies the dedicated local repository, while History can
 load commits and diffs, undo or redo the latest change, or restore a selected
@@ -50,6 +58,19 @@ concurrent windows converge on the same persisted identity. Profile switches
 dispose the old subscriptions and initialize the new profile's owners before
 publishing their aggregate renderer projection.
 
+Tab history and repository-path lookups are deliberately nullable while the
+active profile's title owner is starting. A right-click first initializes the
+clicked tab, including an inactive tab, and opens its editor only when both
+owner resources are ready. During a profile transition the live status region
+offers localized retry guidance. Delayed work is fenced by coordinator
+instance, active profile key, tab existence, and edit revision so an old
+profile cannot overwrite the replacement profile or a newer title edit.
+
+Toolbar typography changes publish a bounded body signature as well as safe CSS
+variables. The adaptive toolbar watches that signature and invalidates its
+retained width measurement, preventing a larger font from clipping and a
+smaller font from leaving actions stranded in More.
+
 ## Security considerations
 
 The coordinator requires normalized absolute paths below its owned data root.
@@ -57,6 +78,9 @@ It resolves the nearest existing ancestor and refuses symbolic-link, junction,
 or reparse-point redirection, directory escape, a linked `.git`, and unowned
 files. Each store accepts only its exact strict schema and returns copied
 values, preventing callers from mutating canonical state by object alias.
+Toolbar colors accept hex only, font families pass the curated/safe-family
+validator, unsupported background highlighting is removed, and font size is
+clamped to 20 px before rendering.
 
 These repositories are local application history, not user working copies and
 not provider remotes. Editing one owner cannot write another owner's setting
@@ -71,4 +95,11 @@ feature, tab, and repository isolation plus migration and UUID races.
 `anchored-appearance-editor-test.tsx`,
 `repository-element-appearance-editors-test.tsx`, and
 `repository-tab-element-history-test.ts` exercise actual-element anchoring,
-focus return, inheritance changes, and owner-local history refresh.
+focus return, inheritance changes, owner-local history refresh, profile
+replacement, stale-load rejection, and appearance-pending startup.
+`repository-tab-actions-test.tsx` covers right-clicking an inactive title and
+the non-crashing localized loading state.
+`appearance-customization-test.ts`, `element-appearance-editors-test.tsx`,
+`helper-side-effect-surfaces-test.tsx`, and `toolbar-overflow-test.tsx` cover
+toolbar normalization, inheritance, localized controls, CSS
+projection/cleanup, and grow/shrink remeasurement.

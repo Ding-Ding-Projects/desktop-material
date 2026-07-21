@@ -211,6 +211,7 @@ export class Toolbar extends React.Component<IToolbarProps, IToolbarState> {
       attributeFilter: [
         'data-dm-toolbar-labels',
         'data-dm-toolbar-density',
+        'data-dm-toolbar-typography',
         'data-dm-ui-font',
       ],
     })
@@ -297,6 +298,8 @@ export class Toolbar extends React.Component<IToolbarProps, IToolbarState> {
       document.body.getAttribute('data-dm-toolbar-density') ?? 'comfortable'
     }\u001f${
       document.body.getAttribute('data-dm-ui-font') ?? 'material'
+    }\u001f${
+      document.body.getAttribute('data-dm-toolbar-typography') ?? 'theme'
     }\u001f${useCompactWidths ? 'compact' : 'labels'}\u001f${labelElements
       .map(label => label.textContent ?? '')
       .join('\u001f')}`

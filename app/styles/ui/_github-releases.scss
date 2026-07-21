@@ -183,7 +183,7 @@
   display: grid;
   min-height: 0;
   flex: 1 1 auto;
-  grid-template-columns: minmax(220px, 0.32fr) minmax(0, 1fr);
+  grid-template-columns: clamp(420px, 34vw, 560px) minmax(0, 1fr);
   gap: 14px;
   overflow: hidden;
 }
@@ -201,7 +201,7 @@
   display: flex;
   min-height: 0;
   flex-direction: column;
-  padding: 12px;
+  padding: 16px;
   overflow: hidden;
 }
 
@@ -212,22 +212,22 @@
   h2,
   h3 {
     margin: 0;
-    font-size: 15px;
+    font-size: 18px;
   }
 
   span {
     color: var(--md-sys-color-on-surface-variant);
-    font-size: 10px;
+    font-size: 12px;
   }
 }
 
 .github-releases-filter-area {
   display: grid;
   flex: 0 0 auto;
-  gap: 7px;
-  margin-bottom: 10px;
-  padding: 9px;
-  border-radius: 12px;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  border-radius: 14px;
   background: var(--md-sys-color-surface-container);
 }
 
@@ -288,7 +288,7 @@
 
   > span {
     color: var(--md-sys-color-on-surface-variant);
-    font-size: 9px;
+    font-size: 11px;
   }
 }
 
@@ -305,28 +305,29 @@
   display: flex;
   flex: 0 0 auto;
   flex-wrap: wrap;
-  gap: 6px 8px;
+  gap: 8px 10px;
   align-items: center;
-  margin-bottom: 8px;
-  padding: 8px 9px;
-  border-radius: 12px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
   background: var(--md-sys-color-surface-container-low);
 
   > label {
     display: inline-flex;
-    gap: 6px;
+    gap: 8px;
     align-items: center;
-    font-size: 10px;
+    font-size: 12px;
   }
 
   > span {
     margin-right: auto;
     color: var(--md-sys-color-on-surface-variant);
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .button-component {
-    min-height: 28px;
+    min-height: 36px;
+    flex: 1 1 140px;
   }
 }
 
@@ -392,7 +393,7 @@
   display: grid;
   min-height: 0;
   flex: 1 1 auto;
-  gap: 6px;
+  gap: 8px;
   align-content: start;
   overflow: auto;
 }
@@ -400,14 +401,14 @@
 .github-release-row-shell {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
-  gap: 7px;
+  gap: 10px;
   align-items: center;
 }
 
 .github-release-row-checkbox {
   display: grid;
-  width: 24px;
-  height: 24px;
+  width: 32px;
+  height: 32px;
   place-items: center;
   border-radius: 8px;
 
@@ -421,8 +422,9 @@
   width: 100%;
   max-width: 100%;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 3px 8px;
-  padding: 10px;
+  min-height: 64px;
+  gap: 5px 10px;
+  padding: 12px 14px;
   border: 1px solid transparent;
   border-radius: 12px;
   color: var(--md-sys-color-on-surface);
@@ -468,14 +470,14 @@
 }
 
 .github-release-row-title {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 650;
 }
 
 .github-release-row-tag,
 .github-release-row-state,
 .github-release-row-date {
-  font-size: 10px;
+  font-size: 12px;
 }
 
 .github-release-row-badges {
@@ -495,7 +497,7 @@
   align-items: center;
   padding: 2px 7px;
   border-radius: 999px;
-  font-size: 9px;
+  font-size: 10px;
   font-weight: 700;
 }
 
@@ -532,7 +534,7 @@
   span {
     flex: 1 1 100px;
     color: var(--md-sys-color-on-surface-variant);
-    font-size: 10px;
+    font-size: 12px;
     text-align: right;
     overflow-wrap: anywhere;
   }
@@ -904,7 +906,7 @@
   }
 
   .github-releases-layout {
-    grid-template-columns: minmax(180px, 0.36fr) minmax(0, 1fr);
+    grid-template-columns: minmax(360px, 0.55fr) minmax(0, 1fr);
   }
 
   .github-releases-overview {
@@ -936,7 +938,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 900px) {
   .github-releases-view {
     overflow: auto;
   }
@@ -957,7 +959,7 @@
   }
 
   .github-releases-list-panel {
-    max-height: 420px;
+    max-height: min(620px, 65vh);
   }
 
   .github-release-detail,
@@ -979,6 +981,16 @@
     width: 100%;
     max-width: none;
     justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  .github-releases-list-panel {
+    padding: 14px;
+  }
+
+  .github-releases-bulk-toolbar .button-component {
+    flex-basis: 100%;
   }
 }
 

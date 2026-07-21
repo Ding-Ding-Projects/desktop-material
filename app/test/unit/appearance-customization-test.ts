@@ -91,6 +91,13 @@ describe('appearance customization', () => {
     const normalized = normalizeAppearanceCustomization({
       ...DefaultAppearanceCustomization,
       toolbarDensity: 'compact',
+      toolbarTextStyle: {
+        fontFamily: 'Georgia',
+        fontSize: 200,
+        color: 'url(javascript:bad)',
+        backgroundColor: '#ffffff',
+        italic: true,
+      },
       uiFont: 'url(javascript:bad)',
       languageMode: 'bilingual',
       submoduleBackButtonStyle: 'outlined',
@@ -99,6 +106,11 @@ describe('appearance customization', () => {
     })
 
     assert.equal(normalized.toolbarDensity, 'compact')
+    assert.deepEqual(normalized.toolbarTextStyle, {
+      fontFamily: 'Georgia',
+      fontSize: 20,
+      italic: true,
+    })
     assert.equal(normalized.uiFont, 'material')
     assert.equal(normalized.languageMode, 'bilingual')
     assert.equal(normalized.submoduleBackButtonStyle, 'outlined')
@@ -138,6 +150,11 @@ describe('appearance customization', () => {
         motion: 'reduced',
         uiFont: 'system',
         toolbarDensity: 'invalid',
+        toolbarTextStyle: {
+          color: '#a93a5b',
+          italic: false,
+          fontFamily: 'url(javascript:bad)',
+        },
         languageMode: 'cantonese',
         submoduleBackButtonStyle: 'filled',
         submoduleBackButtonLabel: 'icon-only',
@@ -148,6 +165,7 @@ describe('appearance customization', () => {
     assert.deepEqual(overrides, {
       accentPalette: 'amber',
       tabWidth: 'compact',
+      toolbarTextStyle: { color: '#a93a5b', italic: false },
     })
 
     const resolved = resolveAppearanceCustomization(
@@ -155,6 +173,11 @@ describe('appearance customization', () => {
         ...DefaultAppearanceCustomization,
         surfacePalette: 'neutral',
         tabWidth: 'wide',
+        toolbarTextStyle: {
+          fontFamily: 'Georgia',
+          bold: true,
+          italic: true,
+        },
         highlightDesktopMaterialFeatures: true,
       },
       overrides
@@ -162,6 +185,12 @@ describe('appearance customization', () => {
     assert.equal(resolved.accentPalette, 'amber')
     assert.equal(resolved.surfacePalette, 'neutral')
     assert.equal(resolved.tabWidth, 'compact')
+    assert.deepEqual(resolved.toolbarTextStyle, {
+      fontFamily: 'Georgia',
+      bold: true,
+      italic: false,
+      color: '#a93a5b',
+    })
     assert.equal(resolved.languageMode, 'english')
     assert.equal(resolved.submoduleBackButtonStyle, 'tonal')
     assert.equal(resolved.submoduleBackButtonLabel, 'back-to-parent')
