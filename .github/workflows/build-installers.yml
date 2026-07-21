@@ -23,7 +23,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: build-installers-${{ github.ref }}
+  group: build-installers-${{ github.run_id }}-${{ github.run_attempt }}
   cancel-in-progress: false
 
 env:
@@ -201,6 +201,17 @@ jobs:
               exit 1
             fi
           done
+      - name: Generate bounded exact-SHA release notes
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          yarn --silent ts-node -P script/tsconfig.json \
+            script/generate-automated-release-notes.ts \
+            --repository "$GITHUB_REPOSITORY" \
+            --version "${{ steps.version.outputs.version }}" \
+            --release-sha "$RELEASE_TARGET_SHA" \
+            --output "$RUNNER_TEMP/desktop-material-release-notes.md"
       - name: Revalidate current main before publishing
         shell: bash
         run: |
@@ -235,17 +246,6 @@ jobs:
               exit "$status"
               ;;
           esac
-      - name: Generate bounded exact-SHA release notes
-        shell: bash
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          yarn --silent ts-node -P script/tsconfig.json \
-            script/generate-automated-release-notes.ts \
-            --repository "$GITHUB_REPOSITORY" \
-            --version "${{ steps.version.outputs.version }}" \
-            --release-sha "$RELEASE_TARGET_SHA" \
-            --output "$RUNNER_TEMP/desktop-material-release-notes.md"
       - name: Publish GitHub release
         uses: softprops/action-gh-release@v2
         with:

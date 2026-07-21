@@ -139,10 +139,9 @@ About updater can show **New update coming soon** (or the selected Cantonese or
 bilingual equivalent). This remote state is never persisted and cannot make an
 update installable. Once the Release exists, the next normal update check takes
 over. Each automated Release lists bounded, sanitized commit subjects from the
-previous published release through its exact target SHA. CI invocations use
-independent per-run groups, so a newer push never cancels or queues an older
-in-progress CI run. Installer and Pages publication remain serialized, but a
-newer invocation waits rather than cancelling the older one.
+previous published release through its exact target SHA. CI, installer, and
+Pages invocations use independent per-run groups, so a newer run never cancels
+or replaces older running or pending work.
 
 ## Creating a GitHub release
 

@@ -93,12 +93,16 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
+      /Generate bounded exact-SHA release notes[\s\S]*?Revalidate current main before publishing[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Publish GitHub release/
+    )
+    assert.match(
+      installerWorkflow,
       /body_path: \$\{\{ runner\.temp \}\}\/desktop-material-release-notes\.md/
     )
     assert.doesNotMatch(installerWorkflow, /^\s+body: \|/m)
   })
 
-  it('runs independent CI on every branch push without cancelling older workflows', () => {
+  it('runs every overlapping workflow without replacing older running or pending work', () => {
     assert.match(ciWorkflow, /on:\s*\n\s*push:\s*\n/)
     const pushTrigger = ciWorkflow.match(
       /on:\s*\n\s*push:\s*\n([\s\S]*?)\s+pull_request:/
@@ -112,6 +116,16 @@ describe('CI workflow safety', () => {
     )
     assert.match(ciWorkflow, /cancel-in-progress: false/)
 
+    for (const required of ['ci.yml', 'build-installers.yml', 'pages.yml']) {
+      const workflow = workflowSources.find(({ file }) => file === required)
+      assert.notEqual(workflow, undefined, `${required} must exist`)
+      assert.match(
+        workflow?.source ?? '',
+        /^concurrency:/m,
+        `${required} must declare its independent concurrency contract`
+      )
+    }
+
     for (const { file, source } of workflowSources) {
       assert.doesNotMatch(
         source,
@@ -124,6 +138,11 @@ describe('CI workflow safety', () => {
           source,
           /^\s+cancel-in-progress:\s*false$/m,
           `${file} concurrency must preserve the older run`
+        )
+        assert.match(
+          source,
+          /^  group: [^\r\n]*\$\{\{ github\.run_id \}\}[^\r\n]*\$\{\{ github\.run_attempt \}\}\s*$/m,
+          `${file} must use a unique run-and-attempt concurrency group so GitHub cannot replace older pending work`
         )
       }
     }

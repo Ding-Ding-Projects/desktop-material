@@ -57,14 +57,14 @@ claim a live multi-gigabyte upload or final packaged-app visual receipt.
 ## 2026-07-21 CI update-coming-soon and exact-SHA Release notes checkpoint
 
 The updater now distinguishes “no release yet” from “GitHub Actions is actively
-packaging a newer commit.” After Squirrel reports no update, a bounded
-unauthenticated provider probe derives only the configured HTTPS GitHub release
-feed, reads the existing `build-installers.yml` run data, and requires an
-in-progress `main` workflow-run/manual-dispatch SHA. Bounded job data must also
-prove that run's exact `Windows x64` packaging job is itself in progress for the
-same run ID and SHA, so a manual dispatch still executing prerequisite CI does
-not qualify. GitHub's compare endpoint must then prove that exact SHA is ahead
-of the installed exact `__SHA__`; equality, behind/diverged state, malformed
+building or packaging a newer commit.” After Squirrel reports no update, a
+bounded unauthenticated provider probe derives only the configured HTTPS GitHub
+release feed and reads exact `ci.yml` plus `build-installers.yml` run data. It
+accepts only an in-progress main push CI run or workflow-run/manual-dispatch
+installer run under the expected workflow path. Bounded job data must also
+prove that run's exact `Windows x64` build/packaging job is in progress for the
+same run ID and SHA. GitHub's compare endpoint must then prove that exact SHA is
+ahead of the installed exact `__SHA__`; equality, behind/diverged state, malformed
 data, a non-GitHub feed, network failure, and rate limiting all retain the
 ordinary no-update state.
 
@@ -87,16 +87,18 @@ mentions. The notes expose the exact range and commit links, report omitted
 history, preserve the update-feed explanation, and reach the single release
 action through `body_path`; mismatches fail before publication.
 
-CI now makes its overlap contract explicit: each invocation has a unique
-`run_id`/`run_attempt` concurrency group and `cancel-in-progress: false`, so a
-newer push can run without cancelling or queueing an older in-progress run.
-Installer and Pages publication keep their shared serialization groups but also
-keep cancellation disabled, and the workflow source contract scans every YAML
-workflow to reject a future `cancel-in-progress: true` regression.
+CI, installer, and Pages now make the overlap contract explicit: each invocation
+has a unique `run_id`/`run_attempt` concurrency group and
+`cancel-in-progress: false`. A newer run therefore cannot cancel active work or
+replace GitHub's single older pending slot. The workflow source contract scans
+every YAML workflow to reject `cancel-in-progress: true` and any declared group
+that omits either uniqueness component. Release notes are generated before the
+final main/tag revalidation, keeping that fail-closed check immediately adjacent
+to the single publish action.
 
 Focused updater, persisted-state, race, English/Cantonese/bilingual,
 non-cancelling workflow concurrency, exact Git range, sanitization, bound, and
-first-release checks pass **32/32**.
+first-release checks pass **35/35**.
 Root app TypeScript and script TypeScript pass. The implementation has not been
 pushed or exercised by remote Actions, so no CI run or sample published Release
 is claimed. The fixed low-level MCP preflight passed after its stalled scheduled

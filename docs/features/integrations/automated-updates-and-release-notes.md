@@ -9,14 +9,16 @@ message.
 
 After Squirrel reports that no update is available, the renderer derives the
 GitHub repository from the configured `releases/latest/download/` feed. It asks
-GitHub for bounded provider data from the `build-installers.yml` workflow and
-shows **New update coming soon** only when all of these checks pass:
+GitHub for bounded provider data from both `ci.yml` and
+`build-installers.yml`, and shows **New update coming soon** only when all of
+these checks pass:
 
 - the feed is an HTTPS `github.com/<owner>/<repository>/releases/...` URL;
 - the installed build exposes an exact 40-character `__SHA__`;
-- a `workflow_run` or manual-dispatch installer run is `in_progress` on `main`;
-- bounded job data proves that run's exact `Windows x64` packaging job is
-  itself `in_progress` for the same run ID and head SHA;
+- either a push-triggered CI run or a `workflow_run`/manual-dispatch installer
+  run is `in_progress` on `main` under its exact expected workflow path;
+- bounded job data proves that run's exact `Windows x64` build or packaging job
+  is itself `in_progress` for the same run ID and head SHA;
 - the run exposes a different exact `head_sha`; and
 - GitHub's compare endpoint reports that build SHA as `ahead` of the installed
   SHA.
@@ -59,17 +61,14 @@ provider response, Git object ID, or output bound stops publication.
 
 ## Workflow concurrency
 
-Every CI invocation uses its unique GitHub run ID and attempt as its concurrency
-group with `cancel-in-progress: false`. A newer push, pull request, manual run,
-or installer verification can therefore become eligible to run immediately
-without cancelling or queueing an older CI invocation. Source-contract tests
-scan every local workflow and reject `cancel-in-progress: true`.
-
-Installer and Pages publication retain their shared serialization groups because
-they mutate shared release/deployment state. Both explicitly use
-`cancel-in-progress: false`, so a newer invocation waits instead of destroying
-the evidence or result of an older in-progress run. Workflows without a shared
-group, including CodeQL, remain independently runnable.
+CI, installer, and Pages invocations each use their unique GitHub run ID and
+attempt as the concurrency group with `cancel-in-progress: false`. Newer runs
+can therefore start without cancelling a running invocation or replacing the
+single older pending slot that GitHub otherwise retains for a shared group.
+Source-contract tests scan every local workflow, reject
+`cancel-in-progress: true`, and require every declared concurrency group to
+include both `github.run_id` and `github.run_attempt`. Workflows without a
+concurrency group, including CodeQL, remain independently runnable.
 
 ## Configuration
 
@@ -77,15 +76,15 @@ group, including CodeQL, remain independently runnable.
   detection intentionally disables itself for custom or non-GitHub hosts.
 - `DESKTOP_UPDATES_REPO` selects the GitHub `owner/repository` used by the
   default release feed.
-- The runtime provider contract expects the active workflow file to remain
-  `.github/workflows/build-installers.yml`.
+- The runtime provider contract expects the active workflow files to remain
+  `.github/workflows/ci.yml` and `.github/workflows/build-installers.yml`.
 - The release-note step receives `GITHUB_TOKEN` through its environment. It is
   never accepted as a command-line value or written to the notes.
 
 ## Failure modes and security
 
 Network, rate-limit, malformed-response, oversized-response, non-GitHub-feed,
-invalid-SHA, non-main, prerequisite-only, non-running, stale, behind, and
+invalid-SHA, non-main, wrong-workflow/event, non-running, stale, behind, and
 diverged results all fail closed to the ordinary no-update state. The probe
 reads at most 256 KiB per provider response and times out after ten seconds. It
 never grants an update or downloads executable content; only Squirrel's
@@ -94,18 +93,18 @@ existing feed can do that.
 Commit subjects and release metadata are untrusted. The generator invokes Git
 without a shell, validates tag refs and object IDs, bounds subprocess output,
 neutralizes active Markdown/HTML/mention syntax, and uses create-new output-file
-semantics. The workflow revalidates `origin/main` and immutable tag absence
-before notes generation and publishes the same `RELEASE_TARGET_SHA` as the
-release target.
+semantics. After notes generation, the workflow immediately revalidates
+`origin/main` and immutable tag absence before publishing the same
+`RELEASE_TARGET_SHA` as the release target.
 
 ## Verification
 
 Focused acceptance covers safe feed parsing, bounded Actions data, exact
-job/run/SHA binding, ahead-of comparison, prerequisite-only/manual-dispatch and
+CI/installer job/run/SHA binding, ahead-of comparison, manual-dispatch and
 malformed/stale fail-closed behavior, transient storage, the updater-event race,
-all three language modes, non-cancelling independent CI push runs, workflow
-wiring, exact Git range collection, subject sanitization, output limits, and
-first-release handling. The app and script TypeScript
+all three language modes, non-cancelling independent CI/installer/Pages runs,
+workflow wiring, exact Git range collection, subject sanitization, output
+limits, and first-release handling. The app and script TypeScript
 projects, targeted formatting/lint, and workflow YAML are also checked locally.
 Remote Actions and release publication remain required after integration. The
 fixed headless service preflight passed, but its required no-download production

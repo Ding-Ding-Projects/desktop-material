@@ -17,6 +17,7 @@ import { render, screen } from '../helpers/ui/render'
 
 const installedSHA = '1'.repeat(40)
 const buildSHA = '2'.repeat(40)
+const ciRunID = 123456788
 const installerRunID = 123456789
 const updatesURL =
   'https://github.com/codingmachineedge/desktop-material/releases/latest/download/'
@@ -77,11 +78,66 @@ describe('update coming soon', () => {
     )
   })
 
-  it('uses the in-progress installer job and compare result to prove a newer commit', async () => {
+  it('uses an in-progress CI build job and compare result to prove a newer commit', async () => {
     const requests = new Array<string>()
     const fetcher = async (input: RequestInfo) => {
       const url = input.toString()
       requests.push(url)
+      if (url.includes('/jobs?')) {
+        return jsonResponse({
+          jobs: [
+            {
+              name: 'Windows x64',
+              status: 'in_progress',
+              run_id: ciRunID,
+              head_sha: buildSHA,
+            },
+          ],
+        })
+      }
+      return url.includes('/compare/')
+        ? jsonResponse({ status: 'ahead' })
+        : jsonResponse({
+            workflow_runs: [
+              {
+                id: ciRunID,
+                status: 'in_progress',
+                event: 'push',
+                head_branch: 'main',
+                head_sha: buildSHA,
+                path: '.github/workflows/ci.yml',
+              },
+            ],
+          })
+    }
+
+    assert.equal(
+      await isNewerDesktopMaterialBuildInProgress({
+        updatesURL,
+        installedSHA,
+        fetcher,
+      }),
+      true
+    )
+    assert.equal(requests.length, 3)
+    assert.match(requests[0], /actions\/workflows\/ci\.yml\/runs\?/)
+    assert.match(requests[0], /status=in_progress/)
+    assert.match(requests[1], new RegExp(`/runs/${ciRunID}/jobs\\?`))
+    assert.match(requests[1], /filter=latest/)
+    assert.match(
+      requests[2],
+      new RegExp(`${installedSHA}\\.\\.\\.${buildSHA}$`)
+    )
+  })
+
+  it('also recognizes an exact in-progress installer packaging job', async () => {
+    const requests = new Array<string>()
+    const fetcher = async (input: RequestInfo) => {
+      const url = input.toString()
+      requests.push(url)
+      if (url.includes('/workflows/ci.yml/runs?')) {
+        return jsonResponse({ workflow_runs: [] })
+      }
       if (url.includes('/jobs?')) {
         return jsonResponse({
           jobs: [
@@ -118,16 +174,15 @@ describe('update coming soon', () => {
       }),
       true
     )
-    assert.equal(requests.length, 3)
+    assert.equal(requests.length, 4)
+    assert.match(requests[0], /actions\/workflows\/ci\.yml\/runs\?/)
     assert.match(
-      requests[0],
+      requests[1],
       /actions\/workflows\/build-installers\.yml\/runs\?/
     )
-    assert.match(requests[0], /status=in_progress/)
-    assert.match(requests[1], new RegExp(`/runs/${installerRunID}/jobs\\?`))
-    assert.match(requests[1], /filter=latest/)
+    assert.match(requests[2], new RegExp(`/runs/${installerRunID}/jobs\\?`))
     assert.match(
-      requests[2],
+      requests[3],
       new RegExp(`${installedSHA}\\.\\.\\.${buildSHA}$`)
     )
   })
@@ -169,7 +224,7 @@ describe('update coming soon', () => {
         }),
         false
       )
-      assert.equal(requests, 1)
+      assert.equal(requests, 2)
     }
 
     assert.equal(
@@ -190,7 +245,11 @@ describe('update coming soon', () => {
         installedSHA,
         fetcher: async input => {
           manualRequests++
-          return input.toString().includes('/jobs?')
+          const url = input.toString()
+          if (url.includes('/workflows/ci.yml/runs?')) {
+            return jsonResponse({ workflow_runs: [] })
+          }
+          return url.includes('/jobs?')
             ? jsonResponse({
                 jobs: [
                   {
@@ -217,7 +276,89 @@ describe('update coming soon', () => {
       }),
       false
     )
-    assert.equal(manualRequests, 2)
+    assert.equal(manualRequests, 3)
+  })
+
+  it('binds CI runs and jobs to exact path, event, branch, run ID, and SHA', async () => {
+    const baseRun = {
+      id: ciRunID,
+      status: 'in_progress',
+      event: 'push',
+      head_branch: 'main',
+      head_sha: buildSHA,
+      path: '.github/workflows/ci.yml',
+    }
+    for (const run of [
+      { ...baseRun, event: 'pull_request' },
+      { ...baseRun, head_branch: 'feature' },
+      { ...baseRun, head_sha: 'not-an-object-id' },
+      { ...baseRun, path: '.github/workflows/build-installers.yml' },
+    ]) {
+      let jobsRequested = false
+      const result = await isNewerDesktopMaterialBuildInProgress({
+        updatesURL,
+        installedSHA,
+        fetcher: async input => {
+          const url = input.toString()
+          if (url.includes('/jobs?')) {
+            jobsRequested = true
+          }
+          return jsonResponse({
+            workflow_runs: url.includes('/workflows/ci.yml/runs?') ? [run] : [],
+          })
+        },
+      })
+      assert.equal(result, false)
+      assert.equal(jobsRequested, false)
+    }
+
+    for (const job of [
+      {
+        name: 'Lint',
+        status: 'in_progress',
+        run_id: ciRunID,
+        head_sha: buildSHA,
+      },
+      {
+        name: 'Windows x64',
+        status: 'queued',
+        run_id: ciRunID,
+        head_sha: buildSHA,
+      },
+      {
+        name: 'Windows x64',
+        status: 'in_progress',
+        run_id: ciRunID + 1,
+        head_sha: buildSHA,
+      },
+      {
+        name: 'Windows x64',
+        status: 'in_progress',
+        run_id: ciRunID,
+        head_sha: installedSHA,
+      },
+    ]) {
+      let compareRequested = false
+      const result = await isNewerDesktopMaterialBuildInProgress({
+        updatesURL,
+        installedSHA,
+        fetcher: async input => {
+          const url = input.toString()
+          if (url.includes('/compare/')) {
+            compareRequested = true
+          }
+          if (url.includes('/workflows/ci.yml/runs?')) {
+            return jsonResponse({ workflow_runs: [baseRun] })
+          }
+          if (url.includes('/jobs?')) {
+            return jsonResponse({ jobs: [job] })
+          }
+          return jsonResponse({ workflow_runs: [] })
+        },
+      })
+      assert.equal(result, false)
+      assert.equal(compareRequested, false)
+    }
   })
 
   it('keeps the transient build state out of persisted preferences', async () => {

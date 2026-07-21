@@ -28,16 +28,16 @@
 ## Completion scope
 
 1. Reuse available GitHub provider/check-run data to distinguish a newer
-   Desktop Material commit whose exact Windows packaging job is actively
+   Desktop Material commit whose exact Windows CI or packaging job is actively
    building from an available release.
 2. Show a persistence-safe update-coming-soon status in English, playful Hong
    Kong Cantonese, and compact bilingual modes; restore normal updater behavior
    as soon as the release appears.
 3. Generate sanitized, bounded GitHub Release notes from commit subjects since
    the previous release and bind the notes to the exact artifact/release SHA.
-4. Give every CI invocation a unique concurrency group, retain non-cancelling
-   serialization for shared publication workflows, and reject cancellation in
-   workflow source contracts.
+4. Give every CI, installer, and Pages invocation a unique concurrency group
+   and reject cancellation or shared pending replacement in workflow source
+   contracts.
 5. Add focused tests and update feature documentation, roadmap, handoff, wiki,
    and Pages sources where applicable.
 
@@ -84,8 +84,8 @@
 
 ## Verification receipts
 
-- Focused updater/i18n/workflow tests, including the all-workflow
-  non-cancellation contract: 27/27 passed.
+- Focused updater/i18n/workflow tests, including exact CI/installer bindings and
+  the all-workflow running/pending non-cancellation contract: 30/30 passed.
 - Exact-range release-note generator tests: 5/5 passed.
 - Root app TypeScript and script TypeScript: passed.
 - Targeted ESLint and Prettier, new-document Markdownlint, workflow YAML parse,
@@ -93,9 +93,10 @@
 - A local exact-range sample from published tag
   `v3.6.3-beta3-b0000000270` through base SHA `dce7b9417f30` generated the two
   expected exact commit links and subjects.
-- A public provider schema check on installer run `29869456856` returned the
-  exact workflow path, main head SHA, and `Windows x64` job with matching
-  `run_id`/`head_sha` fields used by the bounded runtime proof.
+- Public provider schema checks on CI run `29870425697` and installer run
+  `29869456856` returned the exact workflow paths, main head SHAs, and
+  `Windows x64` jobs with matching `run_id`/`head_sha` fields used by the bounded
+  runtime proof.
 - Fixed low-level MCP preflight: passed. Production build and GUI capture: not
   run because the exact no-download command cannot resolve `yarn` on this host.
 - Remote CI/release: intentionally not run for this unpushed integration branch.
