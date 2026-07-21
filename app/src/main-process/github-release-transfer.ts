@@ -57,7 +57,8 @@ type ReleaseUploadFetcher = (
   url: string,
   headers: Readonly<Record<string, string>>,
   source: IReleaseUploadSource,
-  signal: AbortSignal
+  signal: AbortSignal,
+  onProgress?: (uploadedBytes: number) => void
 ) => Promise<Response>
 
 export interface IGitHubReleaseTransferDependencies {
@@ -645,11 +646,34 @@ export async function handleGitHubReleaseAssetUpload(
         'User-Agent': 'DesktopMaterial-ReleasesTransfer',
       }
     )
+    let lastProgressAt = 0
+    let lastProgressBytes = 0
     const response = await dependencies.upload(
       url.toString(),
       Object.fromEntries(headers.entries()),
       source,
-      active.controller.signal
+      active.controller.signal,
+      uploadedBytes => {
+        const boundedBytes = Math.min(source.length, Math.max(0, uploadedBytes))
+        const now = Date.now()
+        if (
+          boundedBytes > lastProgressBytes &&
+          (now - lastProgressAt >= 100 || boundedBytes === source.length)
+        ) {
+          lastProgressAt = now
+          lastProgressBytes = boundedBytes
+          sendProgress(
+            sender,
+            {
+              operationId: request.operationId,
+              direction: 'upload',
+              transferredBytes: boundedBytes,
+              totalBytes: source.length,
+            },
+            active!
+          )
+        }
+      }
     )
     throwIfAborted(active.controller.signal)
     if (response.status >= 300 && response.status < 400) {
@@ -669,16 +693,18 @@ export async function handleGitHubReleaseAssetUpload(
     if (asset.digest !== null && asset.digest !== source.digest) {
       throw new ReleaseTransferFailure('digest-mismatch')
     }
-    sendProgress(
-      sender,
-      {
-        operationId: request.operationId,
-        direction: 'upload',
-        transferredBytes: source.length,
-        totalBytes: source.length,
-      },
-      active
-    )
+    if (lastProgressBytes < source.length) {
+      sendProgress(
+        sender,
+        {
+          operationId: request.operationId,
+          direction: 'upload',
+          transferredBytes: source.length,
+          totalBytes: source.length,
+        },
+        active
+      )
+    }
     return {
       ok: true,
       asset,
@@ -719,9 +745,10 @@ export const createElectronGitHubReleaseUploadFetcher =
   (
     requestFactory: (
       options: Electron.ClientRequestConstructorOptions
-    ) => Electron.ClientRequest = options => net.request(options)
+    ) => Electron.ClientRequest = options => net.request(options),
+    sessionProvider: () => Electron.Session = getTransferSession
   ): ReleaseUploadFetcher =>
-  async (url, headers, source, signal) =>
+  async (url, headers, source, signal, onProgress) =>
     await new Promise<Response>((resolvePromise, rejectPromise) => {
       if (signal.aborted) {
         rejectPromise(abortError())
@@ -731,7 +758,7 @@ export const createElectronGitHubReleaseUploadFetcher =
         url,
         method: 'POST',
         headers,
-        session: getTransferSession(),
+        session: sessionProvider(),
         redirect: 'manual',
         credentials: 'omit',
         useSessionCookies: false,
@@ -799,26 +826,26 @@ export const createElectronGitHubReleaseUploadFetcher =
         if (settled) {
           return
         }
-        uploadedBytes += chunk.byteLength
+        // Electron ClientRequest.write() returns void and does not expose the
+        // Node Writable `drain` contract. Pause before every write and advance
+        // the source only from Electron's completion callback so a slow upload
+        // cannot deadlock or read the entire file ahead of the request.
+        body.pause()
+        const nextUploadedBytes = uploadedBytes + chunk.byteLength
         // A file that grew after validation would overrun the declared
         // Content-Length; fail closed rather than send a corrupt body.
-        if (uploadedBytes > source.length) {
+        if (nextUploadedBytes > source.length) {
           failSource()
           return
         }
-        // Honor Writable backpressure so slow networks never buffer the whole
-        // asset in the request's internal queue. Electron's ClientRequest is a
-        // Writable at runtime (write() returns a boolean and it emits 'drain'),
-        // but its typings don't surface that, so view it as one here.
-        const writableRequest = request as unknown as import('stream').Writable
-        if (!writableRequest.write(chunk)) {
-          body.pause()
-          writableRequest.once('drain', () => {
-            if (!settled) {
-              body.resume()
-            }
-          })
-        }
+        request.write(chunk, undefined, () => {
+          if (settled) {
+            return
+          }
+          uploadedBytes = nextUploadedBytes
+          onProgress?.(uploadedBytes)
+          body.resume()
+        })
       })
       body.on('end', () => {
         if (settled) {

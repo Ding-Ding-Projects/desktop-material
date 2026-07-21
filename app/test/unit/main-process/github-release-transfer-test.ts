@@ -5,8 +5,10 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, it } from 'node:test'
+import type { ClientRequest, Session } from 'electron'
 import {
   cancelGitHubReleaseTransfer,
+  createElectronGitHubReleaseUploadFetcher,
   handleGitHubReleaseAssetDownload,
   handleGitHubReleaseAssetUpload,
   IGitHubReleaseTransferDependencies,
@@ -323,6 +325,116 @@ describe('main-process GitHub release transfer', () => {
         sender.sent.map(progress => progress.totalBytes),
         [second.byteLength, second.byteLength]
       )
+    })
+  })
+
+  it('surfaces intermediate upload bytes accepted by the transfer request', async () => {
+    await withDirectory(async directory => {
+      const source = join(directory, 'desktop.exe')
+      await writeFile(source, bytes)
+      const halfway = Math.floor(bytes.byteLength / 2)
+      const dependencies: IGitHubReleaseTransferDependencies = {
+        fetch: async () => new Response(null, { status: 500 }),
+        upload: async (_url, _headers, uploadSource, _signal, onProgress) => {
+          onProgress?.(halfway)
+          onProgress?.(uploadSource.length)
+          return new Response(JSON.stringify(uploadedAsset()), { status: 201 })
+        },
+        redirects: noRedirects,
+      }
+      const sender = new TestSender(19)
+
+      const result = await handleGitHubReleaseAssetUpload(
+        sender,
+        uploadRequest(source),
+        dependencies
+      )
+
+      assert.equal(result.ok, true)
+      assert.deepEqual(
+        sender.sent.map(progress => progress.transferredBytes),
+        [0, halfway, bytes.byteLength]
+      )
+    })
+  })
+
+  it('streams through callback-only Electron writes without waiting for drain', async () => {
+    await withDirectory(async directory => {
+      const source = join(directory, 'large-upload.bin')
+      const sourceBytes = Buffer.alloc(256 * 1024, 0x61)
+      await writeFile(source, sourceBytes)
+      const request = new EventEmitter() as EventEmitter & {
+        write: (
+          chunk: Buffer,
+          encoding: BufferEncoding | undefined,
+          callback: () => void
+        ) => void
+        end: () => void
+        abort: () => void
+      }
+      const written = new Array<Buffer>()
+      let pendingWrites = 0
+      let maximumPendingWrites = 0
+      request.write = (chunk, _encoding, callback) => {
+        // Electron returns void and has no Writable `drain` contract.
+        pendingWrites++
+        maximumPendingWrites = Math.max(maximumPendingWrites, pendingWrites)
+        setImmediate(() => {
+          written.push(Buffer.from(chunk))
+          pendingWrites--
+          callback()
+        })
+      }
+      request.abort = () => undefined
+      request.end = () => {
+        setImmediate(() => {
+          const response = new EventEmitter() as EventEmitter & {
+            statusCode: number
+            statusMessage: string
+            headers: Record<string, string>
+          }
+          response.statusCode = 201
+          response.statusMessage = 'Created'
+          response.headers = { 'content-type': 'application/json' }
+          request.emit('response', response)
+          response.emit('data', Buffer.from('{"ok":true}'))
+          response.emit('end')
+        })
+      }
+
+      const accepted = new Array<number>()
+      const upload = createElectronGitHubReleaseUploadFetcher(
+        () => request as unknown as ClientRequest,
+        () => ({} as Session)
+      )
+      let timeout: NodeJS.Timeout | undefined
+      try {
+        const response = await Promise.race([
+          upload(
+            'https://uploads.github.com/example',
+            { 'Content-Length': String(sourceBytes.byteLength) },
+            { path: source, offset: 0, length: sourceBytes.byteLength },
+            new AbortController().signal,
+            bytes => accepted.push(bytes)
+          ),
+          new Promise<never>((_resolve, reject) => {
+            timeout = setTimeout(
+              () => reject(new Error('callback-only upload pump stalled')),
+              2000
+            )
+          }),
+        ])
+
+        assert.equal(response.status, 201)
+      } finally {
+        if (timeout !== undefined) {
+          clearTimeout(timeout)
+        }
+      }
+      assert.deepEqual(Buffer.concat(written), sourceBytes)
+      assert.equal(maximumPendingWrites, 1)
+      assert.ok(accepted.length > 1)
+      assert.equal(accepted.at(-1), sourceBytes.byteLength)
     })
   })
 
