@@ -6833,9 +6833,9 @@ async function main() {
         }
         const missing = expected.filter(name => !capturedNames.includes(name))
         process.stdout.write(
-          `CANONICAL_PARTIAL ${actual.length}/${expected.length}; missing: ${missing.join(
-            ', '
-          )}\n`
+          `CANONICAL_PARTIAL ${actual.length}/${
+            expected.length
+          }; missing: ${missing.join(', ')}\n`
         )
       } else {
         process.stdout.write('CANONICAL 68/68 exact output set\n')
