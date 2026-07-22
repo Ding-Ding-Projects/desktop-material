@@ -581,15 +581,19 @@ the dialog does not require page-level horizontal scrolling.
 
 ### Background auto-clone
 
-In the GitHub clone view, select the account, base directory, and parallel or one-at-a-time mode,
-then enable **Automatically clone new repositories**. Desktop Material records the current provider
-list as a baseline; it does not immediately clone every existing repository. Repositories discovered
-after that baseline are queued into the chosen directory in the background.
+Open **Settings → Clone queue** to manage the policy after the Clone dialog closes. Each signed-in
+hosted account has its own card: choose an absolute base directory, select **Parallel — up to 3 at
+once** or **Sequential — one at a time**, then enable **Automatically clone new repositories**. The
+GitHub clone view can configure the same policy. Desktop Material records the current provider list
+as a baseline; it does not immediately clone every existing repository. Repositories discovered after
+that baseline are queued into the chosen directory in the background.
 
 Discovery continues for the app lifetime after the Clone window closes. It refreshes periodically,
 does not open a progress dialog on its own, and posts a notification when a background queue starts
 or when refresh needs attention. The policy is account-specific and rejects invalid directories,
 oversized provider lists, duplicate/unsafe URLs, and URLs containing embedded credentials.
+Changing the directory or clone mode while the switch is on updates that account immediately.
+Turning it off stops new automatic batches without cancelling a clone that is already running.
 
 ### Pause, resume, and crash recovery
 
@@ -1245,6 +1249,18 @@ restores the persisted window tab state.
 Open **Settings → Agent access** and turn on **Enable local agent server**. The panel shows the
 random loopback address, MCP URL, and bearer token; reveal/copy the token only for a trusted local
 client, and use **Regenerate token** to disconnect existing clients immediately.
+
+For the phone-first site, select **Paired LAN devices**, start the server, and choose **Open mobile
+connection page** in the **Mobile connection** card. Desktop Material replaces any old pairing code
+and opens a fresh five-minute one-use `/connect` link in the default browser. The secret stays in the
+URL fragment, so it is not sent to the site server, and the mobile page removes it from browser
+history before exchange. Selecting the button again invalidates the previous code. In Local-only or
+stopped-server state, the card remains visible and explains which prerequisite is missing instead of
+opening an unusable link.
+
+Set the remote-site address and optional HTTPS gateway in the same panel before pairing. Direct LAN
+HTTP authenticates but does not encrypt traffic; use a trusted private network or configured HTTPS
+gateway. A browser-open failure reports a generic error without copying the pairing secret into logs.
 
 - HTTP-capable MCP clients connect to the displayed `/mcp` URL with an
   `Authorization: Bearer …` header.

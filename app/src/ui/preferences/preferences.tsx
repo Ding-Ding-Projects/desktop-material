@@ -90,6 +90,8 @@ import {
 } from '../../models/commit-author-display'
 import { AgentAccess } from './agent-access'
 import { ErrorPresentationStyle } from '../../models/error-presentation'
+import { QueuePreferences } from './queue'
+import { LocalizedText } from '../lib/localized-text'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
@@ -482,6 +484,13 @@ export class Preferences extends React.Component<
                 <Octicon className="icon" symbol={octicons.sync} />
                 Automation
               </span>
+              <span
+                id={this.getTabId(PreferencesTab.Queue)}
+                data-dm-feature={true}
+              >
+                <Octicon className="icon" symbol={octicons.stack} />
+                <LocalizedText translationKey="settings.queueTab" />
+              </span>
             </TabBar>
             <div className="preferences-version">Desktop Material 0.1.0</div>
           </div>
@@ -540,6 +549,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.Automation:
         suffix = 'automation'
+        break
+      case PreferencesTab.Queue:
+        suffix = 'queue'
         break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
@@ -876,7 +888,7 @@ export class Preferences extends React.Component<
         )
         break
       case PreferencesTab.AgentAccess:
-        View = <AgentAccess />
+        View = <AgentAccess openInBrowser={this.openInBrowser} />
         break
       case PreferencesTab.Automation:
         View = (
@@ -884,6 +896,14 @@ export class Preferences extends React.Component<
             accounts={this.props.accounts}
             settings={this.state.automationSettings}
             onSettingsChanged={this.onAutomationSettingsChanged}
+          />
+        )
+        break
+      case PreferencesTab.Queue:
+        View = (
+          <QueuePreferences
+            accounts={this.props.accounts}
+            dispatcher={this.props.dispatcher}
           />
         )
         break
@@ -901,6 +921,9 @@ export class Preferences extends React.Component<
       </div>
     )
   }
+
+  private openInBrowser = (url: string) =>
+    this.props.dispatcher.openInBrowser(url)
 
   private onRepositoryIndicatorsEnabledChanged = (
     repositoryIndicatorsEnabled: boolean

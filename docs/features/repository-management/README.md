@@ -58,6 +58,9 @@ Material is displaying or how a repository is represented in the application.
   repository as a rich card with description, language, stars, forks, size,
   default branch, last updated, and a visibility pill, plus data-derived
   language filter chips.
+- [Clone queue settings](clone-queue-settings.md) — configure each signed-in
+  account's background-clone directory, parallel/sequential mode, and enabled
+  state from Settings while retaining the existing bounded recovery journal.
 
 ## API applicability
 

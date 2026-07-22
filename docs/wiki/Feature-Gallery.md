@@ -351,6 +351,17 @@ path does not weaken the dedicated audit timeline.
 
 ## Material shell and accessibility
 
+The Settings rail now includes **Clone queue** as a first-class destination.
+Each signed-in account owns a readable card with a folder picker,
+parallel/sequential selector, enabled switch, live status, and a bounded safety
+note; empty-account and invalid-directory states remain explicit. **Agent
+access** keeps its **Mobile connection** card discoverable in every mode, then
+enables one action only when Paired LAN mode is running. That action replaces
+the old pairing code and opens a fresh one-use fragment link in the default
+browser. Both surfaces supply English, playful Hong Kong-style Cantonese, and
+compact bilingual copy and remain vertically reachable in the Settings scroll
+owner.
+
 ![Material Changes workspace and commit flow](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-workspace-changes.png)
 
 ![Responsive Material Settings dialog](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-settings.png)

@@ -42,6 +42,14 @@ items passed the integrated production build, focused and repository-wide
 checks, off-screen interaction review, compact/zoomed geometry gates, and
 privacy review recorded in the acceptance ledger.
 
+Settings now gives the durable background clone policy its own **Clone queue**
+destination, with account-scoped directory, parallel/sequential mode, and
+enable controls. **Settings → Agent access** also opens the configured mobile
+site with a newly generated one-use pairing fragment when Paired LAN mode is
+running. The behavior, failure, persistence, and security boundaries are
+documented in [Clone queue settings](features/repository-management/clone-queue-settings.md)
+and the [Local Agent HTTP API](features/agent-api/local-agent-http-api.md).
+
 The locally accepted repository-navigation change adds
 **Open temporary viewer** to initialized Submodule Manager rows and changed/new
 submodule commit cards. The resulting read-only workspace is temporary: it does

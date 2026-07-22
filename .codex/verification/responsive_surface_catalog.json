@@ -42,7 +42,8 @@
         { "member": "Advanced", "label": "Advanced" },
         { "member": "Accessibility", "label": "Accessibility" },
         { "member": "AgentAccess", "label": "Agent access" },
-        { "member": "Automation", "label": "Automation" }
+        { "member": "Automation", "label": "Automation" },
+        { "member": "Queue", "label": "Clone queue" }
       ]
     },
     "repositorySettings": {

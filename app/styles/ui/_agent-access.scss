@@ -440,6 +440,17 @@
     }
   }
 
+  .agent-pairing-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .agent-open-mobile-button {
+      color: var(--md-sys-color-on-primary-container);
+      background: var(--md-sys-color-primary-container);
+    }
+  }
+
   .agent-code-row {
     display: grid;
     min-width: 0;
@@ -587,6 +598,11 @@
       width: 100%;
     }
 
+    .agent-pairing-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .agent-device-list li {
       grid-template-columns: 36px minmax(0, 1fr);
     }
@@ -625,6 +641,11 @@
     .agent-tonal-button {
       justify-content: center;
       width: 100%;
+    }
+
+    .agent-pairing-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
     }
 
     .agent-pairing-layout {

@@ -11,6 +11,23 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [`PLAN.md`](PLAN.md) and
 [`HANDOFF.md`](HANDOFF.md).
 
+## July 21 Settings queue and mobile connection — **Implementation complete; publication verification pending**
+
+- **Settings → Clone queue** exposes the existing account-scoped automatic
+  clone policy after the Clone dialog closes: users can choose an absolute base
+  directory, parallel (up to three) or sequential mode, and the enabled state
+  for every signed-in hosted account.
+- **Settings → Agent access → Open mobile connection page** is available as a
+  discoverable card in every mode and becomes actionable only while Paired LAN
+  mode is running. Each activation replaces the old code, opens a fresh
+  five-minute one-use `/connect` link in the default browser, and keeps the
+  secret in the URL fragment.
+- Both surfaces have explicit English, playful Hong Kong-style Cantonese, and
+  compact bilingual copy, accessible labels/status, bounded failure behavior,
+  and responsive-surface registration. Exact production build, off-screen
+  interaction/screenshot acceptance, pushed-SHA CI, Pages/wiki sync, and Release
+  verification remain to be recorded.
+
 ## July 21 responsiveness hardening — **Local implementation complete**
 
 Publication verification is pending.

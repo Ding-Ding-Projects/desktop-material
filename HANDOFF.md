@@ -20,6 +20,35 @@ options. No cleanup of branches, worktrees, or stashes was needed; the
 untracked `opencode.json` predates this task and is intentionally left
 uncommitted.
 
+## 2026-07-21 Settings clone queue and mobile connection checkpoint
+
+The durable automatic-clone policy now has a first-class **Settings → Clone
+queue** destination. One card per signed-in hosted account hydrates the saved
+base directory, parallel/sequential mode, and enabled state. A folder is
+required before enabling; changing the directory or mode while enabled updates
+the same policy immediately. Discovery still establishes a baseline and checks
+every five minutes, queues only newly discovered repositories, uses the existing
+three-wide/one-at-a-time modes and durable batch journal, and never opens an
+unsolicited progress dialog. The page does not expose the Agent API's fixed
+eight-running/64-waiting request bounds as user settings.
+
+**Settings → Agent access** now keeps a localized **Mobile connection** card
+visible in every mode. Local or stopped states explain the required recovery;
+when Paired LAN mode is running, **Open mobile connection page** first replaces
+any existing pairing code, then hands the fresh five-minute one-use `/connect`
+URL to the default browser. Its secret stays in the fragment, is not logged or
+sent to the site server, and a browser-open failure reports only a generic
+localized error.
+
+Focused Queue, Agent access, and Settings registration coverage exercises
+policy hydration, directory choice/validation, enable/disable and clone-mode
+dispatch, fresh-link generation, unavailable states, browser failure, and all
+three language modes. The responsive inventory includes the new Settings page.
+Exact-source TypeScript/lint/format gates, production build, Lowlevel MCP
+off-screen interaction and screenshot acceptance, remote CI, Pages/wiki sync,
+Release verification, and final topology cleanup remain separate acceptance
+steps and are not claimed by this checkpoint.
+
 ## 2026-07-21 manual multipart Cheap LFS and express release checkpoint
 
 The browser-assisted Cheap LFS fallback no longer rejects a file merely because

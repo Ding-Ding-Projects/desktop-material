@@ -17,6 +17,17 @@ import {
 } from '../../lib/agent-commands'
 import { setBoolean, setNumber } from '../../lib/local-storage'
 import * as ipcRenderer from '../../lib/ipc-renderer'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  translate,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { LocalizedText } from '../lib/localized-text'
+
+interface IAgentAccessProps {
+  readonly openInBrowser: (url: string) => Promise<boolean>
+}
 
 interface IAgentAccessState {
   readonly status: IAgentServerStatus | null
@@ -25,6 +36,7 @@ interface IAgentAccessState {
   readonly error: string | null
   readonly siteURLInput: string
   readonly gatewayURLInput: string
+  readonly languageMode: LanguageMode
 }
 
 function errorMessage(error: unknown, fallback: string): string {
@@ -80,8 +92,11 @@ class AgentDeviceRow extends React.Component<IAgentDeviceRowProps> {
 }
 
 /** Opt-in controls for the local and explicitly enabled LAN agent bridge. */
-export class AgentAccess extends React.Component<{}, IAgentAccessState> {
-  public constructor(props: {}) {
+export class AgentAccess extends React.Component<
+  IAgentAccessProps,
+  IAgentAccessState
+> {
+  public constructor(props: IAgentAccessProps) {
     super(props)
     this.state = {
       status: null,
@@ -90,16 +105,25 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
       error: null,
       siteURLInput: DefaultAgentRemoteSiteURL,
       gatewayURLInput: '',
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
   public componentDidMount() {
     ipcRenderer.on('agent-server-status', this.onStatusChanged)
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.refreshStatus()
   }
 
   public componentWillUnmount() {
     ipcRenderer.removeListener('agent-server-status', this.onStatusChanged)
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
   }
 
   public render() {
@@ -258,7 +282,7 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
         </section>
 
         {mode !== 'local' && this.renderRemoteConfiguration(status)}
-        {mode === 'paired-lan' && this.renderPairing(status)}
+        {this.renderPairing(status)}
         {mode === 'paired-lan' && this.renderPairedDevices(status)}
 
         <section className="agent-access-card agent-connect-card">
@@ -373,17 +397,45 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
 
   private renderPairing(status: IAgentServerStatus | null) {
     const pairing = status?.pairing ?? null
+    const pairedMode = status?.mode === 'paired-lan'
+    const running = status?.running ?? false
     return (
-      <section className="agent-access-card agent-pairing-card">
+      <section
+        className="agent-access-card agent-pairing-card"
+        data-verification="mobile-connection-settings"
+      >
         <div className="agent-access-card-title">
           <Octicon symbol={octicons.deviceMobile} />
-          <h3>Pair a device</h3>
+          <h3>
+            <LocalizedText
+              translationKey="settings.mobileConnectionHeading"
+              languageMode={this.state.languageMode}
+            />
+          </h3>
         </div>
-        {pairing === null ? (
+        <p className="agent-field-help">
+          <LocalizedText
+            translationKey="settings.mobileConnectionDescription"
+            languageMode={this.state.languageMode}
+          />
+        </p>
+        {!pairedMode ? (
           <p className="agent-empty-state">
-            {status?.running
-              ? 'No active pairing code. Create one when the mobile site is ready.'
-              : 'Start paired LAN mode to create a one-time pairing code.'}
+            <LocalizedText
+              translationKey="settings.mobileConnectionChoosePairedMode"
+              languageMode={this.state.languageMode}
+            />
+          </p>
+        ) : !running ? (
+          <p className="agent-empty-state">
+            <LocalizedText
+              translationKey="settings.mobileConnectionStartServer"
+              languageMode={this.state.languageMode}
+            />
+          </p>
+        ) : pairing === null ? (
+          <p className="agent-empty-state">
+            No active pairing code. Create one when the mobile site is ready.
           </p>
         ) : (
           <div className="agent-pairing-layout">
@@ -428,15 +480,30 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
             </div>
           </div>
         )}
-        <button
-          type="button"
-          className="agent-tonal-button"
-          onClick={this.regeneratePairing}
-          disabled={!status?.running || this.state.busy}
-        >
-          <Octicon symbol={octicons.sync} />
-          {pairing === null ? 'Create pairing code' : 'Replace pairing code'}
-        </button>
+        <div className="agent-pairing-actions">
+          <button
+            type="button"
+            className="agent-tonal-button"
+            onClick={this.regeneratePairing}
+            disabled={!pairedMode || !running || this.state.busy}
+          >
+            <Octicon symbol={octicons.sync} />
+            {pairing === null ? 'Create pairing code' : 'Replace pairing code'}
+          </button>
+          <button
+            type="button"
+            className="agent-tonal-button agent-open-mobile-button"
+            onClick={this.openMobileConnectionPage}
+            disabled={!pairedMode || !running || this.state.busy}
+            data-verification="open-mobile-connection-page"
+          >
+            <Octicon symbol={octicons.linkExternal} />
+            <LocalizedText
+              translationKey="settings.mobileConnectionOpen"
+              languageMode={this.state.languageMode}
+            />
+          </button>
+        </div>
       </section>
     )
   }
@@ -473,6 +540,14 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
 
   private onStatusChanged = (_event: unknown, status: IAgentServerStatus) => {
     this.applyStatus(status)
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    this.setState({
+      languageMode: normalizeLanguageMode(
+        (event as CustomEvent<unknown>).detail
+      ),
+    })
   }
 
   private applyStatus = (status: IAgentServerStatus) => {
@@ -622,6 +697,46 @@ export class AgentAccess extends React.Component<{}, IAgentAccessState> {
           error: errorMessage(error, 'Unable to create a pairing code'),
         })
       )
+  }
+
+  private openMobileConnectionPage = async () => {
+    const status = this.state.status
+    if (status?.mode !== 'paired-lan' || !status.running) {
+      return
+    }
+
+    this.setState({ busy: true, error: null })
+    try {
+      // Always replace the pairing code here. This prevents the button from
+      // opening an expired or previously consumed link while keeping the
+      // secret out of renderer logs and normal site-server requests.
+      const nextStatus = await ipcRenderer.invoke(
+        'regenerate-agent-server-pairing'
+      )
+      const pairing = nextStatus.pairing
+      if (pairing === null) {
+        throw new Error('Pairing was not created')
+      }
+
+      const opened = await this.props.openInBrowser(pairing.qrURL)
+      this.applyStatus(nextStatus)
+      if (!opened) {
+        this.setState({
+          error: translate(
+            'settings.mobileConnectionOpenFailed',
+            this.state.languageMode
+          ),
+        })
+      }
+    } catch {
+      this.setState({
+        busy: false,
+        error: translate(
+          'settings.mobileConnectionOpenFailed',
+          this.state.languageMode
+        ),
+      })
+    }
   }
 
   private revokeDevice = (device: IAgentPairedDevice) => {

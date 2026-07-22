@@ -1124,6 +1124,28 @@ export type TranslationKey =
   | 'settings.automationIntervalEvery'
   | 'settings.automationIntervalMinutes'
   | 'settings.automationIntervalGroupLabel'
+  | 'settings.queueTab'
+  | 'settings.queueHeading'
+  | 'settings.queueDescription'
+  | 'settings.queueNoAccounts'
+  | 'settings.queueAutoCloneTitle'
+  | 'settings.queueAutoCloneDescription'
+  | 'settings.queueBaseDirectory'
+  | 'settings.queueChooseDirectory'
+  | 'settings.queueDirectoryPlaceholder'
+  | 'settings.queueMode'
+  | 'settings.queueModeParallel'
+  | 'settings.queueModeSequential'
+  | 'settings.queueEnabledStatus'
+  | 'settings.queueDisabledStatus'
+  | 'settings.queueDirectoryRequired'
+  | 'settings.queueSafetyNote'
+  | 'settings.mobileConnectionHeading'
+  | 'settings.mobileConnectionDescription'
+  | 'settings.mobileConnectionOpen'
+  | 'settings.mobileConnectionChoosePairedMode'
+  | 'settings.mobileConnectionStartServer'
+  | 'settings.mobileConnectionOpenFailed'
   | 'settings.advancedUsageStatsTitle'
   | 'settings.advancedUsageStatsDescription'
   | 'settings.advancedCredentialStorageTitle'
@@ -2620,6 +2642,37 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.automationIntervalEvery': 'Every',
   'settings.automationIntervalMinutes': '{minutes} min',
   'settings.automationIntervalGroupLabel': '{title} interval',
+  'settings.queueTab': 'Clone queue',
+  'settings.queueHeading': 'Clone queue',
+  'settings.queueDescription':
+    'Configure how each signed-in account watches for and clones newly discovered repositories.',
+  'settings.queueNoAccounts':
+    'Sign in to a hosted account to configure its clone queue.',
+  'settings.queueAutoCloneTitle': 'Automatically clone new repositories',
+  'settings.queueAutoCloneDescription':
+    'Checks in the background after Settings closes and clones only repositories discovered after the baseline is saved.',
+  'settings.queueBaseDirectory': 'Base directory',
+  'settings.queueChooseDirectory': 'Choose folder',
+  'settings.queueDirectoryPlaceholder': 'Choose a base directory',
+  'settings.queueMode': 'Clone mode',
+  'settings.queueModeParallel': 'Parallel — up to 3 at once',
+  'settings.queueModeSequential': 'Sequential — one at a time',
+  'settings.queueEnabledStatus': 'On · checks every 5 minutes',
+  'settings.queueDisabledStatus': 'Off',
+  'settings.queueDirectoryRequired':
+    'Choose a base directory before turning on this queue.',
+  'settings.queueSafetyNote':
+    'Each batch is bounded to 500 repositories, existing folders are reviewed safely, and background queues never open an unsolicited progress dialog.',
+  'settings.mobileConnectionHeading': 'Mobile connection',
+  'settings.mobileConnectionDescription':
+    'Opens a fresh one-time pairing link in your default browser. Its secret stays in the URL fragment and is replaced the next time you open one.',
+  'settings.mobileConnectionOpen': 'Open mobile connection page',
+  'settings.mobileConnectionChoosePairedMode':
+    'Choose Paired LAN devices above to connect the mobile site securely.',
+  'settings.mobileConnectionStartServer':
+    'Turn on the agent server to create a one-time mobile connection.',
+  'settings.mobileConnectionOpenFailed':
+    'Desktop Material could not open the mobile connection page.',
   'settings.advancedUsageStatsTitle': 'Usage stats',
   'settings.advancedUsageStatsDescription':
     'Submit anonymized usage data to help improve Desktop Material.',
@@ -4032,6 +4085,36 @@ export const cantoneseTranslations: Readonly<
   'settings.automationIntervalEvery': '每隔',
   'settings.automationIntervalMinutes': '{minutes} 分鐘',
   'settings.automationIntervalGroupLabel': '{title}間隔',
+  'settings.queueTab': 'Clone 隊列',
+  'settings.queueHeading': 'Clone 隊列',
+  'settings.queueDescription':
+    '逐個登入帳戶設定點樣留意同 clone 新發現嘅 repository。',
+  'settings.queueNoAccounts':
+    '登入託管帳戶之後，就可以喺度設定佢嘅 clone 隊列。',
+  'settings.queueAutoCloneTitle': '自動 clone 新 repository',
+  'settings.queueAutoCloneDescription':
+    '關咗設定頁都會喺背景檢查，只會 clone 儲存基準之後先發現嘅 repository。',
+  'settings.queueBaseDirectory': '基礎資料夾',
+  'settings.queueChooseDirectory': '揀資料夾',
+  'settings.queueDirectoryPlaceholder': '先揀一個基礎資料夾',
+  'settings.queueMode': 'Clone 模式',
+  'settings.queueModeParallel': '並行 — 最多同時 3 個',
+  'settings.queueModeSequential': '逐個嚟 — 一次 1 個',
+  'settings.queueEnabledStatus': '已開 · 每 5 分鐘檢查',
+  'settings.queueDisabledStatus': '已關',
+  'settings.queueDirectoryRequired': '開啟隊列之前，請先揀基礎資料夾。',
+  'settings.queueSafetyNote':
+    '每批最多 500 個 repository；遇到現有資料夾會安全覆核，而且背景隊列唔會無啦啦彈進度視窗阻住你。',
+  'settings.mobileConnectionHeading': '手機連線',
+  'settings.mobileConnectionDescription':
+    '用預設瀏覽器開一條全新嘅一次性配對連結；秘密只放喺 URL fragment，下次再開就會換新。',
+  'settings.mobileConnectionOpen': '開啟手機連線頁面',
+  'settings.mobileConnectionChoosePairedMode':
+    '請先喺上面揀「已配對 LAN 裝置」，再安全連接手機網站。',
+  'settings.mobileConnectionStartServer':
+    '請先開啟 agent server，先可以建立一次性手機連線。',
+  'settings.mobileConnectionOpenFailed':
+    'Desktop Material 開唔到手機連線頁面。',
   'settings.advancedUsageStatsTitle': '使用統計',
   'settings.advancedUsageStatsDescription':
     '提交匿名使用數據，幫手改善 Desktop Material。',

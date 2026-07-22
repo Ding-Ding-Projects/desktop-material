@@ -53,6 +53,13 @@ scrubs it from browser history immediately, normalizes the advertised agent to
 connection is unavailable. It exchanges the secret through
 `POST /api/v1/remote/pair` with `{ code, deviceName, stayLoggedIn? }`.
 
+For the shortest desktop-to-phone path, choose **Paired LAN devices**, start the
+agent server, and select **Settings → Agent access → Open mobile connection
+page**. The app first invalidates the old pairing code, creates a fresh
+five-minute one-use link, and opens `/connect` in the default browser. Reopening
+the button replaces the previous code; it never reuses a link that may already
+be expired or consumed.
+
 Authenticated device inventory and revocation use:
 
 - `GET /api/v1/remote/devices`

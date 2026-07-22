@@ -18,7 +18,9 @@ const styles = readFileSync(
 
 describe('Agent access preferences', () => {
   it('exposes status and read-only connection fields accessibly', () => {
-    const markup = renderToStaticMarkup(<AgentAccess />)
+    const markup = renderToStaticMarkup(
+      <AgentAccess openInBrowser={async () => true} />
+    )
 
     assert.match(markup, /role="status"/)
     assert.match(markup, /aria-live="polite"/)
@@ -59,5 +61,16 @@ describe('Agent access preferences', () => {
       source,
       /mode === 'yolo-lan'[\s\S]*?localStorage\.removeItem\(AgentServerGatewayURLStorageKey\)/
     )
+  })
+
+  it('opens a freshly regenerated one-time mobile pairing page', () => {
+    assert.match(source, /data-verification="mobile-connection-settings"/)
+    assert.match(source, /data-verification="open-mobile-connection-page"/)
+    assert.match(
+      source,
+      /openMobileConnectionPage[\s\S]*?regenerate-agent-server-pairing[\s\S]*?openInBrowser\(pairing\.qrURL\)/
+    )
+    assert.match(source, /settings\.mobileConnectionChoosePairedMode/)
+    assert.match(source, /settings\.mobileConnectionStartServer/)
   })
 })

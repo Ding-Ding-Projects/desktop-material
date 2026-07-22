@@ -20,6 +20,24 @@ authenticates but does not encrypt traffic. **YOLO LAN** requires explicit
 confirmation, disables authentication, rejects HTTPS gateways, and returns to
 local/off when the app restarts. It should be treated as unsafe.
 
+### Open the mobile connection page
+
+The **Mobile connection** card remains discoverable in **Settings → Agent
+access** in every mode. Choose **Paired LAN devices** and start the server, then
+select **Open mobile connection page**. Desktop Material replaces any existing
+pairing code, builds a fresh five-minute one-use `/connect` URL from the saved
+remote-site address, and opens it in the default browser. The button is disabled
+until paired mode is running, so Local-only and stopped-server states cannot
+accidentally create a LAN pairing.
+
+The one-time secret is carried only in the URL fragment. Browsers do not send
+that fragment to the site server, and the mobile client removes it from browser
+history before exchanging it for a vault-backed device token. Opening the
+button again invalidates the prior code. If browser launch or pairing-code
+creation fails, Settings reports a generic localized error without displaying
+or logging the secret; create another connection after checking the remote-site
+address and server state.
+
 ### HTTP routes
 
 - `GET /api/v1/info` requires bearer authentication except in YOLO LAN mode.
@@ -116,6 +134,10 @@ Repository credentials and provider tokens never appear in Agent API results.
   functions, and visible-UI preconditions fail closed. Re-read `/api/v1/info`
   or MCP `tools/list`, refresh repository state, and retry only when the error
   is explicitly retryable.
+- If **Open mobile connection page** is unavailable, select **Paired LAN
+  devices** and start the server. A browser-open failure leaves the newly
+  generated code short-lived; correct the configured site URL and use the
+  button again to replace it.
 
 ## Security considerations
 
@@ -126,7 +148,10 @@ output, and send `no-store` plus defensive response headers. The bearer token
 protects Local and Paired LAN modes; paired tokens are independently
 revocable. Pairing secrets are rate-limited, expire after five minutes, and
 are consumed before vault storage so they cannot be replayed after a partial
-failure.
+failure. The Settings browser action always generates a new secret and passes
+the complete fragment URL directly to the operating-system browser opener; it
+does not put the URL into logs, source control, site requests, or persistent
+application settings.
 
 Mutating commands change repositories or provider state. Use exact repository
 selectors, inspect status first, and keep the Postman examples pointed at
@@ -141,6 +166,7 @@ HTTP/MCP routing in `app/src/main-process/agent-server/`. Unit coverage verifies
 the current and legacy REST forms, MCP discovery and calls, dynamic named
 functions, token rejection and rotation, Host/Origin policy, body limits,
 pairing expiry and one-use exchange, device revocation, LAN mode boundaries,
-gateway policy, queue bounds, shutdown, redaction, the CLI, and the stdio
-proxy. The checked-in Postman files are parsed as JSON and audited against all
-eight shipped route patterns and all 24 static command names.
+gateway policy, fresh browser-link generation, unavailable-mode and
+browser-failure handling, queue bounds, shutdown, redaction, the CLI, and the
+stdio proxy. The checked-in Postman files are parsed as JSON and audited against
+all eight shipped route patterns and all 24 static command names.

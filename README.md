@@ -147,7 +147,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 - GitHub browser sign-in requests the bounded feature scopes used by the app: repository/user access, workflow-file updates, notifications, and read-only organization membership. Unrelated destructive and administrative OAuth scopes are intentionally excluded
 - Browse complete GitHub organization repository lists, filter cloning by organization, and choose an organization when publishing
 - Add GitLab accounts, including self-hosted endpoints, with a personal access token; add Bitbucket accounts with an app password, then browse and clone their repositories from the provider tab
-- Select all repositories with a mixed-state checkbox, or opt in to automatically clone only newly discovered repositories in the background. Auto-clone keeps the saved account/base-directory/mode policy and never opens an unsolicited progress dialog
+- Select all repositories with a mixed-state checkbox, or opt in to automatically clone only newly discovered repositories in the background. **Settings → Clone queue** keeps each signed-in account's base directory, parallel/sequential mode, and enabled state discoverable after the Clone dialog closes; auto-clone never opens an unsolicited progress dialog
 - Pause and resume pending multi-clones, including after restart or an interrupted process. A bounded atomic recovery journal revalidates the exact destination, usable clean worktree, `HEAD`, and matching origin without deleting occupied folders; failed/review-required queues remain visible until explicitly dismissed
 - Switching clone accounts clears stale repository selection and validation, reloads the exact account catalog, and keeps its latest async result from being overwritten by an older account/path check
 - Clone a private repository from a generic HTTPS URL without a credential prompt when an eligible signed-in account matches the exact origin. Only authentication or repository-not-found ambiguity can try another exact-origin account; the successful account affinity is retained, while tokenless or stale tokenless bindings are skipped and missing, SSH, non-authentication, and cross-origin credentials never widen fallback
@@ -209,6 +209,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 **Agent access and command line**
 - Enable an opt-in, token-gated local agent server from **Settings → Agent access**; it exposes MCP and REST on a random loopback-only port and never returns account credentials
+- In **Paired LAN devices** mode, use **Open mobile connection page** to replace any old code and open a fresh five-minute, one-use pairing link in the default browser; the secret remains in the URL fragment and is never sent to the site server
 - Use the bundled stdio proxy or command-line client to list accounts/repos/tabs, inspect status, clone, commit, fetch/pull/push, manage branches/tabs, run automation, and dispatch workflows
 - Turn a validated REST catalog request or named GraphQL operation into a profile-backed **App function** from the API rail. Functions are bound to the exact repository, provider, and account; read functions extend the local MCP/REST agent catalog, while mutation functions always return to the visible review step
 
