@@ -135,3 +135,17 @@ that same-origin authorization survives only after the stale record is
 released. `sandboxed-markdown-lifecycle-test.tsx` performs 25 content reloads,
 dispatches an actual scroll before and after unmount, and checks matching
 listener removal, debounce cancellation, and released iframe references.
+
+App-source candidate `aabb111d2c01f38e7535ab077048816a5ad16893` completed
+the required fixed-Lowlevel-MCP production build in 1178.13 seconds. A final
+visual audit rejected the first off-screen screenshot because a 780 px editor
+was clipped by its 390 px anchored shell. The shell now inherits the existing
+wide-editor contract while retaining the compact 390 px fallback; the rejected
+image is not published.
+
+Remote CI validated the Playwright ffmpeg cache correction on Windows x64,
+packaged E2E, and arm64. The remaining x64 failure was one stale source
+assertion added by a later provider integration. The runtime guard was already
+centralized before side effects; the corrected test checks that shared boundary
+and both delegating OpenCode wrappers. Final pushed-SHA CI, Release proof, and a
+fresh unclipped visual recapture remain pending.

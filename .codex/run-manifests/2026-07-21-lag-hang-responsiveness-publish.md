@@ -8,10 +8,15 @@
   changing the Windows-only product boundary.
 - Project worktree:
   `%USERPROFILE%\Documents\GitHub\desktop-material-lag-hang-wt`.
+- Final verification worktree (recreated after the integrated task worktree was
+  cleaned):
+  `%USERPROFILE%\Documents\GitHub\desktop-material-lag-hang-verify-wt`.
 - Source checkout preserved separately at
   `%USERPROFILE%\Documents\GitHub\desktop-material`.
 - Remote: `https://github.com/Ding-Ding-Projects/desktop-material.git`.
 - Task branch: `codex/fix-lag-hangs-20260721` from `origin/main`.
+- Final verification branch: `codex/verify-lag-hangs-20260721`; final rebase
+  base `fa4806971c5515766fee5a0ab03a76adfdd11d79`.
 - Initial task/upstream SHA: `c4403f2a0faf6e96fb53be3c5a9f4587f4a219c7`.
 - Initial task-worktree state: clean and zero commits ahead of `origin/main`.
 - Preserved source-checkout baseline: `main` at
@@ -118,13 +123,49 @@
   its tip is contained in pushed `origin/main`; report any residue that cannot
   be safely integrated or removed.
 
+## Final local acceptance receipt
+
+- Fixed MCP source remained clean at
+  `ed1427f69b20dcd66df1de2ae3c6ba6591e2e640`; preflight and scheduled-task
+  command inspection returned `client_ok: true`.
+- App-source candidate `aabb111d2c01f38e7535ab077048816a5ad16893`
+  completed the required no-download production build. All five Webpack
+  configurations compiled successfully and the build log ended with
+  `Done in 1178.13s`; the 11,839-byte log had SHA-256
+  `afa6312fc25cb5a083ed0550f1029768ea2072fa21b33caf36da116f3bb6a812`.
+  The later `fa4806971c` app feature was integrated after that build;
+  pushed-SHA Windows CI is the final integrated build proof.
+- Tests: focused Git/process 30/30; changed-test/Pages/wiki 84/84; complete UI
+  815/815; all-files 1,491/1,492 with one intentional skip; final combined
+  Cheap-LFS/release/workflow/guard/editor gate 83/83.
+- GitHub runners proved the Playwright ffmpeg cache fix on Windows x64,
+  packaged E2E, and arm64. The remaining x64 failure was exactly the stale
+  temporary-submodule guard assertion fixed by this branch. The concurrent
+  `opencode.json` missing-final-newline lint failure is formatted in the final
+  handoff commit.
+- The first off-screen capture was rejected because the 780 px editor was
+  clipped by a 390 px anchored shell. The shell defect is fixed and covered,
+  but the rejected PNG is not published. Final-source recapture remains
+  follow-up evidence.
+
 ## Cleanup ledger
 
-- Owned run root: not yet created.
-- Owned fixture/user-data paths: not yet created.
-- Headless desktop: not yet created.
-- Launch PID/HWND: not yet assigned.
-- Task worktree: created clean at the path recorded above.
+- Owned verification roots:
+  `%TEMP%\desktop-material-lag-hang-20260721T140722-0400` and
+  `%TEMP%\desktop-material-lag-hang-final-aabb111d-20260721T1953`; final
+  containment-checked cleanup is pending until the handoff commit is written.
+- First headless desktop: `DesktopMaterialLagHang_20260721_140722` was created
+  once, then disappeared when the fixed MCP service was externally restarted.
+  It produced no accepted capture and is not reused.
+- First launch PID: `13316`; it exited with the lost desktop and has no accepted
+  screenshot receipt.
+- Rejected-capture desktop/app: `DesktopMaterialLagHangFinal_20260721_1829` is
+  closed;
+  PIDs `17500` and `8536`, every owned child, and loopback listener `60129` are
+  absent.
+- Integrated task worktree: cleaned after its exact tip reached `origin/main`.
+  The separate verification worktree recorded above owns the remaining build,
+  capture, documentation, and publication proof.
 - Pre-existing linked worktree:
   `%LOCALAPPDATA%\Temp\desktop-material-cheap-lfs-hotfix-019f8580` on
   `codex/cheap-lfs-hotfix`; do not remove until remote containment and

@@ -28,9 +28,10 @@ historical test receipts stay in [`PLAN.md`](PLAN.md) and
   interaction/screenshot acceptance, pushed-SHA CI, Pages/wiki sync, and Release
   verification remain to be recorded.
 
-## July 21 responsiveness hardening — **Local implementation complete**
+## July 21 responsiveness hardening — **Implementation accepted; publish verification pending**
 
-Publication verification is pending.
+Exact-SHA publication verification is pending after one stale integration-test
+contract blocked the first remote candidate.
 
 - Valid, locally resolvable remote defaults no longer trigger a potentially
   multi-minute online `git remote set-head -a` scan during background sync.
@@ -56,8 +57,15 @@ Publication verification is pending.
   late termination rejection, same-URL proxy coalescing, the strict clone
   barrier, every prompt family, a 500-update burst, failed request-ID reuse, and
   25 Markdown reloads.
-  Exact rebased-source full tests, low-level-MCP production build, off-screen UI
-  evidence, push, CI, Pages, wiki, and release receipts remain to be recorded.
+  The focused Git/process gate passes 30/30, the changed-test/Pages/wiki gate
+  passes 84/84, the complete UI directory passes 815/815, and the all-files run
+  passes 1,491/1,492 with one intentional skip. The post-integration
+  Cheap-LFS/release/workflow/guard/editor gate passes 83/83. App-source
+  candidate `aabb111d2c` completed the fixed low-level-MCP production build in
+  1178.13 seconds. A visual audit rejected the first screenshot because the
+  wide editor was clipped; the shell is fixed, the rejected image is not
+  published, and final-source recapture plus pushed-SHA CI/Release receipts
+  remain to be recorded.
 
 ## M25 — Repository-bound API functions — **Implementation complete; verification pending**
 

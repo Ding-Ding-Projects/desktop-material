@@ -97,6 +97,43 @@ cached. Focused Cheap LFS, UI, workflow-safety, setup-action, and release-note
 tests currently pass **72/72**. Remote CI, cache-hit
 timing, live multi-gigabyte browser upload, and Release publication remain
 external verification rather than claims in this checkpoint.
+## 2026-07-21 responsiveness, resource lifecycle, and CI handoff
+
+The lag, hang, and retained-resource implementation is integrated through
+`2a2742796bdf65fc8562b317dcb73423bff9aa30`. The final task branch is rebased
+onto the concurrent clone-queue/mobile-settings work at `fa4806971c`; its two
+task commits update the temporary-submodule build-fix guard contract and make
+wide anchored appearance editors use their intended 780 px shell without
+changing the compact 390 px fallback.
+
+The focused Git/process gate passes **30/30**, the changed-test/Pages/wiki gate
+passes **84/84**, the complete UI directory passes **815/815**, and the full
+all-files run passes **1,491/1,492** with one intentional skip and zero
+failures. After the later release, CI, and settings integrations, the combined
+Cheap LFS/release/workflow/guard/responsive-editor gate passes **83/83**.
+
+The fixed Lowlevel MCP checkout remained clean at
+`ed1427f69b20dcd66df1de2ae3c6ba6591e2e640`. App-source candidate
+`aabb111d2c01f38e7535ab077048816a5ad16893` completed the required no-download
+production build; all five Webpack configurations compiled successfully and
+the build finished with `Done in 1178.13s`. The later `fa4806971c` app feature
+arrived while that build was running, so the pushed-SHA Windows CI result is the
+required final integrated build proof.
+
+The first off-screen screenshot candidate was rejected during final visual
+audit because the 780 px repository-toolbar editor was clipped by its 390 px
+anchored shell. The shell-width defect is now fixed and covered by a responsive
+style contract. The rejected PNG is not published; the tracked gallery image
+remains unchanged, and a fresh final-source recapture is follow-up evidence.
+All owned Electron processes, loopback listeners, and headless desktops from
+the rejected run were closed.
+
+Remote CI proved the Playwright cache validator fix on Windows x64, packaged
+E2E, and arm64. The remaining x64 failure was exactly the stale
+`runOpencodeFix` source assertion corrected by this branch. A concurrent
+`opencode.json` merge then added a missing-final-newline lint failure; this
+handoff formats that file as well. Exact pushed-SHA CI, installer, and Release
+verification remain pending.
 
 ## 2026-07-21 remote discovery hard-total-bound follow-up
 
