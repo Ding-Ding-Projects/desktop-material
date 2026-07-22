@@ -21,11 +21,12 @@ export const CHEAP_LFS_POINTER_VERSION = 'desktop-material/cheap-lfs/v1'
 const CheapLfsLegacyMaximumPartSizeBytes = 2 * 1024 * 1024 * 1024
 
 /**
- * The per-part size used for new uploads. GitHub requires each release asset to
- * be under 2 GiB, so leave one byte of headroom while retaining parser support
- * for legacy pointers whose parts are exactly 2 GiB.
+ * The per-part size used for new uploads. GitHub requires each release asset
+ * to be under 2 GiB, but uploads near that ceiling proved unreliable in
+ * practice, so new parts are capped at 1.5 GiB. The parser retains support
+ * for legacy pointers whose parts are up to exactly 2 GiB.
  */
-export const CHEAP_LFS_PART_SIZE_BYTES = CheapLfsLegacyMaximumPartSizeBytes - 1
+export const CHEAP_LFS_PART_SIZE_BYTES = 1536 * 1024 * 1024
 
 /**
  * Pointers are small, but a multi-part pointer for a very large file lists one

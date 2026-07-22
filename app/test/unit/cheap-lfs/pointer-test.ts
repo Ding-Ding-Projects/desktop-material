@@ -97,7 +97,7 @@ describe('cheap LFS pointer', () => {
     assert.deepEqual(parseCheapLfsPointer(text), compressed)
   })
 
-  it('accepts legacy 2 GiB parts but plans new uploads below 2 GiB', () => {
+  it('accepts legacy parts over the cap but plans new uploads at the cap', () => {
     const legacyTwoGiB = CHEAP_LFS_PART_SIZE_BYTES + 1
     const legacy: ICheapLfsPointer = {
       ...pointer,
@@ -123,7 +123,9 @@ describe('cheap LFS pointer', () => {
   })
 
   it('rejects parts that exceed the legacy release-asset size', () => {
-    const oversized = CHEAP_LFS_PART_SIZE_BYTES + 2
+    // Parsing still accepts legacy parts up to exactly 2 GiB even though new
+    // uploads are planned at the smaller CHEAP_LFS_PART_SIZE_BYTES.
+    const oversized = 2 * 1024 * 1024 * 1024 + 1
     const text = [
       `version ${CHEAP_LFS_POINTER_VERSION}`,
       'release-tag v2.0.0',

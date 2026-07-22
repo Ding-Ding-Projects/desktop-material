@@ -16,10 +16,13 @@ release tag, optional release name, and byte size. The default tag is `assets`;
 if it has no release, the app creates an unpublished prerelease draft so an
 asset bucket can never replace the installer's `/releases/latest` update feed.
 A file at or below
-the release-asset cap uploads as one raw asset. A larger file is split into
-ordered raw parts smaller than 2 GiB, and the pointer records every part's name,
-size, and SHA-256 as well as the whole-file size and digest. Current uploads do
-not add a compression pass; legacy deflated pointers remain readable.
+the per-asset cap uploads as one raw asset. A larger file is split into
+ordered raw parts of at most 1.5 GiB — GitHub allows release assets up to
+2 GiB, but uploads near that ceiling proved unreliable, so new parts stay
+well below it — and the pointer records every part's name, size, and SHA-256
+as well as the whole-file size and digest. Current uploads do not add a
+compression pass; legacy deflated pointers with parts up to exactly 2 GiB
+remain readable and materializable.
 
 GitHub permits 1,000 assets per Release. Cheap LFS inventories all ten bounded
 100-item pages and keeps at most 1,000 assets in each repository Release
@@ -62,15 +65,17 @@ When no prior object exists, Desktop Material launches only the real-path
 `GitHub CLI\gh.exe` below a validated `Program Files` root and invokes a fixed
 `gh api` upload. The exact validated file range is streamed to standard input,
 hashed locally, and reported through bounded progress. Hashing and upload use
-bounded 1 MiB disk chunks, cutting the per-2-GiB callback/write count from
-roughly 32,768 default 64-KiB chunks to about 2,048 without buffering the file.
+bounded 1 MiB disk chunks, cutting the per-part callback/write count by
+roughly sixteen times versus default 64-KiB chunks without buffering the file.
 The selected host and
 upload URL, `GH_HOST`, and `GH_REPO` context are fixed by the account-bound
 request. The token is supplied only through an isolated child environment,
 never an argument; inherited GitHub CLI credentials and debug settings are
 removed, an empty temporary CLI config is used, and the directory is deleted
-afterward. The process has bounded output, inactivity and total-runtime limits,
-runs without a shell, and is terminated and awaited on cancel. A failed CLI
+afterward. The process has bounded output, runs without a shell, and is terminated and
+awaited on cancel. Uploads run with no inactivity or total-runtime timeout:
+a slow connection can take as long as it needs, and a transfer ends only on
+completion, a transport failure, or explicit user cancellation. A failed CLI
 request polls briefly for a delayed completed asset. If and only if no
 same-name object exists, the app performs one clean byte-zero restart; the
 GitHub upload API has no resume primitive. A `starter` is never guessed to be
@@ -94,8 +99,9 @@ For Release uploads that do not carry a prepared Cheap LFS digest, if that
 trusted CLI cannot be resolved, the app retains a compatibility Electron
 transport. It removes the fixed-length header at the final request
 boundary and enables chunked encoding before writing, so it does not retain an
-entire multi-gigabyte asset in process memory. Its watchdog aborts two minutes
-without forward network progress. The manual browser handoff below is the
+entire multi-gigabyte asset in process memory. Like the CLI path, it applies
+no stall or runtime timeout by default; only user cancellation or a transport
+failure ends the request. The manual browser handoff below is the
 recommended recovery if this compatibility path cannot complete safely.
 
 While an automatic upload is active, **Manual upload** switches the same commit
@@ -160,7 +166,7 @@ requests.
 ## Failure modes and recovery
 
 An unavailable Releases account, missing release or asset, stale release
-review, upload/download error, missing trusted GitHub CLI, CLI timeout or
+review, upload/download error, missing trusted GitHub CLI, CLI
 failure, changed source file, digest or size mismatch, oversized pointer
 projection, invalid part layout, insufficient temporary space, or cancellation
 before pointer commit leaves the original source or tracked pointer in place.
@@ -252,7 +258,7 @@ deleted.
 
 `cheap-lfs/pointer-test.ts` covers canonical single/multipart pointers, legacy
 deflated compatibility, size limits, part totals, path normalization, and the
-below-2-GiB upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
+1.5 GiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
 deduplicated asset names, 1,000-asset rollover without splitting groups,
 mutation reviews, attempt-owned cleanup, source race checks, cancellation,
 per-part and whole-file verification, paginated inventory reuse, and atomic

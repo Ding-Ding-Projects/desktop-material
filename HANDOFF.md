@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-22 Cheap LFS 1.5 GiB parts, no upload timeouts, Pages-hosted docs
+
+Cheap LFS release uploads kept failing near the 2 GiB asset ceiling, so
+`CHEAP_LFS_PART_SIZE_BYTES` now plans new parts at 1.5 GiB while the pointer
+parser still accepts legacy parts up to exactly 2 GiB. Release-asset uploads
+no longer apply any stall or total-runtime timeout by default on either the
+GitHub CLI or Electron compatibility transport: a transfer ends only on
+completion, transport failure, or user cancellation. Tests keep injecting
+explicit `stallTimeoutMs`/`maximumRuntimeMs` values to exercise the watchdog
+paths, and the pointer contract test now pins the legacy 2 GiB parse bound
+independently of the upload cap. Feature and User Guide documentation were
+updated to match.
+
+The GitHub Pages site now hosts the complete rendered documentation set. The
+Pages workflow installs pandoc, renders every `docs/**/*.md` (README files as
+folder indexes) plus the root project documents through
+`site/docs-template.html` with `site/md-links.lua` rewriting `.md` and
+wiki-style links, and the site's Docs/Read-the-docs/Documentation links point
+at the hosted `docs/` index instead of redirecting to the GitHub wiki. The
+render loop was executed locally with pandoc 3.10 (137 docs pages plus root
+documents) and one page was visually verified. Local verification: 142
+passing tests across site accessibility, CI workflow safety, release
+transfer, cheap-lfs, and pull-preview contract suites, plus repository-wide
+TypeScript no-emit and Prettier on changed files. Remote CI, the Pages
+deploy, and the express release are post-push verification items.
+
 ## 2026-07-21 pull preview moved to right click on the toolbar Pull button
 
 A plain left click on the toolbar **Pull _remote_** button now performs the

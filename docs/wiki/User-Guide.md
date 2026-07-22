@@ -848,8 +848,9 @@ reused, while a persistent `starter` asset fails closed so it cannot be overwrit
 success.
 
 If the trusted CLI is unavailable, Desktop Material retains Electron's memory-bounded chunked
-compatibility transport. Two minutes without forward network progress aborts that request instead
-of leaving the panel indefinitely at 0% or 1%; choose the manual flow below if it cannot complete.
+compatibility transport. Uploads on either transport run with no stall or runtime timeout — a slow
+connection can take as long as it needs, and a transfer ends only on completion, a transport
+failure, or your explicit Cancel; choose the manual flow below if it cannot complete.
 
 For explicit recovery, choose **Manual upload** beside the progress controls. Desktop Material
 stops that attempt and places all remaining files into one temporary **upload-these-files** folder.
@@ -869,8 +870,8 @@ the pointers, and resumes the same commit automatically. Older GitHub
 Enterprise versions safely fall back to the repository Releases listing. **Cancel** stops either
 path until the verified pointer commit begins; that short final mutation phase finishes as one
 reviewed operation. The app waits for and verifies every multipart asset before writing the pointer. New uploads
-otherwise skip compression: a file fitting the release-asset cap is stored as one raw asset, while a
-larger file is split into ordered raw ranges. Downloads verify each range and the complete file before
+otherwise skip compression: a file fitting the 1.5 GiB per-asset cap is stored as one raw asset,
+while a larger file is split into ordered raw ranges of at most 1.5 GiB each. Downloads verify each range and the complete file before
 replacing the pointer. Existing compressed cheap-LFS pointers remain readable for backward
 compatibility.
 
