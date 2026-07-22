@@ -3311,9 +3311,11 @@ state: installer run `29671087924` and release
   `workflow_dispatch`-only emergency lane. It accepts only a `main` dispatch,
   checks out the exact SHA, restores the exact dependency cache, skips lint and
   all test suites, builds/packages Windows x64 directly, verifies the complete
-  Squirrel/installer/portable payload, generates bounded exact-SHA notes, and
-  preserves an uncompressed seven-day artifact before optional create-only
-  release publication.
+  Squirrel/installer/portable payload, writes a local note from the checked-out
+  commit, and preserves an uncompressed seven-day artifact before optional
+  create-only release publication. The fast lane intentionally skips the
+  history-aware TypeScript notes generator so its token/release-history lookup
+  cannot block an emergency installer.
 - Super Express versions combine the package base with its run number and
   attempt, keeping NuGet-compatible unique immutable tags. The workflow has no
   shared concurrency group, so a newer dispatch cannot cancel an older one.

@@ -122,10 +122,13 @@ The direct lane still fails closed around the produced executable content. It
 requires the exact dispatched commit, creates a unique package/tag version from
 the workflow run number and attempt, rejects an existing tag, requires every
 installer, portable ZIP, Squirrel package, and `RELEASES` entry to be non-empty,
-and generates bounded exact-commit notes. It uploads the complete payload as an
-uncompressed seven-day Actions artifact before the optional create-only GitHub
-Release step. The `publish` dispatch checkbox defaults on but can be cleared to
-build a recovery artifact without creating a Release.
+and writes a local note from the exact checked-out commit subject/body. It does
+not inspect release history or invoke the TypeScript release-note generator, so
+that optional metadata path cannot block an emergency package. It uploads the
+complete payload as an uncompressed seven-day Actions artifact before the
+optional create-only GitHub Release step. The `publish` dispatch checkbox
+defaults on but can be cleared to build a recovery artifact without creating a
+Release.
 
 No shared concurrency group is declared, so overlapping manual invocations can
 finish independently. Tags and Releases are immutable: a same-tag race has one
@@ -140,7 +143,9 @@ winner, and later attempts fail without replacing it.
 - The runtime provider contract expects the active workflow files to remain
   `.github/workflows/ci.yml` and `.github/workflows/build-installers.yml`.
 - The release-note step receives `GITHUB_TOKEN` through its environment. It is
-  never accepted as a command-line value or written to the notes.
+  never accepted as a command-line value or written to the notes. This applies
+  to the tested Express path; Super Express deliberately uses only local Git
+  metadata from the checked-out commit.
 - Manual express release must be dispatched from `main`. A failed CI conclusion
   permits package-only recovery but blocks publication. A wrong/stale CI
   trigger, stale dispatch SHA, existing tag, or changed default-branch tip
@@ -168,6 +173,11 @@ metadata from full 1,000-object Cheap LFS buckets without retaining an
 unbounded response. After notes generation, the workflow immediately revalidates
 `origin/main` and immutable tag absence before publishing the same
 `RELEASE_TARGET_SHA` as the release target.
+
+Super Express does not call the history-aware generator. Its note comes from
+`git show` against the already verified `RELEASE_TARGET_SHA`, avoiding an API
+or token-dependent metadata failure while retaining the dispatched commit
+subject and body.
 
 An invalid dependency cache fails instead of silently installing into a mixed
 tree. Cache misses perform the normal bounded install retries and save only

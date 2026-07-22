@@ -151,15 +151,17 @@ jobs:
             fi
           done
 
-      - name: Generate exact-commit release notes
+      - name: Write fast local commit note
         shell: bash
         run: |
-          yarn --silent ts-node -P script/tsconfig.json \
-            script/generate-automated-release-notes.ts \
-            --repository "$GITHUB_REPOSITORY" \
-            --version "$RELEASE_VERSION" \
-            --release-sha "$RELEASE_TARGET_SHA" \
-            --output release-payload/release-notes.md
+          {
+            echo "Super Express package for commit \`$RELEASE_TARGET_SHA\`."
+            echo
+            echo '### Commit'
+            echo
+            git show --no-patch --format='%s%n%n%b' "$RELEASE_TARGET_SHA" | \
+              sed 's/^/    /'
+          } > release-payload/release-notes.md
 
       - name: Preserve installer and notes artifact
         uses: actions/upload-artifact@v7
