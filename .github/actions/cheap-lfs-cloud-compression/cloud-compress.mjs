@@ -21,16 +21,6 @@ const MAX_POINTER_BYTES = 512 * 1024
 const MAX_ASSET_NAME_BYTES = 255
 const MAX_PART_BYTES = 2 * 1024 * 1024 * 1024
 const API_VERSION = '2022-11-28'
-const excludedPaths = [
-  '.git/',
-  'node_modules/',
-  'vendor/',
-  'target/',
-  'dist/',
-  'out/',
-  'build/',
-]
-
 const workspace = process.env.GITHUB_WORKSPACE
 const repository = process.env.GITHUB_REPOSITORY
 const token = process.env.CHEAP_LFS_GITHUB_TOKEN
@@ -49,10 +39,11 @@ if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repository)) {
 }
 
 function git(args, options = {}) {
-  return execFileSync('git', ['-C', workspace, ...args], {
+  const output = execFileSync('git', ['-C', workspace, ...args], {
     encoding: 'utf8',
     stdio: options.quiet ? ['ignore', 'pipe', 'pipe'] : undefined,
-  }).trim()
+  })
+  return options.raw ? output : output.trim()
 }
 
 function parsePointer(text) {
@@ -163,10 +154,9 @@ function serializePointer(pointer) {
 }
 
 function trackedFiles() {
-  return git(['ls-files', '-z'], { quiet: true })
+  return git(['ls-files', '-z'], { quiet: true, raw: true })
     .split('\0')
     .filter(Boolean)
-    .filter(path => !excludedPaths.some(prefix => path.startsWith(prefix)))
 }
 
 async function readPointer(path) {
@@ -378,7 +368,13 @@ async function deleteAttemptAsset(assetId) {
   })
 }
 
-async function adoptPointer(entry, object, candidateName, storedSize) {
+async function adoptPointer(
+  entry,
+  object,
+  candidateName,
+  storedSize,
+  onPushAttempt
+) {
   const currentText = await readFile(entry.absolutePath, 'utf8')
   if (currentText !== entry.text) {
     throw new Error(
@@ -409,8 +405,11 @@ async function adoptPointer(entry, object, candidateName, storedSize) {
 
   try {
     git(['add', '--', entry.path])
-    const staged = git(['diff', '--cached', '--name-only'], { quiet: true })
-      .split(/\r?\n/)
+    const staged = git(['diff', '--cached', '--name-only', '-z'], {
+      quiet: true,
+      raw: true,
+    })
+      .split('\0')
       .filter(Boolean)
     if (staged.length !== 1 || staged[0] !== entry.path) {
       throw new Error('Pointer adoption staged an unexpected path.')
@@ -427,6 +426,10 @@ async function adoptPointer(entry, object, candidateName, storedSize) {
       entry.path,
     ])
     try {
+      // A push can update the remote and still fail locally when the response is
+      // lost. From this point onward the side asset must be retained so a
+      // remotely adopted pointer can always be materialized.
+      onPushAttempt()
       git(['push', 'origin', 'HEAD:' + refName])
     } catch (error) {
       git(['reset', '--hard', 'HEAD^'])
@@ -509,7 +512,9 @@ async function compressObject(entry, object) {
       }
     }
 
-    await adoptPointer(entry, object, candidate.name, stored.bytes)
+    await adoptPointer(entry, object, candidate.name, stored.bytes, () => {
+      uploadedAttemptId = null
+    })
     uploadedAttemptId = null
     return {
       kind: 'compressed',
