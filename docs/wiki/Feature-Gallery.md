@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 66 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 67 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata; no personal path, credential, or account identifier belongs in the image set.
@@ -70,6 +70,7 @@ active profile's style, label, and explicit language mode.
 | `material-tab-search.png` | Runtime tab search across names, aliases, paths, and clone URLs |
 | `material-actions-cancel.png` | Exact workflow-run cancellation review with ref, actor, and commit context |
 | `material-rebase-review.png` | Reviewed current→target rebase with ahead/behind state and commit preview |
+| `material-pull-preview.png` | Freshly fetched ordinary pull review bound to one exact upstream OID |
 | `material-shallow-clone-safe.png` | Reviewed shallow clone with a bounded commit depth |
 | `material-clone-account-fallback.png` | Generic HTTPS clone completed through exact-origin signed-in account fallback |
 | `add-submodule-dialog.png` | Clone-style Add Submodule review with source, checkout path, and branch |
@@ -137,6 +138,15 @@ customization/history context use the same profile/repository ownership model.
 ![Restart-restored profile app identity and favorite repository tab](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
 ## Clone, pull, and working-tree scope
+
+The ordinary toolbar and application-menu Pull actions fetch before opening a
+bounded review of the exact local/upstream identities, incoming commits,
+changed files, and integration route. Dirty or conflicted worktrees cannot
+confirm. The final preflight rejects a stale identity and integrates only the
+reviewed upstream OID without another fetch; scheduled and local-agent
+automation remain noninteractive.
+
+![Reviewed ordinary Git pull with exact branch identities, incoming commits, changed files, and a clean-worktree confirmation gate](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-pull-preview.png)
 
 ![Reviewed shallow clone with a bounded commit depth](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-shallow-clone-safe.png)
 

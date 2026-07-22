@@ -193,6 +193,7 @@ export enum PopupType {
   ImportTabSession = 'ImportTabSession',
   MergeAll = 'MergeAll',
   PullAllRepositories = 'PullAllRepositories',
+  PullPreview = 'PullPreview',
   CommitAndPushAll = 'CommitAndPushAll',
   OpencodeFix = 'OpencodeFix',
   OpencodeSend = 'OpencodeSend',
@@ -299,6 +300,7 @@ export type PopupDetail =
   | { type: PopupType.SparseCheckout; repository: Repository }
   | { type: PopupType.MergeAll; repository: Repository; mode: MergeAllMode }
   | { type: PopupType.PullAllRepositories }
+  | { type: PopupType.PullPreview; repository: Repository }
   | { type: PopupType.CommitAndPushAll }
   | {
       type: PopupType.EditCopilotBYOKProvider

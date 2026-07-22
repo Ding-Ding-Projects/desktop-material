@@ -55,8 +55,9 @@ The detailed Pages, wiki, asset, and cleanup receipts are maintained in
 
 - Keep multiple provider identities bound to the right repository; pin, hide,
   filter, and switch large repository sets; search current-branch or all-ref
-  History; inspect remote-only commits; and run a reviewed pull/fetch batch
-  across an exact repository subset
+  History; inspect remote-only commits; preview an ordinary manual pull after
+  a successful fetch; and run a reviewed pull/fetch batch across an exact
+  repository subset
 - Review and create pull requests without leaving the app: inspect files in a
   tree, expand diff context, comment, reply, resolve, approve, request changes,
   edit metadata, inspect checks, receive activity notifications, and safely
@@ -225,6 +226,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 **Guided Git and provider administration**
 - Manage cone-mode sparse checkout through a three-step **Choose/Adjust/Restore → Review selection → Apply and refresh** guide that remains visible above the scrolling editor and review content. State-aware guidance distinguishes empty, invalid, ready, running, and completed states; review freezes and shows every bounded normalized selection entry before Git updates and refreshes the worktree
 - Exchange reviewed patch series, rewrite local commits from an explicit plan, configure commit/tag signing, administer Git LFS, and run bounded guided bisect sessions from named Repository Tools panels. The repository rail's direct **Large files** manager lists, searches, pins, and materializes release-backed cheap-LFS pointers without asking users to browse Release asset names. Automatic uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding Electron's crash-prone native upload pipe when GitHub CLI is available; the memory-bounded native path remains a compatibility fallback. Reconciliation scans up to 1,000 assets once then polls only an exact asset ID, fails closed on an incomplete asset, retains the exact Release editor plus verified whole-batch drag/drop recovery (including throttled hash/staging progress, worst-case temporary-space preflight, six-hour cancelable polling, and ordered `.partNNN` range files above the per-asset limit), maps flat case-safe assets back to original nested paths, keeps at most 1,000 assets in each prerelease `assets`, `assets-2`, … bucket without splitting a multipart file or manual batch, shares one inventory per Release across Materialize all, and transparently verifies/reassembles the original bytes
+- Use the primary toolbar or application-menu Pull action to fetch and review the exact current/upstream object IDs, ahead/behind state, configured integration route, and bounded incoming commits and files before Git changes a clean worktree. Confirmation revalidates the full reviewed OID and integrates it without a second fetch; a failed fetch cannot surface stale tracking data. English, playful Hong Kong Cantonese, and bilingual review copy follow the saved language mode, while scheduled and local-agent automation remain noninteractive. See [Reviewed ordinary Git pull previews](docs/features/repository-management/pull-previews.md)
 - Rebase the current branch onto a searched target through a reviewed current→target summary with ahead/behind context and a bounded commit preview. Fresh preflight state blocks dirty or conflicted repositories and ongoing operations, exact refs are revalidated before Git starts, conflicts remain in the existing continue/abort flow, and Desktop Material never force-pushes automatically
 - Manage every named remote with guarded add/rename/update/default/remove operations, and inspect or create exact known client hooks through the effective `core.hooksPath` without displaying hook contents or absolute paths. Remote rows stack before their name, URL, and controls collapse below a readable width, and the Repository Tools workspace keeps its diagnostics and results vertically reachable at compact heights
 - Save a credential-vault-backed SSH working copy in **Repository Settings → Remote**, then Clone, inspect Status, Fetch, Pull, Push, or deploy Docker Compose. The paired remote site can list the same redacted host definitions and request a reviewed clone without receiving a password or key. Updates are fast-forward-only on the configured branch; Desktop never resets or force-checks out the host. Public site hosting remains explicit server configuration: point DNS at that SSH host and configure its reverse proxy, TLS certificate, and container port outside Desktop Material
@@ -307,6 +309,10 @@ automation, and account isolation. The diagrams are reproducible with
 | Temporary submodule repository navigation |
 | --- |
 | <img src="docs/assets/screenshots/material-submodule-context.png" alt="Initialized submodule opened temporarily in the workspace with a context bar and Back control to the persisted root repository" width="720"><br><sub>No repository import · customizable Back control · root return</sub> |
+
+| Reviewed ordinary Git pull |
+| --- |
+| <img src="docs/assets/screenshots/material-pull-preview.png" alt="Reviewed ordinary Git pull showing exact branch identities, incoming commits, changed files, and a clean-worktree confirmation gate" width="720"><br><sub>Fresh fetch · exact reviewed OID · no second fetch</sub> |
 
 | Advanced Git and collaboration workflows |
 | --- |

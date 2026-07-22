@@ -784,6 +784,21 @@
 
             <article class="card">
               <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-merge"></use></svg>
+              </div>
+              <h3>Reviewed ordinary pull <span class="tag">Exact OID</span></h3>
+              <p>
+                Fetch before reviewing exact local/upstream identities,
+                ahead/behind state, integration route, incoming commits, and
+                changed files. A clean-worktree preflight revalidates the full
+                reviewed OID and integrates it without a second fetch. Failed
+                fetches never expose stale tracking data; scheduled and local
+                agent pulls stay noninteractive.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
                 <svg class="material-icon"><use href="#icon-link"></use></svg>
               </div>
               <h3>
@@ -1178,6 +1193,23 @@
               </a>
               <figcaption>
                 Rebase current branch <span class="tag">Reviewed</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-pull-preview.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-pull-preview.png"
+                  alt="Reviewed ordinary Git pull showing exact branch identities, incoming commits, changed files, and a clean-worktree confirmation gate"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Preview pull <span class="tag">Exact reviewed OID</span>
               </figcaption>
             </figure>
 

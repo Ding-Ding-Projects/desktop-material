@@ -34,7 +34,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 66-function visual index: every
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 67-function visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
@@ -730,6 +730,36 @@ all working-tree paths eligible to appear locally.
 These forms wrap labels and stack actions as space narrows. Page-level sideways scrolling is not
 part of the workflow; only inherently spatial content such as code, diffs, and logs may scroll
 horizontally when preserving columns is necessary.
+
+### Preview an ordinary pull
+
+Choose the primary **Pull _remote_** action in the toolbar, or **Pull** from the
+application menu, when the current branch has incoming work. Desktop Material
+fetches the configured remote first; if that fetch fails, the review stops
+instead of displaying an older remote-tracking ref as fresh data.
+
+The review identifies the local and upstream branches and their captured object
+IDs, shows ahead/behind counts and the effective fast-forward, merge, rebase,
+merge-preserving rebase, interactive-rebase, or blocked fast-forward-only
+route, and lists up to 25 incoming commits and 100 incoming changed files. The
+file list describes the upstream side from the merge base, so local-only files
+do not appear as incoming. Overflow counts keep larger pulls explicit.
+
+**Pull reviewed commit** is available only for a completely clean worktree.
+After confirmation, Desktop Material refreshes state and revalidates the local
+branch, upstream ref, and both full OIDs. It integrates the exact reviewed
+upstream OID already fetched, without a second network fetch; if either side
+changed, the stale review is cleared until **Refresh preview** succeeds. The
+modal review remains open while Git starts and runs, preventing an in-app
+branch switch from changing the reviewed pull destination.
+
+The sheet follows English, playful Hong Kong-style Cantonese, or bilingual
+language mode. It applies to ordinary manual pull actions only. Scheduled
+**Automatically pull** runs and explicitly noninteractive local-agent pull
+commands keep their direct automation paths and safety checks, while Pull All
+and batch sync retain their own review and result surfaces.
+
+![Reviewed ordinary Git pull with exact branch identities, incoming commits, changed files, and a clean-worktree confirmation gate](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/screenshots/material-pull-preview.png)
 
 ### Rebase the current branch
 

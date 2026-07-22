@@ -284,6 +284,7 @@ import {
 } from '../../lib/rebase'
 import { ICombinedRefCheck, IRefCheck } from '../../lib/ci-checks/ci-checks'
 import { ValidNotificationPullRequestReviewState } from '../../lib/valid-notification-pull-request-review'
+import { IPreparedPullPreview } from '../../lib/pull-preview'
 import { UnreachableCommitsTab } from '../history/unreachable-commits-dialog'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { SignInResult } from '../../lib/stores/sign-in-store'
@@ -1816,6 +1817,23 @@ export class Dispatcher {
     if (options?.autoBuild !== false) {
       await this.maybeAutoBuildAfterPull(repository, beforeSha)
     }
+  }
+
+  /** Fetch and return a bounded review without changing the current worktree. */
+  public preparePullPreview(
+    repository: Repository
+  ): Promise<IPreparedPullPreview> {
+    return this.appStore._preparePullPreview(repository)
+  }
+
+  /** Integrate the exact upstream commit accepted in a fresh pull preview. */
+  public async pullReviewed(
+    repository: Repository,
+    prepared: IPreparedPullPreview
+  ): Promise<void> {
+    const beforeSha = this.getValidTipSha(repository)
+    await this.appStore._pullReviewed(repository, prepared)
+    await this.maybeAutoBuildAfterPull(repository, beforeSha)
   }
 
   /** The current tip SHA, or `null` when the tip is not a valid branch. */

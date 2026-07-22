@@ -22,6 +22,9 @@ Material is displaying or how a repository is represented in the application.
 - [Network and WSL repository
   paths](network-and-wsl-repository-paths.md) — retain UNC roots, detect mapped
   drives and WSL shares, and provide offline reconnection guidance.
+- [Reviewed ordinary Git pull previews](pull-previews.md) — fetch before
+  review, require a clean worktree, and integrate only the exact reviewed
+  upstream object ID without a second network fetch.
 - [Reviewed batch repository sync](reviewed-batch-sync.md) — pull active
   branches or fetch only across an exact reviewed subset with bounded
   concurrency and isolated results.

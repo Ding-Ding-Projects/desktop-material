@@ -13,6 +13,23 @@ import { IRemote } from '../../models/remote'
 import { envForRemoteOperation } from './environment'
 import { getConfigValue } from './config'
 
+export interface IPullOptions {
+  readonly progressCallback?: (progress: IPullProgress) => void
+  readonly onHookProgress?: (progress: HookProgress) => void
+  readonly onHookFailure?: (
+    hookName: string,
+    terminalOutput: TerminalOutput
+  ) => Promise<'abort' | 'ignore'>
+  readonly onTerminalOutputAvailable?: TerminalOutputCallback
+  readonly noVerify?: boolean
+  /** Stable account identity to force for this pull. Never a token. */
+  readonly accountKey?: string
+  /** Explicit reviewed strategy flags which freeze the accepted Git config. */
+  readonly strategyArguments?: ReadonlyArray<string>
+  /** Last-boundary validation run after arguments/env are prepared. */
+  readonly beforeExecute?: () => Promise<void>
+}
+
 /**
  * Pull from the specified remote.
  *
@@ -29,18 +46,37 @@ import { getConfigValue } from './config'
 export async function pull(
   repository: Repository,
   remote: IRemote,
-  options?: {
-    progressCallback?: (progress: IPullProgress) => void
-    onHookProgress?: (progress: HookProgress) => void
-    onHookFailure?: (
-      hookName: string,
-      terminalOutput: TerminalOutput
-    ) => Promise<'abort' | 'ignore'>
-    onTerminalOutputAvailable?: TerminalOutputCallback
-    noVerify?: boolean
-    /** Stable account identity to force for this pull. Never a token. */
-    accountKey?: string
+  options?: IPullOptions
+): Promise<void> {
+  await pullFrom(repository, remote, [remote.name], options)
+}
+
+/**
+ * Pull an already-present, exact commit without fetching the remote again.
+ *
+ * The caller must validate its preview identity immediately before invoking
+ * this function. Using the repository itself as the pull source preserves
+ * pull.rebase, pull.ff, hooks, and submodule behavior while preventing a
+ * second superproject network fetch from integrating a newer remote tip.
+ */
+export async function pullToCommit(
+  repository: Repository,
+  remote: IRemote,
+  commitOid: string,
+  options?: IPullOptions
+): Promise<void> {
+  if (!/^[0-9a-f]{40}(?:[0-9a-f]{24})?$/.test(commitOid)) {
+    throw new Error('Cannot pull to an invalid commit object ID')
   }
+
+  await pullFrom(repository, remote, ['.', commitOid], options)
+}
+
+async function pullFrom(
+  repository: Repository,
+  remote: IRemote,
+  sourceArguments: ReadonlyArray<string>,
+  options?: IPullOptions
 ): Promise<void> {
   let opts: IGitStringExecutionOptions = {
     env: await envForRemoteOperation(remote.url),
@@ -99,13 +135,15 @@ export async function pull(
   const args = [
     ...gitRebaseArguments(),
     'pull',
-    ...(await getDefaultPullDivergentBranchArguments(repository)),
+    ...(options?.strategyArguments ??
+      (await getDefaultPullDivergentBranchArguments(repository))),
     '--recurse-submodules',
     ...(options?.progressCallback ? ['--progress'] : []),
     ...(options?.noVerify ? ['--no-verify'] : []),
-    remote.name,
+    ...sourceArguments,
   ]
 
+  await options?.beforeExecute?.()
   await git(args, repository.path, 'pull', opts)
 }
 

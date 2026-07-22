@@ -26,6 +26,7 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { formatCompactNumber } from '../../lib/format-number'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { PopupType } from '../../models/popup'
 
 export const DropdownItemClassName = 'push-pull-dropdown-item'
 
@@ -383,7 +384,10 @@ export class PushPullButton extends React.Component<
 
   private pull = () => {
     this.closeDropdown()
-    this.props.dispatcher.pull(this.props.repository)
+    this.props.dispatcher.showPopup({
+      type: PopupType.PullPreview,
+      repository: this.props.repository,
+    })
   }
 
   private fetch = () => {

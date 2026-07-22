@@ -143,6 +143,7 @@ import { Button } from './lib/button'
 import { PopoverAnchorPosition } from './lib/popover'
 import { MergeAllDialog } from './merge-all'
 import { PullAllDialog } from './pull-all'
+import { PullPreviewDialog } from './pull-preview'
 import { CommitAndPushAllDialog } from './commit-push-all'
 import { isCommitPushAllRepositoryClean } from '../lib/automation/commit-push-all'
 import { EditCopilotBYOKProviderDialog } from './copilot/edit-byok-provider-dialog'
@@ -425,7 +426,10 @@ export const dialogTransitionTimeout = {
  * deliberately left non-modal so the user can keep working while acknowledging
  * them.
  */
-const ModalPopupTypes = new Set<PopupType>([PopupType.InstallingUpdate])
+const ModalPopupTypes = new Set<PopupType>([
+  PopupType.InstallingUpdate,
+  PopupType.PullPreview,
+])
 
 export const bannerTransitionTimeout = { enter: 500, exit: 400 }
 
@@ -1506,7 +1510,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    this.props.dispatcher.pull(state.repository)
+    this.props.dispatcher.showPopup({
+      type: PopupType.PullPreview,
+      repository: state.repository,
+    })
   }
 
   private async fetch() {
@@ -3005,6 +3012,15 @@ export class App extends React.Component<IAppProps, IAppState> {
           <PullAllDialog
             key="pull-all-repositories"
             dispatcher={this.props.dispatcher}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.PullPreview:
+        return (
+          <PullPreviewDialog
+            key={`pull-preview-${popup.repository.id}`}
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
             onDismissed={onPopupDismissedFn}
           />
         )

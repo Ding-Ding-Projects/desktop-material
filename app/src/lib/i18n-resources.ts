@@ -636,6 +636,58 @@ export type TranslationKey =
   | 'networkRepository.wslShare'
   | 'networkRepository.uncShare'
   | 'networkRepository.detected'
+  | 'pullPreview.title'
+  | 'pullPreview.loading'
+  | 'pullPreview.progressTitle'
+  | 'pullPreview.progressRefresh'
+  | 'pullPreview.reviewAria'
+  | 'pullPreview.routeAria'
+  | 'pullPreview.localBranch'
+  | 'pullPreview.upstreamBranch'
+  | 'pullPreview.strategy'
+  | 'pullPreview.strategyFastForward'
+  | 'pullPreview.strategyMerge'
+  | 'pullPreview.strategyRebase'
+  | 'pullPreview.strategyRebaseMerges'
+  | 'pullPreview.strategyRebaseInteractive'
+  | 'pullPreview.strategyFastForwardOnly'
+  | 'pullPreview.ahead'
+  | 'pullPreview.behind'
+  | 'pullPreview.upToDateTitle'
+  | 'pullPreview.upToDateBody'
+  | 'pullPreview.incomingCommits'
+  | 'pullPreview.moreCommits'
+  | 'pullPreview.changedFiles'
+  | 'pullPreview.noChangedFiles'
+  | 'pullPreview.moreFiles'
+  | 'pullPreview.fileNew'
+  | 'pullPreview.fileModified'
+  | 'pullPreview.fileDeleted'
+  | 'pullPreview.fileRenamed'
+  | 'pullPreview.fileCopied'
+  | 'pullPreview.exactCommitNote'
+  | 'pullPreview.conflictNote'
+  | 'pullPreview.dirtyWarning'
+  | 'pullPreview.conflictedWarning'
+  | 'pullPreview.fastForwardOnlyWarning'
+  | 'pullPreview.detached'
+  | 'pullPreview.noUpstream'
+  | 'pullPreview.invalidState'
+  | 'pullPreview.errorTitle'
+  | 'pullPreview.errorBusy'
+  | 'pullPreview.errorRemoteUnavailable'
+  | 'pullPreview.errorFetchFailed'
+  | 'pullPreview.errorNoIncoming'
+  | 'pullPreview.errorDirty'
+  | 'pullPreview.errorConflicted'
+  | 'pullPreview.errorInvalidConfig'
+  | 'pullPreview.errorStale'
+  | 'pullPreview.errorPullFailed'
+  | 'pullPreview.errorUnexpected'
+  | 'pullPreview.cancel'
+  | 'pullPreview.refresh'
+  | 'pullPreview.pull'
+  | 'pullPreview.pulling'
   | 'batchSync.title'
   | 'batchSync.loadingChoices'
   | 'batchSync.reviewAria'
@@ -2062,6 +2114,79 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'networkRepository.uncShare': 'UNC network share',
   'networkRepository.detected':
     'Detected a {location}. Desktop Material keeps its exact path; reconnect it before Git operations if the location goes offline.',
+  'pullPreview.title': 'Preview pull',
+  'pullPreview.loading':
+    'Fetching the latest upstream state without changing your worktree…',
+  'pullPreview.progressTitle': 'Preparing pull preview',
+  'pullPreview.progressRefresh': 'Refreshing repository state',
+  'pullPreview.reviewAria': 'Reviewed pull preview',
+  'pullPreview.routeAria': 'Pull route',
+  'pullPreview.localBranch': 'Local branch',
+  'pullPreview.upstreamBranch': 'Upstream branch',
+  'pullPreview.strategy': 'Integration',
+  'pullPreview.strategyFastForward': 'Fast-forward',
+  'pullPreview.strategyMerge': 'Merge',
+  'pullPreview.strategyRebase': 'Rebase',
+  'pullPreview.strategyRebaseMerges': 'Rebase (preserve merges)',
+  'pullPreview.strategyRebaseInteractive': 'Interactive rebase',
+  'pullPreview.strategyFastForwardOnly': 'Fast-forward only',
+  'pullPreview.ahead': '{count} ahead',
+  'pullPreview.behind': '{count} behind',
+  'pullPreview.upToDateTitle': 'Already up to date',
+  'pullPreview.upToDateBody':
+    'The fetch found no upstream commits to pull into this branch.',
+  'pullPreview.incomingCommits': 'Incoming commits',
+  'pullPreview.moreCommits': '{count} more commits are included in this pull.',
+  'pullPreview.changedFiles': 'Incoming changed files',
+  'pullPreview.noChangedFiles':
+    'No net file changes are present in the incoming commits.',
+  'pullPreview.moreFiles':
+    '{count} more changed files are included in this pull.',
+  'pullPreview.fileNew': 'New',
+  'pullPreview.fileModified': 'Modified',
+  'pullPreview.fileDeleted': 'Deleted',
+  'pullPreview.fileRenamed': 'Renamed',
+  'pullPreview.fileCopied': 'Copied',
+  'pullPreview.exactCommitNote':
+    'Pull integrates the exact upstream commit shown here; it does not fetch a newer tip after confirmation.',
+  'pullPreview.conflictNote':
+    'A diverged pull can still pause for conflicts. Your existing conflict workflow remains available.',
+  'pullPreview.dirtyWarning':
+    'Commit or stash local changes, then refresh this preview before pulling.',
+  'pullPreview.conflictedWarning':
+    'Resolve the current conflicts, then refresh this preview before pulling.',
+  'pullPreview.fastForwardOnlyWarning':
+    'This branch has diverged, but Git is configured for fast-forward-only pulls. Change the pull configuration or reconcile the branch before pulling.',
+  'pullPreview.detached': 'Check out a local branch before previewing a pull.',
+  'pullPreview.noUpstream':
+    'Publish this branch or configure an upstream before previewing a pull.',
+  'pullPreview.invalidState':
+    'The current branch or its upstream could not be read safely. Refresh the repository and try again.',
+  'pullPreview.errorTitle': 'Pull preview needs attention',
+  'pullPreview.errorBusy':
+    'Another network operation is running. Wait for it to finish, then refresh the preview.',
+  'pullPreview.errorRemoteUnavailable':
+    'The configured upstream remote is unavailable. Check the branch tracking settings and try again.',
+  'pullPreview.errorFetchFailed':
+    'The latest upstream state could not be fetched, so no stale preview was shown. Check the connection and try again.',
+  'pullPreview.errorNoIncoming':
+    'There are no reviewed upstream commits to pull. Refresh the preview.',
+  'pullPreview.errorDirty':
+    'Local changes appeared after review. Commit or stash them, then refresh the preview.',
+  'pullPreview.errorConflicted':
+    'Conflicts appeared after review. Resolve them, then refresh the preview.',
+  'pullPreview.errorInvalidConfig':
+    'Git pull configuration is invalid or changed while being reviewed. Fix it, then refresh the preview.',
+  'pullPreview.errorStale':
+    'The local branch or upstream changed after review. Refresh the preview before pulling.',
+  'pullPreview.errorPullFailed':
+    'The reviewed pull did not complete. Check the Git error, then refresh before trying again.',
+  'pullPreview.errorUnexpected':
+    'An unexpected error stopped the preview. Refresh the repository and try again.',
+  'pullPreview.cancel': 'Cancel',
+  'pullPreview.refresh': 'Refresh preview',
+  'pullPreview.pull': 'Pull reviewed commit',
+  'pullPreview.pulling': 'Pulling reviewed commit…',
   'batchSync.title': 'Sync repositories',
   'batchSync.loadingChoices': 'Loading repository choices…',
   'batchSync.reviewAria': 'Repository batch review',
@@ -3540,6 +3665,73 @@ export const cantoneseTranslations: Readonly<
   'networkRepository.uncShare': 'UNC 網絡共享',
   'networkRepository.detected':
     '偵測到以下位置：{location}。Desktop Material 會保留精確路徑；如果位置離線，做 Git 操作前請先重新連接。',
+  'pullPreview.title': '預覽 Pull',
+  'pullPreview.loading': 'Fetch 緊最新 upstream 狀態，唔會郁你個 worktree…',
+  'pullPreview.progressTitle': '準備緊 Pull 預覽',
+  'pullPreview.progressRefresh': '重新整理緊 repo 狀態',
+  'pullPreview.reviewAria': '已覆核 Pull 預覽',
+  'pullPreview.routeAria': 'Pull 路線',
+  'pullPreview.localBranch': '本機分支',
+  'pullPreview.upstreamBranch': 'Upstream 分支',
+  'pullPreview.strategy': '整合方式',
+  'pullPreview.strategyFastForward': '快轉',
+  'pullPreview.strategyMerge': '合併',
+  'pullPreview.strategyRebase': 'Rebase',
+  'pullPreview.strategyRebaseMerges': 'Rebase（保留合併）',
+  'pullPreview.strategyRebaseInteractive': '互動式 Rebase',
+  'pullPreview.strategyFastForwardOnly': '只准快轉',
+  'pullPreview.ahead': '領先 {count} 個',
+  'pullPreview.behind': '落後 {count} 個',
+  'pullPreview.upToDateTitle': '已經最新喇',
+  'pullPreview.upToDateBody':
+    'Fetch 完發現冇 upstream commit 要 Pull 入呢條分支。',
+  'pullPreview.incomingCommits': '即將拉入嘅 commit',
+  'pullPreview.moreCommits': '今次 Pull 仲包括另外 {count} 個 commit。',
+  'pullPreview.changedFiles': '即將變更嘅檔案',
+  'pullPreview.noChangedFiles': '即將拉入嘅 commit 冇淨檔案變更。',
+  'pullPreview.moreFiles': '今次 Pull 仲包括另外 {count} 個變更檔案。',
+  'pullPreview.fileNew': '新增',
+  'pullPreview.fileModified': '修改',
+  'pullPreview.fileDeleted': '刪除',
+  'pullPreview.fileRenamed': '改名',
+  'pullPreview.fileCopied': '複製',
+  'pullPreview.exactCommitNote':
+    'Pull 只會整合畫面顯示嘅精確 upstream commit；確認之後唔會再 Fetch 更新嘅 tip。',
+  'pullPreview.conflictNote':
+    '分支有分歧時仍然可能要處理衝突；到時可以照用現有衝突流程。',
+  'pullPreview.dirtyWarning':
+    '請先 commit 或 stash 本機變更，再重新整理預覽先 Pull。',
+  'pullPreview.conflictedWarning': '請先解決目前衝突，再重新整理預覽先 Pull。',
+  'pullPreview.fastForwardOnlyWarning':
+    '分支已經有分歧，但 Git 設定只准快轉 Pull。請先調整 Pull 設定或者整理好分支，再繼續。',
+  'pullPreview.detached': '預覽 Pull 前，請先 checkout 一條本機分支。',
+  'pullPreview.noUpstream':
+    '請先發布呢條分支或者設定 upstream，先可以預覽 Pull。',
+  'pullPreview.invalidState':
+    '而家未能安全讀取分支或 upstream。請重新整理 repo 再試。',
+  'pullPreview.errorTitle': 'Pull 預覽要處理一下',
+  'pullPreview.errorBusy': '另一個網絡操作做緊。等佢完成，再重新整理預覽。',
+  'pullPreview.errorRemoteUnavailable':
+    '設定咗嘅 upstream remote 而家用唔到。請檢查分支追蹤設定再試。',
+  'pullPreview.errorFetchFailed':
+    'Fetch 唔到最新 upstream 狀態，所以冇顯示可能過時嘅預覽。請檢查連線再試。',
+  'pullPreview.errorNoIncoming':
+    '冇已覆核嘅 upstream commit 可以 Pull。請重新整理預覽。',
+  'pullPreview.errorDirty':
+    '覆核之後出現咗本機變更。請先 commit 或 stash，再重新整理預覽。',
+  'pullPreview.errorConflicted':
+    '覆核之後出現咗衝突。請先解決，再重新整理預覽。',
+  'pullPreview.errorInvalidConfig':
+    'Git Pull 設定無效，或者覆核期間變咗。請先修正設定，再重新整理預覽。',
+  'pullPreview.errorStale':
+    '覆核之後，本機分支或者 upstream 變咗。Pull 前請重新整理預覽。',
+  'pullPreview.errorPullFailed':
+    '已覆核 Pull 未完成。請檢查 Git 錯誤，再重新整理先重試。',
+  'pullPreview.errorUnexpected': '預覽遇到未預期錯誤。請重新整理 repo 再試。',
+  'pullPreview.cancel': '取消',
+  'pullPreview.refresh': '重新整理預覽',
+  'pullPreview.pull': 'Pull 已覆核 commit',
+  'pullPreview.pulling': 'Pull 緊已覆核 commit…',
   'batchSync.title': '同步 repo',
   'batchSync.loadingChoices': '載入緊 repo 選項…',
   'batchSync.reviewAria': 'Repo 批次覆核',

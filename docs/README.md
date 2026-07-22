@@ -50,6 +50,15 @@ running. The behavior, failure, persistence, and security boundaries are
 documented in [Clone queue settings](features/repository-management/clone-queue-settings.md)
 and the [Local Agent HTTP API](features/agent-api/local-agent-http-api.md).
 
+The ordinary manual toolbar and application-menu Pull actions now fetch before
+showing a bounded review of the exact local/upstream identities, incoming
+commits, changed files, and configured integration route. Confirmation requires
+a clean worktree and integrates only the full reviewed upstream object ID; a
+failed fetch cannot fall back to stale tracking data. Scheduled and local-agent
+automation remain noninteractive. Behavior, recovery, security, configuration,
+language modes, and verification are documented in
+[Reviewed ordinary Git pull previews](features/repository-management/pull-previews.md).
+
 The locally accepted repository-navigation change adds
 **Open temporary viewer** to initialized Submodule Manager rows and changed/new
 submodule commit cards. The resulting read-only workspace is temporary: it does

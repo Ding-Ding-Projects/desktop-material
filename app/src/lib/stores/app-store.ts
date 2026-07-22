@@ -171,6 +171,7 @@ import {
   Progress,
   ICheckoutProgress,
   IFetchProgress,
+  IPullProgress,
   IRevertProgress,
   IMultiCommitOperationProgress,
 } from '../../models/progress'
@@ -297,6 +298,7 @@ import {
   getRemotes,
   getWorkingDirectoryDiff,
   isCoAuthoredByTrailer,
+  fetch as fetchRepo,
   pull as pullRepo,
   push as pushRepo,
   renameBranch,
@@ -399,6 +401,19 @@ import {
   isUsingLFS,
 } from '../git/lfs'
 import { inferLastPushForRepository } from '../infer-last-push-for-repository'
+import {
+  getPullPreview,
+  isPullPreviewIdentityCurrent,
+  PullPreviewResult,
+} from '../git/pull-preview'
+import { pullToCommit } from '../git/pull'
+import {
+  getPullStrategyPlan,
+  IPullStrategyPlan,
+  PullStrategyError,
+  pullStrategyPlansEqual,
+} from '../git/pull-strategy'
+import { IPreparedPullPreview, PullPreviewError } from '../pull-preview'
 import { shouldRetryPushWithGitHubCLICredentials } from '../gh-cli'
 import { updateMenuState } from '../menu-update'
 import { merge } from '../merge'
@@ -8732,6 +8747,170 @@ export class AppStore extends TypedBaseStore<IAppState> {
     })
   }
 
+  /** Integrate only the exact upstream object accepted in a pull preview. */
+  public async _pullReviewed(
+    repository: Repository,
+    prepared: IPreparedPullPreview
+  ): Promise<void> {
+    return this.withRefreshedGitHubRepository(repository, repository => {
+      return this.performPull(repository, prepared)
+    })
+  }
+
+  /** Fetch and build a bounded, non-mutating review of the current pull. */
+  public async _preparePullPreview(
+    repository: Repository
+  ): Promise<IPreparedPullPreview> {
+    return this.withRefreshedGitHubRepository(repository, async repository => {
+      // The branch, upstream, and remote are the security boundary for this
+      // review. Refresh them before capturing the preflight identity instead
+      // of trusting whichever repository state happened to be cached.
+      await this._refreshRepository(repository)
+
+      const gitStore = this.gitStoreCache.get(repository)
+      const tip = gitStore.tip
+      let result: PullPreviewResult
+      let integrationPlan: IPullStrategyPlan | null = null
+
+      // Preflight only the source relationship. The tracking ref itself may not
+      // exist until the first fetch, so the full preview must be built afterwards.
+      if (tip.kind === TipState.Detached) {
+        result = { kind: 'unavailable', reason: 'detached-head' }
+      } else if (tip.kind !== TipState.Valid) {
+        result = { kind: 'unavailable', reason: 'invalid-state' }
+      } else if (tip.branch.upstream === null) {
+        result = { kind: 'unavailable', reason: 'no-upstream' }
+      } else {
+        const upstreamRemoteName = tip.branch.upstreamRemoteName
+        const remote =
+          upstreamRemoteName === null
+            ? undefined
+            : gitStore.remotes.find(
+                candidate => candidate.name === upstreamRemoteName
+              )
+        if (remote === undefined) {
+          throw new PullPreviewError('remote-unavailable')
+        }
+
+        const preflightCurrentBranchRef = tip.branch.ref
+        const preflightCurrentBranchOid = tip.branch.tip.sha
+        const preflightUpstreamRef = `refs/remotes/${tip.branch.upstream}`
+
+        if (!preflightUpstreamRef.startsWith(`refs/remotes/${remote.name}/`)) {
+          throw new PullPreviewError('remote-unavailable')
+        }
+
+        try {
+          await this.performPullPreviewFetch(repository, remote)
+        } catch (error) {
+          if (error instanceof PullPreviewError) {
+            throw error
+          }
+          log.error('Failed to fetch the pull preview', error)
+          throw new PullPreviewError('fetch-failed')
+        }
+        result = await getPullPreview(repository, {
+          maxIncomingCommits: 25,
+          maxChangedFiles: 100,
+        })
+
+        // Fetching may race an external checkout/configuration change. Never
+        // display a summary for a different branch or upstream than the one
+        // whose configured remote was fetched above.
+        if (
+          result.kind !== 'ready' ||
+          result.currentBranchRef !== preflightCurrentBranchRef ||
+          result.currentBranchOid !== preflightCurrentBranchOid ||
+          result.upstreamRef !== preflightUpstreamRef
+        ) {
+          throw new PullPreviewError('stale-preview')
+        }
+
+        try {
+          integrationPlan = await getPullStrategyPlan(
+            repository,
+            result.currentBranchRef,
+            result.ahead,
+            result.behind
+          )
+        } catch (error) {
+          if (error instanceof PullStrategyError) {
+            throw new PullPreviewError('invalid-config')
+          }
+          throw error
+        }
+      }
+
+      const state = this.repositoryStateCache.get(repository)
+      const workingDirectory = state.changesState.workingDirectory
+      const worktreeState = hasConflictedFiles(workingDirectory)
+        ? 'conflicted'
+        : workingDirectory.files.length > 0
+        ? 'dirty'
+        : 'clean'
+
+      return {
+        result,
+        integrationPlan,
+        worktreeState,
+      }
+    })
+  }
+
+  /**
+   * Fetch one pull-preview remote through a throwing path. The ordinary fetch
+   * surface reports failures through GitStore and returns void, which is useful
+   * for background refresh but would let a review accidentally use stale refs.
+   */
+  private async performPullPreviewFetch(
+    repository: Repository,
+    remote: IRemote
+  ): Promise<void> {
+    let completed = false
+    await this.withPushPullFetch(repository, async () => {
+      const accountKey = getRepositoryCredentialAccountKey(
+        this.accounts,
+        repository
+      )
+      const fetchWeight = 0.9
+
+      try {
+        await fetchRepo(
+          repository,
+          remote,
+          progress =>
+            this.updatePushPullFetchProgress(repository, {
+              ...progress,
+              value: progress.value * fetchWeight,
+            }),
+          false,
+          accountKey
+        )
+
+        this.updatePushPullFetchProgress(repository, {
+          kind: 'generic',
+          title: t('pullPreview.progressTitle'),
+          description: t('pullPreview.progressRefresh'),
+          value: fetchWeight,
+        })
+        await this._refreshRepository(repository)
+        completed = true
+      } catch (error) {
+        if (error instanceof PullPreviewError) {
+          throw error
+        }
+        log.error('Pull preview fetch failed', error)
+        throw new PullPreviewError('fetch-failed')
+      } finally {
+        this.updatePushPullFetchProgress(repository, null)
+      }
+    })
+
+    if (!completed) {
+      throw new PullPreviewError('busy')
+    }
+  }
+
   /** Pull every available repository with bounded network concurrency. */
   public async _pullAllRepositories(
     onProgress?: PullAllProgressListener
@@ -9038,180 +9217,332 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
-  private async performPull(repository: Repository): Promise<void> {
-    return this.withPushPullFetch(repository, async () => {
-      const gitStore = this.gitStoreCache.get(repository)
-      const remote = gitStore.currentRemote
+  private async performPull(
+    repository: Repository,
+    reviewedPull?: IPreparedPullPreview
+  ): Promise<void> {
+    const reviewedPreview =
+      reviewedPull?.result.kind === 'ready' ? reviewedPull.result : undefined
+    const reviewedPlan = reviewedPull?.integrationPlan ?? undefined
+    let operationStarted = false
 
-      if (!remote) {
-        throw new Error('The repository has no remotes.')
+    try {
+      if (
+        reviewedPull !== undefined &&
+        (reviewedPreview === undefined || reviewedPlan === undefined)
+      ) {
+        throw new PullPreviewError('stale-preview')
       }
 
-      const state = this.repositoryStateCache.get(repository)
-      const tip = state.branchesState.tip
+      await this.withPushPullFetch(repository, async () => {
+        operationStarted = true
+        const gitStore = this.gitStoreCache.get(repository)
 
-      if (tip.kind === TipState.Unborn) {
-        throw new Error('The current branch is unborn.')
-      }
-
-      if (tip.kind === TipState.Detached) {
-        throw new Error('The current repository is in a detached HEAD state.')
-      }
-
-      if (tip.kind === TipState.Valid) {
-        let mergeBase: string | null = null
-        let gitContext: GitErrorContext | undefined = undefined
-
-        if (tip.branch.upstream !== null) {
-          mergeBase = await getMergeBase(
-            repository,
-            tip.branch.name,
-            tip.branch.upstream
-          )
-
-          gitContext = {
-            kind: 'pull',
-            theirBranch: tip.branch.upstream,
-            currentBranch: tip.branch.name,
-          }
+        if (reviewedPreview !== undefined) {
+          await this._refreshRepository(repository)
         }
 
-        const title = `Pulling ${remote.name}`
-        const kind = 'pull'
-        this.updatePushPullFetchProgress(repository, {
-          kind,
-          title,
-          value: 0,
-          remote: remote.name,
-        })
+        const state = this.repositoryStateCache.get(repository)
+        const tip = state.branchesState.tip
+        const remote =
+          reviewedPreview !== undefined && tip.kind === TipState.Valid
+            ? tip.branch.upstreamRemoteName === null
+              ? null
+              : gitStore.remotes.find(
+                  candidate => candidate.name === tip.branch.upstreamRemoteName
+                ) ?? null
+            : gitStore.currentRemote
 
-        try {
-          // Let's say that a pull takes twice as long as a fetch,
-          // this is of course highly inaccurate.
-          let pullWeight = 2
-          let fetchWeight = 1
-
-          // Let's leave 10% at the end for refreshing
-          const refreshWeight = 0.1
-
-          // Scale pull and fetch weights to be between 0 and 0.9.
-          const scale = (1 / (pullWeight + fetchWeight)) * (1 - refreshWeight)
-
-          pullWeight *= scale
-          fetchWeight *= scale
-
-          const retryAction: RetryAction = {
-            type: RetryActionType.Pull,
-            repository,
+        if (!remote) {
+          if (reviewedPreview !== undefined) {
+            throw new PullPreviewError('remote-unavailable')
           }
+          throw new Error('The repository has no remotes.')
+        }
 
-          if (gitStore.pullWithRebase) {
-            this.statsStore.increment('pullWithRebaseCount')
-          } else {
-            this.statsStore.increment('pullWithDefaultSettingCount')
-          }
+        if (tip.kind === TipState.Unborn) {
+          throw new Error('The current branch is unborn.')
+        }
 
-          const accountKey = getRepositoryCredentialAccountKey(
-            this.accounts,
-            repository
-          )
-          let aborted = false
-          const pullSucceeded = await gitStore
-            .performFailableOperation(
-              async () => {
-                await this.withTemporaryRepositoryMutationGuard(
-                  repository,
-                  () =>
-                    pullRepo(repository, remote, {
-                      accountKey,
-                      progressCallback: progress => {
-                        this.updatePushPullFetchProgress(repository, {
-                          ...progress,
-                          value: progress.value * pullWeight,
-                        })
-                      },
-                      onHookFailure: (hookName, terminalOutput) =>
-                        new Promise(resolve => {
-                          this._showPopup({
-                            type: PopupType.HookFailed,
-                            hookName,
-                            terminalOutput,
-                            resolve: resolution => {
-                              if (resolution === 'abort') {
-                                aborted = true
-                              }
-                              resolve(resolution)
-                            },
-                          })
-                        }),
-                    })
-                )
-                return true
-              },
-              { gitContext, retryAction }
-            )
-            .catch(err => (aborted ? false : Promise.reject(err)))
+        if (tip.kind === TipState.Detached) {
+          throw new Error('The current repository is in a detached HEAD state.')
+        }
 
-          // If the pull failed we shouldn't try to update the remote HEAD
-          // because there's a decent chance that it failed either because we
-          // didn't have the correct credentials (which we won't this time
-          // either) or because there's a network error which likely will
-          // persist for the next operation as well.
-          if (pullSucceeded) {
-            // Updating the local HEAD symref isn't critical so we don't want
-            // to show an error message to the user and have them retry the
-            // entire pull operation if it fails.
-            try {
-              await this.withTemporaryRepositoryMutationGuard(repository, () =>
-                updateRemoteHEAD(repository, remote, false, accountKey)
-              )
-            } catch (e) {
-              if (!this.isTemporaryRepositoryActive(repository)) {
-                throw e
-              }
-              log.error('Failed updating remote HEAD', e)
+        if (reviewedPreview !== undefined && tip.kind !== TipState.Valid) {
+          throw new PullPreviewError('stale-preview')
+        }
+
+        if (tip.kind === TipState.Valid) {
+          if (reviewedPreview !== undefined) {
+            if (reviewedPreview.behind === 0) {
+              throw new PullPreviewError('no-incoming-commits')
+            }
+
+            const workingDirectory = state.changesState.workingDirectory
+            if (hasConflictedFiles(workingDirectory)) {
+              throw new PullPreviewError('conflicted-worktree')
+            }
+            if (workingDirectory.files.length > 0) {
+              throw new PullPreviewError('dirty-worktree')
+            }
+
+            if (
+              !(await isPullPreviewIdentityCurrent(repository, reviewedPreview))
+            ) {
+              throw new PullPreviewError('stale-preview')
             }
           }
 
-          const refreshStartProgress = pullWeight + fetchWeight
-          const refreshTitle = __DARWIN__
-            ? 'Refreshing Repository'
-            : 'Refreshing repository'
+          let mergeBase: string | null = null
+          let gitContext: GitErrorContext | undefined = undefined
 
-          this.updatePushPullFetchProgress(repository, {
-            kind: 'generic',
-            title: refreshTitle,
-            description: 'Fast-forwarding branches',
-            value: refreshStartProgress,
-          })
+          if (tip.branch.upstream !== null) {
+            mergeBase = await getMergeBase(
+              repository,
+              tip.branch.name,
+              tip.branch.upstream
+            )
 
-          await this.fastForwardBranches(repository)
-
-          this.updatePushPullFetchProgress(repository, {
-            kind: 'generic',
-            title: refreshTitle,
-            value: refreshStartProgress + refreshWeight * 0.5,
-          })
-
-          if (mergeBase) {
-            await gitStore.reconcileHistory(mergeBase)
+            gitContext = {
+              kind: 'pull',
+              theirBranch: tip.branch.upstream,
+              currentBranch: tip.branch.name,
+            }
           }
 
-          // manually refresh branch protections after the push, to ensure
-          // any new branch will immediately report as protected
-          await this.refreshBranchProtectionState(repository)
+          const title = `Pulling ${remote.name}`
+          const kind = 'pull'
+          this.updatePushPullFetchProgress(repository, {
+            kind,
+            title,
+            value: 0,
+            remote: remote.name,
+          })
 
-          await this._refreshRepository(repository)
+          try {
+            // Let's say that a pull takes twice as long as a fetch,
+            // this is of course highly inaccurate.
+            let pullWeight = 2
+            let fetchWeight = 1
 
-          // Detect point: a pull that brought new commits may have added
-          // cheap-LFS pointers to the working tree; the detector scans cheaply
-          // and no-ops when there are none.
-          void this.maybeAutoMaterializeCheapLfs(repository)
-        } finally {
-          this.updatePushPullFetchProgress(repository, null)
+            // Let's leave 10% at the end for refreshing
+            const refreshWeight = 0.1
+
+            // Scale pull and fetch weights to be between 0 and 0.9.
+            const scale = (1 / (pullWeight + fetchWeight)) * (1 - refreshWeight)
+
+            pullWeight *= scale
+            fetchWeight *= scale
+
+            // Retrying a reviewed pull through the ordinary Pull retry action
+            // would fetch again and could integrate a commit the user never saw.
+            const retryAction: RetryAction | undefined =
+              reviewedPreview === undefined
+                ? { type: RetryActionType.Pull, repository }
+                : undefined
+
+            if (
+              reviewedPlan !== undefined
+                ? reviewedPlan.rebase !== 'false'
+                : gitStore.pullWithRebase
+            ) {
+              this.statsStore.increment('pullWithRebaseCount')
+            } else {
+              this.statsStore.increment('pullWithDefaultSettingCount')
+            }
+
+            const accountKey = getRepositoryCredentialAccountKey(
+              this.accounts,
+              repository
+            )
+            let aborted = false
+            const pullOptions = {
+              accountKey,
+              strategyArguments: reviewedPlan?.strategyArguments,
+              beforeExecute:
+                reviewedPreview === undefined || reviewedPlan === undefined
+                  ? undefined
+                  : async () => {
+                      if (
+                        !(await isPullPreviewIdentityCurrent(
+                          repository,
+                          reviewedPreview
+                        ))
+                      ) {
+                        throw new PullPreviewError('stale-preview')
+                      }
+
+                      let currentPlan: IPullStrategyPlan
+                      try {
+                        currentPlan = await getPullStrategyPlan(
+                          repository,
+                          reviewedPreview.currentBranchRef,
+                          reviewedPreview.ahead,
+                          reviewedPreview.behind
+                        )
+                      } catch (error) {
+                        if (error instanceof PullStrategyError) {
+                          throw new PullPreviewError('invalid-config')
+                        }
+                        throw error
+                      }
+
+                      if (!pullStrategyPlansEqual(currentPlan, reviewedPlan)) {
+                        throw new PullPreviewError('stale-preview')
+                      }
+                    },
+              progressCallback: (progress: IPullProgress) => {
+                this.updatePushPullFetchProgress(repository, {
+                  ...progress,
+                  value: progress.value * pullWeight,
+                })
+              },
+              onHookFailure: (
+                hookName: string,
+                terminalOutput: TerminalOutput
+              ) =>
+                new Promise<'abort' | 'ignore'>(resolve => {
+                  this._showPopup({
+                    type: PopupType.HookFailed,
+                    hookName,
+                    terminalOutput,
+                    resolve: resolution => {
+                      if (resolution === 'abort') {
+                        aborted = true
+                      }
+                      resolve(resolution)
+                    },
+                  })
+                }),
+            }
+            const runPull = async () => {
+              await this.withTemporaryRepositoryMutationGuard(repository, () =>
+                reviewedPreview === undefined
+                  ? pullRepo(repository, remote, pullOptions)
+                  : pullToCommit(
+                      repository,
+                      remote,
+                      reviewedPreview.upstreamOid,
+                      pullOptions
+                    )
+              )
+              return true
+            }
+
+            // Reviewed failures belong to the preview dialog's localized error
+            // surface. Bypassing GitStore's emitting wrapper here prevents a
+            // competing global Git error popup. Ordinary pulls retain their
+            // existing retry and global-error behavior.
+            let pullSucceeded: boolean | undefined
+            if (reviewedPreview === undefined) {
+              pullSucceeded = await gitStore
+                .performFailableOperation(runPull, { gitContext, retryAction })
+                .catch(err => (aborted ? false : Promise.reject(err)))
+            } else {
+              try {
+                pullSucceeded = await runPull()
+              } catch (error) {
+                if (!aborted) {
+                  throw error
+                }
+                pullSucceeded = false
+              }
+            }
+
+            if (reviewedPreview !== undefined && !pullSucceeded) {
+              throw new PullPreviewError('pull-failed')
+            }
+
+            // If the pull failed we shouldn't try to update the remote HEAD
+            // because there's a decent chance that it failed either because we
+            // didn't have the correct credentials (which we won't this time
+            // either) or because there's a network error which likely will
+            // persist for the next operation as well.
+            if (pullSucceeded) {
+              // Updating the local HEAD symref isn't critical so we don't want
+              // to show an error message to the user and have them retry the
+              // entire pull operation if it fails.
+              try {
+                await this.withTemporaryRepositoryMutationGuard(
+                  repository,
+                  () => updateRemoteHEAD(repository, remote, false, accountKey)
+                )
+              } catch (e) {
+                if (!this.isTemporaryRepositoryActive(repository)) {
+                  throw e
+                }
+                log.error('Failed updating remote HEAD', e)
+              }
+            }
+
+            const refreshStartProgress = pullWeight + fetchWeight
+            const refreshTitle = __DARWIN__
+              ? 'Refreshing Repository'
+              : 'Refreshing repository'
+
+            this.updatePushPullFetchProgress(repository, {
+              kind: 'generic',
+              title: refreshTitle,
+              description: 'Fast-forwarding branches',
+              value: refreshStartProgress,
+            })
+
+            await this.fastForwardBranches(repository)
+
+            this.updatePushPullFetchProgress(repository, {
+              kind: 'generic',
+              title: refreshTitle,
+              value: refreshStartProgress + refreshWeight * 0.5,
+            })
+
+            if (mergeBase) {
+              await gitStore.reconcileHistory(mergeBase)
+            }
+
+            // manually refresh branch protections after the push, to ensure
+            // any new branch will immediately report as protected
+            await this.refreshBranchProtectionState(repository)
+
+            await this._refreshRepository(repository)
+
+            // Detect point: a pull that brought new commits may have added
+            // cheap-LFS pointers to the working tree; the detector scans cheaply
+            // and no-ops when there are none.
+            void this.maybeAutoMaterializeCheapLfs(repository)
+          } finally {
+            this.updatePushPullFetchProgress(repository, null)
+          }
         }
+      })
+
+      if (reviewedPreview !== undefined && !operationStarted) {
+        throw new PullPreviewError('busy')
       }
-    })
+    } catch (error) {
+      if (reviewedPreview === undefined) {
+        throw error
+      }
+
+      // A hook abort or a Git failure can leave HEAD, the index, or the
+      // worktree changed even though the reviewed pull did not complete. Make
+      // the next render observe disk state before surfacing the localized
+      // reviewed-pull error. Refresh failure must never mask the pull failure.
+      try {
+        await this._refreshRepository(repository)
+      } catch (refreshError) {
+        log.error(
+          'Failed refreshing repository after reviewed pull failure',
+          refreshError
+        )
+      }
+
+      if (error instanceof PullPreviewError) {
+        throw error
+      }
+
+      log.error('Reviewed pull failed', error)
+      throw new PullPreviewError('pull-failed')
+    }
   }
 
   private async fastForwardBranches(repository: Repository) {

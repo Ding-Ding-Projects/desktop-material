@@ -25,6 +25,14 @@ describe('hasModalPopup', () => {
     assert.equal(hasModalPopup([pullAll]), false)
   })
 
+  it('keeps a pull preview modal while its fetched snapshot is reviewed', () => {
+    const pullPreview: Popup = {
+      type: PopupType.PullPreview,
+      repository: null as never,
+    }
+    assert.equal(hasModalPopup([pullPreview]), true)
+  })
+
   it('keeps Commit and push all modal so the batch is deliberately confirmed', () => {
     const commitPushAll: Popup = { type: PopupType.CommitAndPushAll }
     assert.equal(hasModalPopup([commitPushAll]), true)
@@ -285,6 +293,28 @@ describe('PopupManager', () => {
       assert.equal(sparse[0].type, PopupType.SparseCheckout)
       if (sparse[0].type === PopupType.SparseCheckout) {
         assert.equal(sparse[0].repository, secondRepository)
+      }
+    })
+
+    it('retargets a pull preview to the latest repository', () => {
+      const popupManager = new PopupManager()
+      const firstRepository = { id: 1 } as never
+      const secondRepository = { id: 2 } as never
+      const first = popupManager.addPopup({
+        type: PopupType.PullPreview,
+        repository: firstRepository,
+      })
+      const replacement = popupManager.addPopup({
+        type: PopupType.PullPreview,
+        repository: secondRepository,
+      })
+
+      assert.equal(replacement.id, first.id)
+      const previews = popupManager.getPopupsOfType(PopupType.PullPreview)
+      assert.equal(previews.length, 1)
+      assert.equal(previews[0].type, PopupType.PullPreview)
+      if (previews[0].type === PopupType.PullPreview) {
+        assert.equal(previews[0].repository, secondRepository)
       }
     })
 
