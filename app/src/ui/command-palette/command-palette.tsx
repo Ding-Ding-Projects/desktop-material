@@ -17,6 +17,14 @@ import {
 } from '../lib/filter-list-mode'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { MaterialSymbol } from '../lib/material-symbol'
+import {
+  ICommandPaletteAppearance,
+  persistCommandPaletteAppearance,
+  readCommandPaletteAppearance,
+  resolveCommandSymbol,
+} from './command-palette-appearance'
+import { CommandPaletteAppearanceEditor } from './command-palette-appearance-editor'
 
 /** The persistence id for the palette's filter mode. */
 const PaletteFilterListId = 'command-palette'
@@ -63,6 +71,7 @@ interface ICommandPaletteState {
   readonly highlightedIndex: number
   readonly filterMode: FilterMode
   readonly filterCaseSensitive: boolean
+  readonly appearance: ICommandPaletteAppearance
 }
 
 /**
@@ -82,7 +91,13 @@ export class CommandPalette extends React.Component<
       highlightedIndex: 0,
       filterMode: readPersistedFilterMode(PaletteFilterListId),
       filterCaseSensitive: false,
+      appearance: readCommandPaletteAppearance(),
     }
+  }
+
+  private onAppearanceChanged = (appearance: ICommandPaletteAppearance) => {
+    persistCommandPaletteAppearance(appearance)
+    this.setState({ appearance })
   }
 
   public componentDidMount() {
@@ -209,10 +224,17 @@ export class CommandPalette extends React.Component<
                 filterText={this.state.query}
                 onRegexPatternApply={this.onRegexPatternApply}
               />
+              <CommandPaletteAppearanceEditor
+                appearance={this.state.appearance}
+                onChange={this.onAppearanceChanged}
+              />
             </div>
           </div>
           <div
-            className="command-palette-results"
+            className={classNames(
+              'command-palette-results',
+              `density-${this.state.appearance.density}`
+            )}
             role="listbox"
             aria-label="Commands"
           >
@@ -242,10 +264,34 @@ export class CommandPalette extends React.Component<
                   }
                   onClick={this.onRowClick}
                 >
-                  <span className="command-palette-group">{command.group}</span>
-                  <span className="command-palette-title">
-                    {resolvePaletteTitle(command)}
+                  {this.state.appearance.showIcons && (
+                    <span className="command-palette-icon" aria-hidden="true">
+                      <MaterialSymbol
+                        name={resolveCommandSymbol(
+                          command.group,
+                          command.materialSymbol
+                        )}
+                        size={20}
+                      />
+                    </span>
+                  )}
+                  <span className="command-palette-row-copy">
+                    <span className="command-palette-title">
+                      {resolvePaletteTitle(command)}
+                    </span>
+                    {this.state.appearance.showKeywords &&
+                      this.state.appearance.density === 'comfortable' &&
+                      command.keywords !== undefined && (
+                        <span className="command-palette-keywords">
+                          {command.keywords}
+                        </span>
+                      )}
                   </span>
+                  {this.state.appearance.showGroups && (
+                    <span className="command-palette-group">
+                      {command.group}
+                    </span>
+                  )}
                 </button>
               ))
             )}

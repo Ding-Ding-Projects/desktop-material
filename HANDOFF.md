@@ -1,5 +1,52 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-22 command palette rows, tab groups, and Alt-menu reliability
+
+The command palette is wider (760px) and taller (520px of results), and each
+row now renders a leading Material Symbol (the command's own, else its
+group's, else a neutral fallback), the title, a keyword line that explains why
+a fuzzy match hit, and a group chip. A **Customize appearance** control sits
+beside the filter-mode/regex cluster and opens an editor anchored to its own
+button — not a separate dialog — so the list stays visible while row density
+(comfortable/compact) and the icon, group-chip, and keyword-line toggles are
+adjusted. The choice persists in `localStorage` and is repaired field by field
+when the stored value is partial or invalid; storage failures are swallowed so
+the palette always opens.
+
+Three surfaces that were only reachable by knowing which settings tab hosts
+them are now named in the palette by what they do: **Ollama model manager**
+and **Preferences: Copilot and AI providers** (both open the Copilot providers
+tab that hosts the manager) and **Background action and API queue** (keywords
+include docker/api/job).
+
+Tab groups landed as an organizational layer over the existing strip.
+`IProfileTabsState.groups` and `IRepositoryTab.groupId` are both optional, so
+profiles written before groups load without migration, and an unknown
+`groupId` degrades to ungrouped rather than being dropped. The tab context
+menu can start a new named/colored group, move a tab between groups, remove it
+from one, collapse/expand, and delete a group — deleting only removes the
+label and never closes a tab. Moving a tab lands it beside its new group's
+last member so a group reads as one contiguous run. Colors come from a closed
+curated set re-validated on read and render, so a hand-edited profile cannot
+inject CSS through a group.
+
+`onWindowKeyDown` now records `lastKeyPressed` on every path, including its
+`defaultPrevented` and modal early returns, and treats a held Alt (repeat
+events) as one press. Previously a handled or modal key press left that field
+stale, and because the Alt key-up handler opens the menu only when Alt was
+also the last key pressed, the next Alt tap silently did nothing. Note this is
+a defensible state fix reasoned from the code, not a confirmed reproduction of
+the reported Releases/Actions symptom: probing the running build over CDP,
+clicking File/Repository/Branch opened correctly on Changes, History, Actions
+and Releases alike, and synthetic Alt key events never opened the menu on any
+tab, so the exact reported path remains unverified end to end.
+
+Verification: repository-wide TypeScript no-emit is clean; the new
+`tab-groups-test.ts` and `command-palette-appearance-test.ts` pass 9/9. Direct
+`eslint` invocation reports missing custom-rule definitions on both the
+changed files and a clean tree, so that tooling gap is pre-existing rather
+than introduced here.
+
 ## 2026-07-22 mobile Pages, documentation search, and regenerated gallery
 
 The published Pages site is now usable on a phone. The top app bar previously

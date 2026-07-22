@@ -1819,3 +1819,115 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     padding: 10px;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Tab groups
+//
+// A grouped tab carries a colored band along its top edge and a matching tint,
+// so members of one group read as a run in the strip without changing tab
+// geometry. Colors come from a closed, curated set (see TabGroupColors), never
+// from a persisted free-form string.
+// ---------------------------------------------------------------------------
+.repository-tab.grouped {
+  position: relative;
+  --dm-tab-group-color: var(--md-sys-color-primary);
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 6px;
+    left: 6px;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+    background: var(--dm-tab-group-color);
+  }
+
+  &.active {
+    background: color-mix(in srgb, var(--dm-tab-group-color) 16%, var(--md-sys-color-surface-container-lowest));
+  }
+
+  &:hover:not(.active) {
+    background: color-mix(in srgb, var(--dm-tab-group-color) 10%, transparent);
+  }
+
+  &.tab-group--blue {
+    --dm-tab-group-color: #4285f4;
+  }
+
+  &.tab-group--green {
+    --dm-tab-group-color: #34a853;
+  }
+
+  &.tab-group--yellow {
+    --dm-tab-group-color: #f9ab00;
+  }
+
+  &.tab-group--red {
+    --dm-tab-group-color: #ea4335;
+  }
+
+  &.tab-group--purple {
+    --dm-tab-group-color: #a142f4;
+  }
+
+  &.tab-group--grey {
+    --dm-tab-group-color: #80868b;
+  }
+}
+
+// The new-group dialog's color chooser.
+#create-tab-group {
+  .tab-group-intro {
+    margin: 0 0 12px;
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .tab-group-colors {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .tab-group-color {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 2px solid transparent;
+    border-radius: 999px;
+    cursor: pointer;
+
+    &.selected {
+      border-color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+
+    &--blue {
+      background: #4285f4;
+    }
+
+    &--green {
+      background: #34a853;
+    }
+
+    &--yellow {
+      background: #f9ab00;
+    }
+
+    &--red {
+      background: #ea4335;
+    }
+
+    &--purple {
+      background: #a142f4;
+    }
+
+    &--grey {
+      background: #80868b;
+    }
+  }
+}

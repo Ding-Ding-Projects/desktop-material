@@ -204,6 +204,12 @@ export interface IRepositoryTab {
   /** A persistent star marker used for quick recognition and arrangement. */
   readonly isFavorite?: boolean
   /**
+   * The {@link ITabGroup} this tab belongs to, or absent/null when ungrouped.
+   * An id with no matching group is treated as ungrouped rather than dropped,
+   * so a session written by a newer release survives a downgrade.
+   */
+  readonly groupId?: string | null
+  /**
    * Epoch milliseconds when the tab was first opened. This remains optional
    * for migration compatibility; tabs restored from older profiles sort as
    * older than tabs carrying a valid timestamp.
@@ -211,16 +217,77 @@ export interface IRepositoryTab {
   readonly openedAt?: number
 }
 
+/**
+ * A named, colored grouping of tabs in the strip. Groups are presentation and
+ * organization only: a tab keeps working exactly the same whether or not it
+ * belongs to one, and deleting a group never closes its tabs.
+ */
+export interface ITabGroup {
+  /** Unknown keys are retained when tab sessions cross release versions. */
+  readonly [key: string]: unknown
+  /** Stable identity, unchanged across rename and recolor. */
+  readonly id: string
+  /** The visible group name. */
+  readonly name: string
+  /** One of {@link TabGroupColors}; anything else falls back to the default. */
+  readonly color: string
+  /** Whether the group's tabs are collapsed to a single chip in the strip. */
+  readonly isCollapsed?: boolean
+}
+
+/**
+ * The curated group colors. A closed set keeps a persisted value from ever
+ * reaching an inline style as arbitrary CSS.
+ */
+export const TabGroupColors = [
+  'blue',
+  'green',
+  'yellow',
+  'red',
+  'purple',
+  'grey',
+] as const
+
+export type TabGroupColor = typeof TabGroupColors[number]
+
+export const DefaultTabGroupColor: TabGroupColor = 'blue'
+
+/** Validate a persisted group color, falling back to the default. */
+export function normalizeTabGroupColor(value: unknown): TabGroupColor {
+  return typeof value === 'string' &&
+    (TabGroupColors as ReadonlyArray<string>).includes(value)
+    ? (value as TabGroupColor)
+    : DefaultTabGroupColor
+}
+
+/** The longest accepted group name; longer names are truncated on entry. */
+export const MaxTabGroupNameLength = 64
+
+/** Trim and bound a requested group name, or null when it is unusable. */
+export function normalizeTabGroupName(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+  const trimmed = value.replace(/\s+/g, ' ').trim()
+  return trimmed.length === 0 ? null : trimmed.slice(0, MaxTabGroupNameLength)
+}
+
 /** The full tab state for a single profile. */
 export interface IProfileTabsState {
   readonly tabs: ReadonlyArray<IRepositoryTab>
   readonly activeTabId: string | null
+  /**
+   * Declared tab groups in strip order. Optional so profiles written before
+   * groups existed load without a rewrite.
+   */
+  readonly groups?: ReadonlyArray<ITabGroup>
 }
 
 /** The empty tab state used before any tabs are opened. */
 export const emptyProfileTabsState: IProfileTabsState = {
   tabs: [],
   activeTabId: null,
+  groups: [],
 }
 
 /** Allowed font-size range (px) for a tab title. */

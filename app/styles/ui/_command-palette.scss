@@ -1,7 +1,9 @@
 // The Ctrl+F master command palette: search pill plus a ranked, keyboard-
 // navigable command list, all from the --md-sys-* tokens.
 #command-palette {
-  width: min(560px, calc(100vw - 40px));
+  // Roomier than a plain search sheet: rich rows with icons and secondary
+  // text need horizontal room, and more of the list should be visible.
+  width: min(760px, calc(100vw - 40px));
 
   .command-palette-search {
     display: flex;
@@ -50,7 +52,7 @@
     display: flex;
     flex-direction: column;
     gap: 1px;
-    max-height: min(380px, 50vh);
+    max-height: min(520px, 62vh);
     overflow-y: auto;
     overscroll-behavior: contain;
   }
@@ -94,17 +96,188 @@
     text-transform: uppercase;
   }
 
-  .command-palette-title {
+  .command-palette-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--md-sys-color-surface-container-highest);
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .command-palette-row:hover .command-palette-icon,
+  .command-palette-row.highlighted .command-palette-icon {
+    background: var(--md-sys-color-surface);
+    color: var(--md-sys-color-on-surface);
+  }
+
+  .command-palette-row-copy {
+    display: flex;
     flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .command-palette-title {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 13px;
+    font-size: 13.5px;
+  }
+
+  .command-palette-keywords {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11.5px;
+  }
+
+  .command-palette-row:hover .command-palette-keywords,
+  .command-palette-row.highlighted .command-palette-keywords {
+    color: inherit;
+  }
+
+  // Compact drops the icon plate and secondary line so more rows fit.
+  .command-palette-results.density-compact {
+    .command-palette-row {
+      padding: 4px 10px;
+    }
+
+    .command-palette-icon {
+      width: 24px;
+      height: 24px;
+      border-radius: 8px;
+    }
   }
 
   .command-palette-empty {
     margin: 10px 12px;
     color: var(--md-sys-color-on-surface-variant);
+  }
+
+  // "Customize appearance": a toggle beside the regex/filter cluster whose
+  // editor is anchored to the control, so the list stays visible while it is
+  // adjusted.
+  .command-palette-appearance {
+    position: relative;
+    display: flex;
+    flex: none;
+  }
+
+  .command-palette-appearance-toggle {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover,
+    &.open {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .command-palette-appearance-editor {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 10;
+    width: 268px;
+    padding: 12px 14px 14px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-high);
+    box-shadow: var(--md-sys-elevation-2, 0 8px 24px rgb(0 0 0 / 22%));
+    color: var(--md-sys-color-on-surface);
+    text-align: left;
+
+    h3 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    fieldset {
+      margin: 0 0 10px;
+      padding: 0;
+      border: 0;
+    }
+
+    legend {
+      padding: 0 0 4px;
+      font-size: 12px;
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  .command-palette-appearance-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 4px 0;
+    cursor: pointer;
+  }
+
+  .command-palette-appearance-option-copy {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .command-palette-appearance-option-label {
+    font-size: 12.5px;
+  }
+
+  .command-palette-appearance-option-description {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+  }
+
+  .command-palette-appearance-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 12.5px;
+    cursor: pointer;
+  }
+
+  .command-palette-appearance-reset {
+    padding: 5px 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface);
+    font-size: 12px;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
   }
 }

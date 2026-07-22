@@ -1159,6 +1159,13 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.Git)
       case 'palette:preferences-accessibility':
         return this.showPreferencesTab(PreferencesTab.Accessibility)
+      case 'palette:preferences-copilot':
+      case 'palette:ollama-model-manager':
+        // The Ollama manager lives inside the Copilot providers tab; the
+        // palette names it directly so it is findable by what it does.
+        return this.showPreferencesTab(PreferencesTab.Copilot)
+      case 'palette:background-queue':
+        return this.showPreferencesTab(PreferencesTab.Queue)
       case 'palette:notification-history':
         return this.props.dispatcher.showPopup({
           type: PopupType.NotificationHistory,
@@ -2013,6 +2020,13 @@ export class App extends React.Component<IAppProps, IAppState> {
    * Alt key) is pressed.
    */
   private onWindowKeyDown = (event: KeyboardEvent) => {
+    // Record the key on every path, including the early returns below. The
+    // Alt key-up handler opens the menu only when Alt was also the last key
+    // pressed, so leaving this stale after a handled or modal key press makes
+    // the next Alt tap silently do nothing.
+    const previousKeyPressed = this.lastKeyPressed
+    this.lastKeyPressed = event.key
+
     if (event.defaultPrevented) {
       return
     }
@@ -2077,7 +2091,11 @@ export class App extends React.Component<IAppProps, IAppState> {
       }
     }
 
-    this.lastKeyPressed = event.key
+    // Repeated Alt key-down events fire while the key is held. Treat the whole
+    // hold as one Alt press so the key-up handler still opens the menu.
+    if (event.key === 'Alt' && event.repeat) {
+      this.lastKeyPressed = previousKeyPressed === 'Alt' ? 'Alt' : event.key
+    }
   }
 
   /**

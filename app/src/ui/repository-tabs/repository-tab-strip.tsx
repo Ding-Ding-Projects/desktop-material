@@ -15,6 +15,7 @@ import {
   IProfileTabsState,
   IRepositoryTab,
   ITabTitleStyle,
+  TabGroupColor,
 } from '../../models/repository-tab'
 import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
@@ -23,7 +24,8 @@ import {
   CloseTabsContainingPopover,
   CloseTabsExceptContainingPopover,
 } from './close-tabs-containing-popover'
-import { showContextualMenu } from '../../lib/menu-item'
+import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
+import { CreateTabGroupDialog } from './create-tab-group-dialog'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
 import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
@@ -57,6 +59,8 @@ interface IRepositoryTabStripState {
   readonly searchAnchor: HTMLElement | null
   readonly draggingTabId: string | null
   readonly announcement: string
+  /** The tab awaiting a name for the new group it will start. */
+  readonly createGroupForTab: IRepositoryTab | null
 }
 
 /**
@@ -96,6 +100,7 @@ export class RepositoryTabStrip extends React.Component<
       searchAnchor: null,
       draggingTabId: null,
       announcement: '',
+      createGroupForTab: null,
     }
   }
 
@@ -442,6 +447,8 @@ export class RepositoryTabStrip extends React.Component<
         action: () => this.openArrange(anchor),
       },
       { type: 'separator' },
+      ...this.buildGroupMenuItems(tab),
+      { type: 'separator' },
       {
         label: 'Customize Appearance…',
         icon: octicons.paintbrush,
@@ -480,6 +487,78 @@ export class RepositoryTabStrip extends React.Component<
         enabled: tabs.length > 0,
       },
     ])
+  }
+
+  /**
+   * The "Tab group" section of a tab's context menu: move it into any existing
+   * group, start a new one, or take it out. Deleting a group from here only
+   * removes the label — the tabs themselves stay open.
+   */
+  private buildGroupMenuItems(tab: IRepositoryTab): ReadonlyArray<IMenuItem> {
+    const groups = this.props.tabsStore.getGroups()
+    const currentGroupId = tab.groupId ?? null
+    const currentGroup =
+      currentGroupId === null
+        ? undefined
+        : groups.find(group => group.id === currentGroupId)
+
+    const items: Array<IMenuItem> = [
+      {
+        label: 'Add Tab to New Group…',
+        icon: octicons.plus,
+        action: () => this.openCreateGroup(tab),
+      },
+    ]
+
+    for (const group of groups) {
+      if (group.id === currentGroupId) {
+        continue
+      }
+      items.push({
+        label: `Move to “${group.name}”`,
+        action: () => this.props.tabsStore.setTabGroup(tab.id, group.id),
+      })
+    }
+
+    if (currentGroup !== undefined) {
+      items.push({
+        label: `Remove from “${currentGroup.name}”`,
+        action: () => this.props.tabsStore.setTabGroup(tab.id, null),
+      })
+      items.push({
+        label:
+          currentGroup.isCollapsed === true
+            ? `Expand “${currentGroup.name}”`
+            : `Collapse “${currentGroup.name}”`,
+        action: () =>
+          this.props.tabsStore.setTabGroupCollapsed(
+            currentGroup.id,
+            currentGroup.isCollapsed !== true
+          ),
+      })
+      items.push({
+        label: `Delete Group “${currentGroup.name}”`,
+        action: () => this.props.tabsStore.deleteTabGroup(currentGroup.id),
+      })
+    }
+
+    return items
+  }
+
+  private openCreateGroup = (tab: IRepositoryTab) => {
+    this.setState({ createGroupForTab: tab })
+  }
+
+  private onCreateGroupDismissed = () => {
+    this.setState({ createGroupForTab: null })
+  }
+
+  private onCreateGroup = (name: string, color: TabGroupColor) => {
+    const tab = this.state.createGroupForTab
+    this.setState({ createGroupForTab: null })
+    if (tab !== null) {
+      this.props.tabsStore.createTabGroup(name, color, [tab.id])
+    }
   }
 
   private restorePopoverFocus = (anchor: HTMLElement | null) => {
@@ -811,6 +890,32 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
+  /** The declared group a tab belongs to, or null when it is ungrouped. */
+  private groupForTab = (tab: IRepositoryTab) => {
+    const groupId = tab.groupId ?? null
+    if (groupId === null) {
+      return null
+    }
+    return (
+      this.props.tabsStore.getGroups().find(group => group.id === groupId) ??
+      null
+    )
+  }
+
+  private renderCreateGroupDialog() {
+    const tab = this.state.createGroupForTab
+    if (tab === null) {
+      return null
+    }
+    return (
+      <CreateTabGroupDialog
+        tabLabel={this.labelForTab(tab)}
+        onCreate={this.onCreateGroup}
+        onDismissed={this.onCreateGroupDismissed}
+      />
+    )
+  }
+
   public render() {
     const { tabs, activeTabId } = this.state.tabs
 
@@ -829,6 +934,7 @@ export class RepositoryTabStrip extends React.Component<
             <RepositoryTab
               key={tab.id}
               tab={tab}
+              group={this.groupForTab(tab)}
               repository={this.repositoryForTab(tab)}
               isActive={tab.id === activeTabId}
               isDragging={tab.id === this.state.draggingTabId}
@@ -914,6 +1020,7 @@ export class RepositoryTabStrip extends React.Component<
         {this.renderCloseExceptPopover()}
         {this.renderArrangePopover()}
         {this.renderSearchPopover()}
+        {this.renderCreateGroupDialog()}
         <div
           className="repository-tab-announcement"
           role="status"

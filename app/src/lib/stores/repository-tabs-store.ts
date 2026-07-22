@@ -7,8 +7,12 @@ import { FilterMode, matchWithMode } from '../fuzzy-find'
 import {
   IProfileTabsState,
   IRepositoryTab,
+  ITabGroup,
   ITabTitleStyle,
+  TabGroupColor,
   emptyProfileTabsState,
+  normalizeTabGroupColor,
+  normalizeTabGroupName,
   normalizeTabTitleStyle,
 } from '../../models/repository-tab'
 import { PrimaryWindowScope } from '../window-scope'
@@ -733,6 +737,168 @@ export class RepositoryTabsStore extends TypedBaseStore<IProfileTabsState> {
     if (tab !== undefined) {
       await this.setTabFavorite(id, tab.isFavorite !== true)
     }
+  }
+
+  /** The declared tab groups, tolerating profiles written before groups. */
+  public getGroups(): ReadonlyArray<ITabGroup> {
+    return this.state.groups ?? []
+  }
+
+  /**
+   * Create a named group and, optionally, move the given tabs into it. The
+   * group is created even when no tabs are supplied so an empty group can be
+   * filled by dragging or by later menu actions.
+   */
+  public async createTabGroup(
+    name: string,
+    color: TabGroupColor,
+    tabIds: ReadonlyArray<string> = []
+  ): Promise<string | null> {
+    const normalizedName = normalizeTabGroupName(name)
+    if (normalizedName === null) {
+      return null
+    }
+
+    const group: ITabGroup = {
+      id: randomUUID(),
+      name: normalizedName,
+      color: normalizeTabGroupColor(color),
+    }
+    const members = new Set(tabIds)
+    const tabs = this.state.tabs.map(tab =>
+      members.has(tab.id) ? { ...tab, groupId: group.id } : tab
+    )
+    await this.persist(
+      { ...this.state, tabs, groups: [...this.getGroups(), group] },
+      'Create tab group'
+    )
+    return group.id
+  }
+
+  /** Rename and/or recolor a group without touching its membership. */
+  public async updateTabGroup(
+    id: string,
+    changes: { readonly name?: string; readonly color?: TabGroupColor }
+  ): Promise<void> {
+    const groups = this.getGroups()
+    const current = groups.find(group => group.id === id)
+    if (current === undefined) {
+      return
+    }
+
+    const name =
+      changes.name === undefined
+        ? current.name
+        : normalizeTabGroupName(changes.name) ?? current.name
+    const color =
+      changes.color === undefined
+        ? current.color
+        : normalizeTabGroupColor(changes.color)
+    if (name === current.name && color === current.color) {
+      return
+    }
+
+    await this.persist(
+      {
+        ...this.state,
+        groups: groups.map(group =>
+          group.id === id ? { ...group, name, color } : group
+        ),
+      },
+      'Rename tab group'
+    )
+  }
+
+  /** Collapse or expand a group in the strip. */
+  public async setTabGroupCollapsed(
+    id: string,
+    isCollapsed: boolean
+  ): Promise<void> {
+    const groups = this.getGroups()
+    const current = groups.find(group => group.id === id)
+    if (
+      current === undefined ||
+      (current.isCollapsed === true) === isCollapsed
+    ) {
+      return
+    }
+    await this.persist(
+      {
+        ...this.state,
+        groups: groups.map(group =>
+          group.id === id ? { ...group, isCollapsed } : group
+        ),
+      },
+      isCollapsed ? 'Collapse tab group' : 'Expand tab group'
+    )
+  }
+
+  /**
+   * Move a tab into a group, or out of every group when `groupId` is null.
+   * The tab is repositioned next to its new group's existing members so the
+   * strip never shows a group split by unrelated tabs.
+   */
+  public async setTabGroup(id: string, groupId: string | null): Promise<void> {
+    const index = this.state.tabs.findIndex(tab => tab.id === id)
+    const current = this.state.tabs[index]
+    if (current === undefined) {
+      return
+    }
+    const target =
+      groupId !== null && this.getGroups().some(group => group.id === groupId)
+        ? groupId
+        : null
+    if ((current.groupId ?? null) === target) {
+      return
+    }
+
+    const tabs = [...this.state.tabs]
+    tabs.splice(index, 1)
+    const moved = { ...current, groupId: target }
+
+    // Land beside the group's last member; ungrouping leaves the tab where it
+    // already sits rather than jumping it to an arbitrary end of the strip.
+    let insertAt = index > tabs.length ? tabs.length : index
+    if (target !== null) {
+      const lastMember = tabs
+        .map(tab => tab.groupId ?? null)
+        .lastIndexOf(target)
+      if (lastMember !== -1) {
+        insertAt = lastMember + 1
+      }
+    }
+    tabs.splice(insertAt, 0, moved)
+
+    await this.persist(
+      { ...this.state, tabs },
+      target === null ? 'Remove tab from group' : 'Add tab to group'
+    )
+  }
+
+  /**
+   * Delete a group. Its tabs are kept and simply become ungrouped — removing
+   * an organizational label must never close a repository tab.
+   */
+  public async deleteTabGroup(id: string): Promise<void> {
+    const groups = this.getGroups()
+    if (!groups.some(group => group.id === id)) {
+      return
+    }
+    await this.persist(
+      {
+        ...this.state,
+        tabs: this.state.tabs.map(tab =>
+          (tab.groupId ?? null) === id ? { ...tab, groupId: null } : tab
+        ),
+        groups: groups.filter(group => group.id !== id),
+      },
+      'Delete tab group'
+    )
+  }
+
+  /** Every tab currently assigned to the given group, in strip order. */
+  public getTabsInGroup(id: string): ReadonlyArray<IRepositoryTab> {
+    return this.state.tabs.filter(tab => (tab.groupId ?? null) === id)
   }
 
   /** One-shot stable favorite arrangement inside each protected pin group. */

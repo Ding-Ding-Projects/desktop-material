@@ -5,6 +5,7 @@
  */
 
 import type { TranslationKey } from './i18n-resources'
+import type { MaterialSymbolName } from '../ui/lib/material-symbol'
 
 /**
  * The application-selection snapshot an availability predicate inspects to
@@ -50,6 +51,11 @@ export interface IPaletteCommand {
   readonly titleKey?: TranslationKey
   /** The logical group shown beside the title. */
   readonly group: string
+  /**
+   * An explicit row icon. When omitted the palette falls back to the group's
+   * icon, so a command only needs this when it deserves its own glyph.
+   */
+  readonly materialSymbol?: MaterialSymbolName
   /** Extra search terms. */
   readonly keywords?: string
   /** Restricts the command to one platform. */
@@ -389,6 +395,31 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     titleKey: 'palette.preferencesAccessibility',
     group: 'App',
     keywords: 'settings accessibility a11y motion contrast',
+  },
+  // Surfaces that are otherwise only reachable by knowing which settings tab
+  // hosts them. Naming them here makes them findable by what they do.
+  {
+    event: 'palette:ollama-model-manager',
+    title: 'Ollama model manager',
+    group: 'App',
+    materialSymbol: 'stacks',
+    keywords:
+      'ollama local model llm ai copilot provider pull run inventory manager endpoint',
+  },
+  {
+    event: 'palette:preferences-copilot',
+    title: 'Preferences: Copilot and AI providers',
+    group: 'App',
+    materialSymbol: 'auto_awesome',
+    keywords: 'copilot ai provider ollama openai model byok endpoint chat',
+  },
+  {
+    event: 'palette:background-queue',
+    title: 'Background action and API queue',
+    group: 'App',
+    materialSymbol: 'low_priority',
+    keywords:
+      'queue background docker api action job pending run task throughput concurrency',
   },
 
   // Notifications

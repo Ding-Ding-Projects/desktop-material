@@ -5,6 +5,8 @@ import { Repository } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
 import {
   IRepositoryTab,
+  ITabGroup,
+  normalizeTabGroupColor,
   tabTitleStyleToCss,
   tabFrameStyleToCss,
 } from '../../models/repository-tab'
@@ -29,6 +31,8 @@ interface IRepositoryTabProps {
   readonly repository: Repository | CloningRepository | null
   readonly isActive: boolean
   readonly isDragging: boolean
+  /** The group this tab belongs to, or null when it is ungrouped. */
+  readonly group?: ITabGroup | null
   readonly onSelect: (tab: IRepositoryTab) => void
   readonly onClose: (tab: IRepositoryTab) => void
   readonly onToggleFavorite: (tab: IRepositoryTab) => void
@@ -305,12 +309,17 @@ export class RepositoryTab extends React.Component<
 
   public render() {
     const { tab, isActive, isDragging } = this.props
+    const group = this.props.group ?? null
     const className = [
       'repository-tab',
       isActive ? 'active' : null,
       tab.isPinned === true ? 'pinned' : null,
       tab.isFavorite === true ? 'favorite' : null,
       isDragging ? 'dragging' : null,
+      group !== null ? 'grouped' : null,
+      group !== null
+        ? `tab-group--${normalizeTabGroupColor(group.color)}`
+        : null,
     ]
       .filter(value => value !== null)
       .join(' ')

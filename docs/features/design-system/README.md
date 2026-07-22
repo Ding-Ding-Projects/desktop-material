@@ -1,5 +1,9 @@
 # Design-system features
 
+- [Command palette rows and
+  appearance](command-palette-appearance.md) — icon/keyword/group rows, the
+  anchored Customize appearance editor, and discoverability entries for
+  otherwise-buried surfaces.
 - [Material ripple and theme reveal](material-ripple-and-theme-reveal.md) —
   shared interaction feedback and bounded animated theme transitions.
 - [Dialog wheel and trackpad scrolling](dialog-wheel-scrolling.md) — route
