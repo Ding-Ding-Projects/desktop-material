@@ -91,7 +91,7 @@ describe('CI workflow safety', () => {
     assert.match(installerWorkflow, /git ls-remote origin refs\/heads\/main/)
     assert.match(
       installerWorkflow,
-      /Publishing superseded commit \$RELEASE_TARGET_SHA as an immutable non-latest Release/
+      /Published superseded commit \$RELEASE_TARGET_SHA without changing Latest/
     )
     assert.doesNotMatch(installerWorkflow, /softprops\/action-gh-release/)
     assert.equal(
@@ -111,7 +111,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /Verify required release assets[\s\S]*?Preserve express installer payload[\s\S]*?Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes[\s\S]*?Classify release freshness without blocking publication[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Publish GitHub release/
+      /Verify required release assets[\s\S]*?Preserve express installer payload[\s\S]*?Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Verify downloaded release payload[\s\S]*?Publish GitHub release[\s\S]*?Verify published release target[\s\S]*?Promote only a still-current main release/
     )
     assert.match(
       installerWorkflow,
@@ -130,9 +130,16 @@ describe('CI workflow safety', () => {
     assert.doesNotMatch(installerWorkflow, /block_reason=stale/)
     assert.doesNotMatch(installerWorkflow, /Record stale non-publishing result/)
     assert.doesNotMatch(installerWorkflow, /became stale while building/)
-    assert.match(installerWorkflow, /latest_args=\(--latest=false\)/)
-    assert.match(installerWorkflow, /latest_args=\(--latest\)/)
-    assert.match(installerWorkflow, /"\$\{latest_args\[@\]\}"/)
+    assert.doesNotMatch(installerWorkflow, /group: build-installers-publisher/)
+    assert.match(
+      installerWorkflow,
+      /Publish GitHub release[\s\S]*?gh release create[\s\S]*?--latest=false/
+    )
+    assert.doesNotMatch(installerWorkflow, /^\s+--latest\s*$/m)
+    assert.match(
+      installerWorkflow,
+      /Promote only a still-current main release[\s\S]*?-f make_latest=true[\s\S]*?current_main_after=.*git ls-remote[\s\S]*?-f make_latest=false[\s\S]*?latest_after_demotion=[\s\S]*?releases\/latest[\s\S]*?releases\/latest/
+    )
 
     const upstreamFailureStep = installerWorkflow.match(
       /- name: Preserve the upstream CI failure result([\s\S]*?)(?=\n      - name:|\n  publish:)/

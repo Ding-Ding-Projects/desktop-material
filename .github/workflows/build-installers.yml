@@ -349,24 +349,6 @@ jobs:
           name:
             express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload
-      - name: Classify release freshness without blocking publication
-        id: freshness
-        shell: bash
-        run: |
-          set +e
-          remote_main=$(git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }')
-          lookup_status=$?
-          set -e
-          latest=false
-          if [ "$lookup_status" -eq 0 ] && [[ "$remote_main" =~ ^[0-9a-f]{40}$ ]] && \
-             [ "$remote_main" = "$RELEASE_TARGET_SHA" ]; then
-            latest=true
-          elif [ "$lookup_status" -eq 0 ] && [[ "$remote_main" =~ ^[0-9a-f]{40}$ ]]; then
-            echo "::notice::Publishing superseded commit $RELEASE_TARGET_SHA as an immutable non-latest Release; current main is $remote_main."
-          else
-            echo "::warning::Could not classify current main, so this immutable Release will not replace the Latest marker."
-          fi
-          echo "latest=$latest" >> "$GITHUB_OUTPUT"
       - name: Revalidate immutable release tag before publishing
         shell: bash
         run: |
@@ -406,19 +388,13 @@ jobs:
           done
       - name: Publish GitHub release
         shell: bash
-        env:
-          RELEASE_IS_LATEST: ${{ steps.freshness.outputs.latest }}
         run: |
-          latest_args=(--latest=false)
-          if [ "$RELEASE_IS_LATEST" = "true" ]; then
-            latest_args=(--latest)
-          fi
           gh release create "$RELEASE_TAG" release-payload/installers/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
-            "${latest_args[@]}"
+            --latest=false
       - name: Verify published release target
         shell: bash
         run: |
@@ -430,5 +406,55 @@ jobs:
           fi
           if [ "$(gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --json isDraft --jq .isDraft)" != "false" ]; then
             echo "Published release unexpectedly remained a draft." >&2
+            exit 1
+          fi
+      - name: Promote only a still-current main release
+        shell: bash
+        run: |
+          release_id=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .id)
+          if [[ ! "$release_id" =~ ^[0-9]+$ ]]; then
+            echo "Published Release did not return a numeric database ID." >&2
+            exit 1
+          fi
+
+          set +e
+          current_main=$(git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }')
+          lookup_status=$?
+          set -e
+          if [ "$lookup_status" -ne 0 ] || [[ ! "$current_main" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::warning::Could not resolve current main; the immutable Release remains non-latest."
+            exit 0
+          fi
+          if [ "$current_main" != "$RELEASE_TARGET_SHA" ]; then
+            echo "::notice::Published superseded commit $RELEASE_TARGET_SHA without changing Latest; current main is $current_main."
+            exit 0
+          fi
+
+          gh api --method PATCH \
+            "repos/$GITHUB_REPOSITORY/releases/$release_id" \
+            -f make_latest=true >/dev/null
+
+          set +e
+          current_main_after=$(git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }')
+          after_status=$?
+          set -e
+          if [ "$after_status" -ne 0 ] || \
+             [ "$current_main_after" != "$RELEASE_TARGET_SHA" ]; then
+            gh api --method PATCH \
+              "repos/$GITHUB_REPOSITORY/releases/$release_id" \
+              -f make_latest=false >/dev/null
+            latest_after_demotion=$(gh api \
+              "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+            if [ "$latest_after_demotion" = "$RELEASE_TAG" ]; then
+              echo "Superseded Release still owns Latest after demotion." >&2
+              exit 1
+            fi
+            echo "::notice::Main advanced during Latest promotion; the Release remains published but was demoted from Latest."
+            exit 0
+          fi
+
+          latest_tag=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          if [ "$latest_tag" != "$RELEASE_TAG" ]; then
+            echo "Latest Release is $latest_tag, expected $RELEASE_TAG after promotion." >&2
             exit 1
           fi
