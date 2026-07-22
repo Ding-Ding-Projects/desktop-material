@@ -1,5 +1,17 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-21 CI lint newline repair
+
+GitHub CI run
+[`29879526652`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29879526652),
+Lint job `88797062810`, failed only during the repository-wide Prettier check:
+`opencode.json` had no final newline. The configuration values and permissions
+were already valid, so the repair adds only the missing newline and does not
+change OpenCode behavior. On the exact failing source plus this repair, the
+full CI-equivalent `yarn lint` command passes Prettier, the
+ESLint/Prettier-compatibility check, and repository-wide ESLint. Remote CI and
+installer publication remain pending until this commit reaches `main`.
+
 ## 2026-07-21 printenvz Windows install-stage repair
 
 The install stage failed building `vendor/printenvz` with

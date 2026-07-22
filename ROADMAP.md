@@ -11,6 +11,14 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [`PLAN.md`](PLAN.md) and
 [`HANDOFF.md`](HANDOFF.md).
 
+## July 21 CI lint newline repair — **Local verification complete; remote verification pending**
+
+- CI run `29879526652` failed its Lint job only because `opencode.json` lacked
+  the final newline required by Prettier; no OpenCode setting or permission was
+  changed.
+- The full CI-equivalent `yarn lint` gate now passes locally. Exact-commit
+  remote CI and installer Release verification remain pending.
+
 ## July 21 Settings queue and mobile connection — **Implementation complete; publication verification pending**
 
 - **Settings → Clone queue** exposes the existing account-scoped automatic
