@@ -1,0 +1,13 @@
+name: Cheap LFS cloud compression
+description:
+  Compress release-backed Cheap LFS objects sequentially and adopt verified side
+  assets.
+
+runs:
+  using: composite
+  steps:
+    - name: Compress release objects one by one
+      shell: bash
+      env:
+        CHEAP_LFS_GITHUB_TOKEN: ${{ github.token }}
+      run: node "$GITHUB_ACTION_PATH/cloud-compress.mjs"

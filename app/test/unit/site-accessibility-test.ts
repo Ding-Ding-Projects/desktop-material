@@ -112,13 +112,18 @@ describe('Pages accessibility contracts', () => {
     }
   })
 
-  it('publishes navigation, History actions, and Tools scroll evidence', () => {
+  it('publishes current workflow, progress, and recovery evidence', () => {
     const markup = read('site/index.html')
 
     for (const source of [
       'docs/assets/screenshots/material-tab-search.png',
+      'docs/assets/screenshots/material-tab-groups.png',
+      'docs/assets/screenshots/material-command-palette-appearance.png',
+      'docs/assets/screenshots/cheap-lfs-ui-acceptance.png',
+      'docs/assets/screenshots/cheap-lfs-commit-progress.png',
       'docs/assets/screenshots/material-history-context-actions.png',
       'docs/assets/screenshots/material-repository-tools-scroll.png',
+      'docs/assets/screenshots/auto-updater-update-ready.png',
     ]) {
       assert.ok(markup.includes(`href="${source}"`))
       assert.ok(markup.includes(`src="${source}"`))
@@ -150,7 +155,7 @@ describe('Pages accessibility contracts', () => {
     ]
       .map(([, file]) => `docs/assets/screenshots/${file}`)
       .sort()
-    assert.equal(expectedSources.length, 67)
+    assert.equal(expectedSources.length, 75)
     assert.equal(figures.length, expectedSources.length)
 
     const actualSources = new Array<string>()

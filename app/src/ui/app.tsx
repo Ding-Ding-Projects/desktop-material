@@ -33,6 +33,7 @@ import { t, translateForAccessibleName } from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
 import { FetchType } from '../models/fetch'
 import { shouldRenderApplicationMenu } from './lib/features'
+import { ApplicationMenuAltKeyTracker } from './lib/application-menu-alt-key-tracker'
 import { matchExistingRepository } from '../lib/repository-matching'
 import { getVersion, getName } from './lib/app-proxy'
 import {
@@ -460,12 +461,8 @@ export class App extends React.Component<IAppProps, IAppState> {
       )
   )
 
-  /**
-   * Used on non-macOS platforms to support the Alt key behavior for
-   * the custom application menu. See the event handlers for window
-   * keyup and keydown.
-   */
-  private lastKeyPressed: string | null = null
+  private readonly applicationMenuAltKeyTracker =
+    new ApplicationMenuAltKeyTracker()
 
   private updateIntervalHandle?: number
 
@@ -1159,6 +1156,13 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.Git)
       case 'palette:preferences-accessibility':
         return this.showPreferencesTab(PreferencesTab.Accessibility)
+      case 'palette:preferences-copilot':
+      case 'palette:ollama-model-manager':
+        // The Ollama manager lives inside the Copilot providers tab; the
+        // palette names it directly so it is findable by what it does.
+        return this.showPreferencesTab(PreferencesTab.Copilot)
+      case 'palette:background-queue':
+        return this.showPreferencesTab(PreferencesTab.Queue)
       case 'palette:notification-history':
         return this.props.dispatcher.showPopup({
           type: PopupType.NotificationHistory,
@@ -2013,6 +2017,11 @@ export class App extends React.Component<IAppProps, IAppState> {
    * Alt key) is pressed.
    */
   private onWindowKeyDown = (event: KeyboardEvent) => {
+    const isBareAltPress = this.applicationMenuAltKeyTracker.onKeyDown(
+      event,
+      this.isShowingModal
+    )
+
     if (event.defaultPrevented) {
       return
     }
@@ -2025,7 +2034,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       if (event.key === 'Shift' && event.altKey) {
         this.props.dispatcher.setAccessKeyHighlightState(false)
       } else if (event.key === 'Alt') {
-        if (event.shiftKey) {
+        if (!isBareAltPress) {
           return
         }
         // Immediately close the menu if open and the user hits Alt. This is
@@ -2076,8 +2085,6 @@ export class App extends React.Component<IAppProps, IAppState> {
         this.props.dispatcher.setAccessKeyHighlightState(false)
       }
     }
-
-    this.lastKeyPressed = event.key
   }
 
   /**
@@ -2086,15 +2093,16 @@ export class App extends React.Component<IAppProps, IAppState> {
    * See onWindowKeyDown for more information.
    */
   private onWindowKeyUp = (event: KeyboardEvent) => {
-    if (event.defaultPrevented) {
-      return
-    }
+    const shouldToggleMenu = this.applicationMenuAltKeyTracker.onKeyUp(
+      event,
+      this.isShowingModal
+    )
 
     if (shouldRenderApplicationMenu()) {
       if (event.key === 'Alt') {
         this.props.dispatcher.setAccessKeyHighlightState(false)
 
-        if (this.lastKeyPressed === 'Alt') {
+        if (shouldToggleMenu) {
           if (
             this.state.currentFoldout &&
             this.state.currentFoldout.type === FoldoutType.AppMenu

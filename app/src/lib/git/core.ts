@@ -599,6 +599,9 @@ export function getDescriptionForError(
  */
 export function gitRebaseArguments() {
   return [
+    // A successful rewritten commit must not be reported as failed merely
+    // because unrelated automatic repository maintenance fails afterwards.
+    ...['-c', 'gc.auto=0'],
     // Explicitly set the rebase backend to merge.
     // We need to force this option to be sure that Desktop
     // uses the merge backend even if the user has the apply backend

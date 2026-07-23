@@ -92,8 +92,198 @@
     }
 
     &.cheap-lfs-progress {
+      align-items: stretch;
       flex-wrap: wrap;
       gap: var(--spacing-half);
+
+      .cheap-lfs-mini-terminal {
+        container-type: inline-size;
+        flex: 1 0 100%;
+        min-width: 0;
+        overflow: hidden;
+        border: 1px solid color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 18%, transparent);
+        border-radius: 12px;
+        background: var(--md-sys-color-inverse-surface);
+        color: var(--md-sys-color-inverse-on-surface);
+        font-family: var(--font-family-monospace);
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .cheap-lfs-mini-terminal-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 25px;
+        padding: 4px 8px;
+        border-bottom: 1px solid color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 14%, transparent);
+      }
+
+      .cheap-lfs-terminal-lights {
+        display: inline-flex;
+        gap: 4px;
+      }
+
+      .cheap-lfs-terminal-light {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+
+        &.stop {
+          background: #ef6c68;
+        }
+
+        &.wait {
+          background: #e6b450;
+        }
+
+        &.go {
+          background: #68c17c;
+        }
+      }
+
+      .cheap-lfs-terminal-title {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        opacity: 0.78;
+      }
+
+      .cheap-lfs-mini-terminal-body {
+        display: grid;
+        gap: 5px;
+        padding: 7px 8px 8px;
+      }
+
+      .cheap-lfs-terminal-command,
+      .cheap-lfs-terminal-details {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 9px;
+      }
+
+      .cheap-lfs-terminal-command {
+        min-width: 0;
+        font-weight: 600;
+      }
+
+      .cheap-lfs-terminal-prompt {
+        color: var(--md-sys-color-primary);
+      }
+
+      .cheap-lfs-terminal-stage,
+      .cheap-lfs-terminal-path,
+      .cheap-lfs-terminal-active-path {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .cheap-lfs-terminal-path,
+      .cheap-lfs-terminal-active-detail,
+      .cheap-lfs-terminal-details {
+        opacity: 0.78;
+      }
+
+      .cheap-lfs-terminal-active-files {
+        display: grid;
+        gap: 3px;
+      }
+
+      .cheap-lfs-terminal-active-file {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        min-width: 0;
+        padding: 4px 5px;
+        border-radius: 7px;
+        background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 7%, transparent);
+      }
+
+      .cheap-lfs-terminal-worker {
+        display: grid;
+        flex: none;
+        place-items: center;
+        width: 17px;
+        height: 17px;
+        border-radius: 5px;
+        background: color-mix(in srgb, var(--md-sys-color-primary) 32%, transparent);
+        font-size: 10px;
+        font-weight: 700;
+      }
+
+      .cheap-lfs-terminal-active-main {
+        display: grid;
+        min-width: 0;
+      }
+
+      .cheap-lfs-terminal-percentage {
+        margin-left: auto;
+        font-weight: 700;
+      }
+
+      .cheap-lfs-terminal-progress {
+        height: 4px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 17%, transparent);
+
+        > span {
+          display: block;
+          height: 100%;
+          border-radius: inherit;
+          background: var(--md-sys-color-primary);
+          transition: width 160ms ease-out;
+        }
+
+        &.indeterminate::after {
+          display: block;
+          width: 35%;
+          height: 100%;
+          border-radius: inherit;
+          background: var(--md-sys-color-primary);
+          content: '';
+          animation: cheap-lfs-terminal-indeterminate 1.2s ease-in-out infinite;
+        }
+      }
+
+      // Keep all three transfer lanes visible when the Changes sidebar is
+      // narrowed. The complete bilingual strings remain in the DOM and in the
+      // progressbar's accessible value; the mini-terminal uses compact,
+      // ellipsized rows instead of growing past the sidebar viewport.
+      @container (max-width: 220px) {
+        .cheap-lfs-terminal-command {
+          flex-wrap: nowrap;
+        }
+
+        .cheap-lfs-terminal-stage,
+        .cheap-lfs-terminal-active-detail,
+        .cheap-lfs-terminal-details > span {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+
+        .cheap-lfs-terminal-details {
+          display: grid;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 2px 4px;
+
+          > span:first-child {
+            grid-column: 1 / -1;
+          }
+        }
+
+        .cheap-lfs-terminal-percentage {
+          grid-column: 2;
+          grid-row: 2;
+          margin-left: 0;
+        }
+      }
 
       button.cheap-lfs-action {
         flex: 1 1 auto;
@@ -382,6 +572,16 @@
       // In order to center it vertically in the button
       margin-bottom: 1px;
     }
+  }
+}
+
+@keyframes cheap-lfs-terminal-indeterminate {
+  from {
+    transform: translateX(-110%);
+  }
+
+  to {
+    transform: translateX(400%);
   }
 }
 

@@ -107,6 +107,29 @@ describe('recent UI internationalization', () => {
     }
   })
 
+  it('explains Cheap LFS failure isolation and the next-commit retry in every mode', () => {
+    const variables = { count: '2', names: 'one.bin, two.bin', omitted: '0' }
+    const english = translate('cheapLfs.pinFailures.many', 'english', variables)
+    const cantonese = translate(
+      'cheapLfs.pinFailures.many',
+      'cantonese',
+      variables
+    )
+    const bilingual = translate(
+      'cheapLfs.pinFailures.many',
+      'bilingual',
+      variables
+    )
+
+    assert.match(english, /remain in Changes/)
+    assert.match(english, /Other selected safe changes can continue now/)
+    assert.match(english, /commit again to retry/)
+    assert.match(cantonese, /會留喺 Changes/)
+    assert.match(cantonese, /其他揀咗嘅安全變更會照行/)
+    assert.match(cantonese, /再 commit 一次就會重試/)
+    assert.equal(bilingual, `${english} · ${cantonese}`)
+  })
+
   it('explains an uninitialized submodule in all three modes', () => {
     assert.equal(
       translate('submodule.openUnavailable', 'english'),

@@ -13,19 +13,43 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
   alt="Desktop Material workspace with a profile-customized app name and logo, a favorite repository tab, the Material navigation rail, and the Changes view"
 />
 
-![CI](https://github.com/codingmachineedge/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
+![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
 ## Product scope
 
-The complete M0–M21 roadmap is shipped on `main`. M22 owner-scoped management
-keeps its separately tracked visual-publication acceptance, M23 adds the full
-Ollama model manager described below, and M24 makes sparse-checkout changes a
-persistent guided Choose/Adjust/Restore → Review selection → Apply and refresh
-workflow. M24 implementation,
-production-build, off-screen interaction, privacy, and cleanup acceptance are
-complete; its publication checks are tracked separately. The compact status
-summary is below; the implementation ledger is in [`PLAN.md`](PLAN.md), and
-detailed acceptance receipts are in [`HANDOFF.md`](HANDOFF.md).
+The numbered roadmap now extends through M27. M0–M21 and M23 have published
+receipts, M22 retains its separately tracked visual refresh, and the exact
+acceptance/publication state for M24–M27 is maintained in
+[`ROADMAP.md`](ROADMAP.md). The July 22 feature continuation is published at
+`f7b4760a13`: [CI `29972351158`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351158),
+[code scanning `29972351173`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351173),
+and [Build Installers `29973527338`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29973527338)
+passed before the exact-target Windows release
+[`v3.6.3-beta3-b0000040887`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040887)
+published with all six required assets.
+
+Cross-lane updater recovery is now published and installed. Commits
+[`241cc90`](https://github.com/Ding-Ding-Projects/desktop-material/commit/241cc90ce90f240bad075edac7ebe43eea515df8)
+and
+[`04246fdf`](https://github.com/Ding-Ding-Projects/desktop-material/commit/04246fdf12c09446b88d2f40130581d603131c8e)
+gave automatic and Super Express packages one alphabetic `z…` namespace that
+sorts above legacy `b…`/`s…` builds without overflowing Squirrel's comparer.
+[CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533),
+[Build Installers `29978844761`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29978844761),
+and
+[Super Express `29980281736`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29980281736)
+succeeded on exact source `04246fdf12`; a live legacy `s000000000201` install
+automatically migrated, then visibly downloaded the greater same-SHA
+`zadtbhvdfc` package and reached **Quit and Install Update**.
+
+The persistent, visible/collapsible tab-group chips; localized command-palette
+rows and appearance controls; deterministic bare-Alt menu sequencing; and
+unit/script gates before Super Express packaging are included in the published
+`f7b4760a13` checkpoint above. Its exact unpackaged production build and
+isolated off-screen group/palette interaction passed, and the two accepted
+synthetic-only captures appear below. The implementation ledger is in
+[`PLAN.md`](PLAN.md), with exact publication evidence in
+[`HANDOFF.md`](HANDOFF.md).
 
 The M20 platform wave and earlier post-M19 adaptive customization maintenance
 release described below are shipped on `main`. Their exact production build,
@@ -126,9 +150,11 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 **Repository tabs**
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
 - Per-tab title styling: right-click the actual title for bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, one-click return to default, and that tab's dedicated Git history. The clicked tab initializes before the editor opens; an in-progress profile transition gives localized retry guidance instead of escaping to the app crash boundary
-- Mark tabs as favorites, drag a repository folder onto the app to open or switch its tab, and export or import the current ordered tab session with pins, favorites, aliases, and per-tab appearance
+- Collect tabs into named, curated-color groups. A visible chip before the first member shows its name, count, active state, and expanded/collapsed state; mouse, Enter, or Space really hides/restores the member tabs. Group actions, dialog copy, announcements, and accessible names follow English, playful Hong Kong-style Cantonese, or bilingual mode
+- Group metadata persists across open/close and bulk-close operations, per-window reloads, profile history, and session imports. A group cannot cross the protected pinned/unpinned boundary. Deleting a group never closes its tabs
+- Mark tabs as favorites, drag a repository folder onto the app to open or switch its tab, and export or import the current ordered tab session with pins, favorites, aliases, and per-tab appearance. Portable exports intentionally omit profile-local group definitions and `groupId` memberships, while import preserves the destination profile's existing groups
 - Keep the original **Close Tabs Containing…** regex workflow, or use the guarded inverse **Close all tabs except those containing…** action. The inverse matches a case-insensitive literal substring across the visible label, repository alias/name, and local path; live counts and a bounded preview make the result reviewable, and an empty or zero-match query cannot confirm
-- Pin important tabs and arrange each pinned or unpinned group manually with drag-and-drop or named keyboard move actions. **Arrange tabs** also offers one-shot A→Z, Z→A, newest-opened, oldest-opened, repository-status, and favorites-first/last sorts; the chosen order persists without continuously reshuffling as repository status changes
+- Pin important tabs and arrange each pinned or unpinned group manually with drag-and-drop or named keyboard move actions. Moving a member outside its named group ungroups only that tab; one-shot A→Z, Z→A, newest-opened, oldest-opened, repository-status, and favorites-first/last sorts keep every remaining named group together as one stable block. The chosen order persists without continuously reshuffling as repository status changes
 - Use **Search tabs** to switch by name, alias, path, or clone URL, and narrow **Arrange tabs** with its literal multi-key filter without changing the all-tab scope of one-shot sorts
 
 **Multi-account**
@@ -145,7 +171,12 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
   discovery. Legacy unbound organization repositories prefer a
   verified write-capable same-host identity, while a missing explicit binding
   fails closed instead of silently using another account
-- GitHub browser sign-in requests the bounded feature scopes used by the app: repository/user access, workflow-file updates, notifications, and read-only organization membership. Unrelated destructive and administrative OAuth scopes are intentionally excluded
+- GitHub browser sign-in requests the bounded feature scopes used by the app:
+  repository/user access, workflow-file updates, notifications, read-only
+  organization membership, and the `write:packages` grant used by the Cheap LFS
+  GHCR path. Repository deletion, package deletion, and unrelated administrative
+  scopes remain excluded; the registry documentation's PAT-classic-only caveat
+  is recorded in the OCI feature guide
 - Browse complete GitHub organization repository lists, filter cloning by organization, and choose an organization when publishing
 - Add GitLab accounts, including self-hosted endpoints, with a personal access token; add Bitbucket accounts with an app password, then browse and clone their repositories from the provider tab
 - Select all repositories with a mixed-state checkbox, or opt in to automatically clone only newly discovered repositories in the background. **Settings → Clone queue** keeps each signed-in account's base directory, parallel/sequential mode, and enabled state discoverable after the Clone dialog closes; auto-clone never opens an unsolicited progress dialog
@@ -179,6 +210,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 **Search everywhere, with a regex builder**
 - Every search bar gains fuzzy / substring / regex filter modes, a case toggle, and per-list filter chips
 - A full regex builder — anchors, character classes, quantifiers, groups, alternation, lookaround, all six flags, and a live tester — reachable from the search bars
+- The `Ctrl+F` command palette uses wider, richer rows with a leading icon, title, optional search-term line, and localized group chip. Its anchored **Customize appearance** editor persists comfortable/compact density and independent icon/group/keyword visibility; Escape closes only the editor and restores toggle focus
 
 **Repository safety and cleanup**
 - A context-menu option can permanently discard changes without sending files to the trash, including untracked files, for large cleanup operations where the regular discard flow would be slow
@@ -206,7 +238,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 - Browse GitHub Actions runs in the repository rail, filter by workflow/branch/event/status, re-run all or failed jobs, inspect jobs and steps, securely download and search logs, and dispatch workflows with inputs
 - Cancel only queued, running, waiting, or pending workflow runs from a Material confirmation that identifies the exact workflow/run, ref, actor, and commit when available. The app revalidates repository, account, run identity, and cancellable status before one normal cancellation request, prevents duplicate submission, then refreshes until GitHub reports a terminal state
 - Dispatch **Build Installers / Express Release** from `main` when a release is urgent: lint, Windows x64 trampoline/unit/script tests, and packaging run in parallel, exact installed dependencies are content-cached, the complete installer payload is retained as a workflow artifact before publication, and one create-only command publishes deterministic exact-commit notes without replacing an existing tag
-- Dispatch the separate **Super Express Release** workflow for an emergency build-only release: it skips lint, unit, script, E2E, and release-history generation, restores the same exact dependency cache, builds and packages Windows x64 directly, writes release notes from the checked-out commit, verifies every installer/feed asset, retains the complete payload, and publishes a uniquely versioned immutable Release for the exact dispatched `main` commit
+- Dispatch the separate **Super Express Release** workflow for an emergency fast lane: it runs the complete unit and script suites before building and packaging Windows x64, while skipping lint, E2E, and release-history generation. It restores the same exact dependency cache, writes notes from the checked-out commit, verifies every installer/feed asset, retains the complete payload, and publishes a uniquely versioned immutable Release for the exact dispatched `main` commit. Automatic and Super Express packages share one Squirrel-monotonic `z` version namespace, and only the greatest release for revalidated current `main` can own the update feed
 
 **Agent access and command line**
 - Enable an opt-in, token-gated local agent server from **Settings → Agent access**; it exposes MCP and REST on a random loopback-only port and never returns account credentials
@@ -225,7 +257,57 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 **Guided Git and provider administration**
 - Manage cone-mode sparse checkout through a three-step **Choose/Adjust/Restore → Review selection → Apply and refresh** guide that remains visible above the scrolling editor and review content. State-aware guidance distinguishes empty, invalid, ready, running, and completed states; review freezes and shows every bounded normalized selection entry before Git updates and refreshes the worktree
-- Exchange reviewed patch series, rewrite local commits from an explicit plan, configure commit/tag signing, administer Git LFS, and run bounded guided bisect sessions from named Repository Tools panels. The repository rail's direct **Large files** manager lists, searches, pins, and materializes release-backed cheap-LFS pointers without asking users to browse Release asset names. Automatic uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding Electron's crash-prone native upload pipe when GitHub CLI is available; the memory-bounded native path remains a compatibility fallback. Reconciliation scans up to 1,000 assets once then polls only an exact asset ID, fails closed on an incomplete asset, retains the exact Release editor plus verified whole-batch drag/drop recovery (including throttled hash/staging progress, worst-case temporary-space preflight, six-hour cancelable polling, and ordered `.partNNN` range files above the per-asset limit), maps flat case-safe assets back to original nested paths, keeps at most 1,000 assets in each prerelease `assets`, `assets-2`, … bucket without splitting a multipart file or manual batch, shares one inventory per Release across Materialize all, and transparently verifies/reassembles the original bytes
+- Exchange reviewed patch series, rewrite local commits from an explicit plan,
+  configure commit/tag signing, administer Git LFS, and run bounded guided
+  bisect sessions from named Repository Tools panels. The repository rail's
+  direct **Large files** manager lists, searches, pins, and materializes
+  Release- and OCI-backed Cheap LFS pointers. For Release storage, automatic
+  uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding
+  Electron's crash-prone native upload pipe when GitHub CLI is available; the
+  memory-bounded native path remains a compatibility fallback. Reconciliation
+  scans up to 1,000 assets once then polls only an exact asset ID, fails closed
+  on an incomplete asset, and retains the exact Release editor plus verified
+  whole-batch drag/drop recovery. It reports throttled hash/staging progress,
+  checks worst-case temporary space, polls cancelably for six hours, and creates
+  ordered `.partNNN` range files above the per-asset limit. Flat case-safe
+  assets map back to original nested paths; prerelease buckets hold at most
+  1,000 assets without splitting a multipart file or manual batch; Materialize
+  all shares one inventory per Release and verifies/reassembles original bytes
+- Live public/private acceptance materialized and re-pinned deterministic 1 MiB payloads through the production Large files UI and native Windows picker, then pushed the resulting five-line pointers as real `main` history. See the [dated UI receipt](docs/verification/cheap-lfs-github-public-private-2026-07-22.md)
+- Choose published-prerelease, GHCR, or Docker Hub Cheap LFS storage per
+  repository. The OCI choices keep the full current object set in one logical
+  image within explicit 4,096-object, 8,192-layer, and 8 MiB metadata proof
+  bounds: additions and removals publish a new immutable manifest, reuse
+  unchanged blobs, retention-tag every historical digest, and rewrite
+  pointer-form files to the verified digest while leaving already materialized
+  raw files intact. Existing Docker organization
+  or collaborator namespaces are retained; verified materialized files can be
+  migrated between GHCR and Docker Hub as a fresh full snapshot.
+  Private-source chunks use AES-256-GCM with the intentionally tracked shared
+  repository key; public OCI and public GitHub.com Release pointers can restore
+  while signed out. Windows builds ship digest-pinned ORAS 1.3.2 plus its
+  Apache-2.0 license; the ARM64 package currently runs that audited x64 binary
+  through Windows 11 x64 emulation and fails closed if it cannot start. See
+  [Cheap LFS OCI registry storage](docs/features/repository-management/cheap-lfs-oci-registry-backend.md)
+- Automatic Cheap LFS preparation can run sequentially or with at most three
+  files uploading at once, shows per-file phases and bytes in a compact
+  terminal below Commit, and reports the selected-versus-recommended provider.
+  Failed raw
+  files stay selected for retry while unrelated changes and successful pointers
+  may commit. The Changes filter can isolate files over the same 100 MiB
+  threshold, and the default clone/open detector repairs both new and older
+  pointer-only clones through verified local materialization
+- When many ordinary small files approach a decimal 1.5 GB push, Desktop
+  Material automatically creates and pushes commits with a conservative 1.4 GB
+  changed-blob budget plus bounded path/proof overhead. It proves each
+  fast-forward remote tip before creating the next commit, retains a durable
+  retry checkpoint, and
+  safely rebuilds an individually oversized, linear, clean local-only commit
+  from an older app behind a compare-and-swap backup ref. Safe older commits
+  retain their exact objects; a rebuilt oversized commit preserves its reviewed
+  message/final tree but necessarily receives new IDs and loses commit
+  signatures. See
+  [Automatic commit and push batching](docs/features/repository-management/automatic-commit-push-batching.md)
 - Use the primary toolbar or application-menu Pull action to fetch and review the exact current/upstream object IDs, ahead/behind state, configured integration route, and bounded incoming commits and files before Git changes a clean worktree. Confirmation revalidates the full reviewed OID and integrates it without a second fetch; a failed fetch cannot surface stale tracking data. English, playful Hong Kong Cantonese, and bilingual review copy follow the saved language mode, while scheduled and local-agent automation remain noninteractive. See [Reviewed ordinary Git pull previews](docs/features/repository-management/pull-previews.md)
 - Rebase the current branch onto a searched target through a reviewed current→target summary with ahead/behind context and a bounded commit preview. Fresh preflight state blocks dirty or conflicted repositories and ongoing operations, exact refs are revalidated before Git starts, conflicts remain in the existing continue/abort flow, and Desktop Material never force-pushes automatically
 - Manage every named remote with guarded add/rename/update/default/remove operations, and inspect or create exact known client hooks through the effective `core.hooksPath` without displaying hook contents or absolute paths. Remote rows stack before their name, URL, and controls collapse below a readable width, and the Repository Tools workspace keeps its diagnostics and results vertically reachable at compact heights
@@ -262,10 +344,10 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 ## Roadmap
 
-The complete M0–M21 status, M22 visual-publication acceptance, M23 Ollama model
-manager, completed maintenance work, and acceptance rules now live in
-[`ROADMAP.md`](ROADMAP.md). Detailed implementation and verification receipts
-remain in [`PLAN.md`](PLAN.md) and [`HANDOFF.md`](HANDOFF.md).
+The M0–M27 status, M22 visual-publication acceptance, current maintenance work,
+and acceptance rules live in [`ROADMAP.md`](ROADMAP.md). Detailed implementation
+and verification receipts remain in [`PLAN.md`](PLAN.md) and
+[`HANDOFF.md`](HANDOFF.md).
 
 ## Screenshots
 
@@ -287,6 +369,40 @@ automation, and account isolation. The diagrams are reproducible with
 | Word-style tab appearance | Arrange tabs | Actions cancellation | Reviewed rebase |
 | --- | --- | --- | --- |
 | <img src="docs/assets/screenshots/material-tab-appearance-word.png" alt="Word-style tab appearance editor with typography, alignment, and independent text and background palettes" width="320"><br><sub>Per-tab appearance</sub> | <img src="docs/assets/screenshots/material-tab-arrange.png" alt="Arrange tabs surface with pinned and manual movement controls plus one-shot label, opened-date, and repository-status sorts" width="320"><br><sub>Persistent tab order</sub> | <img src="docs/assets/screenshots/material-actions-cancel.png" alt="Material workflow-run cancellation review naming the exact run, ref, actor, and commit" width="320"><br><sub>Exact-run cancellation</sub> | <img src="docs/assets/screenshots/material-rebase-review.png" alt="Reviewed current-branch rebase showing current to target, ahead and behind counts, and a bounded commit preview" width="320"><br><sub>Rebase review</sub> |
+
+| Persistent tab groups | Rich command palette |
+| --- | --- |
+| <img src="docs/assets/screenshots/material-tab-groups.png" alt="Desktop Material workspace with a visible named tab-group chip and its repository member" width="520"><br><sub>Named chip · collapse/expand · restart persistence</sub> | <img src="docs/assets/screenshots/material-command-palette-appearance.png" alt="Command palette showing Ollama results beside the fully visible row appearance editor" width="520"><br><sub>Rich result rows · density and visibility controls</sub> |
+
+| Live Cheap LFS pin and restore | Live cloud compression |
+| --- | --- |
+| <img src="docs/assets/screenshots/cheap-lfs-ui-acceptance.png" alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action" width="520"><br><sub>Public/private live GitHub · native picker · pushed pointer history</sub> | <img src="docs/assets/screenshots/cheap-lfs-cloud-compression.png" alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a compressed pointer row" width="520"><br><sub>Private opt-in · 99.9% smaller · local verified materialization</sub> |
+
+| Detailed Cheap LFS commit progress |
+| --- |
+| <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="720"><br><sub>Three bounded upload lanes · byte progress · large-file filter</sub> |
+
+<!-- markdownlint-disable MD013 -->
+
+| Cross-lane automatic update recovery |
+| --- |
+| <img src="docs/assets/screenshots/auto-updater-update-ready.png" alt="About Desktop Material showing a newer alphabetic-z update ready for a legacy Super Express installation" width="720"><br><sub>Legacy s lane → shared z lane · real Squirrel download · ready to install</sub> |
+
+<!-- markdownlint-enable MD013 -->
+
+Cheap LFS can now install a reviewed, SHA-pinned GitHub Actions caller that
+compresses Release objects sequentially without Actions artifacts or caches.
+For a confirmed-public repository, Desktop Material automatically prepares the
+owned caller in Changes; it starts running only after the user reviews, commits,
+and pushes that workflow. Private repositories stay off until the user opts in,
+then follow the same reviewed commit/push boundary. Failed or non-beneficial
+objects keep their exact raw pointer and asset, while successful objects become
+backward-compatible `part-deflate` records. Decompression always happens
+locally in Desktop Material with bounded expansion plus original part and
+whole-file SHA-256 verification. Live public and private Actions converted
+separate 1 MiB objects to verified 1,033-byte side assets while retaining their
+raw historical assets; both compressed pointers restored to the exact original
+bytes through the app.
 
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |
@@ -357,7 +473,7 @@ publication alone fails. Run this one line in Windows PowerShell 5.1 or
 PowerShell 7; it does not require an administrator shell:
 
 ```powershell
-Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression
+Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression
 ```
 
 The [tracked installer script](script/install-windows.ps1) asks GitHub for this
@@ -368,11 +484,13 @@ checks any Authenticode signature, runs the Squirrel installer silently with
 workflow publishes unsigned x64 builds, so the script reports that status and
 stops on ARM64 until an ARM64 asset is available. Review the script before
 running any remote command, or use the
-[latest release page](https://github.com/codingmachineedge/desktop-material/releases/latest)
+[latest release page](https://github.com/Ding-Ding-Projects/desktop-material/releases/latest)
 for a manual installer or portable-ZIP download. Extract the ZIP before running
 the packaged executable. The focused archive/workflow contract is green; a
-complete local production package and the first remote publication containing
-this ZIP are still pending.
+published baseline already contains the required installer, feed, and portable
+ZIP assets. The updater-migration Releases additionally verify the complete
+installer, feed, NuGet, MSI, and portable-ZIP payload on exact source
+`04246fdf12`.
 
 When GitHub Actions is actively building or packaging a newer exact commit but
 has not yet published its Release, the About updater reports **New update coming
@@ -395,8 +513,8 @@ yarn && yarn build:dev && yarn start
 
 ## Project site & docs
 
-- Project site: https://codingmachineedge.github.io/desktop-material/
-- Wiki: https://github.com/codingmachineedge/desktop-material/wiki
+- Project site: https://ding-ding-projects.github.io/desktop-material/
+- Wiki: https://github.com/Ding-Ding-Projects/desktop-material/wiki
 
 ## Credits & License
 

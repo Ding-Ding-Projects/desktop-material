@@ -17,6 +17,7 @@ Material installation manages many identities, repositories, and branches.
   chip](tab-strip-settings-commit-chip.md)
 - [Collection bulk actions and regex
   safety](collection-bulk-and-regex-safety.md)
+- [Tab groups](tab-groups.md)
 
 High-frequency visual edits are coalesced before persistence, while remote
 default-branch lookup reuses only a namespace-validated local symbolic ref.

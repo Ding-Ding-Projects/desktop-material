@@ -17,6 +17,7 @@ import { CommitMessage } from '../../../src/ui/changes/commit-message'
 import { Button } from '../../../src/ui/lib/button'
 import { translate } from '../../../src/lib/i18n'
 import type { CheapLfsAutoPinPhase } from '../../../src/lib/cheap-lfs/operations'
+import { render } from '../../helpers/ui/render'
 
 const PreviewFeaturesEnv = 'GITHUB_DESKTOP_PREVIEW_FEATURES'
 const previousPreviewFeatures = process.env[PreviewFeaturesEnv]
@@ -414,6 +415,139 @@ describe('CommitMessage', () => {
     assert.equal(cancelCount, 1)
   })
 
+  it('renders a bounded, sanitized three-lane mini terminal below the commit button', () => {
+    const component = toTestInstance(
+      new CommitMessage(
+        createProps({
+          isCommitting: true,
+          isGeneratingCommitMessage: false,
+          commitOperationPhase: {
+            kind: 'cheap-lfs',
+            progress: {
+              phase: 'hashing',
+              completedFiles: 1,
+              succeededFiles: 1,
+              failedFiles: 0,
+              totalFiles: 4,
+              currentPath: 'ignored-legacy-path.iso',
+              transferredBytes: 150,
+              totalBytes: 400,
+              selectedStorageProvider: 'release',
+              recommendedStorageProvider: 'ghcr',
+              estimatedRegistryLayers: 4,
+              activeFiles: [
+                {
+                  relativePath: 'images/alpha\nsecret.iso',
+                  phase: 'uploading',
+                  processedBytes: 50,
+                  totalBytes: 100,
+                },
+                {
+                  relativePath: 'images/beta.iso',
+                  phase: 'hashing',
+                  processedBytes: 25,
+                  totalBytes: 100,
+                },
+                {
+                  relativePath: 'images/gamma.iso',
+                  phase: 'verifying',
+                  processedBytes: 75,
+                  totalBytes: 100,
+                },
+                {
+                  relativePath: 'images/not-rendered.iso',
+                  phase: 'uploading',
+                  processedBytes: 0,
+                  totalBytes: 100,
+                },
+              ],
+            },
+          },
+        })
+      )
+    )
+
+    const progress = component.renderCommitProgress()
+    if (progress === null) {
+      throw new Error('Expected Cheap LFS progress to render')
+    }
+
+    const view = render(progress)
+    const terminal = view.container.querySelector('.cheap-lfs-mini-terminal')
+    const rows = view.container.querySelectorAll(
+      '.cheap-lfs-terminal-active-file'
+    )
+    const progressBar = view.container.querySelector(
+      '.cheap-lfs-terminal-progress[role="progressbar"]'
+    )
+
+    assert.ok(terminal)
+    assert.equal(terminal.getAttribute('role'), 'region')
+    assert.equal(rows.length, 3)
+    assert.match(rows[0].textContent ?? '', /images\/alpha secret\.iso/)
+    assert.doesNotMatch(terminal.textContent ?? '', /not-rendered/)
+    assert.match(rows[0].textContent ?? '', /Uploading/)
+    assert.match(
+      terminal.textContent ?? '',
+      /400 B selected · using GitHub published prerelease · recommended GHCR · one OCI image · estimated 4 OCI layers/
+    )
+    assert.equal(progressBar?.getAttribute('aria-valuenow'), '37')
+
+    // Aggregate hashing must not hide the manual fallback while a lane uploads.
+    assert.deepEqual(
+      getCommitProgressButtons(component).map(button => button.props.children),
+      ['Manual upload', 'Cancel']
+    )
+  })
+
+  it('keeps nested provider recommendations compact and singular in bilingual mode', () => {
+    const previousLanguageMode = localStorage.getItem('language-mode-v1')
+    localStorage.setItem('language-mode-v1', 'bilingual')
+
+    try {
+      const component = toTestInstance(
+        new CommitMessage(
+          createProps({
+            isCommitting: true,
+            isGeneratingCommitMessage: false,
+            commitOperationPhase: {
+              kind: 'cheap-lfs',
+              progress: {
+                phase: 'uploading',
+                completedFiles: 0,
+                totalFiles: 1,
+                currentPath: 'archive.bin',
+                transferredBytes: 1024 ** 3,
+                totalBytes: 2 * 1024 ** 3,
+                selectedStorageProvider: 'ghcr',
+                recommendedStorageProvider: 'ghcr',
+                estimatedRegistryLayers: 1,
+              },
+            },
+          })
+        )
+      )
+      const progress = component.renderCommitProgress()
+      if (progress === null) {
+        throw new Error('Expected Cheap LFS progress to render')
+      }
+
+      const text = render(progress).container.textContent ?? ''
+      assert.match(text, /2 GiB selected/)
+      assert.match(text, /已揀 2 GiB/)
+      assert.equal(text.match(/GHCR · one OCI image/g)?.length, 1)
+      assert.equal(text.match(/GHCR · 一個 OCI image/g)?.length, 1)
+      assert.match(text, /estimated 1 OCI layer/)
+      assert.doesNotMatch(text, /estimated 1 OCI layers/)
+    } finally {
+      if (previousLanguageMode === null) {
+        localStorage.removeItem('language-mode-v1')
+      } else {
+        localStorage.setItem('language-mode-v1', previousLanguageMode)
+      }
+    }
+  })
+
   it('keeps cancel available after switching to the manual handoff', () => {
     const component = toTestInstance(
       new CommitMessage(
@@ -478,6 +612,38 @@ describe('CommitMessage', () => {
         buttons.map(button => button.props.children),
         ['Cancel'],
         `unexpected manual fallback in ${phase}`
+      )
+    }
+  })
+
+  it('keeps browser fallback off for OCI publishing', () => {
+    for (const selectedStorageProvider of ['ghcr', 'docker-hub'] as const) {
+      const component = toTestInstance(
+        new CommitMessage(
+          createProps({
+            isCommitting: true,
+            isGeneratingCommitMessage: false,
+            commitOperationPhase: {
+              kind: 'cheap-lfs',
+              progress: {
+                phase: 'uploading',
+                selectedStorageProvider,
+                completedFiles: 0,
+                totalFiles: 1,
+                currentPath: 'windows.iso',
+                transferredBytes: 100,
+                totalBytes: 200,
+              },
+            },
+          })
+        )
+      )
+
+      assert.deepEqual(
+        getCommitProgressButtons(component).map(
+          button => button.props.children
+        ),
+        ['Cancel']
       )
     }
   })

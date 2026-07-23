@@ -8,15 +8,24 @@ import { Repository } from '../../../src/models/repository'
 import { CheapLfs, ICheapLfsDispatcher } from '../../../src/ui/repository-tools'
 import {
   ICheapLfsMaterializeResult,
+  ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
-  ICheapLfsPointerEntry,
 } from '../../../src/lib/cheap-lfs/operations'
 import {
   CHEAP_LFS_POINTER_VERSION,
   ICheapLfsPointer,
 } from '../../../src/lib/cheap-lfs/pointer'
+import {
+  CHEAP_LFS_OCI_POINTER_VERSION,
+  ICheapLfsGhcrPointer,
+} from '../../../src/lib/cheap-lfs/ghcr-pointer'
 import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
+import {
+  defaultBuildRunPreferences,
+  IBuildRunPreferences,
+} from '../../../src/models/build-run-preferences'
+import { getCheapLfsCloudCompressionPolicy } from '../../../src/lib/cheap-lfs/cloud-compression'
 import {
   fireEvent,
   render,
@@ -37,12 +46,48 @@ const repoPath = Path.resolve('work', 'material')
 const pickedFile = (name: string) => Path.join(repoPath, name)
 const repository = new Repository(repoPath, 1, gitHubRepository, false)
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>(done => {
+    resolve = done
+  })
+  return { promise, resolve }
+}
+
+function repositoryWithVisibility(
+  isPrivate: boolean,
+  id: number = 1,
+  path: string = repoPath,
+  preferences: IBuildRunPreferences = defaultBuildRunPreferences
+): Repository {
+  return new Repository(
+    path,
+    id,
+    new GitHubRepository(
+      'material',
+      new Owner('desktop', 'https://api.github.com', 1),
+      id,
+      isPrivate
+    ),
+    false,
+    null,
+    {},
+    false,
+    undefined,
+    null,
+    preferences
+  )
+}
+
 function pointerEntry(
   relativePath: string,
   overrides: Partial<ICheapLfsPointer>
-): ICheapLfsPointerEntry {
+): ICheapLfsManagedPointerEntry {
   return {
+    kind: 'release',
+    provider: 'release',
     relativePath,
+    workingTreeState: 'pointer',
     pointer: {
       version: CHEAP_LFS_POINTER_VERSION,
       releaseTag: 'assets',
@@ -54,7 +99,28 @@ function pointerEntry(
   }
 }
 
-const pointers: ReadonlyArray<ICheapLfsPointerEntry> = [
+function ociPointerEntry(
+  relativePath: string,
+  overrides: Partial<ICheapLfsGhcrPointer> = {},
+  workingTreeState: ICheapLfsManagedPointerEntry['workingTreeState'] = 'pointer'
+): ICheapLfsManagedPointerEntry {
+  return {
+    kind: 'oci',
+    provider: 'ghcr',
+    relativePath,
+    workingTreeState,
+    pointer: {
+      version: CHEAP_LFS_OCI_POINTER_VERSION,
+      image: `ghcr.io/desktop/material@sha256:${'d'.repeat(64)}`,
+      object: `sha256:${'e'.repeat(64)}`,
+      sizeInBytes: 3 * 1024 * 1024,
+      layers: [`sha256:${'f'.repeat(64)}`],
+      ...overrides,
+    },
+  }
+}
+
+const pointers: ReadonlyArray<ICheapLfsManagedPointerEntry> = [
   pointerEntry('assets/logo.psd', {
     releaseTag: 'assets',
     assetName: 'logo.psd',
@@ -82,11 +148,12 @@ const uploadedAsset: IGitHubReleaseAsset = {
 }
 
 class FakeCheapLfsDispatcher implements ICheapLfsDispatcher {
-  public pointers: ReadonlyArray<ICheapLfsPointerEntry>
+  public pointers: ReadonlyArray<ICheapLfsManagedPointerEntry>
   public readonly pinCalls: ICheapLfsPinOptions[] = []
   public readonly materializeCalls: string[] = []
+  public readonly removeCalls: string[] = []
 
-  public constructor(initial: ReadonlyArray<ICheapLfsPointerEntry>) {
+  public constructor(initial: ReadonlyArray<ICheapLfsManagedPointerEntry>) {
     this.pointers = initial
   }
 
@@ -116,6 +183,83 @@ class FakeCheapLfsDispatcher implements ICheapLfsDispatcher {
   ): Promise<ICheapLfsMaterializeResult> => {
     this.materializeCalls.push(trackedRelativePath)
     return { path: trackedRelativePath, bytes: 10 }
+  }
+
+  public removeCheapLfsPointer = async (
+    _repository: Repository,
+    trackedRelativePath: string
+  ): Promise<void> => {
+    this.removeCalls.push(trackedRelativePath)
+  }
+}
+
+class CloudCheapLfsDispatcher extends FakeCheapLfsDispatcher {
+  public readonly preferenceCalls = new Array<IBuildRunPreferences>()
+  public readonly ensureCalls = new Array<{
+    readonly repository: Repository
+    readonly preferences: IBuildRunPreferences
+  }>()
+
+  public async updateRepositoryBuildRunPreferences(
+    repository: Repository,
+    preferences: IBuildRunPreferences
+  ) {
+    this.preferenceCalls.push(preferences)
+    return await this.ensureCheapLfsCloudCompressionWorkflow(
+      repository,
+      preferences
+    )
+  }
+
+  public async ensureCheapLfsCloudCompressionWorkflow(
+    target: Repository,
+    preferences: IBuildRunPreferences
+  ) {
+    this.ensureCalls.push({ repository: target, preferences })
+    const policy = getCheapLfsCloudCompressionPolicy(target, preferences)
+    return {
+      path: Path.join(target.path, '.github', 'workflows', 'cheap-lfs.yml'),
+      changed: policy === 'automatic-public' || policy === 'enabled-private',
+      policy,
+    }
+  }
+}
+
+class DeferredCloudCheapLfsDispatcher extends CloudCheapLfsDispatcher {
+  private readonly updateGate = deferred<void>()
+
+  public releasePreferenceUpdate() {
+    this.updateGate.resolve()
+  }
+
+  public async updateRepositoryBuildRunPreferences(
+    repository: Repository,
+    preferences: IBuildRunPreferences
+  ) {
+    this.preferenceCalls.push(preferences)
+    await this.updateGate.promise
+    return await this.ensureCheapLfsCloudCompressionWorkflow(
+      repository,
+      preferences
+    )
+  }
+}
+
+class FailingCloudCheapLfsDispatcher extends CloudCheapLfsDispatcher {
+  private readonly updateGate = deferred<void>()
+
+  public releasePreferenceUpdate() {
+    this.updateGate.resolve()
+  }
+
+  public async updateRepositoryBuildRunPreferences(
+    repository: Repository,
+    preferences: IBuildRunPreferences
+  ): Promise<never> {
+    this.preferenceCalls.push(preferences)
+    await this.updateGate.promise
+    this.ensureCalls.push({ repository, preferences })
+    throw new Error('Workflow creation failed after persistence.')
   }
 }
 
@@ -157,6 +301,273 @@ describe('CheapLfs panel', () => {
       /5\.0 MiB/
     )
     assert.ok(screen.getByText('docs/diagram.png'))
+  })
+
+  it('labels an OCI pointer and republishes the logical image on removal', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher([
+      ociPointerEntry('models/weights.bin'),
+    ])
+    const originalConfirm = window.confirm
+    window.confirm = () => true
+    try {
+      render(
+        <CheapLfs
+          repository={repository}
+          accounts={[]}
+          dispatcher={dispatcher}
+        />
+      )
+
+      await screen.findByText('models/weights.bin')
+      const row = rowFor('models/weights.bin')
+      assert.match(
+        row.querySelector('.cheap-lfs-row-meta')?.textContent ?? '',
+        /GHCR · one OCI image · ghcr\.io\/desktop\/material@sha256:/
+      )
+      fireEvent.click(
+        within(row).getByRole('button', { name: 'Remove from image' })
+      )
+      await waitFor(() =>
+        assert.deepStrictEqual(dispatcher.removeCalls, ['models/weights.bin'])
+      )
+    } finally {
+      window.confirm = originalConfirm
+    }
+  })
+
+  it('shows a verified materialized entry without offering another download', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher([
+      ociPointerEntry('models/local.bin', {}, 'materialized'),
+    ])
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    await screen.findByText('models/local.bin')
+    const row = rowFor('models/local.bin')
+    assert.ok(
+      within(row).getByText(
+        'Materialized locally · verified against the committed pointer'
+      )
+    )
+    assert.equal(
+      within(row)
+        .getByRole('button', { name: 'Already materialized' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+    assert.ok(within(row).getByRole('button', { name: 'Remove from image' }))
+  })
+
+  it('shows mixed cloud-compression state without hiding raw objects', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher([
+      pointerEntry('mixed.bin', {
+        sizeInBytes: 1000,
+        parts: [
+          { name: 'mixed.part1', sizeInBytes: 500, sha256: 'd'.repeat(64) },
+          {
+            name: 'mixed.part2.deflate',
+            sizeInBytes: 500,
+            sha256: 'e'.repeat(64),
+            deflatedSizeInBytes: 100,
+          },
+        ],
+      }),
+    ])
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+
+    await screen.findByText('mixed.bin')
+    assert.ok(screen.getByText(/Mixed · 1\/2 objects compressed/i))
+  })
+
+  it('sets up cloud compression automatically for a public repository', async () => {
+    const dispatcher = new CloudCheapLfsDispatcher([])
+    render(
+      <CheapLfs
+        repository={repositoryWithVisibility(false)}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+
+    assert.ok(await screen.findByText(/automatic for public repositories/i))
+    assert.ok(screen.getByText(/Desktop Material downloads and decompresses/i))
+    await waitFor(() => assert.equal(dispatcher.ensureCalls.length, 1))
+    assert.equal(dispatcher.preferenceCalls.length, 0)
+  })
+
+  it('does not manage the workflow after an unrelated preference rerender', async () => {
+    const dispatcher = new CloudCheapLfsDispatcher([])
+    const initialRepository = repositoryWithVisibility(
+      false,
+      21,
+      Path.resolve('work', 'public-preferences')
+    )
+    const view = render(
+      <CheapLfs
+        repository={initialRepository}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+
+    await waitFor(() => assert.equal(dispatcher.ensureCalls.length, 1))
+    view.rerender(
+      <CheapLfs
+        repository={repositoryWithVisibility(
+          false,
+          initialRepository.id,
+          initialRepository.path,
+          { ...defaultBuildRunPreferences, elevated: true }
+        )}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+
+    await Promise.resolve()
+    assert.equal(dispatcher.ensureCalls.length, 1)
+  })
+
+  it('requires a UI opt-in before private cloud compression is enabled', async () => {
+    const dispatcher = new CloudCheapLfsDispatcher([])
+    render(
+      <CheapLfs
+        repository={repositoryWithVisibility(true)}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+
+    const checkbox = await screen.findByRole<HTMLInputElement>('checkbox', {
+      name: /enable cloud compression for this private repository/i,
+    })
+    assert.equal(checkbox.checked, false)
+    fireEvent.click(checkbox)
+
+    await waitFor(() => assert.equal(dispatcher.preferenceCalls.length, 1))
+    assert.equal(dispatcher.preferenceCalls[0].cheapLfsCloudCompression, true)
+    await waitFor(() => assert.equal(dispatcher.ensureCalls.length, 2))
+    assert.equal(
+      dispatcher.ensureCalls[1].preferences.cheapLfsCloudCompression,
+      true
+    )
+    assert.ok(await screen.findByText(/workflow added to Changes/i))
+  })
+
+  it('keeps a persisted private opt-in when workflow setup fails', async () => {
+    const dispatcher = new FailingCloudCheapLfsDispatcher([])
+    const initialRepository = repositoryWithVisibility(
+      true,
+      31,
+      Path.resolve('work', 'private-failure')
+    )
+    const view = render(
+      <CheapLfs
+        repository={initialRepository}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+
+    const checkbox = await screen.findByRole<HTMLInputElement>('checkbox', {
+      name: /enable cloud compression for this private repository/i,
+    })
+    fireEvent.click(checkbox)
+    await waitFor(() => assert.equal(dispatcher.preferenceCalls.length, 1))
+
+    view.rerender(
+      <CheapLfs
+        repository={repositoryWithVisibility(
+          true,
+          initialRepository.id,
+          initialRepository.path,
+          {
+            ...defaultBuildRunPreferences,
+            cheapLfsCloudCompression: true,
+          }
+        )}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+    dispatcher.releasePreferenceUpdate()
+
+    assert.ok(await screen.findByText(/workflow creation failed/i))
+    assert.equal(
+      screen.getByRole<HTMLInputElement>('checkbox', {
+        name: /enable cloud compression for this private repository/i,
+      }).checked,
+      true
+    )
+  })
+
+  it('keeps a deferred private opt-in bound to its originating repository', async () => {
+    const dispatcher = new DeferredCloudCheapLfsDispatcher([])
+    const firstRepository = repositoryWithVisibility(
+      true,
+      11,
+      Path.resolve('work', 'private-a')
+    )
+    const secondRepository = repositoryWithVisibility(
+      true,
+      12,
+      Path.resolve('work', 'private-b')
+    )
+    const view = render(
+      <CheapLfs
+        repository={firstRepository}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+
+    const firstCheckbox = await screen.findByRole<HTMLInputElement>(
+      'checkbox',
+      { name: /enable cloud compression for this private repository/i }
+    )
+    fireEvent.click(firstCheckbox)
+    await waitFor(() => assert.equal(dispatcher.preferenceCalls.length, 1))
+
+    view.rerender(
+      <CheapLfs
+        repository={secondRepository}
+        accounts={[]}
+        dispatcher={dispatcher}
+      />
+    )
+    await waitFor(() =>
+      assert.ok(
+        dispatcher.ensureCalls.some(
+          call => call.repository.id === secondRepository.id
+        )
+      )
+    )
+
+    dispatcher.releasePreferenceUpdate()
+    await waitFor(() =>
+      assert.ok(
+        dispatcher.ensureCalls.some(
+          call =>
+            call.repository.id === firstRepository.id &&
+            call.preferences.cheapLfsCloudCompression === true
+        )
+      )
+    )
+
+    assert.equal(
+      dispatcher.ensureCalls.some(
+        call =>
+          call.repository.id === secondRepository.id &&
+          call.preferences.cheapLfsCloudCompression === true
+      ),
+      false
+    )
+    const secondCheckbox = screen.getByRole<HTMLInputElement>('checkbox', {
+      name: /enable cloud compression for this private repository/i,
+    })
+    assert.equal(secondCheckbox.checked, false)
   })
 
   it('filters the pinned files case-insensitively over their paths', async () => {
@@ -210,6 +621,11 @@ describe('CheapLfs panel', () => {
       'Tracked file path'
     )) as HTMLInputElement
     assert.equal(trackedInput.value, 'big.psd')
+    assert.ok(
+      screen.getByText(
+        /larger files are split automatically into 1.5 GiB parts/
+      )
+    )
 
     fireEvent.click(screen.getByRole('button', { name: 'Review pin' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Pin file' }))

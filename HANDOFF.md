@@ -1,5 +1,544 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-23 cross-lane automatic updater recovery
+
+Commits
+[`241cc90ce90f240bad075edac7ebe43eea515df8`](https://github.com/Ding-Ding-Projects/desktop-material/commit/241cc90ce90f240bad075edac7ebe43eea515df8)
+and
+[`04246fdf12c09446b88d2f40130581d603131c8e`](https://github.com/Ding-Ding-Projects/desktop-material/commit/04246fdf12c09446b88d2f40130581d603131c8e)
+moved automatic and Super Express packages into one Squirrel-monotonic
+`z<9-letter-base-26-run-ID>` namespace. The alphabetic payload retains GitHub
+run ordering without triggering the installed NuGet comparer's 32-bit overflow
+on modern decimal run IDs.
+
+Exact-source
+[CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533)
+and downstream
+[Build Installers `29978844761`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29978844761)
+succeeded for `04246fdf12c09446b88d2f40130581d603131c8e`. The latter published
+six-asset Release
+[`v3.6.3-beta3-zadtberjmv`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtberjmv).
+A live installed `3.6.3-beta3-s000000000201` build automatically selected,
+downloaded, and applied its 311,110,425-byte full package; the installed
+`packages/RELEASES` and the following check both reported `zadtberjmv`.
+
+For a visible UI receipt, successful
+[Super Express run `29980281736`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29980281736)
+published and promoted the greater same-SHA Release
+[`v3.6.3-beta3-zadtbhvdfc`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtbhvdfc).
+On the isolated off-screen legacy process, **Check for Updates** changed from
+the reproduced stale **latest version** state to **Downloading update…**, then
+to **An update has been downloaded and is ready to be installed** with
+**Quit and Install Update**. Squirrel independently recorded
+`localVersion=3.6.3-beta3-zadtberjmv`, downloaded the `zadtbhvdfc` full package,
+wrote its app directory, repointed the execution stub, and finished. The
+accepted 960×660 capture is 49,195 bytes with SHA-256
+`a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d`.
+
+![Legacy Super Express installation with a newer alphabetic-z update ready](docs/assets/screenshots/auto-updater-update-ready.png)
+
+The detailed fail-closed, remote, package, log, headless-desktop, and cleanup
+receipt is in
+[`docs/verification/auto-updater-version-order-2026-07-22.md`](docs/verification/auto-updater-version-order-2026-07-22.md).
+
+## 2026-07-23 Cheap LFS registry storage and automatic push batching
+
+This continuation is implemented and locally build/UI accepted in the current
+worktree, but is not yet committed, pushed, or represented by a new installer
+Release. The coordinating task must still record exact remote receipts before
+publication is claimed.
+
+Cheap LFS commit preparation now keeps a compact terminal-style panel directly
+below Commit. It reports sanitized active paths, hashing/preparation/upload/
+verification phases, per-file and aggregate bytes, and completed/failed counts.
+The persisted **Upload up to three large files at once** toggle defaults on and
+limits Release or OCI transfers to three; disabling it restores sequential
+work. The Changes filter can isolate files strictly over 100 MiB. A per-file
+upload failure removes that raw path from the current commit but leaves it
+selected for retry; successful pointers and unrelated safe changes may commit,
+and an all-failed selection creates no empty commit.
+
+**Repository settings → Build & Run → Large-file storage** now selects a
+published GitHub prerelease, GHCR, or Docker Hub. New Release buckets are real
+published prereleases, not drafts, and exact older Desktop Material drafts are
+published in place after revalidation. The progress panel also computes a
+byte/capability recommendation without changing the saved provider: ordinary
+Git at or below 100 MiB, Releases for one transfer totaling at most 1.5 GiB,
+private-source GHCR for a larger eligible GitHub.com batch, Docker Hub when it
+is locally configured, and Releases when no registry setup is detected. These
+signals do not prove live quota, billing, organization policy, or service
+health.
+
+The concrete user report in
+[`codingmachineedge/lowlevel-computer-use-mcp`](https://github.com/codingmachineedge/lowlevel-computer-use-mcp)
+was repaired without rewriting Git. Remote `main`
+`f2edfe442555cfe35a519dd0b058986cb09d6ee3` contains the 166-byte pointer for
+`software/docker.exe`. After revalidating tag `assets`, release ID `357437469`,
+its one uploaded asset ID `486745803`, exact size `638124464`, and provider
+digest `sha256:a5b5837542f2f57fadbb09db90a60c84f8efc0a65f8d6dcd2e5b9fca3a2b87e6`,
+that exact legacy draft was published in place as a non-draft prerelease. The
+four unrelated empty same-tag drafts were left untouched. The stable public
+asset is now available from the
+[`assets` prerelease](https://github.com/codingmachineedge/lowlevel-computer-use-mcp/releases/tag/assets).
+The source repository currently contains only `.github/workflows/pages.yml` and
+has no Cheap LFS compression run, which proves why cloud compression never
+started. The updated app will create the managed
+`.github/workflows/cheap-lfs-cloud-compression.yml` caller in Changes when that
+public repository is opened; by design it is not silently committed or pushed,
+so the user must review and commit that one workflow before compression can run.
+
+GHCR and Docker Hub each use one logical `<source-name>-cheap-lfs` OCI package
+with stable tag `desktop-material-cheap-lfs-v1`. A complete current snapshot is
+bounded to 4,096 objects, 8,192 layers, and 8 MiB each for canonical config and
+manifest JSON. Add or remove inside those proof bounds uploads only new content-
+addressed chunks, verifies a new immutable manifest, creates and verifies its
+deterministic retention tag, moves the stable tag, and rewrites current pointer-
+form files to that digest while
+preserving verified materialized raws and their valid older pointer metadata.
+Historical retention tags are not deleted. It cannot mutate or append to an
+existing manifest or timed-out layer; unchanged and already accepted blobs are
+reused, while a timed-out object is reprepared at half the prior layer bound
+down to an 8 MiB floor. New chunks start at 1.5 GiB, safely below GHCR's
+documented 10 GB layer limit, and each GHCR ORAS process times out below the
+provider's ten-minute boundary. Docker Hub has no hard layer-size or upload-
+time limit encoded; current plan, pull, storage, abuse, and fair-use rules
+remain external provider policy.
+
+Same-provider updates retain the exact package coordinate already named by the
+committed/index-aware pointer inventory, including Docker Hub organization or
+collaborator namespaces. Only a first Docker publish defaults to the current
+credential username. GHCR-to-Docker or Docker-to-GHCR migration refuses unless
+every old pointer is an exact unedited materialized raw; it re-hashes those
+bytes, performs no old-provider pull or delete, publishes a fresh full snapshot,
+then rewrites the pointer-form paths. Mixed logical targets, same-provider
+relocation, pointer-form migration inputs, and edited raws fail before publish.
+
+Verified-private repositories encrypt every OCI chunk with AES-256-GCM. The
+shared key is intentionally committed at
+`.desktop-material/cheap-lfs-registry-key-v1` so authorized private-repository
+collaborators can restore it. This protects payloads from a registry-only leak;
+it does not protect them from anyone who can read the private repository, an
+old clone, fork, backup, or Git history. Key removal or rotation must retain old
+bytes for historical immutable pointers. New private pointers bind the exact
+key with `key-id sha256:...`; both canonical and legacy key paths are reserved
+from pin/remove operations. Required-key staging overrides ignore and selection
+state, proves the final commit-tree bytes, and safely rolls back a hook-damaged
+commit. Credentials remain operation-scoped:
+GHCR uses the selected GitHub.com account and Docker Hub uses the trusted Docker
+Desktop credential helper, passing a token to ORAS through standard input and
+clearing it afterward. A first public GHCR package is refused before upload
+because GitHub creates it private and exposes no supported visibility-change
+API; use Releases, Docker Hub, or an existing exact-linked public package.
+GitHub browser sign-in now requests `write:packages`; the account-scope audit
+offers reauthorization for older tokens, while destructive `delete:packages`
+remains excluded. GitHub's OAuth scope page describes `write:packages` as
+granting package upload/download, but its Container registry page separately
+says Packages supports PAT classic only. The selected OAuth token passed a non-
+mutating GHCR challenge; no live package mutation was performed, so PAT-classic
+compliance is not claimed and any provider rejection fails closed before the
+stable tag or Git pointers move.
+
+Windows builds download and verify the official ORAS 1.3.2 AMD64 archive,
+executable, and license before packaging. The installer ships the Apache-2.0
+text as `static/cheap-lfs/oras/LICENSE.ORAS.txt`. Both package architectures use
+that audited x64 executable, so the ARM64 package depends on Windows 11 x64
+emulation and fails closed if it cannot start.
+
+The default-on clone/open detector now scans Release and OCI pointers before it
+requires a selected Releases account. Explicitly public GitHub.com Release and
+public OCI pointers can materialize while signed out. Anonymous Release reads
+omit `Authorization`; Release mutations and private/unknown reads stay account-
+gated. Private OCI pointers fail closed without matching credentials and the
+tracked key. Updated Desktop Material repairs an old pointer-only clone by
+reopening it or by choosing **Large files → Materialize all**. Original bytes
+remain in Release assets or immutable OCI layers, and verified temporary bytes
+replace the working-tree pointer atomically only after size, digest, source
+identity, visibility, and (when applicable) GCM checks pass.
+
+Ordinary Git commits now stay below a decimal **1.5 GB (1,500,000,000-byte)**
+push ceiling by using a 1.4 GB changed-blob budget and bounded path/proof
+overhead. The app forms stable path batches, creates one commit, records a
+durable branch/remote/path intent and pending-commit ref, pushes it with ordinary
+fast-forward rules, proves that exact commit as the same remote tip, and only
+then creates the next commit. Intent-to-pending and final cleanup are atomic two-
+ref transactions. No later commit exists after a failed or ambiguous push;
+retry reconciles the exact intent and resumes the pending push before new commit
+work. A required tracked private-registry key is promoted into batch 1 and
+included in the byte/path/proof budget exactly once. Push also inspects local-
+only commits made by
+older app versions. Existing individually safe commits are pushed and proven
+one at a time without changing their SHA, author, timestamps, message, or
+signature before any new working-tree batch is created; a currently pending
+batch bypasses that legacy rewriter. An individually oversized commit can be
+rebuilt only on a clean, linear local-only branch with an exact configured or
+resolved destination and no Git operation. A
+compare-and-swap ref below
+`refs/desktop-material/commit-batch-backup/` protects the original tip. Before
+the first proven push, a safe failure restores it; after a proven push, the app
+never rolls the branch backward and retains the recovery ref when needed. Every
+replacement batch must reproduce the expected path modes and object IDs, and a
+candidate already reachable from any configured remote is never rewritten.
+Rebuilding preserves the reviewed message and final tree but creates new commit
+IDs, does not preserve cryptographic commit signatures, and does not promise the
+original author timestamp on each replacement batch. Final tree equality and
+every replacement path's exact mode/object ID are proven before success.
+
+Every app-owned commit entry point supplies process-local `-c gc.auto=0`; no
+repository/global setting is changed. The commit flow records HEAD and verifies
+the new commit's object, tree, parent transition, and message. If Git exits
+nonzero only after creating that exact commit (for example an unrelated
+post-commit maintenance failure), Desktop Material accepts it once and shows a
+maintenance warning. An unchanged, unreachable, or unexpected HEAD remains a
+real failure and is never retried into a duplicate commit.
+
+Local acceptance is recorded in the
+[dated Cheap LFS commit-progress receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
+The exact worktree's unpackaged production build returned `0` after 1,466.27
+seconds through Lowlevel MCP. The promoted accepted frame is:
+
+| Frame | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/cheap-lfs-commit-progress.png` | 1440×960 | 107,411 | `6d70fce553edcf54cef9bb806bc1d6f38bf8154a7ff2c859e236aba77afdb238` |
+
+The wide English receipt passed **36/36** acceptance checks: **35/35** named
+surface assertions plus its deterministic one-pointer selection receipt. The
+640×960 bilingual attempt produced no capture or receipt: it failed closed
+because the renderer remained `visibilityState: hidden` after
+`Page.bringToFront`, leaving selection empty and no settled diff. Narrow
+acceptance is not claimed.
+
+Release/OCI operations pass **80/80**, registry transport/runtime policy
+**77/77**, disposable-Git batching **117/117**, UI/settings/localization
+**157/157**, ORAS scripts **8/8**, the headless verifier contract **17/17**, and
+the compact commit-shell style contract **7/7**. The full Cheap LFS folder
+aggregate is deliberately reported as **261/262** because one wall-clock policy
+case exceeded its 2.5-second harness budget during concurrent heavy Git work;
+the isolated policy rerun passed **8/8**, including that same behavior.
+
+These are local receipts only. The tracked frame was promoted before the exact
+saved Electron PID, child processes, hidden desktop, CDP listener, and
+containment-checked temporary run root were all proved absent. Commit/push and
+remote ancestry, exact-source CI and CodeQL, Pages, synchronized wiki
+publication, and the uniquely tagged non-draft installer Release remain for
+the coordinating publication step.
+
+## 2026-07-22 Cheap LFS cloud compression implementation
+
+Cheap LFS now has repository-local cloud compression without cloud
+decompression. A generated caller pins `actions/checkout` and Desktop
+Material's composite compressor to immutable SHAs, grants only
+`contents: write`, and runs on pushes to the repository's default branch or by
+manual dispatch. Public repositories receive automatic setup in the Large
+files UI. Private repositories remain off until the user explicitly enables a
+persisted setting; unknown visibility fails closed, and the workflow repeats a
+live event-visibility guard.
+
+The Action downloads Release objects directly, raw-DEFLATEs one object at a
+time at level 9, and uploads a verified side asset without Actions artifacts or
+caches. A strictly smaller success changes only that pointer object to the
+existing v1 `part-deflate` form and pushes a `[skip ci]` commit. Mixed raw and
+compressed multipart pointers are valid. Original raw assets are never deleted
+because historical commits can still name them. Failed or non-beneficial
+objects retain their exact raw pointer and remain cloneable; independent later
+objects still run.
+
+Desktop Material alone downloads and decompresses. Its existing bounded local
+inflate path checks the recorded output cap, original per-object size/SHA-256,
+and assembled whole-file size/SHA-256 before replacing a pointer. The UI labels
+raw, compressed, and mixed pointers, explains the local-only boundary, and
+offers English, playful Hong Kong-style Cantonese, and bilingual copy.
+
+Focused tests exercise the real composite Action against a temporary Git remote
+and fake Release API, workflow/policy ownership, public/private UI controls,
+settings persistence, pointer state, failure and non-beneficial fallback,
+ambiguous-push recovery, build-output-style pointer paths, bounded draft lookup,
+atomic workflow replacement and link rejection, repository-switch races, and
+local compressed-object materialization failures. The final combined gate
+passed 134/134 tests across 25 suites; all 27 script tests, repository-wide
+Prettier and ESLint, the ESLint/Prettier compatibility check, TypeScript, and
+`git diff --check` also passed.
+
+Live cloud-compression acceptance is complete in the retained repositories:
+
+- The public production UI wrote and pushed caller commit
+  [`72b2db3e0b6554364e07e5e34945c8be5c125216`](https://github.com/DingDingChae/desktop-material-cheap-lfs-public-20260722-153308/commit/72b2db3e0b6554364e07e5e34945c8be5c125216).
+  [Actions run `29969707165`](https://github.com/DingDingChae/desktop-material-cheap-lfs-public-20260722-153308/actions/runs/29969707165)
+  succeeded and pushed bot commit
+  [`f10d8d2acedbba0e3b5ce978dff09c25217cad9c`](https://github.com/DingDingChae/desktop-material-cheap-lfs-public-20260722-153308/commit/f10d8d2acedbba0e3b5ce978dff09c25217cad9c).
+- The private production UI showed cloud compression off, then recorded the
+  explicit opt-in and pushed commit
+  `3d398786dd4c599730e0dbb77b0c83a5fa14a57a`. Private Actions run
+  `29969957449` succeeded and pushed bot commit
+  `6259b0fa0dc6c65cdb5a90af8e1da9358b45b0ac`.
+- Each bot commit changed only its payload pointer to `part-deflate`. The public
+  and private compressed assets are each **1,033 bytes**, have stored digest
+  `sha256:8d22b086820b0896bdcb33cf965ebc275cb0b5f0b4c44a364aa4144c015f9f7b`,
+  and expand to the original **1,048,576 bytes** with digest
+  `sha256:30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58`.
+  The corresponding raw 1 MiB assets remain uploaded for earlier commits.
+
+The first public run,
+[`29967844734`](https://github.com/DingDingChae/desktop-material-cheap-lfs-public-20260722-153308/actions/runs/29967844734),
+also provides the live safe-failure proof. GitHub's tag endpoint returned 404
+for the draft release; the Action reported `0 compressed, 0 kept raw, 1 failed
+safely`, did not rewrite the pointer or remove the raw asset, and exited failed.
+The production UI then materialized that still-raw pointer successfully with the
+exact 1 MiB digest above. After the bounded draft lookup correction, the public
+and private compressed pointers were each materialized manually through the UI
+and again produced that exact size and digest on the local PC.
+
+Draft lookup is deliberately bounded to 100 API pages of 100 releases, or **10,000
+releases**. If the exact draft tag is outside that window, the object fails
+safely and remains raw. A GitHub Release also holds at most **1,000 assets**;
+because the historical raw asset is retained, a full Release cannot accept the
+compressed side asset and likewise stays safely raw until capacity is available.
+
+The production bundle and all interaction ran through the fixed Lowlevel MCP
+HTTP endpoint on the isolated `DesktopMaterialCheapLfsCloud-20260722-190000`
+headless desktop. The accepted bilingual private-opt-in/compressed-row frame is:
+
+| Accepted local capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/cheap-lfs-cloud-compression.png` | 960×660 | 105,577 | `9449e50f60cd298e9cc261e9044fc0cd93706a8e9f243dcceb88d63b6df9ab8d` |
+
+The canonical `yarn build:prod` wrapper could not start because this fixed
+environment has no `yarn` executable. No dependency was downloaded; the
+equivalent existing-dependency production Webpack command compiled all five
+targets through MCP in 420.6 seconds with `ok: true`, `client_ok: true`, and
+`returncode: 0`. The one-time development alias and GitHub credentials were
+deleted and verified absent, the production credential was restored with no
+backup left behind, the exact Electron process and zero-window headless desktop
+were closed, and the owned synchronized test-clone run root was removed.
+
+Publication is complete for source checkpoint
+`f7b4760a13894f0320f7b361f055f6fba40d913f`, which is pushed on `main` with a
+clean zero-divergence checkout. Exact-source
+[CI `29972351158`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351158),
+[CodeQL `29972351173`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351173),
+and [Pages `29972351147`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351147)
+all succeeded. Wiki commit `407cbf260c229e9f8e7fd86062afad83e5080f63`
+publishes the synchronized seven-page source, and the live Pages gallery serves
+all 73 figures including the byte-identical 105,577-byte cloud-compression
+capture. Downstream
+[installer run `29973527338`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29973527338)
+published non-draft, non-prerelease latest Release
+[`v3.6.3-beta3-b0000040887`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040887)
+from that exact tag and commit with all six required Windows x64 assets. The
+final source audit found only local/remote `main`, one root worktree, and no
+stashes.
+
+## 2026-07-22 live Cheap LFS public/private GitHub and UI acceptance
+
+Live Cheap LFS protocol, history, and Desktop Material UI acceptance completed
+through the configured `DingDingChae` account. Both purpose-built repositories
+are retained on pushed `main` commits:
+
+- Public:
+  [`DingDingChae/desktop-material-cheap-lfs-public-20260722-153308`](https://github.com/DingDingChae/desktop-material-cheap-lfs-public-20260722-153308),
+  commit `a7c90eff6a4d7963577125e3204a1b9af28da756`, release `358270369`,
+  UI asset `486477022` (`payload-public-30e1495.bin`).
+- Private: `DingDingChae/desktop-material-cheap-lfs-private-20260722-153308`,
+  commit `e56519d4742c63bb2c9f5f1e917de3fca7379fdd`, release `358270368`,
+  UI asset `486479377` (`payload-private-30e1495.bin`).
+
+Both releases remain draft prereleases tagged `assets-test-20260722-153308`.
+The original backend assets and the two UI-created assets are all uploaded at
+1,048,576 bytes with digest
+`sha256:30e14955ebf1352266dc2ff8067e68104607e750abb9d3b36582b8af909fcb58`.
+The public UI explicitly materialized and re-pinned its payload; the private UI
+materialized on open in a fresh profile and passed the same native-picker,
+review, upload, and pointer-replacement sequence.
+
+The first live UI attempt exposed two defects: GitHub's exact draft-tag route
+can return 404, and an absent asset label can arrive as either `null` or `""`.
+The store now performs a bounded release-inventory fallback, while the provider
+model normalizes both no-label spellings. The focused Release-store and
+transfer/model gates pass 17/17 and 41/41, TypeScript passes, and all five
+production Webpack targets plus staging completed in 296.8 seconds.
+
+Fresh public/private clones resolved to the exact UI commits above, retained
+their earlier deterministic-pointer commits as parents, and were clean. Their
+canonical five-line Git blobs are 201 and 202 bytes; Windows CRLF copies are
+206 and 207 bytes. `git lfs ls-files` returned no entries, proving the test is
+real Cheap LFS history rather than Git LFS metadata.
+
+The user explicitly authorized a temporary bridge from the logged-in GitHub
+CLI account to Desktop Material's development secure store. The token was not
+printed, logged, placed in an argument/URL, written to source, captured, or
+committed. After both isolated UI runs, the exact credential entry was deleted
+and re-read as absent; the app PIDs, CDP ports, and off-screen desktops were
+also closed.
+
+Both repositories include the generated Cheap LFS logo. The canonical
+documentation copy at `docs/assets/cheap-lfs-logo.png` is 1254×1254,
+1,091,778 bytes, SHA-256
+`34b2e68ad1e95f45cac08e3c2ee5d9981a35611d30b0deb7282a5c7fe0682a2f`.
+The accepted UI capture at
+`docs/assets/screenshots/cheap-lfs-ui-acceptance.png` is 1200×752, 79,404
+bytes, SHA-256
+`8f53ed803dc7415ca86e4399040201afbbd627718a48e4a453e637099fa03684`.
+Full evidence is in the
+[dated verification record](docs/verification/cheap-lfs-github-public-private-2026-07-22.md).
+
+## 2026-07-22 command palette rows, tab groups, Alt reliability, and release gates
+
+The published baseline at `7edca120c5` introduced rich command-palette rows,
+appearance controls, the first tab-group data/actions, and its accessibility
+follow-up. That exact SHA is on `origin/main`; [CI `29895625564`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625564)
+and [code scanning `29895625583`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625583)
+passed. [Build Installers `29896993449`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29896993449)
+published the non-draft, exact-target Windows release
+[`v3.6.3-beta3-b0000040881`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040881)
+with all six required non-empty installer/feed/portable assets. Those receipts
+prove only that baseline; they do not verify the continuation below.
+
+The current continuation makes tab groups real, visible strip controls. One
+named/color-coded chip appears before each group's first member with a count,
+chevron, accessible expanded state, and active-group marker. Clicking the chip
+or pressing Enter/Space hides or restores the member tabs; focus and a localized
+status announcement return to the chip when a mutation removes the focused tab
+from view. Group creation, context actions, color names, chip descriptions,
+success/failure announcements, and accessible names now follow English,
+playful Hong Kong-style Cantonese, or bilingual mode.
+
+Persistence now retains `groups` through open, single-close, bulk-close,
+session-import, per-window serialization, legacy-primary mirroring, reload, and
+unknown-field round trips. Malformed/duplicate group records are repaired at
+the profile boundary. A group can contain pinned tabs or unpinned tabs, never
+both: a cross-boundary move is a no-op, preserving the invariant that every
+pinned tab precedes every unpinned tab. Portable version-1 tab-session exports
+deliberately strip `groupId` and do not export profile-local group definitions;
+import preserves the destination profile's groups rather than creating dangling
+memberships.
+
+Group ordering is normalized as one contiguous block at load and after every
+structural mutation. Manual movement within the block keeps membership; moving
+a member outside the block ungroups only that tab. Label, opened-time,
+repository-status, and favorite arrangements sort whole blocks by their first
+member, and malformed cross-pin input degrades incompatible later members to
+ungrouped tabs rather than splitting one group across the boundary.
+
+The command palette keeps its 760px shell, 520px result area, leading icon,
+title, optional keyword line, and group chip. The title/search/empty state,
+stable group labels, row search-term prefix, anchored appearance editor, and
+the Ollama/Copilot/background-queue discoverability entries now follow all
+three language modes. Search retains English and localized keys. Escape closes
+only the appearance editor and restores its toggle focus; density and row-part
+choices remain persisted and safely repaired.
+
+Windows bare-Alt handling is now an isolated state machine: one uninterrupted
+bare press toggles once, held repeats remain part of that press, and Alt plus
+another key, Shift/Ctrl/Meta, prevented events, modal transitions, orphaned
+repeats, or out-of-order key-up events cannot leave stale state for a later
+toggle. Every Alt release consumes its pending sequence and clears the menu
+highlight path. This is covered as a deterministic keyboard-state contract;
+current end-to-end headless interaction evidence has not yet been recorded.
+
+The manual **Super Express Release** lane now runs the complete unit and script
+suites before its production build/package. It still skips lint, E2E, and the
+history-aware notes generator, and release pull requests target the Windows
+product's `main` default branch. The workflow contract checks test-before-build
+ordering and the `main` base.
+
+**Local continuation acceptance is complete; publication is pending.** The exact
+unpackaged production build passed through the fixed Lowlevel MCP endpoint in
+394.1 seconds with `client_ok: true`. An isolated off-screen run restored the
+named group after relaunch, collapsed it to a selected `role="tab"` chip,
+expanded it again, and confirmed the member was visible. The same run opened
+the fully contained command-palette appearance editor, kept Reset visible, and
+returned five Ollama matches.
+
+| Accepted local capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/material-tab-groups.png` | 1000×687 | 94,467 | `fd857137f71b79fbef65225e4469f2d2e3d95ecb6701e4847b84da11ad2875b8` |
+| `docs/assets/screenshots/material-command-palette-appearance.png` | 1000×687 | 99,234 | `ac4db2aa3696d2e1987c0c93573ccf48f86c61111e42fcabf0cec54db3b87a7d` |
+
+README, Pages, the User Guide, and the 73-scene Guided Feature Gallery now
+reference the two inspected synthetic-only captures plus the separately
+accepted raw and cloud-compression Cheap LFS UI frames. Implementation checkpoint
+`58be6fe5953477b015a134c414a8cf82363ecc75` is pushed on `main`; exact final
+CI/code scanning, Pages/wiki publication, and installer Release receipts remain
+required.
+
+## 2026-07-22 mobile Pages, documentation search, and regenerated gallery
+
+The published Pages site is now usable on a phone. The top app bar previously
+hid every navigation link below 760px, leaving Install/Features/Screenshots/
+Docs unreachable; a hamburger control now discloses the same links as a
+stacked sheet with 48px targets, and a 480px breakpoint collapses the feature,
+footer, and principle grids to one column without page-level sideways
+scrolling. The rendered documentation template gained a sticky, wrapping
+header, a search field, and a compact type scale.
+
+`site/docs-search.html` publishes as `docs/search.html` and searches every
+rendered page from a `search-index.json` built by `site/build-search-index.js`
+during the Pages workflow (137 pages locally). Search accepts plain text or a
+regular expression with match-case and whole-word options, highlights up to
+three excerpts per page, guards zero-length matches, reports invalid patterns
+instead of throwing, and mirrors state into the URL. A regex builder composes
+contains/starts/ends/exact/any-of/all-of patterns with an optional quantifier
+plus six ready-made snippets, previews the pattern, and applies it to the
+query. The builder was exercised in a browser: `(?:cheap lfs|pull request)`
+and `\b(?:timeout)+\b` both compile.
+
+Screenshot regeneration ran against a fresh production build on an isolated
+profile with the deterministic loopback GitHub provider and Ollama fixtures.
+52 distinct canonical captures were promoted (50 replacements plus the new
+`material-repository-folder-detection` and
+`material-repository-submodule-management`, both added to the Feature-Gallery
+catalog, the Pages gallery, and their two count assertions, now 69). Two
+captures were withheld because they were byte-identical to another surface
+(`material-api-app-functions` matched the API explorer;
+`material-notification-bulk-actions` matched the notification centre), so the
+previously published images for those two remain in place rather than
+publishing a duplicate as a distinct feature. Thirteen further canonical
+scenes could not be made deterministic in this run and their existing images
+are unchanged: error-notice, app-identity, history-power-tools, remote-manager,
+logo-studio, submodule-context, rebase-review, pull-request-compose,
+pull-request-open, pull-all, history-deepen, history-deepening, merge-all, and
+cheap-lfs-preparing. They need the additional submodule/shallow-clone/remote
+fixtures rather than the base P0 fixture, and `material-pull-preview` and
+`material-ollama-model-manager` are outside the canonical set. No scene is
+reported as renewed unless its file actually changed.
+
+## 2026-07-22 Cheap LFS 1.5 GiB parts, no upload timeouts, Pages-hosted docs
+
+Cheap LFS release uploads kept failing near the 2 GiB asset ceiling, so
+`CHEAP_LFS_PART_SIZE_BYTES` now plans new parts at 1.5 GiB while the pointer
+parser still accepts legacy parts up to exactly 2 GiB. Release-asset uploads
+no longer apply any stall or total-runtime timeout by default on either the
+GitHub CLI or Electron compatibility transport: a transfer ends only on
+completion, transport failure, or user cancellation. Tests keep injecting
+explicit `stallTimeoutMs`/`maximumRuntimeMs` values to exercise the watchdog
+paths, and the pointer contract test now pins the legacy 2 GiB parse bound
+independently of the upload cap. Feature and User Guide documentation were
+updated to match.
+
+The GitHub Pages site now hosts the complete rendered documentation set. The
+Pages workflow installs pandoc, renders every `docs/**/*.md` (README files as
+folder indexes) plus the root project documents through
+`site/docs-template.html` with `site/md-links.lua` rewriting `.md` and
+wiki-style links, and the site's Docs/Read-the-docs/Documentation links point
+at the hosted `docs/` index instead of redirecting to the GitHub wiki. The
+render loop was executed locally with pandoc 3.10 (137 docs pages plus root
+documents) and one page was visually verified. Local verification: 142
+passing tests across site accessibility, CI workflow safety, release
+transfer, cheap-lfs, and pull-preview contract suites, plus repository-wide
+TypeScript no-emit and Prettier on changed files. Remote CI, the Pages
+deploy, and the express release are post-push verification items.
+
+## 2026-07-21 pull preview moved to right click on the toolbar Pull button
+
+A plain left click on the toolbar **Pull _remote_** button now performs the
+pull directly via the dispatcher; the reviewed pull-preview dialog opens only
+from a right click on that button (wired solely to the pull-state button) or
+from the application-menu **Pull** action, which is unchanged. The
+pull-preview contract test was updated to pin the new routing, and the
+feature doc, docs index, wiki User Guide, and Feature Gallery now describe the
+click/right-click split. Verified locally with the pull-preview contract suite
+(5 passing tests), repository-wide TypeScript no-emit, and Prettier on changed
+files. Remote CI and release publication occur after push.
+
 ## 2026-07-21 reviewed pull previews
 
 Ordinary pulls now open a reviewed Material dialog before mutating the current

@@ -1,5 +1,8 @@
 import type { BuildFixProvider } from '../lib/build-run/codex'
 
+/** Where newly pinned Cheap LFS objects are stored. */
+export type CheapLfsStorageProvider = 'release' | 'ghcr' | 'docker-hub'
+
 /**
  * Per-repository preferences for the one-click Build & Run feature.
  *
@@ -85,13 +88,35 @@ export interface IBuildRunPreferences {
    * Automatically pin a large file to a GitHub Release when committing it, so
    * only a small pointer is committed and the push stays under GitHub's file
    * size limit. Applies to selected files strictly over the cheap-LFS pin
-   * threshold (`CheapLfsPinThresholdBytes`); a failed pin aborts the commit rather
-   * than committing a half-pinned tree. Gated on a Releases-capable account.
+   * threshold (`CheapLfsPinThresholdBytes`); failed files stay out of the commit
+   * while other safe changes may continue. Gated on a Releases-capable account.
    * Optional for back-compat with preferences persisted before this field
    * existed; treat an absent value as enabled (see
    * {@link defaultBuildRunPreferences}).
    */
   readonly autoPinLargeFilesOnCommit?: boolean
+
+  /**
+   * Upload up to three automatic Cheap LFS files concurrently. Optional for
+   * back-compat with preferences persisted before this field existed; treat an
+   * absent value as enabled. Turning it off retains sequential uploads.
+   */
+  readonly parallelCheapLfsUploads?: boolean
+
+  /** Storage used for newly pinned objects; old pointer formats still restore. */
+  readonly cheapLfsStorageProvider?: CheapLfsStorageProvider
+
+  /** Legacy preview preference migrated to `cheapLfsStorageProvider`. */
+  readonly cheapLfsGhcrStorage?: boolean
+
+  /**
+   * Explicit consent to run Cheap LFS cloud compression in a private
+   * repository. Public repositories use cloud compression automatically;
+   * private and unknown-visibility repositories remain off unless this value
+   * is exactly true. The workflow compresses only. Desktop Material always
+   * downloads and decompresses objects locally.
+   */
+  readonly cheapLfsCloudCompression?: boolean
 
   /**
    * Per-profile command-line overrides. A blank / absent value for a stage
@@ -120,6 +145,23 @@ export const defaultBuildRunPreferences: IBuildRunPreferences = {
   opencodeAutoApprove: false,
   autoMaterializeCheapLfs: true,
   autoPinLargeFilesOnCommit: true,
+  parallelCheapLfsUploads: true,
+  cheapLfsStorageProvider: 'release',
+}
+
+/** Resolve persisted preview builds and reject unknown provider values safely. */
+export function getCheapLfsStorageProvider(
+  preferences: IBuildRunPreferences
+): CheapLfsStorageProvider {
+  const provider = preferences.cheapLfsStorageProvider
+  if (
+    provider === 'release' ||
+    provider === 'ghcr' ||
+    provider === 'docker-hub'
+  ) {
+    return provider
+  }
+  return preferences.cheapLfsGhcrStorage === true ? 'ghcr' : 'release'
 }
 
 /** Resolve the renamed provider-neutral approval setting compatibly. */

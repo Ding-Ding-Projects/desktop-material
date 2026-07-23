@@ -14,7 +14,10 @@ import { CloningRepository } from '../../models/cloning-repository'
 import {
   IProfileTabsState,
   IRepositoryTab,
+  ITabGroup,
   ITabTitleStyle,
+  TabGroupColor,
+  normalizeTabGroupColor,
 } from '../../models/repository-tab'
 import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
@@ -23,7 +26,8 @@ import {
   CloseTabsContainingPopover,
   CloseTabsExceptContainingPopover,
 } from './close-tabs-containing-popover'
-import { showContextualMenu } from '../../lib/menu-item'
+import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
+import { CreateTabGroupDialog } from './create-tab-group-dialog'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
 import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
@@ -34,7 +38,16 @@ import {
   repositoryTabStatusRank,
   visibleTabLabel,
 } from './tab-action-helpers'
-import { t } from '../../lib/i18n'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  t,
+  translate,
+  translateForAccessibleName,
+  TranslationKey,
+  TranslationVariables,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 interface IRepositoryTabStripProps {
   readonly tabsStore: RepositoryTabsStore
@@ -57,6 +70,9 @@ interface IRepositoryTabStripState {
   readonly searchAnchor: HTMLElement | null
   readonly draggingTabId: string | null
   readonly announcement: string
+  /** The tab awaiting a name for the new group it will start. */
+  readonly createGroupForTab: IRepositoryTab | null
+  readonly languageMode: LanguageMode
 }
 
 /**
@@ -96,10 +112,16 @@ export class RepositoryTabStrip extends React.Component<
       searchAnchor: null,
       draggingTabId: null,
       announcement: '',
+      createGroupForTab: null,
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
   public componentDidMount() {
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.disposable = this.props.tabsStore.onDidUpdate(tabs => {
       this.setState({ tabs })
       this.scheduleSettingsCommitRefresh()
@@ -112,6 +134,10 @@ export class RepositoryTabStrip extends React.Component<
   }
 
   public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.styleEditorRequest++
     this.disposable?.dispose()
     this.disposable = null
@@ -125,6 +151,29 @@ export class RepositoryTabStrip extends React.Component<
       clearTimeout(this.commitPulseTimer)
       this.commitPulseTimer = null
     }
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
+  }
+
+  private text(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translate(key, this.state.languageMode, variables)
+  }
+
+  private accessibleText(
+    key: TranslationKey,
+    variables: TranslationVariables = {}
+  ): string {
+    return translateForAccessibleName(key, variables, this.state.languageMode)
   }
 
   /**
@@ -442,6 +491,8 @@ export class RepositoryTabStrip extends React.Component<
         action: () => this.openArrange(anchor),
       },
       { type: 'separator' },
+      ...this.buildGroupMenuItems(tab),
+      { type: 'separator' },
       {
         label: 'Customize Appearance…',
         icon: octicons.paintbrush,
@@ -480,6 +531,202 @@ export class RepositoryTabStrip extends React.Component<
         enabled: tabs.length > 0,
       },
     ])
+  }
+
+  /**
+   * The "Tab group" section of a tab's context menu: move it into any existing
+   * group, start a new one, or take it out. Deleting a group from here only
+   * removes the label — the tabs themselves stay open.
+   */
+  private buildGroupMenuItems(tab: IRepositoryTab): ReadonlyArray<IMenuItem> {
+    const groups = this.props.tabsStore.getGroups()
+    const currentGroupId = tab.groupId ?? null
+    const currentGroup =
+      currentGroupId === null
+        ? undefined
+        : groups.find(group => group.id === currentGroupId)
+
+    const items: Array<IMenuItem> = [
+      {
+        label: this.text('tabs.groupAddNew'),
+        icon: octicons.plus,
+        action: () => this.openCreateGroup(tab),
+      },
+    ]
+
+    for (const group of groups) {
+      if (group.id === currentGroupId) {
+        continue
+      }
+      const members = this.state.tabs.tabs.filter(
+        candidate => (candidate.groupId ?? null) === group.id
+      )
+      if (
+        members.some(
+          member => (member.isPinned === true) !== (tab.isPinned === true)
+        )
+      ) {
+        continue
+      }
+      items.push({
+        label: this.text('tabs.groupMoveTo', { name: group.name }),
+        action: () =>
+          this.runGroupMutation(
+            this.props.tabsStore.setTabGroup(tab.id, group.id),
+            'Failed to move tab into group',
+            this.text('tabs.groupMovedStatus', {
+              tab: this.labelForTab(tab),
+              name: group.name,
+            }),
+            group.isCollapsed === true ? group.id : null
+          ),
+      })
+    }
+
+    if (currentGroup !== undefined) {
+      items.push({
+        label: this.text('tabs.groupRemoveFrom', {
+          name: currentGroup.name,
+        }),
+        action: () =>
+          this.runGroupMutation(
+            this.props.tabsStore.setTabGroup(tab.id, null),
+            'Failed to remove tab from group',
+            this.text('tabs.groupRemovedStatus', {
+              tab: this.labelForTab(tab),
+              name: currentGroup.name,
+            })
+          ),
+      })
+      items.push({
+        label:
+          currentGroup.isCollapsed === true
+            ? this.text('tabs.groupExpand', { name: currentGroup.name })
+            : this.text('tabs.groupCollapse', { name: currentGroup.name }),
+        action: () =>
+          this.toggleGroup(
+            currentGroup,
+            currentGroup.isCollapsed !== true,
+            true
+          ),
+      })
+      items.push({
+        label: this.text('tabs.groupDelete', { name: currentGroup.name }),
+        action: () =>
+          this.runGroupMutation(
+            this.props.tabsStore.deleteTabGroup(currentGroup.id),
+            'Failed to delete tab group',
+            this.text('tabs.groupDeletedStatus', {
+              name: currentGroup.name,
+            })
+          ),
+      })
+    }
+
+    return items
+  }
+
+  private openCreateGroup = (tab: IRepositoryTab) => {
+    this.setState({ createGroupForTab: tab })
+  }
+
+  private onCreateGroupDismissed = () => {
+    this.setState({ createGroupForTab: null })
+  }
+
+  private onCreateGroup = (name: string, color: TabGroupColor) => {
+    const tab = this.state.createGroupForTab
+    this.setState({ createGroupForTab: null })
+    if (tab !== null) {
+      void this.props.tabsStore
+        .createTabGroup(name, color, [tab.id])
+        .then(groupId => {
+          if (groupId === null) {
+            return
+          }
+          this.setState(
+            {
+              announcement: this.text('tabs.groupCreatedStatus', { name }),
+            },
+            () => this.focusGroupChip(groupId)
+          )
+        })
+        .catch(error => {
+          log.error('Failed to create tab group', error)
+          this.setState({ announcement: this.text('tabs.groupActionFailed') })
+        })
+    }
+  }
+
+  private runGroupMutation(
+    operation: Promise<unknown>,
+    failureLog: string,
+    successAnnouncement: string,
+    focusGroupId: string | null = null
+  ) {
+    void operation
+      .then(() => {
+        this.setState({ announcement: successAnnouncement }, () => {
+          if (focusGroupId !== null) {
+            this.focusGroupChip(focusGroupId)
+          }
+        })
+      })
+      .catch(error => {
+        log.error(failureLog, error)
+        this.setState(
+          { announcement: this.text('tabs.groupActionFailed') },
+          () => {
+            if (focusGroupId !== null) {
+              this.focusGroupChip(focusGroupId)
+            }
+          }
+        )
+      })
+  }
+
+  private focusGroupChip(groupId: string) {
+    window.setTimeout(() => {
+      const chip = Array.from(
+        this.stripRef.current?.querySelectorAll<HTMLElement>(
+          '.repository-tab-group-chip[data-group-id]'
+        ) ?? []
+      ).find(element => element.dataset.groupId === groupId)
+      chip?.focus()
+    }, 0)
+  }
+
+  private toggleGroup(
+    group: ITabGroup,
+    isCollapsed: boolean,
+    restoreFocus: boolean
+  ) {
+    this.runGroupMutation(
+      this.props.tabsStore.setTabGroupCollapsed(group.id, isCollapsed),
+      isCollapsed
+        ? 'Failed to collapse tab group'
+        : 'Failed to expand tab group',
+      this.text(
+        isCollapsed ? 'tabs.groupCollapsedStatus' : 'tabs.groupExpandedStatus',
+        { name: group.name }
+      ),
+      restoreFocus ? group.id : null
+    )
+  }
+
+  private onGroupChipClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    const group = this.groupFromChip(event.currentTarget)
+    if (group !== null) {
+      this.toggleGroup(group, group.isCollapsed !== true, true)
+    }
+  }
+
+  private groupFromChip(element: HTMLElement): ITabGroup | null {
+    const groupId = element.dataset.groupId
+    return (
+      this.props.tabsStore.getGroups().find(group => group.id === groupId) ??
+      null
+    )
   }
 
   private restorePopoverFocus = (anchor: HTMLElement | null) => {
@@ -811,6 +1058,148 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
+  private renderGroupChip(
+    group: ITabGroup,
+    members: ReadonlyArray<IRepositoryTab>,
+    isActiveGroup: boolean
+  ) {
+    const isCollapsed = group.isCollapsed === true
+    return (
+      <button
+        key={`group-${group.id}`}
+        type="button"
+        className={classNames(
+          'repository-tab-group-chip',
+          `tab-group--${normalizeTabGroupColor(group.color)}`,
+          {
+            active: isActiveGroup,
+            collapsed: isCollapsed,
+          }
+        )}
+        data-group-id={group.id}
+        aria-label={this.accessibleText(
+          isCollapsed ? 'tabs.groupChipCollapsed' : 'tabs.groupChipExpanded',
+          { name: group.name, count: String(members.length) }
+        )}
+        aria-expanded={!isCollapsed}
+        role={isCollapsed ? 'tab' : undefined}
+        aria-selected={isCollapsed ? isActiveGroup : undefined}
+        aria-current={!isCollapsed && isActiveGroup ? 'page' : undefined}
+        onClick={this.onGroupChipClick}
+      >
+        <span className="repository-tab-group-dot" aria-hidden="true" />
+        <span className="repository-tab-group-label">{group.name}</span>
+        <span className="repository-tab-group-count" aria-hidden="true">
+          {members.length}
+        </span>
+        <Octicon
+          className="repository-tab-group-chevron"
+          symbol={isCollapsed ? octicons.chevronRight : octicons.chevronDown}
+        />
+      </button>
+    )
+  }
+
+  private renderRepositoryTab(
+    tab: IRepositoryTab,
+    group: ITabGroup | null,
+    activeTabId: string | null
+  ) {
+    return (
+      <RepositoryTab
+        key={tab.id}
+        tab={tab}
+        group={group}
+        groupAccessibleLabel={
+          group === null
+            ? undefined
+            : this.accessibleText('tabs.groupMemberLabel', {
+                tab: this.labelForTab(tab),
+                name: group.name,
+              })
+        }
+        repository={this.repositoryForTab(tab)}
+        isActive={tab.id === activeTabId}
+        isDragging={tab.id === this.state.draggingTabId}
+        onSelect={this.onSelect}
+        onClose={this.onClose}
+        onToggleFavorite={this.onToggleFavorite}
+        onRename={this.onRename}
+        onContextMenu={this.onContextMenu}
+        onOpenStyleEditor={this.openStyleEditor}
+        onDragStart={this.onDragStart}
+        onDragOver={this.onDragOver}
+        onDrop={this.onDrop}
+        onDragEnd={this.onDragEnd}
+        dispatcher={this.props.dispatcher}
+      />
+    )
+  }
+
+  /** Render one group chip before its first member and omit collapsed members. */
+  private renderRepositoryTabs(
+    tabs: ReadonlyArray<IRepositoryTab>,
+    activeTabId: string | null
+  ): ReadonlyArray<JSX.Element> {
+    const groups = new Map(
+      this.props.tabsStore.getGroups().map(group => [group.id, group] as const)
+    )
+    const members = new Map<string, IRepositoryTab[]>()
+    for (const tab of tabs) {
+      const groupId = tab.groupId ?? null
+      if (groupId !== null && groups.has(groupId)) {
+        const groupMembers = members.get(groupId) ?? []
+        groupMembers.push(tab)
+        members.set(groupId, groupMembers)
+      }
+    }
+
+    const activeGroupId =
+      tabs.find(tab => tab.id === activeTabId)?.groupId ?? null
+    const renderedGroups = new Set<string>()
+    const elements: JSX.Element[] = []
+
+    for (const tab of tabs) {
+      const groupId = tab.groupId ?? null
+      const group = groupId === null ? undefined : groups.get(groupId)
+      if (group === undefined) {
+        elements.push(this.renderRepositoryTab(tab, null, activeTabId))
+        continue
+      }
+
+      if (!renderedGroups.has(group.id)) {
+        renderedGroups.add(group.id)
+        elements.push(
+          this.renderGroupChip(
+            group,
+            members.get(group.id) ?? [],
+            activeGroupId === group.id
+          )
+        )
+      }
+
+      if (group.isCollapsed !== true) {
+        elements.push(this.renderRepositoryTab(tab, group, activeTabId))
+      }
+    }
+
+    return elements
+  }
+
+  private renderCreateGroupDialog() {
+    const tab = this.state.createGroupForTab
+    if (tab === null) {
+      return null
+    }
+    return (
+      <CreateTabGroupDialog
+        tabLabel={this.labelForTab(tab)}
+        onCreate={this.onCreateGroup}
+        onDismissed={this.onCreateGroupDismissed}
+      />
+    )
+  }
+
   public render() {
     const { tabs, activeTabId } = this.state.tabs
 
@@ -825,26 +1214,7 @@ export class RepositoryTabStrip extends React.Component<
         data-customization-scope="profile"
       >
         <div className="repository-tab-list">
-          {tabs.map(tab => (
-            <RepositoryTab
-              key={tab.id}
-              tab={tab}
-              repository={this.repositoryForTab(tab)}
-              isActive={tab.id === activeTabId}
-              isDragging={tab.id === this.state.draggingTabId}
-              onSelect={this.onSelect}
-              onClose={this.onClose}
-              onToggleFavorite={this.onToggleFavorite}
-              onRename={this.onRename}
-              onContextMenu={this.onContextMenu}
-              onOpenStyleEditor={this.openStyleEditor}
-              onDragStart={this.onDragStart}
-              onDragOver={this.onDragOver}
-              onDrop={this.onDrop}
-              onDragEnd={this.onDragEnd}
-              dispatcher={this.props.dispatcher}
-            />
-          ))}
+          {this.renderRepositoryTabs(tabs, activeTabId)}
         </div>
         <button
           className="repository-tab-search"
@@ -914,6 +1284,7 @@ export class RepositoryTabStrip extends React.Component<
         {this.renderCloseExceptPopover()}
         {this.renderArrangePopover()}
         {this.renderSearchPopover()}
+        {this.renderCreateGroupDialog()}
         <div
           className="repository-tab-announcement"
           role="status"

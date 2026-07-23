@@ -73,6 +73,37 @@ export type TranslationKey =
   | 'tabs.redoSettingsChange'
   | 'tabs.settingsChangeUndone'
   | 'tabs.settingsChangeRedone'
+  | 'tabs.groupAddNew'
+  | 'tabs.groupMoveTo'
+  | 'tabs.groupRemoveFrom'
+  | 'tabs.groupExpand'
+  | 'tabs.groupCollapse'
+  | 'tabs.groupDelete'
+  | 'tabs.groupDialogTitle'
+  | 'tabs.groupDialogIntro'
+  | 'tabs.groupNameLabel'
+  | 'tabs.groupColorLabel'
+  | 'tabs.groupColorChoice'
+  | 'tabs.groupColorBlue'
+  | 'tabs.groupColorGreen'
+  | 'tabs.groupColorYellow'
+  | 'tabs.groupColorRed'
+  | 'tabs.groupColorPurple'
+  | 'tabs.groupColorGrey'
+  | 'tabs.groupCreateAction'
+  | 'tabs.groupCancelAction'
+  | 'tabs.groupChipExpanded'
+  | 'tabs.groupChipCollapsed'
+  | 'tabs.groupMemberLabel'
+  | 'tabs.groupCreatedStatus'
+  | 'tabs.groupMovedStatus'
+  | 'tabs.groupRemovedStatus'
+  | 'tabs.groupExpandedStatus'
+  | 'tabs.groupCollapsedStatus'
+  | 'tabs.groupDeletedStatus'
+  | 'tabs.groupActionFailed'
+  | 'tabs.tabPinnedSuffix'
+  | 'tabs.tabFavoriteSuffix'
   | 'language.english'
   | 'language.cantonese'
   | 'language.bilingual'
@@ -1230,6 +1261,31 @@ export type TranslationKey =
   | 'clone.orgReconnect'
   | 'clone.orgRestrictionNote'
   | 'clone.orgReviewAccess'
+  | 'commandPalette.title'
+  | 'commandPalette.searchPlaceholder'
+  | 'commandPalette.searchLabel'
+  | 'commandPalette.commands'
+  | 'commandPalette.noMatches'
+  | 'commandPalette.searchTerms'
+  | 'commandPalette.customizeAppearance'
+  | 'commandPalette.appearanceDialog'
+  | 'commandPalette.appearanceHeading'
+  | 'commandPalette.rowDensity'
+  | 'commandPalette.comfortable'
+  | 'commandPalette.comfortableDescription'
+  | 'commandPalette.compact'
+  | 'commandPalette.compactDescription'
+  | 'commandPalette.showInEachRow'
+  | 'commandPalette.icons'
+  | 'commandPalette.groupChips'
+  | 'commandPalette.keywordLine'
+  | 'commandPalette.resetDefaults'
+  | 'commandPalette.groupApp'
+  | 'commandPalette.groupBranch'
+  | 'commandPalette.groupChanges'
+  | 'commandPalette.groupEdit'
+  | 'commandPalette.groupNavigate'
+  | 'commandPalette.groupRepository'
   | 'palette.selectAll'
   | 'palette.toggleTheme'
   | 'palette.preferencesAccounts'
@@ -1240,6 +1296,9 @@ export type TranslationKey =
   | 'palette.preferencesNotifications'
   | 'palette.preferencesGit'
   | 'palette.preferencesAccessibility'
+  | 'palette.ollamaModelManager'
+  | 'palette.preferencesCopilot'
+  | 'palette.backgroundQueue'
   | 'palette.notificationHistory'
   | 'palette.notificationAutomations'
   | 'palette.copyRepoPath'
@@ -1304,6 +1363,18 @@ export type TranslationKey =
   | 'cheapLfs.managerRail'
   | 'cheapLfs.managerTitle'
   | 'cheapLfs.managerIntro'
+  | 'cheapLfs.cloud.title'
+  | 'cheapLfs.cloud.publicAutomatic'
+  | 'cheapLfs.cloud.privateToggle'
+  | 'cheapLfs.cloud.privateHelp'
+  | 'cheapLfs.cloud.visibilityUnknown'
+  | 'cheapLfs.cloud.localOnly'
+  | 'cheapLfs.cloud.workflowAdded'
+  | 'cheapLfs.cloud.workflowReady'
+  | 'cheapLfs.cloud.workflowDisabled'
+  | 'cheapLfs.cloud.raw'
+  | 'cheapLfs.cloud.compressed'
+  | 'cheapLfs.cloud.mixed'
   | 'cheapLfs.manualUpload'
   | 'cheapLfs.cancel'
   | 'cheapLfs.cancelConfirmation'
@@ -1318,6 +1389,52 @@ export type TranslationKey =
   | 'cheapLfs.progress.manualWaiting'
   | 'cheapLfs.progress.manualVerifying'
   | 'cheapLfs.progress.manualDetected'
+  | 'cheapLfs.progress.terminalTitle'
+  | 'cheapLfs.progress.terminalCurrentFile'
+  | 'cheapLfs.progress.terminalFiles'
+  | 'cheapLfs.progress.terminalFilesDetailed'
+  | 'cheapLfs.progress.terminalBytes'
+  | 'cheapLfs.progress.terminalFileBytes'
+  | 'cheapLfs.progress.terminalBytesPending'
+  | 'cheapLfs.progress.terminalProgressLabel'
+  | 'cheapLfs.progress.terminalStorage'
+  | 'cheapLfs.progress.terminalStorageMatched'
+  | 'cheapLfs.progress.terminalLayer'
+  | 'cheapLfs.progress.terminalLayers'
+  | 'cheapLfs.progress.terminalProviderGit'
+  | 'cheapLfs.progress.terminalProviderUnknown'
+  | 'cheapLfs.progress.terminalStagePreparing'
+  | 'cheapLfs.progress.terminalStageHashing'
+  | 'cheapLfs.progress.terminalStageRelease'
+  | 'cheapLfs.progress.terminalStageUploading'
+  | 'cheapLfs.progress.terminalStageVerifying'
+  | 'cheapLfs.progress.terminalStageManualPreparing'
+  | 'cheapLfs.progress.terminalStageManualWaiting'
+  | 'cheapLfs.progress.terminalStageManualVerifying'
+  | 'cheapLfs.progress.terminalStageManualDetected'
+  | 'cheapLfs.settings.autoMaterialize'
+  | 'cheapLfs.settings.autoPin'
+  | 'cheapLfs.settings.autoPinHelp'
+  | 'cheapLfs.settings.parallelUploads'
+  | 'cheapLfs.settings.parallelUploadsHelp'
+  | 'cheapLfs.settings.ghcrStorage'
+  | 'cheapLfs.settings.ghcrStorageHelp'
+  | 'cheapLfs.settings.storageProvider'
+  | 'cheapLfs.settings.storageRelease'
+  | 'cheapLfs.settings.storageGhcr'
+  | 'cheapLfs.settings.storageDockerHub'
+  | 'cheapLfs.pinFailures.title'
+  | 'cheapLfs.pinFailures.one'
+  | 'cheapLfs.pinFailures.many'
+  | 'cheapLfs.pinFailures.manyOmitted'
+  | 'commit.postCommitMaintenance.title'
+  | 'commit.postCommitMaintenance.body'
+  | 'push.commitBatch.message'
+  | 'push.commitBatch.completedTitle'
+  | 'push.commitBatch.existingBody'
+  | 'push.commitBatch.rewrittenBody'
+  | 'changesFilter.cheapLfsCandidates'
+  | 'changesFilter.filtersAriaLabel'
   | 'workflowDispatch.searchPlaceholder'
   | 'workflowDispatch.searchAriaLabel'
   | 'workflowDispatch.listAriaLabel'
@@ -1407,6 +1524,40 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.redoSettingsChange': 'Redo settings change',
   'tabs.settingsChangeUndone': 'Settings change undone.',
   'tabs.settingsChangeRedone': 'Settings change redone.',
+  'tabs.groupAddNew': 'Add tab to new group…',
+  'tabs.groupMoveTo': 'Move to “{name}”',
+  'tabs.groupRemoveFrom': 'Remove from “{name}”',
+  'tabs.groupExpand': 'Expand “{name}”',
+  'tabs.groupCollapse': 'Collapse “{name}”',
+  'tabs.groupDelete': 'Delete group “{name}”',
+  'tabs.groupDialogTitle': 'New tab group',
+  'tabs.groupDialogIntro':
+    '“{tab}” becomes the first tab in this group. Grouping only organizes the strip; it never closes a tab.',
+  'tabs.groupNameLabel': 'Group name',
+  'tabs.groupColorLabel': 'Group color',
+  'tabs.groupColorChoice': '{color} group color',
+  'tabs.groupColorBlue': 'Blue',
+  'tabs.groupColorGreen': 'Green',
+  'tabs.groupColorYellow': 'Yellow',
+  'tabs.groupColorRed': 'Red',
+  'tabs.groupColorPurple': 'Purple',
+  'tabs.groupColorGrey': 'Grey',
+  'tabs.groupCreateAction': 'Create group',
+  'tabs.groupCancelAction': 'Cancel',
+  'tabs.groupChipExpanded':
+    '{name} group, {count} tabs, expanded. Collapse group.',
+  'tabs.groupChipCollapsed':
+    '{name} group, {count} tabs, collapsed. Expand group.',
+  'tabs.groupMemberLabel': '{tab}, {name} group',
+  'tabs.groupCreatedStatus': '{name} group created.',
+  'tabs.groupMovedStatus': '{tab} moved to {name}.',
+  'tabs.groupRemovedStatus': '{tab} removed from {name}.',
+  'tabs.groupExpandedStatus': '{name} group expanded.',
+  'tabs.groupCollapsedStatus': '{name} group collapsed.',
+  'tabs.groupDeletedStatus': '{name} group deleted. Its tabs stayed open.',
+  'tabs.groupActionFailed': 'Could not update the tab group. Try again.',
+  'tabs.tabPinnedSuffix': ', pinned',
+  'tabs.tabFavoriteSuffix': ', favorite',
   'language.english': 'English',
   'language.cantonese': 'Playful Hong Kong Cantonese',
   'language.bilingual': 'Bilingual',
@@ -2838,6 +2989,31 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'clone.orgRestrictionNote':
     'Organizations that restrict third-party access must approve this app before they appear here.',
   'clone.orgReviewAccess': 'Review OAuth app access',
+  'commandPalette.title': 'Command palette',
+  'commandPalette.searchPlaceholder': 'Search commands',
+  'commandPalette.searchLabel': 'Search command palette',
+  'commandPalette.commands': 'Commands',
+  'commandPalette.noMatches': 'No matching commands',
+  'commandPalette.searchTerms': 'Search terms: {terms}',
+  'commandPalette.customizeAppearance': 'Customize command palette appearance',
+  'commandPalette.appearanceDialog': 'Command palette appearance settings',
+  'commandPalette.appearanceHeading': 'Appearance',
+  'commandPalette.rowDensity': 'Row density',
+  'commandPalette.comfortable': 'Comfortable',
+  'commandPalette.comfortableDescription': 'More detail and spacing',
+  'commandPalette.compact': 'Compact',
+  'commandPalette.compactDescription': 'Show more commands at once',
+  'commandPalette.showInEachRow': 'Show in each row',
+  'commandPalette.icons': 'Icons',
+  'commandPalette.groupChips': 'Group chips',
+  'commandPalette.keywordLine': 'Keyword line',
+  'commandPalette.resetDefaults': 'Reset defaults',
+  'commandPalette.groupApp': 'App',
+  'commandPalette.groupBranch': 'Branch',
+  'commandPalette.groupChanges': 'Changes',
+  'commandPalette.groupEdit': 'Edit',
+  'commandPalette.groupNavigate': 'Navigate',
+  'commandPalette.groupRepository': 'Repository',
   'palette.selectAll': 'Select all',
   'palette.toggleTheme': 'Toggle light/dark theme',
   'palette.preferencesAccounts': 'Preferences: Accounts',
@@ -2848,6 +3024,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.preferencesNotifications': 'Preferences: Notifications',
   'palette.preferencesGit': 'Preferences: Git',
   'palette.preferencesAccessibility': 'Preferences: Accessibility',
+  'palette.ollamaModelManager': 'Ollama model manager',
+  'palette.preferencesCopilot': 'Preferences: Copilot and AI providers',
+  'palette.backgroundQueue': 'Background action and API queue',
   'palette.notificationHistory': 'Open notification centre',
   'palette.notificationAutomations': 'Notification automations',
   'palette.copyRepoPath': 'Copy repository path',
@@ -2942,6 +3121,27 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.managerTitle': 'Cheap LFS manager',
   'cheapLfs.managerIntro':
     'Find, pin, search, and restore repository large files here. You do not need to browse GitHub Releases or decode asset names.',
+  'cheapLfs.cloud.title': 'Cloud compression',
+  'cheapLfs.cloud.publicAutomatic':
+    'Automatic for public repositories. Commit and push the reviewed workflow change once; each release object is then compressed one by one.',
+  'cheapLfs.cloud.privateToggle':
+    'Enable cloud compression for this private repository',
+  'cheapLfs.cloud.privateHelp':
+    'Off by default for private repositories. Enabling uses your private GitHub Actions minutes and adds a reviewed workflow change to this repository.',
+  'cheapLfs.cloud.visibilityUnknown':
+    'Off until GitHub confirms whether this repository is public or private.',
+  'cheapLfs.cloud.localOnly':
+    'GitHub Actions compresses only. Desktop Material downloads and decompresses compressed objects locally, then verifies their original size and SHA-256.',
+  'cheapLfs.cloud.workflowAdded':
+    'Cloud-compression workflow added to Changes. Review, commit, and push it to activate compression.',
+  'cheapLfs.cloud.workflowReady':
+    'Cloud-compression workflow file is ready. Commit and push it once; pointer updates then arrive as GitHub Actions commits.',
+  'cheapLfs.cloud.workflowDisabled':
+    'Private cloud compression is off. Existing raw objects remain cloneable.',
+  'cheapLfs.cloud.raw': 'Raw',
+  'cheapLfs.cloud.compressed': 'Compressed · {savings}% smaller',
+  'cheapLfs.cloud.mixed':
+    'Mixed · {compressed}/{total} objects compressed · {savings}% smaller',
   'cheapLfs.manualUpload': 'Manual upload',
   'cheapLfs.cancel': 'Cancel',
   'cheapLfs.cancelConfirmation':
@@ -2963,6 +3163,67 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Upload all prepared files and save the GitHub release',
   'cheapLfs.progress.manualVerifying': 'Checking your manual upload',
   'cheapLfs.progress.manualDetected': 'Manual upload detected and verified',
+  'cheapLfs.progress.terminalTitle': 'Cheap LFS upload activity',
+  'cheapLfs.progress.terminalCurrentFile': 'Current file: {path}',
+  'cheapLfs.progress.terminalFiles': 'Files complete: {completed}/{total}',
+  'cheapLfs.progress.terminalFilesDetailed':
+    'Settled {completed}/{total} · pinned {succeeded} · failed {failed}',
+  'cheapLfs.progress.terminalBytes': 'Batch data: {transferred} / {total}',
+  'cheapLfs.progress.terminalFileBytes':
+    '{transferred} / {total} ({percentage}%)',
+  'cheapLfs.progress.terminalBytesPending':
+    'Batch data: waiting for byte progress',
+  'cheapLfs.progress.terminalProgressLabel': 'Cheap LFS transfer progress',
+  'cheapLfs.progress.terminalStorage':
+    '{total} selected · using {selected} · recommended {recommended}{layers}',
+  'cheapLfs.progress.terminalStorageMatched':
+    '{total} selected · using {selected} · recommended for this batch{layers}',
+  'cheapLfs.progress.terminalLayer': ' · estimated 1 OCI layer',
+  'cheapLfs.progress.terminalLayers': ' · estimated {count} OCI layers',
+  'cheapLfs.progress.terminalProviderGit': 'Ordinary Git',
+  'cheapLfs.progress.terminalProviderUnknown': 'Unknown storage',
+  'cheapLfs.progress.terminalStagePreparing': 'Preparing',
+  'cheapLfs.progress.terminalStageHashing': 'Hashing',
+  'cheapLfs.progress.terminalStageRelease': 'Preparing release',
+  'cheapLfs.progress.terminalStageUploading': 'Uploading',
+  'cheapLfs.progress.terminalStageVerifying': 'Verifying',
+  'cheapLfs.progress.terminalStageManualPreparing': 'Preparing manual upload',
+  'cheapLfs.progress.terminalStageManualWaiting': 'Waiting for manual upload',
+  'cheapLfs.progress.terminalStageManualVerifying': 'Checking manual upload',
+  'cheapLfs.progress.terminalStageManualDetected': 'Manual upload verified',
+  'cheapLfs.settings.autoMaterialize': 'Download large files after cloning',
+  'cheapLfs.settings.autoPin': 'Pin large files when committing',
+  'cheapLfs.settings.autoPinHelp':
+    'Files over about 100 MB are uploaded to the selected Cheap LFS storage and replaced with small pointers. Failed files stay in Changes for the next commit while other selected safe changes continue.',
+  'cheapLfs.settings.parallelUploads': 'Upload up to 3 large files at once',
+  'cheapLfs.settings.parallelUploadsHelp':
+    'Uses up to three independent Cheap LFS transfer lanes. Turn this off to upload one file at a time.',
+  'cheapLfs.settings.ghcrStorage': 'Store Cheap LFS in one GHCR image',
+  'cheapLfs.settings.ghcrStorageHelp':
+    'Publishes one digest-pinned OCI image for all repository objects. Private repositories encrypt objects with a shared key tracked in that private repository.',
+  'cheapLfs.settings.storageProvider': 'Large-file storage',
+  'cheapLfs.settings.storageRelease': 'GitHub published prerelease',
+  'cheapLfs.settings.storageGhcr': 'GHCR · one OCI image',
+  'cheapLfs.settings.storageDockerHub': 'Docker Hub · one OCI image',
+  'cheapLfs.pinFailures.title': 'Some large files were not pinned',
+  'cheapLfs.pinFailures.one':
+    '{names} remains in Changes and was excluded so its raw large-file content is not committed. Other selected safe changes can continue now; commit again to retry this file.',
+  'cheapLfs.pinFailures.many':
+    '{count} large files ({names}) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
+  'cheapLfs.pinFailures.manyOmitted':
+    '{count} large files ({names}, plus {omitted} more) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
+  'commit.postCommitMaintenance.title':
+    'Commit created; maintenance needs attention',
+  'commit.postCommitMaintenance.body':
+    'The commit was created successfully, but Git reported a later maintenance problem. It is safe to push; run repository maintenance separately when convenient.',
+  'push.commitBatch.message': 'Automatic push batch {current} of {total}',
+  'push.commitBatch.completedTitle': 'Large local push completed in batches',
+  'push.commitBatch.existingBody':
+    'Pushed and verified {count} existing local commit batches before continuing.',
+  'push.commitBatch.rewrittenBody':
+    'Safely rebuilt oversized local-only history, then pushed and verified {count} batches without force-pushing.',
+  'changesFilter.cheapLfsCandidates': 'Cheap LFS candidates (>100 MiB)',
+  'changesFilter.filtersAriaLabel': 'Change filters',
   'workflowDispatch.searchPlaceholder': 'Filter workflows by name or file…',
   'workflowDispatch.searchAriaLabel': 'Filter workflows',
   'workflowDispatch.listAriaLabel': 'Workflows',
@@ -3054,6 +3315,40 @@ export const cantoneseTranslations: Readonly<
   'tabs.redoSettingsChange': '重做設定改動',
   'tabs.settingsChangeUndone': '已復原設定改動。',
   'tabs.settingsChangeRedone': '已重做設定改動。',
+  'tabs.groupAddNew': '將分頁加入新群組…',
+  'tabs.groupMoveTo': '移去「{name}」',
+  'tabs.groupRemoveFrom': '從「{name}」移走',
+  'tabs.groupExpand': '展開「{name}」',
+  'tabs.groupCollapse': '收起「{name}」',
+  'tabs.groupDelete': '刪除群組「{name}」',
+  'tabs.groupDialogTitle': '新分頁群組',
+  'tabs.groupDialogIntro':
+    '「{tab}」會做呢個群組嘅第一個分頁。分組只係整理分頁列，絕對唔會閂分頁。',
+  'tabs.groupNameLabel': '群組名',
+  'tabs.groupColorLabel': '群組顏色',
+  'tabs.groupColorChoice': '{color}群組顏色',
+  'tabs.groupColorBlue': '藍色',
+  'tabs.groupColorGreen': '綠色',
+  'tabs.groupColorYellow': '黃色',
+  'tabs.groupColorRed': '紅色',
+  'tabs.groupColorPurple': '紫色',
+  'tabs.groupColorGrey': '灰色',
+  'tabs.groupCreateAction': '建立群組',
+  'tabs.groupCancelAction': '取消',
+  'tabs.groupChipExpanded':
+    '「{name}」群組，{count} 個分頁，已展開。收起群組。',
+  'tabs.groupChipCollapsed':
+    '「{name}」群組，{count} 個分頁，已收起。展開群組。',
+  'tabs.groupMemberLabel': '{tab}，「{name}」群組',
+  'tabs.groupCreatedStatus': '已建立「{name}」群組。',
+  'tabs.groupMovedStatus': '已將 {tab} 移去「{name}」。',
+  'tabs.groupRemovedStatus': '已將 {tab} 從「{name}」移走。',
+  'tabs.groupExpandedStatus': '已展開「{name}」群組。',
+  'tabs.groupCollapsedStatus': '已收起「{name}」群組。',
+  'tabs.groupDeletedStatus': '已刪除「{name}」群組，入面啲分頁仲開住。',
+  'tabs.groupActionFailed': '未能更新分頁群組，等陣再試。',
+  'tabs.tabPinnedSuffix': '，已置頂',
+  'tabs.tabFavoriteSuffix': '，最愛',
   'language.english': '英文',
   'language.cantonese': '玩味港式廣東話',
   'language.bilingual': '雙語',
@@ -4348,6 +4643,31 @@ export const cantoneseTranslations: Readonly<
   'clone.orgRestrictionNote':
     '有啲組織限制第三方存取，要批准咗呢個 app 先會喺度出現。',
   'clone.orgReviewAccess': '查看 OAuth app 存取權',
+  'commandPalette.title': '命令面板',
+  'commandPalette.searchPlaceholder': '搜尋指令',
+  'commandPalette.searchLabel': '搜尋命令面板',
+  'commandPalette.commands': '指令',
+  'commandPalette.noMatches': '搵唔到配對指令',
+  'commandPalette.searchTerms': '搜尋字詞：{terms}',
+  'commandPalette.customizeAppearance': '自訂命令面板外觀',
+  'commandPalette.appearanceDialog': '命令面板外觀設定',
+  'commandPalette.appearanceHeading': '外觀',
+  'commandPalette.rowDensity': '列距',
+  'commandPalette.comfortable': '舒適',
+  'commandPalette.comfortableDescription': '闊落啲，資料睇得齊啲',
+  'commandPalette.compact': '精簡',
+  'commandPalette.compactDescription': '慳位啲，一次睇多幾個指令',
+  'commandPalette.showInEachRow': '每列顯示',
+  'commandPalette.icons': '圖示',
+  'commandPalette.groupChips': '群組標籤',
+  'commandPalette.keywordLine': '關鍵字列',
+  'commandPalette.resetDefaults': '還原預設',
+  'commandPalette.groupApp': '應用程式',
+  'commandPalette.groupBranch': '分支',
+  'commandPalette.groupChanges': '變更',
+  'commandPalette.groupEdit': '編輯',
+  'commandPalette.groupNavigate': '導覽',
+  'commandPalette.groupRepository': '倉庫',
   'palette.selectAll': '全部揀晒',
   'palette.toggleTheme': '切換光暗主題',
   'palette.preferencesAccounts': '設定：帳戶',
@@ -4358,6 +4678,9 @@ export const cantoneseTranslations: Readonly<
   'palette.preferencesNotifications': '設定：通知',
   'palette.preferencesGit': '設定：Git',
   'palette.preferencesAccessibility': '設定：無障礙',
+  'palette.ollamaModelManager': 'Ollama 模型管理員',
+  'palette.preferencesCopilot': '設定：Copilot 同 AI 供應商',
+  'palette.backgroundQueue': '背景操作同 API 佇列',
   'palette.notificationHistory': '打開通知中心',
   'palette.notificationAutomations': '通知自動化',
   'palette.copyRepoPath': '複製倉庫路徑',
@@ -4444,6 +4767,26 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.managerTitle': 'Cheap LFS 管理器',
   'cheapLfs.managerIntro':
     '喺呢度就可以搵、釘選、搜尋同還原 repo 嘅大檔案，唔使自己走入 GitHub Releases 猜資產檔名。',
+  'cheapLfs.cloud.title': '雲端壓縮',
+  'cheapLfs.cloud.publicAutomatic':
+    '公開 repo 會自動開啟。第一次先檢查、commit 同 push 個 workflow 改動；之後每個 Release 物件會逐件壓縮。',
+  'cheapLfs.cloud.privateToggle': '為呢個私人 repo 開啟雲端壓縮',
+  'cheapLfs.cloud.privateHelp':
+    '私人 repo 預設關閉。開啟後會用你嘅私人 GitHub Actions 分鐘，亦會喺 repo 加一個畀你檢查嘅 workflow 改動。',
+  'cheapLfs.cloud.visibilityUnknown':
+    'GitHub 未確認個 repo 係公開定私人之前，會穩陣噉保持關閉。',
+  'cheapLfs.cloud.localOnly':
+    'GitHub Actions 只負責壓縮。Desktop Material 會喺你部機下載同解壓，再核對原本大小同 SHA-256。',
+  'cheapLfs.cloud.workflowAdded':
+    '雲端壓縮 workflow 已放入 Changes。檢查、commit 同 push 之後就會啟動。',
+  'cheapLfs.cloud.workflowReady':
+    '雲端壓縮 workflow 檔案已準備好。第一次 commit 同 push 之後，pointer 更新就會由 GitHub Actions commit 返嚟。',
+  'cheapLfs.cloud.workflowDisabled':
+    '私人雲端壓縮已關閉；原本 raw 物件照樣 clone 得返。',
+  'cheapLfs.cloud.raw': 'Raw 原檔',
+  'cheapLfs.cloud.compressed': '已壓縮 · 慳咗 {savings}%',
+  'cheapLfs.cloud.mixed':
+    '混合 · {compressed}/{total} 件已壓縮 · 慳咗 {savings}%',
   'cheapLfs.manualUpload': '手動上載',
   'cheapLfs.cancel': '取消',
   'cheapLfs.cancelConfirmation':
@@ -4464,6 +4807,65 @@ export const cantoneseTranslations: Readonly<
     '喺 GitHub 上載晒準備好嘅檔案，跟住撳儲存 Release',
   'cheapLfs.progress.manualVerifying': '核實緊你手動上載嘅檔案',
   'cheapLfs.progress.manualDetected': '見到手動上載喇，亦都核實完成',
+  'cheapLfs.progress.terminalTitle': 'Cheap LFS 上載實況',
+  'cheapLfs.progress.terminalCurrentFile': '而家處理緊：{path}',
+  'cheapLfs.progress.terminalFiles': '搞掂檔案：{completed}/{total}',
+  'cheapLfs.progress.terminalFilesDetailed':
+    '處理完 {completed}/{total} · pin 咗 {succeeded} · 失手 {failed}',
+  'cheapLfs.progress.terminalBytes': '成批數據：{transferred} / {total}',
+  'cheapLfs.progress.terminalFileBytes':
+    '{transferred} / {total}（{percentage}%）',
+  'cheapLfs.progress.terminalBytesPending': '成批數據：等緊第一批 bytes',
+  'cheapLfs.progress.terminalProgressLabel': 'Cheap LFS 傳輸進度',
+  'cheapLfs.progress.terminalStorage':
+    '已揀 {total} · 而家用 {selected} · 呢批建議用 {recommended}{layers}',
+  'cheapLfs.progress.terminalStorageMatched':
+    '已揀 {total} · 而家用 {selected} · 呢批檔案啱用{layers}',
+  'cheapLfs.progress.terminalLayer': ' · 預計 1 個 OCI layer',
+  'cheapLfs.progress.terminalLayers': ' · 預計 {count} 個 OCI layers',
+  'cheapLfs.progress.terminalProviderGit': '普通 Git',
+  'cheapLfs.progress.terminalProviderUnknown': '未知儲存位置',
+  'cheapLfs.progress.terminalStagePreparing': '準備緊',
+  'cheapLfs.progress.terminalStageHashing': '計緊 hash',
+  'cheapLfs.progress.terminalStageRelease': '準備緊 Release',
+  'cheapLfs.progress.terminalStageUploading': '上載緊',
+  'cheapLfs.progress.terminalStageVerifying': '核實緊',
+  'cheapLfs.progress.terminalStageManualPreparing': '準備手動上載',
+  'cheapLfs.progress.terminalStageManualWaiting': '等緊你手動上載',
+  'cheapLfs.progress.terminalStageManualVerifying': '檢查緊手動上載',
+  'cheapLfs.progress.terminalStageManualDetected': '手動上載核實咗',
+  'cheapLfs.settings.autoMaterialize': 'Clone 完自動下載大檔案',
+  'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',
+  'cheapLfs.settings.autoPinHelp':
+    '大過約 100 MB 嘅檔案會上載去揀好嘅 Cheap LFS 儲存位置，再換成細 pointer。失手嘅檔案會留喺 Changes 等下次 commit，其他揀咗嘅安全變更會照行。',
+  'cheapLfs.settings.parallelUploads': '一次過載最多 3 個大檔案',
+  'cheapLfs.settings.parallelUploadsHelp':
+    '會用最多三條獨立 Cheap LFS 傳輸通道；熄咗就逐個檔案上載。',
+  'cheapLfs.settings.ghcrStorage': '用一個 GHCR image 儲晒 Cheap LFS',
+  'cheapLfs.settings.ghcrStorageHelp':
+    '成個 repository 嘅物件會放入一個鎖定 digest 嘅 OCI image。私人 repository 會用一條一齊 track 嘅共享 key 加密物件。',
+  'cheapLfs.settings.storageProvider': '大檔案儲存位置',
+  'cheapLfs.settings.storageRelease': 'GitHub 已發佈 prerelease',
+  'cheapLfs.settings.storageGhcr': 'GHCR · 一個 OCI image',
+  'cheapLfs.settings.storageDockerHub': 'Docker Hub · 一個 OCI image',
+  'cheapLfs.pinFailures.title': '有啲大檔案未 pin 到',
+  'cheapLfs.pinFailures.one':
+    '{names} 會留喺 Changes；為免原裝大檔案入咗 commit，今次已經排除佢。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢個檔案。',
+  'cheapLfs.pinFailures.many':
+    '{count} 個大檔案（{names}）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
+  'cheapLfs.pinFailures.manyOmitted':
+    '{count} 個大檔案（{names}，仲有 {omitted} 個）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
+  'commit.postCommitMaintenance.title': 'Commit 搞掂咗；維護要跟進',
+  'commit.postCommitMaintenance.body':
+    'Commit 已經成功建立，不過 Git 之後做維護嗰陣報錯。你可以安全 push，得閒先另外做 repository 維護。',
+  'push.commitBatch.message': '自動 push 第 {current}/{total} 批',
+  'push.commitBatch.completedTitle': '大型本機 push 已分批搞掂',
+  'push.commitBatch.existingBody':
+    '已經逐批 push 同核實 {count} 個現有本機 commit，之後先繼續。',
+  'push.commitBatch.rewrittenBody':
+    '已安全重整過大而只喺本機嘅歷史，再用非 force push 逐批 push 同核實 {count} 批。',
+  'changesFilter.cheapLfsCandidates': 'Cheap LFS 候選檔案（>100 MiB）',
+  'changesFilter.filtersAriaLabel': '變更篩選器',
   'workflowDispatch.searchPlaceholder': '打字搵 workflow，睇個名或者檔案…',
   'workflowDispatch.searchAriaLabel': '篩 workflow',
   'workflowDispatch.listAriaLabel': 'Workflow 清單',

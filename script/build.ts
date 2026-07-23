@@ -54,6 +54,7 @@ import {
 } from 'fs'
 import { updateLicenseDump } from './licenses/update-license-dump'
 import { verifyInjectedSassVariables } from './validate-sass/validate-all'
+import { prepareBundledCheapLfsOrasForBuild } from './prepare-cheap-lfs-oras'
 import { join } from 'path'
 import assert from 'assert'
 
@@ -82,6 +83,14 @@ if (require.main === module) {
   console.log('Copying static resources…')
   copyStaticResources()
 
+  if (process.platform === 'win32') {
+    console.log('Preparing pinned Cheap LFS ORAS runtime…')
+  }
+  const cheapLfsOrasPreparation =
+    process.platform === 'win32'
+      ? prepareBundledCheapLfsOrasForBuild({ generatedOutputRoot: outRoot })
+      : Promise.resolve(null)
+
   console.log('Parsing license metadata…')
   generateLicenseMetadata(outRoot)
 
@@ -96,16 +105,18 @@ if (require.main === module) {
     cp.execSync(path.join(__dirname, 'setup-macos-keychain'))
   }
 
-  verifyInjectedSassVariables(outRoot)
-    .catch(err => {
-      console.error(
-        'Error verifying the Sass variables in the rendered app. This is fatal for a published build.'
-      )
+  cheapLfsOrasPreparation
+    .then(() =>
+      verifyInjectedSassVariables(outRoot).catch(err => {
+        console.error(
+          'Error verifying the Sass variables in the rendered app. This is fatal for a published build.'
+        )
 
-      if (!isDevelopmentBuild) {
-        process.exit(1)
-      }
-    })
+        if (!isDevelopmentBuild) {
+          process.exit(1)
+        }
+      })
+    )
     .then(() => {
       console.log('Updating our licenses dump…')
       return updateLicenseDump(projectRoot, outRoot).catch(err => {

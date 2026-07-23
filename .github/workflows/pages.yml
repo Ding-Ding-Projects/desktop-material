@@ -6,7 +6,7 @@ on:
       - main
     paths:
       - 'site/**'
-      - 'docs/assets/screenshots/**'
+      - 'docs/**'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -29,12 +29,74 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
 
+      - name: Install pandoc
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends pandoc
+
       - name: Assemble publish directory
         run: |
           mkdir -p _site
           cp -r site/* _site/
+          rm -f _site/docs-template.html _site/md-links.lua _site/docs-search.html
           mkdir -p _site/docs/assets/screenshots
           cp -r docs/assets/screenshots/* _site/docs/assets/screenshots/
+          cp site/docs-search.html _site/docs/search.html
+
+      # The Docs button serves the complete rendered documentation set from
+      # GitHub Pages itself rather than redirecting to github.com.
+      - name: Render documentation to HTML
+        run: |
+          set -euo pipefail
+          shopt -s globstar nullglob
+          for src in docs/**/*.md; do
+            rel="${src#docs/}"
+            case "$(basename "$src")" in
+              README.md) out="_site/docs/$(dirname "$rel")/index.html" ;;
+              *) out="_site/docs/${rel%.md}.html" ;;
+            esac
+            out="${out/\/.\///}"
+            mkdir -p "$(dirname "$out")"
+            depth="$(dirname "$rel" | tr -cd '/' | wc -c)"
+            if [ "$(dirname "$rel")" = "." ]; then
+              docsroot=""
+            else
+              docsroot="$(printf '../%.0s' $(seq 0 "$depth"))"
+            fi
+            title="$(sed -n 's/^# //p' "$src" | head -1)"
+            [ -n "$title" ] || title="$(basename "${src%.md}")"
+            pandoc "$src" \
+              --from gfm \
+              --to html5 \
+              --standalone \
+              --template site/docs-template.html \
+              --lua-filter site/md-links.lua \
+              --metadata pagetitle="$title" \
+              --variable docsroot="$docsroot" \
+              --output "$out"
+          done
+          # Root-level project documents referenced from docs/ (ROADMAP,
+          # HANDOFF, …). The site homepage stays site/index.html, so the
+          # repository README renders as README.html rather than index.html.
+          for src in *.md; do
+            pandoc "$src" \
+              --from gfm \
+              --to html5 \
+              --standalone \
+              --template site/docs-template.html \
+              --lua-filter site/md-links.lua \
+              --metadata pagetitle="${src%.md}" \
+              --variable docsroot="docs/" \
+              --output "_site/${src%.md}.html"
+          done
+          test -f _site/docs/index.html
+
+      - name: Build documentation search index
+        run: |
+          node site/build-search-index.js _site
+          rm -f _site/build-search-index.js
+          test -s _site/docs/search-index.json
+          test -f _site/docs/search.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

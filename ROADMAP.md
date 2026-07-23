@@ -1,18 +1,140 @@
 ﻿# Desktop Material roadmap
 
-Updated: **July 21, 2026**
+Updated: **July 23, 2026**
 
-Desktop Material's feature roadmap is complete through the **M21 advanced
-workflow wave** below, with the **M22 owner-scoped management and publication
-wave** in its separately tracked visual acceptance and the **M23 full Ollama
-model manager** complete, published, and remotely verified. The **M24 guided
-sparse-checkout workflow** has completed implementation and local acceptance.
-The **M25 repository-bound API functions** are implemented and the **M26 Cheap
-LFS / Express Release** family is built. This file is the compact public source
-of truth; implementation details and historical test receipts stay in
-[PLAN.md](PLAN.md) and [HANDOFF.md](HANDOFF.md).
+Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
+M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
+published byte-identically, and the exact acceptance/publication state for
+M24–M27 is listed below. The July 22 tab-group, command-palette, Alt-key,
+release-gate, and Cheap LFS UI continuation is implemented, locally accepted,
+pushed to `main`, and verified through the exact-source CI, CodeQL, Pages, wiki,
+and installer-release pipelines.
+This file is the compact public source of truth; implementation details and
+historical test receipts stay in [PLAN.md](PLAN.md) and
+[HANDOFF.md](HANDOFF.md).
 
-## M27 — Reviewed pull previews — **Implementation and local acceptance complete**
+## July 23 cross-lane updater recovery — **Verified**
+
+Commits `241cc90ce9` and `04246fdf12` moved both release lanes into one
+Squirrel-monotonic alphabetic `z` namespace and removed the legacy comparer's
+decimal `Int32` overflow. Exact-source CI `29977738533` and installer run
+`29978844761` succeeded; the latter published six-asset exact-target Release
+`v3.6.3-beta3-zadtberjmv`. A live installed
+`3.6.3-beta3-s000000000201` build automatically downloaded and applied it.
+Super Express run `29980281736` then published the greater same-SHA
+`v3.6.3-beta3-zadtbhvdfc`, and the isolated legacy UI visibly progressed from
+**Downloading update…** to **Quit and Install Update**. The detailed receipt is
+in [HANDOFF.md](HANDOFF.md).
+
+## July 23 Cheap LFS + push batching — **Local build/UI acceptance complete**
+
+- Cheap LFS commit preparation now exposes sanitized per-file phases, bytes,
+  success/failure counts, and the selected-versus-recommended storage route in
+  a compact terminal below Commit. A persisted default-on toggle permits up to
+  three transfers; sequential mode remains available. Failed raw large files
+  stay selected for retry while successful pointers and unrelated safe changes
+  can commit, and the Changes filter can isolate files over 100 MiB.
+- Repository settings select published GitHub prereleases, GHCR, or Docker Hub.
+  The registry modes publish the full repository object set as one logical OCI
+  image within 4,096-object, 8,192-layer, and 8 MiB config/manifest proof
+  bounds, create a new immutable manifest for each add/remove snapshot, reuse
+  unchanged blobs, retention-tag every published digest, and point Git only at
+  verified immutable digests. A timed-out layer is rebuilt at half the previous
+  bound down to 8 MiB; accepted blobs are reused, but an incomplete immutable
+  layer is never appended to.
+- Verified-private source repositories encrypt each registry chunk with
+  AES-256-GCM and intentionally share the key through the tracked private Git
+  repository. The documentation calls out that this protects a registry-only
+  leak, not anyone who can read the repository or its history. Private pointers
+  bind the exact key id and the commit flow force-includes and proves that key.
+  Clone, pull, fetch, and open detection restores strict pointers by default,
+  including old pointer-only clones; public registry and explicitly public
+  GitHub.com Release restores can run while signed out.
+- GHCR retains its documented 10 GB-per-layer and ten-minute transfer bounds;
+  Docker Hub's changing plan, pull, storage, and fair-use limits remain provider
+  policy rather than invented hard caps. The app recommends Git, Releases,
+  private-source GHCR, or configured Docker Hub from the selected byte count
+  without overriding the saved provider. Provider setup is a recommendation
+  signal, not proof of live quota or organization policy. Same-provider updates
+  retain existing Docker organization/collaborator targets; cross-provider
+  migration requires exact materialized raws. A first public GHCR package fails
+  before upload because GitHub creates it private; Releases, Docker Hub, or an
+  already linked public package are the supported routes.
+- Windows packaging pins ORAS 1.3.2 and ships its verified Apache-2.0 license.
+  The ARM64 package currently depends on Windows 11 x64 emulation for that
+  audited x64 binary. GitHub's OAuth scope reference grants package access to
+  `write:packages`, while its registry page separately says PAT classic only;
+  the non-mutating account challenge passed, but no live package mutation is
+  claimed and a registry rejection fails closed.
+- Ordinary Git changes are measured conservatively below a decimal 1.5 GB push
+  ceiling, using a 1.4 GB changed-blob budget plus bounded path/proof overhead.
+  Each batch is committed, durably checkpointed, pushed, and proven as the
+  remote tip before the next commit exists; intent/pending transitions use
+  atomic two-ref transactions. Push also detects
+  older oversized local-only history: clean linear branches are protected by a
+  compare-and-swap backup ref and safely rebuilt without force-push. Rebuilt
+  batches preserve the reviewed message/final tree but receive new IDs, do not
+  retain cryptographic signatures, and do not promise original author
+  timestamps. App-owned
+  commit commands use process-local `-c gc.auto=0` and validate HEAD so a valid
+  commit followed by unrelated maintenance failure is reported once instead of
+  duplicated.
+
+Focused local evidence passes **80/80** Release/OCI operations, **77/77**
+registry transport/runtime cases, **117/117** disposable-Git batching cases,
+**157/157** UI/settings/localization cases, **8/8** ORAS scripts, **17/17**
+headless-verifier contracts, and **7/7** compact-shell style checks. The exact
+unpackaged production build returned `0` after 1,466.27 seconds. The accepted
+1440×960 English frame passed **36/36** acceptance checks (all **35/35** named
+surface assertions plus its deterministic one-pointer selection receipt) and
+proves the three-lane terminal. The 640×960 bilingual attempt failed closed
+without a capture because the focused renderer remained visibility-hidden;
+narrow acceptance is not claimed. The full Cheap LFS folder aggregate is
+**261/262** only because one
+wall-clock policy case exceeded its harness budget under concurrent heavy Git
+work; its isolated rerun passed **8/8**. See the
+[dated local receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
+Commit/push, exact-source CI and CodeQL, Pages/wiki publication, and non-draft
+installer Release verification remain pending.
+
+## July 22 tab groups, command palette, and input/release reliability — **Implementation and publication verified**
+
+- Named/color-coded group chips now show member counts and real expanded state;
+  collapsing hides member tabs and the chip restores them by mouse, Enter, or
+  Space. Group mutations announce their result and retain focus safely.
+- Group definitions and collapse state survive tab opens/closes, bulk closes,
+  imports, per-window persistence, legacy mirroring, reload, and unknown-field
+  round trips. A group cannot cross the pinned/unpinned boundary. Portable
+  session export intentionally omits profile-local group definitions and
+  `groupId` memberships.
+- Tab-group actions and the rich command-palette shell/rows/appearance editor
+  now follow English, playful Hong Kong-style Cantonese, or bilingual mode.
+  Palette density plus icon/group/keyword visibility remains persisted and
+  repaired safely.
+- Bare Alt uses an explicit one-press state machine, so repeats, other keys,
+  modifiers, prevented events, modal transitions, and out-of-order releases do
+  not leak into the next menu toggle.
+- Super Express Release now runs complete unit and script suites before build/
+  package while continuing to skip lint, E2E, and history-generated notes;
+  release pull requests target `main`.
+- The previously published baseline `7edca120c5` passed
+  [CI `29895625564`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625564),
+  [code scanning `29895625583`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625583),
+  and [Build Installers `29896993449`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29896993449),
+  which published
+  [`v3.6.3-beta3-b0000040881`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040881)
+  with six required assets. Those are baseline receipts only. The current
+  continuation's exact unpackaged production build passed through the fixed MCP
+  endpoint, and off-screen interaction accepted the restart-restored collapsible
+  group chip plus the fully visible rich-row palette editor. Two inspected
+  1000×687 captures now appear in README, Pages, and wiki sources. Final source
+  checkpoint `f7b4760a13894f0320f7b361f055f6fba40d913f` passed exact-source CI
+  `29972351158`, CodeQL `29972351173`, and Pages `29972351147`; wiki commit
+  `407cbf260c229e9f8e7fd86062afad83e5080f63` is synchronized, and installer run
+  `29973527338` published six-asset Release `v3.6.3-beta3-b0000040887` from the
+  exact tag.
+
+## M27 — Reviewed pull previews — **Implementation, acceptance, and publication verified**
 
 Toolbar and application-menu pulls now fetch first and open a blocking review
 of the exact current/upstream refs and OIDs, ahead/behind topology, effective Git
@@ -22,20 +144,35 @@ then integrates the reviewed upstream commit without a second superproject
 fetch. Detached, dirty, conflicted, stale, failed-fetch, busy, and unsafe
 fast-forward-only states remain non-destructive. Focused tests, TypeScript,
 lint/format checks, the production build, and an isolated off-screen Win32 pull
-exercise passed; remote CI, Pages, and release verification follow the `main`
-push recorded in [HANDOFF.md](HANDOFF.md).
+exercise passed. Exact-source CI, CodeQL, Pages, synchronized wiki, and the
+six-asset Windows x64 Release are verified for the `main` push recorded in
+[HANDOFF.md](HANDOFF.md).
 
-## M26 — Cheap LFS / Express Release — **Implementation complete; publication verification pending**
+## M26 — Cheap LFS / Express Release — **Live cloud Actions/UI and source publication verified**
 
 - **Release-backed large-file storage**: The repository rail's **Large files**
   manager can pin working-tree files over 100 MiB to GitHub Release assets,
   leaving small human-readable pointers at their tracked paths. Automatic pinning
   gates on commit entry points and downloads materialize detected pointers after
   clone, pull, user fetch, or open under one cancelable batch. Multi-gigabyte
-  files are split into ordered raw parts smaller than 2 GiB with whole-file and
+  files are split into ordered raw parts of at most 1.5 GiB with whole-file and
   per-part SHA-256 verification. The manager lists and searches committed
   pointers, restores individually or all at once, and never requires browsing or
   decoding release asset names externally.
+- **Cloud compression**: Public repositories receive an automatic reviewed
+  caller; private repositories remain off until explicit persisted consent.
+  The SHA-pinned Action streams one Release object at a time directly to a
+  raw-DEFLATE side asset, never uses Actions artifact/cache storage, updates
+  only verified beneficial objects to v1 `part-deflate`, retains every raw
+  historical asset, and leaves failed/non-beneficial pointers cloneable.
+  Desktop Material is the only decompressor and verifies bounded expanded
+  bytes locally. Focused real-action, policy, failure, UI, and materialization
+  tests pass. Retained public/private production-UI caller commits triggered
+  successful Actions runs that adopted 1,033-byte side assets, and both bot
+  pointers restored locally to the exact original 1 MiB SHA-256. A preceding
+  public draft-tag 404 also proved the raw pointer and asset remain usable after
+  a failed run. Draft lookup is bounded to 10,000 releases; a missing bounded
+  draft or a full 1,000-asset Release fails safely without pointer adoption.
 - **Manual browser handoff**: When the trusted GitHub CLI path cannot complete
   safely, a browser-assisted upload handoff plans every remaining file, splits
   sources into ordered .partNNN files in a flat bounded folder, opens the
@@ -43,19 +180,42 @@ push recorded in [HANDOFF.md](HANDOFF.md).
   retry intervals, accepts only new exact-name/size assets, re-hashes every
   source before writing pointers, and records a version-2 manifest of original
   nested paths and flat asset ranges.
-- **Express Release fast lane**: A workflow_dispatch-only emergency release path
-  checks out the exact SHA, restores the dependency cache, skips lint and all test
-  suites, builds and packages Windows x64 directly, verifies the Squirrel/
-  installer/portable payload, writes a local note from the checked-out commit,
-  preserves an uncompressed artifact, and publishes one uniquely tagged release.
-- **Super Express Release**: Combines the package base with its run number and
-  attempt into NuGet-compatible unique immutable tags. Has no shared concurrency
-  group so newer dispatches cannot cancel older ones. Failed or cancelled main CI
-  still runs the package lane for a recoverable Actions artifact but cannot publish.
-- **Build & Run integration**: Two new preferences — "Pin large files before
-  committing" and "Download large files after cloning" — are both enabled by
-  default. The Large files surface is reachable from both the repository rail and
-  Repository Tools hub.
+- **Super Express Release fast lane**: A workflow_dispatch-only emergency
+  release path checks out the exact SHA, restores the dependency cache, runs the
+  complete unit and script suites, then builds and packages Windows x64
+  directly. It skips lint, E2E, and history-generated notes, verifies the
+  Squirrel/installer/portable payload, writes a local note from the checked-out
+  commit, preserves an uncompressed artifact, and publishes one uniquely tagged
+  release.
+- **Cross-lane updater ordering**: Automatic and Super Express packages now use
+  one validated `z` plus fixed-width, nine-letter base-26 GitHub run-ID
+  namespace. It sorts above the legacy `b…`/`s…` lanes that stranded Super
+  Express installations, keeps reruns deterministic, and avoids the legacy
+  Squirrel `Int32` overflow caused by long numeric prerelease tails. Both
+  workflows create
+  immutable non-latest Releases, then revalidate current `main` and reconcile
+  the greatest same-SHA version before promotion. No shared concurrency group
+  cancels older work. Failed or cancelled main CI still retains a recoverable
+  package artifact but cannot publish.
+- **Build & Run integration**: "Pin large files before committing", "Upload up
+  to three large files at once", and "Download large files after cloning" are
+  enabled by default. A persisted storage-provider selector adds published
+  prerelease, GHCR, and Docker Hub choices. The Large files surface is reachable
+  from both the repository rail and Repository Tools hub.
+- **Live GitHub and Desktop Material UI acceptance**: Retained public and
+  private test repositories each contain pushed UI-created five-line pointers,
+  draft-prerelease 1 MiB assets, and the generated Cheap LFS logo. Fresh clones
+  resolved to the exact UI commits and retained pointers instead of Git LFS
+  objects. The production app materialized and re-pinned both payloads through
+  the Large files UI and native picker using an explicitly authorized temporary
+  secure-store bridge that was deleted and verified absent after the runs. See
+  the
+  [dated receipt](docs/verification/cheap-lfs-github-public-private-2026-07-22.md).
+- **Source publication receipt**: Exact checkpoint `f7b4760a13894f0320f7b361f055f6fba40d913f`
+  passed CI, CodeQL, and Pages; the seven-page wiki is synchronized and the live
+  gallery serves all 73 figures. The downstream installer workflow published
+  latest Release `v3.6.3-beta3-b0000040887` from that exact tag with all six
+  required Windows x64 assets.
 - See the feature guide at
   [docs/features/repository-management/release-backed-cheap-lfs.md](docs/features/repository-management/release-backed-cheap-lfs.md).
 
@@ -255,7 +415,7 @@ installer/portable-ZIP release workflow.
 
 ## Ongoing maintenance
 
-- The uild-installers.yml workflow publishes exactly one uniquely tagged release after
+- The `build-installers.yml` workflow publishes exactly one uniquely tagged release after
   CI succeeds for every same-repository main push, including documentation-only pushes.
   Verify the exact SHA, CI gate, release target, and required non-empty assets for each
   final push.
@@ -272,9 +432,13 @@ installer/portable-ZIP release workflow.
 
 The following items track the current cycle's progress against all six acceptance gates:
 
+<!-- markdownlint-disable MD013 -->
+
 | Feature / Gate | Status | Key Evidence |
 |---|---|---|
-| M26 Cheap LFS / Express Release | **Implementation complete** | 165/165 changed-surface tests across 18 suites; 34/34 transfer and localization tests; exact-source production build passed; comprehensive pointer-test, operations-test, manual-upload-test, automation-test, commit-entry-points-test, commit-status-refresh-test, github-release-transfer-test coverage; multi-part split upload with SHA-256 verification; browser handoff with version-2 manifest; super-express release workflow verified 4/4 focused tests |
+| Cross-lane automatic updater migration | **Complete; both release lanes and installed UI verified** | `241cc90` introduced the shared lane and `04246fdf` corrected the legacy integer-overflow boundary. CI `29977738533`, installer run `29978844761`, Super Express run `29980281736`, two six-asset exact-target `z…` Releases, automatic `s000000000201` migration, and the real download/ready UI are verified. |
+| July 22 tab groups, palette, Alt, and release gates | **Complete; source publication verified** | Source contracts cover persistence, pin-boundary safety, portable-export stripping, three language modes, rich palette rows/appearance, deterministic bare-Alt sequencing, Super Express test-before-build, and release-PR `main` targeting. The production build and off-screen acceptance passed; source `f7b4760a13` passed CI, CodeQL, Pages, synchronized wiki publication, and exact-tag six-asset Release verification. |
+| M26 Cheap LFS / Express Release | **Complete; live public/private UI and source publication verified** | Retained public/private repositories contain pushed UI-created raw pointers and exact 1 MiB draft-release assets. Public automatic setup and private explicit opt-in produced successful Actions runs `29969707165` and `29969957449`; each bot commit adopted a verified 1,033-byte `part-deflate` asset while retaining raw history. Both compressed pointers restored through the production UI to SHA-256 `30e14955…`; failed public run `29967844734` left its raw pointer cloneable and UI-materializable. Source `f7b4760a13` passed CI, CodeQL, Pages/wiki publication, cleanup audit, and exact-tag six-asset Release verification. |
 | July 21 Settings queue and mobile connection | **Implementation complete** | Verified empty-account copy, persisted-policy hydration, required-directory validation, parallel/sequential changes, enable/disable dispatch, English/Cantonese/bilingual rendering, responsive-surface registration |
 | July 21 responsiveness hardening | **Local implementation complete** | Deterministic regressions verified for remote scan terminator, late termination rejection, same-URL proxy coalescing, strict clone barrier, every prompt family, 500-update burst, failed request-ID reuse, and 25 Markdown reloads |
 | M25 Repository-bound API functions | **Implementation complete** | Built-in function seeding verified; function-button execution tested; per-repository rail visibility persistence checked; responsive Explorer styles verified |
@@ -287,8 +451,10 @@ The following items track the current cycle's progress against all six acceptanc
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on main |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
-| Documentation gallery expansion | **M22 full refresh in progress** | README, wiki, and Pages now declare 66 app screenshots. All 66 must be recaptured from the final production build with synthetic data; stale monolithic appearance scenes are being replaced by actual-owner anchored scenes, and specialized large-file, repository-discovery, and submodule-management frames are being added. Final completion requires original-resolution privacy inspection and byte-identical Pages/wiki delivery |
+| Documentation gallery expansion | **75-scene source catalog** | README, wiki, and Pages source catalog 75 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the accepted Cheap LFS commit-progress frame to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
+
+<!-- markdownlint-enable MD013 -->
 
 ## Acceptance gates
 

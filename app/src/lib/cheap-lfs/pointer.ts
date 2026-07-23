@@ -21,11 +21,12 @@ export const CHEAP_LFS_POINTER_VERSION = 'desktop-material/cheap-lfs/v1'
 const CheapLfsLegacyMaximumPartSizeBytes = 2 * 1024 * 1024 * 1024
 
 /**
- * The per-part size used for new uploads. GitHub requires each release asset to
- * be under 2 GiB, so leave one byte of headroom while retaining parser support
- * for legacy pointers whose parts are exactly 2 GiB.
+ * The per-part size used for new uploads. GitHub requires each release asset
+ * to be under 2 GiB, but uploads near that ceiling proved unreliable in
+ * practice, so new parts are capped at 1.5 GiB. The parser retains support
+ * for legacy pointers whose parts are up to exactly 2 GiB.
  */
-export const CHEAP_LFS_PART_SIZE_BYTES = CheapLfsLegacyMaximumPartSizeBytes - 1
+export const CHEAP_LFS_PART_SIZE_BYTES = 1536 * 1024 * 1024
 
 /**
  * Pointers are small, but a multi-part pointer for a very large file lists one
@@ -323,8 +324,17 @@ export function validateCheapLfsTrackedPath(relPath: string): string | null {
   if (typeof relPath !== 'string') {
     return null
   }
-  const normalized = relPath.trim().replace(/\\/g, '/')
+  // Never silently retarget a reviewed spelling. Win32 removes trailing spaces
+  // and periods, treats ':' as an alternate-data-stream separator, and aliases
+  // device basenames such as NUL/CON even when they carry an extension.
+  if (relPath !== relPath.trim()) {
+    return null
+  }
+  const normalized = relPath.replace(/\\/g, '/')
   const segments = normalized.split('/')
+  const invalidWindowsSegmentCharacters = /[<>:"|?*\u0000-\u001f]/
+  const reservedWindowsBasename =
+    /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i
   if (
     normalized.length === 0 ||
     normalized.length > 4096 ||
@@ -334,6 +344,13 @@ export function validateCheapLfsTrackedPath(relPath: string): string | null {
     segments.includes('..') ||
     segments.includes('.') ||
     segments.some(segment => segment.length === 0) ||
+    segments.some(
+      segment =>
+        segment.length > 255 ||
+        invalidWindowsSegmentCharacters.test(segment) ||
+        /[ .]$/.test(segment) ||
+        reservedWindowsBasename.test(segment)
+    ) ||
     /^\.git/i.test(segments[0])
   ) {
     return null

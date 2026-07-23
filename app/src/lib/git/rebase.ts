@@ -519,7 +519,12 @@ export async function continueRebase(
     )
 
     const result = await git(
-      ['rebase', '--skip', ...(opts?.noVerify ? ['--no-verify'] : [])],
+      [
+        ...gitRebaseArguments(),
+        'rebase',
+        '--skip',
+        ...(opts?.noVerify ? ['--no-verify'] : []),
+      ],
       repository.path,
       'continueRebaseSkipCurrentCommit',
       options
@@ -529,7 +534,12 @@ export async function continueRebase(
   }
 
   const result = await git(
-    ['rebase', '--continue', ...(opts?.noVerify ? ['--no-verify'] : [])],
+    [
+      ...gitRebaseArguments(),
+      'rebase',
+      '--continue',
+      ...(opts?.noVerify ? ['--no-verify'] : []),
+    ],
     repository.path,
     'continueRebase',
     options

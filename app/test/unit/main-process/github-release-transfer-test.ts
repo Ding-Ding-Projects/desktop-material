@@ -167,6 +167,72 @@ describe('main-process GitHub release transfer', () => {
     })
   })
 
+  it('permits a bounded anonymous GitHub.com download without an Authorization header', async () => {
+    await withDirectory(async directory => {
+      let requests = 0
+      const dependencies: IGitHubReleaseTransferDependencies = {
+        fetch: async (url, init) => {
+          requests++
+          assert.equal(
+            url,
+            'https://api.github.com/repos/desktop/material/releases/assets/19'
+          )
+          assert.equal(new Headers(init.headers).has('Authorization'), false)
+          return new Response(bytes, {
+            headers: { 'Content-Length': String(bytes.byteLength) },
+          })
+        },
+        upload: async () => {
+          throw new Error('unexpected upload')
+        },
+        redirects: noRedirects,
+      }
+      const destination = join(directory, 'public.exe')
+
+      const result = await handleGitHubReleaseAssetDownload(
+        new TestSender(38),
+        downloadRequest(destination, { token: '' }),
+        dependencies
+      )
+
+      assert.equal(result.ok, true)
+      assert.equal(requests, 1)
+      assert.deepEqual(await readFile(destination), bytes)
+    })
+  })
+
+  it('never accepts a blank token for an upload mutation', async () => {
+    await withDirectory(async directory => {
+      const source = join(directory, 'public.exe')
+      await writeFile(source, bytes)
+      let mutations = 0
+      const result = await handleGitHubReleaseAssetUpload(
+        new TestSender(39),
+        uploadRequest(source, { token: '' }),
+        {
+          fetch: async () => {
+            mutations++
+            return new Response(null, { status: 204 })
+          },
+          upload: async () => {
+            mutations++
+            return new Response(JSON.stringify(uploadedAsset()), {
+              status: 201,
+            })
+          },
+          redirects: noRedirects,
+        }
+      )
+
+      assert.deepEqual(result, {
+        ok: false,
+        reason: 'invalid-request',
+        status: null,
+      })
+      assert.equal(mutations, 0)
+    })
+  })
+
   it('strips authentication after the first validated redirect', async () => {
     await withDirectory(async directory => {
       const signedURL = 'https://objects.githubusercontent.com/release.exe'
@@ -266,6 +332,39 @@ describe('main-process GitHub release transfer', () => {
         sender.sent.map(progress => progress.transferredBytes),
         [0, bytes.byteLength]
       )
+    })
+  })
+
+  it("accepts GitHub's empty-string response for an unlabeled upload", async () => {
+    await withDirectory(async directory => {
+      const source = join(directory, 'unlabeled.bin')
+      await writeFile(source, bytes)
+      let cleanupCalls = 0
+      const result = await handleGitHubReleaseAssetUpload(
+        new TestSender(37),
+        uploadRequest(source, { label: undefined }),
+        {
+          fetch: async (_url, init) => {
+            if (init.method === 'DELETE') {
+              cleanupCalls++
+            }
+            return new Response(null, { status: 204 })
+          },
+          upload: async () =>
+            new Response(
+              JSON.stringify({
+                ...uploadedAsset(),
+                name: 'desktop.exe',
+                label: '',
+              }),
+              { status: 201 }
+            ),
+          redirects: noRedirects,
+        }
+      )
+
+      assert.equal(result.ok, true)
+      assert.equal(cleanupCalls, 0)
     })
   })
 

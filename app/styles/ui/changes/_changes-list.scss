@@ -688,23 +688,35 @@
 }
 
 .hidden-changes-warning {
+  box-sizing: border-box;
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  gap: var(--spacing-half);
+  min-width: 0;
   background-color: var(--file-warning-background-color);
   padding: var(--spacing-half) var(--spacing);
   border-bottom: var(--file-warning-border-color) solid 1px;
   border-top: var(--file-warning-border-color) solid 1px;
-
-  // To overlap the commit message form border
-  margin-bottom: -1px;
-  z-index: 1;
+  line-height: 1.35;
 
   .octicon {
+    flex: 0 0 auto;
     color: var(--file-warning-color);
-    margin-right: var(--spacing-half);
-    vertical-align: text-bottom;
+    margin-top: 2px;
+  }
+
+  .hidden-changes-warning-message {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
 
   .link-button-component {
     display: inline;
+    line-height: inherit;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 }
 
@@ -762,6 +774,30 @@
   // vertical scrolling when the commit composer also needs space.
   min-height: 148px;
   min-width: 0;
+
+  // The inline filter chips are content-sized and can wrap across several
+  // lines (especially in bilingual mode). The explicit state class avoids a
+  // flex-basis cycle where the filter list reserves only its first chip row
+  // while later rows paint over stashes, the hidden-changes warning, and the
+  // commit composer. The sidebar remains the single vertical scroll owner.
+  // Keep one file row reachable without allowing that virtualized child to
+  // collapse the content-sized header.
+  &.has-inline-filter-chips {
+    flex: 0 0 auto;
+    height: auto;
+    overflow: visible;
+
+    > .filter-list {
+      flex: 0 0 auto;
+      min-height: min-content;
+
+      > .filter-list-container {
+        flex: 0 0 34px;
+        height: 34px;
+        min-height: 34px;
+      }
+    }
+  }
 
   // Panel header (§6.1): H1 "Changes" title + secondary-container count chip,
   // sitting above the search field via the filter list's `renderPreList` hook.
@@ -947,30 +983,55 @@
   // tune button is toggled. Tonal-selectable predicate chips (leading check
   // when active) + a trailing primary-container "Regex builder" chip.
   .changes-filter-chips {
+    box-sizing: border-box;
     display: flex;
+    flex: 0 0 auto;
     flex-wrap: wrap;
-    align-items: center;
+    align-items: flex-start;
+    align-content: flex-start;
     gap: 6px;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     margin-top: 8px;
     animation: dmUp 340ms var(--spring) backwards;
 
     .changes-filter-chip,
     .changes-regex-builder-chip {
+      box-sizing: border-box;
       display: inline-flex;
       align-items: center;
+      justify-content: flex-start;
+      flex: 0 1 auto;
       gap: 6px;
-      height: 30px;
-      padding: 0 12px;
+      max-width: 100%;
+      min-width: 0;
+      min-height: 30px;
+      height: auto;
+      padding: 7px 12px;
       border: 0;
       border-radius: 999px;
       font-size: 12px;
       font-weight: 700;
-      line-height: 1;
+      line-height: 1.25;
+      text-align: left;
+      white-space: normal;
       cursor: pointer;
       transition: background-color 220ms var(--emph), color 220ms var(--emph), transform 200ms var(--spring-fast);
 
       &:active {
         transform: scale(0.92);
+      }
+
+      .chip-label {
+        min-width: 0;
+        overflow-wrap: anywhere;
+      }
+
+      .chip-count,
+      .chip-check,
+      .chip-glyph {
+        flex: 0 0 auto;
       }
     }
 
@@ -997,6 +1058,14 @@
       .chip-count {
         opacity: 0.7;
         font-weight: 600;
+      }
+
+      // The bilingual Cheap LFS label is intentionally descriptive. The
+      // shared chip rules wrap every language mode; the count stays atomic.
+      &.cheap-lfs-candidate {
+        .chip-count {
+          flex: none;
+        }
       }
     }
 

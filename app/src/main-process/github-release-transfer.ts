@@ -173,8 +173,13 @@ const gitHubDotComReleaseAssetHost =
 const transferPartition = 'github-release-transfer'
 let transferSession: Electron.Session | null = null
 
-/** Abort a request that reports no actual network upload progress for 2 min. */
-export const GitHubReleaseUploadStallTimeoutMs = 2 * 60 * 1000
+/**
+ * Release-asset uploads run with no stall or runtime timeout by default: an
+ * upload ends only on completion, a transport failure, or user cancellation.
+ * Tests inject explicit `stallTimeoutMs`/`maximumRuntimeMs` values to exercise
+ * the watchdog paths.
+ */
+export const GitHubReleaseUploadStallTimeoutMs = null
 /** Bound upload memory while avoiding tens of thousands of 64-KiB writes. */
 export const GitHubReleaseUploadStreamChunkBytes = 1024 * 1024
 
@@ -262,10 +267,10 @@ function validateEndpoint(value: unknown): URL {
   return endpoint
 }
 
-function validateToken(value: unknown): string {
+function validateToken(value: unknown, allowEmpty: boolean = false): string {
   if (
     typeof value !== 'string' ||
-    value.length === 0 ||
+    (!allowEmpty && value.length === 0) ||
     value.length > 16 * 1024 ||
     /[\u0000-\u001f\u007f]/.test(value)
   ) {
@@ -303,12 +308,15 @@ function validateAllowedAccount(endpoint: URL, token: string) {
   }
 }
 
-function validateBase(request: {
-  readonly endpoint: unknown
-  readonly token: unknown
-  readonly owner: unknown
-  readonly repository: unknown
-}): {
+function validateBase(
+  request: {
+    readonly endpoint: unknown
+    readonly token: unknown
+    readonly owner: unknown
+    readonly repository: unknown
+  },
+  allowAnonymousPublicDownload: boolean = false
+): {
   readonly endpoint: URL
   readonly token: string
   readonly owner: string
@@ -318,8 +326,20 @@ function validateBase(request: {
     throw new ReleaseTransferFailure('invalid-request')
   }
   const endpoint = validateEndpoint(request.endpoint)
-  const token = validateToken(request.token)
-  validateAllowedAccount(endpoint, token)
+  const token = validateToken(request.token, allowAnonymousPublicDownload)
+  if (token.length === 0) {
+    // A blank token is accepted only by the download-only caller and only for
+    // GitHub.com. The renderer/store independently requires authoritative
+    // public repository metadata before it can construct this request.
+    if (
+      !allowAnonymousPublicDownload ||
+      endpoint.toString() !== 'https://api.github.com/'
+    ) {
+      throw new ReleaseTransferFailure('invalid-request')
+    }
+  } else {
+    validateAllowedAccount(endpoint, token)
+  }
   return {
     endpoint,
     token,
@@ -438,7 +458,9 @@ async function fetchDownload(
                 'User-Agent': 'DesktopMaterial-ReleasesTransfer',
               }
             )
-            headers.set('Authorization', `Bearer ${token}`)
+            if (token.length > 0) {
+              headers.set('Authorization', `Bearer ${token}`)
+            }
             return headers
           })(),
           redirect: 'manual',
@@ -504,9 +526,6 @@ function uploadEndpoint(endpoint: URL): URL {
   return upload
 }
 
-const GitHubCliUploadMaximumRuntimeMs = 30 * 60 * 1000
-const GitHubCliUploadMaximumExtendedRuntimeMs = 8 * 60 * 60 * 1000
-const GitHubCliUploadMinimumAssumedBytesPerSecond = 128 * 1024
 const GitHubCliUploadMaximumOutputBytes = 2 * 1024 * 1024
 const GitHubCliReconciliationTimeoutMs = 30 * 1000
 const GitHubCliAssetDetectionAttempts = 10
@@ -555,16 +574,6 @@ function boundedGitHubCliDiagnostic(
   return message.length === 0
     ? null
     : message.slice(0, GitHubCliDiagnosticMaximumCharacters)
-}
-
-function githubCliMaximumRuntime(length: number): number {
-  const projected = Math.ceil(
-    (length / GitHubCliUploadMinimumAssumedBytesPerSecond) * 1000
-  )
-  return Math.min(
-    GitHubCliUploadMaximumExtendedRuntimeMs,
-    Math.max(GitHubCliUploadMaximumRuntimeMs, projected)
-  )
 }
 
 function githubCliHost(endpoint: URL): string {
@@ -1014,13 +1023,13 @@ async function runGitHubCliUpload(
   dependencies: Required<
     Pick<
       IGitHubCliReleaseUploadFallbackDependencies,
-      | 'killTree'
-      | 'maximumOutputBytes'
-      | 'maximumRuntimeMs'
-      | 'spawn'
-      | 'stallTimeoutMs'
+      'killTree' | 'maximumOutputBytes' | 'spawn'
     >
-  >
+  > & {
+    /** `null` disables the corresponding watchdog entirely. */
+    readonly maximumRuntimeMs: number | null
+    readonly stallTimeoutMs: number | null
+  }
 ): Promise<{ readonly body: Buffer; readonly localDigest: string }> {
   throwIfAborted(signal)
   let child: ChildProcessWithoutNullStreams
@@ -1080,6 +1089,9 @@ async function runGitHubCliUpload(
     if (activityTimer !== undefined) {
       clearTimeout(activityTimer)
     }
+    if (dependencies.stallTimeoutMs === null) {
+      return
+    }
     activityTimer = setTimeout(
       () => rejectActivity?.(new ReleaseTransferFailure('cli-failed')),
       dependencies.stallTimeoutMs
@@ -1118,6 +1130,9 @@ async function runGitHubCliUpload(
   })
   const runtimeResult = new Promise<never>((_resolve, rejectDeadline) => {
     rejectRuntime = rejectDeadline
+    if (dependencies.maximumRuntimeMs === null) {
+      return
+    }
     runtimeTimer = setTimeout(
       () => rejectRuntime?.(new ReleaseTransferFailure('cli-failed')),
       dependencies.maximumRuntimeMs
@@ -1187,7 +1202,7 @@ export const createGitHubCliReleaseUploadFallback =
       killTree: providedDependencies.killTree ?? killTreeAndWait,
       maximumRuntimeMs:
         providedDependencies.maximumRuntimeMs ??
-        githubCliMaximumRuntime(request.source.length),
+        GitHubReleaseUploadStallTimeoutMs,
       stallTimeoutMs:
         providedDependencies.stallTimeoutMs ??
         GitHubReleaseUploadStallTimeoutMs,
@@ -1554,7 +1569,7 @@ export async function handleGitHubReleaseAssetDownload(
   let active: IActiveTransfer | null = null
   try {
     active = beginTransfer(sender, request?.operationId)
-    const base = validateBase(request)
+    const base = validateBase(request, true)
     validateIdentifier(request.releaseId)
     const assetId = validateIdentifier(request.asset?.id)
     const assetName = normalizeGitHubReleaseAssetName(request.asset?.name)
@@ -1995,6 +2010,9 @@ export const createElectronGitHubReleaseUploadFetcher =
       const armStallWatchdog = () => {
         if (stallTimer !== undefined) {
           clearTimeout(stallTimer)
+        }
+        if (stallTimeoutMs === null) {
+          return
         }
         stallTimer = setTimeout(
           () =>

@@ -83,7 +83,156 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { HookProgress } from '../../lib/git'
 import { assertNever } from '../../lib/fatal-error'
 import { getShowCommitAuthorInfo } from '../../models/commit-author-display'
-import { bilingualVariable, t, translate } from '../../lib/i18n'
+import {
+  bilingualVariable,
+  t,
+  translate,
+  translateForAccessibleName,
+  translatedVariable,
+} from '../../lib/i18n'
+import { formatBytes } from '../lib/bytes'
+import type {
+  CheapLfsAutoPinPhase,
+  ICheapLfsAutoPinProgress,
+} from '../../lib/cheap-lfs/operations'
+
+const CheapLfsTerminalPathMaximumLength = 160
+
+interface ICheapLfsDisplayProgress {
+  readonly completedFiles: number
+  readonly succeededFiles: number
+  readonly failedFiles: number
+  readonly totalFiles: number
+  readonly currentPath: string | null
+  readonly transferredBytes: number
+  readonly totalBytes: number
+  readonly percentage: number | null
+  readonly activeFiles: ReadonlyArray<ICheapLfsDisplayActiveFile>
+  readonly selectedStorageProvider: string | null
+  readonly recommendedStorageProvider: string | null
+  readonly estimatedRegistryLayers: number | null
+}
+
+interface ICheapLfsDisplayActiveFile {
+  readonly path: string
+  readonly phase: CheapLfsAutoPinPhase
+  readonly processedBytes: number
+  readonly totalBytes: number
+  readonly percentage: number | null
+}
+
+/** Keep untrusted progress values finite and inside the range the UI promises. */
+function boundedWholeNumber(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0
+  }
+
+  return Math.min(Number.MAX_SAFE_INTEGER, Math.floor(value))
+}
+
+/**
+ * Strip terminal control characters and cap path output before putting it in
+ * the terminal-like surface. React still performs the final HTML escaping.
+ */
+function sanitizeCheapLfsTerminalPath(path: string | null): string | null {
+  if (path === null) {
+    return null
+  }
+
+  const normalized = path
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (normalized.length === 0) {
+    return null
+  }
+
+  const characters = Array.from(normalized)
+  if (characters.length <= CheapLfsTerminalPathMaximumLength) {
+    return normalized
+  }
+
+  return `${characters
+    .slice(0, CheapLfsTerminalPathMaximumLength - 1)
+    .join('')}…`
+}
+
+function normalizeCheapLfsDisplayProgress(
+  progress: ICheapLfsAutoPinProgress
+): ICheapLfsDisplayProgress {
+  const totalFiles = boundedWholeNumber(progress.totalFiles)
+  const completedFiles = Math.min(
+    totalFiles,
+    boundedWholeNumber(progress.completedFiles)
+  )
+  const totalBytes = boundedWholeNumber(progress.totalBytes)
+  const transferredBytes =
+    totalBytes === 0
+      ? 0
+      : Math.min(totalBytes, boundedWholeNumber(progress.transferredBytes))
+  const percentage =
+    totalBytes === 0
+      ? null
+      : Math.min(100, Math.floor((transferredBytes / totalBytes) * 100))
+  const failedFiles = Math.min(
+    completedFiles,
+    boundedWholeNumber(progress.failedFiles ?? 0)
+  )
+  const succeededFiles = Math.min(
+    completedFiles - failedFiles,
+    boundedWholeNumber(
+      progress.succeededFiles ?? Math.max(0, completedFiles - failedFiles)
+    )
+  )
+  const activeFiles = (progress.activeFiles ?? [])
+    .slice(0, 3)
+    .map(file => {
+      const path = sanitizeCheapLfsTerminalPath(file.relativePath)
+      const fileTotalBytes = boundedWholeNumber(file.totalBytes)
+      const processedBytes =
+        fileTotalBytes === 0
+          ? 0
+          : Math.min(fileTotalBytes, boundedWholeNumber(file.processedBytes))
+      return path === null
+        ? null
+        : {
+            path,
+            phase: file.phase,
+            processedBytes,
+            totalBytes: fileTotalBytes,
+            percentage:
+              fileTotalBytes === 0
+                ? null
+                : Math.min(
+                    100,
+                    Math.floor((processedBytes / fileTotalBytes) * 100)
+                  ),
+          }
+    })
+    .filter((file): file is ICheapLfsDisplayActiveFile => file !== null)
+
+  return {
+    completedFiles,
+    succeededFiles,
+    failedFiles,
+    totalFiles,
+    currentPath: sanitizeCheapLfsTerminalPath(progress.currentPath),
+    transferredBytes,
+    totalBytes,
+    percentage,
+    activeFiles,
+    selectedStorageProvider: progress.selectedStorageProvider ?? null,
+    recommendedStorageProvider: progress.recommendedStorageProvider ?? null,
+    estimatedRegistryLayers:
+      progress.estimatedRegistryLayers === undefined
+        ? null
+        : boundedWholeNumber(progress.estimatedRegistryLayers),
+  }
+}
+
+function formatCheapLfsBytes(bytes: number): string {
+  return bytes === 0 ? '0 B' : formatBytes(bytes, 1)
+}
 
 interface ICreateCommitOptions {
   warnUnknownAuthors: boolean
@@ -1589,7 +1738,8 @@ export class CommitMessage extends React.Component<
     }
 
     const { progress } = phase
-    const count = progress.totalFiles
+    const displayProgress = normalizeCheapLfsDisplayProgress(progress)
+    const count = displayProgress.totalFiles
     const fileKey = count === 1 ? 'cheapLfs.files.one' : 'cheapLfs.files.many'
     const countVariable = { count: count.toString() }
     const files = bilingualVariable(
@@ -1610,14 +1760,7 @@ export class CommitMessage extends React.Component<
         return t('cheapLfs.progress.preparing', variables)
       case 'hashing': {
         const percentage =
-          progress.totalBytes <= 0
-            ? 0
-            : Math.min(
-                100,
-                Math.floor(
-                  (progress.transferredBytes / progress.totalBytes) * 100
-                )
-              )
+          displayProgress.percentage === null ? 0 : displayProgress.percentage
         return t('cheapLfs.progress.hashing', {
           ...variables,
           percentage: percentage.toString(),
@@ -1626,31 +1769,23 @@ export class CommitMessage extends React.Component<
       case 'release':
         return t('cheapLfs.progress.release', variables)
       case 'uploading': {
-        if (progress.totalBytes <= 0 || progress.transferredBytes <= 0) {
+        if (
+          displayProgress.percentage === null ||
+          displayProgress.transferredBytes === 0
+        ) {
           return t('cheapLfs.progress.uploadStarting', variables)
         }
 
-        const percentage = Math.min(
-          100,
-          Math.floor((progress.transferredBytes / progress.totalBytes) * 100)
-        )
         return t('cheapLfs.progress.uploading', {
           ...variables,
-          percentage: percentage.toString(),
+          percentage: displayProgress.percentage.toString(),
         })
       }
       case 'verifying':
         return t('cheapLfs.progress.verifying', variables)
       case 'manual-preparing': {
         const percentage =
-          progress.totalBytes <= 0
-            ? 0
-            : Math.min(
-                100,
-                Math.floor(
-                  (progress.transferredBytes / progress.totalBytes) * 100
-                )
-              )
+          displayProgress.percentage === null ? 0 : displayProgress.percentage
         return t('cheapLfs.progress.manualPreparing', {
           amend,
           percentage: percentage.toString(),
@@ -1925,6 +2060,219 @@ export class CommitMessage extends React.Component<
     )
   }
 
+  /**
+   * A bounded snapshot of structured Cheap LFS progress. This intentionally
+   * does not render raw process output: release-transfer diagnostics can contain
+   * sensitive request details and are kept in the main process.
+   */
+  private getCheapLfsTerminalPhaseText(phase: CheapLfsAutoPinPhase): string {
+    switch (phase) {
+      case 'preparing':
+        return t('cheapLfs.progress.terminalStagePreparing')
+      case 'hashing':
+        return t('cheapLfs.progress.terminalStageHashing')
+      case 'release':
+        return t('cheapLfs.progress.terminalStageRelease')
+      case 'uploading':
+        return t('cheapLfs.progress.terminalStageUploading')
+      case 'verifying':
+        return t('cheapLfs.progress.terminalStageVerifying')
+      case 'manual-preparing':
+        return t('cheapLfs.progress.terminalStageManualPreparing')
+      case 'manual-waiting':
+        return t('cheapLfs.progress.terminalStageManualWaiting')
+      case 'manual-verifying':
+        return t('cheapLfs.progress.terminalStageManualVerifying')
+      case 'manual-detected':
+        return t('cheapLfs.progress.terminalStageManualDetected')
+      default:
+        return assertNever(phase, `Unknown Cheap LFS phase: ${phase}`)
+    }
+  }
+
+  private getCheapLfsStorageProviderVariable(provider: string) {
+    switch (provider) {
+      case 'git':
+        return translatedVariable('cheapLfs.progress.terminalProviderGit')
+      case 'release':
+        return translatedVariable('cheapLfs.settings.storageRelease')
+      case 'ghcr':
+        return translatedVariable('cheapLfs.settings.storageGhcr')
+      case 'docker-hub':
+        return translatedVariable('cheapLfs.settings.storageDockerHub')
+      default:
+        return translatedVariable('cheapLfs.progress.terminalProviderUnknown')
+    }
+  }
+
+  private renderCheapLfsTerminal(
+    progress: ICheapLfsAutoPinProgress
+  ): JSX.Element {
+    const display = normalizeCheapLfsDisplayProgress(progress)
+    const title = t('cheapLfs.progress.terminalTitle')
+    const stage = this.getCheapLfsOperationText() ?? title
+    const files = t('cheapLfs.progress.terminalFilesDetailed', {
+      completed: display.completedFiles.toString(),
+      succeeded: display.succeededFiles.toString(),
+      failed: display.failedFiles.toString(),
+      total: display.totalFiles.toString(),
+    })
+    const bytes =
+      display.totalBytes === 0
+        ? t('cheapLfs.progress.terminalBytesPending')
+        : t('cheapLfs.progress.terminalBytes', {
+            transferred: formatCheapLfsBytes(display.transferredBytes),
+            total: formatCheapLfsBytes(display.totalBytes),
+          })
+    const progressValueText =
+      display.percentage === null
+        ? `${files}; ${bytes}`
+        : `${files}; ${bytes}; ${display.percentage}%`
+    const hasRegistryRecommendation =
+      display.selectedStorageProvider === 'ghcr' ||
+      display.selectedStorageProvider === 'docker-hub' ||
+      display.recommendedStorageProvider === 'ghcr' ||
+      display.recommendedStorageProvider === 'docker-hub'
+    const layers =
+      !hasRegistryRecommendation ||
+      display.estimatedRegistryLayers === null ||
+      display.estimatedRegistryLayers < 1
+        ? ''
+        : translatedVariable(
+            display.estimatedRegistryLayers === 1
+              ? 'cheapLfs.progress.terminalLayer'
+              : 'cheapLfs.progress.terminalLayers',
+            { count: display.estimatedRegistryLayers.toString() }
+          )
+    const storageRecommendation =
+      display.selectedStorageProvider === null ||
+      display.recommendedStorageProvider === null
+        ? null
+        : t(
+            display.selectedStorageProvider ===
+              display.recommendedStorageProvider
+              ? 'cheapLfs.progress.terminalStorageMatched'
+              : 'cheapLfs.progress.terminalStorage',
+            {
+              total: formatCheapLfsBytes(display.totalBytes),
+              selected: this.getCheapLfsStorageProviderVariable(
+                display.selectedStorageProvider
+              ),
+              recommended: this.getCheapLfsStorageProviderVariable(
+                display.recommendedStorageProvider
+              ),
+              layers,
+            }
+          )
+
+    return (
+      <div
+        className="cheap-lfs-mini-terminal"
+        role="region"
+        aria-label={translateForAccessibleName(
+          'cheapLfs.progress.terminalTitle'
+        )}
+      >
+        <div className="cheap-lfs-mini-terminal-header" aria-hidden="true">
+          <span className="cheap-lfs-terminal-lights">
+            <span className="cheap-lfs-terminal-light stop" />
+            <span className="cheap-lfs-terminal-light wait" />
+            <span className="cheap-lfs-terminal-light go" />
+          </span>
+          <span className="cheap-lfs-terminal-title">{title}</span>
+        </div>
+        <div className="cheap-lfs-mini-terminal-body">
+          <div
+            className="cheap-lfs-terminal-command"
+            role="status"
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            <span className="cheap-lfs-terminal-prompt" aria-hidden="true">
+              &gt;
+            </span>
+            <span className="cheap-lfs-terminal-stage">{stage}</span>
+          </div>
+          {storageRecommendation !== null && (
+            <div className="cheap-lfs-terminal-path">
+              {storageRecommendation}
+            </div>
+          )}
+          {display.currentPath !== null && display.activeFiles.length === 0 && (
+            <div className="cheap-lfs-terminal-path">
+              {t('cheapLfs.progress.terminalCurrentFile', {
+                path: display.currentPath,
+              })}
+            </div>
+          )}
+          {display.activeFiles.length > 0 && (
+            <div className="cheap-lfs-terminal-active-files" role="list">
+              {display.activeFiles.map((file, index) => {
+                const phase = this.getCheapLfsTerminalPhaseText(file.phase)
+                const byteProgress =
+                  file.totalBytes === 0
+                    ? t('cheapLfs.progress.terminalBytesPending')
+                    : t('cheapLfs.progress.terminalFileBytes', {
+                        transferred: formatCheapLfsBytes(file.processedBytes),
+                        total: formatCheapLfsBytes(file.totalBytes),
+                        percentage: (file.percentage ?? 0).toString(),
+                      })
+                return (
+                  <div
+                    className="cheap-lfs-terminal-active-file"
+                    role="listitem"
+                    key={`${index}:${file.path}`}
+                  >
+                    <span
+                      className="cheap-lfs-terminal-worker"
+                      aria-hidden="true"
+                    >
+                      {index + 1}
+                    </span>
+                    <span className="cheap-lfs-terminal-active-main">
+                      <span className="cheap-lfs-terminal-active-path">
+                        {file.path}
+                      </span>
+                      <span className="cheap-lfs-terminal-active-detail">
+                        {phase} · {byteProgress}
+                      </span>
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <div className="cheap-lfs-terminal-details">
+            <span>{files}</span>
+            <span>{bytes}</span>
+            {display.percentage !== null && (
+              <span className="cheap-lfs-terminal-percentage">
+                {display.percentage}%
+              </span>
+            )}
+          </div>
+          <div
+            className={classNames('cheap-lfs-terminal-progress', {
+              indeterminate: display.percentage === null,
+            })}
+            role="progressbar"
+            aria-label={translateForAccessibleName(
+              'cheapLfs.progress.terminalProgressLabel'
+            )}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={display.percentage ?? undefined}
+            aria-valuetext={progressValueText}
+          >
+            {display.percentage !== null && (
+              <span style={{ width: `${display.percentage}%` }} />
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   private renderCommitProgress() {
     const {
       isCommitting,
@@ -1937,18 +2285,20 @@ export class CommitMessage extends React.Component<
     }
 
     if (commitOperationPhase?.kind === 'cheap-lfs') {
-      const { phase } = commitOperationPhase.progress
-      const canSwitchToManual = phase === 'uploading'
+      const { phase, activeFiles } = commitOperationPhase.progress
+      const canSwitchToManual =
+        (commitOperationPhase.progress.selectedStorageProvider === undefined ||
+          commitOperationPhase.progress.selectedStorageProvider ===
+            'release') &&
+        (phase === 'uploading' ||
+          activeFiles?.some(file => file.phase === 'uploading') === true)
       const showManualUpload =
         canSwitchToManual && this.props.onManualCheapLfsUpload !== undefined
       const showCancel = this.props.onCancelCheapLfsCommit !== undefined
 
-      if (!showManualUpload && !showCancel) {
-        return null
-      }
-
       return (
         <div className="commit-progress cheap-lfs-progress">
+          {this.renderCheapLfsTerminal(commitOperationPhase.progress)}
           {showManualUpload && (
             <Button
               type="button"

@@ -80,8 +80,8 @@ const release: IGitHubRelease = {
   targetCommitish: 'main',
   name: 'assets',
   body: '',
-  draft: true,
-  prerelease: false,
+  draft: false,
+  prerelease: true,
   createdAt: new Date(0),
   publishedAt: null,
   authorLogin: 'fixture-bot',
@@ -123,7 +123,7 @@ function gateway(
 ): ICheapLfsManualReleasesGateway {
   return {
     getReleaseByTag: async () => release,
-    createDraft: async () => release,
+    create: async () => ({ ...release, draft: false }),
     listAssets: async () => ({
       assets: [],
       page: 1,
@@ -133,6 +133,7 @@ function gateway(
     createMutationReview: () => {
       throw new Error('mutation review not expected')
     },
+    publish: async () => ({ ...release, draft: false }),
     uploadAsset: async () => {
       throw new Error('automatic upload not expected')
     },
@@ -300,6 +301,85 @@ describe('manual cheap LFS upload', () => {
       assert.ok(secondPointer)
       assert.notEqual(firstPointer.assetName, secondPointer.assetName)
       await assert.rejects(lstat(handoffRoot), { code: 'ENOENT' })
+    })
+  })
+
+  it('reports each completed pointer before a later pointer write fails', async () => {
+    await withTempRepository(async (directory, repository) => {
+      const firstPath = join(directory, 'first.bin')
+      const secondPath = join(directory, 'second.bin')
+      const firstBytes = Buffer.from('first verified bytes')
+      const secondBytes = Buffer.from('second verified bytes')
+      await writeFile(firstPath, firstBytes)
+      await writeFile(secondPath, secondBytes)
+
+      const uploaded = new Array<IGitHubReleaseAsset>()
+      const uploadedBytes = new Map<string, Buffer>()
+      let opened = false
+      const releases = gateway({
+        listAssets: async () => ({
+          assets: opened ? uploaded : [],
+          page: 1,
+          nextPage: null,
+          capped: false,
+        }),
+        downloadAsset: async (_repository, _releaseId, remote, destination) => {
+          const bytes = uploadedBytes.get(remote.name)
+          assert.ok(bytes)
+          await writeFile(destination, bytes)
+          return { path: destination, bytes: bytes.byteLength }
+        },
+      })
+      const completed = new Array<string>()
+      let pointerWrites = 0
+
+      await assert.rejects(
+        manualPinFilesToRelease(
+          releases,
+          repository,
+          selected,
+          [
+            {
+              absoluteFilePath: firstPath,
+              trackedRelativePath: 'first.bin',
+              releaseTag: 'assets',
+            },
+            {
+              absoluteFilePath: secondPath,
+              trackedRelativePath: 'second.bin',
+              releaseTag: 'assets',
+            },
+          ],
+          new AbortController().signal,
+          {
+            onPinned: file => completed.push(file.relativePath),
+            onReady: async handoff => {
+              for (const [index, item] of handoff.assets.entries()) {
+                const bytes = await readFile(item.path)
+                uploadedBytes.set(item.name, bytes)
+                uploaded.push(asset(300 + index, item.name, bytes.byteLength))
+              }
+              opened = true
+            },
+          },
+          {
+            ...defaultCheapLfsFileSystem,
+            writePointer: async (path, text) => {
+              pointerWrites++
+              if (pointerWrites === 2) {
+                throw new Error('synthetic second pointer failure')
+              }
+              await defaultCheapLfsFileSystem.writePointer(path, text)
+            },
+          },
+          { maximumPollAttempts: 1, pollIntervalMs: 0 }
+        ),
+        /synthetic second pointer failure/
+      )
+
+      assert.deepEqual(completed, ['first.bin'])
+      assert.ok(parseCheapLfsPointer(await readFile(firstPath, 'utf8')))
+      assert.deepEqual(await readFile(secondPath), secondBytes)
     })
   })
 
@@ -1069,12 +1149,14 @@ describe('manual cheap LFS upload', () => {
       let derivedRelease: IGitHubRelease | undefined
       const createdTags = new Array<string>()
       let createdPrerelease: boolean | undefined
+      let createdPublishImmediately: boolean | undefined
       const releases = gateway({
         getReleaseByTag: async (_repository, tag) =>
           tag === 'assets' ? baseRelease : derivedRelease ?? null,
-        createDraft: async (_repository, draft) => {
+        create: async (_repository, draft, publishImmediately) => {
           createdTags.push(draft.tagName)
           createdPrerelease = draft.prerelease
+          createdPublishImmediately = publishImmediately
           derivedRelease = {
             ...release,
             id: 8,
@@ -1082,6 +1164,7 @@ describe('manual cheap LFS upload', () => {
             targetCommitish: draft.targetCommitish,
             name: draft.name,
             assets: [],
+            draft: !publishImmediately,
           }
           return derivedRelease
         },
@@ -1118,6 +1201,7 @@ describe('manual cheap LFS upload', () => {
       )
       assert.deepEqual(createdTags, ['assets-2'])
       assert.equal(createdPrerelease, true)
+      assert.equal(createdPublishImmediately, true)
       assert.equal(plan.preexistingAssetIds.size, 0)
       assert.equal(baseRelease.assets.length, 999)
     })
@@ -1137,7 +1221,7 @@ describe('manual cheap LFS upload', () => {
       const releases = gateway({
         getReleaseByTag: async (_repository, tag) =>
           tag === 'assets' ? baseRelease : derivedRelease ?? null,
-        createDraft: async (_repository, draft) => {
+        create: async (_repository, draft, publishImmediately) => {
           derivedRelease = {
             ...release,
             id: 8,
@@ -1145,6 +1229,7 @@ describe('manual cheap LFS upload', () => {
             targetCommitish: draft.targetCommitish,
             name: draft.name,
             assets: [],
+            draft: !publishImmediately,
           }
           return derivedRelease
         },
@@ -1196,7 +1281,7 @@ describe('manual cheap LFS upload', () => {
           releaseIO++
           return release
         },
-        createDraft: async () => {
+        create: async () => {
           releaseIO++
           return release
         },

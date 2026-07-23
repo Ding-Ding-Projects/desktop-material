@@ -97,7 +97,7 @@ describe('cheap LFS pointer', () => {
     assert.deepEqual(parseCheapLfsPointer(text), compressed)
   })
 
-  it('accepts legacy 2 GiB parts but plans new uploads below 2 GiB', () => {
+  it('accepts legacy parts over the cap but plans new uploads at the cap', () => {
     const legacyTwoGiB = CHEAP_LFS_PART_SIZE_BYTES + 1
     const legacy: ICheapLfsPointer = {
       ...pointer,
@@ -123,7 +123,9 @@ describe('cheap LFS pointer', () => {
   })
 
   it('rejects parts that exceed the legacy release-asset size', () => {
-    const oversized = CHEAP_LFS_PART_SIZE_BYTES + 2
+    // Parsing still accepts legacy parts up to exactly 2 GiB even though new
+    // uploads are planned at the smaller CHEAP_LFS_PART_SIZE_BYTES.
+    const oversized = 2 * 1024 * 1024 * 1024 + 1
     const text = [
       `version ${CHEAP_LFS_POINTER_VERSION}`,
       'release-tag v2.0.0',
@@ -279,7 +281,7 @@ describe('cheap LFS pointer', () => {
     const table: ReadonlyArray<[string, string | null]> = [
       ['assets/game.bin', 'assets/game.bin'],
       ['assets\\game.bin', 'assets/game.bin'],
-      ['  data/file.psd  ', 'data/file.psd'],
+      ['  data/file.psd  ', null],
       ['file.bin', 'file.bin'],
       ['', null],
       ['/etc/passwd', null],
@@ -291,6 +293,19 @@ describe('cheap LFS pointer', () => {
       ['.git/config', null],
       ['.gitignore', null],
       ['.github/workflows/ci.yml', null],
+      ['victim.txt:stream', null],
+      ['assets/name. ', null],
+      ['assets/name.', null],
+      ['assets/.. /escape.bin', null],
+      ['NUL', null],
+      ['nul.txt', null],
+      ['assets/COM1.bin', null],
+      ['assets/LPT9', null],
+      ['assets/has?.bin', null],
+      ['assets/has*.bin', null],
+      ['assets/has"quote.bin', null],
+      ['C:drive-relative.bin', null],
+      ['\\\\server\\share\\file.bin', null],
     ]
     for (const [input, expected] of table) {
       assert.equal(validateCheapLfsTrackedPath(input), expected, input)

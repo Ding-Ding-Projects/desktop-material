@@ -165,6 +165,9 @@
         <path d="M12 3v18M6 6h12M4 21h16" />
         <path d="m6 6-4 7h8L6 6ZM18 6l-4 7h8l-4-7Z" />
       </symbol>
+      <symbol id="icon-menu" viewBox="0 0 24 24">
+        <path d="M4 7h16M4 12h16M4 17h16" />
+      </symbol>
     </svg>
     <a class="skip-link" href="#top">Skip to main content</a>
     <!-- ================= Top app bar ================= -->
@@ -178,14 +181,13 @@
           </span>
         </a>
         <nav class="appbar-actions" aria-label="Primary navigation">
-          <div class="nav-links">
+          <div class="nav-links" id="primary-nav-links">
             <a href="#install">Install</a>
             <a href="#features">Features</a>
             <a href="#screenshots">Screenshots</a>
-            <a href="https://github.com/codingmachineedge/desktop-material/wiki"
-              >Docs</a
-            >
-            <a href="https://github.com/codingmachineedge/desktop-material"
+            <a href="docs/">Docs</a>
+            <a href="docs/search.html">Search</a>
+            <a href="https://github.com/Ding-Ding-Projects/desktop-material"
               >GitHub</a
             >
           </div>
@@ -198,6 +200,19 @@
           >
             <svg class="material-icon" aria-hidden="true" focusable="false">
               <use id="theme-icon" href="#icon-dark-mode"></use>
+            </svg>
+          </button>
+          <button
+            class="icon-btn nav-toggle"
+            id="nav-toggle"
+            type="button"
+            aria-label="Show navigation menu"
+            aria-expanded="false"
+            aria-controls="primary-nav-links"
+            title="Menu"
+          >
+            <svg class="material-icon" aria-hidden="true" focusable="false">
+              <use href="#icon-menu"></use>
             </svg>
           </button>
         </nav>
@@ -233,7 +248,7 @@
                 </a>
                 <a
                   class="btn btn-tonal"
-                  href="https://github.com/codingmachineedge/desktop-material"
+                  href="https://github.com/Ding-Ding-Projects/desktop-material"
                 >
                   <svg class="material-icon" aria-hidden="true">
                     <use href="#icon-open-new"></use>
@@ -326,7 +341,7 @@
               <pre
                 class="install-command"
                 aria-label="PowerShell install command"
-              ><code id="install-command-text">Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression</code></pre>
+              ><code id="install-command-text">Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression</code></pre>
               <button
                 type="button"
                 class="btn btn-filled install-copy-button"
@@ -361,7 +376,7 @@
             <div class="hero-cta install-links">
               <a
                 class="btn btn-filled"
-                href="https://github.com/codingmachineedge/desktop-material/blob/main/script/install-windows.ps1"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1"
               >
                 <svg class="material-icon" aria-hidden="true">
                   <use href="#icon-guide"></use>
@@ -370,7 +385,7 @@
               </a>
               <a
                 class="btn btn-tonal"
-                href="https://github.com/codingmachineedge/desktop-material/releases/latest"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest"
               >
                 <svg class="material-icon" aria-hidden="true">
                   <use href="#icon-download"></use>
@@ -390,24 +405,16 @@
             A Material Design 3 shell with verified native workflows
           </h2>
           <p class="section-sub">
-            The core shell and named Git/GitHub workflows are published on
-            <code>main</code>. Cards marked
-            <strong>Verified on main</strong> have passed the exact production
-            UI gate and are represented in the current screenshot gallery. The
-            adaptive customization maintenance set uses the same exact
-            production, off-screen interaction, responsive geometry, privacy,
-            and reviewed publication gates. The temporary-submodule changeset
-            has passed its local ten-pass, final post-build child/Back, and
-            fresh-bundle duplicate Open/Back race gates. Initial remote CI
-            withheld a release after a macOS error-ordering defect; correction
-            <code>98d93ccc</code> passed the full matrix and published the
-            immutable Windows release <code>v3.6.3-beta3-b0000000165</code>. M21
-            now closes all 30 demand-backed advanced workflow requests across
-            identity, pull requests, stashes and tags, navigation, diffs,
-            integrations, and Projects. M23 adds a full local Ollama model
-            lifecycle workspace with an exact loopback-only provider endpoint,
-            synchronized Copilot provider models, and English, Hong Kong
-            Cantonese, or bilingual presentation.
+            The numbered roadmap extends through M27. Cards marked
+            <strong>Verified on main</strong> refer to their recorded production
+            UI gates. The current source completes detailed Cheap LFS commit
+            progress, a persisted three-file/sequential upload choice, a
+            large-file Changes filter, safe partial-failure continuation, GHCR
+            and Docker Hub full-snapshot storage, encrypted private-repository
+            objects, pointer-only clone repair, and proven sub-1.5 GB automatic
+            commit/push batches. Exact build, headless, source-publication,
+            installer, Pages, and wiki receipts remain centralized in
+            <code>HANDOFF.md</code> rather than being predeclared here.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -510,14 +517,17 @@
                 <svg class="material-icon"><use href="#icon-tabs"></use></svg>
               </div>
               <h3>
-                Browser-like repo tabs
+                Browser-like repo tabs &amp; groups
                 <span class="tag">Verified on main</span>
               </h3>
               <p>
                 Tabs bound per-account to repositories, with inline rename and a
                 Word-style appearance editor — bold, italic, underline, size,
                 font, alignment, plus separate text and background palettes or
-                custom colours.
+                custom colours. The continuation adds named/color-coded group
+                chips with counts and real mouse/keyboard collapse/expand,
+                durable per-window metadata, localized announcements, and
+                non-destructive deletion.
               </p>
             </article>
 
@@ -533,7 +543,10 @@
                 Keep the regex close action or review a safe literal
                 close-everything-except query with counts and preview. Pin tabs,
                 drag or move them by keyboard, and apply persistent one-shot
-                label, opened-date, or repository-status ordering.
+                label, opened-date, or repository-status ordering. A named group
+                may contain pinned or unpinned tabs, never both, so grouping
+                cannot break the protected pin boundary. Portable session export
+                omits profile-local group definitions and memberships.
               </p>
             </article>
 
@@ -603,7 +616,7 @@
           <p class="section-sub">
             Delivery and verification history is tracked in the project's
             <a
-              href="https://github.com/codingmachineedge/desktop-material/blob/main/ROADMAP.md"
+              href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/ROADMAP.md"
               >living roadmap</a
             >. Git and <code>gh</code> capabilities become named, guided
             workflows. Expert integration work stays inside a separate,
@@ -638,6 +651,24 @@
                 optional commit ancestry graph. The builder reflows and scrolls
                 vertically at compact or zoomed sizes while its tester and
                 footer remain reachable.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-tune"></use></svg>
+              </div>
+              <h3>
+                Rich command palette
+                <span class="tag">Verified on main</span>
+              </h3>
+              <p>
+                Ctrl+F rows pair icons and localized titles with optional
+                search-term lines and group chips. An anchored appearance editor
+                persists comfortable/compact density plus independent icon,
+                group, and keyword visibility. English, playful Hong Kong-style
+                Cantonese, and bilingual modes keep both localized and English
+                fallback terms searchable.
               </p>
             </article>
 
@@ -683,24 +714,38 @@
                 </svg>
               </div>
               <h3>
-                Release-backed large files
-                <span class="tag">Focused checks passed</span>
+                Release- and registry-backed large files
+                <span class="tag">Bounded snapshots + local restore</span>
               </h3>
               <p>
-                Use the direct Large files manager to list, search, pin, and
-                restore original nested paths without browsing Release asset
-                names. Automatic uploads prefer an isolated trusted GitHub CLI
-                exact-range transport, avoiding Electron's crash-prone native
-                data pipe when <code>gh</code> is available. Reconciliation
-                scans up to 1,000 assets once, then polls one exact ID and fails
-                closed if it remains incomplete. The exact Release editor and
-                temporary drag/drop folder remain the manual recovery path;
-                oversized sources appear there as ordered part files and are
-                staged with bounded memory and visible progress, then detected
-                automatically after drag-and-drop. Complete multipart files and
-                manual batches roll together through <code>assets</code>,
-                <code>assets-2</code>, and later prerelease pointer tags without
-                replacing the installer feed.
+                Use the direct Large files manager to list, search, pin, remove,
+                and restore original nested paths without browsing provider
+                payloads. The Changes view can isolate files over 100 MiB and
+                keeps a compact terminal below Commit with sanitized per-file
+                phases, bytes, results, and a selected-versus-recommended
+                storage route. A persisted toggle chooses sequential work or at
+                most three transfers; one failed raw file stays retryable while
+                safe changes and verified pointers may still commit. Release
+                storage uses published prerelease buckets, verified assets,
+                optional cloud compression, and a bounded manual browser
+                handoff. Public repositories prepare the owned compression
+                caller in Changes automatically; private repositories require
+                explicit opt-in, and either caller runs only after a reviewed
+                commit and push. Actions compresses one Release object at a
+                time. Failed or non-beneficial objects remain raw and cloneable,
+                while all decompression and verification happens locally in
+                Desktop Material. GHCR and Docker Hub instead keep the complete
+                current object set in one logical OCI image: additions and
+                removals publish a new immutable manifest, reuse unchanged
+                blobs, and retain digest-specific tags for older pointers.
+                Timed-out GHCR layers are rebuilt at half the prior bound rather
+                than appended to, and private-source chunks use AES-256-GCM with
+                the shared key tracked by that private repository. Clone/open
+                detection and Materialize all verify and replace old
+                pointer-only working-tree files locally. Ordinary small-file
+                selections are split into conservative sub-1.5 GB commit/push
+                batches, with each remote tip proven before the next commit is
+                created.
               </p>
             </article>
 
@@ -727,6 +772,22 @@
                 review pending deployments and history, and separately confirm
                 eligible fork runs. Artifacts retain bounded paging, native
                 download, and local digest context.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon"><use href="#icon-bolt"></use></svg>
+              </div>
+              <h3>
+                Release test gates
+                <span class="tag">Verified on main</span>
+              </h3>
+              <p>
+                Super Express now runs the complete unit and script suites
+                before its Windows x64 production build and package. It remains
+                a fast lane by skipping lint, E2E, and history-generated notes;
+                release pull requests target the product's main branch.
               </p>
             </article>
 
@@ -1164,6 +1225,96 @@
 
             <figure class="shot">
               <a
+                href="docs/assets/screenshots/material-tab-groups.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-tab-groups.png"
+                  alt="Desktop Material workspace with a visible named tab-group chip and its repository member"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Tab groups <span class="tag">Persistent · collapsible</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-command-palette-appearance.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-command-palette-appearance.png"
+                  alt="Command palette showing Ollama results beside the fully visible row appearance editor"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Command palette
+                <span class="tag">Rich rows · appearance</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/cheap-lfs-ui-acceptance.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-ui-acceptance.png"
+                  alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Cheap LFS <span class="tag">Public · private · live UI</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/cheap-lfs-cloud-compression.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-cloud-compression.png"
+                  alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a verified compressed pointer"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Cheap LFS cloud compression
+                <span class="tag"
+                  >Public auto · private opt-in · local restore</span
+                >
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/cheap-lfs-commit-progress.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-commit-progress.png"
+                  alt="Changes view with the large-file filter and detailed three-file Cheap LFS commit terminal"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Cheap LFS commit progress
+                <span class="tag">Three lanes · bytes · retry state</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
                 href="docs/assets/screenshots/material-actions-cancel.png"
                 target="_blank"
                 rel="noopener"
@@ -1277,6 +1428,24 @@
               </a>
               <figcaption>
                 Preferences <span class="tag">MD3 dialog</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/auto-updater-update-ready.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/auto-updater-update-ready.png"
+                  alt="About dialog with a downloaded automatic update ready for an explicit quit-and-install action"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Automatic update ready
+                <span class="tag">Downloaded · explicit install</span>
               </figcaption>
             </figure>
 
@@ -1903,6 +2072,42 @@
 
             <figure class="shot">
               <a
+                href="docs/assets/screenshots/material-repository-folder-detection.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-repository-folder-detection.png"
+                  alt="Repository folder detection while adding and opening a repository"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Folder detection
+                <span class="tag">Add · open</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-repository-submodule-management.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-repository-submodule-management.png"
+                  alt="Repository submodule management with reviewed update actions"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Submodule management
+                <span class="tag">Reviewed updates</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
                 href="docs/assets/screenshots/material-gitignore-manager.png"
                 target="_blank"
                 rel="noopener"
@@ -2175,23 +2380,21 @@
           <div class="cta-card">
             <h2>Build with Desktop Material</h2>
             <p>
-              Clone the repo, follow the wiki, and explore the completed M0–M20
-              Material foundation and function-first Git/GitHub parity roadmap.
+              Clone the repo, read the hosted docs, and explore the M0–M27
+              Material foundation, native Git/GitHub workflows, and current
+              acceptance status.
             </p>
             <div class="hero-cta">
               <a
                 class="btn btn-filled"
-                href="https://github.com/codingmachineedge/desktop-material"
+                href="https://github.com/Ding-Ding-Projects/desktop-material"
               >
                 <svg class="material-icon" aria-hidden="true">
                   <use href="#icon-open-new"></use>
                 </svg>
                 View on GitHub
               </a>
-              <a
-                class="btn btn-tonal"
-                href="https://github.com/codingmachineedge/desktop-material/wiki"
-              >
+              <a class="btn btn-tonal" href="docs/">
                 <svg class="material-icon" aria-hidden="true">
                   <use href="#icon-guide"></use>
                 </svg>
@@ -2223,13 +2426,10 @@
           <div class="footer-links">
             <div class="footer-col">
               <h3>Project</h3>
-              <a href="https://github.com/codingmachineedge/desktop-material"
+              <a href="https://github.com/Ding-Ding-Projects/desktop-material"
                 >Repository</a
               >
-              <a
-                href="https://github.com/codingmachineedge/desktop-material/wiki"
-                >Documentation</a
-              >
+              <a href="docs/">Documentation</a>
               <a href="#features">Features</a>
               <a href="#screenshots">Screenshots</a>
             </div>
@@ -2328,6 +2528,40 @@
             localStorage.setItem('dm-theme', next)
           } catch (e) {}
           sync(next)
+        })
+      })()
+    </script>
+
+    <!-- ================= Mobile navigation ================= -->
+    <script>
+      ;(function () {
+        var toggle = document.getElementById('nav-toggle')
+        var links = document.getElementById('primary-nav-links')
+        if (!toggle || !links) {
+          return
+        }
+
+        function setOpen(open) {
+          links.classList.toggle('nav-links--open', open)
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false')
+          toggle.setAttribute(
+            'aria-label',
+            open ? 'Hide navigation menu' : 'Show navigation menu'
+          )
+        }
+
+        toggle.addEventListener('click', function () {
+          setOpen(!links.classList.contains('nav-links--open'))
+        })
+        links.addEventListener('click', function (event) {
+          if (event.target.closest('a')) {
+            setOpen(false)
+          }
+        })
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape') {
+            setOpen(false)
+          }
         })
       })()
     </script>

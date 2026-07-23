@@ -15,6 +15,7 @@ import { finished, pipeline } from 'stream/promises'
 import { createInflateRaw } from 'zlib'
 import { basename, dirname, join } from 'path'
 import { Account } from '../../models/account'
+import type { CheapLfsStorageProvider } from '../../models/build-run-preferences'
 import { Repository } from '../../models/repository'
 import {
   IGitHubRelease,
@@ -34,6 +35,7 @@ import {
 import { git } from '../git/core'
 import {
   getGitHubReleasesAccount,
+  getGitHubReleasesReadAccount,
   GitHubReleasesAvailability,
   GitHubReleasesError,
   IGitHubReleaseMutationReview,
@@ -51,6 +53,27 @@ import {
   serializeCheapLfsPointer,
   validateCheapLfsTrackedPath,
 } from './pointer'
+import {
+  CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES,
+  CHEAP_LFS_OCI_POINTER_VERSION,
+  CheapLfsOciRegistryProvider,
+  getCheapLfsOciRegistryProvider,
+  ICheapLfsGhcrPointer,
+  isCheapLfsGhcrPointerHeader,
+  parseCheapLfsGhcrPointer,
+} from './ghcr-pointer'
+import type {
+  CheapLfsRecommendedStorage,
+  CheapLfsStorageRecommendationReason,
+} from './storage-recommendation'
+import { isCheapLfsRepositoryKeyPath } from './ghcr-key'
+import { requireSafeCheapLfsMaterializationPath } from './materialization-path'
+import {
+  defaultCheapLfsTrackedPathStore,
+  ICheapLfsTrackedFileProof,
+  ICheapLfsTrackedPathStore,
+  ICheapLfsVerifiedSourceCopy,
+} from './tracked-path-store'
 
 /**
  * Orchestration for the cheap-LFS flow: hashing a working-tree file, uploading
@@ -61,16 +84,15 @@ import {
  * while the exported defaults wire up the real implementations.
  */
 
-/** Cap on files inspected while listing pointers, keeping the walk bounded. */
-const CheapLfsMaximumWalkEntries = 4000
-/** Depth cap for the pointer-listing walk. */
-const CheapLfsMaximumWalkDepth = 8
-/** Cap on pointers returned by {@link listCheapLfsPointers}. */
-const CheapLfsMaximumPointerEntries = 256
 /** Bound sequential rollover lookup to one million documented asset slots. */
 const CheapLfsMaximumReleaseBuckets = 1000
-/** Only the first bytes of a file are read to classify it as a pointer. */
-const CheapLfsSniffBytes = 4096
+/** Only a prefix is needed to recognize either exact pointer version header. */
+const CheapLfsPointerHeaderBytes = 512
+/** One full read can accommodate either provider's canonical pointer format. */
+const CheapLfsMaximumAnyPointerTextBytes = Math.max(
+  CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
+  CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
+)
 /** Keep streamed preprocessing from flooding the renderer/store update path. */
 const CheapLfsProgressReportIntervalMs = 250
 /** Reduce per-2-GiB hash callbacks while keeping each in-memory chunk bounded. */
@@ -94,17 +116,49 @@ function abortError(message: string): Error {
   return error
 }
 
-/** A file that looked like a pointer during a bounded working-tree scan. */
+export type CheapLfsWorkingTreePointerState =
+  | 'pointer'
+  | 'materialized'
+  | 'modified'
+
+/** A tracked pointer record merged with the current working-tree state. */
 export interface ICheapLfsPointerCandidate {
   readonly relativePath: string
   readonly text: string
+  /** Omitted by legacy test fakes; callers treat omission as `pointer`. */
+  readonly workingTreeState?: CheapLfsWorkingTreePointerState
+  /** Where the authoritative pointer text came from. */
+  readonly metadataSource?: 'working-tree' | 'index' | 'head'
+  /** Captured for raw worktree states so a publish can detect concurrent edits. */
+  readonly workingTreeSha256?: string
+  readonly workingTreeSizeInBytes?: number
 }
 
 /** One resolved pointer discovered by {@link listCheapLfsPointers}. */
 export interface ICheapLfsPointerEntry {
   readonly relativePath: string
   readonly pointer: ICheapLfsPointer
+  readonly workingTreeState: CheapLfsWorkingTreePointerState
 }
+
+/** A Release or OCI pointer shown by the provider-neutral manager. */
+export type ICheapLfsManagedPointerEntry =
+  | {
+      readonly kind: 'release'
+      readonly relativePath: string
+      readonly provider: 'release'
+      readonly pointer: ICheapLfsPointer
+      readonly workingTreeState: CheapLfsWorkingTreePointerState
+      readonly workingTreeSizeInBytes?: number
+    }
+  | {
+      readonly kind: 'oci'
+      readonly relativePath: string
+      readonly provider: CheapLfsOciRegistryProvider
+      readonly pointer: ICheapLfsGhcrPointer
+      readonly workingTreeState: CheapLfsWorkingTreePointerState
+      readonly workingTreeSizeInBytes?: number
+    }
 
 /**
  * The subset of the `GitHubReleasesStore` the cheap-LFS flow depends on.
@@ -117,9 +171,10 @@ export interface ICheapLfsReleasesGateway {
     tag: string,
     signal?: AbortSignal
   ): Promise<IGitHubRelease | null>
-  createDraft(
+  create(
     repository: Repository,
     draft: IGitHubReleaseDraft,
+    publishImmediately: boolean,
     signal?: AbortSignal
   ): Promise<IGitHubRelease>
   listAssets(
@@ -133,6 +188,11 @@ export interface ICheapLfsReleasesGateway {
     release: IGitHubRelease,
     asset?: IGitHubReleaseAsset | null
   ): IGitHubReleaseMutationReview
+  publish(
+    repository: Repository,
+    review: IGitHubReleaseMutationReview,
+    signal?: AbortSignal
+  ): Promise<IGitHubRelease>
   uploadAsset(
     repository: Repository,
     review: IGitHubReleaseMutationReview,
@@ -179,6 +239,8 @@ export interface ICheapLfsFileProgress {
 
 /** Injectable disk seam so the flow can run against fakes or the real OS. */
 export interface ICheapLfsFileSystem {
+  /** Production tracked-path proof/CAS boundary; legacy fakes may omit it. */
+  readonly trackedPaths?: ICheapLfsTrackedPathStore
   hashFile(
     path: string,
     signal?: AbortSignal
@@ -462,7 +524,8 @@ async function decompressFileOnDisk(
 
 async function readBoundedText(
   path: string,
-  maximumBytes: number
+  maximumBytes: number,
+  rejectOversize: boolean = false
 ): Promise<string> {
   const handle = await open(path, 'r')
   try {
@@ -471,10 +534,253 @@ async function readBoundedText(
     const capacity = maximumBytes + 1
     const buffer = Buffer.alloc(capacity)
     const { bytesRead } = await handle.read(buffer, 0, capacity, 0)
+    if (rejectOversize && bytesRead > maximumBytes) {
+      throw new Error(
+        `Cheap LFS pointer text exceeds the ${maximumBytes}-byte format limit.`
+      )
+    }
     return buffer.subarray(0, bytesRead).toString('utf8')
   } finally {
     await handle.close()
   }
+}
+
+function pointerHeaderMatches(text: string): boolean {
+  return isCheapLfsPointerText(text) || isCheapLfsGhcrPointerHeader(text)
+}
+
+function pointerIdentity(text: string): {
+  readonly sha256: string
+  readonly sizeInBytes: number
+} | null {
+  if (
+    isCheapLfsPointerText(text.slice(0, CheapLfsPointerHeaderBytes)) &&
+    Buffer.byteLength(text, 'utf8') > CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES
+  ) {
+    throw new Error(
+      `Cheap LFS Release pointer text exceeds the ${CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES}-byte format limit.`
+    )
+  }
+  const release = parseCheapLfsPointer(text)
+  if (release !== null) {
+    return { sha256: release.sha256, sizeInBytes: release.sizeInBytes }
+  }
+  let oci: ICheapLfsGhcrPointer | null
+  try {
+    oci = parseCheapLfsGhcrPointer(text)
+  } catch {
+    return null
+  }
+  return oci === null
+    ? null
+    : {
+        sha256: oci.object.slice('sha256:'.length),
+        sizeInBytes: oci.sizeInBytes,
+      }
+}
+
+function parseNulPaths(value: Buffer, revisionPrefix?: string): string[] {
+  const fields = value
+    .toString('utf8')
+    .split('\0')
+    .filter(field => field.length > 0)
+  return fields.map(field =>
+    revisionPrefix !== undefined && field.startsWith(revisionPrefix)
+      ? field.slice(revisionPrefix.length)
+      : field
+  )
+}
+
+async function gitPointerPaths(
+  root: string,
+  source: 'working-tree' | 'index' | 'head'
+): Promise<ReadonlyArray<string>> {
+  const args = [
+    'grep',
+    '-I',
+    '-l',
+    '-z',
+    '-F',
+    '-e',
+    `version ${CHEAP_LFS_POINTER_VERSION}`,
+    '-e',
+    `version ${CHEAP_LFS_OCI_POINTER_VERSION}`,
+  ]
+  if (source === 'working-tree') {
+    args.push('--untracked')
+  } else if (source === 'index') {
+    args.push('--cached')
+  } else {
+    args.push('HEAD')
+  }
+  args.push('--')
+  const result = await git(args, root, `listCheapLfs${source}Pointers`, {
+    successExitCodes: new Set([0, 1, 128]),
+    encoding: 'buffer',
+    maxBuffer: Infinity,
+  })
+  if (result.exitCode === 128) {
+    if (source === 'head') {
+      return []
+    }
+    throw new Error(
+      `Git could not inventory Cheap LFS ${source} pointer metadata.`
+    )
+  }
+  return parseNulPaths(result.stdout, source === 'head' ? 'HEAD:' : undefined)
+}
+
+async function readGitPointerText(
+  root: string,
+  source: 'index' | 'head',
+  relativePath: string
+): Promise<string> {
+  const object = `${source === 'index' ? '' : 'HEAD'}:${relativePath}`
+  const sizeResult = await git(
+    ['cat-file', '-s', object],
+    root,
+    'measureCheapLfsPointerBlob',
+    { maxBuffer: 1024 }
+  )
+  const size = Number(sizeResult.stdout.trim())
+  if (
+    !Number.isSafeInteger(size) ||
+    size < 1 ||
+    size > CheapLfsMaximumAnyPointerTextBytes
+  ) {
+    throw new Error(
+      `Tracked Cheap LFS pointer ${relativePath} exceeds its bounded format size.`
+    )
+  }
+  const result = await git(
+    ['cat-file', 'blob', object],
+    root,
+    'readCheapLfsPointerBlob',
+    { encoding: 'buffer', maxBuffer: CheapLfsMaximumAnyPointerTextBytes }
+  )
+  if (result.stdout.length !== size) {
+    throw new Error(
+      `Git returned an incomplete Cheap LFS pointer for ${relativePath}.`
+    )
+  }
+  return result.stdout.toString('utf8')
+}
+
+async function isGitWorkingTree(root: string): Promise<boolean> {
+  const result = await git(
+    ['rev-parse', '--is-inside-work-tree'],
+    root,
+    'detectCheapLfsGitWorkingTree',
+    { successExitCodes: new Set([0, 128]), maxBuffer: 1024 }
+  )
+  return result.exitCode === 0 && result.stdout.trim() === 'true'
+}
+
+/**
+ * Inventory pointer paths through Git instead of truncating a directory walk.
+ * Worktree pointer text wins; otherwise the index (or HEAD as provenance for a
+ * staged replacement) supplies metadata while verified raw bytes stay local.
+ */
+async function scanPointerCandidatesFromGit(
+  root: string
+): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
+  const [workingPaths, indexPaths, headPaths] = await Promise.all([
+    gitPointerPaths(root, 'working-tree'),
+    gitPointerPaths(root, 'index'),
+    gitPointerPaths(root, 'head'),
+  ])
+  const working = new Set(workingPaths)
+  const index = new Set(indexPaths)
+  const head = new Set(headPaths)
+  const paths = [...new Set([...working, ...index, ...head])].sort()
+  const candidates = new Array<ICheapLfsPointerCandidate>()
+  for (const untrustedPath of paths) {
+    const relativePath = validateCheapLfsTrackedPath(untrustedPath)
+    if (relativePath === null) {
+      throw new Error('Git returned an unsafe Cheap LFS tracked path.')
+    }
+    const trackedProof = await defaultCheapLfsTrackedPathStore.proveDestination(
+      root,
+      relativePath
+    )
+    if (!trackedProof.exists) {
+      // A deleted path is intentionally absent from the current inventory.
+      continue
+    }
+    if (
+      working.has(relativePath) &&
+      trackedProof.sizeInBytes > CheapLfsMaximumAnyPointerTextBytes
+    ) {
+      throw new Error(
+        `Tracked Cheap LFS pointer ${relativePath} exceeds the bounded pointer format limit.`
+      )
+    }
+    const worktreeText =
+      trackedProof.sizeInBytes <= CheapLfsMaximumAnyPointerTextBytes
+        ? await defaultCheapLfsTrackedPathStore.readText(
+            trackedProof,
+            CheapLfsMaximumAnyPointerTextBytes
+          )
+        : ''
+    const worktreePrefix = worktreeText.slice(0, CheapLfsPointerHeaderBytes)
+    if (working.has(relativePath) && pointerHeaderMatches(worktreePrefix)) {
+      const text = worktreeText
+      if (!pointerHeaderMatches(text.slice(0, CheapLfsPointerHeaderBytes))) {
+        throw new Error(
+          `Cheap LFS pointer ${relativePath} changed while it was being inventoried.`
+        )
+      }
+      if (pointerIdentity(text) === null) {
+        continue
+      }
+      candidates.push({
+        relativePath,
+        text,
+        workingTreeState: 'pointer',
+        metadataSource: 'working-tree',
+      })
+      continue
+    }
+
+    if (!index.has(relativePath) && !head.has(relativePath)) {
+      // `git grep` can find a version marker in a later line of ordinary text.
+      // Only the exact prefix is pointer-shaped.
+      continue
+    }
+
+    const metadataSource = index.has(relativePath) ? 'index' : 'head'
+    const text = await readGitPointerText(root, metadataSource, relativePath)
+    const identity = pointerIdentity(text)
+    if (identity === null) {
+      continue
+    }
+    const hashed = {
+      sha256: trackedProof.sha256!,
+      sizeInBytes: trackedProof.sizeInBytes,
+    }
+    // Suppression is safe only when the index pointer is itself committed.
+    // A staged raw blob (HEAD still has a pointer), staged pointer rewrite, or
+    // newly-added index pointer must remain visible and pass through re-pin
+    // protection instead of being projected as clean.
+    const indexMatchesHead =
+      metadataSource === 'index' &&
+      head.has(relativePath) &&
+      (await readGitPointerText(root, 'head', relativePath)) === text
+    candidates.push({
+      relativePath,
+      text,
+      workingTreeState:
+        indexMatchesHead &&
+        hashed.sizeInBytes === identity.sizeInBytes &&
+        hashed.sha256 === identity.sha256
+          ? 'materialized'
+          : 'modified',
+      metadataSource,
+      workingTreeSha256: hashed.sha256,
+      workingTreeSizeInBytes: hashed.sizeInBytes,
+    })
+  }
+  return candidates
 }
 
 async function scanPointerCandidatesFromDisk(
@@ -484,9 +790,7 @@ async function scanPointerCandidatesFromDisk(
   const queue: Array<{ dir: string; depth: number; rel: string }> = [
     { dir: root, depth: 0, rel: '' },
   ]
-  let entryCount = 0
-
-  while (queue.length > 0 && entryCount < CheapLfsMaximumWalkEntries) {
+  while (queue.length > 0) {
     const { dir, depth, rel } = queue.shift()!
     let entries
     try {
@@ -495,19 +799,9 @@ async function scanPointerCandidatesFromDisk(
       continue
     }
     for (const entry of entries) {
-      if (
-        entryCount >= CheapLfsMaximumWalkEntries ||
-        candidates.length >= CheapLfsMaximumPointerEntries
-      ) {
-        break
-      }
-      entryCount++
       const relPath = rel ? `${rel}/${entry.name}` : entry.name
       if (entry.isDirectory()) {
-        if (
-          !CheapLfsSkipDirectories.has(entry.name) &&
-          depth < CheapLfsMaximumWalkDepth
-        ) {
+        if (!CheapLfsSkipDirectories.has(entry.name)) {
           queue.push({
             dir: join(dir, entry.name),
             depth: depth + 1,
@@ -515,17 +809,33 @@ async function scanPointerCandidatesFromDisk(
           })
         }
       } else if (entry.isFile()) {
-        let text: string
+        let trackedProof: ICheapLfsTrackedFileProof
         try {
-          text = await readBoundedText(
-            join(dir, entry.name),
-            CheapLfsSniffBytes
+          trackedProof = await defaultCheapLfsTrackedPathStore.proveExisting(
+            root,
+            relPath
           )
         } catch {
           continue
         }
-        if (isCheapLfsPointerText(text)) {
-          candidates.push({ relativePath: relPath, text })
+        if (trackedProof.sizeInBytes > CheapLfsMaximumAnyPointerTextBytes) {
+          continue
+        }
+        const text = await defaultCheapLfsTrackedPathStore.readText(
+          trackedProof,
+          CheapLfsMaximumAnyPointerTextBytes
+        )
+        if (pointerHeaderMatches(text)) {
+          const fullText = text
+          if (pointerIdentity(fullText) === null) {
+            continue
+          }
+          candidates.push({
+            relativePath: relPath,
+            text: fullText,
+            workingTreeState: 'pointer',
+            metadataSource: 'working-tree',
+          })
         }
       }
     }
@@ -626,6 +936,7 @@ async function resolveReleaseTargetCommitish(
 
 /** The real-OS disk seam used unless a caller injects a fake. */
 export const defaultCheapLfsFileSystem: ICheapLfsFileSystem = {
+  trackedPaths: defaultCheapLfsTrackedPathStore,
   hashFile: hashFileSha256,
   hashFileParts: hashFilePartsSha256,
   // lstat measures the selected working-tree entry itself. Following a symlink
@@ -644,8 +955,21 @@ export const defaultCheapLfsFileSystem: ICheapLfsFileSystem = {
   temporaryPathFor,
   assembleParts: assemblePartsOnDisk,
   decompressFile: decompressFileOnDisk,
-  scanPointerCandidates: scanPointerCandidatesFromDisk,
+  scanPointerCandidates,
   resolveReleaseTargetCommitish,
+}
+
+/** Keep spread-based legacy test/adaptor seams on their injected disk methods. */
+function trackedPathStoreFor(
+  fs: ICheapLfsFileSystem
+): ICheapLfsTrackedPathStore | undefined {
+  if (fs.trackedPaths === undefined) {
+    return undefined
+  }
+  return fs === defaultCheapLfsFileSystem ||
+    fs.trackedPaths !== defaultCheapLfsTrackedPathStore
+    ? fs.trackedPaths
+    : undefined
 }
 
 function ensureReleasesAccount(repository: Repository, account: Account): void {
@@ -653,6 +977,18 @@ function ensureReleasesAccount(repository: Repository, account: Account): void {
     throw new GitHubReleasesError(
       'authentication',
       'Sign in with the account selected for this repository to use cheap LFS.'
+    )
+  }
+}
+
+function ensureReleasesReadAccount(
+  repository: Repository,
+  account: Account
+): void {
+  if (getGitHubReleasesReadAccount(repository, [account]) === null) {
+    throw new GitHubReleasesError(
+      'authentication',
+      'Sign in with the account selected for this repository to restore private or unverified cheap LFS files.'
     )
   }
 }
@@ -1058,10 +1394,14 @@ export async function pinFileToRelease(
   onStage?: (stage: CheapLfsPinStage) => void,
   onHashProgress?: (processedBytes: number) => void
 ): Promise<ICheapLfsPinResult> {
+  const trackedPaths = trackedPathStoreFor(fs)
   const trackedRelativePath = validateCheapLfsTrackedPath(
     options.trackedRelativePath
   )
-  if (trackedRelativePath === null) {
+  if (
+    trackedRelativePath === null ||
+    isCheapLfsRepositoryKeyPath(trackedRelativePath)
+  ) {
     throw new Error(
       'Choose a safe repository-relative path without parent traversal or Git metadata to track with cheap LFS.'
     )
@@ -1072,94 +1412,239 @@ export async function pinFileToRelease(
   const baseName = normalizeGitHubReleaseAssetName(
     basename(options.absoluteFilePath)
   )
-  const sourceSizeInBytes = await fs.statSize(options.absoluteFilePath)
-  preflightProjectedPointer(sourceSizeInBytes, options.releaseTag, baseName)
-
+  let verifiedSource: ICheapLfsVerifiedSourceCopy | undefined
+  let uploadSourcePath = options.absoluteFilePath
+  let sourceSizeInBytes: number
+  let hashed: {
+    readonly sha256: string
+    readonly sizeInBytes: number
+    readonly parts: ReadonlyArray<ICheapLfsHashedPart>
+  }
   onStage?.('hashing')
-  const hashed = await fs.hashFileParts(
-    options.absoluteFilePath,
-    CHEAP_LFS_PART_SIZE_BYTES,
-    signal,
-    onHashProgress
-  )
-  onStage?.('release')
-  const bucket = await allocateCheapLfsReleaseBucket(
-    releases,
-    repository,
-    options.releaseTag,
-    options.releaseName,
-    hashed.parts.length,
-    async (releaseTag, releaseName) =>
-      await releases.createDraft(
-        repository,
-        {
-          tagName: releaseTag,
-          targetCommitish: await releaseTargetCommitish(
-            repository,
-            options,
-            fs
-          ),
-          name: releaseName,
-          body: '',
-          // Asset buckets must never replace the installer's /releases/latest
-          // update feed if a user later publishes the draft.
-          prerelease: true,
-        },
-        signal
-      ),
-    signal
-  )
-  const { release, releaseTag, assets: releaseAssets } = bucket
-  preflightProjectedPointer(sourceSizeInBytes, releaseTag, baseName)
+  if (trackedPaths !== undefined) {
+    verifiedSource = await trackedPaths.prepareUpload(
+      repository.path,
+      trackedRelativePath,
+      options.absoluteFilePath,
+      CHEAP_LFS_PART_SIZE_BYTES,
+      signal,
+      onHashProgress
+    )
+    uploadSourcePath = verifiedSource.owned.path
+    sourceSizeInBytes = verifiedSource.sizeInBytes
+    hashed = {
+      sha256: verifiedSource.sha256,
+      sizeInBytes: verifiedSource.sizeInBytes,
+      parts: verifiedSource.parts,
+    }
+  } else {
+    sourceSizeInBytes = await fs.statSize(options.absoluteFilePath)
+    preflightProjectedPointer(sourceSizeInBytes, options.releaseTag, baseName)
+    hashed = await fs.hashFileParts(
+      options.absoluteFilePath,
+      CHEAP_LFS_PART_SIZE_BYTES,
+      signal,
+      onHashProgress
+    )
+  }
+  preflightProjectedPointer(sourceSizeInBytes, options.releaseTag, baseName)
+  try {
+    onStage?.('release')
+    const bucket = await allocateCheapLfsReleaseBucket(
+      releases,
+      repository,
+      options.releaseTag,
+      options.releaseName,
+      hashed.parts.length,
+      async (releaseTag, releaseName) =>
+        await releases.create(
+          repository,
+          {
+            tagName: releaseTag,
+            targetCommitish: await releaseTargetCommitish(
+              repository,
+              options,
+              fs
+            ),
+            name: releaseName,
+            body: '',
+            // Published prerelease buckets never replace the installer's stable
+            // /releases/latest update feed.
+            prerelease: true,
+          },
+          true,
+          signal
+        ),
+      signal
+    )
+    const { release, releaseTag, assets: releaseAssets } = bucket
+    preflightProjectedPointer(sourceSizeInBytes, releaseTag, baseName)
 
-  if (hashed.parts.length <= 1) {
-    const part = hashed.parts[0]
-    const assetName = dedupeAssetName(baseName, releaseAssets, hashed.sha256)
+    if (hashed.parts.length <= 1) {
+      const part = hashed.parts[0]
+      const assetName = dedupeAssetName(baseName, releaseAssets, hashed.sha256)
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag,
+        assetName,
+        sizeInBytes: hashed.sizeInBytes,
+        sha256: hashed.sha256,
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      ensurePointerFitsOnDisk(pointerText)
+
+      const preexistingAssetIds = new Set(releaseAssets.map(asset => asset.id))
+      const attemptAssets = new Array<IGitHubReleaseAsset>()
+      try {
+        onStage?.('uploading')
+        const review = releases.createMutationReview(repository, release)
+        const upload = await releases.uploadAsset(
+          repository,
+          review,
+          uploadSourcePath,
+          assetName,
+          null,
+          signal ?? new AbortController().signal,
+          aggregateProgress(onProgress, 0, hashed.sizeInBytes, part.length),
+          undefined,
+          `sha256:${part.sha256}`
+        )
+        // Record ownership before validating the response. A digest or byte-count
+        // mismatch still means GitHub accepted an asset that this attempt owns.
+        attemptAssets.push(upload.asset)
+        ensureRawUploadMatchesHash(upload, part.length, hashed.sha256)
+        onStage?.('verifying')
+        if (verifiedSource !== undefined && trackedPaths !== undefined) {
+          await trackedPaths.revalidateSource(verifiedSource.source)
+          await trackedPaths.publishText(
+            verifiedSource.destination,
+            pointerText
+          )
+        } else {
+          await ensureSourceStillMatchesHash(
+            fs,
+            options.absoluteFilePath,
+            hashed.sizeInBytes,
+            hashed.sha256,
+            signal
+          )
+          await fs.writePointer(
+            join(repository.path, trackedRelativePath),
+            pointerText
+          )
+        }
+        return { pointer, asset: upload.asset, releaseId: release.id }
+      } catch (error) {
+        return await rethrowAfterAttemptAssetCleanup(
+          error,
+          releases,
+          repository,
+          releaseTag,
+          preexistingAssetIds,
+          attemptAssets
+        )
+      }
+    }
+
+    const partBaseName = dedupeMultiPartBaseName(
+      baseName,
+      releaseAssets,
+      hashed.sha256,
+      hashed.parts.length
+    )
+    const parts: ReadonlyArray<ICheapLfsPointerPart> = hashed.parts.map(
+      (part, index) => ({
+        name: partAssetName(partBaseName, index, hashed.parts.length),
+        sizeInBytes: part.length,
+        sha256: part.sha256,
+      })
+    )
     const pointer: ICheapLfsPointer = {
       version: CHEAP_LFS_POINTER_VERSION,
       releaseTag,
-      assetName,
+      assetName: partBaseName,
       sizeInBytes: hashed.sizeInBytes,
       sha256: hashed.sha256,
+      parts,
     }
     const pointerText = serializeCheapLfsPointer(pointer)
     ensurePointerFitsOnDisk(pointerText)
 
+    let firstAsset: IGitHubReleaseAsset | undefined
+    let transferred = 0
     const preexistingAssetIds = new Set(releaseAssets.map(asset => asset.id))
     const attemptAssets = new Array<IGitHubReleaseAsset>()
+    // The release snapshot is refreshed before each part: an earlier part adds an
+    // asset, so the mutation review must reflect the release's current state.
+    let currentRelease = release
     try {
       onStage?.('uploading')
-      const review = releases.createMutationReview(repository, release)
-      const upload = await releases.uploadAsset(
-        repository,
-        review,
-        options.absoluteFilePath,
-        assetName,
-        null,
-        signal ?? new AbortController().signal,
-        aggregateProgress(onProgress, 0, hashed.sizeInBytes, part.length),
-        undefined,
-        `sha256:${part.sha256}`
-      )
-      // Record ownership before validating the response. A digest or byte-count
-      // mismatch still means GitHub accepted an asset that this attempt owns.
-      attemptAssets.push(upload.asset)
-      ensureRawUploadMatchesHash(upload, part.length, hashed.sha256)
+      for (let index = 0; index < hashed.parts.length; index++) {
+        const part = hashed.parts[index]
+        const pointerPart = parts[index]
+        if (index > 0) {
+          const refreshed = await releases.getReleaseByTag(
+            repository,
+            releaseTag,
+            signal
+          )
+          if (refreshed === null) {
+            throw new Error(
+              `The release tagged “${releaseTag}” disappeared while its parts were uploading.`
+            )
+          }
+          ensureCheapLfsBucketTag(refreshed, releaseTag)
+          currentRelease = refreshed
+        }
+        const review = releases.createMutationReview(repository, currentRelease)
+        const upload = await releases.uploadAsset(
+          repository,
+          review,
+          uploadSourcePath,
+          pointerPart.name,
+          null,
+          signal ?? new AbortController().signal,
+          aggregateProgress(
+            onProgress,
+            transferred,
+            hashed.sizeInBytes,
+            part.length
+          ),
+          { offset: part.offset, length: part.length },
+          `sha256:${part.sha256}`
+        )
+        // Record ownership before validating the response. A digest or byte-count
+        // mismatch still means GitHub accepted an asset that this attempt owns.
+        attemptAssets.push(upload.asset)
+        ensureRawUploadMatchesHash(upload, part.length, part.sha256)
+        firstAsset ??= upload.asset
+        transferred += part.length
+      }
+
       onStage?.('verifying')
-      await ensureSourceStillMatchesHash(
-        fs,
-        options.absoluteFilePath,
-        hashed.sizeInBytes,
-        hashed.sha256,
-        signal
-      )
-      await fs.writePointer(
-        join(repository.path, trackedRelativePath),
-        pointerText
-      )
-      return { pointer, asset: upload.asset, releaseId: release.id }
+      if (verifiedSource !== undefined && trackedPaths !== undefined) {
+        await trackedPaths.revalidateSource(verifiedSource.source)
+        await trackedPaths.publishText(verifiedSource.destination, pointerText)
+      } else {
+        await ensureSourceStillMatchesHash(
+          fs,
+          options.absoluteFilePath,
+          hashed.sizeInBytes,
+          hashed.sha256,
+          signal
+        )
+        await fs.writePointer(
+          join(repository.path, trackedRelativePath),
+          pointerText
+        )
+      }
+
+      if (firstAsset === undefined) {
+        throw new Error('Cheap LFS uploaded no parts for this file.')
+      }
+      return { pointer, asset: firstAsset, releaseId: release.id }
     } catch (error) {
-      return rethrowAfterAttemptAssetCleanup(
+      return await rethrowAfterAttemptAssetCleanup(
         error,
         releases,
         repository,
@@ -1168,109 +1653,10 @@ export async function pinFileToRelease(
         attemptAssets
       )
     }
-  }
-
-  const partBaseName = dedupeMultiPartBaseName(
-    baseName,
-    releaseAssets,
-    hashed.sha256,
-    hashed.parts.length
-  )
-  const parts: ReadonlyArray<ICheapLfsPointerPart> = hashed.parts.map(
-    (part, index) => ({
-      name: partAssetName(partBaseName, index, hashed.parts.length),
-      sizeInBytes: part.length,
-      sha256: part.sha256,
-    })
-  )
-  const pointer: ICheapLfsPointer = {
-    version: CHEAP_LFS_POINTER_VERSION,
-    releaseTag,
-    assetName: partBaseName,
-    sizeInBytes: hashed.sizeInBytes,
-    sha256: hashed.sha256,
-    parts,
-  }
-  const pointerText = serializeCheapLfsPointer(pointer)
-  ensurePointerFitsOnDisk(pointerText)
-
-  let firstAsset: IGitHubReleaseAsset | undefined
-  let transferred = 0
-  const preexistingAssetIds = new Set(releaseAssets.map(asset => asset.id))
-  const attemptAssets = new Array<IGitHubReleaseAsset>()
-  // The release snapshot is refreshed before each part: an earlier part adds an
-  // asset, so the mutation review must reflect the release's current state.
-  let currentRelease = release
-  try {
-    onStage?.('uploading')
-    for (let index = 0; index < hashed.parts.length; index++) {
-      const part = hashed.parts[index]
-      const pointerPart = parts[index]
-      if (index > 0) {
-        const refreshed = await releases.getReleaseByTag(
-          repository,
-          releaseTag,
-          signal
-        )
-        if (refreshed === null) {
-          throw new Error(
-            `The release tagged “${releaseTag}” disappeared while its parts were uploading.`
-          )
-        }
-        ensureCheapLfsBucketTag(refreshed, releaseTag)
-        currentRelease = refreshed
-      }
-      const review = releases.createMutationReview(repository, currentRelease)
-      const upload = await releases.uploadAsset(
-        repository,
-        review,
-        options.absoluteFilePath,
-        pointerPart.name,
-        null,
-        signal ?? new AbortController().signal,
-        aggregateProgress(
-          onProgress,
-          transferred,
-          hashed.sizeInBytes,
-          part.length
-        ),
-        { offset: part.offset, length: part.length },
-        `sha256:${part.sha256}`
-      )
-      // Record ownership before validating the response. A digest or byte-count
-      // mismatch still means GitHub accepted an asset that this attempt owns.
-      attemptAssets.push(upload.asset)
-      ensureRawUploadMatchesHash(upload, part.length, part.sha256)
-      firstAsset ??= upload.asset
-      transferred += part.length
+  } finally {
+    if (verifiedSource !== undefined && trackedPaths !== undefined) {
+      await trackedPaths.cleanupOwned(verifiedSource.owned)
     }
-
-    onStage?.('verifying')
-    await ensureSourceStillMatchesHash(
-      fs,
-      options.absoluteFilePath,
-      hashed.sizeInBytes,
-      hashed.sha256,
-      signal
-    )
-    await fs.writePointer(
-      join(repository.path, trackedRelativePath),
-      pointerText
-    )
-
-    if (firstAsset === undefined) {
-      throw new Error('Cheap LFS uploaded no parts for this file.')
-    }
-    return { pointer, asset: firstAsset, releaseId: release.id }
-  } catch (error) {
-    return rethrowAfterAttemptAssetCleanup(
-      error,
-      releases,
-      repository,
-      releaseTag,
-      preexistingAssetIds,
-      attemptAssets
-    )
   }
 }
 
@@ -1297,6 +1683,8 @@ export interface ICheapLfsManualFilePlan {
   readonly sizeInBytes: number
   readonly sha256: string
   readonly assets: ReadonlyArray<ICheapLfsManualAssetPlan>
+  /** Exact tracked destination captured before any provider mutation. */
+  readonly trackedProof?: ICheapLfsTrackedFileProof
 }
 
 /** One release rendezvous containing every remaining selected large file. */
@@ -1310,6 +1698,7 @@ interface ICheapLfsManualHashedFile {
   readonly options: ICheapLfsPinOptions
   readonly trackedRelativePath: string
   readonly baseName: string
+  readonly trackedProof?: ICheapLfsTrackedFileProof
   readonly hashed: {
     readonly sha256: string
     readonly sizeInBytes: number
@@ -1410,6 +1799,59 @@ function ensureCheapLfsBucketTag(
     throw new Error(
       `GitHub returned release “${release.tagName}” while cheap LFS requested “${expectedTag}”.`
     )
+  }
+}
+
+async function scanPointerCandidates(
+  root: string
+): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
+  return (await isGitWorkingTree(root))
+    ? scanPointerCandidatesFromGit(root)
+    : scanPointerCandidatesFromDisk(root)
+}
+
+/**
+ * Publish an exact legacy Cheap LFS draft in place. Published prereleases are
+ * visible to ordinary collaborators but remain outside GitHub's stable
+ * `/releases/latest` feed. A concurrent publisher is accepted only when a
+ * fresh lookup proves the same release id is now published.
+ */
+async function publishCheapLfsReleaseIfNeeded(
+  releases: ICheapLfsReleasesGateway,
+  repository: Repository,
+  release: IGitHubRelease,
+  releaseTag: string,
+  signal?: AbortSignal
+): Promise<IGitHubRelease> {
+  ensureCheapLfsBucketTag(release, releaseTag)
+  if (!release.draft) {
+    return release
+  }
+
+  try {
+    const published = await releases.publish(
+      repository,
+      releases.createMutationReview(repository, release),
+      signal
+    )
+    ensureCheapLfsBucketTag(published, releaseTag)
+    if (published.draft) {
+      throw new Error(
+        `GitHub left the Cheap LFS release tagged “${releaseTag}” as a draft.`
+      )
+    }
+    return published
+  } catch (publishError) {
+    const refreshed = await releases.getReleaseByTag(
+      repository,
+      releaseTag,
+      signal
+    )
+    if (refreshed === null || refreshed.id !== release.id || refreshed.draft) {
+      throw publishError
+    }
+    ensureCheapLfsBucketTag(refreshed, releaseTag)
+    return refreshed
   }
 }
 
@@ -1629,9 +2071,22 @@ async function allocateCheapLfsReleaseBucket(
     }
     const releaseTag = cheapLfsReleaseBucketTag(baseTag, index)
     if (!releaseCache.has(index)) {
+      const found = await releases.getReleaseByTag(
+        repository,
+        releaseTag,
+        signal
+      )
       releaseCache.set(
         index,
-        await releases.getReleaseByTag(repository, releaseTag, signal)
+        found === null
+          ? null
+          : await publishCheapLfsReleaseIfNeeded(
+              releases,
+              repository,
+              found,
+              releaseTag,
+              signal
+            )
       )
     }
     const release = releaseCache.get(index) ?? null
@@ -1719,7 +2174,21 @@ async function allocateCheapLfsReleaseBucket(
       } catch (createError) {
         // A second operation may have claimed the same missing bucket after our
         // lookup. Re-read once; otherwise retain the provider's original error.
-        release = await releases.getReleaseByTag(repository, releaseTag, signal)
+        const conflicted = await releases.getReleaseByTag(
+          repository,
+          releaseTag,
+          signal
+        )
+        release =
+          conflicted === null
+            ? null
+            : await publishCheapLfsReleaseIfNeeded(
+                releases,
+                repository,
+                conflicted,
+                releaseTag,
+                signal
+              )
         if (release === null) {
           throw createError
         }
@@ -1727,6 +2196,11 @@ async function allocateCheapLfsReleaseBucket(
       // Keep provider identity validation outside the conflict-recovery catch:
       // a successful create that returns the wrong tag is never a conflict.
       ensureCheapLfsBucketTag(release, releaseTag)
+      if (release.draft) {
+        throw new Error(
+          `GitHub created the Cheap LFS release tagged “${releaseTag}” as a draft.`
+        )
+      }
       releaseCache.set(index, release)
     }
 
@@ -1762,6 +2236,7 @@ export async function planCheapLfsManualUpload(
   fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
   onHashProgress?: (progress: ICheapLfsFileProgress) => void
 ): Promise<ICheapLfsManualPinPlan> {
+  const trackedPaths = trackedPathStoreFor(fs)
   if (options.length === 0) {
     throw new Error('Cheap LFS has no files to prepare for manual upload.')
   }
@@ -1782,17 +2257,33 @@ export async function planCheapLfsManualUpload(
     readonly trackedRelativePath: string
     readonly baseName: string
     readonly sourceSize: number
+    readonly trackedProof?: ICheapLfsTrackedFileProof
   }>()
   let projectedAssetCount = 0
+  const trackedPathKeys = new Set<string>()
   for (const candidate of options) {
     const trackedRelativePath = validateCheapLfsTrackedPath(
       candidate.trackedRelativePath
     )
-    if (trackedRelativePath === null) {
+    if (
+      trackedRelativePath === null ||
+      isCheapLfsRepositoryKeyPath(trackedRelativePath)
+    ) {
       throw new Error(
         'Choose a safe repository-relative path without parent traversal or Git metadata to track with cheap LFS.'
       )
     }
+    const trackedPathKey = trackedRelativePath.toLowerCase()
+    if (trackedPathKeys.has(trackedPathKey)) {
+      throw new Error(
+        'A manual Cheap LFS batch cannot contain case-insensitive tracked-path collisions.'
+      )
+    }
+    trackedPathKeys.add(trackedPathKey)
+    const trackedProof = await trackedPaths?.proveDestination(
+      repository.path,
+      trackedRelativePath
+    )
     const baseName = normalizeGitHubReleaseAssetName(
       basename(candidate.absoluteFilePath)
     )
@@ -1812,6 +2303,7 @@ export async function planCheapLfsManualUpload(
       trackedRelativePath,
       baseName,
       sourceSize,
+      trackedProof,
     })
   }
 
@@ -1878,6 +2370,7 @@ export async function planCheapLfsManualUpload(
       options: file.options,
       trackedRelativePath: file.trackedRelativePath,
       baseName: file.baseName,
+      trackedProof: file.trackedProof,
       hashed,
     })
   }
@@ -1890,7 +2383,7 @@ export async function planCheapLfsManualUpload(
     options[0].releaseName,
     requiredAssetCount,
     async (releaseTag, releaseName) =>
-      await releases.createDraft(
+      await releases.create(
         repository,
         {
           tagName: releaseTag,
@@ -1901,10 +2394,11 @@ export async function planCheapLfsManualUpload(
           ),
           name: releaseName,
           body: '',
-          // Asset buckets must never replace the installer's /releases/latest
-          // update feed if a user later publishes the draft.
+          // Published prerelease buckets never replace the installer's stable
+          // /releases/latest update feed.
           prerelease: true,
         },
+        true,
         signal
       ),
     signal,
@@ -1945,6 +2439,7 @@ export async function planCheapLfsManualUpload(
       sizeInBytes: file.hashed.sizeInBytes,
       sha256: file.hashed.sha256,
       assets,
+      trackedProof: file.trackedProof,
     }
   })
   return { release, files, preexistingAssetIds }
@@ -1967,6 +2462,49 @@ function resolveReleaseAsset(
   return asset
 }
 
+async function ensureMaterializeTargetUnchanged(
+  fs: ICheapLfsFileSystem,
+  repositoryPath: string,
+  relativePath: string,
+  trackedPath: string,
+  expectedPointerText: string
+): Promise<void> {
+  const verifiedPath = await requireSafeCheapLfsMaterializationPath(
+    repositoryPath,
+    relativePath
+  )
+  const samePath =
+    process.platform === 'win32'
+      ? verifiedPath.toLowerCase() === trackedPath.toLowerCase()
+      : verifiedPath === trackedPath
+  if (!samePath) {
+    throw new Error(
+      'The cheap LFS materialization path changed while its content was downloading. The current file was left in place.'
+    )
+  }
+  let currentText: string
+  try {
+    currentText = await fs.readPointerText(trackedPath)
+  } catch {
+    throw new Error(
+      'The cheap LFS pointer changed or was removed while its content was downloading. The current file was left in place.'
+    )
+  }
+  if (currentText !== expectedPointerText) {
+    throw new Error(
+      'The cheap LFS pointer changed or was removed while its content was downloading. The current file was left in place.'
+    )
+  }
+}
+
+function ensureMaterializeNotCanceled(signal: AbortSignal | undefined): void {
+  if (signal?.aborted === true) {
+    throw abortError(
+      'Cheap LFS materialization was canceled before replacing the pointer.'
+    )
+  }
+}
+
 /**
  * Download a single-asset pointer's asset to a sibling temp, verify its streamed
  * SHA-256 and size against the pointer, and atomically rename it over the
@@ -1977,7 +2515,11 @@ async function materializeSingleAsset(
   repository: Repository,
   release: IGitHubRelease,
   pointer: ICheapLfsPointer,
+  expectedPointerText: string,
+  trackedRelativePath: string,
   trackedPath: string,
+  trackedProof: ICheapLfsTrackedFileProof | undefined,
+  trackedPaths: ICheapLfsTrackedPathStore | undefined,
   signal: AbortSignal | undefined,
   onProgress:
     | ((progress: IGitHubReleaseTransferProgressEvent) => void)
@@ -1990,15 +2532,18 @@ async function materializeSingleAsset(
     pointer.releaseTag
   )
   const temporaryPath = fs.temporaryPathFor(trackedPath)
-  const download = await releases.downloadAsset(
-    repository,
-    release.id,
-    asset,
-    temporaryPath,
-    signal ?? new AbortController().signal,
-    aggregateProgress(onProgress, 0, pointer.sizeInBytes, pointer.sizeInBytes)
-  )
+  let downloadedPath = temporaryPath
+  let trackedStoreOwnsDownload = false
   try {
+    const download = await releases.downloadAsset(
+      repository,
+      release.id,
+      asset,
+      temporaryPath,
+      signal ?? new AbortController().signal,
+      aggregateProgress(onProgress, 0, pointer.sizeInBytes, pointer.sizeInBytes)
+    )
+    downloadedPath = download.path
     const verified = await fs.hashFile(download.path, signal)
     if (
       verified.sha256 !== pointer.sha256 ||
@@ -2008,10 +2553,32 @@ async function materializeSingleAsset(
         'The downloaded asset does not match the cheap LFS pointer. The pointer was left in place.'
       )
     }
-    await fs.replaceFile(download.path, trackedPath)
+    if (trackedProof !== undefined && trackedPaths !== undefined) {
+      ensureMaterializeNotCanceled(signal)
+      trackedStoreOwnsDownload = true
+      await trackedPaths.replaceFromPath(
+        trackedProof,
+        download.path,
+        pointer.sha256,
+        pointer.sizeInBytes,
+        signal
+      )
+    } else {
+      await ensureMaterializeTargetUnchanged(
+        fs,
+        repository.path,
+        trackedRelativePath,
+        trackedPath,
+        expectedPointerText
+      )
+      ensureMaterializeNotCanceled(signal)
+      await fs.replaceFile(download.path, trackedPath)
+    }
     return { path: trackedPath, bytes: verified.sizeInBytes }
   } catch (error) {
-    await fs.removeFile(download.path)
+    if (!trackedStoreOwnsDownload) {
+      await fs.removeFile(downloadedPath)
+    }
     throw error
   }
 }
@@ -2030,8 +2597,12 @@ async function materializeMultiPart(
   repository: Repository,
   release: IGitHubRelease,
   pointer: ICheapLfsPointer,
+  expectedPointerText: string,
+  trackedRelativePath: string,
   parts: ReadonlyArray<ICheapLfsPointerPart>,
   trackedPath: string,
+  trackedProof: ICheapLfsTrackedFileProof | undefined,
+  trackedPaths: ICheapLfsTrackedPathStore | undefined,
   signal: AbortSignal | undefined,
   onProgress:
     | ((progress: IGitHubReleaseTransferProgressEvent) => void)
@@ -2054,6 +2625,7 @@ async function materializeMultiPart(
   const assemblySources = new Array<string>()
   let assembledPath: string | null = null
   let assembledConsumed = false
+  let trackedStoreOwnsAssembly = false
   try {
     let transferred = 0
     for (const { part, asset } of resolved) {
@@ -2118,7 +2690,27 @@ async function materializeMultiPart(
         'The reassembled cheap LFS file does not match the pointer. The pointer was left in place.'
       )
     }
-    await fs.replaceFile(assembledPath, trackedPath)
+    if (trackedProof !== undefined && trackedPaths !== undefined) {
+      ensureMaterializeNotCanceled(signal)
+      trackedStoreOwnsAssembly = true
+      await trackedPaths.replaceFromPath(
+        trackedProof,
+        assembledPath,
+        pointer.sha256,
+        pointer.sizeInBytes,
+        signal
+      )
+    } else {
+      await ensureMaterializeTargetUnchanged(
+        fs,
+        repository.path,
+        trackedRelativePath,
+        trackedPath,
+        expectedPointerText
+      )
+      ensureMaterializeNotCanceled(signal)
+      await fs.replaceFile(assembledPath, trackedPath)
+    }
     assembledConsumed = true
     return { path: trackedPath, bytes: assembled.sizeInBytes }
   } finally {
@@ -2128,7 +2720,11 @@ async function materializeMultiPart(
     for (const expandedPath of expandedPaths) {
       await fs.removeFile(expandedPath)
     }
-    if (assembledPath !== null && !assembledConsumed) {
+    if (
+      assembledPath !== null &&
+      !assembledConsumed &&
+      !trackedStoreOwnsAssembly
+    ) {
       await fs.removeFile(assembledPath)
     }
   }
@@ -2184,16 +2780,33 @@ export async function materializePointer(
   fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
   cache?: ICheapLfsMaterializeCache
 ): Promise<ICheapLfsMaterializeResult> {
+  const trackedPaths = trackedPathStoreFor(fs)
   const relativePath = validateCheapLfsTrackedPath(trackedRelativePath)
-  if (relativePath === null) {
+  if (relativePath === null || isCheapLfsRepositoryKeyPath(relativePath)) {
     throw new Error(
       'Choose a safe repository-relative path without parent traversal or Git metadata to materialize.'
     )
   }
-  ensureReleasesAccount(repository, account)
+  ensureReleasesReadAccount(repository, account)
 
-  const trackedPath = join(repository.path, relativePath)
-  const pointer = parseCheapLfsPointer(await fs.readPointerText(trackedPath))
+  const trackedProof = await trackedPaths?.proveExisting(
+    repository.path,
+    relativePath
+  )
+  const trackedPath =
+    trackedProof?.absolutePath ??
+    (await requireSafeCheapLfsMaterializationPath(
+      repository.path,
+      relativePath
+    ))
+  const pointerText =
+    trackedProof === undefined || trackedPaths === undefined
+      ? await fs.readPointerText(trackedPath)
+      : await trackedPaths.readText(
+          trackedProof,
+          CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES
+        )
+  const pointer = parseCheapLfsPointer(pointerText)
   if (pointer === null) {
     throw new Error('This file is not a cheap LFS pointer.')
   }
@@ -2221,6 +2834,16 @@ export async function materializePointer(
       `No release tagged “${pointer.releaseTag}” holds this pointer's asset.`
     )
   }
+  release = await publishCheapLfsReleaseIfNeeded(
+    releases,
+    repository,
+    release,
+    pointer.releaseTag,
+    signal
+  )
+  // A shared batch cache may still hold the pre-publication draft promise.
+  // Replace it so later pointers reuse the exact published provider snapshot.
+  cache?.releasesByTag.set(pointer.releaseTag, Promise.resolve(release))
   const requiredNames = requiredPointerAssetNames(pointer)
   let completeRelease = release
   if (!releaseContainsUploadedAssets(release, requiredNames)) {
@@ -2258,7 +2881,11 @@ export async function materializePointer(
       repository,
       completeRelease,
       pointer,
+      pointerText,
+      relativePath,
       trackedPath,
+      trackedProof,
+      trackedPaths,
       signal,
       onProgress,
       fs
@@ -2269,20 +2896,19 @@ export async function materializePointer(
     repository,
     completeRelease,
     pointer,
+    pointerText,
+    relativePath,
     pointer.parts,
     trackedPath,
+    trackedProof,
+    trackedPaths,
     signal,
     onProgress,
     fs
   )
 }
 
-/**
- * List the committed pointers in a repository's working tree. The scan is
- * bounded (skips `.git`/`node_modules` and other heavy directories, caps the
- * entries walked and the pointers returned) and only sniffs each file's first
- * {@link CheapLfsSniffBytes} bytes, so it stays cheap even on large trees.
- */
+/** List Release pointers from the complete Git/index-aware inventory. */
 export async function listCheapLfsPointers(
   repository: Repository,
   fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
@@ -2290,9 +2916,64 @@ export async function listCheapLfsPointers(
   const candidates = await fs.scanPointerCandidates(repository.path)
   const entries = new Array<ICheapLfsPointerEntry>()
   for (const candidate of candidates) {
+    pointerIdentity(candidate.text)
     const pointer = parseCheapLfsPointer(candidate.text)
     if (pointer !== null) {
-      entries.push({ relativePath: candidate.relativePath, pointer })
+      entries.push({
+        relativePath: candidate.relativePath,
+        pointer,
+        workingTreeState: candidate.workingTreeState ?? 'pointer',
+      })
+    }
+  }
+  return entries
+}
+
+/**
+ * List both historical GitHub Release pointers and OCI registry pointers.
+ * Keeping the discriminant explicit prevents provider-specific restore or
+ * removal code from accidentally interpreting one format as the other.
+ */
+export async function listAllCheapLfsPointers(
+  repository: Repository,
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
+): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
+  const candidates = await fs.scanPointerCandidates(repository.path)
+  const entries = new Array<ICheapLfsManagedPointerEntry>()
+  for (const candidate of candidates) {
+    pointerIdentity(candidate.text)
+    const releasePointer = parseCheapLfsPointer(candidate.text)
+    if (releasePointer !== null) {
+      entries.push({
+        kind: 'release',
+        relativePath: candidate.relativePath,
+        provider: 'release',
+        pointer: releasePointer,
+        workingTreeState: candidate.workingTreeState ?? 'pointer',
+        workingTreeSizeInBytes: candidate.workingTreeSizeInBytes,
+      })
+      continue
+    }
+
+    let ociPointer: ICheapLfsGhcrPointer | null
+    try {
+      ociPointer = parseCheapLfsGhcrPointer(candidate.text)
+    } catch {
+      continue
+    }
+    if (ociPointer === null) {
+      continue
+    }
+    const provider = getCheapLfsOciRegistryProvider(ociPointer.image)
+    if (provider !== null) {
+      entries.push({
+        kind: 'oci',
+        relativePath: candidate.relativePath,
+        provider,
+        pointer: ociPointer,
+        workingTreeState: candidate.workingTreeState ?? 'pointer',
+        workingTreeSizeInBytes: candidate.workingTreeSizeInBytes,
+      })
     }
   }
   return entries
@@ -2300,15 +2981,16 @@ export async function listCheapLfsPointers(
 
 /**
  * Whether the automatic materialize-on-detect flow should run: the per-repo
- * preference must be enabled (its back-compat default is on) and a
- * Releases-capable account must be selected for the repository. Pure so the
- * detector's gating is unit-testable without an app store.
+ * preference must be enabled (its back-compat default is on) and a validated
+ * Release read account must be available. That account can be authenticated or
+ * the anonymous account resolved for an explicitly public GitHub.com repo.
+ * Pure so the detector's gating is unit-testable without an app store.
  */
 export function shouldAutoMaterializeCheapLfs(
   autoMaterializeEnabled: boolean,
-  releasesAccount: Account | null
+  releasesReadAccount: Account | null
 ): boolean {
-  return autoMaterializeEnabled && releasesAccount !== null
+  return autoMaterializeEnabled && releasesReadAccount !== null
 }
 
 /**
@@ -2351,6 +3033,31 @@ export type CheapLfsAutoPinPhase =
 /** Batch progress with enough phase detail for honest commit UI messaging. */
 export interface ICheapLfsAutoPinProgress extends ICheapLfsBatchProgress {
   readonly phase: CheapLfsAutoPinPhase
+  /** Persisted provider used for this operation. */
+  readonly selectedStorageProvider?: CheapLfsStorageProvider
+  /** Size/capability-based advice; informative and never silently overrides. */
+  readonly recommendedStorageProvider?: CheapLfsRecommendedStorage
+  readonly storageRecommendationReason?: CheapLfsStorageRecommendationReason
+  readonly estimatedRegistryLayers?: number
+  /** Successfully written pointers, in the batch. */
+  readonly succeededFiles?: number
+  /** Files whose automatic pin failed and remain as their original content. */
+  readonly failedFiles?: number
+  /**
+   * A deterministic, input-ordered snapshot of the files currently active.
+   * Automatic uploads publish at most three rows. Older/manual producers may
+   * omit this field and continue to use `currentPath`.
+   */
+  readonly activeFiles?: ReadonlyArray<ICheapLfsActivePinProgress>
+}
+
+/** Structured progress for one active automatic pin worker. */
+export interface ICheapLfsActivePinProgress {
+  readonly relativePath: string
+  readonly phase: CheapLfsAutoPinPhase
+  /** Stage-local bytes (hash bytes while hashing, upload bytes while uploading). */
+  readonly processedBytes: number
+  readonly totalBytes: number
 }
 
 /** One pointer that could not be materialized during a batch. */
@@ -2450,8 +3157,28 @@ export interface ICheapLfsAutoPinnedFile {
   readonly result: ICheapLfsPinResult
 }
 
+/** One automatic pin failure. Its source file is never safe to commit. */
+export interface ICheapLfsAutoPinFailure {
+  readonly relativePath: string
+  readonly sizeInBytes: number
+  readonly message: string
+}
+
+/** Settled automatic pin outcome, always ordered like the selected inputs. */
+export interface ICheapLfsAutoPinResult {
+  readonly pinned: ReadonlyArray<ICheapLfsAutoPinnedFile>
+  readonly failures: ReadonlyArray<ICheapLfsAutoPinFailure>
+  readonly totalBytes: number
+  readonly canceled: boolean
+}
+
+/** Automatic pinning deliberately never exceeds three concurrent files. */
+export const CheapLfsMaximumAutoPinConcurrency = 3
+
 /** The disk and transfer seams the auto-pin-on-commit flow depends on. */
 export interface ICheapLfsAutoPinDependencies {
+  /** Opaque production containment/CAS seam; structural test fakes may omit. */
+  readonly trackedPaths?: ICheapLfsTrackedPathStore
   /** Byte size of a working-tree file (stat). */
   readonly statSize: (absolutePath: string) => Promise<number>
   /** First bytes of a working-tree file, used to classify it as a pointer. */
@@ -2462,7 +3189,9 @@ export interface ICheapLfsAutoPinDependencies {
     signal: AbortSignal | undefined,
     onProgress: (progress: IGitHubReleaseTransferProgressEvent) => void,
     onStage?: (stage: CheapLfsAutoPinPhase) => void,
-    onHashProgress?: (processedBytes: number) => void
+    onHashProgress?: (processedBytes: number) => void,
+    /** Zero-based stable release lane for this file. */
+    laneIndex?: number
   ) => Promise<ICheapLfsPinResult>
 }
 
@@ -2477,18 +3206,48 @@ export async function selectCheapLfsAutoPinTargets(
   repository: Repository,
   selectedRelativePaths: ReadonlyArray<string>,
   thresholdBytes: number,
-  deps: Pick<ICheapLfsAutoPinDependencies, 'statSize' | 'readPointerText'>
+  deps: Pick<ICheapLfsAutoPinDependencies, 'statSize' | 'readPointerText'> & {
+    readonly trackedPaths?: ICheapLfsTrackedPathStore
+  },
+  signal?: AbortSignal
 ): Promise<ReadonlyArray<ICheapLfsAutoPinTarget>> {
   const targets = new Array<ICheapLfsAutoPinTarget>()
+  const seen = new Set<string>()
+  const trackedPaths =
+    deps.trackedPaths ??
+    (deps.statSize === defaultCheapLfsFileSystem.statSize &&
+    deps.readPointerText === defaultCheapLfsFileSystem.readPointerText
+      ? defaultCheapLfsTrackedPathStore
+      : undefined)
   for (const relativePath of selectedRelativePaths) {
+    if (signal?.aborted) {
+      throw abortError('Cheap LFS commit upload was canceled.')
+    }
     const validated = validateCheapLfsTrackedPath(relativePath)
-    if (validated === null) {
+    if (
+      validated === null ||
+      isCheapLfsRepositoryKeyPath(validated) ||
+      seen.has(validated.toLowerCase())
+    ) {
       continue
     }
+    seen.add(validated.toLowerCase())
     const absolutePath = join(repository.path, validated)
     let sizeInBytes: number
+    let trackedProof: ICheapLfsTrackedFileProof | undefined
     try {
-      sizeInBytes = await deps.statSize(absolutePath)
+      if (trackedPaths !== undefined) {
+        trackedProof = await trackedPaths.proveDestination(
+          repository.path,
+          validated
+        )
+        if (!trackedProof.exists) {
+          continue
+        }
+        sizeInBytes = trackedProof.sizeInBytes
+      } else {
+        sizeInBytes = await deps.statSize(absolutePath)
+      }
     } catch {
       continue
     }
@@ -2498,8 +3257,18 @@ export async function selectCheapLfsAutoPinTargets(
     // A committed pointer is tiny, so an over-threshold file is almost never one
     // — but classify anyway so a mis-sized pointer is never re-pinned.
     try {
+      const text =
+        trackedProof !== undefined && trackedPaths !== undefined
+          ? trackedProof.sizeInBytes <= CheapLfsMaximumAnyPointerTextBytes
+            ? await trackedPaths.readText(
+                trackedProof,
+                CheapLfsMaximumAnyPointerTextBytes
+              )
+            : ''
+          : await deps.readPointerText(absolutePath)
       if (
-        parseCheapLfsPointer(await deps.readPointerText(absolutePath)) !== null
+        parseCheapLfsPointer(text) !== null ||
+        parseCheapLfsGhcrPointer(text) !== null
       ) {
         continue
       }
@@ -2513,11 +3282,16 @@ export async function selectCheapLfsAutoPinTargets(
 
 /**
  * Pin every over-threshold selected file before a commit so the working tree
- * holds committable pointers instead of unpushable large binaries. Pins run in
- * sequence; the FIRST failure re-throws so the caller can abort the commit
- * without ever committing a half-pinned tree. Returns the files it pinned, in
- * order (empty when nothing qualified). The caller must re-read status after a
- * non-empty result so the committed content is the pointer, not the binary.
+ * holds committable pointers instead of unpushable large binaries. Work is
+ * assigned to one-to-three stable release lanes; each lane is sequential while
+ * the lanes run concurrently. This avoids concurrent mutations of one reviewed
+ * release while still allowing three files to upload at once.
+ *
+ * Ordinary failures are collected and the other files continue. Cancellation
+ * stops each lane from claiming more work and all started pins settle before
+ * this function returns. Results, failures, and `onPinned` callbacks are always
+ * ordered like the selected inputs. The caller must re-read status after any
+ * success before committing so it stages pointers rather than original files.
  */
 export async function autoPinLargeFilesForCommit(
   repository: Repository,
@@ -2526,66 +3300,202 @@ export async function autoPinLargeFilesForCommit(
   deps: ICheapLfsAutoPinDependencies,
   signal?: AbortSignal,
   onProgress?: (progress: ICheapLfsAutoPinProgress) => void,
-  onPinned?: (file: ICheapLfsAutoPinnedFile) => void
-): Promise<ReadonlyArray<ICheapLfsAutoPinnedFile>> {
+  onPinned?: (file: ICheapLfsAutoPinnedFile) => void,
+  maximumConcurrency: number = 1
+): Promise<ICheapLfsAutoPinResult> {
   const targets = await selectCheapLfsAutoPinTargets(
     repository,
     selectedRelativePaths,
     thresholdBytes,
-    deps
+    deps,
+    signal
   )
   const totalBytes = targets.reduce(
     (sum, target) => sum + target.sizeInBytes,
     0
   )
-  const pinned = new Array<ICheapLfsAutoPinnedFile>()
-  let completedBytes = 0
-  for (let index = 0; index < targets.length; index++) {
-    const target = targets[index]
-    const transferredBefore = completedBytes
-    // Hashing and release preparation happen inside `pin` before the transfer
-    // callback can fire. Emit this first so a multi-gigabyte preprocessing pass
-    // never masquerades as an ordinary Git commit in the UI.
-    onProgress?.({
-      phase: 'preparing',
-      completedFiles: index,
-      totalFiles: targets.length,
-      currentPath: target.relativePath,
-      transferredBytes: transferredBefore,
-      totalBytes,
-    })
-    const emit = (phase: CheapLfsAutoPinPhase, transferred = 0) =>
-      onProgress?.({
-        phase,
-        completedFiles: index,
-        totalFiles: targets.length,
-        currentPath: target.relativePath,
-        transferredBytes: transferredBefore + transferred,
-        totalBytes,
-      })
-    const result = await deps.pin(
-      target,
-      signal,
-      progress => emit('uploading', progress.transferredBytes),
-      stage => emit(stage),
-      processedBytes => emit('hashing', processedBytes)
-    )
-    const pinnedFile = {
-      relativePath: target.relativePath,
-      sizeInBytes: target.sizeInBytes,
-      result,
+  if (targets.length === 0) {
+    return { pinned: [], failures: [], totalBytes, canceled: false }
+  }
+
+  const requestedConcurrency = Number.isFinite(maximumConcurrency)
+    ? Math.floor(maximumConcurrency)
+    : 1
+  const concurrency = Math.min(
+    CheapLfsMaximumAutoPinConcurrency,
+    targets.length,
+    Math.max(1, requestedConcurrency)
+  )
+  const controller = new AbortController()
+  const cancel = () => controller.abort()
+  signal?.addEventListener('abort', cancel, { once: true })
+  if (signal?.aborted) {
+    controller.abort()
+  }
+
+  type ActiveState = {
+    readonly index: number
+    phase: CheapLfsAutoPinPhase
+    processedBytes: number
+  }
+  const active = new Map<number, ActiveState>()
+  const successes = new Array<ICheapLfsAutoPinnedFile | undefined>(
+    targets.length
+  )
+  const failures = new Array<ICheapLfsAutoPinFailure | undefined>(
+    targets.length
+  )
+  let canceled = controller.signal.aborted
+
+  const boundedStageBytes = (value: number, maximum: number): number => {
+    if (!Number.isFinite(value) || value <= 0) {
+      return 0
     }
-    pinned.push(pinnedFile)
-    onPinned?.(pinnedFile)
-    completedBytes += target.sizeInBytes
+    return Math.min(maximum, Math.floor(value))
+  }
+
+  const phasePriority = (phase: CheapLfsAutoPinPhase): number => {
+    switch (phase) {
+      case 'uploading':
+        return 5
+      case 'hashing':
+        return 4
+      case 'verifying':
+        return 3
+      case 'release':
+        return 2
+      default:
+        return 1
+    }
+  }
+
+  const emitProgress = (terminalPhase: CheapLfsAutoPinPhase = 'uploading') => {
+    const activeStates = [...active.values()].sort((a, b) => a.index - b.index)
+    const activeFiles: ReadonlyArray<ICheapLfsActivePinProgress> =
+      activeStates.map(state => ({
+        relativePath: targets[state.index].relativePath,
+        phase: state.phase,
+        processedBytes: boundedStageBytes(
+          state.processedBytes,
+          targets[state.index].sizeInBytes
+        ),
+        totalBytes: targets[state.index].sizeInBytes,
+      }))
+    const succeededFiles = successes.filter(Boolean).length
+    const failedFiles = failures.filter(Boolean).length
+    const transferredBytes = targets.reduce((sum, target, index) => {
+      if (successes[index] !== undefined) {
+        return sum + target.sizeInBytes
+      }
+      const state = active.get(index)
+      return state?.phase === 'uploading'
+        ? sum + boundedStageBytes(state.processedBytes, target.sizeInBytes)
+        : sum
+    }, 0)
+    const phase =
+      activeStates.length === 0
+        ? terminalPhase
+        : activeStates
+            .slice(1)
+            .reduce<CheapLfsAutoPinPhase>(
+              (selected, state) =>
+                phasePriority(state.phase) > phasePriority(selected)
+                  ? state.phase
+                  : selected,
+              activeStates[0].phase
+            )
+
     onProgress?.({
-      phase: 'uploading',
-      completedFiles: index + 1,
+      phase,
+      completedFiles: succeededFiles + failedFiles,
+      succeededFiles,
+      failedFiles,
       totalFiles: targets.length,
-      currentPath: null,
-      transferredBytes: completedBytes,
+      currentPath: activeFiles[0]?.relativePath ?? null,
+      transferredBytes,
       totalBytes,
+      activeFiles,
     })
   }
-  return pinned
+
+  const runLane = async (laneIndex: number) => {
+    for (
+      let targetIndex = laneIndex;
+      targetIndex < targets.length;
+      targetIndex += concurrency
+    ) {
+      if (controller.signal.aborted) {
+        canceled = true
+        break
+      }
+
+      const target = targets[targetIndex]
+      const state: ActiveState = {
+        index: targetIndex,
+        phase: 'preparing',
+        processedBytes: 0,
+      }
+      active.set(targetIndex, state)
+      emitProgress('preparing')
+
+      const update = (phase: CheapLfsAutoPinPhase, processedBytes = 0) => {
+        state.phase = phase
+        state.processedBytes = boundedStageBytes(
+          processedBytes,
+          target.sizeInBytes
+        )
+        emitProgress(phase)
+      }
+
+      try {
+        const result = await deps.pin(
+          target,
+          controller.signal,
+          progress => update('uploading', progress.transferredBytes),
+          stage => update(stage),
+          processedBytes => update('hashing', processedBytes),
+          laneIndex
+        )
+        successes[targetIndex] = {
+          relativePath: target.relativePath,
+          sizeInBytes: target.sizeInBytes,
+          result,
+        }
+      } catch (error) {
+        if ((error as Error)?.name === 'AbortError') {
+          canceled = true
+          controller.abort()
+        } else {
+          failures[targetIndex] = {
+            relativePath: target.relativePath,
+            sizeInBytes: target.sizeInBytes,
+            message: error instanceof Error ? error.message : String(error),
+          }
+        }
+      } finally {
+        active.delete(targetIndex)
+        emitProgress()
+      }
+    }
+  }
+
+  try {
+    await Promise.all(
+      Array.from({ length: concurrency }, (_, laneIndex) => runLane(laneIndex))
+    )
+  } finally {
+    signal?.removeEventListener('abort', cancel)
+  }
+
+  const pinned = successes.filter(
+    (file): file is ICheapLfsAutoPinnedFile => file !== undefined
+  )
+  const failed = failures.filter(
+    (failure): failure is ICheapLfsAutoPinFailure => failure !== undefined
+  )
+  for (const file of pinned) {
+    onPinned?.(file)
+  }
+
+  return { pinned, failures: failed, totalBytes, canceled }
 }

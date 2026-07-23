@@ -4,8 +4,8 @@
  * normalizes child scopes that are already included by `repo` or `user`.
  *
  * Deliberately excluded are destructive or unrelated administration scopes
- * such as delete_repo, admin:org, key management, packages, audit-log access,
- * gists, and Codespaces.
+ * such as delete_repo, admin:org, key management, package deletion, audit-log
+ * access, gists, and Codespaces.
  */
 export const GitHubOAuthScopes = [
   // Repository content, issues, pull requests, releases, checks, rules, and
@@ -19,6 +19,10 @@ export const GitHubOAuthScopes = [
   'notifications',
   // Resolve private organization/team membership and collaborator metadata.
   'read:org',
+  // Request package read/write permission used by GHCR. Registry acceptance is
+  // still verified at runtime because GitHub's registry authentication policy
+  // can reject an otherwise valid account credential.
+  'write:packages',
 ] as const
 
 export type GitHubOAuthScope = typeof GitHubOAuthScopes[number]

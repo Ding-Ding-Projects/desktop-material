@@ -17,10 +17,12 @@ import { IGitHubRelease } from '../../lib/github-releases'
 import { IGitHubReleaseTransferProgressEvent } from '../../lib/github-release-transfer'
 import {
   ICheapLfsMaterializeResult,
+  ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
-  ICheapLfsPointerEntry,
 } from '../../lib/cheap-lfs/operations'
+import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
+import type { IEnsureCheapLfsCloudCompressionResult } from '../../lib/cheap-lfs/cloud-compression'
 import { shell } from '../../lib/app-shell'
 import type { IResolvedRepositoryAppearance } from '../../lib/appearance-customization'
 import {
@@ -3124,16 +3126,15 @@ export class Dispatcher {
   }
 
   /**
-   * Upload a working-tree file as a GitHub Release asset and replace it with a
-   * committed cheap-LFS pointer, refreshing the repository afterwards. The
-   * optional signal and progress callback let a UI show and cancel the upload.
+   * Upload a working-tree file to the configured Cheap LFS backend and replace
+   * it with a pointer, refreshing the repository afterwards.
    */
   public pinFileToRelease(
     repository: Repository,
     options: ICheapLfsPinOptions,
     signal?: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
-  ): Promise<ICheapLfsPinResult> {
+  ): Promise<ICheapLfsPinResult | ICheapLfsOciMutationResult> {
     return this.appStore._pinFileToRelease(
       repository,
       options,
@@ -3163,8 +3164,23 @@ export class Dispatcher {
   /** List the committed cheap-LFS pointers in the repository's working tree. */
   public listCheapLfsPointers(
     repository: Repository
-  ): Promise<ReadonlyArray<ICheapLfsPointerEntry>> {
+  ): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
     return this.appStore._listCheapLfsPointers(repository)
+  }
+
+  /** Republish an OCI snapshot without one path and update all survivors. */
+  public removeCheapLfsPointer(
+    repository: Repository,
+    trackedRelativePath: string,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<void> {
+    return this.appStore._removeCheapLfsPointer(
+      repository,
+      trackedRelativePath,
+      signal,
+      onProgress
+    )
   }
 
   /**
@@ -3582,10 +3598,31 @@ export class Dispatcher {
   public async updateRepositoryBuildRunPreferences(
     repository: Repository,
     buildRunPreferences: IBuildRunPreferences
-  ) {
+  ): Promise<IEnsureCheapLfsCloudCompressionResult | null> {
+    const cloudCompressionChanged =
+      (repository.buildRunPreferences.cheapLfsCloudCompression === true) !==
+      (buildRunPreferences.cheapLfsCloudCompression === true)
     await this.appStore._updateRepositoryBuildRunPreferences(
       repository,
       buildRunPreferences
+    )
+    if (repository.gitHubRepository !== null && cloudCompressionChanged) {
+      return await this.appStore._ensureCheapLfsCloudCompressionWorkflow(
+        repository,
+        buildRunPreferences
+      )
+    }
+    return null
+  }
+
+  /** Keep the reviewed Cheap LFS cloud-compression caller in policy sync. */
+  public ensureCheapLfsCloudCompressionWorkflow(
+    repository: Repository,
+    preferences: IBuildRunPreferences
+  ): Promise<IEnsureCheapLfsCloudCompressionResult> {
+    return this.appStore._ensureCheapLfsCloudCompressionWorkflow(
+      repository,
+      preferences
     )
   }
 
@@ -7186,6 +7223,16 @@ export class Dispatcher {
 
   public setFilterDeletedFiles(repository: Repository, isDeletedFile: boolean) {
     return this.appStore._setFilterDeletedFiles(repository, isDeletedFile)
+  }
+
+  public setFilterCheapLfsCandidates(
+    repository: Repository,
+    isCheapLfsCandidate: boolean
+  ) {
+    return this.appStore._setFilterCheapLfsCandidates(
+      repository,
+      isCheapLfsCandidate
+    )
   }
 
   public setFilterExcludedFiles(

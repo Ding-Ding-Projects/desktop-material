@@ -5,6 +5,8 @@ import { Repository } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
 import {
   IRepositoryTab,
+  ITabGroup,
+  normalizeTabGroupColor,
   tabTitleStyleToCss,
   tabFrameStyleToCss,
 } from '../../models/repository-tab'
@@ -23,12 +25,17 @@ import {
   repositoryLogoLoader,
 } from '../repository-logo/repository-logo-loader'
 import { Dispatcher } from '../dispatcher'
+import { translateForAccessibleName } from '../../lib/i18n'
 
 interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
   readonly repository: Repository | CloningRepository | null
   readonly isActive: boolean
   readonly isDragging: boolean
+  /** The group this tab belongs to, or null when it is ungrouped. */
+  readonly group?: ITabGroup | null
+  /** Concise localized label naming both this tab and its declared group. */
+  readonly groupAccessibleLabel?: string
   readonly onSelect: (tab: IRepositoryTab) => void
   readonly onClose: (tab: IRepositoryTab) => void
   readonly onToggleFavorite: (tab: IRepositoryTab) => void
@@ -305,16 +312,25 @@ export class RepositoryTab extends React.Component<
 
   public render() {
     const { tab, isActive, isDragging } = this.props
+    const group = this.props.group ?? null
     const className = [
       'repository-tab',
       isActive ? 'active' : null,
       tab.isPinned === true ? 'pinned' : null,
       tab.isFavorite === true ? 'favorite' : null,
       isDragging ? 'dragging' : null,
+      group !== null ? 'grouped' : null,
+      group !== null
+        ? `tab-group--${normalizeTabGroupColor(group.color)}`
+        : null,
     ]
       .filter(value => value !== null)
       .join(' ')
     const frameStyle = tabFrameStyleToCss(tab.titleStyle)
+    const accessibleLabel =
+      group === null
+        ? this.label
+        : this.props.groupAccessibleLabel ?? this.label
 
     if (this.state.isRenaming) {
       return (
@@ -347,8 +363,14 @@ export class RepositoryTab extends React.Component<
         data-context-menu-owner="repository-tab-commands"
         role="tab"
         aria-selected={isActive}
-        aria-label={`${this.label}${tab.isPinned === true ? ', pinned' : ''}${
-          tab.isFavorite === true ? ', favorite' : ''
+        aria-label={`${accessibleLabel}${
+          tab.isPinned === true
+            ? translateForAccessibleName('tabs.tabPinnedSuffix')
+            : ''
+        }${
+          tab.isFavorite === true
+            ? translateForAccessibleName('tabs.tabFavoriteSuffix')
+            : ''
         }`}
         tabIndex={isActive ? 0 : -1}
         draggable={true}

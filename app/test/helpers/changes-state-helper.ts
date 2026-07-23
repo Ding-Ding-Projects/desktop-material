@@ -32,6 +32,7 @@ export function createState<K extends keyof IChangesState>(
       isModifiedFile: false,
       isDeletedFile: false,
       isExcludedFromCommit: false,
+      isCheapLfsCandidate: false,
     },
   }
 

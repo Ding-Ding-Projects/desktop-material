@@ -105,7 +105,14 @@ describe('scheduled automation repository selection', () => {
   })
 
   it('fences pre-commit awaits and always completes a successful commit/push pair', async () => {
-    const boundaries = ['message', 'include', 'commit', 'refresh', 'push']
+    const boundaries = [
+      'message',
+      'include',
+      'precommit',
+      'commit',
+      'refresh',
+      'push',
+    ]
     for (const boundary of boundaries) {
       const repository = new Repository('C:/work/selected', 1, null, false)
       const replacement = new Repository('C:/work/replacement', 2, null, false)
@@ -130,26 +137,53 @@ describe('scheduled automation repository selection', () => {
           return null
         },
         _changeIncludeAllFiles: async () => step('include'),
-        _commitIncludedChanges: async () => {
+        _commitIncludedChanges: async (
+          _repository: Repository,
+          _context: unknown,
+          _forceAutoPin: boolean,
+          pushAfterCommit: boolean,
+          canStartCommit: () => boolean
+        ) => {
+          assert.equal(pushAfterCommit, true)
+          assert.equal(canStartCommit(), true)
+          step('precommit')
+          if (!canStartCommit()) {
+            return false
+          }
           step('commit')
-          return true
-        },
-        _refreshRepository: async () => step('refresh'),
-        performScheduledPush: async () => {
+          // The refresh and push now live inside the commit batch sequencer.
+          // Once its first commit succeeds, repository selection fencing must
+          // not strand that commit before the paired push.
+          step('refresh')
           step('push')
           return true
         },
         postNotification: () => events.push('notification'),
       })
 
-      await invoke(store, 'performScheduledCommitPush', repository)
+      const operation = invoke(store, 'performScheduledCommitPush', repository)
+      if (boundary === 'precommit') {
+        await assert.rejects(operation, /automatic commit did not complete/i)
+      } else {
+        await operation
+      }
 
       const expected =
         boundary === 'message'
           ? ['message']
           : boundary === 'include'
           ? ['message', 'include']
-          : ['message', 'include', 'commit', 'refresh', 'push', 'notification']
+          : boundary === 'precommit'
+          ? ['message', 'include', 'precommit']
+          : [
+              'message',
+              'include',
+              'precommit',
+              'commit',
+              'refresh',
+              'push',
+              'notification',
+            ]
       assert.deepEqual(events, expected, boundary)
     }
   })

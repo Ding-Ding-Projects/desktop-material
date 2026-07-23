@@ -1,6 +1,6 @@
 # Developer Guide
 
-![The renderer state path from React UI through Dispatcher and AppStore to a fresh state](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/diagrams/renderer-state-flow.svg)
+![The renderer state path from React UI through Dispatcher and AppStore to a fresh state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/diagrams/renderer-state-flow.svg)
 
 This page is for contributors. It describes how Desktop Material is put together and how to build and
 run it. Desktop Material is a fork of [desktop/desktop](https://github.com/desktop/desktop) (MIT),
@@ -73,7 +73,7 @@ wrapper here, called from an `AppStore` method.
 
 ## Per-account profile git repos
 
-![Two isolated account lanes connecting only to their matching repositories and remotes](https://raw.githubusercontent.com/codingmachineedge/desktop-material/main/docs/assets/concepts/account-isolation.png)
+![Two isolated account lanes connecting only to their matching repositories and remotes](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/concepts/account-isolation.png)
 
 Desktop Material stores each account's **settings, tabs, and notifications as their own local git
 repositories** under Electron's `userData` directory. This is what powers the fork's versioned
@@ -146,11 +146,11 @@ See [Agent API](Agent-API) for connection steps, command names, and the security
 
 These features follow the same Store/Dispatcher rule rather than creating parallel state paths:
 
-The current maintenance additions in this section are implemented but remain subject to their
-integrated production/headless/publication gate. Historical gallery references do not imply that
-new acceptance has already completed.
+The current maintenance additions in this section are implemented. Their exact
+production, headless, source-publication, and cleanup evidence remains centralized
+in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
-The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 67
+The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 75
 synthetic, user-facing visual functions and states associated with these subsystems. Each function
 owns one distinct tracked PNG; missing, duplicate, and unassigned assets fail the catalog contract.
 Keep captures free of personal paths, account identifiers, credentials, signed URLs, and unbounded
