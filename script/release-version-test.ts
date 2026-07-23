@@ -9,9 +9,10 @@ import {
 
 describe('release version ordering', () => {
   it('moves every legacy release lane onto one newer Squirrel namespace', () => {
-    const candidate = createReleaseVersion('3.6.3-beta3', '29974280506')
+    const candidate = createReleaseVersion('3.6.3-beta3', '29976419466')
 
-    assert.equal(candidate, '3.6.3-beta3-z029974280506')
+    assert.equal(candidate, '3.6.3-beta3-zadtazjjug')
+    assert.match(candidate, /-z[a-z]{9}$/)
     for (const legacy of [
       '3.6.3-beta3-b0000000270',
       '3.6.3-beta3-b0000040887',
@@ -23,21 +24,39 @@ describe('release version ordering', () => {
     }
   })
 
-  it('pads a positive run ID without changing rerun identity', () => {
+  it('encodes a fixed-width run ID without changing rerun identity', () => {
     assert.equal(
       createReleaseVersion('3.6.3-beta3', '1'),
-      '3.6.3-beta3-z000000000001'
+      '3.6.3-beta3-zaaaaaaaab'
     )
     assert.equal(
-      createReleaseVersion('3.6.3-beta3', '29974280506'),
-      createReleaseVersion('3.6.3-beta3', '29974280506')
+      createReleaseVersion('3.6.3-beta3', '29976419466'),
+      createReleaseVersion('3.6.3-beta3', '29976419466')
     )
     assert.equal(
       compareReleaseVersions(
-        createReleaseVersion('3.6.3-beta3', '999999999999'),
-        createReleaseVersion('3.6.3-beta3', '29974280506')
+        createReleaseVersion('3.6.3-beta3', '29976419467'),
+        createReleaseVersion('3.6.3-beta3', '29976419466')
       ),
       1
+    )
+    assert.equal(
+      compareReleaseVersions(
+        createReleaseVersion('3.6.3-beta3', '26'),
+        createReleaseVersion('3.6.3-beta3', '25')
+      ),
+      1
+    )
+    assert.equal(
+      compareReleaseVersions(
+        createReleaseVersion('3.6.3-beta3', '8031810176'),
+        createReleaseVersion('3.6.3-beta3', '8031810175')
+      ),
+      1
+    )
+    assert.equal(
+      createReleaseVersion('3.6.3-beta3', '999999999999'),
+      '3.6.3-beta3-zeundisyvn'
     )
   })
 
@@ -53,12 +72,12 @@ describe('release version ordering', () => {
   it('selects the greatest valid same-source release regardless of finish order', () => {
     assert.equal(
       selectHighestReleaseTag([
-        'v3.6.3-beta3-z029974280508',
+        'v3.6.3-beta3-zadtazjjuh',
         'v3.6.3-beta3-s000000000301',
-        'v3.6.3-beta3-z029974280506',
-        'v3.6.3-beta3-z029974280507',
+        'v3.6.3-beta3-zadtazjjuf',
+        'v3.6.3-beta3-zadtazjjug',
       ]),
-      'v3.6.3-beta3-z029974280508'
+      'v3.6.3-beta3-zadtazjjuh'
     )
     assert.throws(() => selectHighestReleaseTag([]))
     assert.throws(() => selectHighestReleaseTag(['not-a-release']))

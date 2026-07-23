@@ -44,9 +44,11 @@ The automated release workflow publishes the x64 portable ZIP, setup
 executable, MSI, `RELEASES`, and both exact-name copies of the full NuGet
 package. It verifies that every required asset is non-empty before publication.
 Automatic and Super Express packages share the validated
-`<base>-z<12-digit-GitHub-run-ID>` version namespace so Squirrel can order
-Releases across both lanes. The leading `z` also migrates installations from the
-older incompatible `b…` and `s…` namespaces.
+`<base>-z<9-letter-base-26-GitHub-run-ID>` version namespace so Squirrel can
+order Releases across both lanes. The leading `z` migrates installations from
+the older incompatible `b…` and `s…` namespaces; the alphabetic payload also
+avoids the installed legacy comparer's 32-bit overflow on modern numeric run
+IDs.
 Current public builds are unsigned; adding signing requires the existing Azure
 signing secret set and a reviewed workflow change.
 

@@ -37,11 +37,12 @@ download flow as soon as the release is published.
 
 Both release lanes stamp Squirrel packages through
 `script/release-version.js` as
-`<base>-z<12-digit-GitHub-run-ID>`. One shared namespace matters because NuGet
-compares the complete prerelease text before its numeric tail: the historical
-Super Express `s…` namespace sorted above every normal `b…` build and could make
-a newer release look like a downgrade. The `z…` migration sorts above both
-legacy lanes, while fixed-width run IDs retain chronological lexical ordering.
+`<base>-z<9-letter-base-26-GitHub-run-ID>`. One shared namespace matters because
+the historical Super Express `s…` namespace sorted above every normal `b…`
+build and could make a newer release look like a downgrade. The `z…` migration
+sorts above both legacy lanes, while the fixed-width alphabetic encoding retains
+numeric run-ID order under lexical comparison and cannot overflow Squirrel's
+legacy integer parser.
 
 ## Automated release notes
 
@@ -82,12 +83,13 @@ The same workflow has two deliberately different entry paths:
   job run in parallel; publication waits for all three.
 
 The version is derived from the package version plus the workflow's unique
-GitHub run ID in the shared fixed-width `z…` namespace. Re-running the same run
-therefore selects the same immutable tag and fails closed instead of replacing
-published assets. Immediately before publication, the workflow proves that the
-tag is still absent. One create-only `gh release create` command publishes the
-installer, MSI, Squirrel packages, `RELEASES`, portable ZIP, and generated
-notes. It never edits or replaces an existing Release.
+GitHub run ID, encoded as nine fixed-width base-26 letters in the shared `z…`
+namespace. Re-running the same run therefore selects the same immutable tag and
+fails closed instead of replacing published assets. Immediately before
+publication, the workflow proves that the tag is still absent. One create-only
+`gh release create` command publishes the installer, MSI, Squirrel packages,
+`RELEASES`, portable ZIP, and generated notes. It never edits or replaces an
+existing Release.
 
 Every Release is created non-latest. The shared promotion helper first proves
 the source is still current `main`, then examines the newest 100 published
@@ -172,8 +174,9 @@ winner, and later attempts fail without replacing it.
   build/package path is the explicit operator choice. Clearing its `publish`
   input retains artifacts without creating a Release.
 - Release run IDs must be positive decimal values of at most 12 digits. The
-  shared generator rejects a stable base without a prerelease channel, malformed
-  versions, and a NuGet special-version label over 20 characters.
+  shared generator converts them to a nine-letter base-26 payload and rejects a
+  stable base without a prerelease channel, malformed versions, and a NuGet
+  special-version label over 20 characters.
 
 ## Failure modes and security
 
@@ -190,6 +193,12 @@ correctly treated later `3.6.3-beta3-b0000040887` as older and displayed the
 ordinary no-update state. The shared `z…` namespace is the migration floor for
 those installations. Package generation fails rather than emitting a version
 that cannot be ordered safely.
+
+The run ID must not be embedded as one long decimal tail. The Squirrel/NuGet
+comparer shipped with installed builds parses that tail as a 32-bit integer; a
+current 11-digit GitHub run ID raises `OverflowException` before an update can be
+selected. The letter-only base-26 payload carries the same ordering without any
+numeric prerelease token. Packaged updater E2E exercises this exact path.
 
 Commit subjects and release metadata are untrusted. The generator invokes Git
 without a shell, validates tag refs and object IDs, bounds subprocess output,
@@ -228,7 +237,8 @@ are also checked locally. The Super Express source contract additionally proves
 manual-only triggering, exact-SHA packaging, unit/script-before-build ordering,
 omitted lint/E2E/history paths, non-cancelling overlap, retained artifacts,
 immutable tag checks, and exact release targeting. Release-version tests cover
-the exact legacy `s…` versus `b…` failure, fixed-width `z…` ordering, rerun
-identity, malformed/overflow rejection, and out-of-order same-SHA selection.
+the exact legacy `s…` versus `b…` failure, fixed-width alphabetic `z…` ordering,
+rerun identity, malformed/overflow rejection, and out-of-order same-SHA
+selection.
 Remote Actions, release publication, and an installed Squirrel UI update remain
 required after integration.

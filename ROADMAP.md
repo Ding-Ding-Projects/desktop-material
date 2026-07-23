@@ -104,9 +104,11 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   commit, preserves an uncompressed artifact, and publishes one uniquely tagged
   release.
 - **Cross-lane updater ordering**: Automatic and Super Express packages now use
-  one validated `z` plus 12-digit GitHub run-ID namespace. It sorts above the
-  legacy `b…`/`s…` lanes that stranded Super Express installations, keeps reruns
-  deterministic, and rejects unsafe NuGet labels. Both workflows create
+  one validated `z` plus fixed-width, nine-letter base-26 GitHub run-ID
+  namespace. It sorts above the legacy `b…`/`s…` lanes that stranded Super
+  Express installations, keeps reruns deterministic, and avoids the legacy
+  Squirrel `Int32` overflow caused by long numeric prerelease tails. Both
+  workflows create
   immutable non-latest Releases, then revalidate current `main` and reconcile
   the greatest same-SHA version before promotion. No shared concurrency group
   cancels older work. Failed or cancelled main CI still retains a recoverable

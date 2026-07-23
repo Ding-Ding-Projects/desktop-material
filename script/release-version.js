@@ -2,8 +2,11 @@
 
 const { readFileSync } = require('node:fs')
 
-const maxRunIdDigits = 12
 const maxNuGetSpecialVersionLength = 20
+const maxRunIdDigits = 12
+const runIdWidth = 9
+const runIdRadix = 26n
+const maxEncodedRunId = runIdRadix ** BigInt(runIdWidth) - 1n
 
 const versionPattern = /^(\d+)\.(\d+)\.(\d+)(?:\.(\d+))?(?:-([0-9A-Za-z-]+))?$/
 
@@ -35,14 +38,7 @@ function parseReleaseVersion(version) {
   }
 }
 
-function createReleaseVersion(baseVersion, runId) {
-  const base = parseReleaseVersion(baseVersion)
-  if (base.prerelease === undefined) {
-    throw new Error(
-      `Base version '${baseVersion}' must already contain a prerelease channel.`
-    )
-  }
-
+function encodeRunId(runId) {
   if (
     typeof runId !== 'string' ||
     !new RegExp(`^[1-9]\\d{0,${maxRunIdDigits - 1}}$`).test(runId)
@@ -52,8 +48,34 @@ function createReleaseVersion(baseVersion, runId) {
     )
   }
 
-  const sequence = runId.padStart(maxRunIdDigits, '0')
-  const version = `${baseVersion}-z${sequence}`
+  let remaining = BigInt(runId)
+  if (remaining > maxEncodedRunId) {
+    throw new Error(`GitHub run ID exceeds the fixed-width release encoding.`)
+  }
+
+  let encoded = ''
+  for (let index = 0; index < runIdWidth; index++) {
+    const digit = Number(remaining % runIdRadix)
+    encoded = String.fromCharCode('a'.charCodeAt(0) + digit) + encoded
+    remaining /= runIdRadix
+  }
+
+  return encoded
+}
+
+function createReleaseVersion(baseVersion, runId) {
+  const base = parseReleaseVersion(baseVersion)
+  if (base.prerelease === undefined) {
+    throw new Error(
+      `Base version '${baseVersion}' must already contain a prerelease channel.`
+    )
+  }
+
+  // Legacy Squirrel parses a trailing numeric prerelease token as Int32. Keep
+  // the run sequence alphabetic so modern GitHub run IDs can never overflow
+  // that parser, while fixed width preserves lexical ordering.
+  const encodedRunId = encodeRunId(runId)
+  const version = `${baseVersion}-z${encodedRunId}`
   parseReleaseVersion(version)
   return version
 }

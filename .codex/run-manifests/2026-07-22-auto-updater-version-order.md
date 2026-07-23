@@ -9,9 +9,11 @@
   `3.6.3-beta3-b0000040887`; both automatic and manual checks log that the local
   version is greater than the remote version.
 - Intended repair: both release lanes use one validated
-  `<base>-z<12-digit-GitHub-run-ID>` namespace, create immutable non-latest
-  Releases, and reconcile the greatest valid package version for freshly
-  revalidated current `main` before advancing the Squirrel feed.
+  `<base>-z<9-letter-base-26-GitHub-run-ID>` namespace, create immutable
+  non-latest Releases, and reconcile the greatest valid package version for
+  freshly revalidated current `main` before advancing the Squirrel feed. The
+  alphabetic payload is required because packaged E2E proved that installed
+  Squirrel overflows on an 11-digit numeric prerelease tail.
 - Required UI acceptance: from the installed legacy `s…` build, open **About →
   Check for updates** on an isolated off-screen Win32 desktop and prove the
   newly published `z…` Release is offered instead of **You have the latest

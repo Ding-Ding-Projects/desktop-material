@@ -78,8 +78,8 @@ describe('Super Express Release workflow', () => {
     assert.doesNotMatch(workflow, /version="\$\{base\}-s/)
 
     const installedLegacySuperExpress = new SemVer('3.6.3-beta3-s000000000201')
-    const firstUnifiedRelease = new SemVer('3.6.3-beta3-z029974280506')
-    const laterUnifiedRelease = new SemVer('3.6.3-beta3-z029974280507')
+    const firstUnifiedRelease = new SemVer('3.6.3-beta3-zadtazjjug')
+    const laterUnifiedRelease = new SemVer('3.6.3-beta3-zadtazjjuh')
 
     assert.ok(firstUnifiedRelease.compare(installedLegacySuperExpress) > 0)
     assert.ok(laterUnifiedRelease.compare(firstUnifiedRelease) > 0)
