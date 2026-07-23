@@ -2,8 +2,10 @@ import * as React from 'react'
 import { DialogContent } from '../dialog'
 import { Repository } from '../../models/repository'
 import {
+  CheapLfsStorageProvider,
   IBuildRunPreferences,
   getBuildFixAutoApprove,
+  getCheapLfsStorageProvider,
 } from '../../models/build-run-preferences'
 import {
   BuildStageKind,
@@ -24,7 +26,7 @@ import {
   BuildFixProvider,
   normalizeBuildFixProvider,
 } from '../../lib/build-run/codex'
-import { t } from '../../lib/i18n'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 import { getCheapLfsCloudCompressionPolicy } from '../../lib/cheap-lfs/cloud-compression'
 
 interface IBuildRunSettingsProps {
@@ -280,6 +282,27 @@ export class BuildRunSettings extends React.Component<
     })
   }
 
+  private onParallelCheapLfsUploadsChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      parallelCheapLfsUploads: event.currentTarget.checked,
+    })
+  }
+
+  private onCheapLfsStorageProviderChanged = (
+    event: React.FormEvent<HTMLSelectElement>
+  ) => {
+    const provider = event.currentTarget.value as CheapLfsStorageProvider
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      cheapLfsStorageProvider: provider,
+      // Keep preview builds that only understood the GHCR boolean coherent.
+      cheapLfsGhcrStorage: provider === 'ghcr',
+    })
+  }
+
   private onCheapLfsCloudCompressionChanged = (
     event: React.FormEvent<HTMLInputElement>
   ) => {
@@ -429,6 +452,7 @@ export class BuildRunSettings extends React.Component<
 
   private renderBehaviourToggles(): JSX.Element {
     const prefs = this.props.preferences
+    const cheapLfsStorageProvider = getCheapLfsStorageProvider(prefs)
     const cloudPolicy = getCheapLfsCloudCompressionPolicy(
       this.props.repository,
       prefs
@@ -516,14 +540,28 @@ export class BuildRunSettings extends React.Component<
 
     const autoPinLabel = (
       <span className="build-run-toggle-label">
-        {__DARWIN__
-          ? 'Pin Large Files to a Release When Committing'
-          : 'Pin large files to a release when committing'}
+        {t('cheapLfs.settings.autoPin')}
         <ToggledtippedContent
           className="build-run-toggle-tip"
-          ariaLabel="About pinning large files on commit"
-          ariaLiveMessage="When you commit a file larger than about 100 MB, upload it to a GitHub release and commit only a small pointer in its place, so the push stays under GitHub's file size limit. Needs the repository's GitHub account signed in. If a pin fails the commit is aborted rather than committing a half-pinned tree."
-          tooltip="When you commit a file over ~100 MB, it is uploaded to a GitHub release and committed as a small pointer, keeping the push under GitHub's file size limit. Requires the repository's GitHub account. A failed pin aborts the commit rather than committing a half-pinned tree."
+          ariaLabel={translateForAccessibleName('cheapLfs.settings.autoPin')}
+          ariaLiveMessage={t('cheapLfs.settings.autoPinHelp')}
+          tooltip={t('cheapLfs.settings.autoPinHelp')}
+        >
+          <Octicon symbol={octicons.info} />
+        </ToggledtippedContent>
+      </span>
+    )
+
+    const parallelUploadsLabel = (
+      <span className="build-run-toggle-label">
+        {t('cheapLfs.settings.parallelUploads')}
+        <ToggledtippedContent
+          className="build-run-toggle-tip"
+          ariaLabel={translateForAccessibleName(
+            'cheapLfs.settings.parallelUploads'
+          )}
+          ariaLiveMessage={t('cheapLfs.settings.parallelUploadsHelp')}
+          tooltip={t('cheapLfs.settings.parallelUploadsHelp')}
         >
           <Octicon symbol={octicons.info} />
         </ToggledtippedContent>
@@ -640,11 +678,7 @@ export class BuildRunSettings extends React.Component<
             onChange={this.onOpencodeAutoApproveChanged}
           />
           <Checkbox
-            label={
-              __DARWIN__
-                ? 'Download Large Files After Cloning'
-                : 'Download large files after cloning'
-            }
+            label={t('cheapLfs.settings.autoMaterialize')}
             value={
               prefs.autoMaterializeCheapLfs ?? true
                 ? CheckboxValue.On
@@ -661,22 +695,46 @@ export class BuildRunSettings extends React.Component<
             }
             onChange={this.onAutoPinLargeFilesOnCommitChanged}
           />
-          {cloudPolicy !== 'not-github' && (
-            <Checkbox
-              label={cloudCompressionLabel}
-              disabled={
-                cloudPolicy === 'automatic-public' ||
-                cloudPolicy === 'visibility-unknown'
-              }
-              value={
-                cloudPolicy === 'automatic-public' ||
-                cloudPolicy === 'enabled-private'
-                  ? CheckboxValue.On
-                  : CheckboxValue.Off
-              }
-              onChange={this.onCheapLfsCloudCompressionChanged}
-            />
-          )}
+          <Checkbox
+            label={parallelUploadsLabel}
+            value={
+              prefs.parallelCheapLfsUploads !== false
+                ? CheckboxValue.On
+                : CheckboxValue.Off
+            }
+            onChange={this.onParallelCheapLfsUploadsChanged}
+          />
+          <Select
+            className="cheap-lfs-storage-provider-select"
+            label={t('cheapLfs.settings.storageProvider')}
+            value={cheapLfsStorageProvider}
+            onChange={this.onCheapLfsStorageProviderChanged}
+          >
+            <option value="release">
+              {t('cheapLfs.settings.storageRelease')}
+            </option>
+            <option value="ghcr">{t('cheapLfs.settings.storageGhcr')}</option>
+            <option value="docker-hub">
+              {t('cheapLfs.settings.storageDockerHub')}
+            </option>
+          </Select>
+          {cloudPolicy !== 'not-github' &&
+            cheapLfsStorageProvider === 'release' && (
+              <Checkbox
+                label={cloudCompressionLabel}
+                disabled={
+                  cloudPolicy === 'automatic-public' ||
+                  cloudPolicy === 'visibility-unknown'
+                }
+                value={
+                  cloudPolicy === 'automatic-public' ||
+                  cloudPolicy === 'enabled-private'
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                onChange={this.onCheapLfsCloudCompressionChanged}
+              />
+            )}
         </div>
         <p className="build-run-section-description">
           Auto-ignore adds the profile's build-output patterns to{' '}
@@ -684,10 +742,15 @@ export class BuildRunSettings extends React.Component<
           so it is idempotent and reversible from the Ignored files tab.
           Building after a pull starts the selected profile (for example a
           Docker image or app build) only when the pull brings new commits.
-          Pinning large files uploads any committed file over ~100&nbsp;MB to a
-          GitHub release and commits a small pointer in its place, so the push
-          stays under GitHub's file size limit; downloading large files restores
-          those pointers to their real bytes after cloning or pulling.
+          Pinning large files uploads any committed file over ~100&nbsp;MB to
+          the selected Cheap LFS storage and commits a small pointer in its
+          place, so the push stays under GitHub's file size limit. Parallel
+          uploads use up to three transfer lanes; failed files stay in Changes
+          while safe files can still commit. GHCR and Docker Hub modes keep the
+          repository object set in one digest-pinned OCI image; private
+          repositories encrypt its objects with the shared tracked repository
+          key. Downloading large files restores pointers after cloning or
+          pulling.
         </p>
       </section>
     )

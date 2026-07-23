@@ -18,7 +18,7 @@ describe('oauth scope validation', () => {
 
   it('reports no missing scopes for a fully granted token', () => {
     const granted = parseGrantedScopes(
-      'repo, user, workflow, notifications, read:org'
+      'repo, user, workflow, notifications, read:org, write:packages'
     )
     assert.deepEqual(missingRequiredScopes(granted), [])
   })
@@ -28,12 +28,13 @@ describe('oauth scope validation', () => {
     assert.deepEqual(missingRequiredScopes(granted), [
       'notifications',
       'read:org',
+      'write:packages',
     ])
   })
 
   it('accepts broader scopes that imply a required one', () => {
     const granted = parseGrantedScopes(
-      'repo, user, workflow, notifications, admin:org'
+      'repo, user, workflow, notifications, admin:org, delete:packages'
     )
     assert.deepEqual(missingRequiredScopes(granted), [])
   })

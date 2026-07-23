@@ -324,8 +324,17 @@ export function validateCheapLfsTrackedPath(relPath: string): string | null {
   if (typeof relPath !== 'string') {
     return null
   }
-  const normalized = relPath.trim().replace(/\\/g, '/')
+  // Never silently retarget a reviewed spelling. Win32 removes trailing spaces
+  // and periods, treats ':' as an alternate-data-stream separator, and aliases
+  // device basenames such as NUL/CON even when they carry an extension.
+  if (relPath !== relPath.trim()) {
+    return null
+  }
+  const normalized = relPath.replace(/\\/g, '/')
   const segments = normalized.split('/')
+  const invalidWindowsSegmentCharacters = /[<>:"|?*\u0000-\u001f]/
+  const reservedWindowsBasename =
+    /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i
   if (
     normalized.length === 0 ||
     normalized.length > 4096 ||
@@ -335,6 +344,13 @@ export function validateCheapLfsTrackedPath(relPath: string): string | null {
     segments.includes('..') ||
     segments.includes('.') ||
     segments.some(segment => segment.length === 0) ||
+    segments.some(
+      segment =>
+        segment.length > 255 ||
+        invalidWindowsSegmentCharacters.test(segment) ||
+        /[ .]$/.test(segment) ||
+        reservedWindowsBasename.test(segment)
+    ) ||
     /^\.git/i.test(segments[0])
   ) {
     return null

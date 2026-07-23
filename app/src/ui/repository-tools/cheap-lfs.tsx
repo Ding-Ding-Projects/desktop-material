@@ -7,8 +7,9 @@ import {
   ICheapLfsMaterializeResult,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
-  ICheapLfsPointerEntry,
+  ICheapLfsManagedPointerEntry,
 } from '../../lib/cheap-lfs/operations'
+import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
 import {
   CHEAP_LFS_PART_SIZE_BYTES,
   planFileParts,
@@ -32,7 +33,10 @@ import {
   getCheapLfsCloudCompressionStats,
   IEnsureCheapLfsCloudCompressionResult,
 } from '../../lib/cheap-lfs/cloud-compression'
-import { IBuildRunPreferences } from '../../models/build-run-preferences'
+import {
+  getCheapLfsStorageProvider,
+  IBuildRunPreferences,
+} from '../../models/build-run-preferences'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 
 /**
@@ -44,19 +48,25 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 export interface ICheapLfsDispatcher {
   listCheapLfsPointers(
     repository: Repository
-  ): Promise<ReadonlyArray<ICheapLfsPointerEntry>>
+  ): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>>
   pinFileToRelease(
     repository: Repository,
     options: ICheapLfsPinOptions,
     signal?: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
-  ): Promise<ICheapLfsPinResult>
+  ): Promise<ICheapLfsPinResult | ICheapLfsOciMutationResult>
   materializePointer(
     repository: Repository,
     trackedRelativePath: string,
     signal?: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ): Promise<ICheapLfsMaterializeResult>
+  removeCheapLfsPointer(
+    repository: Repository,
+    trackedRelativePath: string,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<void>
   updateRepositoryBuildRunPreferences?(
     repository: Repository,
     preferences: IBuildRunPreferences
@@ -78,7 +88,7 @@ export interface ICheapLfsProps {
 }
 
 /** The single in-flight operation, used to disable every other control. */
-type CheapLfsBusy = 'listing' | 'pin' | 'materialize'
+type CheapLfsBusy = 'listing' | 'pin' | 'materialize' | 'remove'
 
 /** The picked-file pin draft, before and during its review step. */
 interface IPinDraft {
@@ -91,7 +101,7 @@ interface IPinDraft {
 }
 
 interface ICheapLfsState {
-  readonly pointers: ReadonlyArray<ICheapLfsPointerEntry>
+  readonly pointers: ReadonlyArray<ICheapLfsManagedPointerEntry>
   readonly loaded: boolean
   readonly filter: string
   readonly filterMode: FilterMode
@@ -154,10 +164,10 @@ function defaultTrackedPath(
 
 /**
  * The "large files & storage" panel: a review-gated surface that lists the
- * committed cheap-LFS pointers in the working tree, materializes them back into
- * their real bytes on demand, and pins a chosen large file to a GitHub Release
- * so only a small pointer is committed. It is not real Git LFS — see the copy
- * rendered in the panel intro.
+ * committed cheap-LFS metadata from the worktree/index, shows whether each path
+ * is a pointer or verified materialized bytes, and pins a chosen large file to
+ * the configured Release or OCI backend so only a small pointer is committed.
+ * It is not real Git LFS — see the copy rendered in the panel intro.
  */
 export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   private mounted = false
@@ -166,6 +176,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   private operationController: AbortController | null = null
   private lastProgressAt = 0
   private readonly materializeHandlers = new Map<string, () => void>()
+  private readonly removeHandlers = new Map<string, () => void>()
 
   public constructor(props: ICheapLfsProps) {
     super(props)
@@ -344,7 +355,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   private getFilterSampleItems = (): ReadonlyArray<string> =>
     this.state.pointers.map(entry => entry.relativePath)
 
-  private visiblePointers(): ReadonlyArray<ICheapLfsPointerEntry> {
+  private visiblePointers(): ReadonlyArray<ICheapLfsManagedPointerEntry> {
     const query = this.state.filter.trim()
     if (query.length === 0) {
       return this.state.pointers
@@ -352,10 +363,19 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     const { results } = matchWithMode(
       query,
       this.state.pointers,
-      entry => [
-        entry.relativePath,
-        `${entry.pointer.releaseTag} ${entry.pointer.assetName}`,
-      ],
+      entry =>
+        entry.kind === 'release'
+          ? [
+              entry.relativePath,
+              `${entry.pointer.releaseTag} ${entry.pointer.assetName}`,
+              entry.provider,
+            ]
+          : [
+              entry.relativePath,
+              entry.pointer.image,
+              entry.pointer.object,
+              entry.provider,
+            ],
       { mode: this.state.filterMode, caseSensitive: this.state.caseSensitive }
     )
     return results.map(result => result.item)
@@ -369,6 +389,80 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     const handler = () => void this.materialize(relativePath)
     this.materializeHandlers.set(relativePath, handler)
     return handler
+  }
+
+  private removeHandler(entry: ICheapLfsManagedPointerEntry): () => void {
+    const key = `${entry.workingTreeState}\0${entry.relativePath}`
+    const existing = this.removeHandlers.get(key)
+    if (existing !== undefined) {
+      return existing
+    }
+    const handler = () =>
+      void this.removeFromRegistryImage(
+        entry.relativePath,
+        entry.workingTreeState !== 'pointer'
+      )
+    this.removeHandlers.set(key, handler)
+    return handler
+  }
+
+  private removeFromRegistryImage = async (
+    relativePath: string,
+    deletesLocalBytes: boolean
+  ) => {
+    const remove = this.props.dispatcher.removeCheapLfsPointer
+    if (
+      !window.confirm(
+        `Remove ${relativePath} from the current Cheap LFS registry image? A new immutable image will be published and the remaining pointers will be updated.${
+          deletesLocalBytes
+            ? ' The materialized local file (including any local edits) will also be deleted.'
+            : ''
+        } Commit those changes together.`
+      )
+    ) {
+      return
+    }
+    const operation = this.startOperation('remove')
+    if (operation === null) {
+      return
+    }
+    try {
+      await remove(
+        this.props.repository,
+        relativePath,
+        operation.controller.signal,
+        progress =>
+          this.updateProgress(
+            operation.generation,
+            operation.controller,
+            progress
+          )
+      )
+      if (!this.isCurrent(operation.generation, operation.controller)) {
+        return
+      }
+      this.finishOperation(operation.controller)
+      this.setState(
+        { busy: null, progress: null },
+        () =>
+          void this.loadPointers(
+            `Removed ${relativePath} from the logical registry image. Review and commit all updated pointers together.`
+          )
+      )
+    } catch (error) {
+      if (this.isCurrent(operation.generation, operation.controller)) {
+        this.setState({
+          busy: null,
+          progress: null,
+          error:
+            (error as Error)?.name === 'AbortError'
+              ? null
+              : errorMessage(error),
+        })
+      }
+    } finally {
+      this.finishOperation(operation.controller)
+    }
   }
 
   private materialize = async (relativePath: string) => {
@@ -428,7 +522,9 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
    * stopping the batch, and reloads the list once at the end.
    */
   private materializeAll = async () => {
-    const targets = this.state.pointers
+    const targets = this.state.pointers.filter(
+      entry => entry.workingTreeState === 'pointer'
+    )
     if (targets.length === 0) {
       return
     }
@@ -514,7 +610,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       const sourcePath = this.props.chooseFileToPin
         ? await this.props.chooseFileToPin()
         : await showOpenDialog({
-            title: 'Choose a large file to pin to a release',
+            title: 'Choose a large file to pin',
             properties: ['openFile'],
           })
       if (sourcePath === null || !this.mounted) {
@@ -578,7 +674,11 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       })
       return
     }
-    if (pin.releaseTag.trim().length === 0) {
+    if (
+      getCheapLfsStorageProvider(this.props.repository.buildRunPreferences) ===
+        'release' &&
+      pin.releaseTag.trim().length === 0
+    ) {
       this.setState({
         error: 'Enter the release tag to store this file under.',
       })
@@ -638,11 +738,18 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         return
       }
       this.finishOperation(operation.controller)
+      const provider = getCheapLfsStorageProvider(
+        this.props.repository.buildRunPreferences
+      )
       this.setState(
         { busy: null, progress: null, pin: null },
         () =>
           void this.loadPointers(
-            `Pinned ${options.trackedRelativePath} to release “${options.releaseTag}”. The pointer is a normal working-tree change — commit it to share.`
+            provider === 'release'
+              ? `Pinned ${options.trackedRelativePath} to published prerelease “${options.releaseTag}”. The pointer is a normal working-tree change — commit it to share.`
+              : `Added ${options.trackedRelativePath} to the logical ${
+                  provider === 'ghcr' ? 'GHCR' : 'Docker Hub'
+                } image. Review and commit every updated pointer together.`
           )
       )
     } catch (error) {
@@ -673,6 +780,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     const repository = this.props.repository
     const generation = this.cloudGeneration
     if (
+      getCheapLfsStorageProvider(preferences) !== 'release' ||
       dispatcher.ensureCheapLfsCloudCompressionWorkflow === undefined ||
       this.state.cloudBusy
     ) {
@@ -794,7 +902,10 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       this.props.repository,
       preferences
     )
-    if (policy === 'not-github') {
+    if (
+      getCheapLfsStorageProvider(preferences) !== 'release' ||
+      policy === 'not-github'
+    ) {
       return null
     }
     return (
@@ -841,19 +952,30 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       this.props.repository,
       this.props.accounts
     )
+    const provider = getCheapLfsStorageProvider(
+      this.props.repository.buildRunPreferences
+    )
+    const storageDescription =
+      provider === 'release'
+        ? 'a published GitHub prerelease'
+        : provider === 'ghcr'
+        ? 'one versioned GHCR image'
+        : 'one versioned Docker Hub image'
     return (
       <div className="cheap-lfs-intro">
         <h2>{t('cheapLfs.managerTitle')}</h2>
         <p>{t('cheapLfs.managerIntro')}</p>
         <p>
-          Store a large file as a GitHub Release asset and commit only a small
-          text pointer in its place. This is <strong>not</strong> Git LFS: other
-          clients that lack this app see the pointer text, not the file. Draft
-          releases are only fetchable by app users signed in to the repository's
-          account, so publish the release when collaborators need it.
+          Store large files in {storageDescription} and commit only small text
+          pointers in their place. This is <strong>not</strong> Git LFS: plain
+          Git clients see pointer text until Desktop Material restores the
+          verified bytes. OCI mode keeps additions and removals in one logical
+          image tag while every committed pointer names an immutable digest.
         </p>
         <p className="cheap-lfs-account" role="status">
-          {account === null
+          {provider === 'docker-hub'
+            ? 'Docker Hub uses your existing Docker credential-store sign-in; secrets are never saved in this repository.'
+            : account === null
             ? 'Sign in with the account selected for this repository to pin or materialize files.'
             : `Using ${account.login} · ${account.friendlyEndpoint}`}
         </p>
@@ -908,6 +1030,9 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       return null
     }
     if (pin.reviewing) {
+      const provider = getCheapLfsStorageProvider(
+        this.props.repository.buildRunPreferences
+      )
       return (
         <section
           className="cheap-lfs-pin-review"
@@ -919,10 +1044,28 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
             <dd className="path">{Path.basename(pin.sourcePath)}</dd>
             <dt>Committed pointer path</dt>
             <dd className="path">{pin.trackedRelativePath}</dd>
-            <dt>Release tag</dt>
-            <dd>{pin.releaseTag.trim()}</dd>
-            <dt>Release name</dt>
-            <dd>{pin.releaseName.trim() || 'Same as the tag'}</dd>
+            {provider === 'release' ? (
+              <>
+                <dt>Published prerelease tag</dt>
+                <dd>{pin.releaseTag.trim()}</dd>
+                <dt>Release name</dt>
+                <dd>{pin.releaseName.trim() || 'Same as the tag'}</dd>
+              </>
+            ) : (
+              <>
+                <dt>Registry storage</dt>
+                <dd>
+                  {provider === 'ghcr'
+                    ? t('cheapLfs.settings.storageGhcr')
+                    : t('cheapLfs.settings.storageDockerHub')}
+                </dd>
+                <dt>Update behavior</dt>
+                <dd>
+                  Reuse unchanged layers and publish a new immutable manifest
+                  under the same logical tag
+                </dd>
+              </>
+            )}
             <dt>Size</dt>
             <dd>{formatBytes(pin.sizeInBytes)}</dd>
           </dl>
@@ -932,13 +1075,16 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
               {formatBytes(CHEAP_LFS_PART_SIZE_BYTES)} per-asset limit, so it
               will be split into{' '}
               {planFileParts(pin.sizeInBytes, CHEAP_LFS_PART_SIZE_BYTES).length}{' '}
-              parts uploaded as separate release assets. The pointer records
-              every part so materialize rebuilds the original file.
+              parts uploaded as separate{' '}
+              {provider === 'release' ? 'release assets' : 'OCI layers'}. The
+              pointer records every part so materialize rebuilds the original
+              file. A timed-out registry layer retries at half the size.
             </p>
           )}
           <p>
-            The file uploads to the release; the pointer replaces it in your
-            working tree. Commit the pointer to share it.
+            The file uploads to the selected storage; the pointer replaces it in
+            your working tree. Commit all generated pointer changes together to
+            share the verified snapshot.
           </p>
           <div className="repository-tool-controls">
             <Button
@@ -963,6 +1109,9 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         </section>
       )
     }
+    const provider = getCheapLfsStorageProvider(
+      this.props.repository.buildRunPreferences
+    )
     return (
       <section
         className="cheap-lfs-pin-form"
@@ -983,31 +1132,34 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
             onChange={this.onPinField}
           />
         </label>
-        <label>
-          <span>Release tag</span>
-          <input
-            name="releaseTag"
-            value={pin.releaseTag}
-            maxLength={255}
-            spellCheck={false}
-            autoComplete="off"
-            onChange={this.onPinField}
-          />
-        </label>
-        <label>
-          <span>Release name (optional)</span>
-          <input
-            name="releaseName"
-            value={pin.releaseName}
-            maxLength={1024}
-            onChange={this.onPinField}
-          />
-        </label>
+        {provider === 'release' && (
+          <>
+            <label>
+              <span>Published prerelease tag</span>
+              <input
+                name="releaseTag"
+                value={pin.releaseTag}
+                maxLength={255}
+                spellCheck={false}
+                autoComplete="off"
+                onChange={this.onPinField}
+              />
+            </label>
+            <label>
+              <span>Release name (optional)</span>
+              <input
+                name="releaseName"
+                value={pin.releaseName}
+                maxLength={1024}
+                onChange={this.onPinField}
+              />
+            </label>
+          </>
+        )}
         <p className="cheap-lfs-pin-help">
-          Files up to 2 GiB upload as a single asset; larger files are split
-          automatically into 1.5 GiB parts, each stored as its own release asset
-          and recorded in the pointer. If the tag has no release yet, an
-          unpublished draft is created for the assets.
+          {provider === 'release'
+            ? 'Files up to 2 GiB upload as a single asset; larger files are split automatically into 1.5 GiB parts. A published prerelease is created without changing the stable Latest release.'
+            : 'The full repository object set stays in one logical image. New versions reuse unchanged layers, split new data into at most 1.5 GiB layers, and halve a layer after upload timeout. Private-repository payloads are encrypted with the shared tracked key.'}
         </p>
         <div className="repository-tool-controls">
           <Button onClick={this.reviewPin}>Review pin</Button>
@@ -1017,40 +1169,63 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     )
   }
 
-  private renderRow(entry: ICheapLfsPointerEntry) {
+  private renderRow(entry: ICheapLfsManagedPointerEntry) {
     const busy = this.state.busy !== null
-    const compression = getCheapLfsCloudCompressionStats(entry.pointer)
+    const releaseCompression =
+      entry.kind === 'release'
+        ? getCheapLfsCloudCompressionStats(entry.pointer)
+        : null
     const savings =
-      compression.originalSizeInBytes === 0
+      releaseCompression === null ||
+      releaseCompression.originalSizeInBytes === 0
         ? 0
         : Math.max(
             0,
             Math.round(
               (1 -
-                compression.storedSizeInBytes /
-                  compression.originalSizeInBytes) *
+                releaseCompression.storedSizeInBytes /
+                  releaseCompression.originalSizeInBytes) *
                 1000
             ) / 10
           )
     const compressionLabel =
-      compression.compressedObjects === 0
+      releaseCompression === null
+        ? null
+        : releaseCompression.compressedObjects === 0
         ? t('cheapLfs.cloud.raw')
-        : compression.rawObjects === 0
+        : releaseCompression.rawObjects === 0
         ? t('cheapLfs.cloud.compressed', { savings: String(savings) })
         : t('cheapLfs.cloud.mixed', {
-            compressed: String(compression.compressedObjects),
-            total: String(compression.totalObjects),
+            compressed: String(releaseCompression.compressedObjects),
+            total: String(releaseCompression.totalObjects),
             savings: String(savings),
           })
+    const providerMeta =
+      entry.kind === 'release'
+        ? `${t('cheapLfs.settings.storageRelease')} · ${
+            entry.pointer.releaseTag
+          } · ${entry.pointer.assetName}`
+        : `${
+            entry.provider === 'ghcr'
+              ? t('cheapLfs.settings.storageGhcr')
+              : t('cheapLfs.settings.storageDockerHub')
+          } · ${entry.pointer.image}`
+    const localStateLabel =
+      entry.workingTreeState === 'materialized'
+        ? 'Materialized locally · verified against the committed pointer'
+        : entry.workingTreeState === 'modified'
+        ? 'Local bytes changed · pin again to store this version'
+        : 'Pointer stored locally'
     return (
       <article className="cheap-lfs-row" key={entry.relativePath}>
         <div className="cheap-lfs-row-heading">
           <div>
             <h4 className="cheap-lfs-row-path">{entry.relativePath}</h4>
-            <span className="cheap-lfs-row-meta">
-              {entry.pointer.releaseTag} · {entry.pointer.assetName}
-            </span>
-            <span className="cheap-lfs-row-meta">{compressionLabel}</span>
+            <span className="cheap-lfs-row-meta">{providerMeta}</span>
+            <span className="cheap-lfs-row-meta">{localStateLabel}</span>
+            {compressionLabel !== null && (
+              <span className="cheap-lfs-row-meta">{compressionLabel}</span>
+            )}
           </div>
           <span className="cheap-lfs-row-size">
             {formatBytes(entry.pointer.sizeInBytes)}
@@ -1058,11 +1233,20 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         </div>
         <div className="repository-tool-controls">
           <Button
-            disabled={busy}
+            disabled={busy || entry.workingTreeState !== 'pointer'}
             onClick={this.materializeHandler(entry.relativePath)}
           >
-            Materialize
+            {entry.workingTreeState === 'pointer'
+              ? 'Materialize'
+              : entry.workingTreeState === 'materialized'
+              ? 'Already materialized'
+              : 'Local edits protected'}
           </Button>
+          {entry.kind === 'oci' && (
+            <Button disabled={busy} onClick={this.removeHandler(entry)}>
+              Remove from image
+            </Button>
+          )}
         </div>
       </article>
     )
@@ -1070,6 +1254,9 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
 
   private renderList() {
     const visible = this.visiblePointers()
+    const restorableCount = this.state.pointers.filter(
+      entry => entry.workingTreeState === 'pointer'
+    ).length
     return (
       <section
         className="cheap-lfs-list"
@@ -1078,7 +1265,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         <div className="cheap-lfs-list-heading">
           <div>
             <h3 id="cheap-lfs-list-title">Pinned files</h3>
-            <span>{this.state.pointers.length} in this working tree</span>
+            <span>{this.state.pointers.length} tracked by Cheap LFS</span>
           </div>
           <div className="repository-tool-controls">
             <Button
@@ -1088,9 +1275,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
               Pin a large file…
             </Button>
             <Button
-              disabled={
-                this.state.busy !== null || this.state.pointers.length === 0
-              }
+              disabled={this.state.busy !== null || restorableCount === 0}
               onClick={this.materializeAll}
             >
               Materialize all
@@ -1146,7 +1331,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       <div
         className="cheap-lfs"
         role="group"
-        aria-label="Release-backed large files"
+        aria-label="Cheap LFS large files"
       >
         {this.renderIntro()}
         {this.renderCloudCompression()}

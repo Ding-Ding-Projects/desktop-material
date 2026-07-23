@@ -10,6 +10,7 @@ describe('GitHub OAuth feature scopes', () => {
       'workflow',
       'notifications',
       'read:org',
+      'write:packages',
     ])
     assert.equal(new Set(GitHubOAuthScopes).size, GitHubOAuthScopes.length)
   })

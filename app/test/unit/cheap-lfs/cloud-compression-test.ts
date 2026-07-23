@@ -126,11 +126,24 @@ describe('Cheap LFS cloud compression policy', () => {
     )
   })
 
-  it('renders a SHA-pinned, one-job caller with a runtime visibility guard', () => {
+  it('renders a SHA-pinned, one-job caller restricted to the exact default branch ref', () => {
     const publicCaller = renderCheapLfsCloudCompressionWorkflow(false)
     assert.equal(parseDocument(publicCaller).errors.length, 0)
     assert.match(publicCaller, /permissions:\n  contents: write/)
     assert.match(publicCaller, /cancel-in-progress: false/)
+    assert.match(
+      publicCaller,
+      /group: cheap-lfs-cloud-compression-\$\{\{ github\.repository \}\}-\$\{\{ github\.event\.repository\.default_branch \}\}/
+    )
+    assert.match(publicCaller, /github\.ref_type == 'branch'/)
+    assert.match(
+      publicCaller,
+      /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/
+    )
+    assert.doesNotMatch(
+      publicCaller,
+      /github\.ref_name == github\.event\.repository\.default_branch/
+    )
     assert.match(
       publicCaller,
       new RegExp(

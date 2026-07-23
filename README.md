@@ -20,12 +20,12 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 The numbered roadmap now extends through M27. M0–M21 and M23 have published
 receipts, M22 retains its separately tracked visual refresh, and the exact
 acceptance/publication state for M24–M27 is maintained in
-[`ROADMAP.md`](ROADMAP.md). The latest published baseline is `7edca120c5`:
-[CI `29895625564`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625564),
-[code scanning `29895625583`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29895625583),
-and [Build Installers `29896993449`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29896993449)
+[`ROADMAP.md`](ROADMAP.md). The July 22 feature continuation is published at
+`f7b4760a13`: [CI `29972351158`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351158),
+[code scanning `29972351173`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29972351173),
+and [Build Installers `29973527338`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29973527338)
 passed before the exact-target Windows release
-[`v3.6.3-beta3-b0000040881`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040881)
+[`v3.6.3-beta3-b0000040887`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040887)
 published with all six required assets.
 
 Cross-lane updater recovery is now published and installed. Commits
@@ -42,14 +42,13 @@ succeeded on exact source `04246fdf12`; a live legacy `s000000000201` install
 automatically migrated, then visibly downloaded the greater same-SHA
 `zadtbhvdfc` package and reached **Quit and Install Update**.
 
-The current continuation adds persistent, visible/collapsible tab-group chips;
-localized command-palette rows and appearance controls; deterministic bare-Alt
-menu sequencing; and unit/script gates before Super Express packaging. It is
-not covered by those baseline receipts. The exact unpackaged production build
-and isolated off-screen group/palette interaction passed locally, and the two
-accepted synthetic-only captures appear below. An exact continuation commit,
-push, remote CI/Pages/wiki, and Release verification remain pending. The
-implementation ledger is in [`PLAN.md`](PLAN.md), with detailed evidence in
+The persistent, visible/collapsible tab-group chips; localized command-palette
+rows and appearance controls; deterministic bare-Alt menu sequencing; and
+unit/script gates before Super Express packaging are included in the published
+`f7b4760a13` checkpoint above. Its exact unpackaged production build and
+isolated off-screen group/palette interaction passed, and the two accepted
+synthetic-only captures appear below. The implementation ledger is in
+[`PLAN.md`](PLAN.md), with exact publication evidence in
 [`HANDOFF.md`](HANDOFF.md).
 
 The M20 platform wave and earlier post-M19 adaptive customization maintenance
@@ -172,7 +171,12 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
   discovery. Legacy unbound organization repositories prefer a
   verified write-capable same-host identity, while a missing explicit binding
   fails closed instead of silently using another account
-- GitHub browser sign-in requests the bounded feature scopes used by the app: repository/user access, workflow-file updates, notifications, and read-only organization membership. Unrelated destructive and administrative OAuth scopes are intentionally excluded
+- GitHub browser sign-in requests the bounded feature scopes used by the app:
+  repository/user access, workflow-file updates, notifications, read-only
+  organization membership, and the `write:packages` grant used by the Cheap LFS
+  GHCR path. Repository deletion, package deletion, and unrelated administrative
+  scopes remain excluded; the registry documentation's PAT-classic-only caveat
+  is recorded in the OCI feature guide
 - Browse complete GitHub organization repository lists, filter cloning by organization, and choose an organization when publishing
 - Add GitLab accounts, including self-hosted endpoints, with a personal access token; add Bitbucket accounts with an app password, then browse and clone their repositories from the provider tab
 - Select all repositories with a mixed-state checkbox, or opt in to automatically clone only newly discovered repositories in the background. **Settings → Clone queue** keeps each signed-in account's base directory, parallel/sequential mode, and enabled state discoverable after the Clone dialog closes; auto-clone never opens an unsolicited progress dialog
@@ -253,8 +257,57 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 
 **Guided Git and provider administration**
 - Manage cone-mode sparse checkout through a three-step **Choose/Adjust/Restore → Review selection → Apply and refresh** guide that remains visible above the scrolling editor and review content. State-aware guidance distinguishes empty, invalid, ready, running, and completed states; review freezes and shows every bounded normalized selection entry before Git updates and refreshes the worktree
-- Exchange reviewed patch series, rewrite local commits from an explicit plan, configure commit/tag signing, administer Git LFS, and run bounded guided bisect sessions from named Repository Tools panels. The repository rail's direct **Large files** manager lists, searches, pins, and materializes release-backed cheap-LFS pointers without asking users to browse Release asset names. Automatic uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding Electron's crash-prone native upload pipe when GitHub CLI is available; the memory-bounded native path remains a compatibility fallback. Reconciliation scans up to 1,000 assets once then polls only an exact asset ID, fails closed on an incomplete asset, retains the exact Release editor plus verified whole-batch drag/drop recovery (including throttled hash/staging progress, worst-case temporary-space preflight, six-hour cancelable polling, and ordered `.partNNN` range files above the per-asset limit), maps flat case-safe assets back to original nested paths, keeps at most 1,000 assets in each prerelease `assets`, `assets-2`, … bucket without splitting a multipart file or manual batch, shares one inventory per Release across Materialize all, and transparently verifies/reassembles the original bytes
+- Exchange reviewed patch series, rewrite local commits from an explicit plan,
+  configure commit/tag signing, administer Git LFS, and run bounded guided
+  bisect sessions from named Repository Tools panels. The repository rail's
+  direct **Large files** manager lists, searches, pins, and materializes
+  Release- and OCI-backed Cheap LFS pointers. For Release storage, automatic
+  uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding
+  Electron's crash-prone native upload pipe when GitHub CLI is available; the
+  memory-bounded native path remains a compatibility fallback. Reconciliation
+  scans up to 1,000 assets once then polls only an exact asset ID, fails closed
+  on an incomplete asset, and retains the exact Release editor plus verified
+  whole-batch drag/drop recovery. It reports throttled hash/staging progress,
+  checks worst-case temporary space, polls cancelably for six hours, and creates
+  ordered `.partNNN` range files above the per-asset limit. Flat case-safe
+  assets map back to original nested paths; prerelease buckets hold at most
+  1,000 assets without splitting a multipart file or manual batch; Materialize
+  all shares one inventory per Release and verifies/reassembles original bytes
 - Live public/private acceptance materialized and re-pinned deterministic 1 MiB payloads through the production Large files UI and native Windows picker, then pushed the resulting five-line pointers as real `main` history. See the [dated UI receipt](docs/verification/cheap-lfs-github-public-private-2026-07-22.md)
+- Choose published-prerelease, GHCR, or Docker Hub Cheap LFS storage per
+  repository. The OCI choices keep the full current object set in one logical
+  image within explicit 4,096-object, 8,192-layer, and 8 MiB metadata proof
+  bounds: additions and removals publish a new immutable manifest, reuse
+  unchanged blobs, retention-tag every historical digest, and rewrite
+  pointer-form files to the verified digest while leaving already materialized
+  raw files intact. Existing Docker organization
+  or collaborator namespaces are retained; verified materialized files can be
+  migrated between GHCR and Docker Hub as a fresh full snapshot.
+  Private-source chunks use AES-256-GCM with the intentionally tracked shared
+  repository key; public OCI and public GitHub.com Release pointers can restore
+  while signed out. Windows builds ship digest-pinned ORAS 1.3.2 plus its
+  Apache-2.0 license; the ARM64 package currently runs that audited x64 binary
+  through Windows 11 x64 emulation and fails closed if it cannot start. See
+  [Cheap LFS OCI registry storage](docs/features/repository-management/cheap-lfs-oci-registry-backend.md)
+- Automatic Cheap LFS preparation can run sequentially or with at most three
+  files uploading at once, shows per-file phases and bytes in a compact
+  terminal below Commit, and reports the selected-versus-recommended provider.
+  Failed raw
+  files stay selected for retry while unrelated changes and successful pointers
+  may commit. The Changes filter can isolate files over the same 100 MiB
+  threshold, and the default clone/open detector repairs both new and older
+  pointer-only clones through verified local materialization
+- When many ordinary small files approach a decimal 1.5 GB push, Desktop
+  Material automatically creates and pushes commits with a conservative 1.4 GB
+  changed-blob budget plus bounded path/proof overhead. It proves each
+  fast-forward remote tip before creating the next commit, retains a durable
+  retry checkpoint, and
+  safely rebuilds an individually oversized, linear, clean local-only commit
+  from an older app behind a compare-and-swap backup ref. Safe older commits
+  retain their exact objects; a rebuilt oversized commit preserves its reviewed
+  message/final tree but necessarily receives new IDs and loses commit
+  signatures. See
+  [Automatic commit and push batching](docs/features/repository-management/automatic-commit-push-batching.md)
 - Use the primary toolbar or application-menu Pull action to fetch and review the exact current/upstream object IDs, ahead/behind state, configured integration route, and bounded incoming commits and files before Git changes a clean worktree. Confirmation revalidates the full reviewed OID and integrates it without a second fetch; a failed fetch cannot surface stale tracking data. English, playful Hong Kong Cantonese, and bilingual review copy follow the saved language mode, while scheduled and local-agent automation remain noninteractive. See [Reviewed ordinary Git pull previews](docs/features/repository-management/pull-previews.md)
 - Rebase the current branch onto a searched target through a reviewed current→target summary with ahead/behind context and a bounded commit preview. Fresh preflight state blocks dirty or conflicted repositories and ongoing operations, exact refs are revalidated before Git starts, conflicts remain in the existing continue/abort flow, and Desktop Material never force-pushes automatically
 - Manage every named remote with guarded add/rename/update/default/remove operations, and inspect or create exact known client hooks through the effective `core.hooksPath` without displaying hook contents or absolute paths. Remote rows stack before their name, URL, and controls collapse below a readable width, and the Repository Tools workspace keeps its diagnostics and results vertically reachable at compact heights
@@ -325,6 +378,10 @@ automation, and account isolation. The diagrams are reproducible with
 | --- | --- |
 | <img src="docs/assets/screenshots/cheap-lfs-ui-acceptance.png" alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action" width="520"><br><sub>Public/private live GitHub · native picker · pushed pointer history</sub> | <img src="docs/assets/screenshots/cheap-lfs-cloud-compression.png" alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a compressed pointer row" width="520"><br><sub>Private opt-in · 99.9% smaller · local verified materialization</sub> |
 
+| Detailed Cheap LFS commit progress |
+| --- |
+| <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="720"><br><sub>Three bounded upload lanes · byte progress · large-file filter</sub> |
+
 <!-- markdownlint-disable MD013 -->
 
 | Cross-lane automatic update recovery |
@@ -335,14 +392,17 @@ automation, and account isolation. The diagrams are reproducible with
 
 Cheap LFS can now install a reviewed, SHA-pinned GitHub Actions caller that
 compresses Release objects sequentially without Actions artifacts or caches.
-Public repositories enable it automatically; private repositories stay off
-until the user opts in. Failed or non-beneficial objects keep their exact raw
-pointer and asset, while successful objects become backward-compatible
-`part-deflate` records. Decompression always happens locally in Desktop
-Material with bounded expansion plus original part and whole-file SHA-256
-verification. Live public and private Actions converted separate 1 MiB objects
-to verified 1,033-byte side assets while retaining their raw historical assets;
-both compressed pointers restored to the exact original bytes through the app.
+For a confirmed-public repository, Desktop Material automatically prepares the
+owned caller in Changes; it starts running only after the user reviews, commits,
+and pushes that workflow. Private repositories stay off until the user opts in,
+then follow the same reviewed commit/push boundary. Failed or non-beneficial
+objects keep their exact raw pointer and asset, while successful objects become
+backward-compatible `part-deflate` records. Decompression always happens
+locally in Desktop Material with bounded expansion plus original part and
+whole-file SHA-256 verification. Live public and private Actions converted
+separate 1 MiB objects to verified 1,033-byte side assets while retaining their
+raw historical assets; both compressed pointers restored to the exact original
+bytes through the app.
 
 | Repository workflows | GitHub workflows | Accessibility and shell |
 | --- | --- | --- |

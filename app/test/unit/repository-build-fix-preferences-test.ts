@@ -47,4 +47,41 @@ describe('Repository build-fix preference identity', () => {
 
     assert.notEqual(guarded.hash, unattended.hash)
   })
+
+  it('changes the repository hash when parallel Cheap LFS uploads change', () => {
+    const sequential = repositoryWith({
+      ...defaultBuildRunPreferences,
+      parallelCheapLfsUploads: false,
+    })
+    const parallel = repositoryWith({
+      ...defaultBuildRunPreferences,
+      parallelCheapLfsUploads: true,
+    })
+    const legacyMissing = repositoryWith({
+      ...defaultBuildRunPreferences,
+      parallelCheapLfsUploads: undefined,
+    })
+
+    assert.notEqual(sequential.hash, parallel.hash)
+    assert.equal(legacyMissing.hash, parallel.hash)
+  })
+
+  it('changes the repository hash when Cheap LFS storage changes', () => {
+    const releases = repositoryWith({
+      ...defaultBuildRunPreferences,
+      cheapLfsStorageProvider: 'release',
+    })
+    const ghcr = repositoryWith({
+      ...defaultBuildRunPreferences,
+      cheapLfsStorageProvider: 'ghcr',
+    })
+    const dockerHub = repositoryWith({
+      ...defaultBuildRunPreferences,
+      cheapLfsStorageProvider: 'docker-hub',
+    })
+
+    assert.notEqual(releases.hash, ghcr.hash)
+    assert.notEqual(ghcr.hash, dockerHub.hash)
+    assert.notEqual(dockerHub.hash, releases.hash)
+  })
 })

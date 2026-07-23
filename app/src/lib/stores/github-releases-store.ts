@@ -187,8 +187,34 @@ export function getGitHubReleasesAccount(
   const account = getAccountForRepository(accounts, repository)
   return gitHubRepository !== null &&
     account?.provider === 'github' &&
+    account.token.length > 0 &&
     account.endpoint === gitHubRepository.endpoint
     ? account
+    : null
+}
+
+/**
+ * Resolve credentials for a read-only Releases operation.
+ *
+ * Signed-out fallback is intentionally narrow: the repository metadata must
+ * explicitly say public and the endpoint must be GitHub.com. Unknown/private
+ * visibility and GitHub Enterprise endpoints continue to require the exact
+ * repository-selected account.
+ */
+export function getGitHubReleasesReadAccount(
+  repository: Repository,
+  accounts: ReadonlyArray<Account>
+): Account | null {
+  const authenticated = getGitHubReleasesAccount(repository, accounts)
+  if (authenticated !== null) {
+    return authenticated
+  }
+
+  const gitHubRepository = repository.gitHubRepository
+  const anonymous = Account.anonymous()
+  return gitHubRepository?.isPrivate === false &&
+    gitHubRepository.endpoint === anonymous.endpoint
+    ? anonymous
     : null
 }
 
@@ -307,6 +333,8 @@ interface IRequestContext {
   readonly repository: GitHubRepository
   readonly api: IGitHubReleasesAPI
   readonly generation: number
+  readonly repositoryFingerprint: string
+  readonly anonymous: boolean
 }
 
 export interface IGitHubReleaseMutationReview {
@@ -331,6 +359,7 @@ function repositoryFingerprint(repository: Repository): string {
           remote.endpoint,
           remote.owner.login,
           remote.name,
+          remote.isPrivate,
         ]
   )
 }
@@ -422,6 +451,33 @@ export class GitHubReleasesStore {
       repository: gitHubRepository,
       api: this.dependencies.apiFor(account),
       generation: this.generation,
+      repositoryFingerprint: repositoryFingerprint(repository),
+      anonymous: false,
+    }
+  }
+
+  private readContext(repository: Repository): IRequestContext {
+    const authenticated = getGitHubReleasesAccount(repository, this.accounts)
+    if (authenticated !== null) {
+      return this.context(repository)
+    }
+
+    const gitHubRepository = repository.gitHubRepository
+    const account = getGitHubReleasesReadAccount(repository, this.accounts)
+    if (gitHubRepository === null || account === null) {
+      // Preserve the existing endpoint/provider/authentication error details.
+      return this.context(repository)
+    }
+    if (!supportsReleases(gitHubRepository.endpoint)) {
+      return this.context(repository)
+    }
+    return {
+      account,
+      repository: gitHubRepository,
+      api: this.dependencies.apiFor(account),
+      generation: this.generation,
+      repositoryFingerprint: repositoryFingerprint(repository),
+      anonymous: true,
     }
   }
 
@@ -431,7 +487,38 @@ export class GitHubReleasesStore {
     signal: AbortSignal | undefined,
     work: (context: IRequestContext, signal: AbortSignal) => Promise<T>
   ): Promise<T> {
-    const context = this.context(repository)
+    return await this.runWithContext(
+      repository,
+      operation,
+      signal,
+      this.context(repository),
+      work
+    )
+  }
+
+  private async runRead<T>(
+    repository: Repository,
+    operation: GitHubReleaseOperation,
+    signal: AbortSignal | undefined,
+    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>
+  ): Promise<T> {
+    const context = this.readContext(repository)
+    return await this.runWithContext(
+      repository,
+      operation,
+      signal,
+      context,
+      work
+    )
+  }
+
+  private async runWithContext<T>(
+    repository: Repository,
+    operation: GitHubReleaseOperation,
+    signal: AbortSignal | undefined,
+    context: IRequestContext,
+    work: (context: IRequestContext, signal: AbortSignal) => Promise<T>
+  ): Promise<T> {
     const controller = new AbortController()
     const cancel = () => controller.abort()
     signal?.addEventListener('abort', cancel, { once: true })
@@ -457,16 +544,20 @@ export class GitHubReleasesStore {
     signal: AbortSignal
   ) {
     const account = getGitHubReleasesAccount(repository, this.accounts)
+    const anonymousStillAllowed =
+      context.anonymous &&
+      account === null &&
+      getGitHubReleasesReadAccount(repository, this.accounts)?.token === ''
+    const authenticatedStillCurrent =
+      !context.anonymous &&
+      account !== null &&
+      getAccountKey(account) === getAccountKey(context.account) &&
+      account.token === context.account.token
     if (
       signal.aborted ||
       context.generation !== this.generation ||
-      account === null ||
-      getAccountKey(account) !== getAccountKey(context.account) ||
-      account.token !== context.account.token ||
-      repository.gitHubRepository?.endpoint !== context.repository.endpoint ||
-      repository.gitHubRepository?.owner.login !==
-        context.repository.owner.login ||
-      repository.gitHubRepository?.name !== context.repository.name
+      repositoryFingerprint(repository) !== context.repositoryFingerprint ||
+      (!anonymousStillAllowed && !authenticatedStillCurrent)
     ) {
       throw abortError('The selected GitHub account or repository changed.')
     }
@@ -562,7 +653,7 @@ export class GitHubReleasesStore {
     page: number = 1,
     signal?: AbortSignal
   ): Promise<IGitHubReleaseList> {
-    return this.run(repository, 'list', signal, (context, requestSignal) =>
+    return this.runRead(repository, 'list', signal, (context, requestSignal) =>
       context.api.fetchReleases(
         context.repository.owner.login,
         context.repository.name,
@@ -578,7 +669,7 @@ export class GitHubReleasesStore {
     tag: string,
     signal?: AbortSignal
   ): Promise<IGitHubRelease | null> {
-    return this.run(
+    return this.runRead(
       repository,
       'list',
       signal,
@@ -596,9 +687,10 @@ export class GitHubReleasesStore {
         // GitHub's exact tag route returns 404 for unpublished drafts, even to
         // an authenticated repository owner. The regular releases inventory
         // includes those drafts, so scan its already-bounded pagination before
-        // concluding that the tag is absent. Cheap LFS creates drafts by design;
-        // without this fallback neither its freshly uploaded assets nor existing
-        // draft-backed pointers can be reused or materialized through the UI.
+        // concluding that the tag is absent. New Cheap LFS buckets are
+        // published prereleases, but older app versions created drafts. Keep
+        // this fallback so those legacy buckets can be promoted, reused, and
+        // materialized through the UI.
         let page = 1
         while (true) {
           const inventory = await context.api.fetchReleases(
@@ -628,7 +720,7 @@ export class GitHubReleasesStore {
     page: number = 1,
     signal?: AbortSignal
   ): Promise<IGitHubReleaseAssetList> {
-    return this.run(
+    return this.runRead(
       repository,
       'list-assets',
       signal,
@@ -795,16 +887,20 @@ export class GitHubReleasesStore {
     signal: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ) {
-    return this.run(repository, 'download', signal, (context, requestSignal) =>
-      this.dependencies.downloadAsset(
-        context.account,
-        context.repository,
-        releaseId,
-        asset,
-        destination,
-        requestSignal,
-        onProgress
-      )
+    return this.runRead(
+      repository,
+      'download',
+      signal,
+      (context, requestSignal) =>
+        this.dependencies.downloadAsset(
+          context.account,
+          context.repository,
+          releaseId,
+          asset,
+          destination,
+          requestSignal,
+          onProgress
+        )
     )
   }
 

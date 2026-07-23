@@ -155,14 +155,15 @@ permissions:
   contents: write
 
 concurrency:
-  group: cheap-lfs-cloud-compression-\${{ github.repository }}-\${{ github.ref }}
+  group: cheap-lfs-cloud-compression-\${{ github.repository }}-\${{ github.event.repository.default_branch }}
   cancel-in-progress: false
 
 jobs:
   compress:
     name: Compress release objects one by one
     if: >-
-      github.ref_name == github.event.repository.default_branch &&
+      github.ref_type == 'branch' &&
+      github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
       (github.event.repository.private == false || ${
         privateRepositoryOptIn ? 'true' : 'false'
       })

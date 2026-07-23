@@ -7,6 +7,8 @@ import { Button } from '../lib/button'
 import classNames from 'classnames'
 import { IChangesListItem } from './filter-changes-list'
 import { WorkingDirectoryStatus } from '../../models/status'
+import { isCheapLfsCandidateSize } from './filter-changes-logic'
+import { t } from '../../lib/i18n'
 
 interface IChangesFilterButtonProps {
   /** The current file-list filter state (drives the active-count badge). */
@@ -69,6 +71,7 @@ interface IChangesFilterChipRowProps {
   readonly onFilterDeletedFiles: () => void
   readonly onFilterModifiedFiles: () => void
   readonly onFilterNewFiles: () => void
+  readonly onFilterCheapLfsCandidates: () => void
 
   /** Opens the full regex builder dialog (§6.3 trailing chip). */
   readonly onOpenRegexBuilder: () => void
@@ -101,6 +104,7 @@ export class ChangesFilterChipRow extends React.Component<IChangesFilterChipRowP
         deletedFilesCount: 0,
         includedFilesCount: 0,
         excludedFilesCount: 0,
+        cheapLfsCandidatesCount: 0,
       }
 
       Array.from(filteredItems.values()).forEach(v => {
@@ -121,6 +125,9 @@ export class ChangesFilterChipRow extends React.Component<IChangesFilterChipRowP
           if (file.isExcludedFromCommit()) {
             counts.excludedFilesCount++
           }
+          if (isCheapLfsCandidateSize(v.sizeInBytes)) {
+            counts.cheapLfsCandidatesCount++
+          }
         }
       })
 
@@ -132,7 +139,10 @@ export class ChangesFilterChipRow extends React.Component<IChangesFilterChipRowP
     return (
       <button
         key={chip.id}
-        className={classNames('changes-filter-chip', { active: chip.on })}
+        className={classNames('changes-filter-chip', {
+          active: chip.on,
+          'cheap-lfs-candidate': chip.id === 'cheap-lfs-candidate',
+        })}
         aria-pressed={chip.on}
         onClick={chip.onToggle}
       >
@@ -153,6 +163,7 @@ export class ChangesFilterChipRow extends React.Component<IChangesFilterChipRowP
       deletedFilesCount,
       includedFilesCount,
       excludedFilesCount,
+      cheapLfsCandidatesCount,
     } = this.getFilterCounts(
       this.props.workingDirectory,
       this.props.filteredItems
@@ -194,10 +205,21 @@ export class ChangesFilterChipRow extends React.Component<IChangesFilterChipRowP
         on: filter.isExcludedFromCommit,
         onToggle: this.props.onFilterExcludedFiles,
       },
+      {
+        id: 'cheap-lfs-candidate',
+        label: t('changesFilter.cheapLfsCandidates'),
+        count: cheapLfsCandidatesCount,
+        on: filter.isCheapLfsCandidate === true,
+        onToggle: this.props.onFilterCheapLfsCandidates,
+      },
     ]
 
     return (
-      <div className="changes-filter-chips" role="group" aria-label="Filters">
+      <div
+        className="changes-filter-chips"
+        role="group"
+        aria-label={t('changesFilter.filtersAriaLabel')}
+      >
         {chips.map(chip => this.renderChip(chip))}
         <button
           className="changes-regex-builder-chip"

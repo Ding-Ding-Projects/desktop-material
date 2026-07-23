@@ -281,7 +281,7 @@ describe('cheap LFS pointer', () => {
     const table: ReadonlyArray<[string, string | null]> = [
       ['assets/game.bin', 'assets/game.bin'],
       ['assets\\game.bin', 'assets/game.bin'],
-      ['  data/file.psd  ', 'data/file.psd'],
+      ['  data/file.psd  ', null],
       ['file.bin', 'file.bin'],
       ['', null],
       ['/etc/passwd', null],
@@ -293,6 +293,19 @@ describe('cheap LFS pointer', () => {
       ['.git/config', null],
       ['.gitignore', null],
       ['.github/workflows/ci.yml', null],
+      ['victim.txt:stream', null],
+      ['assets/name. ', null],
+      ['assets/name.', null],
+      ['assets/.. /escape.bin', null],
+      ['NUL', null],
+      ['nul.txt', null],
+      ['assets/COM1.bin', null],
+      ['assets/LPT9', null],
+      ['assets/has?.bin', null],
+      ['assets/has*.bin', null],
+      ['assets/has"quote.bin', null],
+      ['C:drive-relative.bin', null],
+      ['\\\\server\\share\\file.bin', null],
     ]
     for (const [input, expected] of table) {
       assert.equal(validateCheapLfsTrackedPath(input), expected, input)

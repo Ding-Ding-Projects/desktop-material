@@ -22,12 +22,34 @@ committed pointers, restores one or all files, and removes the need to browse or
 decode the backing Release asset names. The same panel remains available from
 Repository Tools for users who enter through the tools hub.
 
+The original bytes are in the named GitHub Release asset or ordered assets, not
+inside the Git commit. A fresh clone therefore receives the pointer first.
+Desktop Material's default-on clone/open detector then downloads, verifies, and
+atomically restores the working-tree file. An older pointer-only clone can be
+refreshed by reopening it in the updated app or choosing **Materialize all** in
+**Large files**. The committed Git blob remains the pointer so another clone can
+repeat the same verified restore. Explicitly public GitHub.com Release pointers
+can take this path while signed out; private and unknown repositories remain
+account-gated.
+
 ## Behavior and configuration
+
+**Repository settings → Build & Run → Large-file storage** selects a
+published GitHub prerelease, one GHCR OCI image, or one Docker Hub OCI image.
+The commit panel recommends ordinary Git, Releases, GHCR, or Docker Hub from the
+selected byte total and detected local provider setup, but does not silently
+change the saved choice. A configured account or credential does not prove live
+quota, billing, organization policy, or service health. This page describes
+Release storage; see the
+[Cheap LFS OCI registry backend](cheap-lfs-oci-registry-backend.md) for image
+snapshots, add/remove behavior, timeout splitting, and private encryption.
 
 A manual pin reviews the source file, repository-relative pointer path,
 release tag, optional release name, and byte size. The default tag is `assets`;
-if it has no release, the app creates an unpublished prerelease draft so an
-asset bucket can never replace the installer's `/releases/latest` update feed.
+if it has no release, the app creates a published prerelease so collaborators
+can fetch its assets while the bucket remains outside the installer's stable
+`/releases/latest` update feed. A draft created by an older Desktop Material is
+published in place only after its exact reviewed identity is revalidated.
 A file at or below the per-asset cap initially uploads as one raw asset. A
 larger file is split into ordered raw parts of at most 1.5 GiB — GitHub allows
 release assets up to 2 GiB, but uploads near that ceiling proved unreliable,
@@ -92,24 +114,35 @@ manual batch is allocated atomically: when it would cross the remaining slots,
 the entire group moves to the next bucket and every generated pointer records
 that exact derived tag.
 
-GitHub's direct release-by-tag endpoint does not return draft Releases, so the
-cloud Action falls back to a bounded inventory of at most 100 pages of 100 releases
-and matches the exact draft tag there. A draft outside those **10,000 releases**
-fails safely without changing the pointer or raw asset. Compression also needs
-one free asset slot for its verified side object. If the selected Release has
-already reached its **1,000-asset** capacity, the upload cannot be adopted and
-the raw pointer remains cloneable and locally materializable. Cheap LFS never
-deletes the historical raw asset merely to make room.
+Current buckets are published prereleases and resolve through GitHub's direct
+release-by-tag endpoint. For compatibility, the cloud Action can still locate
+an older draft through a bounded inventory of at most 100 pages of 100 releases;
+Desktop Material publishes that exact legacy bucket in place before new pins or
+materialization. A draft outside those **10,000 releases** fails safely without
+changing the pointer or raw asset. Compression also needs one free asset slot
+for its verified side object. If the selected Release has already reached its
+**1,000-asset** capacity, the upload cannot be adopted and the raw pointer
+remains cloneable and locally materializable. Cheap LFS never deletes the
+historical raw asset merely to make room.
 
-Repository Build & Run settings provide two preferences, both enabled by
+Repository Build & Run settings provide three preferences, all enabled by
 default for compatibility:
 
 - **Pin large files before committing** replaces selected files strictly over
-  100 MiB before every routed commit entry point when a Releases-capable
-  account is selected.
+  100 MiB before every routed commit entry point when the source repository's
+  identity/visibility and the chosen backend credentials are available.
+- **Upload up to three large files at once** assigns automatic pins to three
+  deterministic Release lanes. Turning it off restores one-at-a-time uploads.
 - **Download large files after cloning** materializes detected pointers after
   clone, pull, user fetch, or open under one cancelable per-repository batch.
   The panel also offers explicit per-file and Materialize all actions.
+
+The Changes filter includes a **Large files** chip that matches working-tree
+files strictly over the same 100 MiB Cheap LFS threshold. Its bounded,
+generation-fenced size scan combines with text, regex, included/excluded, and
+status filters instead of replacing them. Deleted or missing paths do not
+match, and an unreadable or unknown size fails closed rather than being shown
+as a safely classified large-file candidate.
 
 The same settings surface shows public cloud compression as automatic and
 read-only. A private repository receives a separate off-by-default checkbox
@@ -119,9 +152,22 @@ manager status, local-only decompression notice, and raw/compressed/mixed
 pointer badges.
 
 Automatic pinning reports separate hashing, release preparation, upload, and
-verification phases, pins files sequentially, reloads status, and stages the
-pointer rather than the original binary. The first pin failure aborts the
-commit. Production first uses the trusted GitHub CLI exact-length transport.
+verification phases. With parallel upload enabled it runs at most three stable
+lanes (`assets`, `assets-parallel-2`, and `assets-parallel-3`), while each lane
+still mutates its reviewed Release sequentially. The commit composer keeps a
+compact terminal-style panel directly below Commit with up to three sanitized
+active-file rows, per-file phase and bytes, aggregate transferred bytes, and
+success/failure counts. It never renders raw provider or process output.
+
+![Bilingual Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit](../../assets/screenshots/cheap-lfs-commit-progress.png)
+
+After the workers settle, Desktop Material reloads status and stages successful
+pointers rather than original binaries. A failed raw file is excluded from the
+current commit and remains in Changes for retry; unrelated selected changes and
+successful pointers can commit. If nothing safe remains, no empty commit is
+created. A partially selected oversized file fails closed before upload because
+replacing it with a pointer would necessarily replace the whole file.
+Production first uses the trusted GitHub CLI exact-length transport.
 This avoids opening Electron's native upload data pipe, which can terminate the
 app with a Mojo failed-precondition when the remote consumer closes during a
 write. Exact source-range checks still reject files that grow or shrink after
@@ -232,15 +278,25 @@ Release so the next manual attempt can stage only the missing names.
 
 The committed pointer contains a format version, release tag, base asset name,
 whole-file byte size and SHA-256, plus ordered raw or `part-deflate` records when
-required. The binary bytes remain in GitHub Release assets; publishing a draft
-release is a separate user decision. Per-repository auto-pin,
-auto-materialize, and private cloud-compression consent are stored with the
-repository's Build & Run preferences.
+required. The binary bytes remain in published GitHub prerelease assets so a
+fresh public clone can restore them while signed out, and a private clone can
+restore them with its selected authorized account, without an owner-only draft
+step.
+Per-repository auto-pin,
+three-wide-versus-sequential upload mode, auto-materialize, and private
+cloud-compression consent are stored with the repository's Build & Run
+preferences. Preferences written by an older app have no parallel-upload field
+and resolve compatibly to the new default-on mode.
 
-Materialization downloads to sibling temporary files. A single asset is
-renamed over the pointer only after its size and digest match. Multipart files
-verify every part, assemble them in order while calculating the whole digest,
-and replace the pointer atomically only after the final verification succeeds.
+Materialization writes verified bytes into a private sibling recovery
+directory. It revalidates the canonical repository root, every parent in the
+tracked path, and the exact pointer identity and contents before quarantining
+that pointer. The replacement is published with an exclusive hard link, so a
+concurrently created destination is never overwritten. Original and staged
+names are removed only after the published identity, size, and digest are
+proved; an uncertain race preserves the recovery directory and reports its
+path. Multipart files still verify every part and calculate the whole digest
+before this compare-and-exchange begins.
 One Materialize-all run caches release metadata by tag. When the bounded
 release preview does not already contain every required uploaded name, it also
 caches one complete paginated asset inventory by release ID. Pointers in the
@@ -259,6 +315,13 @@ attempt and report any cleanup failure without touching pre-existing assets.
 CLI-unavailable, CLI-failed, and incomplete-asset messages direct the user to
 retry or use the explicit manual handoff.
 
+A filesystem without the required no-overwrite hard-link operation, a changed
+parent directory, or a concurrent destination mutation also fails closed. The
+app restores the exact quarantined original when that can be done without
+overwriting another process. If either identity cannot be restored or removed
+safely, both files remain in the surfaced private recovery directory for manual
+review.
+
 A group requiring more than 1,000 assets is rejected before hashing or Release
 mutation. A concurrent uploader can consume capacity after allocation; if the
 provider then rejects the upload, the operation fails without splitting the
@@ -272,9 +335,13 @@ object discovered after a timed-out native request.
 
 One automatic materialization failure is recorded per pointer and does not
 stop the remaining batch; cancellation stops the batch and the summary reports
-what stayed as pointers. In an automatic pin batch, an earlier file may already
-have become a valid pointer when a later pin fails, but the commit is aborted
-and repository status is refreshed so no half-pinned selection is committed.
+what stayed as pointers. Automatic pin workers likewise collect ordinary
+per-file failures and continue the other lanes. Successfully written pointers
+and unrelated selected changes may commit, while every failed raw file is
+explicitly removed from that commit and remains visible for retry. Cancellation
+stops new lane work, aborts and drains all active workers, and creates no
+misleading partial commit. An all-failed selection never becomes an accidental
+empty commit.
 
 The manual handoff waits for a bounded roughly six-hour window and scans every
 bounded Release-asset page. A timeout, cancel, changed source, missing or
@@ -311,17 +378,34 @@ Hong Kong-style Cantonese, and bilingual mode.
 
 ## Security considerations
 
-Tracked paths must remain repository-relative and cannot traverse parents or
-Git metadata. Pointer text is strictly parsed, capped at 512 KiB, and validates
-canonical sizes, lowercase SHA-256 values, ordered part totals, and release
-asset bounds. Asset uploads use exact account-bound release mutation reviews,
-refreshing the release snapshot before each later part.
+Tracked paths must retain their exact reviewed Windows spelling. Absolute,
+drive-rooted, UNC, parent-traversing, empty, dot, Git-metadata, overlong, and
+control-character paths are rejected, as are Windows device basenames,
+alternate-data-stream colons, other illegal characters, and components ending
+in a dot or space. A batch also rejects duplicate or case-colliding
+destinations. The canonical repository root and each regular parent directory
+are identity-checked at every mutation boundary, so symlink, junction, reparse,
+or concurrently redirected parents fail closed. Pointer text is strictly
+parsed, capped at 512 KiB, and validates canonical sizes, lowercase SHA-256
+values, ordered part totals, and release asset bounds.
 
-Draft release assets are available only to users authorized for the repository;
-publish the release before relying on unauthenticated collaborator access. The
-feature never puts provider credentials in a pointer. Temporary downloads are
-cleaned on success and failure, and unverified bytes never replace a tracked
-file.
+Production automatic Release and OCI upload preparation opens the proved
+source without following links, hashes it into an operation-owned private copy,
+and uploads only that copy. The original source and destination proofs are
+revalidated after staging and immediately before provider publication and
+pointer replacement. Asset uploads also use exact account-bound Release
+mutation reviews, refreshing the Release snapshot before each later part.
+
+Private prerelease assets remain available only to users authorized for the
+repository. Explicitly public GitHub.com repositories use a blank-token,
+read-only Release context for metadata and asset downloads; the main process
+omits the `Authorization` header. Unknown/private visibility and GitHub
+Enterprise still require the exact repository-selected account. Anonymous
+create, update, publish, delete, upload, and mutation-review operations are
+rejected before transport. Public prerelease assets remain outside the stable
+Latest release. The feature never puts provider credentials in a pointer.
+Temporary downloads are cleaned on success and failure, and unverified bytes
+never replace a tracked file.
 
 GitHub CLI recovery accepts only the trusted well-known installation path; it
 does not search the current directory or `PATH`. The exact account token is
@@ -378,6 +462,7 @@ cleanup observations are in the record:
 
 - [Cheap LFS public/private GitHub and UI acceptance — 2026-07-22](../../verification/cheap-lfs-github-public-private-2026-07-22.md)
 - [Cheap LFS cloud compression acceptance — 2026-07-22](../../verification/cheap-lfs-cloud-compression-2026-07-22.md)
+- [Cheap LFS commit progress and push batching — 2026-07-23](../../verification/cheap-lfs-commit-progress-2026-07-23.md)
 
 ### Live cloud-compression acceptance — 2026-07-22
 
@@ -417,6 +502,10 @@ mutation reviews, attempt-owned cleanup, source race checks, cancellation,
 per-part and whole-file verification, paginated inventory reuse, and atomic
 materialization. Its cloud cases additionally prove bounded cleanup for a
 truncated DEFLATE stream, over-expansion, and exact-size wrong-hash output.
+`cheap-lfs/tracked-path-store-test.ts` covers strict Windows spellings,
+canonical parent-chain and link rejection, private verified upload copies,
+source/destination revalidation, case-colliding batches, exclusive no-overwrite
+publication, rollback, and surfaced recovery artifacts.
 `cheap-lfs/cloud-compression-action-test.ts` runs the real composite action
 against a temporary Git remote and fake GitHub Release API, proving a verified
 side asset and `part-deflate` commit, exact raw-pointer preservation on forced
@@ -455,7 +544,7 @@ late completion reconciliation, fail-closed persistent `starter` handling,
 one no-object clean retry, prepared-digest live verification, redacted CLI
 diagnostics, automatic stall/411/502 fallback,
 100%-only-after-acceptance progress, and
-application-quit teardown. The latest transfer and localization checkpoint
+application-quit teardown. An earlier transfer and localization checkpoint
 passed 34/34 tests (21 transfer and 13 localization), plus root TypeScript
 no-emit and focused lint, format, and diff checks. The combined changed-surface
 gate passed 165/165 across 18 suites.

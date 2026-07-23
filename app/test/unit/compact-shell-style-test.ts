@@ -56,6 +56,19 @@ describe('compact shell style contracts', () => {
     )
   })
 
+  it('keeps the bilingual Cheap LFS terminal inside a narrow sidebar', () => {
+    const commitMessage = read('app/styles/ui/changes/_commit-message.scss')
+
+    assert.match(
+      commitMessage,
+      /\.cheap-lfs-mini-terminal\s*\{[\s\S]*?container-type: inline-size;/
+    )
+    assert.match(
+      commitMessage,
+      /@container \(max-width: 220px\)[\s\S]*?\.cheap-lfs-terminal-active-detail,[\s\S]*?text-overflow: ellipsis;[\s\S]*?\.cheap-lfs-terminal-details\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto;/
+    )
+  })
+
   it('uses reversible repository master-detail layouts at 200% zoom', () => {
     const shell = read('app/styles/_material-shell.scss')
     const rail = read('app/styles/ui/_material-rail.scss')

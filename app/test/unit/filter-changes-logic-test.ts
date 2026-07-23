@@ -10,9 +10,11 @@ import {
   getNoResultsMessage,
   hasActiveFilters,
   applyFilters,
+  isCheapLfsCandidateSize,
 } from '../../src/ui/changes/filter-changes-logic'
 import { IFileListFilterState } from '../../src/lib/app-state'
 import { IChangesListItem } from '../../src/ui/changes/filter-changes-list'
+import { CheapLfsPinThresholdBytes } from '../../src/lib/large-files'
 
 // Helper function to create a test file
 function createTestFile(
@@ -41,18 +43,81 @@ function createTestItem(
     | AppFileStatusKind.New
     | AppFileStatusKind.Modified
     | AppFileStatusKind.Deleted,
-  selectionType: DiffSelectionType
+  selectionType: DiffSelectionType,
+  sizeInBytes?: number | null
 ): IChangesListItem {
   const change = createTestFile(path, status, selectionType)
   return {
     id: path,
     text: [path],
     change,
+    sizeInBytes,
   }
 }
 
 describe('filter-changes-logic', () => {
   describe('applyFilterOptions', () => {
+    it('matches only known sizes strictly above the Cheap LFS threshold', () => {
+      const filters: IFileListFilterState = {
+        filterText: '',
+        isIncludedInCommit: false,
+        isExcludedFromCommit: false,
+        isNewFile: false,
+        isModifiedFile: false,
+        isDeletedFile: false,
+        isCheapLfsCandidate: true,
+      }
+      const candidate = createTestItem(
+        'candidate.bin',
+        AppFileStatusKind.Modified,
+        DiffSelectionType.All,
+        CheapLfsPinThresholdBytes + 1
+      )
+      const boundary = createTestItem(
+        'boundary.bin',
+        AppFileStatusKind.Modified,
+        DiffSelectionType.All,
+        CheapLfsPinThresholdBytes
+      )
+      const unknown = createTestItem(
+        'unknown.bin',
+        AppFileStatusKind.Modified,
+        DiffSelectionType.All,
+        null
+      )
+
+      assert.equal(isCheapLfsCandidateSize(candidate.sizeInBytes), true)
+      assert.equal(applyFilterOptions(candidate, filters), true)
+      assert.equal(applyFilterOptions(boundary, filters), false)
+      assert.equal(applyFilterOptions(unknown, filters), false)
+    })
+
+    it('ANDs the Cheap LFS candidate option with status filters', () => {
+      const filters: IFileListFilterState = {
+        filterText: 'bin',
+        isIncludedInCommit: false,
+        isExcludedFromCommit: false,
+        isNewFile: true,
+        isModifiedFile: false,
+        isDeletedFile: false,
+        isCheapLfsCandidate: true,
+      }
+      const largeModified = createTestItem(
+        'modified.bin',
+        AppFileStatusKind.Modified,
+        DiffSelectionType.All,
+        CheapLfsPinThresholdBytes + 1
+      )
+      const largeNew = createTestItem(
+        'new.bin',
+        AppFileStatusKind.New,
+        DiffSelectionType.All,
+        CheapLfsPinThresholdBytes + 1
+      )
+      assert.equal(applyFilterOptions(largeModified, filters), false)
+      assert.equal(applyFilterOptions(largeNew, filters), true)
+    })
+
     describe('when no filters are active', () => {
       it('should show all files', () => {
         const filters: IFileListFilterState = {

@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 73 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 75 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the one purpose-built live Cheap LFS acceptance repository. No personal path,
@@ -25,14 +25,14 @@ contract rejects missing, duplicate, or unassigned assets.
 > true-bottom Repository Tools scrolling. It now also includes the safe custom repository-logo
 > studio, named API app functions, temporary submodule repository context, bounded repository
 > folder discovery, explicit cheap-LFS preparation before the final branch commit, and the M21
-> local, pushed, and remote-only tag lifecycle workspace. The locally accepted July 22
-> continuation adds a restart-restored named tab-group chip, the command palette's fully visible
-> rich-row appearance editor, and the inspected live raw Cheap LFS UI result. The cloud-compression
-> continuation adds the accepted bilingual private-opt-in and compressed-pointer frame after live
-> public automatic/private explicit Actions runs and local restores. Action correction
-> `16983c59d702d9e6fa49d2ac4fa4b35c415e9190` is pushed; temporary credentials and the headless
-> test root are removed. Exact final source CI, Pages, wiki, Release, and Git-cleanup publication
-> receipts remain pending.
+> local, pushed, and remote-only tag lifecycle workspace. The published July 22 continuation adds
+> a restart-restored named tab-group chip, the command palette's fully visible rich-row appearance
+> editor, and the inspected live raw Cheap LFS UI result. The cloud-compression continuation adds
+> the accepted bilingual private-opt-in and compressed-pointer frame after live public
+> automatic/private explicit Actions runs and local restores. The July 23 registry-storage,
+> commit-progress, and automatic push-batching continuation is implemented in the current source;
+> its exact final headless, source CI, Pages, wiki, Release, and Git-cleanup publication receipts
+> remain pending.
 > Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
@@ -81,6 +81,7 @@ active profile's style, label, and explicit language mode.
 | `material-command-palette-appearance.png` | Rich command results beside the fully visible density and row-content appearance editor |
 | `cheap-lfs-ui-acceptance.png` | Live private-repository Cheap LFS pin result with the verified pointer and Materialize action |
 | `cheap-lfs-cloud-compression.png` | Bilingual private opt-in with the managed cloud workflow ready and a verified compressed pointer |
+| `cheap-lfs-commit-progress.png` | Three-lane Cheap LFS commit terminal with the large-file filter |
 | `material-actions-cancel.png` | Exact workflow-run cancellation review with ref, actor, and commit context |
 | `material-rebase-review.png` | Reviewed current→target rebase with ahead/behind state and commit preview |
 | `material-pull-preview.png` | Freshly fetched ordinary pull review bound to one exact upstream OID |
@@ -114,6 +115,7 @@ active profile's style, label, and explicit language mode.
 | `material-history.png` | Core History browsing and selected-commit inspection |
 | `material-history-context-actions.png` | Selection-aware History commit More/right-click actions and button hint |
 | `material-settings.png` | Responsive Material Settings dialog |
+| `auto-updater-update-ready.png` | Downloaded automatic update ready for an explicit quit-and-install action |
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Repository navigation side sheet |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
@@ -221,6 +223,8 @@ is labeled Raw, Compressed, or Mixed.
 ![Live private-repository Cheap LFS pin result with the verified pointer and Materialize action](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-ui-acceptance.png)
 
 ![Bilingual private-repository cloud-compression opt-in with a verified compressed pointer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
+
+![Three-lane Cheap LFS commit terminal with the large-file filter](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
 
 Every repository bucket is bounded to GitHub's 1,000-asset Release limit.
 Whole multipart files and whole manual batches roll together from `assets` to
@@ -388,6 +392,8 @@ latest normalized owner value before one durable write and notification. Queued
 path does not weaken the dedicated audit timeline.
 
 ![Material first-run welcome with a focused setup card and tonal workspace preview](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-welcome.png)
+
+![About dialog with a downloaded automatic update ready for an explicit quit-and-install action](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-update-ready.png)
 
 ![Appearance editor anchored beside its actual owner with History, a dedicated local Git path, and burst-safe persistence](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-customization.png)
 

@@ -267,10 +267,10 @@ function validateEndpoint(value: unknown): URL {
   return endpoint
 }
 
-function validateToken(value: unknown): string {
+function validateToken(value: unknown, allowEmpty: boolean = false): string {
   if (
     typeof value !== 'string' ||
-    value.length === 0 ||
+    (!allowEmpty && value.length === 0) ||
     value.length > 16 * 1024 ||
     /[\u0000-\u001f\u007f]/.test(value)
   ) {
@@ -308,12 +308,15 @@ function validateAllowedAccount(endpoint: URL, token: string) {
   }
 }
 
-function validateBase(request: {
-  readonly endpoint: unknown
-  readonly token: unknown
-  readonly owner: unknown
-  readonly repository: unknown
-}): {
+function validateBase(
+  request: {
+    readonly endpoint: unknown
+    readonly token: unknown
+    readonly owner: unknown
+    readonly repository: unknown
+  },
+  allowAnonymousPublicDownload: boolean = false
+): {
   readonly endpoint: URL
   readonly token: string
   readonly owner: string
@@ -323,8 +326,20 @@ function validateBase(request: {
     throw new ReleaseTransferFailure('invalid-request')
   }
   const endpoint = validateEndpoint(request.endpoint)
-  const token = validateToken(request.token)
-  validateAllowedAccount(endpoint, token)
+  const token = validateToken(request.token, allowAnonymousPublicDownload)
+  if (token.length === 0) {
+    // A blank token is accepted only by the download-only caller and only for
+    // GitHub.com. The renderer/store independently requires authoritative
+    // public repository metadata before it can construct this request.
+    if (
+      !allowAnonymousPublicDownload ||
+      endpoint.toString() !== 'https://api.github.com/'
+    ) {
+      throw new ReleaseTransferFailure('invalid-request')
+    }
+  } else {
+    validateAllowedAccount(endpoint, token)
+  }
   return {
     endpoint,
     token,
@@ -443,7 +458,9 @@ async function fetchDownload(
                 'User-Agent': 'DesktopMaterial-ReleasesTransfer',
               }
             )
-            headers.set('Authorization', `Bearer ${token}`)
+            if (token.length > 0) {
+              headers.set('Authorization', `Bearer ${token}`)
+            }
             return headers
           })(),
           redirect: 'manual',
@@ -1552,7 +1569,7 @@ export async function handleGitHubReleaseAssetDownload(
   let active: IActiveTransfer | null = null
   try {
     active = beginTransfer(sender, request?.operationId)
-    const base = validateBase(request)
+    const base = validateBase(request, true)
     validateIdentifier(request.releaseId)
     const assetId = validateIdentifier(request.asset?.id)
     const assetName = normalizeGitHubReleaseAssetName(request.asset?.name)

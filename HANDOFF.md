@@ -41,6 +41,187 @@ The detailed fail-closed, remote, package, log, headless-desktop, and cleanup
 receipt is in
 [`docs/verification/auto-updater-version-order-2026-07-22.md`](docs/verification/auto-updater-version-order-2026-07-22.md).
 
+## 2026-07-23 Cheap LFS registry storage and automatic push batching
+
+This continuation is implemented and locally build/UI accepted in the current
+worktree, but is not yet committed, pushed, or represented by a new installer
+Release. The coordinating task must still record exact remote receipts before
+publication is claimed.
+
+Cheap LFS commit preparation now keeps a compact terminal-style panel directly
+below Commit. It reports sanitized active paths, hashing/preparation/upload/
+verification phases, per-file and aggregate bytes, and completed/failed counts.
+The persisted **Upload up to three large files at once** toggle defaults on and
+limits Release or OCI transfers to three; disabling it restores sequential
+work. The Changes filter can isolate files strictly over 100 MiB. A per-file
+upload failure removes that raw path from the current commit but leaves it
+selected for retry; successful pointers and unrelated safe changes may commit,
+and an all-failed selection creates no empty commit.
+
+**Repository settings → Build & Run → Large-file storage** now selects a
+published GitHub prerelease, GHCR, or Docker Hub. New Release buckets are real
+published prereleases, not drafts, and exact older Desktop Material drafts are
+published in place after revalidation. The progress panel also computes a
+byte/capability recommendation without changing the saved provider: ordinary
+Git at or below 100 MiB, Releases for one transfer totaling at most 1.5 GiB,
+private-source GHCR for a larger eligible GitHub.com batch, Docker Hub when it
+is locally configured, and Releases when no registry setup is detected. These
+signals do not prove live quota, billing, organization policy, or service
+health.
+
+The concrete user report in
+[`codingmachineedge/lowlevel-computer-use-mcp`](https://github.com/codingmachineedge/lowlevel-computer-use-mcp)
+was repaired without rewriting Git. Remote `main`
+`f2edfe442555cfe35a519dd0b058986cb09d6ee3` contains the 166-byte pointer for
+`software/docker.exe`. After revalidating tag `assets`, release ID `357437469`,
+its one uploaded asset ID `486745803`, exact size `638124464`, and provider
+digest `sha256:a5b5837542f2f57fadbb09db90a60c84f8efc0a65f8d6dcd2e5b9fca3a2b87e6`,
+that exact legacy draft was published in place as a non-draft prerelease. The
+four unrelated empty same-tag drafts were left untouched. The stable public
+asset is now available from the
+[`assets` prerelease](https://github.com/codingmachineedge/lowlevel-computer-use-mcp/releases/tag/assets).
+The source repository currently contains only `.github/workflows/pages.yml` and
+has no Cheap LFS compression run, which proves why cloud compression never
+started. The updated app will create the managed
+`.github/workflows/cheap-lfs-cloud-compression.yml` caller in Changes when that
+public repository is opened; by design it is not silently committed or pushed,
+so the user must review and commit that one workflow before compression can run.
+
+GHCR and Docker Hub each use one logical `<source-name>-cheap-lfs` OCI package
+with stable tag `desktop-material-cheap-lfs-v1`. A complete current snapshot is
+bounded to 4,096 objects, 8,192 layers, and 8 MiB each for canonical config and
+manifest JSON. Add or remove inside those proof bounds uploads only new content-
+addressed chunks, verifies a new immutable manifest, creates and verifies its
+deterministic retention tag, moves the stable tag, and rewrites current pointer-
+form files to that digest while
+preserving verified materialized raws and their valid older pointer metadata.
+Historical retention tags are not deleted. It cannot mutate or append to an
+existing manifest or timed-out layer; unchanged and already accepted blobs are
+reused, while a timed-out object is reprepared at half the prior layer bound
+down to an 8 MiB floor. New chunks start at 1.5 GiB, safely below GHCR's
+documented 10 GB layer limit, and each GHCR ORAS process times out below the
+provider's ten-minute boundary. Docker Hub has no hard layer-size or upload-
+time limit encoded; current plan, pull, storage, abuse, and fair-use rules
+remain external provider policy.
+
+Same-provider updates retain the exact package coordinate already named by the
+committed/index-aware pointer inventory, including Docker Hub organization or
+collaborator namespaces. Only a first Docker publish defaults to the current
+credential username. GHCR-to-Docker or Docker-to-GHCR migration refuses unless
+every old pointer is an exact unedited materialized raw; it re-hashes those
+bytes, performs no old-provider pull or delete, publishes a fresh full snapshot,
+then rewrites the pointer-form paths. Mixed logical targets, same-provider
+relocation, pointer-form migration inputs, and edited raws fail before publish.
+
+Verified-private repositories encrypt every OCI chunk with AES-256-GCM. The
+shared key is intentionally committed at
+`.desktop-material/cheap-lfs-registry-key-v1` so authorized private-repository
+collaborators can restore it. This protects payloads from a registry-only leak;
+it does not protect them from anyone who can read the private repository, an
+old clone, fork, backup, or Git history. Key removal or rotation must retain old
+bytes for historical immutable pointers. New private pointers bind the exact
+key with `key-id sha256:...`; both canonical and legacy key paths are reserved
+from pin/remove operations. Required-key staging overrides ignore and selection
+state, proves the final commit-tree bytes, and safely rolls back a hook-damaged
+commit. Credentials remain operation-scoped:
+GHCR uses the selected GitHub.com account and Docker Hub uses the trusted Docker
+Desktop credential helper, passing a token to ORAS through standard input and
+clearing it afterward. A first public GHCR package is refused before upload
+because GitHub creates it private and exposes no supported visibility-change
+API; use Releases, Docker Hub, or an existing exact-linked public package.
+GitHub browser sign-in now requests `write:packages`; the account-scope audit
+offers reauthorization for older tokens, while destructive `delete:packages`
+remains excluded. GitHub's OAuth scope page describes `write:packages` as
+granting package upload/download, but its Container registry page separately
+says Packages supports PAT classic only. The selected OAuth token passed a non-
+mutating GHCR challenge; no live package mutation was performed, so PAT-classic
+compliance is not claimed and any provider rejection fails closed before the
+stable tag or Git pointers move.
+
+Windows builds download and verify the official ORAS 1.3.2 AMD64 archive,
+executable, and license before packaging. The installer ships the Apache-2.0
+text as `static/cheap-lfs/oras/LICENSE.ORAS.txt`. Both package architectures use
+that audited x64 executable, so the ARM64 package depends on Windows 11 x64
+emulation and fails closed if it cannot start.
+
+The default-on clone/open detector now scans Release and OCI pointers before it
+requires a selected Releases account. Explicitly public GitHub.com Release and
+public OCI pointers can materialize while signed out. Anonymous Release reads
+omit `Authorization`; Release mutations and private/unknown reads stay account-
+gated. Private OCI pointers fail closed without matching credentials and the
+tracked key. Updated Desktop Material repairs an old pointer-only clone by
+reopening it or by choosing **Large files → Materialize all**. Original bytes
+remain in Release assets or immutable OCI layers, and verified temporary bytes
+replace the working-tree pointer atomically only after size, digest, source
+identity, visibility, and (when applicable) GCM checks pass.
+
+Ordinary Git commits now stay below a decimal **1.5 GB (1,500,000,000-byte)**
+push ceiling by using a 1.4 GB changed-blob budget and bounded path/proof
+overhead. The app forms stable path batches, creates one commit, records a
+durable branch/remote/path intent and pending-commit ref, pushes it with ordinary
+fast-forward rules, proves that exact commit as the same remote tip, and only
+then creates the next commit. Intent-to-pending and final cleanup are atomic two-
+ref transactions. No later commit exists after a failed or ambiguous push;
+retry reconciles the exact intent and resumes the pending push before new commit
+work. A required tracked private-registry key is promoted into batch 1 and
+included in the byte/path/proof budget exactly once. Push also inspects local-
+only commits made by
+older app versions. Existing individually safe commits are pushed and proven
+one at a time without changing their SHA, author, timestamps, message, or
+signature before any new working-tree batch is created; a currently pending
+batch bypasses that legacy rewriter. An individually oversized commit can be
+rebuilt only on a clean, linear local-only branch with an exact configured or
+resolved destination and no Git operation. A
+compare-and-swap ref below
+`refs/desktop-material/commit-batch-backup/` protects the original tip. Before
+the first proven push, a safe failure restores it; after a proven push, the app
+never rolls the branch backward and retains the recovery ref when needed. Every
+replacement batch must reproduce the expected path modes and object IDs, and a
+candidate already reachable from any configured remote is never rewritten.
+Rebuilding preserves the reviewed message and final tree but creates new commit
+IDs, does not preserve cryptographic commit signatures, and does not promise the
+original author timestamp on each replacement batch. Final tree equality and
+every replacement path's exact mode/object ID are proven before success.
+
+Every app-owned commit entry point supplies process-local `-c gc.auto=0`; no
+repository/global setting is changed. The commit flow records HEAD and verifies
+the new commit's object, tree, parent transition, and message. If Git exits
+nonzero only after creating that exact commit (for example an unrelated
+post-commit maintenance failure), Desktop Material accepts it once and shows a
+maintenance warning. An unchanged, unreachable, or unexpected HEAD remains a
+real failure and is never retried into a duplicate commit.
+
+Local acceptance is recorded in the
+[dated Cheap LFS commit-progress receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
+The exact worktree's unpackaged production build returned `0` after 1,466.27
+seconds through Lowlevel MCP. The promoted accepted frame is:
+
+| Frame | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/cheap-lfs-commit-progress.png` | 1440×960 | 107,411 | `6d70fce553edcf54cef9bb806bc1d6f38bf8154a7ff2c859e236aba77afdb238` |
+
+The wide English receipt passed **36/36** acceptance checks: **35/35** named
+surface assertions plus its deterministic one-pointer selection receipt. The
+640×960 bilingual attempt produced no capture or receipt: it failed closed
+because the renderer remained `visibilityState: hidden` after
+`Page.bringToFront`, leaving selection empty and no settled diff. Narrow
+acceptance is not claimed.
+
+Release/OCI operations pass **80/80**, registry transport/runtime policy
+**77/77**, disposable-Git batching **117/117**, UI/settings/localization
+**157/157**, ORAS scripts **8/8**, the headless verifier contract **17/17**, and
+the compact commit-shell style contract **7/7**. The full Cheap LFS folder
+aggregate is deliberately reported as **261/262** because one wall-clock policy
+case exceeded its 2.5-second harness budget during concurrent heavy Git work;
+the isolated policy rerun passed **8/8**, including that same behavior.
+
+These are local receipts only. The tracked frame was promoted before the exact
+saved Electron PID, child processes, hidden desktop, CDP listener, and
+containment-checked temporary run root were all proved absent. Commit/push and
+remote ancestry, exact-source CI and CodeQL, Pages, synchronized wiki
+publication, and the uniquely tagged non-draft installer Release remain for
+the coordinating publication step.
+
 ## 2026-07-22 Cheap LFS cloud compression implementation
 
 Cheap LFS now has repository-local cloud compression without cloud

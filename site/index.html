@@ -405,19 +405,16 @@
             A Material Design 3 shell with verified native workflows
           </h2>
           <p class="section-sub">
-            The numbered roadmap extends through M27. The latest published
-            baseline, <code>7edca120c5</code>, passed CI, code scanning, and
-            installer packaging before exact-target release
-            <code>v3.6.3-beta3-b0000040881</code> published all six required
-            Windows assets. Cards marked <strong>Verified on main</strong> refer
-            to their recorded production UI gates. The current continuation adds
-            persistent visible/collapsible tab groups, fully localized rich
-            command-palette rows and appearance controls, deterministic bare-Alt
-            menu sequencing, and unit/script gates before Super Express
-            packaging. Its exact production build and off-screen group/palette
-            interaction evidence passed locally, and both accepted synthetic
-            screenshots appear below. Its exact commit, push, CI/Pages/wiki, and
-            Release verification are still pending.
+            The numbered roadmap extends through M27. Cards marked
+            <strong>Verified on main</strong> refer to their recorded production
+            UI gates. The current source completes detailed Cheap LFS commit
+            progress, a persisted three-file/sequential upload choice, a
+            large-file Changes filter, safe partial-failure continuation, GHCR
+            and Docker Hub full-snapshot storage, encrypted private-repository
+            objects, pointer-only clone repair, and proven sub-1.5 GB automatic
+            commit/push batches. Exact build, headless, source-publication,
+            installer, Pages, and wiki receipts remain centralized in
+            <code>HANDOFF.md</code> rather than being predeclared here.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -521,7 +518,7 @@
               </div>
               <h3>
                 Browser-like repo tabs &amp; groups
-                <span class="tag">Baseline verified</span>
+                <span class="tag">Verified on main</span>
               </h3>
               <p>
                 Tabs bound per-account to repositories, with inline rename and a
@@ -530,7 +527,7 @@
                 custom colours. The continuation adds named/color-coded group
                 chips with counts and real mouse/keyboard collapse/expand,
                 durable per-window metadata, localized announcements, and
-                non-destructive deletion. Its remote verification is pending.
+                non-destructive deletion.
               </p>
             </article>
 
@@ -663,7 +660,7 @@
               </div>
               <h3>
                 Rich command palette
-                <span class="tag">Locally accepted</span>
+                <span class="tag">Verified on main</span>
               </h3>
               <p>
                 Ctrl+F rows pair icons and localized titles with optional
@@ -717,35 +714,38 @@
                 </svg>
               </div>
               <h3>
-                Release-backed large files
-                <span class="tag">Cloud Actions + UI accepted</span>
+                Release- and registry-backed large files
+                <span class="tag">Bounded snapshots + local restore</span>
               </h3>
               <p>
-                Use the direct Large files manager to list, search, pin, and
-                restore original nested paths without browsing Release asset
-                names. Automatic uploads prefer an isolated trusted GitHub CLI
-                exact-range transport, avoiding Electron's crash-prone native
-                data pipe when <code>gh</code> is available. Reconciliation
-                scans up to 1,000 assets once, then polls one exact ID and fails
-                closed if it remains incomplete. The exact Release editor and
-                temporary drag/drop folder remain the manual recovery path;
-                oversized sources appear there as ordered part files and are
-                staged with bounded memory and visible progress, then detected
-                automatically after drag-and-drop. Complete multipart files and
-                manual batches roll together through <code>assets</code>,
-                <code>assets-2</code>, and later prerelease pointer tags without
-                replacing the installer feed. Retained public and private test
-                repositories passed materialize and re-pin through the
-                production UI and native Windows picker. Public repositories can
-                add automatic SHA-pinned cloud compression; private repositories
-                require explicit opt-in. Actions handles one Release object at a
-                time and leaves failures raw, while Desktop Material always
-                decompresses and verifies locally. Live public and private runs
-                adopted verified 1,033-byte side assets for separate 1 MiB
-                objects, retained the raw history assets, and restored both
-                originals through the app. Draft discovery is bounded to 10,000
-                releases; a missing bounded draft or a full 1,000-asset Release
-                fails safely without pointer replacement.
+                Use the direct Large files manager to list, search, pin, remove,
+                and restore original nested paths without browsing provider
+                payloads. The Changes view can isolate files over 100 MiB and
+                keeps a compact terminal below Commit with sanitized per-file
+                phases, bytes, results, and a selected-versus-recommended
+                storage route. A persisted toggle chooses sequential work or at
+                most three transfers; one failed raw file stays retryable while
+                safe changes and verified pointers may still commit. Release
+                storage uses published prerelease buckets, verified assets,
+                optional cloud compression, and a bounded manual browser
+                handoff. Public repositories prepare the owned compression
+                caller in Changes automatically; private repositories require
+                explicit opt-in, and either caller runs only after a reviewed
+                commit and push. Actions compresses one Release object at a
+                time. Failed or non-beneficial objects remain raw and cloneable,
+                while all decompression and verification happens locally in
+                Desktop Material. GHCR and Docker Hub instead keep the complete
+                current object set in one logical OCI image: additions and
+                removals publish a new immutable manifest, reuse unchanged
+                blobs, and retain digest-specific tags for older pointers.
+                Timed-out GHCR layers are rebuilt at half the prior bound rather
+                than appended to, and private-source chunks use AES-256-GCM with
+                the shared key tracked by that private repository. Clone/open
+                detection and Materialize all verify and replace old
+                pointer-only working-tree files locally. Ordinary small-file
+                selections are split into conservative sub-1.5 GB commit/push
+                batches, with each remote tip proven before the next commit is
+                created.
               </p>
             </article>
 
@@ -781,7 +781,7 @@
               </div>
               <h3>
                 Release test gates
-                <span class="tag">Continuation pending</span>
+                <span class="tag">Verified on main</span>
               </h3>
               <p>
                 Super Express now runs the complete unit and script suites
@@ -1297,6 +1297,24 @@
 
             <figure class="shot">
               <a
+                href="docs/assets/screenshots/cheap-lfs-commit-progress.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-commit-progress.png"
+                  alt="Changes view with the large-file filter and detailed three-file Cheap LFS commit terminal"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Cheap LFS commit progress
+                <span class="tag">Three lanes · bytes · retry state</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
                 href="docs/assets/screenshots/material-actions-cancel.png"
                 target="_blank"
                 rel="noopener"
@@ -1410,6 +1428,24 @@
               </a>
               <figcaption>
                 Preferences <span class="tag">MD3 dialog</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/auto-updater-update-ready.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/auto-updater-update-ready.png"
+                  alt="About dialog with a downloaded automatic update ready for an explicit quit-and-install action"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Automatic update ready
+                <span class="tag">Downloaded · explicit install</span>
               </figcaption>
             </figure>
 

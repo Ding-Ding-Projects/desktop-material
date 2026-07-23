@@ -38,7 +38,7 @@ export async function merge(
       )
     : undefined
 
-  const args = ['merge']
+  const args = ['-c', 'gc.auto=0', 'merge']
 
   if (options?.squash) {
     args.push('--squash')
@@ -64,7 +64,7 @@ export async function merge(
 
   if (options?.squash) {
     const { exitCode } = await git(
-      ['commit', '--no-edit'],
+      ['-c', 'gc.auto=0', 'commit', '--no-edit'],
       repository.path,
       'createSquashMergeCommit',
       {

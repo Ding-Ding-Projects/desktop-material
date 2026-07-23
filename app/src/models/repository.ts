@@ -9,6 +9,7 @@ import {
 import {
   IBuildRunPreferences,
   defaultBuildRunPreferences,
+  getCheapLfsStorageProvider,
 } from './build-run-preferences'
 import { assertNever, fatalError } from '../lib/fatal-error'
 import { createEqualityHash } from './equality-hash'
@@ -99,6 +100,8 @@ export class Repository {
       this.buildRunPreferences.buildFixProvider,
       this.buildRunPreferences.buildFixAutoApprove,
       this.buildRunPreferences.cheapLfsCloudCompression,
+      this.buildRunPreferences.parallelCheapLfsUploads !== false,
+      getCheapLfsStorageProvider(this.buildRunPreferences),
       this.groupName,
       this.defaultBranch,
       getEditorOverrideHash(this.customEditorOverride)

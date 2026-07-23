@@ -1,11 +1,13 @@
 import assert from 'node:assert'
 import { createHash } from 'node:crypto'
+import { execFile as execFileCallback } from 'node:child_process'
 import {
   chmod,
   mkdir,
   mkdtemp,
   readFile,
   readdir,
+  realpath,
   rm,
   stat,
   symlink,
@@ -39,6 +41,7 @@ import {
   ICheapLfsFileSystem,
   ICheapLfsReleasesGateway,
   listCheapLfsPointers,
+  listAllCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
   selectCheapLfsAutoPinTargets,
@@ -51,6 +54,15 @@ import {
   parseCheapLfsPointer,
   serializeCheapLfsPointer,
 } from '../../../src/lib/cheap-lfs/pointer'
+import {
+  CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES,
+  CHEAP_LFS_OCI_POINTER_VERSION,
+  serializeCheapLfsGhcrPointer,
+} from '../../../src/lib/cheap-lfs/ghcr-pointer'
+import {
+  CheapLfsLegacyGhcrRepositoryKeyPath,
+  CheapLfsRegistryRepositoryKeyPath,
+} from '../../../src/lib/cheap-lfs/ghcr-key'
 
 const selected = new Account(
   'selected',
@@ -62,6 +74,7 @@ const selected = new Account(
   'Selected'
 )
 const deflateRaw = promisify(deflateRawCallback)
+const execFile = promisify(execFileCallback)
 const gitHubRepository = new GitHubRepository(
   'material',
   new Owner('desktop', 'https://api.github.com', 1),
@@ -106,8 +119,8 @@ const release: IGitHubRelease = {
   targetCommitish: 'main',
   name: 'Stable',
   body: 'Notes',
-  draft: true,
-  prerelease: false,
+  draft: false,
+  prerelease: true,
   createdAt: new Date(0),
   publishedAt: null,
   authorLogin: 'fixture-bot',
@@ -137,6 +150,7 @@ function multipartBucketGateway(baseTag: string, baseAssetCount: number) {
   const createdTags = new Array<string>()
   const requestedTags = new Array<string>()
   const reviewedTags = new Array<string>()
+  const publishedTags = new Array<string>()
   const uploadedReleaseIds = new Array<number>()
   let uploadIndex = 0
 
@@ -145,7 +159,7 @@ function multipartBucketGateway(baseTag: string, baseAssetCount: number) {
       requestedTags.push(tag)
       return remotes.get(tag) ?? null
     },
-    createDraft: async (_repository, draft) => {
+    create: async (_repository, draft, publishImmediately) => {
       createdTags.push(draft.tagName)
       const created: IGitHubRelease = {
         ...release,
@@ -154,6 +168,7 @@ function multipartBucketGateway(baseTag: string, baseAssetCount: number) {
         targetCommitish: draft.targetCommitish,
         name: draft.name,
         assets: [],
+        draft: !publishImmediately,
       }
       remotes.set(draft.tagName, created)
       return created
@@ -177,6 +192,16 @@ function multipartBucketGateway(baseTag: string, baseAssetCount: number) {
         assetId: reviewedAsset?.id ?? null,
         assetFingerprint: reviewedAsset == null ? null : 'fixture',
       }
+    },
+    publish: async (_repository, review) => {
+      const targetEntry = [...remotes.entries()].find(
+        ([, candidate]) => candidate.id === review.releaseId
+      )
+      assert.ok(targetEntry)
+      publishedTags.push(targetEntry[0])
+      const published = { ...targetEntry[1], draft: false }
+      remotes.set(targetEntry[0], published)
+      return published
     },
     uploadAsset: async (
       _repository,
@@ -222,6 +247,7 @@ function multipartBucketGateway(baseTag: string, baseAssetCount: number) {
     createdTags,
     requestedTags,
     reviewedTags,
+    publishedTags,
     uploadedReleaseIds,
   }
 }
@@ -337,9 +363,12 @@ function dependencies(
   }
 }
 
-async function storeWith(deps: IGitHubReleasesStoreDependencies) {
+async function storeWith(
+  deps: IGitHubReleasesStoreDependencies,
+  accounts: ReadonlyArray<Account> = [selected]
+) {
   const store = new GitHubReleasesStore(
-    new FakeAccountsStore([selected]) as unknown as AccountsStore,
+    new FakeAccountsStore(accounts) as unknown as AccountsStore,
     deps
   )
   await Promise.resolve()
@@ -454,7 +483,7 @@ function inMemoryReleaseGateway(
 ): ICheapLfsReleasesGateway {
   return {
     getReleaseByTag: async () => currentRelease(),
-    createDraft: async () => currentRelease(),
+    create: async () => ({ ...currentRelease(), draft: false }),
     listAssets: async () => ({
       assets: currentRelease().assets,
       page: 1,
@@ -470,6 +499,7 @@ function inMemoryReleaseGateway(
       assetId: reviewedAsset?.id ?? null,
       assetFingerprint: reviewedAsset == null ? null : 'fixture',
     }),
+    publish: async () => ({ ...currentRelease(), draft: false }),
     uploadAsset,
     deleteAsset,
     downloadAsset: async () => {
@@ -585,6 +615,44 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('never selects or uploads either repository key path as Release payload', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const candidates = [
+        CheapLfsRegistryRepositoryKeyPath.toUpperCase(),
+        CheapLfsLegacyGhcrRepositoryKeyPath.replaceAll('/', '\\'),
+      ]
+      for (const candidate of candidates) {
+        const absolutePath = join(
+          dir,
+          ...candidate.replace(/\\/g, '/').split('/')
+        )
+        await mkdir(dirname(absolutePath), { recursive: true })
+        await writeFile(absolutePath, Buffer.alloc(1024, 1))
+      }
+
+      assert.deepEqual(
+        await selectCheapLfsAutoPinTargets(repository, candidates, 100, {
+          statSize: defaultCheapLfsFileSystem.statSize,
+          readPointerText: async () => 'not a pointer\n',
+        }),
+        []
+      )
+
+      const gateway = {} as unknown as ICheapLfsReleasesGateway
+      await assert.rejects(
+        pinFileToRelease(gateway, repository, selected, {
+          absoluteFilePath: join(
+            dir,
+            ...candidates[0].replace(/\\/g, '/').split('/')
+          ),
+          trackedRelativePath: candidates[0],
+          releaseTag: 'assets',
+        }),
+        /safe repository-relative path/i
+      )
+    })
+  })
+
   it('pins a file: hashes it, uploads it, and writes a matching pointer', async () => {
     await withTempRepository(async (dir, repository) => {
       const filePath = join(dir, 'blob.bin')
@@ -602,6 +670,7 @@ describe('cheap LFS operations', () => {
       }
       let createdTargetCommitish: string | undefined
       let createdAsPrerelease: boolean | undefined
+      let createdPublishImmediately: boolean | undefined
       let createdRelease = draft
       let uploaded: { sourcePath: string; name: string } | undefined
       let uploadedBytes: Buffer | undefined
@@ -616,10 +685,20 @@ describe('cheap LFS operations', () => {
                 nextPage: null,
                 capped: false,
               }),
-              createReleaseDraft: async (_owner, _name, releaseDraft) => {
+              createRelease: async (
+                _owner,
+                _name,
+                releaseDraft,
+                publishImmediately
+              ) => {
                 createdTargetCommitish = releaseDraft.targetCommitish
                 createdAsPrerelease = releaseDraft.prerelease
-                createdRelease = { ...draft, tagName: releaseDraft.tagName }
+                createdPublishImmediately = publishImmediately
+                createdRelease = {
+                  ...draft,
+                  tagName: releaseDraft.tagName,
+                  draft: !publishImmediately,
+                }
                 return createdRelease
               },
               // Revalidation must observe the same provider snapshot returned
@@ -662,7 +741,10 @@ describe('cheap LFS operations', () => {
       assert.equal(result.releaseId, draft.id)
       assert.equal(createdTargetCommitish, 'trunk')
       assert.equal(createdAsPrerelease, true)
-      assert.equal(uploaded?.sourcePath, filePath)
+      assert.equal(createdPublishImmediately, true)
+      assert.notEqual(uploaded?.sourcePath, filePath)
+      assert.deepEqual(uploadedBytes, content)
+      await assert.rejects(stat(uploaded!.sourcePath), { code: 'ENOENT' })
       assert.equal(uploaded?.name, 'blob.bin')
 
       const written = await readFile(filePath, 'utf8')
@@ -724,9 +806,18 @@ describe('cheap LFS operations', () => {
           () =>
             fakeAPI({
               fetchReleaseByTag: async () => null,
-              createReleaseDraft: async (_owner, _name, releaseDraft) => {
+              createRelease: async (
+                _owner,
+                _name,
+                releaseDraft,
+                publishImmediately
+              ) => {
                 createdTargetCommitish = releaseDraft.targetCommitish
-                return { ...draft, tagName: releaseDraft.tagName }
+                return {
+                  ...draft,
+                  tagName: releaseDraft.tagName,
+                  draft: !publishImmediately,
+                }
               },
               fetchRelease: async () => draft,
             }),
@@ -794,31 +885,52 @@ describe('cheap LFS operations', () => {
       const releaseWithAsset: IGitHubRelease = {
         ...release,
         tagName: 'v2.0.0',
+        draft: true,
         assets: [
           { ...asset, name: 'payload.bin', sizeInBytes: content.length },
         ],
       }
+      let currentRelease = releaseWithAsset
+      let publishCount = 0
       let destination: string | undefined
       const store = await storeWith(
-        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
-          downloadAsset: async (
-            _account,
-            _repository,
-            _releaseId,
-            _asset,
-            dest
-          ) => {
-            destination = dest
-            await writeFile(dest, content)
-            return {
-              ok: true,
-              path: dest,
-              bytes: content.length,
-              localDigest: `sha256:${sha256}`,
-              matchesGitHubDigest: true,
-            }
-          },
-        })
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => currentRelease,
+              fetchRelease: async () => currentRelease,
+              fetchReleaseAssets: async () => ({
+                assets: currentRelease.assets,
+                page: 1,
+                nextPage: null,
+                capped: false,
+              }),
+              publishRelease: async () => {
+                publishCount++
+                currentRelease = { ...currentRelease, draft: false }
+                return currentRelease
+              },
+            }),
+          {
+            downloadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              _asset,
+              dest
+            ) => {
+              destination = dest
+              await writeFile(dest, content)
+              return {
+                ok: true,
+                path: dest,
+                bytes: content.length,
+                localDigest: `sha256:${sha256}`,
+                matchesGitHubDigest: true,
+              }
+            },
+          }
+        )
       )
 
       const result = await materializePointer(
@@ -828,13 +940,439 @@ describe('cheap LFS operations', () => {
         'payload.bin'
       )
 
-      assert.equal(result.path, trackedPath)
+      assert.equal(await realpath(result.path), await realpath(trackedPath))
       assert.equal(result.bytes, content.length)
+      assert.equal(publishCount, 1)
+      assert.equal(currentRelease.draft, false)
       // The pointer file is now the real bytes: in-place overwrite worked.
       assert.deepEqual(await readFile(trackedPath), content)
       // The temp file was renamed away, so it no longer exists.
       assert.notEqual(destination, undefined)
       await assert.rejects(stat(destination!))
+    })
+  })
+
+  it('preserves a concurrent edit before replacing a single-asset pointer', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const content = Buffer.from('verified release payload')
+      const concurrentEdit = Buffer.from('user edit made during download')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'single-race',
+        assetName: 'race.bin',
+        sizeInBytes: content.length,
+        sha256: createHash('sha256').update(content).digest('hex'),
+      }
+      const trackedPath = join(dir, 'race.bin')
+      await writeFile(trackedPath, serializeCheapLfsPointer(pointer), 'utf8')
+      const releaseWithAsset: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: [
+          {
+            ...asset,
+            name: pointer.assetName,
+            sizeInBytes: content.length,
+          },
+        ],
+      }
+      let temporaryPath: string | undefined
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            destination
+          ) => {
+            temporaryPath = destination
+            await writeFile(destination, content)
+            await writeFile(trackedPath, concurrentEdit)
+            return {
+              ok: true,
+              path: destination,
+              bytes: content.length,
+              localDigest: `sha256:${pointer.sha256}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
+      )
+
+      await assert.rejects(
+        materializePointer(store, repository, selected, 'race.bin'),
+        /pointer changed or was removed.*current file was left in place/
+      )
+      assert.deepEqual(await readFile(trackedPath), concurrentEdit)
+      assert.notEqual(temporaryPath, undefined)
+      await assert.rejects(stat(temporaryPath!))
+    })
+  })
+
+  it('removes a single-asset temp when the transfer rejects after writing it', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const content = Buffer.from('late rejected release payload')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'single-late-rejection',
+        assetName: 'late.bin',
+        sizeInBytes: content.length,
+        sha256: createHash('sha256').update(content).digest('hex'),
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      const trackedPath = join(dir, 'late.bin')
+      await writeFile(trackedPath, pointerText, 'utf8')
+      const releaseWithAsset: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: [
+          {
+            ...asset,
+            name: pointer.assetName,
+            sizeInBytes: content.length,
+          },
+        ],
+      }
+      let temporaryPath: string | undefined
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            destination
+          ) => {
+            temporaryPath = destination
+            await writeFile(destination, content)
+            throw new Error('late transfer rejection')
+          },
+        })
+      )
+
+      await assert.rejects(
+        materializePointer(store, repository, selected, 'late.bin'),
+        /could not download the release asset safely/
+      )
+      assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
+      assert.notEqual(temporaryPath, undefined)
+      await assert.rejects(stat(temporaryPath!))
+    })
+  })
+
+  it('stops single and multipart restores canceled during the final pointer recheck', async () => {
+    for (const kind of ['single', 'multipart'] as const) {
+      await withTempRepository(async (dir, repository) => {
+        const pieces =
+          kind === 'single'
+            ? [Buffer.from('single canceled payload')]
+            : [Buffer.from('first canceled part'), Buffer.from('second part')]
+        const content = Buffer.concat(pieces)
+        const pointerParts =
+          kind === 'multipart'
+            ? pieces.map((part, index) => ({
+                name: `cancel.part-${index}`,
+                sizeInBytes: part.length,
+                sha256: createHash('sha256').update(part).digest('hex'),
+              }))
+            : undefined
+        const pointer: ICheapLfsPointer = {
+          version: CHEAP_LFS_POINTER_VERSION,
+          releaseTag: `${kind}-cancel-at-recheck`,
+          assetName:
+            kind === 'single' ? 'single-cancel.bin' : 'unused-whole.bin',
+          sizeInBytes: content.length,
+          sha256: createHash('sha256').update(content).digest('hex'),
+          parts: pointerParts,
+        }
+        const pointerText = serializeCheapLfsPointer(pointer)
+        const relativePath = `${kind}-cancel.bin`
+        const trackedPath = join(dir, relativePath)
+        await writeFile(trackedPath, pointerText, 'utf8')
+        const namedPieces = new Map<string, Buffer>(
+          pointerParts === undefined
+            ? [[pointer.assetName, pieces[0]]]
+            : pointerParts.map((part, index) => [part.name, pieces[index]])
+        )
+        const releaseWithAssets: IGitHubRelease = {
+          ...release,
+          tagName: pointer.releaseTag,
+          assets: [...namedPieces].map(([name, bytes], index) => ({
+            ...asset,
+            id: asset.id + index,
+            name,
+            sizeInBytes: bytes.length,
+          })),
+        }
+        const store = await storeWith(
+          dependencies(() => fakeAPIForRelease(releaseWithAssets), {
+            downloadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              releaseAsset,
+              destination
+            ) => {
+              const bytes = namedPieces.get(releaseAsset.name)
+              assert.notEqual(bytes, undefined)
+              await writeFile(destination, bytes!)
+              return {
+                ok: true,
+                path: destination,
+                bytes: bytes!.length,
+                localDigest: `sha256:${createHash('sha256')
+                  .update(bytes!)
+                  .digest('hex')}`,
+                matchesGitHubDigest: true,
+              }
+            },
+          })
+        )
+        const controller = new AbortController()
+        let pointerReads = 0
+        const fs: ICheapLfsFileSystem = {
+          ...defaultCheapLfsFileSystem,
+          readPointerText: async path => {
+            const text = await defaultCheapLfsFileSystem.readPointerText(path)
+            pointerReads++
+            if (pointerReads === 2) {
+              controller.abort()
+            }
+            return text
+          },
+          replaceFile: async () => {
+            assert.fail(
+              'a canceled materialization must not replace the pointer'
+            )
+          },
+        }
+
+        await assert.rejects(
+          materializePointer(
+            store,
+            repository,
+            selected,
+            relativePath,
+            controller.signal,
+            undefined,
+            fs
+          ),
+          (error: unknown) => {
+            assert.ok(error instanceof Error)
+            assert.equal(error.name, 'AbortError')
+            return true
+          }
+        )
+        assert.equal(pointerReads, 2)
+        assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
+      })
+    }
+  })
+
+  it('refuses a Release restore redirected through an outside junction', async t => {
+    const outside = await mkdtemp(join(tmpdir(), 'cheap-lfs-release-outside-'))
+    t.after(() => rm(outside, { recursive: true, force: true }))
+    await withTempRepository(async (dir, repository) => {
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'outside-junction',
+        assetName: 'outside.bin',
+        sizeInBytes: 4,
+        sha256: 'a'.repeat(64),
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      const outsidePath = join(outside, 'outside.bin')
+      await writeFile(outsidePath, pointerText, 'utf8')
+      await symlink(
+        outside,
+        join(dir, 'redirect'),
+        process.platform === 'win32' ? 'junction' : 'dir'
+      )
+      const releaseWithAsset: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: [{ ...asset, name: pointer.assetName }],
+      }
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithAsset))
+      )
+
+      await assert.rejects(
+        materializePointer(store, repository, selected, 'redirect/outside.bin'),
+        /symlink or junction/
+      )
+      assert.equal(await readFile(outsidePath, 'utf8'), pointerText)
+    })
+  })
+
+  it('refuses a Release restore whose final pointer is a symlink', async t => {
+    const outside = await mkdtemp(
+      join(tmpdir(), 'cheap-lfs-release-link-target-')
+    )
+    t.after(() => rm(outside, { recursive: true, force: true }))
+    await withTempRepository(async (dir, repository) => {
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'outside-file-link',
+        assetName: 'outside.bin',
+        sizeInBytes: 4,
+        sha256: 'a'.repeat(64),
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      const outsidePath = join(outside, 'outside.bin')
+      await writeFile(outsidePath, pointerText, 'utf8')
+      try {
+        await symlink(outsidePath, join(dir, 'linked-pointer.bin'), 'file')
+      } catch (error) {
+        if (
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          (String(error.code) === 'EPERM' || String(error.code) === 'EACCES')
+        ) {
+          t.skip('Creating file symlinks requires Windows Developer Mode.')
+          return
+        }
+        throw error
+      }
+      const releaseWithAsset: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: [{ ...asset, name: pointer.assetName }],
+      }
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithAsset))
+      )
+
+      await assert.rejects(
+        materializePointer(store, repository, selected, 'linked-pointer.bin'),
+        /symlink, junction, or linked file/
+      )
+      assert.equal(await readFile(outsidePath, 'utf8'), pointerText)
+    })
+  })
+
+  it('materializes a signed-out public Release pointer with an anonymous read account', async () => {
+    await withTempRepository(async dir => {
+      const content = Buffer.from('public release payload')
+      const sha256 = createHash('sha256').update(content).digest('hex')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'public-assets',
+        assetName: 'public.bin',
+        sizeInBytes: content.length,
+        sha256,
+      }
+      const trackedPath = join(dir, 'public.bin')
+      await writeFile(trackedPath, serializeCheapLfsPointer(pointer), 'utf8')
+      const publicRepository = new Repository(
+        dir,
+        101,
+        new GitHubRepository(
+          'material',
+          new Owner('desktop', 'https://api.github.com', 1),
+          101,
+          false
+        ),
+        false
+      )
+      const publicRelease: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        draft: false,
+        assets: [
+          {
+            ...asset,
+            name: pointer.assetName,
+            sizeInBytes: content.length,
+          },
+        ],
+      }
+      const transferTokens = new Array<string>()
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(publicRelease), {
+          downloadAsset: async (
+            account,
+            _repository,
+            _releaseId,
+            _asset,
+            destination
+          ) => {
+            transferTokens.push(account.token)
+            await writeFile(destination, content)
+            return {
+              ok: true,
+              path: destination,
+              bytes: content.length,
+              localDigest: `sha256:${sha256}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        }),
+        []
+      )
+
+      const result = await materializePointer(
+        store,
+        publicRepository,
+        Account.anonymous(),
+        'public.bin'
+      )
+
+      assert.equal(result.bytes, content.length)
+      assert.deepEqual(await readFile(trackedPath), content)
+      assert.deepEqual(transferTokens, [''])
+    })
+  })
+
+  it('rejects anonymous Release materialization for private or unknown visibility', async () => {
+    await withTempRepository(async dir => {
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'private-assets',
+        assetName: 'private.bin',
+        sizeInBytes: 4,
+        sha256: 'a'.repeat(64),
+      }
+      for (const [index, isPrivate] of [true, null].entries()) {
+        const path = `private-${index}.bin`
+        const trackedPath = join(dir, path)
+        const pointerText = serializeCheapLfsPointer(pointer)
+        await writeFile(trackedPath, pointerText, 'utf8')
+        const privateRepository = new Repository(
+          dir,
+          102 + index,
+          new GitHubRepository(
+            'material',
+            new Owner('desktop', 'https://api.github.com', 1),
+            102 + index,
+            isPrivate
+          ),
+          false
+        )
+        let releaseReads = 0
+        const gateway = {
+          getReleaseByTag: async () => {
+            releaseReads++
+            return null
+          },
+        } as unknown as ICheapLfsReleasesGateway
+
+        await assert.rejects(
+          materializePointer(
+            gateway,
+            privateRepository,
+            Account.anonymous(),
+            path
+          ),
+          error =>
+            error instanceof Error &&
+            /Sign in with the account selected/.test(error.message)
+        )
+        assert.equal(releaseReads, 0)
+        assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
+      }
     })
   })
 
@@ -1047,6 +1585,36 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('publishes an older draft bucket in place before writing a new pointer', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const fixture = multipartBucketGateway('assets', 998)
+      fixture.remotes.set('assets', {
+        ...fixture.remotes.get('assets')!,
+        draft: true,
+        prerelease: true,
+      })
+
+      await pinFileToRelease(
+        fixture.gateway,
+        repository,
+        selected,
+        {
+          absoluteFilePath: join(dir, 'legacy-draft.bin'),
+          trackedRelativePath: 'legacy-draft.bin',
+          releaseTag: 'assets',
+        },
+        undefined,
+        undefined,
+        twoPartFileSystem()
+      )
+
+      assert.deepEqual(fixture.createdTags, [])
+      assert.deepEqual(fixture.publishedTags, ['assets'])
+      assert.equal(fixture.remotes.get('assets')?.draft, false)
+      assert.deepEqual(fixture.uploadedReleaseIds, [70, 70])
+    })
+  })
+
   it('rolls a two-part object as one group when the base has one slot', async () => {
     await withTempRepository(async (dir, repository) => {
       const fixture = multipartBucketGateway('assets', 999)
@@ -1166,7 +1734,7 @@ describe('cheap LFS operations', () => {
       })
       const gateway: ICheapLfsReleasesGateway = {
         getReleaseByTag: async () => currentRelease(),
-        createDraft: async () => currentRelease(),
+        create: async () => ({ ...currentRelease(), draft: false }),
         listAssets: async () => ({
           assets: currentRelease().assets,
           page: 1,
@@ -1186,6 +1754,7 @@ describe('cheap LFS operations', () => {
           assetId: reviewedAsset?.id ?? null,
           assetFingerprint: reviewedAsset === null ? null : 'fixture',
         }),
+        publish: async () => ({ ...currentRelease(), draft: false }),
         uploadAsset: async (
           _repository,
           _review,
@@ -1976,6 +2545,76 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('preserves a concurrent edit before replacing a multipart pointer', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const parts = [Buffer.from('first part'), Buffer.from('second part')]
+      const content = Buffer.concat(parts)
+      const concurrentEdit = Buffer.from('user multipart edit during download')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'multipart-race',
+        assetName: 'unused-whole-name.bin',
+        sizeInBytes: content.length,
+        sha256: createHash('sha256').update(content).digest('hex'),
+        parts: parts.map((part, index) => ({
+          name: `race.part-${index}`,
+          sizeInBytes: part.length,
+          sha256: createHash('sha256').update(part).digest('hex'),
+        })),
+      }
+      const trackedPath = join(dir, 'multipart-race.bin')
+      await writeFile(trackedPath, serializeCheapLfsPointer(pointer), 'utf8')
+      const releaseWithAssets: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: pointer.parts!.map((part, index) => ({
+          ...asset,
+          id: asset.id + index,
+          name: part.name,
+          sizeInBytes: part.sizeInBytes,
+        })),
+      }
+      const temporaryPaths: string[] = []
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithAssets), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            releaseAsset,
+            destination
+          ) => {
+            const index = pointer.parts!.findIndex(
+              part => part.name === releaseAsset.name
+            )
+            assert.notEqual(index, -1)
+            temporaryPaths.push(destination)
+            await writeFile(destination, parts[index])
+            if (index === parts.length - 1) {
+              await writeFile(trackedPath, concurrentEdit)
+            }
+            return {
+              ok: true,
+              path: destination,
+              bytes: parts[index].length,
+              localDigest: `sha256:${pointer.parts![index].sha256}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
+      )
+
+      await assert.rejects(
+        materializePointer(store, repository, selected, 'multipart-race.bin'),
+        /pointer changed or was removed.*current file was left in place/
+      )
+      assert.deepEqual(await readFile(trackedPath), concurrentEdit)
+      for (const temporaryPath of temporaryPaths) {
+        await assert.rejects(stat(temporaryPath))
+      }
+    })
+  })
+
   it('materializes raw parts and a legacy compressed part', async () => {
     await withTempRepository(async (dir, repository) => {
       const first = Buffer.from('the first part '.repeat(300))
@@ -2051,7 +2690,7 @@ describe('cheap LFS operations', () => {
         'huge.bin'
       )
 
-      assert.equal(result.path, trackedPath)
+      assert.equal(await realpath(result.path), await realpath(trackedPath))
       assert.equal(result.bytes, whole.length)
       // The tracked file is now the reassembled whole file.
       assert.deepEqual(await readFile(trackedPath), whole)
@@ -2652,6 +3291,129 @@ describe('cheap LFS operations', () => {
       assert.equal(entries.length, 1)
       assert.equal(entries[0].relativePath, 'asset.bin')
       assert.deepEqual(entries[0].pointer, pointer)
+    })
+  })
+
+  it('inventories every tracked pointer through Git and preserves materialized metadata', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'assets',
+        assetName: 'asset.bin',
+        sizeInBytes: 10,
+        sha256: 'b'.repeat(64),
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      await Promise.all(
+        Array.from({ length: 260 }, (_, index) =>
+          writeFile(
+            join(dir, `pointer-${index.toString().padStart(3, '0')}.bin`),
+            pointerText,
+            'utf8'
+          )
+        )
+      )
+      const deepDirectory = join(
+        dir,
+        ...Array.from({ length: 12 }, (_, index) => `level-${index}`)
+      )
+      await mkdir(deepDirectory, { recursive: true })
+      await writeFile(join(deepDirectory, 'deep.bin'), pointerText, 'utf8')
+
+      const materializedBytes = Buffer.from('registry original bytes')
+      const objectSha = createHash('sha256')
+        .update(materializedBytes)
+        .digest('hex')
+      const ociText = serializeCheapLfsGhcrPointer({
+        version: CHEAP_LFS_OCI_POINTER_VERSION,
+        image: `ghcr.io/desktop/material@sha256:${'a'.repeat(64)}`,
+        object: `sha256:${objectSha}`,
+        sizeInBytes: materializedBytes.length,
+        layers: Array.from(
+          { length: 80 },
+          (_, index) => `sha256:${index.toString(16).padStart(64, '0')}`
+        ),
+      })
+      assert.ok(Buffer.byteLength(ociText, 'utf8') > 4096)
+      await writeFile(join(dir, 'registry.bin'), ociText, 'utf8')
+      await execFile('git', ['add', '--all'], { cwd: dir })
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'pointers',
+        ],
+        { cwd: dir }
+      )
+
+      await writeFile(join(dir, 'registry.bin'), materializedBytes)
+      await execFile('git', ['add', '--', 'registry.bin'], { cwd: dir })
+      const stagedRaw = await listAllCheapLfsPointers(repository)
+      assert.equal(
+        stagedRaw.find(entry => entry.relativePath === 'registry.bin')
+          ?.workingTreeState,
+        'modified'
+      )
+      await execFile('git', ['reset', '--quiet', '--', 'registry.bin'], {
+        cwd: dir,
+      })
+      await rm(join(dir, 'pointer-000.bin'))
+      await writeFile(
+        join(dir, 'pointer-001.bin'),
+        serializeCheapLfsPointer({ ...pointer, assetName: 'new.bin' }),
+        'utf8'
+      )
+
+      const entries = await listAllCheapLfsPointers(repository)
+      assert.equal(entries.length, 261)
+      assert.equal(
+        entries.some(entry => entry.relativePath === 'pointer-000.bin'),
+        false
+      )
+      const changedPointer = entries.find(
+        entry => entry.relativePath === 'pointer-001.bin'
+      )
+      assert.equal(
+        changedPointer?.kind === 'release'
+          ? changedPointer.pointer.assetName
+          : null,
+        'new.bin'
+      )
+      assert.equal(
+        entries.some(entry => entry.relativePath.endsWith('/deep.bin')),
+        true
+      )
+      const registry = entries.find(
+        entry => entry.relativePath === 'registry.bin'
+      )
+      assert.equal(registry?.kind, 'oci')
+      assert.equal(registry?.workingTreeState, 'materialized')
+      assert.equal(registry?.pointer.sizeInBytes, materializedBytes.length)
+    })
+  })
+
+  it('fails closed instead of returning a partial inventory at the pointer byte bound', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      await writeFile(
+        join(dir, 'oversized.ptr'),
+        `version ${CHEAP_LFS_OCI_POINTER_VERSION}\n${'x'.repeat(
+          CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
+        )}`,
+        'utf8'
+      )
+
+      await assert.rejects(
+        listAllCheapLfsPointers(repository),
+        /exceeds the .*format limit/
+      )
     })
   })
 })

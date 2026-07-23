@@ -1389,6 +1389,52 @@ export type TranslationKey =
   | 'cheapLfs.progress.manualWaiting'
   | 'cheapLfs.progress.manualVerifying'
   | 'cheapLfs.progress.manualDetected'
+  | 'cheapLfs.progress.terminalTitle'
+  | 'cheapLfs.progress.terminalCurrentFile'
+  | 'cheapLfs.progress.terminalFiles'
+  | 'cheapLfs.progress.terminalFilesDetailed'
+  | 'cheapLfs.progress.terminalBytes'
+  | 'cheapLfs.progress.terminalFileBytes'
+  | 'cheapLfs.progress.terminalBytesPending'
+  | 'cheapLfs.progress.terminalProgressLabel'
+  | 'cheapLfs.progress.terminalStorage'
+  | 'cheapLfs.progress.terminalStorageMatched'
+  | 'cheapLfs.progress.terminalLayer'
+  | 'cheapLfs.progress.terminalLayers'
+  | 'cheapLfs.progress.terminalProviderGit'
+  | 'cheapLfs.progress.terminalProviderUnknown'
+  | 'cheapLfs.progress.terminalStagePreparing'
+  | 'cheapLfs.progress.terminalStageHashing'
+  | 'cheapLfs.progress.terminalStageRelease'
+  | 'cheapLfs.progress.terminalStageUploading'
+  | 'cheapLfs.progress.terminalStageVerifying'
+  | 'cheapLfs.progress.terminalStageManualPreparing'
+  | 'cheapLfs.progress.terminalStageManualWaiting'
+  | 'cheapLfs.progress.terminalStageManualVerifying'
+  | 'cheapLfs.progress.terminalStageManualDetected'
+  | 'cheapLfs.settings.autoMaterialize'
+  | 'cheapLfs.settings.autoPin'
+  | 'cheapLfs.settings.autoPinHelp'
+  | 'cheapLfs.settings.parallelUploads'
+  | 'cheapLfs.settings.parallelUploadsHelp'
+  | 'cheapLfs.settings.ghcrStorage'
+  | 'cheapLfs.settings.ghcrStorageHelp'
+  | 'cheapLfs.settings.storageProvider'
+  | 'cheapLfs.settings.storageRelease'
+  | 'cheapLfs.settings.storageGhcr'
+  | 'cheapLfs.settings.storageDockerHub'
+  | 'cheapLfs.pinFailures.title'
+  | 'cheapLfs.pinFailures.one'
+  | 'cheapLfs.pinFailures.many'
+  | 'cheapLfs.pinFailures.manyOmitted'
+  | 'commit.postCommitMaintenance.title'
+  | 'commit.postCommitMaintenance.body'
+  | 'push.commitBatch.message'
+  | 'push.commitBatch.completedTitle'
+  | 'push.commitBatch.existingBody'
+  | 'push.commitBatch.rewrittenBody'
+  | 'changesFilter.cheapLfsCandidates'
+  | 'changesFilter.filtersAriaLabel'
   | 'workflowDispatch.searchPlaceholder'
   | 'workflowDispatch.searchAriaLabel'
   | 'workflowDispatch.listAriaLabel'
@@ -3117,6 +3163,67 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Upload all prepared files and save the GitHub release',
   'cheapLfs.progress.manualVerifying': 'Checking your manual upload',
   'cheapLfs.progress.manualDetected': 'Manual upload detected and verified',
+  'cheapLfs.progress.terminalTitle': 'Cheap LFS upload activity',
+  'cheapLfs.progress.terminalCurrentFile': 'Current file: {path}',
+  'cheapLfs.progress.terminalFiles': 'Files complete: {completed}/{total}',
+  'cheapLfs.progress.terminalFilesDetailed':
+    'Settled {completed}/{total} · pinned {succeeded} · failed {failed}',
+  'cheapLfs.progress.terminalBytes': 'Batch data: {transferred} / {total}',
+  'cheapLfs.progress.terminalFileBytes':
+    '{transferred} / {total} ({percentage}%)',
+  'cheapLfs.progress.terminalBytesPending':
+    'Batch data: waiting for byte progress',
+  'cheapLfs.progress.terminalProgressLabel': 'Cheap LFS transfer progress',
+  'cheapLfs.progress.terminalStorage':
+    '{total} selected · using {selected} · recommended {recommended}{layers}',
+  'cheapLfs.progress.terminalStorageMatched':
+    '{total} selected · using {selected} · recommended for this batch{layers}',
+  'cheapLfs.progress.terminalLayer': ' · estimated 1 OCI layer',
+  'cheapLfs.progress.terminalLayers': ' · estimated {count} OCI layers',
+  'cheapLfs.progress.terminalProviderGit': 'Ordinary Git',
+  'cheapLfs.progress.terminalProviderUnknown': 'Unknown storage',
+  'cheapLfs.progress.terminalStagePreparing': 'Preparing',
+  'cheapLfs.progress.terminalStageHashing': 'Hashing',
+  'cheapLfs.progress.terminalStageRelease': 'Preparing release',
+  'cheapLfs.progress.terminalStageUploading': 'Uploading',
+  'cheapLfs.progress.terminalStageVerifying': 'Verifying',
+  'cheapLfs.progress.terminalStageManualPreparing': 'Preparing manual upload',
+  'cheapLfs.progress.terminalStageManualWaiting': 'Waiting for manual upload',
+  'cheapLfs.progress.terminalStageManualVerifying': 'Checking manual upload',
+  'cheapLfs.progress.terminalStageManualDetected': 'Manual upload verified',
+  'cheapLfs.settings.autoMaterialize': 'Download large files after cloning',
+  'cheapLfs.settings.autoPin': 'Pin large files when committing',
+  'cheapLfs.settings.autoPinHelp':
+    'Files over about 100 MB are uploaded to the selected Cheap LFS storage and replaced with small pointers. Failed files stay in Changes for the next commit while other selected safe changes continue.',
+  'cheapLfs.settings.parallelUploads': 'Upload up to 3 large files at once',
+  'cheapLfs.settings.parallelUploadsHelp':
+    'Uses up to three independent Cheap LFS transfer lanes. Turn this off to upload one file at a time.',
+  'cheapLfs.settings.ghcrStorage': 'Store Cheap LFS in one GHCR image',
+  'cheapLfs.settings.ghcrStorageHelp':
+    'Publishes one digest-pinned OCI image for all repository objects. Private repositories encrypt objects with a shared key tracked in that private repository.',
+  'cheapLfs.settings.storageProvider': 'Large-file storage',
+  'cheapLfs.settings.storageRelease': 'GitHub published prerelease',
+  'cheapLfs.settings.storageGhcr': 'GHCR · one OCI image',
+  'cheapLfs.settings.storageDockerHub': 'Docker Hub · one OCI image',
+  'cheapLfs.pinFailures.title': 'Some large files were not pinned',
+  'cheapLfs.pinFailures.one':
+    '{names} remains in Changes and was excluded so its raw large-file content is not committed. Other selected safe changes can continue now; commit again to retry this file.',
+  'cheapLfs.pinFailures.many':
+    '{count} large files ({names}) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
+  'cheapLfs.pinFailures.manyOmitted':
+    '{count} large files ({names}, plus {omitted} more) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
+  'commit.postCommitMaintenance.title':
+    'Commit created; maintenance needs attention',
+  'commit.postCommitMaintenance.body':
+    'The commit was created successfully, but Git reported a later maintenance problem. It is safe to push; run repository maintenance separately when convenient.',
+  'push.commitBatch.message': 'Automatic push batch {current} of {total}',
+  'push.commitBatch.completedTitle': 'Large local push completed in batches',
+  'push.commitBatch.existingBody':
+    'Pushed and verified {count} existing local commit batches before continuing.',
+  'push.commitBatch.rewrittenBody':
+    'Safely rebuilt oversized local-only history, then pushed and verified {count} batches without force-pushing.',
+  'changesFilter.cheapLfsCandidates': 'Cheap LFS candidates (>100 MiB)',
+  'changesFilter.filtersAriaLabel': 'Change filters',
   'workflowDispatch.searchPlaceholder': 'Filter workflows by name or file…',
   'workflowDispatch.searchAriaLabel': 'Filter workflows',
   'workflowDispatch.listAriaLabel': 'Workflows',
@@ -4700,6 +4807,65 @@ export const cantoneseTranslations: Readonly<
     '喺 GitHub 上載晒準備好嘅檔案，跟住撳儲存 Release',
   'cheapLfs.progress.manualVerifying': '核實緊你手動上載嘅檔案',
   'cheapLfs.progress.manualDetected': '見到手動上載喇，亦都核實完成',
+  'cheapLfs.progress.terminalTitle': 'Cheap LFS 上載實況',
+  'cheapLfs.progress.terminalCurrentFile': '而家處理緊：{path}',
+  'cheapLfs.progress.terminalFiles': '搞掂檔案：{completed}/{total}',
+  'cheapLfs.progress.terminalFilesDetailed':
+    '處理完 {completed}/{total} · pin 咗 {succeeded} · 失手 {failed}',
+  'cheapLfs.progress.terminalBytes': '成批數據：{transferred} / {total}',
+  'cheapLfs.progress.terminalFileBytes':
+    '{transferred} / {total}（{percentage}%）',
+  'cheapLfs.progress.terminalBytesPending': '成批數據：等緊第一批 bytes',
+  'cheapLfs.progress.terminalProgressLabel': 'Cheap LFS 傳輸進度',
+  'cheapLfs.progress.terminalStorage':
+    '已揀 {total} · 而家用 {selected} · 呢批建議用 {recommended}{layers}',
+  'cheapLfs.progress.terminalStorageMatched':
+    '已揀 {total} · 而家用 {selected} · 呢批檔案啱用{layers}',
+  'cheapLfs.progress.terminalLayer': ' · 預計 1 個 OCI layer',
+  'cheapLfs.progress.terminalLayers': ' · 預計 {count} 個 OCI layers',
+  'cheapLfs.progress.terminalProviderGit': '普通 Git',
+  'cheapLfs.progress.terminalProviderUnknown': '未知儲存位置',
+  'cheapLfs.progress.terminalStagePreparing': '準備緊',
+  'cheapLfs.progress.terminalStageHashing': '計緊 hash',
+  'cheapLfs.progress.terminalStageRelease': '準備緊 Release',
+  'cheapLfs.progress.terminalStageUploading': '上載緊',
+  'cheapLfs.progress.terminalStageVerifying': '核實緊',
+  'cheapLfs.progress.terminalStageManualPreparing': '準備手動上載',
+  'cheapLfs.progress.terminalStageManualWaiting': '等緊你手動上載',
+  'cheapLfs.progress.terminalStageManualVerifying': '檢查緊手動上載',
+  'cheapLfs.progress.terminalStageManualDetected': '手動上載核實咗',
+  'cheapLfs.settings.autoMaterialize': 'Clone 完自動下載大檔案',
+  'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',
+  'cheapLfs.settings.autoPinHelp':
+    '大過約 100 MB 嘅檔案會上載去揀好嘅 Cheap LFS 儲存位置，再換成細 pointer。失手嘅檔案會留喺 Changes 等下次 commit，其他揀咗嘅安全變更會照行。',
+  'cheapLfs.settings.parallelUploads': '一次過載最多 3 個大檔案',
+  'cheapLfs.settings.parallelUploadsHelp':
+    '會用最多三條獨立 Cheap LFS 傳輸通道；熄咗就逐個檔案上載。',
+  'cheapLfs.settings.ghcrStorage': '用一個 GHCR image 儲晒 Cheap LFS',
+  'cheapLfs.settings.ghcrStorageHelp':
+    '成個 repository 嘅物件會放入一個鎖定 digest 嘅 OCI image。私人 repository 會用一條一齊 track 嘅共享 key 加密物件。',
+  'cheapLfs.settings.storageProvider': '大檔案儲存位置',
+  'cheapLfs.settings.storageRelease': 'GitHub 已發佈 prerelease',
+  'cheapLfs.settings.storageGhcr': 'GHCR · 一個 OCI image',
+  'cheapLfs.settings.storageDockerHub': 'Docker Hub · 一個 OCI image',
+  'cheapLfs.pinFailures.title': '有啲大檔案未 pin 到',
+  'cheapLfs.pinFailures.one':
+    '{names} 會留喺 Changes；為免原裝大檔案入咗 commit，今次已經排除佢。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢個檔案。',
+  'cheapLfs.pinFailures.many':
+    '{count} 個大檔案（{names}）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
+  'cheapLfs.pinFailures.manyOmitted':
+    '{count} 個大檔案（{names}，仲有 {omitted} 個）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
+  'commit.postCommitMaintenance.title': 'Commit 搞掂咗；維護要跟進',
+  'commit.postCommitMaintenance.body':
+    'Commit 已經成功建立，不過 Git 之後做維護嗰陣報錯。你可以安全 push，得閒先另外做 repository 維護。',
+  'push.commitBatch.message': '自動 push 第 {current}/{total} 批',
+  'push.commitBatch.completedTitle': '大型本機 push 已分批搞掂',
+  'push.commitBatch.existingBody':
+    '已經逐批 push 同核實 {count} 個現有本機 commit，之後先繼續。',
+  'push.commitBatch.rewrittenBody':
+    '已安全重整過大而只喺本機嘅歷史，再用非 force push 逐批 push 同核實 {count} 批。',
+  'changesFilter.cheapLfsCandidates': 'Cheap LFS 候選檔案（>100 MiB）',
+  'changesFilter.filtersAriaLabel': '變更篩選器',
   'workflowDispatch.searchPlaceholder': '打字搵 workflow，睇個名或者檔案…',
   'workflowDispatch.searchAriaLabel': '篩 workflow',
   'workflowDispatch.listAriaLabel': 'Workflow 清單',

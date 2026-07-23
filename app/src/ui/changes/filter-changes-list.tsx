@@ -103,11 +103,17 @@ import {
   readChangedFileViewMode,
 } from '../lib/changed-file-view'
 import { ChangedFileViewToggle } from '../lib/changed-file-view-toggle'
+import {
+  getWorkingDirectoryFileSizes,
+  IWorkingDirectoryFileSize,
+} from '../../lib/large-files'
 
 export interface IChangesListItem extends IFilterListItem {
   readonly id: string
   readonly text: ReadonlyArray<string>
   readonly change: WorkingDirectoryFileChange
+  /** Current lstat size; null/undefined is intentionally not a filter match. */
+  readonly sizeInBytes?: number | null
 }
 
 const RowHeight = 29
@@ -321,6 +327,7 @@ function getSelectedItemsFromProps(
       text: [file.path, file.status.kind.toString()],
       id: file.id,
       change: file,
+      sizeInBytes: null,
     })
   }
 
@@ -351,6 +358,9 @@ export class FilterChangesList extends React.Component<
   private includeAllCheckBoxRef = React.createRef<Checkbox>()
   private filterListRef =
     React.createRef<AugmentedSectionFilterList<IChangesListItem>>()
+  private fileSizes: ReadonlyMap<string, IWorkingDirectoryFileSize> = new Map()
+  private fileSizeScanGeneration = 0
+  private isMountedForSizeScan = false
 
   /** Compute the 'Include All' checkbox value */
   private getCheckAllValue = memoizeOne(
@@ -422,6 +432,7 @@ export class FilterChangesList extends React.Component<
   }
 
   public componentDidMount() {
+    this.isMountedForSizeScan = true
     document.addEventListener(
       ChangedFileViewModeChangedEvent,
       this.onFileViewModeChanged
@@ -430,9 +441,12 @@ export class FilterChangesList extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    this.refreshFileSizes(this.props)
   }
 
   public componentWillUnmount() {
+    this.isMountedForSizeScan = false
+    this.fileSizeScanGeneration++
     document.removeEventListener(
       ChangedFileViewModeChangedEvent,
       this.onFileViewModeChanged
@@ -444,23 +458,72 @@ export class FilterChangesList extends React.Component<
   }
 
   public componentWillReceiveProps(nextProps: IFilterChangesListProps) {
-    // No need to update state unless we haven't done it yet or the
-    // selected file id list has changed.
-    if (
-      !arrayEquals(nextProps.selectedFileIDs, this.props.selectedFileIDs) ||
-      !arrayEquals(
-        nextProps.workingDirectory.files,
-        this.props.workingDirectory.files
-      )
-    ) {
-      this.setState({
-        selectedItems: getSelectedItemsFromProps(nextProps),
-        groups: this.createListGroups(
-          this.createListItems(nextProps.workingDirectory.files),
-          this.state.fileViewMode
-        ),
+    const selectionChanged = !arrayEquals(
+      nextProps.selectedFileIDs,
+      this.props.selectedFileIDs
+    )
+    const filesChanged = !arrayEquals(
+      nextProps.workingDirectory.files,
+      this.props.workingDirectory.files
+    )
+    const selectionOnlyFileChange =
+      selectionChanged &&
+      filesChanged &&
+      nextProps.workingDirectory.files.length ===
+        this.props.workingDirectory.files.length &&
+      nextProps.workingDirectory.files.every((file, index) => {
+        const previous = this.props.workingDirectory.files[index]
+        return file.id === previous.id && file.status === previous.status
       })
+    const sizeInventoryChanged =
+      nextProps.repository.hash !== this.props.repository.hash ||
+      (filesChanged && !selectionOnlyFileChange)
+
+    if (selectionChanged || sizeInventoryChanged) {
+      if (sizeInventoryChanged) {
+        this.fileSizes = new Map()
+      }
+
+      if (sizeInventoryChanged) {
+        this.setState({
+          selectedItems: getSelectedItemsFromProps(nextProps),
+          groups: this.createListGroups(
+            this.createListItems(nextProps.workingDirectory.files),
+            this.state.fileViewMode
+          ),
+        })
+        this.refreshFileSizes(nextProps)
+      } else {
+        this.setState({ selectedItems: getSelectedItemsFromProps(nextProps) })
+      }
     }
+  }
+
+  /**
+   * Resolve candidate sizes off the render path. A monotonically increasing
+   * generation fences stale scans after repository/status changes.
+   */
+  private refreshFileSizes(props: IFilterChangesListProps): void {
+    const generation = ++this.fileSizeScanGeneration
+    getWorkingDirectoryFileSizes(props.repository, props.workingDirectory.files)
+      .then(fileSizes => {
+        if (
+          !this.isMountedForSizeScan ||
+          generation !== this.fileSizeScanGeneration
+        ) {
+          return
+        }
+        this.fileSizes = fileSizes
+        const items = this.createListItems(props.workingDirectory.files)
+        this.setState({
+          groups: this.createListGroups(items, this.state.fileViewMode),
+        })
+      })
+      .catch(error => {
+        if (generation === this.fileSizeScanGeneration) {
+          log.debug('Unable to refresh changed-file size metadata.', error)
+        }
+      })
   }
 
   private createListItems(
@@ -470,6 +533,10 @@ export class FilterChangesList extends React.Component<
       text: [file.path],
       id: file.id,
       change: file,
+      sizeInBytes:
+        this.fileSizes.get(file.path)?.kind === 'known'
+          ? this.fileSizes.get(file.path)?.sizeInBytes
+          : null,
     }))
   }
 
@@ -1380,6 +1447,10 @@ export class FilterChangesList extends React.Component<
     this.props.dispatcher.setFilterNewFiles(this.props.repository, false)
     this.props.dispatcher.setFilterModifiedFiles(this.props.repository, false)
     this.props.dispatcher.setFilterDeletedFiles(this.props.repository, false)
+    this.props.dispatcher.setFilterCheapLfsCandidates(
+      this.props.repository,
+      false
+    )
 
     // Then apply only the "Included in commit" filter to show only files being committed
     this.props.dispatcher.setIncludedChangesInCommitFilter(
@@ -1562,6 +1633,7 @@ export class FilterChangesList extends React.Component<
         onFilterDeletedFiles={this.onFilterDeletedFiles}
         onFilterModifiedFiles={this.onFilterModifiedFiles}
         onFilterNewFiles={this.onFilterNewFiles}
+        onFilterCheapLfsCandidates={this.onFilterCheapLfsCandidates}
         onOpenRegexBuilder={this.onOpenRegexBuilder}
       />
     )
@@ -1637,10 +1709,15 @@ export class FilterChangesList extends React.Component<
 
   public render() {
     const { workingDirectory, isCommitting } = this.props
+    const listClassName = `changes-list-container file-list filtered-changes-list${
+      this.props.showChangesFilter && this.state.showFilterChips
+        ? ' has-inline-filter-chips'
+        : ''
+    }`
 
     return (
       <>
-        <div className="changes-list-container file-list filtered-changes-list">
+        <div className={listClassName}>
           <AugmentedSectionFilterList<IChangesListItem>
             ref={this.filterListRef}
             id="changes-list"
@@ -1672,7 +1749,8 @@ export class FilterChangesList extends React.Component<
               this.props.fileListFilter.isNewFile ||
               this.props.fileListFilter.isModifiedFile ||
               this.props.fileListFilter.isDeletedFile ||
-              this.props.fileListFilter.isExcludedFromCommit
+              this.props.fileListFilter.isExcludedFromCommit ||
+              this.props.fileListFilter.isCheapLfsCandidate
                 ? this.applyFilters
                 : undefined
             }
@@ -1688,6 +1766,8 @@ export class FilterChangesList extends React.Component<
               filterDeletedFiles: this.props.fileListFilter.isDeletedFile,
               filterExcludedFiles:
                 this.props.fileListFilter.isExcludedFromCommit,
+              filterCheapLfsCandidates:
+                this.props.fileListFilter.isCheapLfsCandidate,
             }}
             onItemContextMenu={this.onItemContextMenu}
             renderPreList={this.renderPanelHeader}
@@ -1727,12 +1807,14 @@ export class FilterChangesList extends React.Component<
     return (
       <div className="hidden-changes-warning" id="hidden-changes-warning">
         <Octicon symbol={octicons.alert} />
-        <span className="sr-only">Warning:</span>
-        <span>Hidden changes will be committed. </span>
-        <LinkButton onClick={this.showFilesToBeCommitted}>
-          Adjust the filters to see all {formatNumber(filesSelected.length)}{' '}
-          changes
-        </LinkButton>
+        <span className="hidden-changes-warning-message">
+          <span className="sr-only">Warning:</span>
+          <span>Hidden changes will be committed. </span>
+          <LinkButton onClick={this.showFilesToBeCommitted}>
+            Adjust the filters to see all {formatNumber(filesSelected.length)}{' '}
+            changes
+          </LinkButton>
+        </span>
       </div>
     )
   }
@@ -1823,6 +1905,13 @@ export class FilterChangesList extends React.Component<
     )
   }
 
+  private onFilterCheapLfsCandidates = () => {
+    this.props.dispatcher.setFilterCheapLfsCandidates(
+      this.props.repository,
+      !this.props.fileListFilter.isCheapLfsCandidate
+    )
+  }
+
   private onClearAllFilters = () => {
     this.props.dispatcher.incrementMetric(
       'appliesClearAllChangesListFilterCount'
@@ -1838,6 +1927,10 @@ export class FilterChangesList extends React.Component<
     this.props.dispatcher.setFilterNewFiles(this.props.repository, false)
     this.props.dispatcher.setFilterModifiedFiles(this.props.repository, false)
     this.props.dispatcher.setFilterDeletedFiles(this.props.repository, false)
+    this.props.dispatcher.setFilterCheapLfsCandidates(
+      this.props.repository,
+      false
+    )
   }
 
   private onChangedFileFocus = (changeListItem: IChangesListItem) => {

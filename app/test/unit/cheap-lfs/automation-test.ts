@@ -84,6 +84,7 @@ function pointerEntry(
 ): ICheapLfsPointerEntry {
   return {
     relativePath,
+    workingTreeState: 'pointer',
     pointer: {
       version: CHEAP_LFS_POINTER_VERSION,
       releaseTag: 'assets',
@@ -95,8 +96,9 @@ function pointerEntry(
 }
 
 describe('cheap LFS automation gates', () => {
-  it('auto-materialize runs only when enabled and an account is selected', () => {
+  it('auto-materialize accepts authenticated or validated anonymous read accounts', () => {
     assert.equal(shouldAutoMaterializeCheapLfs(true, selected), true)
+    assert.equal(shouldAutoMaterializeCheapLfs(true, Account.anonymous()), true)
     assert.equal(shouldAutoMaterializeCheapLfs(false, selected), false)
     assert.equal(shouldAutoMaterializeCheapLfs(true, null), false)
     assert.equal(shouldAutoMaterializeCheapLfs(false, null), false)
@@ -318,9 +320,10 @@ describe('autoPinLargeFilesForCommit', () => {
       pinned.map(t => t.relativePath),
       ['big.bin']
     )
-    assert.equal(result.length, 1)
-    assert.equal(result[0].relativePath, 'big.bin')
-    assert.equal(result[0].sizeInBytes, 200)
+    assert.equal(result.pinned.length, 1)
+    assert.equal(result.pinned[0].relativePath, 'big.bin')
+    assert.equal(result.pinned[0].sizeInBytes, 200)
+    assert.deepEqual(result.failures, [])
   })
 
   it('reports preparation before pinning and a terminal upload state', async () => {
@@ -354,49 +357,24 @@ describe('autoPinLargeFilesForCommit', () => {
       update => progress.push(update)
     )
 
-    assert.equal(result.length, 1)
-    assert.deepEqual(progress, [
-      {
-        phase: 'preparing',
-        completedFiles: 0,
-        totalFiles: 1,
-        currentPath: 'windows.iso',
-        transferredBytes: 0,
-        totalBytes: 200,
-      },
-      {
-        phase: 'hashing',
-        completedFiles: 0,
-        totalFiles: 1,
-        currentPath: 'windows.iso',
-        transferredBytes: 0,
-        totalBytes: 200,
-      },
-      {
-        phase: 'hashing',
-        completedFiles: 0,
-        totalFiles: 1,
-        currentPath: 'windows.iso',
-        transferredBytes: 100,
-        totalBytes: 200,
-      },
-      {
-        phase: 'uploading',
-        completedFiles: 0,
-        totalFiles: 1,
-        currentPath: 'windows.iso',
-        transferredBytes: 100,
-        totalBytes: 200,
-      },
-      {
-        phase: 'uploading',
-        completedFiles: 1,
-        totalFiles: 1,
-        currentPath: null,
-        transferredBytes: 200,
-        totalBytes: 200,
-      },
-    ])
+    assert.equal(result.pinned.length, 1)
+    assert.equal(progress[0].phase, 'preparing')
+    assert.equal(progress[1].phase, 'hashing')
+    assert.equal(progress[2].phase, 'hashing')
+    assert.equal(progress[2].transferredBytes, 0)
+    assert.equal(progress[3].phase, 'uploading')
+    assert.equal(progress[3].transferredBytes, 100)
+    assert.deepEqual(progress.at(-1), {
+      phase: 'uploading',
+      completedFiles: 1,
+      succeededFiles: 1,
+      failedFiles: 0,
+      totalFiles: 1,
+      currentPath: null,
+      transferredBytes: 200,
+      totalBytes: 200,
+      activeFiles: [],
+    })
   })
 
   it('never pins an under-threshold file', async () => {
@@ -415,29 +393,159 @@ describe('autoPinLargeFilesForCommit', () => {
       }
     )
     assert.equal(pinCalls, 0)
-    assert.equal(result.length, 0)
+    assert.equal(result.pinned.length, 0)
   })
 
-  it('aborts the whole batch by throwing on the first pin failure', async () => {
+  it('collects failures and continues the remaining safe work', async () => {
     const attempted: string[] = []
-    await assert.rejects(
-      autoPinLargeFilesForCommit(
-        repository(),
-        ['first.bin', 'second.bin'],
-        threshold,
-        {
-          statSize: async () => 200,
-          readPointerText: async () => 'not a pointer\n',
-          pin: async target => {
-            attempted.push(target.relativePath)
+    const result = await autoPinLargeFilesForCommit(
+      repository(),
+      ['first.bin', 'second.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async target => {
+          attempted.push(target.relativePath)
+          if (target.relativePath === 'first.bin') {
             throw new Error('upload failed')
-          },
-        }
-      ),
-      /upload failed/
+          }
+          return pinResult(target.relativePath)
+        },
+      }
     )
-    // The first failure stops the batch before the second file is attempted, so
-    // the caller can abort the commit rather than commit a half-pinned tree.
-    assert.deepEqual(attempted, ['first.bin'])
+    assert.deepEqual(attempted, ['first.bin', 'second.bin'])
+    assert.deepEqual(
+      result.pinned.map(file => file.relativePath),
+      ['second.bin']
+    )
+    assert.deepEqual(result.failures, [
+      {
+        relativePath: 'first.bin',
+        sizeInBytes: 200,
+        message: 'upload failed',
+      },
+    ])
+  })
+
+  it('uses at most three stable lanes and returns callbacks in input order', async () => {
+    const started: string[] = []
+    const lanes: number[] = []
+    const callbacks: string[] = []
+    const resolvers = new Map<string, () => void>()
+    const operation = autoPinLargeFilesForCommit(
+      repository(),
+      ['one.bin', 'two.bin', 'three.bin', 'four.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async (target, _signal, _progress, _stage, _hash, lane = -1) => {
+          started.push(target.relativePath)
+          lanes.push(lane)
+          await new Promise<void>(resolve =>
+            resolvers.set(target.relativePath, resolve)
+          )
+          return pinResult(target.relativePath)
+        },
+      },
+      undefined,
+      undefined,
+      file => callbacks.push(file.relativePath),
+      3
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin'])
+    assert.deepEqual(lanes, [0, 1, 2])
+
+    // The fourth file belongs to lane 0 and cannot start until that lane frees.
+    resolvers.get('one.bin')?.()
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin', 'four.bin'])
+    assert.deepEqual(lanes, [0, 1, 2, 0])
+
+    // Finish out of order; externally visible results remain input ordered.
+    resolvers.get('three.bin')?.()
+    resolvers.get('four.bin')?.()
+    resolvers.get('two.bin')?.()
+    const result = await operation
+    assert.deepEqual(
+      result.pinned.map(file => file.relativePath),
+      ['one.bin', 'two.bin', 'three.bin', 'four.bin']
+    )
+    assert.deepEqual(callbacks, ['one.bin', 'two.bin', 'three.bin', 'four.bin'])
+  })
+
+  it('retains sequential behavior when concurrency is one', async () => {
+    let active = 0
+    let maximumActive = 0
+    const result = await autoPinLargeFilesForCommit(
+      repository(),
+      ['one.bin', 'two.bin', 'three.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async target => {
+          active++
+          maximumActive = Math.max(maximumActive, active)
+          await new Promise<void>(resolve => setImmediate(resolve))
+          active--
+          return pinResult(target.relativePath)
+        },
+      },
+      undefined,
+      undefined,
+      undefined,
+      1
+    )
+    assert.equal(maximumActive, 1)
+    assert.equal(result.pinned.length, 3)
+  })
+
+  it('cancels all active lanes, drains them, and starts no later work', async () => {
+    const controller = new AbortController()
+    const started: string[] = []
+    let settled = 0
+    let progressCalls = 0
+    const operation = autoPinLargeFilesForCommit(
+      repository(),
+      ['one.bin', 'two.bin', 'three.bin', 'four.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: (target, signal) =>
+          new Promise<ICheapLfsPinResult>((_resolve, reject) => {
+            started.push(target.relativePath)
+            signal?.addEventListener(
+              'abort',
+              () => {
+                settled++
+                const error = new Error('canceled')
+                error.name = 'AbortError'
+                reject(error)
+              },
+              { once: true }
+            )
+          }),
+      },
+      controller.signal,
+      () => progressCalls++,
+      undefined,
+      3
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(started.length, 3)
+    controller.abort()
+    const result = await operation
+    assert.equal(result.canceled, true)
+    assert.equal(settled, 3)
+    assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin'])
+    const callsAtReturn = progressCalls
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.equal(progressCalls, callsAtReturn)
   })
 })

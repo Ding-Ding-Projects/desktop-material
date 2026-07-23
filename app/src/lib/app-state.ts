@@ -1001,6 +1001,9 @@ export interface IFileListFilterState {
 
   /** Whether to filter and show only deleted files */
   readonly isDeletedFile: boolean
+
+  /** Whether to show only files above the Cheap LFS pin threshold. */
+  readonly isCheapLfsCandidate?: boolean
 }
 
 /**

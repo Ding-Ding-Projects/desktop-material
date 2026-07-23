@@ -170,6 +170,7 @@ import {
   boundedGitHubReleaseResponse,
   GitHubReleaseExactJSONMaximumBytes,
 } from './github-release-json'
+import { readBoundedRegistryPolicyJson } from './cheap-lfs/registry-policy-response'
 import {
   IAPIProviderTriagePage,
   normalizeProviderTriageLimit,
@@ -417,6 +418,8 @@ const MaximumEffectiveBranchRulePages = 20
  * Information about a repository as returned by the GitHub API.
  */
 export interface IAPIRepository {
+  /** Stable GitHub API repository id. Some provider adapters may omit it. */
+  readonly id?: number
   readonly clone_url: string
   readonly ssh_url: string
   readonly html_url: string
@@ -514,6 +517,25 @@ export interface IAPIRepositoryPermissions {
   /* aka 'read' */
   readonly pull: boolean
 }
+
+/** Exact metadata returned by GitHub's container-package endpoint. */
+export interface IAPIGitHubContainerPackage {
+  readonly id: number
+  readonly name: string
+  readonly package_type: string
+  readonly visibility: string
+  readonly repository?: {
+    readonly id: number
+    readonly name: string
+    readonly full_name: string
+    readonly private: boolean
+  } | null
+}
+
+export type GitHubContainerPackageOwnerKind =
+  | 'authenticated-user'
+  | 'organization'
+  | 'user'
 
 /**
  * Information about a commit as returned by the GitHub API.
@@ -1747,6 +1769,44 @@ export class API {
       log.warn(`fetchRepository: an error occurred for '${owner}/${name}'`, e)
       return null
     }
+  }
+
+  /**
+   * Fetch one container package through the endpoint matching its owner. The
+   * response remains `unknown` so the security-sensitive Cheap LFS caller must
+   * validate every field before moving its mutable OCI tag.
+   */
+  public async fetchGitHubContainerPackageMetadata(
+    owner: string,
+    packageName: string,
+    ownerKind: GitHubContainerPackageOwnerKind,
+    signal?: AbortSignal
+  ): Promise<unknown | null> {
+    if (
+      !/^[A-Za-z0-9](?:[A-Za-z0-9-]{0,37}[A-Za-z0-9])?$/.test(owner) ||
+      !/^[a-z0-9]+(?:(?:[._]|__|[-]*)[a-z0-9]+)*$/.test(packageName)
+    ) {
+      throw new Error('The GitHub container package coordinate is invalid.')
+    }
+    const path =
+      ownerKind === 'authenticated-user'
+        ? `user/packages/container/${packageName}`
+        : ownerKind === 'organization'
+        ? `orgs/${owner}/packages/container/${packageName}`
+        : `users/${owner}/packages/container/${packageName}`
+    const response = await this.ghRequest('GET', path, {
+      signal,
+      reloadCache: true,
+      customHeaders: {
+        Accept: 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    })
+    if (response.status === HttpStatusCode.NotFound) {
+      await response.body?.cancel().catch(() => undefined)
+      return null
+    }
+    return await readBoundedRegistryPolicyJson(response, signal)
   }
 
   /**

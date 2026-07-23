@@ -25,7 +25,7 @@ export async function revertCommit(
   currentRemote: IRemote | null,
   progressCallback?: (progress: IRevertProgress) => void
 ) {
-  const args = ['revert']
+  const args = ['-c', 'gc.auto=0', 'revert']
   if (commit.parentSHAs.length > 1) {
     args.push('-m', '1')
   }

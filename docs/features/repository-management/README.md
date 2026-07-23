@@ -49,8 +49,27 @@ Material is displaying or how a repository is represented in the application.
   upload automatically through a bounded trusted GitHub CLI transport, retain a
   verified whole-batch browser handoff, automatically cloud-compress public
   repository objects one at a time (private repositories require explicit
-  opt-in), fail safely at bounded draft/capacity limits, and always decompress
-  and verify raw or mixed objects locally.
+  opt-in), publish new storage as prereleases, migrate exact legacy drafts in
+  place, restore explicitly public GitHub.com assets while signed out, fail
+  safely at bounded capacity limits, and restore and verify raw or mixed
+  objects locally while decompressing only `part-deflate` objects.
+- [Cheap LFS OCI registry
+  backend](cheap-lfs-oci-registry-backend.md) — store the repository object set
+  as one logical GHCR or Docker Hub image, reuse unchanged layers across
+  additions and removals within explicit object/layer/metadata bounds, split new
+  data into 1.5 GiB layers, halve timed-out layers, retention-tag historical
+  manifests, retain existing collaborator/organization targets, migrate
+  providers only from verified materialized raws, encrypt verified-private
+  payloads with the exact shared tracked key, and restore only immutable digest-
+  pinned objects through the verified, licensed ORAS runtime.
+- [Automatic commit and push
+  batching](automatic-commit-push-batching.md) — keep ordinary selections below
+  a decimal 1.5 GB push with a 1.4 GB changed-blob budget and bounded proof
+  overhead, require each fast-forward push to be proven before creating the
+  next commit, and safely recover oversized local-only history created by older
+  app versions without force-pushing. Each app-owned commit disables auto-GC
+  only for that process and accepts a reported late maintenance failure only
+  after proving the exact HEAD transition.
 - [Parent-folder repository
   discovery](parent-folder-repository-discovery.md) — preview and register a
   bounded, link-safe set of working trees below one selected folder.

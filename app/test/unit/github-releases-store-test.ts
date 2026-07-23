@@ -7,7 +7,9 @@ import { Owner } from '../../src/models/owner'
 import { Repository } from '../../src/models/repository'
 import { AccountsStore } from '../../src/lib/stores/accounts-store'
 import {
+  getGitHubReleasesAccount,
   getGitHubReleasesAvailability,
+  getGitHubReleasesReadAccount,
   GitHubReleasesError,
   GitHubReleasesStore,
   githubReleasesError,
@@ -56,6 +58,28 @@ const repository = new Repository(
   undefined,
   getAccountKey(selected)
 )
+
+function repositoryWithVisibility(
+  isPrivate: boolean | null,
+  id: number = 20
+): Repository {
+  return new Repository(
+    `C:\\work\\material-${id}`,
+    id,
+    new GitHubRepository(
+      'material',
+      new Owner('desktop', 'https://api.github.com', 1),
+      id,
+      isPrivate
+    ),
+    false,
+    null,
+    {},
+    false,
+    undefined,
+    getAccountKey(other)
+  )
+}
 
 const asset: IGitHubReleaseAsset = {
   id: 19,
@@ -177,6 +201,196 @@ async function storeWith(
 }
 
 describe('GitHub Releases store', () => {
+  it('uses a blank-token read context for an explicitly public signed-out repository', async () => {
+    const publicRepository = repositoryWithVisibility(false)
+    const accounts = new FakeAccountsStore([])
+    const apiAccounts = new Array<Account>()
+    const downloadAccounts = new Array<Account>()
+    const base = dependencies(account => {
+      apiAccounts.push(account)
+      return fakeAPI({
+        fetchReleaseByTag: async () => ({ ...release, draft: false }),
+      })
+    })
+    const store = await storeWith(accounts, {
+      ...base,
+      downloadAsset: async account => {
+        downloadAccounts.push(account)
+        return {
+          ok: true,
+          path: 'C:\\Downloads\\desktop.exe',
+          bytes: 4,
+          localDigest: asset.digest!,
+          matchesGitHubDigest: true,
+        }
+      },
+    })
+
+    assert.equal(getGitHubReleasesReadAccount(publicRepository, [])?.token, '')
+    assert.equal(
+      (await store.getReleaseByTag(publicRepository, release.tagName))?.id,
+      release.id
+    )
+    await store.downloadAsset(
+      publicRepository,
+      release.id,
+      asset,
+      'C:\\Downloads\\desktop.exe',
+      new AbortController().signal
+    )
+    assert.deepEqual(
+      apiAccounts.map(account => [account.endpoint, account.token]),
+      [
+        ['https://api.github.com', ''],
+        ['https://api.github.com', ''],
+      ]
+    )
+    assert.deepEqual(
+      downloadAccounts.map(account => [account.endpoint, account.token]),
+      [['https://api.github.com', '']]
+    )
+  })
+
+  it('requires authentication for private or unknown signed-out repositories', async () => {
+    let apiContexts = 0
+    const store = await storeWith(
+      new FakeAccountsStore([]),
+      dependencies(() => {
+        apiContexts++
+        return fakeAPI()
+      })
+    )
+
+    for (const candidate of [
+      repositoryWithVisibility(true, 21),
+      repositoryWithVisibility(null, 22),
+    ]) {
+      assert.equal(getGitHubReleasesReadAccount(candidate, []), null)
+      await assert.rejects(
+        store.getReleaseByTag(candidate, release.tagName),
+        error =>
+          error instanceof GitHubReleasesError &&
+          error.kind === 'authentication'
+      )
+    }
+    assert.equal(apiContexts, 0)
+  })
+
+  it('never enables Release mutations through the anonymous read context', async () => {
+    const publicRepository = repositoryWithVisibility(false, 23)
+    assert.equal(
+      getGitHubReleasesAccount(publicRepository, [Account.anonymous()]),
+      null
+    )
+    let creates = 0
+    let uploads = 0
+    const base = dependencies(() =>
+      fakeAPI({
+        createRelease: async () => {
+          creates++
+          return release
+        },
+      })
+    )
+    const store = await storeWith(new FakeAccountsStore([]), {
+      ...base,
+      uploadAsset: async () => {
+        uploads++
+        return {
+          ok: true,
+          asset,
+          bytes: 4,
+          localDigest: asset.digest!,
+        }
+      },
+    })
+
+    await assert.rejects(
+      store.create(
+        publicRepository,
+        {
+          tagName: 'assets',
+          targetCommitish: 'main',
+          name: 'Assets',
+          body: '',
+          prerelease: true,
+        },
+        true
+      ),
+      error =>
+        error instanceof GitHubReleasesError && error.kind === 'authentication'
+    )
+    assert.throws(
+      () => store.createMutationReview(publicRepository, release),
+      error =>
+        error instanceof GitHubReleasesError && error.kind === 'authentication'
+    )
+    await assert.rejects(
+      store.uploadAsset(
+        publicRepository,
+        {
+          repositoryFingerprint: 'forged',
+          accountKey: 'forged',
+          accountGeneration: 0,
+          releaseId: release.id,
+          releaseFingerprint: 'forged',
+          assetId: null,
+          assetFingerprint: null,
+        },
+        'C:\\Build\\desktop.exe',
+        asset.name,
+        null,
+        new AbortController().signal
+      ),
+      error =>
+        error instanceof GitHubReleasesError && error.kind === 'authentication'
+    )
+    assert.equal(creates, 0)
+    assert.equal(uploads, 0)
+  })
+
+  it('cancels an anonymous read when the account generation changes', async () => {
+    const publicRepository = repositoryWithVisibility(false, 24)
+    const accountsStore = new FakeAccountsStore([])
+    let resolveRequest:
+      | ((value: {
+          releases: IGitHubRelease[]
+          page: number
+          nextPage: null
+          capped: false
+        }) => void)
+      | undefined
+    let requestSignal: AbortSignal | undefined
+    const store = await storeWith(
+      accountsStore,
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, _page, signal) => {
+            requestSignal = signal
+            return await new Promise(resolve => {
+              resolveRequest = resolve
+            })
+          },
+        })
+      )
+    )
+
+    const pending = store.list(publicRepository)
+    await Promise.resolve()
+    accountsStore.update([selected])
+    assert.equal(requestSignal?.aborted, true)
+    resolveRequest?.({
+      releases: [{ ...release, draft: false }],
+      page: 1,
+      nextPage: null,
+      capped: false,
+    })
+    await assert.rejects(
+      pending,
+      error => (error as Error).name === 'AbortError'
+    )
+  })
+
   it('returns incomplete assets without bricking the release inventory', async () => {
     const starter: IGitHubReleaseAsset = {
       ...asset,

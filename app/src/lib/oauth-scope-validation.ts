@@ -11,6 +11,7 @@ const ScopeImplications: Record<string, ReadonlyArray<string>> = {
   repo: [],
   workflow: [],
   notifications: [],
+  'write:packages': ['delete:packages'],
 }
 
 /** Parse the X-OAuth-Scopes response header into the granted scope set. */

@@ -26,6 +26,77 @@ Super Express run `29980281736` then published the greater same-SHA
 **Downloading update…** to **Quit and Install Update**. The detailed receipt is
 in [HANDOFF.md](HANDOFF.md).
 
+## July 23 Cheap LFS + push batching — **Local build/UI acceptance complete**
+
+- Cheap LFS commit preparation now exposes sanitized per-file phases, bytes,
+  success/failure counts, and the selected-versus-recommended storage route in
+  a compact terminal below Commit. A persisted default-on toggle permits up to
+  three transfers; sequential mode remains available. Failed raw large files
+  stay selected for retry while successful pointers and unrelated safe changes
+  can commit, and the Changes filter can isolate files over 100 MiB.
+- Repository settings select published GitHub prereleases, GHCR, or Docker Hub.
+  The registry modes publish the full repository object set as one logical OCI
+  image within 4,096-object, 8,192-layer, and 8 MiB config/manifest proof
+  bounds, create a new immutable manifest for each add/remove snapshot, reuse
+  unchanged blobs, retention-tag every published digest, and point Git only at
+  verified immutable digests. A timed-out layer is rebuilt at half the previous
+  bound down to 8 MiB; accepted blobs are reused, but an incomplete immutable
+  layer is never appended to.
+- Verified-private source repositories encrypt each registry chunk with
+  AES-256-GCM and intentionally share the key through the tracked private Git
+  repository. The documentation calls out that this protects a registry-only
+  leak, not anyone who can read the repository or its history. Private pointers
+  bind the exact key id and the commit flow force-includes and proves that key.
+  Clone, pull, fetch, and open detection restores strict pointers by default,
+  including old pointer-only clones; public registry and explicitly public
+  GitHub.com Release restores can run while signed out.
+- GHCR retains its documented 10 GB-per-layer and ten-minute transfer bounds;
+  Docker Hub's changing plan, pull, storage, and fair-use limits remain provider
+  policy rather than invented hard caps. The app recommends Git, Releases,
+  private-source GHCR, or configured Docker Hub from the selected byte count
+  without overriding the saved provider. Provider setup is a recommendation
+  signal, not proof of live quota or organization policy. Same-provider updates
+  retain existing Docker organization/collaborator targets; cross-provider
+  migration requires exact materialized raws. A first public GHCR package fails
+  before upload because GitHub creates it private; Releases, Docker Hub, or an
+  already linked public package are the supported routes.
+- Windows packaging pins ORAS 1.3.2 and ships its verified Apache-2.0 license.
+  The ARM64 package currently depends on Windows 11 x64 emulation for that
+  audited x64 binary. GitHub's OAuth scope reference grants package access to
+  `write:packages`, while its registry page separately says PAT classic only;
+  the non-mutating account challenge passed, but no live package mutation is
+  claimed and a registry rejection fails closed.
+- Ordinary Git changes are measured conservatively below a decimal 1.5 GB push
+  ceiling, using a 1.4 GB changed-blob budget plus bounded path/proof overhead.
+  Each batch is committed, durably checkpointed, pushed, and proven as the
+  remote tip before the next commit exists; intent/pending transitions use
+  atomic two-ref transactions. Push also detects
+  older oversized local-only history: clean linear branches are protected by a
+  compare-and-swap backup ref and safely rebuilt without force-push. Rebuilt
+  batches preserve the reviewed message/final tree but receive new IDs, do not
+  retain cryptographic signatures, and do not promise original author
+  timestamps. App-owned
+  commit commands use process-local `-c gc.auto=0` and validate HEAD so a valid
+  commit followed by unrelated maintenance failure is reported once instead of
+  duplicated.
+
+Focused local evidence passes **80/80** Release/OCI operations, **77/77**
+registry transport/runtime cases, **117/117** disposable-Git batching cases,
+**157/157** UI/settings/localization cases, **8/8** ORAS scripts, **17/17**
+headless-verifier contracts, and **7/7** compact-shell style checks. The exact
+unpackaged production build returned `0` after 1,466.27 seconds. The accepted
+1440×960 English frame passed **36/36** acceptance checks (all **35/35** named
+surface assertions plus its deterministic one-pointer selection receipt) and
+proves the three-lane terminal. The 640×960 bilingual attempt failed closed
+without a capture because the focused renderer remained visibility-hidden;
+narrow acceptance is not claimed. The full Cheap LFS folder aggregate is
+**261/262** only because one
+wall-clock policy case exceeded its harness budget under concurrent heavy Git
+work; its isolated rerun passed **8/8**. See the
+[dated local receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
+Commit/push, exact-source CI and CodeQL, Pages/wiki publication, and non-draft
+installer Release verification remain pending.
+
 ## July 22 tab groups, command palette, and input/release reliability — **Implementation and publication verified**
 
 - Named/color-coded group chips now show member counts and real expanded state;
@@ -126,10 +197,11 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   the greatest same-SHA version before promotion. No shared concurrency group
   cancels older work. Failed or cancelled main CI still retains a recoverable
   package artifact but cannot publish.
-- **Build & Run integration**: Two new preferences — "Pin large files before
-  committing" and "Download large files after cloning" — are both enabled by
-  default. The Large files surface is reachable from both the repository rail and
-  Repository Tools hub.
+- **Build & Run integration**: "Pin large files before committing", "Upload up
+  to three large files at once", and "Download large files after cloning" are
+  enabled by default. A persisted storage-provider selector adds published
+  prerelease, GHCR, and Docker Hub choices. The Large files surface is reachable
+  from both the repository rail and Repository Tools hub.
 - **Live GitHub and Desktop Material UI acceptance**: Retained public and
   private test repositories each contain pushed UI-created five-line pointers,
   draft-prerelease 1 MiB assets, and the generated Cheap LFS logo. Fresh clones
@@ -379,7 +451,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on main |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
-| Documentation gallery expansion | **M22 refresh complete** | README, wiki, and Pages catalog 73 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 22 continuation adds accepted group-chip, rich-palette, raw Cheap LFS, and cloud-compression UI screenshots. Pages serves the accepted cloud image byte-identically and wiki commit `407cbf260c229e9f8e7fd86062afad83e5080f63` matches the seven tracked source pages. |
+| Documentation gallery expansion | **75-scene source catalog** | README, wiki, and Pages source catalog 75 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the accepted Cheap LFS commit-progress frame to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

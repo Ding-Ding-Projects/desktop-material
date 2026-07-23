@@ -1,6 +1,19 @@
 import { IFileListFilterState } from '../../lib/app-state'
 import { IChangesListItem } from './filter-changes-list'
 import memoizeOne from 'memoize-one'
+import { CheapLfsPinThresholdBytes } from '../../lib/large-files'
+import { t } from '../../lib/i18n'
+
+/** Unknown/unavailable sizes fail closed and never match the candidate filter. */
+export function isCheapLfsCandidateSize(
+  sizeInBytes: number | null | undefined
+): boolean {
+  return (
+    typeof sizeInBytes === 'number' &&
+    Number.isSafeInteger(sizeInBytes) &&
+    sizeInBytes > CheapLfsPinThresholdBytes
+  )
+}
 
 /**
  * Apply filter options to determine if a file should be shown
@@ -35,6 +48,13 @@ export function applyFilterOptions(
   }
 
   if (filters.isDeletedFile && !change.isDeleted()) {
+    return false
+  }
+
+  if (
+    filters.isCheapLfsCandidate &&
+    !isCheapLfsCandidateSize(item.sizeInBytes)
+  ) {
     return false
   }
 
@@ -107,6 +127,10 @@ export function getNoResultsMessage(
     activeFilters.push('Deleted files')
   }
 
+  if (filters.isCheapLfsCandidate) {
+    activeFilters.push(t('changesFilter.cheapLfsCandidates'))
+  }
+
   if (activeFilters.length === 0) {
     return undefined
   }
@@ -138,6 +162,7 @@ export function countActiveFilterOptions(
     filters.isModifiedFile,
     filters.isDeletedFile,
     filters.isExcludedFromCommit,
+    filters.isCheapLfsCandidate,
   ].filter(Boolean).length
 }
 

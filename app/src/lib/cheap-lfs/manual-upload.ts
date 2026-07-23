@@ -876,6 +876,8 @@ async function verifyDownloadedAsset(
 export interface ICheapLfsManualUploadHooks {
   readonly onStage?: (stage: CheapLfsAutoPinPhase) => void
   readonly onPreparationProgress?: (progress: ICheapLfsFileProgress) => void
+  /** Called only after this exact file's pointer write has completed. */
+  readonly onPinned?: (file: ICheapLfsAutoPinnedFile) => void
   readonly onReady: (
     handoff: ICheapLfsManualHandoff,
     plan: ICheapLfsManualPinPlan
@@ -1028,24 +1030,69 @@ export async function manualPinFilesToRelease(
     assets = finalAssets
     throwIfAborted(signal)
     hooks.onStage?.('manual-detected')
+    // Browser upload and remote verification are complete. Remove our handoff
+    // hard links before proving the tracked files for the mutation boundary.
+    await handoff.cleanup()
+    for (const file of plan.files) {
+      const source = await fs.hashFile(file.absoluteFilePath, signal)
+      if (
+        source.sizeInBytes !== file.sizeInBytes ||
+        source.sha256 !== file.sha256
+      ) {
+        throw new Error(
+          `The cheap LFS source “${file.trackedRelativePath}” changed immediately before pointer publication.`
+        )
+      }
+    }
     // Cancellation is fenced immediately before the mutation phase. Once the
     // first per-file atomic pointer write starts, finish the reviewed batch so
     // the caller never reports "canceled" after silently converting files.
-    for (const file of plan.files) {
-      await fs.writePointer(
-        join(repository.path, file.trackedRelativePath),
-        file.pointerText
+    const pinned = new Array<ICheapLfsAutoPinnedFile>()
+    const canPublishTrackedBatch =
+      fs.trackedPaths?.publishTextBatch !== undefined &&
+      fs.writePointer === defaultCheapLfsFileSystem.writePointer &&
+      plan.files.every(file => file.trackedProof !== undefined)
+    if (canPublishTrackedBatch) {
+      const writes = await Promise.all(
+        plan.files.map(async file => ({
+          proof:
+            fs.trackedPaths!.refreshAfterOwnedLinkCleanup === undefined
+              ? file.trackedProof!
+              : await fs.trackedPaths!.refreshAfterOwnedLinkCleanup(
+                  file.trackedProof!
+                ),
+          text: file.pointerText,
+        }))
       )
+      await fs.trackedPaths!.publishTextBatch!(writes)
     }
-    return plan.files.map(file => ({
-      relativePath: file.trackedRelativePath,
-      sizeInBytes: file.sizeInBytes,
-      result: {
-        pointer: file.pointer,
-        asset: assets.get(file.assets[0].assetName)!,
-        releaseId: plan.release.id,
-      },
-    }))
+    for (const file of plan.files) {
+      if (canPublishTrackedBatch) {
+        // The shared store already published the complete reviewed batch.
+      } else if (
+        file.trackedProof !== undefined &&
+        fs.trackedPaths !== undefined
+      ) {
+        await fs.trackedPaths.publishText(file.trackedProof, file.pointerText)
+      } else {
+        await fs.writePointer(
+          join(repository.path, file.trackedRelativePath),
+          file.pointerText
+        )
+      }
+      const completed: ICheapLfsAutoPinnedFile = {
+        relativePath: file.trackedRelativePath,
+        sizeInBytes: file.sizeInBytes,
+        result: {
+          pointer: file.pointer,
+          asset: assets.get(file.assets[0].assetName)!,
+          releaseId: plan.release.id,
+        },
+      }
+      pinned.push(completed)
+      hooks.onPinned?.(completed)
+    }
+    return pinned
   } finally {
     await handoff.cleanup()
   }

@@ -1,0 +1,58 @@
+import assert from 'node:assert'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+import { describe, it } from 'node:test'
+
+function source(relativePath: string): string {
+  return readFileSync(join(process.cwd(), ...relativePath.split('/')), 'utf8')
+}
+
+describe('command-scoped commit auto-GC suppression', () => {
+  it('covers direct commit commands without writing Git configuration', () => {
+    const commit = source('app/src/lib/git/commit.ts')
+    const batching = source('app/src/lib/git/local-commit-batching-git.ts')
+    const merge = source('app/src/lib/git/merge.ts')
+    const cherryPick = source('app/src/lib/git/cherry-pick.ts')
+    const tutorial = source(
+      'app/src/lib/stores/helpers/create-tutorial-repository.ts'
+    )
+
+    assert.match(commit, /\['-c', 'gc\.auto=0', 'commit', \.\.\.args\]/)
+    assert.match(
+      batching,
+      /buildLocalCommitArgv[\s\S]*?'gc\.auto=0'[\s\S]*?'commit'[\s\S]*?'-F'[\s\S]*?'-'/
+    )
+    assert.match(merge, /\['-c', 'gc\.auto=0', 'commit', '--no-edit'\]/)
+    assert.match(
+      cherryPick,
+      /\['-c', 'gc\.auto=0', 'commit', '--allow-empty'\]/
+    )
+    assert.match(
+      tutorial,
+      /\['-c', 'gc\.auto=0', 'commit', '-m', 'Initial commit'\]/
+    )
+
+    for (const text of [commit, batching, merge, cherryPick, tutorial]) {
+      assert.doesNotMatch(
+        text,
+        /config[^\n]*(?:--global|--local)[^\n]*gc\.auto/
+      )
+    }
+  })
+
+  it('covers commit-producing merge, cherry-pick, revert, and rebase commands', () => {
+    assert.match(
+      source('app/src/lib/git/merge.ts'),
+      /const args = \['-c', 'gc\.auto=0', 'merge'\]/
+    )
+    assert.match(source('app/src/lib/git/cherry-pick.ts'), /'gc\.auto=0'/)
+    assert.match(
+      source('app/src/lib/git/revert.ts'),
+      /const args = \['-c', 'gc\.auto=0', 'revert'\]/
+    )
+    assert.match(
+      source('app/src/lib/git/core.ts'),
+      /gitRebaseArguments[\s\S]*?\['-c', 'gc\.auto=0'\]/
+    )
+  })
+})

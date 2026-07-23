@@ -1,7 +1,8 @@
 import { describe, it, TestContext } from 'node:test'
 import assert from 'node:assert'
+import { createHash } from 'node:crypto'
 import * as path from 'path'
-import { readFile, unlink, writeFile } from 'fs/promises'
+import { chmod, mkdir, readFile, unlink, writeFile } from 'fs/promises'
 import { pathExists } from '../../../src/lib/path-exists'
 
 import { Repository } from '../../../src/models/repository'
@@ -12,6 +13,9 @@ import {
   getChangedFiles,
   getWorkingDirectoryDiff,
   createMergeCommit,
+  executeCommitWithHeadRecovery,
+  git,
+  GitError,
 } from '../../../src/lib/git'
 
 import {
@@ -49,7 +53,347 @@ async function getTextDiff(
 }
 
 describe('git/commit', () => {
+  describe('post-commit maintenance recovery', () => {
+    it('accepts a verified commit created before Git reports a maintenance failure', async () => {
+      const before = 'a'.repeat(40)
+      const after = 'b'.repeat(40)
+      const maintenanceError = new Error('automatic packing failed')
+      let head = before
+      let notificationCount = 0
+      let transition: ReadonlyArray<string | null | boolean> | undefined
+      const attempt = {
+        treeSha: 'c'.repeat(40),
+        parentShas: [before],
+        message: 'attempted message\n',
+        headRef: 'refs/heads/main',
+        cleanupMode: 'whitespace' as const,
+        allowMessageChange: false,
+        allowTreeChange: false,
+      }
+
+      const sha = await executeCommitWithHeadRecovery(
+        {
+          resolveHead: async () => head,
+          captureAttempt: async () => attempt,
+          executeCommit: async () => {
+            head = after
+            throw maintenanceError
+          },
+          verifyFailureEvidence: async () => true,
+          verifyTransition: async (oldHead, newHead, amend, proof) => {
+            transition = [oldHead, newHead, amend]
+            assert.equal(proof, attempt)
+            return true
+          },
+          abbreviate: async value => value.substring(0, 7),
+        },
+        false,
+        () => notificationCount++
+      )
+
+      assert.equal(sha, 'bbbbbbb')
+      assert.deepEqual(transition, [before, after, false])
+      assert.equal(notificationCount, 1)
+    })
+
+    it('returns a stable verified prefix when abbreviation fails', async () => {
+      const before = 'a'.repeat(40)
+      const after = 'b'.repeat(40)
+      let head = before
+
+      const sha = await executeCommitWithHeadRecovery(
+        {
+          resolveHead: async () => head,
+          captureAttempt: async () => ({
+            treeSha: 'c'.repeat(40),
+            parentShas: [before],
+            message: 'attempted message\n',
+            headRef: 'refs/heads/main',
+            cleanupMode: 'whitespace',
+            allowMessageChange: false,
+            allowTreeChange: false,
+          }),
+          executeCommit: async () => {
+            head = after
+            throw new Error('maintenance failed')
+          },
+          verifyFailureEvidence: async () => true,
+          verifyTransition: async () => true,
+          abbreviate: async () => {
+            throw new Error('rev-parse unavailable')
+          },
+        },
+        false
+      )
+
+      assert.equal(sha, 'bbbbbbb')
+    })
+
+    it('keeps a genuine commit failure when HEAD did not advance', async () => {
+      const head = 'a'.repeat(40)
+      const commitError = new Error('commit rejected')
+      let verificationCount = 0
+      let notificationCount = 0
+
+      await assert.rejects(
+        executeCommitWithHeadRecovery(
+          {
+            resolveHead: async () => head,
+            captureAttempt: async () => ({
+              treeSha: 'c'.repeat(40),
+              parentShas: [head],
+              message: 'attempted message\n',
+              headRef: 'refs/heads/main',
+              cleanupMode: 'whitespace' as const,
+              allowMessageChange: false,
+              allowTreeChange: false,
+            }),
+            executeCommit: async () => {
+              throw commitError
+            },
+            verifyFailureEvidence: async () => true,
+            verifyTransition: async () => {
+              verificationCount++
+              return true
+            },
+            abbreviate: async value => value.substring(0, 7),
+          },
+          false,
+          () => notificationCount++
+        ),
+        error => error === commitError
+      )
+
+      assert.equal(verificationCount, 0)
+      assert.equal(notificationCount, 0)
+    })
+
+    it('rejects an unverified HEAD change instead of assuming a commit exists', async () => {
+      const before = 'a'.repeat(40)
+      const after = 'b'.repeat(40)
+      const commitError = new Error('reachable commit verification failed')
+      let head = before
+      let notificationCount = 0
+
+      await assert.rejects(
+        executeCommitWithHeadRecovery(
+          {
+            resolveHead: async () => head,
+            captureAttempt: async () => ({
+              treeSha: 'c'.repeat(40),
+              parentShas: [before],
+              message: 'attempted message\n',
+              headRef: 'refs/heads/main',
+              cleanupMode: 'whitespace' as const,
+              allowMessageChange: false,
+              allowTreeChange: false,
+            }),
+            executeCommit: async () => {
+              head = after
+              throw commitError
+            },
+            verifyFailureEvidence: async () => true,
+            verifyTransition: async () => false,
+            abbreviate: async value => value.substring(0, 7),
+          },
+          false,
+          () => notificationCount++
+        ),
+        error => error === commitError
+      )
+
+      assert.equal(notificationCount, 0)
+    })
+
+    it('fails closed when the attempted tree/message proof is unavailable', async () => {
+      const before = 'a'.repeat(40)
+      const after = 'b'.repeat(40)
+      const commitError = new Error('commit command failed after moving HEAD')
+      let head = before
+      let verificationCount = 0
+
+      await assert.rejects(
+        executeCommitWithHeadRecovery(
+          {
+            resolveHead: async () => head,
+            captureAttempt: async () => null,
+            executeCommit: async () => {
+              head = after
+              throw commitError
+            },
+            verifyFailureEvidence: async () => true,
+            verifyTransition: async () => {
+              verificationCount++
+              return true
+            },
+            abbreviate: async value => value.substring(0, 7),
+          },
+          false
+        ),
+        error => error === commitError
+      )
+
+      assert.equal(verificationCount, 0)
+    })
+  })
+
   describe('createCommit normal', () => {
+    it('force-includes an exact ignored control file even when it is deselected', async t => {
+      const repo = await setupEmptyRepository(t)
+      const keyRelativePath = '.desktop-material/cheap-lfs-registry-key-v1'
+      const keyText = `desktop-material-cheap-lfs-registry-key-v1\n${Buffer.alloc(
+        32,
+        0x31
+      ).toString('base64url')}\n`
+      await writeFile(
+        path.join(repo.path, '.gitignore'),
+        '.desktop-material/\n'
+      )
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      await createCommit(
+        repo,
+        'base',
+        (
+          await getStatusOrThrow(repo)
+        ).workingDirectory.files
+      )
+      await mkdir(path.join(repo.path, '.desktop-material'))
+      await writeFile(path.join(repo.path, keyRelativePath), keyText)
+      await writeFile(path.join(repo.path, 'selected.txt'), 'selected\n')
+      const selected = (await getStatusOrThrow(repo)).workingDirectory.files
+      assert.deepEqual(
+        selected.map(file => file.path),
+        ['selected.txt']
+      )
+
+      await createCommit(repo, 'pointer and key', selected, {
+        requiredFiles: [
+          {
+            relativePath: keyRelativePath,
+            contentSha256: createHash('sha256')
+              .update(keyText, 'utf8')
+              .digest('hex'),
+          },
+        ],
+      })
+
+      const committed = await git(
+        ['show', `HEAD:${keyRelativePath}`],
+        repo.path,
+        'readIgnoredRequiredCommitFile'
+      )
+      assert.equal(committed.stdout, keyText)
+    })
+
+    it('overrides a deselected tracked key change with the exact required bytes', async t => {
+      const repo = await setupEmptyRepository(t)
+      const keyRelativePath = '.desktop-material/cheap-lfs-registry-key-v1'
+      const keyPath = path.join(repo.path, keyRelativePath)
+      const oldText = `desktop-material-cheap-lfs-registry-key-v1\n${Buffer.alloc(
+        32,
+        0x41
+      ).toString('base64url')}\n`
+      const newText = `desktop-material-cheap-lfs-registry-key-v1\n${Buffer.alloc(
+        32,
+        0x42
+      ).toString('base64url')}\n`
+      await mkdir(path.dirname(keyPath))
+      await writeFile(keyPath, oldText)
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      await exec(
+        ['add', '--force', '--', keyRelativePath, 'base.txt'],
+        repo.path
+      )
+      await exec(['commit', '-m', 'base'], repo.path)
+      await writeFile(keyPath, newText)
+      await writeFile(path.join(repo.path, 'selected.txt'), 'selected\n')
+      const selected = (
+        await getStatusOrThrow(repo)
+      ).workingDirectory.files.filter(file => file.path === 'selected.txt')
+
+      await createCommit(repo, 'changed key', selected, {
+        requiredFiles: [
+          {
+            relativePath: keyRelativePath,
+            contentSha256: createHash('sha256')
+              .update(newText, 'utf8')
+              .digest('hex'),
+          },
+        ],
+      })
+
+      assert.equal(
+        (
+          await git(
+            ['show', `HEAD:${keyRelativePath}`],
+            repo.path,
+            'readChangedRequiredCommitFile'
+          )
+        ).stdout,
+        newText
+      )
+    })
+
+    it('rolls back when a hook removes a required file from the commit tree', async t => {
+      const repo = await setupEmptyRepository(t)
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      await exec(['add', '--', 'base.txt'], repo.path)
+      await exec(['commit', '-m', 'base'], repo.path)
+      const before = (
+        await exec(['rev-parse', 'HEAD'], repo.path)
+      ).stdout.trim()
+      const keyRelativePath = '.desktop-material/cheap-lfs-registry-key-v1'
+      const keyText = `desktop-material-cheap-lfs-registry-key-v1\n${Buffer.alloc(
+        32,
+        0x51
+      ).toString('base64url')}\n`
+      await mkdir(path.join(repo.path, '.desktop-material'))
+      await writeFile(path.join(repo.path, keyRelativePath), keyText)
+      await writeFile(path.join(repo.path, 'selected.txt'), 'selected\n')
+      const selected = (await getStatusOrThrow(repo)).workingDirectory.files
+
+      await assert.rejects(
+        createCommit(
+          repo,
+          'unsafe hook',
+          selected,
+          {
+            requiredFiles: [
+              {
+                relativePath: keyRelativePath,
+                contentSha256: createHash('sha256')
+                  .update(keyText, 'utf8')
+                  .digest('hex'),
+              },
+            ],
+          },
+          {
+            runCommit: async (args, cwd, name, options) => {
+              // Simulate an enabled pre-commit hook mutating the reviewed index
+              // without depending on the packaged hook proxy test fixture.
+              await exec(
+                ['rm', '--cached', '--ignore-unmatch', '--', keyRelativePath],
+                cwd
+              )
+              return await git(args, cwd, name, options)
+            },
+          }
+        ),
+        /unsafe commit was rolled back/i
+      )
+      assert.equal(
+        (await exec(['rev-parse', 'HEAD'], repo.path)).stdout.trim(),
+        before
+      )
+      await assert.rejects(
+        git(
+          ['show', `HEAD:${keyRelativePath}`],
+          repo.path,
+          'proveRequiredFileNotCommitted'
+        )
+      )
+    })
+
     it('commits the given files', async t => {
       const testRepoPath = await setupFixtureRepository(t, 'test-repo')
       const repository = new Repository(testRepoPath, -1, null, false)
@@ -70,6 +414,339 @@ describe('git/commit', () => {
       assert.equal(commits.length, 6)
       assert.equal(commits[0].summary, 'Special commit')
       assert.equal(commits[0].sha.substring(0, 7), sha)
+    })
+
+    it('disables auto-GC only for the commit command', async t => {
+      const repo = await setupEmptyRepository(t)
+      await exec(['config', '--local', 'gc.auto', '123'], repo.path)
+      await writeFile(path.join(repo.path, 'file.txt'), 'content\n')
+
+      const status = await getStatusOrThrow(repo)
+      await createCommit(
+        repo,
+        'commit without auto gc',
+        status.workingDirectory.files
+      )
+
+      const configured = await exec(
+        ['config', '--local', '--get', 'gc.auto'],
+        repo.path
+      )
+      assert.equal(configured.exitCode, 0)
+      assert.equal(configured.stdout.trim(), '123')
+    })
+
+    it('recovers -F commits with each effective commit.cleanup mode', async t => {
+      const cases = [
+        [
+          'default',
+          '  Title\n\n# commentary\nBody\n\n# ------------------------ >8 ------------------------\nAfter scissors\n',
+        ],
+        ['strip', '  Title\n\nBody\n\nAfter scissors\n'],
+        [
+          'whitespace',
+          '  Title\n\n# commentary\nBody\n\n# ------------------------ >8 ------------------------\nAfter scissors\n',
+        ],
+        [
+          'verbatim',
+          '  Title  \n\n# commentary\nBody  \n\n# ------------------------ >8 ------------------------\nAfter scissors  \n',
+        ],
+        [
+          'scissors',
+          '  Title\n\n# commentary\nBody\n\n# ------------------------ >8 ------------------------\nAfter scissors\n',
+        ],
+      ] as const
+
+      for (const [cleanupMode, expectedMessage] of cases) {
+        await t.test(cleanupMode, async child => {
+          const repo = await setupEmptyRepository(child)
+          await exec(
+            ['config', '--local', 'commit.cleanup', cleanupMode],
+            repo.path
+          )
+          await writeFile(path.join(repo.path, 'file.txt'), 'content\n')
+          const status = await getStatusOrThrow(repo)
+          const inputMessage =
+            '  Title  \n\n# commentary\nBody  \n\n# ------------------------ >8 ------------------------\nAfter scissors  \n'
+          let warningCount = 0
+
+          await createCommit(
+            repo,
+            inputMessage,
+            status.workingDirectory.files,
+            { onRecoveredPostCommitFailure: () => warningCount++ },
+            {
+              runCommit: async (args, cwd, name, options) => {
+                const result = await git(args, cwd, name, options)
+                throw new GitError(
+                  { ...result, exitCode: 1 },
+                  args,
+                  `synthetic ${cleanupMode} maintenance failure`
+                )
+              },
+            }
+          )
+
+          const object = await exec(['cat-file', 'commit', 'HEAD'], repo.path)
+          const messageStart = object.stdout.indexOf('\n\n')
+          assert.notEqual(messageStart, -1)
+          assert.equal(object.stdout.slice(messageStart + 2), expectedMessage)
+          assert.equal(warningCount, 1)
+        })
+      }
+    })
+
+    it('recovers a verified amended commit after a simulated late failure', async t => {
+      const repo = await setupEmptyRepository(t)
+      const filePath = path.join(repo.path, 'file.txt')
+      await writeFile(filePath, 'before\n')
+      let status = await getStatusOrThrow(repo)
+      await createCommit(repo, 'before amend', status.workingDirectory.files)
+      const before = await exec(['rev-parse', 'HEAD'], repo.path)
+
+      await writeFile(filePath, 'after\n')
+      status = await getStatusOrThrow(repo)
+      let warningCount = 0
+      const shortSha = await createCommit(
+        repo,
+        'after amend',
+        status.workingDirectory.files,
+        {
+          amend: true,
+          onRecoveredPostCommitFailure: () => warningCount++,
+        },
+        {
+          runCommit: async (args, cwd, name, options) => {
+            const result = await git(args, cwd, name, options)
+            throw new GitError(
+              { ...result, exitCode: 1 },
+              args,
+              'synthetic amend maintenance failure'
+            )
+          },
+        }
+      )
+
+      const after = await exec(['rev-parse', 'HEAD'], repo.path)
+      assert.notEqual(after.stdout.trim(), before.stdout.trim())
+      assert.equal(shortSha, after.stdout.trim().slice(0, shortSha.length))
+      const commits = await exec(['rev-list', '--count', 'HEAD'], repo.path)
+      assert.equal(commits.stdout.trim(), '1')
+      assert.equal(warningCount, 1)
+    })
+
+    it('recovers one real hook-mutated commit after a simulated post-commit failure', async t => {
+      const repo = await setupEmptyRepository(t)
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      let status = await getStatusOrThrow(repo)
+      await createCommit(repo, 'base', status.workingDirectory.files)
+
+      const hooksPath = path.join(repo.resolvedGitDir, 'hooks')
+      await mkdir(hooksPath, { recursive: true })
+      const preCommitHook = path.join(hooksPath, 'pre-commit')
+      const commitMessageHook = path.join(hooksPath, 'commit-msg')
+      const postCommitHook = path.join(hooksPath, 'post-commit')
+      await Promise.all([
+        writeFile(
+          preCommitHook,
+          ['#!/bin/sh', 'git add -- hook-added.txt', ''].join('\n')
+        ),
+        writeFile(
+          commitMessageHook,
+          ['#!/bin/sh', `printf '\\nHook-mutated message\\n' >> "$1"`, ''].join(
+            '\n'
+          )
+        ),
+        writeFile(
+          postCommitHook,
+          [
+            '#!/bin/sh',
+            `printf 'changed after commit\\n' > "$(git rev-parse --git-path COMMIT_EDITMSG)"`,
+            `printf 'staged after commit\\n' > post-hook.txt`,
+            'git add -- post-hook.txt',
+            '',
+          ].join('\n')
+        ),
+      ])
+      await Promise.all([
+        chmod(preCommitHook, 0o755),
+        chmod(commitMessageHook, 0o755),
+        chmod(postCommitHook, 0o755),
+      ])
+
+      await Promise.all([
+        writeFile(path.join(repo.path, 'selected.txt'), 'selected\n'),
+        writeFile(path.join(repo.path, 'hook-added.txt'), 'hook-added\n'),
+      ])
+      status = await getStatusOrThrow(repo)
+      const selected = status.workingDirectory.files.find(
+        file => file.path === 'selected.txt'
+      )
+      assert(selected !== undefined)
+
+      let warningCount = 0
+      let commitCommand: ReadonlyArray<string> | undefined
+      const sha = await createCommit(
+        repo,
+        'original message',
+        [selected],
+        { onRecoveredPostCommitFailure: () => warningCount++ },
+        {
+          runCommit: async (args, cwd, name, options) => {
+            commitCommand = [...args]
+            const result = await git(args, cwd, name, {
+              ...options,
+              // Run the fixture's hooks directly in this real-Git test.
+              interceptHooks: undefined,
+            })
+            throw new GitError(
+              { ...result, exitCode: 1 },
+              args,
+              'synthetic post-commit maintenance failure'
+            )
+          },
+        }
+      )
+
+      assert.deepEqual(commitCommand?.slice(0, 3), [
+        '-c',
+        'gc.auto=0',
+        'commit',
+      ])
+      assert.equal(warningCount, 1)
+      const head = await exec(['rev-parse', '--short', 'HEAD'], repo.path)
+      assert.equal(sha, head.stdout.trim())
+      const message = await exec(['log', '-1', '--format=%B'], repo.path)
+      assert.match(
+        message.stdout,
+        /^original message\n\nHook-mutated message\n/m
+      )
+      const names = await exec(
+        ['show', '--pretty=format:', '--name-only', 'HEAD'],
+        repo.path
+      )
+      assert.deepEqual(
+        names.stdout
+          .split(/\r?\n/)
+          .filter(name => name.length > 0)
+          .sort(),
+        ['hook-added.txt', 'selected.txt']
+      )
+      const stagedAfterCommit = await exec(
+        ['diff', '--cached', '--name-only'],
+        repo.path
+      )
+      assert.equal(stagedAfterCommit.stdout.trim(), 'post-hook.txt')
+      const configured = await exec(
+        ['config', '--local', '--get', 'gc.auto'],
+        repo.path
+      )
+      assert.equal(configured.exitCode, 1)
+    })
+
+    it('keeps a real hook rejection when no commit was created', async t => {
+      const repo = await setupEmptyRepository(t)
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      let status = await getStatusOrThrow(repo)
+      await createCommit(repo, 'base', status.workingDirectory.files)
+      const before = await exec(['rev-parse', 'HEAD'], repo.path)
+
+      const hooksPath = path.join(repo.resolvedGitDir, 'hooks')
+      await mkdir(hooksPath, { recursive: true })
+      const commitMessageHook = path.join(hooksPath, 'commit-msg')
+      await writeFile(
+        commitMessageHook,
+        ['#!/bin/sh', 'echo rejected >&2', 'exit 1', ''].join('\n')
+      )
+      await chmod(commitMessageHook, 0o755)
+      await writeFile(path.join(repo.path, 'rejected.txt'), 'rejected\n')
+      status = await getStatusOrThrow(repo)
+      let warningCount = 0
+
+      await assert.rejects(() =>
+        createCommit(
+          repo,
+          'must fail',
+          status.workingDirectory.files,
+          { onRecoveredPostCommitFailure: () => warningCount++ },
+          {
+            runCommit: (args, cwd, name, options) =>
+              git(args, cwd, name, {
+                ...options,
+                interceptHooks: undefined,
+              }),
+          }
+        )
+      )
+      const after = await exec(['rev-parse', 'HEAD'], repo.path)
+      assert.equal(after.stdout.trim(), before.stdout.trim())
+      assert.equal(warningCount, 0)
+      const configured = await exec(
+        ['config', '--local', '--get', 'gc.auto'],
+        repo.path
+      )
+      assert.equal(configured.exitCode, 1)
+    })
+
+    it('rejects an unrelated HEAD transition instead of claiming recovery', async t => {
+      const repo = await setupEmptyRepository(t)
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      let status = await getStatusOrThrow(repo)
+      await createCommit(repo, 'base', status.workingDirectory.files)
+      const hooksPath = path.join(repo.resolvedGitDir, 'hooks')
+      await mkdir(hooksPath, { recursive: true })
+      const inertCommitMessageHook = path.join(hooksPath, 'commit-msg')
+      await writeFile(
+        inertCommitMessageHook,
+        ['#!/bin/sh', 'exit 0', ''].join('\n')
+      )
+      await chmod(inertCommitMessageHook, 0o755)
+      await writeFile(path.join(repo.path, 'selected.txt'), 'selected\n')
+      status = await getStatusOrThrow(repo)
+
+      const unrelatedFailure = new Error('unrelated command replaced HEAD')
+      let warningCount = 0
+      await assert.rejects(
+        () =>
+          createCommit(
+            repo,
+            'intended message',
+            status.workingDirectory.files,
+            { onRecoveredPostCommitFailure: () => warningCount++ },
+            {
+              runCommit: async (_args, cwd) => {
+                await git(
+                  ['reset', '--mixed', '--no-recurse-submodules', 'HEAD'],
+                  cwd,
+                  'simulateUnrelatedCommitReset'
+                )
+                await git(
+                  [
+                    '-c',
+                    'gc.auto=0',
+                    'commit',
+                    '--allow-empty',
+                    '-m',
+                    'unrelated message',
+                  ],
+                  cwd,
+                  'simulateUnrelatedCommit'
+                )
+                throw unrelatedFailure
+              },
+            }
+          ),
+        error => error === unrelatedFailure
+      )
+
+      assert.equal(warningCount, 0)
+      const message = await exec(['log', '-1', '--format=%s'], repo.path)
+      assert.equal(message.stdout.trim(), 'unrelated message')
+      const configured = await exec(
+        ['config', '--local', '--get', 'gc.auto'],
+        repo.path
+      )
+      assert.equal(configured.exitCode, 1)
     })
 
     it('commit does not strip commentary by default', async t => {
@@ -539,6 +1216,38 @@ describe('git/commit', () => {
           const newStatus = await getStatusOrThrow(repository)
           assert.equal(sha.length, 7)
           assert.equal(newStatus.workingDirectory.files.length, 0)
+        })
+
+        it('surfaces a warning after recovering a verified merge commit', async t => {
+          const repository = await setupConflictedRepo(t)
+          const status = await getStatusOrThrow(repository)
+          const trackedFiles = status.workingDirectory.files.filter(
+            f => f.status.kind !== AppFileStatusKind.Untracked
+          )
+          let warningCount = 0
+
+          const sha = await createMergeCommit(
+            repository,
+            trackedFiles,
+            new Map(),
+            { onRecoveredPostCommitFailure: () => warningCount++ },
+            {
+              runCommit: async (args, cwd, name, options) => {
+                const result = await git(args, cwd, name, options)
+                throw new GitError(
+                  { ...result, exitCode: 1 },
+                  args,
+                  'synthetic merge maintenance failure'
+                )
+              },
+            }
+          )
+
+          const commit = await getCommit(repository, 'HEAD')
+          assert(commit !== null)
+          assert.equal(commit.parentSHAs.length, 2)
+          assert.equal(commit.shortSha, sha)
+          assert.equal(warningCount, 1)
         })
       })
     })

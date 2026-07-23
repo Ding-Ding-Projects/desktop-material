@@ -9,6 +9,7 @@ import {
   SubmoduleRepository,
 } from '../../src/models/repository'
 import { Account, getAccountKey } from '../../src/models/account'
+import { defaultBuildRunPreferences } from '../../src/models/build-run-preferences'
 
 describe('RepositoriesStore', () => {
   let repoDb = new TestRepositoriesDatabase()
@@ -103,6 +104,34 @@ describe('RepositoriesStore', () => {
   })
 
   describe('repository metadata', () => {
+    it('round-trips the parallel Cheap LFS upload preference', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/cheap-lfs/path',
+        '/some/cheap-lfs/path/.git'
+      )
+      await repositoriesStore.updateRepositoryBuildRunPreferences(repository, {
+        ...defaultBuildRunPreferences,
+        parallelCheapLfsUploads: false,
+      })
+
+      const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(reloaded.buildRunPreferences.parallelCheapLfsUploads, false)
+    })
+
+    it('round-trips the one-image GHCR Cheap LFS preference', async () => {
+      const repository = await repositoriesStore.addRepository(
+        '/some/cheap-lfs-ghcr/path',
+        '/some/cheap-lfs-ghcr/path/.git'
+      )
+      await repositoriesStore.updateRepositoryBuildRunPreferences(repository, {
+        ...defaultBuildRunPreferences,
+        cheapLfsStorageProvider: 'ghcr',
+      })
+
+      const [reloaded] = await repositoriesStore.getAll()
+      assert.equal(reloaded.buildRunPreferences.cheapLfsStorageProvider, 'ghcr')
+    })
+
     it('persists grouping, default branch, and editor override together', async () => {
       const repository = await repositoriesStore.addRepository(
         '/some/metadata/path',

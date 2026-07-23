@@ -8,14 +8,18 @@ import { Repository } from '../../../src/models/repository'
 import { CheapLfs, ICheapLfsDispatcher } from '../../../src/ui/repository-tools'
 import {
   ICheapLfsMaterializeResult,
+  ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
-  ICheapLfsPointerEntry,
 } from '../../../src/lib/cheap-lfs/operations'
 import {
   CHEAP_LFS_POINTER_VERSION,
   ICheapLfsPointer,
 } from '../../../src/lib/cheap-lfs/pointer'
+import {
+  CHEAP_LFS_OCI_POINTER_VERSION,
+  ICheapLfsGhcrPointer,
+} from '../../../src/lib/cheap-lfs/ghcr-pointer'
 import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
 import {
   defaultBuildRunPreferences,
@@ -78,9 +82,12 @@ function repositoryWithVisibility(
 function pointerEntry(
   relativePath: string,
   overrides: Partial<ICheapLfsPointer>
-): ICheapLfsPointerEntry {
+): ICheapLfsManagedPointerEntry {
   return {
+    kind: 'release',
+    provider: 'release',
     relativePath,
+    workingTreeState: 'pointer',
     pointer: {
       version: CHEAP_LFS_POINTER_VERSION,
       releaseTag: 'assets',
@@ -92,7 +99,28 @@ function pointerEntry(
   }
 }
 
-const pointers: ReadonlyArray<ICheapLfsPointerEntry> = [
+function ociPointerEntry(
+  relativePath: string,
+  overrides: Partial<ICheapLfsGhcrPointer> = {},
+  workingTreeState: ICheapLfsManagedPointerEntry['workingTreeState'] = 'pointer'
+): ICheapLfsManagedPointerEntry {
+  return {
+    kind: 'oci',
+    provider: 'ghcr',
+    relativePath,
+    workingTreeState,
+    pointer: {
+      version: CHEAP_LFS_OCI_POINTER_VERSION,
+      image: `ghcr.io/desktop/material@sha256:${'d'.repeat(64)}`,
+      object: `sha256:${'e'.repeat(64)}`,
+      sizeInBytes: 3 * 1024 * 1024,
+      layers: [`sha256:${'f'.repeat(64)}`],
+      ...overrides,
+    },
+  }
+}
+
+const pointers: ReadonlyArray<ICheapLfsManagedPointerEntry> = [
   pointerEntry('assets/logo.psd', {
     releaseTag: 'assets',
     assetName: 'logo.psd',
@@ -120,11 +148,12 @@ const uploadedAsset: IGitHubReleaseAsset = {
 }
 
 class FakeCheapLfsDispatcher implements ICheapLfsDispatcher {
-  public pointers: ReadonlyArray<ICheapLfsPointerEntry>
+  public pointers: ReadonlyArray<ICheapLfsManagedPointerEntry>
   public readonly pinCalls: ICheapLfsPinOptions[] = []
   public readonly materializeCalls: string[] = []
+  public readonly removeCalls: string[] = []
 
-  public constructor(initial: ReadonlyArray<ICheapLfsPointerEntry>) {
+  public constructor(initial: ReadonlyArray<ICheapLfsManagedPointerEntry>) {
     this.pointers = initial
   }
 
@@ -154,6 +183,13 @@ class FakeCheapLfsDispatcher implements ICheapLfsDispatcher {
   ): Promise<ICheapLfsMaterializeResult> => {
     this.materializeCalls.push(trackedRelativePath)
     return { path: trackedRelativePath, bytes: 10 }
+  }
+
+  public removeCheapLfsPointer = async (
+    _repository: Repository,
+    trackedRelativePath: string
+  ): Promise<void> => {
+    this.removeCalls.push(trackedRelativePath)
   }
 }
 
@@ -265,6 +301,61 @@ describe('CheapLfs panel', () => {
       /5\.0 MiB/
     )
     assert.ok(screen.getByText('docs/diagram.png'))
+  })
+
+  it('labels an OCI pointer and republishes the logical image on removal', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher([
+      ociPointerEntry('models/weights.bin'),
+    ])
+    const originalConfirm = window.confirm
+    window.confirm = () => true
+    try {
+      render(
+        <CheapLfs
+          repository={repository}
+          accounts={[]}
+          dispatcher={dispatcher}
+        />
+      )
+
+      await screen.findByText('models/weights.bin')
+      const row = rowFor('models/weights.bin')
+      assert.match(
+        row.querySelector('.cheap-lfs-row-meta')?.textContent ?? '',
+        /GHCR · one OCI image · ghcr\.io\/desktop\/material@sha256:/
+      )
+      fireEvent.click(
+        within(row).getByRole('button', { name: 'Remove from image' })
+      )
+      await waitFor(() =>
+        assert.deepStrictEqual(dispatcher.removeCalls, ['models/weights.bin'])
+      )
+    } finally {
+      window.confirm = originalConfirm
+    }
+  })
+
+  it('shows a verified materialized entry without offering another download', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher([
+      ociPointerEntry('models/local.bin', {}, 'materialized'),
+    ])
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    await screen.findByText('models/local.bin')
+    const row = rowFor('models/local.bin')
+    assert.ok(
+      within(row).getByText(
+        'Materialized locally · verified against the committed pointer'
+      )
+    )
+    assert.equal(
+      within(row)
+        .getByRole('button', { name: 'Already materialized' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+    assert.ok(within(row).getByRole('button', { name: 'Remove from image' }))
   })
 
   it('shows mixed cloud-compression state without hiding raw objects', async () => {

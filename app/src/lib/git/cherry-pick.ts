@@ -172,7 +172,14 @@ export async function cherryPick(
   //  there could be multiple empty commits. I.E. If user does a range that
   //  includes commits from that merge.
   const result = await git(
-    ['cherry-pick', ...commits.map(c => c.sha), '--empty=keep', '-m 1'],
+    [
+      '-c',
+      'gc.auto=0',
+      'cherry-pick',
+      ...commits.map(c => c.sha),
+      '--empty=keep',
+      '-m 1',
+    ],
     repository.path,
     'cherry-pick',
     baseOptions
@@ -456,7 +463,7 @@ export async function continueCherryPick(
     // This commits the empty commit so that the cherry picked commit still
     // shows up in the target branches history.
     const result = await git(
-      ['commit', '--allow-empty'],
+      ['-c', 'gc.auto=0', 'commit', '--allow-empty'],
       repository.path,
       'continueCherryPickSkipCurrentCommit',
       options
@@ -466,7 +473,7 @@ export async function continueCherryPick(
   }
 
   const result = await git(
-    ['cherry-pick', '--continue'],
+    ['-c', 'gc.auto=0', 'cherry-pick', '--continue'],
     repository.path,
     'continueCherryPick',
     options
