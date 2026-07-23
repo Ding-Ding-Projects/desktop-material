@@ -155,7 +155,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: cheap-lfs-cloud-compression-\${{ github.repository }}-\${{ github.event.repository.default_branch }}
+  group: cheap-lfs-compress-\${{ github.run_id }}-\${{ github.run_attempt }}
   cancel-in-progress: false
 
 jobs:

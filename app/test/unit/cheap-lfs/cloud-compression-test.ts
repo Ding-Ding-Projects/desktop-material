@@ -133,7 +133,7 @@ describe('Cheap LFS cloud compression policy', () => {
     assert.match(publicCaller, /cancel-in-progress: false/)
     assert.match(
       publicCaller,
-      /group: cheap-lfs-cloud-compression-\$\{\{ github\.repository \}\}-\$\{\{ github\.event\.repository\.default_branch \}\}/
+      /group: cheap-lfs-compress-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
     )
     assert.match(publicCaller, /github\.ref_type == 'branch'/)
     assert.match(

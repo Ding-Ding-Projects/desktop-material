@@ -10,7 +10,7 @@ permissions:
   contents: write
 
 concurrency:
-  group: cheap-lfs-cloud-compression-${{ github.repository }}-${{ github.ref }}
+  group: cheap-lfs-compress-${{ github.run_id }}-${{ github.run_attempt }}
   cancel-in-progress: false
 
 jobs:
