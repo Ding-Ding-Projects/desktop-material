@@ -705,7 +705,11 @@ async function adoptPointer(
       '-p',
       currentCommit,
       '-m',
-      'Compress Cheap LFS release object [skip ci]',
+      'Compress Cheap LFS object / 壓縮 Cheap LFS 物件 [skip ci]',
+      '-m',
+      'Record the verified compressed Release object in the Cheap LFS pointer.',
+      '-m',
+      '驗證過嘅壓縮 Release 物件已寫入 Cheap LFS 指標，慳位唔慳穩陣。',
     ],
     { quiet: true }
   )

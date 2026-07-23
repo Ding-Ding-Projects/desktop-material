@@ -409,7 +409,7 @@ describe('Cheap LFS cloud compression action', () => {
     assert.doesNotMatch(source, /--force(?:-with-lease)?/)
   })
 
-  it('uploads a verified side asset and commits a part-deflate pointer', async () => {
+  it('uploads a verified side asset and commits the exact bilingual skip note', async () => {
     const original = Buffer.from(
       'compressible desktop material payload\n'.repeat(2048)
     )
@@ -433,9 +433,15 @@ describe('Cheap LFS cloud compression action', () => {
         /^part-deflate [a-f0-9]{64} \d+ \d+ payload\.bin\.cheap-lfs-[a-f0-9]{12}\.deflate$/m
       )
       assert.equal(git(fixture.workspace, ['rev-list', '--count', 'HEAD']), '2')
-      assert.match(
-        git(fixture.workspace, ['log', '-1', '--pretty=%s']),
-        /\[skip ci\]$/
+      assert.equal(
+        git(fixture.workspace, ['log', '-1', '--pretty=%s%n%n%b']),
+        [
+          'Compress Cheap LFS object / 壓縮 Cheap LFS 物件 [skip ci]',
+          '',
+          'Record the verified compressed Release object in the Cheap LFS pointer.',
+          '',
+          '驗證過嘅壓縮 Release 物件已寫入 Cheap LFS 指標，慳位唔慳穩陣。',
+        ].join('\n')
       )
       assert.equal(git(fixture.workspace, ['status', '--porcelain']), '')
     })
