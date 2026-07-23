@@ -240,5 +240,18 @@ immutable tag checks, and exact release targeting. Release-version tests cover
 the exact legacy `s…` versus `b…` failure, fixed-width alphabetic `z…` ordering,
 rerun identity, malformed/overflow rejection, and out-of-order same-SHA
 selection.
-Remote Actions, release publication, and an installed Squirrel UI update remain
-required after integration.
+
+Remote and installed acceptance is complete. Exact-source
+[CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533)
+and
+[installer run `29978844761`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29978844761)
+published the six-asset exact-target Release
+[`v3.6.3-beta3-zadtberjmv`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtberjmv).
+A live legacy `s000000000201` installation automatically selected, downloaded,
+applied, and subsequently reported that alphabetic `z` version. Successful
+[Super Express run `29980281736`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29980281736)
+then published greater same-SHA Release
+[`v3.6.3-beta3-zadtbhvdfc`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtbhvdfc),
+which the legacy UI visibly downloaded and exposed as ready to install.
+
+![About showing the automatic updater ready to migrate a legacy Super Express installation](../../assets/screenshots/auto-updater-update-ready.png)

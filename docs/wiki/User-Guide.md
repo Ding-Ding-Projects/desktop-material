@@ -134,7 +134,8 @@ inspect or download the asset yourself, use the
 When the portable ZIP is present, download and extract it before starting the
 packaged executable; it does not run the Squirrel installer. The published
 baseline already contains the required installer, feed, and portable ZIP
-assets. Publication of the current continuation remains pending.
+assets. The verified updater-migration Releases contain all six required
+installer, feed, NuGet, MSI, and portable-ZIP assets.
 
 While GitHub Actions is actively building a newer exact `main` commit, the
 About updater can show **New update coming soon** (or the selected Cantonese or
@@ -144,6 +145,16 @@ over. Each automated Release lists bounded, sanitized commit subjects from the
 previous installer release through its exact target SHA. CI, installer, and
 Pages invocations use independent per-run groups, so a newer run never cancels
 or replaces older running or pending work.
+
+Automatic and Super Express installers now use the same fixed-width alphabetic
+`z` version lane. This lets an older Super Express installation move forward
+instead of treating a newer ordinary Release as a downgrade. Live acceptance
+started from `3.6.3-beta3-s000000000201`: the ordinary updater automatically
+selected, downloaded, and applied `3.6.3-beta3-zadtberjmv`; a following
+same-source Super Express Release then progressed visibly through **Downloading
+update…** to **Quit and Install Update**.
+
+![About showing an automatic update ready for a legacy Super Express installation](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-update-ready.png)
 
 ## Creating a GitHub release
 

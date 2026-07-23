@@ -1,6 +1,6 @@
 ﻿# Desktop Material roadmap
 
-Updated: **July 22, 2026**
+Updated: **July 23, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -12,6 +12,19 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 23 cross-lane updater recovery — **Verified**
+
+Commits `241cc90ce9` and `04246fdf12` moved both release lanes into one
+Squirrel-monotonic alphabetic `z` namespace and removed the legacy comparer's
+decimal `Int32` overflow. Exact-source CI `29977738533` and installer run
+`29978844761` succeeded; the latter published six-asset exact-target Release
+`v3.6.3-beta3-zadtberjmv`. A live installed
+`3.6.3-beta3-s000000000201` build automatically downloaded and applied it.
+Super Express run `29980281736` then published the greater same-SHA
+`v3.6.3-beta3-zadtbhvdfc`, and the isolated legacy UI visibly progressed from
+**Downloading update…** to **Quit and Install Update**. The detailed receipt is
+in [HANDOFF.md](HANDOFF.md).
 
 ## July 22 tab groups, command palette, and input/release reliability — **Implementation and publication verified**
 
@@ -347,8 +360,11 @@ installer/portable-ZIP release workflow.
 
 The following items track the current cycle's progress against all six acceptance gates:
 
+<!-- markdownlint-disable MD013 -->
+
 | Feature / Gate | Status | Key Evidence |
 |---|---|---|
+| Cross-lane automatic updater migration | **Complete; both release lanes and installed UI verified** | `241cc90` introduced the shared lane and `04246fdf` corrected the legacy integer-overflow boundary. CI `29977738533`, installer run `29978844761`, Super Express run `29980281736`, two six-asset exact-target `z…` Releases, automatic `s000000000201` migration, and the real download/ready UI are verified. |
 | July 22 tab groups, palette, Alt, and release gates | **Complete; source publication verified** | Source contracts cover persistence, pin-boundary safety, portable-export stripping, three language modes, rich palette rows/appearance, deterministic bare-Alt sequencing, Super Express test-before-build, and release-PR `main` targeting. The production build and off-screen acceptance passed; source `f7b4760a13` passed CI, CodeQL, Pages, synchronized wiki publication, and exact-tag six-asset Release verification. |
 | M26 Cheap LFS / Express Release | **Complete; live public/private UI and source publication verified** | Retained public/private repositories contain pushed UI-created raw pointers and exact 1 MiB draft-release assets. Public automatic setup and private explicit opt-in produced successful Actions runs `29969707165` and `29969957449`; each bot commit adopted a verified 1,033-byte `part-deflate` asset while retaining raw history. Both compressed pointers restored through the production UI to SHA-256 `30e14955…`; failed public run `29967844734` left its raw pointer cloneable and UI-materializable. Source `f7b4760a13` passed CI, CodeQL, Pages/wiki publication, cleanup audit, and exact-tag six-asset Release verification. |
 | July 21 Settings queue and mobile connection | **Implementation complete** | Verified empty-account copy, persisted-policy hydration, required-directory validation, parallel/sequential changes, enable/disable dispatch, English/Cantonese/bilingual rendering, responsive-surface registration |
@@ -365,6 +381,8 @@ The following items track the current cycle's progress against all six acceptanc
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Documentation gallery expansion | **M22 refresh complete** | README, wiki, and Pages catalog 73 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 22 continuation adds accepted group-chip, rich-palette, raw Cheap LFS, and cloud-compression UI screenshots. Pages serves the accepted cloud image byte-identically and wiki commit `407cbf260c229e9f8e7fd86062afad83e5080f63` matches the seven tracked source pages. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
+
+<!-- markdownlint-enable MD013 -->
 
 ## Acceptance gates
 

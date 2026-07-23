@@ -28,6 +28,20 @@ passed before the exact-target Windows release
 [`v3.6.3-beta3-b0000040881`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-b0000040881)
 published with all six required assets.
 
+Cross-lane updater recovery is now published and installed. Commits
+[`241cc90`](https://github.com/Ding-Ding-Projects/desktop-material/commit/241cc90ce90f240bad075edac7ebe43eea515df8)
+and
+[`04246fdf`](https://github.com/Ding-Ding-Projects/desktop-material/commit/04246fdf12c09446b88d2f40130581d603131c8e)
+gave automatic and Super Express packages one alphabetic `z…` namespace that
+sorts above legacy `b…`/`s…` builds without overflowing Squirrel's comparer.
+[CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533),
+[Build Installers `29978844761`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29978844761),
+and
+[Super Express `29980281736`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29980281736)
+succeeded on exact source `04246fdf12`; a live legacy `s000000000201` install
+automatically migrated, then visibly downloaded the greater same-SHA
+`zadtbhvdfc` package and reached **Quit and Install Update**.
+
 The current continuation adds persistent, visible/collapsible tab-group chips;
 localized command-palette rows and appearance controls; deterministic bare-Alt
 menu sequencing; and unit/script gates before Super Express packaging. It is
@@ -311,6 +325,14 @@ automation, and account isolation. The diagrams are reproducible with
 | --- | --- |
 | <img src="docs/assets/screenshots/cheap-lfs-ui-acceptance.png" alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action" width="520"><br><sub>Public/private live GitHub · native picker · pushed pointer history</sub> | <img src="docs/assets/screenshots/cheap-lfs-cloud-compression.png" alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a compressed pointer row" width="520"><br><sub>Private opt-in · 99.9% smaller · local verified materialization</sub> |
 
+<!-- markdownlint-disable MD013 -->
+
+| Cross-lane automatic update recovery |
+| --- |
+| <img src="docs/assets/screenshots/auto-updater-update-ready.png" alt="About Desktop Material showing a newer alphabetic-z update ready for a legacy Super Express installation" width="720"><br><sub>Legacy s lane → shared z lane · real Squirrel download · ready to install</sub> |
+
+<!-- markdownlint-enable MD013 -->
+
 Cheap LFS can now install a reviewed, SHA-pinned GitHub Actions caller that
 compresses Release objects sequentially without Actions artifacts or caches.
 Public repositories enable it automatically; private repositories stay off
@@ -406,7 +428,9 @@ running any remote command, or use the
 for a manual installer or portable-ZIP download. Extract the ZIP before running
 the packaged executable. The focused archive/workflow contract is green; a
 published baseline already contains the required installer, feed, and portable
-ZIP assets. Publication of the current continuation remains pending.
+ZIP assets. The updater-migration Releases additionally verify the complete
+installer, feed, NuGet, MSI, and portable-ZIP payload on exact source
+`04246fdf12`.
 
 When GitHub Actions is actively building or packaging a newer exact commit but
 has not yet published its Release, the About updater reports **New update coming

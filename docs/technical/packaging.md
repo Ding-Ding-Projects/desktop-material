@@ -78,6 +78,15 @@ portable ZIP as a non-empty release asset, and rejects macOS runners or Apple
 signing inputs in the application workflow. Portable-ZIP and CI focused checks
 passed 11/11 along with script TypeScript and focused lint, format, and diff
 checks. The combined changed-surface gate passed 165/165 across 18 suites. A
-complete local production package has not yet run for this change, so there is
-not yet a full-size local installer/ZIP artifact receipt; remote release
-verification is also pending.
+complete remote package receipt now exists: exact-source
+[CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533)
+and
+[Build Installers `29978844761`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29978844761)
+succeeded for `04246fdf12c09446b88d2f40130581d603131c8e`. Release
+[`v3.6.3-beta3-zadtberjmv`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtberjmv)
+published the portable ZIP, setup EXE, MSI, `RELEASES`, and both full NuGet
+package names as six non-empty assets. Installed Squirrel acceptance proved the
+legacy `s000000000201` migration, and
+[Super Express run `29980281736`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29980281736)
+published the greater same-SHA `v3.6.3-beta3-zadtbhvdfc` package that reached
+the real update-ready UI.

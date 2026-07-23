@@ -1,5 +1,46 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-23 cross-lane automatic updater recovery
+
+Commits
+[`241cc90ce90f240bad075edac7ebe43eea515df8`](https://github.com/Ding-Ding-Projects/desktop-material/commit/241cc90ce90f240bad075edac7ebe43eea515df8)
+and
+[`04246fdf12c09446b88d2f40130581d603131c8e`](https://github.com/Ding-Ding-Projects/desktop-material/commit/04246fdf12c09446b88d2f40130581d603131c8e)
+moved automatic and Super Express packages into one Squirrel-monotonic
+`z<9-letter-base-26-run-ID>` namespace. The alphabetic payload retains GitHub
+run ordering without triggering the installed NuGet comparer's 32-bit overflow
+on modern decimal run IDs.
+
+Exact-source
+[CI `29977738533`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29977738533)
+and downstream
+[Build Installers `29978844761`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29978844761)
+succeeded for `04246fdf12c09446b88d2f40130581d603131c8e`. The latter published
+six-asset Release
+[`v3.6.3-beta3-zadtberjmv`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtberjmv).
+A live installed `3.6.3-beta3-s000000000201` build automatically selected,
+downloaded, and applied its 311,110,425-byte full package; the installed
+`packages/RELEASES` and the following check both reported `zadtberjmv`.
+
+For a visible UI receipt, successful
+[Super Express run `29980281736`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/29980281736)
+published and promoted the greater same-SHA Release
+[`v3.6.3-beta3-zadtbhvdfc`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadtbhvdfc).
+On the isolated off-screen legacy process, **Check for Updates** changed from
+the reproduced stale **latest version** state to **Downloading update…**, then
+to **An update has been downloaded and is ready to be installed** with
+**Quit and Install Update**. Squirrel independently recorded
+`localVersion=3.6.3-beta3-zadtberjmv`, downloaded the `zadtbhvdfc` full package,
+wrote its app directory, repointed the execution stub, and finished. The
+accepted 960×660 capture is 49,195 bytes with SHA-256
+`a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d`.
+
+![Legacy Super Express installation with a newer alphabetic-z update ready](docs/assets/screenshots/auto-updater-update-ready.png)
+
+The detailed fail-closed, remote, package, log, headless-desktop, and cleanup
+receipt is in
+[`docs/verification/auto-updater-version-order-2026-07-22.md`](docs/verification/auto-updater-version-order-2026-07-22.md).
+
 ## 2026-07-22 Cheap LFS cloud compression implementation
 
 Cheap LFS now has repository-local cloud compression without cloud
