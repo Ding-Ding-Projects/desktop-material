@@ -1437,8 +1437,11 @@ export type TranslationKey =
   | 'cheapLfs.settings.storageRelease'
   | 'cheapLfs.settings.storageGhcr'
   | 'cheapLfs.settings.storageDockerHub'
+  | 'githubReleases.compactTools'
+  | 'githubReleases.compactSummary'
   | 'githubReleases.filterSummary'
   | 'githubReleases.openFile'
+  | 'githubReleases.showInFolder'
   | 'githubReleases.openFileError'
   | 'cheapLfs.pinFailures.title'
   | 'cheapLfs.pinFailures.one'
@@ -3230,9 +3233,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.progress.terminalStageManualWaiting': 'Waiting for manual upload',
   'cheapLfs.progress.terminalStageManualVerifying': 'Checking manual upload',
   'cheapLfs.progress.terminalStageManualDetected': 'Manual upload verified',
+  'githubReleases.compactTools': 'Filters and selection',
+  'githubReleases.compactSummary': '{visible} shown · {selected} selected',
   'githubReleases.filterSummary':
     'Filtering {visible} of {total} loaded releases',
   'githubReleases.openFile': 'Open file',
+  'githubReleases.showInFolder': 'Show in folder',
   'githubReleases.openFileError':
     'The downloaded release asset could not be opened. Check that Windows has an app associated with this file type, then try again. {detail}',
   'cheapLfs.settings.autoMaterialize': 'Download large files after cloning',
@@ -4899,9 +4905,12 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.progress.terminalStageManualWaiting': '等緊你手動上載',
   'cheapLfs.progress.terminalStageManualVerifying': '檢查緊手動上載',
   'cheapLfs.progress.terminalStageManualDetected': '手動上載核實咗',
+  'githubReleases.compactTools': '篩選同選取',
+  'githubReleases.compactSummary': '顯示 {visible} 個 · 已選 {selected} 個',
   'githubReleases.filterSummary':
     '篩選緊已載入 Release 入面嘅 {visible}/{total} 個',
   'githubReleases.openFile': '開啟檔案',
+  'githubReleases.showInFolder': '喺資料夾顯示',
   'githubReleases.openFileError':
     '開唔到下載咗嘅 Release 檔案。請檢查 Windows 有冇 app 可以開呢種檔案，跟住再試。{detail}',
   'cheapLfs.settings.autoMaterialize': 'Clone 完自動下載大檔案',

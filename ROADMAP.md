@@ -26,7 +26,7 @@ Super Express run `29980281736` then published the greater same-SHA
 **Downloading update…** to **Quit and Install Update**. The detailed receipt is
 in [HANDOFF.md](HANDOFF.md).
 
-## July 23 Cheap LFS + push batching — **Final local acceptance complete; first publication pending**
+## July 23 Cheap LFS + push batching — **Initial source pushed; responsive correction locally accepted**
 
 - Cheap LFS commit preparation now exposes sanitized per-file phases, bytes,
   success/failure counts, and the selected-versus-recommended storage route in
@@ -87,6 +87,10 @@ headless-verifier contracts, and **7/7** compact-shell style checks. The final
 first-publication production build returned `0` after **400.46 seconds**
 (**404.3 seconds wall**) and produced `out/renderer.css` with SHA-256
 `6381556b36c295ba47ad90e8080f4079cbc61951bd7811ab9cb9fc3520638cb1`.
+That is the historical initial `c3db37ea55` receipt. The corrected exact-source
+build returned `0` after **390 seconds wall** (Yarn **387.64 seconds**) and
+produced a 1,179,200-byte `out/renderer.css` with SHA-256
+`6fba1434112ea5c02256a12e6ce8af42f5c870f0db5835155acb8075708d9d28`.
 
 The promoted 1440×960 English Cheap LFS frame is 113,869 bytes with SHA-256
 `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333`.
@@ -98,17 +102,25 @@ It also passed all **36/36** named assertions after one real pointer attempt,
 kept the progress surface at y=942 inside the y=944 panel, and used only the
 compiled source bundle with no diagnostic style injection.
 
-The companion compact Repository Releases proof ran at 200% zoom in a
-480×330 CSS viewport. Its 960×660 capture is 78,875 bytes with SHA-256
-`56991b51946a32740995168bd9f97f091b1d183f6df696a205556df6759bcb37`;
-it shows one complete 42-pixel release row, 24-hour `HH:mm` timestamps, and no
-horizontal overflow. Native Enter expanded the compact tools, after which the
-filters, bulk controls, release list, and pagination were all keyboard
-reachable. The first-publication gallery source now contains **76** inspected
-images after adding this compact frame.
+The corrected compact Repository Releases proof ran at 100%, 125%, 150%, and
+200% in one 960×660 physical viewport. The promoted 200% frame is 89,856 bytes
+with SHA-256
+`8e29ac666a0832d353126d8dd759200ba7e853016a940501e5c7cbdbb1cf992a`;
+its 480×330 CSS viewport shows one complete 53.5 px release row, 24-hour `HH:mm`
+timestamps, a wrapping bilingual disclosure, and no horizontal overflow. The
+125% case now activates the 800×560 compact gate at 768×528 CSS; every compact
+scale measures a 176 px panel, at least a 52 px row, 30 px target floors, a 9 px
+text floor, three metric columns, and the latest card spanning two. Native Enter
+expanded and collapsed the compact tools; available actions retained focus
+semantics and the no-next-page pagination control remained correctly disabled.
+The gallery source remains **76** inspected images.
 
-The final combined changed-suite rerun passed **151/151**, alongside full
-TypeScript, changed-source ESLint, Prettier, and `git diff --check`.
+The historical initial combined changed suite passed **151/151**. The corrected
+Releases style/localization/UI plus Pages contracts pass **55/55**. A final
+152-test integrated rerun ran for 693 seconds without an observed failure, then
+was stopped cleanly during the disposable-Git batching suite at the user's
+explicit immediate-push request; no aggregate pass is claimed and the complete
+rerun remains a handoff item.
 
 The full Cheap LFS folder aggregate remains deliberately reported as
 **261/262** only because one wall-clock policy case exceeded its harness budget
@@ -116,10 +128,18 @@ under concurrent heavy Git work; its isolated rerun passed **8/8**. The older
 1,466.27-second build and its failed narrow attempt remain labeled as historical
 interim evidence in the
 [dated local receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
-The final Bambu build live workflow/Action run and fresh-clone materialization
-proof remain pending and are not claimed. Commit/push, exact-source CI and
-CodeQL, Pages/wiki publication, and the non-draft installer Release also remain
-for the coordinating first-publication step.
+Initial integration commit
+[`c3db37ea55`](https://github.com/Ding-Ding-Projects/desktop-material/commit/c3db37ea5524b91f9603151ae5d1107205f16a59)
+is pushed to `main` with the initial receipts and preserves every updater
+receipt commit. The isolated correction raises the compact pane's
+text/control floors, lets bilingual disclosure copy wrap, localizes its new
+controls, and widens the combined compact gate for 125%. Its exact-source build,
+four-scale headless geometry/keyboard proof, original-pixel review, capture
+promotion, and owned-resource cleanup passed locally. CI and CodeQL, Pages/wiki
+publication, the non-draft installer Release, and GitHub Discussion receipt
+remain to be recorded after the correction is pushed and its remote runs
+settle. The final Bambu build live workflow/Action run and fresh-clone
+materialization proof also remain pending and are not claimed.
 
 ## July 22 tab groups, command palette, and input/release reliability — **Implementation and publication verified**
 
@@ -470,12 +490,12 @@ The following items track the current cycle's progress against all six acceptanc
 | M24 Guided sparse checkout | **Local acceptance complete** | Verified case-insensitive literal inverse-close matching, counts/preview/zero-match protection, pinned-tab safety, drag and keyboard movement, pin-group boundaries, stable one-shot label/opened/status sorts, persisted order, focus, announcements, and multi-window isolation |
 | Actions workflow-run cancellation | **Complete** | Verified exact repository/account/run revalidation, cancellable-status gating, one normal cancel request with duplicate suppression, accepted-response polling, stale and terminal transitions, bounded provider errors, focus return, and compact confirmation layout |
 | Reviewed current-branch rebase | **Complete** | Verified target search, current→target and ahead/behind context, bounded commit preview, fresh dirty/conflict/operation guards, exact ref/SHA revalidation, cancel-before-start, conflict continue/abort routing, protected-branch guidance, and no automatic force push |
-| Provider account binding and OAuth scope alignment | **Complete; Git transport routing verified locally** | Verified repository-settings binding propagation without reopening, unique-match auto-binding, explicit multiple-account choice, no-match/stale/permission/SSO recovery, generation safety, no silent replacement of a valid binding, and the bounded epo user workflow notifications read:org sign-in scope set. HTTPS fetch, pull, push, post-push refresh, scheduled sync, refspec fetch, and remote-HEAD routing now preserve the exact stable repository account key; unbound organization remotes prefer a verified write-capable identity and missing explicit bindings fail closed |
+| Provider account binding and OAuth scope alignment | **Complete; Git transport routing verified locally** | Verified repository-settings binding propagation without reopening, unique-match auto-binding, explicit multiple-account choice, no-match/stale/permission/SSO recovery, generation safety, no silent replacement of a valid binding, and the bounded `repo user workflow notifications read:org` sign-in scope set. HTTPS fetch, pull, push, post-push refresh, scheduled sync, refspec fetch, and remote-HEAD routing now preserve the exact stable repository account key; unbound organization remotes prefer a verified write-capable identity and missing explicit bindings fail closed |
 | Compact Repository Tools, Remote Manager, and Regex Builder | **Complete** | Verified vertical reachability at short heights; readable remote name/URL/control columns before a stacked fallback; reflowed Regex Builder categories/tokens with a scrollable body and reachable footer; named controls, focus, zoom, and no page-level horizontal overflow |
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on main |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
-| Documentation gallery expansion | **75-scene source catalog** | README, wiki, and Pages source catalog 75 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the accepted Cheap LFS commit-progress frame to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
+| Documentation gallery expansion | **76-scene source catalog** | README, wiki, and Pages source catalog 76 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the accepted Cheap LFS commit-progress and compact Releases frames to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

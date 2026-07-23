@@ -176,11 +176,12 @@ elapsed time, renderer-observed throughput and ETA, aggregate transferred
 bytes, and success/failure counts. Long storage recommendations use a native,
 keyboard-focusable disclosure. It never renders raw provider or process output.
 
-![Bilingual Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit](../../assets/screenshots/cheap-lfs-commit-progress.png)
+![English Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit](../../assets/screenshots/cheap-lfs-commit-progress.png)
 
-The first-publication UI gate rebuilt the production bundle in 400.46 seconds
-and exercised this surface on an isolated off-screen Win32 desktop without
-diagnostic style injection. The promoted 1,440 x 960 wide capture has SHA-256
+The historical initial-`c3db37ea55` UI gate rebuilt the production bundle in
+400.46 seconds and exercised this Cheap LFS surface on an isolated off-screen
+Win32 desktop without diagnostic style injection. The promoted 1,440 x 960 wide
+capture has SHA-256
 `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333`.
 A separate 640 x 960 bilingual narrow capture kept all three worker rows and
 both actions contained; its SHA-256 is

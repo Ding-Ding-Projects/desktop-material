@@ -23,10 +23,11 @@ The July 22 feature continuation is published at `f7b4760a13` with exact-source
 CI, code scanning, Pages/wiki, and six-asset Windows installer Release
 verification. Updater recovery commits `241cc90ce9` and `04246fdf12` are also
 published and were accepted from an installed legacy build through the new
-alphabetic-`z` release lane. The July 23 Cheap LFS registry-storage and automatic
-push-batching continuation documented below is implemented in the current
-worktree. Its final build/headless acceptance, push, exact-source CI, Pages/wiki,
-and installer Release remain pending until recorded in `HANDOFF.md`.
+alphabetic-`z` release lane. July 23 Cheap LFS registry storage and automatic
+push batching are published initially at `c3db37ea55`; the isolated responsive
+Releases correction has passed its exact-source build and four-scale headless
+acceptance. Its push, exact-source CI/CodeQL, Pages/wiki, installer Release, and
+Discussion receipt remain pending until recorded in `HANDOFF.md`.
 
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
@@ -1319,15 +1320,19 @@ Open **Releases** from the repository rail to work with the selected GitHub repo
 losing its account context. The dashboard summarizes the releases currently loaded, including
 stable, prerelease, and draft counts, combined asset/download totals, and the latest stable release.
 The desktop catalog uses a wider 420–560 px pane and larger rows and controls; below 900 px it
-stacks above the detail pane instead of squeezing text. At the combined small-width and
-short-height gate, the header and metrics compact, the list moves ahead of overview/detail
-content, and one complete release row stays visible even in a CSS 480×330 viewport at 200% scale.
+stacks above the detail pane instead of squeezing text. At the corrected 800×560 combined
+small-width/short-height gate, the header and metrics compact, the list moves ahead of overview/
+detail content, and one complete release row stays visible at 125% (768×528 CSS), 150%
+(640×440 CSS), and 200% (480×330 CSS) in one 960×660 physical window. The compact layout keeps
+9–16 px text, 30–34 px controls, a 176 px tools panel, and at least a 52 px release row instead of
+shrinking labels to 7–8 px. Metrics reflow into three columns, and the saved English, playful
+Hong Kong Cantonese, or bilingual tools label can wrap without clipping.
 
 - Search the loaded catalog with fuzzy, substring, or regular-expression matching, optionally
   case-sensitive, and combine it with the **Published**, **Pre-release**, or **Draft** status filter.
   The result count always says how many loaded releases are shown; **Load more releases** expands the
   catalog before filtering when GitHub reports another bounded page. In the compact gate,
-  **Filters and selection** is a native keyboard-operable disclosure. Clearing a selection after a
+  **Filters and selection** is a localized native keyboard-operable disclosure. Clearing a selection after a
   filter produces zero results returns focus to an enabled fallback rather than disabled select-all.
 - Select a release to inspect its status, author, tag, target branch or commit, creation and publish
   times, notes, asset count, and total downloads. Row timestamps use unambiguous 24-hour `HH:mm`
@@ -1342,7 +1347,9 @@ content, and one complete release row stays visible even in a CSS 480×330 viewp
 
 ![Releases dashboard with status summary, searchable catalog, selected metadata, and assets](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
 
-The compact acceptance image is a physical 960×660 capture of that CSS 480×330 viewport.
+The accepted compact image is the 200% frame from the successful 100%, 125%,
+150%, and 200% constant-physical-size gate. It is a 960×660 physical capture of
+the CSS 480×330 viewport with zero horizontal overflow and one complete row.
 
 ![Compact Repository Releases at 200 percent scale with one complete row and the keyboard-reachable Filters and selection disclosure](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases-compact.png)
 

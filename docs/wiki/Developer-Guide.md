@@ -243,11 +243,15 @@ publication, release, or cleanup evidence.
   `app/src/lib/stores/pull-request-lifecycle-store.ts`; Releases and Issues use their dedicated
   stores under `app/src/lib/stores/` and views under `app/src/ui/github-releases/` and
   `app/src/ui/github-issues/`. Keep all writes account/repository/item/operation/payload-bound and
-  cap streamed API and asset responses before parsing or writing. The Releases view's combined
-  width/height compact mode must keep a complete row visible at the 200%-scaled CSS 480×330 gate,
-  expose filter/bulk controls through a native keyboard disclosure, restore focus to an enabled
-  target when a filter removes every row, render 24-hour `HH:mm` timestamps, and offer **Open file**
-  only for the current successfully verified download result.
+  cap streamed API and asset responses before parsing or writing. The Releases view's corrected
+  800×560 combined compact mode must keep a complete row visible in the constant-960×660 physical
+  gate at 125% (768×528 CSS), 150%, and 200% (480×330 CSS), hold the tools panel at 176 px and rows
+  at 52 px or larger, keep text at 9 px or larger and interactive controls at 30 px or larger,
+  reflow metrics into three columns, and expose filter/bulk controls through a localized wrapping
+  native keyboard disclosure.
+  It must restore focus to an enabled target when a filter removes every row, render 24-hour
+  `HH:mm` timestamps, and offer **Open file** only for the current successfully verified download
+  result.
 - **GitHub API Explorer and named functions** — `app/src/lib/github-api-operation-catalog.ts` owns
   the pinned REST catalog projection and `app/src/lib/github-api-workbench.ts` validates, assesses,
   bounds, and redacts requests and responses. `app/src/ui/github-api-explorer/` owns REST/GraphQL

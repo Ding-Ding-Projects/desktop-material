@@ -326,7 +326,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 **Guided GitHub workflows**
 - Compose pull requests with repository templates and metadata, then inspect, update, review, close/reopen, or merge the exact reviewed pull request through a fail-closed lifecycle
 - Browse paginated Actions artifacts, download with bounded redirect and digest checks, and inspect the effective rules that apply to the current branch
-- Use the repository Releases dashboard to compare loaded, stable, prerelease, and draft counts; search and status-filter its compact high-zoom catalog; inspect authors, locale-aware 24-hour timestamps, targets, asset types, digests, and download totals; open a verified downloaded file or show it in Explorer; create reviewed releases publicly in one operation or save them as drafts; and keep bounded edit, publish, delete, upload, and download workflows. Browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
+- Use the repository Releases dashboard to compare loaded, stable, prerelease, and draft counts; search and status-filter its compact high-zoom catalog with an 800×560 small-screen gate proven at 100%, 125%, 150%, and 200%, readable size floors, and a wrapping English/Cantonese/bilingual tools disclosure; inspect authors, locale-aware 24-hour timestamps, targets, asset types, digests, and download totals; open a verified downloaded file or show it in Explorer; create reviewed releases publicly in one operation or save them as drafts; and keep bounded edit, publish, delete, upload, and download workflows. Browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
 - Use the repository-contextual GitHub API functions surface, bound to the selected account and provider host, to run automatically added repository, issues, pull-request, release, and workflow actions as buttons; hide the API rail item when it is not needed, and reveal the full REST/GraphQL catalog only for advanced custom functions
 
 ### Responsiveness and resource lifecycle
@@ -386,7 +386,7 @@ automation, and account isolation. The diagrams are reproducible with
 
 | Detailed Cheap LFS commit progress | Compact Repository Releases at 200% |
 | --- | --- |
-| <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="520"><br><sub>Three lanes · queue/provider context · timing and ETA · keyboard disclosure</sub> | <img src="docs/assets/screenshots/material-github-releases-compact.png" alt="Repository Releases at 200% scale with a complete first row and compact keyboard-accessible tools" width="520"><br><sub>Complete list row · 24-hour time · compact tools</sub> |
+| <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="520"><br><sub>Three lanes · queue/provider context · timing and ETA · keyboard disclosure</sub> | <img src="docs/assets/screenshots/material-github-releases-compact.png" alt="Accepted 200% Repository Releases frame from the 100–200% physical-size gate, with a complete first row and compact keyboard-accessible tools" width="520"><br><sub>100–200% gate · complete row · 24-hour time</sub> |
 
 <!-- markdownlint-disable MD013 -->
 
@@ -524,7 +524,7 @@ yarn && yarn build:dev && yarn start
 
 ## Credits & License
 
-Desktop Material is built on [GitHub Desktop](https://github.com/desktop/desktop) (MIT), with feature-parity references from [desktop-plus](https://github.com/say25/desktop-plus) (MIT). Thanks to both projects and their contributors.
+Desktop Material is built on [GitHub Desktop](https://github.com/desktop/desktop) (MIT), with feature-parity references from [desktop-plus](https://github.com/desktop-plus/desktop-plus) (MIT). Thanks to both projects and their contributors.
 
 **[MIT](LICENSE)**
 

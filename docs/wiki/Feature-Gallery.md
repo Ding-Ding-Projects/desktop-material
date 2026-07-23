@@ -31,10 +31,11 @@ contract rejects missing, duplicate, or unassigned assets.
 > the accepted bilingual private-opt-in and compressed-pointer frame after live public
 > automatic/private explicit Actions runs and local restores. The July 23 registry-storage,
 > commit-progress, automatic push-batching, and compact Repository Releases continuation is
-> implemented in the current source. Its inspected Releases evidence is a physical 960×660 capture
-> of the 200%-scaled CSS 480×330 viewport, with one complete release row retained;
-> its exact final headless build and UI receipts are complete, while source CI, Pages, wiki,
-> Release, and Git-cleanup publication receipts remain pending.
+> initially published at `c3db37ea55`. The isolated responsive correction passed its exact build
+> and 100%/125%/150%/200% constant-960×660 headless gate. Its inspected Releases evidence is the
+> corrected physical 960×660 capture of the 200%-scaled CSS 480×330 viewport, with one complete
+> release row retained; source CI/CodeQL, Pages, wiki, Release, Discussion, and Git-cleanup
+> publication receipts remain pending.
 > Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
@@ -348,6 +349,14 @@ a native keyboard-operable disclosure; release rows use 24-hour `HH:mm`
 timestamps; a verified download offers **Open file** beside **Show in folder**;
 and clearing a selection after a zero-result filter returns focus to an enabled
 fallback instead of a disabled select-all control.
+
+The accepted accessibility correction keeps the same list-first structure and
+widens the combined gate to 800×560, covering 125% at 768×528 CSS as well as
+150% and 200%. It holds a 176 px tools panel, raises compact text to 9–16 px,
+controls to 30–34 px, and release rows to at least 52 px. Its three-column
+metrics and localized wrapping disclosure prevent true small-screen and
+bilingual layouts from buying space with unreadable copy. The image below is
+the corrected exact-source frame promoted after the four-scale proof.
 
 ![Compact Repository Releases at 200 percent scale with one complete row and the keyboard-reachable Filters and selection disclosure](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases-compact.png)
 

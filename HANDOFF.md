@@ -1,13 +1,15 @@
 # Desktop Material — Active parity handoff
 
-## 2026-07-23 first-publication acceptance checkpoint
+## 2026-07-23 responsive Releases correction acceptance checkpoint
 
 The integrated Cheap LFS, ordinary-Git batching, responsive Repository
-Releases, and richer commit-progress source has completed final local
-first-publication acceptance. The exact unpackaged production build returned
-`0` after **400.46 seconds** (**404.3 seconds wall**) through the fixed Lowlevel
-MCP endpoint. Its `out/renderer.css` is 1,178,671 bytes with SHA-256
-`6381556b36c295ba47ad90e8080f4079cbc61951bd7811ab9cb9fc3520638cb1`.
+Releases, and richer commit-progress source was initially published as
+`c3db37ea55`. Its later small-screen correction has now completed a fresh exact-
+source build and off-screen UI acceptance. The corrected unpackaged production
+build returned `0` after **390 seconds wall** (Yarn **387.64 seconds**) through
+the fixed Lowlevel MCP endpoint. Its 1,179,200-byte `out/renderer.css` has
+SHA-256
+`6fba1434112ea5c02256a12e6ce8af42f5c870f0db5835155acb8075708d9d28`.
 
 The current public-safe UI receipts are:
 
@@ -15,19 +17,43 @@ The current public-safe UI receipts are:
 | --- | ---: | ---: | --- | --- |
 | Cheap LFS progress, English | 1440×960 | 113,869 | `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333` | All 36 named assertions passed, including `noBlockingDialog`; one real pointer selection settled the diff and all three worker rows are contained. |
 | Cheap LFS progress, bilingual | 640×960 | 85,175 | `1b99c827d1b5b2cf05298fb1255873acdf0502f72a40437c378c0be7bb989e50` | All 36 named assertions passed after one real pointer attempt; progress bottom y=942 remains inside panel bottom y=944, with no injected diagnostic style. |
-| Repository Releases, 200% zoom | 960×660 | 78,875 | `56991b51946a32740995168bd9f97f091b1d183f6df696a205556df6759bcb37` | The 480×330 CSS viewport contains one complete release row, `HH:mm` timestamps, and zero horizontal overflow. |
+| Repository Releases, 200% zoom | 960×660 | 89,856 | `8e29ac666a0832d353126d8dd759200ba7e853016a940501e5c7cbdbb1cf992a` | The 480×330 CSS viewport contains one complete 53.5 px release row, `HH:mm` timestamps, a wrapping bilingual disclosure, and zero horizontal overflow. |
 
-The final combined changed-suite rerun passed **151/151**, with full TypeScript,
-changed-source ESLint, Prettier, and `git diff --check` also green.
+The historical initial-integration changed suite passed **151/151**. For the
+corrected source, the focused Releases style/localization/UI plus Pages
+contracts pass **55/55**. A final 152-test integrated rerun was still progressing
+after 693 seconds with no observed failure when the user explicitly requested
+the immediate push; it was stopped cleanly during the disposable-Git batching
+suite and therefore has no aggregate pass claim. A complete rerun is handed off
+instead of being misreported.
 
-For the compact Releases scene, native Enter expanded the tools disclosure and
-proved the filters, bulk controls, release list, and pagination remain
-keyboard-reachable. Adding that compact screenshot brings the first-publication
-gallery source to **76** inspected images. These are local source/build/UI
-receipts: the coordinating task must still record the exact pushed source,
-CI/CodeQL/Pages/wiki and installer Release. The Bambu build repository's final
-live workflow/Action run and fresh-clone local materialization proof are also
-still pending and must not be inferred from this checkpoint.
+For the compact Releases scene, native Enter expanded and collapsed the tools
+disclosure. Search, status, selection, and release-row actions remained
+keyboard-focusable; the no-next-page pagination action remained present with
+its correct disabled state. Constant-physical-size probes passed at 100%, 125%,
+150%, and 200%, with one complete row and zero horizontal overflow at every
+scale. The gallery source remains **76** inspected images.
+
+Initial integration commit
+[`c3db37ea5524b91f9603151ae5d1107205f16a59`](https://github.com/Ding-Ding-Projects/desktop-material/commit/c3db37ea5524b91f9603151ae5d1107205f16a59)
+is pushed on `origin/main`; it contains responsive commit
+`e3e574358bb88810fcd19f8c35788662478251c8` and retains updater receipt
+`923dbb51acad8f01f01f1c100c6945c7a2e08e23` as an ancestor. Its push-triggered
+Cheap LFS cloud-compression run `30046446899` passed. CI `30046447035`, CodeQL
+`30046447045`, and Pages `30046446940` were queued or running when this
+corrective pass began, so they are not reported as final receipts.
+
+The isolated corrective source replaces the 7–8 px/22 px compact overrides with
+readable 9–16 px text, 30–34 px controls, a 52 px row, a wrapping localized
+disclosure, and three-column metrics. Its widened 800×560 combined gate covers
+the exact 125% case (768×528 CSS) that the earlier 760×520 gate missed. The
+fresh exact-source build, four-scale geometry/keyboard proof, original-pixel
+review, capture promotion, and owned-resource cleanup are complete. Publication
+to `main`, exact-source CI/CodeQL, Pages, synchronized wiki, the uniquely tagged
+non-draft installer Release, and the required GitHub Discussion summary remain
+pending. The Bambu build repository's final live workflow/Action run and fresh-
+clone local materialization proof are also still pending and must not be
+inferred from this checkpoint.
 
 ## 2026-07-23 cross-lane automatic updater recovery
 
@@ -72,11 +98,11 @@ receipt is in
 
 ## 2026-07-23 Cheap LFS registry storage and automatic push batching
 
-This continuation is integrated and locally build/UI accepted in the
-first-publication worktree. It is not yet represented by a pushed
-`origin/main` checkpoint or a new installer Release. The authoritative current
-local receipt is the checkpoint above; the coordinating task must still record
-exact remote receipts before publication is claimed.
+This continuation is integrated and locally build/UI accepted. Initial
+integration commit `c3db37ea55` is pushed on `origin/main`; the containing
+corrective pass raises compact Releases sizing and finishes localization before
+its own remote publication gates. A new installer Release and the remaining
+exact remote receipts are not claimed until those gates actually settle.
 
 Cheap LFS commit preparation now keeps a compact terminal-style panel directly
 below Commit. It reports sanitized active paths, hashing/preparation/upload/
@@ -223,10 +249,12 @@ real failure and is never retried into a duplicate commit.
 
 Local acceptance is recorded in the
 [dated Cheap LFS commit-progress receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
-The final exact worktree's unpackaged production build returned `0` after
-**400.46 seconds** (**404.3 seconds wall**) through Lowlevel MCP and produced
-`out/renderer.css` SHA-256
+The initial `c3db37ea55` worktree's unpackaged production build returned `0`
+after **400.46 seconds** (**404.3 seconds wall**) through Lowlevel MCP and
+produced `out/renderer.css` SHA-256
 `6381556b36c295ba47ad90e8080f4079cbc61951bd7811ab9cb9fc3520638cb1`.
+That is retained as historical first-publication evidence; the responsive
+correction's current build receipt is the 390-second `6fba1434…` build above.
 The current promoted accepted frame is:
 
 | Frame | Dimensions | Bytes | SHA-256 |
@@ -244,13 +272,16 @@ injected diagnostic style. The earlier 1,466.27-second build, 107,411-byte wide
 frame, and visibility-hidden narrow failure remain in the dated receipt only as
 superseded interim evidence.
 
-The companion `material-github-releases-compact.png` proof passed at 200% zoom
-with a 480×330 CSS viewport. Its 960×660, 78,875-byte capture has SHA-256
-`56991b51946a32740995168bd9f97f091b1d183f6df696a205556df6759bcb37`.
-One complete 42-pixel row, 24-hour timestamps, and zero horizontal overflow are
-visible; native Enter expands the tools and keeps every filter, bulk control,
-the list, and pagination keyboard-reachable. The gallery source is now **76**
-images for this first publication.
+The corrected companion `material-github-releases-compact.png` proof passed at
+100%, 125%, 150%, and 200% in one 960×660 physical viewport. The promoted 200%
+frame is 89,856 bytes with SHA-256
+`8e29ac666a0832d353126d8dd759200ba7e853016a940501e5c7cbdbb1cf992a`.
+Its 480×330 CSS viewport shows one complete 53.5 px row, 24-hour timestamps, a
+wrapping bilingual disclosure, and zero horizontal overflow. All compact
+scales measured the 176 px panel, 30 px target floors, 9 px text floor, and the
+three-column metrics layout. Native Enter expands/collapses the tools; available
+actions retain focus semantics and the no-next-page pagination control remains
+correctly disabled. The gallery source remains **76** images.
 
 Release/OCI operations pass **80/80**, registry transport/runtime policy
 **77/77**, disposable-Git batching **117/117**, UI/settings/localization
@@ -260,14 +291,15 @@ aggregate is deliberately reported as **261/262** because one wall-clock policy
 case exceeded its 2.5-second harness budget during concurrent heavy Git work;
 the isolated policy rerun passed **8/8**, including that same behavior.
 
-These are local receipts only. The final acceptance app/process tree, provider
-child, hidden desktops, provider credential, CDP listeners, and validated owned
-temporary roots were all removed or proved absent. The separately retained
-installed-app Bambu environment remains intentionally live for its pending
-workflow and fresh-clone gate. Commit/push and
-remote ancestry, exact-source CI and CodeQL, Pages, synchronized wiki
-publication, and the uniquely tagged non-draft installer Release remain for
-the coordinating publication step. The final live Bambu workflow/Action and
+These UI/build receipts are local evidence for the initial integration and its
+isolated responsive correction. The final acceptance app PID `20836`, HWND
+`1905774`, provider PID `16700`, hidden desktop, provider credential, ports
+`52613`/`53748`, and exact owned temporary root were stopped, deleted, or proved
+absent. The separately retained installed-app Bambu environment remained
+untouched. Initial commit/push and remote ancestry are proved at `c3db37ea55`;
+the correction's exact-source CI and CodeQL, Pages, synchronized wiki
+publication, uniquely tagged non-draft installer Release, and GitHub Discussion
+remain for the publication step. The final live Bambu workflow/Action and
 fresh-clone materialization receipt also remains pending.
 
 ## 2026-07-22 Cheap LFS cloud compression implementation

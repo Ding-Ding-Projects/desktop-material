@@ -16,6 +16,7 @@ import {
 } from '../../../src/lib/github-releases'
 import { IGitHubReleaseTransferProgressEvent } from '../../../src/lib/github-release-transfer'
 import { updateEndpointVersion } from '../../../src/lib/endpoint-capabilities'
+import { setLanguageModePreference } from '../../../src/lib/language-preference'
 import { GitHubReleasesView } from '../../../src/ui/github-releases'
 import {
   fireEvent,
@@ -739,7 +740,12 @@ describe('GitHub Releases view', () => {
       toggle.getAttribute('aria-controls'),
       'github-releases-compact-tools'
     )
+    assert.equal(
+      toggle.getAttribute('aria-describedby'),
+      'github-releases-compact-summary'
+    )
     const compactStatus = within(toggle).getByText('1 shown · 0 selected')
+    assert.equal(compactStatus.id, 'github-releases-compact-summary')
     assert.equal(compactStatus.getAttribute('aria-live'), 'polite')
     assert.equal(compactStatus.getAttribute('aria-atomic'), 'true')
     assert.equal(panel.classList.contains('compact-tools-expanded'), false)
@@ -754,6 +760,60 @@ describe('GitHub Releases view', () => {
     assert.equal(toggle.getAttribute('aria-expanded'), 'false')
     assert.equal(panel.classList.contains('compact-tools-expanded'), false)
     assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
+  })
+
+  it('localizes compact release tools in Cantonese and bilingual modes', async () => {
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+    })
+
+    let cantonese: ReturnType<typeof render> | null = null
+    let bilingual: ReturnType<typeof render> | null = null
+    try {
+      setLanguageModePreference('cantonese')
+      cantonese = render(
+        <GitHubReleasesView
+          repository={repository}
+          accounts={[account]}
+          releasesStore={store}
+        />
+      )
+      const cantoneseToggle = await screen.findByRole('button', {
+        name: /篩選同選取/,
+      })
+      assert.ok(within(cantoneseToggle).getByText('顯示 1 個 · 已選 0 個'))
+      cantonese.unmount()
+      cantonese = null
+
+      setLanguageModePreference('bilingual')
+      bilingual = render(
+        <GitHubReleasesView
+          repository={repository}
+          accounts={[account]}
+          releasesStore={store}
+        />
+      )
+      const bilingualToggle = await screen.findByRole('button', {
+        name: 'Filters and selection',
+      })
+      assert.ok(
+        within(bilingualToggle).getByText('Filters and selection · 篩選同選取')
+      )
+      assert.ok(
+        within(bilingualToggle).getByText(
+          '1 shown · 0 selected · 顯示 1 個 · 已選 0 個'
+        )
+      )
+    } finally {
+      cantonese?.unmount()
+      bilingual?.unmount()
+      setLanguageModePreference('english')
+    }
   })
 
   it('formats local midnight with the zero-based 24-hour clock', async () => {

@@ -1,7 +1,7 @@
 import * as Path from 'path'
 import * as React from 'react'
 import { shell } from '../../lib/app-shell'
-import { t } from '../../lib/i18n'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 import { Account } from '../../models/account'
 import { Repository } from '../../models/repository'
 import {
@@ -1645,12 +1645,22 @@ export class GitHubReleasesView extends React.Component<
             className="github-releases-compact-tools-toggle"
             aria-expanded={this.state.compactToolsExpanded}
             aria-controls="github-releases-compact-tools"
+            aria-describedby="github-releases-compact-summary"
+            aria-label={translateForAccessibleName(
+              'githubReleases.compactTools'
+            )}
             onClick={this.toggleCompactReleaseTools}
           >
-            <span>Filters and selection</span>
-            <span aria-live="polite" aria-atomic="true">
-              {visibleReleases.length} shown · {selectedReleases.length}{' '}
-              selected
+            <span>{t('githubReleases.compactTools')}</span>
+            <span
+              id="github-releases-compact-summary"
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {t('githubReleases.compactSummary', {
+                visible: visibleReleases.length.toString(),
+                selected: selectedReleases.length.toString(),
+              })}
             </span>
           </button>
         )}
@@ -2470,7 +2480,9 @@ export class GitHubReleasesView extends React.Component<
               <Button onClick={this.openDownload}>
                 {t('githubReleases.openFile')}
               </Button>
-              <Button onClick={this.revealDownload}>Show in folder</Button>
+              <Button onClick={this.revealDownload}>
+                {t('githubReleases.showInFolder')}
+              </Button>
             </div>
           </div>
         )}

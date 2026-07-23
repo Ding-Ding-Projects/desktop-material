@@ -142,11 +142,11 @@ describe('Pages accessibility contracts', () => {
     assert.match(markup, /CSS 480×330 viewport/)
     assert.match(markup, /one complete release row/)
     assert.match(markup, /native keyboard-operable\s+disclosure/)
-    assert.match(markup, /24-hour HH:mm timestamps/)
-    assert.match(markup, /Open file beside Show in folder/)
+    assert.match(markup, /24-hour HH:mm\s+timestamps/)
+    assert.match(markup, /Open\s+file\s+beside\s+Show\s+in\s+folder/)
     assert.match(
       markup,
-      /zero-result selection restores focus to an enabled target/
+      /zero-result\s+selection\s+restores\s+focus\s+to\s+an\s+enabled\s+target/
     )
   })
 

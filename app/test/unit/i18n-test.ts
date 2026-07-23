@@ -95,10 +95,18 @@ describe('recent UI internationalization', () => {
   })
 
   it('localizes the new compact Releases feedback and Open file action', () => {
-    const variables = { visible: '1', total: '3', detail: 'missing app' }
+    const variables = {
+      visible: '1',
+      selected: '2',
+      total: '3',
+      detail: 'missing app',
+    }
     for (const key of [
+      'githubReleases.compactTools',
+      'githubReleases.compactSummary',
       'githubReleases.filterSummary',
       'githubReleases.openFile',
+      'githubReleases.showInFolder',
       'githubReleases.openFileError',
     ] as const) {
       const english = translate(key, 'english', variables)

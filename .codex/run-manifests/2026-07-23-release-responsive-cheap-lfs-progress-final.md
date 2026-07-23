@@ -1,5 +1,10 @@
 # Responsive Releases and Cheap LFS progress final acceptance
 
+> Historical initial-`c3db37ea55` receipt. Its 140 px/42 px compact Releases
+> geometry and screenshot are superseded by
+> `2026-07-23-release-compact-accessibility-final.md`; the Cheap LFS progress
+> receipts below remain valid for the initial integration.
+
 - Run ID: `desktop-material-p0-ui-release-progress-final-20260723-1500-a2f6c9`
 - Mode: `publish`
 - Milestone: compact Repository Releases at small size/high zoom plus the richer
@@ -62,8 +67,8 @@
 - Declared gates: 151-test integrated affected suite, full TypeScript,
   changed-file ESLint/Prettier, action syntax/no-force audit, production build,
   responsive ledger, scene semantic/privacy receipts, original-pixel review,
-  gallery/source contracts, CI/CodeQL/Pages/wiki, installer Release, and live
-  updater check.
+  gallery/source contracts, CI/CodeQL/Pages/wiki, installer Release, GitHub
+  Discussion, and live updater check.
 - Remote/branch: `Ding-Ding-Projects/desktop-material`, final fast-forward to
   `origin/main`; no force push.
 - Documentation allowlist: this manifest, the Bambu live run manifest and dated

@@ -107,30 +107,43 @@ describe('GitHub Releases responsive Material styles', () => {
     )
   })
 
-  it('keeps a complete release row above the fold at narrow 200% zoom', () => {
+  it('keeps a complete release row above the fold from 125% through 200% zoom', () => {
     assert.match(
       styles,
-      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-view \{[\s\S]*?gap:\s*3px;[\s\S]*?padding:\s*6px;/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-view \{[\s\S]*?gap:\s*3px;[\s\S]*?padding:\s*6px;/
     )
     assert.match(
       styles,
-      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-overview \{[\s\S]*?grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\);/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-overview \{[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\);[\s\S]*?\.github-release-metric\.latest \{[\s\S]*?grid-column:\s*span 2;/
     )
     assert.match(
       styles,
-      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*none;[\s\S]*?\.compact-tools-expanded[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*block;/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*none;[\s\S]*?\.compact-tools-expanded[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*block;/
     )
     assert.match(
       styles,
-      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-list-panel\.compact-tools-expanded \{[\s\S]*?min-height:\s*280px;[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*visible;/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-list-panel\.compact-tools-expanded \{[\s\S]*?min-height:\s*320px;[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*visible;/
     )
     assert.match(
       styles,
-      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-layout \{\s*display:\s*contents;[\s\S]*?\.github-releases-list-panel \{[\s\S]*?height:\s*140px;[\s\S]*?order:\s*1;/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-layout \{\s*display:\s*contents;[\s\S]*?\.github-releases-list-panel \{[\s\S]*?height:\s*176px;[\s\S]*?order:\s*1;/
     )
     assert.match(
       styles,
-      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-list \{[\s\S]*?min-height:\s*42px;[\s\S]*?\.github-release-row \{[\s\S]*?min-height:\s*42px;/
+      /@media \(max-width: 800px\) and \(max-height: 560px\)[\s\S]*?\.github-releases-list \{[\s\S]*?min-height:\s*52px;[\s\S]*?\.github-release-row \{[\s\S]*?min-height:\s*52px;/
+    )
+    const compactBlock = styles.slice(
+      styles.indexOf('@media (max-width: 800px) and (max-height: 560px)'),
+      styles.indexOf('@media (prefers-reduced-motion: reduce)')
+    )
+    assert.doesNotMatch(compactBlock, /font-size:\s*[78]px;/)
+    assert.match(
+      compactBlock,
+      /\.github-releases-compact-tools-toggle \{[\s\S]*?min-height:\s*34px;[\s\S]*?flex-wrap:\s*wrap;[\s\S]*?font-size:\s*11px;[\s\S]*?> span:last-child \{[\s\S]*?white-space:\s*normal;/
+    )
+    assert.match(
+      compactBlock,
+      /\.github-releases-search-field \{[\s\S]*?min-width:\s*32px;[\s\S]*?height:\s*32px;/
     )
   })
 })

@@ -187,11 +187,13 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Release gates** — the manual Super Express lane now runs the complete unit and script suites
   before its Windows x64 build/package while continuing to skip lint, E2E, and history-generated
   notes. Release pull requests target the Windows product's `main` default branch.
-- **Compact Repository Releases** — at the combined small-width/short-height gate, the list stays
-  ahead of overview/detail content and retains one complete row. A physical 960×660 acceptance
-  frame maps to the 200%-scaled CSS 480×330 viewport; filter and bulk tools use a native
-  keyboard-operable disclosure, dates use 24-hour `HH:mm`, verified downloads expose **Open file**
-  beside **Show in folder**, and a zero-result selection clear returns focus to an enabled target.
+- **Compact Repository Releases** — the corrected 800×560 combined gate keeps the list ahead of
+  overview/detail content and retains one complete row. One physical 960×660 gate passed at 100%,
+  125% (768×528 CSS), 150%, and 200% (480×330 CSS); compact scales keep a 176 px panel, at least
+  52 px rows, 30 px targets, and 9 px minimum metadata instead of tiny 7–8 px labels. Metrics use
+  three columns, and filter/bulk tools use a localized wrapping native keyboard disclosure. Dates
+  use 24-hour `HH:mm`, verified downloads expose **Open file** beside **Show in folder**, and a
+  zero-result selection clear returns focus to an enabled target.
 - **Agent access** — opt in from Settings to start a token-gated MCP/REST server on a random
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
