@@ -515,8 +515,22 @@ export class FilterChangesList extends React.Component<
         }
         this.fileSizes = fileSizes
         const items = this.createListItems(props.workingDirectory.files)
-        this.setState({
-          groups: this.createListGroups(items, this.state.fileViewMode),
+        const itemsById = new Map(items.map(item => [item.id, item] as const))
+        this.setState(state => {
+          // The filtered row IDs can stay identical when only size metadata
+          // changes, so refresh their cached item values explicitly.
+          const filteredItems = new Map<string, IChangesListItem>()
+          for (const id of state.filteredItems.keys()) {
+            const item = itemsById.get(id)
+            if (item !== undefined) {
+              filteredItems.set(id, item)
+            }
+          }
+
+          return {
+            filteredItems,
+            groups: this.createListGroups(items, state.fileViewMode),
+          }
         })
       })
       .catch(error => {
