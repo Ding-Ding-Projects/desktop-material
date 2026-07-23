@@ -408,13 +408,15 @@
             The numbered roadmap extends through M27. Cards marked
             <strong>Verified on main</strong> refer to their recorded production
             UI gates. The current source completes detailed Cheap LFS commit
-            progress, a persisted three-file/sequential upload choice, a
-            large-file Changes filter, safe partial-failure continuation, GHCR
-            and Docker Hub full-snapshot storage, encrypted private-repository
-            objects, pointer-only clone repair, and proven sub-1.5 GB automatic
-            commit/push batches. Exact build, headless, source-publication,
-            installer, Pages, and wiki receipts remain centralized in
-            <code>HANDOFF.md</code> rather than being predeclared here.
+            progress with worker, queue, provider, reason, timing, ETA, and
+            manual-phase context; a persisted three-file/sequential upload
+            choice; a large-file Changes filter, safe partial-failure
+            continuation, GHCR and Docker Hub full-snapshot storage, encrypted
+            private-repository objects, pointer-only clone repair, and proven
+            sub-1.5 GB automatic commit/push batches. Exact build, headless,
+            source-publication, installer, Pages, and wiki receipts remain
+            centralized in <code>HANDOFF.md</code> rather than being predeclared
+            here.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -721,31 +723,53 @@
                 Use the direct Large files manager to list, search, pin, remove,
                 and restore original nested paths without browsing provider
                 payloads. The Changes view can isolate files over 100 MiB and
-                keeps a compact terminal below Commit with sanitized per-file
-                phases, bytes, results, and a selected-versus-recommended
-                storage route. A persisted toggle chooses sequential work or at
-                most three transfers; one failed raw file stays retryable while
-                safe changes and verified pointers may still commit. Release
-                storage uses published prerelease buckets, verified assets,
-                optional cloud compression, and a bounded manual browser
-                handoff. Public repositories prepare the owned compression
-                caller in Changes automatically; private repositories require
-                explicit opt-in, and either caller runs only after a reviewed
-                commit and push. Actions compresses one Release object at a
-                time. Failed or non-beneficial objects remain raw and cloneable,
-                while all decompression and verification happens locally in
-                Desktop Material. GHCR and Docker Hub instead keep the complete
-                current object set in one logical OCI image: additions and
-                removals publish a new immutable manifest, reuse unchanged
-                blobs, and retain digest-specific tags for older pointers.
-                Timed-out GHCR layers are rebuilt at half the prior bound rather
-                than appended to, and private-source chunks use AES-256-GCM with
-                the shared key tracked by that private repository. Clone/open
-                detection and Materialize all verify and replace old
-                pointer-only working-tree files locally. Ordinary small-file
-                selections are split into conservative sub-1.5 GB commit/push
-                batches, with each remote tip proven before the next commit is
-                created.
+                keeps a compact terminal below Commit with three worker rows,
+                queued counts, sanitized phases, bytes, results, selected and
+                recommended providers with the reason, observed timing and ETA,
+                and honest manual-handoff state. Long recommendations use a
+                native keyboard-focusable disclosure. A persisted toggle chooses
+                sequential work or at most three transfers; one failed raw file
+                stays retryable while safe changes and verified pointers may
+                still commit. Release storage uses published prerelease buckets,
+                verified assets, optional cloud compression, and a bounded
+                manual browser handoff. Public repositories prepare the owned
+                compression caller in Changes automatically; private
+                repositories require explicit opt-in, and either caller runs
+                only after a reviewed commit and push. Actions compresses one
+                Release object at a time. Failed or non-beneficial objects
+                remain raw and cloneable, while all decompression and
+                verification happens locally in Desktop Material. GHCR and
+                Docker Hub instead keep the complete current object set in one
+                logical OCI image: additions and removals publish a new
+                immutable manifest, reuse unchanged blobs, and retain
+                digest-specific tags for older pointers. Timed-out GHCR layers
+                are rebuilt at half the prior bound rather than appended to, and
+                private-source chunks use AES-256-GCM with the shared key
+                tracked by that private repository. Clone/open detection and
+                Materialize all verify and replace old pointer-only working-tree
+                files locally. Ordinary small-file selections are split into
+                conservative sub-1.5 GB commit/push batches, with each remote
+                tip proven before the next commit is created.
+              </p>
+            </article>
+
+            <article class="card">
+              <div class="glyph" aria-hidden="true">
+                <svg class="material-icon">
+                  <use href="#icon-download"></use>
+                </svg>
+              </div>
+              <h3>
+                Compact Repository Releases
+                <span class="tag">200% keyboard gate</span>
+              </h3>
+              <p>
+                A physical 960×660 acceptance capture maps to the 200%-scaled
+                CSS 480×330 viewport while retaining one complete release row.
+                Filter and bulk controls use a native keyboard-operable
+                disclosure, rows use 24-hour HH:mm timestamps, and clearing a
+                zero-result selection restores focus to an enabled target. A
+                verified asset download exposes Open file beside Show in folder.
               </p>
             </article>
 
@@ -1303,13 +1327,15 @@
               >
                 <img
                   src="docs/assets/screenshots/cheap-lfs-commit-progress.png"
-                  alt="Changes view with the large-file filter and detailed three-file Cheap LFS commit terminal"
+                  alt="Changes view with the large-file filter and three-worker Cheap LFS terminal showing queue, provider recommendation, timing, ETA, and manual controls"
                   loading="lazy"
                 />
               </a>
               <figcaption>
                 Cheap LFS commit progress
-                <span class="tag">Three lanes · bytes · retry state</span>
+                <span class="tag"
+                  >Workers · queue · provider · timing · ETA</span
+                >
               </figcaption>
             </figure>
 
@@ -2242,6 +2268,24 @@
               <figcaption>
                 Releases
                 <span class="tag">Readable catalog · lifecycle</span>
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/material-github-releases-compact.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/material-github-releases-compact.png"
+                  alt="Compact Repository Releases at 200 percent scale in a physical 960 by 660 capture of a CSS 480 by 330 viewport, retaining one complete row and keyboard-reachable tools"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Compact Releases
+                <span class="tag">200% · full row · keyboard tools</span>
               </figcaption>
             </figure>
 

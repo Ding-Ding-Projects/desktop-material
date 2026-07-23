@@ -136,6 +136,7 @@ interface IGitHubReleasesViewState {
   readonly searchMode: FilterMode
   readonly searchCaseSensitive: boolean
   readonly statusFilter: ReleaseStatusFilter
+  readonly compactToolsExpanded: boolean
   readonly assets: ReadonlyArray<IGitHubReleaseAsset>
   readonly assetPage: number
   readonly nextAssetPage: number | null
@@ -179,6 +180,7 @@ function initialState(
     searchMode: readPersistedFilterMode(ReleasesSearchFilterId),
     searchCaseSensitive: false,
     statusFilter: 'all',
+    compactToolsExpanded: false,
     assets: [],
     assetPage: 0,
     nextAssetPage: null,
@@ -221,7 +223,7 @@ function formatTimestamp(date: Date): string {
     day: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    hour12: false,
+    hourCycle: 'h23',
   })
 }
 
@@ -608,6 +610,11 @@ export class GitHubReleasesView extends React.Component<
         this.releaseSearchRef.current?.focus()
       }
     })
+
+  private toggleCompactReleaseTools = () =>
+    this.setState(state => ({
+      compactToolsExpanded: !state.compactToolsExpanded,
+    }))
 
   private selectedReleases(): ReadonlyArray<IGitHubRelease> {
     return this.state.releases.filter(release =>
@@ -1616,7 +1623,9 @@ export class GitHubReleasesView extends React.Component<
 
     return (
       <section
-        className="github-releases-list-panel"
+        className={`github-releases-list-panel${
+          this.state.compactToolsExpanded ? ' compact-tools-expanded' : ''
+        }`}
         aria-labelledby="github-releases-list-title"
       >
         <div className="github-releases-panel-heading">
@@ -1631,123 +1640,141 @@ export class GitHubReleasesView extends React.Component<
           </Button>
         </div>
         {this.state.releases.length > 0 && (
-          <div className="github-releases-filter-area">
-            <div className="github-releases-filter-toolbar">
-              <div className="github-releases-search">
-                <label htmlFor="github-releases-search">
-                  Search loaded releases
-                </label>
-                <div className="github-releases-search-field">
-                  <input
-                    ref={this.releaseSearchRef}
-                    data-search-surface-id="github-releases-search"
-                    id="github-releases-search"
-                    type="search"
-                    value={this.state.search}
-                    maxLength={256}
-                    placeholder="Name, tag, notes, author, or asset"
-                    onChange={this.updateSearch}
-                  />
-                  <FilterModeControl
-                    searchSurfaceId="github-releases-search"
-                    mode={this.state.searchMode}
-                    caseSensitive={this.state.searchCaseSensitive}
-                    onModeChange={this.onSearchModeChange}
-                    onCaseSensitiveChange={this.onSearchCaseSensitiveChange}
-                    regexBuilderTarget="Releases"
-                    getSampleItems={this.getSearchSampleItems}
-                    filterText={this.state.search}
-                    onRegexPatternApply={this.onSearchPatternApply}
-                  />
-                </div>
-              </div>
-              <label className="github-releases-status-filter">
-                Status
-                <select
-                  aria-label="Release status"
-                  value={this.state.statusFilter}
-                  onChange={this.updateStatusFilter}
-                >
-                  <option value="all">All statuses</option>
-                  <option value="published">Published</option>
-                  <option value="prerelease">Pre-releases</option>
-                  <option value="draft">Drafts</option>
-                </select>
-              </label>
-            </div>
-            {hasFilters && (
-              <div className="github-releases-filter-summary">
-                <span>
-                  {t('githubReleases.filterSummary', {
-                    visible: visibleReleases.length.toString(),
-                    total: this.state.releases.length.toString(),
-                  })}
-                </span>
-                <Button onClick={this.clearReleaseFilters}>
-                  Clear filters
-                </Button>
-              </div>
-            )}
-            {regexError !== null && (
-              <p className="github-releases-filter-error" role="alert">
-                Invalid release search pattern: {regexError}
-              </p>
-            )}
-          </div>
+          <button
+            type="button"
+            className="github-releases-compact-tools-toggle"
+            aria-expanded={this.state.compactToolsExpanded}
+            aria-controls="github-releases-compact-tools"
+            onClick={this.toggleCompactReleaseTools}
+          >
+            <span>Filters and selection</span>
+            <span aria-live="polite" aria-atomic="true">
+              {visibleReleases.length} shown · {selectedReleases.length}{' '}
+              selected
+            </span>
+          </button>
         )}
         {this.state.releases.length > 0 && (
           <div
-            className="github-releases-bulk-toolbar"
-            role="group"
-            aria-label="Bulk release actions"
+            id="github-releases-compact-tools"
+            className="github-releases-compact-tools"
           >
-            <div className="github-releases-bulk-selection">
-              <label>
-                <input
-                  ref={this.selectAllVisibleRef}
-                  type="checkbox"
-                  checked={allVisibleSelected}
-                  disabled={
-                    visibleReleases.length === 0 || this.state.busy !== null
-                  }
-                  onChange={this.toggleAllVisibleReleases}
-                  aria-label="Select all visible releases"
-                />
-                Select all visible
-              </label>
-              <span
-                className={
-                  selectedReleases.length === 0 ? 'sr-only' : undefined
-                }
-                aria-live="polite"
-              >
-                {selectedReleases.length} selected
-              </span>
-            </div>
-            {selectedReleases.length > 0 && (
-              <div className="github-releases-bulk-actions">
-                <Button
-                  disabled={
-                    selectedDraftCount === 0 || this.state.busy !== null
-                  }
-                  onClick={this.confirmBulkPublish}
-                >
-                  Publish drafts ({selectedDraftCount})
-                </Button>
-                <Button
-                  disabled={this.state.busy !== null}
-                  onClick={this.confirmBulkDelete}
-                >
-                  Delete selected ({selectedReleases.length})
-                </Button>
-                <Button
-                  disabled={this.state.busy !== null}
-                  onClick={this.clearReleaseSelection}
-                >
-                  Clear selection
-                </Button>
+            <div className="github-releases-filter-area">
+              <div className="github-releases-filter-toolbar">
+                <div className="github-releases-search">
+                  <label htmlFor="github-releases-search">
+                    Search loaded releases
+                  </label>
+                  <div className="github-releases-search-field">
+                    <input
+                      ref={this.releaseSearchRef}
+                      data-search-surface-id="github-releases-search"
+                      id="github-releases-search"
+                      type="search"
+                      value={this.state.search}
+                      maxLength={256}
+                      placeholder="Name, tag, notes, author, or asset"
+                      onChange={this.updateSearch}
+                    />
+                    <FilterModeControl
+                      searchSurfaceId="github-releases-search"
+                      mode={this.state.searchMode}
+                      caseSensitive={this.state.searchCaseSensitive}
+                      onModeChange={this.onSearchModeChange}
+                      onCaseSensitiveChange={this.onSearchCaseSensitiveChange}
+                      regexBuilderTarget="Releases"
+                      getSampleItems={this.getSearchSampleItems}
+                      filterText={this.state.search}
+                      onRegexPatternApply={this.onSearchPatternApply}
+                    />
+                  </div>
+                </div>
+                <label className="github-releases-status-filter">
+                  Status
+                  <select
+                    aria-label="Release status"
+                    value={this.state.statusFilter}
+                    onChange={this.updateStatusFilter}
+                  >
+                    <option value="all">All statuses</option>
+                    <option value="published">Published</option>
+                    <option value="prerelease">Pre-releases</option>
+                    <option value="draft">Drafts</option>
+                  </select>
+                </label>
               </div>
-            )}
+              {hasFilters && (
+                <div className="github-releases-filter-summary">
+                  <span>
+                    {t('githubReleases.filterSummary', {
+                      visible: visibleReleases.length.toString(),
+                      total: this.state.releases.length.toString(),
+                    })}
+                  </span>
+                  <Button onClick={this.clearReleaseFilters}>
+                    Clear filters
+                  </Button>
+                </div>
+              )}
+              {regexError !== null && (
+                <p className="github-releases-filter-error" role="alert">
+                  Invalid release search pattern: {regexError}
+                </p>
+              )}
+            </div>
+            <div
+              className="github-releases-bulk-toolbar"
+              role="group"
+              aria-label="Bulk release actions"
+            >
+              <div className="github-releases-bulk-selection">
+                <label>
+                  <input
+                    ref={this.selectAllVisibleRef}
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    disabled={
+                      visibleReleases.length === 0 || this.state.busy !== null
+                    }
+                    onChange={this.toggleAllVisibleReleases}
+                    aria-label="Select all visible releases"
+                  />
+                  Select all visible
+                </label>
+                <span
+                  className={
+                    selectedReleases.length === 0 ? 'sr-only' : undefined
+                  }
+                  aria-live="polite"
+                >
+                  {selectedReleases.length} selected
+                </span>
+              </div>
+              {selectedReleases.length > 0 && (
+                <div className="github-releases-bulk-actions">
+                  <Button
+                    disabled={
+                      selectedDraftCount === 0 || this.state.busy !== null
+                    }
+                    onClick={this.confirmBulkPublish}
+                  >
+                    Publish drafts ({selectedDraftCount})
+                  </Button>
+                  <Button
+                    disabled={this.state.busy !== null}
+                    onClick={this.confirmBulkDelete}
+                  >
+                    Delete selected ({selectedReleases.length})
+                  </Button>
+                  <Button
+                    disabled={this.state.busy !== null}
+                    onClick={this.clearReleaseSelection}
+                  >
+                    Clear selection
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         )}
         {initiallyLoading ? (

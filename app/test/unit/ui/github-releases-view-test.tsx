@@ -712,6 +712,82 @@ describe('GitHub Releases view', () => {
     assert.ok(screen.getByText('0 selected'))
   })
 
+  it('toggles compact filter controls while preserving release rows in the DOM', async () => {
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    const toggle = await screen.findByRole('button', {
+      name: /Filters and selection/,
+    })
+    const panel = toggle.closest('.github-releases-list-panel')
+    assert.ok(panel)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(
+      toggle.getAttribute('aria-controls'),
+      'github-releases-compact-tools'
+    )
+    const compactStatus = within(toggle).getByText('1 shown · 0 selected')
+    assert.equal(compactStatus.getAttribute('aria-live'), 'polite')
+    assert.equal(compactStatus.getAttribute('aria-atomic'), 'true')
+    assert.equal(panel.classList.contains('compact-tools-expanded'), false)
+    assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
+
+    fireEvent.click(toggle)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true')
+    assert.equal(panel.classList.contains('compact-tools-expanded'), true)
+    assert.ok(screen.getByLabelText('Search loaded releases'))
+
+    fireEvent.click(toggle)
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(panel.classList.contains('compact-tools-expanded'), false)
+    assert.ok(screen.getByRole('button', { name: /Desktop Material 1\.0/ }))
+  })
+
+  it('formats local midnight with the zero-based 24-hour clock', async () => {
+    const localMidnight = new Date(2026, 6, 13, 0, 15, 0)
+    const midnightRelease = { ...draft, createdAt: localMidnight }
+    const store = fakeStore({
+      list: async () => ({
+        releases: [midnightRelease],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await screen.findByRole('button', { name: /Desktop Material 1\.0/ })
+    const timestamps = [
+      ...document.querySelectorAll(
+        `time[datetime="${localMidnight.toISOString()}"]`
+      ),
+    ]
+    assert.ok(timestamps.length > 0)
+    for (const timestamp of timestamps) {
+      assert.match(timestamp.textContent ?? '', /\b00:15\b/)
+      assert.doesNotMatch(timestamp.textContent ?? '', /\b24:15\b/)
+    }
+  })
+
   it('deletes an individual asset only after its destructive review', async () => {
     const deletedAssetIds = new Array<number>()
     const store = fakeStore({

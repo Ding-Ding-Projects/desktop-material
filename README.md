@@ -290,8 +290,11 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
   through Windows 11 x64 emulation and fails closed if it cannot start. See
   [Cheap LFS OCI registry storage](docs/features/repository-management/cheap-lfs-oci-registry-backend.md)
 - Automatic Cheap LFS preparation can run sequentially or with at most three
-  files uploading at once, shows per-file phases and bytes in a compact
-  terminal below Commit, and reports the selected-versus-recommended provider.
+  files uploading at once. It cheap-stats the complete reviewed selection
+  before content-proofing only oversized candidates, then shows per-file
+  phases/bytes, worker and queue state, provider context, elapsed time,
+  throughput, and ETA in a keyboard-accessible compact terminal below Commit.
+  The panel also reports the selected-versus-recommended provider.
   Failed raw
   files stay selected for retry while unrelated changes and successful pointers
   may commit. The Changes filter can isolate files over the same 100 MiB
@@ -301,7 +304,10 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
   Material automatically creates and pushes commits with a conservative 1.4 GB
   changed-blob budget plus bounded path/proof overhead. It proves each
   fast-forward remote tip before creating the next commit, retains a durable
-  retry checkpoint, and
+  retry checkpoint, and uses process-local no-delta/no-compression packing for
+  only the immutable exact-SHA batch push so CPU-bound packing cannot strand an
+  otherwise safe batch. Ordinary pushes and persistent Git configuration stay
+  unchanged. It
   safely rebuilds an individually oversized, linear, clean local-only commit
   from an older app behind a compare-and-swap backup ref. Safe older commits
   retain their exact objects; a rebuilt oversized commit preserves its reviewed
@@ -320,7 +326,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](HANDOFF.md).
 **Guided GitHub workflows**
 - Compose pull requests with repository templates and metadata, then inspect, update, review, close/reopen, or merge the exact reviewed pull request through a fail-closed lifecycle
 - Browse paginated Actions artifacts, download with bounded redirect and digest checks, and inspect the effective rules that apply to the current branch
-- Use the repository Releases dashboard to compare loaded, stable, prerelease, and draft counts; search and status-filter its wider, larger-target catalog; inspect authors, dates, targets, asset types, digests, and download totals; create reviewed releases publicly in one operation or save them as drafts; and keep bounded edit, publish, delete, upload, and download workflows. Browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
+- Use the repository Releases dashboard to compare loaded, stable, prerelease, and draft counts; search and status-filter its compact high-zoom catalog; inspect authors, locale-aware 24-hour timestamps, targets, asset types, digests, and download totals; open a verified downloaded file or show it in Explorer; create reviewed releases publicly in one operation or save them as drafts; and keep bounded edit, publish, delete, upload, and download workflows. Browse, search, filter, inspect, edit, comment on, close, or reopen Issues through repository/account-bound review state
 - Use the repository-contextual GitHub API functions surface, bound to the selected account and provider host, to run automatically added repository, issues, pull-request, release, and workflow actions as buttons; hide the API rail item when it is not needed, and reveal the full REST/GraphQL catalog only for advanced custom functions
 
 ### Responsiveness and resource lifecycle
@@ -378,9 +384,9 @@ automation, and account isolation. The diagrams are reproducible with
 | --- | --- |
 | <img src="docs/assets/screenshots/cheap-lfs-ui-acceptance.png" alt="Cheap LFS manager after a live private-repository UI pin with one verified pointer and its Materialize action" width="520"><br><sub>Public/private live GitHub · native picker · pushed pointer history</sub> | <img src="docs/assets/screenshots/cheap-lfs-cloud-compression.png" alt="Bilingual private-repository Cheap LFS manager with explicit cloud-compression consent and a compressed pointer row" width="520"><br><sub>Private opt-in · 99.9% smaller · local verified materialization</sub> |
 
-| Detailed Cheap LFS commit progress |
-| --- |
-| <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="720"><br><sub>Three bounded upload lanes · byte progress · large-file filter</sub> |
+| Detailed Cheap LFS commit progress | Compact Repository Releases at 200% |
+| --- | --- |
+| <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="520"><br><sub>Three lanes · queue/provider context · timing and ETA · keyboard disclosure</sub> | <img src="docs/assets/screenshots/material-github-releases-compact.png" alt="Repository Releases at 200% scale with a complete first row and compact keyboard-accessible tools" width="520"><br><sub>Complete list row · 24-hour time · compact tools</sub> |
 
 <!-- markdownlint-disable MD013 -->
 

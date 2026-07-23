@@ -150,7 +150,7 @@ The current maintenance additions in this section are implemented. Their exact
 production, headless, source-publication, and cleanup evidence remains centralized
 in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
-The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 75
+The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 76
 synthetic, user-facing visual functions and states associated with these subsystems. Each function
 owns one distinct tracked PNG; missing, duplicate, and unassigned assets fail the catalog contract.
 Keep captures free of personal paths, account identifiers, credentials, signed URLs, and unbounded
@@ -243,7 +243,11 @@ publication, release, or cleanup evidence.
   `app/src/lib/stores/pull-request-lifecycle-store.ts`; Releases and Issues use their dedicated
   stores under `app/src/lib/stores/` and views under `app/src/ui/github-releases/` and
   `app/src/ui/github-issues/`. Keep all writes account/repository/item/operation/payload-bound and
-  cap streamed API and asset responses before parsing or writing.
+  cap streamed API and asset responses before parsing or writing. The Releases view's combined
+  width/height compact mode must keep a complete row visible at the 200%-scaled CSS 480×330 gate,
+  expose filter/bulk controls through a native keyboard disclosure, restore focus to an enabled
+  target when a filter removes every row, render 24-hour `HH:mm` timestamps, and offer **Open file**
+  only for the current successfully verified download result.
 - **GitHub API Explorer and named functions** — `app/src/lib/github-api-operation-catalog.ts` owns
   the pinned REST catalog projection and `app/src/lib/github-api-workbench.ts` validates, assesses,
   bounds, and redacts requests and responses. `app/src/ui/github-api-explorer/` owns REST/GraphQL

@@ -1,5 +1,34 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-23 first-publication acceptance checkpoint
+
+The integrated Cheap LFS, ordinary-Git batching, responsive Repository
+Releases, and richer commit-progress source has completed final local
+first-publication acceptance. The exact unpackaged production build returned
+`0` after **400.46 seconds** (**404.3 seconds wall**) through the fixed Lowlevel
+MCP endpoint. Its `out/renderer.css` is 1,178,671 bytes with SHA-256
+`6381556b36c295ba47ad90e8080f4079cbc61951bd7811ab9cb9fc3520638cb1`.
+
+The current public-safe UI receipts are:
+
+| Surface | Dimensions | Bytes | SHA-256 | Acceptance |
+| --- | ---: | ---: | --- | --- |
+| Cheap LFS progress, English | 1440×960 | 113,869 | `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333` | All 36 named assertions passed, including `noBlockingDialog`; one real pointer selection settled the diff and all three worker rows are contained. |
+| Cheap LFS progress, bilingual | 640×960 | 85,175 | `1b99c827d1b5b2cf05298fb1255873acdf0502f72a40437c378c0be7bb989e50` | All 36 named assertions passed after one real pointer attempt; progress bottom y=942 remains inside panel bottom y=944, with no injected diagnostic style. |
+| Repository Releases, 200% zoom | 960×660 | 78,875 | `56991b51946a32740995168bd9f97f091b1d183f6df696a205556df6759bcb37` | The 480×330 CSS viewport contains one complete release row, `HH:mm` timestamps, and zero horizontal overflow. |
+
+The final combined changed-suite rerun passed **151/151**, with full TypeScript,
+changed-source ESLint, Prettier, and `git diff --check` also green.
+
+For the compact Releases scene, native Enter expanded the tools disclosure and
+proved the filters, bulk controls, release list, and pagination remain
+keyboard-reachable. Adding that compact screenshot brings the first-publication
+gallery source to **76** inspected images. These are local source/build/UI
+receipts: the coordinating task must still record the exact pushed source,
+CI/CodeQL/Pages/wiki and installer Release. The Bambu build repository's final
+live workflow/Action run and fresh-clone local materialization proof are also
+still pending and must not be inferred from this checkpoint.
+
 ## 2026-07-23 cross-lane automatic updater recovery
 
 Commits
@@ -43,10 +72,11 @@ receipt is in
 
 ## 2026-07-23 Cheap LFS registry storage and automatic push batching
 
-This continuation is implemented and locally build/UI accepted in the current
-worktree, but is not yet committed, pushed, or represented by a new installer
-Release. The coordinating task must still record exact remote receipts before
-publication is claimed.
+This continuation is integrated and locally build/UI accepted in the
+first-publication worktree. It is not yet represented by a pushed
+`origin/main` checkpoint or a new installer Release. The authoritative current
+local receipt is the checkpoint above; the coordinating task must still record
+exact remote receipts before publication is claimed.
 
 Cheap LFS commit preparation now keeps a compact terminal-style panel directly
 below Commit. It reports sanitized active paths, hashing/preparation/upload/
@@ -193,34 +223,52 @@ real failure and is never retried into a duplicate commit.
 
 Local acceptance is recorded in the
 [dated Cheap LFS commit-progress receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
-The exact worktree's unpackaged production build returned `0` after 1,466.27
-seconds through Lowlevel MCP. The promoted accepted frame is:
+The final exact worktree's unpackaged production build returned `0` after
+**400.46 seconds** (**404.3 seconds wall**) through Lowlevel MCP and produced
+`out/renderer.css` SHA-256
+`6381556b36c295ba47ad90e8080f4079cbc61951bd7811ab9cb9fc3520638cb1`.
+The current promoted accepted frame is:
 
 | Frame | Dimensions | Bytes | SHA-256 |
 | --- | ---: | ---: | --- |
-| `docs/assets/screenshots/cheap-lfs-commit-progress.png` | 1440×960 | 107,411 | `6d70fce553edcf54cef9bb806bc1d6f38bf8154a7ff2c859e236aba77afdb238` |
+| `docs/assets/screenshots/cheap-lfs-commit-progress.png` | 1440×960 | 113,869 | `3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333` |
 
-The wide English receipt passed **36/36** acceptance checks: **35/35** named
-surface assertions plus its deterministic one-pointer selection receipt. The
-640×960 bilingual attempt produced no capture or receipt: it failed closed
-because the renderer remained `visibilityState: hidden` after
-`Page.bringToFront`, leaving selection empty and no settled diff. Narrow
-acceptance is not claimed.
+The wide English receipt passed all **36/36** named assertions, including
+`noBlockingDialog`, plus its deterministic one-pointer selection receipt and
+contains all three worker rows. The final 640×960 bilingual receipt also passed
+all **36/36** named assertions after one real pointer attempt. Its 85,175-byte
+capture has SHA-256
+`1b99c827d1b5b2cf05298fb1255873acdf0502f72a40437c378c0be7bb989e50`,
+keeps the progress surface at y=942 inside the y=944 panel, and contains no
+injected diagnostic style. The earlier 1,466.27-second build, 107,411-byte wide
+frame, and visibility-hidden narrow failure remain in the dated receipt only as
+superseded interim evidence.
+
+The companion `material-github-releases-compact.png` proof passed at 200% zoom
+with a 480×330 CSS viewport. Its 960×660, 78,875-byte capture has SHA-256
+`56991b51946a32740995168bd9f97f091b1d183f6df696a205556df6759bcb37`.
+One complete 42-pixel row, 24-hour timestamps, and zero horizontal overflow are
+visible; native Enter expands the tools and keeps every filter, bulk control,
+the list, and pagination keyboard-reachable. The gallery source is now **76**
+images for this first publication.
 
 Release/OCI operations pass **80/80**, registry transport/runtime policy
 **77/77**, disposable-Git batching **117/117**, UI/settings/localization
-**157/157**, ORAS scripts **8/8**, the headless verifier contract **17/17**, and
+**157/157**, ORAS scripts **8/8**, the headless verifier contract **19/19**, and
 the compact commit-shell style contract **7/7**. The full Cheap LFS folder
 aggregate is deliberately reported as **261/262** because one wall-clock policy
 case exceeded its 2.5-second harness budget during concurrent heavy Git work;
 the isolated policy rerun passed **8/8**, including that same behavior.
 
-These are local receipts only. The tracked frame was promoted before the exact
-saved Electron PID, child processes, hidden desktop, CDP listener, and
-containment-checked temporary run root were all proved absent. Commit/push and
+These are local receipts only. The final acceptance app/process tree, provider
+child, hidden desktops, provider credential, CDP listeners, and validated owned
+temporary roots were all removed or proved absent. The separately retained
+installed-app Bambu environment remains intentionally live for its pending
+workflow and fresh-clone gate. Commit/push and
 remote ancestry, exact-source CI and CodeQL, Pages, synchronized wiki
 publication, and the uniquely tagged non-draft installer Release remain for
-the coordinating publication step.
+the coordinating publication step. The final live Bambu workflow/Action and
+fresh-clone materialization receipt also remains pending.
 
 ## 2026-07-22 Cheap LFS cloud compression implementation
 

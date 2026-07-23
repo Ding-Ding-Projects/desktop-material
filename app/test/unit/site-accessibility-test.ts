@@ -121,6 +121,7 @@ describe('Pages accessibility contracts', () => {
       'docs/assets/screenshots/material-command-palette-appearance.png',
       'docs/assets/screenshots/cheap-lfs-ui-acceptance.png',
       'docs/assets/screenshots/cheap-lfs-commit-progress.png',
+      'docs/assets/screenshots/material-github-releases-compact.png',
       'docs/assets/screenshots/material-history-context-actions.png',
       'docs/assets/screenshots/material-repository-tools-scroll.png',
       'docs/assets/screenshots/auto-updater-update-ready.png',
@@ -128,6 +129,25 @@ describe('Pages accessibility contracts', () => {
       assert.ok(markup.includes(`href="${source}"`))
       assert.ok(markup.includes(`src="${source}"`))
     }
+  })
+
+  it('publishes the compact Repository Releases keyboard and download evidence', () => {
+    const markup = read('site/index.html')
+    const source =
+      'docs/assets/screenshots/material-github-releases-compact.png'
+
+    assert.ok(markup.includes(`href="${source}"`))
+    assert.ok(markup.includes(`src="${source}"`))
+    assert.match(markup, /physical 960×660 acceptance capture/)
+    assert.match(markup, /CSS 480×330 viewport/)
+    assert.match(markup, /one complete release row/)
+    assert.match(markup, /native keyboard-operable\s+disclosure/)
+    assert.match(markup, /24-hour HH:mm timestamps/)
+    assert.match(markup, /Open file beside Show in folder/)
+    assert.match(
+      markup,
+      /zero-result selection restores focus to an enabled target/
+    )
   })
 
   it('visually distinguishes in-text section links without color alone', () => {
@@ -155,7 +175,7 @@ describe('Pages accessibility contracts', () => {
     ]
       .map(([, file]) => `docs/assets/screenshots/${file}`)
       .sort()
-    assert.equal(expectedSources.length, 75)
+    assert.equal(expectedSources.length, 76)
     assert.equal(figures.length, expectedSources.length)
 
     const actualSources = new Array<string>()

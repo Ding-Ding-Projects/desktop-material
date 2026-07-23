@@ -38,6 +38,14 @@ then repeats this strict sequence:
 3. prove the created commit is the remote branch tip and refresh the repository;
 4. only then create the next commit.
 
+The immutable batch push uses process-local `pack.window=0` and
+`pack.compression=0` overrides before the `push` subcommand. Disabling delta
+search and zlib work trades a larger wire pack for predictable completion of
+the already bounded batch. These overrides apply only to the automatic exact-
+SHA refspec; ordinary pushes and repository/global Git configuration are
+unchanged. Credentials, pre-push hooks, terminal callbacks, fast-forward rules,
+destination comparison, and the post-push exact-tip proof remain in force.
+
 After app-owned staging has prepared the exact index, but before `git commit`,
 the app stores the bounded path plan, exact pre-commit index/worktree trees,
 branch, base object, remote name, hash of the push URL, and destination ref in
@@ -184,6 +192,20 @@ repository `gc.auto` value is not mutated. Pending-push tests prove the exact
 recorded SHA is published even after the local branch advances, while hook
 rejection tests prove cleanup removes only the original unchanged intent and
 retains externally replaced durable state.
+The exact-push adapter test also asserts the complete process-local pack argv,
+fully qualified SHA refspec, remote environment, credential account key, and
+hook callbacks; a disposable bare-remote case proves the same path performs a
+real fast-forward push.
+
+The first live large-payload checkpoint used the public
+`codingmachineedge/bambu-build` repository. Desktop Material created and pushed
+8,305 payload paths in four ordered UI batches (`639d566b`, `8efaa6f9`,
+`93d72d61`, and `f58fd4c0`). The first ordinary packed push received HTTP 408;
+its exact pending SHA remained durable, and the retry succeeded with
+no-delta/no-compression packing scoped to that push process. The resulting
+remote `main` tip was proved after each batch. The related 14.8 GB inventory,
+timings, and still-pending cloud/fresh-clone gates are recorded in the
+[dated Bambu checkpoint](../../verification/cheap-lfs-bambu-build-2026-07-23.md).
 
 The final integration gate exercises the production Windows build and an owned
 disposable repository fixture headlessly. Verification never requires

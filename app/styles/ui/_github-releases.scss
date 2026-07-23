@@ -225,6 +225,14 @@
   }
 }
 
+.github-releases-compact-tools-toggle {
+  display: none;
+}
+
+.github-releases-compact-tools {
+  display: contents;
+}
+
 .github-releases-filter-area {
   display: grid;
   flex: 0 0 auto;
@@ -1296,6 +1304,241 @@
 
   .github-releases-list {
     min-height: 128px;
+  }
+}
+
+@media (max-width: 760px) and (max-height: 520px) {
+  .github-releases-view {
+    gap: 3px;
+    padding: 6px;
+  }
+
+  .github-releases-header {
+    min-height: 22px;
+    flex-wrap: nowrap;
+    gap: 3px 6px;
+
+    > div:first-child {
+      flex: 0 1 auto;
+    }
+
+    h1 {
+      font-size: 14px;
+      line-height: 1.1;
+      white-space: nowrap;
+    }
+
+    p {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      border: 0;
+      white-space: nowrap;
+    }
+  }
+
+  .github-releases-header-actions {
+    width: auto;
+    flex: 1 1 auto;
+    flex-wrap: nowrap;
+    gap: 3px;
+    justify-content: flex-end;
+
+    .button-component {
+      min-height: 22px;
+      flex: 0 0 auto;
+      padding-inline: 6px;
+      font-size: 8px;
+    }
+  }
+
+  .github-releases-account {
+    width: auto;
+    max-width: 92px;
+    font-size: 8px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .github-releases-overview {
+    order: 2;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 2px;
+  }
+
+  .github-release-metric,
+  .github-release-metric.latest {
+    min-height: 30px;
+    grid-column: auto;
+    gap: 1px;
+    padding: 2px 3px;
+    border-radius: 8px;
+
+    > span {
+      overflow: hidden;
+      font-size: 7px;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    > strong {
+      overflow: hidden;
+      font-size: 10px;
+      line-height: 1;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    > small {
+      display: none;
+    }
+  }
+
+  .github-releases-layout {
+    display: contents;
+  }
+
+  .github-releases-list-panel {
+    min-height: 140px;
+    height: 140px;
+    max-height: 140px;
+    flex: 0 0 140px;
+    order: 1;
+    padding: 5px;
+    border-radius: 12px;
+  }
+
+  .github-releases-panel-heading {
+    flex-wrap: nowrap;
+    gap: 3px;
+    margin-bottom: 3px;
+
+    h2,
+    h3 {
+      font-size: 12px;
+      line-height: 1.05;
+      white-space: nowrap;
+    }
+
+    span {
+      font-size: 8px;
+      line-height: 1;
+    }
+
+    .button-component {
+      min-height: 22px;
+      flex: 0 0 auto;
+      padding-inline: 6px;
+      font-size: 8px;
+    }
+  }
+
+  .github-releases-compact-tools-toggle {
+    display: flex;
+    min-height: 22px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    margin: 0 0 3px;
+    padding: 3px 6px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 8px;
+    color: var(--md-sys-color-on-surface);
+    background: var(--md-sys-color-surface-container);
+    font: inherit;
+    font-size: 8px;
+    cursor: pointer;
+
+    > span:last-child {
+      color: var(--md-sys-color-on-surface-variant);
+      white-space: nowrap;
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  .github-releases-compact-tools {
+    display: none;
+  }
+
+  .github-releases-list-panel.compact-tools-expanded .github-releases-compact-tools {
+    display: block;
+  }
+
+  .github-releases-list-panel.compact-tools-expanded {
+    min-height: 280px;
+    height: auto;
+    max-height: none;
+    flex-basis: auto;
+    overflow-y: visible;
+  }
+
+  .github-releases-list {
+    min-height: 42px;
+    gap: 3px;
+  }
+
+  .github-release-row-shell {
+    gap: 3px;
+  }
+
+  .github-release-row-checkbox {
+    width: 24px;
+    height: 24px;
+  }
+
+  .github-release-row {
+    min-height: 42px;
+    gap: 2px 4px;
+    padding: 4px 6px;
+  }
+
+  .github-release-row-title {
+    font-size: 10px;
+  }
+
+  .github-release-row-tag,
+  .github-release-row-state,
+  .github-release-row-date {
+    font-size: 8px;
+  }
+
+  .github-release-row-state,
+  .github-release-latest-badge {
+    padding: 1px 3px;
+    font-size: 7px;
+  }
+
+  .github-releases-pagination {
+    gap: 3px;
+    margin-top: 3px;
+
+    .button-component {
+      min-height: 22px;
+      padding-inline: 6px;
+      font-size: 8px;
+    }
+
+    span {
+      font-size: 8px;
+    }
+  }
+
+  .github-release-detail,
+  .github-release-editor,
+  .github-releases-empty {
+    min-height: 280px;
+    order: 3;
   }
 }
 

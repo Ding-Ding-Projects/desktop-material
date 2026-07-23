@@ -106,4 +106,31 @@ describe('GitHub Releases responsive Material styles', () => {
       /@media \(max-height: 760px\)[\s\S]*?\.github-releases-overview \{[\s\S]*?overflow-x:\s*auto;/
     )
   })
+
+  it('keeps a complete release row above the fold at narrow 200% zoom', () => {
+    assert.match(
+      styles,
+      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-view \{[\s\S]*?gap:\s*3px;[\s\S]*?padding:\s*6px;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-overview \{[\s\S]*?grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\);/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*none;[\s\S]*?\.compact-tools-expanded[\s\S]*?\.github-releases-compact-tools \{\s*display:\s*block;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-list-panel\.compact-tools-expanded \{[\s\S]*?min-height:\s*280px;[\s\S]*?height:\s*auto;[\s\S]*?overflow-y:\s*visible;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-layout \{\s*display:\s*contents;[\s\S]*?\.github-releases-list-panel \{[\s\S]*?height:\s*140px;[\s\S]*?order:\s*1;/
+    )
+    assert.match(
+      styles,
+      /@media \(max-width: 760px\) and \(max-height: 520px\)[\s\S]*?\.github-releases-list \{[\s\S]*?min-height:\s*42px;[\s\S]*?\.github-release-row \{[\s\S]*?min-height:\s*42px;/
+    )
+  })
 })

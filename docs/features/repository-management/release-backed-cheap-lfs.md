@@ -82,13 +82,17 @@ bound to the originating repository so switching repositories during a private
 opt-in cannot apply that consent elsewhere.
 
 The caller pins both `actions/checkout` and Desktop Material's reviewed
-composite compressor to immutable commit SHAs. One GitHub-hosted job downloads
-release objects directly, compresses them sequentially with raw DEFLATE level
-9, and uploads verified side assets directly back to the Release. It does not
-use Actions artifacts or caches, and it removes its temporary raw and
-compressed files before moving to the next object. This one-object-at-a-time
-working set avoids combining multi-gigabyte parts under the smaller Actions
-artifact/storage limits.
+composite compressor to immutable commit SHAs. Checkout materializes only
+`.github`; the worker then refetches the exact event commit with an exclusive
+512 KiB blob limit, inventories regular tree entries without lazy fetching, and
+reads only locally present pointer-sized blobs. Ordinary build blobs therefore
+remain promised and absent even in a multi-gigabyte repository. One
+GitHub-hosted job downloads release objects directly, compresses them
+sequentially with raw DEFLATE level 9, and uploads verified side assets directly
+back to the Release. It does not use Actions artifacts or caches, and it removes
+its temporary raw and compressed files before moving to the next object. This
+one-object-at-a-time working set avoids combining multi-gigabyte parts under the
+smaller Actions artifact/storage limits.
 
 Compression is adopted only when the stored result is strictly smaller. After
 the side asset's size and SHA-256 are verified, the job changes exactly one
@@ -97,7 +101,13 @@ pointer object to the existing v1
 record, commits that pointer alone, and pushes it with `[skip ci]`. A multipart
 pointer can therefore be mixed: successful parts become `part-deflate`, while
 failed or non-beneficial parts remain ordinary `part` records. The original raw
-assets are never deleted because older commits can still reference them.
+assets are never deleted because older commits can still reference them. Pointer
+adoption uses a temporary full-tree index, proves exactly one path changed,
+rechecks the current remote parent, and performs an ordinary fast-forward push.
+After each successful pointer commit, every queued pointer is re-proved at the
+new tree before the next object begins. A verified compressed side asset is
+also retained if a later compare-and-swap check loses a race; another run can
+reuse it safely, while the unchanged raw pointer remains cloneable.
 
 GitHub Actions only compresses. It never decompresses or decides that expanded
 bytes are valid. Desktop Material downloads a compressed object to an owned
@@ -130,7 +140,12 @@ default for compatibility:
 
 - **Pin large files before committing** replaces selected files strictly over
   100 MiB before every routed commit entry point when the source repository's
-  identity/visibility and the chosen backend credentials are available.
+  identity/visibility and the chosen backend credentials are available. The
+  selector first stats every reviewed path, skips ordinary and exact-threshold
+  files without hashing or tracked-content proof, then requires the same exact
+  repository/path-bound destination proof for every oversized candidate. This
+  keeps very large selections responsive without weakening large-file source
+  validation.
 - **Upload up to three large files at once** assigns automatic pins to three
   deterministic Release lanes. Turning it off restores one-at-a-time uploads.
 - **Download large files after cloning** materializes detected pointers after
@@ -156,10 +171,20 @@ verification phases. With parallel upload enabled it runs at most three stable
 lanes (`assets`, `assets-parallel-2`, and `assets-parallel-3`), while each lane
 still mutates its reviewed Release sequentially. The commit composer keeps a
 compact terminal-style panel directly below Commit with up to three sanitized
-active-file rows, per-file phase and bytes, aggregate transferred bytes, and
-success/failure counts. It never renders raw provider or process output.
+active-file rows, per-file phase and bytes, worker/queue/provider context,
+elapsed time, renderer-observed throughput and ETA, aggregate transferred
+bytes, and success/failure counts. Long storage recommendations use a native,
+keyboard-focusable disclosure. It never renders raw provider or process output.
 
 ![Bilingual Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit](../../assets/screenshots/cheap-lfs-commit-progress.png)
+
+The first-publication UI gate rebuilt the production bundle in 400.46 seconds
+and exercised this surface on an isolated off-screen Win32 desktop without
+diagnostic style injection. The promoted 1,440 x 960 wide capture has SHA-256
+`3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333`.
+A separate 640 x 960 bilingual narrow capture kept all three worker rows and
+both actions contained; its SHA-256 is
+`1b99c827d1b5b2cf05298fb1255873acdf0502f72a40437c378c0be7bb989e50`.
 
 After the workers settle, Desktop Material reloads status and stages successful
 pointers rather than original binaries. A failed raw file is excluded from the
@@ -463,6 +488,7 @@ cleanup observations are in the record:
 - [Cheap LFS public/private GitHub and UI acceptance — 2026-07-22](../../verification/cheap-lfs-github-public-private-2026-07-22.md)
 - [Cheap LFS cloud compression acceptance — 2026-07-22](../../verification/cheap-lfs-cloud-compression-2026-07-22.md)
 - [Cheap LFS commit progress and push batching — 2026-07-23](../../verification/cheap-lfs-commit-progress-2026-07-23.md)
+- [14.8 GB Bambu build UI and batching checkpoint — 2026-07-23](../../verification/cheap-lfs-bambu-build-2026-07-23.md)
 
 ### Live cloud-compression acceptance — 2026-07-22
 

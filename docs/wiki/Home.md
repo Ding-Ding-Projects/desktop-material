@@ -83,7 +83,7 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 75 named visual scenes, with automated missing/duplicate coverage checks. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 76 named visual scenes, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
@@ -187,9 +187,16 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Release gates** — the manual Super Express lane now runs the complete unit and script suites
   before its Windows x64 build/package while continuing to skip lint, E2E, and history-generated
   notes. Release pull requests target the Windows product's `main` default branch.
+- **Compact Repository Releases** — at the combined small-width/short-height gate, the list stays
+  ahead of overview/detail content and retains one complete row. A physical 960×660 acceptance
+  frame maps to the 200%-scaled CSS 480×330 viewport; filter and bulk tools use a native
+  keyboard-operable disclosure, dates use 24-hour `HH:mm`, verified downloads expose **Open file**
+  beside **Show in folder**, and a zero-result selection clear returns focus to an enabled target.
 - **Agent access** — opt in from Settings to start a token-gated MCP/REST server on a random
   loopback-only port. A stdio proxy and command-line client expose the same bounded commands for
   repositories, tabs, Git operations, automation, and workflow dispatch.
+
+![Compact Repository Releases at 200 percent scale with one complete row and keyboard-reachable filter and selection tools](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases-compact.png)
 
 ### Adaptive customization and navigation maintenance
 

@@ -241,6 +241,26 @@ test('CLI-open review is accepted only through the scoped off-screen dialog', ()
   assert.match(source, /await acceptCliOpenReview\(\)/)
 })
 
+test('paused clone work cannot obscure a passing Cheap LFS capture', () => {
+  assert.match(source, /getElementById\('batch-clone-progress'\)/)
+  assert.match(
+    source,
+    /querySelector\('\.dialog-footer button\[type="submit"\]'\)/
+  )
+  assert.match(
+    source,
+    /await dismissPausedCloneQueueDialog\(\)[\s\S]*?await showChanges\(\)[\s\S]*?await hydrateAppState\([\s\S]*?await dismissPausedCloneQueueDialog\(\)/
+  )
+  assert.match(source, /noBlockingDialog:\s*blockingDialogs\.length === 0/)
+})
+
+test('large-file pointer retries are bounded and leave diagnostic receipts', () => {
+  assert.match(source, /while \(pointerAttempts < 3 && !selectionSettled\)/)
+  assert.match(source, /pointerFailureReceipts\.push/)
+  assert.match(source, /pointerAttempts,/)
+  assert.match(source, /did not settle after 3 pointer attempts/)
+})
+
 test('large-file filter gate relies on state hydration and the visible active chip', () => {
   assert.match(source, /candidateCount === \$\{FixtureFiles\.length\}/)
   assert.doesNotMatch(source, /\.changes-list-container/)

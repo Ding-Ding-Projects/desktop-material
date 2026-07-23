@@ -152,11 +152,12 @@
 
       .cheap-lfs-mini-terminal-body {
         display: grid;
-        gap: 5px;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 4px;
         max-height: min(180px, 32vh);
         overflow-y: auto;
         overscroll-behavior: contain;
-        padding: 7px 8px 8px;
+        padding: 6px 8px 7px;
       }
 
       .cheap-lfs-terminal-command,
@@ -177,7 +178,7 @@
         min-width: 0;
         flex-wrap: wrap;
         gap: 3px 9px;
-        padding: 4px 6px;
+        padding: 3px 6px;
         border-radius: 7px;
         background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 7%, transparent);
         font-size: 10px;
@@ -238,15 +239,20 @@
 
       .cheap-lfs-terminal-active-files {
         display: grid;
-        gap: 3px;
+        width: 100%;
+        min-width: 0;
+        gap: 2px;
       }
 
       .cheap-lfs-terminal-active-file {
         display: flex;
+        width: 100%;
+        max-width: 100%;
         align-items: center;
-        gap: 7px;
+        gap: 6px;
         min-width: 0;
-        padding: 4px 5px;
+        overflow: hidden;
+        padding: 2px 4px;
         border-radius: 7px;
         background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 7%, transparent);
       }
@@ -265,7 +271,13 @@
 
       .cheap-lfs-terminal-active-main {
         display: grid;
+        width: 0;
+        max-width: 100%;
         min-width: 0;
+        flex: 1 1 0;
+        gap: 0;
+        overflow: hidden;
+        line-height: 1.1;
       }
 
       .cheap-lfs-terminal-percentage {
@@ -303,6 +315,10 @@
       // progressbar's accessible value; the mini-terminal uses compact,
       // ellipsized rows instead of growing past the sidebar viewport.
       @container (max-width: 220px) {
+        .cheap-lfs-mini-terminal-body {
+          gap: 2px;
+        }
+
         .cheap-lfs-terminal-command {
           flex-wrap: nowrap;
         }
@@ -317,24 +333,26 @@
         }
 
         .cheap-lfs-terminal-details {
-          display: grid;
-          grid-template-columns: minmax(0, 1fr) auto;
+          display: flex;
+          flex-wrap: nowrap;
           gap: 2px 4px;
-
-          > span:first-child {
-            grid-column: 1 / -1;
-          }
         }
 
         .cheap-lfs-terminal-percentage {
-          grid-column: 2;
-          grid-row: 2;
-          margin-left: 0;
+          margin-left: auto;
         }
 
         .cheap-lfs-terminal-facts {
-          display: grid;
-          gap: 2px;
+          display: flex;
+          flex-wrap: nowrap;
+          gap: 4px;
+
+          > span {
+            flex: 1 1 0;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
         }
       }
 
@@ -963,5 +981,38 @@
   .description-field textarea {
     min-height: 0;
     height: 46px;
+  }
+}
+
+@media (max-width: 640px) {
+  .commit-message-component,
+  .commit-message-component.with-action-bar {
+    gap: 6px;
+    margin: 0 8px 8px;
+    padding: 8px;
+    border-radius: 14px;
+
+    .summary .summary-field input,
+    .description-focus-container textarea,
+    .description-field textarea {
+      height: 38px;
+    }
+
+    .commit-button {
+      min-height: 40px;
+      height: 40px;
+    }
+
+    .commit-progress.cheap-lfs-progress {
+      gap: 4px;
+
+      button.cheap-lfs-action {
+        min-width: 0;
+        flex: 1 1 70px;
+        padding-inline: 4px;
+        font-size: 9px;
+        line-height: 1.1;
+      }
+    }
   }
 }

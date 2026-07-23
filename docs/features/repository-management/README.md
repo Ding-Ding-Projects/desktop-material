@@ -52,7 +52,10 @@ Material is displaying or how a repository is represented in the application.
   opt-in), publish new storage as prereleases, migrate exact legacy drafts in
   place, restore explicitly public GitHub.com assets while signed out, fail
   safely at bounded capacity limits, and restore and verify raw or mixed
-  objects locally while decompressing only `part-deflate` objects.
+  objects locally while decompressing only `part-deflate` objects. Automatic
+  preparation exposes up to three bounded worker lanes with queue, provider,
+  phase, byte, elapsed-time, throughput, and ETA context plus a
+  keyboard-accessible storage-recommendation disclosure.
 - [Cheap LFS OCI registry
   backend](cheap-lfs-oci-registry-backend.md) — store the repository object set
   as one logical GHCR or Docker Hub image, reuse unchanged layers across
@@ -69,7 +72,12 @@ Material is displaying or how a repository is represented in the application.
   next commit, and safely recover oversized local-only history created by older
   app versions without force-pushing. Each app-owned commit disables auto-GC
   only for that process and accepts a reported late maintenance failure only
-  after proving the exact HEAD transition.
+  after proving the exact HEAD transition. Immutable automatic batches use
+  process-local no-delta/no-compression packing to avoid CPU-bound HTTP
+  timeouts without changing ordinary pushes or persistent Git configuration.
+  A live 8,305-file public Bambu build checkpoint proved four UI-created,
+  exact-SHA-pushed batches after preserving and retrying an HTTP 408 pending
+  commit; cloud and fresh-clone acceptance remain separately gated.
 - [Parent-folder repository
   discovery](parent-folder-repository-discovery.md) — preview and register a
   bounded, link-safe set of working trees below one selected folder.

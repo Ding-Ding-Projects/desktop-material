@@ -65,7 +65,7 @@ describe('compact shell style contracts', () => {
     )
     assert.match(
       commitMessage,
-      /@container \(max-width: 220px\)[\s\S]*?\.cheap-lfs-terminal-active-detail,[\s\S]*?text-overflow: ellipsis;[\s\S]*?\.cheap-lfs-terminal-details\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\) auto;/
+      /@container \(max-width: 220px\)[\s\S]*?\.cheap-lfs-mini-terminal-body\s*\{[\s\S]*?gap: 2px;[\s\S]*?\.cheap-lfs-terminal-active-detail,[\s\S]*?text-overflow: ellipsis;[\s\S]*?\.cheap-lfs-terminal-details\s*\{[\s\S]*?display: flex;[\s\S]*?flex-wrap: nowrap;/
     )
     assert.match(
       commitMessage,
@@ -81,6 +81,14 @@ describe('compact shell style contracts', () => {
     )
     assert.match(
       commitMessage,
+      /\.cheap-lfs-mini-terminal-body\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);[\s\S]*?gap: 4px;[\s\S]*?padding: 6px 8px 7px;/
+    )
+    assert.match(
+      commitMessage,
+      /\.cheap-lfs-terminal-active-files\s*\{[\s\S]*?width: 100%;[\s\S]*?min-width: 0;[\s\S]*?gap: 2px;[\s\S]*?\.cheap-lfs-terminal-active-file\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow: hidden;[\s\S]*?padding: 2px 4px;[\s\S]*?\.cheap-lfs-terminal-active-main\s*\{[\s\S]*?width: 0;[\s\S]*?flex: 1 1 0;[\s\S]*?overflow: hidden;[\s\S]*?line-height: 1\.1;/
+    )
+    assert.match(
+      commitMessage,
       /\.cheap-lfs-terminal-recommendation\s*\{[\s\S]*?> summary[\s\S]*?> span[\s\S]*?-webkit-line-clamp: 2;[\s\S]*?&:focus-visible[\s\S]*?outline:/
     )
     assert.match(
@@ -89,7 +97,11 @@ describe('compact shell style contracts', () => {
     )
     assert.match(
       commitMessage,
-      /@container \(max-width: 220px\)[\s\S]*?\.cheap-lfs-terminal-facts\s*\{[\s\S]*?display: grid;/
+      /@container \(max-width: 220px\)[\s\S]*?\.cheap-lfs-terminal-facts\s*\{[\s\S]*?display: flex;[\s\S]*?flex-wrap: nowrap;[\s\S]*?> span\s*\{[\s\S]*?text-overflow: ellipsis;[\s\S]*?white-space: nowrap;/
+    )
+    assert.match(
+      commitMessage,
+      /@media \(max-width: 640px\)[\s\S]*?\.commit-message-component,\s*\.commit-message-component\.with-action-bar\s*\{[\s\S]*?gap: 6px;[\s\S]*?padding: 8px;[\s\S]*?\.commit-button\s*\{[\s\S]*?height: 40px;[\s\S]*?button\.cheap-lfs-action\s*\{[\s\S]*?flex: 1 1 70px;/
     )
     assert.match(
       commitMessage,

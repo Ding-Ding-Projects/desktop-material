@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 75 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 76 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the one purpose-built live Cheap LFS acceptance repository. No personal path,
@@ -30,9 +30,11 @@ contract rejects missing, duplicate, or unassigned assets.
 > editor, and the inspected live raw Cheap LFS UI result. The cloud-compression continuation adds
 > the accepted bilingual private-opt-in and compressed-pointer frame after live public
 > automatic/private explicit Actions runs and local restores. The July 23 registry-storage,
-> commit-progress, and automatic push-batching continuation is implemented in the current source;
-> its exact final headless, source CI, Pages, wiki, Release, and Git-cleanup publication receipts
-> remain pending.
+> commit-progress, automatic push-batching, and compact Repository Releases continuation is
+> implemented in the current source. Its inspected Releases evidence is a physical 960×660 capture
+> of the 200%-scaled CSS 480×330 viewport, with one complete release row retained;
+> its exact final headless build and UI receipts are complete, while source CI, Pages, wiki,
+> Release, and Git-cleanup publication receipts remain pending.
 > Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
@@ -81,7 +83,7 @@ active profile's style, label, and explicit language mode.
 | `material-command-palette-appearance.png` | Rich command results beside the fully visible density and row-content appearance editor |
 | `cheap-lfs-ui-acceptance.png` | Live private-repository Cheap LFS pin result with the verified pointer and Materialize action |
 | `cheap-lfs-cloud-compression.png` | Bilingual private opt-in with the managed cloud workflow ready and a verified compressed pointer |
-| `cheap-lfs-commit-progress.png` | Three-lane Cheap LFS commit terminal with the large-file filter |
+| `cheap-lfs-commit-progress.png` | Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context |
 | `material-actions-cancel.png` | Exact workflow-run cancellation review with ref, actor, and commit context |
 | `material-rebase-review.png` | Reviewed current→target rebase with ahead/behind state and commit preview |
 | `material-pull-preview.png` | Freshly fetched ordinary pull review bound to one exact upstream OID |
@@ -105,6 +107,7 @@ active profile's style, label, and explicit language mode.
 | `material-actions-artifacts-headless.png` | Headless bounded artifact inventory |
 | `material-actions-sentinel-headless.png` | Headless wrapped sentinel evidence with no clipping |
 | `material-github-releases.png` | Repository-bound Releases dashboard, status summary, metadata, and assets |
+| `material-github-releases-compact.png` | 200%-scaled compact Releases catalog with one complete row and keyboard-reachable tools |
 | `material-github-issues.png` | Issue detail, comments, and reviewed lifecycle controls |
 | `material-provider-triage.png` | Account- and repository-bound provider triage |
 | `material-repository-tools.png` | Named Repository Tools administration hub |
@@ -200,10 +203,14 @@ it fits the release limit, and use ordered raw ranges when it does not. Public
 repositories can then cloud-compress each Release object sequentially through a
 SHA-pinned Action; private repositories require explicit opt-in. Failed and
 non-beneficial objects stay raw and cloneable, while decompression and full
-digest verification always happen locally in Desktop Material. The
-composer names hashing, release preparation, upload progress, and verification
+digest verification always happen locally in Desktop Material. The composer
+names hashing, release preparation, upload progress, and verification
 separately, then reserves **Committing to _branch_** for the small pointer
-commit. An isolated trusted GitHub CLI exact-range transport runs first so the
+commit. Its compact terminal keeps three worker rows visible while reporting
+active workers, queued files, selected and recommended providers with the
+recommendation reason, observed elapsed time, throughput, ETA, and honest manual
+handoff phases. Long recommendations use a native keyboard-focusable disclosure.
+An isolated trusted GitHub CLI exact-range transport runs first so the
 crash-prone Electron upload pipe is not opened when `gh` is available; its
 bounded reconciliation scans the full asset inventory
 once and then polls only one exact asset ID. The adjacent **Manual upload**
@@ -224,7 +231,7 @@ is labeled Raw, Compressed, or Mixed.
 
 ![Bilingual private-repository cloud-compression opt-in with a verified compressed pointer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
 
-![Three-lane Cheap LFS commit terminal with the large-file filter](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
+![Three-worker Cheap LFS terminal showing the queue, provider recommendation, timing, ETA, manual controls, and large-file filter](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
 
 Every repository bucket is bounded to GitHub's 1,000-asset Release limit.
 Whole multipart files and whole manual batches roll together from `assets` to
@@ -332,6 +339,17 @@ recovery.
 ![Native pull-request completion state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-create-pull-request.png)
 
 ![Repository-bound Releases dashboard with status summary, selected metadata, and assets](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
+
+At the combined small-width and short-height gate, Repository Releases compacts
+its header and metrics, moves the list ahead of overview/detail content, and
+keeps one complete release row visible. The accepted physical 960×660 capture
+maps to a CSS 480×330 viewport at 200% scale. **Filters and selection** becomes
+a native keyboard-operable disclosure; release rows use 24-hour `HH:mm`
+timestamps; a verified download offers **Open file** beside **Show in folder**;
+and clearing a selection after a zero-result filter returns focus to an enabled
+fallback instead of a disabled select-all control.
+
+![Compact Repository Releases at 200 percent scale with one complete row and the keyboard-reachable Filters and selection disclosure](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases-compact.png)
 
 ![Issue detail, comments, and reviewed lifecycle controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-issues.png)
 

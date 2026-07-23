@@ -35,7 +35,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 75-scene visual index: every
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 76-scene visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
@@ -936,15 +936,18 @@ the app keeps the commit and warns once instead of duplicating it.
 When a selected file is larger than GitHub's ordinary 100 MiB object limit and
 the configured **Cheap LFS** backend is available, every commit entry point
 prepares it before invoking Git. The compact terminal below Commit reports up to
-three sanitized active-file rows, hashing/preparation/upload/verification
-phases, per-file and aggregate bytes, and success/failure counts; 100% appears
-only after the provider accepts and the app verifies the object. A setting under
+three sanitized worker rows, active and queued counts, hashing/preparation/upload/verification
+phases, selected/recommended providers and the recommendation reason, per-file
+and aggregate bytes, observed elapsed time, renderer-measured throughput and ETA,
+honest manual-handoff phases, and success/failure counts. Long recommendations
+use a native keyboard-focusable disclosure; 100% appears only after the provider
+accepts and the app verifies the object. A setting under
 **Repository settings → Build & Run** switches between sequential operation
 and at most three transfers. A failed raw file stays selected for the next try,
 while unrelated safe changes and successful pointers can commit. Use the
 **Large files** Changes filter to isolate files over the same threshold.
 
-![Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
+![Changes sidebar with the Large files filter and a three-worker Cheap LFS terminal showing queue, provider, reason, timing, ETA, and manual controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
 
 The same settings page chooses **GitHub published prerelease**, **GHCR · one
 OCI image**, or **Docker Hub · one OCI image**. The terminal recommends
@@ -1316,23 +1319,32 @@ Open **Releases** from the repository rail to work with the selected GitHub repo
 losing its account context. The dashboard summarizes the releases currently loaded, including
 stable, prerelease, and draft counts, combined asset/download totals, and the latest stable release.
 The desktop catalog uses a wider 420–560 px pane and larger rows and controls; below 900 px it
-stacks above the detail pane instead of squeezing text.
+stacks above the detail pane instead of squeezing text. At the combined small-width and
+short-height gate, the header and metrics compact, the list moves ahead of overview/detail
+content, and one complete release row stays visible even in a CSS 480×330 viewport at 200% scale.
 
 - Search the loaded catalog with fuzzy, substring, or regular-expression matching, optionally
   case-sensitive, and combine it with the **Published**, **Pre-release**, or **Draft** status filter.
   The result count always says how many loaded releases are shown; **Load more releases** expands the
-  catalog before filtering when GitHub reports another bounded page.
+  catalog before filtering when GitHub reports another bounded page. In the compact gate,
+  **Filters and selection** is a native keyboard-operable disclosure. Clearing a selection after a
+  filter produces zero results returns focus to an enabled fallback rather than disabled select-all.
 - Select a release to inspect its status, author, tag, target branch or commit, creation and publish
-  times, notes, asset count, and total downloads. Open the exact provider release page when GitHub
-  supplies a validated repository URL.
+  times, notes, asset count, and total downloads. Row timestamps use unambiguous 24-hour `HH:mm`
+  time. Open the exact provider release page when GitHub supplies a validated repository URL.
 - Asset cards show file type, size, upload dates, download count, and digest when available. Existing
   guarded actions still create or edit drafts, publish or delete a reviewed release, upload or delete
-  an asset, and download an asset through bounded transfer and integrity checks.
+  an asset, and download an asset through bounded transfer and integrity checks. Only after the
+  verified download completes, **Open file** appears beside **Show in folder**.
 - Initial loading, asset loading, no-releases, no-filter-match, invalid-regex, and provider-error states
   remain distinct. A failed release or asset request names the failed operation and retries that same
   scope without discarding already loaded data.
 
 ![Releases dashboard with status summary, searchable catalog, selected metadata, and assets](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases.png)
+
+The compact acceptance image is a physical 960×660 capture of that CSS 480×330 viewport.
+
+![Compact Repository Releases at 200 percent scale with one complete row and the keyboard-reachable Filters and selection disclosure](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases-compact.png)
 
 ---
 

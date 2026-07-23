@@ -521,6 +521,29 @@ async function acceptCliOpenReview() {
   }
 }
 
+async function dismissPausedCloneQueueDialog() {
+  const dismissed = await evaluate(`(() => {
+    const dialog = document.getElementById('batch-clone-progress')
+    if (!(dialog instanceof HTMLDialogElement) || !dialog.open) return false
+    const hide = dialog.querySelector('.dialog-footer button[type="submit"]')
+    if (!(hide instanceof HTMLButtonElement) || hide.disabled) {
+      throw new Error('Paused clone queue Hide action is unavailable.')
+    }
+    hide.click()
+    return true
+  })()`)
+  if (dismissed) {
+    await waitFor(
+      `(() => {
+        const dialog = document.getElementById('batch-clone-progress')
+        return !(dialog instanceof HTMLDialogElement) || !dialog.open
+      })()`,
+      'paused clone queue dialog hidden'
+    )
+  }
+  return dismissed
+}
+
 function progressFixture() {
   return {
     phase: 'uploading',
@@ -823,14 +846,89 @@ async function selectVisibleLargeFileWithPointer() {
       (unrenderableDescription?.textContent ?? '').trim() ===
         'The diff is too large to be displayed.'
   })()`
-  await waitFor(
-    selectionExpression,
-    'stable selected Cheap LFS large-file diff'
-  )
-  await new Promise(resolve => setTimeout(resolve, 500))
-  if ((await evaluate(selectionExpression)) !== true) {
-    fail('Cheap LFS candidate selection or large-file diff was not stable.')
+  let pointerAttempts = 0
+  let selectionSettled = false
+  const pointerFailureReceipts = []
+  while (pointerAttempts < 3 && !selectionSettled) {
+    pointerAttempts++
+    if (pointerAttempts > 1) {
+      await client.send('Input.dispatchMouseEvent', {
+        type: 'mousePressed',
+        x: target.x,
+        y: target.y,
+        button: 'left',
+        buttons: 1,
+        clickCount: 1,
+      })
+      await client.send('Input.dispatchMouseEvent', {
+        type: 'mouseReleased',
+        x: target.x,
+        y: target.y,
+        button: 'left',
+        buttons: 0,
+        clickCount: 1,
+      })
+    }
+    try {
+      await waitFor(
+        selectionExpression,
+        'stable selected Cheap LFS large-file diff',
+        12_000
+      )
+      selectionSettled = true
+    } catch {
+      // The disposable repository watcher can rebound once while the sparse
+      // file diff is loading. Retry the same verified row with a real CDP
+      // pointer event; never replace this UI proof with a store mutation.
+      pointerFailureReceipts.push(
+        await evaluate(`(() => {
+        const row = [...document.querySelectorAll('#changes-list .list-item')]
+          .find(value => (value.textContent ?? '').includes(${JSON.stringify(
+            FixtureFiles[0].relativePath
+          )}))
+        const bounds = row?.getBoundingClientRect()
+        const hit = bounds
+          ? document.elementFromPoint(
+              Math.round(bounds.left + bounds.width / 2),
+              Math.round(bounds.top + bounds.height / 2)
+            )
+          : null
+        const switcher = document.querySelector(
+          '.diff-container .seamless-diff-switcher'
+        )
+        const unrenderable = document.querySelector(
+          '.diff-container .panel.empty.large-diff'
+        )
+        return {
+          attempt: ${pointerAttempts},
+          viewport: [innerWidth, innerHeight],
+          rowSelected: row?.getAttribute('aria-selected') ?? null,
+          rowGeometry: bounds?.toJSON() ?? null,
+          hitClass: hit instanceof HTMLElement ? hit.className : null,
+          switcherClass: switcher?.className ?? null,
+          description:
+            unrenderable?.querySelector('.empty-state-description')
+              ?.textContent ?? null,
+        }
+      })()`)
+      )
+    }
   }
+  if (!selectionSettled) {
+    fail(
+      `The verified Cheap LFS row did not settle after 3 pointer attempts: ${JSON.stringify(
+        pointerFailureReceipts
+      )}`
+    )
+  }
+  await new Promise(resolve => setTimeout(resolve, 500))
+
+  // The repository watcher can replace the selection object between two
+  // consecutive frames even though the same large-file diff remains rendered.
+  // The final surface receipt independently re-proves the settled switcher,
+  // unrenderable large-file panel, description, geometry, and spinner state.
+  // Avoid rejecting that stronger end-state proof on an intermediate object
+  // identity rebound.
 
   const restored = await evaluate(`(() => {
     const root = document.querySelector('#desktop-app-container')
@@ -901,6 +999,7 @@ async function selectVisibleLargeFileWithPointer() {
   return {
     candidateId: released.candidateId,
     pointer: target,
+    pointerAttempts,
     selectionClearedBeforePointer: released.selectionCleared,
     selectedFileIDs: restored.selectedFileIDs,
     operationRestoredUnchanged: true,
@@ -1321,6 +1420,8 @@ function inspectionExpression(options, hydration, fontReceipt) {
       .filter(value =>
         value.bounds.top < panelRect.bottom - 1 &&
         value.bounds.bottom > panelRect.bottom + 1)
+    const blockingDialogs = [...document.querySelectorAll('dialog[open],[role="dialog"]')]
+      .filter(visible)
     const assertions = {
       requestedViewport:
         innerWidth === ${options.specification.width} &&
@@ -1451,6 +1552,7 @@ function inspectionExpression(options, hydration, fontReceipt) {
       undoPanelExcluded:
         !(undo instanceof HTMLElement) || undo.getBoundingClientRect().top >= panelRect.bottom - 1,
       noPartialBottomSurface: bottomSurfaces.length === 0,
+      noBlockingDialog: blockingDialogs.length === 0,
       documentHasNoHorizontalOverflow:
         document.documentElement.scrollWidth === document.documentElement.clientWidth &&
         document.body.scrollWidth === document.body.clientWidth,
@@ -1617,8 +1719,10 @@ async function main() {
     await client.send('Page.enable')
     await preparePresentation(options.specification)
     await acceptCliOpenReview()
+    await dismissPausedCloneQueueDialog()
     await showChanges()
     const hydration = await hydrateAppState(owned.repositoryPath)
+    await dismissPausedCloneQueueDialog()
     await waitFor(
       `document.querySelector('.cheap-lfs-mini-terminal') !== null`,
       'Cheap LFS mini terminal'

@@ -26,7 +26,7 @@ Super Express run `29980281736` then published the greater same-SHA
 **Downloading update…** to **Quit and Install Update**. The detailed receipt is
 in [HANDOFF.md](HANDOFF.md).
 
-## July 23 Cheap LFS + push batching — **Local build/UI acceptance complete**
+## July 23 Cheap LFS + push batching — **Final local acceptance complete; first publication pending**
 
 - Cheap LFS commit preparation now exposes sanitized per-file phases, bytes,
   success/failure counts, and the selected-versus-recommended storage route in
@@ -82,20 +82,44 @@ in [HANDOFF.md](HANDOFF.md).
 
 Focused local evidence passes **80/80** Release/OCI operations, **77/77**
 registry transport/runtime cases, **117/117** disposable-Git batching cases,
-**157/157** UI/settings/localization cases, **8/8** ORAS scripts, **17/17**
-headless-verifier contracts, and **7/7** compact-shell style checks. The exact
-unpackaged production build returned `0` after 1,466.27 seconds. The accepted
-1440×960 English frame passed **36/36** acceptance checks (all **35/35** named
-surface assertions plus its deterministic one-pointer selection receipt) and
-proves the three-lane terminal. The 640×960 bilingual attempt failed closed
-without a capture because the focused renderer remained visibility-hidden;
-narrow acceptance is not claimed. The full Cheap LFS folder aggregate is
-**261/262** only because one
-wall-clock policy case exceeded its harness budget under concurrent heavy Git
-work; its isolated rerun passed **8/8**. See the
+**157/157** UI/settings/localization cases, **8/8** ORAS scripts, **19/19**
+headless-verifier contracts, and **7/7** compact-shell style checks. The final
+first-publication production build returned `0` after **400.46 seconds**
+(**404.3 seconds wall**) and produced `out/renderer.css` with SHA-256
+`6381556b36c295ba47ad90e8080f4079cbc61951bd7811ab9cb9fc3520638cb1`.
+
+The promoted 1440×960 English Cheap LFS frame is 113,869 bytes with SHA-256
+`3d6358567126e3ce0504b04c4489abbfd473b77546bd82dac834553d50fe9333`.
+All **36/36** named assertions, including `noBlockingDialog`, passed; one real
+pointer selection settled the over-limit diff and the frame proves all three
+worker rows. The final 640×960 bilingual frame is 85,175 bytes with SHA-256
+`1b99c827d1b5b2cf05298fb1255873acdf0502f72a40437c378c0be7bb989e50`.
+It also passed all **36/36** named assertions after one real pointer attempt,
+kept the progress surface at y=942 inside the y=944 panel, and used only the
+compiled source bundle with no diagnostic style injection.
+
+The companion compact Repository Releases proof ran at 200% zoom in a
+480×330 CSS viewport. Its 960×660 capture is 78,875 bytes with SHA-256
+`56991b51946a32740995168bd9f97f091b1d183f6df696a205556df6759bcb37`;
+it shows one complete 42-pixel release row, 24-hour `HH:mm` timestamps, and no
+horizontal overflow. Native Enter expanded the compact tools, after which the
+filters, bulk controls, release list, and pagination were all keyboard
+reachable. The first-publication gallery source now contains **76** inspected
+images after adding this compact frame.
+
+The final combined changed-suite rerun passed **151/151**, alongside full
+TypeScript, changed-source ESLint, Prettier, and `git diff --check`.
+
+The full Cheap LFS folder aggregate remains deliberately reported as
+**261/262** only because one wall-clock policy case exceeded its harness budget
+under concurrent heavy Git work; its isolated rerun passed **8/8**. The older
+1,466.27-second build and its failed narrow attempt remain labeled as historical
+interim evidence in the
 [dated local receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
-Commit/push, exact-source CI and CodeQL, Pages/wiki publication, and non-draft
-installer Release verification remain pending.
+The final Bambu build live workflow/Action run and fresh-clone materialization
+proof remain pending and are not claimed. Commit/push, exact-source CI and
+CodeQL, Pages/wiki publication, and the non-draft installer Release also remain
+for the coordinating first-publication step.
 
 ## July 22 tab groups, command palette, and input/release reliability — **Implementation and publication verified**
 
