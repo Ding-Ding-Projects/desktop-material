@@ -1,5 +1,26 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-23 Cheap LFS settings, scrolling, and legacy-deletion key guard
+
+The Large files manager now makes its configuration route explicit: **Open
+Cheap LFS settings** opens **Repository settings → Build & run**, where storage,
+automatic pinning, transfer concurrency, clone/open materialization, and cloud
+compression are configured. The manager is also the repository page's vertical
+scroll owner, so long pinned-file inventories remain reachable instead of being
+clipped by the repository shell.
+
+Private-registry commit-key validation keeps its pointer/key proof fail-closed.
+Its only compatibility exception is an otherwise Windows-hostile selected path
+whose exact repository-relative identity is proven deleted by a fresh live Git
+status. A current nondeleted unsafe path, a missing or mismatched status proof,
+or a real OCI pointer stored under a control-plane path is still rejected. This
+allows a legacy deletion to commit without turning path validation into a key
+bypass.
+
+UI note / 介面提示：**Open Cheap LFS settings / 開啟 Cheap LFS 設定** 會直接帶你去
+**Repository settings → Build & run**；長檔案清單都可以一路碌到底，唔使周圍搵
+設定。
+
 ## 2026-07-23 responsive Releases publication and live Bambu checkpoint
 
 The integrated Cheap LFS, ordinary-Git batching, responsive Repository
