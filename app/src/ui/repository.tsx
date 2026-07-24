@@ -539,7 +539,7 @@ export class RepositoryView extends React.Component<
                 />
               </span>
             </span>
-            <span className="rail-label">API</span>
+            <span className="rail-label">{t('githubApi.railLabel')}</span>
           </span>
         )}
         <span className="rail-item" id="triage-tab" data-dm-feature={true}>

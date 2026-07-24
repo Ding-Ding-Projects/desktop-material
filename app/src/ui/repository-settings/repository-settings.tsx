@@ -345,7 +345,7 @@ export class RepositorySettings extends React.Component<
             </span>
             <span>
               <Octicon className="icon" symbol={octicons.play} />
-              {__DARWIN__ ? 'Build & Run' : 'Build & run'}
+              <LocalizedText translationKey="repositorySettings.buildRunTab" />
             </span>
             <span>
               <Octicon className="icon" symbol={octicons.fileSubmodule} />
@@ -357,7 +357,7 @@ export class RepositorySettings extends React.Component<
             </span>
             <span>
               <Octicon className="icon" symbol={octicons.sync} />
-              Automation
+              <LocalizedText translationKey="repositorySettings.automationTab" />
             </span>
             <span>
               <Octicon className="icon" symbol={octicons.gear} />

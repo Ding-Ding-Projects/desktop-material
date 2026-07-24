@@ -1184,13 +1184,25 @@ export class App extends React.Component<IAppProps, IAppState> {
         return this.showPreferencesTab(PreferencesTab.Git)
       case 'palette:preferences-accessibility':
         return this.showPreferencesTab(PreferencesTab.Accessibility)
+      case 'palette:preferences-sound':
+        return this.showPreferencesTab(PreferencesTab.Sound)
       case 'palette:preferences-copilot':
       case 'palette:ollama-model-manager':
-        // The Ollama manager lives inside the Copilot providers tab; the
-        // palette names it directly so it is findable by what it does.
+      case 'palette:ollama-chat':
+        // The Ollama manager and its chat workspace live inside the Copilot
+        // providers tab; the palette names them directly so they are findable
+        // by what they do.
         return this.showPreferencesTab(PreferencesTab.Copilot)
       case 'palette:background-queue':
         return this.showPreferencesTab(PreferencesTab.Queue)
+      case 'palette:cheap-lfs-settings':
+        return this.showRepositorySettings(RepositorySettingsTab.BuildRun)
+      case 'palette:repository-automation':
+        return this.showRepositorySettings(RepositorySettingsTab.Automation)
+      case 'palette:tag-lifecycle':
+        return this.showRepositoryTools()
+      case 'palette:github-api-explorer':
+        return this.showGitHubAPIExplorer()
       case 'palette:notification-history':
         return this.props.dispatcher.showPopup({
           type: PopupType.NotificationHistory,
@@ -1451,6 +1463,19 @@ export class App extends React.Component<IAppProps, IAppState> {
     await this.props.dispatcher.changeRepositorySection(
       state.repository,
       RepositorySectionTab.RepositoryTools
+    )
+  }
+
+  private async showGitHubAPIExplorer() {
+    const state = this.state.selectedState
+    if (state == null || state.type !== SelectionType.Repository) {
+      return
+    }
+
+    await this.props.dispatcher.closeCurrentFoldout()
+    await this.props.dispatcher.changeRepositorySection(
+      state.repository,
+      RepositorySectionTab.GitHubAPI
     )
   }
 

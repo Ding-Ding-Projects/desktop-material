@@ -38,6 +38,10 @@ const whenRepository: PaletteAvailability = context => context.hasRepository
 const whenBranch: PaletteAvailability = context =>
   context.hasRepository && context.hasBranch
 
+/** Available only when the selection is a GitHub-associated repository. */
+const whenGitHubRepository: PaletteAvailability = context =>
+  context.hasRepository && context.isGitHubRepository
+
 export interface IPaletteCommand {
   /** The menu event (or palette-only action id) executed on selection. */
   readonly event: string
@@ -171,6 +175,40 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     title: 'Build and run',
     group: 'Repository',
     keywords: 'docker compose npm make',
+  },
+  {
+    event: 'palette:cheap-lfs-settings',
+    title: 'Large files (Cheap LFS) settings',
+    titleKey: 'palette.cheapLfsSettings',
+    group: 'Repository',
+    keywords:
+      'cheap lfs large files pin storage provider release-backed materialize compression parallel uploads',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:repository-automation',
+    title: 'Automation overrides (this repository)',
+    titleKey: 'palette.repositoryAutomation',
+    group: 'Repository',
+    keywords: 'automation overrides per repository this repo auto rules',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:tag-lifecycle',
+    title: 'Tag lifecycle manager',
+    titleKey: 'palette.tagLifecycle',
+    group: 'Repository',
+    keywords:
+      'tag tags create delete push fetch prune sign move lifecycle manage inventory',
+    isAvailable: whenRepository,
+  },
+  {
+    event: 'palette:github-api-explorer',
+    title: 'GitHub API explorer',
+    titleKey: 'palette.githubApiExplorer',
+    group: 'Repository',
+    keywords: 'github api rest graphql endpoint request explorer functions',
+    isAvailable: whenGitHubRepository,
   },
   {
     event: 'run-actions-locally',
@@ -404,6 +442,14 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     group: 'App',
     keywords: 'settings accessibility a11y motion contrast',
   },
+  {
+    event: 'palette:preferences-sound',
+    title: 'Preferences: Sound',
+    titleKey: 'palette.preferencesSound',
+    group: 'App',
+    keywords:
+      'settings sound audio music narrator tts voice volume quiet hours effects',
+  },
   // Surfaces that are otherwise only reachable by knowing which settings tab
   // hosts them. Naming them here makes them findable by what they do.
   {
@@ -414,6 +460,15 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
     materialSymbol: 'stacks',
     keywords:
       'ollama local model llm ai copilot provider pull run inventory manager endpoint',
+  },
+  {
+    event: 'palette:ollama-chat',
+    title: 'Ollama chat',
+    titleKey: 'palette.ollamaChat',
+    group: 'App',
+    materialSymbol: 'stacks',
+    keywords:
+      'ollama chat prompt conversation local model llm ai copilot workspace',
   },
   {
     event: 'palette:preferences-copilot',
