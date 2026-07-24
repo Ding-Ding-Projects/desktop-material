@@ -677,6 +677,12 @@ export class BuildRunSettings extends React.Component<
             }
             onChange={this.onOpencodeAutoApproveChanged}
           />
+        </div>
+        <h3 className="build-run-section-title">
+          <Octicon symbol={octicons.database} />
+          {t('cheapLfs.settings.sectionHeading')}
+        </h3>
+        <div className="build-run-toggles">
           <Checkbox
             label={t('cheapLfs.settings.autoMaterialize')}
             value={

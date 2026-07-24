@@ -1409,8 +1409,14 @@ export type TranslationKey =
   | 'palette.preferencesGit'
   | 'palette.preferencesAccessibility'
   | 'palette.ollamaModelManager'
+  | 'palette.ollamaChat'
   | 'palette.preferencesCopilot'
+  | 'palette.preferencesSound'
   | 'palette.backgroundQueue'
+  | 'palette.cheapLfsSettings'
+  | 'palette.repositoryAutomation'
+  | 'palette.tagLifecycle'
+  | 'palette.githubApiExplorer'
   | 'palette.notificationHistory'
   | 'palette.notificationAutomations'
   | 'palette.copyRepoPath'
@@ -1679,6 +1685,16 @@ export type TranslationKey =
   | 'settingsSearch.entry.agentAccessServer.title'
   | 'settingsSearch.entry.agentAccessServer.desc'
   | 'settingsSearch.entry.queueMode.desc'
+  | 'settingsSearch.entry.copilotOllama.title'
+  | 'settingsSearch.entry.copilotOllama.desc'
+  | 'settingsSearch.entry.gitGlobalIgnore.title'
+  | 'settingsSearch.entry.gitGlobalIgnore.desc'
+  | 'settingsSearch.entry.gitHooks.title'
+  | 'settingsSearch.entry.gitHooks.desc'
+  | 'repositorySettings.buildRunTab'
+  | 'repositorySettings.automationTab'
+  | 'githubApi.railLabel'
+  | 'cheapLfs.settings.sectionHeading'
   | 'gitAutoFix.fixIt'
   | 'gitAutoFix.staleIndexLock.title'
   | 'gitAutoFix.staleIndexLock.summary'
@@ -3432,8 +3448,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.preferencesGit': 'Preferences: Git',
   'palette.preferencesAccessibility': 'Preferences: Accessibility',
   'palette.ollamaModelManager': 'Ollama model manager',
+  'palette.ollamaChat': 'Ollama chat',
   'palette.preferencesCopilot': 'Preferences: Copilot and AI providers',
+  'palette.preferencesSound': 'Preferences: Sound',
   'palette.backgroundQueue': 'Background action and API queue',
+  'palette.cheapLfsSettings': 'Large files (Cheap LFS) settings',
+  'palette.repositoryAutomation': 'Automation overrides (this repository)',
+  'palette.tagLifecycle': 'Tag lifecycle manager',
+  'palette.githubApiExplorer': 'GitHub API explorer',
   'palette.notificationHistory': 'Open notification centre',
   'palette.notificationAutomations': 'Notification automations',
   'palette.copyRepoPath': 'Copy repository path',
@@ -3576,6 +3598,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
   'cheapLfs.managerRail': 'Large files',
+  'repositorySettings.buildRunTab': 'Build, run & large files',
+  'repositorySettings.automationTab': 'Automation (this repository)',
+  'githubApi.railLabel': 'API explorer',
   'cheapLfs.managerTitle': 'Cheap LFS manager',
   'cheapLfs.managerIntro':
     'Find, pin, search, and restore repository large files here. You do not need to browse GitHub Releases or decode asset names.',
@@ -3682,6 +3707,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'githubReleases.showInFolder': 'Show in folder',
   'githubReleases.openFileError':
     'The downloaded release asset could not be opened. Check that Windows has an app associated with this file type, then try again. {detail}',
+  'cheapLfs.settings.sectionHeading': 'Large files & storage (Cheap LFS)',
   'cheapLfs.settings.autoMaterialize': 'Download large files after cloning',
   'cheapLfs.settings.autoPin': 'Pin large files when committing',
   'cheapLfs.settings.autoPinHelp':
@@ -3757,6 +3783,15 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Use Copilot for conflict resolution',
   'settingsSearch.entry.copilotConflict.desc':
     'Let Copilot help resolve merge conflicts automatically.',
+  'settingsSearch.entry.copilotOllama.title': 'Ollama local models',
+  'settingsSearch.entry.copilotOllama.desc':
+    'Manage Ollama and other local model providers, endpoints, and chat.',
+  'settingsSearch.entry.gitGlobalIgnore.title': 'Global ignore',
+  'settingsSearch.entry.gitGlobalIgnore.desc':
+    'Edit the ignore rules (core.excludesFile) that apply to every repository.',
+  'settingsSearch.entry.gitHooks.title': 'Git hooks',
+  'settingsSearch.entry.gitHooks.desc':
+    'Hook environment and cache settings for pre-commit and other hooks.',
   'settingsSearch.entry.gitName.title': 'Name',
   'settingsSearch.entry.gitName.desc':
     'The author name written to your commits.',
@@ -5434,8 +5469,14 @@ export const cantoneseTranslations: Readonly<
   'palette.preferencesGit': '設定：Git',
   'palette.preferencesAccessibility': '設定：無障礙',
   'palette.ollamaModelManager': 'Ollama 模型管理員',
+  'palette.ollamaChat': 'Ollama 對話',
   'palette.preferencesCopilot': '設定：Copilot 同 AI 供應商',
+  'palette.preferencesSound': '設定：聲音',
   'palette.backgroundQueue': '背景操作同 API 佇列',
+  'palette.cheapLfsSettings': '大型檔案（Cheap LFS）設定',
+  'palette.repositoryAutomation': '自動化覆寫（呢個存放庫）',
+  'palette.tagLifecycle': '標籤生命週期管理員',
+  'palette.githubApiExplorer': 'GitHub API 瀏覽器',
   'palette.notificationHistory': '打開通知中心',
   'palette.notificationAutomations': '通知自動化',
   'palette.copyRepoPath': '複製倉庫路徑',
@@ -5570,6 +5611,9 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
   'cheapLfs.managerRail': '大檔案',
+  'repositorySettings.buildRunTab': '建置、執行同大型檔案',
+  'repositorySettings.automationTab': '自動化（呢個存放庫）',
+  'githubApi.railLabel': 'API 瀏覽器',
   'cheapLfs.managerTitle': 'Cheap LFS 管理器',
   'cheapLfs.managerIntro':
     '喺呢度就可以搵、釘選、搜尋同還原 repo 嘅大檔案，唔使自己走入 GitHub Releases 猜資產檔名。',
@@ -5672,6 +5716,7 @@ export const cantoneseTranslations: Readonly<
   'githubReleases.showInFolder': '喺資料夾顯示',
   'githubReleases.openFileError':
     '開唔到下載咗嘅 Release 檔案。請檢查 Windows 有冇 app 可以開呢種檔案，跟住再試。{detail}',
+  'cheapLfs.settings.sectionHeading': '大型檔案同儲存（Cheap LFS）',
   'cheapLfs.settings.autoMaterialize': 'Clone 完自動下載大檔案',
   'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',
   'cheapLfs.settings.autoPinHelp':
@@ -5744,6 +5789,14 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.copilotConflict.title': '用 Copilot 幫手解衝突',
   'settingsSearch.entry.copilotConflict.desc':
     '俾 Copilot 自動幫你處理 merge 衝突。',
+  'settingsSearch.entry.copilotOllama.title': 'Ollama 本地模型',
+  'settingsSearch.entry.copilotOllama.desc':
+    '管理 Ollama 同其他本地模型供應商、端點同對話。',
+  'settingsSearch.entry.gitGlobalIgnore.title': '全域忽略',
+  'settingsSearch.entry.gitGlobalIgnore.desc':
+    '編輯套用喺每個存放庫嘅忽略規則（core.excludesFile）。',
+  'settingsSearch.entry.gitHooks.title': 'Git 掛鉤',
+  'settingsSearch.entry.gitHooks.desc': 'pre-commit 等掛鉤嘅環境同快取設定。',
   'settingsSearch.entry.gitName.title': '名',
   'settingsSearch.entry.gitName.desc': '寫入 commit 嘅作者名。',
   'settingsSearch.entry.gitEmail.title': '電郵',
