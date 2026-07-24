@@ -1575,6 +1575,7 @@ export type TranslationKey =
   | 'settingsSearch.tabName.agentAccess'
   | 'settingsSearch.tabName.automation'
   | 'settingsSearch.tabName.queue'
+  | 'settingsSearch.tabName.sound'
   | 'settingsSearch.entry.accountsSignIn.title'
   | 'settingsSearch.entry.accountsSignIn.desc'
   | 'settingsSearch.entry.accountsEnterprise.title'
@@ -3564,6 +3565,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.agentAccess': 'Agent access',
   'settingsSearch.tabName.automation': 'Automation',
   'settingsSearch.tabName.queue': 'Clone queue',
+  'settingsSearch.tabName.sound': 'Sound',
   'settingsSearch.entry.accountsSignIn.title': 'Sign in to GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     'Add a GitHub.com account to Desktop Material.',
@@ -5425,6 +5427,7 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.agentAccess': '代理存取',
   'settingsSearch.tabName.automation': '自動化',
   'settingsSearch.tabName.queue': 'Clone 隊列',
+  'settingsSearch.tabName.sound': '聲音',
   'settingsSearch.entry.accountsSignIn.title': '登入 GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     '喺 Desktop Material 加個 GitHub.com 帳戶。',

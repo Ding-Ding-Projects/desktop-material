@@ -67,6 +67,8 @@ export function settingsTabNameKey(tab: PreferencesTab): TranslationKey {
       return 'settingsSearch.tabName.automation'
     case PreferencesTab.Queue:
       return 'settingsSearch.tabName.queue'
+    case PreferencesTab.Sound:
+      return 'settingsSearch.tabName.sound'
     default:
       return 'settingsSearch.tabName.accounts'
   }
@@ -290,6 +292,50 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       titleKey: 'settings.queueMode',
       descriptionKey: 'settingsSearch.entry.queueMode.desc',
       keywords: ['parallel', 'sequential', 'clone', 'mode', '模式'],
+    },
+    // Sound (reuses the pane's own localized labels)
+    {
+      id: 'sound-master-enable',
+      tab: PreferencesTab.Sound,
+      titleKey: 'settings.soundMasterEnableTitle',
+      descriptionKey: 'settings.soundMasterEnableDescription',
+      keywords: ['sound', 'audio', 'mute', 'volume', '聲音', '靜音'],
+    },
+    {
+      id: 'sound-narrator',
+      tab: PreferencesTab.Sound,
+      titleKey: 'settings.soundTtsEnableTitle',
+      descriptionKey: 'settings.soundTtsEnableDescription',
+      keywords: [
+        'narrator',
+        'tts',
+        'voice',
+        'speech',
+        'cantonese',
+        '旁白',
+        '講嘢',
+      ],
+    },
+    {
+      id: 'sound-effects',
+      tab: PreferencesTab.Sound,
+      titleKey: 'settings.soundSfxEnableTitle',
+      descriptionKey: 'settings.soundSfxEnableDescription',
+      keywords: ['sfx', 'effects', 'cue', 'chime', '音效'],
+    },
+    {
+      id: 'sound-music',
+      tab: PreferencesTab.Sound,
+      titleKey: 'settings.soundMusicEnableTitle',
+      descriptionKey: 'settings.soundMusicEnableDescription',
+      keywords: ['music', 'melody', 'loop', 'background', '音樂'],
+    },
+    {
+      id: 'sound-quiet-hours',
+      tab: PreferencesTab.Sound,
+      titleKey: 'settings.soundQuietHoursEnableTitle',
+      descriptionKey: 'settings.soundQuietHoursEnableDescription',
+      keywords: ['quiet', 'hours', 'night', 'schedule', '寧靜', '夜晚'],
     },
   ])
 
