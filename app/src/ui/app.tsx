@@ -350,6 +350,7 @@ import { DeleteWorktreeDialog } from './worktrees/delete-worktree-dialog'
 import { DeleteWorktreeFailedDialog } from './worktrees/delete-worktree-failed-dialog'
 import { WorktreeEntry } from '../models/worktree'
 import { SubmoduleReturnInFlightGuard } from './submodules/submodule-return-in-flight-guard'
+import { setGitHubAPITabHidden } from '../lib/github-api-tab-visibility'
 
 const MinuteInMilliseconds = 1000 * 60
 const HourInMilliseconds = MinuteInMilliseconds * 60
@@ -1472,6 +1473,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    // The rail item can be user-hidden per repository; navigating while hidden
+    // would be silently overridden back to Changes. Un-hide first, mirroring
+    // the rail's own "Show GitHub API" path.
+    setGitHubAPITabHidden(state.repository.hash, false)
     await this.props.dispatcher.closeCurrentFoldout()
     await this.props.dispatcher.changeRepositorySection(
       state.repository,
