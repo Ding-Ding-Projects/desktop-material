@@ -4,16 +4,22 @@
 
 The five July 24 feature branches and the narration-asset branch were merged
 into `main` sequentially: `feat/settings-search`, `feat/tab-overflow-dropdown`,
-`feat/audio-system`, `feat/audio-narration-assets` (244 MP3/WAV files +
+`feat/audio-system`, `feat/audio-narration-assets` (243 MP3/WAV files +
 `manifest.json` under `app/static/audio/`), `feat/local-actions-runner`, and
 `feat/batching-filecount-progress-wip` (#14). Per the handoff plan, the
 batching WIP branch's stray concurrent-agent copies of the settings-search and
 preferences files were resolved in favor of the already-merged feature
 branches; its batching-only changes (dual caps, commit progress, gc isolation)
-merged cleanly. One integration commit follows the merges: the Sound pane
-(which merged in parallel with settings search) is now indexed by the
+merged cleanly. Three integration commits follow the merges: the Sound pane
+(which merged in parallel with settings search) is indexed by the
 settings-search catalog — tab name key in English and Cantonese plus five
-entries reusing the pane's own labels.
+entries reusing the pane's own labels; four pinned source-contract tests were
+updated to the post-merge source shapes (command allowlist gains
+`run-actions-locally`, `renderRailTab` feature-marker gating, tab-control
+registration, and gc suppression followed through
+`AutomaticCommitPushBatchGitMaintenanceArgs`); and the responsive surface
+smoke catalog registers the Sound settings tab, moving its pinned gate count
+from 87 to 88.
 
 Known follow-up: the bundled narration/melody assets are not yet played by the
 audio runtime — the narrator currently uses live TTS and SFX are synthesized;
