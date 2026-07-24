@@ -42,6 +42,33 @@ succeeded on exact source `04246fdf12`; a live legacy `s000000000201` install
 automatically migrated, then visibly downloaded the greater same-SHA
 `zadtbhvdfc` package and reached **Quit and Install Update**.
 
+The July 23 Cheap LFS, batched-push, and responsive Releases continuation is
+now published through corrective source
+[`c22e29a03a`](https://github.com/Ding-Ding-Projects/desktop-material/commit/c22e29a03ac14b01e35ab7b1434fa288bc794307).
+Exact-source CI `30055965807`, code scanning `30055965809`, Pages
+`30055965817`, and cloud-compression run `30055965804` passed. Installer run
+[`30057456712`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30057456712)
+then published the immutable six-asset exact-target Windows Release
+[`v3.6.3-beta3-zadthusbjk`](https://github.com/Ding-Ding-Projects/desktop-material/releases/tag/v3.6.3-beta3-zadthusbjk).
+
+The public
+[`codingmachineedge/bambu-build`](https://github.com/codingmachineedge/bambu-build)
+acceptance exercised **14,809,588,162 bytes across 8,305 files**, including ten
+Cheap LFS pointers, through four UI-created and exact-SHA-proven batches. An
+HTTP 408 left the first pending commit durable; the UI retry pushed that same
+immutable SHA before continuing. Cloud run
+[`30048474438`](https://github.com/codingmachineedge/bambu-build/actions/runs/30048474438)
+reported **13 compressed, 0 kept raw, and 0 failed**, while retaining all 13
+raw originals beside the 13 compressed assets. Final UI commit
+[`712ad85`](https://github.com/codingmachineedge/bambu-build/commit/712ad85f92f9002474f0f13b6bb6991153d586af)
+passed verifier run
+[`30054805137`](https://github.com/codingmachineedge/bambu-build/actions/runs/30054805137)
+and published its immutable manifest Release. A fresh UI clone restored all
+ten logical hashes while Git retained 370–514-byte pointer blobs. Its first
+automatic/manual materialization overlap produced two hash-identical CAS
+recovery copies and prompted repository-scoped serialization; the exact final
+corrected acceptance receipt remains in [`HANDOFF.md`](HANDOFF.md).
+
 The persistent, visible/collapsible tab-group chips; localized command-palette
 rows and appearance controls; deterministic bare-Alt menu sequencing; and
 unit/script gates before Super Express packaging are included in the published
@@ -387,6 +414,10 @@ automation, and account isolation. The diagrams are reproducible with
 | Detailed Cheap LFS commit progress | Compact Repository Releases at 200% |
 | --- | --- |
 | <img src="docs/assets/screenshots/cheap-lfs-commit-progress.png" alt="Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit" width="520"><br><sub>Three lanes · queue/provider context · timing and ETA · keyboard disclosure</sub> | <img src="docs/assets/screenshots/material-github-releases-compact.png" alt="Accepted 200% Repository Releases frame from the 100–200% physical-size gate, with a complete first row and compact keyboard-accessible tools" width="520"><br><sub>100–200% gate · complete row · 24-hour time</sub> |
+
+| Live 14.8 GB Bambu Cheap LFS restore |
+| --- |
+| <img src="docs/assets/screenshots/cheap-lfs-bambu-build-live.png" alt="Live public Bambu build Cheap LFS inventory with ten tracked Release-backed pointer objects" width="720"><br><sub>8,305 files · four proven UI batches · ten pointers · separate 10/10 clone hash proof</sub> |
 
 <!-- markdownlint-disable MD013 -->
 

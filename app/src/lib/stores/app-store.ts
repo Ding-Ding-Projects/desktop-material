@@ -936,6 +936,69 @@ interface IScheduledAutomationFence {
   readonly selectionEpoch: number
 }
 
+interface ICheapLfsMaterializeOwner {
+  readonly controller: AbortController
+  readonly requestSignal: AbortSignal | undefined
+}
+
+interface ICheapLfsMaterializeBatchOptions {
+  readonly requestedPaths?: ReadonlySet<string>
+  readonly includeReleasePointers?: boolean
+  readonly requestSignal?: AbortSignal
+  readonly onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  readonly shouldRun?: () => boolean
+}
+
+function cheapLfsMaterializeRepositoryKey(repository: Repository): string {
+  const normalized = Path.normalize(Path.resolve(repository.path))
+  return __WIN32__ ? normalized.toLowerCase() : normalized
+}
+
+function cheapLfsMaterializeAbortError(): Error {
+  const error = new Error('Cheap LFS materialization was canceled.')
+  error.name = 'AbortError'
+  return error
+}
+
+function throwIfCheapLfsMaterializeAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw cheapLfsMaterializeAbortError()
+  }
+}
+
+/**
+ * Let a queued caller observe its own cancellation immediately without
+ * canceling or detaching the serialized operation which owns the queue slot.
+ */
+function observeCheapLfsMaterializeRequest<T>(
+  operation: Promise<T>,
+  signal?: AbortSignal
+): Promise<T> {
+  if (signal === undefined) {
+    return operation
+  }
+  if (signal.aborted) {
+    return Promise.reject(cheapLfsMaterializeAbortError())
+  }
+  return new Promise<T>((resolve, reject) => {
+    let settled = false
+    const finish = (callback: () => void) => {
+      if (settled) {
+        return
+      }
+      settled = true
+      signal.removeEventListener('abort', onAbort)
+      callback()
+    }
+    const onAbort = () => finish(() => reject(cheapLfsMaterializeAbortError()))
+    signal.addEventListener('abort', onAbort, { once: true })
+    void operation.then(
+      value => finish(() => resolve(value)),
+      error => finish(() => reject(error))
+    )
+  })
+}
+
 function scheduledAutomationRepositoryIdentity(
   repository: Repository | CloningRepository | null
 ): string | null {
@@ -1165,15 +1228,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private scheduledAutomationSelectionEpoch = 0
   private readonly mergeAllControllers = new Map<number, AbortController>()
 
-  /**
-   * The abort controller for each repository's in-flight automatic cheap-LFS
-   * materialize. Its presence is also the re-entrancy guard: a second detect
-   * hook for the same repository returns early instead of starting a second run.
-   */
+  /** The active materialization owner for each canonical checkout path. */
   private readonly cheapLfsMaterializeControllers = new Map<
-    number,
-    AbortController
+    string,
+    ICheapLfsMaterializeOwner
   >()
+  /**
+   * Rejection-tolerant per-checkout tails shared by automatic, individual, and
+   * Materialize-all requests. A queued request never mutates its predecessor.
+   */
+  private readonly cheapLfsMaterializeTails = new Map<string, Promise<void>>()
 
   /** The currently cancelable automatic or browser-assisted commit pin. */
   private readonly cheapLfsCommitControllers = new Map<
@@ -3201,8 +3265,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this.mergeAllControllers?.get(repository.id)?.abort()
     this.mergeAllControllers?.delete(repository.id)
-    this.cheapLfsMaterializeControllers?.get(repository.id)?.abort()
-    this.cheapLfsMaterializeControllers?.delete(repository.id)
+    const cheapLfsMaterializeKey = cheapLfsMaterializeRepositoryKey(repository)
+    this.cheapLfsMaterializeControllers
+      ?.get(cheapLfsMaterializeKey)
+      ?.controller.abort()
+    this.cheapLfsMaterializeControllers?.delete(cheapLfsMaterializeKey)
     this.cheapLfsCommitControllers?.get(repository.id)?.abort()
     this.cheapLfsCommitControllers?.delete(repository.id)
     this.cheapLfsManualUploadRequests?.delete(repository.id)
@@ -13413,6 +13480,60 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  /**
+   * Serialize every materialization mutation for one checkout. The queue tail
+   * always resolves, so a rejected/canceled request cannot poison later work.
+   * Only the request which owns the active controller may cancel it.
+   */
+  private withCheapLfsMaterializeLock<T>(
+    repository: Repository,
+    requestSignal: AbortSignal | undefined,
+    operation: (signal: AbortSignal) => Promise<T>
+  ): Promise<T> {
+    const key = cheapLfsMaterializeRepositoryKey(repository)
+    const previous = this.cheapLfsMaterializeTails.get(key) ?? Promise.resolve()
+    const queued = previous
+      .catch(() => undefined)
+      .then(async () => {
+        throwIfCheapLfsMaterializeAborted(requestSignal)
+        const controller = new AbortController()
+        const owner: ICheapLfsMaterializeOwner = {
+          controller,
+          requestSignal,
+        }
+        const cancelOwner = () => controller.abort()
+        requestSignal?.addEventListener('abort', cancelOwner, { once: true })
+        if (requestSignal?.aborted) {
+          controller.abort()
+        }
+        this.cheapLfsMaterializeControllers.set(key, owner)
+        try {
+          throwIfCheapLfsMaterializeAborted(controller.signal)
+          return await operation(controller.signal)
+        } finally {
+          requestSignal?.removeEventListener('abort', cancelOwner)
+          if (this.cheapLfsMaterializeControllers.get(key) === owner) {
+            this.cheapLfsMaterializeControllers.delete(key)
+          }
+        }
+      })
+    const tail = queued.then(
+      () => undefined,
+      () => undefined
+    )
+    this.cheapLfsMaterializeTails.set(key, tail)
+    void tail.then(() => {
+      if (this.cheapLfsMaterializeTails.get(key) === tail) {
+        this.cheapLfsMaterializeTails.delete(key)
+      }
+    })
+    return observeCheapLfsMaterializeRequest(queued, requestSignal)
+  }
+
+  /**
+   * Materialize one already-revalidated entry. Callers which can race must first
+   * acquire withCheapLfsMaterializeLock and refresh pointer state inside it.
+   */
   private async materializeCheapLfsEntry(
     repository: Repository,
     entry: ICheapLfsManagedPointerEntry,
@@ -13474,28 +13595,41 @@ export class AppStore extends TypedBaseStore<IAppState> {
     signal?: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ): Promise<ICheapLfsMaterializeResult> {
-    try {
-      const entries = await listAllCheapLfsPointers(repository)
-      const entry = entries.find(
-        candidate => candidate.relativePath === trackedRelativePath
-      )
-      if (entry === undefined) {
-        throw new Error(
-          'The selected file is not a canonical Cheap LFS pointer.'
-        )
-      }
-      if (entry.workingTreeState === 'materialized') {
-        return {
-          path: Path.join(repository.path, entry.relativePath),
-          bytes: entry.pointer.sizeInBytes,
+    return await this.withCheapLfsMaterializeLock(
+      repository,
+      signal,
+      async materializeSignal => {
+        try {
+          const entries = await listAllCheapLfsPointers(repository)
+          const entry = entries.find(
+            candidate => candidate.relativePath === trackedRelativePath
+          )
+          if (entry === undefined) {
+            throw new Error(
+              'The selected file is not a canonical Cheap LFS pointer.'
+            )
+          }
+          if (entry.workingTreeState === 'materialized') {
+            return {
+              path: Path.join(repository.path, entry.relativePath),
+              bytes: entry.pointer.sizeInBytes,
+            }
+          }
+          return await this.withTemporaryRepositoryMutationGuard(
+            repository,
+            () =>
+              this.materializeCheapLfsEntry(
+                repository,
+                entry,
+                materializeSignal,
+                onProgress
+              )
+          )
+        } finally {
+          await this._refreshRepository(repository)
         }
       }
-      return await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        this.materializeCheapLfsEntry(repository, entry, signal, onProgress)
-      )
-    } finally {
-      await this._refreshRepository(repository)
-    }
+    )
   }
 
   /** Republish one OCI snapshot without the selected path, then refresh. */
@@ -13578,8 +13712,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * preference is enabled (default on). Release pointers still require the
    * selected GitHub account; public OCI pointers may restore anonymously while
    * the runtime requires credentials for private images. The batch is cancelable, reports
-   * cumulative progress that survives navigation (the run is keyed by repository
-   * id), and posts a summary notification. Fire-and-forget: this never throws.
+   * cumulative progress that survives navigation (the run is keyed by canonical
+   * checkout path), and posts a summary notification. Fire-and-forget: this never
+   * throws.
    *
    * @param options.requireSelected  Re-check `selectedRepository` before running
    *   (the repository-open detect point is re-entrant and may fire after the
@@ -13600,10 +13735,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this.accounts
       )
       if (prefs.autoMaterializeCheapLfs === false) {
-        return
-      }
-      // Re-entrancy guard: never run two batches for the same repository at once.
-      if (this.cheapLfsMaterializeControllers.has(repository.id)) {
         return
       }
       const discoveredEntries = await listAllCheapLfsPointers(repository)
@@ -13641,82 +13772,88 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (options.requireSelected && this.selectedRepository !== repository) {
         return
       }
-      await this.runCheapLfsMaterialize(repository, entries)
+      await this.runCheapLfsMaterialize(repository, {
+        requestedPaths: new Set(entries.map(entry => entry.relativePath)),
+        includeReleasePointers: releaseReadAccount !== null,
+        shouldRun: options.requireSelected
+          ? () => this.selectedRepository === repository
+          : undefined,
+      })
     } catch (error) {
       log.error('Automatic cheap LFS materialize failed', error)
     }
   }
 
   /**
-   * Materialize an explicit set of pointers under one shared, cancelable abort
-   * controller keyed by repository id (so a concurrent auto-run and this manual
-   * run cannot collide), refresh the repository once at the end, and post a
-   * summary notification. Shared by the automatic detector and the "Materialize
-   * all" control in the Large files & storage panel.
+   * Materialize a freshly re-listed pointer set while owning the checkout queue.
+   * The public auto/manual entry points never call one another from this body,
+   * which keeps the queue non-reentrant and avoids a nested-lock deadlock.
    */
   private async runCheapLfsMaterialize(
     repository: Repository,
-    entries: ReadonlyArray<ICheapLfsManagedPointerEntry>
+    options: ICheapLfsMaterializeBatchOptions = {}
   ): Promise<void> {
-    if (this.cheapLfsMaterializeControllers.has(repository.id)) {
-      return
-    }
-    if (!this.isTemporaryRepositoryActive(repository)) {
-      return
-    }
-    const pendingEntries = entries.filter(
-      entry => entry.workingTreeState === 'pointer'
-    )
-    if (pendingEntries.length === 0) {
-      return
-    }
-    const controller = new AbortController()
-    this.cheapLfsMaterializeControllers.set(repository.id, controller)
-    try {
-      const releaseCache = createCheapLfsMaterializeCache()
-      const materialized = new Array<ICheapLfsMaterializeResult>()
-      const failures = new Array<{ readonly relativePath: string }>()
-      let canceled = false
-      for (const entry of pendingEntries) {
-        if (controller.signal.aborted) {
-          canceled = true
-          break
+    await this.withCheapLfsMaterializeLock(
+      repository,
+      options.requestSignal,
+      async materializeSignal => {
+        if (
+          !this.isTemporaryRepositoryActive(repository) ||
+          options.shouldRun?.() === false
+        ) {
+          return
         }
-        try {
-          materialized.push(
-            await this.withTemporaryRepositoryMutationGuard(repository, () =>
-              this.materializeCheapLfsEntry(
-                repository,
-                entry,
-                controller.signal,
-                undefined,
-                releaseCache
-              )
-            )
-          )
-        } catch (error) {
-          if ((error as Error)?.name === 'AbortError') {
+        const entries = await listAllCheapLfsPointers(repository)
+        const pendingEntries = entries.filter(
+          entry =>
+            entry.workingTreeState === 'pointer' &&
+            (options.requestedPaths === undefined ||
+              options.requestedPaths.has(entry.relativePath)) &&
+            (entry.kind !== 'release' ||
+              options.includeReleasePointers !== false)
+        )
+        if (pendingEntries.length === 0) {
+          return
+        }
+        const releaseCache = createCheapLfsMaterializeCache()
+        const materialized = new Array<ICheapLfsMaterializeResult>()
+        const failures = new Array<{ readonly relativePath: string }>()
+        let canceled = false
+        for (const entry of pendingEntries) {
+          if (materializeSignal.aborted) {
             canceled = true
             break
           }
-          failures.push({ relativePath: entry.relativePath })
+          try {
+            materialized.push(
+              await this.withTemporaryRepositoryMutationGuard(repository, () =>
+                this.materializeCheapLfsEntry(
+                  repository,
+                  entry,
+                  materializeSignal,
+                  options.onProgress,
+                  releaseCache
+                )
+              )
+            )
+          } catch (error) {
+            if ((error as Error)?.name === 'AbortError') {
+              canceled = true
+              break
+            }
+            failures.push({ relativePath: entry.relativePath })
+          }
+        }
+        await this._refreshRepository(repository)
+        if (this.isTemporaryRepositoryActive(repository)) {
+          this.postCheapLfsMaterializeNotification(repository, {
+            materialized,
+            failures,
+            canceled,
+          })
         }
       }
-      await this._refreshRepository(repository)
-      if (this.isTemporaryRepositoryActive(repository)) {
-        this.postCheapLfsMaterializeNotification(repository, {
-          materialized,
-          failures,
-          canceled,
-        })
-      }
-    } finally {
-      if (
-        this.cheapLfsMaterializeControllers.get(repository.id) === controller
-      ) {
-        this.cheapLfsMaterializeControllers.delete(repository.id)
-      }
-    }
+    )
   }
 
   /** Post a notification summarising a batch materialize's count and bytes. */
@@ -13759,20 +13896,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * This shouldn't be called directly. See `Dispatcher`.
    *
    * Materialize every committed pointer in the working tree as one cancelable
-   * batch — the manual "Materialize all" control. Returns the batch summary so
-   * the panel can report the result.
+   * batch — the manual "Materialize all" control.
    */
   public async _materializeAllCheapLfsPointers(
-    repository: Repository
+    repository: Repository,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ): Promise<void> {
-    const entries = await listAllCheapLfsPointers(repository)
-    const pointerEntries = entries.filter(
-      entry => entry.workingTreeState === 'pointer'
-    )
-    if (pointerEntries.length === 0) {
-      return
-    }
-    await this.runCheapLfsMaterialize(repository, pointerEntries)
+    await this.runCheapLfsMaterialize(repository, {
+      requestSignal: signal,
+      onProgress,
+    })
   }
 
   /**
@@ -13781,8 +13915,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * Cancel an in-flight automatic (or manual) cheap-LFS materialize for a
    * repository. A no-op when nothing is running.
    */
-  public _cancelAutoMaterializeCheapLfs(repository: Repository): void {
-    this.cheapLfsMaterializeControllers.get(repository.id)?.abort()
+  public _cancelAutoMaterializeCheapLfs(
+    repository: Repository,
+    requestSignal?: AbortSignal
+  ): void {
+    const owner = this.cheapLfsMaterializeControllers.get(
+      cheapLfsMaterializeRepositoryKey(repository)
+    )
+    if (
+      owner !== undefined &&
+      (requestSignal === undefined || owner.requestSignal === requestSignal)
+    ) {
+      owner.controller.abort()
+    }
   }
 
   /** Switch the current automatic commit pin to the manual browser rendezvous. */

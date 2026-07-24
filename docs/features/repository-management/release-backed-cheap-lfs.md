@@ -328,6 +328,10 @@ release preview does not already contain every required uploaded name, it also
 caches one complete paginated asset inventory by release ID. Pointers in the
 same `assets` bucket therefore do not issue thousands of duplicate inventory
 requests.
+Automatic clone/open materialization and explicit Materialize-all work share a
+repository-scoped scheduler. This keeps two UI entry points from concurrently
+publishing the same restored path through separate compare-and-swap recovery
+flows.
 
 ## Failure modes and recovery
 
@@ -489,7 +493,41 @@ cleanup observations are in the record:
 - [Cheap LFS public/private GitHub and UI acceptance — 2026-07-22](../../verification/cheap-lfs-github-public-private-2026-07-22.md)
 - [Cheap LFS cloud compression acceptance — 2026-07-22](../../verification/cheap-lfs-cloud-compression-2026-07-22.md)
 - [Cheap LFS commit progress and push batching — 2026-07-23](../../verification/cheap-lfs-commit-progress-2026-07-23.md)
-- [14.8 GB Bambu build UI and batching checkpoint — 2026-07-23](../../verification/cheap-lfs-bambu-build-2026-07-23.md)
+- [14.8 GB Bambu build cloud, clone, and batching acceptance — 2026-07-23](../../verification/cheap-lfs-bambu-build-2026-07-23.md)
+
+### Live 14.8 GB Bambu build acceptance — 2026-07-23
+
+The real Changes UI added the managed public caller at `fc1bedb`. Cloud run
+[`30048474438`](https://github.com/codingmachineedge/bambu-build/actions/runs/30048474438)
+reported 13 compressed, 0 kept raw, and 0 failed, then ended its 13 pointer-only
+commits at `ce438aa`. Independently, the release retained 9,428,683,391 raw
+bytes and added
+1,491,654,444 compressed bytes: 13 raw plus 13 compressed assets, so old raw
+pointers remain restorable.
+
+Verifier run `30048474451` failed as expected because the repository did not
+yet include its authoritative manifest. The real UI then pushed exactly the
+manifest and bilingual action-pin update at `712ad85`. Verifier run
+[`30054805137`](https://github.com/codingmachineedge/bambu-build/actions/runs/30054805137)
+passed 8,305 payload files, ten pointers, and 26 assets, and published immutable
+release
+[`bambu-build-verify-30054805137`](https://github.com/codingmachineedge/bambu-build/releases/tag/bambu-build-verify-30054805137)
+with a 5,489-byte manifest asset whose SHA-256 is
+`234e88a446073d59c293e40966b6cbcfa080e21467fe14df840452d0c04694b3`.
+Final cloud run `30054805097` was a clean 0-compressed, 0-kept-raw,
+0-failed-safe no-op.
+
+A fresh real-UI clone at exact `712ad85` locally decompressed all ten paths to
+their original 10/10 SHA-256 values while the committed Git objects remained
+pointer blobs of 374, 506, 500, 370, 380, 371, 374, 514, 378, and 379 bytes in
+the UI's path order. The initial Materialize-all action overlapped automatic
+clone/open materialization and produced two exact CAS recovery duplicates. The
+integrity proof passed, but that concurrency behavior was not accepted:
+repository-scoped serialization was added. A deterministic real-Git overlap
+regression now proves the shared queue, exact cancellation ownership, in-lock
+pointer refresh, and rejection-tolerant release. The promoted live inventory
+frame documents the ten-pointer UI, while this clone receipt remains the exact
+10/10 byte proof.
 
 ### Live cloud-compression acceptance — 2026-07-22
 

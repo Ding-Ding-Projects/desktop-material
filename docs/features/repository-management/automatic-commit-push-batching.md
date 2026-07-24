@@ -197,15 +197,25 @@ fully qualified SHA refspec, remote environment, credential account key, and
 hook callbacks; a disposable bare-remote case proves the same path performs a
 real fast-forward push.
 
-The first live large-payload checkpoint used the public
+The first live large-payload acceptance used the public
 `codingmachineedge/bambu-build` repository. Desktop Material created and pushed
 8,305 payload paths in four ordered UI batches (`639d566b`, `8efaa6f9`,
 `93d72d61`, and `f58fd4c0`). The first ordinary packed push received HTTP 408;
 its exact pending SHA remained durable, and the retry succeeded with
 no-delta/no-compression packing scoped to that push process. The resulting
-remote `main` tip was proved after each batch. The related 14.8 GB inventory,
-timings, and still-pending cloud/fresh-clone gates are recorded in the
-[dated Bambu checkpoint](../../verification/cheap-lfs-bambu-build-2026-07-23.md).
+remote `main` tip was proved after each batch. Bilingual caller commit
+`fc1bedb` then started cloud run `30048474438`, which compressed all 13 Release
+objects independently and ended at `ce438aa` with every raw fallback retained.
+After an expected manifest-missing verifier failure, the real Changes UI pushed
+manifest/workflow commit `712ad85`; run `30054805137` passed the exact 8,305
+files, ten pointers, and 26 assets, while `30054805097` was a clean compression
+no-op. A fresh UI clone at `712ad85` restored all ten working hashes while their
+committed blobs remained 370–514-byte pointers. The first Materialize-all action
+overlapped automatic materialization and triggered two exact CAS recovery
+duplicates, so repository-scoped serialization was added and its corrected UI
+rerun remains pending. The full inventory, timings, asset totals, and remote
+receipts are recorded in the
+[dated Bambu acceptance](../../verification/cheap-lfs-bambu-build-2026-07-23.md).
 
 The final integration gate exercises the production Windows build and an owned
 disposable repository fixture headlessly. Verification never requires

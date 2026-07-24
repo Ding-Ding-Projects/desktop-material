@@ -121,6 +121,7 @@ describe('Pages accessibility contracts', () => {
       'docs/assets/screenshots/material-command-palette-appearance.png',
       'docs/assets/screenshots/cheap-lfs-ui-acceptance.png',
       'docs/assets/screenshots/cheap-lfs-commit-progress.png',
+      'docs/assets/screenshots/cheap-lfs-bambu-build-live.png',
       'docs/assets/screenshots/material-github-releases-compact.png',
       'docs/assets/screenshots/material-history-context-actions.png',
       'docs/assets/screenshots/material-repository-tools-scroll.png',
@@ -175,7 +176,7 @@ describe('Pages accessibility contracts', () => {
     ]
       .map(([, file]) => `docs/assets/screenshots/${file}`)
       .sort()
-    assert.equal(expectedSources.length, 76)
+    assert.equal(expectedSources.length, 77)
     assert.equal(figures.length, expectedSources.length)
 
     const actualSources = new Array<string>()

@@ -75,9 +75,15 @@ Material is displaying or how a repository is represented in the application.
   after proving the exact HEAD transition. Immutable automatic batches use
   process-local no-delta/no-compression packing to avoid CPU-bound HTTP
   timeouts without changing ordinary pushes or persistent Git configuration.
-  A live 8,305-file public Bambu build checkpoint proved four UI-created,
+  A live 8,305-file public Bambu build acceptance proved four UI-created,
   exact-SHA-pushed batches after preserving and retrying an HTTP 408 pending
-  commit; cloud and fresh-clone acceptance remain separately gated.
+  commit, compressed 13 Release objects independently with every raw fallback
+  retained, passed the exact manifest verifier, and restored all ten working
+  files with matching hashes after a fresh UI clone. That first Materialize-all
+  action also exposed an automatic-materialization overlap, leading to
+  repository-scoped serialization. Deterministic disposable-Git and UI routing
+  regressions cover the correction; the promoted live ten-pointer inventory and
+  separate 10/10 clone hash receipt keep the visual and byte proofs distinct.
 - [Parent-folder repository
   discovery](parent-folder-repository-discovery.md) — preview and register a
   bounded, link-safe set of working trees below one selected folder.

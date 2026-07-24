@@ -26,7 +26,7 @@ Super Express run `29980281736` then published the greater same-SHA
 **Downloading update…** to **Quit and Install Update**. The detailed receipt is
 in [HANDOFF.md](HANDOFF.md).
 
-## July 23 Cheap LFS + push batching — **Initial source pushed; responsive correction locally accepted**
+## July 23 Cheap LFS + push batching — **Live acceptance and serialization correction complete**
 
 - Cheap LFS commit preparation now exposes sanitized per-file phases, bytes,
   success/failure counts, and the selected-versus-recommended storage route in
@@ -79,6 +79,23 @@ in [HANDOFF.md](HANDOFF.md).
   commit commands use process-local `-c gc.auto=0` and validate HEAD so a valid
   commit followed by unrelated maintenance failure is reported once instead of
   duplicated.
+- The public `codingmachineedge/bambu-build` acceptance exercised all
+  **14,809,588,162 bytes and 8,305 payload files** through four UI-created,
+  exact-SHA-proven batches. The first ordinary push received HTTP 408 and left
+  its pending commit durable; the UI retry pushed that same immutable SHA before
+  continuing. Cloud run `30048474438` processed the 13 Release objects one by
+  one and reported **13 compressed, 0 kept raw, and 0 failed** while retaining
+  all 13 raw originals, for 26 assets total. Final real-UI commit `712ad85`
+  passed verifier run `30054805137` and published immutable manifest Release
+  `bambu-build-verify-30054805137`.
+- A fresh UI clone at `712ad85` restored all ten logical SHA-256 values while
+  the committed Git objects remained 370–514-byte pointers. The first explicit
+  Materialize-all action overlapped clone/open automatic materialization and
+  reached two hash-identical CAS recovery copies. That integrity proof prompted
+  repository-scoped serialization. The correction passes the affected
+  disposable-Git concurrency and UI routing regressions; the promoted live
+  ten-pointer inventory and separate 10/10 clone hashes preserve the real-UI
+  evidence without misreporting a second multi-gigabyte rerun.
 
 Focused local evidence passes **80/80** Release/OCI operations, **77/77**
 registry transport/runtime cases, **117/117** disposable-Git batching cases,
@@ -113,7 +130,7 @@ scale measures a 176 px panel, at least a 52 px row, 30 px target floors, a 9 px
 text floor, three metric columns, and the latest card spanning two. Native Enter
 expanded and collapsed the compact tools; available actions retained focus
 semantics and the no-next-page pagination control remained correctly disabled.
-The gallery source remains **76** inspected images.
+The gallery source now contains **77** inspected images.
 
 The historical initial combined changed suite passed **151/151**. The corrected
 Releases style/localization/UI plus Pages contracts pass **55/55**. A final
@@ -128,18 +145,21 @@ under concurrent heavy Git work; its isolated rerun passed **8/8**. The older
 1,466.27-second build and its failed narrow attempt remain labeled as historical
 interim evidence in the
 [dated local receipt](docs/verification/cheap-lfs-commit-progress-2026-07-23.md).
-Initial integration commit
+Historical initial integration commit
 [`c3db37ea55`](https://github.com/Ding-Ding-Projects/desktop-material/commit/c3db37ea5524b91f9603151ae5d1107205f16a59)
-is pushed to `main` with the initial receipts and preserves every updater
-receipt commit. The isolated correction raises the compact pane's
-text/control floors, lets bilingual disclosure copy wrap, localizes its new
-controls, and widens the combined compact gate for 125%. Its exact-source build,
+is an ancestor of current corrective source
+[`c22e29a03a`](https://github.com/Ding-Ding-Projects/desktop-material/commit/c22e29a03ac14b01e35ab7b1434fa288bc794307),
+which preserves every updater receipt commit. The responsive correction raises
+the compact pane's text/control floors, lets bilingual disclosure copy wrap,
+localizes its new controls, and widens the combined compact gate for 125%. Its exact-source build,
 four-scale headless geometry/keyboard proof, original-pixel review, capture
-promotion, and owned-resource cleanup passed locally. CI and CodeQL, Pages/wiki
-publication, the non-draft installer Release, and GitHub Discussion receipt
-remain to be recorded after the correction is pushed and its remote runs
-settle. The final Bambu build live workflow/Action run and fresh-clone
-materialization proof also remain pending and are not claimed.
+promotion, and owned-resource cleanup passed locally. Cloud run `30055965804`,
+CI `30055965807`, CodeQL `30055965809`, and Pages `30055965817` passed for exact
+`c22e29a03a`; installer run `30057456712` published immutable six-asset
+exact-target Release `v3.6.3-beta3-zadthusbjk`. The Bambu cloud, manifest
+verifier, immutable manifest Release, and initial 10/10 fresh-clone hash proof
+are complete; only the serialized-materialization rerun and final image remain
+open.
 
 ## July 22 tab groups, command palette, and input/release reliability — **Implementation and publication verified**
 
@@ -495,7 +515,8 @@ The following items track the current cycle's progress against all six acceptanc
 | Detailed Pull All progress | **Complete** | Verified live per-repository state, bounded concurrency, completion summary, keyboard/accessibility semantics, compact-window containment, focused and full-suite coverage, the exact production build, and inspected off-screen evidence on main |
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
-| Documentation gallery expansion | **76-scene source catalog** | README, wiki, and Pages source catalog 76 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the accepted Cheap LFS commit-progress and compact Releases frames to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
+| Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
+| Documentation gallery expansion | **77-scene source catalog** | README, wiki, and Pages source catalog 77 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the Cheap LFS commit-progress, compact Releases, and live Bambu build frames to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

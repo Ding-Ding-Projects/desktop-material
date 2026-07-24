@@ -24,10 +24,12 @@ CI, code scanning, Pages/wiki, and six-asset Windows installer Release
 verification. Updater recovery commits `241cc90ce9` and `04246fdf12` are also
 published and were accepted from an installed legacy build through the new
 alphabetic-`z` release lane. July 23 Cheap LFS registry storage and automatic
-push batching are published initially at `c3db37ea55`; the isolated responsive
-Releases correction has passed its exact-source build and four-scale headless
-acceptance. Its push, exact-source CI/CodeQL, Pages/wiki, installer Release, and
-Discussion receipt remain pending until recorded in `HANDOFF.md`.
+push batching and the responsive Releases correction are published through
+`c22e29a03a`. Exact-source cloud, CI, CodeQL, Pages, and installer run
+`30057456712` passed; the latter published immutable six-asset Release
+`v3.6.3-beta3-zadthusbjk`. The live Bambu cloud/verifier and initial 10/10 clone
+integrity proofs are complete; the serialized materialization correction keeps
+its final UI receipt in `HANDOFF.md`.
 
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
@@ -36,7 +38,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 76-scene visual index: every
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 77-scene visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
@@ -1032,6 +1034,32 @@ acceptance object to a verified 1,033-byte side asset. Both compressed pointers
 were restored manually through Desktop Material to the exact original SHA-256;
 an earlier failed draft lookup also left its raw pointer materializable through
 the same production UI.
+
+### Live 14.8 GB Bambu build acceptance
+
+The public `codingmachineedge/bambu-build` exercise used the real Changes and
+Clone UI for exactly **8,305 payload files** and **14,809,588,162 bytes**.
+Desktop Material created four ordered commit/push batches below its conservative
+limit. The first ordinary push received HTTP 408 but kept the exact pending
+commit durable; retry pushed that same immutable SHA before creating the next
+batch.
+
+Managed cloud run `30048474438` compressed each of the 13 Release objects one at
+a time and reported **13 compressed, 0 kept raw, and 0 failed**. All 13 raw
+originals remain beside the 13 compressed assets, so older pointers retain raw
+fallback. The final real-UI manifest commit `712ad85` passed verifier run
+`30054805137`, which checked all 8,305 files, ten pointers, and 26 assets and
+published immutable manifest Release `bambu-build-verify-30054805137`.
+
+A fresh real-UI clone restored all ten logical SHA-256 values while the Git
+commit still held only 370–514-byte pointer blobs. Its first explicit
+**Materialize all** overlapped clone/open automatic restoration and produced two
+hash-identical compare-and-swap recovery copies. The bytes remained correct,
+but Desktop Material now serializes automatic and manual materialization per
+repository; `HANDOFF.md` records the corrected UI acceptance separately from
+that initial integrity proof.
+
+![Live public Bambu build Cheap LFS inventory with ten tracked Release-backed pointer objects](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-bambu-build-live.png)
 
 Each Cheap LFS Release holds at most 1,000 assets. Desktop Material counts all
 ten asset pages and uses `assets`, then `assets-2`, `assets-3`, and later buckets

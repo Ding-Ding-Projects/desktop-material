@@ -61,6 +61,15 @@ export interface ICheapLfsDispatcher {
     signal?: AbortSignal,
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ): Promise<ICheapLfsMaterializeResult>
+  materializeAllCheapLfsPointers(
+    repository: Repository,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<void>
+  cancelAutoMaterializeCheapLfs(
+    repository: Repository,
+    requestSignal?: AbortSignal
+  ): void
   removeCheapLfsPointer(
     repository: Repository,
     trackedRelativePath: string,
@@ -515,12 +524,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     }
   }
 
-  /**
-   * Materialize every loaded pointer sequentially under one cancelable
-   * operation — the manual "Materialize all" control. Runs the same per-file
-   * materialize the automatic detector uses, records per-file failures without
-   * stopping the batch, and reloads the list once at the end.
-   */
+  /** Materialize all through the AppStore's repository-scoped shared queue. */
   private materializeAll = async () => {
     const targets = this.state.pointers.filter(
       entry => entry.workingTreeState === 'pointer'
@@ -533,68 +537,40 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       return
     }
     this.lastProgressAt = 0
-    let materialized = 0
-    let failed = 0
-    let canceled = false
+    this.setState({ materializingPath: 'all pinned files' })
     try {
-      for (const entry of targets) {
-        if (!this.isCurrent(operation.generation, operation.controller)) {
-          return
-        }
-        if (operation.controller.signal.aborted) {
-          canceled = true
-          break
-        }
-        this.setState({ materializingPath: entry.relativePath })
-        try {
-          await this.props.dispatcher.materializePointer(
-            this.props.repository,
-            entry.relativePath,
-            operation.controller.signal,
-            progress =>
-              this.updateProgress(
-                operation.generation,
-                operation.controller,
-                progress
-              )
+      await this.props.dispatcher.materializeAllCheapLfsPointers(
+        this.props.repository,
+        operation.controller.signal,
+        progress =>
+          this.updateProgress(
+            operation.generation,
+            operation.controller,
+            progress
           )
-          materialized++
-        } catch (error) {
-          if ((error as Error)?.name === 'AbortError') {
-            canceled = true
-            break
-          }
-          failed++
-        }
-      }
+      )
       if (!this.isCurrent(operation.generation, operation.controller)) {
         return
       }
       this.finishOperation(operation.controller)
-      const failedSuffix =
-        failed > 0
-          ? `; ${failed} failed and ${
-              failed === 1 ? 'was' : 'were'
-            } left as pointers`
-          : ''
       this.setState(
-        { busy: null, progress: null },
+        { busy: null, progress: null, materializingPath: null },
         () =>
           void this.loadPointers(
-            `${
-              canceled ? 'Canceled after materializing' : 'Materialized'
-            } ${materialized} of ${targets.length} pinned ${
-              targets.length === 1 ? 'file' : 'files'
-            }${failedSuffix}.`
+            'Materialize all finished. The pinned-file list now reflects every verified local object.'
           )
       )
     } catch (error) {
       if (this.isCurrent(operation.generation, operation.controller)) {
+        const canceled = (error as Error)?.name === 'AbortError'
         this.setState({
           busy: null,
           progress: null,
           materializingPath: null,
-          error: errorMessage(error),
+          error: canceled ? null : errorMessage(error),
+          notice: canceled
+            ? 'Materialize canceled; completed files remain verified locally.'
+            : null,
         })
       }
     } finally {
@@ -768,7 +744,14 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   }
 
   private cancelOperation = () => {
-    this.operationController?.abort()
+    const controller = this.operationController
+    controller?.abort()
+    if (controller !== null && this.state.busy === 'materialize') {
+      this.props.dispatcher.cancelAutoMaterializeCheapLfs(
+        this.props.repository,
+        controller.signal
+      )
+    }
     this.setState({ notice: 'Canceling the current cheap LFS operation…' })
   }
 

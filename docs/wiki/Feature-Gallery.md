@@ -4,10 +4,10 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 76 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 77 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
-metadata except the one purpose-built live Cheap LFS acceptance repository. No personal path,
+metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
 credential, email address, private file content, or unrelated account identifier belongs in the
 image set.
 
@@ -31,11 +31,14 @@ contract rejects missing, duplicate, or unassigned assets.
 > the accepted bilingual private-opt-in and compressed-pointer frame after live public
 > automatic/private explicit Actions runs and local restores. The July 23 registry-storage,
 > commit-progress, automatic push-batching, and compact Repository Releases continuation is
-> initially published at `c3db37ea55`. The isolated responsive correction passed its exact build
-> and 100%/125%/150%/200% constant-960×660 headless gate. Its inspected Releases evidence is the
-> corrected physical 960×660 capture of the 200%-scaled CSS 480×330 viewport, with one complete
-> release row retained; source CI/CodeQL, Pages, wiki, Release, Discussion, and Git-cleanup
-> publication receipts remain pending.
+> published through corrective source `c22e29a03a`. Its exact build,
+> 100%/125%/150%/200% constant-960×660 headless gate, CI, CodeQL, Pages, and six-asset installer
+> Release are complete. The 77th scene follows the real 14.8 GB public Bambu build exercise: four
+> exact-SHA-proven UI batches after a durable HTTP 408 retry, 13/0/0 one-object-at-a-time cloud
+> compression with raw fallback retained, a passing manifest verifier, and ten locally restored
+> hashes from pointer-only Git history. The first automatic/manual restore overlap prompted
+> repository-scoped serialization; its corrected UI rerun is the final acceptance gate recorded in
+> `HANDOFF.md`.
 > Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
@@ -85,6 +88,7 @@ active profile's style, label, and explicit language mode.
 | `cheap-lfs-ui-acceptance.png` | Live private-repository Cheap LFS pin result with the verified pointer and Materialize action |
 | `cheap-lfs-cloud-compression.png` | Bilingual private opt-in with the managed cloud workflow ready and a verified compressed pointer |
 | `cheap-lfs-commit-progress.png` | Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context |
+| `cheap-lfs-bambu-build-live.png` | Live public Bambu build inventory with ten tracked Release-backed pointer objects |
 | `material-actions-cancel.png` | Exact workflow-run cancellation review with ref, actor, and commit context |
 | `material-rebase-review.png` | Reviewed current→target rebase with ahead/behind state and commit preview |
 | `material-pull-preview.png` | Freshly fetched ordinary pull review bound to one exact upstream OID |
@@ -233,6 +237,19 @@ is labeled Raw, Compressed, or Mixed.
 ![Bilingual private-repository cloud-compression opt-in with a verified compressed pointer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
 
 ![Three-worker Cheap LFS terminal showing the queue, provider recommendation, timing, ETA, manual controls, and large-file filter](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
+
+The public Bambu exercise sent exactly 8,305 files and 14,809,588,162 bytes
+through four UI-created commit/push batches. Its first HTTP 408 preserved the
+exact pending SHA for a successful UI retry. Cloud run `30048474438` compressed
+13 objects independently with 0 kept raw and 0 failed while retaining all raw
+originals, leaving 26 assets. Real-UI commit `712ad85` passed verifier
+`30054805137` and its immutable manifest Release. A fresh UI clone restored all
+ten SHA-256 values from committed 370–514-byte pointer blobs. The first
+automatic/manual overlap produced two hash-identical CAS recovery copies and
+prompted repository-scoped serialization; the corrected rerun is tracked in
+`HANDOFF.md` rather than inferred from that initial integrity proof.
+
+![Live public Bambu build Cheap LFS inventory with ten tracked Release-backed pointer objects](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-bambu-build-live.png)
 
 Every repository bucket is bounded to GitHub's 1,000-asset Release limit.
 Whole multipart files and whole manual batches roll together from `assets` to

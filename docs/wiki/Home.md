@@ -38,8 +38,15 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > failure continuation, GHCR and Docker Hub full-snapshot storage, encrypted
 > private-repository objects, pointer-only clone repair, and proven sub-1.5 GB
 > automatic commit/push batches. Exact build, headless, source-publication,
-> installer, Pages, and wiki receipts are maintained in `HANDOFF.md` rather than
-> predeclared in this overview.
+> installer, Pages, and wiki receipts are maintained in `HANDOFF.md`. Corrective
+> source `c22e29a03a` passed cloud, CI, CodeQL, Pages, and installer run
+> `30057456712`, which published immutable six-asset Release
+> `v3.6.3-beta3-zadthusbjk`. The public 14.8 GB Bambu exercise completed four
+> proven UI batches after a durable HTTP 408 retry, retained raw fallback across
+> 26 cloud assets, passed its exact manifest verifier at `712ad85`, and restored
+> 10/10 hashes from pointer-only Git history. Its first automatic/manual overlap
+> prompted repository-scoped serialization; the corrected UI receipt remains
+> explicitly separated in `HANDOFF.md`.
 
 M21 closes the complete 30-item GitHub Desktop demand brief: exact account and
 repository identity, native PR review/creation/activity, selective and external
@@ -83,7 +90,7 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 76 named visual scenes, with automated missing/duplicate coverage checks. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 77 named visual scenes, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |

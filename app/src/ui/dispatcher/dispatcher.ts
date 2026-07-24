@@ -3185,17 +3185,28 @@ export class Dispatcher {
 
   /**
    * Materialize every committed cheap-LFS pointer in the working tree as one
-   * cancelable background batch (the manual "Materialize all" control). Shares
-   * the automatic detector's run, so it is a no-op while one is already in
-   * flight for the repository.
+   * cancelable background batch (the manual "Materialize all" control). It
+   * queues behind an existing checkout-scoped materialization and rechecks the
+   * pointer state before downloading.
    */
-  public materializeAllCheapLfsPointers(repository: Repository): Promise<void> {
-    return this.appStore._materializeAllCheapLfsPointers(repository)
+  public materializeAllCheapLfsPointers(
+    repository: Repository,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<void> {
+    return this.appStore._materializeAllCheapLfsPointers(
+      repository,
+      signal,
+      onProgress
+    )
   }
 
   /** Cancel an in-flight automatic or manual cheap-LFS materialize batch. */
-  public cancelAutoMaterializeCheapLfs(repository: Repository): void {
-    this.appStore._cancelAutoMaterializeCheapLfs(repository)
+  public cancelAutoMaterializeCheapLfs(
+    repository: Repository,
+    requestSignal?: AbortSignal
+  ): void {
+    this.appStore._cancelAutoMaterializeCheapLfs(repository, requestSignal)
   }
 
   /** Add a submodule at the given path, optionally tracking a branch. */

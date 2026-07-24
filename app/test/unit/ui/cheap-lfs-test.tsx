@@ -21,6 +21,7 @@ import {
   ICheapLfsGhcrPointer,
 } from '../../../src/lib/cheap-lfs/ghcr-pointer'
 import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
+import { IGitHubReleaseTransferProgressEvent } from '../../../src/lib/github-release-transfer'
 import {
   defaultBuildRunPreferences,
   IBuildRunPreferences,
@@ -151,7 +152,15 @@ class FakeCheapLfsDispatcher implements ICheapLfsDispatcher {
   public pointers: ReadonlyArray<ICheapLfsManagedPointerEntry>
   public readonly pinCalls: ICheapLfsPinOptions[] = []
   public readonly materializeCalls: string[] = []
+  public readonly materializeAllCalls = new Array<{
+    readonly signal: AbortSignal | undefined
+    readonly onProgress:
+      | ((progress: IGitHubReleaseTransferProgressEvent) => void)
+      | undefined
+  }>()
+  public readonly cancelMaterializeCalls: Array<AbortSignal | undefined> = []
   public readonly removeCalls: string[] = []
+  public materializeAllGate: Promise<void> = Promise.resolve()
 
   public constructor(initial: ReadonlyArray<ICheapLfsManagedPointerEntry>) {
     this.pointers = initial
@@ -183,6 +192,28 @@ class FakeCheapLfsDispatcher implements ICheapLfsDispatcher {
   ): Promise<ICheapLfsMaterializeResult> => {
     this.materializeCalls.push(trackedRelativePath)
     return { path: trackedRelativePath, bytes: 10 }
+  }
+
+  public materializeAllCheapLfsPointers = async (
+    _repository: Repository,
+    signal?: AbortSignal,
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+  ): Promise<void> => {
+    this.materializeAllCalls.push({ signal, onProgress })
+    onProgress?.({
+      operationId: 'materialize-all-test',
+      direction: 'download',
+      transferredBytes: 5,
+      totalBytes: 10,
+    })
+    await this.materializeAllGate
+  }
+
+  public cancelAutoMaterializeCheapLfs = (
+    _repository: Repository,
+    requestSignal?: AbortSignal
+  ): void => {
+    this.cancelMaterializeCalls.push(requestSignal)
   }
 
   public removeCheapLfsPointer = async (
@@ -598,6 +629,54 @@ describe('CheapLfs panel', () => {
 
     await waitFor(() =>
       assert.deepStrictEqual(dispatcher.materializeCalls, ['assets/logo.psd'])
+    )
+  })
+
+  it('routes Materialize all through one shared batch instead of per-file calls', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher(pointers)
+    const gate = deferred<void>()
+    dispatcher.materializeAllGate = gate.promise
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    await screen.findByText('assets/logo.psd')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Materialize all' }))
+
+    await waitFor(() => assert.equal(dispatcher.materializeAllCalls.length, 1))
+    assert.deepStrictEqual(dispatcher.materializeCalls, [])
+    assert.ok(dispatcher.materializeAllCalls[0].signal instanceof AbortSignal)
+    assert.equal(
+      typeof dispatcher.materializeAllCalls[0].onProgress,
+      'function'
+    )
+    await screen.findByText('5 B of 10 B')
+    gate.resolve()
+    await screen.findByText(/Materialize all finished/i)
+  })
+
+  it('forwards Materialize-all cancellation with the exact request signal', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher(pointers)
+    const gate = deferred<void>()
+    dispatcher.materializeAllGate = gate.promise
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    await screen.findByText('assets/logo.psd')
+    fireEvent.click(screen.getByRole('button', { name: 'Materialize all' }))
+    await waitFor(() => assert.equal(dispatcher.materializeAllCalls.length, 1))
+    const requestSignal = dispatcher.materializeAllCalls[0].signal
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+
+    await waitFor(() =>
+      assert.equal(dispatcher.cancelMaterializeCalls.length, 1)
+    )
+    assert.strictEqual(dispatcher.cancelMaterializeCalls[0], requestSignal)
+    assert.equal(requestSignal?.aborted, true)
+    gate.resolve()
+    await waitFor(() =>
+      assert.equal(screen.queryByRole('button', { name: 'Cancel' }), null)
     )
   })
 

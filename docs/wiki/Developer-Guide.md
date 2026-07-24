@@ -150,7 +150,7 @@ The current maintenance additions in this section are implemented. Their exact
 production, headless, source-publication, and cleanup evidence remains centralized
 in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
-The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 76
+The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 77
 synthetic, user-facing visual functions and states associated with these subsystems. Each function
 owns one distinct tracked PNG; missing, duplicate, and unassigned assets fail the catalog contract.
 Keep captures free of personal paths, account identifiers, credentials, signed URLs, and unbounded
@@ -213,6 +213,15 @@ publication, release, or cleanup evidence.
   `app/src/ui/preferences/automation.tsx`, repository overrides are in
   `app/src/ui/repository-settings/automation-overrides.tsx`, and merge-all/pull-all surfaces live in
   `app/src/ui/merge-all/` and `app/src/ui/pull-all/`.
+- **Cheap LFS and large commit orchestration** — `app/src/lib/cheap-lfs/` owns canonical pointers,
+  Release/OCI storage, local decompression, and integrity proof; `AppStore` coordinates automatic
+  clone/open restoration, explicit materialization, and durable commit/push batches. Automatic and
+  manual materialization for one repository must share the same repository-scoped serialized lane.
+  Destination compare-and-swap remains a final integrity fence, not a scheduler: the live Bambu
+  exercise restored 10/10 hashes but showed that an overlap can still create hash-identical recovery
+  copies. Preserve exact pending SHAs across transport failures, prove each remote tip before the
+  next batch, retain raw Release fallback, and never treat a successful hash alone as proof that
+  concurrent UI ownership was correct.
 - **GitHub Actions and logs** — `app/src/lib/stores/actions-store.ts` owns API state; the run list,
   run details, workflow-dispatch dialog, and searchable log viewer live in `app/src/ui/actions/`;
   `app/src/lib/actions-log-parser/` parses log markup without coupling it to React.

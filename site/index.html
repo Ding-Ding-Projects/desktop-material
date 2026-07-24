@@ -413,10 +413,15 @@
             choice; a large-file Changes filter, safe partial-failure
             continuation, GHCR and Docker Hub full-snapshot storage, encrypted
             private-repository objects, pointer-only clone repair, and proven
-            sub-1.5 GB automatic commit/push batches. Exact build, headless,
-            source-publication, installer, Pages, and wiki receipts remain
-            centralized in <code>HANDOFF.md</code> rather than being predeclared
-            here.
+            sub-1.5 GB automatic commit/push batches. Corrective source
+            <code>c22e29a03a</code> passed cloud, CI, CodeQL, Pages, and its
+            six-asset installer Release. The public 14.8 GB Bambu exercise used
+            four proven UI batches after a durable HTTP 408 retry, retained raw
+            fallback across 26 Release assets, passed its exact manifest
+            verifier, and restored all ten hashes from pointer-only Git history.
+            Exact build, headless, source-publication, installer, Pages, wiki,
+            and corrected serialization receipts remain centralized in
+            <code>HANDOFF.md</code>.
           </p>
           <div class="feature-grid">
             <article class="card">
@@ -749,7 +754,16 @@
                 Materialize all verify and replace old pointer-only working-tree
                 files locally. Ordinary small-file selections are split into
                 conservative sub-1.5 GB commit/push batches, with each remote
-                tip proven before the next commit is created.
+                tip proven before the next commit is created. The live public
+                Bambu exercise covered 8,305 files and 14,809,588,162 bytes in
+                four UI-created batches; its first HTTP 408 preserved the exact
+                pending SHA for retry. Cloud run 30048474438 reported 13
+                compressed, 0 kept raw, and 0 failed while retaining all raw
+                originals. Commit 712ad85 passed verifier 30054805137, and a
+                fresh UI clone restored 10/10 hashes from 370–514-byte Git
+                pointers. The first automatic/manual overlap prompted
+                repository-scoped serialization instead of treating
+                hash-identical CAS recovery copies as acceptable scheduling.
               </p>
             </article>
 
@@ -1338,6 +1352,26 @@
                 Cheap LFS commit progress
                 <span class="tag"
                   >Workers · queue · provider · timing · ETA</span
+                >
+              </figcaption>
+            </figure>
+
+            <figure class="shot">
+              <a
+                href="docs/assets/screenshots/cheap-lfs-bambu-build-live.png"
+                target="_blank"
+                rel="noopener"
+              >
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-bambu-build-live.png"
+                  alt="Live public Bambu build Cheap LFS inventory with ten tracked Release-backed pointer objects"
+                  loading="lazy"
+                />
+              </a>
+              <figcaption>
+                Live 14.8 GB Bambu restore
+                <span class="tag"
+                  >8,305 files · four batches · 10/10 hashes</span
                 >
               </figcaption>
             </figure>
