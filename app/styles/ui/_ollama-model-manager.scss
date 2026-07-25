@@ -1301,12 +1301,14 @@ dialog#preferences:has(.ollama-model-manager) {
   width: min(1320px, calc(100vw - 60px));
   height: min(940px, calc(100vh - 40px));
 
-  .dialog-content.copilot-tab {
+  .dialog-content.copilot-tab,
+  .dialog-content.ollama-tab {
     display: flex;
     min-height: 0;
     flex-direction: column;
 
-    .copilot-tab-content {
+    .copilot-tab-content,
+    .ollama-tab-content {
       min-height: 0;
       max-height: none;
       flex: 1;

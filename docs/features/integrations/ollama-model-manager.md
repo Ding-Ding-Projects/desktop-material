@@ -1,9 +1,42 @@
 # Ollama model manager
 
-Desktop Material can manage an Ollama provider from **Settings → Copilot →
-Providers** without exposing the native API as a free-form request editor. Add
-the **Ollama (local)** provider preset, save it, and choose **Manage models** on
-that provider to open the lifecycle workspace.
+Desktop Material manages an Ollama provider without exposing the native API as a
+free-form request editor. There are two ways in.
+
+**Settings → Ollama** is the standalone tab and the primary route. It renders
+the lifecycle workspace directly and never depends on Copilot access or a
+Copilot licence, so it is reachable while signed out. The command palette
+entries **Ollama model manager** and **Ollama chat** open this tab, as do the
+settings-search results for Ollama.
+
+**Settings → Copilot → Providers** remains available for users who manage Ollama
+alongside their other Copilot model providers. Add the **Ollama (local)**
+provider preset, save it, and choose **Manage models** on that provider to open
+the same lifecycle workspace.
+
+## Setup state
+
+When no Ollama provider is configured yet, the standalone tab shows a setup
+state rather than any Copilot content. It offers an endpoint field prefilled
+with `http://127.0.0.1:11434`, a **Connect** action, and short guidance on
+installing and starting Ollama.
+
+Connecting validates the endpoint with the same loopback rules the client
+enforces, canonicalizes it to its origin, and probes `/api/version` before
+anything is saved. Only after that probe succeeds is a managed provider
+persisted (`type: openai`, `authKind: none`, `integration: ollama`, base URL
+`<origin>/v1`) — identical to a provider created through the Copilot provider
+dialog, so both routes manage the same record.
+
+The **Connect** button stays enabled for an invalid endpoint on purpose:
+activating it explains the problem in an alert that is associated with the
+endpoint field through `aria-describedby`, which a disabled control could not
+announce. A non-loopback host is rejected before any network request is made.
+A failed probe or a failed save reports the specific reason and leaves the tab
+unconfigured rather than appearing connected.
+
+When more than one Ollama provider exists, a labelled picker selects which one
+the tab manages; it is hidden for the common single-endpoint case.
 
 The provider's configured URL serves two related purposes. Copilot requests use
 Ollama's OpenAI-compatible endpoint, while the manager derives its fixed native
@@ -146,6 +179,16 @@ message/image/appearance/font commits, non-rewriting undo/redo/restore,
 malformed-image rejection, bounded native chat serialization, streamed UI
 updates, cancellation, model changes without transcript loss, localized
 history controls, and compact workspace styling.
+
+Standalone-tab acceptance covers the unconfigured setup state rendering without
+any Copilot sign-in content, a non-Ollama BYOK provider still counting as
+unconfigured, loopback rejection before any network request, endpoint
+canonicalization from a `/v1` base, the exact persisted provider record, alert
+association with the endpoint field, probe and save failures leaving the tab
+unconfigured, the manager rendering directly for a configured provider, and the
+multi-provider picker. See `app/test/unit/ui/ollama-preferences-test.tsx`; the
+tab's own copy is pinned in both catalogs by
+`app/test/unit/ollama-manager-i18n-test.ts`.
 
 Exact source `27ffc1af7dd1223809c69ea0f72ddab369869f31` completed the
 required low-level-MCP production build in 213.16 seconds. The deterministic

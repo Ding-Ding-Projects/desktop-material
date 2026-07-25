@@ -92,6 +92,7 @@ import { AgentAccess } from './agent-access'
 import { ErrorPresentationStyle } from '../../models/error-presentation'
 import { QueuePreferences } from './queue'
 import { SoundPreferences } from './sound'
+import { OllamaPreferences } from './ollama'
 import { getAudioCueStore } from '../../lib/audio/audio-cue-store'
 import { LocalizedText } from '../lib/localized-text'
 import { SettingsSearch, SettingsSearchSurfaceId } from './settings-search'
@@ -663,6 +664,12 @@ export class Preferences extends React.Component<
                 <LocalizedText translationKey="settings.soundTab" />,
                 true
               )}
+              {this.renderRailTab(
+                PreferencesTab.Ollama,
+                octicons.hubot,
+                <LocalizedText translationKey="settings.ollamaTab" />,
+                true
+              )}
             </TabBar>
             <div className="preferences-version">Desktop Material 0.1.0</div>
           </div>
@@ -727,6 +734,9 @@ export class Preferences extends React.Component<
         break
       case PreferencesTab.Sound:
         suffix = 'sound'
+        break
+      case PreferencesTab.Ollama:
+        suffix = 'ollama'
         break
       default:
         return assertNever(tab, `Unknown tab type: ${tab}`)
@@ -1087,6 +1097,14 @@ export class Preferences extends React.Component<
           <SoundPreferences
             audioCueStore={getAudioCueStore()}
             repository={this.props.repository}
+          />
+        )
+        break
+      case PreferencesTab.Ollama:
+        View = (
+          <OllamaPreferences
+            byokProviders={this.props.byokProviders}
+            onUpdateBYOKProvider={this.onUpdateBYOKProvider}
           />
         )
         break

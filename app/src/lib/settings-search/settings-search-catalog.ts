@@ -69,6 +69,8 @@ export function settingsTabNameKey(tab: PreferencesTab): TranslationKey {
       return 'settingsSearch.tabName.queue'
     case PreferencesTab.Sound:
       return 'settingsSearch.tabName.sound'
+    case PreferencesTab.Ollama:
+      return 'settingsSearch.tabName.ollama'
     default:
       return 'settingsSearch.tabName.accounts'
   }
@@ -123,22 +125,31 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       descriptionKey: 'settingsSearch.entry.copilotModels.desc',
       keywords: ['ai', 'model', 'copilot', 'gpt', 'byok', 'ollama', '模型'],
     },
+    // Ollama — the manager and its chat workspace have their own tab, so the
+    // search results point at that tab rather than at Copilot's provider list.
     {
-      id: 'copilot-ollama',
-      tab: PreferencesTab.Copilot,
-      titleKey: 'settingsSearch.entry.copilotOllama.title',
-      descriptionKey: 'settingsSearch.entry.copilotOllama.desc',
+      id: 'ollama-manager',
+      tab: PreferencesTab.Ollama,
+      titleKey: 'settingsSearch.entry.ollamaManager.title',
+      descriptionKey: 'settingsSearch.entry.ollamaManager.desc',
       keywords: [
         'ollama',
         'local model',
         'llm',
         'endpoint',
-        'chat',
         'provider',
+        'pull',
         'byok',
         '本地模型',
         '端點',
       ],
+    },
+    {
+      id: 'ollama-chat',
+      tab: PreferencesTab.Ollama,
+      titleKey: 'settingsSearch.entry.ollamaChat.title',
+      descriptionKey: 'settingsSearch.entry.ollamaChat.desc',
+      keywords: ['ollama', 'chat', 'prompt', 'llm', 'local', '對話', '傾偈'],
     },
     {
       id: 'copilot-conflict',

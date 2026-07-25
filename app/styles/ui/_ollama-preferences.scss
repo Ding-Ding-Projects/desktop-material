@@ -1,0 +1,166 @@
+#preferences .ollama-tab {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  flex-direction: column;
+  gap: var(--spacing);
+  color: var(--md-sys-color-on-surface);
+
+  .ollama-tab-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 6px;
+
+    h2 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      font-weight: var(--font-weight-semibold);
+    }
+
+    p {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .ollama-tab-heading-icon {
+    display: grid;
+    flex: none;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+    color: var(--md-sys-color-on-secondary-container);
+    background: var(--md-sys-color-secondary-container);
+  }
+
+  .ollama-tab-content {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    gap: var(--spacing);
+  }
+
+  .ollama-tab-provider-picker {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-half);
+
+    label {
+      font-weight: var(--font-weight-semibold);
+    }
+
+    select {
+      min-width: 0;
+      max-width: 100%;
+      flex: 1 1 220px;
+      padding: 6px 8px;
+      border: 1px solid var(--md-sys-color-outline);
+      border-radius: var(--border-radius);
+      color: var(--md-sys-color-on-surface);
+      background: var(--md-sys-color-surface);
+
+      &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px var(--md-sys-color-primary);
+      }
+    }
+  }
+
+  .ollama-tab-setup {
+    display: flex;
+    min-width: 0;
+    max-width: 720px;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    padding: 18px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-low);
+
+    h3 {
+      margin: 0;
+      font-size: var(--font-size-lg);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    h4 {
+      margin: 0;
+      font-size: var(--font-size);
+      font-weight: var(--font-weight-semibold);
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .ollama-tab-setup-endpoint {
+    display: grid;
+    min-width: 0;
+    align-items: end;
+    margin-top: var(--spacing-half);
+    gap: var(--spacing-half);
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    .text-box-component {
+      min-width: 0;
+    }
+  }
+
+  .ollama-tab-setup-hint {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+  }
+
+  .ollama-tab-setup-error {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-half);
+    padding: 10px 12px;
+    border-radius: var(--border-radius);
+    color: var(--md-sys-color-on-error-container);
+    background: var(--md-sys-color-error-container);
+
+    .octicon {
+      flex: none;
+      margin-top: 2px;
+    }
+  }
+
+  .ollama-tab-setup-guidance {
+    display: flex;
+    flex-direction: column;
+    margin-top: var(--spacing-half);
+    gap: var(--spacing-half);
+
+    ul {
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding-left: 20px;
+      gap: 4px;
+      color: var(--md-sys-color-on-surface-variant);
+      line-height: 1.5;
+    }
+
+    li {
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
+@media (max-width: 700px) {
+  #preferences .ollama-tab .ollama-tab-setup-endpoint {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

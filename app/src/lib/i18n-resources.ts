@@ -1029,6 +1029,22 @@ export type TranslationKey =
   | 'tagLifecycle.remoteOnlyHeading'
   | 'tagLifecycle.noRemoteMatches'
   | 'tagLifecycle.remoteTruncated'
+  | 'ollama.setup.heading'
+  | 'ollama.setup.description'
+  | 'ollama.setup.notConfiguredTitle'
+  | 'ollama.setup.notConfiguredBody'
+  | 'ollama.setup.endpointLabel'
+  | 'ollama.setup.endpointHint'
+  | 'ollama.setup.connect'
+  | 'ollama.setup.connecting'
+  | 'ollama.setup.invalidEndpoint'
+  | 'ollama.setup.connectFailed'
+  | 'ollama.setup.saveFailed'
+  | 'ollama.setup.guidanceTitle'
+  | 'ollama.setup.guidanceInstall'
+  | 'ollama.setup.guidanceDefault'
+  | 'ollama.setup.guidanceLocal'
+  | 'ollama.setup.providerLabel'
   | 'ollama.providerType'
   | 'ollama.authenticationHeading'
   | 'ollama.authenticationDescription'
@@ -1244,6 +1260,7 @@ export type TranslationKey =
   | 'settings.queueDirectoryRequired'
   | 'settings.queueSafetyNote'
   | 'settings.soundTab'
+  | 'settings.ollamaTab'
   | 'settings.soundHeading'
   | 'settings.soundDescription'
   | 'settings.soundMasterEnableTitle'
@@ -1662,6 +1679,7 @@ export type TranslationKey =
   | 'settingsSearch.tabName.automation'
   | 'settingsSearch.tabName.queue'
   | 'settingsSearch.tabName.sound'
+  | 'settingsSearch.tabName.ollama'
   | 'settingsSearch.entry.accountsSignIn.title'
   | 'settingsSearch.entry.accountsSignIn.desc'
   | 'settingsSearch.entry.accountsEnterprise.title'
@@ -1701,8 +1719,10 @@ export type TranslationKey =
   | 'settingsSearch.entry.agentAccessServer.title'
   | 'settingsSearch.entry.agentAccessServer.desc'
   | 'settingsSearch.entry.queueMode.desc'
-  | 'settingsSearch.entry.copilotOllama.title'
-  | 'settingsSearch.entry.copilotOllama.desc'
+  | 'settingsSearch.entry.ollamaManager.title'
+  | 'settingsSearch.entry.ollamaManager.desc'
+  | 'settingsSearch.entry.ollamaChat.title'
+  | 'settingsSearch.entry.ollamaChat.desc'
   | 'settingsSearch.entry.gitGlobalIgnore.title'
   | 'settingsSearch.entry.gitGlobalIgnore.desc'
   | 'settingsSearch.entry.gitHooks.title'
@@ -3026,6 +3046,30 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tagLifecycle.noRemoteMatches': 'No remote-only tags match this filter.',
   'tagLifecycle.remoteTruncated':
     'Showing the first 500 remote tags. Remote deletion is disabled for undisplayed tags, and bulk push/prune stay unavailable until the inventory is complete.',
+  'ollama.setup.heading': 'Ollama local models',
+  'ollama.setup.description':
+    'Run and manage large language models on this machine. Desktop Material only talks to Ollama over a loopback address.',
+  'ollama.setup.notConfiguredTitle': 'Connect to Ollama',
+  'ollama.setup.notConfiguredBody':
+    'No Ollama endpoint is configured yet. Start Ollama on this machine, then connect to the loopback address it listens on.',
+  'ollama.setup.endpointLabel': 'Ollama endpoint',
+  'ollama.setup.endpointHint':
+    'Only loopback addresses are accepted: localhost, 127.0.0.0/8, or ::1.',
+  'ollama.setup.connect': 'Connect',
+  'ollama.setup.connecting': 'Connecting…',
+  'ollama.setup.invalidEndpoint':
+    'Enter a loopback Ollama endpoint, for example http://127.0.0.1:11434.',
+  'ollama.setup.connectFailed':
+    'Could not reach Ollama at that endpoint. Check that Ollama is running, then try again.',
+  'ollama.setup.saveFailed': 'The Ollama endpoint could not be saved.',
+  'ollama.setup.guidanceTitle': 'Before you connect',
+  'ollama.setup.guidanceInstall':
+    'Install Ollama and start it, or run `ollama serve` in a terminal.',
+  'ollama.setup.guidanceDefault':
+    'A stock install listens on http://127.0.0.1:11434.',
+  'ollama.setup.guidanceLocal':
+    'Models, prompts, and chats stay on this machine.',
+  'ollama.setup.providerLabel': 'Ollama provider',
   'ollama.providerType': 'Ollama (local)',
   'ollama.authenticationHeading': 'Authentication',
   'ollama.authenticationDescription':
@@ -3276,6 +3320,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.queueSafetyNote':
     'Each batch is bounded to 500 repositories, existing folders are reviewed safely, and background queues never open an unsolicited progress dialog.',
   'settings.soundTab': 'Sound',
+  'settings.ollamaTab': 'Ollama',
   'settings.soundHeading': 'Sound',
   'settings.soundDescription':
     'An optional audio system: a spoken narrator, sound effects for common actions, and quiet per-repository music. Everything is off by default.',
@@ -3802,6 +3847,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.tabName.automation': 'Automation',
   'settingsSearch.tabName.queue': 'Clone queue',
   'settingsSearch.tabName.sound': 'Sound',
+  'settingsSearch.tabName.ollama': 'Ollama',
   'settingsSearch.entry.accountsSignIn.title': 'Sign in to GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     'Add a GitHub.com account to Desktop Material.',
@@ -3815,9 +3861,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Use Copilot for conflict resolution',
   'settingsSearch.entry.copilotConflict.desc':
     'Let Copilot help resolve merge conflicts automatically.',
-  'settingsSearch.entry.copilotOllama.title': 'Ollama local models',
-  'settingsSearch.entry.copilotOllama.desc':
-    'Manage Ollama and other local model providers, endpoints, and chat.',
+  'settingsSearch.entry.ollamaManager.title': 'Ollama local models',
+  'settingsSearch.entry.ollamaManager.desc':
+    'Connect a loopback Ollama endpoint, then pull, inspect, run, and remove local models.',
+  'settingsSearch.entry.ollamaChat.title': 'Ollama chat',
+  'settingsSearch.entry.ollamaChat.desc':
+    'Chat with a local Ollama model without leaving Desktop Material.',
   'settingsSearch.entry.gitGlobalIgnore.title': 'Global ignore',
   'settingsSearch.entry.gitGlobalIgnore.desc':
     'Edit the ignore rules (core.excludesFile) that apply to every repository.',
@@ -5083,6 +5132,28 @@ export const cantoneseTranslations: Readonly<
   'tagLifecycle.noRemoteMatches': '冇只限遠端嘅標籤符合呢個篩選。',
   'tagLifecycle.remoteTruncated':
     '只顯示頭 500 個遠端標籤。未顯示嘅標籤唔可以刪除；清單完整之前，批次 push 同清理亦會保持停用。',
+  'ollama.setup.heading': 'Ollama 本地模型',
+  'ollama.setup.description':
+    '喺呢部機行同管理大型語言模型。Desktop Material 淨係會經 loopback 位址同 Ollama 傾偈。',
+  'ollama.setup.notConfiguredTitle': '連接 Ollama',
+  'ollama.setup.notConfiguredBody':
+    '仲未設定 Ollama 端點。喺呢部機開咗 Ollama，再連去佢監聽緊嘅 loopback 位址。',
+  'ollama.setup.endpointLabel': 'Ollama 端點',
+  'ollama.setup.endpointHint':
+    '淨係接受 loopback 位址：localhost、127.0.0.0/8 或者 ::1。',
+  'ollama.setup.connect': '連接',
+  'ollama.setup.connecting': '連接緊…',
+  'ollama.setup.invalidEndpoint':
+    '請輸入 loopback 嘅 Ollama 端點，例如 http://127.0.0.1:11434。',
+  'ollama.setup.connectFailed':
+    '喺嗰個端點搵唔到 Ollama。睇下 Ollama 開咗未，然後再試多次。',
+  'ollama.setup.saveFailed': '存唔到呢個 Ollama 端點。',
+  'ollama.setup.guidanceTitle': '連接之前',
+  'ollama.setup.guidanceInstall':
+    '裝好 Ollama 再開佢，又或者喺終端機行 `ollama serve`。',
+  'ollama.setup.guidanceDefault': '原裝安裝預設監聽 http://127.0.0.1:11434。',
+  'ollama.setup.guidanceLocal': '模型、提示同對話全部留喺呢部機。',
+  'ollama.setup.providerLabel': 'Ollama 供應商',
   'ollama.providerType': 'Ollama（本機）',
   'ollama.authenticationHeading': '驗證',
   'ollama.authenticationDescription':
@@ -5317,6 +5388,7 @@ export const cantoneseTranslations: Readonly<
   'settings.queueSafetyNote':
     '每批最多 500 個 repository；遇到現有資料夾會安全覆核，而且背景隊列唔會無啦啦彈進度視窗阻住你。',
   'settings.soundTab': '聲音',
+  'settings.ollamaTab': '本地模型',
   'settings.soundHeading': '聲音',
   'settings.soundDescription':
     '一套可選嘅音效系統：有旁白、常見動作嘅音效、仲有每個 repository 靜靜哋播嘅音樂。全部預設關閉。',
@@ -5826,6 +5898,7 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.tabName.automation': '自動化',
   'settingsSearch.tabName.queue': 'Clone 隊列',
   'settingsSearch.tabName.sound': '聲音',
+  'settingsSearch.tabName.ollama': 'Ollama 本地模型',
   'settingsSearch.entry.accountsSignIn.title': '登入 GitHub',
   'settingsSearch.entry.accountsSignIn.desc':
     '喺 Desktop Material 加個 GitHub.com 帳戶。',
@@ -5837,9 +5910,12 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.copilotConflict.title': '用 Copilot 幫手解衝突',
   'settingsSearch.entry.copilotConflict.desc':
     '俾 Copilot 自動幫你處理 merge 衝突。',
-  'settingsSearch.entry.copilotOllama.title': 'Ollama 本地模型',
-  'settingsSearch.entry.copilotOllama.desc':
-    '管理 Ollama 同其他本地模型供應商、端點同對話。',
+  'settingsSearch.entry.ollamaManager.title': 'Ollama 本地模型',
+  'settingsSearch.entry.ollamaManager.desc':
+    '駁通 loopback Ollama 端點，之後就可以拉、睇、行同刪走本地模型。',
+  'settingsSearch.entry.ollamaChat.title': 'Ollama 對話',
+  'settingsSearch.entry.ollamaChat.desc':
+    '唔使離開 Desktop Material，直接同本地 Ollama 模型傾偈。',
   'settingsSearch.entry.gitGlobalIgnore.title': '全域忽略',
   'settingsSearch.entry.gitGlobalIgnore.desc':
     '編輯套用喺每個存放庫嘅忽略規則（core.excludesFile）。',

@@ -7,6 +7,26 @@ import {
 } from '../../src/lib/i18n-resources'
 import { getOllamaModelManagerStrings } from '../../src/ui/copilot/ollama-model-manager-localization'
 
+/** The standalone Preferences → Ollama tab's own copy. */
+const ollamaSetupTranslationKeys: ReadonlyArray<TranslationKey> = [
+  'ollama.setup.heading',
+  'ollama.setup.description',
+  'ollama.setup.notConfiguredTitle',
+  'ollama.setup.notConfiguredBody',
+  'ollama.setup.endpointLabel',
+  'ollama.setup.endpointHint',
+  'ollama.setup.connect',
+  'ollama.setup.connecting',
+  'ollama.setup.invalidEndpoint',
+  'ollama.setup.connectFailed',
+  'ollama.setup.saveFailed',
+  'ollama.setup.guidanceTitle',
+  'ollama.setup.guidanceInstall',
+  'ollama.setup.guidanceDefault',
+  'ollama.setup.guidanceLocal',
+  'ollama.setup.providerLabel',
+]
+
 const ollamaManagerTranslationKeys: ReadonlyArray<TranslationKey> = [
   'ollama.manager.openAction',
   'ollama.manager.backAction',
@@ -355,6 +375,64 @@ describe('Ollama model manager internationalization', () => {
     assert.equal(
       translate('ollama.manager.confirmDelete', 'bilingual', variables),
       'Delete demo · private from this Ollama endpoint? This cannot be undone. · 要由呢個 Ollama 端點刪除 demo · private 嗎？刪咗冇得返轉頭。'
+    )
+  })
+
+  it('keeps the standalone tab setup contract in both catalogs', () => {
+    const actualKeys = Object.keys(englishTranslations)
+      .filter(key => key.startsWith('ollama.setup.'))
+      .sort()
+    const expectedKeys = [...ollamaSetupTranslationKeys].sort()
+
+    assert.deepEqual(actualKeys, expectedKeys)
+    assert.equal(ollamaSetupTranslationKeys.length, 16)
+
+    for (const key of ollamaSetupTranslationKeys) {
+      assert.equal(typeof englishTranslations[key], 'string', key)
+      assert.equal(typeof cantoneseTranslations[key], 'string', key)
+      assert.notEqual(englishTranslations[key], '', key)
+      assert.notEqual(cantoneseTranslations[key], '', key)
+      // The setup state is the only Ollama surface a signed-out user sees, so
+      // no key may silently fall back to the English catalog.
+      assert.notEqual(englishTranslations[key], cantoneseTranslations[key], key)
+    }
+  })
+
+  it('keeps the standalone tab labels distinct in every mode', () => {
+    assert.equal(translate('settings.ollamaTab', 'english'), 'Ollama')
+    assert.equal(translate('settings.ollamaTab', 'cantonese'), '本地模型')
+    assert.equal(
+      translate('settings.ollamaTab', 'bilingual'),
+      'Ollama · 本地模型'
+    )
+
+    assert.equal(
+      translate('settingsSearch.tabName.ollama', 'english'),
+      'Ollama'
+    )
+    assert.equal(
+      translate('settingsSearch.tabName.ollama', 'cantonese'),
+      'Ollama 本地模型'
+    )
+  })
+
+  it('explains the unconfigured setup state in both languages', () => {
+    assert.equal(
+      translate('ollama.setup.notConfiguredTitle', 'english'),
+      'Connect to Ollama'
+    )
+    assert.equal(
+      translate('ollama.setup.notConfiguredTitle', 'cantonese'),
+      '連接 Ollama'
+    )
+    assert.equal(
+      translate('ollama.setup.endpointHint', 'english'),
+      'Only loopback addresses are accepted: localhost, 127.0.0.0/8, or ::1.'
+    )
+    assert.equal(
+      translate('ollama.setup.invalidEndpoint', 'bilingual'),
+      'Enter a loopback Ollama endpoint, for example http://127.0.0.1:11434. · ' +
+        '請輸入 loopback 嘅 Ollama 端點，例如 http://127.0.0.1:11434。'
     )
   })
 })

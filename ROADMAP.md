@@ -21,7 +21,23 @@ per-repo automation, Ollama chat), the Repository Settings tab relabelled
 "Build, run & large files" with an explicit Cheap LFS section heading, and
 settings-search entries for the Ollama manager/chat, global ignore, and Git
 hooks. Deliberate skips (standalone Ollama tab, auto-fix toggle) are recorded
-with reasons in [HANDOFF.md](HANDOFF.md).
+with reasons in [HANDOFF.md](HANDOFF.md). The standalone Ollama tab was
+subsequently built and is no longer a skip — see the July 25 entry below.
+
+## July 25 standalone Ollama settings tab — **Implemented, locally accepted**
+
+Settings gains a real **Ollama** rail tab whose pane renders the Ollama model
+manager and its chat workspace directly, with no dependency on Copilot access,
+an account, or a Copilot licence. When no Ollama provider is configured the tab
+shows a setup state — a loopback-validated endpoint field, a health-check
+`Connect` action, and short guidance — instead of any Copilot sign-in content;
+connecting persists the same managed provider record the Copilot provider
+dialog creates, so both routes manage one endpoint. The palette's `Ollama model
+manager` and `Ollama chat` commands and the Ollama settings-search results now
+open this tab. The existing Preferences → Copilot → Providers route is
+unchanged. Details in
+[docs/features/integrations/ollama-model-manager.md](docs/features/integrations/
+ollama-model-manager.md).
 
 ## July 24 mega wave — **Implemented, locally accepted**
 

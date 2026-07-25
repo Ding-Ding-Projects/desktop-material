@@ -44,7 +44,8 @@
         { "member": "AgentAccess", "label": "Agent access" },
         { "member": "Automation", "label": "Automation" },
         { "member": "Queue", "label": "Clone queue" },
-        { "member": "Sound", "label": "Sound" }
+        { "member": "Sound", "label": "Sound" },
+        { "member": "Ollama", "label": "Ollama" }
       ]
     },
     "repositorySettings": {
