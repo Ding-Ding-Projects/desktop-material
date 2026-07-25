@@ -33,6 +33,7 @@ import {
   IGitHubReleaseTransferProgressEvent,
 } from '../github-release-transfer'
 import { git } from '../git/core'
+import { largeRepositoryGitArgsForPath } from '../large-repository/large-repository-mode'
 import {
   getGitHubReleasesAccount,
   getGitHubReleasesReadAccount,
@@ -278,7 +279,8 @@ export interface ICheapLfsFileSystem {
     signal?: AbortSignal
   ): Promise<void>
   scanPointerCandidates(
-    root: string
+    root: string,
+    pathspec?: ReadonlyArray<string>
   ): Promise<ReadonlyArray<ICheapLfsPointerCandidate>>
   /** Resolve the checked-out branch or detached commit for a new release. */
   resolveReleaseTargetCommitish(repository: Repository): Promise<string | null>
@@ -593,9 +595,11 @@ function parseNulPaths(value: Buffer, revisionPrefix?: string): string[] {
 
 async function gitPointerPaths(
   root: string,
-  source: 'working-tree' | 'index' | 'head'
+  source: 'working-tree' | 'index' | 'head',
+  pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<string>> {
   const args = [
+    ...largeRepositoryGitArgsForPath(root),
     'grep',
     '-I',
     '-l',
@@ -614,6 +618,15 @@ async function gitPointerPaths(
     args.push('HEAD')
   }
   args.push('--')
+  // A bounded pathspec scopes the whole-tree grep to only the candidate paths a
+  // caller cares about (the selected commit files, or one materialize target),
+  // turning a ~49s scan on a 211k-file repository into ~130ms. Each entry is
+  // matched with `:(literal)` so a filename containing pathspec glob magic
+  // (`*`, `[`, ...) still matches itself exactly, mirroring the caller's own
+  // exact-path narrowing.
+  if (pathspec !== undefined && pathspec.length > 0) {
+    args.push(...pathspec.map(path => `:(literal)${path}`))
+  }
   const result = await git(args, root, `listCheapLfs${source}Pointers`, {
     successExitCodes: new Set([0, 1, 128]),
     encoding: 'buffer',
@@ -637,7 +650,7 @@ async function readGitPointerText(
 ): Promise<string> {
   const object = `${source === 'index' ? '' : 'HEAD'}:${relativePath}`
   const sizeResult = await git(
-    ['cat-file', '-s', object],
+    [...largeRepositoryGitArgsForPath(root), 'cat-file', '-s', object],
     root,
     'measureCheapLfsPointerBlob',
     { maxBuffer: 1024 }
@@ -653,7 +666,7 @@ async function readGitPointerText(
     )
   }
   const result = await git(
-    ['cat-file', 'blob', object],
+    [...largeRepositoryGitArgsForPath(root), 'cat-file', 'blob', object],
     root,
     'readCheapLfsPointerBlob',
     { encoding: 'buffer', maxBuffer: CheapLfsMaximumAnyPointerTextBytes }
@@ -668,7 +681,11 @@ async function readGitPointerText(
 
 async function isGitWorkingTree(root: string): Promise<boolean> {
   const result = await git(
-    ['rev-parse', '--is-inside-work-tree'],
+    [
+      ...largeRepositoryGitArgsForPath(root),
+      'rev-parse',
+      '--is-inside-work-tree',
+    ],
     root,
     'detectCheapLfsGitWorkingTree',
     { successExitCodes: new Set([0, 128]), maxBuffer: 1024 }
@@ -682,12 +699,13 @@ async function isGitWorkingTree(root: string): Promise<boolean> {
  * staged replacement) supplies metadata while verified raw bytes stay local.
  */
 async function scanPointerCandidatesFromGit(
-  root: string
+  root: string,
+  pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
   const [workingPaths, indexPaths, headPaths] = await Promise.all([
-    gitPointerPaths(root, 'working-tree'),
-    gitPointerPaths(root, 'index'),
-    gitPointerPaths(root, 'head'),
+    gitPointerPaths(root, 'working-tree', pathspec),
+    gitPointerPaths(root, 'index', pathspec),
+    gitPointerPaths(root, 'head', pathspec),
   ])
   const working = new Set(workingPaths)
   const index = new Set(indexPaths)
@@ -911,7 +929,13 @@ async function resolveReleaseTargetCommitish(
 ): Promise<string | null> {
   try {
     const branch = await git(
-      ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+      [
+        ...largeRepositoryGitArgsForPath(repository.path),
+        'symbolic-ref',
+        '--quiet',
+        '--short',
+        'HEAD',
+      ],
       repository.path,
       'getCheapLfsReleaseTargetBranch',
       { successExitCodes: new Set([0, 1, 128]) }
@@ -921,7 +945,12 @@ async function resolveReleaseTargetCommitish(
     }
 
     const detached = await git(
-      ['rev-parse', '--verify', 'HEAD^{commit}'],
+      [
+        ...largeRepositoryGitArgsForPath(repository.path),
+        'rev-parse',
+        '--verify',
+        'HEAD^{commit}',
+      ],
       repository.path,
       'getCheapLfsReleaseTargetCommit',
       { successExitCodes: new Set([0, 128]) }
@@ -1803,10 +1832,15 @@ function ensureCheapLfsBucketTag(
 }
 
 async function scanPointerCandidates(
-  root: string
+  root: string,
+  pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<ICheapLfsPointerCandidate>> {
+  // Only the Git scanner honors the pathspec (Git prunes to those paths
+  // authoritatively). The non-Git directory fallback returns its full set and
+  // lets the caller narrow by exact path, so a bounded caller never silently
+  // drops a candidate the fallback should have surfaced.
   return (await isGitWorkingTree(root))
-    ? scanPointerCandidatesFromGit(root)
+    ? scanPointerCandidatesFromGit(root, pathspec)
     : scanPointerCandidatesFromDisk(root)
 }
 
@@ -2936,9 +2970,10 @@ export async function listCheapLfsPointers(
  */
 export async function listAllCheapLfsPointers(
   repository: Repository,
-  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem
+  fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
+  pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
-  const candidates = await fs.scanPointerCandidates(repository.path)
+  const candidates = await fs.scanPointerCandidates(repository.path, pathspec)
   const entries = new Array<ICheapLfsManagedPointerEntry>()
   for (const candidate of candidates) {
     pointerIdentity(candidate.text)

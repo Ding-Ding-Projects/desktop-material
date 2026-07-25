@@ -1,5 +1,5 @@
 import * as Path from 'path'
-import { writeFile } from 'fs/promises'
+import { lstat, writeFile } from 'fs/promises'
 import {
   AccountsStore,
   BatchCloneStore,
@@ -49,6 +49,12 @@ import {
   selectCheapLfsAutoPinTargets,
   shouldAutoPinLargeFilesOnCommit,
 } from '../cheap-lfs/operations'
+import {
+  buildCheapLfsInventoryKey,
+  CheapLfsInventoryCache,
+  CheapLfsInventoryChangedPathCap,
+  ICheapLfsInventoryChangeSignal,
+} from '../cheap-lfs/inventory-cache'
 import {
   getCheapLfsReleaseUploadURL,
   manualPinFilesToRelease,
@@ -1256,6 +1262,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * Materialize-all requests. A queued request never mutates its predecessor.
    */
   private readonly cheapLfsMaterializeTails = new Map<string, Promise<void>>()
+
+  /**
+   * Memoized Cheap LFS pointer inventory for the status-projection hot path,
+   * keyed by canonical checkout path. The three whole-tree `git grep` passes
+   * are ~49s cold on the 211k-file test repository, and a clean repository
+   * re-ran them on every status refresh; the memo lets an unchanged repository
+   * pay nothing after the first scan. The commit-time staging safety gate never
+   * reads this memo — it always recomputes a fresh inventory.
+   */
+  private readonly cheapLfsInventoryCache = new CheapLfsInventoryCache<
+    ReadonlyArray<ICheapLfsManagedPointerEntry>
+  >()
 
   /** The currently cancelable automatic or browser-assisted commit pin. */
   private readonly cheapLfsCommitControllers = new Map<
@@ -4764,6 +4782,68 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  /**
+   * A stat signature for the repository index. Any staging change bumps the
+   * index file's size or modification time, so this closes the "an out-of-app
+   * `git add` changed the index without touching a working-tree file" gap in
+   * the inventory cache key. `null` when the index cannot be measured, which
+   * yields its own distinct key section.
+   */
+  private async cheapLfsIndexSignature(
+    repository: Repository
+  ): Promise<string | null> {
+    try {
+      const stats = await lstat(Path.join(repository.resolvedGitDir, 'index'))
+      return `${stats.size}:${stats.mtimeMs}`
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Return the Cheap LFS pointer inventory for the status-projection path,
+   * served from the `cheapLfsInventoryCache` memo when nothing that could change
+   * the inventory has changed. The key captures HEAD, the index signature, and
+   * every changed path's identity plus working-tree stat, so an unchanged
+   * repository reuses the previous scan and a mutation always recomputes. A
+   * very large change set skips the cache (the stat pass would cost more than
+   * the memo saves and would miss on every refresh regardless).
+   */
+  private async listCheapLfsPointersForStatus(
+    repository: Repository,
+    status: IStatusResult
+  ): Promise<ReadonlyArray<ICheapLfsManagedPointerEntry>> {
+    const files = status.workingDirectory.files
+    if (
+      this.cheapLfsInventoryCache === undefined ||
+      files.length > CheapLfsInventoryChangedPathCap
+    ) {
+      return listAllCheapLfsPointers(repository)
+    }
+    const changes = await Promise.all(
+      files.map(async (file): Promise<ICheapLfsInventoryChangeSignal> => {
+        try {
+          const stats = await lstat(Path.join(repository.path, file.path))
+          return {
+            id: file.id,
+            mtimeMs: stats.mtimeMs,
+            sizeInBytes: stats.size,
+          }
+        } catch {
+          return { id: file.id, mtimeMs: null, sizeInBytes: null }
+        }
+      })
+    )
+    const key = buildCheapLfsInventoryKey(
+      status.currentTip,
+      await this.cheapLfsIndexSignature(repository),
+      changes
+    )
+    return this.cheapLfsInventoryCache.getOrCompute(repository.path, key, () =>
+      listAllCheapLfsPointers(repository)
+    )
+  }
+
   /** This shouldn't be called directly. See `Dispatcher`. */
   public async _loadStatus(
     repository: Repository,
@@ -4780,7 +4860,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       try {
         status = projectCheapLfsMaterializedStatus(
           status,
-          await listAllCheapLfsPointers(repository)
+          await this.listCheapLfsPointersForStatus(repository, status)
         )
       } catch (error) {
         // Keep Git's real status visible when inventory cannot be proven. The
@@ -13925,7 +14005,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
       signal,
       async materializeSignal => {
         try {
-          const entries = await listAllCheapLfsPointers(repository)
+          // Resolve just this one path instead of scanning all ~212k blobs.
+          const entries = await listAllCheapLfsPointers(
+            repository,
+            defaultCheapLfsFileSystem,
+            [trackedRelativePath]
+          )
           const entry = entries.find(
             candidate => candidate.relativePath === trackedRelativePath
           )
@@ -13951,6 +14036,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               )
           )
         } finally {
+          this.cheapLfsInventoryCache?.invalidate(repository.path)
           await this._refreshRepository(repository)
         }
       }
@@ -13965,7 +14051,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
   ): Promise<void> {
     try {
-      const entries = await listAllCheapLfsPointers(repository)
+      // Resolve just this one path instead of scanning all ~212k blobs.
+      const entries = await listAllCheapLfsPointers(
+        repository,
+        defaultCheapLfsFileSystem,
+        [trackedRelativePath]
+      )
       const entry = entries.find(
         candidate => candidate.relativePath === trackedRelativePath
       )
@@ -14004,6 +14095,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
       }
     } finally {
+      this.cheapLfsInventoryCache?.invalidate(repository.path)
       await this._refreshRepository(repository)
     }
   }
@@ -14190,6 +14282,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           ),
           canceled,
         }
+        this.cheapLfsInventoryCache?.invalidate(repository.path)
         await this._refreshRepository(repository)
         if (this.isTemporaryRepositoryActive(repository)) {
           this.postCheapLfsMaterializeNotification(repository, summary)
@@ -14341,14 +14434,26 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (isSubmoduleRepository(repository)) {
       return { pinned: [], failures: [], commitPaths: [] }
     }
+    // Pinning rewrites working-tree files; drop the status memo so the refresh
+    // after this commit re-scans. The safety gate below deliberately reads a
+    // fresh inventory (never the memo) so its fail-closed re-pin protection can
+    // never act on a stale scan.
+    this.cheapLfsInventoryCache?.invalidate(repository.path)
     const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
     const selectedPaths = selectedFiles.map(file => file.path)
     const selectedPathSet = new Set(selectedPaths)
     // This inventory is also the staging safety gate. A raw file backed by a
     // committed pointer must be explicitly re-pinned before Desktop can stage
     // it, even if its edited size is now below the ordinary large-file limit.
+    // Only the selected paths can be staged, so the scan is bounded to exactly
+    // those (a ~49s whole-tree grep becomes ~130ms) and the result is still
+    // narrowed by `selectedPathSet` so the gate's coverage is unchanged.
     const managedRawEntries = (
-      await listAllCheapLfsPointers(repository)
+      await listAllCheapLfsPointers(
+        repository,
+        defaultCheapLfsFileSystem,
+        selectedPaths
+      )
     ).filter(
       entry =>
         entry.workingTreeState !== 'pointer' &&
