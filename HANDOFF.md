@@ -4626,3 +4626,43 @@ state: installer run `29671087924` and release
 - Local verification passed 4/4 focused CI/workflow contract tests, Prettier for
   both workflows and tests, and `git diff --check`. Remote execution and an
   actual Super Express publication remain external verification.
+
+## 2026-07-25 Standalone Ollama settings tab
+
+- `PreferencesTab.Ollama` is a real rail tab (`octicons.hubot`,
+  `data-dm-feature`) appended last in the enum so the existing
+  `tabToVisualIndex`/`visualIndexToTab` shift for a hidden Copilot tab keeps
+  working unchanged. The Copilot pane's own Ollama route is untouched.
+- `app/src/ui/preferences/ollama.tsx` renders `OllamaModelManager` directly.
+  The manager already accepted a structural `IOllamaManagerProvider`, so no
+  Copilot access state, account, or licence is involved on this path.
+- Unconfigured state: an endpoint field prefilled with
+  `http://127.0.0.1:11434`, validated through the existing
+  `isTrustedOllamaEndpoint` / `normalizeOllamaEndpoint` loopback rules, an
+  `/api/version` health probe, then persistence of a provider identical to the
+  Copilot dialog's Ollama preset (`type: openai`, `authKind: none`,
+  `wireApi: completions`, `integration: ollama`, `<origin>/v1`) through the
+  existing `updateCopilotBYOKProvider` seam, which treats an unknown id as an
+  add. Connect stays enabled for an invalid endpoint so the reason is announced
+  in an `aria-describedby`-linked alert instead of being hidden behind a
+  disabled control; a non-loopback host is rejected before any request is made.
+  A failed probe or failed save leaves the tab unconfigured rather than
+  appearing connected.
+- Contracts updated: feature-registration-completeness (rail call plus two case
+  arms), `responsive_surface_catalog.json` preferences group and its pinned
+  counts 88→89 and 87→88, settings-search (`copilot-ollama` retargeted and
+  split into `ollama-manager` and `ollama-chat` on the new tab, plus a
+  `settingsTabNameKey` arm), palette `palette:ollama-model-manager` and
+  `palette:ollama-chat` now open the new tab while `palette:preferences-copilot`
+  still opens Copilot, and 22 new translation keys across the union, English,
+  and Cantonese catalogs.
+- Local verification: Prettier clean, `npx tsc --noEmit` clean, `yarn lint`
+  clean, and 194/194 tests across 18 files for the ollama, preferences,
+  registration, responsive, settings-search, palette, and i18n suites
+  (`Test file accounting: 18/18 discovered file(s) produced results across 1
+  batch(es); 194 test(s) reported.`). One earlier batch run flaked on two
+  pre-existing timing-sensitive tests (`enforces request deadlines against a
+  native socket` and `aborts and clears an in-flight reply when another chat is
+  opened`); both pass in isolation and on re-run, and neither touches this
+  change. Push was explicitly out of scope for this task, so the work stays on
+  `feat/ollama-settings-tab`.

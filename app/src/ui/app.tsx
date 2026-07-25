@@ -1188,12 +1188,12 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'palette:preferences-sound':
         return this.showPreferencesTab(PreferencesTab.Sound)
       case 'palette:preferences-copilot':
+        return this.showPreferencesTab(PreferencesTab.Copilot)
       case 'palette:ollama-model-manager':
       case 'palette:ollama-chat':
-        // The Ollama manager and its chat workspace live inside the Copilot
-        // providers tab; the palette names them directly so they are findable
-        // by what they do.
-        return this.showPreferencesTab(PreferencesTab.Copilot)
+        // The manager and its chat workspace have a standalone settings tab
+        // that never depends on Copilot access.
+        return this.showPreferencesTab(PreferencesTab.Ollama)
       case 'palette:background-queue':
         return this.showPreferencesTab(PreferencesTab.Queue)
       case 'palette:cheap-lfs-settings':
