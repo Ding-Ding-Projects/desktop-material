@@ -6,3 +6,9 @@ export function compareReleaseVersions(
 ): -1 | 0 | 1
 
 export function selectHighestReleaseTag(tags: ReadonlyArray<string>): string
+
+export function filterReleasesManifest(
+  manifest: string,
+  version: string,
+  packageName?: string
+): string

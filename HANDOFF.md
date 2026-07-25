@@ -1,5 +1,50 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-25 updater downgrade investigation and guard
+
+`fix/updater-downgrade`, branch-only. The reported "auto-update downgraded the
+install to 3.6.2" did **not** come from the update feed, and no comparer ranked
+`3.6.2` above `3.6.3-beta3-*`:
+
+- The live feed
+  (`https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/RELEASES`)
+  served exactly one line,
+  `6C3349F0B42AD9F3466E80687B7DF6D30AFA984A GitHubDesktop-3.6.3-beta3-zadtorqoxa-full.nupkg 326312175`.
+  None of the repository's 124 published releases carries a `3.6.2` tag or any
+  `3.6.2` asset.
+- `Squirrel-CheckForUpdate.log` shows every network check sending
+  `localVersion=3.6.3-beta3-zadtjbevjx`, with no check at all in the 09:39 →
+  00:11 window that brackets the 17:40 event; `Squirrel-Update.log` shows the
+  only applied update as `zadtjbevjx` → `zadtorqoxa`.
+- `%LOCALAPPDATA%\SquirrelTemp\Squirrel-Install.log` records the real cause at
+  `[24-07-26 17:40:06]`: `Starting Squirrel Updater: --install . --checkInstall
+  --silent`, `Reading RELEASES file from ...\SquirrelTemp`, `First run, starting
+  from scratch`, then `Writing files to app directory: ...\app-3.6.2`. A stale
+  local bootstrapper carrying the 2026-07-01
+  `GitHubDesktop-3.6.2-full.nupkg` was re-run; Squirrel's `--install` path does
+  no version comparison whatsoever.
+
+Fixes landed as defence-in-depth for the same failure class, since Squirrel
+installs the highest feed entry without comparing it to the running version:
+
+- `app/src/lib/update-version-order.ts` — legacy-NuGet-compatible ordering,
+  `RELEASES` parsing, and `probeUpdateFeed`, wired into
+  `AppWindow.checkForUpdates` so a feed whose best offer is older than
+  `app.getVersion()` reports no-update instead of reaching Squirrel. Fails open
+  on network/HTTP/non-manifest responses.
+- `script/release-version.js filter` plus both release workflows — the published
+  `RELEASES` is filtered to the `GitHubDesktop` package at exactly
+  `RELEASE_VERSION` before the payload copy, and the package-copy loop now reads
+  the filtered manifest so a stale entry cannot conjure a mislabelled asset.
+
+Verification: `prettier --check` clean, `tsc -P tsconfig.json` and
+`tsc -P script/tsconfig.json` clean, `yarn lint` green,
+`node script/test.mjs script/release-version-test.ts
+app/test/unit/update-version-order-test.ts
+app/test/unit/super-express-release-workflow-test.ts
+app/test/unit/ci-workflow-safety-test.ts` → 34/34 pass, accounting `4/4`.
+Not pushed; no CI run exists yet.
+
 ## 2026-07-24 feature discoverability pass
 
 Two Opus audits (entry-point matrix + user-journey burial hunt, 11 raw

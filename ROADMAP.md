@@ -13,6 +13,15 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 25 updater downgrade guard — **Implemented, branch-only**
+
+The reported 3.6.2 downgrade was traced to a stale local Squirrel bootstrapper
+re-run (`--install . --checkInstall`), not the update feed and not a version
+comparer; the live feed only ever advertised `3.6.3-beta3-zadtorqoxa`. As
+defence-in-depth the app now refuses a feed whose highest entry is older than
+the running build, and both release lanes filter the published `RELEASES` down
+to this package at exactly this version. Locally accepted; not pushed.
+
 ## July 24 feature discoverability — **Implemented, pushed**
 
 Buried features surfaced additively: six new command-palette commands (Sound
