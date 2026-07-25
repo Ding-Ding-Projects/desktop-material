@@ -13,6 +13,16 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 24 feature discoverability — **Implemented, pushed**
+
+Buried features surfaced additively: six new command-palette commands (Sound
+settings, GitHub API explorer with un-hide, tag lifecycle, Cheap LFS settings,
+per-repo automation, Ollama chat), the Repository Settings tab relabelled
+"Build, run & large files" with an explicit Cheap LFS section heading, and
+settings-search entries for the Ollama manager/chat, global ignore, and Git
+hooks. Deliberate skips (standalone Ollama tab, auto-fix toggle) are recorded
+with reasons in [HANDOFF.md](HANDOFF.md).
+
 ## July 24 mega wave — **Implemented, locally accepted**
 
 Five backlog features built in parallel by isolated Opus agents, each

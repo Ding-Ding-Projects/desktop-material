@@ -1,5 +1,32 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-24 feature discoverability pass
+
+Two Opus audits (entry-point matrix + user-journey burial hunt, 11 raw
+reports) drove `feat/feature-discoverability`, integrated with one review
+blocker fixed. All changes are additive or relabel-only; no entry point was
+moved or removed:
+
+- New command-palette commands: Preferences → Sound, GitHub API explorer
+  (which now un-hides a user-hidden API rail item before navigating — the
+  review blocker), tag lifecycle (Repository Tools), Cheap LFS repository
+  settings, per-repository automation settings, and Ollama chat.
+- Cheap LFS findability: the Repository Settings tab is relabelled
+  "Build, run & large files" with an explicit "Large files & storage
+  (Cheap LFS)" section heading around its toggles.
+- Settings-search additions: Ollama manager/chat under Copilot (findable by
+  "ollama"), global ignore and Git-hook environment under Git.
+- Honest skips recorded in the workflow result: no standalone Ollama
+  Preferences tab (the pane is Copilot-access-gated and would frequently
+  render sign-in content; churns the pinned responsive catalog), no
+  auto-fix preference toggle (nothing reads it yet — a dead toggle would
+  repeat the repack-toggle defect), no Repository-Settings entries in
+  settings search (its schema is typed to PreferencesTab).
+
+Verification: lint fully green after removing a stale workflow worktree
+Prettier was sweeping; `tsc` clean; complete suite run exit 0, 0 failures,
+coverage of the palette/search/tab suites confirmed in the log.
+
 ## 2026-07-24 mega wave: audio wiring, auto-fix, large repos, search
 
 Seven more branches were merged into `main` after the morning feature wave,
