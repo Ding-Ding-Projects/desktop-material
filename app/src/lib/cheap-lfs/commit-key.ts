@@ -1,6 +1,6 @@
 import { createHash } from 'crypto'
 import { lstat, realpath } from 'fs/promises'
-import { basename, join, resolve } from 'path'
+import { basename, dirname, join, resolve } from 'path'
 import {
   CheapLfsGhcrVerifiedVisibility,
   CheapLfsRegistryRepositoryKeyPath,
@@ -93,6 +93,14 @@ const lstatPointerSizeProbe: CheapLfsPointerSizeProbe = async (
       resolve(repositoryPath),
       ...relativePath.split('/')
     )
+    // lstat only spares the final component; a parent that is itself a
+    // symlink/junction would be silently followed. Fall through to the full
+    // fail-closed prover (which refuses redirected parents) in that case.
+    const parent = dirname(absolutePath)
+    const resolvedParent = await realpath(parent)
+    if (resolvedParent.toLowerCase() !== parent.toLowerCase()) {
+      return null
+    }
     return regularFileProbeSize(await lstat(absolutePath))
   } catch {
     return null
