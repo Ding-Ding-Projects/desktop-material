@@ -31,6 +31,26 @@ export interface IStatusEntry {
 
   /** The rename or copy score in the case of a renamed file */
   readonly renameOrCopyScore?: number
+
+  /**
+   * Whether Git reported this untracked entry as a directory rather than as an
+   * individual file, i.e. the porcelain line carried a trailing slash.
+   *
+   * `path` keeps that trailing slash. It matters because `git update-index`
+   * treats the two spellings very differently: it skips `foo/` silently
+   * ("Ignoring path foo/", exit code 0) but fails outright on `foo` ("is a
+   * directory - add files inside instead", exit code 128). Only a caller that
+   * has confirmed the directory is a nested repository - and therefore stages
+   * as a single mode-160000 gitlink - may strip the slash.
+   *
+   * Under `--untracked-files=all` Git recurses into ordinary untracked
+   * directories and lists their files individually, so the only directories it
+   * still collapses are nested repositories. The default
+   * `--untracked-files=normal` collapses ordinary directories the same way,
+   * which is why the distinction has to be confirmed against the working tree
+   * rather than inferred from the slash alone.
+   */
+  readonly untrackedDirectory?: true
 }
 
 export function isStatusHeader(
@@ -171,6 +191,11 @@ function parseUnmergedEntry(field: string): IStatusEntry {
 
 function parseUntrackedEntry(field: string): IStatusEntry {
   const path = field.substring(2)
+
+  // Git marks an untracked *directory* with a trailing slash. Record that fact
+  // rather than normalising it away - see `untrackedDirectory` above.
+  const untrackedDirectory = path.length > 1 && path.endsWith('/')
+
   return {
     kind: 'entry',
     // NOTE: We return ?? instead of ? here to play nice with mapStatus,
@@ -178,7 +203,31 @@ function parseUntrackedEntry(field: string): IStatusEntry {
     statusCode: '??',
     submoduleStatusCode: '????',
     path,
+    ...(untrackedDirectory ? { untrackedDirectory: true as const } : {}),
   }
+}
+
+/**
+ * The submodule status code to attribute to an untracked path once it has been
+ * confirmed to be a nested repository.
+ *
+ * Git's porcelain v2 `?` lines carry no submodule field at all, so there is no
+ * code to read for a submodule whose gitlink is missing from the index (which
+ * is the state `git reset` leaves behind). Synthesising the equivalent
+ * "submodule, commit changed" code lets such an entry travel through the same
+ * `mapStatus` path as a staged submodule, so the app renders a submodule row
+ * and a submodule diff rather than an empty untracked file.
+ */
+export const UntrackedSubmoduleStatusCode = 'SC..'
+
+/**
+ * Strip the trailing slash Git puts on an untracked directory.
+ *
+ * Only safe once the directory is known to be a nested repository; see
+ * `untrackedDirectory` for what happens to an ordinary directory.
+ */
+export function stripUntrackedDirectorySuffix(path: string): string {
+  return path.length > 1 && path.endsWith('/') ? path.slice(0, -1) : path
 }
 
 function mapSubmoduleStatus(
