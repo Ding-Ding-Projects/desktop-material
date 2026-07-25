@@ -35,6 +35,42 @@ ZIP assets. The updater-migration Releases additionally verify the complete
 installer, feed, NuGet, MSI, and portable-ZIP payload on exact source
 `04246fdf12`.
 
+## Build and run from source
+
+The same script can build Desktop Material from source instead of downloading a
+release — a first-class path for contributors, air-gapped mirrors, or trying an
+unreleased branch. Pass `-FromSource`:
+
+```powershell
+& ([scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))) -FromSource
+```
+
+or, from a local checkout of the script:
+
+```powershell
+./script/install-windows.ps1 -FromSource
+```
+
+The from-source path detects its prerequisites — **git**, **Node.js** (the
+version pinned in `.node-version`), and **Yarn** (`corepack enable` provides it)
+— and stops with a per-tool install hint when any is missing. It then
+shallow-clones the repository into `<Documents>\desktop-material-source` (override
+with `-SourceDirectory`), checks out `main` (override with `-SourceRef`), runs
+`yarn install` and `yarn build:prod`, and launches the freshly built
+`dist\GitHubDesktop-win32-<arch>\GitHubDesktop.exe`. Re-runs are idempotent: an
+existing checkout is fast-forwarded with a shallow fetch and hard reset to the
+chosen ref rather than re-cloned, and a non-empty directory that is not that
+checkout is refused rather than overwritten. Every step prints its own progress
+line and fails with the exact command and exit code.
+
+Add `-DryRun` to `-FromSource` to print the resolved build plan — prerequisites,
+the clone-versus-update decision, the ordered steps, and the launch path —
+without cloning, building, or launching anything. That same pure decision logic
+is covered by [`script/install-windows-test.ps1`](../../script/install-windows-test.ps1).
+Building from source is unsigned and unversioned against the release feed, so the
+Squirrel auto-updater does not manage a from-source build; re-run `-FromSource`
+to update it.
+
 When GitHub Actions is actively building or packaging a newer exact commit but
 has not yet published its Release, the About updater reports **New update coming
 soon** in the selected English, playful Hong Kong Cantonese, or bilingual mode.

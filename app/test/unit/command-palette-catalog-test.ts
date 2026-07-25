@@ -232,6 +232,35 @@ describe('command palette catalog', () => {
     assert.ok(idle.has('palette:preferences-appearance'))
   })
 
+  it('offers build-and-run only when a repository is selected', () => {
+    const buildAndRun = CommandPaletteCatalog.find(
+      c => c.event === 'build-and-run'
+    )
+    assert.ok(buildAndRun, 'expected a build-and-run command')
+    // It carries a localizable title so the palette row is translated.
+    assert.equal(buildAndRun!.titleKey, 'palette.buildAndRun')
+
+    const idle = new Set(
+      filterPaletteCommands(
+        CommandPaletteCatalog,
+        '',
+        'win32',
+        emptyContext
+      ).map(c => c.event)
+    )
+    assert.ok(!idle.has('build-and-run'), 'hidden with no repository')
+
+    const withRepo = new Set(
+      filterPaletteCommands(
+        CommandPaletteCatalog,
+        '',
+        'win32',
+        repositoryContext
+      ).map(c => c.event)
+    )
+    assert.ok(withRepo.has('build-and-run'), 'shown once a repository exists')
+  })
+
   it('reveals repository commands only once a repository is selected', () => {
     const repoOnly = new Set(
       filterPaletteCommands(

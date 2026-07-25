@@ -90,6 +90,13 @@ const TERMINAL_PHASES: ReadonlySet<BuildRunPhase> = new Set<BuildRunPhase>([
   'cancelled',
 ])
 
+/** Fired once when a run reaches a terminal phase (see the store constructor). */
+export interface IBuildRunFinishedEvent {
+  readonly repositoryId: number
+  readonly phase: BuildRunPhase
+  readonly exitCode: number | null
+}
+
 /**
  * The store emits the repositoryId whose state changed (or `null` for a
  * global change) so subscribers can cheaply decide whether to re-render.
@@ -99,8 +106,16 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
   /** Maps a live runId back to the repository it belongs to. */
   private readonly runToRepository = new Map<string, number>()
 
-  public constructor() {
+  /**
+   * Invoked exactly once whenever a run reaches a terminal phase. The renderer
+   * wires this to the notification centre so build outcomes surface outside the
+   * (possibly closed or minimized) panel.
+   */
+  private readonly onRunFinished?: (event: IBuildRunFinishedEvent) => void
+
+  public constructor(onRunFinished?: (event: IBuildRunFinishedEvent) => void) {
     super()
+    this.onRunFinished = onRunFinished
     onBuildRunLog((_event, log) => this.onLog(log))
     onBuildRunState((_event, state) => this.onState(state))
   }
@@ -285,11 +300,20 @@ export class BuildRunStore extends TypedBaseStore<number | null> {
       this.runToRepository.delete(state.runId)
     }
 
+    const exitCode = state.exitCode ?? current.exitCode
     this.mutate(repositoryId, {
       phase: state.phase,
-      exitCode: state.exitCode ?? current.exitCode,
+      exitCode,
       runPid: state.pid ?? (isTerminal ? null : current.runPid),
       activeRunId: isTerminal ? null : state.runId,
     })
+
+    if (isTerminal) {
+      this.onRunFinished?.({
+        repositoryId,
+        phase: state.phase,
+        exitCode: exitCode ?? null,
+      })
+    }
   }
 }

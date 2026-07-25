@@ -13,6 +13,12 @@ import * as octicons from '../octicons/octicons.generated'
 import { showContextualMenu } from '../../lib/menu-item'
 import { Disposable } from 'event-kit'
 import { getBuildProfileDisplayName } from '../../lib/build-run'
+import {
+  getPersistedLanguageMode,
+  LanguageModeChangedEvent,
+  t,
+} from '../../lib/i18n'
+import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 
 interface IBuildRunToolbarButtonProps {
   readonly repository: Repository
@@ -22,6 +28,8 @@ interface IBuildRunToolbarButtonProps {
 
 interface IBuildRunToolbarButtonState {
   readonly view: IRepositoryBuildRunState
+  /** Active language mode, tracked so pill labels re-render on change. */
+  readonly languageMode: LanguageMode
 }
 
 /**
@@ -41,12 +49,26 @@ export class BuildRunToolbarButton extends React.Component<
     super(props)
     this.state = {
       view: props.buildRunStore.getStateForRepository(props.repository.id),
+      languageMode: getPersistedLanguageMode(),
     }
   }
 
   public componentDidMount() {
     this.subscribe()
     this.ensureDetected()
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = (event: Event) => {
+    const languageMode = normalizeLanguageMode(
+      (event as CustomEvent<unknown>).detail
+    )
+    if (languageMode !== this.state.languageMode) {
+      this.setState({ languageMode })
+    }
   }
 
   public componentDidUpdate(prevProps: IBuildRunToolbarButtonProps) {
@@ -59,6 +81,10 @@ export class BuildRunToolbarButton extends React.Component<
   public componentWillUnmount() {
     this.storeSubscription?.dispose()
     this.storeSubscription = null
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
   }
 
   private subscribe() {
@@ -142,47 +168,47 @@ export class BuildRunToolbarButton extends React.Component<
     )
     const profileLabel = selected
       ? getBuildProfileDisplayName(selected)
-      : 'Build & run'
+      : t('buildRun.title')
 
     if (this.isRunning) {
       return {
         icon: octicons.squareFill,
-        title: 'Running',
-        description: 'Stop',
+        title: t('buildRun.phase.running'),
+        description: t('buildRun.stop'),
         className: 'is-running',
-        tooltip: 'Stop the running app',
+        tooltip: t('buildRun.pill.stopRunningTooltip'),
       }
     }
     if (this.isBusy) {
       const busyTitle =
         view.phase === 'installing'
-          ? 'Installing'
+          ? t('buildRun.phase.installing')
           : view.phase === 'building'
-          ? 'Building'
-          : 'Preparing'
+          ? t('buildRun.phase.building')
+          : t('buildRun.phase.preparing')
       return {
         icon: view.phase === 'building' ? octicons.gear : octicons.tools,
         title: busyTitle,
-        description: 'Stop',
+        description: t('buildRun.stop'),
         className: 'is-building has-progress',
-        tooltip: 'Cancel the build',
+        tooltip: t('buildRun.pill.cancelBuildTooltip'),
       }
     }
     if (view.phase === 'failed') {
       return {
         icon: octicons.zap,
-        title: 'Build failed',
+        title: t('buildRun.pill.failedTitle'),
         description: profileLabel,
         className: 'is-failed',
-        tooltip: 'Build failed — click to retry',
+        tooltip: t('buildRun.pill.failedTooltip'),
       }
     }
     return {
       icon: octicons.play,
-      title: 'Build & run',
+      title: t('buildRun.title'),
       description: profileLabel,
       className: view.phase === 'succeeded' ? 'is-succeeded' : 'is-idle',
-      tooltip: `Build and run this repository (${profileLabel})`,
+      tooltip: t('buildRun.pill.idleTooltip', { profile: profileLabel }),
     }
   }
 
@@ -214,7 +240,7 @@ export class BuildRunToolbarButton extends React.Component<
           <Button
             className="build-run-disclosure"
             onClick={this.onDisclosureClick}
-            ariaLabel="Choose project and build profile"
+            ariaLabel={t('buildRun.pill.chooseProfile')}
             ariaHaspopup="menu"
           >
             <Octicon symbol={octicons.chevronDown} />

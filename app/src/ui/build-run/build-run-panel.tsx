@@ -22,6 +22,7 @@ import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
   t,
+  TranslationKey,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { getBoolean, setBoolean } from '../../lib/local-storage'
@@ -53,30 +54,30 @@ interface IBuildRunPanelState {
   readonly truncateOutput: boolean
 }
 
-/** Human-readable label + tone class for a phase's status chip. */
+/** Translation key + tone class for a phase's status chip. */
 function phaseChip(phase: BuildRunViewPhase): {
-  label: string
+  labelKey: TranslationKey
   className: string
 } {
   switch (phase) {
     case 'detecting':
-      return { label: 'Detecting', className: 'neutral' }
+      return { labelKey: 'buildRun.phase.detecting', className: 'neutral' }
     case 'gitignore':
-      return { label: 'Preparing', className: 'neutral' }
+      return { labelKey: 'buildRun.phase.preparing', className: 'neutral' }
     case 'installing':
-      return { label: 'Installing', className: 'busy' }
+      return { labelKey: 'buildRun.phase.installing', className: 'busy' }
     case 'building':
-      return { label: 'Building', className: 'busy' }
+      return { labelKey: 'buildRun.phase.building', className: 'busy' }
     case 'running':
-      return { label: 'Running', className: 'busy' }
+      return { labelKey: 'buildRun.phase.running', className: 'busy' }
     case 'succeeded':
-      return { label: 'Succeeded', className: 'success' }
+      return { labelKey: 'buildRun.phase.succeeded', className: 'success' }
     case 'failed':
-      return { label: 'Failed', className: 'error' }
+      return { labelKey: 'buildRun.phase.failed', className: 'error' }
     case 'cancelled':
-      return { label: 'Cancelled', className: 'neutral' }
+      return { labelKey: 'buildRun.phase.cancelled', className: 'neutral' }
     default:
-      return { label: 'Idle', className: 'neutral' }
+      return { labelKey: 'buildRun.phase.idle', className: 'neutral' }
   }
 }
 
@@ -371,7 +372,7 @@ export class BuildRunPanel extends React.Component<
     const chip = phaseChip(this.state.view.phase)
     return (
       <span className={classNames('status-chip', chip.className)}>
-        {chip.label}
+        {t(chip.labelKey)}
       </span>
     )
   }
@@ -384,7 +385,7 @@ export class BuildRunPanel extends React.Component<
         className="header-action"
         onClick={this.onClose}
         disabled={running}
-        ariaLabel="Close panel"
+        ariaLabel={t('buildRun.closePanel')}
         tooltip={running ? t('buildRun.closeDisabledRunning') : undefined}
       >
         <Octicon symbol={octicons.x} />
@@ -438,7 +439,7 @@ export class BuildRunPanel extends React.Component<
     const isActive = view.activeRunId !== null || view.opencodeRunning
     const title = selected
       ? getBuildProfileDisplayName(selected)
-      : 'Build & run'
+      : t('buildRun.title')
     const buildFixProviderLabel = this.selectedBuildFixProviderLabel()
 
     // Minimized: collapse to a slim bar (title + status + restore + close).
@@ -453,7 +454,7 @@ export class BuildRunPanel extends React.Component<
             <Button
               className="header-action"
               onClick={this.onRestore}
-              ariaLabel="Restore panel"
+              ariaLabel={t('buildRun.restorePanel')}
             >
               <Octicon symbol={octicons.chevronUp} />
             </Button>
@@ -512,10 +513,10 @@ export class BuildRunPanel extends React.Component<
             <Button
               className="header-action stop"
               onClick={this.onStop}
-              ariaLabel="Stop"
+              ariaLabel={t('buildRun.stop')}
             >
               <Octicon symbol={octicons.squareFill} />
-              <span>Stop</span>
+              <span>{t('buildRun.stop')}</span>
             </Button>
           )}
           <Button
@@ -547,21 +548,21 @@ export class BuildRunPanel extends React.Component<
           <Button
             className="header-action"
             onClick={this.onCopyAll}
-            ariaLabel="Copy all output"
+            ariaLabel={t('buildRun.copyAll')}
           >
             <Octicon symbol={octicons.copy} />
           </Button>
           <Button
             className="header-action"
             onClick={this.onClear}
-            ariaLabel="Clear output"
+            ariaLabel={t('buildRun.clearOutput')}
           >
             <Octicon symbol={octicons.trash} />
           </Button>
           <Button
             className="header-action"
             onClick={this.onMinimize}
-            ariaLabel="Minimize panel"
+            ariaLabel={t('buildRun.minimizePanel')}
           >
             <Octicon symbol={octicons.dash} />
           </Button>

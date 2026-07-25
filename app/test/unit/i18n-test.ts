@@ -275,6 +275,56 @@ describe('recent UI internationalization', () => {
     )
   })
 
+  it('localizes the Build & Run pill, panel and notifications in every mode', () => {
+    const keys: ReadonlyArray<TranslationKey> = [
+      'buildRun.title',
+      'buildRun.stop',
+      'buildRun.phase.detecting',
+      'buildRun.phase.installing',
+      'buildRun.phase.building',
+      'buildRun.phase.running',
+      'buildRun.phase.succeeded',
+      'buildRun.phase.failed',
+      'buildRun.phase.cancelled',
+      'buildRun.pill.failedTitle',
+      'buildRun.pill.chooseProfile',
+      'buildRun.closePanel',
+      'buildRun.copyAll',
+      'buildRun.clearOutput',
+      'buildRun.notify.succeededTitle',
+      'buildRun.notify.failedTitle',
+      'palette.buildAndRun',
+    ]
+    for (const key of keys) {
+      const english = translate(key, 'english')
+      const cantonese = translate(key, 'cantonese')
+      assert.ok(english.trim().length > 0, `${key} has no English copy`)
+      assert.ok(cantonese.trim().length > 0, `${key} has no Cantonese copy`)
+      assert.notEqual(english, cantonese, `${key} was not translated`)
+      assert.equal(translate(key, 'bilingual'), `${english} · ${cantonese}`)
+    }
+  })
+
+  it('interpolates the Build & Run pill tooltip and notification bodies', () => {
+    assert.equal(
+      translate('buildRun.pill.idleTooltip', 'english', { profile: 'Node' }),
+      'Build and run this repository (Node)'
+    )
+    assert.match(
+      translate('buildRun.notify.succeededBody', 'cantonese', {
+        repository: 'octo',
+      }),
+      /octo/
+    )
+    assert.equal(
+      translate('buildRun.notify.failedBody', 'english', {
+        repository: 'octo',
+        code: '2',
+      }),
+      'Building octo failed with exit code 2.'
+    )
+  })
+
   it('uses only an explicit persisted language mode', () => {
     localStorage.removeItem('appearance-customization-v1')
     localStorage.removeItem('language-mode-v1')

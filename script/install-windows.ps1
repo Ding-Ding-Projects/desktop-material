@@ -12,10 +12,34 @@ runs the installer silently, and removes the temporary download.
 
 .PARAMETER ResolveOnly
 Resolves and validates release metadata without downloading or installing it.
+
+.PARAMETER FromSource
+Builds and runs Desktop Material from source instead of installing a published
+release: detects the git/Node.js/Yarn prerequisites, shallow-clones (or updates)
+the repository into a chosen directory, runs `yarn install` and
+`yarn build:prod`, then launches the freshly built app. Re-runs are idempotent.
+
+.PARAMETER SourceDirectory
+The directory the from-source build clones into (and re-uses on later runs).
+Defaults to `<Documents>\desktop-material-source`. Ignored unless -FromSource.
+
+.PARAMETER SourceRef
+The branch or tag the from-source build checks out. Defaults to `main`.
+Ignored unless -FromSource.
+
+.PARAMETER DryRun
+With -FromSource, resolves and returns the full build plan (prerequisites,
+clone-vs-update decision, ordered steps, launch path) without cloning, building
+or launching anything. The pure decision logic this exercises is covered by
+script/install-windows-test.ps1.
 #>
 [CmdletBinding()]
 param(
-  [switch]$ResolveOnly
+  [switch]$ResolveOnly,
+  [switch]$FromSource,
+  [string]$SourceDirectory,
+  [string]$SourceRef,
+  [switch]$DryRun
 )
 
 # Keep functions and preference changes out of the caller's scope when this file
@@ -23,7 +47,11 @@ param(
 & {
   [CmdletBinding()]
   param(
-    [bool]$ResolveOnly
+    [bool]$ResolveOnly,
+    [bool]$FromSource,
+    [string]$SourceDirectory,
+    [string]$SourceRef,
+    [bool]$DryRun
   )
 
   Set-StrictMode -Version 3.0
@@ -319,12 +347,281 @@ param(
     }
   }
 
+  # ── Build-and-run-from-source (issue #33) ──────────────────────────────────
+  #
+  # Alongside installing the prebuilt release, -FromSource clones the repository,
+  # runs `yarn install` + `yarn build:prod`, and launches the freshly built app.
+  # The clone-vs-update decision and the ordered step list are produced by the
+  # pure Resolve-FromSourcePlan below (unit-tested via -DryRun), so the executing
+  # code never re-derives what to do.
+
+  $sourceRepositoryUrl = "https://github.com/$repository.git"
+
+  function Get-FromSourcePrerequisite {
+    param(
+      [Parameter(Mandatory = $true)][string]$Name,
+      [Parameter(Mandatory = $true)][string]$Command,
+      [Parameter(Mandatory = $true)][string]$Hint
+    )
+
+    $resolvedPath = $null
+    try {
+      $resolvedPath = (
+        Get-Command -Name $Command -CommandType Application -ErrorAction Stop |
+        Select-Object -First 1
+      ).Source
+    } catch {
+      $resolvedPath = $null
+    }
+
+    return [pscustomobject]@{
+      Name    = $Name
+      Command = $Command
+      Found   = -not [string]::IsNullOrWhiteSpace([string]$resolvedPath)
+      Path    = $resolvedPath
+      Hint    = $Hint
+    }
+  }
+
+  function Get-FromSourcePrerequisites {
+    return @(
+      Get-FromSourcePrerequisite -Name 'Git' -Command 'git' `
+        -Hint 'Install Git from https://git-scm.com/download/win, then reopen PowerShell.'
+      Get-FromSourcePrerequisite -Name 'Node.js' -Command 'node' `
+        -Hint 'Install the Node.js version pinned in .node-version (current LTS) from https://nodejs.org/, then reopen PowerShell.'
+      Get-FromSourcePrerequisite -Name 'Yarn' -Command 'yarn' `
+        -Hint 'Enable Yarn with "corepack enable" (bundled with Node.js), or install it from https://classic.yarnpkg.com/.'
+    )
+  }
+
+  # Pure decision logic: given the resolved inputs, return the full build plan.
+  # No disk, network or process access happens here, so -DryRun and the script
+  # test can exercise every branch deterministically.
+  function Resolve-FromSourcePlan {
+    param(
+      [Parameter(Mandatory = $true)][string]$SourceUrl,
+      [Parameter(Mandatory = $true)][string]$TargetDirectory,
+      [Parameter(Mandatory = $true)][string]$SourceRef,
+      [Parameter(Mandatory = $true)][ValidateSet('x64', 'arm64')][string]$Architecture,
+      [Parameter(Mandatory = $true)][bool]$TargetIsGitRepository,
+      [Parameter(Mandatory = $true)][bool]$TargetExists,
+      [Parameter(Mandatory = $true)][bool]$TargetIsEmpty,
+      [Parameter(Mandatory = $false)]$Prerequisites = @()
+    )
+
+    $action = if ($TargetIsGitRepository) { 'update' } else { 'clone' }
+
+    # Never clone over a non-empty directory that is not already our checkout.
+    $blocked = $false
+    $blockReason = $null
+    if ($action -eq 'clone' -and $TargetExists -and -not $TargetIsEmpty) {
+      $blocked = $true
+      $blockReason = "The target directory '$TargetDirectory' exists, is not a Git repository, and is not empty. Choose an empty directory with -SourceDirectory, or remove it first."
+    }
+
+    $steps = @()
+    if ($action -eq 'update') {
+      $steps += [pscustomobject]@{
+        Name        = 'fetch'
+        Command     = 'git'
+        Arguments   = @('-C', $TargetDirectory, 'fetch', '--depth', '1', 'origin', $SourceRef)
+        Description = "Fetching the latest '$SourceRef' into the existing checkout"
+        InCheckout  = $false
+      }
+      $steps += [pscustomobject]@{
+        Name        = 'checkout'
+        Command     = 'git'
+        Arguments   = @('-C', $TargetDirectory, 'reset', '--hard', 'FETCH_HEAD')
+        Description = "Resetting the checkout to the fetched '$SourceRef'"
+        InCheckout  = $false
+      }
+    } else {
+      $steps += [pscustomobject]@{
+        Name        = 'clone'
+        Command     = 'git'
+        Arguments   = @('clone', '--depth', '1', '--branch', $SourceRef, $SourceUrl, $TargetDirectory)
+        Description = "Cloning $SourceUrl ('$SourceRef') into $TargetDirectory"
+        InCheckout  = $false
+      }
+    }
+    $steps += [pscustomobject]@{
+      Name        = 'install'
+      Command     = 'yarn'
+      Arguments   = @('install')
+      Description = 'Installing dependencies with Yarn'
+      InCheckout  = $true
+    }
+    $steps += [pscustomobject]@{
+      Name        = 'build'
+      Command     = 'yarn'
+      Arguments   = @('build:prod')
+      Description = 'Building the production app (yarn build:prod)'
+      InCheckout  = $true
+    }
+
+    $executablePath = [System.IO.Path]::Combine(
+      $TargetDirectory, 'dist', "GitHubDesktop-win32-$Architecture", 'GitHubDesktop.exe'
+    )
+    $steps += [pscustomobject]@{
+      Name        = 'launch'
+      Command     = $executablePath
+      Arguments   = @()
+      Description = 'Launching the freshly built Desktop Material'
+      InCheckout  = $true
+    }
+
+    return [pscustomobject]@{
+      Mode            = 'FromSource'
+      Repository      = $repository
+      SourceUrl       = $SourceUrl
+      SourceRef       = $SourceRef
+      Architecture    = $Architecture
+      TargetDirectory = $TargetDirectory
+      Action          = $action
+      Blocked         = $blocked
+      BlockReason     = $blockReason
+      Prerequisites   = $Prerequisites
+      Steps           = $steps
+      ExecutablePath  = $executablePath
+    }
+  }
+
+  function Invoke-FromSourceStep {
+    param(
+      [Parameter(Mandatory = $true)][string]$Command,
+      [Parameter(Mandatory = $true)][AllowEmptyCollection()][string[]]$Arguments,
+      [Parameter(Mandatory = $false)][AllowNull()][string]$WorkingDirectory,
+      [Parameter(Mandatory = $true)][string]$Label
+    )
+
+    $previousLocation = $null
+    if (-not [string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+      $previousLocation = Get-Location
+      Set-Location -LiteralPath $WorkingDirectory
+    }
+
+    $exitCode = $null
+    try {
+      & $Command @Arguments
+      $exitCode = $LASTEXITCODE
+    } finally {
+      if ($null -ne $previousLocation) {
+        Set-Location -LiteralPath $previousLocation
+      }
+    }
+
+    if ($null -ne $exitCode -and $exitCode -ne 0) {
+      throw "Step '$Label' failed: '$Command $($Arguments -join ' ')' exited with code $exitCode."
+    }
+  }
+
+  function Invoke-DesktopMaterialFromSource {
+    param(
+      [Parameter(Mandatory = $true)][string]$TargetDirectory,
+      [Parameter(Mandatory = $true)][string]$SourceRef,
+      [Parameter(Mandatory = $true)][bool]$DryRun
+    )
+
+    $architecture = Get-NativeWindowsArchitecture
+    $resolvedTarget = [System.IO.Path]::GetFullPath($TargetDirectory)
+
+    $targetExists = [System.IO.Directory]::Exists($resolvedTarget)
+    $gitMarker = [System.IO.Path]::Combine($resolvedTarget, '.git')
+    $isGitRepository =
+      [System.IO.Directory]::Exists($gitMarker) -or [System.IO.File]::Exists($gitMarker)
+    $isEmpty = $true
+    if ($targetExists) {
+      $isEmpty = @(
+        Get-ChildItem -LiteralPath $resolvedTarget -Force -ErrorAction SilentlyContinue
+      ).Count -eq 0
+    }
+
+    $prerequisites = Get-FromSourcePrerequisites
+
+    $plan = Resolve-FromSourcePlan `
+      -SourceUrl $sourceRepositoryUrl `
+      -TargetDirectory $resolvedTarget `
+      -SourceRef $SourceRef `
+      -Architecture $architecture `
+      -TargetIsGitRepository $isGitRepository `
+      -TargetExists $targetExists `
+      -TargetIsEmpty $isEmpty `
+      -Prerequisites $prerequisites
+
+    if ($DryRun) {
+      return $plan
+    }
+
+    if ($plan.Blocked) {
+      throw $plan.BlockReason
+    }
+
+    $missing = @($prerequisites | Where-Object { -not $_.Found })
+    if ($missing.Count -gt 0) {
+      $lines = $missing | ForEach-Object { "  - $($_.Name): $($_.Hint)" }
+      throw "Build from source needs these tools on your PATH:`n$($lines -join "`n")"
+    }
+
+    Write-Host "Building Desktop Material from source in '$resolvedTarget' ($($plan.Action))..."
+
+    if ($plan.Action -eq 'clone') {
+      $parent = [System.IO.Path]::GetDirectoryName($resolvedTarget)
+      if (-not [string]::IsNullOrEmpty($parent) -and -not [System.IO.Directory]::Exists($parent)) {
+        [System.IO.Directory]::CreateDirectory($parent) | Out-Null
+      }
+    }
+
+    foreach ($step in $plan.Steps) {
+      if ($step.Name -eq 'launch') {
+        continue
+      }
+      Write-Host "-> $($step.Description)..."
+      $workingDirectory = if ($step.InCheckout) { $resolvedTarget } else { $null }
+      Invoke-FromSourceStep `
+        -Command $step.Command `
+        -Arguments $step.Arguments `
+        -WorkingDirectory $workingDirectory `
+        -Label $step.Name
+    }
+
+    if (-not [System.IO.File]::Exists($plan.ExecutablePath)) {
+      throw "The build finished but the executable was not found at '$($plan.ExecutablePath)'. Review the build output above for errors."
+    }
+
+    Write-Host "Launching '$($plan.ExecutablePath)'..."
+    Start-Process -FilePath $plan.ExecutablePath -WorkingDirectory $resolvedTarget | Out-Null
+    Write-Host 'Desktop Material was built from source and launched successfully.'
+  }
+
+  if ($FromSource) {
+    if ([string]::IsNullOrWhiteSpace($SourceDirectory)) {
+      $SourceDirectory = [System.IO.Path]::Combine(
+        [Environment]::GetFolderPath('MyDocuments'),
+        'desktop-material-source'
+      )
+    }
+    if ([string]::IsNullOrWhiteSpace($SourceRef)) {
+      $SourceRef = 'main'
+    }
+  }
+
   $originalSecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol
   try {
     [System.Net.ServicePointManager]::SecurityProtocol =
       $originalSecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
-    Invoke-DesktopMaterialInstall -ResolveOnly $ResolveOnly
+    if ($FromSource) {
+      Invoke-DesktopMaterialFromSource `
+        -TargetDirectory $SourceDirectory `
+        -SourceRef $SourceRef `
+        -DryRun $DryRun
+    } else {
+      Invoke-DesktopMaterialInstall -ResolveOnly $ResolveOnly
+    }
   } finally {
     [System.Net.ServicePointManager]::SecurityProtocol = $originalSecurityProtocol
   }
-} -ResolveOnly:$ResolveOnly.IsPresent
+} -ResolveOnly:$ResolveOnly.IsPresent `
+  -FromSource:$FromSource.IsPresent `
+  -SourceDirectory $SourceDirectory `
+  -SourceRef $SourceRef `
+  -DryRun:$DryRun.IsPresent

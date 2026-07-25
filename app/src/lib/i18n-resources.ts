@@ -1413,6 +1413,7 @@ export type TranslationKey =
   | 'palette.preferencesCopilot'
   | 'palette.preferencesSound'
   | 'palette.backgroundQueue'
+  | 'palette.buildAndRun'
   | 'palette.cheapLfsSettings'
   | 'palette.repositoryAutomation'
   | 'palette.tagLifecycle'
@@ -1476,6 +1477,32 @@ export type TranslationKey =
   | 'buildRun.autoApproveRepositoryHelp'
   | 'buildRun.codexInstallSafety'
   | 'buildRun.opencodeInstallSafety'
+  | 'buildRun.title'
+  | 'buildRun.stop'
+  | 'buildRun.phase.detecting'
+  | 'buildRun.phase.preparing'
+  | 'buildRun.phase.installing'
+  | 'buildRun.phase.building'
+  | 'buildRun.phase.running'
+  | 'buildRun.phase.succeeded'
+  | 'buildRun.phase.failed'
+  | 'buildRun.phase.cancelled'
+  | 'buildRun.phase.idle'
+  | 'buildRun.pill.stopRunningTooltip'
+  | 'buildRun.pill.cancelBuildTooltip'
+  | 'buildRun.pill.failedTitle'
+  | 'buildRun.pill.failedTooltip'
+  | 'buildRun.pill.idleTooltip'
+  | 'buildRun.pill.chooseProfile'
+  | 'buildRun.closePanel'
+  | 'buildRun.restorePanel'
+  | 'buildRun.minimizePanel'
+  | 'buildRun.copyAll'
+  | 'buildRun.clearOutput'
+  | 'buildRun.notify.succeededTitle'
+  | 'buildRun.notify.succeededBody'
+  | 'buildRun.notify.failedTitle'
+  | 'buildRun.notify.failedBody'
   | 'actionsLocalRun.commandTitle'
   | 'actionsLocalRun.dialogTitle'
   | 'actionsLocalRun.subtitle'
@@ -3468,6 +3495,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'palette.preferencesCopilot': 'Preferences: Copilot and AI providers',
   'palette.preferencesSound': 'Preferences: Sound',
   'palette.backgroundQueue': 'Background action and API queue',
+  'palette.buildAndRun': 'Build and run',
   'palette.cheapLfsSettings': 'Large files (Cheap LFS) settings',
   'palette.repositoryAutomation': 'Automation overrides (this repository)',
   'palette.tagLifecycle': 'Tag lifecycle manager',
@@ -3560,6 +3588,34 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Installs the official @openai/codex npm package globally. Desktop Material never asks for or stores your OpenAI credentials.',
   'buildRun.opencodeInstallSafety':
     'Installs OpenCode using its official npm package. Desktop Material never asks for or stores your OpenCode credentials.',
+  'buildRun.title': 'Build & run',
+  'buildRun.stop': 'Stop',
+  'buildRun.phase.detecting': 'Detecting',
+  'buildRun.phase.preparing': 'Preparing',
+  'buildRun.phase.installing': 'Installing',
+  'buildRun.phase.building': 'Building',
+  'buildRun.phase.running': 'Running',
+  'buildRun.phase.succeeded': 'Succeeded',
+  'buildRun.phase.failed': 'Failed',
+  'buildRun.phase.cancelled': 'Cancelled',
+  'buildRun.phase.idle': 'Idle',
+  'buildRun.pill.stopRunningTooltip': 'Stop the running app',
+  'buildRun.pill.cancelBuildTooltip': 'Cancel the build',
+  'buildRun.pill.failedTitle': 'Build failed',
+  'buildRun.pill.failedTooltip': 'Build failed — click to retry',
+  'buildRun.pill.idleTooltip': 'Build and run this repository ({profile})',
+  'buildRun.pill.chooseProfile': 'Choose project and build profile',
+  'buildRun.closePanel': 'Close panel',
+  'buildRun.restorePanel': 'Restore panel',
+  'buildRun.minimizePanel': 'Minimize panel',
+  'buildRun.copyAll': 'Copy all output',
+  'buildRun.clearOutput': 'Clear output',
+  'buildRun.notify.succeededTitle': 'Build succeeded',
+  'buildRun.notify.succeededBody':
+    'Building {repository} finished successfully.',
+  'buildRun.notify.failedTitle': 'Build failed',
+  'buildRun.notify.failedBody':
+    'Building {repository} failed with exit code {code}.',
   'actionsLocalRun.commandTitle': 'Run Actions locally',
   'actionsLocalRun.dialogTitle': 'Run GitHub Actions locally',
   'actionsLocalRun.subtitle':
@@ -5505,6 +5561,7 @@ export const cantoneseTranslations: Readonly<
   'palette.preferencesCopilot': '設定：Copilot 同 AI 供應商',
   'palette.preferencesSound': '設定：聲音',
   'palette.backgroundQueue': '背景操作同 API 佇列',
+  'palette.buildAndRun': '構建同執行',
   'palette.cheapLfsSettings': '大型檔案（Cheap LFS）設定',
   'palette.repositoryAutomation': '自動化覆寫（呢個存放庫）',
   'palette.tagLifecycle': '標籤生命週期管理員',
@@ -5589,6 +5646,32 @@ export const cantoneseTranslations: Readonly<
     '會用 npm 全域安裝 OpenAI 官方嘅 @openai/codex 套件。Desktop Material 唔會問你攞、亦唔會儲存 OpenAI 登入資料。',
   'buildRun.opencodeInstallSafety':
     '會用 OpenCode 官方 npm 套件安裝 OpenCode。Desktop Material 唔會問你攞、亦唔會儲存 OpenCode 登入資料。',
+  'buildRun.title': '構建同執行',
+  'buildRun.stop': '停止',
+  'buildRun.phase.detecting': '偵測緊',
+  'buildRun.phase.preparing': '準備緊',
+  'buildRun.phase.installing': '安裝緊',
+  'buildRun.phase.building': '構建緊',
+  'buildRun.phase.running': '執行緊',
+  'buildRun.phase.succeeded': '成功',
+  'buildRun.phase.failed': '失敗',
+  'buildRun.phase.cancelled': '已取消',
+  'buildRun.phase.idle': '閒置',
+  'buildRun.pill.stopRunningTooltip': '停止執行緊嘅 app',
+  'buildRun.pill.cancelBuildTooltip': '取消構建',
+  'buildRun.pill.failedTitle': '構建失敗',
+  'buildRun.pill.failedTooltip': '構建失敗 — 撳一下再試',
+  'buildRun.pill.idleTooltip': '構建同執行呢個 repo（{profile}）',
+  'buildRun.pill.chooseProfile': '揀專案同構建設定檔',
+  'buildRun.closePanel': '關閉面板',
+  'buildRun.restorePanel': '還原面板',
+  'buildRun.minimizePanel': '縮到最細',
+  'buildRun.copyAll': '複製全部輸出',
+  'buildRun.clearOutput': '清除輸出',
+  'buildRun.notify.succeededTitle': '構建成功',
+  'buildRun.notify.succeededBody': '構建 {repository} 順利完成。',
+  'buildRun.notify.failedTitle': '構建失敗',
+  'buildRun.notify.failedBody': '構建 {repository} 失敗，結束代碼 {code}。',
   'actionsLocalRun.commandTitle': '喺本機行 Actions',
   'actionsLocalRun.dialogTitle': '喺本機行 GitHub Actions',
   'actionsLocalRun.subtitle':
