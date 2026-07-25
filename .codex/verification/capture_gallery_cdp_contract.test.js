@@ -829,7 +829,7 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical mode keeps 68 planned captures distinct from 66 published images', () => {
+test('canonical mode plans 68 captures distinct from the 77 published images', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const gallery = fs.readFileSync(
@@ -840,24 +840,37 @@ test('canonical mode keeps 68 planned captures distinct from 66 published images
     ...gallery.matchAll(/^\| `([^`]+)\.png` \| [^|]+ \|$/gm),
   ].map(([, name]) => name)
 
-  const independentlyVerifiedOutputs = ['material-ollama-model-manager']
-  const deferredM22Outputs = [
-    'material-repository-folder-detection',
-    'material-repository-submodule-management',
-    'material-cheap-lfs-preparing',
+  // Canonical outputs captured by the driver but intentionally not published to
+  // the guided gallery catalog (progress-only surface).
+  const deferredOutputs = ['material-cheap-lfs-preparing']
+  // Catalogued PNGs the canonical Batch A driver does not produce: covered by
+  // per-feature CDP verifiers and the live Cheap LFS captures.
+  const catalogOnlyOutputs = [
+    'auto-updater-update-ready',
+    'cheap-lfs-bambu-build-live',
+    'cheap-lfs-cloud-compression',
+    'cheap-lfs-commit-progress',
+    'cheap-lfs-ui-acceptance',
+    'material-command-palette-appearance',
+    'material-github-releases-compact',
+    'material-ollama-model-manager',
+    'material-pull-preview',
+    'material-tab-groups',
   ]
   const expectedCatalog = [
-    ...outputs.filter(output => !deferredM22Outputs.includes(output)),
-    ...independentlyVerifiedOutputs,
+    ...outputs.filter(output => !deferredOutputs.includes(output)),
+    ...catalogOnlyOutputs,
   ]
 
   assert.equal(outputs.length, 68)
   assert.equal(new Set(outputs).size, 68)
-  assert.equal(catalog.length, 66)
-  assert.equal(new Set(catalog).size, 66)
+  assert.equal(catalog.length, 77)
+  assert.equal(new Set(catalog).size, 77)
   assert.deepEqual([...expectedCatalog].sort(), [...catalog].sort())
-  assert.ok(!outputs.includes('material-ollama-model-manager'))
-  for (const deferred of deferredM22Outputs) {
+  for (const output of catalogOnlyOutputs) {
+    assert.ok(!outputs.includes(output), output)
+  }
+  for (const deferred of deferredOutputs) {
     assert.ok(outputs.includes(deferred), deferred)
     assert.ok(!catalog.includes(deferred), deferred)
   }
