@@ -3,8 +3,10 @@ import { describe, it } from 'node:test'
 
 import {
   buildCheapLfsFirstPublishAbort,
+  CheapLfsBootstrapCommitMessage,
   cheapLfsFirstPublishBlocksUpload,
   cheapLfsFirstPublishNeedsBootstrap,
+  cheapLfsFirstPublishNeedsBootstrapCommit,
   cheapLfsFirstPublishReasonKey,
   decideCheapLfsFirstPublish,
   ICheapLfsPublicationState,
@@ -42,6 +44,10 @@ describe('decideCheapLfsFirstPublish', () => {
     )
     assert.strictEqual(decision, 'publish-branch')
     assert.strictEqual(cheapLfsFirstPublishNeedsBootstrap(decision), true)
+    assert.strictEqual(
+      cheapLfsFirstPublishNeedsBootstrapCommit(decision),
+      false
+    )
     assert.strictEqual(cheapLfsFirstPublishBlocksUpload(decision), false)
     assert.strictEqual(cheapLfsFirstPublishReasonKey(decision), null)
   })
@@ -78,12 +84,34 @@ describe('decideCheapLfsFirstPublish', () => {
     )
   })
 
-  it('blocks on an unborn branch with nothing to publish', () => {
+  it('bootstraps one empty commit when the branch is unborn', () => {
+    // Refusing here is what left a commit-less remote unreachable: GitHub hides
+    // that repository's entire release inventory until a commit exists.
+    const decision = decideCheapLfsFirstPublish(
+      published({ remoteBranchSha: null, localTipSha: null })
+    )
+    assert.strictEqual(decision, 'bootstrap-commit')
+    assert.strictEqual(cheapLfsFirstPublishBlocksUpload(decision), false)
+    assert.strictEqual(cheapLfsFirstPublishNeedsBootstrap(decision), true)
+    assert.strictEqual(cheapLfsFirstPublishNeedsBootstrapCommit(decision), true)
+    assert.strictEqual(cheapLfsFirstPublishReasonKey(decision), null)
+  })
+
+  it('states the bootstrap commit message in both languages', () => {
+    assert.match(CheapLfsBootstrapCommitMessage, /Initialize repository/)
+    assert.match(CheapLfsBootstrapCommitMessage, /開荒留名/)
+  })
+
+  it('keeps the unborn-branch reason for a refused bootstrap commit', () => {
+    // No longer produced by the decision, but still the reason a bootstrap
+    // commit that a hook refuses must report on every file row.
     assert.strictEqual(
-      decideCheapLfsFirstPublish(
-        published({ remoteBranchSha: null, localTipSha: null })
-      ),
-      'blocked-unborn-branch'
+      cheapLfsFirstPublishReasonKey('blocked-unborn-branch'),
+      'cheapLfs.firstPublish.unbornBranch'
+    )
+    assert.strictEqual(
+      cheapLfsFirstPublishBlocksUpload('blocked-unborn-branch'),
+      true
     )
   })
 
@@ -92,21 +120,31 @@ describe('decideCheapLfsFirstPublish', () => {
       published({ hasGitHubRepository: false }),
       published({ remoteBranchSha: null, remoteName: null }),
       published({ remoteBranchSha: null, branchName: null }),
-      published({ remoteBranchSha: null, localTipSha: null }),
     ]) {
       const decision = decideCheapLfsFirstPublish(state)
       assert.strictEqual(cheapLfsFirstPublishBlocksUpload(decision), true)
       assert.strictEqual(cheapLfsFirstPublishNeedsBootstrap(decision), false)
+      assert.strictEqual(
+        cheapLfsFirstPublishNeedsBootstrapCommit(decision),
+        false
+      )
       assert.notStrictEqual(cheapLfsFirstPublishReasonKey(decision), null)
     }
   })
 
   it('publishes every blocking reason in both languages', () => {
+    for (const key of [
+      'cheapLfs.firstPublish.unbornBranch',
+      'cheapLfs.firstPublish.publishFailed',
+    ] as const) {
+      // Still reachable: the bootstrap commit itself can be refused by a hook.
+      assert.ok((englishTranslations[key] ?? '').length > 0)
+      assert.ok((cantoneseTranslations[key] ?? '').length > 0)
+    }
     for (const state of [
       published({ hasGitHubRepository: false }),
       published({ remoteBranchSha: null, remoteName: null }),
       published({ remoteBranchSha: null, branchName: null }),
-      published({ remoteBranchSha: null, localTipSha: null }),
     ]) {
       const key = cheapLfsFirstPublishReasonKey(
         decideCheapLfsFirstPublish(state)

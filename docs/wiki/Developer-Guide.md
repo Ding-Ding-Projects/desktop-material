@@ -221,7 +221,13 @@ publication, release, or cleanup evidence.
   exercise restored 10/10 hashes but showed that an overlap can still create hash-identical recovery
   copies. Preserve exact pending SHAs across transport failures, prove each remote tip before the
   next batch, retain raw Release fallback, and never treat a successful hash alone as proof that
-  concurrent UI ownership was correct.
+  concurrent UI ownership was correct. The release route must also make the remote hold at least one
+  commit — bootstrapping one empty commit when the local branch is unborn — **before** it reads or
+  fingerprints the release inventory: GitHub answers the releases API with `[]` for a commit-less
+  repository, so a review taken earlier is wrong rather than stale and the anchor push un-hides the
+  real buckets mid-upload. `app/src/lib/cheap-lfs/release-review.ts` owns that fingerprint; it stays
+  fail-closed for every change after the review, and an already-published repository must take no
+  extra review at all.
 - **GitHub Actions and logs** — `app/src/lib/stores/actions-store.ts` owns API state; the run list,
   run details, workflow-dispatch dialog, and searchable log viewer live in `app/src/ui/actions/`;
   `app/src/lib/actions-log-parser/` parses log markup without coupling it to React.

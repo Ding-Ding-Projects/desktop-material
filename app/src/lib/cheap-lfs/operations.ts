@@ -71,6 +71,10 @@ import type {
 import { isCheapLfsRepositoryKeyPath } from './ghcr-key'
 import { requireSafeCheapLfsMaterializationPath } from './materialization-path'
 import {
+  cheapLfsReleaseReviewHasTag,
+  ICheapLfsReleaseReview,
+} from './release-review'
+import {
   defaultCheapLfsTrackedPathStore,
   ICheapLfsTrackedFileProof,
   ICheapLfsTrackedPathStore,
@@ -293,6 +297,13 @@ export interface ICheapLfsPinOptions {
   readonly releaseTag: string
   readonly releaseName?: string
   readonly targetCommitish?: string
+  /**
+   * The release inventory this batch was reviewed against, taken after the
+   * first-publish anchor guaranteed the remote holds a commit. Supplied only on
+   * the anchored path; an already-published repository keeps its existing
+   * behavior and reviews nothing extra.
+   */
+  readonly releaseReview?: ICheapLfsReleaseReview
 }
 
 export interface ICheapLfsPinResult {
@@ -1505,7 +1516,9 @@ export async function pinFileToRelease(
           true,
           signal
         ),
-      signal
+      signal,
+      undefined,
+      options.releaseReview
     )
     const { release, releaseTag, assets: releaseAssets } = bucket
     preflightProjectedPointer(sourceSizeInBytes, releaseTag, baseName)
@@ -2075,7 +2088,8 @@ async function allocateCheapLfsReleaseBucket(
   signal?: AbortSignal,
   requiredAssetCountForInventory?: (
     assets: ReadonlyArray<IGitHubReleaseAsset>
-  ) => number
+  ) => number,
+  releaseReview?: ICheapLfsReleaseReview
 ): Promise<ICheapLfsReleaseBucket> {
   if (
     !Number.isSafeInteger(requiredAssetCount) ||
@@ -2127,6 +2141,19 @@ async function allocateCheapLfsReleaseBucket(
     const release = releaseCache.get(index) ?? null
     if (release !== null) {
       ensureCheapLfsBucketTag(release, releaseTag)
+      return release
+    }
+    // A reviewed bucket that has since become invisible is not an absent
+    // bucket. Creating it again would either collide or silently split one
+    // logical bucket in two, so an inventory that changed after the review
+    // fails closed instead of being written to.
+    if (
+      releaseReview !== undefined &&
+      cheapLfsReleaseReviewHasTag(releaseReview, releaseTag)
+    ) {
+      throw new Error(
+        `The GitHub release inventory changed after Cheap LFS reviewed it: the bucket tagged “${releaseTag}” is no longer visible. Retry the commit so the new inventory is reviewed before any upload.`
+      )
     }
     return release
   }
@@ -2437,7 +2464,8 @@ export async function planCheapLfsManualUpload(
         signal
       ),
     signal,
-    assets => countMissingCheapLfsManualAssets(hashedFiles, assets)
+    assets => countMissingCheapLfsManualAssets(hashedFiles, assets),
+    options[0].releaseReview
   )
   const { release, releaseTag, assets: allAssets } = bucket
   const preexistingAssetIds = new Set(allAssets.map(asset => asset.id))

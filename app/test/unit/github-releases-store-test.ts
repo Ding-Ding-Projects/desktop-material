@@ -485,6 +485,54 @@ describe('GitHub Releases store', () => {
     assert.deepEqual(requestedPages, [1, 2])
   })
 
+  it('walks every release page for one complete inventory review', async () => {
+    const requestedPages = new Array<number>()
+    const second = { ...release, id: 8, tagName: 'assets' }
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => {
+            requestedPages.push(page)
+            return page === 1
+              ? { releases: [release], page, nextPage: 2, capped: false }
+              : { releases: [second], page, nextPage: null, capped: false }
+          },
+        })
+      )
+    )
+
+    const inventory = await store.listAll(repository)
+    assert.equal(inventory.complete, true)
+    assert.deepEqual(
+      inventory.releases.map(entry => entry.id),
+      [release.id, 8]
+    )
+    assert.deepEqual(requestedPages, [1, 2])
+  })
+
+  it('reports a capped inventory as incomplete rather than as proof', async () => {
+    // A truncated view must never let a Cheap LFS review conclude that the
+    // buckets it could not see are absent.
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => ({
+            releases: [release],
+            page,
+            nextPage: null,
+            capped: true,
+          }),
+        })
+      )
+    )
+
+    const inventory = await store.listAll(repository)
+    assert.equal(inventory.complete, false)
+    assert.equal(inventory.releases.length, 1)
+  })
+
   it('does not list releases when the exact tag endpoint succeeds', async () => {
     let listed = false
     const store = await storeWith(

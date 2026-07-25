@@ -37,6 +37,26 @@ budgets raised in lockstep so they cannot silently become the real cap. The
 per-batch 10,000-path and 1.4 GB ceilings are unchanged. Details in
 [HANDOFF.md](HANDOFF.md).
 
+## July 25 Cheap LFS anchor before the release review — **Implemented on a branch, not merged, not live-verified**
+
+The third headless end-to-end pass (issue #38) left one defect. GitHub answers
+the releases API with `[]` for a repository that has **no commits at all**, even
+when releases exist on it, so the review a Cheap LFS commit acted on was not
+stale but wrong: the anchor push un-hid the pre-existing buckets mid-flight and
+the per-mutation review guard correctly aborted every in-flight upload. The
+release route now guarantees a commit exists remotely *before* anything is
+reviewed — bootstrapping one empty commit
+(`Initialize repository for Cheap LFS / 開荒留名`, no invented file content) when
+the local branch is unborn — then re-fetches the complete inventory, fingerprints
+it, and only then pins. The guard stays fail-closed for every change after that
+re-review, a capped or unreadable inventory yields no review rather than a false
+one, and an already-published repository takes no extra review at all. The same
+pass records the tracking ref and upstream the create-only anchor push does not
+set, so the toolbar stops offering "Publish branch" for a branch it just
+published. Committed on `fix/bootstrap-before-review`; a merge, a push, and a
+fourth live end-to-end pass are still outstanding. Details in
+[HANDOFF.md](HANDOFF.md).
+
 ## July 25 Cheap LFS first publish and push race — **Implemented, locally accepted**
 
 A headless 200k-file end-to-end (issue #38) proved three defects on the release

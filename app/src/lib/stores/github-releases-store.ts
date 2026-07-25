@@ -11,6 +11,7 @@ import {
 import {
   getGitHubReleaseAssetFingerprint,
   getGitHubReleaseFingerprint,
+  GitHubReleaseMaximumPages,
   IGitHubRelease,
   IGitHubReleaseAsset,
   IGitHubReleaseAssetList,
@@ -42,6 +43,20 @@ export type GitHubReleasesAvailability =
   | 'signed-out'
   | 'unsupported'
   | 'not-github'
+
+/**
+ * Hard ceiling on the pages one Cheap LFS inventory review may walk. It matches
+ * the shared release-pagination cap, so the walk stops at the same boundary the
+ * API layer already refuses to read past instead of throwing there.
+ */
+export const CheapLfsReleaseInventoryMaximumPages = GitHubReleaseMaximumPages
+
+/** One bounded pass over the complete release inventory. */
+export interface ICheapLfsReleaseInventory {
+  readonly releases: ReadonlyArray<IGitHubRelease>
+  /** `false` when the page ceiling stopped the walk before the last page. */
+  readonly complete: boolean
+}
 
 export type GitHubReleasesErrorKind =
   | 'authentication'
@@ -661,6 +676,39 @@ export class GitHubReleasesStore {
         requestSignal
       )
     )
+  }
+
+  /**
+   * Read the complete release inventory in one bounded pass.
+   *
+   * The Cheap LFS batch review needs every release, not one interactive page:
+   * a bucket it cannot see is a bucket it would create a second time. The walk
+   * stops at `CheapLfsReleaseInventoryMaximumPages`, and a page the parser
+   * already reported as capped ends the walk as *incomplete* — a truncated view
+   * is never passed off as proof that the unseen releases are absent.
+   */
+  public async listAll(
+    repository: Repository,
+    signal?: AbortSignal
+  ): Promise<ICheapLfsReleaseInventory> {
+    const releases = new Array<IGitHubRelease>()
+    let page = 1
+    for (
+      let visited = 0;
+      visited < CheapLfsReleaseInventoryMaximumPages;
+      visited++
+    ) {
+      const listed = await this.list(repository, page, signal)
+      releases.push(...listed.releases)
+      if (listed.capped) {
+        return { releases, complete: false }
+      }
+      if (listed.nextPage === null) {
+        return { releases, complete: true }
+      }
+      page = listed.nextPage
+    }
+    return { releases, complete: false }
   }
 
   /** Resolve one release by tag through the repository-selected account. */
