@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { realpath } from 'fs/promises'
+import { lstat, realpath } from 'fs/promises'
 import { basename, join, resolve } from 'path'
 import {
   CheapLfsGhcrVerifiedVisibility,
@@ -55,14 +55,67 @@ export class CheapLfsCommitKeyError extends Error {
   }
 }
 
+/**
+ * A working-tree entry larger than the bounded OCI pointer text cannot be an
+ * OCI pointer, so a cheap `lstat` can skip the full-file SHA-256 that
+ * `proveDestination` computes. Pure so the size guard is unit-testable.
+ */
+export function isOversizedForOciPointer(sizeInBytes: number): boolean {
+  return sizeInBytes > CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
+}
+
+/**
+ * Reduce an `lstat` result to a size the oversized guard can trust. A size is
+ * only returned for a regular file: for a symlink, directory, or missing entry
+ * the probe returns `null` so the caller falls through to the full prover,
+ * which applies the canonical symlink/redirect refusals unchanged. Pure so the
+ * regular-file gate is unit-testable.
+ */
+export function regularFileProbeSize(stats: {
+  readonly isFile: () => boolean
+  readonly size: number
+}): number | null {
+  return stats.isFile() ? stats.size : null
+}
+
+/** Injectable cheap size probe so the fast-skip guard is unit-testable. */
+export type CheapLfsPointerSizeProbe = (
+  repositoryPath: string,
+  relativePath: string
+) => Promise<number | null>
+
+const lstatPointerSizeProbe: CheapLfsPointerSizeProbe = async (
+  repositoryPath,
+  relativePath
+) => {
+  try {
+    const absolutePath = join(
+      resolve(repositoryPath),
+      ...relativePath.split('/')
+    )
+    return regularFileProbeSize(await lstat(absolutePath))
+  } catch {
+    return null
+  }
+}
+
 async function readSelectedOciPointer(
   repositoryPath: string,
   relativePath: string,
-  cheapLfsEligible: boolean
+  cheapLfsEligible: boolean,
+  probeSize: CheapLfsPointerSizeProbe = lstatPointerSizeProbe
 ): Promise<{
   readonly pointer: ICheapLfsGhcrPointer
   readonly contentSha256: string
 } | null> {
+  // Bail before proveDestination fully hashes a multi-gigabyte selected file:
+  // a regular file over the pointer-text bound is provably not an OCI pointer.
+  // A `null` probe (symlink/dir/missing/error) falls through to the full prover
+  // so every existing refusal and TOCTOU proof still runs.
+  const probedSize = await probeSize(repositoryPath, relativePath)
+  if (probedSize !== null && isOversizedForOciPointer(probedSize)) {
+    return null
+  }
   const proof = cheapLfsEligible
     ? await defaultCheapLfsTrackedPathStore.proveDestination(
         repositoryPath,

@@ -3399,6 +3399,67 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('scopes the inventory to a bounded pathspec and matches glob-magic names literally', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const pointerText = serializeCheapLfsPointer({
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'assets',
+        assetName: 'asset.bin',
+        sizeInBytes: 10,
+        sha256: 'b'.repeat(64),
+      })
+      const names = ['alpha.bin', 'beta.bin', 'glob[1].bin']
+      for (const name of names) {
+        await writeFile(join(dir, name), pointerText, 'utf8')
+      }
+      await execFile('git', ['add', '--all'], { cwd: dir })
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'pointers',
+        ],
+        { cwd: dir }
+      )
+
+      const all = await listAllCheapLfsPointers(repository)
+      assert.deepEqual(
+        all.map(entry => entry.relativePath).sort(),
+        [...names].sort()
+      )
+
+      // Scoping to one path returns exactly that path, never a sibling.
+      const scoped = await listAllCheapLfsPointers(
+        repository,
+        defaultCheapLfsFileSystem,
+        ['alpha.bin']
+      )
+      assert.deepEqual(
+        scoped.map(entry => entry.relativePath),
+        ['alpha.bin']
+      )
+
+      // A `[` in the name is matched literally (`:(literal)`), not as a
+      // character class that would otherwise miss the real file.
+      const scopedGlob = await listAllCheapLfsPointers(
+        repository,
+        defaultCheapLfsFileSystem,
+        ['glob[1].bin']
+      )
+      assert.deepEqual(
+        scopedGlob.map(entry => entry.relativePath),
+        ['glob[1].bin']
+      )
+    })
+  })
+
   it('fails closed instead of returning a partial inventory at the pointer byte bound', async () => {
     await withTempRepository(async (dir, repository) => {
       await execFile('git', ['init', '--quiet'], { cwd: dir })

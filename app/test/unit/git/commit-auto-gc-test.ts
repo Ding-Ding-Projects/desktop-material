@@ -93,4 +93,38 @@ describe('command-scoped commit auto-GC suppression', () => {
       /LargeRepositoryGitMaintenanceArgs,\s*'repack',\s*'-d'/
     )
   })
+
+  it('extends suppression to the Cheap LFS and LFS git commands', () => {
+    // The whole-tree pointer inventory greps and the per-blob cat-file reads in
+    // the Cheap LFS scanner must inherit the same suppression, so a background
+    // repack cannot fire mid-scan on a large repository.
+    const operations = source('app/src/lib/cheap-lfs/operations.ts')
+    assert.match(
+      operations,
+      /largeRepositoryGitArgsForPath\(\s*root\s*\)/,
+      'expected the Cheap LFS scanner git calls to carry the suppression'
+    )
+    assert.match(
+      operations,
+      /largeRepositoryGitArgsForPath\(\s*repository\.path\s*\)/,
+      'expected the Cheap LFS release-target git calls to carry the suppression'
+    )
+    assert.match(
+      operations,
+      /import \{ largeRepositoryGitArgsForPath \} from '\.\.\/large-repository\/large-repository-mode'/
+    )
+
+    // Every git command in the LFS module (install hooks, the LFS-usage probe,
+    // and per-file check-attr) inherits the suppression via the same seam.
+    const lfs = source('app/src/lib/git/lfs.ts')
+    assert.match(
+      lfs,
+      /largeRepositoryGitArgsForPath\(\s*repository\.path\s*\)/,
+      'expected the LFS git calls to carry the suppression'
+    )
+    assert.match(
+      lfs,
+      /import \{ largeRepositoryGitArgsForPath \} from '\.\.\/large-repository\/large-repository-mode'/
+    )
+  })
 })

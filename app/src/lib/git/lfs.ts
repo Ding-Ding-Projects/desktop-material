@@ -1,10 +1,20 @@
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { git } from './core'
 import { Repository } from '../../models/repository'
+import { largeRepositoryGitArgsForPath } from '../large-repository/large-repository-mode'
 
-interface ILFSTrackOutput {
-  readonly patterns: ReadonlyArray<{
-    readonly tracked: boolean
-  }>
+/**
+ * Does a `.gitattributes` document declare an active `filter=lfs` rule? Pure so
+ * the scan is unit-testable. Comment lines (`#`) are ignored and the token must
+ * stand alone so `-filter` (unset) or an unrelated value does not match.
+ */
+export function gitAttributesTextDeclaresLfsFilter(text: string): boolean {
+  return text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(line => line.length > 0 && !line.startsWith('#'))
+    .some(line => /(?:^|\s)filter=lfs(?=\s|$)/.test(line))
 }
 
 /** Install the global LFS filters. */
@@ -22,7 +32,11 @@ export async function installLFSHooks(
   repository: Repository,
   force: boolean
 ): Promise<void> {
-  const args = ['lfs', 'install']
+  const args = [
+    ...largeRepositoryGitArgsForPath(repository.path),
+    'lfs',
+    'install',
+  ]
   if (force) {
     args.push('--force')
   }
@@ -30,31 +44,92 @@ export async function installLFSHooks(
   await git(args, repository.path, 'installLFSHooks')
 }
 
-/** Is the repository configured to track any paths with LFS? */
-export async function isUsingLFS(repository: Repository): Promise<boolean> {
-  const env = {
-    GIT_LFS_TRACK_NO_INSTALL_HOOKS: '1',
+/**
+ * Probe whether any tracked `.gitattributes` file declares an active
+ * `filter=lfs` rule. Injectable so {@link isUsingLFS}'s cache can be exercised
+ * without spawning Git.
+ */
+export type LFSFilterAttributeProbe = (
+  repository: Repository
+) => Promise<boolean>
+
+/**
+ * The real probe.
+ *
+ * `git lfs track --json` walks the ENTIRE working tree to re-derive the
+ * attribute stack — 17-35s on a 211k-file repository. An `filter=lfs` rule can
+ * only live in a `.gitattributes` file, so this answers the same yes/no
+ * question in ~150ms via two bounded steps:
+ *
+ *  1. Read the working-tree root `.gitattributes` directly. `git lfs track`
+ *     writes there before the file is ever staged, so a tracked-only grep would
+ *     miss a freshly-configured repository.
+ *  2. `git grep` the tracked `.gitattributes` files (root and nested) for
+ *     committed or nested rules. The default (working-tree) grep deliberately
+ *     avoids `--untracked`, which would force git to enumerate every file.
+ */
+async function probeLFSFilterAttribute(
+  repository: Repository
+): Promise<boolean> {
+  try {
+    const rootAttributes = await readFile(
+      join(repository.path, '.gitattributes'),
+      'utf8'
+    )
+    if (gitAttributesTextDeclaresLfsFilter(rootAttributes)) {
+      return true
+    }
+  } catch {
+    // No root .gitattributes (or unreadable): fall through to the tracked grep.
   }
   const result = await git(
-    ['lfs', 'track', '--json'],
+    [
+      ...largeRepositoryGitArgsForPath(repository.path),
+      'grep',
+      '-I',
+      '-l',
+      '-e',
+      'filter=lfs',
+      '--',
+      '.gitattributes',
+      '*/.gitattributes',
+    ],
     repository.path,
     'isUsingLFS',
-    {
-      env,
-    }
+    // 0: a match exists, 1: no match, 128: no tracked files / unborn branch.
+    { successExitCodes: new Set([0, 1, 128]) }
   )
+  return result.exitCode === 0
+}
 
-  try {
-    const output = JSON.parse(result.stdout) as Partial<ILFSTrackOutput>
+/**
+ * Per-repository memo of the cheap LFS-usage probe. `isUsingLFS` runs only at
+ * repository-add time, so a plain path-keyed cache keeps a re-add (or a repeated
+ * detection pass) from paying the probe again.
+ */
+const lfsUsageByRepositoryPath = new Map<string, boolean>()
 
-    if (!Array.isArray(output.patterns)) {
-      return false
-    }
-
-    return output.patterns.some(pattern => pattern.tracked)
-  } catch {
-    return false
+/** Drop cached LFS-usage answers. Intended for tests and repository removal. */
+export function clearIsUsingLFSCache(repositoryPath?: string): void {
+  if (repositoryPath === undefined) {
+    lfsUsageByRepositoryPath.clear()
+  } else {
+    lfsUsageByRepositoryPath.delete(repositoryPath)
   }
+}
+
+/** Is the repository configured to track any paths with LFS? */
+export async function isUsingLFS(
+  repository: Repository,
+  probe: LFSFilterAttributeProbe = probeLFSFilterAttribute
+): Promise<boolean> {
+  const cached = lfsUsageByRepositoryPath.get(repository.path)
+  if (cached !== undefined) {
+    return cached
+  }
+  const usingLFS = await probe(repository)
+  lfsUsageByRepositoryPath.set(repository.path, usingLFS)
+  return usingLFS
 }
 
 /**
@@ -71,7 +146,12 @@ export async function isTrackedByLFS(
   path: string
 ): Promise<boolean> {
   const { stdout } = await git(
-    ['check-attr', 'filter', path],
+    [
+      ...largeRepositoryGitArgsForPath(repository.path),
+      'check-attr',
+      'filter',
+      path,
+    ],
     repository.path,
     'checkAttrForLFS'
   )
