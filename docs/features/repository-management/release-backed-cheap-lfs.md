@@ -383,10 +383,11 @@ upload, and consults the pure decision in
 | --- | --- | --- |
 | `ready` | `ls-remote` proved the branch exists remotely | upload |
 | `publish-branch` | GitHub repository, remote, branch, and tip all exist locally, but the branch is unpublished | push the tip with `expectedRemoteSha: null`, re-read the remote ref, then upload |
+| `bootstrap-commit` | repository, remote, and branch exist but the branch is unborn | create one empty bootstrap commit, then publish it as above |
 | `blocked-no-github-repository` | no GitHub repository backs the checkout | refuse, per-file reason |
 | `blocked-no-remote` | no push remote configured | refuse, per-file reason |
 | `blocked-detached-head` | no branch to publish | refuse, per-file reason |
-| `blocked-unborn-branch` | no commit to publish | refuse, per-file reason |
+| `blocked-unborn-branch` | the bootstrap commit itself was refused | refuse, per-file reason |
 
 The bootstrap push reuses the existing batching session primitive
 (`operations.push` with `expectedRemoteSha: null`, which asserts the branch does
@@ -403,6 +404,63 @@ push would resolve to a dangling pointer. There is no silent fallback to another
 storage provider: a blocking decision refuses, names the reason on every
 affected file row and in the notification, and leaves the raw files selected in
 Changes for a retry.
+
+### A completely empty repository is bootstrapped, not refused
+
+An unborn branch used to be a blocking decision, which made a genuinely empty
+repository unreachable: there was nothing to publish, so no release could be
+anchored, so no large file could ever be pinned. Worse, GitHub answers
+`GET /repos/{owner}/{repo}/releases` with `[]` for a repository that has **no
+commits at all** — even when releases exist on it — so nothing the app could
+read while in that state was trustworthy either.
+
+`createCheapLfsBootstrapCommit` therefore creates exactly one commit through the
+ordinary `createCommit` machinery:
+
+- `--allow-empty` with an empty index. **No file content is ever invented** —
+  the app does not write a README, a `.gitattributes`, or a placeholder.
+- Message `Initialize repository for Cheap LFS / 開荒留名`, bilingual like every
+  other commit note this project writes, so the history says why it exists.
+- The app's ordinary author identity and the repository's ordinary hooks. A
+  hook that refuses aborts the bootstrap with
+  `cheapLfs.firstPublish.unbornBranch` plus the underlying detail, rather than
+  waiting on a prompt nobody is watching.
+
+Only the branch state is reloaded afterwards (`GitStore.loadBranches`), never a
+full repository refresh: the commit the user actually asked for is still holding
+its own working-directory selection. The publication state is then re-read, and
+the ordinary `publish-branch` push publishes the new tip.
+
+### The review fingerprint is taken *after* the anchor
+
+The hidden-inventory behavior above is not merely a stale read, it is a wrong
+one, and it produced a real end-to-end abort: the pre-commit review saw `[]`,
+the anchor push then un-hid three pre-existing buckets mid-flight, and the
+per-mutation review guard correctly refused every upload with *“The reviewed
+release, asset, repository, or account changed.”*
+
+The order is therefore fixed:
+
+1. `ensureCheapLfsReleaseAnchor` guarantees the remote holds at least one
+   commit — bootstrapping one if the local repository is empty — and reports
+   `anchored: true` only when it actually published something proven.
+2. `trackAndRefreshAfterCheapLfsAnchor` records the tracking ref and upstream
+   and refreshes branch, remote, and status state (see below).
+3. `reviewCheapLfsReleaseInventory` re-fetches the complete inventory through
+   `GitHubReleasesStore.listAll` and `takeCheapLfsReleaseReview` fingerprints
+   it. A walk truncated by `CheapLfsReleaseInventoryMaximumPages`, or an
+   unreadable inventory, yields **no** review rather than a false one.
+4. Only then does pinning start, carrying that review in
+   `ICheapLfsPinOptions.releaseReview`.
+
+`allocateCheapLfsReleaseBucket` uses the review to stay fail-closed for anything
+that changes *after* it: a bucket the review proved exists, which the live
+lookup can no longer see, aborts instead of being created a second time. Every
+mutation still revalidates its own release fingerprint exactly as before.
+
+An **already-published repository is untouched by all of this**. It returns
+`anchored: false`, takes no extra review, issues no extra request, and pins
+exactly as it did before.
 
 ### The anchor push does not run `pre-push`
 
@@ -440,6 +498,19 @@ preference and can become a modal dialog — a background abort must never block
 the app, and must never be silent either. `reasonDetail` is passed through
 `sanitizeCheapLfsFailureReason` before display, so a Git message containing a
 credential-bearing URL or token is scrubbed on every one of those surfaces.
+
+### The toolbar stops offering “Publish branch” after the anchor
+
+The anchor push is an exact `<sha>:refs/heads/<branch>` refspec, which
+deliberately cannot overwrite anyone's work — but it also sets no tracking, so
+the toolbar kept offering **Publish branch** for a branch it had just published,
+with no ahead/behind at all. `trackAndRefreshAfterCheapLfsAnchor` closes that
+gap immediately after the push is proven: it writes
+`refs/remotes/<remote>/<branch>` to the tip `ls-remote` just proved, sets
+`branch.<name>` to track it, then reloads remotes, branches, and status in that
+order — ahead/behind comes from the `git status` branch header, so it is read
+last. Both Git writes are best effort and logged on failure: the uploads already
+succeeded and must never be lost to a cosmetic toolbar state.
 
 ## Why a pin failed: per-file reasons
 

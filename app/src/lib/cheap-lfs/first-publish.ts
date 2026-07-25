@@ -42,29 +42,50 @@ export interface ICheapLfsPublicationState {
  * - `publish-branch`               — everything needed exists locally, but the
  *                                    branch has never been pushed. Publish the
  *                                    branch tip first, then upload.
+ * - `bootstrap-commit`             — the repository, remote, and branch exist
+ *                                    but the branch is unborn, so there is not
+ *                                    yet a commit to publish. Create one empty
+ *                                    bootstrap commit, then publish it.
  * - `blocked-no-github-repository` — no GitHub repository backs this checkout,
  *                                    so the Releases API is unreachable.
  * - `blocked-no-remote`            — no push remote is configured.
  * - `blocked-detached-head`        — HEAD is detached, so there is no branch to
  *                                    publish.
- * - `blocked-unborn-branch`        — the branch has no commit to publish.
+ * - `blocked-unborn-branch`        — the branch had no commit to publish and the
+ *                                    bootstrap commit could not be created. Only
+ *                                    reachable as a bootstrap failure reason.
  */
 export type CheapLfsFirstPublishDecision =
   | 'ready'
   | 'publish-branch'
+  | 'bootstrap-commit'
   | 'blocked-no-github-repository'
   | 'blocked-no-remote'
   | 'blocked-detached-head'
   | 'blocked-unborn-branch'
 
 /**
+ * Message of the one empty commit created to make a truly empty repository
+ * anchorable. Bilingual, matching this app's commit-note convention, and
+ * authored with the app's ordinary identity — it is a real commit in the user's
+ * history, so it says plainly why it exists.
+ */
+export const CheapLfsBootstrapCommitMessage =
+  'Initialize repository for Cheap LFS / 開荒留名'
+
+/**
  * Decide, fail-closed, whether a Cheap LFS release upload may proceed.
  *
  * The Releases API is checked first: without a GitHub repository no release can
  * exist regardless of local state. A proven remote branch then makes the route
- * immediately usable. Everything else is either a publishable local branch or a
- * blocking condition which is reported per file instead of being retried into
- * another `422`.
+ * immediately usable. Everything else is either a publishable local branch, an
+ * empty repository that one bootstrap commit makes publishable, or a blocking
+ * condition which is reported per file instead of being retried into another
+ * `422`.
+ *
+ * An unborn branch is deliberately *not* blocking. GitHub hides the entire
+ * release inventory of a commit-less repository, so refusing there left the only
+ * route that could reveal it — publishing a commit — permanently out of reach.
  */
 export function decideCheapLfsFirstPublish(
   state: ICheapLfsPublicationState
@@ -82,7 +103,7 @@ export function decideCheapLfsFirstPublish(
     return 'blocked-detached-head'
   }
   if (state.localTipSha === null) {
-    return 'blocked-unborn-branch'
+    return 'bootstrap-commit'
   }
   return 'publish-branch'
 }
@@ -91,14 +112,28 @@ export function decideCheapLfsFirstPublish(
 export function cheapLfsFirstPublishBlocksUpload(
   decision: CheapLfsFirstPublishDecision
 ): boolean {
-  return decision !== 'ready' && decision !== 'publish-branch'
+  return (
+    decision !== 'ready' &&
+    decision !== 'publish-branch' &&
+    decision !== 'bootstrap-commit'
+  )
 }
 
 /** True only when a bootstrap push must happen before the first upload. */
 export function cheapLfsFirstPublishNeedsBootstrap(
   decision: CheapLfsFirstPublishDecision
 ): boolean {
-  return decision === 'publish-branch'
+  return decision === 'publish-branch' || decision === 'bootstrap-commit'
+}
+
+/**
+ * True only when the local branch carries no commit at all, so one empty
+ * bootstrap commit must be created before anything can be published.
+ */
+export function cheapLfsFirstPublishNeedsBootstrapCommit(
+  decision: CheapLfsFirstPublishDecision
+): boolean {
+  return decision === 'bootstrap-commit'
 }
 
 /**
@@ -132,6 +167,19 @@ export function cheapLfsFirstPublishReasonKey(
 export interface ICheapLfsFirstPublishFailure {
   readonly reasonKey: TranslationKey
   readonly detail?: string
+}
+
+/**
+ * What one attempt to make the release route usable achieved.
+ *
+ * `anchored` is deliberately separate from `failure === null`: an already
+ * published repository is usable without this call having changed anything, and
+ * only a call that actually published something entitles — and obliges — the
+ * caller to re-review the release inventory GitHub was hiding until then.
+ */
+export interface ICheapLfsReleaseAnchorOutcome {
+  readonly failure: ICheapLfsFirstPublishFailure | null
+  readonly anchored: boolean
 }
 
 /** One file the aborted commit would have pinned. */

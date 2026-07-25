@@ -63,6 +63,7 @@ import {
   CheapLfsLegacyGhcrRepositoryKeyPath,
   CheapLfsRegistryRepositoryKeyPath,
 } from '../../../src/lib/cheap-lfs/ghcr-key'
+import { takeCheapLfsReleaseReview } from '../../../src/lib/cheap-lfs/release-review'
 
 const selected = new Account(
   'selected',
@@ -3475,6 +3476,137 @@ describe('cheap LFS operations', () => {
         listAllCheapLfsPointers(repository),
         /exceeds the .*format limit/
       )
+    })
+  })
+
+  it('fails closed when a reviewed bucket is no longer visible', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'reviewed.bin')
+      await writeFile(filePath, Buffer.alloc(64, 7))
+      let createdTags = 0
+      let uploadCount = 0
+      let pointerWritten = false
+      const gateway: ICheapLfsReleasesGateway = {
+        // Exactly the un-hiding reversed: the batch reviewed this bucket after
+        // the anchor, and the live lookup can no longer see it.
+        getReleaseByTag: async () => null,
+        create: async () => {
+          createdTags++
+          throw new Error('the bucket must not be created a second time')
+        },
+        listAssets: async () => ({
+          assets: [],
+          page: 1,
+          nextPage: null,
+          capped: false,
+        }),
+        createMutationReview: () => ({
+          repositoryFingerprint: 'fixture',
+          accountKey: 'fixture',
+          accountGeneration: 1,
+          releaseId: 1,
+          releaseFingerprint: 'fixture',
+          assetId: null,
+          assetFingerprint: null,
+        }),
+        publish: async () => release,
+        uploadAsset: async () => {
+          uploadCount++
+          throw new Error('no asset may be uploaded after a review changed')
+        },
+        deleteAsset: async () => {},
+        downloadAsset: async () => ({ path: filePath, bytes: 0 }),
+      }
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        writePointer: async () => {
+          pointerWritten = true
+        },
+      }
+
+      await assert.rejects(
+        pinFileToRelease(
+          gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'reviewed.bin',
+            releaseTag: 'assets',
+            releaseReview: takeCheapLfsReleaseReview(
+              [{ ...release, id: 91, tagName: 'assets' }],
+              true
+            ),
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        /changed after Cheap LFS reviewed it/
+      )
+      assert.equal(createdTags, 0)
+      assert.equal(uploadCount, 0)
+      assert.equal(pointerWritten, false)
+    })
+  })
+
+  it('leaves an unreviewed batch free to create a missing bucket', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const filePath = join(dir, 'unreviewed.bin')
+      await writeFile(filePath, Buffer.alloc(64, 7))
+      let createdTags = 0
+      const gateway: ICheapLfsReleasesGateway = {
+        getReleaseByTag: async () => null,
+        create: async (_repository, draft) => {
+          createdTags++
+          return { ...release, id: 92, tagName: draft.tagName, assets: [] }
+        },
+        listAssets: async () => ({
+          assets: [],
+          page: 1,
+          nextPage: null,
+          capped: false,
+        }),
+        createMutationReview: () => ({
+          repositoryFingerprint: 'fixture',
+          accountKey: 'fixture',
+          accountGeneration: 1,
+          releaseId: 92,
+          releaseFingerprint: 'fixture',
+          assetId: null,
+          assetFingerprint: null,
+        }),
+        publish: async () => release,
+        uploadAsset: async () => {
+          throw new Error('upload reached, bucket was created')
+        },
+        deleteAsset: async () => {},
+        downloadAsset: async () => ({ path: filePath, bytes: 0 }),
+      }
+      const fs: ICheapLfsFileSystem = {
+        ...defaultCheapLfsFileSystem,
+        writePointer: async () => {},
+      }
+
+      // A repository that was already published reviews nothing extra, so the
+      // guard must stay out of the way: allocation reaches the upload.
+      await assert.rejects(
+        pinFileToRelease(
+          gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'unreviewed.bin',
+            releaseTag: 'assets',
+          },
+          undefined,
+          undefined,
+          fs
+        ),
+        /upload reached, bucket was created/
+      )
+      assert.equal(createdTags, 1)
     })
   })
 })

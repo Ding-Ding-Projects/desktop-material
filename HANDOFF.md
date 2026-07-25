@@ -24,11 +24,10 @@ anchor, per-file failure reasons, 600k path ceiling (212k paths; scoped scan
 `[]` for a commit-less repository, so the pre-commit release review cannot see
 pre-existing releases; the anchor push then un-hides them mid-flight and the
 review-fingerprint guard correctly aborts the in-flight uploads ("The reviewed
-release, asset, repository, or account changed."). FIX DIRECTION (queued):
-take/refresh the review fingerprint AFTER `ensureCheapLfsReleaseAnchor`
-completes and the release list is re-fetched; keep the guard fail-closed for
-changes after the re-review; also refresh branch/remote state post-anchor (the
-toolbar still showed "Publish branch" after the anchor created remote `main`).
+release, asset, repository, or account changed."). **FIX IMPLEMENTED, NOT YET
+PUSHED OR RE-VERIFIED LIVE** — see "Anchor before the release review" below;
+it is committed only on branch `fix/bootstrap-before-review` in a linked
+worktree and still needs a merge, a push, and a fourth headless E2E pass.
 Then re-run the E2E pass 2 (app is parked headless at "Commit 7 files to
 main", desktop `CheapLfsRun3`, CDP 9223) and close #38/#24 on captures.
 
@@ -52,6 +51,51 @@ close), #23 (screenshots: 36/77 regenerated, tranche 2 pending), #24/#38 (above)
 uploads). The stale July-1 `GitHubDesktopSetup-x64.exe` should be deleted by
 the user (Squirrel `--install` performs no version comparison; guard shipped
 but cannot stop a re-run installer).
+
+## 2026-07-25 Anchor before the release review (#38 last defect)
+
+Branch `fix/bootstrap-before-review` (worktree only; **not merged, not
+pushed**). Addresses the round-3 defect above plus the toolbar state it left
+behind.
+
+**Root cause, exact pre-fix lines.** `app/src/lib/stores/app-store.ts:14771`
+called `ensureCheapLfsReleaseAnchor` and then went straight to
+`autoPinLargeFilesForCommit` (`:14799`) — the release inventory was only ever
+read *inside* the per-file pin (`allocateCheapLfsReleaseBucket`,
+`app/src/lib/cheap-lfs/operations.ts:2075`), so nothing in the flow re-read or
+re-fingerprinted it once the anchor had changed what GitHub was willing to
+show. Compounding it, `decideCheapLfsFirstPublish`
+(`app/src/lib/cheap-lfs/first-publish.ts:84`) returned `blocked-unborn-branch`
+for an empty local repository, which is the one case that can never escape the
+hidden-inventory state on its own.
+
+**Implemented sequence** (release provider, anchored path only):
+`ensureCheapLfsReleaseAnchor` → bootstrap commit if the branch is unborn →
+create-only push → prove from `ls-remote` → record tracking ref + upstream and
+reload remotes/branches/status → `GitHubReleasesStore.listAll` →
+`takeCheapLfsReleaseReview` → pin/upload. An already-published repository
+returns `anchored: false`, takes no review, and behaves exactly as before.
+
+- Empty repository: one `--allow-empty` commit through `createCommit`, message
+  `Initialize repository for Cheap LFS / 開荒留名`, app's ordinary author
+  identity, **no invented file content**. A refusing hook aborts with
+  `cheapLfs.firstPublish.unbornBranch` plus the underlying detail.
+- Fail-closed after the review: a bucket the review proved exists which the
+  live lookup can no longer see aborts instead of being created twice. Every
+  mutation still revalidates its own release fingerprint.
+- A capped or unreadable inventory yields **no** review rather than a false
+  one, so the guard can never conclude that unseen buckets are absent.
+- Toolbar: the create-only anchor push sets no tracking, which is why "Publish
+  branch" survived it; `trackAndRefreshAfterCheapLfsAnchor` now writes
+  `refs/remotes/<remote>/<branch>` to the proven tip, sets the upstream, and
+  reloads remotes → branches → status (ahead/behind comes from the status
+  branch header, so it is read last). Both Git writes are best effort.
+
+Docs: `docs/features/repository-management/release-backed-cheap-lfs.md`.
+Gates: prettier clean, `tsc --noEmit` clean, `yarn lint` green, targeted
+`node script/test.mjs app/test/unit/cheap-lfs app/test/unit/github-releases-store-test.ts`
+= 415/415, 32/32 files, `fail 0`, exit 0 (run with `TEMP=C:\dm-temp`).
+**Still unverified:** no live E2E re-run against a build containing this fix.
 
 ## 2026-07-25 Bundled-Git hook stdin, swallowed abort, 100k path cap
 

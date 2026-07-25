@@ -52,13 +52,20 @@ import {
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
 import {
   buildCheapLfsFirstPublishAbort,
+  CheapLfsBootstrapCommitMessage,
   cheapLfsFirstPublishBlocksUpload,
+  cheapLfsFirstPublishNeedsBootstrapCommit,
   cheapLfsFirstPublishReasonKey,
   decideCheapLfsFirstPublish,
   ICheapLfsFirstPublishFailure,
   ICheapLfsPublicationState,
+  ICheapLfsReleaseAnchorOutcome,
   isCheapLfsFirstPublishProven,
 } from '../cheap-lfs/first-publish'
+import {
+  ICheapLfsReleaseReview,
+  takeCheapLfsReleaseReview,
+} from '../cheap-lfs/release-review'
 import {
   buildCheapLfsInventoryKey,
   CheapLfsInventoryCache,
@@ -14512,6 +14519,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
     const selectedStorageProvider = getCheapLfsStorageProvider(prefs)
     let storageRecommendation: ICheapLfsStorageRecommendation | null = null
+    // Set only after a first-publish anchor actually ran; see the re-review
+    // below for why an inventory read before that point cannot be trusted.
+    let releaseReview: ICheapLfsReleaseReview | null = null
     const reportProgress = (progress: ICheapLfsAutoPinProgress) => {
       if (!this.isTemporaryRepositoryActive(repository)) {
         return
@@ -14560,6 +14570,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             releaseTag:
               ['assets', 'assets-parallel-2', 'assets-parallel-3'][laneIndex] ??
               'assets',
+            ...(releaseReview === null ? {} : { releaseReview }),
           },
           signal,
           onProgress,
@@ -14768,16 +14779,16 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const releaseEligibleTargets = preflightTargets.filter(
         target => !partialFailurePaths.has(target.relativePath)
       )
-      const firstPublishFailure =
+      const anchor: ICheapLfsReleaseAnchorOutcome =
         releaseEligibleTargets.length === 0
-          ? null
+          ? { failure: null, anchored: false }
           : await this.ensureCheapLfsReleaseAnchor(repository)
-      if (firstPublishFailure !== null) {
+      if (anchor.failure !== null) {
         // The commit is about to abort without touching a single file. Leave
         // the reason on every terminal row, in the summary counts, and on a
         // persistent notice so the button never just springs back in silence.
         const abort = buildCheapLfsFirstPublishAbort(
-          firstPublishFailure,
+          anchor.failure,
           releaseEligibleTargets,
           repository.id
         )
@@ -14794,6 +14805,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
           commitPaths: [],
         }
       }
+      // GitHub answers the releases API with `[]` for a repository that has no
+      // commits, so any inventory read before the anchor is not stale but
+      // wrong: the anchor push un-hides every pre-existing bucket mid-flight
+      // and the per-mutation review guard then aborts uploads that were
+      // reviewed against the empty view. Once — and only once — an anchor has
+      // actually run, re-fetch the inventory and take the batch review from
+      // that post-anchor snapshot. An already-published repository reviews
+      // nothing extra and keeps its existing behavior.
+      releaseReview = anchor.anchored
+        ? await this.reviewCheapLfsReleaseInventory(repository)
+        : null
 
       try {
         const result = await autoPinLargeFilesForCommit(
@@ -14869,6 +14891,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               absoluteFilePath: target.absolutePath,
               trackedRelativePath: target.relativePath,
               releaseTag: 'assets',
+              ...(releaseReview === null ? {} : { releaseReview }),
             })
           ),
           controller.signal,
@@ -15029,24 +15052,60 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * whose bytes exist nowhere remote, so any clone between commit and push
    * would resolve to a dangling pointer.
    *
-   * Returns `null` when the route is usable, or the localized reason key plus
-   * the underlying detail that every affected file row, the commit terminal,
-   * and the persistent failure notification must carry. Returning only a key
-   * used to strand the real cause in a `log.warn` nobody sees.
+   * `failure` is `null` when the route is usable; otherwise it carries the
+   * localized reason key plus the underlying detail that every affected file
+   * row, the commit terminal, and the persistent failure notification must
+   * show. Returning only a key used to strand the real cause in a `log.warn`
+   * nobody sees. `anchored` reports whether this call actually published
+   * something, which is what entitles — and obliges — the caller to re-review
+   * the release inventory GitHub was hiding until that moment.
    */
   private async ensureCheapLfsReleaseAnchor(
     repository: Repository
-  ): Promise<ICheapLfsFirstPublishFailure | null> {
-    const observed = await this.readCheapLfsPublicationState(repository)
-    const decision = decideCheapLfsFirstPublish(observed)
+  ): Promise<ICheapLfsReleaseAnchorOutcome> {
+    let observed = await this.readCheapLfsPublicationState(repository)
+    let decision = decideCheapLfsFirstPublish(observed)
     if (decision === 'ready') {
-      return null
+      return { failure: null, anchored: false }
     }
     if (cheapLfsFirstPublishBlocksUpload(decision)) {
       const reasonKey = cheapLfsFirstPublishReasonKey(decision)
-      return reasonKey === null
-        ? { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
-        : { reasonKey }
+      return {
+        failure:
+          reasonKey === null
+            ? { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
+            : { reasonKey },
+        anchored: false,
+      }
+    }
+
+    // `bootstrap-commit`: the repository, remote, and branch all exist but the
+    // branch is unborn, so there is nothing to publish yet. One empty commit —
+    // never invented file content — makes the remote anchorable, which is also
+    // the only thing that makes GitHub reveal the repository's releases at all.
+    if (cheapLfsFirstPublishNeedsBootstrapCommit(decision)) {
+      const bootstrapFailure = await this.createCheapLfsBootstrapCommit(
+        repository
+      )
+      if (bootstrapFailure !== null) {
+        return { failure: bootstrapFailure, anchored: false }
+      }
+      observed = await this.readCheapLfsPublicationState(repository)
+      decision = decideCheapLfsFirstPublish(observed)
+      if (decision === 'ready') {
+        // Nothing local left to publish and the branch is already remote.
+        return { failure: null, anchored: false }
+      }
+      if (decision !== 'publish-branch') {
+        return {
+          failure: {
+            reasonKey: 'cheapLfs.firstPublish.unbornBranch',
+            detail:
+              'the bootstrap commit did not leave a branch tip that could be published',
+          },
+          anchored: false,
+        }
+      }
     }
 
     // `publish-branch`: everything needed exists locally. Publish the branch
@@ -15055,13 +15114,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const branchName = observed.branchName
     const localTipSha = observed.localTipSha
     if (remoteName === null || branchName === null || localTipSha === null) {
-      return { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
+      return {
+        failure: { reasonKey: 'cheapLfs.firstPublish.publishFailed' },
+        anchored: false,
+      }
     }
     const remote = this.gitStoreCache
       .get(repository)
       .remotes.find(candidate => candidate.name === remoteName)
     if (remote === undefined) {
-      return { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
+      return {
+        failure: { reasonKey: 'cheapLfs.firstPublish.publishFailed' },
+        anchored: false,
+      }
     }
     const remoteBranchRef = `refs/heads/${branchName}`
     try {
@@ -15090,17 +15155,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
       })
       if (result !== 'pushed') {
         return {
-          reasonKey: 'cheapLfs.firstPublish.publishFailed',
-          detail: `git push ${result}`,
+          failure: {
+            reasonKey: 'cheapLfs.firstPublish.publishFailed',
+            detail: `git push ${result}`,
+          },
+          anchored: false,
         }
       }
       const proven = await this.readCheapLfsPublicationState(repository)
-      return isCheapLfsFirstPublishProven(proven, localTipSha)
-        ? null
-        : {
+      if (!isCheapLfsFirstPublishProven(proven, localTipSha)) {
+        return {
+          failure: {
             reasonKey: 'cheapLfs.firstPublish.publishFailed',
             detail: 'the remote branch tip did not match the published commit',
-          }
+          },
+          anchored: false,
+        }
+      }
+      // The branch now exists remotely, but the create-only push publishes an
+      // exact `<sha>:<ref>` refspec and never sets tracking. Without this the
+      // toolbar kept offering "Publish branch" for a branch it had just
+      // published, with no ahead/behind at all.
+      await this.trackAndRefreshAfterCheapLfsAnchor(
+        repository,
+        remoteName,
+        branchName,
+        localTipSha
+      )
+      return { failure: null, anchored: true }
     } catch (error) {
       const failure = error instanceof Error ? error : new Error(String(error))
       log.warn(
@@ -15108,9 +15190,143 @@ export class AppStore extends TypedBaseStore<IAppState> {
         failure
       )
       return {
-        reasonKey: 'cheapLfs.firstPublish.publishFailed',
+        failure: {
+          reasonKey: 'cheapLfs.firstPublish.publishFailed',
+          detail: failure.message,
+        },
+        anchored: false,
+      }
+    }
+  }
+
+  /**
+   * Create the one empty commit that makes a completely empty repository
+   * anchorable.
+   *
+   * No file content is ever invented: the commit is `--allow-empty` with an
+   * empty index, authored with the app's ordinary identity and carrying a
+   * bilingual message that says exactly why it exists. It runs through the same
+   * `createCommit` machinery every other commit uses, so hooks, cleanup mode,
+   * and HEAD-recovery behave identically, and a hook that refuses aborts the
+   * bootstrap instead of hanging on a prompt no one is watching.
+   */
+  private async createCheapLfsBootstrapCommit(
+    repository: Repository
+  ): Promise<ICheapLfsFirstPublishFailure | null> {
+    try {
+      let aborted = false
+      const created = await this.gitStoreCache
+        .get(repository)
+        .performFailableOperation(async () => {
+          try {
+            return await createCommit(
+              repository,
+              CheapLfsBootstrapCommitMessage,
+              [],
+              {
+                allowEmpty: true,
+                onHookProgress: this.onHookProgress(repository),
+                onHookFailure: this.onHookFailure(() => (aborted = true)),
+              }
+            )
+          } catch (error) {
+            if (aborted) {
+              return undefined
+            }
+            throw error
+          }
+        })
+      if (created === undefined) {
+        return {
+          reasonKey: 'cheapLfs.firstPublish.unbornBranch',
+          detail: 'the bootstrap commit was refused before it could be created',
+        }
+      }
+      // The tip this bootstrap just created has to be visible to the anchor's
+      // own publication read, which is served from the repository state cache.
+      // Only the branch state is reloaded: a full refresh here would rebuild
+      // the working-directory selection this very commit is still using.
+      await this.gitStoreCache.get(repository).loadBranches()
+      return null
+    } catch (error) {
+      const failure = error instanceof Error ? error : new Error(String(error))
+      log.warn(
+        'Could not create the Cheap LFS bootstrap commit for an empty repository.',
+        failure
+      )
+      return {
+        reasonKey: 'cheapLfs.firstPublish.unbornBranch',
         detail: failure.message,
       }
+    }
+  }
+
+  /**
+   * Point the just-published branch at its new remote counterpart and refresh
+   * the branch, remote, and upstream state the toolbar reads.
+   *
+   * Both writes are best effort: the anchor itself already succeeded and was
+   * proven from the remote, so a repository whose tracking config cannot be
+   * written must not lose its uploads over a cosmetic toolbar state.
+   */
+  private async trackAndRefreshAfterCheapLfsAnchor(
+    repository: Repository,
+    remoteName: string,
+    branchName: string,
+    provenSha: string
+  ): Promise<void> {
+    try {
+      // Proven from `ls-remote` moments ago, so recording it locally states a
+      // fact rather than assuming one.
+      await git(
+        ['update-ref', `refs/remotes/${remoteName}/${branchName}`, provenSha],
+        repository.path,
+        'cheapLfsAnchorRemoteTrackingRef'
+      )
+      await git(
+        ['branch', `--set-upstream-to=${remoteName}/${branchName}`, branchName],
+        repository.path,
+        'cheapLfsAnchorSetUpstream'
+      )
+    } catch (error) {
+      log.warn(
+        'Could not record upstream tracking after the Cheap LFS anchor push.',
+        error
+      )
+    }
+    const gitStore = this.gitStoreCache.get(repository)
+    await gitStore.loadRemotes()
+    await gitStore.loadBranches()
+    // Ahead/behind is read from the branch header of `git status`, so it stays
+    // null until the tracking branch written above is visible to a fresh read.
+    await gitStore.loadStatus()
+    this.emitUpdate()
+  }
+
+  /**
+   * Read the complete release inventory after an anchor and record the review
+   * the batch may act on.
+   *
+   * A commit-less repository answers the releases API with `[]`, so this read
+   * is only meaningful once the anchor has proven a commit exists remotely. A
+   * truncated walk is treated as no review at all rather than as proof that the
+   * unseen buckets are absent, and an unreadable inventory degrades to the
+   * pre-existing behavior instead of failing a commit that could still succeed.
+   */
+  private async reviewCheapLfsReleaseInventory(
+    repository: Repository
+  ): Promise<ICheapLfsReleaseReview | null> {
+    try {
+      const inventory = await this.githubReleasesStore.listAll(repository)
+      return inventory.complete
+        ? takeCheapLfsReleaseReview(inventory.releases, true)
+        : null
+    } catch (error) {
+      log.warn(
+        'Could not review the GitHub release inventory after the Cheap LFS anchor push.',
+        error
+      )
+      return null
     }
   }
 
