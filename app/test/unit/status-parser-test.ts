@@ -4,6 +4,9 @@ import {
   IStatusEntry,
   IStatusHeader,
   parsePorcelainStatus,
+  mapStatus,
+  stripUntrackedDirectorySuffix,
+  UntrackedSubmoduleStatusCode,
 } from '../../src/lib/status-parser'
 
 const parse = (input: string) => parsePorcelainStatus(Buffer.from(input))
@@ -123,5 +126,64 @@ describe('parsePorcelainStatus', () => {
     assert.equal(entries.length, 1)
     assert.equal(entries[0].path, 'submodule/submodule')
     assert.equal(entries[0].submoduleStatusCode, 'SCMU')
+  })
+
+  it('flags an untracked directory without rewriting its path', () => {
+    // Git collapses a directory it will not recurse into - under
+    // `--untracked-files=all` that means a nested repository. The trailing
+    // slash has to stay put here: `git update-index` skips `foo/` silently but
+    // fails outright on `foo` when it really is an ordinary directory.
+    const entries = parse(
+      ['? vendor/sub/', '? plain.txt'].join('\0') + '\0'
+    ) as ReadonlyArray<IStatusEntry>
+
+    assert.equal(entries.length, 2)
+
+    assert.equal(entries[0].path, 'vendor/sub/')
+    assert.equal(entries[0].statusCode, '??')
+    assert.equal(entries[0].untrackedDirectory, true)
+
+    assert.equal(entries[1].path, 'plain.txt')
+    assert.equal(entries[1].untrackedDirectory, undefined)
+  })
+
+  it('does not treat a lone slash as a directory suffix', () => {
+    const entries = parse('? /\0') as ReadonlyArray<IStatusEntry>
+
+    assert.equal(entries.length, 1)
+    assert.equal(entries[0].path, '/')
+    assert.equal(entries[0].untrackedDirectory, undefined)
+  })
+})
+
+describe('stripUntrackedDirectorySuffix', () => {
+  it('removes a single trailing slash', () => {
+    assert.equal(stripUntrackedDirectorySuffix('vendor/sub/'), 'vendor/sub')
+  })
+
+  it('leaves ordinary paths untouched', () => {
+    assert.equal(stripUntrackedDirectorySuffix('vendor/sub'), 'vendor/sub')
+    assert.equal(stripUntrackedDirectorySuffix('/'), '/')
+    assert.equal(stripUntrackedDirectorySuffix(''), '')
+  })
+})
+
+describe('mapStatus', () => {
+  it('maps the synthesized untracked-submodule code to a submodule status', () => {
+    const entry = mapStatus('??', UntrackedSubmoduleStatusCode, undefined)
+
+    assert.equal(entry.kind, 'untracked')
+    assert.deepStrictEqual(entry.submoduleStatus, {
+      commitChanged: true,
+      modifiedChanges: false,
+      untrackedChanges: false,
+    })
+  })
+
+  it('leaves a plain untracked entry without a submodule status', () => {
+    const entry = mapStatus('??', '????', undefined)
+
+    assert.equal(entry.kind, 'untracked')
+    assert.equal(entry.submoduleStatus, undefined)
   })
 })

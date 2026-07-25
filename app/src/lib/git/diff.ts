@@ -823,6 +823,25 @@ function diffFromRawDiffOutput(output: Buffer): IRawDiff {
   return parser.parse(forceUnwrap(`Invalid diff output`, pieces.at(-1)))
 }
 
+/**
+ * Resolve the commit a nested repository currently has checked out.
+ *
+ * Returns null whenever the path is not a readable repository or has no commit
+ * yet (a freshly `git init`ed directory), both of which are ordinary states
+ * rather than errors worth surfacing in a diff.
+ */
+async function getSubmoduleHeadSHA(fullPath: string): Promise<string | null> {
+  const { stdout, exitCode } = await git(
+    ['rev-parse', 'HEAD'],
+    fullPath,
+    'getSubmoduleHeadSHA',
+    { successExitCodes: new Set([0, 128]), maxBuffer: 4 * 1024 }
+  )
+
+  const sha = stdout.trim()
+  return exitCode === 0 && /^[0-9a-f]{40,64}$/.test(sha) ? sha : null
+}
+
 async function buildSubmoduleDiff(
   buffer: Buffer,
   repository: Repository,
@@ -856,6 +875,18 @@ async function buildSubmoduleDiff(
 
     oldSHA = lineMatch(oldSHARegex)
     newSHA = lineMatch(newSHARegex)
+  }
+
+  if (
+    newSHA === null &&
+    file.status.kind === AppFileStatusKind.Untracked &&
+    status.commitChanged
+  ) {
+    // The submodule's gitlink is not in the index or in HEAD, so `git diff`
+    // has nothing to report a "Subproject commit" line against. Read the
+    // checked-out commit straight from the nested repository so the diff still
+    // names the commit that a commit from here would record.
+    newSHA = await getSubmoduleHeadSHA(fullPath)
   }
 
   return {

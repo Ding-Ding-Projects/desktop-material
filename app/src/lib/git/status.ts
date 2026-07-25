@@ -17,6 +17,8 @@ import {
   IStatusHeader,
   isStatusHeader,
   isStatusEntry,
+  UntrackedSubmoduleStatusCode,
+  stripUntrackedDirectorySuffix,
 } from '../status-parser'
 import { DiffSelectionType, DiffSelection } from '../../models/diff'
 import { Repository } from '../../models/repository'
@@ -29,6 +31,8 @@ import { RebaseInternalState } from '../../models/rebase'
 import { isCherryPickHeadFound } from './cherry-pick'
 import { git } from '.'
 import { largeRepositoryGitArgsForPath } from '../large-repository/large-repository-mode'
+import { access } from 'fs/promises'
+import * as Path from 'path'
 
 /** The encapsulation of the result from 'git status' */
 export interface IStatusResult {
@@ -185,6 +189,49 @@ function convertToAppStatus(
 const conflictStatusCodes = ['DD', 'AU', 'UD', 'UA', 'DU', 'AA', 'UU']
 
 /**
+ * Resolve which of the untracked directories Git collapsed are actually nested
+ * repositories, i.e. submodules whose gitlink is not currently in the index.
+ *
+ * `git reset` (which the app runs before staging a commit) drops a submodule's
+ * mode-160000 entry from the index, after which `git status` can only describe
+ * the submodule as an untracked directory. Without this confirmation step such
+ * a submodule is presented as an ordinary empty file, and committing it stages
+ * nothing at all - the gitlink is lost and the superproject's `.gitmodules`
+ * points at a path Git no longer tracks.
+ *
+ * The check is a single `access` per collapsed directory, and Git only collapses
+ * directories it refuses to recurse into, so this is a no-op for the
+ * overwhelming majority of repositories.
+ */
+async function getUntrackedNestedRepositoryPaths(
+  repository: Repository,
+  entries: ReadonlyArray<IStatusEntry>
+): Promise<ReadonlySet<string>> {
+  const candidates = entries.filter(entry => entry.untrackedDirectory === true)
+
+  if (candidates.length === 0) {
+    return new Set<string>()
+  }
+
+  const nested = await Promise.all(
+    candidates.map(async entry => {
+      const path = stripUntrackedDirectorySuffix(entry.path)
+      try {
+        // `.git` is a directory for an embedded repository and a file holding a
+        // `gitdir:` pointer for a submodule worktree, so existence is the only
+        // thing worth asserting here.
+        await access(Path.join(repository.path, path, '.git'))
+        return entry.path
+      } catch {
+        return null
+      }
+    })
+  )
+
+  return new Set(nested.filter((path): path is string => path !== null))
+}
+
+/**
  *  Retrieve the status for a given repository,
  *  and fail gracefully if the location is not a Git repository
  */
@@ -252,9 +299,30 @@ export async function getStatus(
     rebaseInternalState
   )
 
+  const nestedRepositoryPaths = await getUntrackedNestedRepositoryPaths(
+    repository,
+    entries
+  )
+
   // Map of files keyed on their paths.
   const files = entries.reduce(
-    (files, entry) => buildStatusMap(files, entry, conflictDetails),
+    (files, entry) =>
+      buildStatusMap(
+        files,
+        // An untracked nested repository is a submodule that has fallen out of
+        // the index. Give it the submodule status code Git cannot report on a
+        // `?` line so it maps to a submodule everywhere downstream, and drop
+        // the trailing slash so staging records a mode-160000 gitlink instead
+        // of silently skipping the path.
+        nestedRepositoryPaths.has(entry.path)
+          ? {
+              ...entry,
+              path: stripUntrackedDirectorySuffix(entry.path),
+              submoduleStatusCode: UntrackedSubmoduleStatusCode,
+            }
+          : entry,
+        conflictDetails
+      ),
     new Map<string, WorkingDirectoryFileChange>()
   )
 

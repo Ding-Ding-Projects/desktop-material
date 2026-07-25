@@ -1039,6 +1039,10 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
+      // The action buttons never shrink, so without wrapping they starve the
+      // text column and force it to break one word per line. Let them drop to
+      // their own line once the text no longer has room to read.
+      flex-wrap: wrap;
       gap: var(--spacing);
       padding: 12px 14px;
       background: var(--md-sys-color-surface-container);
@@ -1051,7 +1055,9 @@
       flex-direction: column;
       gap: 4px;
       min-width: 0;
-      flex: 1;
+      // A floor wide enough to read a wrapped sentence; below it the actions
+      // wrap away rather than squeezing the text further.
+      flex: 1 1 260px;
     }
 
     .submodule-row-heading {
@@ -1178,14 +1184,26 @@
 }
 
 .submodule-row-topology-guidance {
-  display: inline-flex;
-  align-items: center;
+  display: flex;
+  // The guidance is a full sentence sharing a wrapping flex row with short
+  // chips (URL, branch, SHA). Left to shrink against them it collapses to its
+  // min-content width and breaks one word per line, so claim a line of its own
+  // and refuse to shrink below it.
+  flex: 1 0 100%;
+  min-width: 0;
+  // The icon sits on the first line of a multi-line sentence.
+  align-items: flex-start;
   gap: var(--spacing-half);
   color: var(--md-sys-color-error);
   font-size: var(--font-size-sm);
+  // Long localized strings and unbroken paths must wrap rather than overflow.
+  overflow-wrap: anywhere;
+  white-space: normal;
 
   .octicon {
     flex: 0 0 auto;
+    // Optically centre the icon against the first line of text.
+    margin-top: 1px;
   }
 }
 
