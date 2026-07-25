@@ -37,6 +37,13 @@ import {
   IGitHubReleaseTransferFailure,
   IGitHubReleaseTransferProgressEvent,
 } from '../lib/github-release-transfer'
+import {
+  decideUploadStall,
+  ReleaseUploadMaximumRuntimeMs,
+  ReleaseUploadStallTimeoutMs,
+  resolveReleaseUploadWatchdogBounds,
+  uploadStallPollIntervalMs,
+} from '../lib/cheap-lfs/upload-stall-detector'
 import { createGitHubAPIRequestHeaders } from '../lib/github-rest-api-version'
 import {
   createElectronActionsFetcher,
@@ -174,17 +181,71 @@ const transferPartition = 'github-release-transfer'
 let transferSession: Electron.Session | null = null
 
 /**
- * Release-asset uploads run with no stall or runtime timeout by default: an
- * upload ends only on completion, a transport failure, or user cancellation.
- * Tests inject explicit `stallTimeoutMs`/`maximumRuntimeMs` values to exercise
+ * Release-asset uploads are bounded by byte movement, never by the clock. A
+ * multi-gigabyte asset can legitimately take hours, so the upload ends only on
+ * completion, a transport failure, user cancellation, or a *stall* — no bytes
+ * moved for `GitHubReleaseUploadStallTimeoutMs`, which a dead connection hits
+ * but a merely slow one never does. Tests inject tighter bounds to exercise
  * the watchdog paths.
  */
-export const GitHubReleaseUploadStallTimeoutMs = null
+export const GitHubReleaseUploadStallTimeoutMs = ReleaseUploadStallTimeoutMs
+/**
+ * No wall-clock ceiling for release uploads. Kept separate from the stall
+ * bound on purpose: sharing one constant is what previously let a stall value
+ * double as a runtime deadline and kill healthy long-running uploads.
+ */
+export const GitHubReleaseUploadMaximumRuntimeMs = ReleaseUploadMaximumRuntimeMs
 /** Bound upload memory while avoiding tens of thousands of 64-KiB writes. */
 export const GitHubReleaseUploadStreamChunkBytes = 1024 * 1024
 
 interface IGitHubReleaseUploadWatchdogOptions {
   readonly stallTimeoutMs?: number
+}
+
+interface IStallWatchdog {
+  /** Record that bytes moved, resetting the stall clock. */
+  readonly recordActivity: () => void
+  readonly dispose: () => void
+}
+
+const InertStallWatchdog: IStallWatchdog = {
+  recordActivity: () => {},
+  dispose: () => {},
+}
+
+/**
+ * Watch byte movement rather than elapsed time.
+ *
+ * Sampling on a single interval — instead of clearing and re-arming a timer
+ * for every chunk — keeps a multi-gigabyte upload from churning through tens
+ * of thousands of timers, and leaves the stall policy itself in one pure,
+ * directly tested function.
+ */
+function createStallWatchdog(
+  stallTimeoutMs: number | null,
+  onStalled: () => void
+): IStallWatchdog {
+  if (stallTimeoutMs === null) {
+    return InertStallWatchdog
+  }
+  let lastActivityAtMs = Date.now()
+  const timer = setInterval(() => {
+    const decision = decideUploadStall({
+      lastActivityAtMs,
+      nowMs: Date.now(),
+      stallTimeoutMs,
+    })
+    if (decision === 'stalled') {
+      clearInterval(timer)
+      onStalled()
+    }
+  }, uploadStallPollIntervalMs(stallTimeoutMs))
+  return {
+    recordActivity: () => {
+      lastActivityAtMs = Date.now()
+    },
+    dispose: () => clearInterval(timer),
+  }
 }
 
 const transferKey = (senderId: number, operationId: string) =>
@@ -1048,7 +1109,7 @@ async function runGitHubCliUpload(
   let outputOverflow = false
   const stdout = new Array<Buffer>()
   const stderr = new Array<Buffer>()
-  let activityTimer: NodeJS.Timeout | undefined
+  let activityWatchdog: IStallWatchdog = InertStallWatchdog
   let runtimeTimer: NodeJS.Timeout | undefined
   let rejectActivity: ((error: Error) => void) | undefined
   let rejectRuntime: ((error: Error) => void) | undefined
@@ -1085,20 +1146,8 @@ async function runGitHubCliUpload(
       }
     })
   })
-  const armActivityWatchdog = () => {
-    if (activityTimer !== undefined) {
-      clearTimeout(activityTimer)
-    }
-    if (dependencies.stallTimeoutMs === null) {
-      return
-    }
-    activityTimer = setTimeout(
-      () => rejectActivity?.(new ReleaseTransferFailure('cli-failed')),
-      dependencies.stallTimeoutMs
-    )
-  }
   child.stdout.on('data', (value: Buffer) => {
-    armActivityWatchdog()
+    activityWatchdog.recordActivity()
     if (stdoutLength + value.byteLength <= dependencies.maximumOutputBytes) {
       stdout.push(Buffer.from(value))
       stdoutLength += value.byteLength
@@ -1126,8 +1175,10 @@ async function runGitHubCliUpload(
   })
   const activityResult = new Promise<never>((_resolve, rejectStall) => {
     rejectActivity = rejectStall
-    armActivityWatchdog()
   })
+  activityWatchdog = createStallWatchdog(dependencies.stallTimeoutMs, () =>
+    rejectActivity?.(new ReleaseTransferFailure('cli-failed'))
+  )
   const runtimeResult = new Promise<never>((_resolve, rejectDeadline) => {
     rejectRuntime = rejectDeadline
     if (dependencies.maximumRuntimeMs === null) {
@@ -1143,7 +1194,7 @@ async function runGitHubCliUpload(
     request.source,
     signal,
     onProgress,
-    armActivityWatchdog,
+    () => activityWatchdog.recordActivity(),
     stream => {
       sourceStream.current = stream
     }
@@ -1181,9 +1232,7 @@ async function runGitHubCliUpload(
     }
     throw new ReleaseTransferFailure('cli-failed')
   } finally {
-    if (activityTimer !== undefined) {
-      clearTimeout(activityTimer)
-    }
+    activityWatchdog.dispose()
     if (runtimeTimer !== undefined) {
       clearTimeout(runtimeTimer)
     }
@@ -1200,12 +1249,12 @@ export const createGitHubCliReleaseUploadFallback =
     const dependencies = {
       spawn: providedDependencies.spawn ?? spawn,
       killTree: providedDependencies.killTree ?? killTreeAndWait,
-      maximumRuntimeMs:
-        providedDependencies.maximumRuntimeMs ??
-        GitHubReleaseUploadStallTimeoutMs,
-      stallTimeoutMs:
-        providedDependencies.stallTimeoutMs ??
-        GitHubReleaseUploadStallTimeoutMs,
+      // Resolved together but kept distinct: stall detection stays armed while
+      // the wall-clock ceiling stays off, so an hours-long upload survives.
+      ...resolveReleaseUploadWatchdogBounds({
+        stallTimeoutMs: providedDependencies.stallTimeoutMs,
+        maximumRuntimeMs: providedDependencies.maximumRuntimeMs,
+      }),
       maximumOutputBytes:
         providedDependencies.maximumOutputBytes ??
         GitHubCliUploadMaximumOutputBytes,
@@ -1990,38 +2039,18 @@ export const createElectronGitHubReleaseUploadFetcher =
       let reportedBytes = 0
       let settled = false
       let responseStarted = false
-      let stallTimer: NodeJS.Timeout | undefined
-      const stallTimeoutMs =
-        Number.isSafeInteger(watchdogOptions.stallTimeoutMs) &&
-        watchdogOptions.stallTimeoutMs! > 0
-          ? watchdogOptions.stallTimeoutMs!
-          : GitHubReleaseUploadStallTimeoutMs
+      let watchdog: IStallWatchdog = InertStallWatchdog
+      const { stallTimeoutMs } = resolveReleaseUploadWatchdogBounds({
+        stallTimeoutMs: watchdogOptions.stallTimeoutMs,
+      })
       const settle = (callback: () => void) => {
         if (!settled) {
           settled = true
           signal.removeEventListener('abort', onAbort)
-          if (stallTimer !== undefined) {
-            clearTimeout(stallTimer)
-          }
+          watchdog.dispose()
           body.destroy()
           callback()
         }
-      }
-      const armStallWatchdog = () => {
-        if (stallTimer !== undefined) {
-          clearTimeout(stallTimer)
-        }
-        if (stallTimeoutMs === null) {
-          return
-        }
-        stallTimer = setTimeout(
-          () =>
-            settle(() => {
-              request.abort()
-              rejectPromise(new ReleaseTransferFailure('stalled'))
-            }),
-          stallTimeoutMs
-        )
       }
       const onAbort = () => {
         settle(() => {
@@ -2036,7 +2065,12 @@ export const createElectronGitHubReleaseUploadFetcher =
         })
       }
       signal.addEventListener('abort', onAbort, { once: true })
-      armStallWatchdog()
+      watchdog = createStallWatchdog(stallTimeoutMs, () =>
+        settle(() => {
+          request.abort()
+          rejectPromise(new ReleaseTransferFailure('stalled'))
+        })
+      )
       request.on('redirect', status => {
         settle(() => {
           request.abort()
@@ -2045,11 +2079,11 @@ export const createElectronGitHubReleaseUploadFetcher =
       })
       request.on('response', response => {
         responseStarted = true
-        armStallWatchdog()
+        watchdog.recordActivity()
         const chunks = new Array<Buffer>()
         let length = 0
         response.on('data', (chunk: Buffer) => {
-          armStallWatchdog()
+          watchdog.recordActivity()
           length += chunk.byteLength
           if (length > 2 * 1024 * 1024) {
             settle(() => {
@@ -2106,10 +2140,10 @@ export const createElectronGitHubReleaseUploadFetcher =
           // The callback only proves Chromium accepted this chunk, not that it
           // reached the wire, so do not present a cached native progress sample
           // as stronger evidence. Production uses gh before this path. This
-          // no-CLI fallback reports bounded queue progress and still times out
-          // if GitHub closes or never completes the response.
+          // no-CLI fallback reports bounded queue progress and still fails on a
+          // stall if GitHub closes or never completes the response.
           reportedBytes = uploadedBytes
-          armStallWatchdog()
+          watchdog.recordActivity()
           onProgress?.(reportedBytes)
           body.resume()
         })

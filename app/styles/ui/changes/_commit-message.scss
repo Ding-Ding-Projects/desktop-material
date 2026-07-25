@@ -385,6 +385,20 @@
         line-height: 1.25;
         white-space: normal;
       }
+
+      // Shown while a manual-upload handoff is already starting, so the
+      // disabled button reads as "working", not "broken".
+      .cheap-lfs-action-progress {
+        display: flex;
+        flex: 1 1 100%;
+        align-items: center;
+        gap: var(--spacing-half);
+        min-width: 0;
+        color: var(--text-secondary-color);
+        font-size: var(--font-size-sm);
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
     }
 
     > svg.octicon {
@@ -1010,6 +1024,12 @@
         min-width: 0;
         flex: 1 1 70px;
         padding-inline: 4px;
+        font-size: 9px;
+        line-height: 1.1;
+      }
+
+      .cheap-lfs-action-progress {
+        gap: 3px;
         font-size: 9px;
         line-height: 1.1;
       }
