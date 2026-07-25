@@ -31,10 +31,10 @@ const acceptedImageNames = Object.freeze(
   )
 )
 if (
-  acceptedImageNames.length !== 68 ||
+  acceptedImageNames.length !== 77 ||
   new Set(acceptedImageNames).size !== acceptedImageNames.length
 ) {
-  fail('The guided gallery manifest must contain exactly 68 unique PNGs.')
+  fail('The guided gallery manifest must contain exactly 77 unique PNGs.')
 }
 
 const responsiveImageDimensions = Object.freeze({
@@ -55,11 +55,36 @@ const responsiveImageDimensions = Object.freeze({
     height: 480,
   }),
 })
+// Catalogued PNGs produced outside the canonical Batch A driver (per-feature CDP
+// verifiers and the live Cheap LFS captures) whose native dimensions differ from
+// the 1440x960 canonical default. Kept separate from the four pinned responsive
+// dimensions above so the assembled-Pages geometry gate stays honest for all 77.
+const catalogImageDimensions = Object.freeze({
+  'auto-updater-update-ready.png': Object.freeze({ width: 960, height: 660 }),
+  'cheap-lfs-bambu-build-live.png': Object.freeze({ width: 960, height: 660 }),
+  'cheap-lfs-cloud-compression.png': Object.freeze({ width: 960, height: 660 }),
+  'cheap-lfs-ui-acceptance.png': Object.freeze({ width: 1200, height: 752 }),
+  'material-command-palette-appearance.png': Object.freeze({
+    width: 1000,
+    height: 687,
+  }),
+  'material-github-releases-compact.png': Object.freeze({
+    width: 960,
+    height: 660,
+  }),
+  'material-ollama-model-manager.png': Object.freeze({
+    width: 1452,
+    height: 1001,
+  }),
+  'material-pull-preview.png': Object.freeze({ width: 960, height: 660 }),
+  'material-tab-groups.png': Object.freeze({ width: 1000, height: 687 }),
+})
 const acceptedImageDimensions = Object.freeze(
   Object.fromEntries(
     acceptedImageNames.map(file => [
       file,
       responsiveImageDimensions[file] ??
+        catalogImageDimensions[file] ??
         Object.freeze({ width: 1440, height: 960 }),
     ])
   )

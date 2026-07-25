@@ -40,9 +40,9 @@ function validReceipt() {
 
 describe('Pages gallery CDP verifier contracts', () => {
   it('tracks the exact guided gallery at its accepted dimensions', () => {
-    assert.equal(acceptedImageNames.length, 68)
-    assert.equal(new Set(acceptedImageNames).size, 68)
-    assert.equal(Object.keys(acceptedImageDimensions).length, 68)
+    assert.equal(acceptedImageNames.length, 77)
+    assert.equal(new Set(acceptedImageNames).size, 77)
+    assert.equal(Object.keys(acceptedImageDimensions).length, 77)
     assert.deepEqual(acceptedImageDimensions['material-repository-tools.png'], {
       width: 1440,
       height: 960,
@@ -55,6 +55,11 @@ describe('Pages gallery CDP verifier contracts', () => {
       width: 1440,
       height: 960,
     })
+    // Catalogued non-canonical PNGs keep their true native dimensions.
+    assert.deepEqual(
+      acceptedImageDimensions['material-ollama-model-manager.png'],
+      { width: 1452, height: 1001 }
+    )
     assert.deepEqual(Object.keys(responsiveImageDimensions).sort(), [
       'material-repository-tools-scroll.png',
       'material-responsive-overflow-fixed.png',
