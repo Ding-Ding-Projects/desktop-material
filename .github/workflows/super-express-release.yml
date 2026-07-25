@@ -188,7 +188,8 @@ jobs:
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
-            --latest=false
+            --latest=false \
+            --prerelease
 
       - name: Verify published release target
         if: ${{ inputs.publish }}
