@@ -149,6 +149,37 @@ dialog#batch-clone-progress {
     }
   }
 
+  .batch-clone-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-half);
+    margin-bottom: var(--spacing-half);
+
+    .batch-clone-filter-input {
+      flex: 1 1 180px;
+      min-width: 0;
+      height: 36px;
+      padding: 0 var(--spacing);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 999px;
+      color: inherit;
+      background: var(--md-sys-color-surface-container-highest);
+
+      &:focus-visible {
+        border-color: var(--md-sys-color-primary);
+        outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);
+        outline-offset: 1px;
+      }
+    }
+
+    .batch-clone-match {
+      flex: 0 0 auto;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+    }
+  }
+
   .batch-clone-list {
     list-style: none;
     margin: 0;

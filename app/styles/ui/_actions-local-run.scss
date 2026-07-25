@@ -81,6 +81,37 @@
     margin: var(--spacing) 0 var(--spacing-half);
   }
 
+  .actions-local-run-log-search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-half);
+    align-items: center;
+    margin-bottom: var(--spacing-half);
+
+    .actions-local-run-log-filter-input {
+      flex: 1 1 160px;
+      min-width: 0;
+      height: 34px;
+      padding: 0 var(--spacing);
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 999px;
+      color: inherit;
+      background: var(--md-sys-color-surface-container-highest);
+
+      &:focus-visible {
+        border-color: var(--md-sys-color-primary);
+        outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);
+        outline-offset: 1px;
+      }
+    }
+
+    .actions-local-run-log-match {
+      flex: 0 0 auto;
+      color: var(--text-secondary-color);
+      font-size: var(--font-size-sm);
+    }
+  }
+
   .actions-local-run-output {
     max-height: 280px;
     overflow: auto;

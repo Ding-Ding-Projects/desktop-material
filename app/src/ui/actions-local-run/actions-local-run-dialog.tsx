@@ -10,6 +10,16 @@ import { TextBox } from '../lib/text-box'
 import { LinkButton } from '../lib/link-button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { FilterMode } from '../../lib/fuzzy-find'
+import { FilterModeControl } from '../lib/filter-mode-control'
+import {
+  persistFilterMode,
+  readPersistedFilterMode,
+} from '../lib/filter-list-mode'
+import {
+  filterActionsLocalRunLog,
+  IActionsLocalRunLogFilterResult,
+} from './actions-local-run-log-filter'
 import {
   detectActionsLocalTools,
   listActionsWorkflows,
@@ -35,6 +45,9 @@ const DockerInstallUrl = 'https://docs.docker.com/get-docker/'
 
 /** Max lines kept in the streamed output buffer. */
 const MaxLogLines = 5000
+
+/** localStorage id used to persist the run-output filter mode. */
+const LogFilterListId = 'actions-local-run-log'
 
 interface IActionsLocalRunDialogProps {
   readonly repository: Repository
@@ -63,6 +76,9 @@ interface IActionsLocalRunDialogState {
   readonly activeRunId: string | null
   readonly stopping: boolean
   readonly error: string | null
+  readonly logFilter: string
+  readonly logFilterMode: FilterMode
+  readonly logFilterCaseSensitive: boolean
 }
 
 interface IActionsLocalRunInputRowProps {
@@ -176,6 +192,9 @@ export class ActionsLocalRunDialog extends React.Component<
       activeRunId: null,
       stopping: false,
       error: null,
+      logFilter: '',
+      logFilterMode: readPersistedFilterMode(LogFilterListId),
+      logFilterCaseSensitive: false,
     }
   }
 
@@ -307,6 +326,28 @@ export class ActionsLocalRunDialog extends React.Component<
       stopping: isTerminal ? false : this.state.stopping,
     })
   }
+
+  private onLogFilterChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.setState({ logFilter: event.currentTarget.value })
+  }
+
+  private onLogFilterModeChanged = (logFilterMode: FilterMode) => {
+    persistFilterMode(LogFilterListId, logFilterMode)
+    this.setState({ logFilterMode })
+  }
+
+  private onLogFilterCaseSensitiveChanged = (
+    logFilterCaseSensitive: boolean
+  ) => {
+    this.setState({ logFilterCaseSensitive })
+  }
+
+  private onLogFilterPatternApply = (logFilter: string) => {
+    this.setState({ logFilter })
+  }
+
+  private getLogFilterSampleItems = (): ReadonlyArray<string> =>
+    this.state.logLines.slice(-50).map(line => line.text)
 
   private scrollLogToBottom = () => {
     this.logEndRef?.scrollIntoView({ block: 'end' })
@@ -641,11 +682,64 @@ export class ActionsLocalRunDialog extends React.Component<
     }
   }
 
+  private renderLogFilter(result: IActionsLocalRunLogFilterResult<ILogLine>) {
+    const matchStatus =
+      result.regexError !== null
+        ? result.regexError
+        : result.active
+        ? result.matchCount === 0
+          ? t('actionsLocalRun.filterStatusNone')
+          : t('actionsLocalRun.filterStatusCount', {
+              matched: result.matchCount.toLocaleString(),
+              total: result.totalCount.toLocaleString(),
+            })
+        : ''
+
+    return (
+      <div className="actions-local-run-log-search">
+        <input
+          type="search"
+          data-search-surface-id="actions-local-run-log"
+          className="actions-local-run-log-filter-input"
+          value={this.state.logFilter}
+          onChange={this.onLogFilterChanged}
+          placeholder={t('actionsLocalRun.filterPlaceholder')}
+          aria-label={t('actionsLocalRun.filterLabel')}
+        />
+        <FilterModeControl
+          searchSurfaceId="actions-local-run-log"
+          mode={this.state.logFilterMode}
+          caseSensitive={this.state.logFilterCaseSensitive}
+          onModeChange={this.onLogFilterModeChanged}
+          onCaseSensitiveChange={this.onLogFilterCaseSensitiveChanged}
+          regexBuilderTarget={t('actionsLocalRun.filterRegexTarget')}
+          getSampleItems={this.getLogFilterSampleItems}
+          filterText={this.state.logFilter}
+          onRegexPatternApply={this.onLogFilterPatternApply}
+        />
+        <span
+          className="actions-local-run-log-match"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {matchStatus}
+        </span>
+      </div>
+    )
+  }
+
   private renderOutput() {
     if (this.state.logLines.length === 0 && this.state.phase === 'idle') {
       return null
     }
     const status = this.statusText()
+    const filterResult = filterActionsLocalRunLog(
+      this.state.logLines,
+      this.state.logFilter,
+      this.state.logFilterMode,
+      this.state.logFilterCaseSensitive
+    )
     return (
       <div className="actions-local-run-output-wrapper">
         {status !== null && (
@@ -653,13 +747,14 @@ export class ActionsLocalRunDialog extends React.Component<
             {status}
           </div>
         )}
+        {this.renderLogFilter(filterResult)}
         <div
           className="actions-local-run-output"
           role="log"
           aria-label={t('actionsLocalRun.logRegionLabel')}
           aria-live="polite"
         >
-          {this.state.logLines.map((line, index) => (
+          {filterResult.lines.map((line, index) => (
             <div
               key={index}
               className={`actions-local-run-line stream-${line.stream}`}
