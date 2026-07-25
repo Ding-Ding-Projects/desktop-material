@@ -13,6 +13,30 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 25 Bundled-Git hooks, silent abort, and the 100k path cap — **Implemented, locally accepted**
+
+Re-running the headless end-to-end against a build carrying the first-publish
+fix (issue #38) proved the bootstrap push and the `EBUSY` race were gone and
+exposed the next three defects. A repository with the stock Git LFS hooks could
+not push at all under the app's bundled Git: hook interception asked Git to read
+the hook's standard input from `/dev/stdin`, which the native Windows Git build
+cannot open, so every intercepted hook died with exit 128 before the hook ran.
+The payload is now written to a real file and that path is handed to Git, which
+fixes every hook that reads standard input and also lets a hook script re-open
+its own standard input under the bundled shell; separately, the app-generated
+first-publish anchor push — a create-only publication the user never authored —
+runs with `--no-verify`, while every reviewed push still runs hooks. A failed
+anchor used to abort the commit with the reason recorded only in a log file, so
+the commit button simply sprang back; the reason now reaches the per-file rows,
+the commit terminal summary, and a persistent non-blocking notice in English and
+Cantonese, with any credential-bearing Git text scrubbed first. Finally, the
+batching adapter refused any repository over 100,000 paths, blocking a real
+212,569-file publish; that ceiling is a memory bound only and is now 600,000,
+derived from measured parse cost, with the raw-diff and path-inventory stdout
+budgets raised in lockstep so they cannot silently become the real cap. The
+per-batch 10,000-path and 1.4 GB ceilings are unchanged. Details in
+[HANDOFF.md](HANDOFF.md).
+
 ## July 25 Cheap LFS first publish and push race — **Implemented, locally accepted**
 
 A headless 200k-file end-to-end (issue #38) proved three defects on the release

@@ -173,6 +173,49 @@ is corrupt or unreadable, Desktop Material reports a real failure. It does not
 delete loose objects, rewrite Git configuration, or claim that unrelated Git
 operations have been repaired.
 
+## Whole-inventory path ceiling
+
+The per-batch ceilings above (10,000 paths, 1.4 GB of changed blobs) are what
+actually bound a single commit and a single push. Separately, the batching Git
+adapter refuses a *whole-inventory* read — one commit's raw diff, the protected
+target tree listing, or the accumulated local-only range — above
+`MaximumLocalCommitBatchingPaths`. That second bound is purely a memory bound.
+Paths never travel through argv; staging receives them as NUL-delimited stdin,
+so there is no command-line length to protect. It exists so a pathological
+repository cannot make the adapter materialize an unbounded parsed inventory in
+the renderer.
+
+That ceiling was **100,000**, which was too low to publish an ordinary large
+repository: a real first publish of a 212,569-path working tree was refused
+outright with *"Automatic local-commit batching supports at most 100000 local
+commit paths"*, with no way forward. It is now **600,000**.
+
+The number is derived from measured cost rather than chosen for roundness
+(Node 22, 64-bit, ~60-byte repository-relative paths):
+
+| paths   | raw `diff-tree -z` stdout | parsed entries | `ls-tree` map |
+| ------- | ------------------------- | -------------- | ------------- |
+| 400,000 | 58 MiB                    | 159 MiB        | 106 MiB       |
+| 600,000 | 87 MiB                    | 239 MiB        | 158 MiB       |
+
+At 600,000 the worst-case transient parse footprint stays near 400 MiB — the
+raw stdout string and the parsed entries of the read in flight, plus the much
+smaller derived path/size pairs that are retained. A larger bound was rejected
+rather than raised further: at 1,000,000 paths the same arithmetic lands around
+700 MiB of transient renderer heap for one push. A chunked design with no total
+cap was also rejected for this change: it would require streaming parsers for
+`diff-tree`, `ls-tree`, and `cat-file --batch-check` on a code path whose
+fail-closed inspection currently compares whole inventories for equality, and
+600,000 already clears the 400,000 this fix had to handle by 50%.
+
+The two large-tree stdout budgets were raised in lockstep, from 64 MiB to
+160 MiB. That is not incidental: the table above shows a 400,000-path raw diff
+already measuring 58 MiB, so leaving the old 64 MiB budget in place would have
+silently made *it* the real ceiling — reported as "Git returned too much raw
+diff data" instead of a legible path count. The same 160 MiB budget is used for
+the whole-tree `git add -A` in the proof capture, which emits up to one
+line-ending warning per path.
+
 ## Temporary fingerprint index cleanup
 
 Both the batching adapter and the pre-commit proof capture build a *scratch*

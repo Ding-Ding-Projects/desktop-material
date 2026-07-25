@@ -31,14 +31,45 @@ import { envForRemoteOperation } from './environment'
 import { removeTemporaryGitIndexDirectory } from './temporary-index-cleanup'
 
 export const MaximumLocalCommitBatchingCommits = 4_096
-export const MaximumLocalCommitBatchingPaths = 100_000
+
+/**
+ * Ceiling on the paths one whole-inventory Git read may return.
+ *
+ * This is a memory bound, not a Git or argv bound: paths reach Git through
+ * NUL-delimited stdin, and the per-batch ceilings (10,000 paths and 1.4 GB of
+ * changed blobs, see `commit-push-batching`) are what actually bound a single
+ * commit and push. It exists so a pathological repository cannot make the
+ * adapter materialize an unbounded parsed inventory.
+ *
+ * The original 100,000 was too low to publish an ordinary large repository: a
+ * real 212,569-path first publish was refused outright. Measured cost of the
+ * inventories that are live at once during `inspect()` (Node 22, 64-bit,
+ * ~60-byte paths):
+ *
+ * | paths     | raw `diff-tree -z` stdout | parsed entries | `ls-tree` map |
+ * | --------- | ------------------------- | -------------- | ------------- |
+ * | 400,000   | 58 MiB                    | 159 MiB        | 106 MiB       |
+ * | 600,000   | 87 MiB                    | 239 MiB        | 158 MiB       |
+ *
+ * 600,000 keeps the worst-case transient parse footprint near 400 MiB (the raw
+ * string and the parsed entries of one read, plus the derived changes that are
+ * retained), covers the observed repository 2.8x over, and clears the 400,000
+ * the fix was required to handle by 50%. A larger bound was rejected: at
+ * 1,000,000 paths the same arithmetic lands around 700 MiB of transient heap in
+ * the renderer for a single push.
+ */
+export const MaximumLocalCommitBatchingPaths = 600_000
 export const MaximumLocalCommitBatchingRemoteRefs = 10_000
 export const MaximumLocalCommitBatchingMessageBytes = 64 * 1024
 
 const MaximumSmallGitOutputBytes = 256 * 1024
 const MaximumCommitLogOutputBytes = 16 * 1024 * 1024
-const MaximumRawDiffOutputBytes = 64 * 1024 * 1024
-const MaximumPathInventoryOutputBytes = 64 * 1024 * 1024
+// Raised in lockstep with `MaximumLocalCommitBatchingPaths`: at 400,000 paths a
+// raw diff already measures 58 MiB, so the old 64 MiB stdout budget — not the
+// path counter — would have become the real, and far less legible, cap. 160 MiB
+// leaves headroom above the 87 MiB a full 600,000-path inventory measures.
+const MaximumRawDiffOutputBytes = 160 * 1024 * 1024
+const MaximumPathInventoryOutputBytes = 160 * 1024 * 1024
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
 const RemoteNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/
 const BackupRefPattern =
@@ -81,6 +112,14 @@ export interface ILocalCommitBatchingExactPushRequest {
   readonly remoteBranch: string
   readonly accountKey?: string
   readonly hookOptions?: HookCallbackOptions
+  /**
+   * Publish without running the repository's `pre-push` hook.
+   *
+   * Reserved for an app-generated, create-only ref publication the user never
+   * authored — today only the Cheap LFS first-publish anchor. The user's own
+   * reviewed push still runs every hook.
+   */
+  readonly skipHooks?: boolean
 }
 
 export type LocalCommitBatchingExactPush = (
@@ -113,6 +152,13 @@ export interface ILocalCommitBatchingGitOptions {
   /** Stable account identity only; credentials never enter this adapter. */
   readonly accountKey?: string
   readonly hookOptions?: HookCallbackOptions
+  /**
+   * Publish every push from this session with `--no-verify`.
+   *
+   * Only an app-generated, create-only ref publication may set this. See
+   * `ILocalCommitBatchingExactPushRequest.skipHooks`.
+   */
+  readonly skipPushHooks?: boolean
   readonly dependencies?: Partial<ILocalCommitBatchingGitDependencies>
 }
 
@@ -250,7 +296,8 @@ function requireRemoteBranchRef(ref: string): void {
 export function buildLocalCommitBatchingExactPushArgv(
   remoteName: string,
   headSha: string,
-  remoteBranchRef: string
+  remoteBranchRef: string,
+  skipHooks: boolean = false
 ): string[] {
   if (
     !RemoteNamePattern.test(remoteName) ||
@@ -272,6 +319,10 @@ export function buildLocalCommitBatchingExactPushArgv(
     '-c',
     'pack.compression=0',
     'push',
+    // An app-generated create-only publication is not the user's reviewed
+    // push, so it does not run their `pre-push` hook. Every ordinary batch
+    // push keeps hooks enabled.
+    ...(skipHooks ? ['--no-verify'] : []),
     remoteName,
     `${headSha}:${remoteBranchRef}`,
   ]
@@ -289,21 +340,30 @@ export async function pushLocalCommitBatchExactly(
   request: ILocalCommitBatchingExactPushRequest,
   dependencies: ILocalCommitBatchingExactPushDependencies = defaultExactPushDependencies
 ): Promise<void> {
+  const skipHooks = request.skipHooks === true
   await dependencies.runGit(
     buildLocalCommitBatchingExactPushArgv(
       request.remote.name,
       request.headSha,
-      request.remoteBranch
+      request.remoteBranch,
+      skipHooks
     ),
     request.repository.path,
     'push',
     {
       env: await dependencies.remoteEnvironment(request.remote.url),
       credentialAccountKey: request.accountKey,
-      interceptHooks: ['pre-push'],
-      onHookProgress: request.hookOptions?.onHookProgress,
-      onHookFailure: request.hookOptions?.onHookFailure,
-      onTerminalOutputAvailable: request.hookOptions?.onTerminalOutputAvailable,
+      // Intercepting a hook Git is told not to run would only add a proxy that
+      // is never invoked, so the interception is dropped in lockstep.
+      ...(skipHooks
+        ? {}
+        : {
+            interceptHooks: ['pre-push'],
+            onHookProgress: request.hookOptions?.onHookProgress,
+            onHookFailure: request.hookOptions?.onHookFailure,
+            onTerminalOutputAvailable:
+              request.hookOptions?.onTerminalOutputAvailable,
+          }),
     }
   )
 }
@@ -1863,6 +1923,7 @@ export function createLocalCommitBatchingGitSession(
         remoteBranch: request.remoteBranchRef,
         accountKey,
         hookOptions: options.hookOptions,
+        ...(options.skipPushHooks === true ? { skipHooks: true } : {}),
       })
       return 'pushed'
     },

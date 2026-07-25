@@ -15,6 +15,11 @@ contracts that span more than one user workflow.
   non-fast-forward push, forbidden org-remote push, detached-HEAD commit),
   proposes a safety-classed remediation, and surfaces a localized one-click
   "Fix it" action on the transient error notice without ever force-pushing.
+- [Git hook execution environment](git-hook-execution.md) — proxy the
+  repository's own hooks through the user's configured shell, spool hook
+  standard input to a real file so the bundled Windows Git can open it, and
+  keep the app-generated Cheap LFS first-publish anchor on `--no-verify` while
+  every reviewed push still runs hooks.
 - [Native large-repository
   handling](native-large-repository-handling.md) — per-repository large mode
   that extends gc/maintenance suppression to status/add/checkout/fetch plus a

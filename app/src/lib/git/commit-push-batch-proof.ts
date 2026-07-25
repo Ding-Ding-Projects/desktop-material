@@ -16,6 +16,8 @@ import { git } from './core'
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
 const RemoteNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/
 const MaximumCommitProofOutputBytes = 64 * 1024 * 1024
+/** Whole-tree `git add -A` chatter ceiling; see the adapter's path inventory. */
+const MaximumWorktreeStagingOutputBytes = 160 * 1024 * 1024
 const MaximumCommitPushIntentBranchBytes = 1024
 const MaximumCommitPushIntentBytes =
   AutomaticCommitPushBatchProofByteBudget + 16 * 1024
@@ -189,11 +191,13 @@ async function captureCommitPushBatchLocalState(
     )
     // One line-ending warning per path can far exceed a small ceiling on a
     // large working tree; being killed mid-stage is what strands `index.lock`.
+    // Kept in lockstep with the adapter's path-inventory ceiling so a
+    // several-hundred-thousand-path tree cannot reintroduce that failure.
     await git(
       ['add', '-A', '--', '.'],
       repository.path,
       'captureAutomaticCommitBatchWorktree',
-      { env, maxBuffer: 64 * 1024 * 1024 }
+      { env, maxBuffer: MaximumWorktreeStagingOutputBytes }
     )
     const worktree = await git(
       ['write-tree'],

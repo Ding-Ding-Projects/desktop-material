@@ -1,4 +1,11 @@
+import { t } from '../i18n'
 import { TranslationKey } from '../i18n-resources'
+import { cheapLfsFailureReasonText } from './failure-reason'
+import type {
+  ICheapLfsAutoPinFailure,
+  ICheapLfsAutoPinProgress,
+  ICheapLfsFailedFileProgress,
+} from './operations'
 
 /**
  * Observable facts about how far this repository has been published, gathered
@@ -112,6 +119,97 @@ export function cheapLfsFirstPublishReasonKey(
       return 'cheapLfs.firstPublish.unbornBranch'
     default:
       return null
+  }
+}
+
+/**
+ * Why the Cheap LFS release route could not be made usable.
+ *
+ * The localized key explains what the user should do; `detail` carries the
+ * underlying cause (typically Git's own message) so an abort is never reported
+ * without the fact that produced it. `detail` is sanitized at display time.
+ */
+export interface ICheapLfsFirstPublishFailure {
+  readonly reasonKey: TranslationKey
+  readonly detail?: string
+}
+
+/** One file the aborted commit would have pinned. */
+export interface ICheapLfsFirstPublishAbortTarget {
+  readonly relativePath: string
+  readonly sizeInBytes: number
+}
+
+/** A persistent, non-blocking notice describing why a commit stopped. */
+export interface ICheapLfsFirstPublishAbortNotice {
+  readonly title: string
+  readonly message: string
+  /** Collapses repeated aborts for the same repository into one card. */
+  readonly dedupeKey: string
+}
+
+/**
+ * Everything the aborted first publish must surface, built in one place.
+ *
+ * The abort used to reach the user as nothing at all: the underlying Git
+ * failure went to `log.warn`, the commit button simply sprang back, and the
+ * commit terminal reported no reason. This produces all three surfaces from the
+ * same failure so none of them can drift apart or be forgotten — the per-file
+ * rows, the terminal progress snapshot that states the counts and the reason,
+ * and the persistent notice.
+ */
+export function buildCheapLfsFirstPublishAbort(
+  failure: ICheapLfsFirstPublishFailure,
+  targets: ReadonlyArray<ICheapLfsFirstPublishAbortTarget>,
+  repositoryId: number
+): {
+  readonly failures: ReadonlyArray<ICheapLfsAutoPinFailure>
+  readonly progress: ICheapLfsAutoPinProgress
+  readonly notice: ICheapLfsFirstPublishAbortNotice
+} {
+  const detail =
+    failure.detail === undefined ? {} : { reasonDetail: failure.detail }
+  const failures = targets.map(
+    (target): ICheapLfsAutoPinFailure => ({
+      relativePath: target.relativePath,
+      sizeInBytes: target.sizeInBytes,
+      message: t(failure.reasonKey),
+      reasonKey: failure.reasonKey,
+      ...detail,
+    })
+  )
+  const progress: ICheapLfsAutoPinProgress = {
+    // Nothing was hashed or uploaded: the abort happened while preparing.
+    phase: 'preparing',
+    completedFiles: failures.length,
+    totalFiles: failures.length,
+    currentPath: null,
+    transferredBytes: 0,
+    totalBytes: failures.reduce((sum, entry) => sum + entry.sizeInBytes, 0),
+    succeededFiles: 0,
+    failedFiles: failures.length,
+    failedFileDetails: failures.map(
+      (entry): ICheapLfsFailedFileProgress => ({
+        relativePath: entry.relativePath,
+        // The localized key and its detail carry the reason; there is no
+        // separate provider string for a failure this app diagnosed itself.
+        reason: '',
+        reasonKey: failure.reasonKey,
+        ...detail,
+      })
+    ),
+  }
+  return {
+    failures,
+    progress,
+    notice: {
+      title: t('cheapLfs.firstPublish.abortTitle'),
+      message: cheapLfsFailureReasonText({
+        reasonKey: failure.reasonKey,
+        ...detail,
+      }),
+      dedupeKey: `cheap-lfs-first-publish:${repositoryId}`,
+    },
   }
 }
 

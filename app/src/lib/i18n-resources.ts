@@ -1682,6 +1682,8 @@ export type TranslationKey =
   | 'cheapLfs.firstPublish.detachedHead'
   | 'cheapLfs.firstPublish.unbornBranch'
   | 'cheapLfs.firstPublish.publishFailed'
+  | 'cheapLfs.firstPublish.reasonWithDetail'
+  | 'cheapLfs.firstPublish.abortTitle'
   | 'actionsMetadata.tooLarge.title'
   | 'actionsMetadata.tooLarge.body'
   | 'commit.postCommitMaintenance.title'
@@ -3897,6 +3899,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This branch has no commit yet, so there is nothing to publish for a release to point at. Make an ordinary first commit, then commit the large files.',
   'cheapLfs.firstPublish.publishFailed':
     'The branch could not be published before uploading, so the release has no commit to point at. Publish this branch, then commit again.',
+  'cheapLfs.firstPublish.reasonWithDetail': '{reason} Git reported: {detail}',
+  'cheapLfs.firstPublish.abortTitle':
+    'Commit stopped before the branch was published',
   'actionsMetadata.tooLarge.title': 'Some GitHub Actions data was skipped',
   'actionsMetadata.tooLarge.body':
     'GitHub returned more Actions metadata than this app reads in one response, so that check was skipped. Nothing else is affected and no action is needed.',
@@ -5999,6 +6004,8 @@ export const cantoneseTranslations: Readonly<
     '呢個 branch 未有任何 commit，release 冇嘢可以指向。請先做一個普通嘅首個 commit，之後再 commit 大檔案。',
   'cheapLfs.firstPublish.publishFailed':
     '上載之前發佈唔到個 branch，所以 release 冇 commit 可以指向。請先發佈呢個 branch，然後再 commit 一次。',
+  'cheapLfs.firstPublish.reasonWithDetail': '{reason} Git 報告：{detail}',
+  'cheapLfs.firstPublish.abortTitle': 'Commit 已經停低，個 branch 未發佈到',
   'actionsMetadata.tooLarge.title': '有部分 GitHub Actions 資料略過咗',
   'actionsMetadata.tooLarge.body':
     'GitHub 一次過回覆嘅 Actions 資料多過本程式單次讀取上限，所以略過咗嗰項檢查。其他功能唔受影響，你唔使做任何嘢。',
