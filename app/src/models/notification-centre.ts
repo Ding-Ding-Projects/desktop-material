@@ -12,6 +12,7 @@ export type NotificationCentreKind =
   | 'merge-all'
   | 'auto-pull'
   | 'cheap-lfs'
+  | 'build-run'
   | 'info'
 
 /** An optional action performed when a notification row is clicked. */
@@ -256,6 +257,7 @@ const notificationKinds: ReadonlySet<NotificationCentreKind> =
     'merge-all',
     'auto-pull',
     'cheap-lfs',
+    'build-run',
     'info',
   ])
 

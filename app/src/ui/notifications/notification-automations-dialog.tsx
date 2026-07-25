@@ -34,6 +34,7 @@ const kindLabels: Readonly<Record<NotificationCentreKind, string>> = {
   'merge-all': 'Merge all',
   'auto-pull': 'Automatic pulls',
   'cheap-lfs': 'Large files',
+  'build-run': 'Build & run',
   info: 'Information',
 }
 

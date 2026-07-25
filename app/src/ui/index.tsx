@@ -48,6 +48,8 @@ import {
   NamedAPIFunctionsStore,
 } from '../lib/stores'
 import { GitHubUserDatabase } from '../lib/databases'
+import { composeBuildRunNotification } from '../lib/build-run/build-run-notification'
+import { getPersistedLanguageMode } from '../lib/i18n'
 import { SelectionType, IAppState } from '../lib/app-state'
 import { StatsDatabase, StatsStore } from '../lib/stats'
 import {
@@ -532,7 +534,23 @@ window.addEventListener('beforeunload', () => {
   void prepareRendererShutdown()
 })
 
-const buildRunStore = new BuildRunStore()
+const buildRunStore = new BuildRunStore(({ repositoryId, phase, exitCode }) => {
+  // Surface a finished build's outcome in the reviewable notification centre so
+  // it is not lost when the Build & Run panel is closed or minimized.
+  const repository = appStore
+    .getState()
+    .repositories.find(r => r.id === repositoryId)
+  const input = composeBuildRunNotification(
+    repositoryId,
+    repository?.name ?? '',
+    phase,
+    exitCode,
+    getPersistedLanguageMode()
+  )
+  if (input !== null) {
+    appStore.postNotification(input)
+  }
+})
 const actionsStore = new ActionsStore(accountsStore)
 const releasesStore = new GitHubReleasesStore(accountsStore)
 const issueWorkflowsStore = new GitHubIssuesStore(accountsStore)

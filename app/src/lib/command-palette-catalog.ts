@@ -173,8 +173,10 @@ export const CommandPaletteCatalog: ReadonlyArray<IPaletteCommand> = [
   {
     event: 'build-and-run',
     title: 'Build and run',
+    titleKey: 'palette.buildAndRun',
     group: 'Repository',
-    keywords: 'docker compose npm make',
+    keywords: 'docker compose npm make build run',
+    isAvailable: whenRepository,
   },
   {
     event: 'palette:cheap-lfs-settings',
