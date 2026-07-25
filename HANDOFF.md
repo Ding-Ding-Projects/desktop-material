@@ -1,5 +1,58 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-25 SESSION HANDOFF — read this first / 交接即讀
+
+Seven cycles pushed today (tips: `f9e07c9c42` → `72876526d4` → `7c588cb224` →
+`a49757e881` → `51fcf503f4`/`645657f470`/`be5784f7da` → `ee591a3278` →
+`896497dba0`/`4698458a84` → `a71cbd4a74` → `7921cceb97`), each gated on tsc +
+lint + the accounted full suite and receipted in Discussions (#37 and the
+rolling thread #3). **Test-releases-only mode is ON**: both lanes publish
+prereleases (`--prerelease`), the promote step skips prereleases cleanly, and
+`releases/latest` stays frozen at `zadtorqoxa` so installed apps do not
+auto-roll; revert the two `--prerelease` flags to resume production releases.
+Latest green prerelease: `v3.6.3-beta3-zadtqgahmd` (all fixes below).
+
+**Cheap LFS 200k end-to-end (issues #24/#38), state after round 3** on the test
+repo `bambustudio-deps-cheaplfs-test` (local `f3a768470` "pin 10 large deps",
+3 pointer files committed, 7 files pending; remote has `main @ 611b665e9` and
+three one-asset prereleases — verified read-only):
+verified WORKING live — first-publish bootstrap (branch published to an empty
+remote through a stock LFS pre-push hook), hook stdin spool + `--no-verify`
+anchor, per-file failure reasons, 600k path ceiling (212k paths; scoped scan
+3.5s vs 161s), loud aborts; EBUSY never recurred.
+**ONE OPEN DEFECT** (the only #38 remainder): GitHub's releases API returns
+`[]` for a commit-less repository, so the pre-commit release review cannot see
+pre-existing releases; the anchor push then un-hides them mid-flight and the
+review-fingerprint guard correctly aborts the in-flight uploads ("The reviewed
+release, asset, repository, or account changed."). FIX DIRECTION (queued):
+take/refresh the review fingerprint AFTER `ensureCheapLfsReleaseAnchor`
+completes and the release list is re-fetched; keep the guard fail-closed for
+changes after the re-review; also refresh branch/remote state post-anchor (the
+toolbar still showed "Publish branch" after the anchor created remote `main`).
+Then re-run the E2E pass 2 (app is parked headless at "Commit 7 files to
+main", desktop `CheapLfsRun3`, CDP 9223) and close #38/#24 on captures.
+
+**Environment lessons that cost real time** (also in agent memory): MSIX Temp
+virtualization on this host diverges the container `%TEMP%` from real Temp —
+junction fixtures then fail `realpath` with ENOENT; run gates with
+`TEMP/TMP=C:\dm-temp`. The Lowlevel MCP server sees REAL paths (container
+`%LOCALAPPDATA%` = `...\Packages\Claude_pzs8sxrjxfjjc\LocalCache\Local`).
+Headless app driving that works: extract the portable release zip, launch via
+Lowlevel MCP `launch_on_headless_desktop` with `--remote-debugging-port`, and
+drive by CDP DOM clicks (scripts under the session scratchpad `run2`/`run3`;
+omit the `Origin` header against Chrome 148). A gate is green ONLY if every
+batch's `ℹ fail` line is 0 AND the exit code is 0 — never trust the tail.
+Worktree junctions must use full Windows paths; worktree `build:prod` needs the
+gemoji/choosealicense/gitignore submodule content.
+
+**Open issues:** #22 (tab overflow — fixed + released, needs a live capture to
+close), #23 (screenshots: 36/77 regenerated, tranche 2 pending), #24/#38 (above),
+#25 (needs the user's A/B/C decision on six external-UI screenshots), #34
+(submodule branch picker feature), #35 (Cheap LFS perf tranche 2 / stream-hash
+uploads). The stale July-1 `GitHubDesktopSetup-x64.exe` should be deleted by
+the user (Squirrel `--install` performs no version comparison; guard shipped
+but cannot stop a re-run installer).
+
 ## 2026-07-25 Bundled-Git hook stdin, swallowed abort, 100k path cap
 
 Branch `fix/push-hooks-and-caps`. Closes the three defects the live #38
