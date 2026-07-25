@@ -25,7 +25,10 @@ import { gte, SemVer } from 'semver'
 import { getVersion } from './app-proxy'
 import { getUserAgent } from '../../lib/http'
 import { runAfterRendererShutdown } from './renderer-shutdown'
-import { isNewerDesktopMaterialBuildInProgress } from '../../lib/desktop-material-update-build'
+import {
+  isNewerDesktopMaterialBuildInProgress,
+  UpdateBuildProbeDegradation,
+} from '../../lib/desktop-material-update-build'
 
 /** The last version a showcase was seen. */
 export const lastShowCaseVersionSeen = 'version-of-last-showcase'
@@ -76,6 +79,13 @@ export class UpdateStore {
   private updateTransitionGeneration = 0
   private readonly generateReleaseSummary: typeof generateReleaseSummary
   private readonly probeForNewerBuild: typeof isNewerDesktopMaterialBuildInProgress
+  /**
+   * Whether the "some Actions data was skipped" notice has already been shown.
+   * The probe runs on every update check, so an oversized GitHub response
+   * would otherwise notify on every launch; it is logged every time and
+   * announced at most once per session.
+   */
+  private hasReportedProbeDegradation = false
 
   /** Is the most recent update check user initiated? */
   private userInitiatedUpdate = true
@@ -142,6 +152,20 @@ export class UpdateStore {
   }
 
   private onUpdateNotAvailable = async () => {
+    // Registered directly as an IPC listener, so nothing awaits this promise:
+    // any rejection would become an unhandled renderer rejection and surface as
+    // the generic "background action stopped unexpectedly" toast.
+    try {
+      await this.refreshUpdateNotAvailableState()
+    } catch (error) {
+      log.warn(
+        'Could not refresh release information after an update check.',
+        error instanceof Error ? error : new Error(String(error))
+      )
+    }
+  }
+
+  private async refreshUpdateNotAvailableState(): Promise<void> {
     const generation = ++this.updateTransitionGeneration
     // This is so we can check for pretext changelog for showcasing a recent update
     const [newReleases, newerBuildInProgress] = await Promise.all([
@@ -187,11 +211,40 @@ export class UpdateStore {
       return await this.probeForNewerBuild({
         updatesURL: __UPDATES_URL__,
         installedSHA: __SHA__,
+        onDegraded: degradation => this.onProbeDegraded(degradation),
       })
     } catch (error) {
       log.warn('Unable to check for an update build in progress.', error)
       return false
     }
+  }
+
+  /**
+   * An Actions response larger than this app reads in one go is an expected,
+   * recoverable condition, not a crash. Log it every time; tell the user at
+   * most once, through a non-blocking notification rather than the generic
+   * "a background action stopped unexpectedly" error toast.
+   */
+  private onProbeDegraded(degradation: UpdateBuildProbeDegradation): void {
+    log.warn(
+      `Skipped one GitHub Actions update-build response (${degradation}).`
+    )
+    if (this.hasReportedProbeDegradation) {
+      return
+    }
+    this.hasReportedProbeDegradation = true
+    this.emitter.emit('actions-metadata-skipped', degradation)
+  }
+
+  /**
+   * Register a listener for the once-per-session notice that a GitHub Actions
+   * response was skipped. Deliberately separate from `onError`, which raises a
+   * blocking-looking error banner.
+   */
+  public onActionsMetadataSkipped(
+    fn: (degradation: UpdateBuildProbeDegradation) => void
+  ): Disposable {
+    return this.emitter.on('actions-metadata-skipped', fn)
   }
 
   /**

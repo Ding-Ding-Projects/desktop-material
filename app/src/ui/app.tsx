@@ -621,6 +621,18 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.props.dispatcher.postError(error)
     })
 
+    // A GitHub Actions response too large to read in one go is expected and
+    // recoverable, so it becomes one informative, non-blocking notification
+    // rather than a generic "background action stopped unexpectedly" error.
+    // The store already rate-limits this to once per session.
+    updateStore.onActionsMetadataSkipped(() => {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('actionsMetadata.tooLarge.title'),
+        body: t('actionsMetadata.tooLarge.body'),
+      })
+    })
+
     ipcRenderer.on('launch-timing-stats', (_, stats) => {
       console.info(`App ready time: ${stats.mainReadyTime}ms`)
       console.info(`Load time: ${stats.loadTime}ms`)

@@ -1616,6 +1616,11 @@ export type TranslationKey =
   | 'cheapLfs.progress.terminalCurrentFile'
   | 'cheapLfs.progress.terminalFiles'
   | 'cheapLfs.progress.terminalFilesDetailed'
+  | 'cheapLfs.progress.terminalFailuresLabel'
+  | 'cheapLfs.progress.terminalFailedFile'
+  | 'cheapLfs.progress.terminalFailedFileWithStatus'
+  | 'cheapLfs.progress.terminalFailedFileNoReason'
+  | 'cheapLfs.progress.terminalFailuresOmitted'
   | 'cheapLfs.progress.terminalBytes'
   | 'cheapLfs.progress.terminalFileBytes'
   | 'cheapLfs.progress.terminalBytesPending'
@@ -1670,6 +1675,15 @@ export type TranslationKey =
   | 'cheapLfs.pinFailures.one'
   | 'cheapLfs.pinFailures.many'
   | 'cheapLfs.pinFailures.manyOmitted'
+  | 'cheapLfs.pinFailures.reason'
+  | 'cheapLfs.pinFailures.reasonWithStatus'
+  | 'cheapLfs.firstPublish.noRepository'
+  | 'cheapLfs.firstPublish.noRemote'
+  | 'cheapLfs.firstPublish.detachedHead'
+  | 'cheapLfs.firstPublish.unbornBranch'
+  | 'cheapLfs.firstPublish.publishFailed'
+  | 'actionsMetadata.tooLarge.title'
+  | 'actionsMetadata.tooLarge.body'
   | 'commit.postCommitMaintenance.title'
   | 'commit.postCommitMaintenance.body'
   | 'push.commitBatch.message'
@@ -3789,6 +3803,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.progress.terminalFiles': 'Files complete: {completed}/{total}',
   'cheapLfs.progress.terminalFilesDetailed':
     'Settled {completed}/{total} · pinned {succeeded} · failed {failed}',
+  'cheapLfs.progress.terminalFailuresLabel': 'Failures',
+  'cheapLfs.progress.terminalFailedFile': '{path} — {reason}',
+  'cheapLfs.progress.terminalFailedFileWithStatus':
+    '{path} — HTTP {status}: {reason}',
+  'cheapLfs.progress.terminalFailedFileNoReason':
+    '{path} — the storage provider gave no reason.',
+  'cheapLfs.progress.terminalFailuresOmitted': 'and {count} more',
   'cheapLfs.progress.terminalBytes': 'Batch data: {transferred} / {total}',
   'cheapLfs.progress.terminalFileBytes':
     '{transferred} / {total} ({percentage}%)',
@@ -3864,6 +3885,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{count} large files ({names}) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
   'cheapLfs.pinFailures.manyOmitted':
     '{count} large files ({names}, plus {omitted} more) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
+  'cheapLfs.pinFailures.reason': ' Reason: {reason}',
+  'cheapLfs.pinFailures.reasonWithStatus': ' Reason: HTTP {status} — {reason}',
+  'cheapLfs.firstPublish.noRepository':
+    'This repository is not connected to a GitHub repository, so no release can hold its large files. Publish the repository to GitHub, then commit again.',
+  'cheapLfs.firstPublish.noRemote':
+    'This repository has no push remote, so a release cannot be anchored to a published commit. Add a remote and publish the branch, then commit again.',
+  'cheapLfs.firstPublish.detachedHead':
+    'HEAD is detached, so there is no branch to publish before a release is created. Check out a branch, then commit again.',
+  'cheapLfs.firstPublish.unbornBranch':
+    'This branch has no commit yet, so there is nothing to publish for a release to point at. Make an ordinary first commit, then commit the large files.',
+  'cheapLfs.firstPublish.publishFailed':
+    'The branch could not be published before uploading, so the release has no commit to point at. Publish this branch, then commit again.',
+  'actionsMetadata.tooLarge.title': 'Some GitHub Actions data was skipped',
+  'actionsMetadata.tooLarge.body':
+    'GitHub returned more Actions metadata than this app reads in one response, so that check was skipped. Nothing else is affected and no action is needed.',
   'commit.postCommitMaintenance.title':
     'Commit created; maintenance needs attention',
   'commit.postCommitMaintenance.body':
@@ -5871,6 +5907,13 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.progress.terminalFiles': '搞掂檔案：{completed}/{total}',
   'cheapLfs.progress.terminalFilesDetailed':
     '處理完 {completed}/{total} · pin 咗 {succeeded} · 失手 {failed}',
+  'cheapLfs.progress.terminalFailuresLabel': '失敗原因',
+  'cheapLfs.progress.terminalFailedFile': '{path} — {reason}',
+  'cheapLfs.progress.terminalFailedFileWithStatus':
+    '{path} — HTTP {status}：{reason}',
+  'cheapLfs.progress.terminalFailedFileNoReason':
+    '{path} — 儲存服務冇提供原因。',
+  'cheapLfs.progress.terminalFailuresOmitted': '仲有 {count} 個',
   'cheapLfs.progress.terminalBytes': '成批數據：{transferred} / {total}',
   'cheapLfs.progress.terminalFileBytes':
     '{transferred} / {total}（{percentage}%）',
@@ -5944,6 +5987,21 @@ export const cantoneseTranslations: Readonly<
     '{count} 個大檔案（{names}）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
   'cheapLfs.pinFailures.manyOmitted':
     '{count} 個大檔案（{names}，仲有 {omitted} 個）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
+  'cheapLfs.pinFailures.reason': ' 原因：{reason}',
+  'cheapLfs.pinFailures.reasonWithStatus': ' 原因：HTTP {status} — {reason}',
+  'cheapLfs.firstPublish.noRepository':
+    '呢個 repository 未連到 GitHub repository，冇 release 可以放大檔案。請先將 repository 發佈到 GitHub，然後再 commit 一次。',
+  'cheapLfs.firstPublish.noRemote':
+    '呢個 repository 冇 push remote，release 冇已發佈嘅 commit 可以掛住。請加返 remote 並發佈個 branch，然後再 commit 一次。',
+  'cheapLfs.firstPublish.detachedHead':
+    'HEAD 係 detached，建立 release 之前冇 branch 可以發佈。請先 check out 一個 branch，然後再 commit 一次。',
+  'cheapLfs.firstPublish.unbornBranch':
+    '呢個 branch 未有任何 commit，release 冇嘢可以指向。請先做一個普通嘅首個 commit，之後再 commit 大檔案。',
+  'cheapLfs.firstPublish.publishFailed':
+    '上載之前發佈唔到個 branch，所以 release 冇 commit 可以指向。請先發佈呢個 branch，然後再 commit 一次。',
+  'actionsMetadata.tooLarge.title': '有部分 GitHub Actions 資料略過咗',
+  'actionsMetadata.tooLarge.body':
+    'GitHub 一次過回覆嘅 Actions 資料多過本程式單次讀取上限，所以略過咗嗰項檢查。其他功能唔受影響，你唔使做任何嘢。',
   'commit.postCommitMaintenance.title': 'Commit 搞掂咗；維護要跟進',
   'commit.postCommitMaintenance.body':
     'Commit 已經成功建立，不過 Git 之後做維護嗰陣報錯。你可以安全 push，得閒先另外做 repository 維護。',

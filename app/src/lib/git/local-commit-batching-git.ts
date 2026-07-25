@@ -1,5 +1,5 @@
 import { randomBytes } from 'crypto'
-import { access, mkdtemp, readFile, rm } from 'fs/promises'
+import { access, mkdtemp, readFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { isAbsolute, join } from 'path'
 
@@ -28,6 +28,7 @@ import {
   IGitStringResult,
 } from './core'
 import { envForRemoteOperation } from './environment'
+import { removeTemporaryGitIndexDirectory } from './temporary-index-cleanup'
 
 export const MaximumLocalCommitBatchingCommits = 4_096
 export const MaximumLocalCommitBatchingPaths = 100_000
@@ -548,7 +549,12 @@ const defaultDependencies: ILocalCommitBatchingGitDependencies = {
   remoteEnvironment: envForRemoteOperation,
   makeTemporaryDirectory: () =>
     mkdtemp(join(tmpdir(), 'desktop-material-commit-batch-')),
-  removeTemporaryDirectory: path => rm(path, { recursive: true, force: true }),
+  // Never an unconditional recursive unlink: the fingerprint index's own
+  // `git add -A` can still hold `index.lock` for many seconds on a large
+  // working tree. See `removeTemporaryGitIndexDirectory`.
+  removeTemporaryDirectory: async path => {
+    await removeTemporaryGitIndexDirectory(path)
+  },
   pathExists: defaultPathExists,
   createNonce: () => randomBytes(16).toString('hex'),
 }
@@ -952,9 +958,13 @@ export function createLocalCommitBatchingGitSession(
         'localCommitBatchingTemporaryReadTree',
         { env, maxBuffer: MaximumSmallGitOutputBytes }
       )
+      // A whole-tree stage on a very large working tree can emit one
+      // line-ending warning per path. The old 256 KiB ceiling made Node kill
+      // `git add` part-way through, which is what left `index.lock` behind for
+      // the cleanup pass to trip over in the first place.
       await run(['add', '-A', '--', '.'], 'localCommitBatchingTemporaryAdd', {
         env,
-        maxBuffer: MaximumSmallGitOutputBytes,
+        maxBuffer: MaximumPathInventoryOutputBytes,
       })
       const result = await run(
         ['write-tree'],

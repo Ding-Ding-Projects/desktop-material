@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { mkdtemp, rm } from 'fs/promises'
+import { mkdtemp } from 'fs/promises'
 import { tmpdir } from 'os'
 import { join } from 'path'
 
@@ -10,6 +10,7 @@ import {
   AutomaticCommitPushBatchProofByteBudget,
   CommitPushBatchError,
 } from '../commit-push-batching'
+import { removeTemporaryGitIndexDirectory } from './temporary-index-cleanup'
 import { git } from './core'
 
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
@@ -186,11 +187,13 @@ async function captureCommitPushBatchLocalState(
       'captureAutomaticCommitBatchWorktreeBase',
       { env, maxBuffer: 8 * 1024 }
     )
+    // One line-ending warning per path can far exceed a small ceiling on a
+    // large working tree; being killed mid-stage is what strands `index.lock`.
     await git(
       ['add', '-A', '--', '.'],
       repository.path,
       'captureAutomaticCommitBatchWorktree',
-      { env, maxBuffer: 8 * 1024 }
+      { env, maxBuffer: 64 * 1024 * 1024 }
     )
     const worktree = await git(
       ['write-tree'],
@@ -206,7 +209,9 @@ async function captureCommitPushBatchLocalState(
       ),
     }
   } finally {
-    await rm(temporaryDirectory, { recursive: true, force: true })
+    // Awaiting a live `index.lock` instead of unlinking it; cleanup of a
+    // scratch index must never abort the commit or push it belongs to.
+    await removeTemporaryGitIndexDirectory(temporaryDirectory)
   }
 }
 

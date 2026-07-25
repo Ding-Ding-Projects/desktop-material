@@ -257,6 +257,30 @@
         background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 7%, transparent);
       }
 
+      .cheap-lfs-terminal-failed-files {
+        display: grid;
+        width: 100%;
+        min-width: 0;
+        gap: 2px;
+      }
+
+      .cheap-lfs-terminal-failed-file {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        padding: 2px 6px;
+        border-radius: 7px;
+        // The terminal paints on `inverse-surface`, so the row keeps the
+        // inherited `inverse-on-surface` text for contrast and marks itself
+        // with the same red already used by this surface's stop light.
+        border-left: 2px solid #ef6c68;
+        background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 10%, transparent);
+        line-height: 1.25;
+        // Long provider reasons wrap instead of clipping or overflowing.
+        overflow-wrap: anywhere;
+        white-space: normal;
+      }
+
       .cheap-lfs-terminal-worker {
         display: grid;
         flex: none;

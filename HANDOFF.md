@@ -1,5 +1,80 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-25 Cheap LFS first publish, EBUSY push race, silent failures
+
+Branch `fix/cheap-lfs-first-publish`. Closes the three defects proved by the
+headless 200k end-to-end in issue #38, plus the launch-time Actions metadata
+error observed in the same session.
+
+**1. Release-route first publish (422 × 10).** `pinFileToRelease` →
+`allocateCheapLfsReleaseBucket` → `releases.create` passes
+`targetCommitish: await releaseTargetCommitish(...)`
+(`cheap-lfs/operations.ts:1493`), which resolves to the *local* branch name via
+`resolveReleaseTargetCommitish` (`:927`). On an unpublished repository that
+branch does not exist on the remote, so GitHub answers `422 Validation Failed`
+for every file, unrecoverably.
+
+Design chosen: **publish the branch tip before uploading, then prove it from the
+remote**, consistent with the existing "each batch pushed and proven" contract.
+`app/src/lib/cheap-lfs/first-publish.ts` holds the pure decision;
+`AppStore.ensureCheapLfsReleaseAnchor` runs it once per commit before any
+hashing or upload and, for `publish-branch`, pushes with
+`expectedRemoteSha: null` (create-only, can never overwrite) and re-reads the
+remote ref via `isCheapLfsFirstPublishProven`. Blocking decisions refuse with a
+localized per-file reason instead of retrying into another 422. Deferring
+uploads to the push phase was rejected: it would commit pointers whose bytes
+exist nowhere remote, so a clone taken between commit and push would resolve to
+a dangling pointer. No silent provider fallback was added.
+
+**2. EBUSY push race.** `readWorkingTreeFingerprint`
+(`git/local-commit-batching-git.ts`) built a scratch index under
+`desktop-material-commit-batch-*` and cleaned it with an unconditional
+`rm(dir, { recursive: true, force: true })` in a `finally`. At 200k files the
+`git add -A` holds `index.lock` ~14 s, so the unlink hit `EBUSY` — and because
+it threw from a `finally` it replaced the real error and aborted the push before
+any network I/O. Replaced with `git/temporary-index-cleanup.ts`, which consults
+`decideTemporaryIndexLockCleanup` (fail-closed: never touches a symlink or
+non-regular lock; awaits a live *or indeterminate* owner on a bounded 60 s / 250
+ms budget; treats `EBUSY`/`EPERM`/`EACCES` from the unlink as proof of a live
+owner) and never throws. The same pattern in `git/commit-push-batch-proof.ts`
+(`desktop-material-commit-intent-*`) was fixed identically. The trigger was also
+removed: the whole-tree `git add -A` ran with a 256 KiB (8 KiB in the proof
+capture) stdout ceiling, so Node killed Git part-way through a large tree's
+line-ending warnings — which is what stranded the lock. Both now use the 64 MiB
+path-inventory ceiling.
+
+**3. Silent failures.** `ICheapLfsAutoPinFailure` now carries `statusCode`
+(read from `responseStatus` on `GitHubReleasesError`/`APIError`) and an optional
+self-diagnosed `reasonKey`; `ICheapLfsAutoPinProgress.failedFileDetails`
+republishes every settled failure with its sanitized reason on each progress
+snapshot. The Cheap LFS mini terminal renders per-file failure rows and folds
+the reasons into the summary's `aria-valuetext`; the failure notification
+appends `Reason: HTTP 422 — …`. `sanitizeCheapLfsFailureReason` bounds the text
+to 240 characters, collapses control characters, and strips URLs, `gh*_`
+tokens, and `Authorization: Bearer` values before display. New EN + Cantonese
+keys; error copy stays plain and factual.
+
+**4. `ActionsMetadataJSONError` on launch.** The only producer of that message
+outside `api.ts` is the update-build probe (`desktop-material-update-build.ts`),
+whose 256 KiB bound is far below a real `compare` or `workflow_runs` page. One
+oversized response aborted the whole probe, and `onUpdateNotAvailable` is
+registered directly as an IPC listener, so its floating promise turned any
+rejection into the generic "background action stopped unexpectedly" toast. The
+bound now matches the shared 2 MiB Actions limit; each leg degrades
+independently through `updateBuildProbeDegradation` (unproven is never reported
+as "ahead"); `UpdateStore` logs every skipped response and emits
+`onActionsMetadataSkipped` at most once per session, which `app.tsx` turns into
+one informative non-blocking notification; and `onUpdateNotAvailable` can no
+longer reject.
+
+Gates: `npx tsc --noEmit` clean, `yarn lint` green, `yarn prettier --check`
+green, targeted `node script/test.mjs` green (new suites `cheap-lfs/
+first-publish-test.ts`, `cheap-lfs/failure-reason-test.ts`,
+`git/temporary-index-cleanup-test.ts`, plus honest contract extensions to
+`cheap-lfs/automation-test.ts` and `update-coming-soon-test.tsx`). Not yet
+verified against a live installed build — the 200k end-to-end that produced the
+evidence has not been re-run.
+
 ## 2026-07-24 trampoline token lifecycle fix
 
 Production build `zadtjbevjx` logged repeated `Unhandled renderer promise

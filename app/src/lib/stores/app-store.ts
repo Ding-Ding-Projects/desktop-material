@@ -49,6 +49,14 @@ import {
   selectCheapLfsAutoPinTargets,
   shouldAutoPinLargeFilesOnCommit,
 } from '../cheap-lfs/operations'
+import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
+import {
+  cheapLfsFirstPublishBlocksUpload,
+  cheapLfsFirstPublishReasonKey,
+  decideCheapLfsFirstPublish,
+  ICheapLfsPublicationState,
+  isCheapLfsFirstPublishProven,
+} from '../cheap-lfs/first-publish'
 import {
   buildCheapLfsInventoryKey,
   CheapLfsInventoryCache,
@@ -524,6 +532,7 @@ import {
   getFloatNumber,
 } from '../local-storage'
 import { t } from '../i18n'
+import type { TranslationKey } from '../i18n-resources'
 import {
   defaultShowBranchNameInRepoListSetting,
   ShowBranchNameInRepoListSetting,
@@ -14751,6 +14760,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
         }
       }
 
+      // The release route needs a commit GitHub already has before it may
+      // create the bucket release. Settle that once, up front, instead of
+      // letting every file repeat the same unrecoverable 422. An ordinary
+      // commit with nothing to pin never pays for the remote read.
+      const releaseEligibleTargets = preflightTargets.filter(
+        target => !partialFailurePaths.has(target.relativePath)
+      )
+      const firstPublishReasonKey =
+        releaseEligibleTargets.length === 0
+          ? null
+          : await this.ensureCheapLfsReleaseAnchor(repository)
+      if (firstPublishReasonKey !== null) {
+        return {
+          pinned: [],
+          failures: mergeFailures(
+            releaseEligibleTargets.map(
+              (target): ICheapLfsAutoPinFailure => ({
+                relativePath: target.relativePath,
+                sizeInBytes: target.sizeInBytes,
+                message: t(firstPublishReasonKey),
+                reasonKey: firstPublishReasonKey,
+              })
+            )
+          ),
+          commitPaths: [],
+        }
+      }
+
       try {
         const result = await autoPinLargeFilesForCommit(
           repository,
@@ -14920,6 +14957,136 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
   }
 
+  /**
+   * Read how far this repository has been published, using only authoritative
+   * sources: the GitHub association, the configured push remote, the local tip,
+   * and an `ls-remote` read of the branch. A remote-tracking ref is never used
+   * — it survives deletion of the remote branch and would wrongly report the
+   * release route as usable.
+   */
+  private async readCheapLfsPublicationState(
+    repository: Repository
+  ): Promise<ICheapLfsPublicationState> {
+    const state = this.repositoryStateCache.get(repository)
+    const tip = state.branchesState.tip
+    const branchName = tip.kind === TipState.Valid ? tip.branch.name : null
+    const localTipSha = tip.kind === TipState.Valid ? tip.branch.tip.sha : null
+    const remote = state.remote
+    const base: ICheapLfsPublicationState = {
+      hasGitHubRepository: repository.gitHubRepository !== null,
+      remoteName: remote?.name ?? null,
+      branchName,
+      localTipSha,
+      remoteBranchSha: null,
+    }
+    if (remote === null || branchName === null) {
+      return base
+    }
+
+    const remoteBranchName =
+      (tip.kind === TipState.Valid ? tip.branch.upstreamWithoutRemote : null) ??
+      branchName
+    try {
+      const session = createLocalCommitBatchingGitSession(repository, {
+        remote,
+        remoteBranchRef: `refs/heads/${remoteBranchName}`,
+        accountKey: getRepositoryCredentialAccountKey(
+          this.accounts,
+          repository
+        ),
+      })
+      return {
+        ...base,
+        remoteBranchSha: await session.operations.readRemoteTip({
+          remoteName: remote.name,
+          remoteBranchRef: `refs/heads/${remoteBranchName}`,
+        }),
+      }
+    } catch {
+      // An unreadable remote is not proof the branch exists. Fail closed and
+      // let the decision report a blocking, actionable reason.
+      return base
+    }
+  }
+
+  /**
+   * Make the Cheap LFS release route usable before its first asset upload.
+   *
+   * A GitHub Release tag has to point at a commit GitHub already has, so on a
+   * repository whose branch has never been pushed `POST /releases` answers
+   * `422 Validation Failed` for every file — the chicken-and-egg the release
+   * route hit during a first publish. Design chosen: publish the branch tip
+   * *before* uploading, matching this app's existing "push, then prove"
+   * batching contract, and re-read the remote ref to prove it landed. Deferring
+   * uploads to the push phase was rejected: it would have to commit pointers
+   * whose bytes exist nowhere remote, so any clone between commit and push
+   * would resolve to a dangling pointer.
+   *
+   * Returns `null` when the route is usable, or the localized reason key that
+   * every affected file row and the failure notification must carry.
+   */
+  private async ensureCheapLfsReleaseAnchor(
+    repository: Repository
+  ): Promise<TranslationKey | null> {
+    const observed = await this.readCheapLfsPublicationState(repository)
+    const decision = decideCheapLfsFirstPublish(observed)
+    if (decision === 'ready') {
+      return null
+    }
+    if (cheapLfsFirstPublishBlocksUpload(decision)) {
+      return cheapLfsFirstPublishReasonKey(decision)
+    }
+
+    // `publish-branch`: everything needed exists locally. Publish the branch
+    // tip so the release has a commitish, then prove it from the remote.
+    const remoteName = observed.remoteName
+    const branchName = observed.branchName
+    const localTipSha = observed.localTipSha
+    if (remoteName === null || branchName === null || localTipSha === null) {
+      return 'cheapLfs.firstPublish.publishFailed'
+    }
+    const remote = this.gitStoreCache
+      .get(repository)
+      .remotes.find(candidate => candidate.name === remoteName)
+    if (remote === undefined) {
+      return 'cheapLfs.firstPublish.publishFailed'
+    }
+    const remoteBranchRef = `refs/heads/${branchName}`
+    try {
+      const session = createLocalCommitBatchingGitSession(repository, {
+        remote,
+        remoteBranchRef,
+        accountKey: getRepositoryCredentialAccountKey(
+          this.accounts,
+          repository
+        ),
+      })
+      const result = await session.operations.push({
+        remoteName,
+        localBranchRef: `refs/heads/${branchName}`,
+        remoteBranchRef,
+        // Null asserts the branch does not exist remotely yet, so this can only
+        // ever create it and can never overwrite someone else's work.
+        expectedRemoteSha: null,
+        headSha: localTipSha,
+        force: false,
+      })
+      if (result !== 'pushed') {
+        return 'cheapLfs.firstPublish.publishFailed'
+      }
+      const proven = await this.readCheapLfsPublicationState(repository)
+      return isCheapLfsFirstPublishProven(proven, localTipSha)
+        ? null
+        : 'cheapLfs.firstPublish.publishFailed'
+    } catch (error) {
+      log.warn(
+        'Could not publish the branch before a Cheap LFS release upload.',
+        error instanceof Error ? error : new Error(String(error))
+      )
+      return 'cheapLfs.firstPublish.publishFailed'
+    }
+  }
+
   /** Surface a verified post-commit maintenance failure without retrying. */
   private postCommitMaintenanceWarning(repository: Repository): void {
     this.postNotification({
@@ -14996,14 +15163,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.postNotification({
       kind: 'cheap-lfs',
       title: t('cheapLfs.pinFailures.title'),
-      body: t(
+      body: `${t(
         failures.length === 1
           ? 'cheapLfs.pinFailures.one'
           : omitted > 0
           ? 'cheapLfs.pinFailures.manyOmitted'
           : 'cheapLfs.pinFailures.many',
         variables
-      ),
+      )}${cheapLfsPinFailureReasonText(failures[0])}`,
       repositoryId: repository.id,
       action: { kind: 'open-repository', repositoryId: repository.id },
     })

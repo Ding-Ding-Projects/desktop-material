@@ -86,6 +86,57 @@ export function shouldRemoveStaleIndexLock(
 }
 
 /**
+ * What a cleanup pass may do with the `index.lock` of a *temporary* Git index
+ * this process created for itself (for example the working-tree fingerprint
+ * index under `desktop-material-commit-batch-*`).
+ *
+ * - `remove-directory` — no live owner is possible; the directory may go.
+ * - `wait`             — a Git process may still hold the lock; await release.
+ * - `abandon`          — never touch it. The directory is left for the OS
+ *                        temporary-file reaper instead.
+ */
+export type TemporaryIndexLockAction = 'remove-directory' | 'wait' | 'abandon'
+
+/**
+ * Fail-closed cleanup plan for a temporary index directory.
+ *
+ * This deliberately replaces an unconditional recursive unlink. At 200k files a
+ * `git add -A` holds `index.lock` for ~14 seconds; deleting that lock out from
+ * under a live Git process corrupts the index it is writing, and on Windows the
+ * unlink instead fails with `EBUSY` — which, thrown from a `finally`, masked
+ * the real error and aborted the push before any network I/O.
+ *
+ * A lock which is not a plain regular file is never touched. A lock whose owner
+ * is live, or whose ownership cannot be established, is awaited rather than
+ * removed; only an absent lock, or one provably unowned, authorizes removal.
+ * Once the wait budget is spent the directory is abandoned rather than forced.
+ */
+export function decideTemporaryIndexLockCleanup(
+  observation: IIndexLockObservation,
+  waitedMs: number,
+  budgetMs: number
+): TemporaryIndexLockAction {
+  if (!observation.exists) {
+    return 'remove-directory'
+  }
+  if (observation.isSymbolicLink || !observation.isRegularFile) {
+    return 'abandon'
+  }
+  if (observation.ownerActive === false) {
+    return 'remove-directory'
+  }
+  // `true` (a live owner) and `null` (indeterminate) both mean the lock may
+  // still be in use, so both wait instead of removing.
+  return waitedMs < budgetMs ? 'wait' : 'abandon'
+}
+
+/** Default budget for awaiting a temporary index lock: 60s of ~14s writes. */
+export const DefaultTemporaryIndexLockWaitBudgetMs = 60_000
+
+/** Poll interval while awaiting a temporary index lock release. */
+export const DefaultTemporaryIndexLockPollMs = 250
+
+/**
  * Bounded retry state for the lock-contention loop. The gate removes a stale
  * lock and retries the operation at most `maxAttempts` times so a genuinely
  * live lock (re-created by another process) can never spin forever.
