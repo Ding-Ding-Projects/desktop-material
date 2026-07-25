@@ -11,6 +11,15 @@ if [[ ! "$RELEASE_TARGET_SHA" =~ ^[0-9a-f]{40}$ ]]; then
   exit 1
 fi
 
+# Test-only mode: prereleases are never promoted to Latest (GitHub also
+# refuses make_latest for a prerelease). Promotion resumes automatically once
+# the lanes publish full releases again.
+candidate_prerelease=$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .prerelease)
+if [ "$candidate_prerelease" = "true" ]; then
+  echo "::notice::$RELEASE_TAG is a prerelease; leaving Latest untouched."
+  exit 0
+fi
+
 resolve_main() {
   git ls-remote origin refs/heads/main | awk 'NR == 1 { print $1 }'
 }
