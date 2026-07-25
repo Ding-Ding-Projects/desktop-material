@@ -152,6 +152,45 @@ No shared concurrency group is declared, so overlapping manual invocations can
 finish independently. Tags and Releases are immutable: a same-tag race has one
 winner, and later attempts fail without replacing it.
 
+## Downgrade guard
+
+Squirrel installs whichever entry a `RELEASES` manifest ranks highest. It never
+compares that entry to the version already running, so a manifest that regresses
+reads to it as an ordinary update and moves the whole install base backwards.
+Two independent guards close that path.
+
+The published manifest is bounded at its source. Both release lanes pipe
+`dist/RELEASES` through `node script/release-version.js filter "$RELEASE_VERSION"`
+before anything is copied into the release payload, and the package-copy loop
+reads the filtered manifest rather than the raw one. Only entries naming the
+`GitHubDesktop` package at exactly the version being built survive; a foreign
+package, a leftover lower lane, or an unreadable line fails the release instead
+of publishing a feed nobody vetted. Because the copy loop reconstructs any
+package file the manifest names, filtering first also prevents a stale entry
+from conjuring a mislabelled published asset.
+
+The app checks before it hands the feed over. `app/src/lib/update-version-order.ts`
+reproduces Squirrel's legacy NuGet ordering — a four-part numeric core, then the
+prerelease label compared case-insensitively as one whole string, with a missing
+prerelease outranking a present one — and `probeUpdateFeed` fetches the feed's
+`RELEASES` and judges its highest entry against `app.getVersion()`. Only a
+`downgrade` verdict is acted on: `AppWindow.checkForUpdates` then reports the
+ordinary no-update state instead of calling `autoUpdater.checkForUpdates()`. An
+unreachable feed, an oversized or undecodable body, a response that is not a
+manifest for this package, and an unreadable running version all return
+`indeterminate`, so the guard never blocks an update check it could not
+actually evaluate.
+
+Only the update feed is guarded. A Squirrel bootstrapper invoked as
+`Setup.exe --install . --checkInstall` reads its own bundled `RELEASES` from
+`%LOCALAPPDATA%\SquirrelTemp`, logs `First run, starting from scratch`, and
+applies whatever version it carries without consulting the installed
+`app-<version>` folders at all. Re-running a stale downloaded installer
+therefore still replaces a newer install with the older build it contains. That
+is Squirrel's installer path, outside the app and outside the feed; delete
+superseded `GitHubDesktopSetup-x64.exe` downloads rather than relying on the
+updater to undo them.
+
 ## Configuration
 
 - `DESKTOP_UPDATES_URL` can replace the complete update endpoint. Coming-soon
@@ -236,7 +275,16 @@ create-only publication, retained artifacts, and exact dependency-cache keys
 are also checked locally. The Super Express source contract additionally proves
 manual-only triggering, exact-SHA packaging, unit/script-before-build ordering,
 omitted lint/E2E/history paths, non-cancelling overlap, retained artifacts,
-immutable tag checks, and exact release targeting. Release-version tests cover
+immutable tag checks, and exact release targeting. Downgrade-guard tests use the
+real observed strings — `3.6.2`, `3.6.3-beta3-b0000040888`,
+`3.6.3-beta3-s000000000401`, `3.6.3-beta3-zadtjbevjx`, `3.6.3-beta3-zadtofsepy`,
+`3.6.3-beta3-zadtorqoxa` — and the live manifest line the feed actually served.
+They prove the app comparer agrees with `script/release-version.js` across every
+lane, that a `3.6.3` prerelease outranks stable `3.6.2` in both that comparer and
+`semver`, that a mixed manifest is judged by the entry Squirrel would install,
+that manifest filtering drops foreign packages and lower lanes while keeping the
+matching delta, and that the feed probe fails open on network, HTTP, and
+non-manifest responses. Release-version tests cover
 the exact legacy `s…` versus `b…` failure, fixed-width alphabetic `z…` ordering,
 rerun identity, malformed/overflow rejection, and out-of-order same-SHA
 selection.

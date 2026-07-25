@@ -25,6 +25,7 @@ import * as ipcWebContents from './ipc-webcontents'
 import { installNotificationCallback } from './notifications'
 import { addTrustedIPCSender } from './trusted-ipc-sender'
 import { getUpdaterGUID } from '../lib/get-updater-guid'
+import { probeUpdateFeed } from '../lib/update-version-order'
 import { CLIAction } from '../lib/cli-action'
 import {
   IAgentCommandEnvelope,
@@ -656,7 +657,34 @@ export class AppWindow {
 
   public async checkForUpdates(url: string) {
     try {
-      autoUpdater.setFeedURL({ url: await trySetUpdaterGuid(url) })
+      const feedURL = await trySetUpdaterGuid(url)
+
+      // Squirrel installs the highest version the feed advertises without ever
+      // comparing it to the version already running, so a feed that regresses
+      // reads to it as an ordinary update and moves the install backwards. Look
+      // first, and refuse to hand over a feed whose best offer is older than
+      // this build. The probe fails open, so an unreachable or unfamiliar feed
+      // still goes to Squirrel exactly as before.
+      const verdict = await probeUpdateFeed({
+        feedURL,
+        currentVersion: app.getVersion(),
+      })
+
+      if (verdict.kind === 'downgrade') {
+        log.warn(
+          `Refusing update feed offering ${
+            verdict.version
+          }, which is older than the running ${app.getVersion()}.`
+        )
+        this.isDownloadingUpdate = false
+        ipcWebContents.send(
+          this.window.webContents,
+          'auto-updater-update-not-available'
+        )
+        return undefined
+      }
+
+      autoUpdater.setFeedURL({ url: feedURL })
       autoUpdater.checkForUpdates()
     } catch (e) {
       return e

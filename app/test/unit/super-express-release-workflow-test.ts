@@ -85,6 +85,20 @@ describe('Super Express Release workflow', () => {
     assert.ok(laterUnifiedRelease.compare(firstUnifiedRelease) > 0)
   })
 
+  it('publishes a RELEASES manifest bounded to the release being built', () => {
+    for (const source of [installerWorkflow, workflow]) {
+      assert.match(
+        source,
+        /node script\/release-version\.js filter "\$RELEASE_VERSION"[\s\S]*?> release-payload\/installers\/RELEASES/
+      )
+      // The manifest that seeds the package-copy loop must be the filtered one,
+      // so a stale entry can never conjure a mislabelled published asset.
+      assert.match(source, /done < release-payload\/installers\/RELEASES/)
+      assert.doesNotMatch(source, /cp dist\/RELEASES/)
+      assert.doesNotMatch(source, /done < dist\/RELEASES/)
+    }
+  })
+
   it('targets release pull requests at the Windows product default branch', () => {
     assert.match(releasePullRequestWorkflow, /--base main/)
     assert.doesNotMatch(releasePullRequestWorkflow, /--base development/)

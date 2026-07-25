@@ -126,7 +126,10 @@ jobs:
           done
 
           if [ -e dist/RELEASES ]; then
-            cp dist/RELEASES release-payload/installers/
+            # Squirrel installs the highest version the manifest names, so the
+            # published feed must only ever name this package at this version.
+            node script/release-version.js filter "$RELEASE_VERSION" \
+              < dist/RELEASES > release-payload/installers/RELEASES
             while read -r _sha name _size || [[ -n "$name" ]]; do
               [ -z "$name" ] && continue
               [ -e "release-payload/installers/$name" ] && continue
@@ -137,7 +140,7 @@ jobs:
               esac
               [ -n "$source" ] && [ -e "$source" ] && \
                 cp "$source" "release-payload/installers/$name"
-            done < dist/RELEASES
+            done < release-payload/installers/RELEASES
           fi
 
           required=(

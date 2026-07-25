@@ -1,4 +1,4 @@
-﻿# Desktop Material roadmap
+# Desktop Material roadmap
 
 Updated: **July 23, 2026**
 
@@ -24,6 +24,15 @@ promise that started it settles, and a command bearing a no-longer-valid token
 is declined with a reply and a context-bearing warning instead of an unhandled
 rejection that left Git wedged on an unclosed socket. Details in
 [HANDOFF.md](HANDOFF.md).
+
+## July 25 updater downgrade guard — **Implemented, locally accepted**
+
+The reported 3.6.2 downgrade was traced to a stale local Squirrel bootstrapper
+re-run (`--install . --checkInstall`), not the update feed and not a version
+comparer; the live feed only ever advertised `3.6.3-beta3-zadtorqoxa`. As
+defence-in-depth the app now refuses a feed whose highest entry is older than
+the running build, and both release lanes filter the published `RELEASES` down
+to this package at exactly this version.
 
 ## July 24 feature discoverability — **Implemented, pushed**
 

@@ -4,8 +4,14 @@ import { SemVer } from 'semver'
 import {
   compareReleaseVersions,
   createReleaseVersion,
+  filterReleasesManifest,
   selectHighestReleaseTag,
 } from './release-version'
+
+const sha = (digit: string) => digit.repeat(40)
+
+const entry = (name: string, digit: string, size = 326312175) =>
+  `${sha(digit)} ${name} ${size}`
 
 describe('release version ordering', () => {
   it('moves every legacy release lane onto one newer Squirrel namespace', () => {
@@ -81,5 +87,87 @@ describe('release version ordering', () => {
     )
     assert.throws(() => selectHighestReleaseTag([]))
     assert.throws(() => selectHighestReleaseTag(['not-a-release']))
+  })
+})
+
+describe('published RELEASES manifest', () => {
+  it('publishes only this package at exactly this release version', () => {
+    const current = entry(
+      'GitHubDesktop-3.6.3-beta3-zadtorqoxa-full.nupkg',
+      'a'
+    )
+
+    assert.equal(
+      filterReleasesManifest(
+        [
+          entry('GitHubDesktop-3.6.2-full.nupkg', 'b', 294717903),
+          current,
+          entry('GitHubDesktop-3.6.3-beta3-zadtjbevjx-full.nupkg', 'c'),
+          entry('GitHubDesktop-3.6.3-beta3-b0000040888-full.nupkg', 'd'),
+          entry('GitHubDesktop-3.6.3-beta3-s000000000401-full.nupkg', 'e'),
+          entry('SomeOtherApp-9.9.9-full.nupkg', 'f'),
+          '',
+        ].join('\n'),
+        '3.6.3-beta3-zadtorqoxa'
+      ),
+      `${current}\n`
+    )
+  })
+
+  it('keeps the delta package that belongs to the same release', () => {
+    const full = entry('GitHubDesktop-3.6.3-beta3-zadtofsepy-full.nupkg', 'a')
+    const delta = entry(
+      'GitHubDesktop-3.6.3-beta3-zadtofsepy-delta.nupkg',
+      'b',
+      1024
+    )
+
+    assert.equal(
+      filterReleasesManifest(`${full}\n${delta}\n`, '3.6.3-beta3-zadtofsepy'),
+      `${full}\n${delta}\n`
+    )
+  })
+
+  it('ignores Squirrel staging comments without losing the entry', () => {
+    const current = entry(
+      'GitHubDesktop-3.6.3-beta3-zadtorqoxa-full.nupkg',
+      'a'
+    )
+
+    assert.equal(
+      filterReleasesManifest(`${current} # 0.25\r\n`, '3.6.3-beta3-zadtorqoxa'),
+      `${current}\n`
+    )
+  })
+
+  it('fails the release rather than publishing an unvetted manifest', () => {
+    // A manifest that names only an older lane would tell every install to
+    // move backwards onto it.
+    assert.throws(
+      () =>
+        filterReleasesManifest(
+          entry('GitHubDesktop-3.6.2-full.nupkg', 'b', 294717903),
+          '3.6.3-beta3-zadtorqoxa'
+        ),
+      /advertises no GitHubDesktop 3\.6\.3-beta3-zadtorqoxa package/
+    )
+
+    assert.throws(
+      () => filterReleasesManifest('', '3.6.3-beta3-zadtorqoxa'),
+      /advertises no GitHubDesktop/
+    )
+
+    assert.throws(
+      () =>
+        filterReleasesManifest('not-a-manifest-line', '3.6.3-beta3-zadtorqoxa'),
+      /Unreadable Squirrel RELEASES entry/
+    )
+
+    assert.throws(() =>
+      filterReleasesManifest(
+        entry('GitHubDesktop-3.6.3-beta3-zadtorqoxa-full.nupkg', 'a'),
+        'not-a-version'
+      )
+    )
   })
 })
