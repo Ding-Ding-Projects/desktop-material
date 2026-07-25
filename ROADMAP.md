@@ -13,6 +13,18 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 24 trampoline token lifecycle — **Implemented, locally accepted**
+
+A production log showed repeated `Tried to use invalid trampoline token`
+rejections after a timed-out remote-HEAD refresh overlapped a submodule fetch,
+surfacing as "a background action stopped unexpectedly" toasts and random Cheap
+LFS failures on very large commits. Credential-trampoline tokens now live until
+the Git process they were issued for actually exits rather than until the
+promise that started it settles, and a command bearing a no-longer-valid token
+is declined with a reply and a context-bearing warning instead of an unhandled
+rejection that left Git wedged on an unclosed socket. Details in
+[HANDOFF.md](HANDOFF.md).
+
 ## July 24 feature discoverability — **Implemented, pushed**
 
 Buried features surfaced additively: six new command-palette commands (Sound

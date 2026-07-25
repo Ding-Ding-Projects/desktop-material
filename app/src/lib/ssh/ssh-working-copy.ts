@@ -6,6 +6,7 @@ import { promisify } from 'util'
 import { setupEnvironment } from 'dugite'
 
 import { withTrampolineEnv } from '../trampoline/trampoline-environment'
+import { keepTrampolineTokenAliveUntilExit } from '../trampoline/trampoline-tokens'
 import { getSSHExecutable } from './ssh'
 
 const execFileAsync = promisify(execFile)
@@ -614,14 +615,14 @@ export async function runSSHWorkingCopyAction(
   const executable = await getSSHExecutable()
 
   return withTrampolineEnv(
-    async trampolineEnvironment => {
+    async (trampolineEnvironment, trampolineToken) => {
       const { env } = setupEnvironment({
         ...(trampolineEnvironment as Record<string, string | undefined>),
         // Force askpass even though stdin is detached from a terminal.
         SSH_ASKPASS_REQUIRE: 'force',
       })
       try {
-        const result = await execFileAsync(executable, args, {
+        const execution = execFileAsync(executable, args, {
           cwd: repositoryPath,
           env,
           encoding: 'utf8',
@@ -631,6 +632,14 @@ export async function runSSHWorkingCopyAction(
           shell: false,
           signal,
         })
+
+        // A timeout, an abort, or a max-buffer failure settles this promise
+        // while OpenSSH may still be winding down. Keep the token valid until
+        // the process is gone so a passphrase prompt already in flight is
+        // answered rather than refused.
+        keepTrampolineTokenAliveUntilExit(trampolineToken, execution.child)
+
+        const result = await execution
         return {
           stdout: sanitizeSSHWorkingCopyOutput(result.stdout),
           stderr: sanitizeSSHWorkingCopyOutput(result.stderr),

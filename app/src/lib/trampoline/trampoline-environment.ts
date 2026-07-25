@@ -1,5 +1,8 @@
 import { trampolineServer } from './trampoline-server'
-import { withTrampolineToken } from './trampoline-tokens'
+import {
+  onTrampolineTokenDisposed,
+  withTrampolineToken,
+} from './trampoline-tokens'
 import * as Path from 'path'
 import { getSSHEnvironment } from '../ssh/ssh'
 import {
@@ -146,7 +149,10 @@ const isNativeHTTPSAuthenticationAmbiguity = (error: GitError): boolean =>
  * succeeds.
  *
  * @param fn        Function to invoke with all the necessary environment
- *                  variables.
+ *                  variables and the trampoline token backing them. Callers
+ *                  which spawn a process should hand that token to
+ *                  `keepTrampolineTokenAliveUntilExit` so the token outlives
+ *                  this promise for exactly as long as the process does.
  * @param credentialFailure Optional classifier for non-Git callers which use
  *                  the SSH askpass trampoline. A positive result removes a
  *                  credential that the current operation proved invalid.
@@ -154,7 +160,7 @@ const isNativeHTTPSAuthenticationAmbiguity = (error: GitError): boolean =>
  *                  account. The visible prompt remains OpenSSH's user@host.
  */
 export async function withTrampolineEnv<T>(
-  fn: (env: object) => Promise<T>,
+  fn: (env: object, trampolineToken: string) => Promise<T>,
   path: string,
   isBackgroundTask = false,
   customEnv?: Record<string, string | undefined>,
@@ -165,6 +171,20 @@ export async function withTrampolineEnv<T>(
   const sshEnv = await getSSHEnvironment()
 
   return withTrampolineToken(async token => {
+    // A Git process can outlive this promise (a timed-out fetch, a cancelled
+    // operation, a long push that `spawnGit` handed back). While that process
+    // is alive its token stays valid, so the context the trampoline handlers
+    // read has to stay alive with it - otherwise a late credential request
+    // would be answered from the wrong directory or the wrong account. Tie
+    // that cleanup to the token's disposal rather than to this promise.
+    onTrampolineTokenDisposed(token, () => {
+      isBackgroundTaskEnvironment.delete(token)
+      hasRejectedCredentialsForEndpoint.delete(token)
+      trampolineEnvironmentPath.delete(token)
+      forcedAccountKeyByToken.delete(token)
+      forcedSSHCredentialScopeByToken.delete(token)
+    })
+
     isBackgroundTaskEnvironment.set(token, isBackgroundTask)
     trampolineEnvironmentPath.set(token, path)
 
@@ -188,31 +208,34 @@ export async function withTrampolineEnv<T>(
     // A resolved `fn` therefore proves that a pending remembered SSH secret was
     // accepted; a rejected `fn` runs the authentication-failure cleanup below.
     try {
-      return await fn({
-        DESKTOP_PORT: await trampolineServer.getPort(),
-        DESKTOP_TRAMPOLINE_TOKEN: token,
-        GIT_ASKPASS: '',
-        // This warrants some explanation. We're configuring the
-        // credential helper using environment variables rather than
-        // arguments (i.e. -c credential.helper=) because we want commands
-        // invoked by filters (i.e. Git LFS) to be able to pick up our
-        // configuration. Arguments passed to git commands are not passed
-        // down to filters.
-        //
-        // We're using the undocumented GIT_CONFIG_PARAMETERS environment
-        // variable over the documented GIT_CONFIG_{COUNT,KEY,VALUE} due
-        // to an apparent bug either in a Windows Python runtime
-        // dependency or in a Python project commonly used to manage hooks
-        // which isn't able to handle the blank environment variables we
-        // need when using GIT_CONFIG_*.
-        //
-        // See https://github.com/desktop/desktop/issues/18945
-        // See https://github.com/git/git/blob/ed155187b429a/config.c#L664
-        GIT_CONFIG_PARAMETERS: `${gitEnvConfigPrefix}'credential.helper=' 'credential.helper=desktop'`,
+      return await fn(
+        {
+          DESKTOP_PORT: await trampolineServer.getPort(),
+          DESKTOP_TRAMPOLINE_TOKEN: token,
+          GIT_ASKPASS: '',
+          // This warrants some explanation. We're configuring the
+          // credential helper using environment variables rather than
+          // arguments (i.e. -c credential.helper=) because we want commands
+          // invoked by filters (i.e. Git LFS) to be able to pick up our
+          // configuration. Arguments passed to git commands are not passed
+          // down to filters.
+          //
+          // We're using the undocumented GIT_CONFIG_PARAMETERS environment
+          // variable over the documented GIT_CONFIG_{COUNT,KEY,VALUE} due
+          // to an apparent bug either in a Windows Python runtime
+          // dependency or in a Python project commonly used to manage hooks
+          // which isn't able to handle the blank environment variables we
+          // need when using GIT_CONFIG_*.
+          //
+          // See https://github.com/desktop/desktop/issues/18945
+          // See https://github.com/git/git/blob/ed155187b429a/config.c#L664
+          GIT_CONFIG_PARAMETERS: `${gitEnvConfigPrefix}'credential.helper=' 'credential.helper=desktop'`,
 
-        GIT_USER_AGENT: await GitUserAgent(),
-        ...sshEnv,
-      })
+          GIT_USER_AGENT: await GitUserAgent(),
+          ...sshEnv,
+        },
+        token
+      )
     } catch (e) {
       if (!getIsBackgroundTaskEnvironment(token)) {
         // If the operation fails with an SSHAuthenticationFailed error, we
@@ -283,12 +306,9 @@ export async function withTrampolineEnv<T>(
 
       throw e
     } finally {
+      // Pending-secret bookkeeping is settled by this operation's outcome, so
+      // it stays tied to the promise rather than to the token's disposal.
       removeMostRecentSSHCredential(token)
-      isBackgroundTaskEnvironment.delete(token)
-      hasRejectedCredentialsForEndpoint.delete(token)
-      trampolineEnvironmentPath.delete(token)
-      forcedAccountKeyByToken.delete(token)
-      forcedSSHCredentialScopeByToken.delete(token)
     }
   })
 }

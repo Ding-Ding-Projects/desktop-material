@@ -18,6 +18,15 @@ no preference, language string, credential format, or provider API.
   default-branch rename even while the old branch still exists without
   restoring the multi-minute hang. Repository clone cancellation deliberately
   keeps its stricter full-process-close barrier.
+- A trampoline (askpass and credential-helper) token stays valid until the Git
+  process it was issued for has actually exited, not until the promise which
+  started that process settles. A timed-out remote-HEAD refresh, an aborted
+  operation, a max-buffer failure, and `spawnGit` — which hands the process back
+  as soon as it starts — all leave Git running after their promise is done.
+  Those processes keep their token, and the per-operation context the trampoline
+  reads (working directory, background-task flag, forced account, forced SSH
+  credential scope) is released at the same moment as the token rather than
+  earlier.
 - Concurrent proxy preparation for the same exact URL shares one in-flight
   operating-system resolver promise. A caller can abandon its bounded wait
   without starting another identical resolver, and a completed or failed
@@ -79,6 +88,15 @@ event remains unresolved after the cleanup grace, Desktop stops awaiting this
 advisory refresh so the completed fetch can return; the owned termination work
 keeps a rejection observer for any later failure.
 
+A trampoline command carrying a token which is no longer valid is declined
+rather than thrown. The server replies on the socket and logs one warning naming
+the command's identifier, the credential-helper verb, and its parameter count,
+so only that one request fails. Previously the server threw, which surfaced as
+an unhandled renderer rejection, showed the generic "a background action stopped
+unexpectedly" notice, and — because the reply never arrived — left a live Git
+process waiting on a socket that was never closed while still holding its lock
+files, which could fail an unrelated commit or push in the same repository.
+
 Electron's proxy resolver exposes no `AbortSignal`. A resolver which never
 settles therefore leaves one shared in-flight entry for that exact URL until it
 settles or the app restarts. This is bounded for repeated calls to the same URL,
@@ -97,6 +115,15 @@ does not weaken redirect protection: authorization-like headers are still
 removed when the current URL crosses the initial origin. Releasing a failed
 entry also prevents a recycled request ID from being compared against another
 request's stale origin.
+
+A trampoline token is still single-operation and still revoked when its
+operation finishes; extending it only covers processes that operation actually
+launched, and a token is never resurrected once disposed. The refusal log line
+never contains the token, the command's standard input (which carries
+credentials for `store` and `erase`), or an askpass prompt (which can name a key
+path). Because the per-operation context now lives exactly as long as the token,
+a late credential request is answered with the originating repository and forced
+account instead of a default working directory and an unforced account.
 
 Markdown remains sanitized and rendered inside its sandboxed iframe. Lifecycle
 cleanup only releases listeners and references; it does not broaden link,
@@ -121,6 +148,17 @@ cleanup bound. `git/environment-test.ts` proves two concurrent preparations
 invoke one resolver and that settled work is evicted. `git/clone-test.ts` proves
 clone cancellation still waits for the complete injected termination barrier.
 The focused Git gate passes 30/30 tests.
+
+`trampoline-token-lifecycle-test.ts` covers a revoked token surviving until its
+child process closes, release on a spawn `error`, no extension for a process
+which already exited, multiple independent leases with exactly one disposal, no
+resurrection after disposal, and per-operation context which stays readable
+while the child is alive and is gone afterwards. It also drives a real
+trampoline server over a loopback socket to prove an expired token is declined
+with an empty reply and no handler invocation, that an unknown token is
+distinguished from an expired one, that a command whose process outlived its
+operation is still served, that a rejecting handler still replies, and that the
+log description omits the token, the standard input, and the askpass prompt.
 
 `popup-manager-test.ts` and `trampoline-ui-helper-test.ts` cover FIFO settlement
 for every prompt family, pre-existing sign-in reuse,

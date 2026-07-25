@@ -1,5 +1,39 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-24 trampoline token lifecycle fix
+
+Production build `zadtjbevjx` logged repeated `Unhandled renderer promise
+rejection — Error: Tried to use invalid trampoline token` from
+`trampoline-server.ts` `processCommand`, immediately after a 5 s
+`updateRemoteHEAD` timeout overlapping a `git fetch --recurse-submodules`.
+User-visible symptoms were "A background action stopped unexpectedly" toasts
+and Cheap LFS randomly failing a 10 GB commit.
+
+Root cause: a trampoline token was revoked when the *promise* that requested it
+settled, not when the Git *process* it was issued for exited. Timed-out,
+aborted, and max-buffer operations — and `spawnGit`, which resolves the moment
+the process starts — all leave Git running past that point, so a live process
+asked for credentials with an already-deleted token. `processCommand` then threw
+from a socket `data` handler: an unhandled renderer rejection *and* a reply that
+never arrived, wedging that Git process on an unclosed socket while it still
+held its lock files.
+
+Fix (`fix/trampoline-token-lifecycle`): tokens are now lease-counted and
+disposed only once revoked *and* every child process holding them has exited
+(`keepTrampolineTokenAliveUntilExit`, wired into `git()`, `spawnGit`, and the
+bounded SSH working-copy runner). Per-operation trampoline context moved from
+the promise's `finally` to token disposal so a late request keeps the right
+repository and forced account. The invalid-token path now replies on the socket
+and logs one `warn` naming the command identifier, credential-helper verb, and
+parameter count — never the token, stdin, or askpass prompt — and distinguishes
+an expired token from one this session never issued. No new user-facing copy,
+so no new translation keys.
+
+Verification: `trampoline-token-lifecycle-test.ts` (11 new tests, including a
+real server driven over a loopback socket); trampoline suites 39/39 and the
+related Git/SSH suites 49/49 green with the accounting line intact; `tsc
+--noEmit` clean; `yarn lint` (Prettier + ESLint) green.
+
 ## 2026-07-24 feature discoverability pass
 
 Two Opus audits (entry-point matrix + user-journey burial hunt, 11 raw

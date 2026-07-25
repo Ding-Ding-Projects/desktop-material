@@ -7,7 +7,30 @@ import {
   TrampolineCommandIdentifier,
 } from './trampoline-command'
 import { TrampolineCommandParser } from './trampoline-command-parser'
-import { isValidTrampolineToken } from './trampoline-tokens'
+import {
+  isValidTrampolineToken,
+  wasTrampolineTokenRecentlyDisposed,
+} from './trampoline-tokens'
+
+/**
+ * Describe a command for a log line without ever including the token, the
+ * standard input (which carries credentials for `store` and `erase`), or an
+ * askpass prompt (which can carry a key path). The credential helper's
+ * operation is a fixed verb and is safe to name.
+ */
+export function describeTrampolineCommand(command: ITrampolineCommand) {
+  const operation =
+    command.identifier === TrampolineCommandIdentifier.CredentialHelper
+      ? command.parameters.at(0)
+      : undefined
+
+  const operationSuffix =
+    operation === 'get' || operation === 'store' || operation === 'erase'
+      ? ` ${operation}`
+      : ''
+
+  return `${command.identifier}${operationSuffix} (${command.parameters.length} parameter(s))`
+}
 
 /**
  * This class represents the "trampoline server". The trampoline is something
@@ -142,7 +165,11 @@ export class TrampolineServer {
       return
     }
 
-    this.processCommand(socket, command)
+    // processCommand contains its own error handling; the guard here is a
+    // belt-and-braces measure so a socket event can never float a rejection.
+    this.processCommand(socket, command).catch(error =>
+      log.error('Error processing trampoline command', error)
+    )
   }
 
   /**
@@ -159,26 +186,74 @@ export class TrampolineServer {
     this.commandHandlers.set(identifier, handler)
   }
 
+  /**
+   * Handle one parsed command.
+   *
+   * This must never reject. It is invoked from a socket `data` event, so a
+   * rejection here becomes an unhandled renderer rejection *and* leaves the
+   * client waiting on a reply that never arrives, wedging a live Git process
+   * (and its lock files) until the app quits.
+   */
   private async processCommand(socket: Socket, command: ITrampolineCommand) {
-    if (!isValidTrampolineToken(command.trampolineToken)) {
-      throw new Error('Tried to use invalid trampoline token')
-    }
+    try {
+      if (!isValidTrampolineToken(command.trampolineToken)) {
+        // A Git process can outlive the operation which created its token, so
+        // this is a recoverable condition rather than a programming error. We
+        // decline to serve credentials and let Git fail this one operation on
+        // its own terms; nothing else is affected.
+        const provenance = wasTrampolineTokenRecentlyDisposed(
+          command.trampolineToken
+        )
+          ? 'the operation which issued it has already finished'
+          : 'it was not issued by this session'
 
-    const handler = this.commandHandlers.get(command.identifier)
+        log.warn(
+          `Declining trampoline command ${describeTrampolineCommand(
+            command
+          )}: the token is no longer valid because ${provenance}.`
+        )
 
-    if (handler === undefined) {
-      socket.end()
-      return
-    }
+        socket.end()
+        return
+      }
 
-    const result = await handler(command).catch(e =>
-      log.error('Error processing trampoline command', e)
-    )
+      const handler = this.commandHandlers.get(command.identifier)
 
-    if (result !== undefined) {
-      socket.end(result)
-    } else {
-      socket.end()
+      if (handler === undefined) {
+        socket.end()
+        return
+      }
+
+      const result = await handler(command).catch(e => {
+        log.error(
+          `Error processing trampoline command ${describeTrampolineCommand(
+            command
+          )}`,
+          e
+        )
+        return undefined
+      })
+
+      if (result !== undefined) {
+        socket.end(result)
+      } else {
+        socket.end()
+      }
+    } catch (error) {
+      log.error(
+        `Unexpected failure handling trampoline command ${describeTrampolineCommand(
+          command
+        )}`,
+        error
+      )
+
+      // Always reply, even on an unexpected failure, so the client is never
+      // left waiting on a socket which will not be closed.
+      try {
+        socket.end()
+      } catch {
+        // The socket may already have been destroyed by the client.
+      }
     }
   }
 

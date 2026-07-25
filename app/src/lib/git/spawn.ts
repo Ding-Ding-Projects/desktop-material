@@ -1,6 +1,7 @@
 import { spawn, IGitSpawnOptions } from 'dugite'
 import * as GitPerf from '../../ui/lib/git-perf'
 import { withTrampolineEnv } from '../trampoline/trampoline-environment'
+import { keepTrampolineTokenAliveUntilExit } from '../trampoline/trampoline-tokens'
 
 type SpawnOptions = IGitSpawnOptions & {
   /**
@@ -25,13 +26,20 @@ export const spawnGit = (
   options?: SpawnOptions
 ) =>
   withTrampolineEnv(
-    trampolineEnv =>
-      GitPerf.measure(`${name}: git ${args.join(' ')}`, async () =>
-        spawn(args, path, {
+    (trampolineEnv, trampolineToken) =>
+      GitPerf.measure(`${name}: git ${args.join(' ')}`, async () => {
+        const child = spawn(args, path, {
           ...options,
           env: { ...options?.env, ...trampolineEnv },
         })
-      ),
+
+        // This promise resolves as soon as the process has been spawned, so
+        // without this the token would be revoked while the process it was
+        // issued for is only just getting started.
+        keepTrampolineTokenAliveUntilExit(trampolineToken, child)
+
+        return child
+      }),
     path,
     options?.isBackgroundTask ?? false,
     options?.env
