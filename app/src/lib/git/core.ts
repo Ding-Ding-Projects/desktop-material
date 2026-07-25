@@ -13,6 +13,7 @@ import * as GitPerf from '../../ui/lib/git-perf'
 import * as Path from 'path'
 import { isErrnoException } from '../errno-exception'
 import { withTrampolineEnv } from '../trampoline/trampoline-environment'
+import { keepTrampolineTokenAliveUntilExit } from '../trampoline/trampoline-tokens'
 import { kStringMaxLength } from 'buffer'
 import { withHooksEnv } from '../hooks/with-hooks-env'
 import { coerceToString } from './coerce-to-string'
@@ -283,12 +284,23 @@ export async function git(
   return withHooksEnv(
     hooksEnv =>
       withTrampolineEnv(
-        async env => {
+        async (env, trampolineToken) => {
           const commandName = `${name}: git ${args.join(' ')}`
+          const observeProcess = opts.processCallback
 
           const result = await GitPerf.measure(commandName, () =>
             exec(args, path, {
               ...opts,
+              // Git can outlive this promise: an aborted or timed-out
+              // operation stops waiting while the process is still winding
+              // down, and a max-buffer failure rejects immediately. Keep the
+              // trampoline token valid until the process has actually exited
+              // so a late askpass or credential request is still served
+              // instead of being refused.
+              processCallback: process => {
+                keepTrampolineTokenAliveUntilExit(trampolineToken, process)
+                observeProcess?.(process)
+              },
               env: {
                 // Explicitly set TERM to 'dumb' so that if Desktop was launched
                 // from a terminal or if the system environment variables
