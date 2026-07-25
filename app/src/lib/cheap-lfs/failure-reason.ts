@@ -12,6 +12,12 @@ export interface ICheapLfsFailureReasonInput {
   readonly reason?: string
   readonly statusCode?: number
   readonly reasonKey?: TranslationKey
+  /**
+   * Raw underlying text (for example the Git output behind a failed bootstrap
+   * push) shown after a self-diagnosed `reasonKey`. Sanitized before display,
+   * so a reason key never hides the fact that actually caused the abort.
+   */
+  readonly reasonDetail?: string
 }
 
 /**
@@ -29,7 +35,11 @@ export function cheapLfsFailureReasonText(
     return ''
   }
   if (failure.reasonKey !== undefined) {
-    return t(failure.reasonKey)
+    const reason = t(failure.reasonKey)
+    const detail = sanitizeCheapLfsFailureReason(failure.reasonDetail ?? '')
+    return detail.length === 0
+      ? reason
+      : t('cheapLfs.firstPublish.reasonWithDetail', { reason, detail })
   }
   return sanitizeCheapLfsFailureReason(failure.reason ?? failure.message ?? '')
 }

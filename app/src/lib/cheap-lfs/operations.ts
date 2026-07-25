@@ -3110,6 +3110,10 @@ export interface ICheapLfsFailedFileProgress {
   readonly reason: string
   /** HTTP status when the provider supplied one (for example `422`). */
   readonly statusCode?: number
+  /** A localized reason key this app diagnosed itself; preferred over `reason`. */
+  readonly reasonKey?: TranslationKey
+  /** Underlying text shown after `reasonKey`; sanitized before display. */
+  readonly reasonDetail?: string
 }
 
 /**
@@ -3281,6 +3285,12 @@ export interface ICheapLfsAutoPinFailure {
    * — rather than text relayed from a provider.
    */
   readonly reasonKey?: TranslationKey
+  /**
+   * Underlying, still-unsanitized text behind a `reasonKey` — for example the
+   * Git failure that stopped a first-publish bootstrap push. Rendered after the
+   * localized reason so an abort can never be reported without its cause.
+   */
+  readonly reasonDetail?: string
 }
 
 /** Settled automatic pin outcome, always ordered like the selected inputs. */

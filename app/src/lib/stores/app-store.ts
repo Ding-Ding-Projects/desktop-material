@@ -51,9 +51,11 @@ import {
 } from '../cheap-lfs/operations'
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
 import {
+  buildCheapLfsFirstPublishAbort,
   cheapLfsFirstPublishBlocksUpload,
   cheapLfsFirstPublishReasonKey,
   decideCheapLfsFirstPublish,
+  ICheapLfsFirstPublishFailure,
   ICheapLfsPublicationState,
   isCheapLfsFirstPublishProven,
 } from '../cheap-lfs/first-publish'
@@ -532,7 +534,6 @@ import {
   getFloatNumber,
 } from '../local-storage'
 import { t } from '../i18n'
-import type { TranslationKey } from '../i18n-resources'
 import {
   defaultShowBranchNameInRepoListSetting,
   ShowBranchNameInRepoListSetting,
@@ -14767,23 +14768,29 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const releaseEligibleTargets = preflightTargets.filter(
         target => !partialFailurePaths.has(target.relativePath)
       )
-      const firstPublishReasonKey =
+      const firstPublishFailure =
         releaseEligibleTargets.length === 0
           ? null
           : await this.ensureCheapLfsReleaseAnchor(repository)
-      if (firstPublishReasonKey !== null) {
+      if (firstPublishFailure !== null) {
+        // The commit is about to abort without touching a single file. Leave
+        // the reason on every terminal row, in the summary counts, and on a
+        // persistent notice so the button never just springs back in silence.
+        const abort = buildCheapLfsFirstPublishAbort(
+          firstPublishFailure,
+          releaseEligibleTargets,
+          repository.id
+        )
+        reportProgress(abort.progress)
+        this.postPersistentErrorNotice(
+          abort.notice.title,
+          abort.notice.message,
+          abort.notice.dedupeKey,
+          repository.id
+        )
         return {
           pinned: [],
-          failures: mergeFailures(
-            releaseEligibleTargets.map(
-              (target): ICheapLfsAutoPinFailure => ({
-                relativePath: target.relativePath,
-                sizeInBytes: target.sizeInBytes,
-                message: t(firstPublishReasonKey),
-                reasonKey: firstPublishReasonKey,
-              })
-            )
-          ),
+          failures: mergeFailures(abort.failures),
           commitPaths: [],
         }
       }
@@ -15022,19 +15029,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * whose bytes exist nowhere remote, so any clone between commit and push
    * would resolve to a dangling pointer.
    *
-   * Returns `null` when the route is usable, or the localized reason key that
-   * every affected file row and the failure notification must carry.
+   * Returns `null` when the route is usable, or the localized reason key plus
+   * the underlying detail that every affected file row, the commit terminal,
+   * and the persistent failure notification must carry. Returning only a key
+   * used to strand the real cause in a `log.warn` nobody sees.
    */
   private async ensureCheapLfsReleaseAnchor(
     repository: Repository
-  ): Promise<TranslationKey | null> {
+  ): Promise<ICheapLfsFirstPublishFailure | null> {
     const observed = await this.readCheapLfsPublicationState(repository)
     const decision = decideCheapLfsFirstPublish(observed)
     if (decision === 'ready') {
       return null
     }
     if (cheapLfsFirstPublishBlocksUpload(decision)) {
-      return cheapLfsFirstPublishReasonKey(decision)
+      const reasonKey = cheapLfsFirstPublishReasonKey(decision)
+      return reasonKey === null
+        ? { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
+        : { reasonKey }
     }
 
     // `publish-branch`: everything needed exists locally. Publish the branch
@@ -15043,13 +15055,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const branchName = observed.branchName
     const localTipSha = observed.localTipSha
     if (remoteName === null || branchName === null || localTipSha === null) {
-      return 'cheapLfs.firstPublish.publishFailed'
+      return { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
     }
     const remote = this.gitStoreCache
       .get(repository)
       .remotes.find(candidate => candidate.name === remoteName)
     if (remote === undefined) {
-      return 'cheapLfs.firstPublish.publishFailed'
+      return { reasonKey: 'cheapLfs.firstPublish.publishFailed' }
     }
     const remoteBranchRef = `refs/heads/${branchName}`
     try {
@@ -15060,6 +15072,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           this.accounts,
           repository
         ),
+        // This anchor is an app-generated, create-only ref publication the user
+        // never authored, so it does not run their `pre-push` hook. Their own
+        // reviewed push still runs every hook. Without this, any repository
+        // carrying the stock `git lfs pre-push` hook could never bootstrap.
+        skipPushHooks: true,
       })
       const result = await session.operations.push({
         remoteName,
@@ -15072,19 +15089,57 @@ export class AppStore extends TypedBaseStore<IAppState> {
         force: false,
       })
       if (result !== 'pushed') {
-        return 'cheapLfs.firstPublish.publishFailed'
+        return {
+          reasonKey: 'cheapLfs.firstPublish.publishFailed',
+          detail: `git push ${result}`,
+        }
       }
       const proven = await this.readCheapLfsPublicationState(repository)
       return isCheapLfsFirstPublishProven(proven, localTipSha)
         ? null
-        : 'cheapLfs.firstPublish.publishFailed'
+        : {
+            reasonKey: 'cheapLfs.firstPublish.publishFailed',
+            detail: 'the remote branch tip did not match the published commit',
+          }
     } catch (error) {
+      const failure = error instanceof Error ? error : new Error(String(error))
       log.warn(
         'Could not publish the branch before a Cheap LFS release upload.',
-        error instanceof Error ? error : new Error(String(error))
+        failure
       )
-      return 'cheapLfs.firstPublish.publishFailed'
+      return {
+        reasonKey: 'cheapLfs.firstPublish.publishFailed',
+        detail: failure.message,
+      }
     }
+  }
+
+  /**
+   * Show a persistent, non-blocking notice for a failure the user must see.
+   *
+   * `emitError` routes through the user's error-presentation preference and can
+   * become a modal popup; a background abort must never block the app, and it
+   * must never be silent either. This enqueues the same notice stack card the
+   * notice style uses and records the same entry in the notification centre.
+   */
+  private postPersistentErrorNotice(
+    title: string,
+    message: string,
+    dedupeKey: string,
+    repositoryId?: number
+  ): void {
+    this.errorNotices = enqueueErrorNotice(this.errorNotices, {
+      title,
+      message,
+      dedupeKey,
+    }).notices
+    this.postNotification({
+      kind: 'app-error',
+      title,
+      body: message,
+      ...(repositoryId === undefined ? {} : { repositoryId }),
+    })
+    this.emitUpdate()
   }
 
   /** Surface a verified post-commit maintenance failure without retrying. */

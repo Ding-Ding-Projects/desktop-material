@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 
 import {
+  buildCheapLfsFirstPublishAbort,
   cheapLfsFirstPublishBlocksUpload,
   cheapLfsFirstPublishNeedsBootstrap,
   cheapLfsFirstPublishReasonKey,
@@ -9,6 +10,7 @@ import {
   ICheapLfsPublicationState,
   isCheapLfsFirstPublishProven,
 } from '../../../src/lib/cheap-lfs/first-publish'
+import { cheapLfsFailedFileRowText } from '../../../src/lib/cheap-lfs/failure-reason'
 import {
   cantoneseTranslations,
   englishTranslations,
@@ -152,5 +154,135 @@ describe('isCheapLfsFirstPublishProven', () => {
       ),
       false
     )
+  })
+})
+
+describe('buildCheapLfsFirstPublishAbort', () => {
+  const targets = [
+    { relativePath: 'big/one.bin', sizeInBytes: 120 },
+    { relativePath: 'big/two.bin', sizeInBytes: 80 },
+  ]
+
+  it('threads the reason onto every file row, the terminal, and the notice', () => {
+    const abort = buildCheapLfsFirstPublishAbort(
+      {
+        reasonKey: 'cheapLfs.firstPublish.publishFailed',
+        detail: '`git push` exited with an unexpected code: 128.',
+      },
+      targets,
+      42
+    )
+
+    assert.strictEqual(abort.failures.length, 2)
+    for (const failure of abort.failures) {
+      assert.strictEqual(
+        failure.reasonKey,
+        'cheapLfs.firstPublish.publishFailed'
+      )
+      assert.strictEqual(
+        failure.reasonDetail,
+        '`git push` exited with an unexpected code: 128.'
+      )
+      assert.ok(failure.message.length > 0)
+      // Every row must state the cause, not only the generic guidance.
+      assert.match(
+        cheapLfsFailedFileRowText(failure.relativePath, failure),
+        /128/
+      )
+    }
+
+    // The terminal summary must account for the aborted files and say why.
+    assert.strictEqual(abort.progress.failedFiles, 2)
+    assert.strictEqual(abort.progress.succeededFiles, 0)
+    assert.strictEqual(abort.progress.completedFiles, 2)
+    assert.strictEqual(abort.progress.totalFiles, 2)
+    assert.strictEqual(abort.progress.totalBytes, 200)
+    assert.strictEqual(abort.progress.transferredBytes, 0)
+    assert.strictEqual(abort.progress.failedFileDetails?.length, 2)
+    assert.deepStrictEqual(
+      abort.progress.failedFileDetails?.map(detail => detail.relativePath),
+      ['big/one.bin', 'big/two.bin']
+    )
+    for (const detail of abort.progress.failedFileDetails ?? []) {
+      assert.strictEqual(
+        detail.reasonKey,
+        'cheapLfs.firstPublish.publishFailed'
+      )
+      assert.match(
+        cheapLfsFailedFileRowText(detail.relativePath, detail),
+        /128/
+      )
+    }
+
+    // The persistent notice repeats both halves and dedupes per repository.
+    assert.strictEqual(
+      abort.notice.title,
+      englishTranslations['cheapLfs.firstPublish.abortTitle']
+    )
+    assert.match(abort.notice.message, /128/)
+    assert.ok(
+      abort.notice.message.startsWith(
+        englishTranslations['cheapLfs.firstPublish.publishFailed']
+      )
+    )
+    assert.strictEqual(abort.notice.dedupeKey, 'cheap-lfs-first-publish:42')
+  })
+
+  it('omits the detail clause when there is no underlying cause', () => {
+    const abort = buildCheapLfsFirstPublishAbort(
+      { reasonKey: 'cheapLfs.firstPublish.noRemote' },
+      targets,
+      7
+    )
+    assert.strictEqual(abort.failures[0].reasonDetail, undefined)
+    assert.strictEqual(
+      abort.notice.message,
+      englishTranslations['cheapLfs.firstPublish.noRemote']
+    )
+    assert.doesNotMatch(abort.notice.message, /Git reported/)
+  })
+
+  it('never leaks a credential-bearing detail into any surface', () => {
+    const abort = buildCheapLfsFirstPublishAbort(
+      {
+        reasonKey: 'cheapLfs.firstPublish.publishFailed',
+        detail:
+          'fatal: unable to access https://x:ghp_abcdef0123456789@example.invalid/r.git/',
+      },
+      targets,
+      3
+    )
+    assert.doesNotMatch(abort.notice.message, /ghp_/)
+    assert.doesNotMatch(abort.notice.message, /https:/)
+    for (const detail of abort.progress.failedFileDetails ?? []) {
+      const row = cheapLfsFailedFileRowText(detail.relativePath, detail)
+      assert.doesNotMatch(row, /ghp_/)
+      assert.doesNotMatch(row, /https:/)
+    }
+  })
+
+  it('keeps the abort copy present and plain in both languages', () => {
+    for (const key of [
+      'cheapLfs.firstPublish.abortTitle',
+      'cheapLfs.firstPublish.reasonWithDetail',
+    ] as const) {
+      assert.ok((englishTranslations[key] ?? '').length > 0)
+      assert.ok((cantoneseTranslations[key] ?? '').length > 0)
+    }
+    // Only the composition template may carry placeholders.
+    for (const catalog of [englishTranslations, cantoneseTranslations]) {
+      assert.doesNotMatch(
+        catalog['cheapLfs.firstPublish.abortTitle'] ?? '',
+        /\{/
+      )
+      assert.match(
+        catalog['cheapLfs.firstPublish.reasonWithDetail'] ?? '',
+        /\{reason\}/
+      )
+      assert.match(
+        catalog['cheapLfs.firstPublish.reasonWithDetail'] ?? '',
+        /\{detail\}/
+      )
+    }
   })
 })

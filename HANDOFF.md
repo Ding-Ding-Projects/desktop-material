@@ -1,5 +1,68 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-25 Bundled-Git hook stdin, swallowed abort, 100k path cap
+
+Branch `fix/push-hooks-and-caps`. Closes the three defects the live #38
+re-verification found against `v3.6.3-beta3-zadtpwiotl` after the first-publish
+bootstrap started working.
+
+**1. Bundled-Git `/dev/stdin` hook failure.** Root cause proved locally against
+the bundled Git 2.53.0.windows.3: `app/src/lib/hooks/hooks-proxy.ts:188` ran
+`git hook run <hook> --to-stdin=/dev/stdin`. Git for Windows is a **native Win32
+program** whose `open()` special-cases only `/dev/null`, so `/dev/stdin` was
+resolved as an ordinary filesystem path and `xopen()` in Git's `pick_next_hook`
+died before the hook was spawned — `fatal: could not open '/dev/stdin' for
+reading: No such file or directory`, exit 128, on every intercepted hook run in
+a repository with stock Git LFS hooks. The companion MSYS symptom
+(`sh: /dev/stdin: No such file or directory`) has the same shape: `/dev/stdin`
+is a symlink to `/proc/self/fd/0`, and the MSYS runtime cannot re-open an
+anonymous Windows pipe inherited from a non-MSYS parent (measured: it *can*
+re-open a disk-file handle).
+
+Fixed at the layer that fixes all hook users: `app/src/lib/hooks/
+hook-stdin-spool.ts` streams the proxied payload into a real file (bounded at
+64 MiB, `mkdtemp`-private, removed in a `finally`) and `--to-stdin=<that path>`
+is passed instead. Additionally, the Cheap LFS first-publish anchor push now
+carries `--no-verify` (`ILocalCommitBatchingGitOptions.skipPushHooks` →
+`buildLocalCommitBatchingExactPushArgv(..., skipHooks)`), with hook interception
+dropped in lockstep. That is scoped strictly to the app-generated create-only
+publication; the user's reviewed push and every batch push still run hooks.
+
+**2. Silently swallowed abort.** `AppStore.ensureCheapLfsReleaseAnchor` returned
+only a `TranslationKey` and logged the real Git failure to `log.warn`, and the
+notification it produced went to the notification-centre *history* — the app's
+on-screen surface is the `ErrorNoticeStack`, fed only by `_pushError`. Net
+effect: the commit aborted with no toast and no reason anywhere. It now returns
+`ICheapLfsFirstPublishFailure { reasonKey, detail }`, and
+`buildCheapLfsFirstPublishAbort` derives all three surfaces from that one
+failure — per-file rows (`reasonKey` + `reasonDetail`), a terminal progress
+snapshot stating `failed = n / succeeded = 0` with the reason on every row, and
+a persistent notice enqueued straight onto the notice stack (not `emitError`,
+which can become a modal). `reasonDetail` is scrubbed by
+`sanitizeCheapLfsFailureReason` on every surface. New EN + 粵語 keys
+`cheapLfs.firstPublish.reasonWithDetail` and `.abortTitle`.
+
+**3. 100k path cap.** `MaximumLocalCommitBatchingPaths` was 100,000, refusing a
+real 212,569-path first publish outright. The bound is a *memory* bound only —
+paths reach Git through NUL-delimited stdin, and the per-batch 10,000-path /
+1.4 GB ceilings are what bound a commit and a push. Raised to **600,000** from
+measured cost (400k paths = 58 MiB raw-diff stdout + 159 MiB parsed entries +
+106 MiB tree map; 600k = 87/239/158 MiB), which keeps the worst-case transient
+parse footprint near 400 MiB and clears the required 400,000 by 50%; 1,000,000
+was rejected at ~700 MiB. The 64 MiB raw-diff and path-inventory stdout budgets
+were raised to 160 MiB in lockstep — at 400k paths a raw diff already measures
+58 MiB, so the byte budget would otherwise have become the real, less legible
+cap. The proof capture's whole-tree `git add -A` ceiling matches.
+
+Gates: `npx tsc --noEmit` clean; Prettier written; targeted `node
+script/test.mjs` green with intact accounting lines (`hooks/
+hook-stdin-spool-test.ts` new, `cheap-lfs/first-publish-test.ts` and
+`git/local-commit-batching-git-test.ts` extended). `cheap-lfs/
+oci-registry-runtime-test.ts` "accepts a pinned winget link…" fails both with
+and without this change (Windows symlink/realpath privilege in the fixture) —
+pre-existing, verified by re-running it on a stashed clean tree. Not yet
+re-verified against a live installed build.
+
 ## 2026-07-25 Cheap LFS first publish, EBUSY push race, silent failures
 
 Branch `fix/cheap-lfs-first-publish`. Closes the three defects proved by the

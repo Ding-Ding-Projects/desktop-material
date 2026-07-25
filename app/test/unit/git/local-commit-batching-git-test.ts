@@ -14,6 +14,7 @@ import {
   ILocalCommitBatchingGitResult,
   LocalCommitBatchingGitError,
   LocalCommitBatchingGitRunner,
+  MaximumLocalCommitBatchingPaths,
   parseLocalCommitLogZ,
   parseLocalCommitLsRemote,
   parseLocalCommitRawDiffZ,
@@ -239,6 +240,122 @@ describe('git/local-commit-batching-git', () => {
         onTerminalOutputAvailable,
       },
     })
+  })
+
+  it('publishes an app-generated anchor with --no-verify and no hook interception', async () => {
+    const repository = new Repository(
+      'C:\\anchor-repository',
+      -103,
+      null,
+      false
+    )
+    const headSha = oid('b')
+    const remoteEnvironment = { GIT_ASKPASS: 'batch-test-askpass' }
+    const calls = new Array<{
+      readonly args: ReadonlyArray<string>
+      readonly options?: Parameters<LocalCommitBatchingGitRunner>[3]
+    }>()
+
+    await pushLocalCommitBatchExactly(
+      {
+        repository,
+        remote: { name: 'origin', url: 'https://example.invalid/repo.git' },
+        headSha,
+        remoteBranch: 'refs/heads/main',
+        accountKey: 'batch-account',
+        hookOptions: {
+          onHookProgress: () => undefined,
+          onHookFailure: async () => 'abort' as const,
+          onTerminalOutputAvailable: () => undefined,
+        },
+        skipHooks: true,
+      },
+      {
+        runGit: async (args, _path, _name, options) => {
+          calls.push({ args: [...args], options })
+          return { stdout: '', stderr: '', exitCode: 0 }
+        },
+        remoteEnvironment: async () => remoteEnvironment,
+      }
+    )
+
+    assert.deepStrictEqual(
+      buildLocalCommitBatchingExactPushArgv(
+        'origin',
+        headSha,
+        'refs/heads/main',
+        true
+      ),
+      [
+        ...AutomaticCommitPushBatchGitMaintenanceArgs,
+        '-c',
+        'pack.window=0',
+        '-c',
+        'pack.compression=0',
+        'push',
+        '--no-verify',
+        'origin',
+        `${headSha}:refs/heads/main`,
+      ]
+    )
+    assert.equal(calls.length, 1)
+    assert.ok(calls[0].args.includes('--no-verify'))
+    // `--no-verify` and hook interception must move together: proxying a hook
+    // Git is told not to run would only install a proxy nobody invokes.
+    assert.equal(calls[0].options?.interceptHooks, undefined)
+    assert.equal(calls[0].options?.onHookProgress, undefined)
+    assert.equal(calls[0].options?.onHookFailure, undefined)
+    assert.equal(calls[0].options?.onTerminalOutputAvailable, undefined)
+    assert.deepStrictEqual(calls[0].options?.env, remoteEnvironment)
+    assert.equal(calls[0].options?.credentialAccountKey, 'batch-account')
+  })
+
+  it('keeps the ordinary batch push running hooks', () => {
+    const headSha = oid('7')
+    assert.equal(
+      buildLocalCommitBatchingExactPushArgv(
+        'origin',
+        headSha,
+        'refs/heads/main'
+      ).includes('--no-verify'),
+      false
+    )
+  })
+
+  it('accepts an inventory far above the old 100,000-path cap', () => {
+    // Regression: a real 212,569-path first publish was refused outright by the
+    // old bound. The adapter must plan an inventory well past 400,000 paths.
+    assert.ok(MaximumLocalCommitBatchingPaths >= 400_000)
+
+    const pathCount = 250_000
+    const zero = oid('0')
+    const newSha = oid('2')
+    const raw = new Array<string>(pathCount)
+    for (let index = 0; index < pathCount; index++) {
+      raw[index] = `:000000 100644 ${zero} ${newSha} A\0large/file-${index}.bin`
+    }
+    const entries = parseLocalCommitRawDiffZ(`${raw.join('\0')}\0`)
+    assert.equal(entries.length, pathCount)
+    assert.equal(entries[0].path, 'large/file-0.bin')
+    assert.equal(entries[pathCount - 1].path, `large/file-${pathCount - 1}.bin`)
+  })
+
+  it('still refuses an inventory above the raised path cap', () => {
+    const zero = oid('0')
+    const newSha = oid('2')
+    const overflow = MaximumLocalCommitBatchingPaths + 1
+    const raw = new Array<string>(overflow)
+    for (let index = 0; index < overflow; index++) {
+      raw[index] = `:000000 100644 ${zero} ${newSha} A\0f/${index}`
+    }
+    assert.throws(
+      () => parseLocalCommitRawDiffZ(`${raw.join('\0')}\0`),
+      (error: unknown) =>
+        error instanceof LocalCommitBatchingGitError &&
+        error.code === 'limit-exceeded' &&
+        error.message ===
+          `Automatic local-commit batching supports at most ${MaximumLocalCommitBatchingPaths} changed paths.`
+    )
   })
 
   it('parses bounded raw object, commit, and remote records', () => {

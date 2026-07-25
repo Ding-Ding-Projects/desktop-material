@@ -9,6 +9,11 @@ import { Writable } from 'stream'
 import { promisify } from 'util'
 import memoizeOne from 'memoize-one'
 import which from 'which'
+import {
+  HookStdinTooLargeError,
+  ISpooledHookStdin,
+  spoolHookStdinToFile,
+} from './hook-stdin-spool'
 
 const execFileAsync = promisify(execFile)
 
@@ -177,19 +182,6 @@ export const createHooksProxy = (
       return
     }
 
-    const args = [
-      ...['hook', 'run', hookName],
-      // We always copy our pre-auto-gc hook in order to be able to tell the
-      // user that the reason their commit is taking so long is because Git is
-      // performing garbage collection, but it's unlikely that the user has a
-      // pre-auto-gc hook configured themselves, so we tell Git to ignore
-      // missing hooks here.
-      ...(hookName === 'pre-auto-gc' ? ['--ignore-missing'] : []),
-      ...(hasStdin ? ['--to-stdin=/dev/stdin'] : []),
-      '--',
-      ...proxyArgs.slice(1),
-    ]
-
     const terminalOutput: Buffer[] = []
     const gitPath = resolveGitBinary(resolve(__dirname, 'git'))
     const shellEnv = await ensureGitExecPathEnv(await getShellEnv(proxyCwd))
@@ -212,28 +204,65 @@ export const createHooksProxy = (
       return exitWithError(conn, errMsg)
     }
 
-    const { code, signal } = await new Promise<{
-      code: number | null
-      signal: NodeJS.Signals | null
-    }>((resolve, reject) => {
-      conn.on('close', abort)
+    // `git hook run --to-stdin=<path>` opens <path> itself. `/dev/stdin` is not
+    // openable by the bundled native Win32 Git, so the proxied payload is
+    // spooled to a real file first. See `hook-stdin-spool`.
+    let spooledStdin: ISpooledHookStdin | null = null
+    if (hasStdin) {
+      try {
+        spooledStdin = await spoolHookStdinToFile(conn.stdin)
+      } catch (err) {
+        const detail =
+          err instanceof HookStdinTooLargeError
+            ? err.message
+            : `Failed to capture standard input for hook ${hookName}.`
+        debug(detail, err instanceof Error ? err : undefined)
+        return exitWithError(conn, detail)
+      }
+    }
 
-      const child = spawn(gitPath, args, {
-        cwd: proxyCwd,
-        // GITHUB_DESKTOP lets hooks know they're run from GitHub Desktop.
-        // See https://github.com/desktop/desktop/issues/19001
-        env: { ...shellEnv.env, ...safeEnv, GITHUB_DESKTOP: '1' },
-        signal: abortController.signal,
-      })
-        .on('close', (code, signal) => resolve({ code, signal }))
-        .on('error', err => reject(err))
+    const args = [
+      ...['hook', 'run', hookName],
+      // We always copy our pre-auto-gc hook in order to be able to tell the
+      // user that the reason their commit is taking so long is because Git is
+      // performing garbage collection, but it's unlikely that the user has a
+      // pre-auto-gc hook configured themselves, so we tell Git to ignore
+      // missing hooks here.
+      ...(hookName === 'pre-auto-gc' ? ['--ignore-missing'] : []),
+      ...(spooledStdin === null ? [] : [`--to-stdin=${spooledStdin.path}`]),
+      '--',
+      ...proxyArgs.slice(1),
+    ]
 
-      // git-hook run takes care of ensuring we only get hook output on stderr
-      // https://github.com/git/git/blob/4cf919bd7b946477798af5414a371b23fd68bf93/hook.c#L73C6-L73C22
-      child.stderr.pipe(conn.stderr, { end: false }).on('error', reject)
-      child.stderr.on('data', data => terminalOutput.push(data))
-      conn.stdin.pipe(child.stdin).on('error', reject)
-    })
+    let code: number | null
+    let signal: NodeJS.Signals | null
+    try {
+      ;({ code, signal } = await new Promise<{
+        code: number | null
+        signal: NodeJS.Signals | null
+      }>((resolve, reject) => {
+        conn.on('close', abort)
+
+        const child = spawn(gitPath, args, {
+          cwd: proxyCwd,
+          // GITHUB_DESKTOP lets hooks know they're run from GitHub Desktop.
+          // See https://github.com/desktop/desktop/issues/19001
+          env: { ...shellEnv.env, ...safeEnv, GITHUB_DESKTOP: '1' },
+          signal: abortController.signal,
+        })
+          .on('close', (code, signal) => resolve({ code, signal }))
+          .on('error', err => reject(err))
+
+        // git-hook run takes care of ensuring we only get hook output on stderr
+        // https://github.com/git/git/blob/4cf919bd7b946477798af5414a371b23fd68bf93/hook.c#L73C6-L73C22
+        child.stderr.pipe(conn.stderr, { end: false }).on('error', reject)
+        child.stderr.on('data', data => terminalOutput.push(data))
+        // The hook reads the spooled file, so Git's own stdin stays empty.
+        child.stdin.end()
+      }))
+    } finally {
+      await spooledStdin?.dispose()
+    }
 
     const dur = `after ${((Date.now() - startTime) / 1000).toFixed(2)}s`
     const prefix = `${hookName} hook`
