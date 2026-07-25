@@ -1,6 +1,5 @@
 # Desktop Material — Active parity handoff
 
-<<<<<<< HEAD
 ## 2026-07-24 trampoline token lifecycle fix
 
 Production build `zadtjbevjx` logged repeated `Unhandled renderer promise
@@ -34,7 +33,6 @@ Verification: `trampoline-token-lifecycle-test.ts` (11 new tests, including a
 real server driven over a loopback socket); trampoline suites 39/39 and the
 related Git/SSH suites 49/49 green with the accounting line intact; `tsc
 --noEmit` clean; `yarn lint` (Prettier + ESLint) green.
-=======
 ## 2026-07-25 updater downgrade investigation and guard
 
 `fix/updater-downgrade`, branch-only. The reported "auto-update downgraded the
@@ -79,7 +77,6 @@ app/test/unit/update-version-order-test.ts
 app/test/unit/super-express-release-workflow-test.ts
 app/test/unit/ci-workflow-safety-test.ts` → 34/34 pass, accounting `4/4`.
 Not pushed; no CI run exists yet.
->>>>>>> fix/updater-downgrade
 
 ## 2026-07-24 feature discoverability pass
 
