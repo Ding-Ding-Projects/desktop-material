@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { lstat, realpath } from 'fs/promises'
+import { lstat, open, realpath } from 'fs/promises'
 import { basename, dirname, join, resolve } from 'path'
 import {
   CheapLfsGhcrVerifiedVisibility,
@@ -89,10 +89,10 @@ const lstatPointerSizeProbe: CheapLfsPointerSizeProbe = async (
   relativePath
 ) => {
   try {
-    const absolutePath = join(
-      resolve(repositoryPath),
-      ...relativePath.split('/')
-    )
+    // Canonicalize the repository root first (8.3 short names, mapped drives)
+    // so only a symlink/junction INSIDE the repository trips the parent check.
+    const root = await realpath(resolve(repositoryPath))
+    const absolutePath = join(root, ...relativePath.split('/'))
     // lstat only spares the final component; a parent that is itself a
     // symlink/junction would be silently followed. Fall through to the full
     // fail-closed prover (which refuses redirected parents) in that case.
@@ -124,6 +124,20 @@ async function readSelectedOciPointer(
   if (probedSize !== null && isOversizedForOciPointer(probedSize)) {
     return null
   }
+  if (probedSize === null) {
+    // A submodule gitlink is selected as its directory path. A directory can
+    // never be committed as a pointer blob, so it needs no key proof — and it
+    // must not reach the prover, whose file-shaped refusals abort the commit.
+    try {
+      const root = await realpath(resolve(repositoryPath))
+      const stats = await lstat(join(root, ...relativePath.split('/')))
+      if (stats.isDirectory()) {
+        return null
+      }
+    } catch {
+      // Missing/unreadable: fall through to the fail-closed prover unchanged.
+    }
+  }
   const proof = cheapLfsEligible
     ? await defaultCheapLfsTrackedPathStore.proveDestination(
         repositoryPath,
@@ -152,6 +166,56 @@ async function readSelectedOciPointer(
         pointer,
         contentSha256: createHash('sha256').update(text, 'utf8').digest('hex'),
       }
+}
+
+/**
+ * Bounded, prover-free sniff for a Windows-hostile selected path. The
+ * fail-closed prover refuses hostile spellings outright, which used to abort
+ * the ENTIRE commit for any oddly-named raw file. A hostile path may commit as
+ * a plain Git file only when its content is PROVABLY not an OCI pointer:
+ * regular file (no symlinked parent, lstat-final), and either over the pointer
+ * text bound or bounded-read text that does not parse as a pointer. Anything
+ * else — pointer, symlink, redirected parent, unreadable — stays fail-closed.
+ */
+export async function unsafeSelectedPathIsProvablyNotPointer(
+  repositoryPath: string,
+  relativePath: string
+): Promise<boolean> {
+  try {
+    const root = await realpath(resolve(repositoryPath))
+    const absolutePath = join(
+      root,
+      ...relativePath.replace(/\\/g, '/').split('/')
+    )
+    const parent = dirname(absolutePath)
+    if ((await realpath(parent)).toLowerCase() !== parent.toLowerCase()) {
+      return false
+    }
+    const stats = await lstat(absolutePath)
+    if (!stats.isFile()) {
+      return false
+    }
+    if (isOversizedForOciPointer(stats.size)) {
+      return true
+    }
+    // Re-verify the bound at read time so a file that grows between lstat and
+    // read cannot smuggle a pointer suffix past the sniff.
+    const handle = await open(absolutePath, 'r')
+    try {
+      const bound = CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
+      const buffer = Buffer.alloc(bound + 1)
+      const { bytesRead } = await handle.read(buffer, 0, bound + 1, 0)
+      if (bytesRead > bound) {
+        return true
+      }
+      const text = buffer.subarray(0, bytesRead).toString('utf8')
+      return parseCheapLfsGhcrPointer(text) === null
+    } finally {
+      await handle.close()
+    }
+  } catch {
+    return false
+  }
 }
 
 interface ISelectedCommitPath {
@@ -223,8 +287,22 @@ export async function resolveCheapLfsCommitKeyRequirement(
     }
     const validated = validateSelectedCommitPath(relativePath)
     if (validated === null) {
+      // A hostile spelling no longer aborts the whole commit when its content
+      // is provably not a pointer — it commits as a plain Git file, excluded
+      // from all Cheap LFS processing (never pinned, never key-proved).
+      if (
+        await unsafeSelectedPathIsProvablyNotPointer(
+          repositoryPath,
+          relativePath
+        )
+      ) {
+        log.warn(
+          `Cheap LFS: committing Windows-hostile path as a plain Git file with no Cheap LFS processing: ${relativePath}`
+        )
+        continue
+      }
       throw new CheapLfsCommitKeyError(
-        'Cheap LFS cannot prove a private registry key for an unsafe selected path.',
+        `Cheap LFS cannot prove a private registry key for an unsafe selected path: ${relativePath}`,
         [relativePath]
       )
     }
@@ -251,7 +329,7 @@ export async function resolveCheapLfsCommitKeyRequirement(
     if (selectedPointer !== null) {
       if (!cheapLfsEligible) {
         throw new CheapLfsCommitKeyError(
-          'Cheap LFS cannot prove a private registry key for an unsafe selected path.',
+          `Cheap LFS cannot prove a private registry key for an unsafe selected path: ${relativePath}`,
           [relativePath]
         )
       }
