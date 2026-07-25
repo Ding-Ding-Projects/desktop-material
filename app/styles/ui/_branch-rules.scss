@@ -225,6 +225,38 @@
   }
 }
 
+.branch-rules-filter {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+
+  .branch-rules-filter-input {
+    flex: 1 1 180px;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 999px;
+    color: inherit;
+    background: var(--md-sys-color-surface-container-highest);
+
+    &:focus-visible {
+      border-color: var(--md-sys-color-primary);
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 30%, transparent);
+      outline-offset: 1px;
+    }
+  }
+
+  .branch-rules-filter-match {
+    flex: 0 0 auto;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+  }
+}
+
 .branch-rules-empty,
 .branch-rules-warning-list {
   display: flex;

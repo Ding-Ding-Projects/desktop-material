@@ -15,6 +15,20 @@ import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { FilterMode } from '../../lib/fuzzy-find'
+import { FilterModeControl } from '../lib/filter-mode-control'
+import {
+  persistFilterMode,
+  readPersistedFilterMode,
+} from '../lib/filter-list-mode'
+import {
+  filterBranchRuleSources,
+  filterBranchRuleValues,
+} from './branch-rules-filter'
+import { t, LanguageModeChangedEvent } from '../../lib/i18n'
+
+/** localStorage id used to persist the result-list filter mode. */
+const BranchRulesFilterListId = 'branch-rules-results'
 
 export interface IEffectiveBranchRulesClient {
   readonly load: (
@@ -55,6 +69,12 @@ interface IBranchRulesInspectorState {
   readonly phase: InspectorPhase
   readonly result: IEffectiveBranchRules | null
   readonly error: EffectiveBranchRulesError | null
+  /** The current filter query applied to the enumerated result lists. */
+  readonly filter: string
+  /** The active fuzzy/substring/regex matching strategy. */
+  readonly filterMode: FilterMode
+  /** Whether Substring/Regex matching is case sensitive. */
+  readonly filterCaseSensitive: boolean
 }
 
 const DialogTitleId = 'effective-branch-rules-title'
@@ -125,6 +145,9 @@ export class BranchRulesInspector extends React.Component<
       phase: 'idle',
       result: null,
       error: null,
+      filter: '',
+      filterMode: readPersistedFilterMode(BranchRulesFilterListId),
+      filterCaseSensitive: false,
     }
   }
 
@@ -136,6 +159,10 @@ export class BranchRulesInspector extends React.Component<
         : null
     this.wasTopMost = this.context.isTopMost
     window.addEventListener('keydown', this.onWindowKeyDown)
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     this.focusIfTopMost(this.closeButton)
     if (this.canLoad()) {
       void this.load()
@@ -241,6 +268,10 @@ export class BranchRulesInspector extends React.Component<
     this.mounted = false
     this.controller?.abort()
     window.removeEventListener('keydown', this.onWindowKeyDown)
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
     const activeElement = document.activeElement
     if (
       this.previouslyFocusedElement?.isConnected === true &&
@@ -406,6 +437,90 @@ export class BranchRulesInspector extends React.Component<
 
   private refreshLoad = () => {
     void this.load(true, true)
+  }
+
+  private onLanguageModeChanged = () => {
+    // Copy is read live from `t()`, so a re-render is all that is needed.
+    this.forceUpdate()
+  }
+
+  private onFilterChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.setState({ filter: event.currentTarget.value })
+  }
+
+  private onFilterModeChanged = (filterMode: FilterMode) => {
+    persistFilterMode(BranchRulesFilterListId, filterMode)
+    this.setState({ filterMode })
+  }
+
+  private onFilterCaseSensitiveChanged = (filterCaseSensitive: boolean) => {
+    this.setState({ filterCaseSensitive })
+  }
+
+  private onFilterPatternApply = (filter: string) => {
+    this.setState({ filter })
+  }
+
+  /** Filter one enumerated value list by the current query. */
+  private filterStrings(values: ReadonlyArray<string>) {
+    return filterBranchRuleValues(
+      values,
+      this.state.filter,
+      this.state.filterMode,
+      this.state.filterCaseSensitive
+    )
+  }
+
+  /** The searchable universe of result values, used to seed the regex builder. */
+  private getFilterUniverse(
+    result: IEffectiveBranchRules
+  ): ReadonlyArray<string> {
+    return [
+      ...result.checks.values,
+      ...result.deployments.values,
+      ...result.sources.map(source => source.name),
+      ...result.unknownRuleTypes,
+    ]
+  }
+
+  private getFilterSampleItems = (): ReadonlyArray<string> =>
+    this.state.result === null
+      ? []
+      : this.getFilterUniverse(this.state.result).slice(0, 50)
+
+  /**
+   * Aggregate match counts across every enumerated result list so the toolbar
+   * can report how much of the report the current query keeps.
+   */
+  private getFilterSummary(result: IEffectiveBranchRules) {
+    const checks = this.filterStrings(result.checks.values)
+    const deployments = this.filterStrings(result.deployments.values)
+    const sources = filterBranchRuleSources(
+      result.sources,
+      this.state.filter,
+      this.state.filterMode,
+      this.state.filterCaseSensitive
+    )
+    const unknown = this.filterStrings(result.unknownRuleTypes)
+
+    return {
+      total: this.getFilterUniverse(result).length,
+      matched:
+        checks.items.length +
+        deployments.items.length +
+        sources.items.length +
+        unknown.items.length,
+      regexError:
+        checks.regexError ??
+        deployments.regexError ??
+        sources.regexError ??
+        unknown.regexError,
+      active:
+        checks.filtered ||
+        deployments.filtered ||
+        sources.filtered ||
+        unknown.filtered,
+    }
   }
 
   private setCloseButtonRef = (button: HTMLButtonElement | null) => {
@@ -617,10 +732,18 @@ export class BranchRulesInspector extends React.Component<
     if (values.length === 0) {
       return <p className="branch-rules-detail">{emptyCopy}</p>
     }
+    const { items: shown, filtered } = this.filterStrings(values)
+    if (filtered && shown.length === 0) {
+      return (
+        <p className="branch-rules-detail">
+          {t('branchRules.filterNoMatchesInList')}
+        </p>
+      )
+    }
     return (
       <>
         <ul className="branch-rules-values">
-          {values.map((value, index) => (
+          {shown.map((value, index) => (
             <li key={`${index}-${value}`}>
               <code title={value}>{value}</code>
             </li>
@@ -634,6 +757,12 @@ export class BranchRulesInspector extends React.Component<
   }
 
   private renderSources(result: IEffectiveBranchRules) {
+    const sources = filterBranchRuleSources(
+      result.sources,
+      this.state.filter,
+      this.state.filterMode,
+      this.state.filterCaseSensitive
+    )
     return (
       <section
         className="branch-rules-card branch-rules-sources"
@@ -644,9 +773,13 @@ export class BranchRulesInspector extends React.Component<
           <p className="branch-rules-detail">
             No active rule source was returned.
           </p>
+        ) : sources.filtered && sources.items.length === 0 ? (
+          <p className="branch-rules-detail">
+            {t('branchRules.filterNoMatchesInList')}
+          </p>
         ) : (
           <ul>
-            {result.sources.map(source => (
+            {sources.items.map(source => (
               <li key={source.id}>
                 <div>
                   <strong>{source.name}</strong>
@@ -675,6 +808,91 @@ export class BranchRulesInspector extends React.Component<
           </ul>
         )}
       </section>
+    )
+  }
+
+  private renderAdditionalRules(result: IEffectiveBranchRules) {
+    if (result.unknownRuleTypes.length === 0) {
+      return null
+    }
+    const { items: shown, filtered } = this.filterStrings(
+      result.unknownRuleTypes
+    )
+    return (
+      <section
+        className="branch-rules-card"
+        aria-labelledby="branch-rules-additional-title"
+      >
+        <h2 id="branch-rules-additional-title">Additional active rules</h2>
+        <p>
+          GitHub returned active rules or rule details this version of Desktop
+          does not summarize yet. They remain enforced:
+        </p>
+        {filtered && shown.length === 0 ? (
+          <p className="branch-rules-detail">
+            {t('branchRules.filterNoMatchesInList')}
+          </p>
+        ) : (
+          <ul className="branch-rules-details-list">
+            {shown.map(value => (
+              <li key={value}>{value.replace(/[._]+/g, ' ')}</li>
+            ))}
+          </ul>
+        )}
+      </section>
+    )
+  }
+
+  private renderResultFilter(result: IEffectiveBranchRules) {
+    const { total, matched, regexError, active } = this.getFilterSummary(result)
+    if (total === 0) {
+      // Nothing enumerable to search: a summary-only report keeps no filter.
+      return null
+    }
+
+    const matchStatus =
+      regexError !== null
+        ? regexError
+        : active
+        ? matched === 0
+          ? t('branchRules.filterStatusNone')
+          : t('branchRules.filterStatusCount', {
+              matched: matched.toLocaleString(),
+              total: total.toLocaleString(),
+            })
+        : ''
+
+    return (
+      <div className="branch-rules-filter">
+        <input
+          type="search"
+          data-search-surface-id="branch-rules-results"
+          className="branch-rules-filter-input"
+          value={this.state.filter}
+          onChange={this.onFilterChanged}
+          placeholder={t('branchRules.filterPlaceholder')}
+          aria-label={t('branchRules.filterLabel')}
+        />
+        <FilterModeControl
+          searchSurfaceId="branch-rules-results"
+          mode={this.state.filterMode}
+          caseSensitive={this.state.filterCaseSensitive}
+          onModeChange={this.onFilterModeChanged}
+          onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
+          regexBuilderTarget={t('branchRules.filterRegexTarget')}
+          getSampleItems={this.getFilterSampleItems}
+          filterText={this.state.filter}
+          onRegexPatternApply={this.onFilterPatternApply}
+        />
+        <span
+          className="branch-rules-filter-match"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {matchStatus}
+        </span>
+      </div>
     )
   }
 
@@ -716,6 +934,8 @@ export class BranchRulesInspector extends React.Component<
             </p>
           </div>
         </div>
+
+        {this.renderResultFilter(result)}
 
         {result.empty ? (
           <div className="branch-rules-empty" role="status">
@@ -867,23 +1087,7 @@ export class BranchRulesInspector extends React.Component<
 
         {this.renderSources(result)}
 
-        {result.unknownRuleTypes.length > 0 ? (
-          <section
-            className="branch-rules-card"
-            aria-labelledby="branch-rules-additional-title"
-          >
-            <h2 id="branch-rules-additional-title">Additional active rules</h2>
-            <p>
-              GitHub returned active rules or rule details this version of
-              Desktop does not summarize yet. They remain enforced:
-            </p>
-            <ul className="branch-rules-details-list">
-              {result.unknownRuleTypes.map(value => (
-                <li key={value}>{value.replace(/[._]+/g, ' ')}</li>
-              ))}
-            </ul>
-          </section>
-        ) : null}
+        {this.renderAdditionalRules(result)}
       </>
     )
   }

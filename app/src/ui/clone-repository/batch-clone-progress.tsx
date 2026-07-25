@@ -1,4 +1,5 @@
 import * as React from 'react'
+import memoizeOne from 'memoize-one'
 import { Dispatcher } from '../dispatcher'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
@@ -15,6 +16,23 @@ import {
 } from '../../models/batch-clone'
 import { SubmoduleFetchStage } from '../../models/progress'
 import { formatCloneEta, formatCloneSpeed } from '../../lib/progress/clone-eta'
+import { FilterMode } from '../../lib/fuzzy-find'
+import { FilterModeControl } from '../lib/filter-mode-control'
+import {
+  persistFilterMode,
+  readPersistedFilterMode,
+} from '../lib/filter-list-mode'
+import { filterByMode } from '../lib/filter-string-list'
+import { t, LanguageModeChangedEvent } from '../../lib/i18n'
+
+/** localStorage id used to persist the clone-queue filter mode. */
+const BatchCloneFilterListId = 'batch-clone-queue'
+
+/**
+ * The queue only grows a search field once it is long enough for one to earn
+ * its space; a two- or three-repository batch stays uncluttered.
+ */
+const MinItemsToFilter = 4
 
 interface IBatchCloneProgressProps {
   readonly dispatcher: Dispatcher
@@ -27,25 +45,100 @@ interface IBatchCloneProgressProps {
   readonly isTopMost: boolean
 }
 
+interface IBatchCloneProgressState {
+  /** The current filter query for the repository queue. */
+  readonly filter: string
+  /** The active fuzzy/substring/regex matching strategy. */
+  readonly filterMode: FilterMode
+  /** Whether Substring/Regex matching is case sensitive. */
+  readonly filterCaseSensitive: boolean
+}
+
 /**
  * A non-modal popup showing the progress of a multi-repository clone: a row per
  * repository with its own progress, an overall bar, and a Retry Failed action
  * once the batch has finished with failures.
  */
-export class BatchCloneProgress extends React.Component<IBatchCloneProgressProps> {
+export class BatchCloneProgress extends React.Component<
+  IBatchCloneProgressProps,
+  IBatchCloneProgressState
+> {
   private dismissalInProgress = false
   private checkIsTopMostDialog = isTopMostDialog(
     () => {},
     () => {}
   )
 
+  private getFilteredItems = memoizeOne(
+    (
+      items: ReadonlyArray<IBatchCloneItem>,
+      filter: string,
+      mode: FilterMode,
+      caseSensitive: boolean
+    ) =>
+      filterByMode(
+        items,
+        item => [item.name, item.path],
+        filter,
+        mode,
+        caseSensitive
+      )
+  )
+
+  public constructor(props: IBatchCloneProgressProps) {
+    super(props)
+    this.state = {
+      filter: '',
+      filterMode: readPersistedFilterMode(BatchCloneFilterListId),
+      filterCaseSensitive: false,
+    }
+  }
+
   public componentDidMount() {
     this.checkIsTopMostDialog(this.props.isTopMost)
+    document.addEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
   }
 
   public componentDidUpdate() {
     this.checkIsTopMostDialog(this.props.isTopMost)
   }
+
+  public componentWillUnmount() {
+    document.removeEventListener(
+      LanguageModeChangedEvent,
+      this.onLanguageModeChanged
+    )
+  }
+
+  private onLanguageModeChanged = () => {
+    // Copy is read live from `t()`, so a re-render is all that is needed.
+    this.forceUpdate()
+  }
+
+  private onFilterChanged = (event: React.FormEvent<HTMLInputElement>) => {
+    this.setState({ filter: event.currentTarget.value })
+  }
+
+  private onFilterModeChanged = (filterMode: FilterMode) => {
+    persistFilterMode(BatchCloneFilterListId, filterMode)
+    this.setState({ filterMode })
+  }
+
+  private onFilterCaseSensitiveChanged = (filterCaseSensitive: boolean) => {
+    this.setState({ filterCaseSensitive })
+  }
+
+  private onFilterPatternApply = (filter: string) => {
+    this.setState({ filter })
+  }
+
+  private getFilterSampleItems = (): ReadonlyArray<string> =>
+    (this.props.batchCloneState?.items ?? [])
+      .slice(0, 50)
+      .map(item => item.name)
 
   private onRetryFailed = () => {
     this.props.dispatcher.retryBatchCloneFailed()
@@ -239,6 +332,68 @@ export class BatchCloneProgress extends React.Component<IBatchCloneProgressProps
     )
   }
 
+  private renderQueueFilter(items: ReadonlyArray<IBatchCloneItem>) {
+    if (items.length <= MinItemsToFilter) {
+      return null
+    }
+
+    const {
+      items: matched,
+      regexError,
+      filtered,
+    } = this.getFilteredItems(
+      items,
+      this.state.filter,
+      this.state.filterMode,
+      this.state.filterCaseSensitive
+    )
+
+    const matchStatus =
+      regexError !== null
+        ? regexError
+        : filtered
+        ? matched.length === 0
+          ? t('batchClone.filterStatusNone')
+          : t('batchClone.filterStatusCount', {
+              matched: matched.length.toLocaleString(),
+              total: items.length.toLocaleString(),
+            })
+        : ''
+
+    return (
+      <div className="batch-clone-search">
+        <input
+          type="search"
+          data-search-surface-id="batch-clone-queue"
+          className="batch-clone-filter-input"
+          value={this.state.filter}
+          onChange={this.onFilterChanged}
+          placeholder={t('batchClone.filterPlaceholder')}
+          aria-label={t('batchClone.filterLabel')}
+        />
+        <FilterModeControl
+          searchSurfaceId="batch-clone-queue"
+          mode={this.state.filterMode}
+          caseSensitive={this.state.filterCaseSensitive}
+          onModeChange={this.onFilterModeChanged}
+          onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
+          regexBuilderTarget={t('batchClone.filterRegexTarget')}
+          getSampleItems={this.getFilterSampleItems}
+          filterText={this.state.filter}
+          onRegexPatternApply={this.onFilterPatternApply}
+        />
+        <span
+          className="batch-clone-match"
+          role="status"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          {matchStatus}
+        </span>
+      </div>
+    )
+  }
+
   public render() {
     const state = this.props.batchCloneState
 
@@ -317,8 +472,14 @@ export class BatchCloneProgress extends React.Component<IBatchCloneProgressProps
             <progress value={state.overallProgress || undefined} />
             <div className="percent">{overall}%</div>
           </div>
+          {this.renderQueueFilter(state.items)}
           <ul className="batch-clone-list">
-            {state.items.map(item =>
+            {this.getFilteredItems(
+              state.items,
+              this.state.filter,
+              this.state.filterMode,
+              this.state.filterCaseSensitive
+            ).items.map(item =>
               this.renderItem(item, state.statuses.get(item.path))
             )}
           </ul>

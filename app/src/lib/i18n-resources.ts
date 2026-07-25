@@ -1518,6 +1518,22 @@ export type TranslationKey =
   | 'actionsLocalRun.releaseUploadHeading'
   | 'actionsLocalRun.releaseUploadNote'
   | 'actionsLocalRun.releaseUploadWarning'
+  | 'actionsLocalRun.filterPlaceholder'
+  | 'actionsLocalRun.filterLabel'
+  | 'actionsLocalRun.filterRegexTarget'
+  | 'actionsLocalRun.filterStatusCount'
+  | 'actionsLocalRun.filterStatusNone'
+  | 'batchClone.filterPlaceholder'
+  | 'batchClone.filterLabel'
+  | 'batchClone.filterRegexTarget'
+  | 'batchClone.filterStatusCount'
+  | 'batchClone.filterStatusNone'
+  | 'branchRules.filterPlaceholder'
+  | 'branchRules.filterLabel'
+  | 'branchRules.filterRegexTarget'
+  | 'branchRules.filterStatusCount'
+  | 'branchRules.filterStatusNone'
+  | 'branchRules.filterNoMatchesInList'
   | 'cheapLfs.files.one'
   | 'cheapLfs.files.many'
   | 'cheapLfs.managerRail'
@@ -3595,6 +3611,22 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This workflow contains a step that would upload a release asset. A local run does not touch your real GitHub releases.',
   'actionsLocalRun.releaseUploadWarning':
     'To upload a produced artifact to the real release, use the guarded release upload after the run — it always asks for confirmation before publishing.',
+  'actionsLocalRun.filterPlaceholder': 'Filter output',
+  'actionsLocalRun.filterLabel': 'Filter run output',
+  'actionsLocalRun.filterRegexTarget': 'Run output',
+  'actionsLocalRun.filterStatusCount': '{matched} of {total} lines',
+  'actionsLocalRun.filterStatusNone': 'No lines match',
+  'batchClone.filterPlaceholder': 'Filter clone queue',
+  'batchClone.filterLabel': 'Filter clone queue',
+  'batchClone.filterRegexTarget': 'Clone queue',
+  'batchClone.filterStatusCount': '{matched} of {total} repositories',
+  'batchClone.filterStatusNone': 'No repositories match',
+  'branchRules.filterPlaceholder': 'Filter results',
+  'branchRules.filterLabel': 'Filter branch rule results',
+  'branchRules.filterRegexTarget': 'Branch rule results',
+  'branchRules.filterStatusCount': '{matched} of {total} match',
+  'branchRules.filterStatusNone': 'No results match',
+  'branchRules.filterNoMatchesInList': 'No values match the filter',
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
   'cheapLfs.managerRail': 'Large files',
@@ -5608,6 +5640,22 @@ export const cantoneseTranslations: Readonly<
     '呢個 workflow 有一步會上載 release 資產。本機執行唔會郁到你真正嘅 GitHub release。',
   'actionsLocalRun.releaseUploadWarning':
     '如果要將整出嚟嘅 artifact 上載去真正 release，請喺執行後用有防護嘅 release 上載——佢每次公開之前都會問你確認。',
+  'actionsLocalRun.filterPlaceholder': '篩走冇關嘅輸出',
+  'actionsLocalRun.filterLabel': '篩選執行輸出',
+  'actionsLocalRun.filterRegexTarget': '執行輸出',
+  'actionsLocalRun.filterStatusCount': '{total} 行揀到 {matched} 行',
+  'actionsLocalRun.filterStatusNone': '冇一行啱',
+  'batchClone.filterPlaceholder': '篩選 clone 佇列',
+  'batchClone.filterLabel': '篩選 clone 佇列',
+  'batchClone.filterRegexTarget': 'Clone 佇列',
+  'batchClone.filterStatusCount': '{total} 個 repo 揀到 {matched} 個',
+  'batchClone.filterStatusNone': '冇 repo 啱',
+  'branchRules.filterPlaceholder': '篩選結果',
+  'branchRules.filterLabel': '篩選分支規則結果',
+  'branchRules.filterRegexTarget': '分支規則結果',
+  'branchRules.filterStatusCount': '{total} 項揀到 {matched} 項',
+  'branchRules.filterStatusNone': '冇結果啱',
+  'branchRules.filterNoMatchesInList': '呢個清單冇數值啱',
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
   'cheapLfs.managerRail': '大檔案',

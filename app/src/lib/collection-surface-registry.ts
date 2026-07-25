@@ -55,10 +55,22 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'actions-local-run-log',
+      label: 'Local run output',
+      source: 'actions-local-run/actions-local-run-dialog.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'branches',
       label: 'Branches',
       source: 'branches/branch-list.tsx',
       implementation: 'shared-filter-list',
+    },
+    {
+      id: 'branch-rules-results',
+      label: 'Branch rule results',
+      source: 'branch-rules/branch-rules-inspector.tsx',
+      implementation: 'standalone',
     },
     {
       id: 'fork-network-repositories',
@@ -95,6 +107,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       label: 'Clone repositories',
       source: 'clone-repository/cloneable-repository-filter-list.tsx',
       implementation: 'shared-filter-list',
+    },
+    {
+      id: 'batch-clone-queue',
+      label: 'Clone queue',
+      source: 'clone-repository/batch-clone-progress.tsx',
+      implementation: 'standalone',
     },
     {
       id: 'add-submodule-repositories',
