@@ -14281,6 +14281,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** Switch the current automatic commit pin to the manual browser rendezvous. */
   public _requestManualCheapLfsUpload(repository: Repository): void {
+    // A repeated request is a no-op, not a second handoff. Without this, a
+    // double-click aborts again after the flow already swapped in a fresh
+    // controller for the manual rendezvous, killing the upload it just started.
+    if (this.cheapLfsManualUploadRequests.has(repository.id)) {
+      return
+    }
     const controller = this.cheapLfsCommitControllers.get(repository.id)
     if (
       controller === undefined ||

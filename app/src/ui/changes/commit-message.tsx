@@ -91,6 +91,13 @@ import {
   translatedVariable,
 } from '../../lib/i18n'
 import { formatBytes } from '../lib/bytes'
+import {
+  claimInFlight,
+  EmptyInFlightGuard,
+  InFlightGuardState,
+  isInFlight,
+  releaseInFlight,
+} from '../../lib/cheap-lfs/in-flight-guard'
 import type {
   CheapLfsAutoPinPhase,
   ICheapLfsAutoPinProgress,
@@ -506,10 +513,40 @@ export function advanceCheapLfsTransferTiming(
   }
 }
 
+/** The one Cheap LFS commit action this component can start more than once. */
+const ManualCheapLfsUploadTarget = 'cheap-lfs-manual-upload'
+
+/**
+ * Can the running Cheap LFS commit still be handed off to a manual browser
+ * upload? Only a release-backed transfer that is actually uploading can, and
+ * losing that state is also what marks the handoff finished or failed.
+ */
+function canSwitchToManualCheapLfsUpload(
+  commitOperationPhase: CommitOperationPhase | null
+): boolean {
+  if (commitOperationPhase?.kind !== 'cheap-lfs') {
+    return false
+  }
+  const { phase, activeFiles, selectedStorageProvider } =
+    commitOperationPhase.progress
+  return (
+    (selectedStorageProvider === undefined ||
+      selectedStorageProvider === 'release') &&
+    (phase === 'uploading' ||
+      activeFiles?.some(file => file.phase === 'uploading') === true)
+  )
+}
+
 interface ICommitMessageState {
   readonly commitMessage: ICommitMessage
 
   readonly cheapLfsTransferTiming: ICheapLfsTransferTimingSample | null
+
+  /**
+   * Cheap LFS commit actions already running, mirrored from
+   * `cheapLfsActionGuard` so the controls can render as busy.
+   */
+  readonly cheapLfsActionsInFlight: InFlightGuardState
 
   readonly commitMessageAutocompletionProviders: ReadonlyArray<
     IAutocompletionProvider<any>
@@ -572,6 +609,16 @@ export class CommitMessage extends React.Component<
 
   private coAuthorInputRef = React.createRef<AuthorInput>()
 
+  /**
+   * The authoritative in-flight claims for Cheap LFS commit actions.
+   *
+   * This is an instance field rather than component state because it has to be
+   * correct *synchronously*: `setState` is asynchronous, so two clicks landing
+   * before the next render would both read a stale `state` and both start an
+   * upload. React state mirrors this value only so the controls can render.
+   */
+  private cheapLfsActionGuard: InFlightGuardState = EmptyInFlightGuard
+
   private readonly COMMIT_MSG_ERROR_BTN_ID = 'commit-message-failure-hint'
 
   public constructor(props: ICommitMessageProps) {
@@ -586,6 +633,7 @@ export class CommitMessage extends React.Component<
         getCheapLfsTimingProgress(props),
         Date.now()
       ),
+      cheapLfsActionsInFlight: EmptyInFlightGuard,
       commitMessageAutocompletionProviders:
         findCommitMessageAutoCompleteProvider(props.autocompletionProviders),
       coAuthorAutocompletionProvider: findCoAuthorAutoCompleteProvider(
@@ -757,7 +805,43 @@ export class CommitMessage extends React.Component<
       })
     }
 
+    // The handoff is over once the commit stops offering it — it either moved
+    // on to the manual stages, finished, or failed. Release the claim so the
+    // control works again, without ever guessing from a timer.
+    if (!canSwitchToManualCheapLfsUpload(this.props.commitOperationPhase)) {
+      this.releaseCheapLfsAction(ManualCheapLfsUploadTarget)
+    }
+
     await this.updateRepoRuleFailures(prevProps, prevState)
+  }
+
+  private releaseCheapLfsAction(target: string) {
+    const released = releaseInFlight(this.cheapLfsActionGuard, target)
+    // `releaseInFlight` returns the same guard when nothing was claimed, so
+    // this both avoids a redundant render and cannot loop in componentDidUpdate.
+    if (released !== this.cheapLfsActionGuard) {
+      this.cheapLfsActionGuard = released
+      this.setState({ cheapLfsActionsInFlight: released })
+    }
+  }
+
+  private onManualCheapLfsUpload = () => {
+    const { onManualCheapLfsUpload } = this.props
+    if (onManualCheapLfsUpload === undefined) {
+      return
+    }
+    const claim = claimInFlight(
+      this.cheapLfsActionGuard,
+      ManualCheapLfsUploadTarget
+    )
+    // A second click while the first handoff is still starting must do nothing;
+    // dispatching it again would start a duplicate upload of the same asset.
+    if (!claim.accepted) {
+      return
+    }
+    this.cheapLfsActionGuard = claim.state
+    this.setState({ cheapLfsActionsInFlight: claim.state })
+    onManualCheapLfsUpload()
   }
 
   private loadCommitAuthorOrigins = async () => {
@@ -2622,28 +2706,37 @@ export class CommitMessage extends React.Component<
     }
 
     if (commitOperationPhase?.kind === 'cheap-lfs') {
-      const { phase, activeFiles } = commitOperationPhase.progress
       const canSwitchToManual =
-        (commitOperationPhase.progress.selectedStorageProvider === undefined ||
-          commitOperationPhase.progress.selectedStorageProvider ===
-            'release') &&
-        (phase === 'uploading' ||
-          activeFiles?.some(file => file.phase === 'uploading') === true)
+        canSwitchToManualCheapLfsUpload(commitOperationPhase)
       const showManualUpload =
         canSwitchToManual && this.props.onManualCheapLfsUpload !== undefined
+      const manualUploadInFlight = isInFlight(
+        this.state.cheapLfsActionsInFlight,
+        ManualCheapLfsUploadTarget
+      )
       const showCancel = this.props.onCancelCheapLfsCommit !== undefined
 
       return (
         <div className="commit-progress cheap-lfs-progress">
           {this.renderCheapLfsTerminal(commitOperationPhase.progress)}
           {showManualUpload && (
-            <Button
-              type="button"
-              className="cheap-lfs-action"
-              onClick={this.props.onManualCheapLfsUpload}
-            >
-              {t('cheapLfs.manualUpload')}
-            </Button>
+            <>
+              <Button
+                type="button"
+                className="cheap-lfs-action"
+                disabled={manualUploadInFlight}
+                aria-busy={manualUploadInFlight}
+                onClick={this.onManualCheapLfsUpload}
+              >
+                {t('cheapLfs.manualUpload')}
+              </Button>
+              {manualUploadInFlight && (
+                <span className="cheap-lfs-action-progress" role="status">
+                  <Loading />
+                  {t('cheapLfs.manualUploadStarting')}
+                </span>
+              )}
+            </>
           )}
           {showCancel && (
             <Button

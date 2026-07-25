@@ -1554,6 +1554,7 @@ export type TranslationKey =
   | 'cheapLfs.cloud.compressed'
   | 'cheapLfs.cloud.mixed'
   | 'cheapLfs.manualUpload'
+  | 'cheapLfs.manualUploadStarting'
   | 'cheapLfs.cancel'
   | 'cheapLfs.cancelConfirmation'
   | 'cheapLfs.progress.amendSuffix'
@@ -3661,6 +3662,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.cloud.mixed':
     'Mixed · {compressed}/{total} objects compressed · {savings}% smaller',
   'cheapLfs.manualUpload': 'Manual upload',
+  'cheapLfs.manualUploadStarting': 'Switching to manual upload…',
   'cheapLfs.cancel': 'Cancel',
   'cheapLfs.cancelConfirmation':
     'Cancel this Cheap LFS transfer?\n\nThe upload or manual handoff will stop. Files already converted to pointers in the worktree or uploaded to the GitHub Release may remain, but no commit will be created.',
@@ -5689,6 +5691,7 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.cloud.mixed':
     '混合 · {compressed}/{total} 件已壓縮 · 慳咗 {savings}%',
   'cheapLfs.manualUpload': '手動上載',
+  'cheapLfs.manualUploadStarting': '轉緊做手動上載…',
   'cheapLfs.cancel': '取消',
   'cheapLfs.cancelConfirmation':
     '確定取消今次 Cheap LFS 傳輸？\n\n上載或者手動交接會即刻停止。工作目錄入面已經轉成 pointer 嘅檔案，或者已經上載去 GitHub Release 嘅資產可能會保留，但唔會建立 commit。',
