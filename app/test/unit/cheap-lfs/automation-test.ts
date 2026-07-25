@@ -7,6 +7,7 @@ import { Repository } from '../../../src/models/repository'
 import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
 import {
   autoPinLargeFilesForCommit,
+  ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinTarget,
   ICheapLfsPinResult,
   ICheapLfsPointerEntry,
@@ -490,7 +491,72 @@ describe('autoPinLargeFilesForCommit', () => {
       transferredBytes: 200,
       totalBytes: 200,
       activeFiles: [],
+      // Every progress snapshot now carries the settled failures, so a
+      // `failed N` count can never be published without its reasons.
+      failedFileDetails: [],
     })
+  })
+
+  it('publishes a reason and status for every counted failure', async () => {
+    // The reported defect: the terminal settled on `pinned 0 · failed 10` and
+    // the underlying 422 existed only in the log.
+    const progress = new Array<ICheapLfsAutoPinProgress>()
+    const result = await autoPinLargeFilesForCommit(
+      repository(),
+      ['big.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async () => {
+          throw Object.assign(
+            new Error(
+              'GitHub could not create the release. (Validation Failed)'
+            ),
+            { responseStatus: 422 }
+          )
+        },
+      },
+      undefined,
+      update => progress.push(update)
+    )
+
+    assert.equal(result.pinned.length, 0)
+    assert.equal(result.failures.length, 1)
+    assert.equal(result.failures[0].statusCode, 422)
+    assert.match(result.failures[0].message, /Validation Failed/)
+
+    const settled = progress.at(-1)
+    assert.equal(settled?.failedFiles, 1)
+    assert.deepEqual(settled?.failedFileDetails, [
+      {
+        relativePath: 'big.bin',
+        reason: 'GitHub could not create the release. (Validation Failed)',
+        statusCode: 422,
+      },
+    ])
+  })
+
+  it('still names a failure a provider gave no status for', async () => {
+    const progress = new Array<ICheapLfsAutoPinProgress>()
+    await autoPinLargeFilesForCommit(
+      repository(),
+      ['big.bin'],
+      threshold,
+      {
+        statSize: async () => 200,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async () => {
+          throw new Error('Upload stalled')
+        },
+      },
+      undefined,
+      update => progress.push(update)
+    )
+
+    assert.deepEqual(progress.at(-1)?.failedFileDetails, [
+      { relativePath: 'big.bin', reason: 'Upload stalled' },
+    ])
   })
 
   it('never pins an under-threshold file', async () => {

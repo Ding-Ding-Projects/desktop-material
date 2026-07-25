@@ -2,11 +2,17 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import * as React from 'react'
 
+import { ActionsMetadataJSONError } from '../../src/lib/actions-response'
 import {
   getUpdateFeedRepository,
   isNewerDesktopMaterialBuildInProgress,
+  updateBuildProbeDegradation,
 } from '../../src/lib/desktop-material-update-build'
 import { translate } from '../../src/lib/i18n'
+import {
+  cantoneseTranslations,
+  englishTranslations,
+} from '../../src/lib/i18n-resources'
 import { About } from '../../src/ui/about/about'
 import {
   IUpdateState,
@@ -27,6 +33,14 @@ function jsonResponse(value: unknown): Response {
     status: 200,
     headers: { 'content-type': 'application/json' },
   })
+}
+
+/** A response body larger than the probe reads in one go (2 MiB). */
+function oversizedResponse(): Response {
+  return new Response(
+    JSON.stringify({ status: 'ahead', filler: 'x'.repeat(2 * 1024 * 1024) }),
+    { status: 200, headers: { 'content-type': 'application/json' } }
+  )
 }
 
 function storageSnapshot(): Map<string, string> {
@@ -398,6 +412,163 @@ describe('update coming soon', () => {
     await noUpdateTransition
 
     assert.equal(store.state.status, UpdateStatus.UpdateAvailable)
+  })
+
+  it('classifies only bounded-read failures as a handled degradation', () => {
+    assert.equal(
+      updateBuildProbeDegradation(
+        new ActionsMetadataJSONError('too big', 'too-large')
+      ),
+      'metadata-too-large'
+    )
+    assert.equal(
+      updateBuildProbeDegradation(
+        new ActionsMetadataJSONError('bad json', 'invalid-json')
+      ),
+      'invalid-json'
+    )
+    // Everything else stays exceptional and must keep propagating.
+    assert.equal(updateBuildProbeDegradation(new Error('offline')), null)
+  })
+
+  it('skips an oversized Actions response instead of rejecting', async () => {
+    // Reported on every launch: a `compare` payload larger than the probe's
+    // read bound became an unhandled rejection and a generic
+    // "background action stopped unexpectedly" toast.
+    const degradations = new Array<string>()
+    const requests = new Array<string>()
+    const result = await isNewerDesktopMaterialBuildInProgress({
+      updatesURL,
+      installedSHA,
+      onDegraded: degradation => degradations.push(degradation),
+      fetcher: async input => {
+        const url = input.toString()
+        requests.push(url)
+        if (url.includes('/compare/')) {
+          return oversizedResponse()
+        }
+        if (url.includes('/jobs?')) {
+          return jsonResponse({
+            jobs: [
+              {
+                name: 'Windows x64',
+                status: 'in_progress',
+                run_id: ciRunID,
+                head_sha: buildSHA,
+              },
+            ],
+          })
+        }
+        return url.includes('/workflows/ci.yml/runs?')
+          ? jsonResponse({
+              workflow_runs: [
+                {
+                  id: ciRunID,
+                  status: 'in_progress',
+                  event: 'push',
+                  head_branch: 'main',
+                  head_sha: buildSHA,
+                  path: '.github/workflows/ci.yml',
+                },
+              ],
+            })
+          : jsonResponse({ workflow_runs: [] })
+      },
+    })
+
+    // Unproven is never reported as "ahead", and the probe still finishes.
+    assert.equal(result, false)
+    assert.deepEqual(degradations, ['metadata-too-large'])
+    assert.ok(requests.some(url => url.includes('build-installers.yml')))
+  })
+
+  it('continues to the next workflow when one runs page is oversized', async () => {
+    const degradations = new Array<string>()
+    let jobsRequested = false
+    const result = await isNewerDesktopMaterialBuildInProgress({
+      updatesURL,
+      installedSHA,
+      onDegraded: degradation => degradations.push(degradation),
+      fetcher: async input => {
+        const url = input.toString()
+        if (url.includes('/workflows/ci.yml/runs?')) {
+          return oversizedResponse()
+        }
+        if (url.includes('/jobs?')) {
+          jobsRequested = true
+        }
+        return jsonResponse({ workflow_runs: [] })
+      },
+    })
+
+    assert.equal(result, false)
+    assert.equal(jobsRequested, false)
+    assert.deepEqual(degradations, ['metadata-too-large'])
+  })
+
+  it('still fails for a genuine transport error', async () => {
+    await assert.rejects(
+      isNewerDesktopMaterialBuildInProgress({
+        updatesURL,
+        installedSHA,
+        fetcher: async () => {
+          throw new Error('offline')
+        },
+      }),
+      /offline/
+    )
+  })
+
+  it('logs every skipped response but announces it at most once', async () => {
+    let probes = 0
+    const store = new UpdateStore({
+      generateReleaseSummary: async () => [],
+      probeForNewerBuild: async ({ onDegraded }) => {
+        probes++
+        onDegraded?.('metadata-too-large')
+        onDegraded?.('metadata-too-large')
+        return false
+      },
+      subscribeToUpdaterEvents: false,
+    })
+    const announcements = new Array<string>()
+    store.onActionsMetadataSkipped(degradation =>
+      announcements.push(degradation)
+    )
+
+    await updateStoreAccess(store).onUpdateNotAvailable()
+    await updateStoreAccess(store).onUpdateNotAvailable()
+
+    assert.equal(probes, 2)
+    // Four degradations across two update checks, one user-facing notice.
+    assert.deepEqual(announcements, ['metadata-too-large'])
+    assert.equal(store.state.status, UpdateStatus.UpdateNotAvailable)
+    localStorage.removeItem('last-successful-update-check')
+  })
+
+  it('contains a rejected update check instead of leaking it to the toast', async () => {
+    const store = new UpdateStore({
+      generateReleaseSummary: async () => {
+        throw new Error('release feed unavailable')
+      },
+      probeForNewerBuild: async () => false,
+      subscribeToUpdaterEvents: false,
+    })
+
+    // The IPC listener never awaits this promise, so it must never reject.
+    await assert.doesNotReject(updateStoreAccess(store).onUpdateNotAvailable())
+  })
+
+  it('publishes the skipped-metadata notice in both languages', () => {
+    for (const key of [
+      'actionsMetadata.tooLarge.title',
+      'actionsMetadata.tooLarge.body',
+    ] as const) {
+      assert.ok((englishTranslations[key] ?? '').length > 0, key)
+      assert.ok((cantoneseTranslations[key] ?? '').length > 0, key)
+      // Error and degradation copy stays plain and factual at every level.
+      assert.doesNotMatch(englishTranslations[key], /\{/)
+    }
   })
 
   it('renders persisted English, playful Cantonese, and bilingual status copy', () => {

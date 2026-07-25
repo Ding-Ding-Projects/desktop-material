@@ -366,6 +366,63 @@ repository-scoped scheduler. This keeps two UI entry points from concurrently
 publishing the same restored path through separate compare-and-swap recovery
 flows.
 
+## First publish: anchoring the release before any upload
+
+A GitHub Release tag can only be created against a commit GitHub already has.
+`resolveReleaseTargetCommitish` returns the *local* branch name, so on a
+repository whose branch has never been pushed `POST /repos/{owner}/{repo}/
+releases` answers `422 Validation Failed` for every selected file — the release
+route needs a published commit, and publishing needs the pinned commit.
+
+**Design chosen: publish the branch tip before uploading, then prove it.**
+`ensureCheapLfsReleaseAnchor` runs once per commit, before any hashing or
+upload, and consults the pure decision in
+`app/src/lib/cheap-lfs/first-publish.ts`:
+
+| Decision | Meaning | Action |
+| --- | --- | --- |
+| `ready` | `ls-remote` proved the branch exists remotely | upload |
+| `publish-branch` | GitHub repository, remote, branch, and tip all exist locally, but the branch is unpublished | push the tip with `expectedRemoteSha: null`, re-read the remote ref, then upload |
+| `blocked-no-github-repository` | no GitHub repository backs the checkout | refuse, per-file reason |
+| `blocked-no-remote` | no push remote configured | refuse, per-file reason |
+| `blocked-detached-head` | no branch to publish | refuse, per-file reason |
+| `blocked-unborn-branch` | no commit to publish | refuse, per-file reason |
+
+The bootstrap push reuses the existing batching session primitive
+(`operations.push` with `expectedRemoteSha: null`, which asserts the branch does
+not exist yet), so it can only ever *create* the branch and can never overwrite
+someone else's work. Success is never inferred from the push exit status:
+`isCheapLfsFirstPublishProven` re-reads the remote ref and requires it to equal
+the exact tip that was pushed. This matches the existing "each batch pushed and
+proven" contract already used by automatic commit-push batching.
+
+The alternative — deferring asset upload to the push phase and committing
+pointers marked pending-upload — was rejected. It would commit pointers whose
+bytes exist nowhere remote, so any clone taken between that commit and the later
+push would resolve to a dangling pointer. There is no silent fallback to another
+storage provider: a blocking decision refuses, names the reason on every
+affected file row and in the notification, and leaves the raw files selected in
+Changes for a retry.
+
+## Why a pin failed: per-file reasons
+
+Every counted failure carries its cause all the way to the UI. A pin failure
+records the provider's HTTP status (`cheapLfsFailureStatusCode` reads
+`responseStatus` from `GitHubReleasesError`/`APIError`) alongside its message,
+and `ICheapLfsAutoPinProgress.failedFileDetails` republishes both on every
+progress snapshot so the Cheap LFS commit terminal can never settle on a bare
+`pinned 0 · failed 10`.
+
+Provider text is bounded and scrubbed by `sanitizeCheapLfsFailureReason` before
+display: control characters are collapsed so nothing can forge terminal output,
+URLs are stripped outright (release and upload URLs can carry query tokens),
+`gh*_`/`github_pat_` tokens and `Authorization: Bearer …` values are removed
+rather than echoed, and one reason is capped at 240 characters. A reason this
+app diagnosed itself is carried as a `reasonKey` instead and always wins over
+relayed provider text, so an unpublished repository reads as guidance rather
+than as a raw `422`. All copy is available in English and Cantonese and stays
+plain and factual at every funny level.
+
 ## Failure modes and recovery
 
 An unavailable Releases account, missing release or asset, stale release

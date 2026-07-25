@@ -33,6 +33,7 @@ import {
   IGitHubReleaseTransferProgressEvent,
 } from '../github-release-transfer'
 import { git } from '../git/core'
+import type { TranslationKey } from '../i18n-resources'
 import { largeRepositoryGitArgsForPath } from '../large-repository/large-repository-mode'
 import {
   getGitHubReleasesAccount,
@@ -3084,6 +3085,13 @@ export interface ICheapLfsAutoPinProgress extends ICheapLfsBatchProgress {
    * omit this field and continue to use `currentPath`.
    */
   readonly activeFiles?: ReadonlyArray<ICheapLfsActivePinProgress>
+  /**
+   * Settled failures so far, input-ordered, so the commit terminal can show
+   * *why* each file failed while the batch is still running. A `pinned 0 ·
+   * failed 10` summary with no reason anywhere is the defect this exists to
+   * close; producers must publish a reason for every failure they count.
+   */
+  readonly failedFileDetails?: ReadonlyArray<ICheapLfsFailedFileProgress>
 }
 
 /** Structured progress for one active automatic pin worker. */
@@ -3093,6 +3101,74 @@ export interface ICheapLfsActivePinProgress {
   /** Stage-local bytes (hash bytes while hashing, upload bytes while uploading). */
   readonly processedBytes: number
   readonly totalBytes: number
+}
+
+/** One settled failure, carried alongside progress so the UI can explain it. */
+export interface ICheapLfsFailedFileProgress {
+  readonly relativePath: string
+  /** Sanitized, provider-supplied reason. Never a raw token or URL. */
+  readonly reason: string
+  /** HTTP status when the provider supplied one (for example `422`). */
+  readonly statusCode?: number
+}
+
+/**
+ * Longest provider reason retained for a per-file row. Long enough for
+ * GitHub's `Validation Failed (Invalid value for "target_commitish")`, short
+ * enough that one row can never dominate the commit terminal.
+ */
+export const CheapLfsMaximumFailureReasonLength = 240
+
+/**
+ * Reduce a thrown provider error to a bounded, single-line reason safe to show.
+ *
+ * Control characters are stripped so nothing can forge terminal output, runs of
+ * whitespace collapse, and anything resembling a credential-bearing URL or
+ * bearer token is removed rather than echoed into the UI, a notification, or
+ * the notification history.
+ */
+export function sanitizeCheapLfsFailureReason(
+  message: string,
+  maximumLength: number = CheapLfsMaximumFailureReasonLength
+): string {
+  const normalized = message
+    .replace(/[\u0000-\u001f\u007f-\u009f]/g, ' ')
+    // Strip URLs outright: release and upload URLs can carry query tokens.
+    .replace(/\b[a-z][a-z0-9+.-]*:\/\/\S+/gi, '')
+    // Strip anything shaped like a GitHub token or an Authorization value.
+    .replace(/\b(?:gh[pousr]|github_pat)_[A-Za-z0-9_]+/g, '')
+    // Only credential-shaped text: a header/parameter assignment, or an
+    // explicit `Bearer <value>`. The optional inner scheme word consumes
+    // `Authorization: Bearer <secret>` whole rather than down to its last
+    // token, while an innocuous sentence mentioning a token survives intact.
+    .replace(
+      /\b(?:authorization\s*[:=]\s*|token\s*[:=]\s*|bearer\s+)(?:bearer\s+)?\S+/gi,
+      ''
+    )
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (normalized.length === 0) {
+    return ''
+  }
+  const characters = Array.from(normalized)
+  return characters.length <= maximumLength
+    ? normalized
+    : `${characters.slice(0, maximumLength - 1).join('')}…`
+}
+
+/**
+ * Read the HTTP status a provider error carries, if any. `GitHubReleasesError`
+ * and `APIError` both expose `responseStatus`; anything else reports none.
+ */
+export function cheapLfsFailureStatusCode(error: unknown): number | undefined {
+  const status = (error as { readonly responseStatus?: unknown } | undefined)
+    ?.responseStatus
+  return typeof status === 'number' &&
+    Number.isSafeInteger(status) &&
+    status >= 100 &&
+    status <= 599
+    ? status
+    : undefined
 }
 
 /** One pointer that could not be materialized during a batch. */
@@ -3197,6 +3273,14 @@ export interface ICheapLfsAutoPinFailure {
   readonly relativePath: string
   readonly sizeInBytes: number
   readonly message: string
+  /** HTTP status the provider reported, when it reported one. */
+  readonly statusCode?: number
+  /**
+   * A localized reason key, preferred over `message` when present. Used for
+   * conditions this app diagnoses itself — such as an unpublished repository
+   * — rather than text relayed from a provider.
+   */
+  readonly reasonKey?: TranslationKey
 }
 
 /** Settled automatic pin outcome, always ordered like the selected inputs. */
@@ -3464,6 +3548,23 @@ export async function autoPinLargeFilesForCommit(
               activeStates[0].phase
             )
 
+    // Publish the reason for every counted failure, in input order, so the
+    // commit terminal can never settle on a bare `failed N` with no cause.
+    const failedFileDetails: ReadonlyArray<ICheapLfsFailedFileProgress> =
+      failures.flatMap((failure, index) =>
+        failure === undefined
+          ? []
+          : [
+              {
+                relativePath: targets[index].relativePath,
+                reason: sanitizeCheapLfsFailureReason(failure.message),
+                ...(failure.statusCode === undefined
+                  ? {}
+                  : { statusCode: failure.statusCode }),
+              },
+            ]
+      )
+
     onProgress?.({
       phase,
       completedFiles: succeededFiles + failedFiles,
@@ -3474,6 +3575,7 @@ export async function autoPinLargeFilesForCommit(
       transferredBytes,
       totalBytes,
       activeFiles,
+      failedFileDetails,
     })
   }
 
@@ -3525,10 +3627,12 @@ export async function autoPinLargeFilesForCommit(
           canceled = true
           controller.abort()
         } else {
+          const statusCode = cheapLfsFailureStatusCode(error)
           failures[targetIndex] = {
             relativePath: target.relativePath,
             sizeInBytes: target.sizeInBytes,
             message: error instanceof Error ? error.message : String(error),
+            ...(statusCode === undefined ? {} : { statusCode }),
           }
         }
       } finally {

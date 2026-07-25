@@ -1,9 +1,18 @@
-import { readBoundedActionsJSON } from './actions-response'
+import {
+  ActionsMetadataJSONError,
+  readBoundedActionsJSON,
+} from './actions-response'
 
 const GitHubHost = 'github.com'
 const GitHubAPIHost = 'api.github.com'
 const BuildJobName = 'Windows x64'
-const MaximumProbeBytes = 256 * 1024
+/**
+ * A single `compare` or `workflow_runs` page is routinely far larger than the
+ * few fields this probe reads, so the ceiling matches the shared Actions bound
+ * rather than the old 256 KiB. An oversized response is still an expected,
+ * handled condition — see `probeDegraded` — never an unhandled rejection.
+ */
+const MaximumProbeBytes = 2 * 1024 * 1024
 const ProbeTimeoutMilliseconds = 10_000
 const MaximumRunsPerWorkflow = 10
 const ObjectIDPattern = /^[0-9a-f]{40}$/
@@ -11,11 +20,33 @@ const RepositoryPartPattern = /^[A-Za-z0-9_.-]{1,100}$/
 
 type Fetcher = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
+/** Why one leg of the probe could not be read. Always handled, never thrown. */
+export type UpdateBuildProbeDegradation = 'metadata-too-large' | 'invalid-json'
+
 export interface IDesktopMaterialUpdateBuildProbe {
   readonly updatesURL: string
   readonly installedSHA: string
   readonly fetcher?: Fetcher
   readonly signal?: AbortSignal
+  /**
+   * Called once per skipped response so the caller can log it and, at most
+   * once, tell the user. The probe continues with the remaining legs and only
+   * ever answers "no newer build was proven".
+   */
+  readonly onDegraded?: (degradation: UpdateBuildProbeDegradation) => void
+}
+
+/**
+ * Classify a bounded-read failure. Anything else (network, abort, a non-OK
+ * status) stays exceptional and is reported to the caller unchanged.
+ */
+export function updateBuildProbeDegradation(
+  error: unknown
+): UpdateBuildProbeDegradation | null {
+  if (!(error instanceof ActionsMetadataJSONError)) {
+    return null
+  }
+  return error.kind === 'too-large' ? 'metadata-too-large' : 'invalid-json'
 }
 
 interface IUpdateRepository {
@@ -189,11 +220,34 @@ export async function isNewerDesktopMaterialBuildInProgress({
   installedSHA,
   fetcher = fetch,
   signal: callerSignal,
+  onDegraded,
 }: IDesktopMaterialUpdateBuildProbe): Promise<boolean> {
   const repository = getUpdateFeedRepository(updatesURL)
   const installed = normalizeObjectID(installedSHA)
   if (repository === null || installed === null) {
     return false
+  }
+
+  /**
+   * Read one leg, or report `null` when its body was unreadable within the
+   * bound. A single oversized page must not abort the whole probe — that is
+   * what turned an expected GitHub response size into a floating rejection and
+   * a generic "background action stopped unexpectedly" toast.
+   */
+  const readLeg = async (
+    response: Response,
+    legSignal: AbortSignal
+  ): Promise<unknown | null> => {
+    try {
+      return await boundedGitHubJSON(response, legSignal)
+    } catch (error) {
+      const degradation = updateBuildProbeDegradation(error)
+      if (degradation === null) {
+        throw error
+      }
+      onDegraded?.(degradation)
+      return null
+    }
   }
 
   const timeout = AbortSignal.timeout(ProbeTimeoutMilliseconds)
@@ -218,10 +272,11 @@ export async function isNewerDesktopMaterialBuildInProgress({
       headers,
       signal,
     })
-    const runs = activeBuildRuns(
-      await boundedGitHubJSON(workflowResponse, signal),
-      workflow
-    )
+    const workflowBody = await readLeg(workflowResponse, signal)
+    if (workflowBody === null) {
+      continue
+    }
+    const runs = activeBuildRuns(workflowBody, workflow)
 
     for (const run of runs) {
       if (run.sha === installed) {
@@ -236,12 +291,8 @@ export async function isNewerDesktopMaterialBuildInProgress({
         headers,
         signal,
       })
-      if (
-        !buildJobIsInProgress(
-          await boundedGitHubJSON(jobsResponse, signal),
-          run
-        )
-      ) {
+      const jobsBody = await readLeg(jobsResponse, signal)
+      if (jobsBody === null || !buildJobIsInProgress(jobsBody, run)) {
         continue
       }
 
@@ -249,9 +300,12 @@ export async function isNewerDesktopMaterialBuildInProgress({
       if (isAhead === undefined) {
         const compareURL = `https://${GitHubAPIHost}/repos/${repositoryPath}/compare/${installed}...${run.sha}`
         const compareResponse = await fetcher(compareURL, { headers, signal })
-        isAhead =
-          compareStatus(await boundedGitHubJSON(compareResponse, signal)) ===
-          'ahead'
+        const compareBody = await readLeg(compareResponse, signal)
+        if (compareBody === null) {
+          // Unproven is not "ahead": skip this run rather than guess.
+          continue
+        }
+        isAhead = compareStatus(compareBody) === 'ahead'
         comparedSHAs.set(run.sha, isAhead)
       }
       if (isAhead) {

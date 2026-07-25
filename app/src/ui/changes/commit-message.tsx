@@ -102,6 +102,7 @@ import type {
   CheapLfsAutoPinPhase,
   ICheapLfsAutoPinProgress,
 } from '../../lib/cheap-lfs/operations'
+import { cheapLfsFailedFileRowText } from '../../lib/cheap-lfs/failure-reason'
 
 const CheapLfsTerminalPathMaximumLength = 160
 
@@ -115,10 +116,21 @@ interface ICheapLfsDisplayProgress {
   readonly totalBytes: number
   readonly percentage: number | null
   readonly activeFiles: ReadonlyArray<ICheapLfsDisplayActiveFile>
+  readonly failedFileDetails: ReadonlyArray<ICheapLfsDisplayFailedFile>
+  readonly omittedFailedFiles: number
   readonly selectedStorageProvider: string | null
   readonly recommendedStorageProvider: string | null
   readonly estimatedRegistryLayers: number | null
 }
+
+/** One settled failure row: a sanitized path plus its explained reason. */
+interface ICheapLfsDisplayFailedFile {
+  readonly path: string
+  readonly text: string
+}
+
+/** Keep the terminal readable while still naming every distinct failure mode. */
+const CheapLfsTerminalMaximumFailureRows = 3
 
 interface ICheapLfsDisplayActiveFile {
   readonly path: string
@@ -237,6 +249,19 @@ function normalizeCheapLfsDisplayProgress(
     })
     .filter((file): file is ICheapLfsDisplayActiveFile => file !== null)
 
+  // Every counted failure must be explainable. Rows are capped for layout, but
+  // the overflow is stated rather than silently dropped.
+  const allFailureRows = (progress.failedFileDetails ?? []).flatMap(failure => {
+    const path = sanitizeCheapLfsTerminalPath(failure.relativePath)
+    return path === null
+      ? []
+      : [{ path, text: cheapLfsFailedFileRowText(path, failure) }]
+  })
+  const failedFileDetails = allFailureRows.slice(
+    0,
+    CheapLfsTerminalMaximumFailureRows
+  )
+
   return {
     completedFiles,
     succeededFiles,
@@ -247,6 +272,8 @@ function normalizeCheapLfsDisplayProgress(
     totalBytes,
     percentage,
     activeFiles,
+    failedFileDetails,
+    omittedFailedFiles: allFailureRows.length - failedFileDetails.length,
     selectedStorageProvider: progress.selectedStorageProvider ?? null,
     recommendedStorageProvider: progress.recommendedStorageProvider ?? null,
     estimatedRegistryLayers:
@@ -2483,10 +2510,17 @@ export class CommitMessage extends React.Component<
             transferred: formatCheapLfsBytes(display.transferredBytes),
             total: formatCheapLfsBytes(display.totalBytes),
           })
-    const progressValueText =
-      display.percentage === null
-        ? `${files}; ${bytes}`
-        : `${files}; ${bytes}; ${display.percentage}%`
+    // The summary itself has to carry a cause: a settled `failed 10` with no
+    // reason anywhere was exactly the reported defect.
+    const failureSummary = display.failedFileDetails
+      .map(failure => failure.text)
+      .join('; ')
+    const progressValueText = [
+      files,
+      bytes,
+      ...(display.percentage === null ? [] : [`${display.percentage}%`]),
+      ...(failureSummary.length === 0 ? [] : [failureSummary]),
+    ].join('; ')
     const unsettledFiles = Math.max(
       0,
       display.totalFiles - display.completedFiles
@@ -2675,6 +2709,32 @@ export class CommitMessage extends React.Component<
                   </div>
                 )
               })}
+            </div>
+          )}
+          {display.failedFileDetails.length > 0 && (
+            <div
+              className="cheap-lfs-terminal-failed-files"
+              role="list"
+              aria-label={translateForAccessibleName(
+                'cheapLfs.progress.terminalFailuresLabel'
+              )}
+            >
+              {display.failedFileDetails.map((failure, index) => (
+                <div
+                  className="cheap-lfs-terminal-failed-file"
+                  role="listitem"
+                  key={`${index}:${failure.path}`}
+                >
+                  {failure.text}
+                </div>
+              ))}
+              {display.omittedFailedFiles > 0 && (
+                <div className="cheap-lfs-terminal-failed-file" role="listitem">
+                  {t('cheapLfs.progress.terminalFailuresOmitted', {
+                    count: display.omittedFailedFiles.toString(),
+                  })}
+                </div>
+              )}
             </div>
           )}
           <div className="cheap-lfs-terminal-details">

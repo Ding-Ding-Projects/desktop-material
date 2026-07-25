@@ -173,6 +173,38 @@ is corrupt or unreadable, Desktop Material reports a real failure. It does not
 delete loose objects, rewrite Git configuration, or claim that unrelated Git
 operations have been repaired.
 
+## Temporary fingerprint index cleanup
+
+Both the batching adapter and the pre-commit proof capture build a *scratch*
+Git index in an OS temporary directory (`desktop-material-commit-batch-*` and
+`desktop-material-commit-intent-*`), filled with `git add -A` under
+`GIT_INDEX_FILE`.
+
+Cleaning that directory used to be an unconditional
+`rm(dir, { recursive: true, force: true })` inside a `finally`. On a 200k-file
+working tree the staging pass holds `<dir>/index.lock` for roughly 14 seconds,
+so on Windows the unlink failed with `EBUSY`; thrown from a `finally` it both
+*replaced* the real underlying error and aborted the push before any network
+I/O. Two things were wrong: cleanup of a scratch directory was able to fail an
+operation, and it was willing to delete a lock a live Git process still owned.
+
+`removeTemporaryGitIndexDirectory` replaces it with the fail-closed live-lock
+decision. `decideTemporaryIndexLockCleanup` (in
+`large-repository/stale-index-lock.ts`) authorizes removal only for an absent or
+provably unowned lock; a symlinked or non-regular lock is never touched; a lock
+whose owner is live *or indeterminate* is awaited on a bounded budget (60 s at a
+250 ms poll) and then abandoned to the OS temporary-file reaper rather than
+forced. An `EBUSY`/`EPERM`/`EACCES` from the unlink itself is treated as the OS
+proving a live owner and folded back into the same wait. The function never
+throws, so a scratch-index cleanup can no longer mask or abort the commit or
+push it belongs to.
+
+The trigger was removed as well: the whole-tree `git add -A` used a 256 KiB
+(and, in the proof capture, 8 KiB) stdout ceiling. A large working tree can emit
+one line-ending warning per path, so Node killed `git add` part-way through —
+which is what stranded `index.lock` in the first place. Both now use the same
+64 MiB path-inventory ceiling as the other large-tree Git reads.
+
 ## Failure modes and recovery
 
 An unreadable or missing non-deleted file, unsafe path, single ordinary file

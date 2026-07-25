@@ -13,6 +13,26 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 25 Cheap LFS first publish and push race — **Implemented, locally accepted**
+
+A headless 200k-file end-to-end (issue #38) proved three defects on the release
+storage route. Pinning during a commit created the bucket release against the
+*local* branch name, so on a never-published repository GitHub answered
+`422 Validation Failed` for every file; the release is now anchored by
+publishing the branch tip first and re-reading the remote ref to prove it, and
+every genuinely blocking condition refuses with an actionable reason instead of
+retrying into another 422. The commit-batching snapshot's scratch index was
+cleaned with an unconditional recursive delete that raced its own 14-second
+`git add -A`, so a Windows `EBUSY` thrown from a `finally` masked the real error
+and aborted the push before any network I/O; cleanup now waits for a live lock
+to be released, never unlinks one, and never fails the operation. Per-file pin
+failures now carry their provider status and sanitized reason into the commit
+terminal rows, the summary, and the notification in English and Cantonese, so
+`pinned 0 · failed 10` can no longer settle without a cause. An oversized GitHub
+Actions response during the launch update check is also a handled, once-per-
+session notice rather than a generic "background action stopped unexpectedly"
+toast. Details in [HANDOFF.md](HANDOFF.md).
+
 ## July 24 trampoline token lifecycle — **Implemented, locally accepted**
 
 A production log showed repeated `Tried to use invalid trampoline token`

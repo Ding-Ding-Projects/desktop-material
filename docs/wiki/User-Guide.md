@@ -950,6 +950,21 @@ and at most three transfers. A failed raw file stays selected for the next try,
 while unrelated safe changes and successful pointers can commit. Use the
 **Large files** Changes filter to isolate files over the same threshold.
 
+Every failure says why. Each settled failure adds its own row to the terminal
+naming the file and the reason — including the provider's HTTP status where
+there is one — and the same reason is repeated in the "Some large files were
+not pinned" notification, so a run can never end on a bare `pinned 0 · failed
+10`. Provider text is trimmed and scrubbed of URLs and credentials before it is
+shown.
+
+On the **GitHub published prerelease** backend a release tag has to point at a
+commit GitHub already has. If the current branch has never been pushed, Desktop
+Material publishes that branch first and re-reads the remote to confirm it
+landed, then uploads. If it genuinely cannot — no GitHub repository, no push
+remote, a detached HEAD, or a branch with no commits yet — it stops before
+uploading anything and names that exact reason on every affected file instead
+of retrying. Publish the repository or branch, then commit again.
+
 ![Changes sidebar with the Large files filter and a three-worker Cheap LFS terminal showing queue, provider, reason, timing, ETA, and manual controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-commit-progress.png)
 
 The same settings page chooses **GitHub published prerelease**, **GHCR · one
