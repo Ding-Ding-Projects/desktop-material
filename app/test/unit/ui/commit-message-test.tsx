@@ -997,10 +997,43 @@ describe('CommitMessage', () => {
     assert.equal(buttons[0].props.children, 'Cancel')
   })
 
-  it('offers manual fallback only during the automatic upload phase', () => {
-    const phasesWithoutManualFallback: ReadonlyArray<CheapLfsAutoPinPhase> = [
+  it('offers manual fallback until the handoff happens or the upload ends', () => {
+    const phasesWithManualFallback: ReadonlyArray<CheapLfsAutoPinPhase> = [
       'preparing',
       'hashing',
+      'uploading',
+    ]
+    for (const phase of phasesWithManualFallback) {
+      const component = toTestInstance(
+        new CommitMessage(
+          createProps({
+            isCommitting: true,
+            isGeneratingCommitMessage: false,
+            onManualCheapLfsUpload: () => undefined,
+            commitOperationPhase: {
+              kind: 'cheap-lfs',
+              progress: {
+                phase,
+                completedFiles: 0,
+                totalFiles: 1,
+                currentPath: 'windows.iso',
+                transferredBytes: 0,
+                totalBytes: 200,
+              },
+            },
+          })
+        )
+      )
+      assert.deepEqual(
+        getCommitProgressButtons(component).map(
+          button => button.props.children
+        ),
+        ['Manual upload', 'Cancel'],
+        `expected manual fallback in ${phase}`
+      )
+    }
+
+    const phasesWithoutManualFallback: ReadonlyArray<CheapLfsAutoPinPhase> = [
       'release',
       'verifying',
       'manual-preparing',

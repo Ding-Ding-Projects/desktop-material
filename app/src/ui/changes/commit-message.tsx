@@ -517,23 +517,37 @@ export function advanceCheapLfsTransferTiming(
 const ManualCheapLfsUploadTarget = 'cheap-lfs-manual-upload'
 
 /**
- * Can the running Cheap LFS commit still be handed off to a manual browser
- * upload? Only a release-backed transfer that is actually uploading can, and
- * losing that state is also what marks the handoff finished or failed.
+ * Phases where offering "Manual upload" would be wrong: the handoff already
+ * happened (manual-*) or the transfer is past the point of switching.
  */
-function canSwitchToManualCheapLfsUpload(
+const ManualFallbackHiddenPhases: ReadonlySet<string> = new Set([
+  'release',
+  'verifying',
+  'manual-preparing',
+  'manual-waiting',
+  'manual-verifying',
+  'manual-detected',
+])
+
+/**
+ * The manual-upload handoff is offered for the whole automatic release-backed
+ * flow — including `preparing`/`hashing`, which can run for minutes on huge
+ * files and where the store's rendezvous accepts an early request — but never
+ * for OCI publishing (no browser upload exists) and never once the handoff has
+ * happened or the transfer completed. Losing eligibility also releases the
+ * in-flight claim.
+ */
+function canOfferManualCheapLfsUpload(
   commitOperationPhase: CommitOperationPhase | null
 ): boolean {
   if (commitOperationPhase?.kind !== 'cheap-lfs') {
     return false
   }
-  const { phase, activeFiles, selectedStorageProvider } =
-    commitOperationPhase.progress
+  const { phase, selectedStorageProvider } = commitOperationPhase.progress
   return (
     (selectedStorageProvider === undefined ||
       selectedStorageProvider === 'release') &&
-    (phase === 'uploading' ||
-      activeFiles?.some(file => file.phase === 'uploading') === true)
+    !ManualFallbackHiddenPhases.has(phase)
   )
 }
 
@@ -808,7 +822,7 @@ export class CommitMessage extends React.Component<
     // The handoff is over once the commit stops offering it — it either moved
     // on to the manual stages, finished, or failed. Release the claim so the
     // control works again, without ever guessing from a timer.
-    if (!canSwitchToManualCheapLfsUpload(this.props.commitOperationPhase)) {
+    if (!canOfferManualCheapLfsUpload(this.props.commitOperationPhase)) {
       this.releaseCheapLfsAction(ManualCheapLfsUploadTarget)
     }
 
@@ -2706,10 +2720,9 @@ export class CommitMessage extends React.Component<
     }
 
     if (commitOperationPhase?.kind === 'cheap-lfs') {
-      const canSwitchToManual =
-        canSwitchToManualCheapLfsUpload(commitOperationPhase)
       const showManualUpload =
-        canSwitchToManual && this.props.onManualCheapLfsUpload !== undefined
+        this.props.onManualCheapLfsUpload !== undefined &&
+        canOfferManualCheapLfsUpload(commitOperationPhase)
       const manualUploadInFlight = isInFlight(
         this.state.cheapLfsActionsInFlight,
         ManualCheapLfsUploadTarget
@@ -2720,23 +2733,21 @@ export class CommitMessage extends React.Component<
         <div className="commit-progress cheap-lfs-progress">
           {this.renderCheapLfsTerminal(commitOperationPhase.progress)}
           {showManualUpload && (
-            <>
-              <Button
-                type="button"
-                className="cheap-lfs-action"
-                disabled={manualUploadInFlight}
-                aria-busy={manualUploadInFlight}
-                onClick={this.onManualCheapLfsUpload}
-              >
-                {t('cheapLfs.manualUpload')}
-              </Button>
-              {manualUploadInFlight && (
-                <span className="cheap-lfs-action-progress" role="status">
-                  <Loading />
-                  {t('cheapLfs.manualUploadStarting')}
-                </span>
-              )}
-            </>
+            <Button
+              type="button"
+              className="cheap-lfs-action"
+              disabled={manualUploadInFlight}
+              aria-busy={manualUploadInFlight}
+              onClick={this.onManualCheapLfsUpload}
+            >
+              {t('cheapLfs.manualUpload')}
+            </Button>
+          )}
+          {showManualUpload && manualUploadInFlight && (
+            <span className="cheap-lfs-action-progress" role="status">
+              <Loading />
+              {t('cheapLfs.manualUploadStarting')}
+            </span>
           )}
           {showCancel && (
             <Button
