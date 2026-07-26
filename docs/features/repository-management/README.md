@@ -36,6 +36,10 @@ Material is displaying or how a repository is represented in the application.
   visibility](repository-picker-filters-and-visibility.md) — combine status,
   account, service, and text filters, and locally hide repositories with an
   explicit recovery path.
+- [Repository list bulk actions](repository-list-bulk-actions.md) — select the
+  filter-visible rows to fetch, pull, favorite, group, or forget several
+  repositories, with determinate progress, cancel between repositories, and a
+  removal confirmation that never deletes on-disk content.
 - [Tag lifecycle management](tag-lifecycle-management.md) — inventory, create,
   move, sign, push, fetch, prune, and explicitly delete local and remote tags
   through stale-safe reviewed operations.

@@ -52,6 +52,88 @@ uploads). The stale July-1 `GitHubDesktopSetup-x64.exe` should be deleted by
 the user (Squirrel `--install` performs no version comparison; guard shipped
 but cannot stop a re-run installer).
 
+## 2026-07-25 Repository list bulk actions
+
+Branch `feat/repo-list-bulk-actions` (worktree only; **not merged, not
+pushed** — push was explicitly out of scope for this task).
+
+- **Selection state machine** —
+  `app/src/ui/repositories-list/repository-bulk-selection.ts` is pure and
+  React-free: enter/exit, per-row toggle, filter-aware select-all, prune, and
+  the all/some-visible predicates. Select-all only ever adds or removes the ids
+  the caller says are visible, so a selection made under one filter survives the
+  next filter. Escape and Clear both call `exitBulkSelection`, which leaves the
+  mode and empties the set; `clearBulkSelection` (used after a bulk removal)
+  empties it but stays in the mode.
+- **Visible rows** — `SectionFilterList` never exposed its filtered rows, and
+  they cannot be recomputed by a consumer because the match mode, case
+  sensitivity, and chip filters are private state. A new optional
+  `onVisibleItemsChanged` prop publishes the exact visible items on mount and
+  whenever the visible id list changes; the id-equality guard is what stops the
+  parent's `setState` from looping. Pinned and Recent repeat a repository, so
+  the picker dedupes by id. Cloning and submodule rows are never selectable
+  (temporary ids; a submodule cannot be removed from the list at all).
+- **Bulk runner** — `app/src/lib/automation/bulk-repository-runner.ts` is a
+  sequential, determinate runner. `isCancelled` is consulted only *between*
+  items, so the in-flight repository always finishes and the rest are reported
+  `cancelled`/"Not started" rather than dropped. Every detail and thrown error
+  passes through `sanitizeBulkFailureReason`: Windows/UNC/POSIX absolute paths
+  → `<path>`, URL credentials and `gh*_`/`github_pat_` tokens → `<redacted>`,
+  whitespace collapsed, elided at 200 chars. The Windows drive-letter pattern
+  carries a leading non-alphanumeric guard so it cannot eat a URL scheme.
+- **Reviewed pull/fetch is not bypassed** — each selected repository is
+  submitted as its own single-repository `dispatcher.syncRepositories` call, so
+  `_syncRepositories` revalidates the id against the live persisted inventory
+  and `performPullAllRepository` applies its unchanged per-repository review
+  (missing repo, no remote, detached/unborn tip, no upstream, network op in
+  flight). A row that fails or is skipped does not stop the batch.
+- **Removal safety** — bulk removal is confirmation gated in a
+  `role="alertdialog"` that names every affected repository and states nothing
+  on disk is deleted. The path always calls `removeRepository(repository,
+  false)` and has no access to `forceRemoveRepository` or the trash route; the
+  collection-surface contract test asserts both the presence of the `false`
+  call and the absence of the destructive ones.
+- **Registry** — new `repositories-list` entry in `BulkActionSurfaceRegistry`
+  (the existing `repositories` entry still points at the Sync dialog). The
+  pinned contract test gained a source match for the new surface plus a check
+  that every registered operation id exists as a real value in the implementing
+  source, so the registry cannot drift into fiction.
+- **i18n / a11y** — 51 new `repositoryBulk.*` keys across the union, English,
+  and Cantonese catalogs; destructive copy is plain and placeholder-free in
+  both. Selection bar is `role="group"`, the count is `role="status"`, the
+  progress track is a `role="progressbar"` with `aria-valuenow`/`aria-valuetext`,
+  each row checkbox has a per-repository accessible name, and every control is a
+  native focusable element. Clicking a row toggles it while multi-select is on,
+  so the list's own keyboard navigation reaches every checkbox. Clear and the
+  Select-multiple toggle are disabled while a batch runs so a running batch's
+  progress and cancel control can never be hidden.
+- **Local verification**: `yarn lint` green end to end (Prettier repo-wide
+  check clean, `eslint-config-prettier-check` clean, repo-wide eslint clean) and
+  `npx tsc --noEmit` clean, all with `TEMP=C:\dm-temp`.
+  - Dependency-scoped sweep — every test file importing any changed module
+    (`section-filter-list`, `repositories-list`, `collection-surface-registry`,
+    `automation/pull-all`, `i18n-resources`, the new bulk modules): 247/247,
+    `ℹ fail 0`, `Test file accounting: 31/31 discovered file(s) produced results
+    across 1 batch(es); 247 test(s) reported.`, exit 0. Includes the two suites
+    that render `RepositoriesList` directly.
+  - Targeted sweep of the three new suites plus repositories-list, pull-all,
+    i18n, and filter-mode: 117/117, `ℹ fail 0`, `Test file accounting: 12/12 …
+    117 test(s) reported.`, exit 0.
+  - Broad UI/contract sweep (`app/test/unit/ui` plus every registration,
+    responsive, settings-search, palette, design/style, and surface suite):
+    212 files, 1308 tests, `ℹ fail 1` — `OllamaModelManager chat panel`. That
+    suite imports none of the changed modules; re-running it in isolation failed
+    a *different* pair of its own tests, i.e. the same non-deterministic timing
+    behavior already recorded for it in this file. Everything else passed.
+  - A full `node script/test.mjs` was started as well; batches 1 and 2 finished
+    clean (1388/1388 `ℹ fail 0`; 1338 tests, 1337 pass, 1 pre-existing skip,
+    `ℹ fail 0`) and batch 3 was still inside the slow Cheap LFS/git integration
+    files when the run was stopped, so the full-suite accounting line was never
+    emitted. Those remaining batches are Git/Cheap-LFS integration work that the
+    dependency-scoped sweep above shows is untouched by this change.
+  - SCSS: the new partial compiles standalone with `sass` (6,164 bytes), so the
+    bundle import cannot break the build.
+
 ## 2026-07-25 Anchor before the release review (#38 last defect)
 
 Branch `fix/bootstrap-before-review` (worktree only; **not merged, not

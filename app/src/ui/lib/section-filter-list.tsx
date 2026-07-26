@@ -181,6 +181,18 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
    */
   readonly onFilterListResultsChanged?: (resultCount: number) => void
 
+  /**
+   * Called with the exact items the active filter is currently showing, in row
+   * order, whenever that set changes (and once after mount).
+   *
+   * The filtered rows are private component state, so a consumer that needs to
+   * act on "everything I can see right now" — a select-all-visible control, for
+   * example — cannot recompute them faithfully: the match mode, case
+   * sensitivity, and active chip filters all live here. Consumers must treat
+   * the array as a snapshot and must not mutate it.
+   */
+  readonly onVisibleItemsChanged?: (items: ReadonlyArray<T>) => void
+
   /** Placeholder text for text box. Default is "Filter". */
   readonly placeholderText?: string
 
@@ -241,6 +253,7 @@ export class SectionFilterList<
 > {
   private list: SectionList | null = null
   private filterTextBox: TextBox | null = null
+  private lastVisibleItemIds: ReadonlyArray<string> | null = null
 
   public constructor(props: ISectionFilterListProps<T, GroupIdentifier>) {
     super(props)
@@ -297,12 +310,44 @@ export class SectionFilterList<
 
       this.props.onFilterListResultsChanged(itemCount)
     }
+
+    this.emitVisibleItems()
   }
 
   public componentDidMount() {
     if (this.filterTextBox !== null) {
       this.filterTextBox.selectAll()
     }
+
+    this.emitVisibleItems()
+  }
+
+  /**
+   * Publish the currently visible items, but only when the identity of that set
+   * actually changed. Consumers store the snapshot in their own state, so an
+   * unconditional call on every update would re-render this list forever.
+   */
+  private emitVisibleItems() {
+    if (this.props.onVisibleItemsChanged === undefined) {
+      return
+    }
+
+    const items = this.state.rows
+      .flat()
+      .flatMap(row => (row.kind === 'item' ? [row.item] : []))
+    const ids = items.map(item => item.id)
+    const previous = this.lastVisibleItemIds
+
+    if (
+      previous !== null &&
+      previous.length === ids.length &&
+      previous.every((id, index) => id === ids[index])
+    ) {
+      return
+    }
+
+    this.lastVisibleItemIds = ids
+    this.props.onVisibleItemsChanged(items)
   }
 
   public renderTextBox() {
