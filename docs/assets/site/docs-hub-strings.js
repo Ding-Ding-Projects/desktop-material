@@ -96,6 +96,9 @@
       searchBuilderHide: 'Close regex builder',
       searchEngine:
         'Patterns run in your browser’s own JavaScript RegExp engine (ECMAScript). Nothing you type is uploaded, stored or sent anywhere.',
+      searchFullText:
+        'This searches page titles, paths and summaries. To search the full body text of every rendered page instead, use the full-text search.',
+      searchFullTextLink: 'Open full-text search',
       searchIdle: 'Type to search the documentation catalog.',
       searchNone: 'No documentation page matches that search.',
       searchResults: 'matching pages',
@@ -404,6 +407,9 @@
       searchBuilderHide: '關閉 regex 建構器',
       searchEngine:
         '圖案由你部瀏覽器自己嘅 JavaScript RegExp 引擎（ECMAScript）執行。你打嘅嘢唔會上載、儲存或者送去任何地方。',
+      searchFullText:
+        '呢度搜尋嘅係頁面標題、路徑同摘要。想搜尋每版已渲染頁面嘅全部內文，請用全文搜尋。',
+      searchFullTextLink: '開啟全文搜尋',
       searchIdle: '打字即可搜尋文件目錄。',
       searchNone: '冇任何文件頁面符合呢個搜尋。',
       searchResults: '個符合嘅頁面',
