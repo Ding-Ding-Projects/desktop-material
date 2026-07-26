@@ -4122,6 +4122,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="invalidated-token"
             dispatcher={this.props.dispatcher}
             account={popup.account}
+            accounts={this.state.accounts}
             onDismissed={onPopupDismissedFn}
           />
         )

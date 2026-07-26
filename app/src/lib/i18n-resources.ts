@@ -2034,6 +2034,13 @@ export type TranslationKey =
   | 'accounts.keychainLocked'
   | 'accounts.tokenWriteFailed'
   | 'accounts.credentialUnavailable'
+  | 'accounts.invalidatedTokenTitle'
+  | 'accounts.invalidatedTokenTitleDarwin'
+  | 'accounts.invalidatedTokenBody'
+  | 'accounts.invalidatedTokenOthersKept'
+  | 'accounts.invalidatedTokenPrompt'
+  | 'accounts.invalidatedTokenSignIn'
+  | 'accounts.invalidatedTokenLater'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -4579,6 +4586,15 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Desktop Material could not save the sign-in token for {login}, so that account was not added. Please sign in again. ({error})',
   'accounts.credentialUnavailable':
     'Desktop Material could not read the saved sign-in token for {logins}. Please sign in again to restore access.',
+  'accounts.invalidatedTokenTitle': 'Invalidated account token',
+  'accounts.invalidatedTokenTitleDarwin': 'Invalidated Account Token',
+  'accounts.invalidatedTokenBody':
+    'The sign-in token for {login} on {endpoint} is no longer valid, so that account has been signed out.',
+  'accounts.invalidatedTokenOthersKept':
+    'Your other accounts on {endpoint} are still signed in.',
+  'accounts.invalidatedTokenPrompt': 'Do you want to sign in as {login} again?',
+  'accounts.invalidatedTokenSignIn': 'Sign in again',
+  'accounts.invalidatedTokenLater': 'Not now',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -6940,4 +6956,13 @@ export const cantoneseTranslations: Readonly<
     'Desktop Material 儲存唔到 {login} 嘅登入權杖，所以個帳戶未加到入去。請重新登入一次。（{error}）',
   'accounts.credentialUnavailable':
     'Desktop Material 讀唔到 {logins} 已儲存嘅登入權杖。請重新登入一次，先可以用返呢啲帳戶。',
+  'accounts.invalidatedTokenTitle': '帳戶權杖已經失效',
+  'accounts.invalidatedTokenTitleDarwin': '帳戶權杖已經失效',
+  'accounts.invalidatedTokenBody':
+    '{endpoint} 上面 {login} 嘅登入權杖已經失效，所以呢個帳戶已經登出咗。',
+  'accounts.invalidatedTokenOthersKept':
+    '你喺 {endpoint} 嘅其他帳戶仍然登入緊。',
+  'accounts.invalidatedTokenPrompt': '要唔要用返 {login} 重新登入？',
+  'accounts.invalidatedTokenSignIn': '重新登入',
+  'accounts.invalidatedTokenLater': '暫時唔使',
 }

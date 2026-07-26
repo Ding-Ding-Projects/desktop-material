@@ -73,6 +73,37 @@ transient credential-store failure does not permanently sign the account out.
 A re-authorization that arrives under a renamed login clears the superseded
 credential entry rather than leaving a live token behind.
 
+## Invalidated tokens on a shared host
+
+The GitHub API client raises an invalidated-token signal when a request returns
+`401` with the `X-GitHub-Request-Id` header and no two-factor challenge. The
+signal carries the endpoint and the exact token the failing request was made
+with; it carries no login or account id, because the API client is constructed
+from an endpoint and a credential.
+
+The token is the identity. Several accounts can be signed in on one host, so
+the endpoint alone does not say whose credential died — resolving by endpoint
+position picks whichever account sorts first, which used to mean an invalidated
+token belonging to any other account signed nobody out at all and the app kept
+using the dead credential and re-prompting. `getAccountForEndpointAndToken`
+matches the signed-in account on that endpoint whose stored credential is the
+failing one, so exactly that account is signed out and every other account on
+the host stays signed in. The comparison uses the in-memory account list, which
+already carries each token rehydrated from the credential vault, so no extra
+vault read is needed.
+
+When no signed-in account on the endpoint holds the token any more, nobody is
+signed out. That is the correct outcome for a credential already replaced by a
+re-authorization or belonging to an account that is already signed out; acting
+on a stale token would sign out a healthy account. The case is logged as a
+warning.
+
+The sign-out notice names the affected login and host, states whether other
+accounts on the same host are still signed in, and offers to repeat that
+sign-in. It is available in English, Hong Kong Cantonese, and bilingual mode
+(`accounts.invalidatedToken*`) and stays plain and factual at every funny
+level, as authentication errors must.
+
 The main-process same-origin filter keeps the initial origin only for the life
 of one Electron request. It deletes the record on completion and on
 failure/cancellation, so repeated failed requests cannot retain origin entries
