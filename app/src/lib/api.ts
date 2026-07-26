@@ -226,6 +226,7 @@ import {
   IGitHubReleaseDraft,
   IGitHubReleaseList,
   IGitHubReleaseUpdate,
+  normalizeGitHubReleaseAssetLabel,
   normalizeGitHubReleaseDraft,
   normalizeGitHubReleaseUpdate,
   parseGitHubRelease,
@@ -4337,6 +4338,41 @@ export class API {
     if (!response.ok) {
       await parsedResponse<unknown>(response)
     }
+  }
+
+  /**
+   * Rewrite one exact release asset's label.
+   *
+   * Only the label is sent: `PATCH /releases/assets/{id}` also accepts `name`,
+   * and Cheap LFS relies on asset names being write-once, so the name is
+   * deliberately never included in the request body.
+   */
+  public async updateReleaseAsset(
+    owner: string,
+    name: string,
+    assetId: number,
+    label: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAsset> {
+    const safeOwner = validateGitHubReleaseRepositoryPart(owner, 'owner')
+    const safeName = validateGitHubReleaseRepositoryPart(name, 'repository')
+    const safeAssetId = validateGitHubReleaseIdentifier(assetId, 'asset id')
+    const safeLabel = normalizeGitHubReleaseAssetLabel(label)
+    if (safeLabel === null) {
+      throw new Error('A release asset label must not be empty.')
+    }
+    const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
+      safeName
+    )}/releases/assets/${safeAssetId}`
+    const response = await this.ghRequest('PATCH', path, {
+      body: { label: safeLabel },
+      customHeaders: { Accept: 'application/vnd.github+json' },
+      signal,
+    })
+    return parseGitHubReleaseAsset(
+      await boundedGitHubReleaseResponse(response, signal),
+      safeAssetId
+    )
   }
 
   /** Delete one exact release asset. */

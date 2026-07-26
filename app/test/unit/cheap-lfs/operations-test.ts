@@ -2111,12 +2111,28 @@ describe('cheap LFS operations', () => {
       const filePath = join(dir, baseName)
       const wholeSha = 'a'.repeat(64)
       const firstRetryName = `${'a'.repeat(243)}-aaaaaaa.iso`
+      // Both occupy the names this pin wants but hold *different* bytes, which
+      // is what forces a fresh name. An asset whose digest proved it already
+      // held these exact bytes would be reused instead of renamed around.
+      const otherSha = 'b'.repeat(64)
       const draft: IGitHubRelease = {
         ...release,
         tagName: 'v4.3.1',
         assets: [
-          { ...asset, id: 20, name: baseName, sizeInBytes: 100 },
-          { ...asset, id: 21, name: firstRetryName, sizeInBytes: 100 },
+          {
+            ...asset,
+            id: 20,
+            name: baseName,
+            sizeInBytes: 100,
+            digest: `sha256:${otherSha}`,
+          },
+          {
+            ...asset,
+            id: 21,
+            name: firstRetryName,
+            sizeInBytes: 100,
+            digest: `sha256:${otherSha}`,
+          },
         ],
       }
       let uploadedName = ''

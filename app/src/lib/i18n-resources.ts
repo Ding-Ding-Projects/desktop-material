@@ -1823,6 +1823,9 @@ export type TranslationKey =
   | 'cheapLfs.firstPublish.publishFailed'
   | 'cheapLfs.firstPublish.reasonWithDetail'
   | 'cheapLfs.firstPublish.abortTitle'
+  | 'cheapLfs.localState.pointer'
+  | 'cheapLfs.localState.materialized'
+  | 'cheapLfs.localState.modified'
   | 'actionsMetadata.tooLarge.title'
   | 'actionsMetadata.tooLarge.body'
   | 'commit.postCommitMaintenance.title'
@@ -4246,6 +4249,11 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.firstPublish.reasonWithDetail': '{reason} Git reported: {detail}',
   'cheapLfs.firstPublish.abortTitle':
     'Commit stopped before the branch was published',
+  'cheapLfs.localState.pointer': 'Pointer stored locally',
+  'cheapLfs.localState.materialized':
+    'Materialized locally · verified against the committed pointer',
+  'cheapLfs.localState.modified':
+    'Local bytes changed · the next commit uploads them as a new release asset. The asset the committed pointer names is left untouched, so older commits still restore their own version.',
   'actionsMetadata.tooLarge.title': 'Some GitHub Actions data was skipped',
   'actionsMetadata.tooLarge.body':
     'GitHub returned more Actions metadata than this app reads in one response, so that check was skipped. Nothing else is affected and no action is needed.',
@@ -6548,6 +6556,11 @@ export const cantoneseTranslations: Readonly<
     '上載之前發佈唔到個 branch，所以 release 冇 commit 可以指向。請先發佈呢個 branch，然後再 commit 一次。',
   'cheapLfs.firstPublish.reasonWithDetail': '{reason} Git 報告：{detail}',
   'cheapLfs.firstPublish.abortTitle': 'Commit 已經停低，個 branch 未發佈到',
+  'cheapLfs.localState.pointer': '本機淨係擺住個 pointer',
+  'cheapLfs.localState.materialized':
+    '已經喺本機還原 · 同 commit 咗嘅 pointer 對得上',
+  'cheapLfs.localState.modified':
+    '本機內容改咗 · 下次 commit 會將佢當一件全新 release asset 上載。舊 pointer 指住嗰件 asset 唔會郁，所以舊 commit 一樣還原到自己嗰個版本。',
   'actionsMetadata.tooLarge.title': '有部分 GitHub Actions 資料略過咗',
   'actionsMetadata.tooLarge.body':
     'GitHub 一次過回覆嘅 Actions 資料多過本程式單次讀取上限，所以略過咗嗰項檢查。其他功能唔受影響，你唔使做任何嘢。',
