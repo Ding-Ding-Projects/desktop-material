@@ -1,5 +1,5 @@
 import { IDataStore, ISecureStore } from './stores'
-import { getKeyForAccount } from '../auth'
+import { getKeyForAccount, getKeyForEndpoint } from '../auth'
 import {
   Account,
   AccountProvider,
@@ -12,6 +12,7 @@ import { DefaultAppDisplayName } from '../../models/app-identity'
 import { TypedBaseStore } from './base-store'
 import { isGHE } from '../endpoint-capabilities'
 import { compare, compareDescending } from '../compare'
+import { t } from '../i18n'
 
 // Ensure that GitHub.com accounts appear first followed by Enterprise
 // accounts, sorted by the order in which they were added.
@@ -82,6 +83,23 @@ interface IPersistedAccountsParseResult {
   readonly accounts: ReadonlyArray<IAccount>
   readonly repaired: boolean
 }
+
+/**
+ * A persisted account paired with the endpoint its token was stored under
+ * before the GHE endpoint migration rewrote it. The secret store is keyed by
+ * endpoint, so migrating metadata alone would leave the token unreachable.
+ */
+interface IRehydratedAccount {
+  readonly account: IAccount
+  readonly previousEndpoint: string | null
+}
+
+/**
+ * The stable identity of a persisted account row, matching `getAccountKey` for
+ * the `Account` instances the store keeps in memory.
+ */
+const getPersistedAccountKey = (account: IAccount) =>
+  `${account.endpoint}#${account.id}`
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -210,6 +228,17 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
 
   private accounts: ReadonlyArray<Account> = []
 
+  /**
+   * Persisted identities this store has deliberately retired — signed out, or
+   * rewritten to a new endpoint by the GHE migration.
+   *
+   * `users` is shared by every app window, so saving merges rather than
+   * overwrites (see `save`). Without this set a merge would resurrect the very
+   * account the user just signed out of, or keep a duplicate row under the
+   * pre-migration endpoint.
+   */
+  private readonly retiredAccountKeys = new Set<string>()
+
   /** A promise that will resolve when the accounts have been loaded. */
   private loadingPromise: Promise<void>
 
@@ -251,25 +280,71 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
       if (__DARWIN__ && isKeyChainError(e)) {
         this.emitError(
           new Error(
-            `${DefaultAppDisplayName} was unable to store the account token in the keychain. Please check you have unlocked access to the 'login' keychain.`
+            t('accounts.keychainLocked', {
+              app: DefaultAppDisplayName,
+              login: account.login,
+            })
           )
         )
       } else {
-        this.emitError(e)
+        this.emitError(
+          new Error(
+            t('accounts.tokenWriteFailed', {
+              login: account.login,
+              error: `${e}`,
+            })
+          )
+        )
       }
       return null
     }
+
+    const key = getAccountKey(account)
+
+    // A re-authorization can come back under a renamed login. The secret is
+    // keyed by endpoint + login while the identity is endpoint + id, so the
+    // superseded entry has to be cleared explicitly or a live token is left
+    // behind in the OS credential store forever.
+    const superseded = this.accounts.find(
+      x => getAccountKey(x) === key && x.login !== account.login
+    )
+    if (superseded !== undefined) {
+      await this.forgetSecret(superseded)
+    }
+
+    this.retiredAccountKeys.delete(key)
 
     const accountsByIdentity = this.accounts.reduce(
       (map, x) => map.set(getAccountKey(x), x),
       new Map<string, Account>()
     )
-    accountsByIdentity.set(getAccountKey(account), account)
+    accountsByIdentity.set(key, account)
 
     this.accounts = sortAccounts([...accountsByIdentity.values()])
 
     this.save()
     return account
+  }
+
+  /**
+   * Drop an account's entry from the secret store.
+   *
+   * Cleanup failures are logged rather than surfaced: the caller has already
+   * written the credential that matters, and failing a completed sign-in
+   * because a superseded entry lingered would be worse than the leftover.
+   */
+  private async forgetSecret(account: Account): Promise<void> {
+    try {
+      await this.secureStore.deleteItem(
+        getKeyForAccount(account),
+        account.login
+      )
+    } catch (e) {
+      log.warn(
+        `Could not remove the superseded token for '${account.login}'`,
+        e
+      )
+    }
   }
 
   /**
@@ -298,14 +373,52 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
     this.save()
   }
 
-  /** Refresh all accounts by fetching their latest info from the API. */
+  /**
+   * Refresh all accounts by fetching their latest info from the API.
+   *
+   * Every account costs a network round trip, so the account list is re-read
+   * after the API calls come back instead of being captured before them.
+   * Blindly assigning the captured snapshot made the refresh a
+   * read-modify-write race over shared state: an account signed in while the
+   * refresh ran was erased from memory *and* from the saved list (so the app
+   * asked the user to sign in again on the next launch), and a token
+   * re-authorized for wider scopes mid-refresh was replaced by the narrow one
+   * the refresh had started with (so the re-authorization prompt came back).
+   */
   public async refresh(): Promise<void> {
-    this.accounts = await Promise.all(
-      this.accounts.map(acc => this.tryUpdateAccount(acc))
+    await this.loadingPromise
+
+    const updates = new Map(
+      await Promise.all(
+        this.accounts.map(
+          async account =>
+            [
+              getAccountKey(account),
+              {
+                // The token the refresh was issued with. `fetchUser` echoes it
+                // back, so it doubles as the staleness check below.
+                token: account.token,
+                account: await this.tryUpdateAccount(account),
+              },
+            ] as const
+        )
+      )
     )
 
+    this.accounts = this.accounts.map(current => {
+      const update = updates.get(getAccountKey(current))
+
+      // Only adopt the refreshed copy when the credential it was fetched with
+      // is still this account's credential. A re-authorization or a
+      // sign-out/sign-in that landed while the refresh was in flight owns the
+      // newer token and must not be rolled back. Accounts added during the
+      // refresh simply have no update and are left untouched.
+      return update === undefined || update.token !== current.token
+        ? current
+        : update.account
+    })
+
     this.save()
-    this.emitUpdate(this.accounts)
   }
 
   /**
@@ -345,6 +458,7 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
       return
     }
 
+    this.retiredAccountKeys.add(getAccountKey(account))
     this.accounts = this.accounts.filter(
       a => !(a.endpoint === account.endpoint && a.id === account.id)
     )
@@ -354,29 +468,60 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
 
   private getMigratedGHEAccounts(
     accounts: ReadonlyArray<IAccount>
-  ): ReadonlyArray<IAccount> | null {
+  ): ReadonlyArray<IRehydratedAccount> | null {
     let migrated = false
-    const migratedAccounts = accounts.map(account => {
-      let endpoint = account.endpoint
-      const endpointURL = new URL(endpoint)
+    const migratedAccounts = accounts.map<IRehydratedAccount>(account => {
+      const endpointURL = new URL(account.endpoint)
       // Migrate endpoints of subdomains of `.ghe.com` that use the `/api/v3`
       // path to the correct URL using the `api.` subdomain.
       if (
         (account.provider ?? 'github') === 'github' &&
-        isGHE(endpoint) &&
+        isGHE(account.endpoint) &&
         !endpointURL.hostname.startsWith('api.')
       ) {
-        endpoint = getEnterpriseAPIURL(endpoint)
         migrated = true
+        return {
+          account: {
+            ...account,
+            endpoint: getEnterpriseAPIURL(account.endpoint),
+          },
+          previousEndpoint: account.endpoint,
+        }
       }
 
-      return {
-        ...account,
-        endpoint,
-      }
+      return { account, previousEndpoint: null }
     })
 
     return migrated ? migratedAccounts : null
+  }
+
+  /**
+   * Carry a token across a migrated endpoint.
+   *
+   * The secret store is keyed by endpoint, so rewriting the endpoint in the
+   * saved metadata alone leaves the token stranded under the old key and the
+   * account looks signed out on the next launch.
+   */
+  private async migrateSecret(
+    previousEndpoint: string,
+    key: string,
+    login: string
+  ): Promise<string | null> {
+    const previousKey = getKeyForEndpoint(previousEndpoint)
+    const token = await this.secureStore.getItem(previousKey, login)
+
+    if (token === null || token.length === 0) {
+      return null
+    }
+
+    await this.secureStore.setItem(key, login, token)
+    try {
+      await this.secureStore.deleteItem(previousKey, login)
+    } catch (e) {
+      log.warn(`Could not remove the pre-migration token for '${login}'`, e)
+    }
+
+    return token
   }
 
   /**
@@ -391,11 +536,7 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
       this.accounts = []
       this.emitUpdate(this.accounts)
       queueMicrotask(() =>
-        this.emitError(
-          new Error(
-            'Desktop Material could not read saved account metadata. You may need to sign in again.'
-          )
-        )
+        this.emitError(new Error(t('accounts.metadataReadFailed')))
       )
       return
     }
@@ -407,10 +548,29 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
 
     const { accounts: parsedAccounts, repaired } = parsePersistedAccounts(raw)
     const migratedAccounts = this.getMigratedGHEAccounts(parsedAccounts)
-    const rawAccounts = migratedAccounts ?? parsedAccounts
+    const rawAccounts =
+      migratedAccounts ??
+      parsedAccounts.map<IRehydratedAccount>(account => ({
+        account,
+        previousEndpoint: null,
+      }))
 
     const accountsWithTokens = []
-    for (const account of rawAccounts) {
+    // Accounts whose credential could not be produced. They are reported
+    // together so the user learns which sign-ins need repeating instead of
+    // watching the app silently ask for one again.
+    const credentialFailures: Array<string> = []
+
+    for (const { account, previousEndpoint } of rawAccounts) {
+      if (previousEndpoint !== null) {
+        // The saved row still names the pre-migration endpoint, which is a
+        // different identity key from the migrated account. Retire it so the
+        // save merge rewrites the row instead of keeping both.
+        this.retiredAccountKeys.add(
+          getPersistedAccountKey({ ...account, endpoint: previousEndpoint })
+        )
+      }
+
       const accountWithoutToken = new Account(
         account.login,
         account.endpoint,
@@ -428,28 +588,56 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
       )
 
       const key = getKeyForAccount(accountWithoutToken)
+      let token: string | null
       try {
-        const token = await this.secureStore.getItem(key, account.login)
-        accountsWithTokens.push(accountWithoutToken.withToken(token || ''))
+        token = await this.secureStore.getItem(key, account.login)
+
+        if (
+          (token === null || token.length === 0) &&
+          previousEndpoint !== null
+        ) {
+          token = await this.migrateSecret(previousEndpoint, key, account.login)
+        }
       } catch (e) {
         log.error(`Error getting token for '${key}'. Skipping.`, e)
-
-        this.emitError(e)
+        credentialFailures.push(account.login)
+        continue
       }
+
+      if (token === null || token.length === 0) {
+        // An account without a credential is signed out, not signed in.
+        // Loading it with an empty token used to leave the app looking
+        // authenticated while every API call failed, which is exactly the
+        // state that makes it re-prompt endlessly with no explanation.
+        log.error(`No token found for '${key}'. Treating it as signed out.`)
+        credentialFailures.push(account.login)
+        continue
+      }
+
+      accountsWithTokens.push(accountWithoutToken.withToken(token))
     }
 
     this.accounts = sortAccounts(accountsWithTokens)
+
+    if (credentialFailures.length > 0) {
+      queueMicrotask(() =>
+        this.emitError(
+          new Error(
+            t('accounts.credentialUnavailable', {
+              logins: credentialFailures.join(', '),
+            })
+          )
+        )
+      )
+    }
+
     // If any account was migrated, make sure to persist the new value
     if (migratedAccounts !== null || repaired) {
       this.save() // Save already emits an update
       if (repaired) {
         log.warn('Repaired invalid saved account metadata')
         queueMicrotask(() =>
-          this.emitError(
-            new Error(
-              'Desktop Material repaired invalid saved account metadata. You may need to sign in again.'
-            )
-          )
+          this.emitError(new Error(t('accounts.metadataRepaired')))
         )
       }
     } else {
@@ -457,24 +645,65 @@ export class AccountsStore extends TypedBaseStore<ReadonlyArray<Account>> {
     }
   }
 
+  /**
+   * Persist account metadata. Tokens never leave the secret store.
+   *
+   * `users` is one shared key that every app window writes, so this merges
+   * rather than overwrites. A window can easily hold a stale snapshot — it
+   * missed the `accounts-changed` broadcast because it was still loading, or
+   * it saved before its own rehydrate finished — and a blind whole-array write
+   * from that snapshot silently signs out an account added somewhere else.
+   * Rows this store neither knows about nor deliberately signed out are
+   * carried through untouched; they rehydrate normally on the next load.
+   */
   private save() {
-    const usersWithoutTokens = this.accounts.map(account =>
-      account.withToken('')
-    )
+    const knownKeys = new Set(this.accounts.map(getAccountKey))
+    const usersWithoutTokens = [
+      ...this.accounts.map(account => account.withToken('')),
+      ...this.getAccountsToPreserve(knownKeys),
+    ]
+
     try {
       this.dataStore.setItem('users', JSON.stringify(usersWithoutTokens))
     } catch (error) {
       log.error('Failed to save account metadata', error)
       queueMicrotask(() =>
-        this.emitError(
-          new Error(
-            'Desktop Material could not save account metadata. Your accounts remain available in this window.'
-          )
-        )
+        this.emitError(new Error(t('accounts.metadataWriteFailed')))
       )
     }
 
     this.emitUpdate(this.accounts)
+  }
+
+  /**
+   * Saved accounts that belong to another window's session and must survive
+   * this store's save. Reading fails soft: losing the merge is better than
+   * losing the write.
+   */
+  private getAccountsToPreserve(
+    knownKeys: ReadonlySet<string>
+  ): ReadonlyArray<IAccount> {
+    let raw: string | null
+    try {
+      raw = this.dataStore.getItem('users')
+    } catch (error) {
+      log.warn('Could not read saved account metadata before saving', error)
+      return []
+    }
+
+    if (!raw || !raw.length) {
+      return []
+    }
+
+    const preserved = new Map<string, IAccount>()
+    for (const account of parsePersistedAccounts(raw).accounts) {
+      const key = getPersistedAccountKey(account)
+      if (!knownKeys.has(key) && !this.retiredAccountKeys.has(key)) {
+        preserved.set(key, account)
+      }
+    }
+
+    return [...preserved.values()]
   }
 }
 

@@ -2028,6 +2028,12 @@ export type TranslationKey =
   | 'batchClone.finalizingLabel'
   | 'batchClone.finalizingStatus'
   | 'batchClone.restoringStatus'
+  | 'accounts.metadataReadFailed'
+  | 'accounts.metadataRepaired'
+  | 'accounts.metadataWriteFailed'
+  | 'accounts.keychainLocked'
+  | 'accounts.tokenWriteFailed'
+  | 'accounts.credentialUnavailable'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -4561,6 +4567,18 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'batchClone.finalizingLabel': 'Finishing the cloned repositories',
   'batchClone.finalizingStatus': 'Registering {index} of {total} repositories…',
   'batchClone.restoringStatus': 'Restoring large files in {name}…',
+  'accounts.metadataReadFailed':
+    'Desktop Material could not read saved account metadata. You may need to sign in again.',
+  'accounts.metadataRepaired':
+    'Desktop Material repaired invalid saved account metadata. You may need to sign in again.',
+  'accounts.metadataWriteFailed':
+    'Desktop Material could not save account metadata. Your accounts remain available in this window.',
+  'accounts.keychainLocked':
+    "{app} was unable to store the token for {login} in the keychain. Please check you have unlocked access to the 'login' keychain, then sign in again.",
+  'accounts.tokenWriteFailed':
+    'Desktop Material could not save the sign-in token for {login}, so that account was not added. Please sign in again. ({error})',
+  'accounts.credentialUnavailable':
+    'Desktop Material could not read the saved sign-in token for {logins}. Please sign in again to restore access.',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -6910,4 +6928,16 @@ export const cantoneseTranslations: Readonly<
   'batchClone.finalizingLabel': '執緊 clone 完嘅 repository',
   'batchClone.finalizingStatus': '登記緊第 {index} / {total} 個 repository…',
   'batchClone.restoringStatus': '還原緊 {name} 入面嘅大檔案…',
+  'accounts.metadataReadFailed':
+    'Desktop Material 讀唔到已儲存嘅帳戶資料，可能要重新登入一次。',
+  'accounts.metadataRepaired':
+    'Desktop Material 修復咗有問題嘅帳戶資料，可能要重新登入一次。',
+  'accounts.metadataWriteFailed':
+    'Desktop Material 儲存唔到帳戶資料。喺呢個視窗入面，啲帳戶仲用得。',
+  'accounts.keychainLocked':
+    '{app} 存唔到 {login} 嘅登入權杖入 keychain。請確認已經解鎖「login」keychain，然後重新登入一次。',
+  'accounts.tokenWriteFailed':
+    'Desktop Material 儲存唔到 {login} 嘅登入權杖，所以個帳戶未加到入去。請重新登入一次。（{error}）',
+  'accounts.credentialUnavailable':
+    'Desktop Material 讀唔到 {logins} 已儲存嘅登入權杖。請重新登入一次，先可以用返呢啲帳戶。',
 }
