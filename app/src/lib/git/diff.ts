@@ -346,7 +346,8 @@ export async function getCommitRangeChangedFiles(
 export async function getWorkingDirectoryDiff(
   repository: Repository,
   file: WorkingDirectoryFileChange,
-  hideWhitespaceInDiff: boolean = false
+  hideWhitespaceInDiff: boolean = false,
+  isBackgroundTask: boolean = false
 ): Promise<IDiff> {
   const isSubmodule = file.status.submoduleStatus !== undefined
 
@@ -412,7 +413,7 @@ export async function getWorkingDirectoryDiff(
     args,
     repository.path,
     'getWorkingDirectoryDiff',
-    { successExitCodes, encoding: 'buffer' }
+    { successExitCodes, encoding: 'buffer', isBackgroundTask }
   )
   const lineEndingsChange = parseLineEndingsWarning(stderr)
 

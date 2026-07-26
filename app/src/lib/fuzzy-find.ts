@@ -1,6 +1,14 @@
 import * as fuzzAldrin from 'fuzzaldrin-plus'
 
 import { compareDescending } from './compare'
+import {
+  compileSafeRegex,
+  getRegexInputLengthError,
+  MaxRegexTotalInputLength,
+  SafeRegex,
+} from './safe-regex'
+
+export { MaxRegexPatternLength } from './safe-regex'
 
 function score(str: string, query: string, maxScore: number) {
   return fuzzAldrin.score(str, query) / maxScore
@@ -58,12 +66,6 @@ export interface IMatchResult<T> {
    */
   readonly regexError: string | null
 }
-
-/**
- * The maximum length of a regular expression pattern we're willing to compile.
- * Guards against pathological patterns causing the UI to hang.
- */
-export const MaxRegexPatternLength = 1000
 
 function passthrough<T>(items: ReadonlyArray<T>): ReadonlyArray<IMatch<T>> {
   return items.map(item => ({
@@ -137,31 +139,34 @@ function substringMatch<T>(
   return result
 }
 
-function regexIndices(text: string, regex: RegExp): ReadonlyArray<number> {
-  const indices = new Array<number>()
-  regex.lastIndex = 0
+interface IRegexIndicesResult {
+  readonly indices: ReadonlyArray<number>
+  /** Includes zero-width matches, which still consume matcher work. */
+  readonly matchesConsumed: number
+}
 
-  let match: RegExpExecArray | null
-  let guard = 0
-  while ((match = regex.exec(text)) !== null) {
+function regexIndices(
+  text: string,
+  regex: SafeRegex,
+  maxMatches: number
+): IRegexIndicesResult {
+  const indices = new Array<number>()
+  if (maxMatches <= 0) {
+    return { indices, matchesConsumed: 0 }
+  }
+
+  const { matches } = regex.findAll(text, maxMatches)
+
+  for (const match of matches) {
     const start = match.index
-    const length = match[0].length
+    const length = match.text.length
 
     for (let i = 0; i < length; i++) {
       indices.push(start + i)
     }
-
-    // Zero-width matches (e.g. `^`, `\b`) would otherwise loop forever.
-    if (length === 0) {
-      regex.lastIndex++
-    }
-
-    if (++guard > 10000) {
-      break
-    }
   }
 
-  return indices
+  return { indices, matchesConsumed: matches.length }
 }
 
 function regexMatch<T>(
@@ -170,43 +175,64 @@ function regexMatch<T>(
   getKey: KeyFunction<T>,
   caseSensitive: boolean
 ): IMatchResult<T> {
-  if (query.length > MaxRegexPatternLength) {
+  const compilation = compileSafeRegex(query, caseSensitive)
+  if (compilation.regex === null) {
     return {
       results: passthrough(items),
-      regexError: `Pattern is too long (max ${MaxRegexPatternLength} characters)`,
+      regexError: compilation.error,
     }
   }
 
-  let regex: RegExp
-  try {
-    regex = new RegExp(query, caseSensitive ? 'g' : 'gi')
-  } catch (e) {
-    return {
-      results: passthrough(items),
-      regexError: e instanceof Error ? e.message : 'Invalid regular expression',
-    }
-  }
-
+  const regex = compilation.regex
   const result = new Array<IMatch<T>>()
+  let totalInputLength = 0
+  let remainingHighlightMatches = regex.getMaximumMatchCount()
 
   for (const item of items) {
     try {
       const keys = getKey(item)
-      const anyMatch = keys.some(k => {
-        regex.lastIndex = 0
-        return regex.test(k)
-      })
+      for (const key of keys) {
+        const lengthError = getRegexInputLengthError(key.length)
+        if (lengthError !== null) {
+          // Evaluation-limit failures fail closed. Many compact search surfaces
+          // do not render regexError, and showing every item would silently
+          // disable their filter while claiming the query was active.
+          return { results: [], regexError: lengthError }
+        }
+        totalInputLength += key.length
+      }
+      const totalLengthError = getRegexInputLengthError(
+        totalInputLength,
+        MaxRegexTotalInputLength
+      )
+      if (totalLengthError !== null) {
+        return { results: [], regexError: totalLengthError }
+      }
+
+      const anyMatch = keys.some(k => regex.test(k))
 
       if (!anyMatch) {
         continue
       }
 
+      const title = regexIndices(
+        keys[0] ?? '',
+        regex,
+        remainingHighlightMatches
+      )
+      remainingHighlightMatches -= title.matchesConsumed
+      const subtitle =
+        keys.length > 1
+          ? regexIndices(keys[1] ?? '', regex, remainingHighlightMatches)
+          : { indices: [], matchesConsumed: 0 }
+      remainingHighlightMatches -= subtitle.matchesConsumed
+
       result.push({
         score: 1,
         item,
         matches: {
-          title: regexIndices(keys[0] ?? '', regex),
-          subtitle: keys.length > 1 ? regexIndices(keys[1] ?? '', regex) : [],
+          title: title.indices,
+          subtitle: subtitle.indices,
         },
       })
     } catch {

@@ -563,6 +563,9 @@
     top: 0;
     right: var(--spacing);
     display: flex;
+    max-width: calc(100% - var(--spacing-double));
+    box-sizing: border-box;
+    flex-wrap: wrap;
     align-items: center;
     gap: var(--spacing-half);
     border: var(--base-border);
@@ -584,6 +587,11 @@
     }
 
     .text-box-component {
+      &.invalid input,
+      &.invalid input:focus {
+        box-shadow: inset 0 0 0 2px var(--md-sys-color-error);
+      }
+
       input {
         border: 0;
         box-shadow: none;
@@ -602,6 +610,15 @@
           box-shadow: none;
         }
       }
+    }
+
+    #diff-search-regex-error {
+      flex: 1 0 100%;
+      margin: 0;
+      color: var(--md-sys-color-error);
+      font-size: 12px;
+      line-height: 1.4;
+      overflow-wrap: anywhere;
     }
   }
 

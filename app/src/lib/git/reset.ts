@@ -95,7 +95,12 @@ export async function resetPaths(
 }
 
 /** Unstage all paths. */
-export async function unstageAll(repository: Repository): Promise<true> {
-  await git(['reset', '--', '.'], repository.path, 'unstageAll')
+export async function unstageAll(
+  repository: Repository,
+  isBackgroundTask: boolean = false
+): Promise<true> {
+  await git(['reset', '--', '.'], repository.path, 'unstageAll', {
+    isBackgroundTask,
+  })
   return true
 }

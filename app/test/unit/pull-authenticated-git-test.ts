@@ -66,4 +66,25 @@ describe('authenticated pull Git execution', () => {
       false
     )
   })
+
+  it('suppresses authentication UI for a background pull', async () => {
+    const { pull } = await import('../../src/lib/git/pull')
+    const repository = new Repository('C:\\proof', -1, null, false)
+    invocations.length = 0
+
+    await pull(
+      repository,
+      { name: 'origin', url: 'https://github.com/owner/private.git' },
+      { isBackgroundTask: true }
+    )
+
+    assert.equal(invocations.length, 1)
+    assert.equal(invocations[0].options.isBackgroundTask, true)
+    assert.equal(invocations[0].options.interceptHooks, undefined)
+    assert.ok(
+      invocations[0].args.some(argument =>
+        argument.startsWith('core.hooksPath=')
+      )
+    )
+  })
 })

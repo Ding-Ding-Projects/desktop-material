@@ -69,7 +69,27 @@ describe('SSH Docker deployment after push wiring', () => {
     assert.ok(scheduledDeploy < scheduledEnd)
     assert.match(
       source.slice(scheduledDeploy, scheduledDeploy + 180),
-      /repository,[\s\S]*?remoteName,[\s\S]*?pushedBranchName/
+      /repository,[\s\S]*?remoteName,[\s\S]*?pushedBranchName,[\s\S]*?isBackgroundTask/
+    )
+  })
+
+  it('keeps manual deployment interactive and scheduled deployment noninteractive', async () => {
+    const appStore = await readFile(
+      join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
+      'utf8'
+    )
+    const sshWorkingCopy = await readFile(
+      join(process.cwd(), 'app', 'src', 'lib', 'ssh', 'ssh-working-copy.ts'),
+      'utf8'
+    )
+
+    assert.match(
+      appStore,
+      /deployDockerAfterPush\([\s\S]*?isBackgroundTask: boolean = false[\s\S]*?runSSHWorkingCopyAction\([\s\S]*?branchName,[\s\S]*?isBackgroundTask/
+    )
+    assert.match(
+      sshWorkingCopy,
+      /isBackgroundTask: boolean = false[\s\S]*?BatchMode=yes[\s\S]*?SSH_ASKPASS_REQUIRE: isBackgroundTask \? 'never' : 'force'[\s\S]*?repositoryPath,[\s\S]*?isBackgroundTask,/
     )
   })
 })

@@ -119,6 +119,25 @@ describe('recent UI internationalization', () => {
     }
   })
 
+  it('localizes the workflow artifact search in all three modes', () => {
+    const variables = { loaded: '2', total: '4', visible: '1' }
+    for (const key of [
+      'actionsArtifacts.searchPlaceholder',
+      'actionsArtifacts.searchAriaLabel',
+      'actionsArtifacts.regexTarget',
+      'actionsArtifacts.filterCount',
+      'actionsArtifacts.noMatches',
+    ] as const) {
+      const english = translate(key, 'english', variables)
+      const cantonese = translate(key, 'cantonese', variables)
+      assert.notEqual(english, cantonese)
+      assert.equal(
+        translate(key, 'bilingual', variables),
+        `${english} · ${cantonese}`
+      )
+    }
+  })
+
   it('localizes the direct Cheap LFS manager in all three modes', () => {
     for (const key of [
       'cheapLfs.managerRail',

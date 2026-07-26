@@ -12,6 +12,9 @@
 
   var STRINGS = window.DesktopMaterialDocsStrings
   var CATALOG = window.DesktopMaterialDocsCatalog || []
+  var RegexCatalog = CATALOG.map(function (entry) {
+    return [entry.t, entry.s, entry.d]
+  })
 
   var STORE = {
     theme: 'dm-docs-theme',
@@ -24,25 +27,16 @@
   var MaximumPatternLength = 512
   var MaximumSampleLength = 20000
   /**
-   * Ceiling for a *single* regex evaluation. Catastrophic backtracking blows
-   * up inside one `exec`/`test` call, so timing each call individually — rather
-   * than the whole pass — distinguishes a pathological pattern from a merely
-   * busy or throttled tab, which spreads its delay across many calls.
-   *
-   * A synchronous evaluation cannot be interrupted from JavaScript. The real
-   * protection is therefore the bounded input (pattern and sample caps below);
-   * this timer catches the overrun afterwards and stops the run from repeating.
+   * User-authored patterns run only in a dedicated worker. The page owns this
+   * deadline, so it can terminate a worker even while one `exec`/`test` call is
+   * stuck in catastrophic backtracking. Never evaluate those patterns on the
+   * UI thread as a fallback: an unavailable worker must fail closed.
    */
   var EvaluationBudgetMilliseconds = 750
-
-  /**
-   * How many separate evaluations must overrun before matching is paused. One
-   * overrun is far more likely to be the tab being descheduled than a runaway
-   * pattern; a genuinely catastrophic pattern overruns on call after call.
-   */
-  var RequiredOverrunsBeforePausing = 3
   var MaximumRenderedResults = 60
   var MaximumRenderedMatches = 100
+  var MaximumHighlightRanges = 200
+  var RegexWorkerPath = 'assets/site/docs-hub-regex-worker.js'
 
   // ------------------------------------------------------------- storage
 
@@ -342,17 +336,146 @@
   }
 
   /**
-   * Compiles a pattern, returning `{ regex }` or `{ error }`. Never throws.
+   * At most one regex job per surface may be live. Search and builder preview
+   * get independent workers so updating one cannot cancel the other.
    */
-  function compile(pattern, flags) {
-    if (pattern.length > MaximumPatternLength) {
-      return { error: t('errPatternLong') }
+  var regexJobs = { search: null, builder: null }
+  var regexJobSequence = 0
+
+  function setRegexBusy(surface, busy) {
+    var target =
+      surface === 'search'
+        ? searchResults
+        : document.getElementById('rb-matches')
+    if (target === null) {
+      return
     }
+    if (busy) {
+      target.setAttribute('aria-busy', 'true')
+    } else {
+      target.removeAttribute('aria-busy')
+    }
+  }
+
+  function cancelRegexJob(surface) {
+    var job = regexJobs[surface]
+    if (job === null) {
+      return
+    }
+    window.clearTimeout(job.timeout)
     try {
-      return { regex: new RegExp(pattern, flags) }
+      job.worker.terminate()
     } catch (error) {
-      return { error: t('errInvalid') + ' ' + error.message }
+      /* A worker that already exited is already safely isolated. */
     }
+    regexJobs[surface] = null
+    setRegexBusy(surface, false)
+  }
+
+  function finishRegexJob(surface, job) {
+    if (regexJobs[surface] !== job) {
+      return false
+    }
+    window.clearTimeout(job.timeout)
+    job.worker.terminate()
+    regexJobs[surface] = null
+    setRegexBusy(surface, false)
+    return true
+  }
+
+  /**
+   * Runs one bounded regex operation outside the UI thread. A timeout always
+   * terminates the worker before reporting failure, which makes the deadline a
+   * real interruption rather than a post-call elapsed-time observation.
+   */
+  function runRegexJob(surface, payload, onSuccess, onFailure) {
+    cancelRegexJob(surface)
+
+    if (typeof window.Worker !== 'function') {
+      onFailure('unavailable', '')
+      return
+    }
+
+    var worker
+    try {
+      worker = new window.Worker(RegexWorkerPath)
+    } catch (error) {
+      onFailure('unavailable', '')
+      return
+    }
+
+    var requestId = ++regexJobSequence
+    var job = { worker: worker, timeout: 0, requestId: requestId }
+    regexJobs[surface] = job
+    setRegexBusy(surface, true)
+
+    job.timeout = window.setTimeout(function () {
+      if (!finishRegexJob(surface, job)) {
+        return
+      }
+      onFailure('timeout', '')
+    }, EvaluationBudgetMilliseconds)
+
+    worker.onmessage = function (event) {
+      var data = event.data
+      if (
+        data === null ||
+        typeof data !== 'object' ||
+        data.requestId !== requestId ||
+        !finishRegexJob(surface, job)
+      ) {
+        return
+      }
+      if (data.ok === true) {
+        onSuccess(data)
+      } else {
+        onFailure(data.code || 'unavailable', data.detail || '')
+      }
+    }
+    worker.onerror = function (event) {
+      if (typeof event.preventDefault === 'function') {
+        event.preventDefault()
+      }
+      if (finishRegexJob(surface, job)) {
+        onFailure('unavailable', '')
+      }
+    }
+
+    try {
+      worker.postMessage(Object.assign({ requestId: requestId }, payload))
+    } catch (error) {
+      if (finishRegexJob(surface, job)) {
+        onFailure('unavailable', '')
+      }
+    }
+  }
+
+  function regexFailureText(code, detail) {
+    if (code === 'invalid') {
+      return t('errInvalid') + (detail === '' ? '' : ' ' + detail)
+    }
+    if (code === 'too-long-pattern') {
+      return t('errPatternLong')
+    }
+    if (code === 'too-long-sample') {
+      return t('errSampleLong')
+    }
+    if (code === 'timeout') {
+      return t('errSlow')
+    }
+    return t('errWorker')
+  }
+
+  function renderWorkerPreview(preview, emptyValue) {
+    if (
+      preview === null ||
+      typeof preview !== 'object' ||
+      typeof preview.value !== 'string'
+    ) {
+      return '—'
+    }
+    var text = preview.value === '' ? emptyValue : preview.value
+    return text + (preview.truncated === true ? '…' : '')
   }
 
   // ----------------------------------------------------------------- search
@@ -361,7 +484,6 @@
     query: '',
     mode: 'plain',
     flags: { g: true, i: true, m: false, s: false, u: false, y: false },
-    paused: false,
   }
 
   var searchInput = null
@@ -389,29 +511,87 @@
     return entry.t + ' ' + entry.s + ' ' + entry.d
   }
 
-  function highlight(value, regex) {
-    if (regex === null) {
+  function plainRanges(value, query) {
+    var ranges = []
+    var loweredValue = value.toLowerCase()
+    var loweredQuery = query.toLowerCase()
+    var from = 0
+    while (ranges.length < MaximumHighlightRanges) {
+      var found = loweredValue.indexOf(loweredQuery, from)
+      if (found === -1) {
+        break
+      }
+      ranges.push([found, found + query.length])
+      from = found + Math.max(1, query.length)
+    }
+    return ranges
+  }
+
+  /** Renders only worker-produced ranges; no user pattern runs here. */
+  function highlight(value, ranges) {
+    if (!Array.isArray(ranges) || ranges.length === 0) {
       return escapeHtml(value)
     }
     var out = ''
     var index = 0
-    var guard = 0
-    regex.lastIndex = 0
-    var match
-    while ((match = regex.exec(value)) !== null && guard < 200) {
-      guard++
-      out += escapeHtml(value.slice(index, match.index))
-      if (match[0] === '') {
-        // Zero-width matches must not spin the loop forever.
-        regex.lastIndex = match.index + 1
-        index = match.index
+    for (var i = 0; i < ranges.length; i++) {
+      var range = ranges[i]
+      if (
+        !Array.isArray(range) ||
+        range.length !== 2 ||
+        !Number.isInteger(range[0]) ||
+        !Number.isInteger(range[1]) ||
+        range[0] < index ||
+        range[1] <= range[0] ||
+        range[1] > value.length
+      ) {
         continue
       }
-      out += '<mark>' + escapeHtml(match[0]) + '</mark>'
-      index = match.index + match[0].length
+      out += escapeHtml(value.slice(index, range[0]))
+      out += '<mark>' + escapeHtml(value.slice(range[0], range[1])) + '</mark>'
+      index = range[1]
     }
     out += escapeHtml(value.slice(index))
     return out
+  }
+
+  function renderSearchResults(total, hits) {
+    if (total === 0) {
+      searchResults.innerHTML = ''
+      searchStatus.textContent = t('searchNone')
+      return
+    }
+
+    searchStatus.textContent =
+      total + ' ' + (total === 1 ? t('searchResult') : t('searchResults')) + '.'
+
+    var html = ''
+    for (var j = 0; j < hits.length; j++) {
+      var hit = hits[j]
+      html +=
+        '<li><a class="result" href="' +
+        escapeHtml(hit.entry.h) +
+        '">' +
+        '<span class="result__title">' +
+        highlight(hit.entry.t, hit.titleRanges) +
+        '</span> ' +
+        '<span class="result__path">' +
+        highlight(hit.entry.s, hit.pathRanges) +
+        '</span>' +
+        (hit.entry.d === ''
+          ? ''
+          : '<p class="result__desc">' +
+            highlight(hit.entry.d, hit.descriptionRanges) +
+            '</p>') +
+        '</a></li>'
+    }
+    if (total > hits.length) {
+      html +=
+        '<li class="md-body">' +
+        escapeHtml('+' + (total - hits.length) + ' / ' + total + ' …') +
+        '</li>'
+    }
+    searchResults.innerHTML = html
   }
 
   function renderSearch() {
@@ -419,8 +599,10 @@
       return
     }
 
+    cancelRegexJob('search')
     var query = searchState.query.trim()
     searchStatus.removeAttribute('data-tone')
+    searchInput.setAttribute('aria-invalid', 'false')
 
     if (query === '') {
       searchResults.innerHTML = ''
@@ -429,103 +611,88 @@
       return
     }
 
-    var matcher = null
-    var highlighter = null
-
     if (searchState.mode === 'regex') {
-      var compiled = compile(query, activeFlagString(false))
-      if (compiled.error !== undefined) {
+      if (query.length > MaximumPatternLength) {
         searchResults.innerHTML = ''
+        searchInput.setAttribute('aria-invalid', 'true')
         searchStatus.setAttribute('data-tone', 'error')
-        searchStatus.textContent = compiled.error
+        searchStatus.textContent = t('errPatternLong')
         return
       }
-      matcher = compiled.regex
-      var highlightCompiled = compile(
-        query,
-        activeFlagString(false).replace('y', '') + 'g'
-      )
-      highlighter =
-        highlightCompiled.error === undefined ? highlightCompiled.regex : null
-    } else {
-      var lowered = query.toLowerCase()
-      matcher = {
-        test: function (value) {
-          return value.toLowerCase().indexOf(lowered) !== -1
-        },
-      }
-      var plainCompiled = compile(escapeRegex(query), 'gi')
-      highlighter =
-        plainCompiled.error === undefined ? plainCompiled.regex : null
-    }
 
-    // Plain-text matching is a substring scan with no backtracking, so it is
-    // never timed; only a user-supplied regular expression needs a backstop.
-    var timed = searchState.mode === 'regex'
-    var overruns = 0
-    var hits = []
-    for (var i = 0; i < CATALOG.length; i++) {
-      var entry = CATALOG[i]
-      if (matcher.lastIndex !== undefined) {
-        matcher.lastIndex = 0
-      }
-      var callStarted = timed ? Date.now() : 0
-      var matched = matcher.test(haystackOf(entry))
-      if (timed && Date.now() - callStarted > EvaluationBudgetMilliseconds) {
-        overruns++
-        if (overruns >= RequiredOverrunsBeforePausing) {
+      searchResults.innerHTML = ''
+      searchStatus.textContent = t('searchChecking')
+      runRegexJob(
+        'search',
+        {
+          operation: 'search',
+          pattern: query,
+          flags: activeFlagString(false),
+          catalog: RegexCatalog,
+          maximumResults: MaximumRenderedResults,
+          maximumRanges: MaximumHighlightRanges,
+        },
+        function (data) {
+          var hits = []
+          var rawHits = Array.isArray(data.hits) ? data.hits : []
+          for (var i = 0; i < rawHits.length; i++) {
+            var raw = rawHits[i]
+            if (
+              raw === null ||
+              !Number.isInteger(raw.catalogIndex) ||
+              CATALOG[raw.catalogIndex] === undefined
+            ) {
+              continue
+            }
+            hits.push({
+              entry: CATALOG[raw.catalogIndex],
+              titleRanges: raw.titleRanges,
+              pathRanges: raw.pathRanges,
+              descriptionRanges: raw.descriptionRanges,
+            })
+          }
+          searchInput.setAttribute('aria-invalid', 'false')
+          renderSearchResults(
+            Number.isInteger(data.total) ? data.total : hits.length,
+            hits
+          )
+        },
+        function (code, detail) {
           searchResults.innerHTML = ''
           searchStatus.setAttribute('data-tone', 'error')
-          searchStatus.textContent = t('errSlow')
-          toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
-          return
+          searchStatus.textContent = regexFailureText(code, detail)
+          searchInput.setAttribute(
+            'aria-invalid',
+            code === 'invalid' || code === 'too-long-pattern' ? 'true' : 'false'
+          )
+          if (code === 'timeout') {
+            toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
+          }
         }
-      }
-      if (matched) {
-        hits.push(entry)
-      }
-    }
-
-    if (hits.length === 0) {
-      searchResults.innerHTML = ''
-      searchStatus.textContent = t('searchNone')
+      )
       return
     }
 
-    searchStatus.textContent =
-      hits.length +
-      ' ' +
-      (hits.length === 1 ? t('searchResult') : t('searchResults')) +
-      '.'
-
-    var html = ''
-    var shown = Math.min(hits.length, MaximumRenderedResults)
-    for (var j = 0; j < shown; j++) {
-      var hit = hits[j]
-      html +=
-        '<li><a class="result" href="' +
-        escapeHtml(hit.h) +
-        '">' +
-        '<span class="result__title">' +
-        highlight(hit.t, highlighter) +
-        '</span> ' +
-        '<span class="result__path">' +
-        highlight(hit.s, highlighter) +
-        '</span>' +
-        (hit.d === ''
-          ? ''
-          : '<p class="result__desc">' +
-            highlight(hit.d, highlighter) +
-            '</p>') +
-        '</a></li>'
+    // Plain text stays synchronous and uses bounded substring scans only.
+    var lowered = query.toLowerCase()
+    var hits = []
+    var total = 0
+    for (var i = 0; i < CATALOG.length; i++) {
+      var entry = CATALOG[i]
+      if (haystackOf(entry).toLowerCase().indexOf(lowered) === -1) {
+        continue
+      }
+      total++
+      if (hits.length < MaximumRenderedResults) {
+        hits.push({
+          entry: entry,
+          titleRanges: plainRanges(entry.t, query),
+          pathRanges: plainRanges(entry.s, query),
+          descriptionRanges: plainRanges(entry.d, query),
+        })
+      }
     }
-    if (hits.length > shown) {
-      html +=
-        '<li class="md-body">' +
-        escapeHtml('+' + (hits.length - shown) + ' / ' + hits.length + ' …') +
-        '</li>'
-    }
-    searchResults.innerHTML = html
+    renderSearchResults(total, hits)
   }
 
   function setQuery(value, from) {
@@ -600,6 +767,8 @@
       return
     }
 
+    cancelRegexJob('builder')
+
     parts.sync.textContent =
       searchState.mode === 'regex' ? t('bSynced') : t('bNotSynced')
 
@@ -614,21 +783,17 @@
       return
     }
 
-    var compiled = compile(
-      pattern,
-      flags.indexOf('g') === -1 ? flags + 'g' : flags
-    )
-    if (compiled.error !== undefined) {
+    if (pattern.length > MaximumPatternLength) {
       parts.pattern.setAttribute('aria-invalid', 'true')
       parts.feedback.setAttribute('data-tone', 'error')
-      parts.feedback.textContent = compiled.error
+      parts.feedback.textContent = t('errPatternLong')
       parts.matches.innerHTML = ''
       return
     }
-    parts.pattern.setAttribute('aria-invalid', 'false')
 
     var sample = parts.sample.value
     if (sample.length > MaximumSampleLength) {
+      parts.pattern.setAttribute('aria-invalid', 'false')
       parts.feedback.setAttribute('data-tone', 'error')
       parts.feedback.textContent = t('errSampleLong')
       parts.matches.innerHTML = ''
@@ -641,94 +806,117 @@
       return
     }
 
-    var regex = compiled.regex
-    var results = []
-    var overruns = 0
-    var match
-    regex.lastIndex = 0
-    for (;;) {
-      var callStarted = Date.now()
-      match = regex.exec(sample)
-      if (Date.now() - callStarted > EvaluationBudgetMilliseconds) {
-        overruns++
-        if (overruns >= RequiredOverrunsBeforePausing) {
-          builderPaused = true
-          parts.feedback.setAttribute('data-tone', 'warn')
-          parts.feedback.textContent = t('errSlow')
+    parts.pattern.setAttribute('aria-invalid', 'false')
+    parts.feedback.setAttribute('data-tone', 'info')
+    parts.feedback.textContent = t('bChecking')
+    parts.matches.innerHTML = ''
+
+    runRegexJob(
+      'builder',
+      {
+        operation: 'builder',
+        pattern: pattern,
+        flags: flags,
+        sample: sample,
+        maximumMatches: MaximumRenderedMatches,
+      },
+      function (data) {
+        var results = Array.isArray(data.matches) ? data.matches : []
+        var risky = looksCatastrophic(pattern)
+        if (results.length === 0) {
+          parts.feedback.setAttribute('data-tone', risky ? 'warn' : 'info')
+          parts.feedback.textContent = risky ? t('errNested') : t('bNoMatches')
           parts.matches.innerHTML = ''
-          toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
           return
         }
-      }
-      if (match === null) {
-        break
-      }
-      results.push(match)
-      if (match[0] === '') {
-        // A zero-width match must not spin `exec` on the same index forever.
-        regex.lastIndex = match.index + 1
-      }
-      if (results.length >= MaximumRenderedMatches) {
-        break
-      }
-    }
 
-    if (results.length === 0) {
-      var risky = looksCatastrophic(pattern)
-      parts.feedback.setAttribute('data-tone', risky ? 'warn' : 'info')
-      parts.feedback.textContent = risky ? t('errNested') : t('bNoMatches')
-      parts.matches.innerHTML = ''
-      return
-    }
+        parts.feedback.setAttribute('data-tone', risky ? 'warn' : 'info')
+        parts.feedback.textContent = risky ? t('errNested') : t('bValid')
 
-    parts.feedback.setAttribute(
-      'data-tone',
-      looksCatastrophic(pattern) ? 'warn' : 'info'
-    )
-    parts.feedback.textContent = looksCatastrophic(pattern)
-      ? t('errNested')
-      : t('bValid')
-
-    var html = ''
-    for (var i = 0; i < results.length; i++) {
-      var found = results[i]
-      html +=
-        '<li><strong>' +
-        escapeHtml(found[0] === '' ? '∅' : found[0]) +
-        '</strong> <span class="group">' +
-        escapeHtml(t('bMatchAt') + ' ' + found.index) +
-        '</span>'
-      for (var g = 1; g < found.length; g++) {
-        html +=
-          '<span class="group">' +
-          escapeHtml(
-            t('bGroup') +
-              ' ' +
-              g +
-              ': ' +
-              (found[g] === undefined ? '—' : found[g])
-          ) +
-          '</span>'
-      }
-      if (found.groups !== undefined && found.groups !== null) {
-        for (var name in found.groups) {
-          if (Object.prototype.hasOwnProperty.call(found.groups, name)) {
+        var html = ''
+        for (var i = 0; i < results.length; i++) {
+          var found = results[i]
+          if (found === null || typeof found !== 'object') {
+            continue
+          }
+          var value = renderWorkerPreview(found.value, '∅')
+          html +=
+            '<li><strong>' +
+            escapeHtml(value) +
+            '</strong> <span class="group">' +
+            escapeHtml(
+              t('bMatchAt') +
+                ' ' +
+                (Number.isInteger(found.index) ? found.index : 0)
+            ) +
+            '</span>'
+          var captures = Array.isArray(found.captures) ? found.captures : []
+          for (var g = 0; g < captures.length; g++) {
             html +=
               '<span class="group">' +
               escapeHtml(
                 t('bGroup') +
-                  ' <' +
-                  name +
-                  '>: ' +
-                  (found.groups[name] === undefined ? '—' : found.groups[name])
+                  ' ' +
+                  (g + 1) +
+                  ': ' +
+                  renderWorkerPreview(captures[g], '∅')
               ) +
               '</span>'
           }
+          if (
+            found.namedGroups !== undefined &&
+            found.namedGroups !== null &&
+            typeof found.namedGroups === 'object'
+          ) {
+            for (var name in found.namedGroups) {
+              if (
+                Object.prototype.hasOwnProperty.call(found.namedGroups, name)
+              ) {
+                html +=
+                  '<span class="group">' +
+                  escapeHtml(
+                    t('bGroup') +
+                      ' <' +
+                      name +
+                      '>: ' +
+                      renderWorkerPreview(found.namedGroups[name], '∅')
+                  ) +
+                  '</span>'
+              }
+            }
+          }
+          if (
+            Number.isInteger(found.capturesOmitted) &&
+            found.capturesOmitted > 0
+          ) {
+            html +=
+              '<span class="group">' +
+              escapeHtml(
+                '+' + found.capturesOmitted + ' ' + t('bGroupsOmitted')
+              ) +
+              '</span>'
+          }
+          html += '</li>'
+        }
+        parts.matches.innerHTML = html
+      },
+      function (code, detail) {
+        parts.matches.innerHTML = ''
+        parts.pattern.setAttribute(
+          'aria-invalid',
+          code === 'invalid' || code === 'too-long-pattern' ? 'true' : 'false'
+        )
+        parts.feedback.setAttribute(
+          'data-tone',
+          code === 'timeout' ? 'warn' : 'error'
+        )
+        parts.feedback.textContent = regexFailureText(code, detail)
+        if (code === 'timeout') {
+          builderPaused = true
+          toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
         }
       }
-      html += '</li>'
-    }
-    parts.matches.innerHTML = html
+    )
   }
 
   /**

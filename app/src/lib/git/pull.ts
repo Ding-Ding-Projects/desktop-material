@@ -12,6 +12,25 @@ import { PullProgressParser, executionOptionsWithProgress } from '../progress'
 import { IRemote } from '../../models/remote'
 import { envForRemoteOperation } from './environment'
 import { getConfigValue } from './config'
+import { mkdtemp, rm } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
+
+async function withIsolatedBackgroundHooksPath<T>(
+  isBackgroundTask: boolean,
+  fn: (hooksPath: string | null) => Promise<T>
+): Promise<T> {
+  if (!isBackgroundTask) {
+    return fn(null)
+  }
+
+  const hooksPath = await mkdtemp(join(tmpdir(), 'desktop-empty-hooks-'))
+  try {
+    return await fn(hooksPath)
+  } finally {
+    await rm(hooksPath, { recursive: true, force: true }).catch(() => {})
+  }
+}
 
 export interface IPullOptions {
   readonly progressCallback?: (progress: IPullProgress) => void
@@ -24,6 +43,8 @@ export interface IPullOptions {
   readonly noVerify?: boolean
   /** Stable account identity to force for this pull. Never a token. */
   readonly accountKey?: string
+  /** Suppress credential, GCM, and askpass UI for unattended pulls. */
+  readonly isBackgroundTask?: boolean
   /** Explicit reviewed strategy flags which freeze the accepted Git config. */
   readonly strategyArguments?: ReadonlyArray<string>
   /** Last-boundary validation run after arguments/env are prepared. */
@@ -81,18 +102,21 @@ async function pullFrom(
   let opts: IGitStringExecutionOptions = {
     env: await envForRemoteOperation(remote.url),
     credentialAccountKey: options?.accountKey,
+    isBackgroundTask: options?.isBackgroundTask,
     // git pull triggers merge or rebase hooks depending on config, instead of
     // trying to check pull.rebase and friends we'll just intercept all possible
     // hooks that could be run as part of a pull operation.
-    interceptHooks: [
-      'pre-merge-commit',
-      'prepare-commit-msg',
-      'commit-msg',
-      'post-merge',
-      'pre-rebase',
-      'pre-commit',
-      'post-rewrite',
-    ],
+    interceptHooks: options?.isBackgroundTask
+      ? undefined
+      : [
+          'pre-merge-commit',
+          'prepare-commit-msg',
+          'commit-msg',
+          'post-merge',
+          'pre-rebase',
+          'pre-commit',
+          'post-rewrite',
+        ],
   }
 
   if (options?.progressCallback) {
@@ -132,19 +156,30 @@ async function pullFrom(
     options.progressCallback({ kind, title, value: 0, remote: remote.name })
   }
 
-  const args = [
-    ...gitRebaseArguments(),
-    'pull',
-    ...(options?.strategyArguments ??
-      (await getDefaultPullDivergentBranchArguments(repository))),
-    '--recurse-submodules',
-    ...(options?.progressCallback ? ['--progress'] : []),
-    ...(options?.noVerify ? ['--no-verify'] : []),
-    ...sourceArguments,
-  ]
+  const strategyArguments =
+    options?.strategyArguments ??
+    (await getDefaultPullDivergentBranchArguments(repository))
+  await withIsolatedBackgroundHooksPath(
+    options?.isBackgroundTask === true,
+    async hooksPath => {
+      const args = [
+        ...gitRebaseArguments(),
+        ...(options?.isBackgroundTask
+          ? ['-c', 'commit.gpgSign=false', '-c', 'merge.gpgSign=false']
+          : []),
+        ...(hooksPath === null ? [] : ['-c', `core.hooksPath=${hooksPath}`]),
+        'pull',
+        ...strategyArguments,
+        '--recurse-submodules',
+        ...(options?.progressCallback ? ['--progress'] : []),
+        ...(options?.noVerify ? ['--no-verify'] : []),
+        ...sourceArguments,
+      ]
 
-  await options?.beforeExecute?.()
-  await git(args, repository.path, 'pull', opts)
+      await options?.beforeExecute?.()
+      await git(args, repository.path, 'pull', opts)
+    }
+  )
 }
 
 /**

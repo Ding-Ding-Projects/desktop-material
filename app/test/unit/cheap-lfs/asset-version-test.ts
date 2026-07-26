@@ -17,9 +17,12 @@ import {
   buildCheapLfsAssetAnnotationTargets,
   CheapLfsAssetLabelPendingCommit,
   CheapLfsMaximumAssetLabelLength,
+  CheapLfsReleaseBodySentinel,
   findCheapLfsAssetForContent,
   findCheapLfsAssetsForParts,
   formatCheapLfsAssetLabel,
+  isCheapLfsReleaseBody,
+  isCheapLfsReleaseBucket,
   parseCheapLfsAssetLabel,
 } from '../../../src/lib/cheap-lfs/asset-version'
 import {
@@ -312,6 +315,66 @@ describe('cheap LFS asset versioning', () => {
       ),
       null
     )
+  })
+
+  it('classifies only prereleases with exact Cheap LFS bucket provenance', () => {
+    assert.equal(isCheapLfsReleaseBody(CheapLfsReleaseBodySentinel), true)
+    assert.equal(
+      isCheapLfsReleaseBody(` ${CheapLfsReleaseBodySentinel}`),
+      false
+    )
+    assert.equal(isCheapLfsReleaseBody(null), false)
+
+    const sentinelRelease: Pick<
+      IGitHubRelease,
+      'body' | 'prerelease' | 'assets'
+    > = {
+      body: CheapLfsReleaseBodySentinel,
+      prerelease: true,
+      assets: [],
+    }
+    assert.equal(isCheapLfsReleaseBucket(sentinelRelease), true)
+    assert.equal(
+      isCheapLfsReleaseBucket({ ...sentinelRelease, prerelease: false }),
+      false
+    )
+    assert.equal(
+      isCheapLfsReleaseBucket({
+        ...sentinelRelease,
+        body: ` ${CheapLfsReleaseBodySentinel}`,
+      }),
+      false
+    )
+    assert.equal(
+      isCheapLfsReleaseBucket({
+        ...sentinelRelease,
+        body: '<!-- desktop-material:cheap-lfs-release-bucket:v2 -->',
+      }),
+      false
+    )
+
+    const label = formatCheapLfsAssetLabel({
+      relativePath: 'assets/video.mp4',
+      sha256: sha256Of(Buffer.from('legacy bucket')),
+    })
+    assert.ok(label !== null)
+    assert.equal(
+      isCheapLfsReleaseBucket({
+        ...sentinelRelease,
+        body: 'Legacy bucket created before the body marker.',
+        assets: [assetFixture({ label })],
+      }),
+      true
+    )
+    assert.equal(
+      isCheapLfsReleaseBucket({
+        ...sentinelRelease,
+        body: 'Release notes that merely mention Cheap LFS.',
+        assets: [assetFixture({ label: 'cheap-lfs/v1' })],
+      }),
+      false
+    )
+    assert.equal(isCheapLfsReleaseBucket(null), false)
   })
 
   it('reuses an asset only when the provider proves the same bytes', () => {

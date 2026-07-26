@@ -95,11 +95,12 @@
       searchBuilderShow: 'Open regex builder',
       searchBuilderHide: 'Close regex builder',
       searchEngine:
-        'Patterns run in your browser’s own JavaScript RegExp engine (ECMAScript). Nothing you type is uploaded, stored or sent anywhere.',
+        'Patterns run in your browser’s JavaScript RegExp engine (ECMAScript) inside a same-origin isolated worker. The page terminates that worker if it exceeds the hard deadline. Nothing you type is uploaded, stored or sent anywhere.',
       searchFullText:
         'This searches page titles, paths and summaries. To search the full body text of every rendered page instead, use the full-text search.',
       searchFullTextLink: 'Open full-text search',
       searchIdle: 'Type to search the documentation catalog.',
+      searchChecking: 'Checking the pattern safely…',
       searchNone: 'No documentation page matches that search.',
       searchResults: 'matching pages',
       searchResult: 'matching page',
@@ -145,6 +146,7 @@
       bEmptyPattern: 'Enter a pattern to see live matches.',
       bMatchAt: 'at',
       bGroup: 'Group',
+      bGroupsOmitted: 'more capture groups',
       bCopyPattern: 'Copy pattern',
       bCopyLiteral: 'Copy as /pattern/flags',
       bApply: 'Use in search (switches to regex mode)',
@@ -156,17 +158,20 @@
       bNotSynced:
         'Search is in plain-text mode, so it is not synchronised with this pattern.',
       bValid: 'Valid pattern.',
+      bChecking: 'Checking the pattern safely…',
       bLimits:
-        'Safety limits: patterns are capped at 512 characters and sample text at 20,000 characters. A pattern that takes too long to evaluate is stopped and live matching is paused until you edit it.',
+        'Safety limits: patterns are capped at 512 characters and sample text at 20,000 characters. Matching runs in an isolated worker; the page terminates it at the hard deadline and pauses live matching until you edit the pattern.',
 
       errInvalid: 'Invalid pattern:',
       errPatternLong:
         'Pattern is too long. The limit is 512 characters, which is enough for any documentation search.',
       errSampleLong:
         'Sample text is too long. The limit is 20,000 characters so a slow pattern cannot lock up the page.',
+      errWorker:
+        'Safe regular-expression matching is unavailable in this browser, so the pattern was not evaluated.',
       errSlowTitle: 'Pattern paused',
       errSlow:
-        'That pattern took too long to evaluate, so live matching was paused. Simplify it — nested quantifiers such as (a+)+ can take exponential time — then edit the pattern to resume.',
+        'That pattern exceeded the evaluation deadline, so its isolated worker was stopped. Simplify it — nested quantifiers such as (a+)+ can take exponential time — then edit the pattern to resume.',
       errNested:
         'Warning: this pattern nests a quantifier inside another quantified group, which can take exponential time on some inputs.',
       errSearchInvalid:
@@ -406,11 +411,12 @@
       searchBuilderShow: '開啟 regex 建構器',
       searchBuilderHide: '關閉 regex 建構器',
       searchEngine:
-        '圖案由你部瀏覽器自己嘅 JavaScript RegExp 引擎（ECMAScript）執行。你打嘅嘢唔會上載、儲存或者送去任何地方。',
+        '圖案會喺同源隔離 worker 入面，用你部瀏覽器嘅 JavaScript RegExp 引擎（ECMAScript）執行；超過硬性時限，頁面就會直接終止個 worker。你打嘅嘢唔會上載、儲存或者送去任何地方。',
       searchFullText:
         '呢度搜尋嘅係頁面標題、路徑同摘要。想搜尋每版已渲染頁面嘅全部內文，請用全文搜尋。',
       searchFullTextLink: '開啟全文搜尋',
       searchIdle: '打字即可搜尋文件目錄。',
+      searchChecking: '正在安全地檢查圖案…',
       searchNone: '冇任何文件頁面符合呢個搜尋。',
       searchResults: '個符合嘅頁面',
       searchResult: '個符合嘅頁面',
@@ -455,6 +461,7 @@
       bEmptyPattern: '輸入圖案就會顯示即時相符結果。',
       bMatchAt: '位置',
       bGroup: '群組',
+      bGroupsOmitted: '個其他擷取群組',
       bCopyPattern: '複製圖案',
       bCopyLiteral: '複製成 /圖案/旗標',
       bApply: '喺搜尋使用（會切換去 regex 模式）',
@@ -465,17 +472,19 @@
       bSynced: '開咗 regex 模式，搜尋同建構器會互相同步。',
       bNotSynced: '搜尋而家係純文字模式，所以唔會同呢個圖案同步。',
       bValid: '圖案有效。',
+      bChecking: '正在安全地檢查圖案…',
       bLimits:
-        '安全上限：圖案最多 512 個字元，樣本文字最多 20,000 個字元。若果圖案運算得太耐會被停止，即時比對亦會暫停，直至你修改圖案為止。',
+        '安全上限：圖案最多 512 個字元，樣本文字最多 20,000 個字元。比對會喺隔離 worker 入面執行；去到硬性時限，頁面會終止個 worker，同時暫停即時比對，直至你修改圖案。',
 
       errInvalid: '圖案無效：',
       errPatternLong:
         '圖案太長。上限係 512 個字元，對文件搜尋嚟講已經足夠有餘。',
       errSampleLong:
         '樣本文字太長。上限係 20,000 個字元，避免慢圖案令頁面卡死。',
+      errWorker: '呢個瀏覽器而家用唔到安全嘅正規表達式比對，所以冇執行個圖案。',
       errSlowTitle: '圖案已暫停',
       errSlow:
-        '呢個圖案運算得太耐，即時比對已經暫停。請簡化佢——例如 (a+)+ 咁樣嵌套嘅數量詞可以耗用指數級時間——然後修改圖案就會恢復。',
+        '呢個圖案超過運算時限，所以隔離 worker 已經被終止。請簡化佢——例如 (a+)+ 咁樣嵌套嘅數量詞可以耗用指數級時間——然後修改圖案就會恢復。',
       errNested:
         '警告：呢個圖案喺已加數量詞嘅群組入面再嵌套數量詞，喺某啲輸入上可以耗用指數級時間。',
       errSearchInvalid: '正規表達式無效，所以唔會顯示任何結果。',

@@ -190,16 +190,35 @@ export function decideQuickCommit(
  * which is what makes `push` set one.
  */
 export function deriveRemoteBranchName(
-  currentUpstreamBranch: string | undefined
+  currentUpstreamBranch: string | undefined,
+  remoteName: string
 ): string | null {
   if (currentUpstreamBranch === undefined) {
     return null
   }
-  const separator = currentUpstreamBranch.indexOf('/')
-  if (separator === -1) {
-    return currentUpstreamBranch
-  }
-  return currentUpstreamBranch.slice(separator + 1)
+
+  const prefix = `${remoteName}/`
+  return currentUpstreamBranch.startsWith(prefix)
+    ? currentUpstreamBranch.slice(prefix.length)
+    : null
+}
+
+/**
+ * Resolve the remote named by a full tracking ref such as `origin/main`.
+ *
+ * Remote names may themselves contain `/`, so matching the first segment is
+ * not sufficient. A tracking label can be ambiguous when remotes such as
+ * `team` and `team/fork` coexist: `team/fork/topic` could mean either remote.
+ * Fail closed unless exactly one configured remote is a valid prefix.
+ */
+export function chooseQuickTrackingRemote<T extends { readonly name: string }>(
+  remotes: ReadonlyArray<T>,
+  currentUpstreamBranch: string
+): T | null {
+  const matches = remotes.filter(remote =>
+    currentUpstreamBranch.startsWith(`${remote.name}/`)
+  )
+  return matches.length === 1 ? matches[0] : null
 }
 
 /**
@@ -282,11 +301,16 @@ export async function runQuickCommitAndPush<
 
   onPhase('pushing')
   const remotes = await operations.getRemotes()
-  const remote = chooseQuickPushRemote(remotes)
+  const remote =
+    currentUpstreamBranch === undefined
+      ? chooseQuickPushRemote(remotes)
+      : chooseQuickTrackingRemote(remotes, currentUpstreamBranch)
 
   if (remote === null) {
     throw new Error(
-      remotes.length === 0
+      currentUpstreamBranch !== undefined
+        ? `Committed ${sha}, but its configured upstream remote is unavailable or ambiguous.`
+        : remotes.length === 0
         ? `Committed ${sha}, but this repository has no remote to push to.`
         : `Committed ${sha}, but it is not clear which remote to push to.`
     )
@@ -295,7 +319,7 @@ export async function runQuickCommitAndPush<
   await operations.push(
     remote,
     currentBranch,
-    deriveRemoteBranchName(currentUpstreamBranch),
+    deriveRemoteBranchName(currentUpstreamBranch, remote.name),
     onProgress
   )
 

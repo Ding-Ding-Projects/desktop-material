@@ -4,6 +4,7 @@ import {
   IQuickCommitInputs,
   QuickActionVerbs,
   chooseQuickPushRemote,
+  chooseQuickTrackingRemote,
   decideQuickAction,
   decideQuickCommit,
   deriveRemoteBranchName,
@@ -315,11 +316,46 @@ describe('quick action', () => {
       assert.equal(h.pushes[0].remoteBranch, null)
     })
 
+    it('pushes to the configured tracking remote instead of origin', async () => {
+      const h = harness()
+      await runQuickCommitAndPush(
+        { ...target, currentUpstreamBranch: 'upstream/release/3.6' },
+        'x',
+        h.operations,
+        p => h.phases.push(p),
+        d => h.progress.push(d)
+      )
+
+      assert.deepEqual(h.pushes, [
+        {
+          remote: 'upstream',
+          localBranch: 'main',
+          remoteBranch: 'release/3.6',
+        },
+      ])
+    })
+
+    it('does not redirect a missing configured upstream to origin', async () => {
+      const h = harness({ remotes: [{ name: 'origin' }] })
+      await assert.rejects(
+        runQuickCommitAndPush(
+          { ...target, currentUpstreamBranch: 'upstream/main' },
+          'x',
+          h.operations,
+          p => h.phases.push(p),
+          d => h.progress.push(d)
+        ),
+        /configured upstream remote is unavailable or ambiguous/
+      )
+      assert.equal(h.commits.length, 1)
+      assert.equal(h.pushes.length, 0)
+    })
+
     it('refuses to push with no remote but keeps the commit', async () => {
       const h = harness({ remotes: [] })
       await assert.rejects(
         runQuickCommitAndPush(
-          target,
+          { ...target, currentUpstreamBranch: undefined },
           'x',
           h.operations,
           p => h.phases.push(p),
@@ -337,7 +373,7 @@ describe('quick action', () => {
       const h = harness({ remotes: [{ name: 'fork' }, { name: 'upstream' }] })
       await assert.rejects(
         runQuickCommitAndPush(
-          target,
+          { ...target, currentUpstreamBranch: undefined },
           'x',
           h.operations,
           p => h.phases.push(p),
@@ -351,7 +387,7 @@ describe('quick action', () => {
     it('pushes to the only remote when it is not named origin', async () => {
       const h = harness({ remotes: [{ name: 'fork' }] })
       await runQuickCommitAndPush(
-        target,
+        { ...target, currentUpstreamBranch: undefined },
         'x',
         h.operations,
         p => h.phases.push(p),
@@ -411,19 +447,19 @@ describe('quick action', () => {
 
   describe('remote branch derivation', () => {
     it('strips the remote prefix', () => {
-      assert.equal(deriveRemoteBranchName('origin/main'), 'main')
+      assert.equal(deriveRemoteBranchName('origin/main', 'origin'), 'main')
       assert.equal(
-        deriveRemoteBranchName('upstream/release/3.6'),
+        deriveRemoteBranchName('upstream/release/3.6', 'upstream'),
         'release/3.6'
       )
     })
 
     it('returns null with no upstream so push sets one', () => {
-      assert.equal(deriveRemoteBranchName(undefined), null)
+      assert.equal(deriveRemoteBranchName(undefined, 'origin'), null)
     })
 
-    it('passes through a name with no separator', () => {
-      assert.equal(deriveRemoteBranchName('main'), 'main')
+    it('rejects an upstream belonging to a different remote', () => {
+      assert.equal(deriveRemoteBranchName('upstream/main', 'origin'), null)
     })
   })
 
@@ -454,6 +490,33 @@ describe('quick action', () => {
 
     it('returns null with no remotes', () => {
       assert.equal(chooseQuickPushRemote([]), null)
+    })
+
+    it('fails closed when slash-containing remote names are ambiguous', () => {
+      assert.equal(
+        chooseQuickTrackingRemote(
+          [{ name: 'team' }, { name: 'team/fork' }, { name: 'origin' }],
+          'team/fork/topic'
+        ),
+        null
+      )
+    })
+
+    it('matches a slash-containing remote when it is unambiguous', () => {
+      assert.deepEqual(
+        chooseQuickTrackingRemote(
+          [{ name: 'team/fork' }, { name: 'origin' }],
+          'team/fork/topic'
+        ),
+        { name: 'team/fork' }
+      )
+    })
+
+    it('returns null when the configured tracking remote is missing', () => {
+      assert.equal(
+        chooseQuickTrackingRemote([{ name: 'origin' }], 'upstream/release/3.6'),
+        null
+      )
     })
   })
 })

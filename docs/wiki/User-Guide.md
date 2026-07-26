@@ -61,6 +61,7 @@ catalogued function or state owns one distinct screenshot rather than borrowing 
 - [Notification centre](#notification-centre)
 - [GitHub Actions panel](#github-actions-panel)
 - [Repository Releases](#repository-releases)
+- [Repository Packages](#repository-packages)
 - [UI scaling](#ui-scaling)
 - [Automation and merge-all](#automation-and-merge-all)
 - [History search and graph](#history-search-and-graph)
@@ -294,6 +295,15 @@ lookup. A saved account that is unavailable fails safely rather than falling bac
 GitHub.com identity. For an older unassigned repository, Desktop Material verifies same-host
 accounts against the remote and prefers an account that can push before a read-only account, then
 saves that verified choice for later operations.
+
+When GitHub reports that the repository was renamed or transferred, Desktop Material updates the
+exact matched default remote before network work. It keeps SSH as SSH and accepts an HTTP(S) change
+only on the same exact scheme, host, and port. An explicit push URL moves only when it exactly
+matched the old fetch URL; a separate deployment or write-only target remains untouched. Concurrent
+remote edits win, unsafe candidates are refused, and a provider/config failure leaves the current
+URL in place for a later explicit retry. See [Automatic remote URL
+refresh](../features/repository-management/automatic-remote-url-refresh.md) for the complete safety
+and retry behavior.
 
 During background fetch, a local `refs/remotes/<remote>/HEAD` is reused only when it points inside
 that exact remote namespace and its target still exists. This avoids an expensive online
@@ -647,7 +657,7 @@ Changing the account clears repository selections from the previous identity bef
 account's list. If a provider refresh fails, use **Try again** in the same view; a stale repository
 cannot remain selected for cloning under the replacement account.
 
-![Block-based regex builder with live repository-name testing](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/regex-builder.png)
+![Safe RE2 builder with bounded live matching and capture previews](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/regex-builder.png)
 
 On a compact or zoomed viewport, the builder stacks its category and building-block areas before
 cards clip. Its body scrolls vertically while the live tester and footer actions remain reachable;
@@ -1335,10 +1345,16 @@ The **Actions** panel brings CI into the app:
   release for freshly revalidated current `main` is promoted to the Squirrel
   update feed, so an older overlapping job cannot move **Latest** backward.
 - Select a run artifact to review its name, size, creation/expiry, workflow source, and GitHub digest.
-  Choose **Load more artifacts** to append the next bounded page. A failed later page keeps the
+  Search the loaded artifact catalog by name or workflow context with fuzzy, substring, or safe
+  regular-expression matching; substring and regex modes can also match the digest, and the regex
+  builder is available from the filter control. Choose **Load more artifacts** to append the next
+  bounded page; search immediately includes each appended page. A failed later page keeps the
   cards you already loaded and lets you retry that same page.
   **Download archive** opens the native save picker; after transfer, Desktop computes SHA-256 locally,
   reports whether it matches, and offers **Show in folder**.
+- The cache manager can list, search, and delete Actions caches, but **Download unavailable** is
+  intentional: GitHub does not provide a supported Actions-cache archive download API. Download
+  supported workflow output from that run's **Artifacts** section instead.
 - **Check attestations** reports whether an attestation record is present. Presence is not presented as
   cryptographic verification: signer, signature, timestamp, source identity, and policy still need a
   future verification function.
@@ -1348,6 +1364,10 @@ The **Actions** panel brings CI into the app:
 ![Actions artifact with digest match and attestation-presence context](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-artifacts.png)
 
 ![Actions cache manager with usage totals, refs, wrapped keys, and delete controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-cache-manager.png)
+
+Actions caches can be listed and deleted, but GitHub exposes no supported API
+for downloading a cache archive. **Download unavailable** says so directly;
+use a workflow artifact when output must be downloadable and integrity-reported.
 
 ![Headless Actions run pagination with the page-two sentinel retained](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-actions-pagination-headless.png)
 
@@ -1419,6 +1439,25 @@ the CSS 480×330 viewport with zero horizontal overflow and one complete row.
 
 ![Compact Repository Releases at 200 percent scale with one complete row and the keyboard-reachable Filters and selection disclosure](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-github-releases-compact.png)
 
+### Repository Packages
+
+Switch the repository's **Distribution** surface from **Releases** to
+**Packages** to browse npm, Maven, RubyGems, Docker, NuGet, and container
+packages. Desktop Material first refreshes the repository's numeric GitHub ID
+and excludes every owner package without that exact association. Package and
+version lists support ordinary, fuzzy, substring, and regular-expression
+search, case sensitivity, and the full Regex Builder.
+
+On GitHub.com, **Publish a file package** reviews one local file and publishes
+it as an app-owned GHCR/OCI artifact under a new unique tag, then reports the
+immutable digest reference. **Download file** accepts only an exact digest and
+only after verifying the app artifact type, source repository, one safe title,
+and the layer's size and SHA-256; the final save never overwrites an existing
+path. Other ecosystems and general container images remain metadata/link
+workflows for their normal registry clients. See the
+[GitHub Packages explorer contract](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/github-packages-explorer.md)
+for limits, failure recovery, and credential handling.
+
 ---
 
 ## UI scaling
@@ -1471,6 +1510,13 @@ Automation targets the selected repository only. Before each run it checks repos
 upstream availability, conflicts, in-progress Git operations, and draft commit text. An unsafe
 repository is skipped rather than overwritten. See [Automation](Automation) for the complete guard
 table.
+
+Scheduled Git is non-interactive. It uses an already selected/stored credential or fails through a
+notification without opening a login, credential-manager, SSH, or pinentry window. Scheduled
+commit, pull, and push skip repository hooks; automatic commits and pull-created commits also
+disable signing, and post-push SSH deployment uses batch mode. Manual Git actions remain
+interactive and continue to honor normal hook and signing choices. Repositories that require hooks
+or signatures should use reviewed manual operations and remote branch protection.
 
 The Branches and Worktrees views also expose **Merge all branches** and **Merge all worktrees**.
 Confirm the target, follow each row's progress, and review any skipped or failed target. When

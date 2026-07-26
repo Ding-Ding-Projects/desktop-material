@@ -333,4 +333,91 @@ describe('GitStore', () => {
       assert.equal(currentBranchAfter.upstream, 'origin/some-other-branch')
     })
   })
+
+  describe('published branches without tracking configuration', () => {
+    const setupPublishedBranch = async (t: TestContext) => {
+      const upstream = await setupEmptyRepository(t)
+      await makeCommit(upstream, {
+        commitMessage: 'published commit',
+        entries: [{ path: 'README.md', contents: 'published\n' }],
+      })
+      const repository = await cloneLocalRepository(t, upstream)
+
+      await exec(
+        ['config', '--unset-all', 'branch.master.remote'],
+        repository.path
+      )
+      await exec(
+        ['config', '--unset-all', 'branch.master.merge'],
+        repository.path
+      )
+
+      return repository
+    }
+
+    const loadFreshStore = async (repository: Repository) => {
+      const gitStore = new GitStore(repository, shell, new TestStatsStore())
+      await gitStore.loadStatus()
+      await gitStore.loadRemotes()
+      return gitStore
+    }
+
+    it('recognizes an equal exact ref on the default push remote', async t => {
+      const repository = await setupPublishedBranch(t)
+      const gitStore = await loadFreshStore(repository)
+
+      assert.deepEqual(gitStore.aheadBehind, { ahead: 0, behind: 0 })
+      assert.equal(gitStore.tip.kind, TipState.Valid)
+      if (gitStore.tip.kind === TipState.Valid) {
+        assert.equal(gitStore.tip.branch.upstream, null)
+      }
+    })
+
+    it('recognizes local commits ahead of the exact published ref', async t => {
+      const repository = await setupPublishedBranch(t)
+      await makeCommit(repository, {
+        commitMessage: 'local commit',
+        entries: [{ path: 'LOCAL.md', contents: 'local\n' }],
+      })
+
+      const gitStore = await loadFreshStore(repository)
+      assert.deepEqual(gitStore.aheadBehind, { ahead: 1, behind: 0 })
+
+      // Cheap LFS refreshes remotes before status. A later status load must not
+      // erase the exact-ref fallback when set-upstream could not be recorded.
+      await gitStore.loadStatus()
+      assert.deepEqual(gitStore.aheadBehind, { ahead: 1, behind: 0 })
+    })
+
+    it('keeps publish state when the default remote has no exact ref', async t => {
+      const repository = await setupPublishedBranch(t)
+      await exec(
+        ['update-ref', '-d', 'refs/remotes/origin/master'],
+        repository.path
+      )
+
+      const gitStore = await loadFreshStore(repository)
+      assert.equal(gitStore.aheadBehind, null)
+    })
+
+    it('does not infer publication from the same branch on another remote', async t => {
+      const repository = await setupPublishedBranch(t)
+      const publishedSha = (
+        await exec(['rev-parse', 'refs/remotes/origin/master'], repository.path)
+      ).stdout.trim()
+      await exec(['remote', 'add', 'backup', repository.path], repository.path)
+      await exec(
+        ['update-ref', 'refs/remotes/backup/master', publishedSha],
+        repository.path
+      )
+      await exec(
+        ['update-ref', '-d', 'refs/remotes/origin/master'],
+        repository.path
+      )
+
+      const gitStore = await loadFreshStore(repository)
+      assert.equal(gitStore.defaultRemote?.name, 'origin')
+      assert.equal(gitStore.aheadBehind, null)
+    })
+  })
 })

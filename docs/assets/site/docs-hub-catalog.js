@@ -378,6 +378,13 @@
       d: 'Desktop Material automatically adds a small set of safe, read-only GitHub API functions to an eligible repository the first time its API functions surface is opened. The…',
     },
     {
+      t: 'Per-repository GitHub Packages explorer',
+      h: 'features/integrations/github-packages-explorer.html',
+      s: 'features/integrations/github-packages-explorer.md',
+      c: 'features',
+      d: "Desktop Material exposes GitHub Packages beside Releases in the selected repository's Distribution surface. The explorer keeps the repository's chosen GitHub account and…",
+    },
+    {
       t: 'GitLab merge requests',
       h: 'features/integrations/gitlab-merge-request.html',
       s: 'features/integrations/gitlab-merge-request.md',
@@ -523,6 +530,13 @@
       s: 'features/repository-management/automatic-commit-push-batching.md',
       c: 'features',
       d: 'Desktop Material keeps one automatic Git push below a decimal 1.5 GB (1,500,000,000-byte) ceiling when a large selection contains many ordinary files. Changed blobs are capped…',
+    },
+    {
+      t: 'Automatic remote URL refresh',
+      h: 'features/repository-management/automatic-remote-url-refresh.html',
+      s: 'features/repository-management/automatic-remote-url-refresh.md',
+      c: 'features',
+      d: "Desktop Material repairs a checkout's configured GitHub remote when the provider reports that the repository was renamed or transferred. The repair is a preflight for network…",
     },
     {
       t: 'Cheap LFS asset versioning and commit provenance',
@@ -1048,6 +1062,20 @@
       s: 'verification/auto-updater-version-order-2026-07-22.md',
       c: 'verification',
       d: "Desktop Material's installed legacy Super Express build 3.6.3-beta3-s000000000201 now moves forward through the ordinary and Super Express release lanes. Both lanes use a…",
+    },
+    {
+      t: 'Bug-hunt cleanup ledger',
+      h: 'verification/bug-hunt-2026-07-26/cleanup-ledger.html',
+      s: 'verification/bug-hunt-2026-07-26/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: bug-hunt-2026-07-26-019f9f87',
+    },
+    {
+      t: 'Bug-hunt publish run manifest',
+      h: 'verification/bug-hunt-2026-07-26/run-manifest.html',
+      s: 'verification/bug-hunt-2026-07-26/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: bug-hunt-2026-07-26-019f9f87',
     },
     {
       t: 'Cheap LFS Bambu build cloud, clone, and batching acceptance — 2026-07-23',

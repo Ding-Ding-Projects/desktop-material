@@ -1,5 +1,122 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Remote repair, unattended Git, and distribution surfaces
+
+- Before Git network work, Desktop Material now resolves the exact matched
+  GitHub default remote and repairs its URL after a repository rename or
+  transfer. The repair preserves SSH versus HTTP(S), requires the same exact
+  web origin, refuses stale/unsafe candidates, and does not assume `origin`.
+  An explicit `pushurl` moves only when it exactly equals the old fetch URL;
+  deliberately divergent write/deployment targets and unrelated remotes remain
+  untouched. Background checks are bounded and retry failed config mutations;
+  explicit network actions revalidate immediately.
+- Scheduled commit/push and pull are non-interactive. They use only already
+  available account/vault credentials, skip repository hooks, disable
+  commit/merge signing, suppress GitHub/generic/GCM/SSH prompts, and run
+  post-push SSH deployment with batch mode and AskPass disabled. Failure is
+  reported through non-blocking notification state. Manual operations remain
+  interactive and retain the user's normal hook and signing behavior.
+- App-managed Cheap LFS Release buckets now carry an exact body sentinel and
+  are hidden from the ordinary Releases catalog by default. A user can reveal
+  them without mutating or deleting their releases/assets; legacy prerelease
+  buckets remain recognizable from valid Cheap LFS asset provenance.
+- The repository Distribution surface now includes a GitHub Packages explorer
+  for bounded, exact-repository-associated package/version metadata across the
+  supported GitHub ecosystems. Its narrow native file-transfer path publishes
+  app-owned GHCR OCI artifacts with unique tags and reports immutable digests;
+  download accepts only an exact digest, verifies app artifact type, repository
+  provenance, safe filename, size, and SHA-256, and never overwrites a file.
+- Actions artifacts now support the same bounded search modes and safe regex
+  feedback as the other catalog surfaces. Actions cache download is explicitly
+  unavailable because GitHub exposes supported cache list/delete APIs but no
+  supported cache-archive download API; downloadable output remains a workflow
+  artifact operation.
+- The ignored-files-to-local-Cheap-LFS-submodule workflow remains **planned,
+  not implemented**. Any future implementation must leave the ignored originals
+  byte-for-byte at their exact original parent-repository paths, retain recovery
+  copies until final verification, and must not replace originals with links or
+  silently upload/create a remote/push.
+
+Final-tree local evidence: canonical `yarn lint` and root TypeScript `--noEmit`
+passed; the final cross-feature regression matrix passed **104/104** across
+seven files; and `yarn test:script` passed **84/84** across twelve files,
+including x64/ARM64 shell-extension and documentation-catalog checks. The exact
+Lowlevel-MCP-routed unpackaged production build passed in **287.9 seconds**.
+The fresh off-screen Win32 build then completed the dark-English regex-builder
+scene at `1280 x 800`; its adversarial safe-RE2 near miss completed in **16 ms**.
+The accepted capture is `docs/assets/screenshots/regex-builder.png` (SHA-256
+`BEFBFA90491120195884F7424AAB551B81CB3174068077E466A8020C335A28B1`). A
+separate issue-#39 capture proves the one-ahead fixture renders **Push origin**
+rather than **Publish branch** (SHA-256
+`568C2B927F555586CDBFA62BD1AC79B6E4A7C8B7CC17D4F98178CCF6441D4AC6`).
+Remote CI and publication are pending until this commit is pushed; no remote
+success is inferred from the local receipts.
+
+Remaining audit risks: automatic Cheap LFS OCI materialization still invokes
+the external Docker credential helper without a direct unattended/no-window
+proof. Also, direct Cheap LFS remote operations in publication-state reads,
+first-publish anchor pushes, and workflow-commit pushes still need either the
+canonical-remote preflight or explicit stale-URL coverage. Treat both as open
+until verified or repaired.
+
+Product follow-up requested by the user: **every cancellation action must use a
+slide-to-confirm interaction**. This is a handoff requirement only in the
+current push; the existing cancellation controls have not yet been migrated or
+claimed as verified. The eventual control must remain keyboard- and
+screen-reader-operable, expose clear pending/confirmed/canceled states, respect
+reduced motion, and avoid turning ordinary non-cancellation navigation into a
+confirmation gate.
+
+## 2026-07-26 — Pull-and-bug-hunt reliability pass
+
+Fast-forwarded clean `main` from `a6d5841b05` to `78dc8d0bc5`, scanned every
+open issue and three touched repositories, then split the bug hunt across Git,
+renderer/security, static Pages, and native Windows packaging. The resulting
+repair set is deliberately broader than issue #39 because adversarial review
+found additional release-blocking defects in the first implementations:
+
+- A branch with an exact `origin/<branch>` publication ref but no `branch.*`
+  config now reconstructs ahead/behind after either remote or status refresh;
+  the follow-up status read can no longer erase the fallback. The branch stays
+  untracked so the next real push still writes `--set-upstream`. This resolves
+  the restart and same-session form of #39 without trusting a same-name ref on
+  another remote.
+- Quick Commit & Push follows the configured tracking remote and refuses a
+  slash-containing tracking label when more than one remote can parse it. A
+  missing or ambiguous upstream never redirects a completed commit to `origin`.
+- The Explorer DLL resolves `GitHubDesktop.exe` from the sparse package's real
+  parent layout, validates the owned directory and file, builds with the target
+  x64/ARM64 MSVC lane, validates the PE machine before manifest generation, and
+  removes stale generated output even when that target toolchain is absent.
+- Every app-owned user regex now goes through RE2JS. Pattern, input, aggregate,
+  match, capture-preview, and capture-group/match-work budgets compose instead
+  of multiplying. Diff search keeps large literal lines searchable, caps one
+  operation at 5,000 navigable highlights, and announces truncation. Size-limit
+  list filters fail closed; Actions exposes the evaluation error. Capture
+  previews retain only 24 bounded first-match entries. Tester rows retain
+  per-candidate anchor semantics, status errors no longer overflow or announce
+  three times, and both builder tablists use roving keyboard focus with live
+  `aria-controls` targets.
+- Notification rules preserve meaningful boundary spaces and old
+  JavaScript-only patterns remain visibly disarmed until edited into safe RE2;
+  invalid list-search patterns are announced, and duplicate imported rule IDs
+  are repaired before toggle/remove actions can alias two rules.
+  The Pages hub retains ECMAScript compatibility in a fresh same-origin worker,
+  enforces a hard 750 ms termination deadline, and bounds match/capture data
+  before the structured-clone boundary.
+
+Local evidence so far: root TypeScript no-emit passed; canonical `yarn lint`
+passed; the changed renderer/real-Git matrix passed 179/179; the tightened RE2
+stress rerun passed 14/14 and reduced the 500-group case from roughly 875 ms to
+roughly 100 ms; the Pages worker/controller passed 9/9 including real hard
+termination and capture amplification; and the script gate passed all 83
+non-catalog tests, including real x64 DLL activation and ARM64 cross-compilation.
+Its one catalog assertion correctly reported the two new verification pages as
+unindexed before regeneration. The final production build, off-screen Win32 UI
+capture, regenerated catalog/full gates, and remote receipts are recorded below
+in this section before publication; do not infer remote success from this local
+implementation paragraph alone.
+
 ## 2026-07-26 — Multi-account token-invalidation fix re-verified; worktree sweep
 
 A reported bug — `AppStore.onTokenInvalidated` resolving the affected account by

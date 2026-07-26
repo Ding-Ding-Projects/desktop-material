@@ -26,6 +26,7 @@ function options(
   overrides: Partial<IShellExtensionManifestOptions> = {}
 ): IShellExtensionManifestOptions {
   return {
+    architecture: 'x64',
     publisher: formatX500Publisher('GitHub, Inc.'),
     publisherDisplayName: 'GitHub, Inc.',
     dllPath: 'shell-extension\\DesktopMaterialShellExtension.dll',
@@ -173,6 +174,17 @@ describe('shell extension package', () => {
       assert.match(
         buildShellExtensionManifest(options()),
         /MinVersion="10\.0\.22000\.0"/
+      )
+    })
+
+    it('declares the architecture of the native Explorer DLL', () => {
+      assert.match(
+        buildShellExtensionManifest(options({ architecture: 'x64' })),
+        /ProcessorArchitecture="x64"/
+      )
+      assert.match(
+        buildShellExtensionManifest(options({ architecture: 'arm64' })),
+        /ProcessorArchitecture="arm64"/
       )
     })
 

@@ -147,6 +147,141 @@ describe('Actions run artifacts', () => {
     )
   })
 
+  it('filters artifacts across fuzzy, substring, and safe regex modes', async () => {
+    const filterModeKey = 'filter-mode/actions-artifacts'
+    const languageModeKey = 'language-mode-v1'
+    const previousFilterMode = localStorage.getItem(filterModeKey)
+    const previousLanguageMode = localStorage.getItem(languageModeKey)
+    localStorage.removeItem(filterModeKey)
+    localStorage.setItem(languageModeKey, 'english')
+
+    try {
+      const windows = artifact({
+        id: 20,
+        name: 'Windows-package',
+        workflowRun: {
+          id: 7,
+          runAttempt: 2,
+          headBranch: 'release/stable',
+          headSha: 'c'.repeat(40),
+        },
+      })
+      const linux = artifact({
+        id: 21,
+        name: 'linux-debug-symbols',
+        workflowRun: {
+          id: 7,
+          runAttempt: 2,
+          headBranch: 'feature/linux-build',
+          headSha: 'd'.repeat(40),
+        },
+      })
+      render(
+        <RunArtifacts
+          repository={repository}
+          run={{ ...run(), path: '.github/workflows/package.yml' }}
+          actionsStore={store({
+            fetchArtifacts: async () => list([windows, linux]),
+          })}
+        />
+      )
+
+      const search = await screen.findByRole('searchbox', {
+        name: 'Filter workflow artifacts',
+      })
+      assert.equal(
+        search.getAttribute('data-search-surface-id'),
+        'actions-artifacts'
+      )
+      assert.equal(
+        search.getAttribute('aria-controls'),
+        'actions-artifact-grid'
+      )
+      assert.ok(screen.getByRole('button', { name: 'Open regex builder' }))
+
+      fireEvent.change(search, { target: { value: 'linux' } })
+      assert.ok(
+        await screen.findByRole('heading', { name: 'linux-debug-symbols' })
+      )
+      assert.equal(
+        screen.queryByRole('heading', { name: 'Windows-package' }),
+        null
+      )
+      assert.ok(
+        screen.getByText('Showing 2 loaded of 2 artifacts · 1 visible.')
+      )
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Filter mode: Fuzzy (click to change)',
+        })
+      )
+      assert.equal(localStorage.getItem(filterModeKey), 'substring')
+      fireEvent.change(search, { target: { value: 'package.yml' } })
+      assert.ok(screen.getByRole('heading', { name: 'Windows-package' }))
+      assert.ok(screen.getByRole('heading', { name: 'linux-debug-symbols' }))
+      fireEvent.change(search, { target: { value: 'release/stable' } })
+      assert.ok(await screen.findByRole('heading', { name: 'Windows-package' }))
+      fireEvent.change(search, { target: { value: 'dddddddddddd' } })
+      assert.ok(
+        await screen.findByRole('heading', { name: 'linux-debug-symbols' })
+      )
+      fireEvent.change(search, { target: { value: 'WINDOWS' } })
+      assert.ok(await screen.findByRole('heading', { name: 'Windows-package' }))
+      fireEvent.click(screen.getByRole('button', { name: 'Match case' }))
+      assert.ok(
+        await screen.findByText(
+          'No workflow artifacts match the current filter.'
+        )
+      )
+
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Filter mode: Substring (click to change)',
+        })
+      )
+      assert.equal(localStorage.getItem(filterModeKey), 'regex')
+      fireEvent.change(search, { target: { value: '(' } })
+      const error = await screen.findByRole('alert')
+      assert.match(error.textContent ?? '', /safe RE2 pattern/i)
+      assert.equal(search.getAttribute('aria-invalid'), 'true')
+      assert.equal(
+        search.getAttribute('aria-describedby'),
+        'actions-artifact-filter-error'
+      )
+      assert.ok(screen.getByRole('heading', { name: 'Windows-package' }))
+      assert.ok(screen.getByRole('heading', { name: 'linux-debug-symbols' }))
+
+      fireEvent.click(screen.getByRole('button', { name: 'Match case' }))
+      fireEvent.change(search, { target: { value: '^linux-' } })
+      assert.equal(search.getAttribute('aria-invalid'), 'false')
+      assert.ok(
+        await screen.findByRole('heading', { name: 'linux-debug-symbols' })
+      )
+      assert.equal(
+        screen.queryByRole('heading', { name: 'Windows-package' }),
+        null
+      )
+      fireEvent.change(search, { target: { value: '^nothing$' } })
+      assert.ok(
+        await screen.findByText(
+          'No workflow artifacts match the current filter.'
+        )
+      )
+    } finally {
+      if (previousFilterMode === null) {
+        localStorage.removeItem(filterModeKey)
+      } else {
+        localStorage.setItem(filterModeKey, previousFilterMode)
+      }
+      if (previousLanguageMode === null) {
+        localStorage.removeItem(languageModeKey)
+      } else {
+        localStorage.setItem(languageModeKey, previousLanguageMode)
+      }
+    }
+  })
+
   it('loads, retries, and de-duplicates later artifact pages', async () => {
     const requestedPages: number[] = []
     let failNextPage = true

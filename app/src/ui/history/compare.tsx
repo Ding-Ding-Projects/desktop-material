@@ -676,6 +676,7 @@ export class CompareSidebar extends React.Component<
         searchSurfaceId="history-commits"
         targetLabel="Commits"
         initialPattern={this.state.commitFilterText}
+        caseSensitive={this.state.commitFilterCaseSensitive}
         sampleItems={this.getCommitFilterSampleItems()}
         onApply={this.onCommitRegexBuilderApply}
         onDismissed={this.onCloseCommitRegexBuilder}
@@ -715,13 +716,17 @@ export class CompareSidebar extends React.Component<
     this.setState({ isRegexBuilderOpen: false })
   }
 
-  private onCommitRegexBuilderApply = (pattern: string) => {
+  private onCommitRegexBuilderApply = (
+    pattern: string,
+    caseSensitive: boolean
+  ) => {
     persistFilterMode(CommitFilterListId, FilterMode.Regex)
     this.exhaustedSearchQuery = null
     this.setState(
       {
         commitFilterMode: FilterMode.Regex,
         commitFilterText: pattern,
+        commitFilterCaseSensitive: caseSensitive,
         isRegexBuilderOpen: false,
       },
       this.ensureCommitSearchDepth

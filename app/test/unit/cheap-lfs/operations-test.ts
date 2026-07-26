@@ -33,6 +33,7 @@ import {
   IGitHubRelease,
   IGitHubReleaseAsset,
 } from '../../../src/lib/github-releases'
+import { CheapLfsReleaseBodySentinel } from '../../../src/lib/cheap-lfs/asset-version'
 import {
   createCheapLfsMaterializeCache,
   CheapLfsStreamChunkBytes,
@@ -670,6 +671,7 @@ describe('cheap LFS operations', () => {
         assets: [],
       }
       let createdTargetCommitish: string | undefined
+      let createdBody: string | undefined
       let createdAsPrerelease: boolean | undefined
       let createdPublishImmediately: boolean | undefined
       let createdRelease = draft
@@ -693,6 +695,7 @@ describe('cheap LFS operations', () => {
                 publishImmediately
               ) => {
                 createdTargetCommitish = releaseDraft.targetCommitish
+                createdBody = releaseDraft.body
                 createdAsPrerelease = releaseDraft.prerelease
                 createdPublishImmediately = publishImmediately
                 createdRelease = {
@@ -741,6 +744,7 @@ describe('cheap LFS operations', () => {
       assert.equal(result.pointer.parts, undefined)
       assert.equal(result.releaseId, draft.id)
       assert.equal(createdTargetCommitish, 'trunk')
+      assert.equal(createdBody, CheapLfsReleaseBodySentinel)
       assert.equal(createdAsPrerelease, true)
       assert.equal(createdPublishImmediately, true)
       assert.notEqual(uploaded?.sourcePath, filePath)

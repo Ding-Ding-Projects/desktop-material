@@ -58,4 +58,22 @@ describe('authenticated push Git execution', () => {
       false
     )
   })
+
+  it('suppresses authentication UI for a background push', async () => {
+    const { push } = await import('../../src/lib/git/push')
+    const repository = new Repository('C:\\proof', -1, null, false)
+    invocations.length = 0
+
+    await push(
+      repository,
+      { name: 'origin', url: 'https://github.com/owner/private.git' },
+      'main',
+      'main',
+      null,
+      { isBackgroundTask: true }
+    )
+
+    assert.equal(invocations.length, 1)
+    assert.equal(invocations[0].options.isBackgroundTask, true)
+  })
 })

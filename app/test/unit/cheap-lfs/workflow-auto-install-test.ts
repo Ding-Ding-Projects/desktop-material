@@ -351,6 +351,7 @@ describe('Cheap LFS cloud-compression workflow install wiring', () => {
       body,
       /CheapLfsWorkflowInstallCommitMessage,\s*'--',\s*CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH/
     )
+    assert.match(body, /isBackgroundTask: true/)
     assert.doesNotMatch(body, /'-a'|'--all'/)
   })
 

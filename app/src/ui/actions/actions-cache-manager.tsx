@@ -213,6 +213,14 @@ export class ActionsCacheManager extends React.PureComponent<
         <div className="actions-cache-card-buttons">
           <Button
             size="small"
+            disabled={true}
+            tooltip="GitHub does not provide a supported Actions cache archive download API. Download workflow artifacts from their run instead."
+            ariaDescribedBy="actions-cache-download-limit"
+          >
+            Download unavailable
+          </Button>
+          <Button
+            size="small"
             onClick={this.onDeleteByKey}
             data-cache-id={cache.id}
             ariaLabel={`Delete all caches with key ${cache.key}`}
@@ -337,6 +345,16 @@ export class ActionsCacheManager extends React.PureComponent<
             </Button>
           </div>
         </header>
+
+        <div
+          id="actions-cache-download-limit"
+          className="actions-cache-download-limit"
+          role="note"
+        >
+          GitHub supports listing and deleting Actions caches, but not
+          downloading their archives. Downloadable workflow output remains
+          available under each run&apos;s Artifacts section.
+        </div>
 
         <div className="actions-search-row actions-cache-filter">
           <div

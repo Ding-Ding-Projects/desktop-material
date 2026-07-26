@@ -24,9 +24,28 @@
  */
 
 import {
+  IGitHubRelease,
   IGitHubReleaseAsset,
   isUploadedGitHubReleaseAsset,
 } from '../github-releases'
+
+/**
+ * Exact, invisible release-body marker written on every new Cheap LFS bucket.
+ *
+ * This must stay an equality-tested sentinel rather than a searchable phrase:
+ * ordinary release notes may discuss Cheap LFS without becoming app-managed
+ * storage buckets. The version suffix leaves future formats room to opt in
+ * deliberately without weakening that boundary.
+ */
+export const CheapLfsReleaseBodySentinel =
+  '<!-- desktop-material:cheap-lfs-release-bucket:v1 -->'
+
+/** True only for the exact current Cheap LFS release-body sentinel. */
+export function isCheapLfsReleaseBody(
+  body: string | null | undefined
+): boolean {
+  return body === CheapLfsReleaseBodySentinel
+}
 
 /** Version marker every Cheap LFS asset label starts with. */
 export const CheapLfsAssetLabelPrefix = 'cheap-lfs/v1'
@@ -174,6 +193,33 @@ export function parseCheapLfsAssetLabel(
     commitSha: match[2] === CheapLfsAssetLabelPendingCommit ? null : match[2],
     pathTruncated,
   }
+}
+
+/**
+ * Identify an app-managed Cheap LFS release without guessing from its title,
+ * tag, or prose. New buckets carry the exact invisible body sentinel; legacy
+ * buckets remain recognizable when at least one asset has valid Cheap LFS
+ * provenance. A normal release is never classified unless it is a prerelease.
+ */
+export function isCheapLfsReleaseBucket(
+  release:
+    | Pick<IGitHubRelease, 'body' | 'prerelease' | 'assets'>
+    | null
+    | undefined
+): boolean {
+  if (
+    release === null ||
+    release === undefined ||
+    release.prerelease !== true
+  ) {
+    return false
+  }
+  if (isCheapLfsReleaseBody(release.body)) {
+    return true
+  }
+  return release.assets.some(
+    asset => parseCheapLfsAssetLabel(asset.label) !== null
+  )
 }
 
 /**

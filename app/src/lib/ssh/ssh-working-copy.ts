@@ -604,22 +604,27 @@ export async function runSSHWorkingCopyAction(
   action: SSHWorkingCopyAction,
   sourceUrl?: string,
   signal?: AbortSignal,
-  expectedBranch?: string
+  expectedBranch?: string,
+  isBackgroundTask: boolean = false
 ): Promise<ISSHWorkingCopyResult> {
-  const args = buildSSHWorkingCopyArguments(
-    definition,
-    action,
-    sourceUrl,
-    expectedBranch
-  )
+  const args = [
+    ...(isBackgroundTask ? ['-o', 'BatchMode=yes'] : []),
+    ...buildSSHWorkingCopyArguments(
+      definition,
+      action,
+      sourceUrl,
+      expectedBranch
+    ),
+  ]
   const executable = await getSSHExecutable()
 
   return withTrampolineEnv(
     async (trampolineEnvironment, trampolineToken) => {
       const { env } = setupEnvironment({
         ...(trampolineEnvironment as Record<string, string | undefined>),
-        // Force askpass even though stdin is detached from a terminal.
-        SSH_ASKPASS_REQUIRE: 'force',
+        // A scheduled operation must fail instead of opening an askpass UI.
+        // Manual actions keep Desktop's credential-vault-backed prompt.
+        SSH_ASKPASS_REQUIRE: isBackgroundTask ? 'never' : 'force',
       })
       try {
         const execution = execFileAsync(executable, args, {
@@ -670,7 +675,7 @@ export async function runSSHWorkingCopyAction(
       }
     },
     repositoryPath,
-    false,
+    isBackgroundTask,
     undefined,
     undefined,
     isRawSSHAuthenticationFailure,

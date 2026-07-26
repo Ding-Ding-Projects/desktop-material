@@ -264,6 +264,21 @@ import {
   parseBoundedActionsAPIError,
   readBoundedActionsJSON,
 } from './actions-response'
+import {
+  boundedGitHubPackageResponse,
+  getGitHubPackageOwnerPath,
+  GitHubPackageOwner,
+  GitHubPackagePageSize,
+  GitHubPackageType,
+  githubPackageResponseHasNextPage,
+  IGitHubPackagePage,
+  IGitHubPackageVersionPage,
+  parseGitHubPackagePage,
+  parseGitHubPackageVersionPage,
+  validateGitHubPackageName,
+  validateGitHubPackagePage,
+  validateGitHubPackageType,
+} from './github-packages'
 import { createGitHubAPIRequestHeaders } from './github-rest-api-version'
 import { GitHubOAuthScopes } from './github-oauth-scopes'
 import {
@@ -1760,7 +1775,11 @@ export class API {
     name: string
   ): Promise<IAPIFullRepository | null> {
     try {
-      const response = await this.ghRequest('GET', `repos/${owner}/${name}`)
+      const response = await this.ghRequest('GET', `repos/${owner}/${name}`, {
+        // Repository transfers and renames can leave a cached response at the
+        // old owner/name. Canonical remote repair needs the redirect target.
+        reloadCache: true,
+      })
       if (response.status === HttpStatusCode.NotFound) {
         log.warn(`fetchRepository: '${owner}/${name}' returned a 404`)
         return null
@@ -1800,7 +1819,6 @@ export class API {
       reloadCache: true,
       customHeaders: {
         Accept: 'application/vnd.github+json',
-        'X-GitHub-Api-Version': '2022-11-28',
       },
     })
     if (response.status === HttpStatusCode.NotFound) {
@@ -1808,6 +1826,73 @@ export class API {
       return null
     }
     return await readBoundedRegistryPolicyJson(response, signal)
+  }
+
+  /** List one bounded page of packages through the endpoint for its owner. */
+  public async fetchGitHubPackages(
+    owner: GitHubPackageOwner,
+    packageType: GitHubPackageType,
+    page: number = 1,
+    signal?: AbortSignal
+  ): Promise<IGitHubPackagePage> {
+    const ownerPath = getGitHubPackageOwnerPath(owner)
+    const safeType = validateGitHubPackageType(packageType)
+    const safePage = validateGitHubPackagePage(page)
+    const query = new URLSearchParams({
+      package_type: safeType,
+      per_page: String(GitHubPackagePageSize),
+      page: String(safePage),
+    })
+    const response = await this.ghRequest(
+      'GET',
+      `${ownerPath}/packages?${query}`,
+      {
+        signal,
+        customHeaders: { Accept: 'application/vnd.github+json' },
+      }
+    )
+    const providerHasNextPage = githubPackageResponseHasNextPage(response)
+    return parseGitHubPackagePage(
+      await boundedGitHubPackageResponse(response, signal),
+      safeType,
+      safePage,
+      providerHasNextPage
+    )
+  }
+
+  /** List one bounded page of versions for an exact owner/package coordinate. */
+  public async fetchGitHubPackageVersions(
+    owner: GitHubPackageOwner,
+    packageType: GitHubPackageType,
+    packageName: string,
+    page: number = 1,
+    signal?: AbortSignal
+  ): Promise<IGitHubPackageVersionPage> {
+    const ownerPath = getGitHubPackageOwnerPath(owner)
+    const safeType = validateGitHubPackageType(packageType)
+    const safeName = validateGitHubPackageName(packageName)
+    const safePage = validateGitHubPackagePage(page)
+    const query = new URLSearchParams({
+      per_page: String(GitHubPackagePageSize),
+      page: String(safePage),
+    })
+    const response = await this.ghRequest(
+      'GET',
+      `${ownerPath}/packages/${safeType}/${encodeURIComponent(
+        safeName
+      )}/versions?${query}`,
+      {
+        signal,
+        customHeaders: { Accept: 'application/vnd.github+json' },
+      }
+    )
+    const providerHasNextPage = githubPackageResponseHasNextPage(response)
+    return parseGitHubPackageVersionPage(
+      await boundedGitHubPackageResponse(response, signal),
+      safeType,
+      safePage,
+      providerHasNextPage
+    )
   }
 
   /**

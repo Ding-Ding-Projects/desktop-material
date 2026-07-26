@@ -1,13 +1,22 @@
 /* eslint-disable no-sync */
 import { execFileSync } from 'child_process'
-import { existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'fs'
 import * as path from 'path'
 import { deflateSync } from 'zlib'
 import {
   ShellExtensionDllName,
+  ShellExtensionArchitecture,
   buildShellExtensionManifest,
   formatX500Publisher,
 } from '../app/src/lib/shell-extension-package'
+import { getDistArchitecture } from './dist-info'
 
 /**
  * Builds the Windows 11 shell-extension sparse package.
@@ -33,45 +42,114 @@ import {
 const projectRoot = path.resolve(__dirname, '..')
 const sourceDir = path.join(projectRoot, 'shell-extension', 'src')
 
-/** Locate the newest MSVC `cl.exe` for the host architecture. */
-export function findMsvcCompiler(
-  visualStudioRoot = 'C:\\Program Files\\Microsoft Visual Studio'
-): string | null {
+export type MsvcHostArchitecture = 'x64' | 'arm64'
+
+export interface IMsvcToolchainCoordinates {
+  readonly hostDirectory: 'Hostx64' | 'Hostarm64'
+  readonly targetDirectory: ShellExtensionArchitecture
+  readonly vcVarsArgument: string
+  readonly linkerMachine: 'X64' | 'ARM64'
+  readonly peMachine: number
+}
+
+/**
+ * Map the app's target architecture onto the MSVC cross-toolchain contract.
+ *
+ * CI runs both product lanes on an x64 Windows host, so ARM64 must use the
+ * `Hostx64\\arm64` compiler plus `vcvarsall x64_arm64`, not the native x64
+ * compiler that happens to be first on PATH.
+ */
+export function getMsvcToolchainCoordinates(
+  targetArchitecture: ShellExtensionArchitecture,
+  hostArchitecture: MsvcHostArchitecture = process.arch === 'arm64'
+    ? 'arm64'
+    : 'x64'
+): IMsvcToolchainCoordinates {
+  return {
+    hostDirectory: hostArchitecture === 'arm64' ? 'Hostarm64' : 'Hostx64',
+    targetDirectory: targetArchitecture,
+    vcVarsArgument:
+      hostArchitecture === targetArchitecture
+        ? targetArchitecture
+        : `${hostArchitecture}_${targetArchitecture}`,
+    linkerMachine: targetArchitecture === 'arm64' ? 'ARM64' : 'X64',
+    peMachine: targetArchitecture === 'arm64' ? 0xaa64 : 0x8664,
+  }
+}
+
+export interface IMsvcShellExtensionToolchain {
+  readonly compilerPath: string
+  readonly vcVarsAllPath: string
+  readonly coordinates: IMsvcToolchainCoordinates
+}
+
+/** Locate a compiler and vcvars script from the same Visual Studio install. */
+export function findMsvcToolchain(
+  targetArchitecture: ShellExtensionArchitecture,
+  visualStudioRoot = 'C:\\Program Files\\Microsoft Visual Studio',
+  hostArchitecture: MsvcHostArchitecture = process.arch === 'arm64'
+    ? 'arm64'
+    : 'x64'
+): IMsvcShellExtensionToolchain | null {
   if (process.platform !== 'win32' || !existsSync(visualStudioRoot)) {
     return null
   }
 
-  const candidates: Array<string> = []
+  const coordinates = getMsvcToolchainCoordinates(
+    targetArchitecture,
+    hostArchitecture
+  )
+  const candidates: Array<
+    IMsvcShellExtensionToolchain & { readonly version: string }
+  > = []
+
   for (const release of safeReadDir(visualStudioRoot)) {
     for (const edition of safeReadDir(path.join(visualStudioRoot, release))) {
-      const toolsRoot = path.join(
-        visualStudioRoot,
-        release,
-        edition,
+      const installRoot = path.join(visualStudioRoot, release, edition)
+      const vcVarsAllPath = path.join(
+        installRoot,
         'VC',
-        'Tools',
-        'MSVC'
+        'Auxiliary',
+        'Build',
+        'vcvarsall.bat'
       )
+      if (!existsSync(vcVarsAllPath)) {
+        continue
+      }
+
+      const toolsRoot = path.join(installRoot, 'VC', 'Tools', 'MSVC')
       for (const version of safeReadDir(toolsRoot)) {
-        const candidate = path.join(
+        const compilerPath = path.join(
           toolsRoot,
           version,
           'bin',
-          'Hostx64',
-          'x64',
+          coordinates.hostDirectory,
+          coordinates.targetDirectory,
           'cl.exe'
         )
-        if (existsSync(candidate)) {
-          candidates.push(candidate)
+        if (existsSync(compilerPath)) {
+          candidates.push({
+            compilerPath,
+            vcVarsAllPath,
+            coordinates,
+            version,
+          })
         }
       }
     }
   }
 
-  // Sort so the highest MSVC version wins rather than whichever the filesystem
-  // happened to list first.
-  candidates.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
-  return candidates.length > 0 ? candidates[candidates.length - 1] : null
+  candidates.sort((a, b) =>
+    a.version.localeCompare(b.version, undefined, { numeric: true })
+  )
+  const selected = candidates[candidates.length - 1]
+  return selected === undefined
+    ? null
+    : {
+        compilerPath: selected.compilerPath,
+        vcVarsAllPath: selected.vcVarsAllPath,
+        coordinates: selected.coordinates,
+      }
 }
 
 /** Locate the newest Windows SDK `bin\<version>\x64` directory. */
@@ -101,30 +179,37 @@ function safeReadDir(directory: string): ReadonlyArray<string> {
   }
 }
 
-/**
- * Locate `vcvars64.bat`, which sets the INCLUDE/LIB variables the compiler
- * needs. Invoking the compiler without it fails on the very first `#include`.
- */
-function findVcVars(
-  visualStudioRoot = 'C:\\Program Files\\Microsoft Visual Studio'
-): string | null {
-  for (const release of safeReadDir(visualStudioRoot)) {
-    for (const edition of safeReadDir(path.join(visualStudioRoot, release))) {
-      const candidate = path.join(
-        visualStudioRoot,
-        release,
-        edition,
-        'VC',
-        'Auxiliary',
-        'Build',
-        'vcvars64.bat'
-      )
-      if (existsSync(candidate)) {
-        return candidate
-      }
-    }
+/** Read the COFF machine field from a PE image without executing the file. */
+export function readPortableExecutableMachine(image: Buffer): number {
+  if (image.length < 0x40 || image.readUInt16LE(0) !== 0x5a4d) {
+    throw new Error('Shell extension output is not a valid MZ executable')
   }
-  return null
+
+  const peOffset = image.readUInt32LE(0x3c)
+  if (
+    peOffset > image.length - 6 ||
+    image.readUInt32LE(peOffset) !== 0x00004550
+  ) {
+    throw new Error('Shell extension output has no valid PE header')
+  }
+
+  return image.readUInt16LE(peOffset + 4)
+}
+
+/** Prove that the compiler emitted the architecture the package declares. */
+export function validateShellExtensionMachine(
+  image: Buffer,
+  architecture: ShellExtensionArchitecture
+): void {
+  const actual = readPortableExecutableMachine(image)
+  const expected = getMsvcToolchainCoordinates(architecture).peMachine
+  if (actual !== expected) {
+    throw new Error(
+      `compiler emitted PE machine 0x${actual.toString(
+        16
+      )}; expected 0x${expected.toString(16)} for ${architecture}`
+    )
+  }
 }
 
 /**
@@ -222,30 +307,51 @@ export interface IShellExtensionBuildResult {
   readonly outputDirectory?: string
 }
 
+export interface IShellExtensionBuildOptions {
+  readonly pack?: boolean
+  readonly architecture?: ShellExtensionArchitecture
+  /** Test/downstream override; production discovery uses Visual Studio's root. */
+  readonly visualStudioRoot?: string
+}
+
 /** Compile the DLL and write the manifest beside it. */
 export function buildShellExtension(
   outputRoot: string,
-  options: { readonly pack?: boolean } = {}
+  options: IShellExtensionBuildOptions = {}
 ): IShellExtensionBuildResult {
   if (process.platform !== 'win32') {
     return { built: false, reason: 'not building on Windows' }
   }
 
-  const vcvars = findVcVars()
-  if (vcvars === null) {
-    return { built: false, reason: 'no Visual Studio C++ build tools found' }
+  const outputDirectory = path.join(outputRoot, 'shell-extension')
+  // This directory is wholly generated. Remove it before every early return so
+  // a missing ARM64 toolchain can never leave a prior x64 DLL available for the
+  // packaging step to pick up.
+  rmSync(outputDirectory, { recursive: true, force: true })
+
+  const architecture = options.architecture ?? getDistArchitecture()
+  const toolchain = findMsvcToolchain(architecture, options.visualStudioRoot)
+  if (toolchain === null) {
+    return {
+      built: false,
+      reason: `no Visual Studio C++ ${architecture} build tools found`,
+    }
   }
 
-  const outputDirectory = path.join(outputRoot, 'shell-extension')
-  rmSync(outputDirectory, { recursive: true, force: true })
   mkdirSync(outputDirectory, { recursive: true })
+
+  const fail = (reason: string): IShellExtensionBuildResult => {
+    // Never let a partial or wrong-architecture native build look registrable.
+    rmSync(outputDirectory, { recursive: true, force: true })
+    return { built: false, reason }
+  }
 
   const source = path.join(sourceDir, 'dllmain.cpp')
   const dllPath = path.join(outputDirectory, ShellExtensionDllName)
 
   mkdirSync(path.join(outputDirectory, 'obj'), { recursive: true })
 
-  // vcvars64 must run in the same shell as cl.exe to export INCLUDE/LIB, so the
+  // vcvarsall must run in the same shell as cl.exe to export INCLUDE/LIB, so the
   // two are written to one batch file. Passing them as a `cmd /c` string
   // instead would have Node escape the embedded quotes and break every path
   // containing a space — which "Program Files" always does.
@@ -254,9 +360,9 @@ export function buildShellExtension(
     scriptPath,
     [
       '@echo off',
-      `call "${vcvars}" || exit /b 1`,
+      `call "${toolchain.vcVarsAllPath}" ${toolchain.coordinates.vcVarsArgument} || exit /b 1`,
       [
-        'cl.exe',
+        `"${toolchain.compilerPath}"`,
         '/nologo',
         '/std:c++17',
         '/EHsc',
@@ -274,6 +380,7 @@ export function buildShellExtension(
         'ole32.lib',
         'shell32.lib',
         'user32.lib',
+        `/MACHINE:${toolchain.coordinates.linkerMachine}`,
         `/DEF:"${path.join(sourceDir, 'exports.def')}"`,
       ].join(' '),
       'exit /b %ERRORLEVEL%',
@@ -287,16 +394,23 @@ export function buildShellExtension(
       cwd: outputDirectory,
     })
   } catch (error) {
-    return {
-      built: false,
-      reason: `cl.exe failed: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
-    }
+    return fail(
+      `cl.exe failed: ${error instanceof Error ? error.message : String(error)}`
+    )
   }
 
   if (!existsSync(dllPath)) {
-    return { built: false, reason: 'compiler produced no DLL' }
+    return fail('compiler produced no DLL')
+  }
+
+  try {
+    validateShellExtensionMachine(readFileSync(dllPath), architecture)
+  } catch (error) {
+    return fail(
+      error instanceof Error
+        ? error.message
+        : 'could not validate shell extension architecture'
+    )
   }
 
   // Intermediates would otherwise ship inside the package directory, where
@@ -316,6 +430,7 @@ export function buildShellExtension(
   writeFileSync(
     path.join(outputDirectory, 'AppxManifest.xml'),
     buildShellExtensionManifest({
+      architecture,
       // A loose registration does not verify the publisher, but the value must
       // still parse as an X.500 name.
       publisher: formatX500Publisher('GitHub, Inc.'),

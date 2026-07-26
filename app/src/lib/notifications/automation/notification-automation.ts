@@ -2,15 +2,17 @@ import type {
   INotificationEntry,
   NotificationCentreKind,
 } from '../../../models/notification-centre'
+import { compileSafeRegex, getRegexInputLengthError } from '../../safe-regex'
 
 /**
  * Pure model, template engine and validators for notification automations.
  *
- * This module has no runtime imports (the two `import type`s above are erased at
- * compile time): it is a self-contained, deterministic core shared by the
- * renderer store, the pure evaluator and the main-process runners. Every value
- * it consumes — a rules file loaded from disk, a template supplied by the user —
- * is treated as untrusted and coerced defensively.
+ * Its one runtime dependency is the shared safe-regex adapter, keeping title
+ * matching on the same bounded RE2 dialect as renderer search surfaces. This
+ * deterministic core is shared by the renderer store, pure evaluator and
+ * main-process runners. Every value it consumes — a rules file loaded from
+ * disk, a template supplied by the user — is treated as untrusted and coerced
+ * defensively.
  */
 
 /** A webhook fires an HTTP(S) POST with a templated JSON/text body. */
@@ -40,7 +42,7 @@ export interface INotificationAutomationRule {
   readonly kinds: ReadonlyArray<NotificationCentreKind> | 'all'
   /** When set, only notifications from this repository match. */
   readonly repositoryId?: number
-  /** When set, the entry title must match this pattern (regex, then substring). */
+  /** When set, the entry title must match this safe RE2 pattern. */
   readonly titlePattern?: string
   readonly action: NotificationAutomationAction
 }
@@ -167,8 +169,8 @@ export function fillNotificationTemplate(
 
 /**
  * True when a rule matches an entry: kind (`'all'` or listed), repositoryId
- * (undefined = any) and titlePattern (compiled as a RegExp — a plain substring
- * is itself a valid RegExp; an invalid pattern never matches).
+ * (undefined = any) and titlePattern (compiled as safe RE2 — a plain substring
+ * is itself a valid pattern; an invalid or unsupported pattern never matches).
  */
 export function matchNotificationRule(
   rule: INotificationAutomationRule,
@@ -197,18 +199,23 @@ export function matchNotificationRule(
 }
 
 function matchesTitlePattern(pattern: string, title: string): boolean {
-  // The pattern is compiled as a RegExp — a plain substring is itself a valid
-  // RegExp, so ordinary text still matches. A syntactically invalid pattern (or
-  // an absurdly long one, a ReDoS guard for synced/restored files) never
-  // matches, so a malformed rule silently does nothing rather than throwing.
-  if (pattern.length > 1024) {
+  // Synced/restored rules are untrusted. Compile through the same linear-time
+  // RE2 adapter as every renderer search surface, and bound the title before
+  // evaluation. A malformed rule silently does nothing rather than throwing.
+  if (getRegexInputLengthError(title.length) !== null) {
     return false
   }
-  try {
-    return new RegExp(pattern).test(title)
-  } catch {
-    return false
-  }
+
+  return compileSafeRegex(pattern, true).regex?.test(title) ?? false
+}
+
+/** Validate an optional persisted title pattern against the current safe dialect. */
+export function getNotificationTitlePatternError(
+  pattern: string | undefined
+): string | null {
+  return pattern === undefined || pattern.length === 0
+    ? null
+    : compileSafeRegex(pattern, true).error
 }
 
 /** True when an entry is a receipt this feature posted for a prior automation. */
@@ -224,7 +231,9 @@ export function isNotificationAutomationReceipt(
 /**
  * Parse an automations file. Defensive by construction: anything unknown, of the
  * wrong version, or structurally invalid yields an empty config, and each rule
- * is coerced independently (malformed rules are dropped).
+ * is coerced independently (malformed rules are dropped). Duplicate imported
+ * ids receive deterministic unique suffixes so one rule can never mutate a
+ * sibling through an id-keyed store action.
  *
  * SAFETY (untrusted-on-load): the automations file lives in a Git repository
  * that can be restored, synced or imported, so a rule arriving from disk must
@@ -256,13 +265,33 @@ export function parseNotificationAutomationConfig(
     return emptyConfig()
   }
 
-  const rules: Array<INotificationAutomationRule> = []
+  const coercedRules: Array<INotificationAutomationRule> = []
   for (const candidate of rawRules) {
     const rule = coerceRule(candidate)
     if (rule !== null) {
-      rules.push(rule)
+      coercedRules.push(rule)
     }
   }
+
+  // Reserve every distinct imported id before repairing duplicates. This
+  // prevents an early duplicate from stealing a later rule's genuine id.
+  const reservedIds = new Set(coercedRules.map(rule => rule.id))
+  const claimedIds = new Set<string>()
+  const rules = coercedRules.map(rule => {
+    if (!claimedIds.has(rule.id)) {
+      claimedIds.add(rule.id)
+      return rule
+    }
+
+    let suffix = 2
+    let repairedId = `${rule.id}#${suffix}`
+    while (reservedIds.has(repairedId) || claimedIds.has(repairedId)) {
+      suffix++
+      repairedId = `${rule.id}#${suffix}`
+    }
+    claimedIds.add(repairedId)
+    return { ...rule, id: repairedId }
+  })
 
   return { version: NotificationAutomationConfigVersion, rules }
 }

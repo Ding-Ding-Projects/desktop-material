@@ -1663,6 +1663,7 @@ export class FilterChangesList extends React.Component<
         searchSurfaceId="changes"
         targetLabel="Changes"
         initialPattern={this.props.fileListFilter.filterText}
+        caseSensitive={this.state.caseSensitive}
         sampleItems={this.getFilterSampleItems()}
         onApply={this.onApplyRegexPattern}
         onDismissed={this.onCloseRegexBuilder}
@@ -1702,9 +1703,13 @@ export class FilterChangesList extends React.Component<
     this.setState({ isRegexBuilderOpen: false })
   }
 
-  private onApplyRegexPattern = (pattern: string) => {
+  private onApplyRegexPattern = (pattern: string, caseSensitive: boolean) => {
     persistFilterMode(ChangesFilterListId, FilterMode.Regex)
-    this.setState({ filterMode: FilterMode.Regex, isRegexBuilderOpen: false })
+    this.setState({
+      filterMode: FilterMode.Regex,
+      caseSensitive,
+      isRegexBuilderOpen: false,
+    })
     this.onFilterTextChanged(pattern)
   }
 

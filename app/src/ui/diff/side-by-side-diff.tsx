@@ -69,14 +69,10 @@ import {
 import { IMenuItem } from '../../lib/menu-item'
 import { DiffContentsWarning } from './diff-contents-warning'
 import { findDOMNode } from 'react-dom'
-import escapeRegExp from 'lodash/escapeRegExp'
 import ReactDOM from 'react-dom'
 import { AriaLiveContainer } from '../accessibility/aria-live-container'
-import {
-  FilterMode,
-  IFilterOptions,
-  MaxRegexPatternLength,
-} from '../../lib/fuzzy-find'
+import { IFilterOptions } from '../../lib/fuzzy-find'
+import { DiffSearchMatcher } from './diff-search-matcher'
 import {
   canAutomaticallyExpandDiff,
   DiffContextPreferencesChangedEvent,
@@ -1722,7 +1718,7 @@ export class SideBySideDiff extends React.Component<
     direction: SearchDirection,
     options: IFilterOptions
   ) => {
-    const searchResults = calcSearchTokens(
+    const calculation = calcSearchTokens(
       this.state.diff,
       this.props.showSideBySideDiff,
       searchQuery,
@@ -1730,22 +1726,35 @@ export class SideBySideDiff extends React.Component<
       this.canExpandDiff()
     )
 
-    if (searchResults === undefined || searchResults.length === 0) {
-      this.resetSearch(true, `No results for "${searchQuery}"`)
-    } else {
-      const ariaLiveMessage = `Result 1 of ${searchResults.length} for "${searchQuery}"`
+    if (calculation.kind === 'error') {
+      this.resetSearch(true, calculation.message)
+      return
+    }
 
-      this.scrollToSearchResult(0)
+    const searchResults = calculation.results
+    if (searchResults.length === 0) {
+      const message = calculation.truncated
+        ? `Search stopped at the safe result limit before finding a highlightable result for "${searchQuery}".`
+        : `No results for "${searchQuery}"`
+      this.resetSearch(true, message)
+    } else {
+      const truncation = calculation.truncated
+        ? ` Showing the first ${searchResults.length}; additional results were truncated for safety.`
+        : ''
+      const ariaLiveMessage = `Result 1 of ${searchResults.length} for "${searchQuery}".${truncation}`
 
       this.ariaLiveChangeSignal = !this.ariaLiveChangeSignal
 
-      this.setState({
-        searchQuery,
-        searchOptions: options,
-        searchResults,
-        selectedSearchResult: 0,
-        ariaLiveMessage,
-      })
+      this.setState(
+        {
+          searchQuery,
+          searchOptions: options,
+          searchResults,
+          selectedSearchResult: 0,
+          ariaLiveMessage,
+        },
+        () => this.scrollToSearchResult(0)
+      )
     }
   }
 
@@ -2147,34 +2156,16 @@ class SearchResults {
   }
 }
 
-/**
- * Compile the search query for the requested mode. The diff search locates
- * occurrences within lines rather than filtering a list, so fuzzy scoring has
- * no meaning here: Fuzzy (the default) keeps the historical case-insensitive
- * literal search, Substring adds the case toggle, and Regex uses the raw
- * pattern. Returns null for an invalid or oversized pattern.
- */
-function getSearchRegExp(
-  searchQuery: string,
-  options: IFilterOptions
-): RegExp | null {
-  const caseSensitive =
-    options.mode !== FilterMode.Fuzzy && options.caseSensitive
-  const flags = caseSensitive ? 'g' : 'gi'
+/** Bound both highlight tokens and keyboard-navigation entries per search. */
+const MaxDiffSearchResults = 5000
 
-  if (options.mode === FilterMode.Regex) {
-    if (searchQuery.length > MaxRegexPatternLength) {
-      return null
+type SearchTokenCalculation =
+  | {
+      readonly kind: 'success'
+      readonly results: SearchResults
+      readonly truncated: boolean
     }
-    try {
-      return new RegExp(searchQuery, flags)
-    } catch {
-      return null
-    }
-  }
-
-  return new RegExp(escapeRegExp(searchQuery), flags)
-}
+  | { readonly kind: 'error'; readonly message: string }
 
 function calcSearchTokens(
   diff: ITextDiff,
@@ -2182,17 +2173,17 @@ function calcSearchTokens(
   searchQuery: string,
   options: IFilterOptions,
   enableDiffExpansion: boolean
-): SearchResults | undefined {
-  if (searchQuery.length === 0) {
-    return undefined
+): SearchTokenCalculation {
+  const compilation = DiffSearchMatcher.compile(
+    searchQuery,
+    options,
+    MaxDiffSearchResults
+  )
+  if (compilation.kind === 'error') {
+    return compilation
   }
 
-  const searchRe = getSearchRegExp(searchQuery, options)
-
-  if (searchRe === null) {
-    return undefined
-  }
-
+  const matcher = compilation.matcher
   const hits = new SearchResults()
   const rows = getDiffRows(diff, showSideBySideDiffs, enableDiffExpansion)
 
@@ -2202,16 +2193,20 @@ function calcSearchTokens(
     }
 
     for (const column of enumerateColumnContents(row, showSideBySideDiffs)) {
-      for (const match of column.content.matchAll(searchRe)) {
-        // Zero-width regex matches (e.g. `a*`) can't be highlighted.
-        if (match.index !== undefined && match[0].length > 0) {
-          hits.add(rowNumber, column.type, match.index, match[0].length)
-        }
+      const found = matcher.find(column.content)
+      if (found.kind === 'error') {
+        return found
+      }
+      for (const match of found.matches) {
+        hits.add(rowNumber, column.type, match.index, match.length)
+      }
+      if (found.truncated) {
+        return { kind: 'success', results: hits, truncated: true }
       }
     }
   }
 
-  return hits
+  return { kind: 'success', results: hits, truncated: false }
 }
 
 function* enumerateColumnContents(

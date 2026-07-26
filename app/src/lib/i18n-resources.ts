@@ -1862,6 +1862,11 @@ export type TranslationKey =
   | 'cheapLfs.localState.modified'
   | 'actionsMetadata.tooLarge.title'
   | 'actionsMetadata.tooLarge.body'
+  | 'actionsArtifacts.searchPlaceholder'
+  | 'actionsArtifacts.searchAriaLabel'
+  | 'actionsArtifacts.regexTarget'
+  | 'actionsArtifacts.filterCount'
+  | 'actionsArtifacts.noMatches'
   | 'commit.postCommitMaintenance.title'
   | 'commit.postCommitMaintenance.body'
   | 'push.commitBatch.message'
@@ -2084,6 +2089,19 @@ export type TranslationKey =
   | 'notificationCentre.bulkProgressLabel'
   | 'notificationCentre.bulkProgressStatus'
   | 'notificationCentre.clearAllProgressStatus'
+  | 'regex.error.patternTooLong'
+  | 'regex.error.inputTooLong'
+  | 'regex.error.invalidOrUnsupported'
+  | 'regex.error.unknown'
+  | 'regex.test.capture.unmatched'
+  | 'regex.test.capture.empty'
+  | 'regex.test.capture.truncated'
+  | 'regex.test.capture.groupLabel'
+  | 'regex.test.capture.heading'
+  | 'regex.test.capture.more'
+  | 'regex.test.status.invalid'
+  | 'regex.test.status.oneMatch'
+  | 'regex.test.status.matches'
   | 'cheapLfs.stage.hashingLabel'
   | 'cheapLfs.stage.hashingStatus'
   | 'cheapLfs.stage.releaseLabel'
@@ -4480,6 +4498,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'actionsMetadata.tooLarge.title': 'Some GitHub Actions data was skipped',
   'actionsMetadata.tooLarge.body':
     'GitHub returned more Actions metadata than this app reads in one response, so that check was skipped. Nothing else is affected and no action is needed.',
+  'actionsArtifacts.searchPlaceholder':
+    'Filter artifacts by name, workflow, branch, or commit…',
+  'actionsArtifacts.searchAriaLabel': 'Filter workflow artifacts',
+  'actionsArtifacts.regexTarget': 'Workflow artifacts',
+  'actionsArtifacts.filterCount':
+    'Showing {loaded} loaded of {total} artifacts · {visible} visible.',
+  'actionsArtifacts.noMatches':
+    'No workflow artifacts match the current filter.',
   'commit.postCommitMaintenance.title':
     'Commit created; maintenance needs attention',
   'commit.postCommitMaintenance.body':
@@ -4756,6 +4782,22 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accounts.invalidatedTokenPrompt': 'Do you want to sign in as {login} again?',
   'accounts.invalidatedTokenSignIn': 'Sign in again',
   'accounts.invalidatedTokenLater': 'Not now',
+  'regex.error.patternTooLong':
+    'Pattern is too long (maximum {max} characters).',
+  'regex.error.inputTooLong':
+    'Search text is too long to evaluate safely (maximum {max} characters).',
+  'regex.error.invalidOrUnsupported':
+    'Invalid or unsupported safe RE2 pattern: {detail}',
+  'regex.error.unknown': 'Unknown regular-expression error',
+  'regex.test.capture.unmatched': 'unmatched',
+  'regex.test.capture.empty': 'empty',
+  'regex.test.capture.truncated': '{value}… ({count} characters)',
+  'regex.test.capture.groupLabel': 'Capture groups from the first match',
+  'regex.test.capture.heading': 'CAPTURES',
+  'regex.test.capture.more': '+{count} more',
+  'regex.test.status.invalid': 'Invalid pattern',
+  'regex.test.status.oneMatch': '{count} match',
+  'regex.test.status.matches': '{count} matches',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -6953,6 +6995,13 @@ export const cantoneseTranslations: Readonly<
   'actionsMetadata.tooLarge.title': '有部分 GitHub Actions 資料略過咗',
   'actionsMetadata.tooLarge.body':
     'GitHub 一次過回覆嘅 Actions 資料多過本程式單次讀取上限，所以略過咗嗰項檢查。其他功能唔受影響，你唔使做任何嘢。',
+  'actionsArtifacts.searchPlaceholder':
+    '用名稱、workflow、branch 或 commit 篩 artifact…',
+  'actionsArtifacts.searchAriaLabel': '篩 workflow artifact',
+  'actionsArtifacts.regexTarget': 'Workflow artifact 清單',
+  'actionsArtifacts.filterCount':
+    '已載入 {loaded}/{total} 件 artifact · 而家見到 {visible} 件。',
+  'actionsArtifacts.noMatches': '冇 workflow artifact 啱而家嘅篩選。',
   'commit.postCommitMaintenance.title': 'Commit 搞掂咗；維護要跟進',
   'commit.postCommitMaintenance.body':
     'Commit 已經成功建立，不過 Git 之後做維護嗰陣報錯。你可以安全 push，得閒先另外做 repository 維護。',
@@ -7211,4 +7260,18 @@ export const cantoneseTranslations: Readonly<
   'accounts.invalidatedTokenPrompt': '要唔要用返 {login} 重新登入？',
   'accounts.invalidatedTokenSignIn': '重新登入',
   'accounts.invalidatedTokenLater': '暫時唔使',
+  'regex.error.patternTooLong': '樣式太長，最多只可以有 {max} 個字元。',
+  'regex.error.inputTooLong':
+    '搜尋文字太長，未能安全評估（最多 {max} 個字元）。',
+  'regex.error.invalidOrUnsupported': '安全 RE2 樣式無效或者唔支援：{detail}',
+  'regex.error.unknown': '未知嘅正則表達式錯誤',
+  'regex.test.capture.unmatched': '未配對',
+  'regex.test.capture.empty': '空白',
+  'regex.test.capture.truncated': '{value}…（原本 {count} 個字元）',
+  'regex.test.capture.groupLabel': '第一次配對嘅擷取群組',
+  'regex.test.capture.heading': '擷取群組',
+  'regex.test.capture.more': '仲有 {count} 個',
+  'regex.test.status.invalid': '樣式無效',
+  'regex.test.status.oneMatch': '{count} 個配對',
+  'regex.test.status.matches': '{count} 個配對',
 }

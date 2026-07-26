@@ -4,6 +4,7 @@ This folder keeps reproducible local acceptance records that support, but do
 not replace, exact-commit CI, Pages, wiki, and Release receipts in
 [`HANDOFF.md`](../../HANDOFF.md).
 
+- [Pull-and-bug-hunt publish run — 2026-07-26](bug-hunt-2026-07-26/run-manifest.md)
 - [Tab groups and command palette — 2026-07-22](tab-groups-command-palette-2026-07-22.md)
 - [Automatic updater version ordering — 2026-07-22](auto-updater-version-order-2026-07-22.md)
 - [Cheap LFS commit progress and push batching — 2026-07-23](cheap-lfs-commit-progress-2026-07-23.md)

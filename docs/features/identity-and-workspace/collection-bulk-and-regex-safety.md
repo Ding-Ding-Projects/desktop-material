@@ -8,12 +8,30 @@ one-at-a-time because their topology or recovery requirements differ per item.
 
 ## Behavior and configuration
 
-The mode control cycles through fuzzy, contiguous substring, and JavaScript
+The mode control cycles through fuzzy, contiguous substring, and safe RE2
 regular-expression matching. Substring and regex modes can match case. The
-Regex Builder starts from the surface's current query, offers token categories,
-all six supported flags, a live tester seeded with up to 50 visible items, and
-an explanatory guide; applying a valid pattern switches that surface to regex
-mode.
+Regex Builder starts from the surface's current query and case mode, offers
+RE2-compatible token categories, a raw pattern editor, the supported
+ignore-case flag, a live tester seeded with up to 50 visible items, and an
+explanatory guide. Applying a valid pattern switches that surface to regex mode
+and applies the exact same case choice that the preview used.
+
+RE2 supports literals, classes, anchors, quantifiers, capture and non-capture
+groups, named captures, and alternation. It deliberately rejects lookaround and
+backreferences so evaluation remains linear-time. The tester highlights
+matches, counts a bounded set, and shows numbered and named captures from the
+first match; empty and unmatched captures are identified explicitly.
+Each sample row is evaluated as an independent originating-list candidate, so
+anchors retain per-item meaning and a pattern can never bridge two rows. The
+global match/capture-work budget is shared across every row. Physical line
+breaks therefore separate tester candidates; the palette intentionally omits a
+newline chip that could not match in this row-oriented preview.
+
+The Build/guide and token-category tablists use one Tab stop each. The
+Build/guide row uses Left/Right, while the token-category rail also accepts
+Up/Down for its desktop vertical layout and retains Left/Right for its compact
+grid. Home and End jump to either edge; selection and focus move together while
+every `aria-controls` target stays mounted and correctly hidden when inactive.
 
 Implemented bulk surfaces retain operation-specific review. Examples include
 rerunning completed or cancelling active workflow runs, deleting Actions
@@ -44,11 +62,39 @@ retention.
 
 ## Failure modes and recovery
 
-An invalid regex or a pattern longer than 1,000 characters never empties or
-crashes the collection. Matching returns the unfiltered candidates with a
-human-readable regex error while the user repairs the expression. The Regex
-Builder marks an invalid draft and disables Apply. Zero-width matches advance
-explicitly, and match highlighting has a bounded loop.
+An invalid or unsupported regex, or a pattern longer than 1,000 characters,
+never crashes the collection. Matching returns the unfiltered candidates with a
+localized regex error while the user repairs the expression. An input-size or
+aggregate-size limit instead fails closed with no matches, so a compact surface
+that does not render the error cannot silently show every item as though its
+filter were active; the Actions surface renders that evaluation error directly.
+The Regex Builder marks an invalid draft, connects the error to the raw editor,
+and disables Apply. Its status chip stays concise, wraps safely, and points to
+one detailed alert rather than repeating a long engine message through multiple
+live regions. Each candidate/test sample is capped at 100,000 UTF-16 code units,
+one list evaluation is capped at 1,000,000 total code units, match
+enumeration stops at 5,000, and matcher work is additionally capped at 50,000
+capture-group/match slots. Only 24 first-match capture previews are retained,
+each with at most 120 UTF-16 code units. Zero-width matches advance in the RE2
+matcher and are counted without creating empty highlight boxes.
+
+Diff search keeps literal/fuzzy search available for large minified lines. Raw
+regex mode applies the input caps above, while every mode shares one 5,000-hit
+operation budget. Zero-width and capture-heavy matches consume that same budget
+across every line and side-by-side column even when they cannot create a visible
+highlight. The first bounded results remain navigable and the live region
+explicitly announces truncation; a limit is never reported as a false "No
+results" outcome. An invalid regex submission clears prior highlights instead
+of leaving stale results beneath the error.
+
+Notification automation rules saved under the former ECMAScript dialect remain
+disarmed after load. A lookaround or backreference rule is visibly marked as
+needing review and cannot be armed until the user edits it into safe RE2. Valid
+leading and trailing whitespace is preserved when a rule is saved. The
+automation-list search exposes the same localized regex error instead of
+silently showing an unfiltered list. Duplicate IDs in an imported rules file are
+repaired deterministically before id-keyed toggle or remove actions can reach
+the model.
 
 Bulk eligibility is rechecked by the owning operation. Ineligible, stale, or
 failed items are reported according to that feature's result contract instead
@@ -57,11 +103,23 @@ whose safe common contract is not established remain excluded from bulk work.
 
 ## Security considerations
 
-Regexes are compiled only in the renderer against already loaded display
-strings; the shared matcher does not invoke a shell or provider. Pattern length
-and highlight-loop bounds reduce accidental UI stalls. Stable registry IDs make
-an unreviewed new search field fail the source audit until it adopts the same
-invalid-regex and builder behavior.
+User-authored app patterns are compiled only through the pure-JavaScript RE2
+adapter against already loaded display strings; the shared matcher does not
+invoke a shell or provider. Linear-time evaluation plus pattern, input,
+aggregate, match, and capture bounds prevent regex denial of service in list
+filters, diff search/highlighting, Actions run filtering, and
+notification-automation title rules. Capture-heavy expressions receive a
+compositional work budget rather than multiplying the independent group and
+match limits. Stable registry IDs make an unreviewed new search field fail the
+source audit until it adopts the same invalid-regex and builder behavior.
+
+The published documentation hub is a static web surface and keeps its existing
+ECMAScript dialect and supported flag set. Its user pattern never runs on the
+page thread: a fresh same-origin Web Worker evaluates each bounded request, the
+page terminates it at a hard 750 ms deadline, and worker unavailability fails
+closed. Worker responses retain at most 24 bounded captures from the first match
+and bounded match previews, preventing structured-clone amplification. No app or
+documentation search transmits or persists a pattern or test sample.
 
 Bulk operations pass operation-specific bounded identities, such as run IDs,
 repository IDs, release fingerprints, or exact branch tips. Destructive
@@ -75,6 +133,17 @@ inputs, proves one-to-one control and Regex Builder bindings, checks invalid
 regex passthrough, and requires every audited bulk manager to be implemented or
 explicitly excluded with a safety rationale. `filter-mode-surfaces-test.tsx`
 and `diff-search-input-test.tsx` cover mode controls, case behavior, and builder
-application. `regex-builder-v2-style-test.ts` and
+application, including focus moving into the diff search's portalled builder.
+`safe-regex-test.ts`, `match-with-mode-test.ts`,
+`notification-automation-test.ts`, and `regex-test-area-test.tsx` cover
+catastrophic shapes, invalid/unsupported patterns, Unicode indices, multiline
+input, zero-width matches, captures, case behavior, every bound, and the audited
+user-pattern call sites. The stress matrix includes 500 capture groups across a
+100,000-code-unit sample, dense diff matches, legacy notification rules, and
+leading/trailing pattern whitespace. `regex-builder-v2-style-test.ts` and
 `floating-surface-style-test.ts` guard the builder's accessible views and
-compact-window reachability.
+compact-window reachability. `docs-hub-regex-worker-test.mjs` proves bounded
+search/highlight results, flags, captures, Unicode zero-width advancement,
+invalid input, absence of network APIs, UI-thread fail-closed behavior, and
+hard termination of a worker stuck in native backtracking. It also proves a
+200-capture, 20,000-character sample produces a compact bounded worker response.

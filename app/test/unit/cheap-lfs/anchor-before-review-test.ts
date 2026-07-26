@@ -106,8 +106,10 @@ describe('cheap LFS anchor before release review', () => {
       /createCommit\(\s*repository,\s*CheapLfsBootstrapCommitMessage,\s*\[\],\s*\{\s*allowEmpty: true/
     )
     assert.doesNotMatch(body, /writeFile|readFile|content/)
-    // A refusing hook aborts the bootstrap instead of hanging on a prompt.
-    assert.match(body, /onHookFailure: this\.onHookFailure\(/)
+    // The unattended bootstrap skips hooks and credential prompts entirely.
+    assert.match(body, /noVerify: true/)
+    assert.match(body, /isBackgroundTask: true/)
+    assert.doesNotMatch(body, /onHookFailure: this\.onHookFailure\(/)
     assert.match(body, /reasonKey: 'cheapLfs\.firstPublish\.unbornBranch'/)
     // Only the branch state is reloaded: a full refresh would rebuild the
     // working-directory selection this very commit is still using.

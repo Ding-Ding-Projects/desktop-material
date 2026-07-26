@@ -1701,22 +1701,6 @@ export class ActionsView extends React.Component<
     }
   }
 
-  private isRunQueryInvalid(): boolean {
-    if (this.state.runQueryMode !== FilterMode.Regex) {
-      return false
-    }
-    const query = this.state.runQuery.trim()
-    if (query.length === 0) {
-      return false
-    }
-    try {
-      new RegExp(query, 'i')
-      return false
-    } catch {
-      return true
-    }
-  }
-
   // Two keys so fuzzy mode (which only scores the first two) still matches on
   // every field: the run title is the "title" and the rest fold into the
   // "subtitle". Substring / regex modes test every key.
@@ -1756,7 +1740,7 @@ export class ActionsView extends React.Component<
     return items
   }
 
-  private getFilteredRuns() {
+  private getFilteredRunsWithError() {
     const { workflow, branch, event, status, actions } = this.state
     const selected = actions.runs.filter(run => {
       if (workflow !== 'all' && run.workflow_id !== Number(workflow)) {
@@ -1794,11 +1778,11 @@ export class ActionsView extends React.Component<
 
     const query = this.state.runQuery.trim()
     if (query.length === 0) {
-      return selected
+      return { runs: selected, regexError: null }
     }
 
     const workflowNames = this.getRunQueryWorkflowNames()
-    const { results } = matchWithMode(
+    const { results, regexError } = matchWithMode(
       query,
       selected,
       run => this.getRunSearchKeys(run, workflowNames),
@@ -1807,7 +1791,11 @@ export class ActionsView extends React.Component<
         caseSensitive: this.state.runQueryCaseSensitive,
       }
     )
-    return results.map(r => r.item)
+    return { runs: results.map(r => r.item), regexError }
+  }
+
+  private getFilteredRuns() {
+    return this.getFilteredRunsWithError().runs
   }
 
   private renderRateLimit() {
@@ -1834,7 +1822,9 @@ export class ActionsView extends React.Component<
       this.state.confirmation?.kind === 'bulk-cancel'
         ? this.state.confirmation
         : null
-    const filteredRuns = this.getFilteredRuns()
+    const filteredRunResult = this.getFilteredRunsWithError()
+    const filteredRuns = filteredRunResult.runs
+    const runQueryError = filteredRunResult.regexError
     const selectedRuns = this.selectedRuns()
     const visibleSelectedCount = filteredRuns.filter(run =>
       this.state.selectedRunIds.has(run.id)
@@ -1950,7 +1940,7 @@ export class ActionsView extends React.Component<
             <div className="actions-search-row">
               <div
                 className={classNames('actions-search-pill', {
-                  invalid: this.isRunQueryInvalid(),
+                  invalid: runQueryError !== null,
                 })}
               >
                 <Octicon symbol={octicons.search} />
@@ -1961,6 +1951,12 @@ export class ActionsView extends React.Component<
                   placeholder="Filter runs — try a branch, event, or actor…"
                   spellCheck={false}
                   aria-label="Filter workflow runs"
+                  aria-invalid={runQueryError !== null}
+                  aria-describedby={
+                    runQueryError === null
+                      ? undefined
+                      : 'actions-run-query-error'
+                  }
                 />
                 <FilterModeControl
                   searchSurfaceId="actions-runs"
@@ -1986,6 +1982,15 @@ export class ActionsView extends React.Component<
                   <Octicon symbol={octicons.filter} />
                 </button>
               </div>
+              {runQueryError === null ? null : (
+                <p
+                  id="actions-run-query-error"
+                  className="actions-run-query-error"
+                  role="alert"
+                >
+                  {runQueryError}
+                </p>
+              )}
             </div>
             <section
               className={classNames('actions-filters', {

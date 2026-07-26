@@ -37,24 +37,71 @@ static const CLSID CLSID_DesktopMaterialCommand = {
 static HINSTANCE g_instance = nullptr;
 static LONG g_objectCount = 0;
 
-/// The executable to launch, resolved next to this DLL.
+/// Return this DLL's complete path without imposing the legacy MAX_PATH limit.
+static std::wstring GetModulePath() {
+  // Extended Win32 paths are capped just below 32K UTF-16 code units. A single
+  // fixed maximum-sized buffer avoids a truncation retry edge on older Windows.
+  std::vector<wchar_t> modulePath(32768);
+  const DWORD length = GetModuleFileNameW(
+      g_instance, modulePath.data(), static_cast<DWORD>(modulePath.size()));
+  if (length == 0 || length >= modulePath.size()) {
+    return L"";
+  }
+  return std::wstring(modulePath.data(), length);
+}
+
+/// Remove one path component and optionally return the component removed.
+static bool PopPathComponent(std::wstring& value,
+                             std::wstring* removed = nullptr) {
+  const size_t separator = value.find_last_of(L"\\/");
+  if (separator == std::wstring::npos || separator == 0) {
+    return false;
+  }
+  if (removed != nullptr) {
+    *removed = value.substr(separator + 1);
+  }
+  value.resize(separator);
+  return true;
+}
+
+/// Resolve the sparse package's external root from its native DLL path.
 ///
-/// The extension is always deployed beside the application it launches, so the
-/// path is derived rather than read from the registry: there is no configurable
-/// value an attacker could repoint at another binary.
+/// The manifest fixes the layout as
+/// `<external-root>\\shell-extension\\DesktopMaterialShellExtension.dll`.
+/// Validate that owned directory name before climbing to the root so a copied
+/// DLL cannot accidentally launch an unrelated executable from its parent.
+static std::wstring GetPackageRootFromModulePath(
+    const std::wstring& modulePath) {
+  std::wstring packageRoot(modulePath);
+  if (!PopPathComponent(packageRoot)) {
+    return L"";
+  }
+
+  std::wstring packageDirectoryName;
+  if (!PopPathComponent(packageRoot, &packageDirectoryName) ||
+      CompareStringOrdinal(packageDirectoryName.c_str(), -1,
+                           L"shell-extension", -1, TRUE) != CSTR_EQUAL) {
+    return L"";
+  }
+  return packageRoot;
+}
+
+/// The executable to launch, resolved from the sparse package's external root.
+///
+/// The path is derived rather than read from the registry: there is no
+/// configurable value an attacker could repoint at another binary.
 static std::wstring GetApplicationPath() {
-  wchar_t modulePath[MAX_PATH] = {};
-  if (GetModuleFileNameW(g_instance, modulePath, MAX_PATH) == 0) {
-    return L"";
-  }
-  if (!PathRemoveFileSpecW(modulePath)) {
+  const std::wstring packageRoot =
+      GetPackageRootFromModulePath(GetModulePath());
+  if (packageRoot.empty()) {
     return L"";
   }
 
-  std::wstring candidate(modulePath);
-  candidate += L"\\GitHubDesktop.exe";
+  const std::wstring candidate = packageRoot + L"\\GitHubDesktop.exe";
 
-  if (GetFileAttributesW(candidate.c_str()) == INVALID_FILE_ATTRIBUTES) {
+  const DWORD attributes = GetFileAttributesW(candidate.c_str());
+  if (attributes == INVALID_FILE_ATTRIBUTES ||
+      (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
     return L"";
   }
   return candidate;

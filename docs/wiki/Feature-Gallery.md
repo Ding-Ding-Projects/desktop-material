@@ -127,7 +127,7 @@ active profile's style, label, and explicit language mode.
 | `settings-history-manager.png` | Git-backed Settings history side sheet |
 | `material-repositories-sheet.png` | Repository navigation side sheet |
 | `material-branches-sheet.png` | Branch navigation and status side sheet |
-| `regex-builder.png` | Block-based regular expression builder and live tester |
+| `regex-builder.png` | Safe RE2 builder with bounded live matches and captures |
 | `material-gitignore-manager.png` | Reviewed `.gitignore` template catalogue |
 | `material-automation.png` | Layered automation schedules and account overrides |
 | `material-notification-center.png` | Git-backed notification centre |
@@ -367,6 +367,13 @@ timestamps; a verified download offers **Open file** beside **Show in folder**;
 and clearing a selection after a zero-result filter returns focus to an enabled
 fallback instead of a disabled select-all control.
 
+The same repository **Distribution** surface now switches to a **Packages**
+explorer. It filters all six GitHub package ecosystems by the freshly fetched
+numeric repository ID, gives package and version searches the full Regex
+Builder, and limits native transfer to digest-verified Desktop Material
+single-file artifacts in GitHub.com GHCR. The detailed behavior and security
+contract is in the [GitHub Packages explorer guide](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/github-packages-explorer.md).
+
 The accepted accessibility correction keeps the same list-first structure and
 widens the combined gate to 800×560, covering 125% at 768×528 CSS as well as
 150% and 200%. It holds a 176 px tools panel, raises compact text to 9–16 px,
@@ -484,7 +491,7 @@ At compact and zoomed sizes, Regex Builder reflows the category/token layout,
 scrolls its body vertically, and keeps its live tester and footer actions
 reachable without page-level horizontal clipping.
 
-![Block-based regular expression builder and live tester](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/regex-builder.png)
+![Safe RE2 builder with bounded live matches and captures](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/regex-builder.png)
 
 ![Core History browsing and selected-commit inspection](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-history.png)
 

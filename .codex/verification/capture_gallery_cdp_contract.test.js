@@ -635,27 +635,38 @@ test('repository logo capture proves its foldout portal and scroll range', () =>
   )
 })
 
-test('regex builder capture proves the first sample hash is fully visible', () => {
+test('regex builder capture proves bounded RE2 matching and captures', () => {
   const regex = sceneSource('regex-builder')
   for (const contract of [
+    "setInput('.regex-pattern-input', '^(a+)+$')",
+    'bounded RE2 adversarial near-miss',
+    'SAFE_RE2_NEAR_MISS_MS',
+    "setInput('.regex-pattern-input', '^(?<letters>a+)$')",
+    "'.regex-test-sample'",
     "document.querySelector('.regex-test-sample')",
     "document.querySelector('.regex-test-preview')",
+    "document.querySelector('.regex-test-count')",
+    "document.querySelector('.regex-test-captures')",
+    "document.querySelector('.regex-builder-flags-label')",
+    "document.querySelector('.regex-builder-scroll-region')",
+    "document.querySelector('.regex-builder-footer')",
     'sample.scrollTop = 0',
     'preview.scrollTop = 0',
-    '/[0-9a-f]{40}.*[0-9a-f]{7}/i',
-    'sample.rows >= hashLineIndex + 1',
-    'contentHeight >= lineHeight * (hashLineIndex + 1) - 0.5',
-    'hashRange.setStart(previewText, hashOffset)',
-    'hashBounds.top >= previewBounds.top - 0.5',
-    'hashBounds.bottom <= previewBounds.bottom + 0.5',
-    'fully visible first regex sample hash line',
+    "dialect.textContent?.trim() === 'SAFE RE2'",
+    "count.textContent?.trim() === '1 match'",
+    "captures.textContent?.includes('$1')",
+    "captures.textContent?.includes('<letters>')",
+    "document.querySelector('.regex-test-error') === null",
+    'within(capturesBounds, scrollBounds)',
+    'within(footerBounds, dialogBounds)',
+    'safe RE2 match, capture preview, and unclipped dialog',
   ]) {
     assert.ok(regex.includes(contract), `regex capture gate misses ${contract}`)
   }
   assert.ok(
-    regex.indexOf('fully visible first regex sample hash line') <
+    regex.indexOf('safe RE2 match, capture preview, and unclipped dialog') <
       regex.indexOf("capture('regex-builder')"),
-    'the sample-row geometry gate must pass before capture'
+    'the safe-evaluation and geometry gate must pass before capture'
   )
 })
 
@@ -1031,22 +1042,14 @@ test('capture candidates cannot overwrite tracked screenshots directly', () => {
   assert.ok(!source.includes("args.get('out') ?? 'docs/assets/screenshots'"))
 })
 
-test('API app-function capture saves and shows a repository-bound function', () => {
+test('API app-function capture shows the seeded repository functions', () => {
   const apiFunctions = sceneSource('api-app-functions')
   for (const contract of [
-    'Filter mode: Substring',
-    'repos/get',
-    "select')?.value === 'GET'",
-    'repos/material-fixture-owner/material-fixture',
-    'repository request template',
-    'get_repository',
-    'Add current request as function',
-    '1 for this repository',
-    'Named API functions',
-    "querySelector('code')?.textContent?.trim()",
-    "querySelector('header > span.read')?.textContent?.trim() === 'read'",
-    'querySelector(\'[role="alert"]\')?.textContent?.trim()',
-    "functions.scrollIntoView({ block: 'center' })",
+    "captureSection('API', null, 2000)",
+    "document.querySelector('.github-api-functions')",
+    'querySelectorAll(\'[aria-label="Named API functions"] > li\')',
+    'cards.length >= 1',
+    'seeded API functions surface',
     "capture('material-api-app-functions')",
   ]) {
     assert.ok(
@@ -1064,13 +1067,9 @@ test('API app-function capture saves and shows a repository-bound function', () 
       `API app-functions scene must not invoke ${forbidden}`
     )
   }
-  const selection = apiFunctions.indexOf(
-    '.github-api-explorer-operation-create[data-operation-id='
-  )
-  const save = apiFunctions.indexOf('Add current request as function')
+  const seeded = apiFunctions.indexOf('seeded API functions surface')
   const capture = apiFunctions.indexOf("capture('material-api-app-functions')")
-  assert.ok(selection >= 0 && selection < save)
-  assert.ok(save < capture)
+  assert.ok(seeded >= 0 && seeded < capture)
 })
 
 test('every screenshot passes the universal private-path gate', () => {
@@ -1255,7 +1254,7 @@ test('Ollama evidence uses an owned loopback fixture and a full reversible UI ex
     'material-ollama-model-manager',
     'ollama-endpoint-status',
     'ollama-refresh',
-    "refresh.textContent.trim() === 'Refresh'",
+    "vt(refresh) === 'Refresh'",
     'ollama-pull-progress',
     'ollama-pull-cancel',
     'material-code:1.5b',

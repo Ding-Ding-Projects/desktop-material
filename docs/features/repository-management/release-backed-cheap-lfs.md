@@ -41,6 +41,11 @@ account-gated.
 published GitHub prerelease, one GHCR OCI image, or one Docker Hub OCI image.
 The Large files page's direct settings action opens this tab; users do not need
 to leave the repository and hunt through global preferences.
+In the repository **Releases** catalog, Desktop Material hides recognized Cheap
+LFS storage-bucket prereleases by default so app-managed object storage does not
+crowd ordinary product releases. Choose **Show Cheap LFS storage releases** to
+reveal them in the same loaded catalog; turning the option off hides them again
+without deleting, publishing, or otherwise changing any release or asset.
 The commit panel recommends ordinary Git, Releases, GHCR, or Docker Hub from the
 selected byte total and detected local provider setup, but does not silently
 change the saved choice. A configured account or credential does not prove live
@@ -572,6 +577,24 @@ gap immediately after the push is proven: it writes
 order — ahead/behind comes from the `git status` branch header, so it is read
 last. Both Git writes are best effort and logged on failure: the uploads already
 succeeded and must never be lost to a cosmetic toolbar state.
+
+A fresh-session fallback now repairs that cosmetic state even when an older
+session wrote the exact remote-tracking ref but stopped before writing
+`branch.*` configuration. After either remotes or status load, `GitStore`
+reapplies one shared fallback that compares the canonical local branch ref with
+only the same-named ref on the actual default push remote. This ordering matters:
+the anchor path reloads remotes and then status, and the second refresh must not
+erase the proved publication state.
+An equal tip yields `ahead 0 / behind 0`; later local work yields the real ahead
+count, so the toolbar offers Push instead of falsely returning to **Publish
+branch**. A missing exact ref—or the same branch name on a different remote—
+keeps the unpublished state. The branch's upstream remains null so the next
+real push still records the missing configuration with `--set-upstream`.
+
+Real-Git fresh-store tests cover equal and one-ahead tips, a follow-up status
+refresh, a missing exact ref, and a wrong-remote lookalike. This is the restart
+regression tracked in issue
+[#39](https://github.com/Ding-Ding-Projects/desktop-material/issues/39).
 
 ## Why a pin failed: per-file reasons
 

@@ -176,6 +176,7 @@ describe('git/local-commit-batching-git', () => {
         headSha,
         remoteBranch: 'refs/heads/main',
         accountKey: 'batch-account',
+        isBackgroundTask: true,
         hookOptions: {
           onHookProgress,
           onHookFailure,
@@ -234,6 +235,7 @@ describe('git/local-commit-batching-git', () => {
       options: {
         env: remoteEnvironment,
         credentialAccountKey: 'batch-account',
+        isBackgroundTask: true,
         interceptHooks: ['pre-push'],
         onHookProgress,
         onHookFailure,
@@ -263,6 +265,7 @@ describe('git/local-commit-batching-git', () => {
         headSha,
         remoteBranch: 'refs/heads/main',
         accountKey: 'batch-account',
+        isBackgroundTask: true,
         hookOptions: {
           onHookProgress: () => undefined,
           onHookFailure: async () => 'abort' as const,
@@ -308,6 +311,7 @@ describe('git/local-commit-batching-git', () => {
     assert.equal(calls[0].options?.onTerminalOutputAvailable, undefined)
     assert.deepStrictEqual(calls[0].options?.env, remoteEnvironment)
     assert.equal(calls[0].options?.credentialAccountKey, 'batch-account')
+    assert.equal(calls[0].options?.isBackgroundTask, true)
   })
 
   it('keeps the ordinary batch push running hooks', () => {

@@ -1,5 +1,6 @@
 import { createHash } from 'crypto'
-import { readFile } from 'fs/promises'
+import { mkdtemp, readFile, rm } from 'fs/promises'
+import { tmpdir } from 'os'
 import { join } from 'path'
 
 import {
@@ -25,6 +26,22 @@ const MaximumCommitRecoveryMessageBytes = 128 * 1024
 // stay text-only and bounded, but adaptive 8 MiB chunking can legitimately
 // produce pointer inventories far larger than 4 KiB.
 const MaximumRequiredCommitFileBytes = 1024 * 1024
+
+async function withIsolatedBackgroundHooksPath<T>(
+  isBackgroundTask: boolean,
+  fn: (hooksPath: string | null) => Promise<T>
+): Promise<T> {
+  if (!isBackgroundTask) {
+    return fn(null)
+  }
+
+  const hooksPath = await mkdtemp(join(tmpdir(), 'desktop-empty-hooks-'))
+  try {
+    return await fn(hooksPath)
+  } finally {
+    await rm(hooksPath, { recursive: true, force: true }).catch(() => {})
+  }
+}
 
 type EffectiveCommitCleanupMode = 'strip' | 'whitespace' | 'verbatim'
 
@@ -446,11 +463,16 @@ async function captureCommitRecoveryAttempt(
 async function getCommitHookChangePermissions(
   repository: Repository,
   noVerify: boolean,
-  signOff: boolean
+  signOff: boolean,
+  suppressAllHooks: boolean = false
 ): Promise<{
   readonly allowMessageChange: boolean
   readonly allowTreeChange: boolean
 }> {
+  if (suppressAllHooks) {
+    return { allowMessageChange: signOff, allowTreeChange: false }
+  }
+
   const hooks = new Set(
     await Array.fromAsync(
       getRepoHooks(repository.path, [
@@ -491,6 +513,8 @@ export interface ICreateCommitOptions extends HookCallbackOptions {
   readonly noVerify?: boolean
   readonly signOff?: boolean
   readonly allowEmpty?: boolean
+  /** Suppress credential/askpass UI for an unattended commit or signer. */
+  readonly isBackgroundTask?: boolean
   /**
    * Runs after Desktop has prepared the exact index and before `git commit`
    * starts. Commit-and-push callers use this boundary to persist a durable
@@ -564,13 +588,15 @@ async function readRequiredCommitFileFromGit(
   repository: Repository,
   revision: ':' | string,
   relativePath: string,
-  operation: string
+  operation: string,
+  isBackgroundTask: boolean = false
 ): Promise<string | null> {
   const object =
     revision === ':' ? `:${relativePath}` : `${revision}:${relativePath}`
   const result = await git(['show', object], repository.path, operation, {
     successExitCodes: new Set([0, 1, 128]),
     maxBuffer: MaximumRequiredCommitFileBytes + 1,
+    isBackgroundTask,
   })
   return result.exitCode === 0 &&
     Buffer.byteLength(result.stdout, 'utf8') <= MaximumRequiredCommitFileBytes
@@ -590,7 +616,8 @@ function requiredCommitFileBytesMatch(
 
 async function stageAndVerifyRequiredCommitFiles(
   repository: Repository,
-  files: ReadonlyArray<IRequiredCommitFile>
+  files: ReadonlyArray<IRequiredCommitFile>,
+  isBackgroundTask: boolean = false
 ): Promise<void> {
   const seen = new Set<string>()
   for (const file of files) {
@@ -603,20 +630,22 @@ async function stageAndVerifyRequiredCommitFiles(
     await git(
       ['add', '--force', '--', file.relativePath],
       repository.path,
-      'stageRequiredCommitFile'
+      'stageRequiredCommitFile',
+      { isBackgroundTask }
     )
     const [stagedText, stagedEntry] = await Promise.all([
       readRequiredCommitFileFromGit(
         repository,
         ':',
         file.relativePath,
-        'verifyRequiredCommitFileBytes'
+        'verifyRequiredCommitFileBytes',
+        isBackgroundTask
       ),
       git(
         ['ls-files', '--stage', '-z', '--', file.relativePath],
         repository.path,
         'verifyRequiredCommitFileMode',
-        { maxBuffer: 4 * 1024 }
+        { maxBuffer: 4 * 1024, isBackgroundTask }
       ),
     ])
     const expectedEntry = new RegExp(
@@ -639,14 +668,16 @@ async function stageAndVerifyRequiredCommitFiles(
 async function verifyRequiredCommitFiles(
   repository: Repository,
   commitSha: string,
-  files: ReadonlyArray<IRequiredCommitFile>
+  files: ReadonlyArray<IRequiredCommitFile>,
+  isBackgroundTask: boolean = false
 ): Promise<boolean> {
   for (const file of files) {
     const text = await readRequiredCommitFileFromGit(
       repository,
       commitSha,
       file.relativePath,
-      'verifyRequiredCommittedFileBytes'
+      'verifyRequiredCommittedFileBytes',
+      isBackgroundTask
     )
     if (!requiredCommitFileBytesMatch(text, file.contentSha256)) {
       return false
@@ -703,12 +734,17 @@ export async function createCommit(
   // Clear the staging area, our diffs reflect the difference between the
   // working directory and the last commit (if any) so our commits should
   // do the same thing.
-  await unstageAll(repository)
+  const isBackgroundTask = options?.isBackgroundTask === true
+  await unstageAll(repository, isBackgroundTask)
 
-  await stageFiles(repository, files)
+  await stageFiles(repository, files, isBackgroundTask)
 
   const requiredFiles = options?.requiredFiles ?? []
-  await stageAndVerifyRequiredCommitFiles(repository, requiredFiles)
+  await stageAndVerifyRequiredCommitFiles(
+    repository,
+    requiredFiles,
+    isBackgroundTask
+  )
   const requiredFilesBeforeHead =
     requiredFiles.length === 0 ? null : await resolveHead(repository)
   const requiredFilesHeadRef =
@@ -736,7 +772,12 @@ export async function createCommit(
   if (options?.allowEmpty) {
     args.push('--allow-empty')
   }
-  const commitArguments = [
+  if (isBackgroundTask) {
+    // An unattended commit must never open GPG/pinentry UI. Scheduled commits
+    // are deliberately unsigned and surface that policy in their documentation.
+    args.push('--no-gpg-sign')
+  }
+  const buildCommitArguments = (hooksPath: string | null) => [
     '-c',
     'gc.auto=0',
     // The large/batched path also suppresses background auto-maintenance so a
@@ -744,9 +785,11 @@ export async function createCommit(
     ...(options?.disableAutoMaintenance
       ? ['-c', 'maintenance.auto=false']
       : []),
+    ...(hooksPath === null ? [] : ['-c', `core.hooksPath=${hooksPath}`]),
     'commit',
     ...args,
   ]
+  let commitArguments = buildCommitArguments(null)
 
   await options?.onCommitIndexPrepared?.()
 
@@ -771,7 +814,8 @@ export async function createCommit(
         const permissions = await getCommitHookChangePermissions(
           repository,
           options?.noVerify === true,
-          options?.signOff === true
+          options?.signOff === true,
+          isBackgroundTask
         )
         return captureCommitRecoveryAttempt(
           repository,
@@ -784,28 +828,34 @@ export async function createCommit(
         )
       },
       executeCommit: async () =>
-        parseCommitSHA(
-          await dependencies.runCommit(
-            commitArguments,
-            repository.path,
-            'createCommit',
-            {
-              stdin: message,
-              // https://git-scm.com/docs/githooks/2.46.1
-              interceptHooks: [
-                'pre-commit',
-                'prepare-commit-msg',
-                'commit-msg',
-                'post-commit',
-                ...(options?.amend ? ['post-rewrite'] : []),
-                'pre-auto-gc',
-              ],
-              onHookProgress: options?.onHookProgress,
-              onHookFailure: options?.onHookFailure,
-              onTerminalOutputAvailable: options?.onTerminalOutputAvailable,
-            }
+        withIsolatedBackgroundHooksPath(isBackgroundTask, async hooksPath => {
+          commitArguments = buildCommitArguments(hooksPath)
+          return parseCommitSHA(
+            await dependencies.runCommit(
+              commitArguments,
+              repository.path,
+              'createCommit',
+              {
+                stdin: message,
+                // https://git-scm.com/docs/githooks/2.46.1
+                interceptHooks: isBackgroundTask
+                  ? undefined
+                  : [
+                      'pre-commit',
+                      'prepare-commit-msg',
+                      'commit-msg',
+                      'post-commit',
+                      ...(options?.amend ? ['post-rewrite'] : []),
+                      'pre-auto-gc',
+                    ],
+                onHookProgress: options?.onHookProgress,
+                onHookFailure: options?.onHookFailure,
+                onTerminalOutputAvailable: options?.onTerminalOutputAvailable,
+                isBackgroundTask,
+              }
+            )
           )
-        ),
+        }),
       verifyFailureEvidence: (error, after) =>
         verifyCommitFailureEvidence(repository, error, after, commitArguments),
       verifyTransition: (before, after, amend, attempt) =>
@@ -830,7 +880,12 @@ export async function createCommit(
     after !== null &&
     resolvedResult.exitCode === 0 &&
     resolvedResult.stdout.trim() === after &&
-    (await verifyRequiredCommitFiles(repository, after, requiredFiles))
+    (await verifyRequiredCommitFiles(
+      repository,
+      after,
+      requiredFiles,
+      isBackgroundTask
+    ))
   ) {
     return commitSha
   }

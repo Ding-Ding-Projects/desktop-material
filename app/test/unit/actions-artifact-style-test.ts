@@ -50,6 +50,14 @@ describe('Actions artifact responsive styles', () => {
   it('wraps oversized names, digests, controls, and stacks at minimum width', () => {
     assert.match(
       source,
+      /\.actions-artifact-filter\s*\{[\s\S]*?min-width: 0;[\s\S]*?\.actions-search-pill\s*\{[\s\S]*?min-height: 46px;[\s\S]*?height: auto;/
+    )
+    assert.match(
+      source,
+      /\.actions-artifact-filter-error\s*\{[\s\S]*?overflow-wrap: anywhere;/
+    )
+    assert.match(
+      source,
       /\.actions-run-summary[\s\S]*?> strong\s*\{[\s\S]*?white-space: normal;[\s\S]*?overflow-wrap: anywhere;/
     )
     assert.match(
@@ -79,6 +87,10 @@ describe('Actions artifact responsive styles', () => {
     assert.match(
       source,
       /@media \(max-width: 620px\)[\s\S]*?\.actions-artifact-grid\s*\{[\s\S]*?grid-template-columns: minmax\(0, 1fr\);/
+    )
+    assert.match(
+      source,
+      /@media \(max-width: 620px\)[\s\S]*?\.actions-artifact-filter\s*\{[\s\S]*?\.filter-mode-control\s*\{[\s\S]*?width: 100%;[\s\S]*?flex: 1 1 100%;/
     )
     assert.match(
       source,

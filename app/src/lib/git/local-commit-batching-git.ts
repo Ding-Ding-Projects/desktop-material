@@ -111,6 +111,8 @@ export interface ILocalCommitBatchingExactPushRequest {
   readonly headSha: string
   readonly remoteBranch: string
   readonly accountKey?: string
+  /** Suppress all interactive authentication UI for unattended work. */
+  readonly isBackgroundTask?: boolean
   readonly hookOptions?: HookCallbackOptions
   /**
    * Publish without running the repository's `pre-push` hook.
@@ -154,6 +156,8 @@ export interface ILocalCommitBatchingGitOptions {
   readonly remoteBranchRef?: string
   /** Stable account identity only; credentials never enter this adapter. */
   readonly accountKey?: string
+  /** Suppress all interactive authentication UI for unattended work. */
+  readonly isBackgroundTask?: boolean
   readonly hookOptions?: HookCallbackOptions
   /**
    * Publish every push from this session with `--no-verify`.
@@ -356,6 +360,7 @@ export async function pushLocalCommitBatchExactly(
     {
       env: await dependencies.remoteEnvironment(request.remote.url),
       credentialAccountKey: request.accountKey,
+      ...(request.isBackgroundTask === true ? { isBackgroundTask: true } : {}),
       // Intercepting a hook Git is told not to run would only add a proxy that
       // is never invoked, so the interception is dropped in lockstep.
       ...(skipHooks
@@ -695,6 +700,7 @@ export function createLocalCommitBatchingGitSession(
   const remoteOptions = async (remote: IRemote) => ({
     env: await dependencies.remoteEnvironment(remote.url),
     credentialAccountKey: accountKey,
+    ...(options.isBackgroundTask === true ? { isBackgroundTask: true } : {}),
     maxBuffer: MaximumCommitLogOutputBytes,
   })
 
@@ -1925,6 +1931,7 @@ export function createLocalCommitBatchingGitSession(
         // destination name. Keep the exact fully-qualified reviewed ref.
         remoteBranch: request.remoteBranchRef,
         accountKey,
+        isBackgroundTask: options.isBackgroundTask,
         hookOptions: options.hookOptions,
         ...(options.skipPushHooks === true ? { skipHooks: true } : {}),
       })

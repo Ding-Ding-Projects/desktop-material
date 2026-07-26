@@ -43,6 +43,9 @@ export const ShellExtensionClsid = '{6E2F4C1A-6E5D-4D5B-9D3F-3F0B2A7C9D41}'
 /** The DLL filename produced by the shell-extension build. */
 export const ShellExtensionDllName = 'DesktopMaterialShellExtension.dll'
 
+/** Native architectures supported by the Windows product and Explorer. */
+export type ShellExtensionArchitecture = 'x64' | 'arm64'
+
 /**
  * The CLSID in the form the MSIX manifest schema requires: a bare, lower-case
  * GUID with no braces. The braced form above is the one Windows uses elsewhere,
@@ -60,6 +63,8 @@ export function manifestClsid(clsid: string = ShellExtensionClsid): string {
 
 /** Inputs the manifest depends on. */
 export interface IShellExtensionManifestOptions {
+  /** Must match both the native DLL and the target device's File Explorer. */
+  readonly architecture: ShellExtensionArchitecture
   /**
    * The publisher subject the package is registered under. For a loose
    * registration this is not verified, but it must be a well-formed X.500 name.
@@ -163,7 +168,7 @@ export function buildShellExtensionManifest(
     Name="${escapeXml(ShellExtensionPackageName)}"
     Publisher="${escapeXml(options.publisher)}"
     Version="${ShellExtensionPackageVersion}"
-    ProcessorArchitecture="x64" />
+    ProcessorArchitecture="${options.architecture}" />
 
   <Properties>
     <DisplayName>${escapeXml(ShellExtensionPackageDisplayName)}</DisplayName>

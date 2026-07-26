@@ -8,6 +8,11 @@ import { RegexCategories, RegexBuilderPalette } from './regex-builder-palette'
 import { RegexTestArea } from './regex-test-area'
 import { RegexBuilderGuide } from './regex-builder-guide'
 import { clampDialogOffset } from '../../dialog/dialog-geometry'
+import {
+  compileSafeRegex,
+  MaxRegexInputLength,
+  MaxRegexPatternLength,
+} from '../../../lib/safe-regex'
 
 /** The maximum number of visible items used to seed the tester's sample. */
 const MaxSampleItems = 50
@@ -73,13 +78,20 @@ interface IRegexBuilderProps {
   readonly initialPattern: string
 
   /**
+   * The originating search's case mode. If omitted, the consumer has no
+   * mutable case option, so the builder tests case-sensitively and hides the
+   * ignore-case chip rather than advertising a flag it cannot apply.
+   */
+  readonly caseSensitive?: boolean
+
+  /**
    * Visible items from the originating list, used to seed the live tester's
    * sample text. Capped at {@link MaxSampleItems}.
    */
   readonly sampleItems: ReadonlyArray<string>
 
-  /** Called with the composed pattern when the user applies. */
-  readonly onApply: (pattern: string) => void
+  /** Called with the composed pattern and its truthful case mode. */
+  readonly onApply: (pattern: string, caseSensitive: boolean) => void
 
   /** Called when the builder is dismissed without applying. */
   readonly onDismissed: () => void
@@ -100,14 +112,7 @@ interface IRegexBuilderState {
 const FlagChips: ReadonlyArray<{
   readonly key: keyof IRegexFlags
   readonly tooltip: string
-}> = [
-  { key: 'g', tooltip: 'global — find all matches' },
-  { key: 'i', tooltip: 'ignore case' },
-  { key: 'm', tooltip: 'multiline anchors' },
-  { key: 's', tooltip: 'dot matches newline' },
-  { key: 'u', tooltip: 'unicode' },
-  { key: 'y', tooltip: 'sticky' },
-]
+}> = [{ key: 'i', tooltip: 'ignore case' }]
 
 interface IFlagChipProps {
   readonly flagKey: keyof IRegexFlags
@@ -116,7 +121,7 @@ interface IFlagChipProps {
   readonly onToggleFlag: (key: keyof IRegexFlags) => void
 }
 
-/** A single toggleable regex flag chip (g, i, m, s, u, y). */
+/** The one search flag every originating surface can apply truthfully. */
 class FlagChip extends React.Component<IFlagChipProps> {
   private onClick = () => {
     this.props.onToggleFlag(this.props.flagKey)
@@ -144,6 +149,10 @@ interface IViewTabProps {
   readonly icon: OcticonSymbol
   readonly selected: boolean
   readonly onSelectView: (view: RegexBuilderView) => void
+  readonly onKeyDown: (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    view: RegexBuilderView
+  ) => void
 }
 
 /**
@@ -155,6 +164,10 @@ class RegexBuilderViewTab extends React.Component<IViewTabProps> {
     this.props.onSelectView(this.props.view)
   }
 
+  private onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    this.props.onKeyDown(event, this.props.view)
+  }
+
   public render() {
     const { view, label, icon, selected } = this.props
     return (
@@ -164,8 +177,10 @@ class RegexBuilderViewTab extends React.Component<IViewTabProps> {
         role="tab"
         aria-selected={selected}
         aria-controls={`regex-builder-view-${view}`}
+        tabIndex={selected ? 0 : -1}
         className={classNames('regex-builder-view-tab', { selected })}
         onClick={this.onClick}
+        onKeyDown={this.onKeyDown}
       >
         <Octicon symbol={icon} />
         {label}
@@ -206,7 +221,14 @@ export class RegexBuilder extends React.Component<
 
     this.state = {
       pattern: props.initialPattern,
-      flags: { g: false, i: true, m: false, s: false, u: false, y: false },
+      flags: {
+        g: false,
+        i: props.caseSensitive === undefined ? false : !props.caseSensitive,
+        m: false,
+        s: false,
+        u: false,
+        y: false,
+      },
       view: 'build',
       activeCategory: 0,
       sample: this.defaultSample(),
@@ -238,6 +260,18 @@ export class RegexBuilder extends React.Component<
         returnFocusElement.focus()
       }
     })
+  }
+
+  public componentDidUpdate(prevProps: IRegexBuilderProps) {
+    if (
+      this.props.caseSensitive !== undefined &&
+      prevProps.caseSensitive !== this.props.caseSensitive &&
+      this.state.flags.i === this.props.caseSensitive
+    ) {
+      this.setState(state => ({
+        flags: { ...state.flags, i: !this.props.caseSensitive },
+      }))
+    }
   }
 
   private scheduleKeepOnScreen = () => {
@@ -277,20 +311,14 @@ export class RegexBuilder extends React.Component<
     if (items.length === 0) {
       return 'app/styles/_material.scss\napp/src/ui/toolbar/toolbar.tsx\ndocs/material-motion.md'
     }
-    return items.join('\n')
+    return items.join('\n').slice(0, MaxRegexInputLength)
   }
 
-  private isValid(): boolean {
+  private validationError(): string | null {
     if (this.state.pattern.length === 0) {
-      return true
+      return null
     }
-    try {
-      // eslint-disable-next-line no-new
-      new RegExp(this.state.pattern, flagsToString(this.state.flags))
-      return true
-    } catch {
-      return false
-    }
+    return compileSafeRegex(this.state.pattern, !this.state.flags.i).error
   }
 
   private onInsertToken = (token: string) => {
@@ -323,12 +351,44 @@ export class RegexBuilder extends React.Component<
     this.setState({ view })
   }
 
+  private onViewTabKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    currentView: RegexBuilderView
+  ) => {
+    const views: ReadonlyArray<RegexBuilderView> = ['build', 'guide']
+    const currentIndex = views.indexOf(currentView)
+    let nextIndex = currentIndex
+
+    switch (event.key) {
+      case 'ArrowRight':
+        nextIndex = (currentIndex + 1) % views.length
+        break
+      case 'ArrowLeft':
+        nextIndex = (currentIndex - 1 + views.length) % views.length
+        break
+      case 'Home':
+        nextIndex = 0
+        break
+      case 'End':
+        nextIndex = views.length - 1
+        break
+      default:
+        return
+    }
+
+    event.preventDefault()
+    const nextView = views[nextIndex]
+    this.setState({ view: nextView }, () => {
+      document.getElementById(`regex-builder-view-tab-${nextView}`)?.focus()
+    })
+  }
+
   private onSampleChanged = (sample: string) => {
     this.setState({ sample })
   }
 
   private onApply = () => {
-    this.props.onApply(this.state.pattern)
+    this.props.onApply(this.state.pattern, !this.state.flags.i)
   }
 
   private onWindowKeyDown = (event: KeyboardEvent) => {
@@ -397,6 +457,7 @@ export class RegexBuilder extends React.Component<
           icon={octicons.tools}
           selected={view === 'build'}
           onSelectView={this.onSelectView}
+          onKeyDown={this.onViewTabKeyDown}
         />
         <RegexBuilderViewTab
           view="guide"
@@ -404,18 +465,20 @@ export class RegexBuilder extends React.Component<
           icon={octicons.book}
           selected={view === 'guide'}
           onSelectView={this.onSelectView}
+          onKeyDown={this.onViewTabKeyDown}
         />
       </div>
     )
   }
 
-  private renderBuildView() {
+  private renderBuildView(hidden: boolean) {
     return (
       <div
         id="regex-builder-view-build"
         className="regex-builder-build-view"
         role="tabpanel"
         aria-labelledby="regex-builder-view-tab-build"
+        hidden={hidden}
       >
         <RegexBuilderPalette
           categories={RegexCategories}
@@ -429,6 +492,7 @@ export class RegexBuilder extends React.Component<
           flags={flagsToString(this.state.flags)}
           sample={this.state.sample}
           onSampleChanged={this.onSampleChanged}
+          externalPatternErrorId="regex-builder-pattern-error"
         />
       </div>
     )
@@ -441,7 +505,7 @@ export class RegexBuilder extends React.Component<
       )
     }
 
-    return this.isValid() ? (
+    return this.validationError() === null ? (
       <Octicon className="regex-validity valid" symbol={octicons.checkCircle} />
     ) : (
       <Octicon className="regex-validity invalid" symbol={octicons.alert} />
@@ -449,7 +513,8 @@ export class RegexBuilder extends React.Component<
   }
 
   public render() {
-    const invalid = !this.isValid()
+    const validationError = this.validationError()
+    const invalid = validationError !== null
     const flagsString = flagsToString(this.state.flags)
     const transform = `translate(${this.state.dragOffset.x}px, ${this.state.dragOffset.y}px)`
 
@@ -505,6 +570,11 @@ export class RegexBuilder extends React.Component<
                   type="text"
                   className="regex-pattern-input"
                   aria-label="Regular expression pattern"
+                  aria-invalid={invalid}
+                  aria-describedby={
+                    invalid ? 'regex-builder-pattern-error' : undefined
+                  }
+                  maxLength={MaxRegexPatternLength}
                   spellCheck={false}
                   placeholder="pattern"
                   value={this.state.pattern}
@@ -531,24 +601,33 @@ export class RegexBuilder extends React.Component<
               </button>
             </div>
 
+            {validationError === null ? null : (
+              <p
+                id="regex-builder-pattern-error"
+                className="regex-builder-pattern-error"
+                role="alert"
+              >
+                {validationError}
+              </p>
+            )}
+
             <div className="regex-builder-flags">
-              <span className="regex-builder-flags-label">FLAGS</span>
-              {FlagChips.map(({ key, tooltip }) => (
-                <FlagChip
-                  key={key}
-                  flagKey={key}
-                  tooltip={tooltip}
-                  on={this.state.flags[key]}
-                  onToggleFlag={this.onToggleFlag}
-                />
-              ))}
+              <span className="regex-builder-flags-label">SAFE RE2</span>
+              {this.props.caseSensitive === undefined
+                ? null
+                : FlagChips.map(({ key, tooltip }) => (
+                    <FlagChip
+                      key={key}
+                      flagKey={key}
+                      tooltip={tooltip}
+                      on={this.state.flags[key]}
+                      onToggleFlag={this.onToggleFlag}
+                    />
+                  ))}
             </div>
 
-            {this.state.view === 'build' ? (
-              this.renderBuildView()
-            ) : (
-              <RegexBuilderGuide />
-            )}
+            {this.renderBuildView(this.state.view !== 'build')}
+            <RegexBuilderGuide hidden={this.state.view !== 'guide'} />
           </div>
 
           <div className="regex-builder-footer">

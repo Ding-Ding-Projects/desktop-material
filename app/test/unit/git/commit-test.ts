@@ -416,6 +416,74 @@ describe('git/commit', () => {
       assert.equal(commits[0].sha.substring(0, 7), sha)
     })
 
+    it('propagates unattended commit state to the Git credential boundary', async t => {
+      const testRepoPath = await setupFixtureRepository(t, 'test-repo')
+      const repository = new Repository(testRepoPath, -1, null, false)
+      await writeFile(path.join(repository.path, 'background.txt'), 'safe\n')
+      const status = await getStatusOrThrow(repository)
+      const file = status.workingDirectory.files.find(
+        candidate => candidate.path === 'background.txt'
+      )
+      assert(file !== undefined)
+
+      let receivedBackgroundFlag: boolean | undefined
+      let receivedArguments: ReadonlyArray<string> = []
+      await createCommit(
+        repository,
+        'Background commit',
+        [file],
+        { noVerify: true, isBackgroundTask: true },
+        {
+          runCommit: async (args, cwd, name, options) => {
+            receivedBackgroundFlag = options?.isBackgroundTask
+            receivedArguments = [...args]
+            return git(args, cwd, name, options)
+          },
+        }
+      )
+
+      assert.equal(receivedBackgroundFlag, true)
+      assert.ok(receivedArguments.includes('--no-verify'))
+      assert.ok(receivedArguments.includes('--no-gpg-sign'))
+    })
+
+    it('suppresses prepare-commit-msg and post-commit hooks for an unattended commit', async t => {
+      const repo = await setupEmptyRepository(t)
+      const hooksPath = path.join(repo.resolvedGitDir, 'hooks')
+      await mkdir(hooksPath, { recursive: true })
+      const prepareHook = path.join(hooksPath, 'prepare-commit-msg')
+      const postHook = path.join(hooksPath, 'post-commit')
+      await Promise.all([
+        writeFile(
+          prepareHook,
+          ['#!/bin/sh', "printf 'ran' > prepare-hook-ran.txt", ''].join('\n')
+        ),
+        writeFile(
+          postHook,
+          ['#!/bin/sh', "printf 'ran' > post-hook-ran.txt", ''].join('\n')
+        ),
+      ])
+      await Promise.all([chmod(prepareHook, 0o755), chmod(postHook, 0o755)])
+
+      await writeFile(path.join(repo.path, 'background.txt'), 'safe\n')
+      const status = await getStatusOrThrow(repo)
+      await createCommit(
+        repo,
+        'Background commit',
+        status.workingDirectory.files,
+        { noVerify: true, isBackgroundTask: true }
+      )
+
+      assert.equal(
+        await pathExists(path.join(repo.path, 'prepare-hook-ran.txt')),
+        false
+      )
+      assert.equal(
+        await pathExists(path.join(repo.path, 'post-hook-ran.txt')),
+        false
+      )
+    })
+
     it('disables auto-GC only for the commit command', async t => {
       const repo = await setupEmptyRepository(t)
       await exec(['config', '--local', 'gc.auto', '123'], repo.path)

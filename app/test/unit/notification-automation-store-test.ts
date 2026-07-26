@@ -7,6 +7,7 @@ import assert from 'node:assert'
 import { NotificationAutomationStore } from '../../src/lib/stores/notification-automation-store'
 import {
   INotificationAutomationRule,
+  parseNotificationAutomationConfig,
   serializeNotificationAutomationConfig,
 } from '../../src/lib/notifications/automation/notification-automation'
 import { ensureProfileRepository } from '../../src/lib/profiles/profile-git'
@@ -91,6 +92,31 @@ describe('NotificationAutomationStore mutations', () => {
     ])
     await store.setRuleEnabled('a', false)
     assert.deepEqual(descriptions, [])
+  })
+
+  it('toggles and removes only one rule after duplicate import repair', async () => {
+    const duplicateRules = parseNotificationAutomationConfig(
+      serializeNotificationAutomationConfig({
+        version: 1,
+        rules: [
+          rule({ id: 'duplicate', name: 'First' }),
+          rule({ id: 'duplicate', name: 'Second' }),
+        ],
+      })
+    ).rules
+    const { store, harness } = createHarness(duplicateRules)
+    const [first, second] = duplicateRules
+
+    assert.notEqual(first.id, second.id)
+    await store.setRuleEnabled(second.id, true)
+    assert.equal(harness.rules[0].enabled, false)
+    assert.equal(harness.rules[1].enabled, true)
+
+    await store.removeRule(first.id)
+    assert.deepEqual(
+      harness.rules.map(current => current.id),
+      [second.id]
+    )
   })
 })
 

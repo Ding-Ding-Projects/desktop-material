@@ -258,6 +258,24 @@
   width: 100%;
 }
 
+.github-releases-cheap-lfs-filter {
+  display: inline-flex;
+  grid-column: 1 / -1;
+  gap: 8px;
+  align-items: center;
+  min-height: 32px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: 12px;
+  font-weight: 650;
+
+  input {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    accent-color: var(--md-sys-color-primary);
+  }
+}
+
 .github-releases-search,
 .github-releases-search-field {
   display: flex;
@@ -540,6 +558,7 @@
 
 .github-release-row-state,
 .github-release-latest-badge,
+.github-release-cheap-lfs-badge,
 .github-release-asset-state {
   display: inline-flex;
   align-items: center;
@@ -547,6 +566,11 @@
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
+}
+
+.github-release-cheap-lfs-badge {
+  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-tertiary-container);
 }
 
 .github-release-row-state {

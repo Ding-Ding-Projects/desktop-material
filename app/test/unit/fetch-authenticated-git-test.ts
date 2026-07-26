@@ -153,6 +153,17 @@ describe('authenticated fetch Git execution', () => {
     assertCredentialScope(invocations[0])
   })
 
+  it('keeps a silent background fetch non-interactive', async () => {
+    const { fetch } = await import('../../src/lib/git/fetch')
+    resetGitMocks()
+
+    await fetch(repository, remote, undefined, true, accountKey)
+
+    assert.equal(invocations.length, 1)
+    assertCredentialScope(invocations[0])
+    assert.equal(invocations[0].options.isBackgroundTask, true)
+  })
+
   it('forces the selected account for a refspec fetch', async () => {
     const { fetchRefspec } = await import('../../src/lib/git/fetch')
     resetGitMocks()

@@ -22,8 +22,8 @@ export const RegexCategories: ReadonlyArray<IRegexCategory> = [
   {
     name: 'Anchors',
     tokens: [
-      { token: '^', description: 'start of line' },
-      { token: '$', description: 'end of line' },
+      { token: '^', description: 'start of searched item' },
+      { token: '$', description: 'end of searched item' },
       { token: '\\b', description: 'word boundary' },
       { token: '\\B', description: 'non-boundary' },
     ],
@@ -42,7 +42,6 @@ export const RegexCategories: ReadonlyArray<IRegexCategory> = [
       { token: '[^abc]', description: 'none of a, b, c' },
       { token: '[a-z]', description: 'a range' },
       { token: '\\t', description: 'tab' },
-      { token: '\\n', description: 'newline' },
     ],
   },
   {
@@ -59,13 +58,11 @@ export const RegexCategories: ReadonlyArray<IRegexCategory> = [
     ],
   },
   {
-    name: 'Groups & refs',
+    name: 'Groups',
     tokens: [
       { token: '()', description: 'capturing group' },
       { token: '(?:)', description: 'non-capturing group' },
       { token: '(?<name>)', description: 'named group' },
-      { token: '\\1', description: 'back-reference' },
-      { token: '\\k<name>', description: 'named reference' },
     ],
   },
   {
@@ -73,15 +70,6 @@ export const RegexCategories: ReadonlyArray<IRegexCategory> = [
     tokens: [
       { token: '|', description: 'or' },
       { token: '(a|b)', description: 'a or b' },
-    ],
-  },
-  {
-    name: 'Lookaround',
-    tokens: [
-      { token: '(?=)', description: 'lookahead' },
-      { token: '(?!)', description: 'negative lookahead' },
-      { token: '(?<=)', description: 'lookbehind' },
-      { token: '(?<!)', description: 'negative lookbehind' },
     ],
   },
 ]
@@ -102,11 +90,19 @@ interface IRegexCategoryTabProps {
   readonly index: number
   readonly selected: boolean
   readonly onCategoryChange: (index: number) => void
+  readonly onKeyDown: (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    index: number
+  ) => void
 }
 
 class RegexCategoryTab extends React.Component<IRegexCategoryTabProps> {
   private onClick = () => {
     this.props.onCategoryChange(this.props.index)
+  }
+
+  private onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
+    this.props.onKeyDown(event, this.props.index)
   }
 
   public render() {
@@ -118,12 +114,14 @@ class RegexCategoryTab extends React.Component<IRegexCategoryTabProps> {
         role="tab"
         aria-selected={selected}
         aria-controls="regex-builder-token-list"
+        tabIndex={selected ? 0 : -1}
         className={
           selected
             ? 'regex-builder-category selected'
             : 'regex-builder-category'
         }
         onClick={this.onClick}
+        onKeyDown={this.onKeyDown}
       >
         {name}
       </button>
@@ -158,6 +156,40 @@ class RegexTokenChip extends React.Component<IRegexTokenChipProps> {
 }
 
 export class RegexBuilderPalette extends React.Component<IRegexBuilderPaletteProps> {
+  private onCategoryKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    currentIndex: number
+  ) => {
+    const categoryCount = this.props.categories.length
+    if (categoryCount === 0) {
+      return
+    }
+
+    let nextIndex = currentIndex
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        nextIndex = (currentIndex + 1) % categoryCount
+        break
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        nextIndex = (currentIndex - 1 + categoryCount) % categoryCount
+        break
+      case 'Home':
+        nextIndex = 0
+        break
+      case 'End':
+        nextIndex = categoryCount - 1
+        break
+      default:
+        return
+    }
+
+    event.preventDefault()
+    this.props.onCategoryChange(nextIndex)
+    document.getElementById(`regex-builder-category-${nextIndex}`)?.focus()
+  }
+
   public render() {
     const { categories, activeCategory } = this.props
     const active = categories[activeCategory] ?? categories[0]
@@ -176,6 +208,7 @@ export class RegexBuilderPalette extends React.Component<IRegexBuilderPalettePro
               index={index}
               selected={index === activeCategory}
               onCategoryChange={this.props.onCategoryChange}
+              onKeyDown={this.onCategoryKeyDown}
             />
           ))}
         </div>

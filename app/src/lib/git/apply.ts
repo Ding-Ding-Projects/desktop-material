@@ -11,7 +11,8 @@ import { assertNever } from '../fatal-error'
 
 export async function applyPatchToIndex(
   repository: Repository,
-  file: WorkingDirectoryFileChange
+  file: WorkingDirectoryFileChange,
+  isBackgroundTask: boolean = false
 ): Promise<void> {
   // If the file was a rename we have to recreate that rename since we've
   // just blown away the index. Think of this block of weird looking commands
@@ -27,7 +28,8 @@ export async function applyPatchToIndex(
     await git(
       ['add', '--update', '--', file.status.oldPath],
       repository.path,
-      'applyPatchToIndex'
+      'applyPatchToIndex',
+      { isBackgroundTask }
     )
 
     // Figure out the blob oid of the removed file
@@ -35,7 +37,8 @@ export async function applyPatchToIndex(
     const oldFile = await git(
       ['ls-tree', 'HEAD', '--', file.status.oldPath],
       repository.path,
-      'applyPatchToIndex'
+      'applyPatchToIndex',
+      { isBackgroundTask }
     )
 
     const [info] = oldFile.stdout.split('\t', 1)
@@ -45,7 +48,8 @@ export async function applyPatchToIndex(
     await git(
       ['update-index', '--add', '--cacheinfo', mode, oid, file.path],
       repository.path,
-      'applyPatchToIndex'
+      'applyPatchToIndex',
+      { isBackgroundTask }
     )
   }
 
@@ -57,7 +61,12 @@ export async function applyPatchToIndex(
     '-',
   ]
 
-  const diff = await getWorkingDirectoryDiff(repository, file)
+  const diff = await getWorkingDirectoryDiff(
+    repository,
+    file,
+    false,
+    isBackgroundTask
+  )
 
   if (diff.kind !== DiffType.Text && diff.kind !== DiffType.LargeText) {
     const { kind } = diff
@@ -78,7 +87,10 @@ export async function applyPatchToIndex(
   }
 
   const patch = await formatPatch(file, diff)
-  await git(applyArgs, repository.path, 'applyPatchToIndex', { stdin: patch })
+  await git(applyArgs, repository.path, 'applyPatchToIndex', {
+    stdin: patch,
+    isBackgroundTask,
+  })
 
   return Promise.resolve()
 }

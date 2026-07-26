@@ -26,6 +26,7 @@ credentials or machine-specific state in a repository.
 - [Repository-bound GitHub API functions](github-api-functions.md)
 - [GitLab merge requests](gitlab-merge-request.md)
 - [Repository Releases dashboard](repository-releases-dashboard.md)
+- [Per-repository GitHub Packages explorer](github-packages-explorer.md)
 - [SSH working copies and remote
   clone](ssh-working-copy-and-remote-clone.md)
 - [GitHub CLI push credential

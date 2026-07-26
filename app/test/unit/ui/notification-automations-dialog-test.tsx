@@ -181,6 +181,106 @@ describe('NotificationAutomationsDialog', () => {
     assert.equal(saved.repositoryId, 42)
   })
 
+  it('preserves meaningful leading and trailing spaces in a title pattern', async () => {
+    const dispatcher = new FakeDispatcher()
+    renderDialog(dispatcher)
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'New automation…' }))
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'New automation…' }))
+    fireEvent.change(screen.getByLabelText('Automation name'), {
+      target: { value: 'Spaced pattern' },
+    })
+    fireEvent.change(screen.getByLabelText('Webhook URL'), {
+      target: { value: 'https://example.com/spaced' },
+    })
+    fireEvent.change(screen.getByLabelText('Title pattern'), {
+      target: { value: ' ^Checks failed$ ' },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Create automation' }))
+    await waitFor(() => assert.equal(dispatcher.saved.length, 1))
+    assert.equal(dispatcher.saved[0].titlePattern, ' ^Checks failed$ ')
+  })
+
+  it('flags and refuses to arm a legacy unsupported pattern', async () => {
+    const dispatcher = new FakeDispatcher([
+      webhookRule({ titlePattern: 'Checks(?= failed)' }),
+    ])
+    renderDialog(dispatcher)
+
+    await waitFor(() =>
+      assert.ok(screen.getByText(/Pattern needs review before/))
+    )
+    fireEvent.click(
+      screen.getByRole('switch', { name: 'Arm automation: Deploy hook' })
+    )
+
+    assert.deepEqual(dispatcher.enabledCalls, [])
+    await waitFor(() =>
+      assert.ok(
+        screen
+          .getAllByRole('alert')
+          .some(node => /Edit .* before arming/i.test(node.textContent ?? ''))
+      )
+    )
+  })
+
+  it('uses safe unique ARIA ids for malformed and duplicate persisted rule ids', async () => {
+    const malformedId = ' persisted\trule #?[] '
+    const duplicateId = 'duplicate-rule'
+    const dispatcher = new FakeDispatcher([
+      webhookRule({
+        id: malformedId,
+        name: 'Malformed id',
+        titlePattern: 'Checks(?= failed)',
+      }),
+      webhookRule({
+        id: duplicateId,
+        name: 'First duplicate',
+        titlePattern: 'Build(?= failed)',
+      }),
+      webhookRule({
+        id: duplicateId,
+        name: 'Second duplicate',
+        titlePattern: 'Deploy(?= failed)',
+      }),
+    ])
+    renderDialog(dispatcher)
+
+    await waitFor(() =>
+      assert.equal(
+        document.querySelectorAll(
+          '.notification-automation-state.pattern-warning'
+        ).length,
+        3
+      )
+    )
+
+    const switches = screen.getAllByRole('switch')
+    const warningIds = switches.map(control => {
+      const row = control.closest('.notification-automation-row')
+      assert.ok(row)
+      assert.match(row.id, /^[A-Za-z][A-Za-z0-9_-]*$/)
+
+      const describedBy = control.getAttribute('aria-describedby')
+      assert.ok(describedBy)
+      assert.match(describedBy, /^[A-Za-z][A-Za-z0-9_-]*$/)
+
+      const warning = document.getElementById(describedBy)
+      assert.ok(warning)
+      assert.equal(warning.closest('.notification-automation-row'), row)
+      return describedBy
+    })
+
+    assert.equal(new Set(warningIds).size, warningIds.length)
+    assert.deepEqual(
+      dispatcher.rules.map(rule => rule.id),
+      [malformedId, duplicateId, duplicateId]
+    )
+  })
+
   it('blocks saving a webhook rule whose URL carries a query string', async () => {
     const dispatcher = new FakeDispatcher()
     renderDialog(dispatcher)
@@ -259,5 +359,31 @@ describe('NotificationAutomationsDialog', () => {
 
     await waitFor(() => assert.equal(screen.queryByText('Nightly build'), null))
     assert.ok(screen.getByText('Deploy hook'))
+  })
+
+  it('surfaces unsupported regex syntax without silently hiding validation', async () => {
+    const dispatcher = new FakeDispatcher([
+      webhookRule({ id: 'r1', name: 'Deploy hook' }),
+      webhookRule({ id: 'r2', name: 'Nightly build' }),
+    ])
+    renderDialog(dispatcher)
+
+    await waitFor(() => assert.ok(screen.getByText('Deploy hook')))
+    const mode = screen.getByRole('button', { name: /^Filter mode/ })
+    fireEvent.click(mode)
+    fireEvent.click(mode)
+    const input = screen.getByLabelText('Search automations by name')
+    fireEvent.change(input, { target: { value: '(?=Deploy)' } })
+
+    assert.equal(input.getAttribute('aria-invalid'), 'true')
+    const describedBy = input.getAttribute('aria-describedby')
+    assert.ok(describedBy)
+    assert.match(describedBy, /^[A-Za-z][A-Za-z0-9_-]*$/)
+    const error = document.getElementById(describedBy)
+    assert.ok(error)
+    assert.equal(error.getAttribute('role'), 'alert')
+    assert.match(error.textContent ?? '', /RE2/)
+    assert.ok(screen.getByText('Deploy hook'))
+    assert.ok(screen.getByText('Nightly build'))
   })
 })

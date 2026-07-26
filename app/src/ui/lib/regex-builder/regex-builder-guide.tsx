@@ -15,22 +15,21 @@ export interface IRegexGuideSection {
 }
 
 /**
- * The static "How regex works" guide content, mirroring the v2 prototype's
- * RB_GUIDE sections one to one. Octicons stand in for the prototype's
+ * The static "How regex works" guide content for the renderer-safe RE2
+ * dialect. Octicons stand in for the prototype's
  * Material Symbols (school→mortarBoard, anchor→pin, category→apps,
- * repeat→iterations, join_inner→gitMerge, call_split→gitBranch,
- * visibility→eye, flag→flag, search→search).
+ * repeat→iterations, join_inner→gitMerge, call_split→gitBranch, flag→flag,
+ * search→search).
  */
 export const RegexGuideSections: ReadonlyArray<IRegexGuideSection> = [
   {
     icon: octicons.mortarBoard,
     title: 'How matching works',
     body:
-      'A regular expression is a tiny program that scans text one character ' +
-      'at a time, left to right. Each token in the pattern must match at the ' +
-      'current position for the engine to advance; when a token fails, the ' +
-      'engine backtracks and tries another interpretation. A search matches ' +
-      'when the whole pattern can be satisfied somewhere in the text.',
+      'Desktop Material uses the linear-time RE2 engine. It scans text left to right ' +
+      'and explores alternatives without catastrophic backtracking, so a ' +
+      'user-authored search pattern cannot freeze the renderer. A search ' +
+      'matches when the whole pattern can be satisfied somewhere in the text.',
     code: 'material',
     codeNote:
       '— plain characters match themselves; this finds "material" anywhere',
@@ -39,8 +38,8 @@ export const RegexGuideSections: ReadonlyArray<IRegexGuideSection> = [
     icon: octicons.pin,
     title: 'Anchors pin the position',
     body:
-      'Anchors match positions, not characters. ^ is the start of the text ' +
-      '(or of each line with the m flag), $ is the end, \\b is the boundary ' +
+      'Anchors match positions, not characters. ^ is the start of each ' +
+      'searched item, $ is the end, \\b is the boundary ' +
       'between a word character and anything else, \\B is everywhere that is ' +
       'not a boundary.',
     code: '^app/.*\\.scss$',
@@ -63,22 +62,22 @@ export const RegexGuideSections: ReadonlyArray<IRegexGuideSection> = [
     body:
       'Quantifiers repeat the token before them: * means zero or more, + one ' +
       'or more, ? optional, {n,m} between n and m times. They are greedy — ' +
-      'they grab as much text as possible, then give back while ' +
-      'backtracking. Append ? to make one lazy so it stops as early as it ' +
-      'can.',
+      'they grab as much text as possible. Append ? to make one lazy so it ' +
+      'stops as early as it can.',
     code: '".*?"',
     codeNote:
       '— lazy: matches each quoted string separately instead of one giant match',
   },
   {
     icon: octicons.gitMerge,
-    title: 'Groups and backreferences',
+    title: 'Groups and captures',
     body:
-      'Parentheses capture what they matched so it can be reused: \\1 ' +
-      're-matches the exact text of the first group. (?:…) groups without ' +
-      'capturing, and (?<name>…) captures by name for \\k<name>.',
-    code: '(\\w+)-\\1',
-    codeNote: '— a word, a dash, then the same word again, like "tab-tab"',
+      'Parentheses capture what they matched. (?:…) groups without ' +
+      'capturing, and (?<name>…) gives a capture a readable name. RE2 ' +
+      'deliberately rejects backreferences and lookaround because they cannot ' +
+      'be evaluated with its linear-time safety guarantee.',
+    code: '(?<area>app|docs)/',
+    codeNote: '— captures app or docs as the named area',
   },
   {
     icon: octicons.gitBranch,
@@ -91,36 +90,23 @@ export const RegexGuideSections: ReadonlyArray<IRegexGuideSection> = [
     codeNote: '— files ending in .scss, .ts, or .tsx',
   },
   {
-    icon: octicons.eye,
-    title: 'Lookaround',
-    body:
-      'Lookarounds peek at what comes after (?=…) or before (?<=…) the ' +
-      'current position without consuming it — the match position stays ' +
-      'put. The negative forms (?!…) and (?<!…) assert that the text is NOT ' +
-      'there.',
-    code: 'ui/(?!lib)',
-    codeNote: '— ui/ paths except the ones under ui/lib',
-  },
-  {
     icon: octicons.flag,
     title: 'Flags change the rules',
     body:
-      'g finds every match instead of stopping at the first; i ignores ' +
-      'case; m makes ^ and $ work per line; s lets . cross newlines; u ' +
-      'switches on full Unicode semantics; y anchors each match to exactly ' +
-      'where the previous one ended.',
+      'The i flag ignores case and stays synchronized with the search bar’s ' +
+      'Match case control. Desktop Material always enumerates matches safely ' +
+      'and uses Unicode-aware RE2 semantics, so unsupported JavaScript-only ' +
+      'flags are not shown.',
   },
   {
     icon: octicons.search,
     title: 'How Desktop Material uses regex',
     body:
       'Every search bar in the app has a .* toggle that switches it from ' +
-      'plain-text to regex matching. An invalid pattern outlines the field ' +
-      'in red and filters nothing until fixed. This builder inserts tokens ' +
-      'into the pattern, tests it live against sample text, and Apply fills ' +
-      'the search bar that opened it — with regex mode switched on. The ' +
-      'same guide ships with the project as docs/regex-guide.md for the ' +
-      'wiki.',
+      'plain-text to safe RE2 matching. An invalid or unsupported pattern ' +
+      'shows a localized error and filters nothing until fixed. This builder ' +
+      'tests the exact pattern and case mode that Apply sends back to the ' +
+      'search bar.',
   },
 ]
 
@@ -135,7 +121,11 @@ const MaxStaggerMs = 450
  * regex builder toggled by the Build / How regex works segmented tabs.
  * Purely static teaching content extracted from the v2 prototype's rbGuide.
  */
-export class RegexBuilderGuide extends React.Component {
+interface IRegexBuilderGuideProps {
+  readonly hidden?: boolean
+}
+
+export class RegexBuilderGuide extends React.Component<IRegexBuilderGuideProps> {
   private renderSection(section: IRegexGuideSection, index: number) {
     const animationDelay = `${Math.min(index * StaggerStepMs, MaxStaggerMs)}ms`
     return (
@@ -166,6 +156,7 @@ export class RegexBuilderGuide extends React.Component {
         className="regex-builder-guide"
         role="tabpanel"
         aria-labelledby="regex-builder-view-tab-guide"
+        hidden={this.props.hidden}
       >
         {RegexGuideSections.map((section, index) =>
           this.renderSection(section, index)

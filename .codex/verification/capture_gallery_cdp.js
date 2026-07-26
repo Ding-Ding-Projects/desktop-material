@@ -5609,6 +5609,29 @@ scene('regex-builder', async () => {
     `document.querySelector('#regex-builder-title') !== null`,
     'Regex Builder dialog'
   )
+  const adversarialStart = Date.now()
+  await setInput('.regex-pattern-input', '^(a+)+$')
+  await setInput(
+    '.regex-test-sample',
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa!'
+  )
+  await waitFor(
+    `document.querySelector('.regex-test-count')?.textContent?.trim() === '0 matches' &&
+     document.querySelector('.regex-test-error') === null`,
+    'bounded RE2 adversarial near-miss',
+    3000
+  )
+  const adversarialElapsed = Date.now() - adversarialStart
+  if (adversarialElapsed > 3000) {
+    fail(`Safe RE2 near-miss exceeded 3000 ms (${adversarialElapsed} ms).`)
+  }
+  process.stdout.write(`SAFE_RE2_NEAR_MISS_MS ${adversarialElapsed}\n`)
+
+  await setInput('.regex-pattern-input', '^(?<letters>a+)$')
+  await setInput(
+    '.regex-test-sample',
+    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  )
   await evaluate(`(() => {
     const sample = document.querySelector('.regex-test-sample')
     const preview = document.querySelector('.regex-test-preview')
@@ -5624,14 +5647,15 @@ scene('regex-builder', async () => {
       const dialog = document.querySelector('.regex-builder-dialog')
       const sample = document.querySelector('.regex-test-sample')
       const preview = document.querySelector('.regex-test-preview')
+      const count = document.querySelector('.regex-test-count')
+      const captures = document.querySelector('.regex-test-captures')
+      const dialect = document.querySelector('.regex-builder-flags-label')
+      const scrollRegion = document.querySelector('.regex-builder-scroll-region')
+      const footer = document.querySelector('.regex-builder-footer')
       if (!(dialog instanceof HTMLElement) || !(sample instanceof HTMLTextAreaElement) ||
-          !(preview instanceof HTMLElement)) return false
-      const lines = sample.value.split(/\\r?\\n/)
-      const hashLineIndex = lines.findIndex(line =>
-        /[0-9a-f]{40}.*[0-9a-f]{7}/i.test(line)
-      )
-      if (hashLineIndex < 0) return false
-      const hashLine = lines[hashLineIndex]
+          !(preview instanceof HTMLElement) || !(count instanceof HTMLElement) ||
+          !(captures instanceof HTMLElement) || !(dialect instanceof HTMLElement) ||
+          !(scrollRegion instanceof HTMLElement) || !(footer instanceof HTMLElement)) return false
       const style = getComputedStyle(sample)
       const lineHeight = Number.parseFloat(style.lineHeight)
       const contentHeight = sample.clientHeight -
@@ -5639,25 +5663,31 @@ scene('regex-builder', async () => {
       const dialogBounds = dialog.getBoundingClientRect()
       const sampleBounds = sample.getBoundingClientRect()
       const previewBounds = preview.getBoundingClientRect()
-      const previewText = preview.querySelector('span')?.firstChild
-      if (!(previewText instanceof Text)) return false
-      const hashOffset = previewText.data.indexOf(hashLine)
-      if (hashOffset < 0) return false
-      const hashRange = document.createRange()
-      hashRange.setStart(previewText, hashOffset)
-      hashRange.setEnd(previewText, hashOffset + hashLine.length)
-      const hashBounds = hashRange.getBoundingClientRect()
+      const capturesBounds = captures.getBoundingClientRect()
+      const dialectBounds = dialect.getBoundingClientRect()
+      const scrollBounds = scrollRegion.getBoundingClientRect()
+      const footerBounds = footer.getBoundingClientRect()
+      const highlighted = preview.querySelector('mark')
+      const within = (child, parent) =>
+        child.left >= parent.left - 0.5 && child.right <= parent.right + 0.5 &&
+        child.top >= parent.top - 0.5 && child.bottom <= parent.bottom + 0.5
       return Number.isFinite(lineHeight) && lineHeight > 0 &&
-        sample.rows >= hashLineIndex + 1 &&
-        contentHeight >= lineHeight * (hashLineIndex + 1) - 0.5 &&
+        sample.rows >= 1 && contentHeight >= lineHeight - 0.5 &&
         sample.scrollTop === 0 && preview.scrollTop === 0 &&
-        sampleBounds.left >= dialogBounds.left && sampleBounds.right <= dialogBounds.right &&
-        sampleBounds.top >= dialogBounds.top && sampleBounds.bottom <= dialogBounds.bottom &&
-        hashBounds.width > 0 && hashBounds.height > 0 &&
-        hashBounds.top >= previewBounds.top - 0.5 &&
-        hashBounds.bottom <= previewBounds.bottom + 0.5
+        within(sampleBounds, scrollBounds) && within(previewBounds, scrollBounds) &&
+        within(capturesBounds, scrollBounds) && within(dialectBounds, scrollBounds) &&
+        within(scrollBounds, dialogBounds) && within(footerBounds, dialogBounds) &&
+        dialogBounds.top >= 0 && dialogBounds.left >= 0 &&
+        dialogBounds.right <= window.innerWidth && dialogBounds.bottom <= window.innerHeight &&
+        dialect.textContent?.trim() === 'SAFE RE2' &&
+        count.textContent?.trim() === '1 match' &&
+        highlighted?.textContent === sample.value &&
+        captures.textContent?.includes('$1') &&
+        captures.textContent?.includes('<letters>') &&
+        captures.textContent?.includes(sample.value) &&
+        document.querySelector('.regex-test-error') === null
     })()`,
-    'fully visible first regex sample hash line'
+    'safe RE2 match, capture preview, and unclipped dialog'
   )
   await parkPointer()
   await capture('regex-builder')

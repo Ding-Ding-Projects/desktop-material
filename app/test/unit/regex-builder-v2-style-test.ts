@@ -8,7 +8,9 @@ const read = (path: string) => readFileSync(join(process.cwd(), path), 'utf8')
 const styles = read('app/styles/ui/_regex-builder.scss')
 const builder = read('app/src/ui/lib/regex-builder/regex-builder.tsx')
 const guide = read('app/src/ui/lib/regex-builder/regex-builder-guide.tsx')
+const palette = read('app/src/ui/lib/regex-builder/regex-builder-palette.tsx')
 const tester = read('app/src/ui/lib/regex-builder/regex-test-area.tsx')
+const diffSearch = read('app/src/ui/diff/side-by-side-diff.tsx')
 
 describe('Regex builder v2 style contract', () => {
   it('keeps a 50px margin between the dialog and the viewport edges', () => {
@@ -57,7 +59,16 @@ describe('Regex builder v2 style contract', () => {
     assert.match(builder, /private onSelectView = \(view: RegexBuilderView\)/)
     assert.match(
       builder,
-      /\{this\.state\.view === 'build' \? \([\s\S]*?this\.renderBuildView\(\)[\s\S]*?\) : \([\s\S]*?<RegexBuilderGuide \/>/
+      /private onViewTabKeyDown = \([\s\S]*?case 'ArrowRight':[\s\S]*?case 'ArrowLeft':[\s\S]*?case 'Home':[\s\S]*?case 'End':/
+    )
+    assert.match(builder, /tabIndex=\{selected \? 0 : -1\}/)
+    assert.match(
+      builder,
+      /this\.renderBuildView\(this\.state\.view !== 'build'\)/
+    )
+    assert.match(
+      builder,
+      /<RegexBuilderGuide hidden=\{this\.state\.view !== 'guide'\} \/>/
     )
   })
 
@@ -86,15 +97,14 @@ describe('Regex builder v2 style contract', () => {
     // The staggered entrance mirrors the prototype's 50ms/450ms cadence.
     assert.match(guide, /Math\.min\(index \* StaggerStepMs, MaxStaggerMs\)/)
 
-    // All nine prototype rbGuide sections, in order.
+    // Every safe-RE2 guide section, in order.
     const titles = [
       'How matching works',
       'Anchors pin the position',
       'Character classes',
       'Quantifiers and greediness',
-      'Groups and backreferences',
+      'Groups and captures',
       'Alternation',
-      'Lookaround',
       'Flags change the rules',
       'How Desktop Material uses regex',
     ]
@@ -108,8 +118,28 @@ describe('Regex builder v2 style contract', () => {
     // A representative sample of the teaching examples survived extraction.
     assert.ok(guide.includes('^app/.*\\\\.scss$'))
     assert.ok(guide.includes('[0-9a-f]{7}'))
-    assert.ok(guide.includes('(\\\\w+)-\\\\1'))
-    assert.ok(guide.includes('ui/(?!lib)'))
+    assert.ok(guide.includes('(?<area>app|docs)'))
+    assert.match(guide, /rejects backreferences and lookaround/)
+  })
+
+  it('documents and enforces the shared safe RE2 dialect', () => {
+    assert.match(builder, /compileSafeRegex/)
+    assert.match(builder, />SAFE RE2</)
+    assert.doesNotMatch(builder, /new RegExp\(/)
+    assert.match(guide, /linear-time RE2 engine/)
+    assert.match(guide, /rejects backreferences and lookaround/)
+    assert.equal(
+      palette.includes("{ token: '\\\\n',"),
+      false,
+      'the row-oriented tester must not offer an untestable newline chip'
+    )
+  })
+
+  it('bounds diff search globally and announces truncation', () => {
+    assert.match(diffSearch, /const MaxDiffSearchResults = 5000/)
+    assert.match(diffSearch, /if \(options\.mode === FilterMode\.Regex\)/)
+    assert.match(diffSearch, /found\.truncated/)
+    assert.match(diffSearch, /additional results were truncated for safety/)
   })
 
   it('shows the first summary, body row, and hash without clipping', () => {
@@ -117,6 +147,20 @@ describe('Regex builder v2 style contract', () => {
     assert.match(
       styles,
       /\.regex-test-sample\s*\{[\s\S]*?min-height: calc\(4\.5em \+ 16px\);[\s\S]*?font-size: 12px;[\s\S]*?line-height: 1\.5;[\s\S]*?overflow-y: auto;/
+    )
+    assert.match(
+      tester,
+      /aria-label=\{translateForAccessibleName\('regex\.test\.capture\.groupLabel'\)\}/
+    )
+    assert.match(tester, /<em>\{t\('regex\.test\.capture\.unmatched'\)\}<\/em>/)
+    assert.match(tester, /MaxRegexCapturePreviews/)
+    assert.match(
+      styles,
+      /\.regex-test-captures\s*\{[\s\S]*?min-width: 0;[\s\S]*?flex-wrap: wrap;/
+    )
+    assert.match(
+      styles,
+      /\.regex-test-capture\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow-wrap: anywhere;/
     )
   })
 

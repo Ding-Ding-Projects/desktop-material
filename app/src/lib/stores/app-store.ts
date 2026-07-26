@@ -954,6 +954,12 @@ const verboseLoggingKey = 'verboseLogging'
 // switching between apps does not result in excessive fetching in the app
 const BackgroundFetchMinimumInterval = 30 * 60 * 1000
 
+// Provider metadata is authoritative for repository transfers and renames.
+// Background surfaces share a short cache so indicator/fetch/scheduler ticks
+// cannot fan out duplicate API lookups, while explicit network actions always
+// revalidate immediately.
+const BackgroundRemoteCanonicalizationInterval = 5 * 60 * 1000
+
 /**
  * Wait 2 minutes before refreshing repository indicators
  */
@@ -1299,6 +1305,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** The background fetcher for the currently selected repository. */
   private currentBackgroundFetcher: BackgroundFetcher | null = null
   private currentAutomationScheduler: AutomationScheduler | null = null
+  private readonly remoteCanonicalizationRefreshes = new Map<
+    string,
+    Promise<Repository>
+  >()
+  private readonly remoteCanonicalizedAt = new Map<string, number>()
   /**
    * Changes only when selection moves to a different persisted checkout.
    * Equivalent immutable Repository replacements deliberately retain the
@@ -3664,21 +3675,32 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     this._refreshRepository(repository)
 
-    if (isRepositoryWithGitHubRepository(repository)) {
+    // A repository transfer must be repaired before the immediate background
+    // fetch or automation scheduler can touch the stale URL. The background
+    // canonicalization cache keeps re-entrant selection refreshes bounded.
+    const refreshedRepository =
+      await this.repositoryWithCanonicalRemoteForNetwork(repository, true, true)
+
+    if (isRepositoryWithGitHubRepository(refreshedRepository)) {
       // Load issues from the upstream or fork depending
       // on workflow preferences.
-      const ghRepo = getNonForkGitHubRepository(repository)
+      const ghRepo = getNonForkGitHubRepository(refreshedRepository)
 
       this._refreshIssues(ghRepo)
       this.refreshMentionables(ghRepo)
 
-      this.pullRequestCoordinator.getAllPullRequests(repository).then(prs => {
-        this.onPullRequestChanged(repository, prs)
-      })
+      this.pullRequestCoordinator
+        .getAllPullRequests(refreshedRepository)
+        .then(prs => {
+          this.onPullRequestChanged(refreshedRepository, prs)
+        })
     }
 
     // The selected repository could have changed while we were refreshing.
-    if (this.selectedRepository !== repository) {
+    if (
+      !(this.selectedRepository instanceof Repository) ||
+      this.selectedRepository.id !== repository.id
+    ) {
       return null
     }
 
@@ -3690,21 +3712,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.stopPullRequestUpdater()
     this.stopBackgroundPruner()
 
-    this.startBackgroundFetching(repository, !previouslySelectedRepository)
-    this.startAutomationScheduler(repository)
-    this.startPullRequestUpdater(repository)
+    this.startBackgroundFetching(
+      refreshedRepository,
+      !previouslySelectedRepository
+    )
+    this.startAutomationScheduler(refreshedRepository)
+    this.startPullRequestUpdater(refreshedRepository)
 
-    this.startBackgroundPruner(repository)
+    this.startBackgroundPruner(refreshedRepository)
 
-    this.addUpstreamRemoteIfNeeded(repository)
+    this.addUpstreamRemoteIfNeeded(refreshedRepository)
 
     // Detect point: opening a repository may reveal committed cheap-LFS
     // pointers to auto-materialize. Re-entrant, so re-check the selection.
-    await this.maybeAutoMaterializeCheapLfs(repository, {
+    await this.maybeAutoMaterializeCheapLfs(refreshedRepository, {
       requireSelected: true,
     })
 
-    return this.repositoryWithRefreshedGitHubRepository(repository)
+    return refreshedRepository
   }
 
   private stopBackgroundPruner() {
@@ -3898,7 +3923,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         context,
         false,
         true,
-        () => this.isScheduledAutomationFenceCurrent(fence)
+        () => this.isScheduledAutomationFenceCurrent(fence),
+        true
       )
       if (!committed) {
         throw new Error('The automatic commit did not complete.')
@@ -3919,19 +3945,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     fence: IScheduledAutomationFence | null = this.captureScheduledAutomationFence(
       repository
-    )
+    ),
+    isBackgroundTask: boolean = fence !== null
   ): Promise<boolean> {
     if (!this.canContinueScheduledAutomation(fence)) {
       return false
     }
     const resolvedRepository =
-      await this.repositoryWithRefreshedGitHubRepository(repository)
+      await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        isBackgroundTask
+      )
     if (!this.canContinueScheduledAutomation(fence)) {
       return false
     }
     return this.performScheduledPushWithResolvedRepository(
       resolvedRepository,
-      fence
+      fence,
+      isBackgroundTask
     )
   }
 
@@ -3939,7 +3970,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     fence: IScheduledAutomationFence | null = this.captureScheduledAutomationFence(
       repository
-    )
+    ),
+    isBackgroundTask: boolean = fence !== null
   ): Promise<boolean> {
     if (!this.canContinueScheduledAutomation(fence)) {
       return false
@@ -3984,7 +4016,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           repository,
           safeRemote,
           accountKey,
-          { onHookFailure: async () => 'abort' }
+          {
+            onHookFailure: async () => 'abort',
+            isBackgroundTask,
+            noVerify: isBackgroundTask,
+          }
         )
         await pushRepo(
           repository,
@@ -3992,7 +4028,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
           tip.branch.name,
           tip.branch.upstreamWithoutRemote,
           gitStore.tagsToPush,
-          { onHookFailure: async () => 'abort', accountKey }
+          {
+            onHookFailure: async () => 'abort',
+            accountKey,
+            isBackgroundTask,
+            noVerify: isBackgroundTask,
+          }
         )
       } else {
         // A durable pending checkpoint protects one exact commit object. Push
@@ -4002,7 +4043,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           repository,
           pending,
           accountKey,
-          { onHookFailure: async () => 'abort' }
+          {
+            onHookFailure: async () => 'abort',
+            isBackgroundTask,
+            noVerify: isBackgroundTask,
+          }
         )
       }
       pushed = true
@@ -4013,7 +4058,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
         gitStore.clearTagsToPush()
       }
       await this._refreshRepository(repository)
-      await this.deployDockerAfterPush(repository, remoteName, pushedBranchName)
+      await this.deployDockerAfterPush(
+        repository,
+        remoteName,
+        pushedBranchName,
+        isBackgroundTask
+      )
     })
     return pushed
   }
@@ -4028,7 +4078,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return false
     }
     const resolvedRepository =
-      await this.repositoryWithRefreshedGitHubRepository(repository)
+      await this.repositoryWithCanonicalRemoteForNetwork(repository, true)
     if (!this.isScheduledAutomationFenceCurrent(fence)) {
       return false
     }
@@ -4069,7 +4119,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (!this.isScheduledAutomationFenceCurrent(fence)) {
         return
       }
-      await pullRepo(repository, remote, { accountKey })
+      await pullRepo(repository, remote, {
+        accountKey,
+        isBackgroundTask: true,
+        noVerify: true,
+      })
       pulled = true
 
       // Pull has mutated the checkout. Finish reconciliation even if the user
@@ -5795,13 +5849,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private async captureCommitPushBatchTarget(
-    repository: Repository
+    repository: Repository,
+    isBackgroundTask: boolean
   ): Promise<ICommitPushBatchTarget> {
     const destination = this.resolveCommitPushBatchDestination(repository)
     const session = createLocalCommitBatchingGitSession(repository, {
       remote: destination.remote,
       remoteBranchRef: destination.remoteBranchRef,
       accountKey: getRepositoryCredentialAccountKey(this.accounts, repository),
+      isBackgroundTask,
     })
     const expectedRemoteSha = await session.operations.readRemoteTip({
       remoteName: destination.remote.name,
@@ -5853,7 +5909,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remote: destination.remote,
       remoteBranchRef: destination.remoteBranchRef,
       accountKey,
+      isBackgroundTask: hookOptions?.isBackgroundTask,
       hookOptions,
+      skipPushHooks: hookOptions?.isBackgroundTask === true,
     })
     const observedBefore = await session.operations.readRemoteTip({
       remoteName: destination.remote.name,
@@ -5930,7 +5988,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See `Dispatcher`. */
   private async proveAndClearPendingCommitPushBatch(
     repository: Repository,
-    pending: IPendingCommitPushBatch
+    pending: IPendingCommitPushBatch,
+    isBackgroundTask: boolean = false
   ): Promise<void> {
     const destination = this.requireCommitPushBatchDestination(
       repository,
@@ -5940,6 +5999,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remote: destination.remote,
       remoteBranchRef: destination.remoteBranchRef,
       accountKey: getRepositoryCredentialAccountKey(this.accounts, repository),
+      isBackgroundTask,
     })
     const observed = await session.operations.readRemoteTip({
       remoteName: destination.remote.name,
@@ -5960,7 +6020,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** Finish a previously committed batch before any later commit can start. */
   private async resumePendingCommitPushBatch(
-    repository: Repository
+    repository: Repository,
+    isBackgroundTask: boolean = false
   ): Promise<void> {
     // Recover the earlier crash window first. This can only promote an exact,
     // stored one-commit transition to the pending-push checkpoint; stale or
@@ -5986,13 +6047,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remote: destination.remote,
       remoteBranchRef: destination.remoteBranchRef,
       accountKey: getRepositoryCredentialAccountKey(this.accounts, repository),
+      isBackgroundTask,
     })
     const observed = await session.operations.readRemoteTip({
       remoteName: destination.remote.name,
       remoteBranchRef: destination.remoteBranchRef,
     })
     if (observed === pending.commitSha) {
-      await this.proveAndClearPendingCommitPushBatch(repository, pending)
+      await this.proveAndClearPendingCommitPushBatch(
+        repository,
+        pending,
+        isBackgroundTask
+      )
       await this._refreshRepository(repository)
       return
     }
@@ -6002,13 +6068,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
         'The exact remote branch changed before the pending automatic commit could be pushed.'
       )
     }
-    if (!(await this.performScheduledPush(repository, null))) {
+    if (
+      !(await this.performScheduledPush(repository, null, isBackgroundTask))
+    ) {
       throw new CommitPushBatchError(
         'push-failed',
         'The pending automatic commit batch could not be pushed.'
       )
     }
-    await this.proveAndClearPendingCommitPushBatch(repository, pending)
+    await this.proveAndClearPendingCommitPushBatch(
+      repository,
+      pending,
+      isBackgroundTask
+    )
     await this._refreshRepository(repository)
   }
 
@@ -6024,13 +6096,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // later commit is impossible until the preceding push is proven.
     pushAfterCommit: boolean = false,
     // Scheduled automation remains fenced until each irreversible commit.
-    canStartCommit: () => boolean = () => true
+    canStartCommit: () => boolean = () => true,
+    // Automated commit/push sequences must never summon credential UI.
+    isBackgroundTask: boolean = false
   ): Promise<boolean> {
     await this.assertTemporaryRepositoryIsSafe(repository)
     if (!this.isTemporaryRepositoryActive(repository) || !canStartCommit()) {
       return false
     }
-    await this.resumePendingCommitPushBatch(repository)
+    if (pushAfterCommit) {
+      repository = await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        isBackgroundTask
+      )
+    }
+    await this.resumePendingCommitPushBatch(repository, isBackgroundTask)
     if (!this.isTemporaryRepositoryActive(repository) || !canStartCommit()) {
       return false
     }
@@ -6321,7 +6401,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             repository,
             destination.remote,
             accountKey,
-            { onHookFailure: async () => 'abort' },
+            { onHookFailure: async () => 'abort', isBackgroundTask },
             true
           )
         })
@@ -6351,110 +6431,133 @@ export class AppStore extends TypedBaseStore<IAppState> {
                   batchPaths.has(file.relativePath)
                 ),
               ]
-        const commitResult = await gitStore.performFailableOperation(
-          async () => {
-            let aborted = false
-            return this.withTemporaryRepositoryMutationGuard(
-              repository,
-              async () => {
-                const expectedParentSha: string | null | undefined =
-                  requiresPush
-                    ? await captureCommitPushBatchBase(repository)
-                    : undefined
-                const pushTarget =
-                  expectedParentSha === undefined
-                    ? undefined
-                    : await this.captureCommitPushBatchTarget(repository)
-                let intent: ICommitPushBatchIntent | null = null
-                let result: string | undefined
-                try {
-                  result = await createCommit(
-                    repository,
-                    message,
-                    batch.items,
-                    {
-                      amend: context.amend,
-                      onHookProgress: this.onHookProgress(repository),
-                      onHookFailure: this.onHookFailure(() => (aborted = true)),
-                      onTerminalOutputAvailable: subscribeToCommitOutput => {
-                        if (!this.isTemporaryRepositoryActive(repository)) {
-                          return
-                        }
-                        this.repositoryStateCache.update(repository, state => ({
-                          ...state,
-                          subscribeToCommitOutput,
-                        }))
-                      },
-                      noVerify: state.skipCommitHooks,
-                      signOff: state.signOffCommits,
-                      allowEmpty: state.allowEmptyCommit,
-                      onCommitIndexPrepared:
-                        expectedParentSha === undefined ||
-                        pushTarget === undefined
-                          ? undefined
-                          : async () => {
-                              intent = await beginCommitPushBatchIntent(
-                                repository,
-                                expectedParentSha,
-                                batch.paths,
-                                pushTarget,
-                                requiredCommitFiles
-                              )
-                            },
-                      onRecoveredPostCommitFailure: () =>
-                        this.postCommitMaintenanceWarning(repository),
-                      requiredFiles:
-                        requiredCommitFiles.length === 0
-                          ? undefined
-                          : requiredCommitFiles,
-                      // A multi-batch commit suppresses background auto-gc /
-                      // auto-maintenance so a long repack cannot fire between
-                      // batches; a single repack runs once after the sequence.
-                      disableAutoMaintenance: batches.length > 1,
+        const performCommitOperation = async () => {
+          let aborted = false
+          return this.withTemporaryRepositoryMutationGuard(
+            repository,
+            async () => {
+              const expectedParentSha: string | null | undefined = requiresPush
+                ? await captureCommitPushBatchBase(repository)
+                : undefined
+              const pushTarget =
+                expectedParentSha === undefined
+                  ? undefined
+                  : await this.captureCommitPushBatchTarget(
+                      repository,
+                      isBackgroundTask
+                    )
+              let intent: ICommitPushBatchIntent | null = null
+              let result: string | undefined
+              try {
+                result = await createCommit(repository, message, batch.items, {
+                  amend: context.amend,
+                  onHookProgress: this.onHookProgress(repository),
+                  onHookFailure: isBackgroundTask
+                    ? async () => {
+                        aborted = true
+                        return 'abort'
+                      }
+                    : this.onHookFailure(() => (aborted = true)),
+                  onTerminalOutputAvailable: subscribeToCommitOutput => {
+                    if (!this.isTemporaryRepositoryActive(repository)) {
+                      return
                     }
+                    this.repositoryStateCache.update(repository, state => ({
+                      ...state,
+                      subscribeToCommitOutput,
+                    }))
+                  },
+                  noVerify: isBackgroundTask || state.skipCommitHooks,
+                  signOff: state.signOffCommits,
+                  allowEmpty: state.allowEmptyCommit,
+                  isBackgroundTask,
+                  onCommitIndexPrepared:
+                    expectedParentSha === undefined || pushTarget === undefined
+                      ? undefined
+                      : async () => {
+                          intent = await beginCommitPushBatchIntent(
+                            repository,
+                            expectedParentSha,
+                            batch.paths,
+                            pushTarget,
+                            requiredCommitFiles
+                          )
+                        },
+                  onRecoveredPostCommitFailure: () =>
+                    this.postCommitMaintenanceWarning(repository),
+                  requiredFiles:
+                    requiredCommitFiles.length === 0
+                      ? undefined
+                      : requiredCommitFiles,
+                  // A multi-batch commit suppresses background auto-gc /
+                  // auto-maintenance so a long repack cannot fire between
+                  // batches; a single repack runs once after the sequence.
+                  disableAutoMaintenance: batches.length > 1,
+                })
+              } catch (error) {
+                if (intent !== null) {
+                  // This succeeds only when both the branch and HEAD still
+                  // equal the stored pre-commit identities. A transition is
+                  // retained for recovery instead of being misclassified.
+                  await clearCommitPushBatchIntentAfterNoCommit(
+                    repository,
+                    intent
                   )
-                } catch (error) {
-                  if (intent !== null) {
-                    // This succeeds only when both the branch and HEAD still
-                    // equal the stored pre-commit identities. A transition is
-                    // retained for recovery instead of being misclassified.
-                    await clearCommitPushBatchIntentAfterNoCommit(
-                      repository,
-                      intent
-                    )
-                  }
-                  if (aborted) {
-                    return undefined
-                  }
-                  throw error
                 }
-                if (result === undefined) {
-                  if (intent !== null) {
-                    await clearCommitPushBatchIntentAfterNoCommit(
-                      repository,
-                      intent
-                    )
-                  }
+                if (aborted) {
                   return undefined
                 }
-
-                if (intent !== null) {
-                  const recovery = await recoverCommitPushBatchIntent(
-                    repository
-                  )
-                  if (recovery.kind !== 'recovered-commit') {
-                    throw new CommitPushBatchError(
-                      'stale-commit',
-                      'The created automatic commit did not match its durable pre-commit intent.'
-                    )
-                  }
-                }
-                return result
+                throw error
               }
-            )
-          },
-          { gitContext: { kind: 'commit' }, repository }
-        )
+              if (result === undefined) {
+                if (intent !== null) {
+                  await clearCommitPushBatchIntentAfterNoCommit(
+                    repository,
+                    intent
+                  )
+                }
+                return undefined
+              }
+
+              if (intent !== null) {
+                const recovery = await recoverCommitPushBatchIntent(repository)
+                if (recovery.kind !== 'recovered-commit') {
+                  throw new CommitPushBatchError(
+                    'stale-commit',
+                    'The created automatic commit did not match its durable pre-commit intent.'
+                  )
+                }
+              }
+              return result
+            }
+          )
+        }
+        const commitResult = isBackgroundTask
+          ? await performCommitOperation().catch(error => {
+              const detail =
+                error instanceof Error
+                  ? error.message
+                  : 'The unattended commit failed.'
+              log.error(
+                'An unattended commit failed without opening UI.',
+                error
+              )
+              this.postNotification({
+                kind: 'app-error',
+                title: 'Scheduled commit failed',
+                body: detail.slice(0, 600),
+                repositoryId: repository.id,
+                action: {
+                  kind: 'open-repository',
+                  repositoryId: repository.id,
+                },
+              })
+              return undefined
+            })
+          : await gitStore.performFailableOperation(performCommitOperation, {
+              gitContext: { kind: 'commit' },
+              repository,
+            })
 
         if (commitResult === undefined) {
           // Hooks or a rejected post-commit proof may have changed the index or
@@ -6491,11 +6594,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 'The automatic commit batch lost its pending push checkpoint.'
               )
             }
-            const pushed = await this.performScheduledPush(repository, null)
+            const pushed = await this.performScheduledPush(
+              repository,
+              null,
+              isBackgroundTask
+            )
             if (!pushed) {
               return false
             }
-            await this.proveAndClearPendingCommitPushBatch(repository, pending)
+            await this.proveAndClearPendingCommitPushBatch(
+              repository,
+              pending,
+              isBackgroundTask
+            )
             return true
           },
           onProgress: (phase, _batch, index) => {
@@ -7220,22 +7331,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * of the current branch to its upstream tracking branch.
    */
   private fetchForRepositoryIndicator(repo: Repository) {
-    return this.withRefreshedGitHubRepository(repo, async repo => {
-      const isBackgroundTask = true
-      const gitStore = this.gitStoreCache.get(repo)
-      const accountKey = getRepositoryCredentialAccountKey(this.accounts, repo)
-
-      await this.withPushPullFetch(repo, () =>
-        gitStore.fetch(
-          isBackgroundTask,
-          progress => this.updatePushPullFetchProgress(repo, progress),
-          accountKey
+    return this.withCanonicalRemoteForNetwork(
+      repo,
+      true,
+      async repo => {
+        const isBackgroundTask = true
+        const gitStore = this.gitStoreCache.get(repo)
+        const accountKey = getRepositoryCredentialAccountKey(
+          this.accounts,
+          repo
         )
-      )
-      this.updatePushPullFetchProgress(repo, null)
 
-      return gitStore.aheadBehind
-    })
+        await this.withPushPullFetch(repo, () =>
+          gitStore.fetch(
+            isBackgroundTask,
+            progress => this.updatePushPullFetchProgress(repo, progress),
+            accountKey
+          )
+        )
+        this.updatePushPullFetchProgress(repo, null)
+
+        return gitStore.aheadBehind
+      },
+      true
+    )
   }
 
   public _setRepositoryIndicatorsEnabled(repositoryIndicatorsEnabled: boolean) {
@@ -8416,7 +8535,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private async repositoryWithRefreshedGitHubRepository(
     repository: Repository,
-    persistResolvedAccount = true
+    persistResolvedAccount = true,
+    refreshBranchProtections = true,
+    requireCanonicalRemote = false
   ): Promise<Repository> {
     if (isSubmoduleRepository(repository)) {
       return repository
@@ -8432,10 +8553,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return repository
     }
 
-    const { account, apiRepository: apiRepo } = match
+    const { account, apiRepository: apiRepo, remote: matchedRemote } = match
     const { endpoint } = account
 
     if (apiRepo === null) {
+      if (requireCanonicalRemote) {
+        throw new Error(
+          'GitHub could not verify the configured repository URL before the network operation.'
+        )
+      }
       // If the request fails, we want to preserve the existing GitHub
       // repository info. But if we didn't have a GitHub repository already or
       // the endpoint changed, the skeleton repository is better than nothing.
@@ -8447,9 +8573,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
       return repository
     }
 
-    if (repository.gitHubRepository) {
-      const gitStore = this.gitStoreCache.get(repository)
-      await updateRemoteUrl(gitStore, repository.gitHubRepository, apiRepo)
+    const gitStore = this.gitStoreCache.get(repository)
+    const remoteUpdate = await updateRemoteUrl(gitStore, matchedRemote, apiRepo)
+    if (remoteUpdate !== 'updated' && remoteUpdate !== 'unchanged') {
+      log.warn(
+        `Could not prove the canonical URL for transferred repository remote '${matchedRemote.name}' (${remoteUpdate}). The next provider refresh will retry.`
+      )
+      if (requireCanonicalRemote) {
+        throw new Error(
+          'Git could not safely verify or update the transferred repository URL.'
+        )
+      }
     }
 
     const accountBoundRepository =
@@ -8465,7 +8599,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       ghRepo
     )
 
-    await this.refreshBranchProtectionState(freshRepo)
+    if (refreshBranchProtections) {
+      await this.refreshBranchProtectionState(freshRepo)
+    }
     return freshRepo
   }
 
@@ -8558,7 +8694,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private async matchGitHubRepository(
     repository: Repository
-  ): Promise<IResolvedGitHubRepositoryMatch | null> {
+  ): Promise<
+    (IResolvedGitHubRepositoryMatch & { readonly remote: IRemote }) | null
+  > {
     const gitStore = this.gitStoreCache.get(repository)
 
     if (!gitStore.defaultRemote) {
@@ -8566,15 +8704,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     const remote = gitStore.defaultRemote
-    return remote === null
-      ? null
-      : resolveGitHubRepositoryMatch(
-          this.accounts,
-          remote.url,
-          repository.accountKey,
-          (account, owner, name) =>
-            API.fromAccount(account).fetchRepository(owner, name)
-        )
+    if (remote === null) {
+      return null
+    }
+
+    const match = await resolveGitHubRepositoryMatch(
+      this.accounts,
+      remote.url,
+      repository.accountKey,
+      (account, owner, name) =>
+        API.fromAccount(account).fetchRepository(owner, name)
+    )
+
+    return match === null ? null : { ...match, remote }
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -9738,9 +9880,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     options?: PushOptions
   ): Promise<void> {
-    return this.withRefreshedGitHubRepository(repository, repository => {
-      return this.performPush(repository, options)
-    })
+    return this.withCanonicalRemoteForNetwork(repository, false, repository =>
+      this.performPush(repository, options)
+    )
   }
 
   private getBranchToPush(
@@ -9809,11 +9951,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remote,
       remoteBranchRef: `refs/heads/${remoteBranchName}`,
       accountKey,
+      isBackgroundTask: options?.isBackgroundTask,
       hookOptions: {
         onHookProgress: options?.onHookProgress,
         onHookFailure: options?.onHookFailure,
         onTerminalOutputAvailable: options?.onTerminalOutputAvailable,
       },
+      skipPushHooks: options?.isBackgroundTask === true,
     })
     const prepared = await session.prepare((_paths, index, total) =>
       t('push.commitBatch.message', {
@@ -10101,7 +10245,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async deployDockerAfterPush(
     repository: Repository,
     remoteName: string,
-    branchName: string
+    branchName: string,
+    isBackgroundTask: boolean = false
   ): Promise<void> {
     const deployments = loadSSHDockerDeploymentsForPush(
       repository.path,
@@ -10148,7 +10293,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           'deploy',
           pushedRemoteUrl,
           undefined,
-          branchName
+          branchName,
+          isBackgroundTask
         )
         this.postNotification({
           kind: 'info',
@@ -10368,9 +10514,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public async _pull(repository: Repository): Promise<void> {
-    return this.withRefreshedGitHubRepository(repository, repository => {
-      return this.performPull(repository)
-    })
+    return this.withCanonicalRemoteForNetwork(repository, false, repository =>
+      this.performPull(repository)
+    )
   }
 
   /** Integrate only the exact upstream object accepted in a pull preview. */
@@ -10378,110 +10524,116 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     prepared: IPreparedPullPreview
   ): Promise<void> {
-    return this.withRefreshedGitHubRepository(repository, repository => {
-      return this.performPull(repository, prepared)
-    })
+    return this.withCanonicalRemoteForNetwork(repository, false, repository =>
+      this.performPull(repository, prepared)
+    )
   }
 
   /** Fetch and build a bounded, non-mutating review of the current pull. */
   public async _preparePullPreview(
     repository: Repository
   ): Promise<IPreparedPullPreview> {
-    return this.withRefreshedGitHubRepository(repository, async repository => {
-      // The branch, upstream, and remote are the security boundary for this
-      // review. Refresh them before capturing the preflight identity instead
-      // of trusting whichever repository state happened to be cached.
-      await this._refreshRepository(repository)
-      await this.getFreshPullPreviewWorktreeState(repository)
+    return this.withCanonicalRemoteForNetwork(
+      repository,
+      false,
+      async repository => {
+        // The branch, upstream, and remote are the security boundary for this
+        // review. Refresh them before capturing the preflight identity instead
+        // of trusting whichever repository state happened to be cached.
+        await this._refreshRepository(repository)
+        await this.getFreshPullPreviewWorktreeState(repository)
 
-      const gitStore = this.gitStoreCache.get(repository)
-      const tip = gitStore.tip
-      let result: PullPreviewResult
-      let integrationPlan: IPullStrategyPlan | null = null
+        const gitStore = this.gitStoreCache.get(repository)
+        const tip = gitStore.tip
+        let result: PullPreviewResult
+        let integrationPlan: IPullStrategyPlan | null = null
 
-      // Preflight only the source relationship. The tracking ref itself may not
-      // exist until the first fetch, so the full preview must be built afterwards.
-      if (tip.kind === TipState.Detached) {
-        result = { kind: 'unavailable', reason: 'detached-head' }
-      } else if (tip.kind !== TipState.Valid) {
-        result = { kind: 'unavailable', reason: 'invalid-state' }
-      } else if (tip.branch.upstream === null) {
-        result = { kind: 'unavailable', reason: 'no-upstream' }
-      } else {
-        const upstreamRemoteName = tip.branch.upstreamRemoteName
-        const remote =
-          upstreamRemoteName === null
-            ? undefined
-            : gitStore.remotes.find(
-                candidate => candidate.name === upstreamRemoteName
-              )
-        if (remote === undefined) {
-          throw new PullPreviewError('remote-unavailable')
-        }
+        // Preflight only the source relationship. The tracking ref itself may not
+        // exist until the first fetch, so the full preview must be built afterwards.
+        if (tip.kind === TipState.Detached) {
+          result = { kind: 'unavailable', reason: 'detached-head' }
+        } else if (tip.kind !== TipState.Valid) {
+          result = { kind: 'unavailable', reason: 'invalid-state' }
+        } else if (tip.branch.upstream === null) {
+          result = { kind: 'unavailable', reason: 'no-upstream' }
+        } else {
+          const upstreamRemoteName = tip.branch.upstreamRemoteName
+          const remote =
+            upstreamRemoteName === null
+              ? undefined
+              : gitStore.remotes.find(
+                  candidate => candidate.name === upstreamRemoteName
+                )
+          if (remote === undefined) {
+            throw new PullPreviewError('remote-unavailable')
+          }
 
-        const preflightCurrentBranchRef = tip.branch.ref
-        const preflightCurrentBranchOid = tip.branch.tip.sha
-        const preflightUpstreamRef = `refs/remotes/${tip.branch.upstream}`
+          const preflightCurrentBranchRef = tip.branch.ref
+          const preflightCurrentBranchOid = tip.branch.tip.sha
+          const preflightUpstreamRef = `refs/remotes/${tip.branch.upstream}`
 
-        if (!preflightUpstreamRef.startsWith(`refs/remotes/${remote.name}/`)) {
-          throw new PullPreviewError('remote-unavailable')
-        }
+          if (
+            !preflightUpstreamRef.startsWith(`refs/remotes/${remote.name}/`)
+          ) {
+            throw new PullPreviewError('remote-unavailable')
+          }
 
-        try {
-          await this.performPullPreviewFetch(repository, remote)
-        } catch (error) {
-          if (error instanceof PullPreviewError) {
+          try {
+            await this.performPullPreviewFetch(repository, remote)
+          } catch (error) {
+            if (error instanceof PullPreviewError) {
+              throw error
+            }
+            log.error('Failed to fetch the pull preview', error)
+            throw new PullPreviewError('fetch-failed')
+          }
+          result = await getPullPreview(repository, {
+            maxIncomingCommits: 25,
+            maxChangedFiles: 100,
+          })
+
+          // Fetching may race an external checkout/configuration change. Never
+          // display a summary for a different branch or upstream than the one
+          // whose configured remote was fetched above.
+          if (
+            result.kind !== 'ready' ||
+            result.currentBranchRef !== preflightCurrentBranchRef ||
+            result.currentBranchOid !== preflightCurrentBranchOid ||
+            result.upstreamRef !== preflightUpstreamRef
+          ) {
+            throw new PullPreviewError('stale-preview')
+          }
+
+          try {
+            integrationPlan = await getPullStrategyPlan(
+              repository,
+              result.currentBranchRef,
+              result.ahead,
+              result.behind
+            )
+          } catch (error) {
+            if (error instanceof PullStrategyError) {
+              throw new PullPreviewError('invalid-config')
+            }
             throw error
           }
-          log.error('Failed to fetch the pull preview', error)
-          throw new PullPreviewError('fetch-failed')
-        }
-        result = await getPullPreview(repository, {
-          maxIncomingCommits: 25,
-          maxChangedFiles: 100,
-        })
-
-        // Fetching may race an external checkout/configuration change. Never
-        // display a summary for a different branch or upstream than the one
-        // whose configured remote was fetched above.
-        if (
-          result.kind !== 'ready' ||
-          result.currentBranchRef !== preflightCurrentBranchRef ||
-          result.currentBranchOid !== preflightCurrentBranchOid ||
-          result.upstreamRef !== preflightUpstreamRef
-        ) {
-          throw new PullPreviewError('stale-preview')
         }
 
-        try {
-          integrationPlan = await getPullStrategyPlan(
-            repository,
-            result.currentBranchRef,
-            result.ahead,
-            result.behind
-          )
-        } catch (error) {
-          if (error instanceof PullStrategyError) {
-            throw new PullPreviewError('invalid-config')
-          }
-          throw error
+        // The refresh surface reports ordinary errors through GitStore and can
+        // leave its previous cache intact. Gate the review on the exact status
+        // object returned by a new disk read so cached "clean" state can never
+        // enable a pull after a failed refresh.
+        const worktreeState = await this.getFreshPullPreviewWorktreeState(
+          repository
+        )
+
+        return {
+          result,
+          integrationPlan,
+          worktreeState,
         }
       }
-
-      // The refresh surface reports ordinary errors through GitStore and can
-      // leave its previous cache intact. Gate the review on the exact status
-      // object returned by a new disk read so cached "clean" state can never
-      // enable a pull after a failed refresh.
-      const worktreeState = await this.getFreshPullPreviewWorktreeState(
-        repository
-      )
-
-      return {
-        result,
-        integrationPlan,
-        worktreeState,
-      }
-    })
+    )
   }
 
   /** Return only a worktree classification proven by a fresh status read. */
@@ -11792,18 +11944,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     refspec: string
   ): Promise<void> {
-    return this.withRefreshedGitHubRepository(repository, async repository => {
-      const gitStore = this.gitStoreCache.get(repository)
-      const accountKey = getRepositoryCredentialAccountKey(
-        this.accounts,
-        repository
-      )
-      await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        gitStore.fetchRefspec(refspec, accountKey)
-      )
+    return this.withCanonicalRemoteForNetwork(
+      repository,
+      false,
+      async repository => {
+        const gitStore = this.gitStoreCache.get(repository)
+        const accountKey = getRepositoryCredentialAccountKey(
+          this.accounts,
+          repository
+        )
+        await this.withTemporaryRepositoryMutationGuard(repository, () =>
+          gitStore.fetchRefspec(refspec, accountKey)
+        )
 
-      return this._refreshRepository(repository)
-    })
+        return this._refreshRepository(repository)
+      }
+    )
   }
 
   /**
@@ -11815,9 +11971,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * if _any_ fetches or pulls are currently in-progress.
    */
   public _fetch(repository: Repository, fetchType: FetchType): Promise<void> {
-    return this.withRefreshedGitHubRepository(repository, repository => {
-      return this.performFetch(repository, fetchType)
-    })
+    return this.withCanonicalRemoteForNetwork(
+      repository,
+      fetchType === FetchType.BackgroundTask,
+      repository => this.performFetch(repository, fetchType),
+      fetchType === FetchType.BackgroundTask
+    )
   }
 
   /**
@@ -11831,9 +11990,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
     remote: IRemote,
     fetchType: FetchType
   ): Promise<void> {
-    return this.withRefreshedGitHubRepository(repository, repository => {
-      return this.performFetch(repository, fetchType, [remote])
-    })
+    return this.withCanonicalRemoteForNetwork(
+      repository,
+      fetchType === FetchType.BackgroundTask,
+      repository => {
+        const refreshedRemote = this.gitStoreCache
+          .get(repository)
+          .remotes.find(candidate => candidate.name === remote.name)
+        if (refreshedRemote === undefined) {
+          throw new Error('The selected fetch remote is no longer configured.')
+        }
+        return this.performFetch(repository, fetchType, [refreshedRemote])
+      },
+      fetchType === FetchType.BackgroundTask
+    )
   }
 
   /**
@@ -14578,6 +14748,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       remote,
       remoteBranchRef,
       accountKey: getRepositoryCredentialAccountKey(this.accounts, repository),
+      isBackgroundTask: true,
       // App-generated, single-file, and unattended: a `pre-push` hook that
       // waits on a prompt nobody is watching would hang this background task
       // forever. The user's own reviewed push still runs every hook.
@@ -14633,12 +14804,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
     await git(
       ['add', '--', CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH],
       repository.path,
-      'stageCheapLfsCloudCompressionWorkflow'
+      'stageCheapLfsCloudCompressionWorkflow',
+      { isBackgroundTask: true }
     )
     const commit = await git(
       [
         'commit',
         '--no-verify',
+        '--no-gpg-sign',
         '-m',
         CheapLfsWorkflowInstallCommitMessage,
         '--',
@@ -14646,7 +14819,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       ],
       repository.path,
       'commitCheapLfsCloudCompressionWorkflow',
-      { successExitCodes: new Set([0, 1]) }
+      { successExitCodes: new Set([0, 1]), isBackgroundTask: true }
     )
     if (commit.exitCode !== 0) {
       return null
@@ -15680,6 +15853,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           this.accounts,
           repository
         ),
+        // This probe supports app-managed release storage and must fail closed
+        // without opening credential or SSH UI.
+        isBackgroundTask: true,
       })
       return {
         ...base,
@@ -15793,6 +15969,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           this.accounts,
           repository
         ),
+        isBackgroundTask: true,
         // This anchor is an app-generated, create-only ref publication the user
         // never authored, so it does not run their `pre-push` hook. Their own
         // reviewed push still runs every hook. Without this, any repository
@@ -15881,8 +16058,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
               [],
               {
                 allowEmpty: true,
-                onHookProgress: this.onHookProgress(repository),
-                onHookFailure: this.onHookFailure(() => (aborted = true)),
+                noVerify: true,
+                isBackgroundTask: true,
+                onHookFailure: async () => {
+                  aborted = true
+                  return 'abort'
+                },
               }
             )
           } catch (error) {
@@ -17129,6 +17310,111 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     return fn(updatedRepository)
+  }
+
+  /**
+   * Resolve provider metadata before Git talks to a remote. This is deliberately
+   * separate from withRefreshedGitHubRepository: that older helper also wraps
+   * local-only actions, where an API round trip would be surprising and wasteful.
+   */
+  private async repositoryWithCanonicalRemoteForNetwork(
+    repository: Repository,
+    isBackgroundTask: boolean,
+    allowUnverifiedRemote: boolean = false
+  ): Promise<Repository> {
+    if (isSubmoduleRepository(repository)) {
+      return repository
+    }
+
+    const latestRepository =
+      this.repositories.find(
+        candidate =>
+          candidate.id === repository.id &&
+          candidate.path.toLowerCase() === repository.path.toLowerCase()
+      ) ?? repository
+    const defaultRemote = this.gitStoreCache.get(latestRepository).defaultRemote
+    const key = JSON.stringify([
+      latestRepository.id,
+      latestRepository.path.toLowerCase(),
+      defaultRemote?.name ?? null,
+      defaultRemote?.url ?? null,
+    ])
+    const refreshedAt = this.remoteCanonicalizedAt.get(key)
+    if (
+      isBackgroundTask &&
+      allowUnverifiedRemote &&
+      refreshedAt !== undefined &&
+      Date.now() - refreshedAt < BackgroundRemoteCanonicalizationInterval
+    ) {
+      return latestRepository
+    }
+
+    const existing = this.remoteCanonicalizationRefreshes.get(key)
+    if (existing !== undefined) {
+      try {
+        return await existing
+      } catch (error) {
+        if (!allowUnverifiedRemote) {
+          throw error
+        }
+        log.warn(
+          `Could not refresh the canonical remote for background check '${latestRepository.name}'. Continuing without a remote mutation.`,
+          error
+        )
+        return latestRepository
+      }
+    }
+
+    const refresh = this.repositoryWithRefreshedGitHubRepository(
+      latestRepository,
+      true,
+      false,
+      true
+    )
+      .then(result => {
+        this.remoteCanonicalizedAt.set(key, Date.now())
+        return result
+      })
+      .finally(() => {
+        if (this.remoteCanonicalizationRefreshes.get(key) === refresh) {
+          this.remoteCanonicalizationRefreshes.delete(key)
+        }
+      })
+
+    this.remoteCanonicalizationRefreshes.set(key, refresh)
+    try {
+      return await refresh
+    } catch (error) {
+      if (!allowUnverifiedRemote) {
+        throw error
+      }
+      // Only non-mutating background checks are fail-soft. Pushes, pulls, and
+      // explicit operations must stop when the destination is not proven.
+      log.warn(
+        `Could not refresh the canonical remote for background check '${latestRepository.name}'. Continuing without a remote mutation.`,
+        error
+      )
+      return latestRepository
+    }
+  }
+
+  private async withCanonicalRemoteForNetwork<T>(
+    repository: Repository,
+    isBackgroundTask: boolean,
+    fn: (repository: Repository) => Promise<T>,
+    allowUnverifiedRemote: boolean = false
+  ): Promise<T> {
+    if (isSubmoduleRepository(repository)) {
+      return this.withRefreshedGitHubRepository(repository, fn)
+    }
+
+    const refreshedRepository =
+      await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        isBackgroundTask,
+        allowUnverifiedRemote
+      )
+    return fn(refreshedRepository)
   }
 
   private updateRevertProgress(

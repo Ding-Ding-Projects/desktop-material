@@ -2,7 +2,9 @@ import * as React from 'react'
 import classNames from 'classnames'
 
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
+import { MaxRegexPatternLength } from '../../lib/safe-regex'
 import {
+  getNotificationTitlePatternError,
   INotificationAutomationRule,
   NotificationAutomationAction,
   SAFE_NOTIFICATION_ARG,
@@ -41,6 +43,8 @@ const kindLabels: Readonly<Record<NotificationCentreKind, string>> = {
 const allKinds = Object.keys(
   kindLabels
 ) as ReadonlyArray<NotificationCentreKind>
+
+let nextNotificationAutomationsDialogInstanceId = 1
 
 /** The placeholders a template may reference, shown in the body/legend copy. */
 const templatePlaceholders = [
@@ -93,6 +97,11 @@ interface INotificationAutomationsDialogState {
   readonly draft: IRuleDraft | null
   readonly error: string | null
   readonly regexBuilderOpen: boolean
+}
+
+interface IVisibleRuleSearch {
+  readonly rules: ReadonlyArray<INotificationAutomationRule>
+  readonly regexError: string | null
 }
 
 /** Build a blank draft, defaulting the repository scope to the opening entry. */
@@ -155,6 +164,7 @@ export class NotificationAutomationsDialog extends React.Component<
   INotificationAutomationsDialogState
 > {
   private mounted = false
+  private readonly ruleRowIdPrefix = `notification-automation-row-${nextNotificationAutomationsDialogInstanceId++}`
 
   public constructor(props: INotificationAutomationsDialogProps) {
     super(props)
@@ -186,12 +196,12 @@ export class NotificationAutomationsDialog extends React.Component<
     }
   }
 
-  private get visibleRules(): ReadonlyArray<INotificationAutomationRule> {
+  private get visibleRuleSearch(): IVisibleRuleSearch {
     const query = this.state.query.trim()
     if (query.length === 0) {
-      return this.state.rules
+      return { rules: this.state.rules, regexError: null }
     }
-    const { results } = matchWithMode(
+    const { results, regexError } = matchWithMode(
       query,
       this.state.rules,
       rule => [rule.name],
@@ -200,7 +210,7 @@ export class NotificationAutomationsDialog extends React.Component<
         caseSensitive: this.state.queryCaseSensitive,
       }
     )
-    return results.map(match => match.item)
+    return { rules: results.map(match => match.item), regexError }
   }
 
   private onQueryChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -246,6 +256,16 @@ export class NotificationAutomationsDialog extends React.Component<
     rule: INotificationAutomationRule,
     enabled: boolean
   ) => {
+    const titlePatternError = getNotificationTitlePatternError(
+      rule.titlePattern
+    )
+    if (enabled && titlePatternError !== null) {
+      this.setState({
+        error: `Edit “${rule.name}” before arming it. Its saved title pattern is outside the safe RE2 dialect: ${titlePatternError}`,
+      })
+      return
+    }
+
     // Reflect the arm/disarm optimistically; the store persists it for this
     // session but re-clamps to disabled on the next load (untrusted-on-load).
     this.setState(state => ({
@@ -403,6 +423,16 @@ export class NotificationAutomationsDialog extends React.Component<
       return
     }
 
+    const titlePattern = draft.titlePattern
+    const hasTitlePattern = titlePattern.trim().length > 0
+    if (hasTitlePattern) {
+      const titlePatternError = getNotificationTitlePatternError(titlePattern)
+      if (titlePatternError !== null) {
+        this.setState({ error: titlePatternError })
+        return
+      }
+    }
+
     let action: NotificationAutomationAction
     if (draft.actionType === 'webhook') {
       const urlError = validateWebhookUrl(draft.url.trim())
@@ -440,9 +470,7 @@ export class NotificationAutomationsDialog extends React.Component<
       ...(draft.repositoryId !== null
         ? { repositoryId: draft.repositoryId }
         : {}),
-      ...(draft.titlePattern.trim().length > 0
-        ? { titlePattern: draft.titlePattern }
-        : {}),
+      ...(hasTitlePattern ? { titlePattern } : {}),
     }
 
     await this.props.dispatcher.saveNotificationAutomationRule(rule)
@@ -487,7 +515,8 @@ export class NotificationAutomationsDialog extends React.Component<
       )
     }
 
-    const rules = this.visibleRules
+    const { rules, regexError } = this.visibleRuleSearch
+    const queryErrorId = `${this.ruleRowIdPrefix}-query-error`
     return (
       <div className="notification-automations-list-section">
         <div className="notification-automations-filter-bar">
@@ -498,6 +527,8 @@ export class NotificationAutomationsDialog extends React.Component<
               type="search"
               value={this.state.query}
               aria-label="Search automations by name"
+              aria-invalid={regexError !== null}
+              aria-describedby={regexError === null ? undefined : queryErrorId}
               placeholder="Automation name"
               onChange={this.onQueryChange}
             />
@@ -514,6 +545,15 @@ export class NotificationAutomationsDialog extends React.Component<
             onRegexPatternApply={this.onQueryPatternApply}
           />
         </div>
+        {regexError === null ? null : (
+          <p
+            id={queryErrorId}
+            className="notification-automations-inline-error"
+            role="alert"
+          >
+            {regexError}
+          </p>
+        )}
         {rules.length === 0 ? (
           <div className="notification-automations-empty">
             <Octicon symbol={octicons.workflow} />
@@ -525,7 +565,7 @@ export class NotificationAutomationsDialog extends React.Component<
           </div>
         ) : (
           <ul className="notification-automations-list">
-            {rules.map(rule => this.renderRuleRow(rule))}
+            {rules.map((rule, index) => this.renderRuleRow(rule, index))}
           </ul>
         )}
         <div className="notification-automations-list-actions">
@@ -537,10 +577,22 @@ export class NotificationAutomationsDialog extends React.Component<
     )
   }
 
-  private renderRuleRow(rule: INotificationAutomationRule) {
+  private renderRuleRow(
+    rule: INotificationAutomationRule,
+    visibleIndex: number
+  ) {
+    const titlePatternError = getNotificationTitlePatternError(
+      rule.titlePattern
+    )
+    // Rule ids come from persisted, imported user data and are not suitable as
+    // DOM ids or React keys. The dialog-local row identity remains valid even
+    // when persisted ids contain whitespace or are duplicated.
+    const rowId = `${this.ruleRowIdPrefix}-${visibleIndex}`
+    const patternStatusId = `${rowId}-pattern-warning`
     return (
       <li
-        key={rule.id}
+        key={rowId}
+        id={rowId}
         className={classNames('notification-automation-row', {
           armed: rule.enabled,
         })}
@@ -550,6 +602,9 @@ export class NotificationAutomationsDialog extends React.Component<
             type="checkbox"
             role="switch"
             checked={rule.enabled}
+            aria-describedby={
+              titlePatternError === null ? undefined : patternStatusId
+            }
             aria-label={
               rule.enabled
                 ? `Disarm automation: ${rule.name}`
@@ -566,20 +621,32 @@ export class NotificationAutomationsDialog extends React.Component<
           <span className="notification-automation-summary">
             {this.renderRuleSummary(rule)}
           </span>
-          <span
-            className={classNames('notification-automation-state', {
-              armed: rule.enabled,
-            })}
-          >
-            {rule.enabled ? (
-              <>
-                <Octicon symbol={octicons.alert} /> Armed — runs automatically
-                when a matching notification arrives
-              </>
-            ) : (
-              'Disabled'
-            )}
-          </span>
+          {titlePatternError !== null ? (
+            <span
+              id={patternStatusId}
+              className="notification-automation-state pattern-warning"
+              role="status"
+            >
+              <Octicon symbol={octicons.alert} /> Pattern needs review before
+              this automation can be armed. Choose Edit to migrate it to safe
+              RE2.
+            </span>
+          ) : (
+            <span
+              className={classNames('notification-automation-state', {
+                armed: rule.enabled,
+              })}
+            >
+              {rule.enabled ? (
+                <>
+                  <Octicon symbol={octicons.alert} /> Armed — runs automatically
+                  when a matching notification arrives
+                </>
+              ) : (
+                'Disabled'
+              )}
+            </span>
+          )}
         </div>
         <div className="notification-automation-row-actions">
           {/* eslint-disable-next-line react/jsx-no-bind */}
@@ -596,6 +663,12 @@ export class NotificationAutomationsDialog extends React.Component<
   }
 
   private renderTrigger(draft: IRuleDraft) {
+    const titlePattern = draft.titlePattern
+    const titlePatternError =
+      titlePattern.trim().length === 0
+        ? null
+        : getNotificationTitlePatternError(titlePattern)
+
     return (
       <fieldset className="notification-automations-fieldset">
         <legend>Trigger</legend>
@@ -645,23 +718,36 @@ export class NotificationAutomationsDialog extends React.Component<
           </select>
         </label>
         <label className="notification-automations-field">
-          <span>Title pattern (optional)</span>
+          <span>Safe RE2 title pattern (optional)</span>
           <div className="notification-automations-pattern-row">
             <input
               type="text"
               value={draft.titlePattern}
               placeholder="Substring or regular expression"
               aria-label="Title pattern"
+              aria-invalid={titlePatternError !== null}
+              aria-describedby="notification-automation-title-pattern-help"
+              maxLength={MaxRegexPatternLength}
               onChange={this.onTitlePatternChange}
             />
             <Button type="button" onClick={this.onOpenRegexBuilder}>
               Regex builder
             </Button>
           </div>
-          <small>
-            Matched as a regular expression; plain text also works as a
-            substring.
-          </small>
+          {titlePatternError === null ? (
+            <small id="notification-automation-title-pattern-help">
+              Matched with the linear-time RE2 dialect; plain text also works as
+              a substring. Unsupported constructs are rejected before saving.
+            </small>
+          ) : (
+            <small
+              id="notification-automation-title-pattern-help"
+              className="notification-automations-inline-error"
+              role="alert"
+            >
+              {titlePatternError}
+            </small>
+          )}
         </label>
       </fieldset>
     )

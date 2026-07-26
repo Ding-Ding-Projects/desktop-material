@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 23, 2026**
+Updated: **July 26, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -12,6 +12,57 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 26 reliability bug hunt — **Implemented and locally accepted**
+
+The latest `main` was fast-forwarded before inspection. The pass repaired the
+fresh-session publication state behind issue #39, made quick push honor only an
+unambiguous configured tracking remote, corrected the Explorer shell package's
+root layout and x64/ARM64 build identity, and removed stale native output before
+a missing-toolchain return. User-authored app regex now uses bounded RE2
+throughout; capture-heavy patterns receive a compositional work budget, diff
+search reports its global result limit instead of lying about no matches, saved
+legacy notification patterns require explicit migration, and the static Pages
+hub runs native ECMAScript regex only in a hard-deadline worker with bounded
+response data. Exact test, build, headless-capture, GitHub, and publication
+receipts are recorded at the top of [HANDOFF.md](HANDOFF.md) and in
+[the dated verification record](docs/verification/bug-hunt-2026-07-26/run-manifest.md).
+
+## July 26 repository distribution follow-through — **Implemented and locally accepted**
+
+Transferred GitHub repositories now repair the exact default remote before
+network work while preserving protocol, origin, unrelated remotes, and any
+deliberately divergent push URL. Scheduled Git and post-push SSH work uses an
+explicit non-interactive path so hooks, signing, credential helpers, AskPass,
+and modal error UI cannot stall unattended automation; manual operations remain
+interactive.
+
+The Distribution surface adds a per-repository GitHub Packages/version
+explorer, safe plain/fuzzy/regex search, and a narrow GHCR file upload/download
+path with immutable-digest and byte-integrity verification. App-owned Cheap LFS
+storage releases are hidden from the normal Releases list by default and can be
+revealed without mutation. Actions artifacts gain the same searchable catalog
+behavior. Cache archive download remains unavailable because GitHub exposes no
+supported cache-download API; the UI points users to downloadable workflow
+artifacts instead. Details and current receipts are in [HANDOFF.md](HANDOFF.md).
+
+## Ignored files to a local Cheap LFS submodule — **Planned, not implemented**
+
+A future reviewed workflow will let users select only files that Git currently
+proves are ignored, stage verified copies in a newly created local submodule
+repository, and add that repository at a safe, non-overlapping path. The
+operation must reject links, reparse points, nested repositories, Git control
+paths, case-colliding destinations, and stale inventory; copy and hash proofs
+must finish before any topology change.
+
+The ignored working files will remain byte-for-byte at their exact original
+parent-repository paths. Independent recovery copies must be retained until
+every original path passes final verification; the workflow will not replace
+the originals with links. Creating the local repository and submodule will not
+upload Cheap LFS objects, create a provider repository, or push. Release/OCI
+storage selection, upload, pointer conversion, remote creation, and push must be
+a separate explicit opt-in phase. This entry records design requirements only;
+no migration action is currently shipped.
 
 ## July 25 Repository list bulk actions — **Implemented on a branch, not merged**
 
@@ -29,6 +80,7 @@ and never deletes on-disk content. The picker is registered as its own audited
 bulk surface with its safety exclusions. Details in
 [HANDOFF.md](HANDOFF.md) and
 [docs/features/repository-management/repository-list-bulk-actions.md](docs/features/repository-management/repository-list-bulk-actions.md).
+
 ## July 25 Cheap LFS cloud compression installs its own workflow — **Implemented on a branch, not merged**
 
 A repository could have cloud compression switched on and still compress

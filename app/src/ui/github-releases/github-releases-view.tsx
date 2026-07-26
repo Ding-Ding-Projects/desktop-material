@@ -76,6 +76,7 @@ import {
   externalOpenTarget,
 } from '../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../lib/external-open-busy'
+import { isCheapLfsReleaseBucket } from '../../lib/cheap-lfs/asset-version'
 
 const ReleasesSearchFilterId = 'github-releases-search'
 
@@ -215,6 +216,8 @@ interface IGitHubReleasesViewState {
   readonly searchMode: FilterMode
   readonly searchCaseSensitive: boolean
   readonly statusFilter: ReleaseStatusFilter
+  /** Cheap LFS storage buckets stay out of the normal Releases view by default. */
+  readonly showCheapLfsReleases: boolean
   readonly sortOrder: ReleaseSortOrder
   readonly compactToolsExpanded: boolean
   readonly assets: ReadonlyArray<IGitHubReleaseAsset>
@@ -263,6 +266,7 @@ function initialState(
     searchMode: readPersistedFilterMode(ReleasesSearchFilterId),
     searchCaseSensitive: false,
     statusFilter: 'all',
+    showCheapLfsReleases: false,
     sortOrder: readPersistedReleaseSortOrder(ReleasesSearchFilterId),
     compactToolsExpanded: false,
     assets: [],
@@ -506,12 +510,19 @@ export class GitHubReleasesView extends React.Component<
       const releases = refresh
         ? result.releases
         : appendUnique(this.state.releases, result.releases)
+      const selectableReleases = this.state.showCheapLfsReleases
+        ? releases
+        : releases.filter(release => !isCheapLfsReleaseBucket(release))
       const selectedReleaseId =
         this.state.selectedReleaseId !== null &&
-        releases.some(release => release.id === this.state.selectedReleaseId)
+        selectableReleases.some(
+          release => release.id === this.state.selectedReleaseId
+        )
           ? this.state.selectedReleaseId
-          : releases[0]?.id ?? null
-      const loadedReleaseIds = new Set(releases.map(release => release.id))
+          : selectableReleases[0]?.id ?? null
+      const loadedReleaseIds = new Set(
+        selectableReleases.map(release => release.id)
+      )
       const selectedReleaseIds = new Set(
         [...this.state.selectedReleaseIds].filter(id =>
           loadedReleaseIds.has(id)
@@ -805,6 +816,51 @@ export class GitHubReleasesView extends React.Component<
 
   private onSearchPatternApply = (search: string) => this.setState({ search })
 
+  private toggleCheapLfsReleases = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const showCheapLfsReleases = event.currentTarget.checked
+    if (showCheapLfsReleases) {
+      this.setState({ showCheapLfsReleases, confirmation: null })
+      return
+    }
+
+    const hiddenIds = new Set(
+      this.state.releases
+        .filter(isCheapLfsReleaseBucket)
+        .map(release => release.id)
+    )
+    const selectedReleaseHidden =
+      this.state.selectedReleaseId !== null &&
+      hiddenIds.has(this.state.selectedReleaseId)
+    const selectedReleaseIds = new Set(
+      [...this.state.selectedReleaseIds].filter(id => !hiddenIds.has(id))
+    )
+    if (selectedReleaseHidden) {
+      this.setState({
+        showCheapLfsReleases,
+        selectedReleaseId: null,
+        selectedReleaseIds,
+        assets: [],
+        assetPage: 0,
+        nextAssetPage: null,
+        assetsCapped: false,
+        editor: this.state.editor?.mode === 'edit' ? null : this.state.editor,
+        upload: null,
+        confirmation: null,
+      })
+      return
+    }
+    this.setState({
+      showCheapLfsReleases,
+      selectedReleaseIds,
+      confirmation: null,
+    })
+  }
+
+  private showCheapLfsReleases = () =>
+    this.setState({ showCheapLfsReleases: true, confirmation: null })
+
   private clearReleaseFilters = () =>
     this.setState({ search: '', statusFilter: 'all' })
 
@@ -906,8 +962,20 @@ export class GitHubReleasesView extends React.Component<
     }
   }
 
+  private getReleaseVisibility() {
+    const cheapLfsReleases = this.state.releases.filter(isCheapLfsReleaseBucket)
+    return {
+      releases: this.state.showCheapLfsReleases
+        ? this.state.releases
+        : this.state.releases.filter(
+            release => !isCheapLfsReleaseBucket(release)
+          ),
+      cheapLfsReleases,
+    }
+  }
+
   private getSearchSampleItems = () =>
-    this.state.releases.map(
+    this.getReleaseVisibility().releases.map(
       release => `${release.name || release.tagName} ${release.tagName}`
     )
 
@@ -924,7 +992,8 @@ export class GitHubReleasesView extends React.Component<
     readonly releases: ReadonlyArray<IGitHubRelease>
     readonly regexError: string | null
   } {
-    const { releases, statusFilter, search, sortOrder } = this.state
+    const { statusFilter, search, sortOrder } = this.state
+    const releases = this.getReleaseVisibility().releases
     const matchingStatus =
       statusFilter === 'all'
         ? releases
@@ -999,7 +1068,7 @@ export class GitHubReleasesView extends React.Component<
 
   private latestStableRelease(): IGitHubRelease | null {
     let latest: IGitHubRelease | null = null
-    for (const release of this.state.releases) {
+    for (const release of this.getReleaseVisibility().releases) {
       if (releaseStatus(release) !== 'published') {
         continue
       }
@@ -1031,7 +1100,7 @@ export class GitHubReleasesView extends React.Component<
 
   private selectedRelease(): IGitHubRelease | null {
     return (
-      this.state.releases.find(
+      this.getReleaseVisibility().releases.find(
         release => release.id === this.state.selectedReleaseId
       ) ?? null
     )
@@ -2031,10 +2100,11 @@ export class GitHubReleasesView extends React.Component<
   }
 
   private renderOverview() {
+    const releases = this.getReleaseVisibility().releases
     const counts = { published: 0, prerelease: 0, draft: 0 }
     let assetCount = 0
     let downloadCount = 0
-    for (const release of this.state.releases) {
+    for (const release of releases) {
       counts[releaseStatus(release)]++
       assetCount += release.assets.length
       downloadCount += release.assets.reduce(
@@ -2051,7 +2121,7 @@ export class GitHubReleasesView extends React.Component<
       >
         <article className="github-release-metric">
           <span>Loaded releases</span>
-          <strong>{this.state.releases.length}</strong>
+          <strong>{releases.length}</strong>
           <small>
             {assetCount} {assetCount === 1 ? 'asset' : 'assets'} ·{' '}
             {downloadCount} downloads
@@ -2096,6 +2166,8 @@ export class GitHubReleasesView extends React.Component<
 
   private renderReleaseList() {
     const { releases: visibleReleases, regexError } = this.getVisibleReleases()
+    const visibility = this.getReleaseVisibility()
+    const hiddenCheapLfsCount = visibility.cheapLfsReleases.length
     const visibleSelectedCount = visibleReleases.filter(release =>
       this.state.selectedReleaseIds.has(release.id)
     ).length
@@ -2127,7 +2199,7 @@ export class GitHubReleasesView extends React.Component<
           <div>
             <h2 id="github-releases-list-title">Repository releases</h2>
             <span>
-              {visibleReleases.length} of {this.state.releases.length} shown
+              {visibleReleases.length} of {visibility.releases.length} shown
             </span>
           </div>
           <Button disabled={this.state.busy !== null} onClick={this.openCreate}>
@@ -2224,13 +2296,24 @@ export class GitHubReleasesView extends React.Component<
                     </option>
                   </select>
                 </label>
+                {hiddenCheapLfsCount > 0 && (
+                  <label className="github-releases-cheap-lfs-filter">
+                    <input
+                      type="checkbox"
+                      checked={this.state.showCheapLfsReleases}
+                      disabled={this.state.busy !== null}
+                      onChange={this.toggleCheapLfsReleases}
+                    />
+                    Show Cheap LFS storage releases ({hiddenCheapLfsCount})
+                  </label>
+                )}
               </div>
               {hasFilters && (
                 <div className="github-releases-filter-summary">
                   <span>
                     {t('githubReleases.filterSummary', {
                       visible: visibleReleases.length.toString(),
-                      total: this.state.releases.length.toString(),
+                      total: visibility.releases.length.toString(),
                     })}
                   </span>
                   <Button onClick={this.clearReleaseFilters}>
@@ -2323,6 +2406,20 @@ export class GitHubReleasesView extends React.Component<
                 : 'Create a public release or save an unpublished draft to start.'}
             </span>
           </div>
+        ) : !this.state.showCheapLfsReleases &&
+          visibility.releases.length === 0 &&
+          hiddenCheapLfsCount > 0 ? (
+          <div className="github-releases-list-empty" role="status">
+            <strong>Cheap LFS storage releases are hidden</strong>
+            <span>
+              {hiddenCheapLfsCount} storage{' '}
+              {hiddenCheapLfsCount === 1 ? 'release is' : 'releases are'} kept
+              out of the normal release list.
+            </span>
+            <Button onClick={this.showCheapLfsReleases}>
+              Show storage releases
+            </Button>
+          </div>
         ) : visibleReleases.length === 0 ? (
           <div className="github-releases-list-empty" role="status">
             <strong>No loaded releases match</strong>
@@ -2369,6 +2466,11 @@ export class GitHubReleasesView extends React.Component<
                       <span className="github-release-row-state">
                         {releaseStatusLabel(release)}
                       </span>
+                      {isCheapLfsReleaseBucket(release) && (
+                        <span className="github-release-cheap-lfs-badge">
+                          Cheap LFS storage
+                        </span>
+                      )}
                     </span>
                     <span className="github-release-row-tag">
                       {release.tagName}
@@ -3254,7 +3356,8 @@ export class GitHubReleasesView extends React.Component<
         {this.renderOperationStatus()}
         {this.state.availability === 'available' && (
           <>
-            {this.state.releases.length > 0 && this.renderOverview()}
+            {this.getReleaseVisibility().releases.length > 0 &&
+              this.renderOverview()}
             <div className="github-releases-layout">
               {this.renderReleaseList()}
               {this.renderDetail()}

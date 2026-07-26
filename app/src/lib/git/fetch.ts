@@ -49,6 +49,10 @@ export async function fetch(
     successExitCodes: new Set([0]),
     env: await envForRemoteOperation(remote.url),
     credentialAccountKey: accountKey,
+    // This must not depend on a progress callback: callers are allowed to run
+    // silent background fetches, and the trampoline uses this bit to suppress
+    // GCM, askpass, and sign-in UI.
+    isBackgroundTask,
   }
 
   if (progressCallback) {

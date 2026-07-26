@@ -109,6 +109,9 @@ export interface ITextBoxProps {
    * message to the input such as a validation error, warning, or caption */
   readonly ariaDescribedBy?: string
 
+  /** Optional aria-invalid state for externally validated text boxes. */
+  readonly ariaInvalid?: boolean
+
   readonly ariaControls?: string
 }
 
@@ -333,6 +336,7 @@ export class TextBox extends React.Component<ITextBoxProps, ITextBoxState> {
           aria-labelledby={this.props.ariaLabelledBy}
           aria-controls={this.props.ariaControls}
           aria-describedby={this.props.ariaDescribedBy}
+          aria-invalid={this.props.ariaInvalid}
           required={this.props.required}
         />
         {this.props.displayClearButton &&

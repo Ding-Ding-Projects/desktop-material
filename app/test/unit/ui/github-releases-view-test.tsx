@@ -15,6 +15,7 @@ import {
   IGitHubReleaseAsset,
 } from '../../../src/lib/github-releases'
 import { IGitHubReleaseTransferProgressEvent } from '../../../src/lib/github-release-transfer'
+import { CheapLfsReleaseBodySentinel } from '../../../src/lib/cheap-lfs/asset-version'
 import { updateEndpointVersion } from '../../../src/lib/endpoint-capabilities'
 import { setLanguageModePreference } from '../../../src/lib/language-preference'
 import { GitHubReleasesView } from '../../../src/ui/github-releases'
@@ -683,6 +684,119 @@ describe('GitHub Releases view', () => {
       })
     )
     await waitFor(() => assert.deepEqual(deleted, [draft.id, stable.id]))
+  })
+
+  it('clears hidden Cheap LFS reviews without mutating the provider', async () => {
+    const storageBucket: IGitHubRelease = {
+      ...draft,
+      id: 8,
+      tagName: 'assets',
+      name: 'Cheap LFS assets',
+      body: CheapLfsReleaseBodySentinel,
+      draft: false,
+      prerelease: true,
+      assets: [],
+    }
+    const mutations = new Array<string>()
+    const reviewed = new Array<number>()
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft, storageBucket],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+      createMutationReview: (
+        _repository: Repository,
+        release: IGitHubRelease
+      ): IGitHubReleaseMutationReview => {
+        reviewed.push(release.id)
+        return {
+          repositoryFingerprint: 'fixture-repository',
+          accountKey: getAccountKey(account),
+          accountGeneration: 1,
+          releaseId: release.id,
+          releaseFingerprint: `release-${release.id}`,
+          assetId: null,
+          assetFingerprint: null,
+        }
+      },
+      createDraft: async () => {
+        mutations.push('create-draft')
+        return draft
+      },
+      create: async () => {
+        mutations.push('create')
+        return draft
+      },
+      update: async () => {
+        mutations.push('update')
+        return draft
+      },
+      publish: async () => {
+        mutations.push('publish')
+        return { ...draft, draft: false }
+      },
+      delete: async () => {
+        mutations.push('delete')
+      },
+      deleteAsset: async () => {
+        mutations.push('delete-asset')
+      },
+      uploadAsset: async () => {
+        mutations.push('upload-asset')
+        return {
+          ok: true,
+          asset,
+          bytes: asset.sizeInBytes,
+          localDigest: asset.digest!,
+        }
+      },
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    const storageToggle = await screen.findByLabelText(
+      'Show Cheap LFS storage releases (1)'
+    )
+    await waitFor(() =>
+      assert.equal(storageToggle.hasAttribute('disabled'), false)
+    )
+    assert.equal(screen.queryByText('Cheap LFS assets'), null)
+
+    fireEvent.click(storageToggle)
+    await waitFor(() => assert.ok(screen.getByText('Cheap LFS assets')))
+    assert.deepEqual(mutations, [])
+    assert.deepEqual(reviewed, [])
+
+    fireEvent.click(screen.getByLabelText('Select release assets'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected (1)' }))
+    const confirmation = screen.getByRole('alertdialog', {
+      name: 'Delete 1 selected release?',
+    })
+    assert.ok(within(confirmation).getByText('assets'))
+    assert.deepEqual(reviewed, [storageBucket.id])
+    assert.deepEqual(mutations, [])
+
+    fireEvent.click(
+      screen.getByLabelText('Show Cheap LFS storage releases (1)')
+    )
+    await waitFor(() =>
+      assert.equal(
+        screen.queryByRole('alertdialog', {
+          name: 'Delete 1 selected release?',
+        }),
+        null
+      )
+    )
+    assert.equal(screen.queryByText('Cheap LFS assets'), null)
+    assert.ok(screen.getByText('0 selected'))
+    assert.deepEqual(mutations, [])
   })
 
   it('loads every release page so the search filter covers all of them', async () => {

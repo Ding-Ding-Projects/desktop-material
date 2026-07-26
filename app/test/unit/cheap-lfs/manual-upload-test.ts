@@ -23,6 +23,7 @@ import {
   IGitHubRelease,
   IGitHubReleaseAsset,
 } from '../../../src/lib/github-releases'
+import { CheapLfsReleaseBodySentinel } from '../../../src/lib/cheap-lfs/asset-version'
 import {
   ICheapLfsManualPinPlan,
   ICheapLfsManualReleasesGateway,
@@ -1148,6 +1149,7 @@ describe('manual cheap LFS upload', () => {
       }
       let derivedRelease: IGitHubRelease | undefined
       const createdTags = new Array<string>()
+      let createdBody: string | undefined
       let createdPrerelease: boolean | undefined
       let createdPublishImmediately: boolean | undefined
       const releases = gateway({
@@ -1155,6 +1157,7 @@ describe('manual cheap LFS upload', () => {
           tag === 'assets' ? baseRelease : derivedRelease ?? null,
         create: async (_repository, draft, publishImmediately) => {
           createdTags.push(draft.tagName)
+          createdBody = draft.body
           createdPrerelease = draft.prerelease
           createdPublishImmediately = publishImmediately
           derivedRelease = {
@@ -1200,6 +1203,7 @@ describe('manual cheap LFS upload', () => {
         ['assets-2', 'assets-2']
       )
       assert.deepEqual(createdTags, ['assets-2'])
+      assert.equal(createdBody, CheapLfsReleaseBodySentinel)
       assert.equal(createdPrerelease, true)
       assert.equal(createdPublishImmediately, true)
       assert.equal(plan.preexistingAssetIds.size, 0)

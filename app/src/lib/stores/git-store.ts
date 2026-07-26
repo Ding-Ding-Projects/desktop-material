@@ -50,6 +50,10 @@ import {
   getCommits,
   merge,
   setRemoteURL,
+  setRemotePushURL,
+  compareAndSetRemoteURL,
+  compareAndSetRemotePushURL,
+  getRemoteURL,
   getStatus,
   IStatusResult,
   getCommit,
@@ -1378,6 +1382,8 @@ export class GitStore extends BaseStore {
       this._tip = { kind: TipState.Unknown }
     }
 
+    await this.refreshPublishedAheadBehindFallback()
+
     this.emitUpdate()
 
     return status
@@ -1590,10 +1596,21 @@ export class GitStore extends BaseStore {
     )
   }
 
-  public async loadRemotes(): Promise<void> {
+  public async loadRemotes(reportErrors: boolean = true): Promise<void> {
     const remotes = await getRemotes(this.repository)
     this._remotes = remotes
     this._defaultRemote = findDefaultRemote(remotes)
+
+    // A create-only publication (for example the Cheap LFS first-publish
+    // anchor) can leave an exact remote-tracking ref behind even when an older
+    // app session failed before writing branch.* tracking configuration. Git's
+    // porcelain status omits branch.ab in that state, which used to make the
+    // toolbar call the already-published branch "unpublished" after restart.
+    // Compare only the same-named ref on the remote we would actually push to;
+    // a similarly named ref on some other remote must not change publication
+    // state. Keep the Branch upstream null so the next push still records the
+    // missing Git configuration with --set-upstream.
+    await this.refreshPublishedAheadBehindFallback(reportErrors)
 
     const currentRemoteName =
       this.tip.kind === TipState.Valid &&
@@ -1616,6 +1633,44 @@ export class GitStore extends BaseStore {
     this._upstreamRemote = parent ? findUpstreamRemote(parent, remotes) : null
 
     this.emitUpdate()
+  }
+
+  /**
+   * Reconstruct publication state for a branch whose exact remote ref exists
+   * but whose branch.* tracking configuration is absent. Both remote and status
+   * refreshes call this so neither ordering can erase the inferred state.
+   */
+  private async refreshPublishedAheadBehindFallback(
+    reportErrors: boolean = true
+  ): Promise<void> {
+    const tip = this.tip
+    if (tip.kind !== TipState.Valid || tip.branch.upstream !== null) {
+      return
+    }
+
+    const defaultRemote = this._defaultRemote
+    if (defaultRemote === null) {
+      this._aheadBehind = null
+      return
+    }
+
+    const getPublicationState = () =>
+      getAheadBehind(
+        this.repository,
+        revSymmetricDifference(
+          tip.branch.ref,
+          `refs/remotes/${defaultRemote.name}/${tip.branch.name}`
+        )
+      )
+    this._aheadBehind = reportErrors
+      ? (await this.performFailableOperation(getPublicationState)) ?? null
+      : await getPublicationState().catch(error => {
+          log.warn(
+            'Could not refresh inferred publication state after a background remote URL update.',
+            error
+          )
+          return null
+        })
   }
 
   /**
@@ -1842,6 +1897,48 @@ export class GitStore extends BaseStore {
       )) === true
     await this.loadRemotes()
 
+    this.emitUpdate()
+    return wasSuccessful
+  }
+
+  /** Return only a configured pushurl; null means Git falls back to fetch URL. */
+  public getExplicitRemotePushURL(name: string): Promise<string | null> {
+    return getConfigValue(this.repository, `remote.${name}.pushurl`)
+  }
+
+  /** Read the effective fetch URL directly from Git, bypassing cached remotes. */
+  public getRemoteURL(name: string): Promise<string | null> {
+    return getRemoteURL(this.repository, name)
+  }
+
+  /**
+   * Conditionally update a fetch URL without emitting a global application
+   * error. Canonicalization callers own logging and non-blocking presentation.
+   */
+  public compareAndSetRemoteURL(
+    name: string,
+    expectedURL: string,
+    url: string
+  ): Promise<true> {
+    return compareAndSetRemoteURL(this.repository, name, expectedURL, url)
+  }
+
+  /** Conditionally update an explicit push URL without global error UI. */
+  public compareAndSetRemotePushURL(
+    name: string,
+    expectedURL: string,
+    url: string
+  ): Promise<true> {
+    return compareAndSetRemotePushURL(this.repository, name, expectedURL, url)
+  }
+
+  /** Change an explicit push URL and reload the effective remote inventory. */
+  public async setRemotePushURL(name: string, url: string): Promise<boolean> {
+    const wasSuccessful =
+      (await this.performFailableOperation(() =>
+        setRemotePushURL(this.repository, name, url)
+      )) === true
+    await this.loadRemotes()
     this.emitUpdate()
     return wasSuccessful
   }

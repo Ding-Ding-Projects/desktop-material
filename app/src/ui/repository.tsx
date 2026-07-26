@@ -56,7 +56,7 @@ import {
   getGitHubReleasesAvailability,
   GitHubReleasesStore,
 } from '../lib/stores/github-releases-store'
-import { GitHubReleasesView } from './github-releases'
+import { GitHubDistributionView } from './github-packages'
 import { GitHubIssuesView } from './github-issues'
 import { GitHubAPIExplorer } from './github-api-explorer'
 import { CheapLfs, RepositoryTools } from './repository-tools'
@@ -1268,7 +1268,7 @@ export class RepositoryView extends React.Component<
       )
     } else if (selectedSection === RepositorySectionTab.Releases) {
       return (
-        <GitHubReleasesView
+        <GitHubDistributionView
           repository={this.props.repository}
           accounts={this.props.accounts}
           releasesStore={this.props.releasesStore}

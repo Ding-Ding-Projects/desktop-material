@@ -44,6 +44,7 @@ import {
 } from '../stores/github-releases-store'
 import {
   buildCheapLfsAssetAnnotationTargets,
+  CheapLfsReleaseBodySentinel,
   findCheapLfsAssetForContent,
   findCheapLfsAssetsForParts,
   formatCheapLfsAssetLabel,
@@ -1587,7 +1588,7 @@ export async function pinFileToRelease(
               fs
             ),
             name: releaseName,
-            body: '',
+            body: CheapLfsReleaseBodySentinel,
             // Published prerelease buckets never replace the installer's stable
             // /releases/latest update feed.
             prerelease: true,
@@ -2688,7 +2689,7 @@ export async function planCheapLfsManualUpload(
             fs
           ),
           name: releaseName,
-          body: '',
+          body: CheapLfsReleaseBodySentinel,
           // Published prerelease buckets never replace the installer's stable
           // /releases/latest update feed.
           prerelease: true,

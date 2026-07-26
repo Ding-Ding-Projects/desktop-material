@@ -31,6 +31,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'actions-artifacts',
+      label: 'Workflow artifacts',
+      source: 'actions/run-artifacts.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'actions-job-log',
       label: 'Actions logs',
       source: 'actions/job-log-viewer.tsx',
@@ -160,6 +166,18 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       id: 'github-releases-search',
       label: 'Releases',
       source: 'github-releases/github-releases-view.tsx',
+      implementation: 'standalone',
+    },
+    {
+      id: 'github-packages-search',
+      label: 'GitHub packages',
+      source: 'github-packages/github-packages-view.tsx',
+      implementation: 'standalone',
+    },
+    {
+      id: 'github-package-versions-search',
+      label: 'GitHub package versions',
+      source: 'github-packages/github-packages-view.tsx',
       implementation: 'standalone',
     },
     {

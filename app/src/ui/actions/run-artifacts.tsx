@@ -1,4 +1,5 @@
 import * as React from 'react'
+import classNames from 'classnames'
 import { IAPIWorkflowRun } from '../../lib/api'
 import {
   ActionsArtifactMaximumDownloadBytes,
@@ -12,6 +13,8 @@ import { getActionsRunAttempt } from '../../lib/actions-jobs'
 import { IActionsArtifactDownloadProgress } from '../../lib/actions-artifact-download'
 import { releaseActionsArtifactDownloadThroughMainProcess } from '../../lib/actions-artifact-subject-client'
 import { ActionsArtifactProvenanceResult } from '../../lib/actions-artifact-provenance'
+import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 import {
   ActionsStore,
   getActionsRepositoryKey,
@@ -21,13 +24,23 @@ import {
 import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
 import { formatBytes } from '../lib/bytes'
+import { FilterModeControl } from '../lib/filter-mode-control'
+import {
+  persistFilterMode,
+  readPersistedFilterMode,
+} from '../lib/filter-list-mode'
 import { showItemInFolder, showSaveDialog } from '../main-process-proxy'
 import {
   externalOpenGuard,
   externalOpenTarget,
 } from '../../lib/external-open-guard'
 import { ExternalOpenBusy } from '../lib/external-open-busy'
+import { Octicon } from '../octicons'
+import * as octicons from '../octicons/octicons.generated'
 import { ActionsArtifactProvenanceDialog } from './actions-artifact-provenance-dialog'
+
+/** Stable audit and localStorage identity for the workflow-artifact search. */
+const ActionsArtifactSearchSurfaceId = 'actions-artifacts'
 
 type AttestationCheck =
   | { readonly status: 'loading' }
@@ -74,6 +87,9 @@ interface IRunArtifactsState {
   readonly provenanceReview: IActionsArtifactProvenanceReview | null
   readonly provenanceResult: ActionsArtifactProvenanceResult | null
   readonly provenanceError: Error | null
+  readonly filterText: string
+  readonly filterMode: FilterMode
+  readonly filterCaseSensitive: boolean
 }
 
 const initialState = (): IRunArtifactsState => ({
@@ -94,6 +110,9 @@ const initialState = (): IRunArtifactsState => ({
   provenanceReview: null,
   provenanceResult: null,
   provenanceError: null,
+  filterText: '',
+  filterMode: readPersistedFilterMode(ActionsArtifactSearchSurfaceId),
+  filterCaseSensitive: false,
 })
 
 function readableBytes(bytes: number): string {
@@ -153,6 +172,69 @@ export class RunArtifacts extends React.Component<
   public componentWillUnmount() {
     this.mounted = false
     this.cancelOperations()
+  }
+
+  private onFilterChanged = (event: React.ChangeEvent<HTMLInputElement>) => {
+    this.setState({ filterText: event.target.value })
+  }
+
+  private onFilterModeChanged = (filterMode: FilterMode) => {
+    persistFilterMode(ActionsArtifactSearchSurfaceId, filterMode)
+    this.setState({ filterMode })
+  }
+
+  private onFilterCaseSensitiveChanged = (filterCaseSensitive: boolean) => {
+    this.setState({ filterCaseSensitive })
+  }
+
+  private onFilterPatternApply = (filterText: string) => {
+    this.setState({ filterText })
+  }
+
+  // Fuzzy mode scores the first two keys, so all workflow context lives in
+  // one subtitle. Substring and regex modes additionally inspect the digest.
+  private getArtifactSearchKeys = (
+    artifact: IActionsArtifact
+  ): ReadonlyArray<string> => {
+    const workflowRun = artifact.workflowRun
+    const branch = workflowRun?.headBranch ?? this.props.run.head_branch ?? ''
+    const sha = workflowRun?.headSha ?? this.props.run.head_sha ?? ''
+    const workflowContext = [
+      this.props.run.name,
+      this.props.run.display_title ?? '',
+      this.props.run.path ?? '',
+      `#${this.props.run.run_number ?? this.props.run.id}`,
+      branch,
+      sha,
+    ]
+      .filter(value => value.length > 0)
+      .join(' ')
+    return [artifact.name, workflowContext, artifact.digest ?? '']
+  }
+
+  private getFilterSampleItems = (): ReadonlyArray<string> =>
+    (this.state.list?.artifacts ?? [])
+      .flatMap(this.getArtifactSearchKeys)
+      .filter(value => value.length > 0)
+
+  private getVisibleArtifacts(list: IActionsArtifactList): {
+    readonly artifacts: ReadonlyArray<IActionsArtifact>
+    readonly regexError: string | null
+  } {
+    const query = this.state.filterText.trim()
+    if (query.length === 0) {
+      return { artifacts: list.artifacts, regexError: null }
+    }
+    const { results, regexError } = matchWithMode(
+      query,
+      list.artifacts,
+      this.getArtifactSearchKeys,
+      {
+        mode: this.state.filterMode,
+        caseSensitive: this.state.filterCaseSensitive,
+      }
+    )
+    return { artifacts: results.map(result => result.item), regexError }
   }
 
   private cancelOperations() {
@@ -956,6 +1038,12 @@ export class RunArtifacts extends React.Component<
 
   public render() {
     const { list } = this.state
+    const filtered =
+      list === null
+        ? { artifacts: [], regexError: null }
+        : this.getVisibleArtifacts(list)
+    const filterErrorId =
+      filtered.regexError === null ? undefined : 'actions-artifact-filter-error'
     return (
       <>
         <section
@@ -1000,10 +1088,58 @@ export class RunArtifacts extends React.Component<
               </div>
             )}
           {list !== null && list.artifacts.length > 0 && (
+            <div className="actions-search-row actions-artifact-filter">
+              <div
+                className={classNames('actions-search-pill', {
+                  invalid: filtered.regexError !== null,
+                })}
+              >
+                <Octicon symbol={octicons.search} />
+                <input
+                  type="search"
+                  data-search-surface-id="actions-artifacts"
+                  value={this.state.filterText}
+                  onChange={this.onFilterChanged}
+                  placeholder={t('actionsArtifacts.searchPlaceholder')}
+                  spellCheck={false}
+                  aria-label={translateForAccessibleName(
+                    'actionsArtifacts.searchAriaLabel'
+                  )}
+                  aria-controls="actions-artifact-grid"
+                  aria-invalid={filtered.regexError !== null}
+                  aria-describedby={filterErrorId}
+                />
+                <FilterModeControl
+                  searchSurfaceId="actions-artifacts"
+                  mode={this.state.filterMode}
+                  caseSensitive={this.state.filterCaseSensitive}
+                  onModeChange={this.onFilterModeChanged}
+                  onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
+                  regexBuilderTarget={t('actionsArtifacts.regexTarget')}
+                  getSampleItems={this.getFilterSampleItems}
+                  filterText={this.state.filterText}
+                  onRegexPatternApply={this.onFilterPatternApply}
+                />
+              </div>
+              {filtered.regexError !== null && (
+                <p
+                  id="actions-artifact-filter-error"
+                  className="actions-artifact-filter-error"
+                  role="alert"
+                >
+                  {filtered.regexError}
+                </p>
+              )}
+            </div>
+          )}
+          {list !== null && list.artifacts.length > 0 && (
             <div className="actions-artifact-pagination">
               <span role="status" aria-live="polite" aria-atomic="true">
-                Showing {list.artifacts.length} loaded of {list.totalCount}{' '}
-                artifacts.
+                {t('actionsArtifacts.filterCount', {
+                  loaded: list.artifacts.length.toLocaleString(),
+                  total: list.totalCount.toLocaleString(),
+                  visible: filtered.artifacts.length.toLocaleString(),
+                })}
               </span>
               {list.nextPage !== null && (
                 <Button
@@ -1050,12 +1186,20 @@ export class RunArtifacts extends React.Component<
               {this.state.operationMessage}
             </div>
           )}
+          {list !== null &&
+            list.artifacts.length > 0 &&
+            filtered.regexError === null &&
+            filtered.artifacts.length === 0 && (
+              <div className="actions-empty" role="status">
+                {t('actionsArtifacts.noMatches')}
+              </div>
+            )}
           <div
             id="actions-artifact-grid"
             className="actions-artifact-grid"
             aria-busy={this.state.loadingMore}
           >
-            {list?.artifacts.map(artifact => this.renderArtifact(artifact))}
+            {filtered.artifacts.map(artifact => this.renderArtifact(artifact))}
           </div>
         </section>
         {this.state.provenanceOpen && (

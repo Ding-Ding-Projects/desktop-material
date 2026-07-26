@@ -143,7 +143,10 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 
 **Search everywhere, with a regex builder**
 - Every search bar gains fuzzy / substring / regex filter modes, a case toggle, and per-list filter chips
-- A full regex builder — anchors, character classes, quantifiers, groups, alternation, lookaround, all six flags, and a live tester — reachable from the search bars
+- A full safe-RE2 regex builder — anchors, character classes, quantifiers,
+  groups/captures, alternation, the honestly supported ignore-case flag, and a
+  live match/capture tester — reachable from the search bars; unsupported
+  lookaround and backreferences are explained before Apply
 - The `Ctrl+F` command palette uses wider, richer rows with a leading icon, title, optional search-term line, and localized group chip. Its anchored **Customize appearance** editor persists comfortable/compact density and independent icon/group/keyword visibility; Escape closes only the editor and restores toggle focus
 
 **Repository safety and cleanup**
@@ -169,7 +172,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 **Automation and GitHub Actions**
 - Configure scheduled commit-and-push and pull globally, override them per account or repository, and rely on safety guards that skip unsafe repositories and preserve draft commit messages
 - Run commit-and-push immediately, or merge all branches/worktrees with per-target progress and Copilot-assisted conflict handling
-- Browse GitHub Actions runs in the repository rail, filter by workflow/branch/event/status, re-run all or failed jobs, inspect jobs and steps, securely download and search logs, and dispatch workflows with inputs
+- Browse GitHub Actions runs in the repository rail, filter by workflow/branch/event/status, re-run all or failed jobs, inspect jobs and steps, securely download and search logs, search each loaded artifact catalog with fuzzy/substring/safe-regex modes, and dispatch workflows with inputs. Actions caches remain listable, searchable, and deletable; cache-archive download is labeled unavailable because GitHub exposes no supported download API, while workflow artifacts retain their verified download path
 - Cancel only queued, running, waiting, or pending workflow runs from a Material confirmation that identifies the exact workflow/run, ref, actor, and commit when available. The app revalidates repository, account, run identity, and cancellable status before one normal cancellation request, prevents duplicate submission, then refreshes until GitHub reports a terminal state
 - Dispatch **Build Installers / Express Release** from `main` when a release is urgent: lint, Windows x64 trampoline/unit/script tests, and packaging run in parallel, exact installed dependencies are content-cached, the complete installer payload is retained as a workflow artifact before publication, and one create-only command publishes deterministic exact-commit notes without replacing an existing tag
 - Dispatch the separate **Super Express Release** workflow for an emergency fast lane: it runs the complete unit and script suites before building and packaging Windows x64, while skipping lint, E2E, and release-history generation. It restores the same exact dependency cache, writes notes from the checked-out commit, verifies every installer/feed asset, retains the complete payload, and publishes a uniquely versioned immutable Release for the exact dispatched `main` commit. Automatic and Super Express packages share one Squirrel-monotonic `z` version namespace, and only the greatest release for revalidated current `main` can own the update feed

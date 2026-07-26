@@ -1,6 +1,10 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { FilterMode, match, matchWithMode } from '../../../src/lib/fuzzy-find'
+import {
+  MaxRegexInputLength,
+  MaxRegexTotalInputLength,
+} from '../../../src/lib/safe-regex'
 import { getText } from '../../../src/ui/lib/filter-list'
 
 describe('matchWithMode', () => {
@@ -127,6 +131,16 @@ describe('matchWithMode', () => {
       assert.equal(result.results.length, items.length)
     })
 
+    it('returns all items and an error for unsupported RE2 constructs', () => {
+      const result = matchWithMode('desktop(?=-)', items, getText, {
+        mode: FilterMode.Regex,
+        caseSensitive: false,
+      })
+
+      assert.notEqual(result.regexError, null)
+      assert.equal(result.results.length, items.length)
+    })
+
     it('rejects patterns over the length cap', () => {
       const longPattern = 'a'.repeat(1001)
       const result = matchWithMode(longPattern, items, getText, {
@@ -146,6 +160,84 @@ describe('matchWithMode', () => {
 
       assert.equal(result.regexError, null)
       assert.equal(result.results.length, items.length)
+    })
+
+    it('shares zero-width capture work across every candidate', () => {
+      const captureHeavyZeroWidth = '()'.repeat(500)
+      const manyItems = Array.from({ length: 20 }, (_, index) => ({
+        id: String(index),
+        text: ['a'.repeat(99), 'b'.repeat(99)],
+      }))
+      const startedAt = performance.now()
+      const result = matchWithMode(captureHeavyZeroWidth, manyItems, getText, {
+        mode: FilterMode.Regex,
+        caseSensitive: true,
+      })
+
+      assert.equal(result.regexError, null)
+      assert.equal(result.results.length, manyItems.length)
+      assert.equal(
+        result.results.flatMap(match => [
+          ...match.matches.title,
+          ...match.matches.subtitle,
+        ]).length,
+        0
+      )
+      assert.ok(performance.now() - startedAt < 1000)
+    })
+
+    it('shares capture-heavy highlight work across titles and items', () => {
+      // 499 groups leave a 100-match operation-wide allowance under the
+      // 50,000 capture-work cap. Every item must still match through test(),
+      // but only the first 100 positive-width matches may be enumerated.
+      const captureHeavy = `${'()'.repeat(499)}a`
+      const manyItems = Array.from({ length: 4 }, (_, index) => ({
+        id: String(index),
+        text: ['a'.repeat(200), 'a'.repeat(200)],
+      }))
+      const result = matchWithMode(captureHeavy, manyItems, getText, {
+        mode: FilterMode.Regex,
+        caseSensitive: true,
+      })
+
+      assert.equal(result.regexError, null)
+      assert.equal(result.results.length, manyItems.length)
+      assert.equal(
+        result.results.reduce(
+          (count, match) =>
+            count + match.matches.title.length + match.matches.subtitle.length,
+          0
+        ),
+        100
+      )
+    })
+
+    it('rejects an individual candidate over the evaluation cap', () => {
+      const oversized = [
+        { id: 'large', text: ['a'.repeat(MaxRegexInputLength + 1)] },
+      ]
+      const result = matchWithMode('a', oversized, getText, {
+        mode: FilterMode.Regex,
+        caseSensitive: false,
+      })
+
+      assert.notEqual(result.regexError, null)
+      assert.equal(result.results.length, 0)
+    })
+
+    it('rejects aggregate candidate text over the evaluation cap', () => {
+      const itemLength = 100_000
+      const oversized = Array.from(
+        { length: Math.floor(MaxRegexTotalInputLength / itemLength) + 1 },
+        (_, index) => ({ id: String(index), text: ['a'.repeat(itemLength)] })
+      )
+      const result = matchWithMode('a', oversized, getText, {
+        mode: FilterMode.Regex,
+        caseSensitive: false,
+      })
+
+      assert.notEqual(result.regexError, null)
+      assert.equal(result.results.length, 0)
     })
   })
 })

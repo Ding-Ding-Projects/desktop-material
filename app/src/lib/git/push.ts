@@ -35,6 +35,9 @@ export type PushOptions = {
   /** Stable account identity to force for this push. Never a token. */
   readonly accountKey?: string
 
+  /** Suppress credential, GCM, and askpass UI for unattended pushes. */
+  readonly isBackgroundTask?: boolean
+
   /**
    * Optional GitHub CLI credential fallback. When provided and the initial
    * push fails, {@link pushWithGitHubCLIFallback} may retry the push exactly
@@ -165,6 +168,7 @@ export async function push(
   let opts: IGitStringExecutionOptions = {
     env: await envForRemoteOperation(remote.url),
     credentialAccountKey: options?.accountKey,
+    isBackgroundTask: options?.isBackgroundTask,
     interceptHooks: ['pre-push'],
     onHookProgress: options?.onHookProgress,
     onHookFailure: options?.onHookFailure,

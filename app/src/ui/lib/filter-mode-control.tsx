@@ -54,10 +54,13 @@ interface IFilterModeControlProps {
   readonly filterText: string
 
   /**
-   * Called when a pattern is applied from the regex builder. The consumer
-   * should switch to regex mode and set the filter text.
+   * Called when a pattern is applied from the regex builder. This control
+   * synchronizes case and regex mode first; the consumer adopts the text.
    */
-  readonly onRegexPatternApply: (pattern: string) => void
+  readonly onRegexPatternApply: (
+    pattern: string,
+    caseSensitive: boolean
+  ) => void
 
   /**
    * Whether to render the inline regex-builder launcher button. Defaults to
@@ -101,10 +104,13 @@ export class FilterModeControl extends React.Component<
     this.setState({ isBuilderOpen: false })
   }
 
-  private onApplyPattern = (pattern: string) => {
+  private onApplyPattern = (pattern: string, caseSensitive: boolean) => {
     this.setState({ isBuilderOpen: false })
+    if (caseSensitive !== this.props.caseSensitive) {
+      this.props.onCaseSensitiveChange(caseSensitive)
+    }
     this.props.onModeChange(FilterMode.Regex)
-    this.props.onRegexPatternApply(pattern)
+    this.props.onRegexPatternApply(pattern, caseSensitive)
   }
 
   private renderBuilder() {
@@ -117,6 +123,7 @@ export class FilterModeControl extends React.Component<
         searchSurfaceId={this.props.searchSurfaceId}
         targetLabel={this.props.regexBuilderTarget}
         initialPattern={this.props.filterText}
+        caseSensitive={this.props.caseSensitive}
         sampleItems={this.props.getSampleItems()}
         onApply={this.onApplyPattern}
         onDismissed={this.onCloseBuilder}

@@ -138,6 +138,11 @@
     font-weight: var(--font-weight-bold);
   }
 
+  &.pattern-warning {
+    color: var(--md-sys-color-error);
+    font-weight: var(--font-weight-bold);
+  }
+
   .octicon {
     width: 12px;
     height: 12px;

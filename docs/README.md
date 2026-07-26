@@ -189,6 +189,19 @@ The generator is `script/generate-docs-hub-catalog.mjs` and it formats its
 output with the repository's own Prettier configuration, so a regeneration
 never breaks `yarn prettier`.
 
+### Published hub regex isolation
+
+Plain-text catalog searches are bounded substring scans on the page. Regex
+searches and the regex builder instead run the browser's ECMAScript `RegExp`
+engine inside a fresh same-origin Web Worker. The page owns a hard 750 ms
+deadline and terminates the worker when it expires, so catastrophic
+backtracking cannot hold the UI thread hostage. Pattern, sample and result
+limits are enforced in both the page and worker. Capture output is a bounded
+first-match preview (24 entries, 120 characters each), preventing
+structured-clone amplification from deeply nested groups. An unavailable
+worker fails closed instead of falling back to synchronous user-pattern
+evaluation. No pattern, sample or catalog content leaves the browser.
+
 ## Process
 
 Details about how the team is organizing and shipping Desktop Material:

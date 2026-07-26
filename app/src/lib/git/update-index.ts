@@ -8,6 +8,8 @@ import {
 } from '../../models/status'
 
 interface IUpdateIndexOptions {
+  /** Suppress credential prompts from clean filters during unattended staging. */
+  isBackgroundTask?: boolean
   /**
    * Whether or not to add a file when it exists in the working directory
    * but not in the index. Defaults to true (note that this differs from the
@@ -95,6 +97,7 @@ async function updateIndex(
 
   await git(args, repository.path, 'updateIndex', {
     stdin: paths.join('\0'),
+    isBackgroundTask: options.isBackgroundTask,
   })
 }
 
@@ -108,7 +111,8 @@ async function updateIndex(
  */
 export async function stageFiles(
   repository: Repository,
-  files: ReadonlyArray<WorkingDirectoryFileChange>
+  files: ReadonlyArray<WorkingDirectoryFileChange>,
+  isBackgroundTask: boolean = false
 ): Promise<void> {
   const normal = []
   const oldRenamed = []
@@ -147,23 +151,29 @@ export async function stageFiles(
   // want to add the new 'foo', we just want to recreate the move in the
   // index. We do this by forcefully removing the old path from the index
   // and then later (in step 2) stage the new file.
-  await updateIndex(repository, oldRenamed, { forceRemove: true })
+  await updateIndex(repository, oldRenamed, {
+    forceRemove: true,
+    isBackgroundTask,
+  })
 
   // In the second step we update the index to match
   // the working directory in the case of new, modified, deleted,
   // and copied files as well as the destination paths for renamed
   // paths.
-  await updateIndex(repository, normal)
+  await updateIndex(repository, normal, { isBackgroundTask })
 
   // This third step will only happen if we have files that have been marked
   // for deletion. This covers us for files that were blown away in the last
   // updateIndex call
-  await updateIndex(repository, deletedFiles, { forceRemove: true })
+  await updateIndex(repository, deletedFiles, {
+    forceRemove: true,
+    isBackgroundTask,
+  })
 
   // Finally we run through all files that have partial selections.
   // We don't care about renamed or not here since applyPatchToIndex
   // has logic to support that scenario.
   for (const file of partial) {
-    await applyPatchToIndex(repository, file)
+    await applyPatchToIndex(repository, file, isBackgroundTask)
   }
 }

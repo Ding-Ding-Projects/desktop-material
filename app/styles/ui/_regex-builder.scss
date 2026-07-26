@@ -309,6 +309,15 @@
   }
 }
 
+.regex-builder-pattern-error {
+  flex: none;
+  margin: -4px 22px 10px;
+  color: var(--md-sys-color-error);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
 .regex-builder-flags {
   flex: none;
   flex-wrap: wrap;
@@ -455,6 +464,8 @@
 
   .regex-test-header {
     display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
   }
@@ -467,13 +478,16 @@
   }
 
   .regex-test-count {
-    height: 22px;
+    min-width: 0;
+    min-height: 22px;
+    max-width: 100%;
     display: inline-flex;
     align-items: center;
     padding: 0 9px;
     border-radius: 999px;
     font-size: 11.5px;
     font-weight: 700;
+    overflow-wrap: anywhere;
 
     &.empty {
       background: var(--md-sys-color-surface-container-high);
@@ -520,6 +534,78 @@
       color: var(--md-sys-color-on-primary-container);
       border-radius: 4px;
     }
+  }
+
+  .regex-test-captures {
+    display: flex;
+    min-width: 0;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .regex-test-captures-label {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .regex-test-captures dl {
+    display: flex;
+    min-width: 0;
+    flex: 1 1 240px;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin: 0;
+  }
+
+  .regex-test-capture {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 100%;
+    align-items: baseline;
+    gap: 5px;
+    padding: 3px 7px;
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container-high);
+
+    dt {
+      flex: none;
+      color: var(--md-sys-color-primary);
+      font-family: var(--font-family-monospace, monospace);
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    dd {
+      min-width: 0;
+      margin: 0;
+      color: var(--md-sys-color-on-surface);
+      font-family: var(--font-family-monospace, monospace);
+      font-size: 11px;
+      overflow-wrap: anywhere;
+      white-space: pre-wrap;
+    }
+
+    em {
+      color: var(--md-sys-color-on-surface-variant);
+      font-family: var(--font-family);
+    }
+  }
+
+  .regex-test-captures-omitted {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  .regex-test-error {
+    margin: 0;
+    color: var(--md-sys-color-error);
+    font-size: 12px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
   }
 }
 
@@ -666,6 +752,11 @@
 
   .regex-builder-flags {
     padding: 0 12px 10px;
+  }
+
+  .regex-builder-pattern-error {
+    margin-right: 12px;
+    margin-left: 12px;
   }
 
   .regex-test-area {

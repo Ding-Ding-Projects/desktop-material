@@ -36,6 +36,13 @@ renderer, following the existing crash-window precedent, so it does not pay for
 the main renderer's bundle. It stays on top only until it first loses focus —
 a permanently-topmost panel becomes an obstruction rather than a convenience.
 
+Commit-and-push follows the branch's configured tracking remote. For example,
+`upstream/release/3.6` is pushed to branch `release/3.6` on `upstream`, even when
+an `origin` remote also exists. If more than one configured remote can parse a
+slash-containing tracking label, the push fails closed instead of guessing. An
+unpublished branch still chooses `origin`, or the only configured remote;
+ambiguous remotes are never guessed.
+
 ## Placement: two implementations
 
 Windows 11's compact context menu shows only *packaged* `IExplorerCommand`
@@ -68,6 +75,14 @@ MSVC — implements `IExplorerCommand` and `IEnumExplorerCommand`, presenting a
 MSIX package (`uap10:AllowExternalContent`), so the binaries stay in the app's
 ordinary install directory rather than being copied into a package root.
 
+The external layout is fixed as
+`<app-root>\shell-extension\DesktopMaterialShellExtension.dll`, with
+`GitHubDesktop.exe` one directory above `shell-extension`. The DLL validates
+that directory name and requires the root executable to be a regular file
+before enabling or returning an icon. Both the DLL's PE machine and the sparse
+manifest identity match the product lane (`x64` or `arm64`); an ARM64 build on
+an x64 runner uses MSVC's `Hostx64\arm64` cross-toolchain.
+
 **Known limitation:** the packaged handler's menu labels are English only. The
 COM server is loaded by Explorer, not by the app, so it has no access to the
 renderer's persisted language mode — unlike the classic verbs, whose `MUIVerb`
@@ -92,6 +107,8 @@ hint, because Explorer really is still showing it.
 
 ## Failure modes
 
+<!-- markdownlint-disable MD013 -->
+
 | Situation | Behaviour |
 | --- | --- |
 | `opencode` not installed | The verb is never generated; the toggle is disabled with an explanation. A menu entry pointing at a missing binary fails silently from Explorer, where there is nowhere to show an error. |
@@ -100,8 +117,14 @@ hint, because Explorer really is still showing it.
 | Sideloading disabled | `developer-mode-required`. See the security note below. |
 | Registration fails at runtime | The error is shown verbatim and the classic verbs remain active. |
 | Quick window fails to load | Falls back to opening the folder in the full app. |
-| Repository has no remote, or several non-`origin` remotes | The commit still succeeds; the push is refused rather than guessing, and says so. |
+| Unpublished repository has no remote, or several non-`origin` remotes | The commit still succeeds; the push is refused rather than guessing, and says so. |
+| Configured tracking remote is missing | The commit still succeeds; the push is refused instead of silently redirecting to `origin`. |
+| Tracking label is ambiguous between slash-containing remote names | The commit still succeeds; the push is refused rather than choosing the wrong remote. |
+| DLL is copied outside the fixed `shell-extension` layout, or the root executable is missing | The packaged command reports disabled and never launches or advertises an unrelated executable. |
+| Native toolchain is missing, or output architecture does not match the requested product lane | The build removes its generated package before returning, deletes partial output on failure, and reports the exact blocker; a stale or wrong-architecture DLL is never shipped. |
 | Detached `HEAD` | Commit is blocked with an explanation and a pointer to the full app. |
+
+<!-- markdownlint-enable MD013 -->
 
 ## Security considerations
 
@@ -129,6 +152,10 @@ hint, because Explorer really is still showing it.
 - **Launch arguments are validated.** `--path` must be an absolute Windows or
   UNC path; a relative path is refused rather than resolved against whatever the
   working directory happens to be.
+- **The native launch target is layout-derived and checked.** The COM server
+  does not accept a registry-configurable executable path. It validates its
+  owned `shell-extension` parent, climbs exactly one level, and requires the
+  resulting `GitHubDesktop.exe` path to name a file.
 
 ## Verification
 
@@ -141,11 +168,18 @@ register a package:
   outdated/partial-install cases.
 - `app/test/unit/quick-action-test.ts` — argument parsing and validation, the
   launch-argument round trip against the parser, the commit gate's precedence,
-  remote-branch derivation, and remote selection.
+  remote-branch derivation, unambiguous tracking-remote selection, slash-name
+  ambiguity refusal, missing-upstream refusal, and unpublished-branch remote
+  selection.
 - `app/test/unit/shell-extension-package-test.ts` — manifest generation, the
   X.500 publisher and bare-CLSID forms the MSIX schema requires, path-traversal
-  refusal, mode decision, and a cross-check that the manifest's CLSID matches
-  the one compiled into `dllmain.cpp`.
+  refusal, x64/arm64 identity, mode decision, and a cross-check that the
+  manifest's CLSID matches the one compiled into `dllmain.cpp`.
+- `script/build-shell-extension-test.ts` — target-aware MSVC discovery, x64
+  and ARM64 PE-machine validation, a real x64 DLL load from the packaged
+  directory, root-executable state/icon resolution, and a real ARM64
+  cross-compile with matching manifest identity when the toolchain is present,
+  plus stale-package removal when a requested toolchain is absent.
 
 Verified on a Windows 11 host during development:
 
@@ -187,5 +221,8 @@ instrumentation is in place and logs `Quick action window interactive in <n>ms`.
 the same module the app reads, and writes placeholder PNG package assets. It is
 wired into `script/build.ts` for Windows builds and is **optional**: when no C++
 toolchain is present the build logs a skip and continues, and the app falls back
-to the classic verbs. Pass `--pack` to also produce a signable `.msix` for
-anyone who has a real signing certificate.
+to the classic verbs. The builder selects the x64 or ARM64 compiler from the
+same Visual Studio installation, calls `vcvarsall` with the matching target,
+and verifies the emitted PE machine before writing the architecture-specific
+manifest. Pass `--pack` to also produce a signable `.msix` for anyone who has a
+real signing certificate.

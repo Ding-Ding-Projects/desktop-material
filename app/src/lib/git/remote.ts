@@ -110,6 +110,66 @@ export async function setRemoteURL(
 }
 
 /**
+ * Replace one exact fetch URL, failing when another process changed it first.
+ * `git remote set-url` performs the match and write while holding Git's config
+ * lock, which closes the read-then-write race left by a separate stale check.
+ */
+export async function compareAndSetRemoteURL(
+  repository: Repository,
+  name: string,
+  expectedURL: string,
+  url: string
+): Promise<true> {
+  await git(
+    ['remote', 'set-url', name, url, exactRemoteURLPattern(expectedURL)],
+    repository.path,
+    'compareAndSetRemoteURL'
+  )
+  return true
+}
+
+/** Set an explicit push URL without changing the remote's fetch URL. */
+export async function setRemotePushURL(
+  repository: Repository,
+  name: string,
+  url: string
+): Promise<true> {
+  await git(
+    ['remote', 'set-url', '--push', name, url],
+    repository.path,
+    'setRemotePushURL'
+  )
+  return true
+}
+
+/** Replace one exact explicit push URL, failing on a concurrent config edit. */
+export async function compareAndSetRemotePushURL(
+  repository: Repository,
+  name: string,
+  expectedURL: string,
+  url: string
+): Promise<true> {
+  await git(
+    [
+      'remote',
+      'set-url',
+      '--push',
+      name,
+      url,
+      exactRemoteURLPattern(expectedURL),
+    ],
+    repository.path,
+    'compareAndSetRemotePushURL'
+  )
+  return true
+}
+
+/** Escape a literal URL for Git's extended regular-expression matcher. */
+function exactRemoteURLPattern(url: string): string {
+  return `^${url.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&')}$`
+}
+
+/**
  * Get the URL for the remote that matches the given name.
  *
  * Returns null if the remote could not be found
@@ -129,7 +189,7 @@ export async function getRemoteURL(
     return null
   }
 
-  return result.stdout
+  return result.stdout.trim()
 }
 
 /**

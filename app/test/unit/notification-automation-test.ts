@@ -142,6 +142,33 @@ describe('matchNotificationRule', () => {
       false
     )
   })
+
+  it('never matches constructs outside the shared safe RE2 dialect', () => {
+    for (const titlePattern of ['Checks(?= failed)', '(Checks)\\1']) {
+      assert.equal(
+        matchNotificationRule(webhookRule({ titlePattern }), entry()),
+        false
+      )
+    }
+  })
+
+  it('evaluates a catastrophic-backtracking shape without blocking', () => {
+    const startedAt = performance.now()
+    const matches = matchNotificationRule(
+      webhookRule({ titlePattern: '^(a+)+$' }),
+      entry({ title: `${'a'.repeat(26)}!` })
+    )
+
+    assert.equal(matches, false)
+    assert.ok(performance.now() - startedAt < 750)
+  })
+
+  it('preserves case-sensitive title matching', () => {
+    assert.equal(
+      matchNotificationRule(webhookRule({ titlePattern: '^checks' }), entry()),
+      false
+    )
+  })
 })
 
 describe('parseNotificationAutomationConfig', () => {
@@ -205,6 +232,27 @@ describe('parseNotificationAutomationConfig', () => {
       false,
       'a rule persisted as enabled must load disarmed'
     )
+  })
+
+  it('repairs duplicate imported ids without stealing a distinct id', () => {
+    const duplicate = webhookRule({ id: 'duplicate' })
+    const parsed = parseNotificationAutomationConfig(
+      JSON.stringify({
+        version: 1,
+        rules: [
+          duplicate,
+          { ...duplicate, name: 'Second' },
+          { ...duplicate, id: 'duplicate#2', name: 'Reserved' },
+          { ...duplicate, name: 'Fourth' },
+        ],
+      })
+    )
+
+    assert.deepEqual(
+      parsed.rules.map(rule => rule.id),
+      ['duplicate', 'duplicate#3', 'duplicate#2', 'duplicate#4']
+    )
+    assert.equal(new Set(parsed.rules.map(rule => rule.id)).size, 4)
   })
 
   it('filters unknown kinds out of a kinds array', () => {
