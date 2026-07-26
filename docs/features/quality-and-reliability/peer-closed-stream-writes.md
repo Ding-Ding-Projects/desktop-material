@@ -31,14 +31,43 @@ the event a tick later.
 
 ## Behavior
 
-| Subsystem | Guard |
-| --- | --- |
-| Cheap LFS / release upload (`gh` transport) | One permanent `'error'` listener on `child.stdin`, installed with the child. Both stdin helpers check the stream is still writable before writing and route a synchronous throw into the existing retryable `cli-failed` path. |
-| Cheap LFS / release upload (Electron transport) | `request.write` and `request.end` are wrapped, so a Chromium-side teardown becomes a `network` failure instead of escaping the read stream's `data` handler. The read stream, request, and response each keep their own `'error'` listener. |
-| Trampoline server | Every accepted socket gets its `'error'` listener before its first read, and the split-message stream gets one of its own (`pipe` does not forward errors). All replies go through one helper that skips the write when the client has already gone. |
-| Agent server | Responses are written through one guarded helper; requests, responses, and raw connections each get an `'error'` listener; `clientError` is owned explicitly; and the server keeps a permanent `'error'` listener after it starts listening. |
-| Git hooks proxy | The loopback proxy-process server gets an `'error'` listener, which it previously lacked entirely. |
-| Process backstop | The main-process `uncaughtException`/`unhandledRejection` handlers and the renderer's `uncaughtException` handler contain a peer-closed write instead of showing the unrecoverable-error dialog. |
+Cheap LFS / release upload, `gh` transport
+: One permanent `'error'` listener on `child.stdin`, installed with the child.
+  Both stdin helpers check the stream is still writable before writing, and
+  route a synchronous throw into the existing retryable `cli-failed` path.
+
+Cheap LFS / release upload, Electron transport
+: `request.write` and `request.end` are wrapped, so a Chromium-side teardown
+  becomes a `network` failure instead of escaping the read stream's `data`
+  handler. The read stream, request, and response each keep their own
+  `'error'` listener.
+
+Cheap LFS registry transports
+: The bundled ORAS process and the Docker credential helper get permanent
+  guards on their stdin pipes, replacing a `once('error')` that a repeated
+  report could outlive.
+
+Trampoline server
+: Every accepted socket gets its `'error'` listener before its first read, and
+  the split-message stream gets one of its own (`pipe` does not forward
+  errors). All replies go through one helper that skips the write when the
+  client has already gone.
+
+Agent server
+: Responses are written through one guarded helper; requests, responses, and
+  raw connections each get an `'error'` listener; `clientError` is owned
+  explicitly; and the server keeps a permanent `'error'` listener after it
+  starts listening.
+
+Git hooks proxy
+: The loopback proxy-process server gets an `'error'` listener, which it
+  previously lacked entirely.
+
+Process backstop
+: The main-process `uncaughtException`/`unhandledRejection` handlers, the
+  `uncaught-exception` IPC handler, and the renderer's `uncaughtException`
+  handler contain a peer-closed write instead of showing the
+  unrecoverable-error dialog.
 
 The always-reply guarantee is unchanged. A trampoline client that is still
 connected always receives its reply and its socket close; the guard only
