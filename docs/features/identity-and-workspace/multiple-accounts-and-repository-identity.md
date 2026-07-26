@@ -51,6 +51,28 @@ The accounts store caps and validates persisted metadata, de-duplicates stable
 account keys, and never writes tokens to its metadata file or application log.
 Repository bindings use stable account keys rather than array positions.
 
+Sign-in persistence is concurrency-safe. The periodic account refresh re-reads
+the account list after its API calls return instead of writing back the
+snapshot it started with, so an account signed in while a refresh is running is
+never erased and a token re-authorized for wider scopes (for example the
+package-registry grant) is never rolled back to the narrower one. Saving
+metadata merges with the shared saved list rather than overwriting it, so a
+window holding a stale snapshot cannot sign out an account another window
+added; identities this store signed out, or rewrote through the Enterprise
+endpoint migration, are recorded so the merge neither resurrects nor duplicates
+them. That endpoint migration also moves the token to the new endpoint key,
+because credentials are addressed by endpoint.
+
+Credential failures are surfaced, never swallowed. An account whose token
+cannot be written is not added and the failure names the login. An account
+whose stored token is missing or unreadable at startup is reported as needing a
+new sign-in instead of being loaded with an empty token — the state that
+previously made the app look signed in while every API call failed and the
+sign-in prompt kept returning — and its saved metadata is preserved so a
+transient credential-store failure does not permanently sign the account out.
+A re-authorization that arrives under a renamed login clears the superseded
+credential entry rather than leaving a live token behind.
+
 The main-process same-origin filter keeps the initial origin only for the life
 of one Electron request. It deletes the record on completion and on
 failure/cancellation, so repeated failed requests cannot retain origin entries
@@ -58,6 +80,7 @@ for the app lifetime. Redirected requests still lose authorization-like
 headers whenever their current origin differs from the initial origin.
 
 Verification includes `accounts-store-test.ts`,
+`accounts-store-persistence-test.ts`,
 `get-account-for-repository-test.ts`, `repositories-store-test.ts`,
 `push-authenticated-git-test.ts`, `pull-authenticated-git-test.ts`,
 `fetch-authenticated-git-test.ts`,

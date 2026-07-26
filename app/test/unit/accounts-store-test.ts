@@ -2,7 +2,7 @@ import { describe, it, beforeEach } from 'node:test'
 import assert from 'node:assert'
 import { Account } from '../../src/models/account'
 import { AccountsStore } from '../../src/lib/stores'
-import { getKeyForAccount } from '../../src/lib/auth'
+import { getKeyForAccount, getKeyForEndpoint } from '../../src/lib/auth'
 import { getDotComAPIEndpoint } from '../../src/lib/api'
 import { InMemoryStore, AsyncInMemoryStore } from '../helpers/stores'
 
@@ -330,7 +330,6 @@ describe('AccountsStore', () => {
           {
             login: 'joan',
             endpoint: 'https://whatever.ghe.com/api/v3',
-            token: 'deadbeef',
             emails: [],
             avatarURL: '',
             id: 1,
@@ -339,13 +338,37 @@ describe('AccountsStore', () => {
           },
         ])
       )
-      accountsStore = new AccountsStore(dataStore, new AsyncInMemoryStore())
+      const secureStore = new AsyncInMemoryStore()
+      // The token was stored under the pre-migration endpoint key.
+      await secureStore.setItem(
+        getKeyForEndpoint('https://whatever.ghe.com/api/v3'),
+        'joan',
+        'deadbeef'
+      )
+      accountsStore = new AccountsStore(dataStore, secureStore)
 
       const users = await accountsStore.getAll()
       assert.equal(users[0].login, 'joan')
       assert.equal(users[0].endpoint, 'https://api.whatever.ghe.com/')
+      assert.equal(
+        users[0].token,
+        'deadbeef',
+        'the endpoint migration must carry the token to the new secret key'
+      )
+      assert.equal(
+        await secureStore.getItem(
+          getKeyForEndpoint('https://api.whatever.ghe.com/'),
+          'joan'
+        ),
+        'deadbeef'
+      )
 
       const persistedUsers = JSON.parse(dataStore.getItem('users'))
+      assert.equal(
+        persistedUsers.length,
+        1,
+        'the migration must rewrite the saved row, not duplicate it'
+      )
       assert.equal(persistedUsers[0].login, 'joan')
       assert.equal(persistedUsers[0].endpoint, 'https://api.whatever.ghe.com/')
     })
@@ -358,7 +381,6 @@ describe('AccountsStore', () => {
           {
             login: 'joan',
             endpoint: 'https://api.whatever.ghe.com/',
-            token: 'deadbeef',
             emails: [],
             avatarURL: '',
             id: 1,
@@ -367,7 +389,13 @@ describe('AccountsStore', () => {
           },
         ])
       )
-      accountsStore = new AccountsStore(dataStore, new AsyncInMemoryStore())
+      const secureStore = new AsyncInMemoryStore()
+      await secureStore.setItem(
+        getKeyForEndpoint('https://api.whatever.ghe.com/'),
+        'joan',
+        'deadbeef'
+      )
+      accountsStore = new AccountsStore(dataStore, secureStore)
 
       const users = await accountsStore.getAll()
       assert.equal(users[0].login, 'joan')
@@ -386,7 +414,6 @@ describe('AccountsStore', () => {
           {
             login: 'joan',
             endpoint: 'https://my-company-repos.com/api/v3',
-            token: 'deadbeef',
             emails: [],
             avatarURL: '',
             id: 1,
@@ -395,7 +422,13 @@ describe('AccountsStore', () => {
           },
         ])
       )
-      accountsStore = new AccountsStore(dataStore, new AsyncInMemoryStore())
+      const secureStore = new AsyncInMemoryStore()
+      await secureStore.setItem(
+        getKeyForEndpoint('https://my-company-repos.com/api/v3'),
+        'joan',
+        'deadbeef'
+      )
+      accountsStore = new AccountsStore(dataStore, secureStore)
 
       const users = await accountsStore.getAll()
       assert.equal(users[0].login, 'joan')
