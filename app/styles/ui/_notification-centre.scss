@@ -336,6 +336,11 @@
   border: 1px solid var(--md-sys-color-outline-variant);
   border-radius: 14px;
   background: var(--md-sys-color-surface-container);
+
+  .notification-centre-bulk-progress {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
 }
 
 .notification-centre-select-all {

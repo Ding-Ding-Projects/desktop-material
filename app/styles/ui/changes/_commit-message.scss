@@ -158,6 +158,26 @@
         overflow-y: auto;
         overscroll-behavior: contain;
         padding: 6px 8px 7px;
+
+        // The shared progress row is also mounted here for the post-batch
+        // repack phase; the terminal is an inverted surface, so its default
+        // on-surface colours have to be flipped to stay legible.
+        .operation-progress {
+          margin: 0;
+
+          .operation-progress-description {
+            color: var(--md-sys-color-inverse-on-surface);
+          }
+
+          .operation-progress-track {
+            background: color-mix(in srgb, var(--md-sys-color-inverse-on-surface) 22%, transparent);
+
+            span,
+            &.indeterminate::after {
+              background: var(--md-sys-color-inverse-primary);
+            }
+          }
+        }
       }
 
       .cheap-lfs-terminal-command,

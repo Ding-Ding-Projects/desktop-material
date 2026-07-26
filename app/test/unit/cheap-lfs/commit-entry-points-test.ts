@@ -123,9 +123,16 @@ describe('cheap LFS commit entry points', () => {
       source,
       /await this\.maybeAutoMaterializeCheapLfs\(repository, \{\s*requireSelected: true/
     )
+    // The loop now also publishes a 'restoring' finalization reading per
+    // repository so the clone popup stays live, but it must still await every
+    // materialization before the batch is allowed to report completion.
     assert.match(
       source,
-      /for \(const registered of addedRepositories\) \{\s*await this\.maybeAutoMaterializeCheapLfs\(registered\)/
+      /for \(const \[index, registered\] of addedRepositories\.entries\(\)\) \{[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered\)/
+    )
+    assert.match(
+      source,
+      /stage: 'restoring',[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered\)/
     )
   })
 

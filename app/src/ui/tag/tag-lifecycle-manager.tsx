@@ -11,7 +11,9 @@ import {
   TagKind,
 } from '../../lib/git'
 import { Repository } from '../../models/repository'
+import { IFetchProgress, IPushProgress } from '../../models/progress'
 import { Button } from '../lib/button'
+import { OperationProgressRow } from '../lib/operation-progress-row'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
@@ -54,12 +56,14 @@ export interface ITagLifecycleDispatcher {
   ) => Promise<boolean>
   readonly pushLifecycleTags: (
     repository: Repository,
-    reviews: ReadonlyArray<ITagPushReview>
+    reviews: ReadonlyArray<ITagPushReview>,
+    progressCallback?: (progress: IPushProgress) => void
   ) => Promise<boolean>
   readonly fetchLifecycleTags: (
     repository: Repository,
     prune: boolean,
-    reviewedLocalTags: ReadonlyArray<ITagRefReview>
+    reviewedLocalTags: ReadonlyArray<ITagRefReview>,
+    progressCallback?: (progress: IFetchProgress) => void
   ) => Promise<boolean>
   readonly deleteRemoteLifecycleTag: (
     repository: Repository,
@@ -120,6 +124,19 @@ interface ITagLifecycleManagerState {
   readonly pending: PendingAction | null
   readonly confirmationText: string
   readonly languageMode: LanguageMode
+  /** What the panel is doing right now, and how far along it is. */
+  readonly inFlight: ITagLifecycleInFlight | null
+}
+
+/**
+ * The live reading behind the panel's progress row. `percent` stays null until
+ * Git actually reports something, keeping the bar indeterminate through local
+ * revalidation and the network handshake rather than pretending to be at 0%.
+ */
+interface ITagLifecycleInFlight {
+  readonly message: ILocalizedMessage
+  readonly percent: number | null
+  readonly detail: string | null
 }
 
 interface ILocalizedMessage {
@@ -150,6 +167,7 @@ const emptyState: Omit<
   moveSigned: false,
   pending: null,
   confirmationText: '',
+  inFlight: null,
 }
 
 function shortObject(oid: string): string {
@@ -173,6 +191,8 @@ export class TagLifecycleManager extends React.Component<
   ITagLifecycleManagerState
 > {
   private mounted = false
+  /** True between the start and settlement of a `runMutation` operation. */
+  private mutationInFlight = false
 
   public constructor(props: ITagLifecycleManagerProps) {
     super(props)
@@ -250,6 +270,42 @@ export class TagLifecycleManager extends React.Component<
     return this.localized(message.key, message.variables)
   }
 
+  /**
+   * The panel's own progress row. Before this existed, `runMutation` nulled the
+   * status line and the panel rendered nothing at all while a 500-refspec tag
+   * push or a `--prune-tags` fetch ran.
+   */
+  private renderInFlightProgress() {
+    const inFlight = this.state.inFlight
+    if (inFlight === null) {
+      return null
+    }
+
+    const description = this.text(
+      inFlight.message.key,
+      inFlight.message.variables
+    )
+
+    return (
+      <OperationProgressRow
+        className="tag-lifecycle-progress"
+        label={this.accessibleText('tagLifecycle.progressLabel')}
+        description={description}
+        value={inFlight.percent}
+        max={inFlight.percent === null ? null : 100}
+        countText={
+          inFlight.percent === null ? undefined : `${inFlight.percent}%`
+        }
+        valueText={
+          inFlight.percent === null
+            ? description
+            : `${description} ${inFlight.percent}%`
+        }
+        detail={inFlight.detail}
+      />
+    )
+  }
+
   private loadInventory = async (includeRemote: boolean) => {
     if (this.state.busy) {
       return
@@ -271,6 +327,18 @@ export class TagLifecycleManager extends React.Component<
   }
 
   private refreshAfterMutation = async (status: ILocalizedMessage) => {
+    // The post-mutation refresh re-runs `git ls-remote --tags`, another network
+    // round trip, so the bar keeps moving instead of freezing on the last push
+    // reading.
+    if (this.mounted && this.state.busy) {
+      const refreshing: ILocalizedMessage = {
+        key: 'tagLifecycle.refreshingStatus',
+      }
+      this.setState({
+        status: refreshing,
+        inFlight: { message: refreshing, percent: null, detail: null },
+      })
+    }
     await this.props.onRefreshRepository()
     const includeRemote = this.state.inventory?.remote !== null
     const inventory = await this.props.dispatcher.getTagLifecycleInventory(
@@ -282,14 +350,49 @@ export class TagLifecycleManager extends React.Component<
     }
   }
 
+  /**
+   * Publish a live reading from a tag network operation. Ignored once the
+   * mutation has settled so a late callback cannot resurrect a finished bar.
+   */
+  private onMutationProgress = (message: ILocalizedMessage) => {
+    return (progress: IPushProgress | IFetchProgress) => {
+      // A plain field rather than `this.state.busy`: Git can report its first
+      // reading before React has flushed the busy setState, and dropping that
+      // reading would leave the bar indeterminate longer than necessary.
+      if (!this.mounted || !this.mutationInFlight) {
+        return
+      }
+      this.setState({
+        inFlight: {
+          message,
+          percent: progress.value > 0 ? Math.round(progress.value * 100) : null,
+          detail: progress.description ?? null,
+        },
+      })
+    }
+  }
+
   private runMutation = async (
     operation: () => Promise<boolean | void>,
-    successStatus: ILocalizedMessage
+    successStatus: ILocalizedMessage,
+    /**
+     * What to tell the user while this runs. Previously the panel nulled its
+     * only status line and then rendered nothing at all for the whole network
+     * round trip.
+     */
+    inFlightStatus?: ILocalizedMessage
   ) => {
     if (this.state.busy || this.props.readOnly) {
       return
     }
-    this.setState({ busy: true, error: null, status: null })
+    const inFlight = inFlightStatus ?? { key: 'tagLifecycle.workingStatus' }
+    this.mutationInFlight = true
+    this.setState({
+      busy: true,
+      error: null,
+      status: inFlight,
+      inFlight: { message: inFlight, percent: null, detail: null },
+    })
     try {
       const result = await operation()
       if (result === false) {
@@ -301,8 +404,14 @@ export class TagLifecycleManager extends React.Component<
         this.setState({ error: errorMessage(error) })
       }
     } finally {
+      this.mutationInFlight = false
       if (this.mounted) {
-        this.setState({ busy: false, pending: null, confirmationText: '' })
+        this.setState({
+          busy: false,
+          pending: null,
+          confirmationText: '',
+          inFlight: null,
+        })
       }
     }
   }
@@ -328,6 +437,10 @@ export class TagLifecycleManager extends React.Component<
         ),
       {
         key: 'tagLifecycle.createdStatus',
+        variables: { name: options.name },
+      },
+      {
+        key: 'tagLifecycle.creatingStatus',
         variables: { name: options.name },
       }
     ).then(() => {
@@ -466,6 +579,10 @@ export class TagLifecycleManager extends React.Component<
           {
             key: 'tagLifecycle.movedStatus',
             variables: { name: pending.options.name },
+          },
+          {
+            key: 'tagLifecycle.movingStatus',
+            variables: { name: pending.options.name },
           }
         ).then(() => {
           if (this.mounted && this.state.error === null) {
@@ -486,35 +603,58 @@ export class TagLifecycleManager extends React.Component<
           {
             key: 'tagLifecycle.deletedLocalStatus',
             variables: { name: pending.tag.name },
-          }
-        )
-        return
-      case 'push-one':
-        void this.runMutation(
-          () =>
-            this.props.dispatcher.pushLifecycleTags(this.props.repository, [
-              pending.review,
-            ]),
+          },
           {
-            key: 'tagLifecycle.pushedStatus',
+            key: 'tagLifecycle.deletingLocalStatus',
             variables: { name: pending.tag.name },
           }
         )
         return
-      case 'push-all':
+      case 'push-one': {
+        const pushingOne: ILocalizedMessage = {
+          key: 'tagLifecycle.pushingStatus',
+          variables: { name: pending.tag.name },
+        }
         void this.runMutation(
           () =>
             this.props.dispatcher.pushLifecycleTags(
               this.props.repository,
-              pending.reviews
+              [pending.review],
+              this.onMutationProgress(pushingOne)
+            ),
+          {
+            key: 'tagLifecycle.pushedStatus',
+            variables: { name: pending.tag.name },
+          },
+          pushingOne
+        )
+        return
+      }
+      case 'push-all': {
+        const pushingAll: ILocalizedMessage = {
+          key: 'tagLifecycle.pushingAllStatus',
+          variables: { count: String(pending.reviews.length) },
+        }
+        void this.runMutation(
+          () =>
+            this.props.dispatcher.pushLifecycleTags(
+              this.props.repository,
+              pending.reviews,
+              this.onMutationProgress(pushingAll)
             ),
           {
             key: 'tagLifecycle.pushedAllStatus',
             variables: { count: String(pending.reviews.length) },
-          }
+          },
+          pushingAll
         )
         return
-      case 'fetch-prune':
+      }
+      case 'fetch-prune': {
+        const fetchingPruned: ILocalizedMessage = {
+          key: 'tagLifecycle.fetchingPrunedStatus',
+          variables: { remote: pending.remoteName },
+        }
         void this.runMutation(
           () =>
             this.props.dispatcher.fetchLifecycleTags(
@@ -523,14 +663,17 @@ export class TagLifecycleManager extends React.Component<
               pending.tags.map(tag => ({
                 name: tag.name,
                 expectedRefObject: tag.refObject,
-              }))
+              })),
+              this.onMutationProgress(fetchingPruned)
             ),
           {
             key: 'tagLifecycle.fetchedPrunedStatus',
             variables: { remote: pending.remoteName },
-          }
+          },
+          fetchingPruned
         )
         return
+      }
       case 'delete-remote':
         void this.runMutation(
           () =>
@@ -543,6 +686,10 @@ export class TagLifecycleManager extends React.Component<
             ),
           {
             key: 'tagLifecycle.deletedRemoteStatus',
+            variables: { name: pending.tag.name },
+          },
+          {
+            key: 'tagLifecycle.deletingRemoteStatus',
             variables: { name: pending.tag.name },
           }
         )
@@ -986,11 +1133,12 @@ export class TagLifecycleManager extends React.Component<
               : this.renderMessage(this.state.error)}
           </p>
         )}
-        {this.state.status !== null && (
+        {this.state.status !== null && this.state.inFlight === null && (
           <p className="tag-lifecycle-notice" role="status">
             {this.renderMessage(this.state.status)}
           </p>
         )}
+        {this.renderInFlightProgress()}
         {this.state.loading && (
           <p role="status">{this.localized('tagLifecycle.loading')}</p>
         )}
@@ -1028,22 +1176,27 @@ export class TagLifecycleManager extends React.Component<
             <div className="tag-lifecycle-actions">
               <Button
                 disabled={disabled || inventory?.remoteName === null}
-                onClick={() =>
+                onClick={() => {
+                  const remote = inventory?.remoteName ?? 'remote'
+                  const fetching: ILocalizedMessage = {
+                    key: 'tagLifecycle.fetchingStatus',
+                    variables: { remote },
+                  }
                   void this.runMutation(
                     () =>
                       this.props.dispatcher.fetchLifecycleTags(
                         this.props.repository,
                         false,
-                        []
+                        [],
+                        this.onMutationProgress(fetching)
                       ),
                     {
                       key: 'tagLifecycle.fetchedStatus',
-                      variables: {
-                        remote: inventory?.remoteName ?? 'remote',
-                      },
-                    }
+                      variables: { remote },
+                    },
+                    fetching
                   )
-                }
+                }}
               >
                 {this.localized('tagLifecycle.fetchAction')}
               </Button>

@@ -259,6 +259,20 @@
     }
   }
 
+  // Feedback for load / unload / copy / rename / delete, which have no byte
+  // total and therefore use the shared indeterminate progress row.
+  .ollama-operation-progress {
+    align-items: center;
+    display: flex;
+    gap: 10px;
+
+    .operation-progress {
+      flex: 1 1 auto;
+      margin: 0;
+      min-width: 0;
+    }
+  }
+
   .ollama-pull-progress {
     display: grid;
     min-width: 0;

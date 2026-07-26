@@ -30,6 +30,8 @@ import {
 } from '../lib/filter-list-mode'
 import { TooltippedContent } from '../lib/tooltipped-content'
 import { TooltipDirection } from '../lib/tooltip'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 
 const NotificationSearchFilterId = 'notification-centre-search'
 
@@ -77,6 +79,15 @@ interface INotificationCentrePanelState {
   readonly selectedLocalIds: ReadonlySet<string>
   readonly selectedGitHubIds: ReadonlySet<string>
   readonly bulkBusy: boolean
+  /**
+   * Determinate counter for the running selection-scoped bulk action. Each
+   * notification is one HTTPS round trip and the list does not shrink until the
+   * whole batch resolves, so without this the panel looks frozen.
+   */
+  readonly bulkProgress: {
+    readonly completed: number
+    readonly total: number
+  } | null
   readonly confirmingBulk: BulkConfirmation | null
   readonly confirmingClear: boolean
   readonly confirmingDone: IAPINotificationThread | null
@@ -125,6 +136,7 @@ export class NotificationCentrePanel extends React.Component<
       selectedLocalIds: new Set<string>(),
       selectedGitHubIds: new Set<string>(),
       bulkBusy: false,
+      bulkProgress: null,
       confirmingBulk: null,
       confirmingClear: false,
       confirmingDone: null,
@@ -219,6 +231,7 @@ export class NotificationCentrePanel extends React.Component<
         selectedLocalIds: new Set<string>(),
         selectedGitHubIds: new Set<string>(),
         bulkBusy: false,
+        bulkProgress: null,
         confirmingClear: false,
         confirmingBulk: null,
         confirmingDone: null,
@@ -335,6 +348,7 @@ export class NotificationCentrePanel extends React.Component<
         filter,
         selectedLocalIds: new Set<string>(),
         bulkBusy: false,
+        bulkProgress: null,
         confirmingBulk: null,
       })
     } else {
@@ -342,6 +356,7 @@ export class NotificationCentrePanel extends React.Component<
       this.setState({
         selectedGitHubIds: new Set<string>(),
         bulkBusy: false,
+        bulkProgress: null,
         confirmingBulk: null,
         confirmingDone: null,
       })
@@ -571,7 +586,7 @@ export class NotificationCentrePanel extends React.Component<
     if (ids.length === 0 || this.state.bulkBusy) {
       return
     }
-    this.setState({ bulkBusy: true, confirmingBulk: null })
+    this.setState({ bulkBusy: true, confirmingBulk: null, bulkProgress: null })
     try {
       await this.props.dispatcher.setNotificationsRead(ids, read)
     } catch (error) {
@@ -582,6 +597,7 @@ export class NotificationCentrePanel extends React.Component<
       if (this.mounted) {
         this.setState({
           bulkBusy: false,
+          bulkProgress: null,
           selectedLocalIds: new Set<string>(),
         })
       }
@@ -633,7 +649,7 @@ export class NotificationCentrePanel extends React.Component<
     }
     const returnFocus = this.bulkReturnFocus
     this.bulkReturnFocus = null
-    this.setState({ bulkBusy: true, confirmingBulk: null })
+    this.setState({ bulkBusy: true, confirmingBulk: null, bulkProgress: null })
     try {
       await this.props.dispatcher.deleteNotifications(ids)
     } catch (error) {
@@ -645,6 +661,7 @@ export class NotificationCentrePanel extends React.Component<
         this.setState(
           {
             bulkBusy: false,
+            bulkProgress: null,
             selectedLocalIds: new Set<string>(),
           },
           () => this.restoreFocus(returnFocus)
@@ -676,7 +693,12 @@ export class NotificationCentrePanel extends React.Component<
       participating: this.state.github.participating,
     }
     const failed = new Set<string>()
-    this.setState({ bulkBusy: true, confirmingBulk: null })
+    this.setState({
+      bulkBusy: true,
+      confirmingBulk: null,
+      bulkProgress: { completed: 0, total: ids.length },
+    })
+    let completed = 0
     for (const id of ids) {
       const current = this.githubStore.getState()
       if (
@@ -687,6 +709,7 @@ export class NotificationCentrePanel extends React.Component<
         if (this.mounted) {
           this.setState({
             bulkBusy: false,
+            bulkProgress: null,
             selectedGitHubIds: new Set<string>(),
           })
         }
@@ -698,6 +721,10 @@ export class NotificationCentrePanel extends React.Component<
           : await this.githubStore.markThreadDone(id)
       if (!succeeded) {
         failed.add(id)
+      }
+      completed++
+      if (this.mounted) {
+        this.setState({ bulkProgress: { completed, total: ids.length } })
       }
     }
     if (!this.mounted || this.state.source !== 'github') {
@@ -711,12 +738,14 @@ export class NotificationCentrePanel extends React.Component<
     ) {
       this.setState({
         bulkBusy: false,
+        bulkProgress: null,
         selectedGitHubIds: new Set<string>(),
       })
       return
     }
     this.setState({
       bulkBusy: false,
+      bulkProgress: null,
       selectedGitHubIds: failed,
     })
   }
@@ -800,6 +829,7 @@ export class NotificationCentrePanel extends React.Component<
     this.setState({
       selectedGitHubIds: new Set<string>(),
       bulkBusy: false,
+      bulkProgress: null,
       confirmingBulk: null,
       confirmingDone: null,
     })
@@ -813,6 +843,7 @@ export class NotificationCentrePanel extends React.Component<
     this.setState({
       selectedGitHubIds: new Set<string>(),
       bulkBusy: false,
+      bulkProgress: null,
       confirmingBulk: null,
       confirmingDone: null,
     })
@@ -1189,7 +1220,43 @@ export class NotificationCentrePanel extends React.Component<
             Clear all
           </button>
         </div>
+        {this.renderBulkProgress()}
       </div>
+    )
+  }
+
+  /**
+   * Determinate progress for the two bulk paths that were previously invisible
+   * to sighted users: the selection loop (one round trip per notification) and
+   * Clear all (a concurrency-4 worker pool over every loaded thread).
+   */
+  private renderBulkProgress() {
+    const selection = this.state.bulkProgress
+    const clearAll = this.state.github.clearAllProgress
+    const active = selection ?? clearAll
+    if (active === null) {
+      return null
+    }
+
+    const key =
+      selection !== null
+        ? 'notificationCentre.bulkProgressStatus'
+        : 'notificationCentre.clearAllProgressStatus'
+
+    return (
+      <OperationProgressRow
+        className="notification-centre-bulk-progress"
+        label={translateForAccessibleName(
+          'notificationCentre.bulkProgressLabel'
+        )}
+        description={t(key, {
+          completed: String(active.completed),
+          total: String(active.total),
+        })}
+        value={active.completed}
+        max={active.total}
+        countText={`${active.completed}/${active.total}`}
+      />
     )
   }
 

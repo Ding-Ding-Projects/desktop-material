@@ -15,7 +15,10 @@ import {
 } from '../../lib/git'
 import { Repository } from '../../models/repository'
 import { shortenSHA } from '../../models/commit'
+import { IMultiCommitOperationProgress } from '../../models/progress'
 import { Button } from '../lib/button'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 
 type CommitRewritePhase =
   | 'idle'
@@ -37,7 +40,8 @@ export interface IRepositoryCommitRewriteClient {
   readonly execute: (
     repository: Repository,
     inspection: IStructuredCommitRewriteInspection,
-    plan: ReadonlyArray<IStructuredCommitRewritePlanItem>
+    plan: ReadonlyArray<IStructuredCommitRewritePlanItem>,
+    progressCallback?: (progress: IMultiCommitOperationProgress) => void
   ) => Promise<RebaseResult>
   readonly continue: (repository: Repository) => Promise<RebaseResult>
   readonly abort: (repository: Repository) => Promise<void>
@@ -64,6 +68,11 @@ interface IRepositoryCommitRewriteState {
   readonly plan: ReadonlyArray<IStructuredCommitRewritePlanItem>
   readonly status: string
   readonly error: string | null
+  /**
+   * Per-commit sequencer progress while the interactive rebase replays the
+   * reviewed commits. Null until Git reports its first `Rebasing (n/m)` line.
+   */
+  readonly rewriteProgress: IMultiCommitOperationProgress | null
 }
 
 function initialState(): IRepositoryCommitRewriteState {
@@ -73,6 +82,7 @@ function initialState(): IRepositoryCommitRewriteState {
     plan: [],
     status: 'Review the current branch before building a rewrite plan.',
     error: null,
+    rewriteProgress: null,
   }
 }
 
@@ -287,11 +297,16 @@ export class RepositoryCommitRewrite extends React.Component<
     const generation = this.generation
     this.setState({
       phase: 'running',
-      status: 'Applying the confirmed structured rewrite…',
+      status: t('commitRewrite.progressPreparing'),
       error: null,
+      rewriteProgress: null,
     })
     void this.client
-      .execute(repository, inspection, plan)
+      .execute(repository, inspection, plan, progress => {
+        if (this.isCurrent(repository, generation)) {
+          this.setState({ rewriteProgress: progress })
+        }
+      })
       .then(result => this.handleRebaseResult(repository, generation, result))
       .catch(error => {
         if (!this.isCurrent(repository, generation)) {
@@ -445,6 +460,39 @@ export class RepositoryCommitRewrite extends React.Component<
         error: errorMessage(error),
       })
     }
+  }
+
+  /**
+   * Determinate per-commit progress for the interactive rebase, mirroring
+   * multi-commit-operation/dialog/progress-dialog.tsx. Indeterminate until Git
+   * emits its first `Rebasing (n/m)` line.
+   */
+  private renderRewriteProgress() {
+    const progress = this.state.rewriteProgress
+    const total = this.state.inspection?.commits.length ?? null
+
+    return (
+      <OperationProgressRow
+        className="repository-commit-rewrite-progress"
+        label={translateForAccessibleName('commitRewrite.progressLabel')}
+        description={
+          progress === null
+            ? this.state.status
+            : t('commitRewrite.progressStatus', {
+                index: String(progress.position),
+                total: String(progress.totalCommitCount),
+                summary: progress.currentCommitSummary,
+              })
+        }
+        value={progress?.position ?? null}
+        max={progress?.totalCommitCount ?? total}
+        countText={
+          progress === null
+            ? undefined
+            : `${progress.position}/${progress.totalCommitCount}`
+        }
+      />
+    )
   }
 
   private renderPlan() {
@@ -671,13 +719,17 @@ export class RepositoryCommitRewrite extends React.Component<
           {this.renderPlan()}
           {this.renderConfirmation()}
           {this.renderConflictRecovery()}
-          <div
-            className="repository-commit-rewrite-status"
-            role="status"
-            aria-live="polite"
-          >
-            {this.state.status}
-          </div>
+          {this.state.phase === 'running' ? (
+            this.renderRewriteProgress()
+          ) : (
+            <div
+              className="repository-commit-rewrite-status"
+              role="status"
+              aria-live="polite"
+            >
+              {this.state.status}
+            </div>
+          )}
           {this.state.error !== null && (
             <p className="repository-tools-error" role="alert">
               {this.state.error}

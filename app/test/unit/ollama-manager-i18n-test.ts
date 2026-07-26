@@ -101,6 +101,15 @@ const ollamaManagerTranslationKeys: ReadonlyArray<TranslationKey> = [
   'ollama.manager.configurationPartial',
   'ollama.manager.renamePartial',
   'ollama.manager.pullCancelled',
+  // Progress copy for every operation other than pull — load budgets ten
+  // minutes and previously showed nothing but a disabled button.
+  'ollama.manager.operationProgressLabel',
+  'ollama.manager.operationCancelled',
+  'ollama.manager.operationLoading',
+  'ollama.manager.operationUnloading',
+  'ollama.manager.operationDeleting',
+  'ollama.manager.operationCopying',
+  'ollama.manager.operationRenaming',
   'ollama.manager.chatTitle',
   'ollama.manager.chatHint',
   'ollama.manager.chatModelLabel',
@@ -215,7 +224,7 @@ describe('Ollama model manager internationalization', () => {
     const expectedKeys = [...ollamaManagerTranslationKeys].sort()
 
     assert.deepEqual(actualKeys, expectedKeys)
-    assert.equal(ollamaManagerTranslationKeys.length, 177)
+    assert.equal(ollamaManagerTranslationKeys.length, 184)
 
     for (const key of ollamaManagerTranslationKeys) {
       assert.equal(typeof englishTranslations[key], 'string', key)

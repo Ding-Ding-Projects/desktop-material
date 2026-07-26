@@ -4,12 +4,15 @@ import * as React from 'react'
 import { Account } from '../../models/account'
 import { Repository } from '../../models/repository'
 import {
+  CheapLfsPinStage,
   ICheapLfsBatchMaterializeResult,
   ICheapLfsMaterializeResult,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
   ICheapLfsManagedPointerEntry,
 } from '../../lib/cheap-lfs/operations'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { translateForAccessibleName } from '../../lib/i18n'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
 import {
   CHEAP_LFS_PART_SIZE_BYTES,
@@ -57,7 +60,9 @@ export interface ICheapLfsDispatcher {
     repository: Repository,
     options: ICheapLfsPinOptions,
     signal?: AbortSignal,
-    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
+    onStage?: (stage: CheapLfsPinStage) => void,
+    onHashProgress?: (processedBytes: number) => void
   ): Promise<ICheapLfsPinResult | ICheapLfsOciMutationResult>
   materializePointer(
     repository: Repository,
@@ -123,6 +128,17 @@ interface ICheapLfsState {
   readonly materializingPath: string | null
   readonly pin: IPinDraft | null
   readonly progress: IGitHubReleaseTransferProgressEvent | null
+  /**
+   * The pin stage currently running. Hashing and release-bucket allocation
+   * both happen before the first upload byte, and used to leave the panel
+   * showing only a static "Working: pin" line.
+   */
+  readonly pinStage: CheapLfsPinStage | null
+  /** Bytes hashed so far, and the source file's size, during 'hashing'. */
+  readonly hashProgress: {
+    readonly processedBytes: number
+    readonly totalBytes: number
+  } | null
   readonly notice: string | null
   readonly error: string | null
   readonly cloudBusy: boolean
@@ -205,6 +221,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       materializingPath: null,
       pin: null,
       progress: null,
+      pinStage: null,
+      hashProgress: null,
       notice: null,
       error: null,
       cloudBusy: false,
@@ -242,6 +260,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
           materializingPath: null,
           pin: null,
           progress: null,
+          pinStage: null,
+          hashProgress: null,
           notice: null,
           error: null,
           cloudBusy: cloudRepositoryChanged ? false : this.state.cloudBusy,
@@ -280,7 +300,14 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     const controller = new AbortController()
     this.operationController = controller
     this.materializeAllInFlight = false
-    this.setState({ busy: kind, error: null, notice: null, progress: null })
+    this.setState({
+      busy: kind,
+      error: null,
+      notice: null,
+      progress: null,
+      pinStage: null,
+      hashProgress: null,
+    })
     return { generation: this.generation, controller }
   }
 
@@ -459,7 +486,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       }
       this.finishOperation(operation.controller)
       this.setState(
-        { busy: null, progress: null },
+        { busy: null, progress: null, pinStage: null, hashProgress: null },
         () =>
           void this.loadPointers(
             `Removed ${relativePath} from the logical registry image. Review and commit all updated pointers together.`
@@ -470,6 +497,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         this.setState({
           busy: null,
           progress: null,
+          pinStage: null,
+          hashProgress: null,
           error:
             (error as Error)?.name === 'AbortError'
               ? null
@@ -505,7 +534,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       }
       this.finishOperation(operation.controller)
       this.setState(
-        { busy: null, progress: null },
+        { busy: null, progress: null, pinStage: null, hashProgress: null },
         () =>
           void this.loadPointers(
             `Materialized ${relativePath} (${formatBytes(
@@ -519,6 +548,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         this.setState({
           busy: null,
           progress: null,
+          pinStage: null,
+          hashProgress: null,
           materializingPath: null,
           error: canceled ? null : errorMessage(error),
           notice: canceled
@@ -565,7 +596,13 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       const completed = summary.materialized.length
       const failed = summary.failures.length
       this.setState(
-        { busy: null, progress: null, materializingPath: null },
+        {
+          busy: null,
+          progress: null,
+          pinStage: null,
+          hashProgress: null,
+          materializingPath: null,
+        },
         () =>
           void this.loadPointers(
             failed > 0
@@ -590,7 +627,13 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         if (canceled) {
           this.finishOperation(operation.controller)
           this.setState(
-            { busy: null, progress: null, materializingPath: null },
+            {
+              busy: null,
+              progress: null,
+              pinStage: null,
+              hashProgress: null,
+              materializingPath: null,
+            },
             () =>
               void this.loadPointers(
                 'Materialize canceled; completed files remain verified locally.'
@@ -600,6 +643,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
           this.setState({
             busy: null,
             progress: null,
+            pinStage: null,
+            hashProgress: null,
             materializingPath: null,
             error: errorMessage(error),
             notice: null,
@@ -741,7 +786,25 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
             operation.generation,
             operation.controller,
             progress
-          )
+          ),
+        stage => {
+          if (this.isCurrent(operation.generation, operation.controller)) {
+            this.setState({
+              pinStage: stage,
+              hashProgress:
+                stage === 'hashing'
+                  ? { processedBytes: 0, totalBytes: pin.sizeInBytes }
+                  : null,
+            })
+          }
+        },
+        processedBytes => {
+          if (this.isCurrent(operation.generation, operation.controller)) {
+            this.setState({
+              hashProgress: { processedBytes, totalBytes: pin.sizeInBytes },
+            })
+          }
+        }
       )
       if (!this.isCurrent(operation.generation, operation.controller)) {
         return
@@ -751,7 +814,13 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         this.props.repository.buildRunPreferences
       )
       this.setState(
-        { busy: null, progress: null, pin: null },
+        {
+          busy: null,
+          progress: null,
+          pinStage: null,
+          hashProgress: null,
+          pin: null,
+        },
         () =>
           void this.loadPointers(
             provider === 'release'
@@ -767,6 +836,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         this.setState({
           busy: null,
           progress: null,
+          pinStage: null,
+          hashProgress: null,
           error: canceled ? null : errorMessage(error),
           notice: canceled ? 'Pin canceled.' : null,
         })
@@ -1017,6 +1088,52 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     )
   }
 
+  /**
+   * The two pre-transfer pin stages. Hashing is determinate against the source
+   * file's own size; the release-bucket probe is a bounded search over up to
+   * 1,000 tags with no total to report, so it stays indeterminate.
+   */
+  private renderPinStageProgress() {
+    const stage = this.state.pinStage
+    if (stage === null || this.state.busy !== 'pin') {
+      return null
+    }
+
+    if (stage === 'hashing') {
+      const hash = this.state.hashProgress
+      return (
+        <OperationProgressRow
+          className="cheap-lfs-stage-progress"
+          label={translateForAccessibleName('cheapLfs.stage.hashingLabel')}
+          description={t('cheapLfs.stage.hashingStatus', {
+            path: this.state.pin?.trackedRelativePath ?? '',
+          })}
+          value={hash?.processedBytes ?? null}
+          max={hash !== null && hash.totalBytes > 0 ? hash.totalBytes : null}
+          detail={
+            hash === null || hash.totalBytes <= 0
+              ? undefined
+              : `${formatBytes(hash.processedBytes)} of ${formatBytes(
+                  hash.totalBytes
+                )}`
+          }
+        />
+      )
+    }
+
+    if (stage === 'release') {
+      return (
+        <OperationProgressRow
+          className="cheap-lfs-stage-progress"
+          label={translateForAccessibleName('cheapLfs.stage.releaseLabel')}
+          description={t('cheapLfs.stage.releaseStatus')}
+        />
+      )
+    }
+
+    return null
+  }
+
   private renderStatus() {
     const { busy, materializingPath, progress, error, notice } = this.state
     const busyLabel =
@@ -1031,6 +1148,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
             <Button onClick={this.cancelOperation}>Cancel</Button>
           </div>
         )}
+        {this.renderPinStageProgress()}
         {progress !== null && (
           <div className="cheap-lfs-progress">
             <progress

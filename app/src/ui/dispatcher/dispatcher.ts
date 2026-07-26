@@ -21,6 +21,7 @@ import {
   ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  CheapLfsPinStage,
 } from '../../lib/cheap-lfs/operations'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
 import type { IEnsureCheapLfsCloudCompressionResult } from '../../lib/cheap-lfs/cloud-compression'
@@ -170,6 +171,7 @@ import { Commit, ICommitContext, CommitOneLine } from '../../models/commit'
 import { ICommitMessage } from '../../models/commit-message'
 import { DiffSelection, ImageDiffType, ITextDiff } from '../../models/diff'
 import { FetchType } from '../../models/fetch'
+import { IFetchProgress, IPushProgress } from '../../models/progress'
 import { GitHubRepository } from '../../models/github-repository'
 import {
   IRemote,
@@ -981,9 +983,11 @@ export class Dispatcher {
    */
   public addRepositories(
     paths: ReadonlyArray<string>,
-    accountKeysByPath?: ReadonlyMap<string, string>
+    accountKeysByPath?: ReadonlyMap<string, string>,
+    /** Per-path progress for a caller that renders its own bar. */
+    onProgress?: (completed: number, total: number, path: string) => void
   ): Promise<ReadonlyArray<Repository>> {
-    return this.appStore._addRepositories(paths, accountKeysByPath)
+    return this.appStore._addRepositories(paths, accountKeysByPath, onProgress)
   }
 
   /**
@@ -1681,21 +1685,30 @@ export class Dispatcher {
   /** Push one or more exact reviewed local tag objects. */
   public pushLifecycleTags(
     repository: Repository,
-    reviews: ReadonlyArray<ITagPushReview>
+    reviews: ReadonlyArray<ITagPushReview>,
+    /** Live `git push --progress` readings for the calling panel's own bar. */
+    progressCallback?: (progress: IPushProgress) => void
   ): Promise<boolean> {
-    return this.appStore._pushLifecycleTags(repository, reviews)
+    return this.appStore._pushLifecycleTags(
+      repository,
+      reviews,
+      progressCallback
+    )
   }
 
   /** Fetch tags, optionally pruning local tags missing from the remote. */
   public fetchLifecycleTags(
     repository: Repository,
     prune: boolean,
-    reviewedLocalTags: ReadonlyArray<ITagRefReview>
+    reviewedLocalTags: ReadonlyArray<ITagRefReview>,
+    /** Live `git fetch --progress` readings for the calling panel's own bar. */
+    progressCallback?: (progress: IFetchProgress) => void
   ): Promise<boolean> {
     return this.appStore._fetchLifecycleTags(
       repository,
       prune,
-      reviewedLocalTags
+      reviewedLocalTags,
+      progressCallback
     )
   }
 
@@ -2244,11 +2257,21 @@ export class Dispatcher {
     repository: Repository,
     reviewedBranches: ReadonlyArray<
       import('../../lib/git').IReviewedBranchDeletion
-    >
+    >,
+    /** Reports each branch as it settles so the panel bar can advance. */
+    onBranchDeleted?: (
+      completed: number,
+      total: number,
+      result: import('../../lib/git').IReviewedBranchDeletionResult
+    ) => void
   ): Promise<
     ReadonlyArray<import('../../lib/git').IReviewedBranchDeletionResult>
   > {
-    return this.appStore._deleteReviewedBranches(repository, reviewedBranches)
+    return this.appStore._deleteReviewedBranches(
+      repository,
+      reviewedBranches,
+      onBranchDeleted
+    )
   }
 
   /** Discard the changes to the given files. */
@@ -3144,13 +3167,19 @@ export class Dispatcher {
     repository: Repository,
     options: ICheapLfsPinOptions,
     signal?: AbortSignal,
-    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
+    /** Coarse stage changes (hashing / release / uploading / verifying). */
+    onStage?: (stage: CheapLfsPinStage) => void,
+    /** Bytes hashed so far during the pre-upload hashing pass. */
+    onHashProgress?: (processedBytes: number) => void
   ): Promise<ICheapLfsPinResult | ICheapLfsOciMutationResult> {
     return this.appStore._pinFileToRelease(
       repository,
       options,
       signal,
-      onProgress
+      onProgress,
+      onStage,
+      onHashProgress
     )
   }
 

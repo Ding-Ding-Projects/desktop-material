@@ -712,6 +712,13 @@
   }
 }
 
+.repository-bisect-running {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+}
+
+.repository-bisect-output,
 .repository-shallow-history-output {
   background: var(--md-sys-color-inverse-surface);
   border-radius: 8px;

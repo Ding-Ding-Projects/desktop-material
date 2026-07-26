@@ -217,6 +217,59 @@ describe('Repository shallow history', () => {
     assert.equal(busyStates[busyStates.length - 1], false)
   })
 
+  it('mounts a live fetch progressbar driven by git --progress stderr', async () => {
+    const client = new FakeShallowHistoryClient()
+    renderHistory(client)
+    await inspectShallowRepository(client)
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Review bounded deepen' })
+    )
+    await advanceReviewedActionToFetch(client)
+
+    // The bar exists from the moment the fetch starts, before Git has reported
+    // anything measurable — indeterminate, with no aria-valuenow.
+    const bar = await screen.findByRole('progressbar', {
+      name: 'Fetching older history',
+    })
+    assert.equal(bar.getAttribute('aria-valuenow'), null)
+    assert.ok(bar.classList.contains('indeterminate'))
+
+    const fetchId = client.starts[4].id
+    client.emitOutput({
+      id: fetchId,
+      stream: 'stderr',
+      data: 'remote: Compressing objects:  50% (5/10)\r',
+    })
+    await waitFor(() =>
+      assert.notEqual(bar.getAttribute('aria-valuenow'), null)
+    )
+    assert.equal(bar.getAttribute('aria-valuemax'), '100')
+    assert.ok(!bar.classList.contains('indeterminate'))
+
+    client.emitOutput({
+      id: fetchId,
+      stream: 'stderr',
+      data: 'Receiving objects:  80% (800/1000), 12.00 MiB | 2.00 MiB/s\r',
+    })
+    await waitFor(() =>
+      assert.match(
+        bar.getAttribute('aria-valuetext') ?? '',
+        /Receiving objects/
+      )
+    )
+    // The output pane is now a real embedded terminal, not an empty <pre>.
+    assert.ok(screen.getByText(/Receiving objects:\s+80%/))
+
+    emitCompleted(client, 4)
+    await waitFor(() =>
+      assert.equal(
+        screen.queryByRole('progressbar', { name: 'Fetching older history' }),
+        null
+      )
+    )
+  })
+
   it('keeps the full-history action distinct and reports an unshallowed result', async () => {
     const client = new FakeShallowHistoryClient()
     let refreshes = 0

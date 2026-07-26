@@ -1,3 +1,4 @@
+import { ChildProcess } from 'child_process'
 import { git, IGitStringExecutionOptions } from './core'
 import { Repository } from '../../models/repository'
 import { Commit } from '../../models/commit'
@@ -47,6 +48,51 @@ export interface ISubtreeMergeOptions extends ISubtreeRemoteOptions {
 export interface ISubtreeSplitOptions {
   /** When provided the split result is recorded as this new branch (`-b`). */
   readonly branch?: string
+  /**
+   * Bounded progress text plus fractional progress, mirroring the pull/push
+   * options. `git subtree split` walks the whole prefix history and reports
+   * its own `processed/total (created)` counter on stderr.
+   */
+  readonly progressCallback?: (line: string, percent: number) => void
+}
+
+/** One reading parsed out of `git subtree split`'s own stderr counter. */
+export interface ISubtreeSplitProgress {
+  /** Revisions walked so far. */
+  readonly processed: number
+  /** Total revisions the walk will visit. */
+  readonly total: number
+  /** Synthetic commits created so far. */
+  readonly created: number
+}
+
+/**
+ * Parse one line of `git subtree split` progress.
+ *
+ * git-subtree writes `<processed>/<total> (<created>)` records separated by
+ * carriage returns, optionally followed by an elapsed-time suffix. Anything
+ * else — including a zero or missing total, which would make a percentage
+ * meaningless — returns null.
+ */
+export function parseSubtreeSplitProgress(
+  line: string
+): ISubtreeSplitProgress | null {
+  const match = /(\d+)\/(\d+)\s*\((\d+)\)/.exec(line)
+  if (match === null) {
+    return null
+  }
+
+  const processed = Number(match[1])
+  const total = Number(match[2])
+  const created = Number(match[3])
+  if (!Number.isSafeInteger(total) || total <= 0) {
+    return null
+  }
+  if (!Number.isSafeInteger(processed) || !Number.isSafeInteger(created)) {
+    return null
+  }
+
+  return { processed: Math.min(processed, total), total, created }
 }
 
 /**
@@ -289,7 +335,40 @@ export async function splitSubtree(
     args.push('-b', options.branch)
   }
 
-  const { stdout } = await git(args, repository.path, 'splitSubtree')
+  let opts: IGitStringExecutionOptions = {}
+  const progressCallback = options?.progressCallback
+  if (progressCallback !== undefined) {
+    // git-subtree has no --progress switch; it always writes its own
+    // `processed/total (created)` counter to stderr, separated by carriage
+    // returns rather than newlines.
+    opts = {
+      processCallback: (process: ChildProcess) => {
+        const stderr = process.stderr
+        if (stderr === null) {
+          return
+        }
+        let pending = ''
+        stderr.setEncoding('utf8')
+        stderr.on('data', (chunk: string) => {
+          const parts = `${pending}${chunk}`.split(/\r\n|\r|\n/)
+          pending = parts.pop() ?? ''
+          if (pending.length > 4096) {
+            pending = ''
+          }
+          for (const part of parts) {
+            const reading = parseSubtreeSplitProgress(part)
+            if (reading !== null) {
+              progressCallback(part.trim(), reading.processed / reading.total)
+            }
+          }
+        })
+      },
+    }
+    progressCallback('Running git subtree split…', 0)
+  }
+
+  const { stdout } = await git(args, repository.path, 'splitSubtree', opts)
+  progressCallback?.('Subtree split.', 1)
   return stdout.trim()
 }
 

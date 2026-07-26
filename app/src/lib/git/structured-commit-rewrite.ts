@@ -1,6 +1,7 @@
 import { rm, writeFile } from 'fs/promises'
 
 import { Repository } from '../../models/repository'
+import { IMultiCommitOperationProgress } from '../../models/progress'
 import { getTempFilePath } from '../file-system'
 import { createLogParser } from './git-delimiter-parser'
 import { git } from './core'
@@ -381,7 +382,14 @@ export async function inspectStructuredCommitRewrite(
 export async function executeStructuredCommitRewrite(
   repository: Repository,
   reviewed: IStructuredCommitRewriteInspection,
-  plan: ReadonlyArray<IStructuredCommitRewritePlanItem>
+  plan: ReadonlyArray<IStructuredCommitRewritePlanItem>,
+  /**
+   * Per-commit progress from the sequencer. Up to
+   * {@link MaximumStructuredCommitRewriteCommits} commits are replayed and the
+   * worktree is touched at every step, so without this the owning UI shows only
+   * a static "Applying…" line for the whole run.
+   */
+  progressCallback?: (progress: IMultiCommitOperationProgress) => void
 ): Promise<RebaseResult> {
   const todo = renderStructuredCommitRewriteTodo(reviewed, plan)
   const current = await inspectStructuredCommitRewrite(repository)
@@ -415,6 +423,10 @@ export async function executeStructuredCommitRewrite(
     try {
       return await rebaseInteractive(repository, todoPath, reviewed.baseSha, {
         action: 'Structured commit rewrite',
+        // Engages `configureOptionsForRebase`, which is skipped entirely unless
+        // both `commits` and `progressCallback` are present.
+        commits: reviewed.commits,
+        progressCallback,
       })
     } catch (error) {
       // A hook or unexpected Git failure can leave the interactive rebase

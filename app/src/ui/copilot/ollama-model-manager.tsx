@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { Button } from '../lib/button'
+import { OperationProgressRow } from '../lib/operation-progress-row'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
@@ -218,6 +219,15 @@ export interface IOllamaModelManagerStrings
   readonly configurationPartial: string
   readonly renamePartial: string
   readonly pullCancelled: string
+  /** Accessible name for the non-pull operation progress bar. */
+  readonly operationProgressLabel: string
+  /** Notice shown after the user stops a non-pull operation. */
+  readonly operationCancelled: string
+  /**
+   * Status line naming the running operation and model. Load budgets ten
+   * minutes; copy and delete run on the thirty-second request budget.
+   */
+  readonly operationStatus: (kind: OperationKind, model: string) => string
   readonly chatTitle: string
   readonly chatHint: string
   readonly chatModelLabel: string
@@ -324,6 +334,24 @@ export const DefaultOllamaModelManagerStrings: IOllamaModelManagerStrings = {
   renamePartial:
     'The copy succeeded, but the original model could not be removed.',
   pullCancelled: 'Model installation canceled.',
+  operationProgressLabel: 'Ollama operation progress',
+  operationCancelled: 'Model operation stopped.',
+  operationStatus: (kind, model) => {
+    switch (kind) {
+      case 'load':
+        return `Loading ${model} into memory…`
+      case 'unload':
+        return `Unloading ${model} from memory…`
+      case 'delete':
+        return `Deleting ${model}…`
+      case 'copy':
+        return `Copying ${model}…`
+      case 'rename':
+        return `Renaming ${model}…`
+      case 'pull':
+        return `Installing ${model}…`
+    }
+  },
   chatTitle: 'Chat',
   chatHint: 'Send a prompt to a model on this endpoint and stream the reply.',
   chatModelLabel: 'Chat model',
@@ -657,6 +685,7 @@ export class OllamaModelManager extends React.Component<
         {this.renderEndpointSummary(strings)}
         {this.renderNotice()}
         {this.renderPullForm(strings)}
+        {this.renderOperationProgress(strings)}
 
         <div className="ollama-model-manager-workspace">
           <div className="ollama-model-inventory">
@@ -1035,6 +1064,38 @@ export class OllamaModelManager extends React.Component<
         aria-live={notice.kind === 'error' ? 'assertive' : 'polite'}
       >
         {notice.message}
+      </div>
+    )
+  }
+
+  /**
+   * Feedback for every operation kind other than `pull`. Load, unload, copy,
+   * rename and delete previously changed nothing on screen except disabling
+   * the buttons; a load budgets ten minutes. None of them report bytes, so the
+   * bar is indeterminate and the label names the operation and model.
+   */
+  private renderOperationProgress(strings: IOllamaModelManagerStrings) {
+    const operation = this.state.operation
+    if (operation === null || operation.kind === 'pull') {
+      return null
+    }
+
+    return (
+      <div
+        className="ollama-operation-progress"
+        data-verification="ollama-operation-progress"
+      >
+        <OperationProgressRow
+          label={strings.operationProgressLabel}
+          description={strings.operationStatus(operation.kind, operation.model)}
+        />
+        <Button
+          size="small"
+          dataVerification="ollama-operation-cancel"
+          onClick={this.onCancelOperation}
+        >
+          {strings.cancel}
+        </Button>
       </div>
     )
   }
@@ -1929,6 +1990,31 @@ export class OllamaModelManager extends React.Component<
         notice: {
           kind: 'cancelled',
           message: this.getStrings().pullCancelled,
+        },
+      },
+      () => void this.refreshInventory(true)
+    )
+  }
+
+  /**
+   * Abort a non-pull operation. Same controller as the pull cancel, but the
+   * notice stays generic because these are not installs.
+   */
+  private onCancelOperation = () => {
+    const operation = this.state.operation
+    if (operation === null || operation.kind === 'pull') {
+      return
+    }
+    ++this.operationRequestId
+    this.operationController?.abort()
+    this.operationController = null
+    this.setState(
+      {
+        operation: null,
+        pullProgress: null,
+        notice: {
+          kind: 'cancelled',
+          message: this.getStrings().operationCancelled,
         },
       },
       () => void this.refreshInventory(true)

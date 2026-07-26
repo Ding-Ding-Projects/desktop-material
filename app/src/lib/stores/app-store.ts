@@ -43,6 +43,7 @@ import {
   ICheapLfsMaterializeResult,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  CheapLfsPinStage,
   listAllCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
@@ -236,6 +237,7 @@ import {
   ICheckoutProgress,
   IFetchProgress,
   IPullProgress,
+  IPushProgress,
   IRevertProgress,
   IMultiCommitOperationProgress,
 } from '../../models/progress'
@@ -314,6 +316,9 @@ import {
   IChangesState,
   CommitOptions,
   OneClickCommitPushPhase,
+  IAddRepositoriesProgress,
+  ICheapLfsRestoreState,
+  IBatchCloneFinalizingState,
 } from '../app-state'
 import {
   findEditorOrDefault,
@@ -1249,6 +1254,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private accounts: ReadonlyArray<Account> = new Array<Account>()
   private repositories: ReadonlyArray<Repository> = new Array<Repository>()
   private recentRepositories: ReadonlyArray<number> = new Array<number>()
+  /** Live reading for a running bulk repository add, or null. */
+  private addRepositoriesProgress: IAddRepositoriesProgress | null = null
+  /** Live reading for a running Cheap LFS restore batch, or null. */
+  private cheapLfsRestore: ICheapLfsRestoreState | null = null
+  /** Live reading for the batch clone post-clone finalization, or null. */
+  private batchCloneFinalizing: IBatchCloneFinalizingState | null = null
 
   private selectedRepository: Repository | CloningRepository | null = null
   private automationSettings: IAutomationSettingsState =
@@ -2332,6 +2343,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
       accounts: this.accounts,
       automationSettings: this.automationSettings,
       repositories,
+      addRepositoriesProgress: this.addRepositoriesProgress,
+      cheapLfsRestore: this.cheapLfsRestore,
+      batchCloneFinalizing: this.batchCloneFinalizing,
       recentRepositories: this.recentRepositories,
       localRepositoryStateLookup: this.localRepositoryStateLookup,
       windowState: this.windowState,
@@ -6464,7 +6478,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // loose objects those batches created — instead of the many mid-batch
         // auto-repacks that would otherwise stall a large change set.
         if (batches.length > 1) {
-          await this.repackAfterBatchedCommit(repository)
+          this.repositoryStateCache.update(repository, () => ({
+            commitOperationPhase: {
+              kind: 'maintenance' as const,
+              operation: 'repacking' as const,
+            },
+          }))
+          this.emitUpdate()
+          try {
+            await this.repackAfterBatchedCommit(repository)
+          } finally {
+            this.repositoryStateCache.update(repository, () => ({
+              commitOperationPhase: null,
+            }))
+            this.emitUpdate()
+          }
         }
       } else if (!(await commitBatch(batches[0]))) {
         return false
@@ -7780,24 +7808,47 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** This shouldn't be called directly. See `Dispatcher`. */
   public _pushLifecycleTags(
     repository: Repository,
-    reviews: ReadonlyArray<ITagPushReview>
+    reviews: ReadonlyArray<ITagPushReview>,
+    progressCallback?: (progress: IPushProgress) => void
   ): Promise<boolean> {
     const gitStore = this.gitStoreCache.get(repository)
-    return this.withTagLifecycleMutationGuard(repository, () =>
-      gitStore.pushLifecycleTags(reviews)
-    )
+    return this.withTagLifecycleMutationGuard(repository, async () => {
+      try {
+        // A 500-refspec tag push is a real network transfer; drive the same
+        // toolbar progress button every other push/fetch path uses, and hand
+        // the same readings to the tag panel's own bar.
+        return await gitStore.pushLifecycleTags(reviews, progress => {
+          this.updatePushPullFetchProgress(repository, progress)
+          progressCallback?.(progress)
+        })
+      } finally {
+        this.updatePushPullFetchProgress(repository, null)
+      }
+    })
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
   public _fetchLifecycleTags(
     repository: Repository,
     prune: boolean,
-    reviewedLocalTags: ReadonlyArray<ITagRefReview>
+    reviewedLocalTags: ReadonlyArray<ITagRefReview>,
+    progressCallback?: (progress: IFetchProgress) => void
   ): Promise<boolean> {
     const gitStore = this.gitStoreCache.get(repository)
-    return this.withTagLifecycleMutationGuard(repository, () =>
-      gitStore.fetchLifecycleTags(prune, reviewedLocalTags)
-    )
+    return this.withTagLifecycleMutationGuard(repository, async () => {
+      try {
+        return await gitStore.fetchLifecycleTags(
+          prune,
+          reviewedLocalTags,
+          progress => {
+            this.updatePushPullFetchProgress(repository, progress)
+            progressCallback?.(progress)
+          }
+        )
+      } finally {
+        this.updatePushPullFetchProgress(repository, null)
+      }
+    })
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -9500,7 +9551,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** Delete only exact reviewed local branch tips, never current/default. */
   public async _deleteReviewedBranches(
     repository: Repository,
-    reviewedBranches: ReadonlyArray<IReviewedBranchDeletion>
+    reviewedBranches: ReadonlyArray<IReviewedBranchDeletion>,
+    onBranchDeleted?: (
+      completed: number,
+      total: number,
+      result: IReviewedBranchDeletionResult
+    ) => void
   ): Promise<ReadonlyArray<IReviewedBranchDeletionResult>> {
     const state = this.repositoryStateCache.get(repository).branchesState
     const protectedNames = new Set<string>()
@@ -9518,7 +9574,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     try {
       return await this.withTemporaryRepositoryMutationGuard(repository, () =>
-        deleteReviewedLocalBranches(repository, reviewedBranches)
+        deleteReviewedLocalBranches(
+          repository,
+          reviewedBranches,
+          onBranchDeleted
+        )
       )
     } finally {
       await this._refreshRepository(repository)
@@ -11292,29 +11352,49 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     if (unfinalizedPaths.length > 0) {
-      const addedRepositories = await this._addRepositories(
-        unfinalizedPaths,
-        accountKeysByPath
-      )
-      const finalizedPaths = selectRegisteredBatchClonePaths(
-        unfinalizedPaths,
-        addedRepositories
-      )
-      await this.batchCloneStore.markFinalized(finalizedPaths)
-      registrationComplete = finalizedPaths.length === unfinalizedPaths.length
-      // Mark registration durably before recording analytics. A crash between
-      // these steps may omit one statistic, but can never count one clone batch
-      // twice after recovery.
-      if (registrationComplete) {
-        this.statsStore.recordCloneRepository()
-      }
+      // The batch state is already `isDone` here, so the popup would otherwise
+      // show every row complete and the overall bar at 100% while this whole
+      // block runs. Publish an explicit finalizing phase instead.
+      try {
+        const addedRepositories = await this._addRepositories(
+          unfinalizedPaths,
+          accountKeysByPath,
+          (completed, total, path) =>
+            this.updateBatchCloneFinalizing({
+              completed,
+              total,
+              current: Path.basename(path) || path,
+              stage: 'registering',
+            })
+        )
+        const finalizedPaths = selectRegisteredBatchClonePaths(
+          unfinalizedPaths,
+          addedRepositories
+        )
+        await this.batchCloneStore.markFinalized(finalizedPaths)
+        registrationComplete = finalizedPaths.length === unfinalizedPaths.length
+        // Mark registration durably before recording analytics. A crash between
+        // these steps may omit one statistic, but can never count one clone batch
+        // twice after recovery.
+        if (registrationComplete) {
+          this.statsStore.recordCloneRepository()
+        }
 
-      // Detect point: each freshly-registered clone may carry committed
-      // cheap-LFS pointers. Finish its verified materialization before the
-      // clone batch reports completion, so users don't receive a successful
-      // clone summary while only pointer text is still present on disk.
-      for (const registered of addedRepositories) {
-        await this.maybeAutoMaterializeCheapLfs(registered)
+        // Detect point: each freshly-registered clone may carry committed
+        // cheap-LFS pointers. Finish its verified materialization before the
+        // clone batch reports completion, so users don't receive a successful
+        // clone summary while only pointer text is still present on disk.
+        for (const [index, registered] of addedRepositories.entries()) {
+          this.updateBatchCloneFinalizing({
+            completed: index,
+            total: addedRepositories.length,
+            current: registered.name,
+            stage: 'restoring',
+          })
+          await this.maybeAutoMaterializeCheapLfs(registered)
+        }
+      } finally {
+        this.updateBatchCloneFinalizing(null)
       }
     }
 
@@ -13829,7 +13909,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     options: ICheapLfsPinOptions,
     signal?: AbortSignal,
-    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
+    /**
+     * Coarse stage changes. Hashing and release-bucket allocation both run
+     * before the first upload byte, so without these the caller has nothing to
+     * show for what can be a long wait on a large file.
+     */
+    onStage?: (stage: CheapLfsPinStage) => void,
+    /** Bytes hashed so far, against the source file's own size. */
+    onHashProgress?: (processedBytes: number) => void
   ): Promise<ICheapLfsPinResult | ICheapLfsOciMutationResult> {
     const provider = getCheapLfsStorageProvider(
       repository.buildRunPreferences ?? defaultBuildRunPreferences
@@ -13844,7 +13932,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
             account,
             options,
             signal,
-            onProgress
+            onProgress,
+            undefined,
+            onStage,
+            onHashProgress
           )
         )
       }
@@ -14262,41 +14353,70 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const materialized = new Array<ICheapLfsMaterializeResult>()
         const failures = new Array<ICheapLfsMaterializeFailure>()
         let canceled = false
-        for (const entry of pendingEntries) {
-          if (materializeSignal.aborted) {
-            canceled = true
-            break
-          }
-          try {
-            materialized.push(
-              await this.withTemporaryRepositoryMutationGuard(repository, () =>
-                this.materializeCheapLfsEntry(
-                  repository,
-                  entry,
-                  materializeSignal,
-                  options.onProgress,
-                  releaseCache
-                )
-              )
-            )
-          } catch (error) {
-            if ((error as Error)?.name === 'AbortError') {
+        const batchTotalBytes = pendingEntries.reduce(
+          (sum, entry) => sum + entry.pointer.sizeInBytes,
+          0
+        )
+        // Bytes belonging to pointers that have already settled. The in-flight
+        // pointer's own byte progress is added on top so the bar advances
+        // inside a single multi-gigabyte file rather than only between files.
+        let settledBytes = 0
+        const publishRestore = (inFlightBytes: number) =>
+          this.updateCheapLfsRestore({
+            repositoryId: repository.id,
+            repositoryName: repository.name,
+            filesCompleted: materialized.length + failures.length,
+            filesTotal: pendingEntries.length,
+            transferredBytes: Math.min(
+              settledBytes + inFlightBytes,
+              batchTotalBytes
+            ),
+            totalBytes: batchTotalBytes,
+          })
+        publishRestore(0)
+        try {
+          for (const entry of pendingEntries) {
+            if (materializeSignal.aborted) {
               canceled = true
               break
             }
-            failures.push({
-              relativePath: entry.relativePath,
-              message: error instanceof Error ? error.message : String(error),
-            })
+            try {
+              materialized.push(
+                await this.withTemporaryRepositoryMutationGuard(
+                  repository,
+                  () =>
+                    this.materializeCheapLfsEntry(
+                      repository,
+                      entry,
+                      materializeSignal,
+                      progress => {
+                        options.onProgress?.(progress)
+                        publishRestore(progress.transferredBytes)
+                      },
+                      releaseCache
+                    )
+                )
+              )
+            } catch (error) {
+              if ((error as Error)?.name === 'AbortError') {
+                canceled = true
+                break
+              }
+              failures.push({
+                relativePath: entry.relativePath,
+                message: error instanceof Error ? error.message : String(error),
+              })
+            }
+            settledBytes += entry.pointer.sizeInBytes
+            publishRestore(0)
           }
+        } finally {
+          this.updateCheapLfsRestore(null)
         }
         const summary: ICheapLfsBatchMaterializeResult = {
           materialized,
           failures,
-          totalBytes: pendingEntries.reduce(
-            (sum, entry) => sum + entry.pointer.sizeInBytes,
-            0
-          ),
+          totalBytes: batchTotalBytes,
           canceled,
         }
         this.cheapLfsInventoryCache?.invalidate(repository.path)
@@ -16160,71 +16280,40 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public async _addRepositories(
     paths: ReadonlyArray<string>,
-    accountKeysByPath: ReadonlyMap<string, string> = new Map()
+    accountKeysByPath: ReadonlyMap<string, string> = new Map(),
+    /**
+     * Reported once per path with the number already settled, the total, and
+     * the path about to be registered. Feeds the in-dialog bar; the app-level
+     * bar is published from here too.
+     */
+    onProgress?: (completed: number, total: number, path: string) => void
   ): Promise<ReadonlyArray<Repository>> {
     const addedRepositories = new Array<Repository>()
     const lfsRepositories = new Array<Repository>()
     const invalidPaths = new Array<string>()
+    let settled = 0
 
-    for (const path of paths) {
-      const repositoryType = await getRepositoryType(path).catch(e => {
-        log.error('Could not determine repository type', e)
-        return { kind: 'missing' } as RepositoryType
-      })
-
-      if (repositoryType.kind === 'unsafe') {
-        const repository = await this.repositoriesStore.addRepository(
+    try {
+      for (const path of paths) {
+        // Publish before the work so the very first (slowest) path is named
+        // rather than the batch sitting silent until it settles.
+        this.updateAddRepositoriesProgress({
+          completed: settled,
+          total: paths.length,
+          current: Path.basename(path) || path,
+        })
+        onProgress?.(settled, paths.length, path)
+        await this.addOneRepository(
           path,
-          undefined,
-          { missing: true }
+          accountKeysByPath,
+          addedRepositories,
+          lfsRepositories,
+          invalidPaths
         )
-
-        addedRepositories.push(repository)
-        continue
+        settled++
       }
-
-      if (repositoryType.kind === 'regular') {
-        const validatedPath = repositoryType.topLevelWorkingDirectory
-        log.info(`[AppStore] adding repository at ${validatedPath} to store`)
-
-        const repositories = this.repositories
-        const existing = matchExistingRepository(repositories, validatedPath)
-
-        // We don't have to worry about repositoryWithRefreshedGitHubRepository
-        // and isUsingLFS if the repo already exists in the app.
-        if (existing !== undefined) {
-          addedRepositories.push(existing)
-          continue
-        }
-
-        const addedRepo = await this.repositoriesStore.addRepository(
-          validatedPath,
-          repositoryType.gitDir,
-          {
-            accountKey:
-              accountKeysByPath.get(path) ??
-              accountKeysByPath.get(validatedPath) ??
-              null,
-          }
-        )
-
-        // initialize the remotes for this new repository to ensure it can fetch
-        // it's GitHub-related details using the GitHub API (if applicable)
-        const gitStore = this.gitStoreCache.get(addedRepo)
-        await gitStore.loadRemotes()
-
-        const [refreshedRepo, usingLFS] = await Promise.all([
-          this.repositoryWithRefreshedGitHubRepository(addedRepo),
-          this.isUsingLFS(addedRepo),
-        ])
-        addedRepositories.push(refreshedRepo)
-
-        if (usingLFS) {
-          lfsRepositories.push(refreshedRepo)
-        }
-      } else {
-        invalidPaths.push(path)
-      }
+    } finally {
+      this.updateAddRepositoriesProgress(null)
     }
 
     if (invalidPaths.length > 0) {
@@ -16239,6 +16328,93 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     return addedRepositories
+  }
+
+  private updateBatchCloneFinalizing(
+    batchCloneFinalizing: IBatchCloneFinalizingState | null
+  ) {
+    this.batchCloneFinalizing = batchCloneFinalizing
+    this.emitUpdate()
+  }
+
+  private updateCheapLfsRestore(cheapLfsRestore: ICheapLfsRestoreState | null) {
+    this.cheapLfsRestore = cheapLfsRestore
+    this.emitUpdate()
+  }
+
+  private updateAddRepositoriesProgress(
+    addRepositoriesProgress: IAddRepositoriesProgress | null
+  ) {
+    this.addRepositoriesProgress = addRepositoriesProgress
+    this.emitUpdate()
+  }
+
+  /** Register one path. Extracted so the batch loop can report progress. */
+  private async addOneRepository(
+    path: string,
+    accountKeysByPath: ReadonlyMap<string, string>,
+    addedRepositories: Array<Repository>,
+    lfsRepositories: Array<Repository>,
+    invalidPaths: Array<string>
+  ): Promise<void> {
+    const repositoryType = await getRepositoryType(path).catch(e => {
+      log.error('Could not determine repository type', e)
+      return { kind: 'missing' } as RepositoryType
+    })
+
+    if (repositoryType.kind === 'unsafe') {
+      const repository = await this.repositoriesStore.addRepository(
+        path,
+        undefined,
+        { missing: true }
+      )
+
+      addedRepositories.push(repository)
+      return
+    }
+
+    if (repositoryType.kind === 'regular') {
+      const validatedPath = repositoryType.topLevelWorkingDirectory
+      log.info(`[AppStore] adding repository at ${validatedPath} to store`)
+
+      const repositories = this.repositories
+      const existing = matchExistingRepository(repositories, validatedPath)
+
+      // We don't have to worry about repositoryWithRefreshedGitHubRepository
+      // and isUsingLFS if the repo already exists in the app.
+      if (existing !== undefined) {
+        addedRepositories.push(existing)
+        return
+      }
+
+      const addedRepo = await this.repositoriesStore.addRepository(
+        validatedPath,
+        repositoryType.gitDir,
+        {
+          accountKey:
+            accountKeysByPath.get(path) ??
+            accountKeysByPath.get(validatedPath) ??
+            null,
+        }
+      )
+
+      // initialize the remotes for this new repository to ensure it can fetch
+      // it's GitHub-related details using the GitHub API (if applicable)
+      const gitStore = this.gitStoreCache.get(addedRepo)
+      await gitStore.loadRemotes()
+
+      const [refreshedRepo, usingLFS] = await Promise.all([
+        this.repositoryWithRefreshedGitHubRepository(addedRepo),
+        this.isUsingLFS(addedRepo),
+      ])
+      addedRepositories.push(refreshedRepo)
+
+      if (usingLFS) {
+        lfsRepositories.push(refreshedRepo)
+      }
+    } else {
+      invalidPaths.push(path)
+    }
   }
 
   public async _relocateRepository(repository: Repository): Promise<void> {

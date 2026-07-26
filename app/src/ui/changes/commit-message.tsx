@@ -13,6 +13,7 @@ import {
 } from '../../models/commit-message'
 import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
+import { OperationProgressRow } from '../lib/operation-progress-row'
 import { Loading } from '../lib/loading'
 import { AuthorInput } from '../lib/author-input/author-input'
 import { FocusContainer } from '../lib/focus-container'
@@ -2118,6 +2119,9 @@ export class CommitMessage extends React.Component<
     }
 
     switch (phase.kind) {
+      case 'maintenance': {
+        return t('commit.maintenance.repacking')
+      }
       case 'preparing': {
         const count = this.props.filesToBeCommittedCount ?? 0
         if (count < 1) {
@@ -2818,6 +2822,44 @@ export class CommitMessage extends React.Component<
               {t('cheapLfs.cancel')}
             </Button>
           )}
+        </div>
+      )
+    }
+
+    if (commitOperationPhase?.kind === 'maintenance') {
+      // Reuse the Cheap LFS terminal chrome so the commit area keeps one
+      // consistent look; `git repack` reports nothing measurable, so this is
+      // an indeterminate bar with an aria-busy status line rather than the
+      // frozen "Pushing batch N of N" label it replaces.
+      return (
+        <div className="commit-progress cheap-lfs-progress">
+          <div
+            className="cheap-lfs-mini-terminal"
+            role="region"
+            aria-busy={true}
+            aria-label={translateForAccessibleName(
+              'commit.maintenance.repackingLabel'
+            )}
+          >
+            <div className="cheap-lfs-mini-terminal-header" aria-hidden="true">
+              <span className="cheap-lfs-terminal-lights">
+                <span className="cheap-lfs-terminal-light stop" />
+                <span className="cheap-lfs-terminal-light wait" />
+                <span className="cheap-lfs-terminal-light go" />
+              </span>
+              <span className="cheap-lfs-terminal-title">
+                {t('commit.maintenance.repackingLabel')}
+              </span>
+            </div>
+            <div className="cheap-lfs-mini-terminal-body">
+              <OperationProgressRow
+                label={translateForAccessibleName(
+                  'commit.maintenance.repackingLabel'
+                )}
+                description={t('commit.maintenance.repacking')}
+              />
+            </div>
+          </div>
         </div>
       )
     }
