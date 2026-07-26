@@ -28,10 +28,12 @@ jobs:
         uses: github/codeql-action/init@v3
         with:
           config-file: ./.github/codeql/codeql-config.yml
-
-        # Override language selection by uncommenting this and choosing your languages
-        # with:
-        #   languages: go, javascript, csharp, python, cpp, java
+          # Pinned: language auto-detection started scheduling a cpp analysis
+          # when shell-extension/src/dllmain.cpp landed, and the Windows COM
+          # stub cannot be autobuilt on this Linux runner. The product code is
+          # TypeScript/JavaScript; the stub is compiled and validated by its
+          # own test-backed MSVC pipeline instead.
+          languages: javascript-typescript
       # Autobuild attempts to build any compiled languages (C/C++, C#, or Java).
       # If this step fails, then you should remove it and run the build manually (see below).
       - name: Autobuild
