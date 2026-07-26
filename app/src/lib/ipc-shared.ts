@@ -18,6 +18,12 @@ import { NotificationCallback } from 'desktop-notifications'
 import { DesktopAliveEvent } from './stores/alive-store'
 import { CLIAction } from './cli-action'
 import {
+  IWindowsContextMenuApplyRequest,
+  IWindowsContextMenuApplyResponse,
+  IWindowsContextMenuLabels,
+  IWindowsContextMenuState,
+} from './windows-context-menu'
+import {
   IBuildRunLogEvent,
   IBuildRunPlan,
   IBuildRunStateEvent,
@@ -251,6 +257,12 @@ export type RequestResponseChannels = {
   'set-agent-server-remote-site-url': (
     value: string
   ) => Promise<IAgentServerStatus>
+  'get-windows-context-menu-state': (
+    labels: IWindowsContextMenuLabels
+  ) => Promise<IWindowsContextMenuState>
+  'set-windows-context-menu-entry': (
+    request: IWindowsContextMenuApplyRequest
+  ) => Promise<IWindowsContextMenuApplyResponse>
   'get-path': (path: PathType) => Promise<string>
   'get-app-architecture': () => Promise<Architecture>
   'get-app-path': () => Promise<string>

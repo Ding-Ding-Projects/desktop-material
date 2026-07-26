@@ -17,6 +17,13 @@ import {
   translateForAccessibleName,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { Checkbox, CheckboxValue } from '../lib/checkbox'
+import * as ipcRenderer from '../../lib/ipc-renderer'
+import {
+  IWindowsContextMenuLabels,
+  IWindowsContextMenuState,
+  WindowsContextMenuEntryId,
+} from '../../lib/windows-context-menu'
 
 const CustomIntegrationValue = 'other'
 const BranchPresetScriptDocumentationUrl =
@@ -52,6 +59,15 @@ interface IIntegrationsPreferencesState {
   readonly useCustomShell: boolean
   readonly customShell: ICustomIntegration
   readonly branchPresetScript: ICustomIntegration
+  /**
+   * The live registry state of the Explorer entries, or null while it is still
+   * being read. The registry is the source of truth rather than a mirrored
+   * preference, so an entry removed by another tool shows as off immediately.
+   */
+  readonly contextMenu: IWindowsContextMenuState | null
+  /** Entry currently being installed or removed, if any. */
+  readonly contextMenuBusyId: WindowsContextMenuEntryId | null
+  readonly contextMenuError: string | null
 }
 
 export class Integrations extends React.Component<
@@ -73,6 +89,9 @@ export class Integrations extends React.Component<
       useCustomShell: this.props.useCustomShell,
       customShell: this.props.customShell,
       branchPresetScript: this.props.branchPresetScript,
+      contextMenu: null,
+      contextMenuBusyId: null,
+      contextMenuError: null,
     }
   }
 
@@ -116,6 +135,7 @@ export class Integrations extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    this.refreshContextMenuState()
     if (enableCustomIntegration()) {
       const {
         availableEditors,
@@ -476,6 +496,191 @@ export class Integrations extends React.Component<
     )
   }
 
+  /**
+   * The `MUIVerb` labels Explorer will show, translated here because the
+   * language mode lives in renderer `localStorage`. Bilingual mode would make a
+   * very wide menu entry, so the registry always gets a single language: the
+   * Cantonese label in Cantonese mode, English otherwise.
+   */
+  private contextMenuLabels(): IWindowsContextMenuLabels {
+    const mode =
+      this.state.languageMode === 'cantonese' ? 'cantonese' : 'english'
+    return {
+      openWithOpencode: translate('settings.contextMenuOpencodeLabel', mode),
+      openInDesktopMaterial: translate(
+        'settings.contextMenuDesktopMaterialLabel',
+        mode
+      ),
+    }
+  }
+
+  private refreshContextMenuState = () => {
+    if (!__WIN32__) {
+      // The group is not rendered off Windows, so there is nothing to probe.
+      return
+    }
+
+    ipcRenderer
+      .invoke('get-windows-context-menu-state', this.contextMenuLabels())
+      .then(contextMenu =>
+        this.setState({ contextMenu, contextMenuBusyId: null })
+      )
+      .catch(() =>
+        this.setState({
+          contextMenuBusyId: null,
+          contextMenuError: translate(
+            'settings.contextMenuStateError',
+            this.state.languageMode
+          ),
+        })
+      )
+  }
+
+  private onContextMenuEntryChanged = (
+    id: WindowsContextMenuEntryId,
+    installed: boolean
+  ) => {
+    this.setState({ contextMenuBusyId: id, contextMenuError: null })
+    ipcRenderer
+      .invoke('set-windows-context-menu-entry', {
+        id,
+        installed,
+        labels: this.contextMenuLabels(),
+      })
+      .then(({ result, state }) =>
+        this.setState({
+          contextMenu: state,
+          contextMenuBusyId: null,
+          // The re-read state already reflects reality, so an error here is
+          // purely explanatory — the toggle never lies about what happened.
+          contextMenuError: result.error,
+        })
+      )
+      .catch(() =>
+        this.setState({
+          contextMenuBusyId: null,
+          contextMenuError: translate(
+            'settings.contextMenuApplyError',
+            this.state.languageMode
+          ),
+        })
+      )
+  }
+
+  private onOpencodeEntryChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.onContextMenuEntryChanged(
+      'open-with-opencode',
+      event.currentTarget.checked
+    )
+  }
+
+  private onDesktopMaterialEntryChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.onContextMenuEntryChanged(
+      'open-in-desktop-material',
+      event.currentTarget.checked
+    )
+  }
+
+  private renderContextMenuEntry(
+    id: WindowsContextMenuEntryId,
+    labelKey:
+      | 'settings.contextMenuOpencodeLabel'
+      | 'settings.contextMenuDesktopMaterialLabel',
+    descriptionKey:
+      | 'settings.contextMenuOpencodeDescription'
+      | 'settings.contextMenuDesktopMaterialDescription',
+    onChange: (event: React.FormEvent<HTMLInputElement>) => void
+  ) {
+    const { contextMenu, contextMenuBusyId, languageMode } = this.state
+    const entry = contextMenu?.entries.find(candidate => candidate.id === id)
+    const unavailable = entry?.unavailableReason ?? null
+    const descriptionId = `context-menu-${id}-description`
+
+    // `outdated` means the verb is present but does not match this install.
+    // It renders as on — because Explorer really does show it — with a repair
+    // hint, rather than as off, which would be a lie about the current menu.
+    const checked = entry !== undefined && entry.state !== 'not-installed'
+
+    return (
+      <div className="context-menu-entry">
+        <Checkbox
+          label={translate(labelKey, languageMode)}
+          value={checked ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={onChange}
+          disabled={
+            contextMenu === null ||
+            contextMenuBusyId !== null ||
+            (unavailable !== null && !checked)
+          }
+          ariaDescribedBy={descriptionId}
+        />
+        <p id={descriptionId} className="settings-description">
+          {translate(descriptionKey, languageMode)}
+          {unavailable === 'opencode-not-found' && (
+            <>
+              {' '}
+              {translate('settings.contextMenuOpencodeMissing', languageMode)}
+            </>
+          )}
+          {unavailable === 'app-path-unknown' && (
+            <>
+              {' '}
+              {translate('settings.contextMenuAppPathUnknown', languageMode)}
+            </>
+          )}
+          {entry?.state === 'outdated' && (
+            <> {translate('settings.contextMenuNeedsRepair', languageMode)}</>
+          )}
+        </p>
+      </div>
+    )
+  }
+
+  private renderWindowsContextMenu() {
+    if (!__WIN32__) {
+      return null
+    }
+
+    const { contextMenuBusyId, contextMenuError, languageMode } = this.state
+
+    return (
+      <fieldset className="context-menu-settings">
+        <legend>
+          <h2>{translate('settings.contextMenuHeading', languageMode)}</h2>
+        </legend>
+        <p className="settings-description">
+          {translate('settings.contextMenuDescription', languageMode)}
+        </p>
+        {this.renderContextMenuEntry(
+          'open-with-opencode',
+          'settings.contextMenuOpencodeLabel',
+          'settings.contextMenuOpencodeDescription',
+          this.onOpencodeEntryChanged
+        )}
+        {this.renderContextMenuEntry(
+          'open-in-desktop-material',
+          'settings.contextMenuDesktopMaterialLabel',
+          'settings.contextMenuDesktopMaterialDescription',
+          this.onDesktopMaterialEntryChanged
+        )}
+        <p className="settings-description context-menu-placement-note">
+          {translate('settings.contextMenuPlacementNote', languageMode)}
+        </p>
+        <p aria-live="polite" className="settings-description">
+          {contextMenuBusyId !== null &&
+            translate('settings.contextMenuBusy', languageMode)}
+          {contextMenuBusyId === null && contextMenuError !== null && (
+            <span className="context-menu-error">{contextMenuError}</span>
+          )}
+        </p>
+      </fieldset>
+    )
+  }
+
   public render() {
     return (
       <DialogContent>
@@ -487,6 +692,7 @@ export class Integrations extends React.Component<
           {this.renderSelectedShell()}
           {this.state.useCustomShell && this.renderCustomShell()}
         </div>
+        {this.renderWindowsContextMenu()}
         {enableCustomIntegration() && (
           <fieldset>
             <legend>

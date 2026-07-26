@@ -59,6 +59,10 @@ import {
 import parseCommandLineArgs from 'minimist'
 import { CLIAction } from '../lib/cli-action'
 import {
+  getWindowsContextMenuState,
+  setWindowsContextMenuEntryInstalled,
+} from './windows-context-menu-installer'
+import {
   buildRunner,
   codexRunner,
   opencodeRunner,
@@ -1017,6 +1021,27 @@ app.on('ready', () => {
   if (__WIN32__) {
     ipcMain.on('install-windows-cli', () => installWindowsCLI())
     ipcMain.on('uninstall-windows-cli', () => uninstallWindowsCLI())
+
+    // Explorer context-menu entries. Both handlers are per-user (HKCU) and
+    // never elevate; the labels come from the renderer because the language
+    // mode lives in localStorage.
+    ipcMain.handle('get-windows-context-menu-state', async (_event, labels) =>
+      getWindowsContextMenuState(labels)
+    )
+    ipcMain.handle(
+      'set-windows-context-menu-entry',
+      async (_event, request) => {
+        const result = await setWindowsContextMenuEntryInstalled(
+          request.id,
+          request.installed,
+          request.labels
+        )
+        return {
+          result,
+          state: await getWindowsContextMenuState(request.labels),
+        }
+      }
+    )
   }
 
   /**

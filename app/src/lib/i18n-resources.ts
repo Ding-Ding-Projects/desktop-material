@@ -1373,6 +1373,19 @@ export type TranslationKey =
   | 'settings.integrationsCustomEditorLabel'
   | 'settings.integrationsCustomShellLabel'
   | 'settings.integrationsSelectEditor'
+  | 'settings.contextMenuHeading'
+  | 'settings.contextMenuDescription'
+  | 'settings.contextMenuPlacementNote'
+  | 'settings.contextMenuOpencodeLabel'
+  | 'settings.contextMenuOpencodeDescription'
+  | 'settings.contextMenuDesktopMaterialLabel'
+  | 'settings.contextMenuDesktopMaterialDescription'
+  | 'settings.contextMenuOpencodeMissing'
+  | 'settings.contextMenuAppPathUnknown'
+  | 'settings.contextMenuNeedsRepair'
+  | 'settings.contextMenuBusy'
+  | 'settings.contextMenuStateError'
+  | 'settings.contextMenuApplyError'
   | 'push.ghCliFallbackSuccessTitle'
   | 'push.ghCliFallbackSuccessBody'
   | 'clone.visibilityPublic'
@@ -3530,6 +3543,27 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.integrationsCustomEditorLabel': 'Custom editor',
   'settings.integrationsCustomShellLabel': 'Custom shell',
   'settings.integrationsSelectEditor': 'Select editor',
+  'settings.contextMenuHeading': 'Windows context menu',
+  'settings.contextMenuDescription':
+    'Add Desktop Material actions to the right-click menu for folders and folder backgrounds in File Explorer.',
+  'settings.contextMenuPlacementNote':
+    'Windows 11 hides these classic entries behind “Show more options” (or press Shift+F10 to open the classic menu directly). Placing them in the top-level Windows 11 menu needs a packaged shell extension, which this build does not install.',
+  'settings.contextMenuOpencodeLabel': 'Open with OpenCode here',
+  'settings.contextMenuOpencodeDescription':
+    'Opens a terminal in the folder running the opencode CLI.',
+  'settings.contextMenuDesktopMaterialLabel': 'Open in Desktop Material',
+  'settings.contextMenuDesktopMaterialDescription':
+    'Opens the folder as a repository, adding it if it is not already in your list.',
+  'settings.contextMenuOpencodeMissing':
+    'opencode was not found on this computer, so this entry cannot be added.',
+  'settings.contextMenuAppPathUnknown':
+    'The application path could not be determined, so entries cannot be added.',
+  'settings.contextMenuNeedsRepair':
+    'This entry exists but does not match this install. Turn it off and on again to repair it.',
+  'settings.contextMenuBusy': 'Updating the context menu…',
+  'settings.contextMenuStateError':
+    'Unable to read the current context menu state.',
+  'settings.contextMenuApplyError': 'Unable to update the context menu.',
   'push.ghCliFallbackSuccessTitle': 'Pushed using GitHub CLI credentials',
   'push.ghCliFallbackSuccessBody':
     'The push to {remote} was rejected, so Desktop Material retried it with your GitHub CLI login and it succeeded.',
@@ -5705,6 +5739,26 @@ export const cantoneseTranslations: Readonly<
   'settings.integrationsCustomEditorLabel': '自訂編輯器',
   'settings.integrationsCustomShellLabel': '自訂命令列',
   'settings.integrationsSelectEditor': '揀編輯器',
+  'settings.contextMenuHeading': 'Windows 右鍵選單',
+  'settings.contextMenuDescription':
+    '喺檔案總管撳右鍵嗰陣，喺資料夾同資料夾空白位加返 Desktop Material 嘅動作。',
+  'settings.contextMenuPlacementNote':
+    'Windows 11 會將呢啲經典項目收埋喺「顯示更多選項」入面（或者撳 Shift+F10 直接開經典選單）。想擺上 Windows 11 第一層選單就要裝打包過嘅 shell extension，呢個版本冇裝。',
+  'settings.contextMenuOpencodeLabel': '喺呢度開 OpenCode',
+  'settings.contextMenuOpencodeDescription':
+    '喺該資料夾開個終端機，即刻行 opencode CLI。',
+  'settings.contextMenuDesktopMaterialLabel': '用 Desktop Material 打開',
+  'settings.contextMenuDesktopMaterialDescription':
+    '將個資料夾當 repository 打開；如果未喺清單度會順手加埋。',
+  'settings.contextMenuOpencodeMissing':
+    '喺呢部電腦搵唔到 opencode，所以加唔到呢個項目。',
+  'settings.contextMenuAppPathUnknown':
+    '搵唔到應用程式路徑，所以加唔到呢啲項目。',
+  'settings.contextMenuNeedsRepair':
+    '呢個項目存在，但同今次安裝對唔上。閂咗再開一次就會整返好。',
+  'settings.contextMenuBusy': '更新緊右鍵選單…',
+  'settings.contextMenuStateError': '讀唔到而家嘅右鍵選單狀態。',
+  'settings.contextMenuApplyError': '更新唔到右鍵選單。',
   'push.ghCliFallbackSuccessTitle': '用咗 GitHub CLI 帳戶推送成功',
   'push.ghCliFallbackSuccessBody':
     '推送去 {remote} 一開始俾人拒絕，所以 Desktop Material 改用你嘅 GitHub CLI 登入再試一次，今次搞掂咗。',

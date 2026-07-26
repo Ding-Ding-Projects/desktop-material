@@ -116,6 +116,8 @@ describe('IPC channel contract', () => {
     'revoke-agent-server-device',
     'set-agent-server-gateway-url',
     'set-agent-server-remote-site-url',
+    'get-windows-context-menu-state',
+    'set-windows-context-menu-entry',
     'get-path',
     'get-app-architecture',
     'get-app-path',
