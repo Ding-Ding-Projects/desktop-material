@@ -29,7 +29,16 @@ export interface IRepositoryLogoChangedDetail {
   readonly repositoryPath: string | null
 }
 
-function announceRepositoryLogoChanged(repositoryPath: string | null) {
+/**
+ * Tell every mounted repository row, tab, and appearance surface that one
+ * repository's resolved appearance changed, or — for a null path — that the
+ * profile default moved and every inheriting surface may change with it.
+ *
+ * Exported so a surface that commits through the dedicated element owners
+ * (the anchored editors and the Repository Settings appearance hub) can
+ * broadcast the exact same invalidation the legacy config writer does.
+ */
+export function announceRepositoryLogoChanged(repositoryPath: string | null) {
   if (typeof document !== 'undefined') {
     const EventConstructor = document.defaultView?.CustomEvent
     if (EventConstructor === undefined) {

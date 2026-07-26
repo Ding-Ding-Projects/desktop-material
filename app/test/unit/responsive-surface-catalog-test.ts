@@ -97,6 +97,7 @@ const expectedNestedSurfaceIds = [
   'preferences.git.default-branch',
   'preferences.git.global-ignore',
   'preferences.git.hooks',
+  'repository-settings.appearance.logo-studio',
   'repository.account-switcher',
   'repository.actions.workflow-catalog',
   'repository.actions.workflow-dispatch',
@@ -368,6 +369,7 @@ describe('responsive surface smoke catalog', () => {
     assert.deepEqual([...direct.keys()].sort(), [
       'appearance.anchored-element-editor',
       'appearance.element-history',
+      'repository-settings.appearance.logo-studio',
       'repository.account-switcher',
       'repository.actions.workflow-catalog',
       'repository.actions.workflow-dispatch',
@@ -493,12 +495,12 @@ describe('responsive surface smoke catalog', () => {
         0
       ) + catalog.nestedSurfaces.length
     assert.equal(metadata.size, catalogCount)
-    assert.equal(metadata.size, 89)
+    assert.equal(metadata.size, 91)
     assert.equal(
       [...metadata.keys()].filter(id => id !== 'popup.batch-clone-recovery')
         .length,
-      88,
-      'The 88 product surfaces remain cataloged beside the recovery popup.'
+      90,
+      'The 90 product surfaces remain cataloged beside the recovery popup.'
     )
 
     const baseline = verifier.decorateLedger(metadataRows(metadata), metadata)

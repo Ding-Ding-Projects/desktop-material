@@ -8,8 +8,9 @@ const read = (...parts: ReadonlyArray<string>) =>
 
 /**
  * Repository visuals are edited from their actual list-row owners. The
- * anchored name and logo editors keep their rich controls while persistence
- * and history stay outside the retired Repository Settings appearance tab.
+ * anchored name and logo editors keep their rich controls, and the Repository
+ * Settings appearance hub reuses those very editors rather than reintroducing
+ * the retired monolithic tab: persistence and history stay with the owners.
  */
 describe('repository owner appearance editors', () => {
   it('styles colour swatches, segmented chips, and the live preview', () => {
@@ -83,5 +84,53 @@ describe('repository owner appearance editors', () => {
     assert.match(editors, /aria-label="Live name preview"/)
     assert.match(editors, /class RepositoryLogoAppearanceEditor/)
     assert.match(editors, /<RepositoryLogoStudio/)
+  })
+
+  it('reuses the same owner editors and owner paths in the Repository Settings hub', () => {
+    const hub = read(
+      'app',
+      'src',
+      'ui',
+      'repository-settings',
+      'repository-appearance.tsx'
+    )
+    const style = read(
+      'app',
+      'styles',
+      'ui',
+      'dialogs',
+      '_repository-settings.scss'
+    )
+
+    // The hub mounts the very editors the anchored surfaces mount; it never
+    // declares a parallel set of controls.
+    for (const editor of [
+      '<RepositoryListNameAppearanceEditor',
+      '<RepositoryLogoAppearanceEditor',
+      '<RepositoryTabsOverrideAppearanceEditor',
+      '<RepositoryToolbarAppearanceEditor',
+      '<RepositoryWorkspaceAppearanceEditor',
+    ]) {
+      assert.ok(hub.includes(editor), `Hub must render ${editor}`)
+    }
+
+    // Reads, writes, and history all go through the repository-scoped owners.
+    assert.match(hub, /dispatcher\.getRepositoryAppearanceElements\(/)
+    assert.match(hub, /dispatcher[\s\S]{0,80}setRepositoryAppearanceElement\(/)
+    assert.match(hub, /getRepositoryAppearanceHistorySource\(/)
+    assert.match(hub, /getRepositoryAppearanceRepositoryPath\(/)
+    assert.match(hub, /<AppearanceElementHistoryDialog/)
+    // Reset writes the shared default rather than a locally invented value.
+    assert.match(hub, /DefaultRepositoryAppearanceElementSettings\[id\]/)
+    // A repository dialog must never write a profile owner.
+    assert.doesNotMatch(hub, /setProfileAppearanceElement/)
+
+    assert.match(style, /\.repository-appearance-settings \{/)
+    assert.match(style, /\.repository-appearance-section \{/)
+    assert.match(style, /\.repository-appearance-status \{/)
+    assert.match(
+      style,
+      /@container repository-settings-dialog \(max-width: 520px\)[\s\S]*?\.repository-appearance-section-header \{[\s\S]*?flex-direction: column/
+    )
   })
 })

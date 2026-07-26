@@ -49,6 +49,7 @@ import {
   loadRepositoryAutomationOverrides,
 } from '../../lib/automation/automation-settings'
 import { RepositoryMetadata } from './repository-metadata'
+import { RepositoryAppearance } from './repository-appearance'
 import { getAvailableEditors } from '../../lib/editors/lookup'
 import {
   ICustomIntegration,
@@ -75,7 +76,7 @@ export enum RepositorySettingsTab {
   Remote = 0,
   IgnoredFiles,
   GitConfig,
-  // Note: BuildRun, Submodules, and Subtrees are placed before the
+  // Note: BuildRun, Submodules, Subtrees, and Appearance are placed before the
   // conditionally-rendered ForkSettings tab so the enum values keep matching
   // the TabBar positions
   // whether or not the fork tab is shown. Integrator note: if the remotes work
@@ -87,6 +88,7 @@ export enum RepositorySettingsTab {
   Subtrees,
   Automation,
   Metadata,
+  Appearance,
   ForkSettings,
 }
 
@@ -363,6 +365,10 @@ export class RepositorySettings extends React.Component<
               <Octicon className="icon" symbol={octicons.gear} />
               Metadata
             </span>
+            <span>
+              <Octicon className="icon" symbol={octicons.paintbrush} />
+              <LocalizedText translationKey="repositorySettings.appearanceTab" />
+            </span>
             {showForkSettings && (
               <span>
                 <Octicon className="icon" symbol={octicons.repoForked} />
@@ -478,6 +484,14 @@ export class RepositorySettings extends React.Component<
             onSelectedEditorChanged={this.onSelectedEditorChanged}
             onUseCustomEditorChanged={this.onUseCustomEditorChanged}
             onCustomEditorChanged={this.onCustomEditorChanged}
+          />
+        )
+      }
+      case RepositorySettingsTab.Appearance: {
+        return (
+          <RepositoryAppearance
+            repository={this.props.repository}
+            dispatcher={this.props.dispatcher}
           />
         )
       }

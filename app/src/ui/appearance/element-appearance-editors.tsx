@@ -425,12 +425,22 @@ export function DefaultRepositoryLogoAppearanceEditor(
 
 interface IRepositoryScopedAppearanceEditorProps<T>
   extends IControlledAppearanceEditorProps<T> {
-  readonly onEditProfileDefault: () => void
+  /**
+   * Move this surface to the inherited profile owner's editor. Omitted by
+   * callers that are strictly repository-scoped (the Repository Settings
+   * appearance hub), which must not offer a profile-wide edit from a
+   * repository dialog. The anchored editors always supply it.
+   */
+  readonly onEditProfileDefault?: () => void
 }
 
 function ProfileDefaultAction(props: {
-  readonly onEditProfileDefault: () => void
-}): JSX.Element {
+  readonly onEditProfileDefault?: () => void
+}): JSX.Element | null {
+  if (props.onEditProfileDefault === undefined) {
+    return null
+  }
+
   return (
     <div className="repository-appearance-profile-default-action">
       <span>These values belong only to the current repository.</span>

@@ -535,11 +535,19 @@ spacing, emphasis, and effects. It does not rename the signed executable or oper
 
 ### Repository, logo, and tab owners
 
-Repository Settings has no Appearance tab. Right-click the selected repository workspace,
-toolbar, or tab-strip background for its repository-specific values and an **Edit profile default**
-route. Right-click the actual repository-list name for Word-style typography or its actual logo for
-the safe vector studio. A repository can inherit the profile owner; **Edit profile default** keeps
-that profile editor anchored beside the same real logo.
+Right-click the selected repository workspace, toolbar, or tab-strip background for its
+repository-specific values and an **Edit profile default** route. Right-click the actual
+repository-list name for Word-style typography or its actual logo for the safe vector studio. A
+repository can inherit the profile owner; **Edit profile default** keeps that profile editor
+anchored beside the same real logo.
+
+If you would rather find everything in one place, **Repository settings → Appearance** lists the
+same five repository owners — list name, logo, tabs, toolbar, and workspace colors — using the very
+same editors. It is a hub, not a second copy: each section says whether the value is inherited or
+repository-owned, shows a live preview, offers **Reset to default** for that one owner, and commits
+straight to the owner's own local Git repository, so the History, undo, and restore you see there
+are the same ones the anchored editor shows. The hub never changes a profile default; for that,
+right-click the element itself or use Settings.
 
 The toolbar editor includes text color, curated font family, 10–20 px title size, bold, italic,
 underline, strikethrough, small caps, case, character spacing, text effects, alignment, and a live

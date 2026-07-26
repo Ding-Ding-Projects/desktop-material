@@ -31,8 +31,11 @@ supported runtime; see [Windows-only platform support](features/integrations/win
 Appearance is now owner-scoped. Right-clicking an actual visual opens an editor
 beside it; every profile element, feature entry point, repository element, and
 tab title has its own strict setting, local Git repository, and mutable history.
-Ordinary language/theme/scale preferences stay in Settings, and Repository
-Settings no longer has a monolithic Appearance tab. The measured app bar moves
+Ordinary language/theme/scale preferences stay in Settings. Repository Settings
+has no monolithic Appearance tab; its **Appearance** tab is a hub that renders
+those same owner-scoped editors for the current repository and commits through
+the same owners, so hub edits and right-click edits share one setting, one local
+Git repository, and one history. The measured app bar moves
 Build & Run and then Commit & Push into **More** before clipping and restores
 those mounted actions as space returns.
 The pure Material Welcome and landing redesigns share the same token and surface
