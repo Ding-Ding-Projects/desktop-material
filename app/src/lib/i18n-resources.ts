@@ -1905,6 +1905,17 @@ export type TranslationKey =
   | 'settingsSearch.entry.largeRepoAutoDetect.desc'
   | 'settingsSearch.entry.largeRepoAutoRepack.title'
   | 'settingsSearch.entry.largeRepoAutoRepack.desc'
+  | 'accountFallback.searching'
+  | 'accountFallback.usingAccount'
+  | 'accountFallback.switchedTitle'
+  | 'accountFallback.switchedBody'
+  | 'accountFallback.askTitle'
+  | 'accountFallback.askBody'
+  | 'accountFallback.askAction'
+  | 'accountFallback.notFoundTitle'
+  | 'accountFallback.notFoundBody'
+  | 'accountFallback.notFoundNoAccounts'
+  | 'accountFallback.triedAccounts'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -4276,6 +4287,22 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.entry.largeRepoAutoRepack.title': 'Repack large repositories',
   'settingsSearch.entry.largeRepoAutoRepack.desc':
     'Run one controlled repack at a quiet moment with a progress notification.',
+  'accountFallback.searching':
+    'Checking your other signed-in accounts for {repository}…',
+  'accountFallback.usingAccount': 'Using {account}',
+  'accountFallback.switchedTitle': 'Used a different account',
+  'accountFallback.switchedBody':
+    '{repository} is visible to {account}, so that account was used.',
+  'accountFallback.askTitle': 'Another account can see this repository',
+  'accountFallback.askBody':
+    '{repository} was not found with the current account, but {account} can see it.',
+  'accountFallback.askAction': 'Use {account}',
+  'accountFallback.notFoundTitle': 'Repository not found',
+  'accountFallback.notFoundBody':
+    '{repository} could not be found with any of your signed-in accounts.',
+  'accountFallback.notFoundNoAccounts':
+    '{repository} could not be found, and no other account is signed in for this host.',
+  'accountFallback.triedAccounts': 'Accounts tried: {accounts}.',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -6474,4 +6501,17 @@ export const cantoneseTranslations: Readonly<
   'settingsSearch.entry.largeRepoAutoRepack.title': 'Repack 大型 repository',
   'settingsSearch.entry.largeRepoAutoRepack.desc':
     '揀個靜靜時做一次受控 repack，有進度通知。',
+  'accountFallback.searching': '幫緊你用其他已登入帳戶搵 {repository}⋯',
+  'accountFallback.usingAccount': '用緊 {account}',
+  'accountFallback.switchedTitle': '轉咗用另一個帳戶',
+  'accountFallback.switchedBody': '{account} 睇到 {repository}，所以用咗佢。',
+  'accountFallback.askTitle': '有另一個帳戶睇到呢個 repository',
+  'accountFallback.askBody':
+    '而家嘅帳戶搵唔到 {repository}，但係 {account} 睇到。',
+  'accountFallback.askAction': '用 {account}',
+  'accountFallback.notFoundTitle': '搵唔到 repository',
+  'accountFallback.notFoundBody': '你所有已登入嘅帳戶都搵唔到 {repository}。',
+  'accountFallback.notFoundNoAccounts':
+    '搵唔到 {repository}，而呢個主機都冇第二個帳戶登入咗。',
+  'accountFallback.triedAccounts': '試過嘅帳戶：{accounts}。',
 }

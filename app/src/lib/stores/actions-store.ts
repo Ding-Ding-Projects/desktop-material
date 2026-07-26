@@ -16,6 +16,15 @@ import {
   supportsRepoRules,
 } from '../endpoint-capabilities'
 import { APIError } from '../http'
+import { getAutoSwitchAccountToRepositoryOwner } from '../auto-switch-account-preference'
+import {
+  getRepositoryAccountTargetFromGitHubRepository as actionsAccountTarget,
+  RepositoryAccountProbe,
+} from '../repository-account-fallback'
+import {
+  probeRepositoryWithAccountAPI,
+  runSurfaceWithRepositoryAccountFallback,
+} from '../repository-account-fallback-service'
 import {
   IActionsArtifact,
   IActionsArtifactList,
@@ -731,6 +740,18 @@ function subjectResultError(reason: string): Error {
 export class ActionsStore {
   private accounts: ReadonlyArray<Account> = []
   private accountsGeneration = 0
+  /**
+   * The identity a not-found fallback proved can see a repository, keyed by
+   * repository.
+   *
+   * Actions makes many small requests (workflows, runs, jobs, artifacts,
+   * caches, branch rules) through `apiFor`, so once the fallback has resolved
+   * the ambiguity for a repository every later request must follow it too.
+   * Otherwise the view would flicker between one account that can read runs and
+   * another that 404s on artifacts. An override is dropped as soon as its
+   * account is no longer signed in.
+   */
+  private readonly accountOverrides = new Map<string, string>()
   private readonly accountsReady: Promise<void>
   private resolveAccountsReady!: () => void
   private readonly states = new Map<string, IActionsState>()
@@ -753,7 +774,13 @@ export class ActionsStore {
   private provenanceReview: IActionsArtifactProvenanceReviewRecord | null = null
   private refreshHandle: number | null = null
 
-  public constructor(accountsStore: AccountsStore) {
+  public constructor(
+    accountsStore: AccountsStore,
+    /** Read-only check of whether one identity can see a repository. */
+    private readonly probeRepositoryAccount: RepositoryAccountProbe = probeRepositoryWithAccountAPI,
+    /** The user's `autoSwitchAccountToRepositoryOwner` preference. */
+    private readonly isAutoSwitchAccountEnabled: () => boolean = getAutoSwitchAccountToRepositoryOwner
+  ) {
     this.accountsReady = new Promise(resolve => {
       this.resolveAccountsReady = resolve
     })
@@ -934,9 +961,28 @@ export class ActionsStore {
     return gitHubRepository
   }
 
+  private overriddenAccountFor(repository: Repository): Account | null {
+    const accountKey = this.accountOverrides.get(
+      getActionsRepositoryKey(repository)
+    )
+    if (accountKey === undefined) {
+      return null
+    }
+
+    const account = this.accounts.find(a => getAccountKey(a) === accountKey)
+    if (account === undefined) {
+      this.accountOverrides.delete(getActionsRepositoryKey(repository))
+      return null
+    }
+
+    return account
+  }
+
   private accountFor(repository: Repository): Account {
     const gitHubRepository = this.gitHubFor(repository)
-    const account = getActionsAccount(repository, this.accounts)
+    const account =
+      this.overriddenAccountFor(repository) ??
+      getActionsAccount(repository, this.accounts)
     if (account === null) {
       throw new Error(
         repository.accountKey === null
@@ -1061,17 +1107,39 @@ export class ActionsStore {
       error: null,
     })
     try {
-      const api = this.apiFor(repository)
       const gitHubRepository = this.gitHubFor(repository)
       const owner = gitHubRepository.owner.login
-      const [workflows, runs] = await Promise.all([
-        api.fetchWorkflows(owner, gitHubRepository.name),
-        api.fetchWorkflowRuns(owner, gitHubRepository.name, {
-          ...filter,
-          page: 1,
-          perPage: ActionsWorkflowRunPageSize,
-        }),
-      ])
+
+      // A repository the selected identity cannot see answers 404 rather than
+      // 403, so the first Actions load is where a wrong-account session is
+      // usually discovered. Resolve it here and remember the identity for every
+      // later Actions request against this repository.
+      const loaded = await runSurfaceWithRepositoryAccountFallback({
+        target: actionsAccountTarget(gitHubRepository),
+        accounts: this.accounts,
+        initialAccount: this.accountFor(repository),
+        isNotFound: error =>
+          error instanceof APIError && error.responseStatus === 404,
+        autoSwitchEnabled: this.isAutoSwitchAccountEnabled(),
+        probe: this.probeRepositoryAccount,
+        work: async account => {
+          const api = API.fromAccount(account)
+          return await Promise.all([
+            api.fetchWorkflows(owner, gitHubRepository.name),
+            api.fetchWorkflowRuns(owner, gitHubRepository.name, {
+              ...filter,
+              page: 1,
+              perPage: ActionsWorkflowRunPageSize,
+            }),
+          ])
+        },
+      })
+
+      if (loaded.usedFallback) {
+        this.accountOverrides.set(key, getAccountKey(loaded.account))
+      }
+
+      const [workflows, runs] = loaded.result
       if (
         accountsGeneration !== this.accountsGeneration ||
         (this.refreshGenerations.get(key) ?? 0) !== refreshGeneration

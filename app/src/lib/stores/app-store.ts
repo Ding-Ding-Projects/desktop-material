@@ -336,6 +336,10 @@ import {
   getRepositoryCredentialAccountKey,
   getRepositoryOwnerAccountToPromote,
 } from '../get-account-for-repository'
+import {
+  autoSwitchAccountToRepositoryOwnerDefault,
+  autoSwitchAccountToRepositoryOwnerKey,
+} from '../auto-switch-account-preference'
 import { getForkRepositoryEligibility } from '../fork-repository'
 import {
   assertCheckoutPlanSelection,
@@ -872,7 +876,6 @@ const confirmUndoCommitDefault: boolean = true
 const confirmCommitFilteredChangesDefault: boolean = true
 const confirmCommitMessageOverrideDefault: boolean = true
 const confirmWorktreeRemovalDefault: boolean = true
-const autoSwitchAccountToRepositoryOwnerDefault: boolean = true
 const askToMoveToApplicationsFolderKey: string = 'askToMoveToApplicationsFolder'
 const confirmRepoRemovalKey: string = 'confirmRepoRemoval'
 const showCommitLengthWarningKey: string = 'showCommitLengthWarning'
@@ -887,8 +890,6 @@ const confirmCommitFilteredChangesKey: string =
   'confirmCommitFilteredChangesKey'
 const confirmCommitMessageOverrideKey: string = 'confirmCommitMessageOverride'
 const confirmWorktreeRemovalKey: string = 'confirmWorktreeRemoval'
-const autoSwitchAccountToRepositoryOwnerKey: string =
-  'autoSwitchAccountToRepositoryOwner'
 
 const uncommittedChangesStrategyKey = 'uncommittedChangesStrategyKind'
 
