@@ -390,12 +390,37 @@ jobs:
       - name: Publish GitHub release
         shell: bash
         run: |
+          set +e
           gh release create "$RELEASE_TAG" release-payload/installers/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
             --notes-file release-payload/release-notes.md \
             --latest=false
+          create_status=$?
+          set -e
+          if [ "$create_status" -ne 0 ]; then
+            # 2026-07-26: the workflow token began receiving 403s from
+            # POST /releases for non-prerelease creation while prerelease
+            # creation kept succeeding (runs 30187367300, 30187848822).
+            # Recover by creating the release as a prerelease, uploading the
+            # same assets, then clearing the flag. If the final edit also
+            # fails, the run fails loudly with the prerelease left intact.
+            echo "Direct release creation failed with status $create_status;" \
+              "falling back to prerelease-then-clear." >&2
+            gh api --method POST "repos/$GITHUB_REPOSITORY/releases" \
+              -f tag_name="$RELEASE_TAG" \
+              -f target_commitish="$RELEASE_TARGET_SHA" \
+              -f name="Desktop Material $RELEASE_VERSION" \
+              -F prerelease=true \
+              -f make_latest=false \
+              -F body=@release-payload/release-notes.md >/dev/null
+            gh release upload "$RELEASE_TAG" release-payload/installers/* \
+              --repo "$GITHUB_REPOSITORY"
+            gh release edit "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --prerelease=false --latest=false
+          fi
       - name: Verify published release target
         shell: bash
         run: |
