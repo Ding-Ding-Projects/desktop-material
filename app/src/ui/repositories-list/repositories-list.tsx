@@ -14,7 +14,11 @@ import {
 } from './group-repositories'
 import { IFilterListGroup } from '../lib/filter-list'
 import { IMatches } from '../../lib/fuzzy-find'
-import { ILocalRepositoryState, Repository } from '../../models/repository'
+import {
+  ILocalRepositoryState,
+  Repository,
+  SubmoduleRepository,
+} from '../../models/repository'
 import { DensityPreference } from '../../models/appearance-customization'
 import { Dispatcher } from '../dispatcher'
 import { Button } from '../lib/button'
@@ -67,11 +71,38 @@ import {
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
+  translate,
   translateForAccessibleName,
   TranslationKey,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
+import {
+  RepositoryBulkActions,
+  RepositoryBulkOperation,
+} from './repository-bulk-actions'
+import {
+  clearBulkSelection,
+  dedupeRepositoryIds,
+  emptyRepositoryBulkSelection,
+  enterBulkSelection,
+  exitBulkSelection,
+  IRepositoryBulkSelection,
+  isAllVisibleSelected,
+  isSomeVisibleSelected,
+  pruneBulkSelection,
+  selectedRepositoryIds,
+  setVisibleSelection,
+  toggleRepositorySelection,
+} from './repository-bulk-selection'
+import {
+  IBulkRepositoryItem,
+  IBulkRepositoryProgress,
+  initialBulkRepositoryProgress,
+  runSequentialRepositoryBulk,
+  sanitizeBulkFailureReason,
+} from '../../lib/automation/bulk-repository-runner'
+import { RepositorySyncOperation } from '../../lib/automation/pull-all'
 
 interface IRepositoriesListProps {
   /** Signed-in identities used by the account and provider scope controls. */
@@ -150,6 +181,34 @@ interface IRepositoriesListState {
   readonly showHiddenRepositories: boolean
   readonly repositoryLogoChange: IRepositoryLogoChange
   readonly languageMode: LanguageMode
+  readonly bulkSelection: IRepositoryBulkSelection
+  /** Repository ids the active filter is showing, deduped and selectable. */
+  readonly visibleRepositoryIds: ReadonlyArray<number>
+  readonly bulkProgress: IBulkRepositoryProgress | null
+  readonly bulkProgressTitleKey: TranslationKey | null
+  readonly bulkNotice: string | null
+  readonly bulkRemovalCandidates: ReadonlyArray<IBulkRepositoryItem> | null
+  readonly bulkCancelRequested: boolean
+}
+
+/**
+ * Cloning rows carry temporary ids and submodules cannot be removed from the
+ * list at all, so neither takes part in a reviewed bulk selection.
+ */
+function isBulkSelectable(repository: Repositoryish): repository is Repository {
+  return (
+    repository instanceof Repository &&
+    !(repository instanceof SubmoduleRepository)
+  )
+}
+
+function toBulkItems(
+  repositories: ReadonlyArray<Repository>
+): ReadonlyArray<IBulkRepositoryItem> {
+  return repositories.map(repository => ({
+    id: repository.id,
+    name: repository.name,
+  }))
 }
 
 const RepositoryStatusFilters: ReadonlyArray<{
@@ -256,6 +315,13 @@ export class RepositoriesList extends React.Component<
     (instance: RepositoryListItem | null) => void
   >()
 
+  /**
+   * Cancellation for a running bulk fetch/pull. Checked between repositories,
+   * never during one, so the in-flight Git operation always completes.
+   */
+  private bulkCancelled = false
+  private unmounted = false
+
   public constructor(props: IRepositoriesListProps) {
     super(props)
 
@@ -274,6 +340,13 @@ export class RepositoriesList extends React.Component<
       showHiddenRepositories: false,
       repositoryLogoChange: { revision: 0, repositoryPath: null },
       languageMode: getPersistedLanguageMode(),
+      bulkSelection: emptyRepositoryBulkSelection,
+      visibleRepositoryIds: [],
+      bulkProgress: null,
+      bulkProgressTitleKey: null,
+      bulkNotice: null,
+      bulkRemovalCandidates: null,
+      bulkCancelRequested: false,
     }
   }
 
@@ -312,6 +385,19 @@ export class RepositoriesList extends React.Component<
   }
 
   public componentDidUpdate(prevProps: IRepositoriesListProps) {
+    if (prevProps.repositories !== this.props.repositories) {
+      const available = this.props.repositories
+        .filter(isBulkSelectable)
+        .map(repository => repository.id)
+      const bulkSelection = pruneBulkSelection(
+        this.state.bulkSelection,
+        available
+      )
+      if (bulkSelection !== this.state.bulkSelection) {
+        this.setState({ bulkSelection })
+      }
+    }
+
     if (
       prevProps.accounts !== this.props.accounts &&
       !isAccountFilterAvailable(
@@ -335,6 +421,8 @@ export class RepositoriesList extends React.Component<
   }
 
   public componentWillUnmount() {
+    this.unmounted = true
+    this.bulkCancelled = true
     document.removeEventListener(
       RepositoryLogoChangedEvent,
       this.onRepositoryLogoChanged
@@ -392,6 +480,64 @@ export class RepositoriesList extends React.Component<
   }
 
   private renderItem = (item: IRepositoryListItem, matches: IMatches) => {
+    const row = this.renderRepositoryRow(item, matches)
+    if (!this.state.bulkSelection.active) {
+      return row
+    }
+
+    const repository = item.repository
+    const selectable = isBulkSelectable(repository)
+
+    return (
+      <div className="repository-list-item-bulk">
+        <input
+          type="checkbox"
+          className="repository-list-item-select"
+          data-repository-id={repository.id}
+          checked={
+            selectable &&
+            this.state.bulkSelection.selectedIds.has(repository.id)
+          }
+          disabled={!selectable || this.isBulkBusy}
+          aria-label={translateForAccessibleName(
+            'repositoryBulk.selectRepositoryAria',
+            { repository: repository.name },
+            this.state.languageMode
+          )}
+          onClick={this.onRowCheckboxClick}
+          onChange={this.onRowCheckboxChanged}
+        />
+        {row}
+      </div>
+    )
+  }
+
+  private onRowCheckboxClick = (event: React.MouseEvent<HTMLInputElement>) => {
+    // The row itself is clickable; without this the toggle would also change
+    // the app-wide repository selection and close the side sheet.
+    event.stopPropagation()
+  }
+
+  private onRowCheckboxChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const id = Number(event.currentTarget.dataset.repositoryId)
+    if (!Number.isSafeInteger(id)) {
+      return
+    }
+    this.setBulkSelection(
+      toggleRepositorySelection(
+        this.state.bulkSelection,
+        id,
+        event.currentTarget.checked
+      )
+    )
+  }
+
+  private renderRepositoryRow = (
+    item: IRepositoryListItem,
+    matches: IMatches
+  ) => {
     const repository = item.repository
     return (
       <RepositoryListItem
@@ -535,6 +681,21 @@ export class RepositoriesList extends React.Component<
   }
 
   private onItemClick = (item: IRepositoryListItem) => {
+    if (this.state.bulkSelection.active) {
+      const repository = item.repository
+      if (!isBulkSelectable(repository) || this.isBulkBusy) {
+        return
+      }
+      this.setBulkSelection(
+        toggleRepositorySelection(
+          this.state.bulkSelection,
+          repository.id,
+          !this.state.bulkSelection.selectedIds.has(repository.id)
+        )
+      )
+      return
+    }
+
     const hasIndicator =
       item.changedFilesCount > 0 ||
       (item.aheadBehind !== null
@@ -639,8 +800,13 @@ export class RepositoriesList extends React.Component<
       this.getSelectedListItem(groups, this.props.selectedRepository)
 
     return (
-      <div className="repository-list">
+      // The container only observes Escape so multi-select can unwind before
+      // the side sheet closes; every control inside it stays natively
+      // interactive and keyboard reachable on its own.
+      // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+      <div className="repository-list" onKeyDown={this.onListKeyDown}>
         {this.renderSheetHeader()}
+        {this.renderBulkActions()}
         <SectionFilterList<IRepositoryListItem, RepositoryListGroup>
           rowHeight={this.getRowHeight}
           selectedItem={selectedItem}
@@ -656,9 +822,13 @@ export class RepositoriesList extends React.Component<
           renderPostFilter={this.renderPostFilter}
           renderNoItems={this.renderNoItems}
           groups={groups}
+          onVisibleItemsChanged={this.onVisibleItemsChanged}
           invalidationProps={{
             repositories: this.props.repositories,
             filterText: this.props.filterText,
+            bulkSelectionActive: this.state.bulkSelection.active,
+            bulkSelectedIds: this.state.bulkSelection.selectedIds,
+            bulkBusy: this.isBulkBusy,
             showRecentRepositories: this.props.showRecentRepositories,
             pinnedRepositoryIds: this.state.pinnedRepositoryIds,
             accounts: this.props.accounts,
@@ -895,6 +1065,23 @@ export class RepositoriesList extends React.Component<
     return (
       <div className="repository-list-actions">
         <Button
+          className="repository-bulk-enter-button"
+          ariaLabel={translateForAccessibleName(
+            'repositoryBulk.enterSelectionAria',
+            {},
+            this.state.languageMode
+          )}
+          ariaPressed={this.state.bulkSelection.active}
+          disabled={this.isBulkBusy}
+          onClick={this.onToggleBulkSelection}
+        >
+          <MaterialSymbol name="library_add_check" size={16} />
+          <LocalizedText
+            translationKey="repositoryBulk.enterSelection"
+            languageMode={this.state.languageMode}
+          />
+        </Button>
+        <Button
           className="pull-all-repositories-button"
           onClick={this.onPullAllRepositories}
         >
@@ -1036,6 +1223,371 @@ export class RepositoriesList extends React.Component<
   private onShowWorktrees = (repository: Repository) => {
     this.props.dispatcher.selectRepository(repository)
     this.props.dispatcher.showWorktreesFoldout()
+  }
+
+  // ---------------------------------------------------------------------------
+  // Bulk selection and bulk actions
+  // ---------------------------------------------------------------------------
+
+  private get isBulkBusy(): boolean {
+    const progress = this.state.bulkProgress
+    return progress !== null && !progress.finished
+  }
+
+  private get customGroupNames(): ReadonlyArray<string> {
+    const names = new Set<string>()
+    for (const repository of this.props.repositories) {
+      if (repository instanceof Repository && repository.groupName !== null) {
+        names.add(repository.groupName)
+      }
+    }
+    return [...names].sort((a, b) => a.localeCompare(b))
+  }
+
+  private localizeBulk(
+    key: TranslationKey,
+    variables?: Readonly<Record<string, string>>
+  ): string {
+    return translate(key, this.state.languageMode, variables)
+  }
+
+  private setBulkSelection(bulkSelection: IRepositoryBulkSelection) {
+    if (bulkSelection === this.state.bulkSelection) {
+      return
+    }
+    this.setState({
+      bulkSelection,
+      bulkNotice: null,
+      bulkRemovalCandidates: null,
+    })
+  }
+
+  private onToggleBulkSelection = () => {
+    if (this.state.bulkSelection.active) {
+      this.onExitBulkSelection()
+      return
+    }
+    this.setState({
+      bulkSelection: enterBulkSelection(),
+      bulkNotice: null,
+      bulkRemovalCandidates: null,
+    })
+  }
+
+  private onExitBulkSelection = () => {
+    this.setState({
+      bulkSelection: exitBulkSelection(),
+      bulkNotice: null,
+      bulkRemovalCandidates: null,
+    })
+  }
+
+  private onListKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (event.defaultPrevented || event.key !== 'Escape') {
+      return
+    }
+
+    // Unwind the confirmation first, then multi-select, and only then let the
+    // side sheet's own Escape handling close the foldout.
+    if (this.state.bulkRemovalCandidates !== null) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.setState({ bulkRemovalCandidates: null })
+      return
+    }
+
+    if (this.state.bulkSelection.active && !this.isBulkBusy) {
+      event.preventDefault()
+      event.stopPropagation()
+      this.onExitBulkSelection()
+    }
+  }
+
+  private onVisibleItemsChanged = (
+    items: ReadonlyArray<IRepositoryListItem>
+  ) => {
+    const visibleRepositoryIds = dedupeRepositoryIds(
+      items
+        .filter(item => isBulkSelectable(item.repository))
+        .map(item => item.repository.id)
+    )
+    this.setState({ visibleRepositoryIds })
+  }
+
+  private onSelectAllVisibleChanged = (selected: boolean) => {
+    this.setBulkSelection(
+      setVisibleSelection(
+        this.state.bulkSelection,
+        this.state.visibleRepositoryIds,
+        selected
+      )
+    )
+  }
+
+  private getSelectedRepositories(): ReadonlyArray<Repository> {
+    const byId = new Map<number, Repository>()
+    for (const repository of this.props.repositories) {
+      if (isBulkSelectable(repository)) {
+        byId.set(repository.id, repository)
+      }
+    }
+    return selectedRepositoryIds(this.state.bulkSelection).flatMap(id => {
+      const repository = byId.get(id)
+      return repository === undefined ? [] : [repository]
+    })
+  }
+
+  private onBulkOperation = (
+    operation: RepositoryBulkOperation,
+    groupName: string
+  ) => {
+    if (this.isBulkBusy) {
+      return
+    }
+
+    const repositories = this.getSelectedRepositories()
+    if (repositories.length === 0) {
+      return
+    }
+
+    switch (operation) {
+      case 'fetch-selected':
+        void this.runReviewedSyncBulk('fetch', repositories)
+        return
+      case 'pull-selected':
+        void this.runReviewedSyncBulk('pull', repositories)
+        return
+      case 'favorite':
+        this.runFavoriteBulk(repositories, true)
+        return
+      case 'unfavorite':
+        this.runFavoriteBulk(repositories, false)
+        return
+      case 'assign-group':
+        if (groupName.length > 0) {
+          void this.runGroupBulk(repositories, groupName)
+        }
+        return
+      case 'remove-group':
+        void this.runGroupBulk(repositories, null)
+        return
+      case 'remove-from-list':
+        this.setState({
+          bulkRemovalCandidates: toBulkItems(repositories),
+          bulkNotice: null,
+        })
+        return
+      default:
+        assertNever(operation, `Unknown bulk operation ${operation}`)
+    }
+  }
+
+  private runFavoriteBulk(
+    repositories: ReadonlyArray<Repository>,
+    favorite: boolean
+  ) {
+    for (const repository of repositories) {
+      if (favorite) {
+        addPinnedRepository(repository)
+      } else {
+        removePinnedRepository(repository)
+      }
+    }
+
+    this.setState({
+      pinnedRepositoryIds: getPinnedRepositories(),
+      bulkNotice: this.localizeBulk(
+        favorite
+          ? 'repositoryBulk.favoritedNotice'
+          : 'repositoryBulk.unfavoritedNotice',
+        { count: String(repositories.length) }
+      ),
+    })
+  }
+
+  private async runGroupBulk(
+    repositories: ReadonlyArray<Repository>,
+    groupName: string | null
+  ) {
+    let changed = 0
+    let failure: string | null = null
+
+    for (const repository of repositories) {
+      try {
+        await this.props.dispatcher.changeRepositoryGroupName(
+          repository,
+          groupName
+        )
+        changed++
+      } catch (error) {
+        failure = sanitizeBulkFailureReason(error)
+      }
+    }
+
+    if (this.unmounted) {
+      return
+    }
+
+    this.setState({
+      bulkNotice:
+        failure ??
+        (groupName === null
+          ? this.localizeBulk('repositoryBulk.removedGroupNotice', {
+              count: String(changed),
+            })
+          : this.localizeBulk('repositoryBulk.assignedNotice', {
+              count: String(changed),
+              group: groupName,
+            })),
+    })
+  }
+
+  private async runReviewedSyncBulk(
+    operation: RepositorySyncOperation,
+    repositories: ReadonlyArray<Repository>
+  ) {
+    const items = toBulkItems(repositories)
+    this.bulkCancelled = false
+
+    this.setState({
+      bulkProgress: initialBulkRepositoryProgress(items),
+      bulkProgressTitleKey:
+        operation === 'pull'
+          ? 'repositoryBulk.pullingTitle'
+          : 'repositoryBulk.fetchingTitle',
+      bulkCancelRequested: false,
+      bulkNotice: null,
+      bulkRemovalCandidates: null,
+    })
+
+    await runSequentialRepositoryBulk(
+      items,
+      async (item, reportDetail) => {
+        // One reviewed single-repository batch per item. The store revalidates
+        // the id against the live inventory and runs its own per-repository
+        // pull safety review, so a bulk selection can never bypass reviewed
+        // pull semantics or reach Git with an unreviewed argument.
+        const results = await this.props.dispatcher.syncRepositories(
+          { operation, repositoryIds: [item.id] },
+          update => reportDetail(update.item.detail)
+        )
+        const result = results[0]
+        if (result === undefined) {
+          return { status: 'skipped', detail: '' }
+        }
+        if (result.status === 'failed') {
+          return { status: 'failed', detail: result.detail }
+        }
+        if (result.status === 'skipped') {
+          return { status: 'skipped', detail: result.detail }
+        }
+        return { status: 'done', detail: result.detail }
+      },
+      {
+        isCancelled: () => this.bulkCancelled,
+        onProgress: progress => {
+          if (!this.unmounted) {
+            this.setState({ bulkProgress: progress })
+          }
+        },
+      }
+    )
+  }
+
+  private onCancelBulkRun = () => {
+    this.bulkCancelled = true
+    this.setState({ bulkCancelRequested: true })
+  }
+
+  private onDismissBulkRun = () => {
+    this.setState({
+      bulkProgress: null,
+      bulkProgressTitleKey: null,
+      bulkCancelRequested: false,
+    })
+  }
+
+  private onCancelBulkRemoval = () => {
+    this.setState({ bulkRemovalCandidates: null })
+  }
+
+  private onConfirmBulkRemoval = async () => {
+    const candidates = this.state.bulkRemovalCandidates
+    if (candidates === null) {
+      return
+    }
+
+    const wanted = new Set(candidates.map(candidate => candidate.id))
+    const repositories = this.props.repositories.filter(
+      (repository): repository is Repository =>
+        isBulkSelectable(repository) && wanted.has(repository.id)
+    )
+
+    this.setState({ bulkRemovalCandidates: null })
+
+    let removed = 0
+    let failure: string | null = null
+    for (const repository of repositories) {
+      try {
+        // `moveToTrash` is always false here: removing repositories in bulk
+        // only forgets them, it never deletes on-disk content.
+        await this.props.dispatcher.removeRepository(repository, false)
+        removed++
+      } catch (error) {
+        failure = sanitizeBulkFailureReason(error)
+      }
+    }
+
+    if (this.unmounted) {
+      return
+    }
+
+    this.setState({
+      bulkSelection: clearBulkSelection(this.state.bulkSelection),
+      bulkNotice:
+        failure ??
+        this.localizeBulk('repositoryBulk.removedNotice', {
+          count: String(removed),
+        }),
+    })
+  }
+
+  private renderBulkActions() {
+    if (!this.state.bulkSelection.active) {
+      return null
+    }
+
+    const visibleIds = this.state.visibleRepositoryIds
+
+    return (
+      <RepositoryBulkActions
+        languageMode={this.state.languageMode}
+        selectedCount={this.state.bulkSelection.selectedIds.size}
+        visibleCount={visibleIds.length}
+        allVisibleSelected={isAllVisibleSelected(
+          this.state.bulkSelection,
+          visibleIds
+        )}
+        someVisibleSelected={isSomeVisibleSelected(
+          this.state.bulkSelection,
+          visibleIds
+        )}
+        busy={this.isBulkBusy}
+        groupNames={this.customGroupNames}
+        progress={this.state.bulkProgress}
+        progressTitleKey={this.state.bulkProgressTitleKey}
+        cancelRequested={this.state.bulkCancelRequested}
+        notice={this.state.bulkNotice}
+        removalCandidates={this.state.bulkRemovalCandidates}
+        onSelectAllVisibleChanged={this.onSelectAllVisibleChanged}
+        onOperation={this.onBulkOperation}
+        onExit={this.onExitBulkSelection}
+        onCancelRun={this.onCancelBulkRun}
+        onDismissRun={this.onDismissBulkRun}
+        onConfirmRemoval={this.onConfirmBulkRemoval}
+        onCancelRemoval={this.onCancelBulkRemoval}
+      />
+    )
   }
 
   private onPinRepository = (repository: Repository) => {

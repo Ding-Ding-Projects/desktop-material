@@ -52,6 +52,71 @@ uploads). The stale July-1 `GitHubDesktopSetup-x64.exe` should be deleted by
 the user (Squirrel `--install` performs no version comparison; guard shipped
 but cannot stop a re-run installer).
 
+## 2026-07-25 Repository list bulk actions
+
+Branch `feat/repo-list-bulk-actions` (worktree only; **not merged, not
+pushed** — push was explicitly out of scope for this task).
+
+- **Selection state machine** —
+  `app/src/ui/repositories-list/repository-bulk-selection.ts` is pure and
+  React-free: enter/exit, per-row toggle, filter-aware select-all, prune, and
+  the all/some-visible predicates. Select-all only ever adds or removes the ids
+  the caller says are visible, so a selection made under one filter survives the
+  next filter. Escape and Clear both call `exitBulkSelection`, which leaves the
+  mode and empties the set; `clearBulkSelection` (used after a bulk removal)
+  empties it but stays in the mode.
+- **Visible rows** — `SectionFilterList` never exposed its filtered rows, and
+  they cannot be recomputed by a consumer because the match mode, case
+  sensitivity, and chip filters are private state. A new optional
+  `onVisibleItemsChanged` prop publishes the exact visible items on mount and
+  whenever the visible id list changes; the id-equality guard is what stops the
+  parent's `setState` from looping. Pinned and Recent repeat a repository, so
+  the picker dedupes by id. Cloning and submodule rows are never selectable
+  (temporary ids; a submodule cannot be removed from the list at all).
+- **Bulk runner** — `app/src/lib/automation/bulk-repository-runner.ts` is a
+  sequential, determinate runner. `isCancelled` is consulted only *between*
+  items, so the in-flight repository always finishes and the rest are reported
+  `cancelled`/"Not started" rather than dropped. Every detail and thrown error
+  passes through `sanitizeBulkFailureReason`: Windows/UNC/POSIX absolute paths
+  → `<path>`, URL credentials and `gh*_`/`github_pat_` tokens → `<redacted>`,
+  whitespace collapsed, elided at 200 chars. The Windows drive-letter pattern
+  carries a leading non-alphanumeric guard so it cannot eat a URL scheme.
+- **Reviewed pull/fetch is not bypassed** — each selected repository is
+  submitted as its own single-repository `dispatcher.syncRepositories` call, so
+  `_syncRepositories` revalidates the id against the live persisted inventory
+  and `performPullAllRepository` applies its unchanged per-repository review
+  (missing repo, no remote, detached/unborn tip, no upstream, network op in
+  flight). A row that fails or is skipped does not stop the batch.
+- **Removal safety** — bulk removal is confirmation gated in a
+  `role="alertdialog"` that names every affected repository and states nothing
+  on disk is deleted. The path always calls `removeRepository(repository,
+  false)` and has no access to `forceRemoveRepository` or the trash route; the
+  collection-surface contract test asserts both the presence of the `false`
+  call and the absence of the destructive ones.
+- **Registry** — new `repositories-list` entry in `BulkActionSurfaceRegistry`
+  (the existing `repositories` entry still points at the Sync dialog). The
+  pinned contract test gained a source match for the new surface plus a check
+  that every registered operation id exists as a real value in the implementing
+  source, so the registry cannot drift into fiction.
+- **i18n / a11y** — 51 new `repositoryBulk.*` keys across the union, English,
+  and Cantonese catalogs; destructive copy is plain and placeholder-free in
+  both. Selection bar is `role="group"`, the count is `role="status"`, the
+  progress track is a `role="progressbar"` with `aria-valuenow`/`aria-valuetext`,
+  each row checkbox has a per-repository accessible name, and every control is a
+  native focusable element. Clicking a row toggles it while multi-select is on,
+  so the list's own keyboard navigation reaches every checkbox. Clear and the
+  Select-multiple toggle are disabled while a batch runs so a running batch's
+  progress and cancel control can never be hidden.
+- **Local verification**: Prettier repo-wide clean, `npx tsc --noEmit` clean,
+  repo-wide `yarn eslint` clean. Targeted: 117/117 across 12 files
+  (`Test file accounting: 12/12 discovered file(s) produced results across 1
+  batch(es); 117 test(s) reported.`) covering the three new suites plus the
+  repositories-list, pull-all, i18n, and filter-mode suites. Broad UI/contract
+  sweep: 212 files, 1308 tests, 1 failure — `OllamaModelManager chat panel`,
+  a pre-existing timing flake in a suite that imports none of the changed
+  modules; re-running it in isolation failed a *different* pair of its tests,
+  which is the same non-deterministic behavior already recorded for that suite.
+
 ## 2026-07-25 Anchor before the release review (#38 last defect)
 
 Branch `fix/bootstrap-before-review` (worktree only; **not merged, not

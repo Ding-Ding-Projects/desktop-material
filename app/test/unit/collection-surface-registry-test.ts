@@ -252,5 +252,34 @@ describe('collection surface registries', () => {
       source('actions/actions-view.tsx'),
       /Bulk workflow run actions[\s\S]*Re-run completed[\s\S]*Cancel active/
     )
+    assert.match(
+      source('repositories-list/repository-bulk-actions.tsx'),
+      /Bulk repository actions[\s\S]*Fetch selected[\s\S]*Remove from list/
+    )
+  })
+
+  it('binds the repository picker bulk operations to real code paths', () => {
+    const picker = BulkActionSurfaceRegistry.find(
+      surface => surface.id === 'repositories-list'
+    )
+    assert.ok(picker, 'The repository picker must be an audited bulk surface')
+
+    // Every registered operation id has to exist as a real value in the
+    // implementing source, so the registry cannot drift into fiction.
+    const pickerSource = source(picker.source)
+    for (const operation of picker.operations) {
+      assert.match(
+        pickerSource,
+        new RegExp(`'${operation}'`),
+        `${picker.label} must implement the registered ${operation} operation`
+      )
+    }
+
+    // The registered safety exclusion: bulk removal forgets repositories and
+    // must never reach the move-to-trash or force-delete paths.
+    const listSource = source('repositories-list/repositories-list.tsx')
+    assert.match(listSource, /removeRepository\(repository, false\)/)
+    assert.doesNotMatch(listSource, /forceRemoveRepository/)
+    assert.doesNotMatch(listSource, /removeRepository\(\s*repository,\s*true/)
   })
 })

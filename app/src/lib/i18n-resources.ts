@@ -799,6 +799,57 @@ export type TranslationKey =
   | 'repositoryPicker.unhideMenu'
   | 'repositoryPicker.customizeNameMenu'
   | 'repositoryPicker.customizeLogoMenu'
+  | 'repositoryBulk.enterSelection'
+  | 'repositoryBulk.enterSelectionAria'
+  | 'repositoryBulk.barAria'
+  | 'repositoryBulk.selectAllVisible'
+  | 'repositoryBulk.selectAllVisibleAria'
+  | 'repositoryBulk.selectedCount'
+  | 'repositoryBulk.selectRepositoryAria'
+  | 'repositoryBulk.clear'
+  | 'repositoryBulk.clearAria'
+  | 'repositoryBulk.fetch'
+  | 'repositoryBulk.pull'
+  | 'repositoryBulk.favorite'
+  | 'repositoryBulk.unfavorite'
+  | 'repositoryBulk.groupLabel'
+  | 'repositoryBulk.groupPlaceholder'
+  | 'repositoryBulk.assignGroup'
+  | 'repositoryBulk.removeGroup'
+  | 'repositoryBulk.remove'
+  | 'repositoryBulk.noticeAria'
+  | 'repositoryBulk.favoritedNotice'
+  | 'repositoryBulk.unfavoritedNotice'
+  | 'repositoryBulk.assignedNotice'
+  | 'repositoryBulk.removedGroupNotice'
+  | 'repositoryBulk.removedNotice'
+  | 'repositoryBulk.progressAria'
+  | 'repositoryBulk.fetchingTitle'
+  | 'repositoryBulk.pullingTitle'
+  | 'repositoryBulk.completedOf'
+  | 'repositoryBulk.progressTrackAria'
+  | 'repositoryBulk.cancel'
+  | 'repositoryBulk.cancelAria'
+  | 'repositoryBulk.cancelling'
+  | 'repositoryBulk.dismiss'
+  | 'repositoryBulk.summary'
+  | 'repositoryBulk.resultsAria'
+  | 'repositoryBulk.repository'
+  | 'repositoryBulk.status'
+  | 'repositoryBulk.detail'
+  | 'repositoryBulk.statusQueued'
+  | 'repositoryBulk.statusRunning'
+  | 'repositoryBulk.statusDone'
+  | 'repositoryBulk.statusFailed'
+  | 'repositoryBulk.statusSkipped'
+  | 'repositoryBulk.statusCancelled'
+  | 'repositoryBulk.noDetail'
+  | 'repositoryBulk.removeTitleSingular'
+  | 'repositoryBulk.removeTitlePlural'
+  | 'repositoryBulk.removeDescription'
+  | 'repositoryBulk.removeListAria'
+  | 'repositoryBulk.removeConfirm'
+  | 'repositoryBulk.removeCancel'
   | 'removeRepository.trashFailedMessage'
   | 'removeRepository.trashFailedWarning'
   | 'removeRepository.forceDeleteButton'
@@ -2803,6 +2854,64 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositoryPicker.unhideMenu': 'Unhide repository',
   'repositoryPicker.customizeNameMenu': 'Customize name appearance',
   'repositoryPicker.customizeLogoMenu': 'Customize logo appearance',
+  'repositoryBulk.enterSelection': 'Select multiple',
+  'repositoryBulk.enterSelectionAria': 'Select multiple repositories',
+  'repositoryBulk.barAria': 'Bulk repository actions',
+  'repositoryBulk.selectAllVisible': 'Select all visible',
+  'repositoryBulk.selectAllVisibleAria': 'Select all visible repositories',
+  'repositoryBulk.selectedCount': '{count} selected',
+  'repositoryBulk.selectRepositoryAria': 'Select repository {repository}',
+  'repositoryBulk.clear': 'Clear',
+  'repositoryBulk.clearAria': 'Clear the selection and leave multi-select',
+  'repositoryBulk.fetch': 'Fetch ({count})',
+  'repositoryBulk.pull': 'Pull ({count})',
+  'repositoryBulk.favorite': 'Favorite ({count})',
+  'repositoryBulk.unfavorite': 'Unfavorite ({count})',
+  'repositoryBulk.groupLabel': 'Group',
+  'repositoryBulk.groupPlaceholder': 'Group name',
+  'repositoryBulk.assignGroup': 'Assign to group ({count})',
+  'repositoryBulk.removeGroup': 'Remove from group ({count})',
+  'repositoryBulk.remove': 'Remove from list ({count})',
+  'repositoryBulk.noticeAria': 'Bulk action result',
+  'repositoryBulk.favoritedNotice': 'Favorited {count} repositories.',
+  'repositoryBulk.unfavoritedNotice':
+    'Removed {count} repositories from favorites.',
+  'repositoryBulk.assignedNotice': 'Assigned {count} repositories to {group}.',
+  'repositoryBulk.removedGroupNotice':
+    'Removed {count} repositories from their group.',
+  'repositoryBulk.removedNotice': 'Removed {count} repositories from the list.',
+  'repositoryBulk.progressAria': 'Bulk repository progress',
+  'repositoryBulk.fetchingTitle': 'Fetching selected repositories',
+  'repositoryBulk.pullingTitle': 'Pulling selected repositories',
+  'repositoryBulk.completedOf': '{completed} of {total} repositories complete',
+  'repositoryBulk.progressTrackAria': 'Repositories processed',
+  'repositoryBulk.cancel': 'Cancel',
+  'repositoryBulk.cancelAria': 'Stop after the current repository finishes',
+  'repositoryBulk.cancelling':
+    'Stopping after the current repository finishes.',
+  'repositoryBulk.dismiss': 'Dismiss',
+  'repositoryBulk.summary':
+    '{done} done, {failed} failed, {skipped} skipped, {remaining} not started.',
+  'repositoryBulk.resultsAria': 'Per-repository results',
+  'repositoryBulk.repository': 'Repository',
+  'repositoryBulk.status': 'Status',
+  'repositoryBulk.detail': 'Detail',
+  'repositoryBulk.statusQueued': 'Waiting',
+  'repositoryBulk.statusRunning': 'Working',
+  'repositoryBulk.statusDone': 'Done',
+  'repositoryBulk.statusFailed': 'Failed',
+  'repositoryBulk.statusSkipped': 'Skipped',
+  'repositoryBulk.statusCancelled': 'Not started',
+  'repositoryBulk.noDetail': 'No detail reported.',
+  'repositoryBulk.removeTitleSingular':
+    'Remove {count} repository from Desktop Material?',
+  'repositoryBulk.removeTitlePlural':
+    'Remove {count} repositories from Desktop Material?',
+  'repositoryBulk.removeDescription':
+    'This removes them from this list only. Nothing on disk is deleted and no Git data is changed.',
+  'repositoryBulk.removeListAria': 'Repositories that will be removed',
+  'repositoryBulk.removeConfirm': 'Remove from list',
+  'repositoryBulk.removeCancel': 'Cancel',
   'removeRepository.trashFailedMessage':
     "The repository couldn't be moved to {trash}. A file may be open in another program, or the location (such as a network or removable drive) may not support {trash}.",
   'removeRepository.trashFailedWarning':
@@ -4964,6 +5073,61 @@ export const cantoneseTranslations: Readonly<
   'repositoryPicker.unhideMenu': '取消隱藏 repo',
   'repositoryPicker.customizeNameMenu': '自訂名稱外觀',
   'repositoryPicker.customizeLogoMenu': '自訂標誌外觀',
+  'repositoryBulk.enterSelection': '揀多個',
+  'repositoryBulk.enterSelectionAria': '一次揀多個 repo',
+  'repositoryBulk.barAria': 'Repo 批次操作',
+  'repositoryBulk.selectAllVisible': '揀晒睇到嗰啲',
+  'repositoryBulk.selectAllVisibleAria': '揀晒而家睇到嘅 repo',
+  'repositoryBulk.selectedCount': '揀咗 {count} 個',
+  'repositoryBulk.selectRepositoryAria': '揀 repo {repository}',
+  'repositoryBulk.clear': '清走',
+  'repositoryBulk.clearAria': '清走揀好嘅嘢，順便退出多選',
+  'repositoryBulk.fetch': 'Fetch（{count}）',
+  'repositoryBulk.pull': 'Pull（{count}）',
+  'repositoryBulk.favorite': '加最愛（{count}）',
+  'repositoryBulk.unfavorite': '除最愛（{count}）',
+  'repositoryBulk.groupLabel': '分組',
+  'repositoryBulk.groupPlaceholder': '分組名',
+  'repositoryBulk.assignGroup': '放入分組（{count}）',
+  'repositoryBulk.removeGroup': '撳出分組（{count}）',
+  'repositoryBulk.remove': '喺清單移除（{count}）',
+  'repositoryBulk.noticeAria': '批次操作結果',
+  'repositoryBulk.favoritedNotice': '已經加咗 {count} 個 repo 做最愛。',
+  'repositoryBulk.unfavoritedNotice': '已經喺最愛拎走 {count} 個 repo。',
+  'repositoryBulk.assignedNotice': '已經將 {count} 個 repo 放入 {group}。',
+  'repositoryBulk.removedGroupNotice': '已經將 {count} 個 repo 撳出分組。',
+  'repositoryBulk.removedNotice': '已經喺清單移除 {count} 個 repo。',
+  'repositoryBulk.progressAria': 'Repo 批次進度',
+  'repositoryBulk.fetchingTitle': '正喺度 fetch 揀好嘅 repo',
+  'repositoryBulk.pullingTitle': '正喺度 pull 揀好嘅 repo',
+  'repositoryBulk.completedOf': '{total} 個 repo 之中完成咗 {completed} 個',
+  'repositoryBulk.progressTrackAria': '已處理嘅 repo',
+  'repositoryBulk.cancel': '取消',
+  'repositoryBulk.cancelAria': '等手頭上嗰個做完就停',
+  'repositoryBulk.cancelling': '等手頭上嗰個 repo 做完就會停。',
+  'repositoryBulk.dismiss': '收起',
+  'repositoryBulk.summary':
+    '完成 {done} 個，失敗 {failed} 個，跳過 {skipped} 個，未開始 {remaining} 個。',
+  'repositoryBulk.resultsAria': '逐個 repo 嘅結果',
+  'repositoryBulk.repository': 'Repo',
+  'repositoryBulk.status': '狀態',
+  'repositoryBulk.detail': '詳情',
+  'repositoryBulk.statusQueued': '等緊',
+  'repositoryBulk.statusRunning': '做緊',
+  'repositoryBulk.statusDone': '完成',
+  'repositoryBulk.statusFailed': '失敗',
+  'repositoryBulk.statusSkipped': '跳過',
+  'repositoryBulk.statusCancelled': '未開始',
+  'repositoryBulk.noDetail': '冇報告詳情。',
+  'repositoryBulk.removeTitleSingular':
+    '喺 Desktop Material 移除 {count} 個 repo？',
+  'repositoryBulk.removeTitlePlural':
+    '喺 Desktop Material 移除 {count} 個 repo？',
+  'repositoryBulk.removeDescription':
+    '只係喺呢個清單移除。磁碟上嘅檔案唔會刪除，Git 資料亦唔會改動。',
+  'repositoryBulk.removeListAria': '將會移除嘅 repo',
+  'repositoryBulk.removeConfirm': '喺清單移除',
+  'repositoryBulk.removeCancel': '取消',
   'removeRepository.trashFailedMessage':
     '呢個 repo 無法移去{trash}。可能有檔案喺其他程式度開住，又或者呢個位置（例如網絡磁碟或者可移除磁碟）唔支援{trash}。',
   'removeRepository.trashFailedWarning':

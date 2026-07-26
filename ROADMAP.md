@@ -13,6 +13,23 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 25 Repository list bulk actions — **Implemented on a branch, not merged**
+
+The repository side sheet gained a multi-select mode: a checkbox per row, a
+select-all that covers exactly the filter-visible rows, a selection-count bar,
+and Escape or Clear to leave. The selection can fetch, pull, favorite or
+unfavorite, assign or clear a custom group, and be removed from the list.
+Fetch and pull are submitted one reviewed single-repository batch at a time
+through the existing batch-sync path, so the store still revalidates every id
+and applies its per-repository pull review; a determinate N-of-M progress row
+shows each repository's status and can be cancelled between repositories, with
+the in-flight repository always allowed to finish and the rest reported as not
+started. Removing repositories is confirmation gated, names every repository,
+and never deletes on-disk content. The picker is registered as its own audited
+bulk surface with its safety exclusions. Details in
+[HANDOFF.md](HANDOFF.md) and
+[docs/features/repository-management/repository-list-bulk-actions.md](docs/features/repository-management/repository-list-bulk-actions.md).
+
 ## July 25 Bundled-Git hooks, silent abort, and the 100k path cap — **Implemented, locally accepted**
 
 Re-running the headless end-to-end against a build carrying the first-publish

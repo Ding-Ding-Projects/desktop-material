@@ -23,6 +23,16 @@ and reviewed tag updates. Submodules, subtrees, stashes, and worktrees are
 explicit exclusions because a broad action would bypass their per-item
 topology, dirty-state, ordering, or conflict review.
 
+The repository picker is a second repository bulk surface, separate from the
+Sync repositories dialog. Its selection is bounded to the filter-visible saved
+rows; cloning and submodule rows are excluded because their ids are temporary
+or cannot be removed at all. Fetch and pull are submitted one reviewed
+single-repository batch at a time so the store revalidates every id and keeps
+its per-repository pull review, cancellation only takes effect between
+repositories, and removing repositories from the list is confirmation gated and
+has no access to the move-to-trash or force-delete paths. See
+`docs/features/repository-management/repository-list-bulk-actions.md`.
+
 ## Persistence
 
 Each registered list persists only its selected match mode in local UI storage

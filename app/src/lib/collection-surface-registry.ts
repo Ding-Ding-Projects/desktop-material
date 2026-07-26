@@ -359,6 +359,23 @@ export const BulkActionSurfaceRegistry: ReadonlyArray<IBulkActionSurfaceRegistra
       safety: 'Reviewed repository IDs with per-repository result evidence.',
     },
     {
+      id: 'repositories-list',
+      label: 'Repository picker',
+      source: 'repositories-list/repository-bulk-actions.tsx',
+      status: 'implemented',
+      operations: [
+        'fetch-selected',
+        'pull-selected',
+        'favorite',
+        'unfavorite',
+        'assign-group',
+        'remove-group',
+        'remove-from-list',
+      ],
+      safety:
+        'Selection is bounded to filter-visible saved repositories; cloning and submodule rows are excluded because their ids are temporary or cannot be removed. Fetch and pull run one reviewed single-repository batch at a time through the existing batch-sync path, so the store revalidates every id and applies its per-repository pull review, and cancellation only takes effect between repositories. Remove from list is confirmation gated, lists every affected repository by name, and never deletes on-disk content: it cannot request the move-to-trash or force-delete paths at all.',
+    },
+    {
       id: 'releases',
       label: 'Releases',
       source: 'github-releases/github-releases-view.tsx',

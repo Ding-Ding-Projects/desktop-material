@@ -1,0 +1,259 @@
+// Bulk actions for the repository side sheet: the contextual selection bar, the
+// determinate N-of-M progress row, and the removal confirmation. The row
+// checkbox rules live here too so the virtualized slot height never changes.
+.repository-list {
+  .repository-bulk {
+    border-bottom: 1px solid var(--md-sys-color-outline-variant);
+    display: flex;
+    flex-direction: column;
+    flex: 0 0 auto;
+    gap: var(--spacing-half);
+    max-height: 60%;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--spacing-half) var(--spacing);
+  }
+
+  .repository-bulk-bar {
+    align-items: center;
+    background: var(--md-sys-color-secondary-container);
+    border-radius: var(--md-sys-shape-corner-medium);
+    color: var(--md-sys-color-on-secondary-container);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-half);
+    padding: var(--spacing-half);
+  }
+
+  .repository-bulk-select-all {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    white-space: nowrap;
+  }
+
+  .repository-bulk-selected-count {
+    font-weight: var(--font-weight-semibold);
+    margin-inline-end: auto;
+    white-space: nowrap;
+  }
+
+  .repository-bulk-group {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    min-width: 0;
+
+    input {
+      // Keep the field usable at the narrowest supported sheet width without
+      // pushing the action buttons off-screen.
+      min-width: 0;
+      width: 10ch;
+      flex: 1 1 10ch;
+    }
+  }
+
+  .repository-bulk-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-half);
+    min-width: 0;
+  }
+
+  .repository-bulk-bar button {
+    background: var(--md-sys-color-surface-container-high);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-full);
+    color: var(--md-sys-color-on-surface);
+    // Material Design 3 minimum interactive target.
+    min-height: 32px;
+    padding: 0 var(--spacing);
+
+    &:disabled {
+      opacity: 0.5;
+    }
+
+    &.danger {
+      color: var(--md-sys-color-error);
+    }
+  }
+
+  .repository-bulk-notice {
+    color: var(--md-sys-color-on-surface-variant);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .repository-bulk-progress {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    min-height: 0;
+
+    h3 {
+      font-size: var(--font-size);
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .repository-bulk-progress-heading {
+    align-items: baseline;
+    display: flex;
+    gap: var(--spacing);
+    justify-content: space-between;
+    min-width: 0;
+  }
+
+  .repository-bulk-progress-count {
+    color: var(--md-sys-color-primary);
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .repository-bulk-progress-track {
+    background: var(--md-sys-color-surface-container-highest);
+    border-radius: 999px;
+    height: 8px;
+    overflow: hidden;
+
+    span {
+      background: var(--md-sys-color-primary);
+      border-radius: inherit;
+      display: block;
+      height: 100%;
+      transition: width 180ms ease;
+    }
+  }
+
+  .repository-bulk-progress-cancelling,
+  .repository-bulk-progress-summary {
+    color: var(--md-sys-color-on-surface-variant);
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .repository-bulk-results-container {
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+    max-height: 200px;
+    min-height: 0;
+    overflow-x: auto;
+    overflow-y: auto;
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: 2px;
+    }
+  }
+
+  .repository-bulk-results {
+    border-collapse: collapse;
+    width: 100%;
+
+    th,
+    td {
+      border-bottom: 1px solid var(--md-sys-color-outline-variant);
+      overflow-wrap: anywhere;
+      padding: var(--spacing-half);
+      text-align: left;
+      vertical-align: top;
+    }
+  }
+
+  .repository-bulk-status {
+    border-radius: 999px;
+    display: inline-flex;
+    padding: 2px 8px;
+    white-space: nowrap;
+
+    &.done {
+      background: var(--md-sys-color-secondary-container);
+      color: var(--md-sys-color-on-secondary-container);
+    }
+
+    &.running {
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+    }
+
+    &.queued,
+    &.skipped,
+    &.cancelled {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    &.failed {
+      background: var(--md-sys-color-error-container);
+      color: var(--md-sys-color-on-error-container);
+    }
+  }
+
+  .repository-bulk-progress-actions {
+    display: flex;
+    gap: var(--spacing-half);
+    justify-content: flex-end;
+  }
+
+  .repository-bulk-confirmation {
+    background: var(--md-sys-color-surface-container-high);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-medium);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    padding: var(--spacing);
+
+    &:focus-visible {
+      outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+      outline-offset: 2px;
+    }
+  }
+
+  .repository-bulk-remove-list {
+    margin: 0;
+    max-height: 140px;
+    overflow-y: auto;
+    padding-inline-start: var(--spacing-double);
+
+    li {
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .repository-bulk-confirmation-actions {
+    display: flex;
+    gap: var(--spacing-half);
+    justify-content: flex-end;
+
+    button {
+      min-height: 32px;
+      padding: 0 var(--spacing);
+
+      &.danger {
+        color: var(--md-sys-color-error);
+      }
+    }
+  }
+
+  // The checkbox shares the row's fixed height, so the virtualized slot
+  // geometry in repositories-list.tsx stays correct in both densities.
+  .repository-list-item-bulk {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    height: 100%;
+    min-width: 0;
+
+    .repository-list-item {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  .repository-list-item-select {
+    flex: 0 0 auto;
+    margin: 0;
+  }
+}
