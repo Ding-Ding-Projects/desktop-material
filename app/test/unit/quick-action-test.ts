@@ -9,6 +9,7 @@ import {
   deriveRemoteBranchName,
   isQuickActionVerb,
   quickActionLaunchArguments,
+  runQuickCommitAndPush,
 } from '../../src/lib/quick-action'
 
 // Pure decision coverage: argument parsing, the window-mode decision, and the
@@ -227,6 +228,184 @@ describe('quick action', () => {
 
     it('allows a further commit after a completed one', () => {
       assert.equal(decideQuickCommit(inputs({ phase: 'done' })), null)
+    })
+  })
+
+  describe('commit and push flow', () => {
+    interface IRecordedPush {
+      readonly remote: string
+      readonly localBranch: string
+      readonly remoteBranch: string | null
+    }
+
+    function harness(
+      overrides: {
+        readonly remotes?: ReadonlyArray<{ name: string }>
+        readonly commitError?: Error
+        readonly pushError?: Error
+      } = {}
+    ) {
+      const phases: Array<string> = []
+      const progress: Array<string> = []
+      const pushes: Array<IRecordedPush> = []
+      const commits: Array<{ summary: string; fileCount: number }> = []
+
+      const operations = {
+        createCommit: async (summary: string, files: ReadonlyArray<string>) => {
+          if (overrides.commitError) {
+            throw overrides.commitError
+          }
+          commits.push({ summary, fileCount: files.length })
+          return 'abc1234'
+        },
+        getRemotes: async () =>
+          overrides.remotes ?? [{ name: 'origin' }, { name: 'upstream' }],
+        push: async (
+          remote: { name: string },
+          localBranch: string,
+          remoteBranch: string | null,
+          onProgress: (description: string) => void
+        ) => {
+          onProgress('Compressing objects')
+          if (overrides.pushError) {
+            throw overrides.pushError
+          }
+          pushes.push({ remote: remote.name, localBranch, remoteBranch })
+        },
+      }
+
+      return { phases, progress, pushes, commits, operations }
+    }
+
+    const target = {
+      files: ['a.ts', 'b.ts'],
+      currentBranch: 'main',
+      currentUpstreamBranch: 'origin/main',
+    }
+
+    it('commits then pushes, reporting each phase in order', async () => {
+      const h = harness()
+      const sha = await runQuickCommitAndPush(
+        target,
+        'Fix the thing',
+        h.operations,
+        p => h.phases.push(p),
+        d => h.progress.push(d)
+      )
+
+      assert.equal(sha, 'abc1234')
+      assert.deepEqual(h.phases, ['committing', 'pushing'])
+      assert.deepEqual(h.commits, [{ summary: 'Fix the thing', fileCount: 2 }])
+      assert.deepEqual(h.pushes, [
+        { remote: 'origin', localBranch: 'main', remoteBranch: 'main' },
+      ])
+      assert.deepEqual(h.progress, ['Compressing objects'])
+    })
+
+    it('sets an upstream on a branch that has none', async () => {
+      const h = harness()
+      await runQuickCommitAndPush(
+        { ...target, currentUpstreamBranch: undefined },
+        'x',
+        h.operations,
+        p => h.phases.push(p),
+        d => h.progress.push(d)
+      )
+      // A null remote branch is what makes push set the upstream.
+      assert.equal(h.pushes[0].remoteBranch, null)
+    })
+
+    it('refuses to push with no remote but keeps the commit', async () => {
+      const h = harness({ remotes: [] })
+      await assert.rejects(
+        runQuickCommitAndPush(
+          target,
+          'x',
+          h.operations,
+          p => h.phases.push(p),
+          d => h.progress.push(d)
+        ),
+        // The message leads with the commit: the work is safe either way, and
+        // that is the first thing the user needs to know.
+        /Committed abc1234, but this repository has no remote/
+      )
+      assert.equal(h.commits.length, 1)
+      assert.equal(h.pushes.length, 0)
+    })
+
+    it('refuses to guess between several non-origin remotes', async () => {
+      const h = harness({ remotes: [{ name: 'fork' }, { name: 'upstream' }] })
+      await assert.rejects(
+        runQuickCommitAndPush(
+          target,
+          'x',
+          h.operations,
+          p => h.phases.push(p),
+          d => h.progress.push(d)
+        ),
+        /Committed abc1234, but it is not clear which remote/
+      )
+      assert.equal(h.pushes.length, 0)
+    })
+
+    it('pushes to the only remote when it is not named origin', async () => {
+      const h = harness({ remotes: [{ name: 'fork' }] })
+      await runQuickCommitAndPush(
+        target,
+        'x',
+        h.operations,
+        p => h.phases.push(p),
+        d => h.progress.push(d)
+      )
+      assert.equal(h.pushes[0].remote, 'fork')
+    })
+
+    it('never reaches the push phase when the commit fails', async () => {
+      const h = harness({ commitError: new Error('hook rejected the commit') })
+      await assert.rejects(
+        runQuickCommitAndPush(
+          target,
+          'x',
+          h.operations,
+          p => h.phases.push(p),
+          d => h.progress.push(d)
+        ),
+        /hook rejected the commit/
+      )
+      assert.deepEqual(h.phases, ['committing'])
+    })
+
+    it('surfaces a push failure verbatim', async () => {
+      // Authentication messages are the ones users act on, so they are not
+      // paraphrased.
+      const h = harness({ pushError: new Error('Authentication failed') })
+      await assert.rejects(
+        runQuickCommitAndPush(
+          target,
+          'x',
+          h.operations,
+          p => h.phases.push(p),
+          d => h.progress.push(d)
+        ),
+        /Authentication failed/
+      )
+      assert.deepEqual(h.phases, ['committing', 'pushing'])
+    })
+
+    it('refuses a detached HEAD before touching git', async () => {
+      const h = harness()
+      await assert.rejects(
+        runQuickCommitAndPush(
+          { ...target, currentBranch: undefined },
+          'x',
+          h.operations,
+          p => h.phases.push(p),
+          d => h.progress.push(d)
+        ),
+        /not a repository on a branch/
+      )
+      assert.deepEqual(h.phases, [])
+      assert.equal(h.commits.length, 0)
     })
   })
 

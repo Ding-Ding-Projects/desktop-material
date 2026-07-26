@@ -219,3 +219,85 @@ export function chooseQuickPushRemote<T extends { readonly name: string }>(
   }
   return remotes.length === 1 ? remotes[0] : null
 }
+
+/**
+ * The git operations the commit-and-push flow needs, as an injectable
+ * interface.
+ *
+ * The orchestration — phase ordering, remote choice, and what happens when the
+ * commit lands but the push cannot — is the part with behaviour worth testing,
+ * so it lives here with the real git calls supplied by the renderer adapter.
+ * That keeps this module free of `dugite`, `keytar` and the trampoline, and
+ * lets the flow be exercised with fakes instead of a real repository.
+ */
+export interface IQuickCommitOperations<
+  TFile,
+  TRemote extends { name: string }
+> {
+  readonly createCommit: (
+    summary: string,
+    files: ReadonlyArray<TFile>
+  ) => Promise<string>
+  readonly getRemotes: () => Promise<ReadonlyArray<TRemote>>
+  readonly push: (
+    remote: TRemote,
+    localBranch: string,
+    remoteBranch: string | null,
+    onProgress: (description: string) => void
+  ) => Promise<void>
+}
+
+/** What the flow needs to know about the repository. */
+export interface IQuickCommitTarget<TFile> {
+  readonly files: ReadonlyArray<TFile>
+  readonly currentBranch: string | undefined
+  readonly currentUpstreamBranch: string | undefined
+}
+
+/**
+ * Commit every change and push the current branch, reporting each phase.
+ *
+ * Returns the new commit's abbreviated SHA. A push that cannot proceed rejects
+ * with a message that leads with the successful commit, because the user's work
+ * is safely committed either way and that is the first thing they need to know.
+ */
+export async function runQuickCommitAndPush<
+  TFile,
+  TRemote extends { name: string }
+>(
+  target: IQuickCommitTarget<TFile>,
+  summary: string,
+  operations: IQuickCommitOperations<TFile, TRemote>,
+  onPhase: (phase: QuickCommitPhase) => void,
+  onProgress: (description: string) => void
+): Promise<string> {
+  const { files, currentBranch, currentUpstreamBranch } = target
+
+  if (currentBranch === undefined) {
+    throw new Error('This folder is not a repository on a branch.')
+  }
+
+  onPhase('committing')
+  const sha = await operations.createCommit(summary, files)
+
+  onPhase('pushing')
+  const remotes = await operations.getRemotes()
+  const remote = chooseQuickPushRemote(remotes)
+
+  if (remote === null) {
+    throw new Error(
+      remotes.length === 0
+        ? `Committed ${sha}, but this repository has no remote to push to.`
+        : `Committed ${sha}, but it is not clear which remote to push to.`
+    )
+  }
+
+  await operations.push(
+    remote,
+    currentBranch,
+    deriveRemoteBranchName(currentUpstreamBranch),
+    onProgress
+  )
+
+  return sha
+}
