@@ -118,6 +118,8 @@ interface IOllamaChatWorkspaceState {
   readonly settingsOpen: boolean
   readonly historyOpen: boolean
   readonly historySource: IVersionedStoreHistorySource | null
+  /** The session whose repository `historySource` reads, for panel identity. */
+  readonly historySourceId: string | null
   readonly deletingSessionId: string | null
   readonly deletingBusyId: string | null
   readonly editingSessionId: string | null
@@ -137,6 +139,7 @@ const InitialState: IOllamaChatWorkspaceState = {
   settingsOpen: false,
   historyOpen: false,
   historySource: null,
+  historySourceId: null,
   deletingSessionId: null,
   deletingBusyId: null,
   editingSessionId: null,
@@ -274,6 +277,7 @@ export class OllamaChatWorkspace extends React.Component<
         settingsOpen: false,
         historyOpen: false,
         historySource: null,
+        historySourceId: null,
       })
     } catch {
       if (this.mounted && navigationId === this.navigationRequestId) {
@@ -304,6 +308,7 @@ export class OllamaChatWorkspace extends React.Component<
         settingsOpen: false,
         historyOpen: false,
         historySource: null,
+        historySourceId: null,
       })
     } catch {
       if (this.mounted && navigationId === this.navigationRequestId) {
@@ -717,7 +722,12 @@ export class OllamaChatWorkspace extends React.Component<
       ) {
         return
       }
-      this.setState({ historyOpen: true, historySource, settingsOpen: false })
+      this.setState({
+        historyOpen: true,
+        historySource,
+        historySourceId: id,
+        settingsOpen: false,
+      })
     } catch {
       if (
         this.mounted &&
@@ -1281,6 +1291,7 @@ export class OllamaChatWorkspace extends React.Component<
             errorMessage={strings.chatHistoryError}
             showAdvancedFilterControls={false}
             source={this.state.historySource}
+            sourceKey={this.state.historySourceId ?? undefined}
             onStoreMutated={this.onHistoryMutation}
             onDismissed={this.closeHistory}
           />

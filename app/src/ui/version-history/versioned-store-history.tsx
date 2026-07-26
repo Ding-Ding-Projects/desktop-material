@@ -133,6 +133,17 @@ export interface IVersionedStoreHistoryProps {
   readonly emptyDescription?: string
   readonly className?: string
   readonly source: IVersionedStoreHistorySource
+  /**
+   * Stable identity of the store behind `source`, e.g. its repository path or
+   * session id. Change it whenever `source` starts describing a different
+   * timeline: the panel then discards what it has loaded and reads the new
+   * store from its own HEAD. Without it, a caller that swaps stores in place
+   * would keep the previous repository's commits on screen and page the new
+   * repository's commits underneath them — one list, two unrelated timelines.
+   *
+   * Omit it only when the mounted panel always shows the same store.
+   */
+  readonly sourceKey?: string
   readonly onStoreMutated?: () => Promise<void> | void
   readonly onDismissed: () => void
   /** Optional localized copy. Omitted values retain the established English UI. */
@@ -157,6 +168,13 @@ type VersionHistoryOperation = 'undo' | 'redo' | 'restore'
 
 interface IVersionedStoreHistoryState {
   readonly page: IVersionHistoryPage | null
+  /**
+   * How many entries the store has served so far, including ones dropped as
+   * duplicates. Paging is by offset, so the next page has to skip everything
+   * that was *read*, not everything that was kept — otherwise a page that the
+   * linear-append guard rejects wholesale would be requested forever.
+   */
+  readonly loadedOffset: number
   readonly selectedSha: string | null
   readonly selectedFile: string | null
   readonly filesBySha: Readonly<
@@ -218,6 +236,44 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
+ * Append one paged response to the timeline already on screen, keeping it a
+ * single strictly-newest-first chain.
+ *
+ * Stores page by offset, and reading a page can itself create a commit (the
+ * Git-backed stores flush pending writes before they read). A commit landing
+ * between two pages slides the offset window by one, so the next page repeats
+ * an entry the list already holds. Rendering that repeat gives two rows the
+ * same `key`, and the timeline visibly doubles back on itself instead of
+ * reading as one linear history.
+ *
+ * Anything already loaded is therefore dropped, and so is anything not older
+ * than the oldest loaded entry — a page that reaches back into commits the user
+ * has already scrolled past is a shifted window, not new history.
+ */
+export function appendVersionHistoryPage(
+  loaded: ReadonlyArray<IVersionHistoryEntry>,
+  incoming: ReadonlyArray<IVersionHistoryEntry>
+): ReadonlyArray<IVersionHistoryEntry> {
+  if (loaded.length === 0) {
+    return incoming
+  }
+
+  const seen = new Set(loaded.map(entry => entry.sha))
+  const oldestLoaded = loaded[loaded.length - 1].committedAt.getTime()
+  const appended = new Array<IVersionHistoryEntry>()
+
+  for (const entry of incoming) {
+    if (seen.has(entry.sha) || entry.committedAt.getTime() > oldestLoaded) {
+      continue
+    }
+    seen.add(entry.sha)
+    appended.push(entry)
+  }
+
+  return appended.length === 0 ? loaded : [...loaded, ...appended]
+}
+
+/**
  * A reusable, non-destructive manager for local Git-backed stores. Every undo,
  * redo, and restore action creates a new commit, preserving the full timeline.
  */
@@ -248,6 +304,7 @@ export class VersionedStoreHistory extends React.Component<
 
     this.state = {
       page: null,
+      loadedOffset: 0,
       selectedSha: null,
       selectedFile: null,
       filesBySha: {},
@@ -268,6 +325,35 @@ export class VersionedStoreHistory extends React.Component<
     this.isMountedFlag = true
     window.addEventListener('keydown', this.onWindowKeyDown)
     this.loadHistory(true)
+  }
+
+  public componentDidUpdate(prevProps: IVersionedStoreHistoryProps) {
+    if (
+      prevProps.sourceKey === this.props.sourceKey ||
+      this.props.sourceKey === undefined
+    ) {
+      return
+    }
+
+    // A different store is on screen now. Its commits live in a different
+    // repository, so nothing already loaded can be paged, filtered, or diffed
+    // against it — start the timeline over from the new store's HEAD.
+    this.selectionRequest++
+    this.loadingFiles.clear()
+    this.setState(
+      {
+        page: null,
+        loadedOffset: 0,
+        selectedSha: null,
+        selectedFile: null,
+        filesBySha: {},
+        diff: null,
+        loadingDiff: false,
+        confirmRestoreSha: null,
+        error: null,
+      },
+      () => this.loadHistory(true)
+    )
   }
 
   public componentWillUnmount() {
@@ -292,6 +378,7 @@ export class VersionedStoreHistory extends React.Component<
   private loadHistory = async (reset: boolean) => {
     const generation = ++this.historyRequestGeneration
     const previousEntries = reset ? [] : this.state.page?.entries ?? []
+    const skip = reset ? 0 : this.state.loadedOffset
 
     this.setState({
       loadingHistory: reset,
@@ -301,7 +388,7 @@ export class VersionedStoreHistory extends React.Component<
 
     try {
       const page = await this.props.source.getHistory(
-        previousEntries.length,
+        skip,
         VersionHistoryPageSize
       )
 
@@ -311,7 +398,7 @@ export class VersionedStoreHistory extends React.Component<
 
       const entries = reset
         ? page.entries
-        : [...previousEntries, ...page.entries]
+        : appendVersionHistoryPage(previousEntries, page.entries)
       const nextPage = { ...page, entries }
       const selectedSha = reset
         ? entries[0]?.sha ?? null
@@ -320,6 +407,7 @@ export class VersionedStoreHistory extends React.Component<
       this.setState(
         {
           page: nextPage,
+          loadedOffset: skip + page.entries.length,
           selectedSha,
           selectedFile: reset ? null : this.state.selectedFile,
           diff: reset ? null : this.state.diff,

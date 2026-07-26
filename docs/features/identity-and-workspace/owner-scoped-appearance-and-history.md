@@ -49,6 +49,45 @@ color controls from queuing hundreds of redundant file operations. Queued
 order; separately awaited writes retain sequential behavior. Durable changes
 remain coalesced for 250 milliseconds before their owner-local commit.
 
+## Append-only linearity
+
+Every owner repository is one unbroken chain: exactly one branch, HEAD attached
+to it, and every commit a single-parent child of the one before it. The panel
+renders that chain directly, so anything that forks it shows up as a timeline
+that doubles back on itself.
+
+Undo, redo, and restore each sample HEAD before deciding what to replay, so
+that commit is reserved as the audit commit's parent. The write is refused if
+anything moved HEAD in between, and the commit is verified afterwards to be its
+single linear child. An unfinished merge left in the repository is refused
+before any append, because it is the only way an ordinary commit here can gain
+a second parent.
+
+Recovery from a failed mutation restores the index and working tree but never
+moves the branch ref backwards. Rewinding to the sampled parent was safe only
+while one writer existed; once a second window or the store's own debounced
+commit timer had appended, the rewind abandoned that commit and left history
+unreachable.
+
+Opening a repository repairs one that an earlier build left forked. A detached
+HEAD is reattached so its commits cannot orphan themselves, and a ref already
+reachable from HEAD is dropped because every commit it named survives. A
+genuinely diverged tip is replayed *forward* as two ordinary audit commits —
+its tree, then the tree that was live before the fold — so both states stay
+reachable, diffable, and restorable from the single timeline, and the live
+setting is left exactly as it was. Nothing is ever deleted to restore
+linearity. Merge commits inherited from an older build cannot be removed
+without rewriting history, so they are reported rather than repaired.
+
+The history panel enforces the same invariant on what it displays. Stores page
+by offset and a read can itself create a commit, so a commit landing between
+two pages slides the window and repeats an entry. Repeats, and any entry not
+older than the oldest already loaded, are dropped; paging advances by what the
+store served rather than by what survived, so a fully rejected page cannot be
+requested forever. A panel pointed at a different store discards what it has
+loaded and re-reads from the new store's HEAD instead of paging one
+repository's commits underneath another's.
+
 ## Failure modes and recovery
 
 Invalid JSON, an unsupported document version, an unexpected file, a missing
@@ -96,7 +135,13 @@ or Git history.
 `dedicated-setting-store-test.ts` covers independent roots, a 500-call
 latest-value burst, ordering barriers, failed-batch recovery, debounced commits,
 append-only undo/redo/restore, corruption, external edits, and path escape
-refusal. `element-appearance-coordinator-test.ts` covers profile,
+refusal. `profile-history-linearity-test.ts` covers the compare-and-swap under
+a forced concurrent write, the merge-state refusal, a deliberately forked
+fixture folded rather than pruned, detached-HEAD reattachment, redundant-ref
+removal, and the untouched already-linear case.
+`versioned-store-history-test.tsx` covers the sliding-window guard, the
+newest-entry guard, offset advancement, and the store-swap reset.
+`element-appearance-coordinator-test.ts` covers profile,
 feature, tab, and repository isolation plus migration and UUID races.
 `anchored-appearance-editor-test.tsx`,
 `repository-element-appearance-editors-test.tsx`, and
