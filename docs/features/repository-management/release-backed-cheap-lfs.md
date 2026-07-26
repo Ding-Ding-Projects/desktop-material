@@ -72,10 +72,71 @@ confirmed public. It is off by default for private repositories and runs there
 only after the user explicitly enables the persisted **Cloud compression**
 setting; unknown visibility fails closed. Opening the Large files manager, or
 saving the private opt-in in Repository Settings, writes one owned caller at
-`.github/workflows/cheap-lfs-cloud-compression.yml`. The app never commits or
-pushes that file silently: it stays in Changes for review. The caller also
+`.github/workflows/cheap-lfs-cloud-compression.yml`. When the repository does
+not already carry that caller in its committed history, the app then commits and
+pushes it in the background — see
+[Background workflow install](#background-workflow-install). The caller also
 checks live event visibility, so a formerly public repository stops if it
 becomes private unless private consent was explicitly recorded.
+
+#### Background workflow install
+
+GitHub Actions only sees committed files, so a checkout holding the caller as an
+uncommitted change is still a checkout where nothing compresses. Leaving that
+last step to the user is the step that silently never happened. Enabling cloud
+compression, opening the Large files manager, and the automatic materialize pass
+therefore each ask the background installer to close the gap.
+
+Detection reads the committed blob at the exact path
+`.github/workflows/cheap-lfs-cloud-compression.yml`, never the working tree
+alone, and produces one decision:
+
+| Observation | Decision | What happens |
+| --- | --- | --- |
+| Compression off, or a non-Release storage provider | `disabled` | Nothing. |
+| No committed caller, working tree empty or already canonical | `install` | Write the canonical caller, commit it, push it. |
+| Committed caller is byte-identical to canonical | `installed` | Nothing, including when the user has edited their working copy. |
+| A caller exists but differs from canonical | `offer-update` | A non-blocking notice offers a confirm-class one-click update. Never replaced silently. |
+| Anything without the managed marker occupies the path | `blocked-unowned` | Left completely untouched; reported once. |
+
+The install itself never blocks the caller. It claims the repository through the
+Cheap LFS in-flight guard so a settings toggle, a panel sync, and a materialize
+pass cannot race to create the same commit, then runs detached and reports
+through the notification centre and the non-blocking notice stack.
+
+Only the workflow path is committed. The file is staged by name and committed
+with `git commit -- <path>`, so whatever the user had staged stays staged and
+uncommitted. The commit message is bilingual:
+`Add Cheap LFS cloud compression workflow / 加入雲端壓縮工作流`.
+
+Publication reuses the existing batching push machinery and its proofs:
+
+- **Branch already published, remote tip equals the commit's parent** — the push
+  goes through `ILocalCommitBatchingOperations.push` with
+  `expectedRemoteSha` set to that tip, so it can only ever add this one commit,
+  and the new tip is re-read from the remote with `readRemoteTip` rather than
+  inferred from a successful `git push`.
+- **Branch never published** — the Cheap LFS first-publish anchor is reused
+  unchanged, because it is already the reviewed route that creates the branch
+  and proves it landed.
+- **Branch diverged from its remote** — the caller is committed locally and
+  *not* pushed. A background push there would publish local commits the user
+  never reviewed, so the workflow rides out with their own next push and the
+  notice says so.
+
+Both the commit and the push skip hooks. This commit is app-generated,
+single-file, and unattended; a `pre-commit` or `pre-push` hook waiting on a
+prompt nobody is watching would hang the background task forever. The user's own
+reviewed commit and push still run every hook.
+
+Failures are reported, never retried silently, and every relayed Git string is
+sanitized first. The one failure this feature provokes that nothing else does is
+called out by name: GitHub refuses any push touching `.github/workflows` when
+the credential lacks the `workflow` scope (or, for a GitHub App, the `workflows`
+permission), and the notice says exactly that plus the fix — sign out and back
+in to grant it, or push the file yourself. A moved remote branch, a missing
+remote, a detached HEAD, and an unassociated checkout each get their own plain
+reason.
 
 The workflow writer canonicalizes each repository directory component, refuses
 redirected parents plus symlink, junction, hardlink, oversized, and unowned
@@ -178,8 +239,8 @@ The same settings surface shows public cloud compression as automatic and
 read-only. A private repository receives a separate off-by-default checkbox
 that explains private Actions usage before recording consent. English,
 playful Hong Kong-style Cantonese, and bilingual modes cover the setting,
-manager status, local-only decompression notice, and raw/compressed/mixed
-pointer badges.
+manager status, local-only decompression notice, raw/compressed/mixed
+pointer badges, and every background workflow-install notice.
 
 ### Private pointer commit-key guard
 
@@ -778,6 +839,18 @@ visibility, unowned-workflow refusal, symlink/junction/hardlink rejection,
 atomic replacement failure, concurrent edits, repository-switch races,
 immutable action pins, mixed badges, and local-only single-object
 decompression.
+`cheap-lfs/workflow-auto-install-test.ts` covers the background install:
+every detection outcome (missing, committed-canonical, committed-divergent,
+locally edited, unowned), every publish outcome (push, anchor,
+defer-unpushed-commits, and each blocking reason), the `workflow`-scope refusal
+classification, a contract test proving every `uses:` in the canonical template
+is pinned by a full 40-character commit SHA, and an end-to-end run against a
+real repository with a real local bare remote that proves the caller is
+committed and the remote tip matches, that exactly one commit touching exactly
+one path is published, that a foreign file at the path is never rewritten, that
+a divergent managed caller is replaced only after confirmation, that a diverged
+branch is committed but never pushed, and that the user's staged selection
+survives untouched.
 `cheap-lfs/manual-upload-test.ts` covers whole-batch handoff names, atomic
 bucket rollover, Windows case-insensitive reservation, live preparation
 progress, free-space preflight, verified hardlink/copy staging, zero-byte and

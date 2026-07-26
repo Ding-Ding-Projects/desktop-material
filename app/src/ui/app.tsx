@@ -5151,6 +5151,14 @@ export class App extends React.Component<IAppProps, IAppState> {
         action.fixKind,
         notice.id
       )
+      return
+    }
+
+    if (action.kind === 'update-cheap-lfs-workflow') {
+      void this.props.dispatcher.updateCheapLfsCloudCompressionWorkflow(
+        action.repositoryId,
+        notice.id
+      )
     }
   }
 

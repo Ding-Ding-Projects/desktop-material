@@ -46,6 +46,7 @@ import {
   listAllCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
+  sanitizeCheapLfsFailureReason,
   selectCheapLfsAutoPinTargets,
   shouldAutoPinLargeFilesOnCommit,
 } from '../cheap-lfs/operations'
@@ -93,8 +94,26 @@ import {
   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
   ensureCheapLfsCloudCompressionWorkflow,
   IEnsureCheapLfsCloudCompressionResult,
+  inspectCheapLfsCloudCompressionWorkflow,
   isCheapLfsCloudCompressionEnabled,
 } from '../cheap-lfs/cloud-compression'
+import {
+  claimInFlight,
+  EmptyInFlightGuard,
+  InFlightGuardState,
+  releaseInFlight,
+} from '../cheap-lfs/in-flight-guard'
+import {
+  CheapLfsWorkflowInstallCommitMessage,
+  cheapLfsWorkflowNoticeDedupeKey,
+  cheapLfsWorkflowPublishIsBlocked,
+  cheapLfsWorkflowPublishReasonKey,
+  cheapLfsWorkflowPushFailureKey,
+  classifyCheapLfsWorkflowPushFailure,
+  decideCheapLfsWorkflowInstall,
+  decideCheapLfsWorkflowPublish,
+  ICheapLfsWorkflowPublicationState,
+} from '../cheap-lfs/workflow-auto-install'
 import {
   ICheapLfsStorageRecommendation,
   recommendCheapLfsStorage,
@@ -541,6 +560,7 @@ import {
   getFloatNumber,
 } from '../local-storage'
 import { t } from '../i18n'
+import { TranslationKey } from '../i18n-resources'
 import {
   defaultShowBranchNameInRepoListSetting,
   ShowBranchNameInRepoListSetting,
@@ -1522,6 +1542,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private errorPresentationStyle = getErrorPresentationStyle()
   private readonly repositoryLockRemovalInFlight = new Set<number>()
   private readonly gitAutoFixInFlight = new Set<string>()
+
+  /**
+   * Repositories whose cloud-compression workflow is being installed right now.
+   * Every enable, panel sync, and materialize pass can ask for the same repair,
+   * and two of them at once would race to create the same commit.
+   */
+  private cheapLfsWorkflowInstalls: InFlightGuardState = EmptyInFlightGuard
 
   /** Coordinates cloning many repositories at once (see BatchCloneStore). */
   private readonly batchCloneStore: BatchCloneStore
@@ -14137,7 +14164,467 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (result.changed) {
       await this._loadStatus(repository)
     }
+    // Enabling compression is the moment the repository starts depending on a
+    // workflow it may not carry. Detect and repair that in the background so
+    // the caller — a settings toggle, the Cheap LFS panel — returns at once.
+    this.maybeAutoInstallCheapLfsCloudCompressionWorkflow(repository)
     return result
+  }
+
+  /**
+   * Make cloud compression actually run on a repository that uses it.
+   *
+   * A repository "has" the compression workflow only when it is *committed*:
+   * GitHub Actions never sees an uncommitted file, so a checkout carrying the
+   * caller as an unstaged change is still a checkout where nothing compresses.
+   * Every earlier entry point left the file exactly there and asked the user to
+   * commit and push it themselves, which is the step that silently never
+   * happened. This closes it by committing and pushing that one file for them.
+   *
+   * Fire-and-forget by construction: it claims the repository, returns
+   * immediately, and reports start, success, and failure as non-blocking
+   * notifications. It never throws and never blocks whatever the user is doing.
+   */
+  public maybeAutoInstallCheapLfsCloudCompressionWorkflow(
+    repository: Repository
+  ): void {
+    const target = String(repository.id)
+    const claim = claimInFlight(this.cheapLfsWorkflowInstalls, target)
+    if (!claim.accepted) {
+      return
+    }
+    this.cheapLfsWorkflowInstalls = claim.state
+    void this.runCheapLfsWorkflowAutoInstall(repository, false)
+      .catch(error =>
+        log.error('Background Cheap LFS workflow install failed', error)
+      )
+      .finally(() => {
+        this.cheapLfsWorkflowInstalls = releaseInFlight(
+          this.cheapLfsWorkflowInstalls,
+          target
+        )
+      })
+  }
+
+  /**
+   * Replace a divergent managed workflow with the canonical one, then commit
+   * and push it. Only ever reached from the confirmed one-click action on the
+   * "out of date" notice — nothing silently overwrites a file that exists.
+   */
+  public async _updateCheapLfsCloudCompressionWorkflow(
+    repositoryId: number,
+    noticeId: string
+  ): Promise<void> {
+    const repository =
+      (this.selectedRepository instanceof Repository &&
+      this.selectedRepository.id === repositoryId
+        ? this.selectedRepository
+        : this.repositories.find(candidate => candidate.id === repositoryId)) ??
+      null
+    if (!(repository instanceof Repository)) {
+      return
+    }
+    const target = String(repository.id)
+    const claim = claimInFlight(this.cheapLfsWorkflowInstalls, target)
+    if (!claim.accepted) {
+      return
+    }
+    this.cheapLfsWorkflowInstalls = claim.state
+    this._dismissErrorNotice(noticeId)
+    try {
+      await this.runCheapLfsWorkflowAutoInstall(repository, true)
+    } catch (error) {
+      log.error('Confirmed Cheap LFS workflow update failed', error)
+    } finally {
+      this.cheapLfsWorkflowInstalls = releaseInFlight(
+        this.cheapLfsWorkflowInstalls,
+        target
+      )
+    }
+  }
+
+  /**
+   * Read the exact bytes the workflow path carries at `HEAD`.
+   *
+   * `null` covers every way the repository can lack a committed caller — an
+   * unborn branch, a detached HEAD with no such blob, a directory at the path —
+   * because all of them mean the same thing here: compression does not run.
+   */
+  private async readCommittedCheapLfsWorkflow(
+    repository: Repository
+  ): Promise<string | null> {
+    const result = await git(
+      ['cat-file', 'blob', `HEAD:${CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH}`],
+      repository.path,
+      'readCommittedCheapLfsWorkflow',
+      { successExitCodes: new Set([0, 128]) }
+    )
+    return result.exitCode === 0 ? result.stdout : null
+  }
+
+  /**
+   * Detect, install, commit, and publish the managed compression caller.
+   *
+   * `replaceDivergent` is the user's confirmed consent to overwrite their own
+   * copy; without it a file that exists is never rewritten, only reported.
+   */
+  private async runCheapLfsWorkflowAutoInstall(
+    repository: Repository,
+    replaceDivergent: boolean
+  ): Promise<void> {
+    if (isSubmoduleRepository(repository)) {
+      return
+    }
+    await this.assertTemporaryRepositoryIsSafe(repository)
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    const inspection = await inspectCheapLfsCloudCompressionWorkflow(
+      repository,
+      preferences
+    )
+    const decision = decideCheapLfsWorkflowInstall({
+      policy: inspection.policy,
+      provider: getCheapLfsStorageProvider(preferences),
+      committedContents: await this.readCommittedCheapLfsWorkflow(repository),
+      workingTreeContents: inspection.contents,
+      canonicalContents: inspection.canonicalContents,
+    })
+
+    if (decision === 'disabled' || decision === 'installed') {
+      return
+    }
+    if (decision === 'blocked-unowned') {
+      // Somebody else's file occupies the path. Never rewrite it, and never
+      // offer to: the app has no idea what it does.
+      this.postPersistentErrorNotice(
+        t('cheapLfs.cloud.autoInstall.unownedTitle'),
+        t('cheapLfs.cloud.autoInstall.unownedBody', {
+          path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+        }),
+        cheapLfsWorkflowNoticeDedupeKey(repository.id, 'unowned'),
+        repository.id
+      )
+      return
+    }
+    if (decision === 'offer-update' && !replaceDivergent) {
+      this.postCheapLfsWorkflowUpdateNotice(repository)
+      return
+    }
+
+    this.postNotification({
+      kind: 'cheap-lfs',
+      title: t('cheapLfs.cloud.autoInstall.startedTitle'),
+      body: t('cheapLfs.cloud.autoInstall.startedBody', {
+        path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+      }),
+      repositoryId: repository.id,
+      action: { kind: 'open-repository', repositoryId: repository.id },
+    })
+
+    try {
+      // The hardened writer owns every filesystem check (symlink, hard link,
+      // redirected directory, oversized file); this never writes the path
+      // itself. A confirmed update is the only caller allowed to reach it with
+      // a divergent managed file in place, and the writer still refuses an
+      // unowned one.
+      const written = await ensureCheapLfsCloudCompressionWorkflow(
+        repository,
+        preferences
+      )
+      const staged = await inspectCheapLfsCloudCompressionWorkflow(
+        repository,
+        preferences
+      )
+      if (staged.contents !== staged.canonicalContents) {
+        throw new Error(
+          'the workflow file did not match the canonical caller after it was written'
+        )
+      }
+      if (written.changed) {
+        await this._loadStatus(repository)
+      }
+      await this.commitAndPublishCheapLfsWorkflow(repository)
+    } catch (error) {
+      this.postCheapLfsWorkflowFailure(
+        repository,
+        error instanceof Error ? error.message : String(error)
+      )
+    }
+  }
+
+  /**
+   * Commit the single workflow path and publish it, then prove the publication
+   * from the remote rather than from a successful `git push`.
+   */
+  private async commitAndPublishCheapLfsWorkflow(
+    repository: Repository
+  ): Promise<void> {
+    const before = await this.readCheapLfsWorkflowPublicationState(repository)
+    const decision = decideCheapLfsWorkflowPublish(before)
+    if (cheapLfsWorkflowPublishIsBlocked(decision)) {
+      const reasonKey = cheapLfsWorkflowPublishReasonKey(decision)
+      this.postCheapLfsWorkflowFailure(
+        repository,
+        '',
+        reasonKey ?? 'cheapLfs.cloud.autoInstall.failedUnknown'
+      )
+      return
+    }
+
+    const commitSha = await this.commitCheapLfsWorkflowPath(repository)
+    if (commitSha === null) {
+      // Nothing to commit means the tree already carried this exact content at
+      // HEAD; the detection above raced with another writer. Not a failure.
+      return
+    }
+    await this._loadStatus(repository)
+    await this.gitStoreCache.get(repository).loadBranches()
+
+    if (decision === 'defer-unpushed-commits') {
+      // Pushing here would publish local commits the user never asked to
+      // publish. The workflow rides out with their own next push instead.
+      this.postNotification({
+        kind: 'cheap-lfs',
+        title: t('cheapLfs.cloud.autoInstall.deferredTitle'),
+        body: t('cheapLfs.cloud.autoInstall.deferredBody', {
+          path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+          remote: before.remoteName ?? '',
+        }),
+        repositoryId: repository.id,
+        action: { kind: 'open-repository', repositoryId: repository.id },
+      })
+      return
+    }
+
+    if (decision === 'anchor') {
+      // The branch has never been published. The Cheap LFS first-publish anchor
+      // is already the reviewed route that creates it and proves it landed.
+      const anchor = await this.ensureCheapLfsReleaseAnchor(repository)
+      if (anchor.failure !== null) {
+        this.postCheapLfsWorkflowFailure(
+          repository,
+          anchor.failure.detail ?? '',
+          anchor.failure.reasonKey
+        )
+        return
+      }
+      this.postCheapLfsWorkflowSuccess(repository, before.branchName ?? '')
+      return
+    }
+
+    await this.pushCheapLfsWorkflowCommit(repository, before, commitSha)
+  }
+
+  /**
+   * Publish exactly this commit through the batching push machinery, which
+   * refuses unless the remote still holds the tip the commit was built on, then
+   * re-reads the remote to prove the new tip.
+   */
+  private async pushCheapLfsWorkflowCommit(
+    repository: Repository,
+    before: ICheapLfsWorkflowPublicationState,
+    commitSha: string
+  ): Promise<void> {
+    const remoteName = before.remoteName
+    const branchName = before.branchName
+    if (remoteName === null || branchName === null) {
+      this.postCheapLfsWorkflowFailure(repository, '')
+      return
+    }
+    const remote = this.gitStoreCache
+      .get(repository)
+      .remotes.find(candidate => candidate.name === remoteName)
+    if (remote === undefined) {
+      this.postCheapLfsWorkflowFailure(
+        repository,
+        '',
+        'cheapLfs.cloud.autoInstall.failedNoRemote'
+      )
+      return
+    }
+    const remoteBranchRef = `refs/heads/${branchName}`
+    const session = createLocalCommitBatchingGitSession(repository, {
+      remote,
+      remoteBranchRef,
+      accountKey: getRepositoryCredentialAccountKey(this.accounts, repository),
+      // App-generated, single-file, and unattended: a `pre-push` hook that
+      // waits on a prompt nobody is watching would hang this background task
+      // forever. The user's own reviewed push still runs every hook.
+      skipPushHooks: true,
+    })
+    const result = await session.operations.push({
+      remoteName,
+      localBranchRef: remoteBranchRef,
+      remoteBranchRef,
+      // The remote must still be exactly where this commit's parent is, so the
+      // push can only ever add this one commit.
+      expectedRemoteSha: before.remoteBranchSha,
+      headSha: commitSha,
+      force: false,
+    })
+    if (result !== 'pushed') {
+      this.postCheapLfsWorkflowFailure(repository, `git push ${result}`)
+      return
+    }
+    const proven = await session.operations.readRemoteTip({
+      remoteName,
+      remoteBranchRef,
+    })
+    if (proven !== commitSha) {
+      this.postCheapLfsWorkflowFailure(
+        repository,
+        'the remote branch tip did not match the published commit'
+      )
+      return
+    }
+    await this._refreshRepository(repository)
+    this.postCheapLfsWorkflowSuccess(repository, branchName)
+  }
+
+  /**
+   * Commit only the workflow path, leaving the user's staged selection and
+   * every other change exactly as they were.
+   *
+   * The pathspec form of `git commit` commits the working-tree content of the
+   * named path without consuming the index, which is what keeps a background
+   * commit from swallowing whatever the user was preparing. Hooks are skipped
+   * for the same reason the anchor push skips them: this commit is
+   * app-generated and unattended, and a hook prompt would hang it forever.
+   * Returns `null` when there was nothing to commit.
+   */
+  private async commitCheapLfsWorkflowPath(
+    repository: Repository
+  ): Promise<string | null> {
+    // `git commit -- <path>` only accepts a path Git already knows, so the one
+    // file is staged first. Naming it explicitly keeps every other index entry
+    // — the user's own staged selection — exactly where it was. A path the
+    // repository ignores fails here and is reported rather than force-added.
+    await git(
+      ['add', '--', CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH],
+      repository.path,
+      'stageCheapLfsCloudCompressionWorkflow'
+    )
+    const commit = await git(
+      [
+        'commit',
+        '--no-verify',
+        '-m',
+        CheapLfsWorkflowInstallCommitMessage,
+        '--',
+        CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+      ],
+      repository.path,
+      'commitCheapLfsCloudCompressionWorkflow',
+      { successExitCodes: new Set([0, 1]) }
+    )
+    if (commit.exitCode !== 0) {
+      return null
+    }
+    const head = await git(
+      ['rev-parse', '--verify', 'HEAD^{commit}'],
+      repository.path,
+      'readCheapLfsWorkflowCommitSha',
+      { successExitCodes: new Set([0, 128]) }
+    )
+    const sha = head.stdout.trim()
+    return head.exitCode === 0 && /^[0-9a-f]{40}$/.test(sha) ? sha : null
+  }
+
+  /** Read the branch and remote facts the publish decision is made from. */
+  private async readCheapLfsWorkflowPublicationState(
+    repository: Repository
+  ): Promise<ICheapLfsWorkflowPublicationState> {
+    const state = await this.readCheapLfsPublicationState(repository)
+    return {
+      hasGitHubRepository: state.hasGitHubRepository,
+      remoteName: state.remoteName,
+      branchName: state.branchName,
+      localTipShaBeforeCommit: state.localTipSha,
+      remoteBranchSha: state.remoteBranchSha,
+    }
+  }
+
+  /** Report a completed background install. */
+  private postCheapLfsWorkflowSuccess(
+    repository: Repository,
+    branch: string
+  ): void {
+    this.postNotification({
+      kind: 'cheap-lfs',
+      title: t('cheapLfs.cloud.autoInstall.succeededTitle'),
+      body: t('cheapLfs.cloud.autoInstall.succeededBody', {
+        path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+        branch,
+      }),
+      repositoryId: repository.id,
+      action: { kind: 'open-repository', repositoryId: repository.id },
+    })
+  }
+
+  /**
+   * Report a failed background install with a reason the user can act on.
+   *
+   * The raw Git text is classified first — the `workflow` scope refusal in
+   * particular reads like an unexplained permissions bug — and is always
+   * sanitized before it reaches the notice.
+   */
+  private postCheapLfsWorkflowFailure(
+    repository: Repository,
+    detail: string,
+    reasonKey?: TranslationKey
+  ): void {
+    const key =
+      reasonKey ??
+      cheapLfsWorkflowPushFailureKey(
+        classifyCheapLfsWorkflowPushFailure(detail)
+      )
+    const sanitized = sanitizeCheapLfsFailureReason(detail)
+    const reason =
+      sanitized.length === 0
+        ? t(key)
+        : t('cheapLfs.firstPublish.reasonWithDetail', {
+            reason: t(key),
+            detail: sanitized,
+          })
+    this.postPersistentErrorNotice(
+      t('cheapLfs.cloud.autoInstall.failedTitle'),
+      t('cheapLfs.cloud.autoInstall.failedBody', {
+        path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+        reason,
+      }),
+      cheapLfsWorkflowNoticeDedupeKey(repository.id, 'install'),
+      repository.id
+    )
+  }
+
+  /**
+   * Offer — never perform — a replacement of a workflow that differs from the
+   * canonical one. The notice confirms before it dispatches, because the
+   * replacement discards whatever the user changed.
+   */
+  private postCheapLfsWorkflowUpdateNotice(repository: Repository): void {
+    this.errorNotices = enqueueErrorNotice(this.errorNotices, {
+      title: t('cheapLfs.cloud.autoInstall.updateTitle'),
+      message: t('cheapLfs.cloud.autoInstall.updateBody', {
+        path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+      }),
+      dedupeKey: cheapLfsWorkflowNoticeDedupeKey(repository.id, 'update'),
+      action: {
+        kind: 'update-cheap-lfs-workflow',
+        repositoryId: repository.id,
+        label: t('cheapLfs.cloud.autoInstall.updateAction'),
+      },
+    }).notices
+    this.postNotification({
+      kind: 'cheap-lfs',
+      title: t('cheapLfs.cloud.autoInstall.updateTitle'),
+      body: t('cheapLfs.cloud.autoInstall.updateBody', {
+        path: CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+      }),
+      repositoryId: repository.id,
+      action: { kind: 'open-repository', repositoryId: repository.id },
+    })
+    this.emitUpdate()
   }
 
   /**
@@ -14192,10 +14679,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
       ) {
         try {
           // Repair clones made by older versions that committed a Release
-          // pointer without installing the managed compressor. The workflow is
-          // left as a visible working-tree change for the user to review; the
-          // materialization below still proceeds if this optional setup fails.
+          // pointer without installing the managed compressor. This repository
+          // is demonstrably *using* compression — it carries Release pointers —
+          // so a missing caller is committed and pushed in the background
+          // rather than left as a working-tree change nobody acts on.
           await ensureCheapLfsCloudCompressionWorkflow(repository, prefs)
+          this.maybeAutoInstallCheapLfsCloudCompressionWorkflow(repository)
         } catch (workflowError) {
           log.error(
             'Automatic Cheap LFS cloud-compression setup failed',

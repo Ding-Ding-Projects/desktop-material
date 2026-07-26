@@ -5,6 +5,7 @@ import { Octicon } from './octicons'
 import * as octicons from './octicons/octicons.generated'
 import { TooltippedContent } from './lib/tooltipped-content'
 import { TooltipDirection } from './lib/tooltip'
+import { t } from '../lib/i18n'
 
 interface IErrorNoticeCardProps {
   readonly notice: IErrorNotice
@@ -16,6 +17,8 @@ interface IErrorNoticeCardProps {
 interface IErrorNoticeCardState {
   readonly detailsExpanded: boolean
   readonly confirmingLockRemoval: boolean
+  /** The workflow replacement discards the user's edits, so it confirms first. */
+  readonly confirmingWorkflowUpdate: boolean
 }
 
 class ErrorNoticeCard extends React.PureComponent<
@@ -25,6 +28,7 @@ class ErrorNoticeCard extends React.PureComponent<
   public state: IErrorNoticeCardState = {
     detailsExpanded: false,
     confirmingLockRemoval: false,
+    confirmingWorkflowUpdate: false,
   }
 
   private onDismiss = () => {
@@ -52,6 +56,26 @@ class ErrorNoticeCard extends React.PureComponent<
     if (action?.kind === 'apply-git-auto-fix') {
       this.props.onAction?.(this.props.notice, action)
     }
+  }
+
+  private onRequestWorkflowUpdate = () => {
+    const { action } = this.props.notice
+    if (action?.kind === 'update-cheap-lfs-workflow') {
+      this.setState({ confirmingWorkflowUpdate: true })
+    }
+  }
+
+  private onCancelWorkflowUpdate = () => {
+    this.setState({ confirmingWorkflowUpdate: false })
+  }
+
+  private onConfirmWorkflowUpdate = () => {
+    const { action } = this.props.notice
+    if (action?.kind !== 'update-cheap-lfs-workflow') {
+      return
+    }
+    this.setState({ confirmingWorkflowUpdate: false })
+    this.props.onAction?.(this.props.notice, action)
   }
 
   private onCancelLockRemoval = () => {
@@ -121,6 +145,32 @@ class ErrorNoticeCard extends React.PureComponent<
                 </div>
               </div>
             )}
+          {this.state.confirmingWorkflowUpdate &&
+            notice.action?.kind === 'update-cheap-lfs-workflow' && (
+              <div
+                className="error-notice-lock-confirmation"
+                role="group"
+                aria-label={t('cheapLfs.cloud.autoInstall.updateAction')}
+              >
+                <p>{t('cheapLfs.cloud.autoInstall.updateWarning')}</p>
+                <div className="error-notice-lock-confirmation-actions">
+                  <button
+                    type="button"
+                    className="error-notice-recovery-confirm"
+                    onClick={this.onConfirmWorkflowUpdate}
+                  >
+                    {t('cheapLfs.cloud.autoInstall.updateConfirm')}
+                  </button>
+                  <button
+                    type="button"
+                    className="error-notice-recovery-cancel"
+                    onClick={this.onCancelWorkflowUpdate}
+                  >
+                    {t('cheapLfs.cloud.autoInstall.updateCancel')}
+                  </button>
+                </div>
+              </div>
+            )}
         </div>
         <div className="error-notice-actions">
           {notice.action?.kind === 'remove-repository-lock' &&
@@ -142,6 +192,16 @@ class ErrorNoticeCard extends React.PureComponent<
               {notice.action.label}
             </button>
           )}
+          {notice.action?.kind === 'update-cheap-lfs-workflow' &&
+            !this.state.confirmingWorkflowUpdate && (
+              <button
+                type="button"
+                className="error-notice-recovery"
+                onClick={this.onRequestWorkflowUpdate}
+              >
+                {notice.action.label}
+              </button>
+            )}
           {showDetails && (
             <button
               type="button"

@@ -115,8 +115,11 @@ export interface ILocalCommitBatchingExactPushRequest {
   /**
    * Publish without running the repository's `pre-push` hook.
    *
-   * Reserved for an app-generated, create-only ref publication the user never
-   * authored — today only the Cheap LFS first-publish anchor. The user's own
+   * Reserved for an app-generated publication the user never authored and is
+   * not watching: the Cheap LFS first-publish anchor, and the background
+   * cloud-compression workflow install, which pushes exactly one commit
+   * containing exactly one file. Both run with nobody at the keyboard, so a
+   * hook that waits on a prompt would hang them forever. The user's own
    * reviewed push still runs every hook.
    */
   readonly skipHooks?: boolean
@@ -155,7 +158,7 @@ export interface ILocalCommitBatchingGitOptions {
   /**
    * Publish every push from this session with `--no-verify`.
    *
-   * Only an app-generated, create-only ref publication may set this. See
+   * Only an app-generated, unattended publication may set this. See
    * `ILocalCommitBatchingExactPushRequest.skipHooks`.
    */
   readonly skipPushHooks?: boolean

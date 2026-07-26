@@ -52,6 +52,66 @@ uploads). The stale July-1 `GitHubDesktopSetup-x64.exe` should be deleted by
 the user (Squirrel `--install` performs no version comparison; guard shipped
 but cannot stop a re-run installer).
 
+## 2026-07-25 Cloud compression installs its own workflow (background)
+
+Branch `feat/auto-install-compression-workflow` (worktree only; **not merged,
+not pushed** — this session was explicitly forbidden from pushing).
+
+**Defect.** A repository could use Cheap LFS cloud compression and compress
+nothing. `ensureCheapLfsCloudCompressionWorkflow` wrote
+`.github/workflows/cheap-lfs-cloud-compression.yml` into the working tree and
+deliberately stopped there ("never stages, commits, or pushes"), leaving a
+Changes entry the user had to notice, review, commit, and push. GitHub Actions
+never sees an uncommitted file, so until they did, compression was off in fact
+while the UI said it was on.
+
+**Fix.** New pure module `app/src/lib/cheap-lfs/workflow-auto-install.ts` holds
+the decisions; `AppStore.maybeAutoInstallCheapLfsCloudCompressionWorkflow`
+(fire-and-forget, in-flight-guarded per repository) runs them.
+
+- Detection reads the **committed** blob (`git cat-file blob HEAD:<path>`), not
+  the working tree, so a file `ensure` just wrote does not read as "installed".
+  Decisions: `install` / `installed` / `offer-update` / `blocked-unowned` /
+  `disabled`.
+- Install writes through the existing hardened writer, re-verifies the bytes are
+  canonical, stages the one path by name, and commits with
+  `git commit --no-verify -m "Add Cheap LFS cloud compression workflow / 加入雲端壓縮工作流" -- <path>`
+  so the user's staged selection survives untouched.
+- Publish decision: `push` when the remote tip equals the commit's parent (goes
+  through `ILocalCommitBatchingOperations.push` with `expectedRemoteSha`, then
+  `readRemoteTip` proves the new tip); `anchor` when the branch was never
+  published (reuses `ensureCheapLfsReleaseAnchor` unchanged);
+  `defer-unpushed-commits` when the branch diverged — committed, deliberately
+  **not** pushed, so no unreviewed local commit is ever published for the user.
+- Never overwrites. A divergent managed caller gets a confirm-class one-click
+  update on the notice stack (new `IErrorNoticeAction` kind
+  `update-cheap-lfs-workflow`, two-step confirm mirroring
+  `remove-repository-lock`); an unowned file is left alone and reported once.
+- `workflow`-scope refusals are classified and named with the fix; every relayed
+  Git string goes through `sanitizeCheapLfsFailureReason` first.
+- Hooks are skipped on both the commit and the push: app-generated, single-file,
+  unattended, and a hook prompt would hang it forever. Documented on
+  `ILocalCommitBatchingExactPushRequest.skipHooks`.
+
+**Entry points.** `_ensureCheapLfsCloudCompressionWorkflow` (covers the settings
+toggle and the Cheap LFS panel sync) and `maybeAutoMaterializeCheapLfs` (a
+checkout demonstrably carrying Release pointers).
+
+**Gates (all green, `TEMP=C:\dm-temp`).** `npx tsc --noEmit` exit 0;
+`yarn lint` green (prettier check + eslint); `node script/test.mjs
+app/test/unit/cheap-lfs` → 417/417, accounting `32/32 discovered file(s)
+produced results across 1 batch(es); 417 test(s) reported`, `ℹ fail 0`;
+`workflow-auto-install-test.ts` alone → 30/30, `ℹ fail 0`, accounting `1/1`;
+i18n + error-notice + notice-stack + auto-fix + notification-centre → 68/68,
+accounting `6/6`, `ℹ fail 0`; `local-commit-batching-git-test.ts` +
+`pending-commit-push-safety-test.ts` exit 0.
+
+**Not done here.** No push (forbidden this session), no merge to `main`, no
+live headless verification of the background install against a real GitHub
+remote, and no screenshot of the new notices. Account selection uses the
+repository's current association only — the fallback resolver work lives on
+another branch.
+
 ## 2026-07-25 Anchor before the release review (#38 last defect)
 
 Branch `fix/bootstrap-before-review` (worktree only; **not merged, not

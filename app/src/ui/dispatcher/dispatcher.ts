@@ -867,6 +867,21 @@ export class Dispatcher {
     return this.appStore._applyGitAutoFix(repositoryId, fixKind, noticeId)
   }
 
+  /**
+   * Replace a divergent Cheap LFS cloud-compression workflow with the canonical
+   * one, then commit and push it. Only reached from the confirmed one-click
+   * action on the "out of date" notice.
+   */
+  public updateCheapLfsCloudCompressionWorkflow(
+    repositoryId: number,
+    noticeId: string
+  ): Promise<void> {
+    return this.appStore._updateCheapLfsCloudCompressionWorkflow(
+      repositoryId,
+      noticeId
+    )
+  }
+
   /** Load a newest-first page of notification-history commits. */
   public getNotificationHistory(
     skip?: number,
