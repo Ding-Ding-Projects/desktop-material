@@ -22,6 +22,11 @@ import { Repository } from '../../models/repository'
 import { Button } from '../lib/button'
 import { formatBytes } from '../lib/bytes'
 import { showItemInFolder, showSaveDialog } from '../main-process-proxy'
+import {
+  externalOpenGuard,
+  externalOpenTarget,
+} from '../../lib/external-open-guard'
+import { ExternalOpenBusy } from '../lib/external-open-busy'
 import { ActionsArtifactProvenanceDialog } from './actions-artifact-provenance-dialog'
 
 type AttestationCheck =
@@ -539,18 +544,25 @@ export class RunArtifacts extends React.Component<
     if (completed === null) {
       return
     }
-    try {
-      await (this.props.reveal ?? showItemInFolder)(completed.path)
-    } catch (error) {
-      if (this.mounted) {
-        this.setState({
-          operationError: errorMessage(
-            error,
-            'Unable to reveal the artifact archive.'
-          ),
-        })
+    // Guarded per path so a stuttered click cannot stack two file-manager
+    // windows on the same downloaded archive.
+    await externalOpenGuard.run(
+      externalOpenTarget('file-manager', completed.path),
+      async () => {
+        try {
+          await (this.props.reveal ?? showItemInFolder)(completed.path)
+        } catch (error) {
+          if (this.mounted) {
+            this.setState({
+              operationError: errorMessage(
+                error,
+                'Unable to reveal the artifact archive.'
+              ),
+            })
+          }
+        }
       }
-    }
+    )
   }
 
   private startProvenanceReview = (artifact: IActionsArtifact) => {
@@ -877,9 +889,19 @@ export class RunArtifacts extends React.Component<
             </Button>
           )}
           {completed && (
-            <Button size="small" onClick={this.revealDownload}>
-              Show in folder
-            </Button>
+            <ExternalOpenBusy
+              target={externalOpenTarget('file-manager', completed.path)}
+            >
+              {isOpening => (
+                <Button
+                  size="small"
+                  onClick={this.revealDownload}
+                  ariaBusy={isOpening}
+                >
+                  Show in folder
+                </Button>
+              )}
+            </ExternalOpenBusy>
           )}
           {completed?.matchesGitHubDigest === true &&
             getActionsRunAttempt(this.props.run.run_attempt) !== null && (

@@ -7,6 +7,8 @@ import { Octicon, iconForStatus } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { mapStatus } from '../../lib/status'
 import { DiffOptions } from './diff-options'
+import { externalOpenTarget } from '../../lib/external-open-guard'
+import { ExternalOpenBusy } from '../lib/external-open-busy'
 
 interface IDiffHeaderProps {
   readonly path: string
@@ -49,6 +51,13 @@ interface IDiffHeaderProps {
    * menu item. When omitted the button is not rendered.
    */
   readonly onOpenInExternalEditor?: () => void
+
+  /**
+   * Absolute path the open-in-editor button hands to the editor. Used only to
+   * read the shared external-open guard, so the button can report `aria-busy`
+   * while the launch it started is still settling.
+   */
+  readonly externalEditorTargetPath?: string
 }
 
 /** Displays information about a file */
@@ -137,7 +146,11 @@ export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
   }
 
   private renderOpenInEditor() {
-    const { onOpenInExternalEditor, externalEditorLabel } = this.props
+    const {
+      onOpenInExternalEditor,
+      externalEditorLabel,
+      externalEditorTargetPath,
+    } = this.props
 
     if (onOpenInExternalEditor === undefined) {
       return null
@@ -148,15 +161,25 @@ export class DiffHeader extends React.Component<IDiffHeaderProps, {}> {
         ? `Open in ${externalEditorLabel}`
         : 'Open in external editor'
 
+    const target =
+      externalEditorTargetPath !== undefined
+        ? externalOpenTarget('editor', externalEditorTargetPath)
+        : null
+
     return (
-      <button
-        className="diff-open-editor-button"
-        onClick={onOpenInExternalEditor}
-        disabled={this.props.isExternalEditorAvailable === false}
-        aria-label={label}
-      >
-        <Octicon symbol={octicons.code} />
-      </button>
+      <ExternalOpenBusy target={target}>
+        {isOpening => (
+          <button
+            className="diff-open-editor-button"
+            onClick={onOpenInExternalEditor}
+            disabled={this.props.isExternalEditorAvailable === false}
+            aria-busy={isOpening || undefined}
+            aria-label={label}
+          >
+            <Octicon symbol={octicons.code} />
+          </button>
+        )}
+      </ExternalOpenBusy>
     )
   }
 

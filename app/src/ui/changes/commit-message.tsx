@@ -2797,7 +2797,7 @@ export class CommitMessage extends React.Component<
               type="button"
               className="cheap-lfs-action"
               disabled={manualUploadInFlight}
-              aria-busy={manualUploadInFlight}
+              ariaBusy={manualUploadInFlight}
               onClick={this.onManualCheapLfsUpload}
             >
               {t('cheapLfs.manualUpload')}

@@ -59,6 +59,13 @@ interface IMenuBackedSuggestedActionProps {
    * by calling `e.preventDefault`.
    */
   readonly onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
+
+  /**
+   * When the backing menu item hands a path to something outside the app, the
+   * guard key of that open (built with `externalOpenTarget`), so the button can
+   * report `aria-busy` while the launch it started is still settling.
+   */
+  readonly externalOpenTarget?: string
 }
 
 /**
@@ -87,6 +94,7 @@ export class MenuBackedSuggestedAction extends React.Component<
         onClick={this.onClick}
         type={this.props.type}
         disabled={this.props.disabled}
+        externalOpenTarget={this.props.externalOpenTarget}
       />
     )
   }

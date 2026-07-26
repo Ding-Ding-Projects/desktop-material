@@ -1,6 +1,7 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { Button } from '../lib/button'
+import { ExternalOpenBusy } from '../lib/external-open-busy'
 
 interface ISuggestedActionProps {
   /**
@@ -52,6 +53,13 @@ interface ISuggestedActionProps {
    * An image to illustrate what this component's action does
    */
   readonly image?: JSX.Element
+
+  /**
+   * When this action hands a path to something outside the app, the guard key
+   * of that open (built with `externalOpenTarget`). The button then reports
+   * `aria-busy` for exactly as long as the shared guard is suppressing repeats.
+   */
+  readonly externalOpenTarget?: string
 }
 
 /**
@@ -83,13 +91,18 @@ export class SuggestedAction extends React.Component<ISuggestedActionProps> {
             </p>
           )}
         </div>
-        <Button
-          type={primary ? 'submit' : undefined}
-          onClick={this.props.onClick}
-          disabled={this.props.disabled}
-        >
-          {this.props.buttonText}
-        </Button>
+        <ExternalOpenBusy target={this.props.externalOpenTarget ?? null}>
+          {isOpening => (
+            <Button
+              type={primary ? 'submit' : undefined}
+              onClick={this.props.onClick}
+              disabled={this.props.disabled}
+              ariaBusy={isOpening}
+            >
+              {this.props.buttonText}
+            </Button>
+          )}
+        </ExternalOpenBusy>
       </div>
     )
   }

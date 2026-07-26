@@ -41,6 +41,10 @@ import {
   IMultiCommitOperationState,
   CommitOptions,
 } from '../../lib/app-state'
+import {
+  externalOpenGuard,
+  externalOpenTarget,
+} from '../../lib/external-open-guard'
 import { assertNever, fatalError } from '../../lib/fatal-error'
 import {
   setGenericPassword,
@@ -3047,44 +3051,74 @@ export class Dispatcher {
     return this.appStore._appendIgnoreFile(repository, filePath)
   }
 
-  /** Opens a Git-enabled terminal setting the working directory to the repository path */
+  /**
+   * Opens a Git-enabled terminal setting the working directory to the
+   * repository path.
+   *
+   * Guarded per path: a stuttered click must not open two terminals (or stack
+   * two "install Git" popups) on the same repository.
+   */
   public async openShell(
     path: string,
     ignoreWarning: boolean = false
   ): Promise<void> {
-    const gitFound = await isGitOnPath()
-    if (gitFound || ignoreWarning) {
-      this.appStore._openShell(path)
-    } else {
-      this.appStore._showPopup({
-        type: PopupType.InstallGit,
-        path,
-      })
-    }
+    await externalOpenGuard.run(externalOpenTarget('shell', path), async () => {
+      const gitFound = await isGitOnPath()
+      if (gitFound || ignoreWarning) {
+        // Awaited so the claim spans the actual launch rather than only the
+        // call; `_openShell` reports its own failures and never rejects.
+        await this.appStore._openShell(path)
+      } else {
+        this.appStore._showPopup({
+          type: PopupType.InstallGit,
+          path,
+        })
+      }
+    })
   }
 
   /**
    * Opens a path in the external editor selected by the user.
+   *
+   * Guarded per path, which is what makes a rapid double-click on a changes or
+   * history row — or a repeated menu item — launch exactly one editor. The
+   * claim is released as soon as the launch settles, so a deliberate second
+   * open afterwards still works.
    */
   public async openInExternalEditor(
     fullPath: string,
     repository: Repository | null = null
   ): Promise<void> {
-    return this.appStore._openInExternalEditor(fullPath, repository)
+    await externalOpenGuard.run(externalOpenTarget('editor', fullPath), () =>
+      this.appStore._openInExternalEditor(fullPath, repository)
+    )
   }
 
   /**
    * Opens a path in a selected external editor without changing preferences.
+   *
+   * The chosen editor is part of the guard key so that picking a *different*
+   * editor for the same path is still honoured; only the identical open is
+   * suppressed while it is starting.
    */
   public async openInSelectedExternalEditor(
     fullPath: string,
     selectedEditor: string | null,
     customEditor: ICustomIntegration | null
   ): Promise<void> {
-    return this.appStore._openInSelectedExternalEditor(
-      fullPath,
-      selectedEditor,
-      customEditor
+    await externalOpenGuard.run(
+      externalOpenTarget(
+        'editor',
+        fullPath,
+        selectedEditor,
+        customEditor?.path
+      ),
+      () =>
+        this.appStore._openInSelectedExternalEditor(
+          fullPath,
+          selectedEditor,
+          customEditor
+        )
     )
   }
 

@@ -12,7 +12,7 @@ import {
   revealRepositoryHooks,
 } from '../../lib/hooks/repository-hooks-manager'
 import { Button } from '../lib/button'
-import { showItemInFolder } from '../main-process-proxy'
+import { revealPathInFileManager } from '../../lib/app-shell'
 
 export interface IRepositoryHooksClient {
   readonly inspect: (
@@ -68,9 +68,11 @@ const defaultClient: IRepositoryHooksClient = {
   apply: (repositoryPath, request, signal) =>
     applyReviewedRepositoryHookAction(repositoryPath, request, signal),
   reveal: (repositoryPath, signal) =>
+    // Guarded per path: revealing the hooks folder twice in quick succession
+    // must not stack two file-manager windows.
     revealRepositoryHooks(
       repositoryPath,
-      path => showItemInFolder(path),
+      path => revealPathInFileManager(path),
       signal
     ),
 }

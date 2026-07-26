@@ -28,6 +28,8 @@ import {
   getLabelForManualResolutionOption,
 } from '../../../lib/status'
 import { revealInFileManager } from '../../../lib/app-shell'
+import { externalOpenTarget } from '../../../lib/external-open-guard'
+import { ExternalOpenBusy } from '../external-open-busy'
 import { DialogPreferredFocusClassName } from '../../dialog'
 
 const defaultConflictsResolvedMessage = 'No conflicts remaining'
@@ -302,6 +304,11 @@ const renderConflictedFileWithConflictMarkers: React.FunctionComponent<{
     ? `small-button button-group-item ${DialogPreferredFocusClassName}`
     : 'small-button button-group-item'
 
+  const editorTarget = externalOpenTarget(
+    'editor',
+    join(props.repository.path, props.path)
+  )
+
   const content = (
     <>
       <div className="column-left">
@@ -309,14 +316,19 @@ const renderConflictedFileWithConflictMarkers: React.FunctionComponent<{
         <div className="file-conflicts-status">{message}</div>
       </div>
       <div className="action-buttons">
-        <Button
-          onClick={props.onOpenEditorClick}
-          disabled={disabled}
-          tooltip={tooltip}
-          className={openEditorButtonClassName}
-        >
-          {editorButtonString(props.resolvedExternalEditor)}
-        </Button>
+        <ExternalOpenBusy target={editorTarget}>
+          {isOpening => (
+            <Button
+              onClick={props.onOpenEditorClick}
+              disabled={disabled}
+              ariaBusy={isOpening}
+              tooltip={tooltip}
+              className={openEditorButtonClassName}
+            >
+              {editorButtonString(props.resolvedExternalEditor)}
+            </Button>
+          )}
+        </ExternalOpenBusy>
         <Button
           onClick={onDropdownClick}
           onKeyDown={onDropdownKeyDown}
