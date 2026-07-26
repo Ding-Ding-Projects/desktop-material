@@ -1439,3 +1439,228 @@
     }
   }
 }
+
+// The per-repository appearance hub. Every section hosts the very same
+// owner-scoped editor the anchored (right-click) surface hosts, so this file
+// owns only the hub chrome: headings, inheritance status, reset/history
+// actions, and the bounded live previews.
+#repository-settings .repository-appearance-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-double);
+  padding: var(--spacing-double);
+
+  .repository-appearance-intro {
+    display: grid;
+    gap: var(--spacing-half);
+
+    p {
+      margin: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .repository-appearance-intro-hint {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-half);
+    padding: var(--spacing);
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-surface-container-high);
+    color: var(--md-sys-color-on-surface);
+
+    > .octicon {
+      flex: none;
+      // Optically centre the icon against the first line of text.
+      margin-top: 2px;
+      color: var(--md-sys-color-primary);
+    }
+  }
+
+  .repository-appearance-error {
+    margin: 0;
+    padding: var(--spacing);
+    border-radius: var(--md-sys-shape-corner-medium);
+    background: var(--md-sys-color-error-container);
+    color: var(--md-sys-color-on-error-container);
+    overflow-wrap: anywhere;
+  }
+
+  .repository-appearance-sections {
+    display: grid;
+    gap: var(--spacing-double);
+    min-width: 0;
+  }
+
+  .repository-appearance-section {
+    display: grid;
+    gap: var(--spacing);
+    min-width: 0;
+    padding: var(--spacing-double);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: var(--md-sys-shape-corner-large);
+    background: var(--md-sys-color-surface-container-lowest);
+
+    // The shared editors draw their own bounded panel chrome; keep them from
+    // pushing the dialog wider than the hub at any supported width.
+    .element-appearance-editor,
+    .repository-logo-studio,
+    .repository-list-name-appearance-editor {
+      max-width: 100%;
+      min-width: 0;
+    }
+  }
+
+  .repository-appearance-section-header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing);
+    min-width: 0;
+  }
+
+  .repository-appearance-section-heading {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+
+    h3 {
+      margin: 0;
+      font-size: var(--font-size);
+      font-weight: var(--font-weight-semibold);
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .repository-appearance-section-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing-half);
+
+    .button-component {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      // Keep the reset/history targets comfortably clickable at every scale.
+      min-height: 32px;
+    }
+  }
+
+  .repository-appearance-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+
+    .octicon {
+      flex: none;
+      width: 13px;
+      height: 13px;
+    }
+
+    &.overridden {
+      color: var(--md-sys-color-primary);
+      font-weight: var(--font-weight-semibold);
+    }
+  }
+
+  .repository-appearance-section-body {
+    display: grid;
+    gap: var(--spacing);
+    min-width: 0;
+  }
+
+  .repository-appearance-preview-resolved {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
+  // The mock repository tab reflects the resolved density and width, so the
+  // sample shows the real geometry instead of a fixed illustration.
+  .repository-appearance-preview-tab {
+    &.compact {
+      max-width: 140px;
+    }
+
+    &.standard {
+      max-width: 200px;
+    }
+
+    &.wide {
+      max-width: 280px;
+    }
+  }
+
+  .repository-appearance-preview-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--spacing);
+    min-width: 0;
+
+    &.compact {
+      gap: var(--spacing-half);
+
+      .preview-toolbar-action {
+        min-height: 30px;
+        padding: 0 8px;
+      }
+    }
+
+    .preview-toolbar-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      min-height: 38px;
+      padding: 0 12px;
+      border-radius: var(--md-sys-shape-corner-full);
+      background: var(--md-sys-color-surface-container-high);
+      color: var(--md-sys-color-on-surface);
+
+      .octicon {
+        flex: none;
+      }
+    }
+
+    .preview-toolbar-label {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
+
+  .repository-appearance-preview-row .preview-row-logo {
+    flex: none;
+    width: 34px;
+    height: 34px;
+  }
+
+  // Compact widths: stack the header so the reset and history actions never
+  // crowd or clip the section title.
+  @container repository-settings-dialog (max-width: 520px) {
+    padding: var(--spacing);
+
+    .repository-appearance-section {
+      padding: var(--spacing);
+    }
+
+    .repository-appearance-section-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .repository-appearance-section-actions .button-component {
+      flex: 1 1 auto;
+      justify-content: center;
+    }
+  }
+}

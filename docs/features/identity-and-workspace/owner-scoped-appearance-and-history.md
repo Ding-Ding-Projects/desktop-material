@@ -23,6 +23,19 @@ partial layer, so clearing one field inherits that profile field and clearing
 the layer inherits the complete profile style. A live pill preview reflects the
 resolved result before the owner-local commit.
 
+Repository Settings → **Appearance** is a discoverable hub over those same five
+repository owners, not a second store. Each section renders the exact editor the
+anchored surface renders, commits through the same
+`setRepositoryAppearanceElement` owner path, and broadcasts the same
+invalidation, so an edit made in the dialog and an edit made by right-clicking
+the element are indistinguishable — including History, undo, and restore. There
+is no staged copy and no separate Save: a change lands in the owner's dedicated
+local Git repository immediately. Every section names whether each value is
+inherited or repository-owned, shows a bounded live preview, and offers a Reset
+that writes the inherited default back to that one owner. The hub is
+deliberately repository-scoped: it never writes a profile owner, so profile
+defaults stay editable only from their own elements and from Settings.
+
 The editor applies normalized, schema-checked values to only the selected
 owner. Its footer identifies the dedicated local repository, while History can
 load commits and diffs, undo or redo the latest change, or restore a selected
@@ -150,6 +163,11 @@ focus return, inheritance changes, owner-local history refresh, profile
 replacement, stale-load rejection, and appearance-pending startup.
 `repository-tab-actions-test.tsx` covers right-clicking an inactive title and
 the non-crashing localized loading state.
+`repository-settings-appearance-test.tsx` covers the Repository Settings hub:
+every repository owner rendered with its inherited state, an edit and a reset
+committed through the same owner id, the round trip from the hub to the
+anchored editor opened on the actual row, and the refusal to paint a value
+while the coordinator is still starting.
 `appearance-customization-test.ts`, `element-appearance-editors-test.tsx`,
 `helper-side-effect-surfaces-test.tsx`, and `toolbar-overflow-test.tsx` cover
 toolbar normalization, inheritance, localized controls, CSS

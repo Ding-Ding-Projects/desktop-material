@@ -1912,6 +1912,35 @@ export type TranslationKey =
   | 'settingsSearch.entry.gitHooks.desc'
   | 'repositorySettings.buildRunTab'
   | 'repositorySettings.automationTab'
+  | 'repositorySettings.appearanceTab'
+  | 'repositorySettings.appearance.intro'
+  | 'repositorySettings.appearance.introHint'
+  | 'repositorySettings.appearance.loading'
+  | 'repositorySettings.appearance.unavailable'
+  | 'repositorySettings.appearance.loadFailed'
+  | 'repositorySettings.appearance.saveFailed'
+  | 'repositorySettings.appearance.workspaceSection'
+  | 'repositorySettings.appearance.toolbarSection'
+  | 'repositorySettings.appearance.tabsSection'
+  | 'repositorySettings.appearance.listNameSection'
+  | 'repositorySettings.appearance.logoSection'
+  | 'repositorySettings.appearance.inheriting'
+  | 'repositorySettings.appearance.overridden'
+  | 'repositorySettings.appearance.reset'
+  | 'repositorySettings.appearance.resetAccessibleName'
+  | 'repositorySettings.appearance.history'
+  | 'repositorySettings.appearance.historyAccessibleName'
+  | 'repositorySettings.appearance.previewLabel'
+  | 'repositorySettings.appearance.previewDescription'
+  | 'repositorySettings.appearance.resolvedAccent'
+  | 'repositorySettings.appearance.resolvedSurface'
+  | 'repositorySettings.appearance.resolvedLabels'
+  | 'repositorySettings.appearance.resolvedDensity'
+  | 'repositorySettings.appearance.resolvedWidth'
+  | 'repositorySettings.appearance.inheritedSuffix'
+  | 'repositorySettings.appearance.overriddenSuffix'
+  | 'repositorySettings.appearance.listNameInherits'
+  | 'repositorySettings.appearance.logoInherits'
   | 'githubApi.railLabel'
   | 'cheapLfs.settings.sectionHeading'
   | 'gitAutoFix.fixIt'
@@ -4071,6 +4100,47 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.managerRail': 'Large files',
   'repositorySettings.buildRunTab': 'Build, run & large files',
   'repositorySettings.automationTab': 'Automation (this repository)',
+  'repositorySettings.appearanceTab': 'Appearance',
+  'repositorySettings.appearance.intro':
+    'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by right-clicking the actual element.',
+  'repositorySettings.appearance.introHint':
+    'Prefer editing in place? Right-click the repository row, its logo, or the toolbar (or press Shift+F10 with it focused) to open the very same editor beside it.',
+  'repositorySettings.appearance.loading':
+    'Opening this repository’s appearance owners…',
+  'repositorySettings.appearance.unavailable':
+    'Appearance owners are still starting up. Reopen Repository settings in a moment.',
+  'repositorySettings.appearance.loadFailed':
+    'Could not read this repository’s appearance owners. Close Repository settings and try again.',
+  'repositorySettings.appearance.saveFailed':
+    'Could not save that appearance change. The value shown was restored from the owner on disk.',
+  'repositorySettings.appearance.workspaceSection': 'Workspace colors',
+  'repositorySettings.appearance.toolbarSection': 'Toolbar',
+  'repositorySettings.appearance.tabsSection': 'Repository tabs',
+  'repositorySettings.appearance.listNameSection':
+    'Name in the repository list',
+  'repositorySettings.appearance.logoSection': 'Repository logo',
+  'repositorySettings.appearance.inheriting': 'Inherits the profile default',
+  'repositorySettings.appearance.overridden': 'Overridden for this repository',
+  'repositorySettings.appearance.reset': 'Reset to default',
+  'repositorySettings.appearance.resetAccessibleName':
+    'Reset {section} to the inherited default',
+  'repositorySettings.appearance.history': 'History',
+  'repositorySettings.appearance.historyAccessibleName':
+    'Open {section} history',
+  'repositorySettings.appearance.previewLabel': 'Live preview',
+  'repositorySettings.appearance.previewDescription':
+    'A sample of how {section} renders with the values above.',
+  'repositorySettings.appearance.resolvedAccent': 'Accent: {value}',
+  'repositorySettings.appearance.resolvedSurface': 'Surface: {value}',
+  'repositorySettings.appearance.resolvedLabels': 'Labels: {value}',
+  'repositorySettings.appearance.resolvedDensity': 'Density: {value}',
+  'repositorySettings.appearance.resolvedWidth': 'Width: {value}',
+  'repositorySettings.appearance.inheritedSuffix': 'inherited',
+  'repositorySettings.appearance.overriddenSuffix': 'this repository',
+  'repositorySettings.appearance.listNameInherits':
+    'Inherits the ordinary row typography',
+  'repositorySettings.appearance.logoInherits':
+    'Inherits the profile default logo',
   'githubApi.railLabel': 'API explorer',
   'cheapLfs.managerTitle': 'Cheap LFS manager',
   'cheapLfs.managerIntro':
@@ -6472,6 +6542,42 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.managerRail': '大檔案',
   'repositorySettings.buildRunTab': '建置、執行同大型檔案',
   'repositorySettings.automationTab': '自動化（呢個存放庫）',
+  'repositorySettings.appearanceTab': '外觀',
+  'repositorySettings.appearance.intro':
+    '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你右 click 個實物時開嗰個。',
+  'repositorySettings.appearance.introHint':
+    '想就地改？右 click 個 repo 列、佢個 logo 或者工具列（或者 focus 住撳 Shift+F10），就會喺旁邊開返同一個編輯器。',
+  'repositorySettings.appearance.loading': '開緊呢個 repo 嘅外觀主人……',
+  'repositorySettings.appearance.unavailable':
+    '外觀主人仲啟動緊。請稍後再開 Repository settings。',
+  'repositorySettings.appearance.loadFailed':
+    '讀唔到呢個 repo 嘅外觀設定。請關閉 Repository settings 再試一次。',
+  'repositorySettings.appearance.saveFailed':
+    '儲存唔到呢項外觀改動。畫面顯示嘅值已經由磁碟上嘅設定還原。',
+  'repositorySettings.appearance.workspaceSection': '工作區顏色',
+  'repositorySettings.appearance.toolbarSection': '工具列',
+  'repositorySettings.appearance.tabsSection': 'Repo 分頁',
+  'repositorySettings.appearance.listNameSection': 'Repo 清單入面嘅名',
+  'repositorySettings.appearance.logoSection': 'Repo Logo',
+  'repositorySettings.appearance.inheriting': '跟返 profile 預設',
+  'repositorySettings.appearance.overridden': '呢個 repo 自己蓋咗',
+  'repositorySettings.appearance.reset': '還原做預設',
+  'repositorySettings.appearance.resetAccessibleName':
+    '將{section}還原做繼承嘅預設',
+  'repositorySettings.appearance.history': '歷史',
+  'repositorySettings.appearance.historyAccessibleName': '開啟{section}歷史',
+  'repositorySettings.appearance.previewLabel': '即時預覽',
+  'repositorySettings.appearance.previewDescription':
+    '用上面嘅設定睇下{section}會點樣出。',
+  'repositorySettings.appearance.resolvedAccent': '主色：{value}',
+  'repositorySettings.appearance.resolvedSurface': '底色：{value}',
+  'repositorySettings.appearance.resolvedLabels': '標籤：{value}',
+  'repositorySettings.appearance.resolvedDensity': '密度：{value}',
+  'repositorySettings.appearance.resolvedWidth': '闊度：{value}',
+  'repositorySettings.appearance.inheritedSuffix': '繼承',
+  'repositorySettings.appearance.overriddenSuffix': '呢個 repo',
+  'repositorySettings.appearance.listNameInherits': '跟返一般列嘅字體',
+  'repositorySettings.appearance.logoInherits': '跟返 profile 預設 logo',
   'githubApi.railLabel': 'API 瀏覽器',
   'cheapLfs.managerTitle': 'Cheap LFS 管理器',
   'cheapLfs.managerIntro':
