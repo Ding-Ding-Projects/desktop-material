@@ -6,7 +6,7 @@ import { describe, it } from 'node:test'
 import { registerGitHubReleaseTransferIPC } from '../../../src/main-process/github-release-transfer-ipc'
 
 describe('GitHub release transfer IPC registration', () => {
-  it('registers download, upload, and sender-scoped cancellation', () => {
+  it('registers download, upload, install, and sender-scoped cancellation', () => {
     const handled = new Array<string>()
     const listened = new Array<string>()
 
@@ -19,9 +19,12 @@ describe('GitHub release transfer IPC registration', () => {
       },
     })
 
+    // The unattended installer runs on this boundary too, so a long install
+    // never blocks the renderer that asked for it.
     assert.deepEqual(handled, [
       'download-release-asset',
       'upload-release-asset',
+      'silent-install-release-asset',
     ])
     assert.deepEqual(listened, ['cancel-github-release-transfer'])
   })

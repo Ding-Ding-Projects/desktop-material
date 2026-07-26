@@ -51,9 +51,46 @@ bounded reason is listed and the remaining releases continue. The closing
 summary states exactly how many were deleted, how many failed, and how many
 were never attempted, and it stays on screen until a new batch is reviewed.
 
+A **Sort** control beside the status filter orders the catalog **Newest first**
+(the default, matching the previous behavior) or **Oldest first** by published
+date, falling back to the created date for an unpublished draft so drafts do
+not drift to one end of the list. The choice persists per list under the same
+convention as the search mode. Order is applied last, over whatever survived
+the status and search filters, so the two compose rather than fork — the filter
+decides which releases are shown and the sort decides only their order — and
+because both run over the one loaded catalog, the order covers everything an
+exhaustive walk added. Ties break on release id so the order is total and does
+not flicker between renders.
+
 Release dates include a locale-aware 24-hour `HH:mm` time. After an asset has
 downloaded and passed its existing size/digest checks, the result offers both
-**Show in folder** and **Open file**. Open-file completion and failure callbacks
+**Show in folder** and **Open file**.
+
+When the downloaded asset is an installer, the result also offers a
+**Silent install** button. The button itself is the consent: one explicit click
+starts the run, and the label names the exact file it will execute. Only files
+the flag table recognizes are offered at all — an archive, a `.nupkg`, or any
+unrecognized asset gets no button, because a control that silently means
+"execute this download" would be a trap. The table is extension-first: a `.msi`
+is handed to `msiexec /i <path> /qn /norestart` (never executed directly), and
+an `.exe` is identified from a bounded read of its own leading bytes — Inno
+Setup takes `/VERYSILENT /SUPPRESSMSGBOXES /NORESTART`, NSIS and Squirrel take
+`/S`. An `.exe` whose family cannot be identified is still offered, but as
+**Attempt silent install**, because `/S` is a convention rather than a
+guarantee.
+
+The run itself happens in the main process over the
+`silent-install-release-asset` channel, so a long unattended install never
+blocks the interface that started it, and one install at a time is enforced per
+downloaded file by a synchronous in-flight claim. Before anything is spawned,
+the main process re-verifies that the path still exists, is a file, and matches
+the release asset's size; a mismatch is refused with a plain reason and nothing
+runs. The launch is deliberately unprivileged — no shell, no `runas`, no other
+elevation path — so a Windows elevation prompt that blocks the installer is
+reported as an ordinary failure with its exit code rather than worked around. A
+persistent notice reports start, indeterminate progress with elapsed seconds
+while it runs, and then the real exit code plus a sanitized, bounded tail of
+the installer's own output. Open-file completion and failure callbacks
 are generation-fenced, so a late Windows response cannot update a disposed or
 newly selected release. Clearing a filtered selection moves keyboard focus to
 an enabled Select all or search fallback even when the filter has zero results.
@@ -85,6 +122,17 @@ bounded, and asset transfers retain their existing path, size, digest, and
 overwrite checks. This feature adds no application HTTP endpoint, so a new
 Postman artifact is not applicable.
 
+Unattended installation executes a file, so its limits are deliberate. Only an
+explicit click starts it, and only for an asset the flag table recognizes as an
+installer. The exact downloaded path is re-verified (exists, is a file, matches
+the release asset's size) inside the main process immediately before launch, so
+a replaced or resized file is refused rather than run. The child is spawned
+without a shell — the path and switches are passed as argv, so a file name
+containing shell syntax cannot become part of a command line — and without any
+elevation path, so the installer runs at exactly the app's own privilege. The
+installer's output is treated as untrusted text: control characters are
+flattened and the retained tail is bounded before it is shown.
+
 ## Verification
 
 `github-releases-style-test.ts` covers the catalog, compact control and metric
@@ -101,7 +149,13 @@ page, reporting each page, refusing to read past the absolute ceiling, keeping
 what loaded on cancellation and on the API rate limit, and still failing loudly
 by default for the Cheap LFS inventory review. The view suite proves the search
 filter recomputes over the fully loaded set and that bulk deletion renders its
-progressbar, stop, and partial-failure summary. The corrected production bundle
+progressbar, stop, and partial-failure summary. `silent-install-test.ts` covers
+the flag table (msiexec routing, each identified exe family, the honest
+uncertain fallback, and the assets that get no button at all), the pre-launch
+verification decision, the bounded output sanitizer, and the per-file in-flight
+guard; `ipc-contract-test.ts` pins the new channel. `github-release-sort-test.ts`
+covers the order, the draft date fallback, the stable tie-break, and its
+composition with the search filter. The corrected production bundle
 completed in 390 seconds wall (Yarn
 387.64 seconds). Its 1,179,200-byte `out/renderer.css` has SHA-256
 `6fba1434112ea5c02256a12e6ce8af42f5c870f0db5835155acb8075708d9d28`.

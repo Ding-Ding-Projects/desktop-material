@@ -1689,6 +1689,21 @@ export type TranslationKey =
   | 'githubReleases.bulkDeleteFailures'
   | 'githubReleases.bulkDeleteFailure'
   | 'githubReleases.bulkDeleteFailuresOmitted'
+  | 'githubReleases.silentInstall'
+  | 'githubReleases.silentInstallAttempt'
+  | 'githubReleases.silentInstallRunning'
+  | 'githubReleases.silentInstallSucceeded'
+  | 'githubReleases.silentInstallFailed'
+  | 'githubReleases.silentInstallLaunchFailed'
+  | 'githubReleases.silentInstallOutput'
+  | 'githubReleases.silentInstallRefusedMissing'
+  | 'githubReleases.silentInstallRefusedNotAFile'
+  | 'githubReleases.silentInstallRefusedSize'
+  | 'githubReleases.silentInstallRefusedKind'
+  | 'githubReleases.silentInstallRefusedPlatform'
+  | 'githubReleases.sortLabel'
+  | 'githubReleases.sortNewest'
+  | 'githubReleases.sortOldest'
   | 'cheapLfs.pinFailures.title'
   | 'cheapLfs.pinFailures.one'
   | 'cheapLfs.pinFailures.many'
@@ -3914,6 +3929,30 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'githubReleases.bulkDeleteFailure': '{tag}: {reason}',
   'githubReleases.bulkDeleteFailuresOmitted':
     'and {count} more not shown here.',
+  'githubReleases.silentInstall': 'Silent install {file}',
+  'githubReleases.silentInstallAttempt': 'Attempt silent install of {file}',
+  'githubReleases.silentInstallRunning':
+    'Running {file} unattended… {seconds}s elapsed. Windows may still prompt for permission before it can continue.',
+  'githubReleases.silentInstallSucceeded':
+    '{file} finished with exit code {code}.',
+  'githubReleases.silentInstallFailed':
+    '{file} did not install. It exited with code {code}. If Windows asked for administrator permission, run the installer manually.',
+  'githubReleases.silentInstallLaunchFailed':
+    '{file} could not be started. {detail}',
+  'githubReleases.silentInstallOutput': 'Installer output: {output}',
+  'githubReleases.silentInstallRefusedMissing':
+    '{file} is no longer at the downloaded location, so nothing was run. Download it again.',
+  'githubReleases.silentInstallRefusedNotAFile':
+    'The downloaded location for {file} is not a file, so nothing was run.',
+  'githubReleases.silentInstallRefusedSize':
+    'The file at the downloaded location no longer matches the size of {file}, so nothing was run. Download it again.',
+  'githubReleases.silentInstallRefusedKind':
+    '{file} is not an installer this app runs, so nothing was run.',
+  'githubReleases.silentInstallRefusedPlatform':
+    'Unattended installation is available on Windows only, so nothing was run.',
+  'githubReleases.sortLabel': 'Sort',
+  'githubReleases.sortNewest': 'Newest first',
+  'githubReleases.sortOldest': 'Oldest first',
   'cheapLfs.settings.sectionHeading': 'Large files & storage (Cheap LFS)',
   'cheapLfs.settings.autoMaterialize': 'Download large files after cloning',
   'cheapLfs.settings.autoPin': 'Pin large files when committing',
@@ -6048,6 +6087,28 @@ export const cantoneseTranslations: Readonly<
   'githubReleases.bulkDeleteFailures': '刪唔到嘅 Release',
   'githubReleases.bulkDeleteFailure': '{tag}：{reason}',
   'githubReleases.bulkDeleteFailuresOmitted': '仲有 {count} 個未喺度列出。',
+  'githubReleases.silentInstall': '靜默安裝 {file}',
+  'githubReleases.silentInstallAttempt': '試下靜默安裝 {file}',
+  'githubReleases.silentInstallRunning':
+    '正在無人手安裝 {file}… 已經行咗 {seconds} 秒。Windows 可能仲會彈窗要你批准先繼續到。',
+  'githubReleases.silentInstallSucceeded': '{file} 完成，結束代碼 {code}。',
+  'githubReleases.silentInstallFailed':
+    '{file} 未有安裝到。結束代碼係 {code}。如果 Windows 要你俾管理員權限，請手動執行個安裝檔。',
+  'githubReleases.silentInstallLaunchFailed': '啟動唔到 {file}。{detail}',
+  'githubReleases.silentInstallOutput': '安裝程式輸出：{output}',
+  'githubReleases.silentInstallRefusedMissing':
+    '{file} 已經唔喺下載位置度，所以冇執行過任何嘢。請重新下載。',
+  'githubReleases.silentInstallRefusedNotAFile':
+    '{file} 嘅下載位置唔係一個檔案，所以冇執行過任何嘢。',
+  'githubReleases.silentInstallRefusedSize':
+    '下載位置嗰個檔案嘅大細已經同 {file} 唔一樣，所以冇執行過任何嘢。請重新下載。',
+  'githubReleases.silentInstallRefusedKind':
+    '{file} 唔係本 app 會執行嘅安裝程式，所以冇執行過任何嘢。',
+  'githubReleases.silentInstallRefusedPlatform':
+    '無人手安裝淨係喺 Windows 先用得，所以冇執行過任何嘢。',
+  'githubReleases.sortLabel': '排序',
+  'githubReleases.sortNewest': '最新排先',
+  'githubReleases.sortOldest': '最舊排先',
   'cheapLfs.settings.sectionHeading': '大型檔案同儲存（Cheap LFS）',
   'cheapLfs.settings.autoMaterialize': 'Clone 完自動下載大檔案',
   'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',

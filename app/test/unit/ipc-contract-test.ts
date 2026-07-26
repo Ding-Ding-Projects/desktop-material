@@ -106,6 +106,7 @@ describe('IPC channel contract', () => {
     'fetch-actions-job-log',
     'download-release-asset',
     'upload-release-asset',
+    'silent-install-release-asset',
     'get-agent-server-status',
     'set-agent-server-enabled',
     'initialize-agent-server',

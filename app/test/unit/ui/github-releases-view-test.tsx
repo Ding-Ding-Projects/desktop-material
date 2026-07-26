@@ -979,6 +979,216 @@ describe('GitHub Releases view', () => {
     )
   })
 
+  it('sorts the whole loaded set and composes the order with the filter', async () => {
+    const alpha = {
+      ...draft,
+      id: 10,
+      tagName: 'v0.1.0',
+      name: 'Alpha build',
+      draft: false,
+      publishedAt: new Date('2024-01-01T00:00:00Z'),
+    }
+    const bravo = {
+      ...draft,
+      id: 20,
+      tagName: 'v0.2.0',
+      name: 'Bravo build',
+      draft: false,
+      publishedAt: new Date('2025-01-01T00:00:00Z'),
+    }
+    const zephyr = {
+      ...draft,
+      id: 30,
+      tagName: 'v0.3.0',
+      name: 'Zephyr build',
+      draft: false,
+      publishedAt: new Date('2026-01-01T00:00:00Z'),
+    }
+    const store = fakeStore({
+      list: async () => ({
+        releases: [bravo, zephyr, alpha],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+    })
+    const titles = () =>
+      Array.from(document.querySelectorAll('.github-release-row-title')).map(
+        node => node.textContent
+      )
+
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText('3 of 3 shown')))
+    // The default order matches the historical newest-first behavior.
+    assert.deepEqual(titles(), ['Zephyr build', 'Bravo build', 'Alpha build'])
+
+    const sort = screen.getByLabelText('Sort')
+    fireEvent.change(sort, { target: { value: 'oldest' } })
+    await waitFor(() =>
+      assert.deepEqual(titles(), ['Alpha build', 'Bravo build', 'Zephyr build'])
+    )
+
+    // The filter still decides which releases are shown; the order applies to
+    // whatever survived rather than reintroducing filtered-out releases.
+    fireEvent.change(screen.getByLabelText('Search loaded releases'), {
+      target: { value: 'build' },
+    })
+    await waitFor(() =>
+      assert.ok(screen.getByText('Filtering 3 of 3 loaded releases'))
+    )
+    assert.deepEqual(titles(), ['Alpha build', 'Bravo build', 'Zephyr build'])
+
+    fireEvent.change(screen.getByLabelText('Search loaded releases'), {
+      target: { value: 'Zephyr' },
+    })
+    await waitFor(() =>
+      assert.ok(screen.getByText('Filtering 1 of 3 loaded releases'))
+    )
+    assert.deepEqual(titles(), ['Zephyr build'])
+
+    fireEvent.change(sort, { target: { value: 'newest' } })
+    fireEvent.change(screen.getByLabelText('Search loaded releases'), {
+      target: { value: '' },
+    })
+    await waitFor(() =>
+      assert.deepEqual(titles(), ['Zephyr build', 'Bravo build', 'Alpha build'])
+    )
+  })
+
+  it('offers an unattended install only for a downloaded installer', async () => {
+    const requests = new Array<{ path: string; fileName: string }>()
+    let finishInstall: (result: unknown) => void = () => undefined
+    const installed = new Promise<unknown>(resolve => {
+      finishInstall = resolve
+    })
+    const store = fakeStore({
+      downloadAsset: async (
+        _repository: Repository,
+        _releaseId: number,
+        _asset: IGitHubReleaseAsset,
+        destination: string
+      ) => ({
+        ok: true,
+        path: destination,
+        bytes: asset.sizeInBytes,
+        localDigest: asset.digest!,
+        matchesGitHubDigest: true,
+      }),
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+        chooseDownloadDestination={async () => downloadAssetPath}
+        silentInstall={async request => {
+          requests.push({ path: request.path, fileName: request.fileName })
+          return (await installed) as never
+        }}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'Download' }))
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    // The family of an .exe is only known from the file itself, so the button
+    // promises an attempt and names the exact file it will execute.
+    const install = await screen.findByRole('button', {
+      name: 'Attempt silent install of desktop.exe',
+    })
+    fireEvent.click(install)
+    // A second click cannot start a second installer for the same file.
+    fireEvent.click(install)
+
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Running desktop.exe unattended… 0s elapsed. Windows may still prompt for permission before it can continue.'
+        )
+      )
+    )
+    assert.equal(requests.length, 1)
+    assert.deepEqual(requests[0], {
+      path: downloadAssetPath,
+      fileName: 'desktop.exe',
+    })
+
+    finishInstall({
+      ok: false,
+      refusal: null,
+      family: 'unknown-exe',
+      exitCode: 1602,
+      output: 'user cancelled installation',
+      launchError: null,
+    })
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'desktop.exe did not install. It exited with code 1602. If Windows asked for administrator permission, run the installer manually.'
+        )
+      )
+    )
+    assert.ok(screen.getByText('Installer output: user cancelled installation'))
+  })
+
+  it('offers no unattended install for an asset that is not an installer', async () => {
+    const archive = { ...asset, id: 21, name: 'desktop.zip' }
+    let requested = 0
+    const store = fakeStore({
+      listAssets: async () => ({
+        assets: [archive],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+      downloadAsset: async (
+        _repository: Repository,
+        _releaseId: number,
+        _asset: IGitHubReleaseAsset,
+        destination: string
+      ) => ({
+        ok: true,
+        path: destination,
+        bytes: archive.sizeInBytes,
+        localDigest: archive.digest!,
+        matchesGitHubDigest: true,
+      }),
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+        chooseDownloadDestination={async () => downloadAssetPath}
+        silentInstall={async () => {
+          requested++
+          return null as never
+        }}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'Download' }))
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: 'Show in folder' }))
+    )
+    // An archive is not an installer, so there is no control that would mean
+    // "execute this download".
+    assert.equal(screen.queryByText(/silent install/i), null)
+    assert.equal(requested, 0)
+  })
+
   it('focuses an enabled fallback after clearing a filtered-out selection', async () => {
     const store = fakeStore({
       list: async () => ({

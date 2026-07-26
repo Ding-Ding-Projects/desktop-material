@@ -245,12 +245,16 @@
 
 .github-releases-filter-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(104px, 0.38fr);
+  // Search, then the status filter and the sort order beside it. The narrow
+  // rules below drop the extra columns before either select can be squeezed
+  // past its longest bilingual option.
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 0.34fr) minmax(112px, 0.36fr);
   gap: 8px;
   align-items: end;
 }
 
-.github-releases-status-filter select {
+.github-releases-status-filter select,
+.github-releases-sort-order select {
   width: 100%;
 }
 
@@ -901,6 +905,40 @@
   progress {
     width: 100%;
   }
+}
+
+.github-release-silent-install {
+  display: grid;
+  min-width: 0;
+  gap: 8px;
+  padding: 9px 11px;
+  border-radius: 12px;
+  background: var(--md-sys-color-surface-container-high);
+  font-size: 11px;
+
+  progress {
+    width: 100%;
+  }
+
+  span,
+  code {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-all;
+  }
+
+  code {
+    max-height: 120px;
+    padding: 6px 8px;
+    overflow: auto;
+    border-radius: 8px;
+    background: var(--md-sys-color-surface-container-low);
+    font-size: 10px;
+  }
+}
+
+.github-releases-sort-order {
+  min-width: 0;
 }
 
 .github-releases-bulk-delete-progress {

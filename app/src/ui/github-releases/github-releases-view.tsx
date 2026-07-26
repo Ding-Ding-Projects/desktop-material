@@ -2,6 +2,7 @@ import * as Path from 'path'
 import * as React from 'react'
 import { shell } from '../../lib/app-shell'
 import { t, translateForAccessibleName } from '../../lib/i18n'
+import { TranslationKey } from '../../lib/i18n-resources'
 import { Account } from '../../models/account'
 import { Repository } from '../../models/repository'
 import {
@@ -44,7 +45,27 @@ import {
   showItemInFolder,
   showOpenDialog,
   showSaveDialog,
+  silentInstallReleaseAsset,
 } from '../main-process-proxy'
+import {
+  isSilentInstallableAsset,
+  ISilentInstallRequest,
+  ISilentInstallResult,
+  SilentInstallRefusal,
+} from '../../lib/silent-install'
+import {
+  persistReleaseSortOrder,
+  readPersistedReleaseSortOrder,
+  ReleaseSortOrder,
+  sortReleases,
+} from '../../lib/github-release-sort'
+import {
+  claimInFlight,
+  EmptyInFlightGuard,
+  InFlightGuardState,
+  isInFlight,
+  releaseInFlight,
+} from '../../lib/cheap-lfs/in-flight-guard'
 
 const ReleasesSearchFilterId = 'github-releases-search'
 
@@ -140,8 +161,20 @@ type ReleaseConfirmation =
 interface ICompletedDownload {
   readonly path: string
   readonly assetName: string
+  /** The release asset's size, re-verified before any unattended launch. */
+  readonly sizeInBytes: number
   readonly localDigest: string
   readonly matchesGitHubDigest: boolean | null
+}
+
+/** The live state of one unattended installer run. */
+interface ISilentInstallState {
+  readonly path: string
+  readonly assetName: string
+  readonly startedAt: number
+  readonly elapsedSeconds: number
+  /** `null` while the installer is still running. */
+  readonly result: ISilentInstallResult | null
 }
 
 interface IGitHubReleasesViewProps {
@@ -154,6 +187,9 @@ interface IGitHubReleasesViewProps {
   ) => Promise<string | null>
   readonly revealDownload?: (path: string) => Promise<void>
   readonly openDownload?: (path: string) => Promise<string | void>
+  readonly silentInstall?: (
+    request: ISilentInstallRequest
+  ) => Promise<ISilentInstallResult>
 }
 
 interface IGitHubReleasesViewState {
@@ -169,6 +205,7 @@ interface IGitHubReleasesViewState {
   readonly searchMode: FilterMode
   readonly searchCaseSensitive: boolean
   readonly statusFilter: ReleaseStatusFilter
+  readonly sortOrder: ReleaseSortOrder
   readonly compactToolsExpanded: boolean
   readonly assets: ReadonlyArray<IGitHubReleaseAsset>
   readonly assetPage: number
@@ -185,6 +222,7 @@ interface IGitHubReleasesViewState {
   readonly confirmation: ReleaseConfirmation | null
   readonly progress: IGitHubReleaseTransferProgressEvent | null
   readonly completedDownload: ICompletedDownload | null
+  readonly silentInstall: ISilentInstallState | null
 }
 
 function repositoryKey(repository: Repository): string {
@@ -215,6 +253,7 @@ function initialState(
     searchMode: readPersistedFilterMode(ReleasesSearchFilterId),
     searchCaseSensitive: false,
     statusFilter: 'all',
+    sortOrder: readPersistedReleaseSortOrder(ReleasesSearchFilterId),
     compactToolsExpanded: false,
     assets: [],
     assetPage: 0,
@@ -231,6 +270,7 @@ function initialState(
     confirmation: null,
     progress: null,
     completedDownload: null,
+    silentInstall: null,
   }
 }
 
@@ -318,6 +358,17 @@ export class GitHubReleasesView extends React.Component<
    * the operator is never told a release was skipped while it was in fact sent.
    */
   private bulkDeleteStopRequested = false
+  /**
+   * One unattended install per downloaded file, claimed synchronously.
+   *
+   * The install runs in the main process and must not be serialized behind the
+   * Releases operation slot, so it carries its own guard. React state updates
+   * are asynchronous, which is exactly why the claim is a plain instance field:
+   * a stuttered double-click is refused before the re-render that disables the
+   * button ever happens.
+   */
+  private silentInstallGuard: InFlightGuardState = EmptyInFlightGuard
+  private silentInstallTimer: ReturnType<typeof setInterval> | null = null
   private lastProgressAt = 0
   private openDownloadRequest = 0
   private selectAllVisibleRef = React.createRef<HTMLInputElement>()
@@ -353,6 +404,14 @@ export class GitHubReleasesView extends React.Component<
     this.openDownloadRequest++
     this.operationController?.abort()
     this.operationController = null
+    this.stopSilentInstallTimer()
+  }
+
+  private stopSilentInstallTimer() {
+    if (this.silentInstallTimer !== null) {
+      clearInterval(this.silentInstallTimer)
+      this.silentInstallTimer = null
+    }
   }
 
   private resetForProps() {
@@ -714,6 +773,12 @@ export class GitHubReleasesView extends React.Component<
     this.setState({ searchMode })
   }
 
+  private updateSortOrder = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const sortOrder = event.currentTarget.value as ReleaseSortOrder
+    persistReleaseSortOrder(ReleasesSearchFilterId, sortOrder)
+    this.setState({ sortOrder })
+  }
+
   private onSearchCaseSensitiveChange = (searchCaseSensitive: boolean) =>
     this.setState({ searchCaseSensitive })
 
@@ -825,18 +890,30 @@ export class GitHubReleasesView extends React.Component<
       release => `${release.name || release.tagName} ${release.tagName}`
     )
 
+  /**
+   * The single filtered, sorted list every surface reads.
+   *
+   * Order is applied last, over whatever survived the status and search
+   * filters, so the two compose rather than fork: the filter decides which
+   * releases are shown and the sort only decides their order. Because both run
+   * over `state.releases`, an exhaustive "Load all releases" walk is covered by
+   * exactly the same pass as a single interactive page.
+   */
   private getVisibleReleases(): {
     readonly releases: ReadonlyArray<IGitHubRelease>
     readonly regexError: string | null
   } {
-    const { releases, statusFilter, search } = this.state
+    const { releases, statusFilter, search, sortOrder } = this.state
     const matchingStatus =
       statusFilter === 'all'
         ? releases
         : releases.filter(release => releaseStatus(release) === statusFilter)
     const query = search.trim()
     if (query.length === 0) {
-      return { releases: matchingStatus, regexError: null }
+      return {
+        releases: sortReleases(matchingStatus, sortOrder),
+        regexError: null,
+      }
     }
 
     const { results, regexError } = matchWithMode(
@@ -860,7 +937,13 @@ export class GitHubReleasesView extends React.Component<
         caseSensitive: this.state.searchCaseSensitive,
       }
     )
-    return { releases: results.map(match => match.item), regexError }
+    return {
+      releases: sortReleases(
+        results.map(match => match.item),
+        sortOrder
+      ),
+      regexError,
+    }
   }
 
   /**
@@ -1641,9 +1724,11 @@ export class GitHubReleasesView extends React.Component<
             completedDownload: {
               path: result.path,
               assetName: asset.name,
+              sizeInBytes: asset.sizeInBytes,
               localDigest: result.localDigest,
               matchesGitHubDigest: result.matchesGitHubDigest,
             },
+            silentInstall: null,
           },
           () => void this.loadReleases(true, message)
         )
@@ -1713,6 +1798,99 @@ export class GitHubReleasesView extends React.Component<
   private cancelOperation = () => {
     this.operationController?.abort()
     this.setState({ message: 'Canceling the current Releases operation…' })
+  }
+
+  /**
+   * Run the downloaded installer unattended.
+   *
+   * The button itself is the consent — one explicit click starts it, and the
+   * button names the exact file it will execute — so no second dialog stands
+   * between the operator and the action they asked for. Everything after the
+   * click is reported rather than assumed: the main process re-verifies the
+   * file, the notice reports start, elapsed time, and the real exit code, and
+   * a refusal names its reason instead of failing silently.
+   */
+  private startSilentInstall = () => {
+    const completed = this.state.completedDownload
+    if (completed === null) {
+      return
+    }
+    const claim = claimInFlight(this.silentInstallGuard, completed.path)
+    if (!claim.accepted) {
+      return
+    }
+    this.silentInstallGuard = claim.state
+
+    const startedAt = Date.now()
+    this.stopSilentInstallTimer()
+    this.silentInstallTimer = setInterval(() => {
+      this.setState(state =>
+        state.silentInstall === null || state.silentInstall.result !== null
+          ? null
+          : {
+              silentInstall: {
+                ...state.silentInstall,
+                elapsedSeconds: Math.floor(
+                  (Date.now() - state.silentInstall.startedAt) / 1000
+                ),
+              },
+            }
+      )
+    }, 1000)
+    this.setState({
+      silentInstall: {
+        path: completed.path,
+        assetName: completed.assetName,
+        startedAt,
+        elapsedSeconds: 0,
+        result: null,
+      },
+    })
+
+    void this.awaitSilentInstall(completed)
+  }
+
+  private async awaitSilentInstall(completed: ICompletedDownload) {
+    let result: ISilentInstallResult
+    try {
+      result = await (this.props.silentInstall ?? silentInstallReleaseAsset)({
+        path: completed.path,
+        fileName: completed.assetName,
+        sizeInBytes: completed.sizeInBytes,
+      })
+    } catch (error) {
+      result = {
+        ok: false,
+        refusal: null,
+        family: null,
+        exitCode: null,
+        output: '',
+        launchError: errorMessage(error),
+      }
+    } finally {
+      this.silentInstallGuard = releaseInFlight(
+        this.silentInstallGuard,
+        completed.path
+      )
+    }
+    this.stopSilentInstallTimer()
+    if (!this.mounted) {
+      return
+    }
+    this.setState(state =>
+      state.silentInstall === null ||
+      state.silentInstall.path !== completed.path
+        ? null
+        : {
+            silentInstall: {
+              ...state.silentInstall,
+              elapsedSeconds: Math.floor(
+                (Date.now() - state.silentInstall.startedAt) / 1000
+              ),
+              result,
+            },
+          }
+    )
   }
 
   private revealDownload = async () => {
@@ -1989,6 +2167,23 @@ export class GitHubReleasesView extends React.Component<
                     <option value="published">Published</option>
                     <option value="prerelease">Pre-releases</option>
                     <option value="draft">Drafts</option>
+                  </select>
+                </label>
+                <label className="github-releases-sort-order">
+                  {t('githubReleases.sortLabel')}
+                  <select
+                    aria-label={translateForAccessibleName(
+                      'githubReleases.sortLabel'
+                    )}
+                    value={this.state.sortOrder}
+                    onChange={this.updateSortOrder}
+                  >
+                    <option value={ReleaseSortOrder.Newest}>
+                      {t('githubReleases.sortNewest')}
+                    </option>
+                    <option value={ReleaseSortOrder.Oldest}>
+                      {t('githubReleases.sortOldest')}
+                    </option>
                   </select>
                 </label>
               </div>
@@ -2812,6 +3007,97 @@ export class GitHubReleasesView extends React.Component<
     )
   }
 
+  /**
+   * Offer an unattended install only for a file this app knows how to install.
+   *
+   * An archive or a `.nupkg` gets no button at all: a control that silently
+   * means "execute this download" would be a trap. An `.exe` whose installer
+   * family the app could not identify is still offered, but as an *attempt*,
+   * because `/S` is a convention rather than a guarantee.
+   */
+  private renderSilentInstallButton(completed: ICompletedDownload) {
+    if (!isSilentInstallableAsset(completed.assetName)) {
+      return null
+    }
+    const running =
+      this.state.silentInstall !== null &&
+      this.state.silentInstall.result === null
+    // Only an MSI's silent switches are certain from the name alone; the exe
+    // families are identified from the file itself in the main process, so the
+    // label promises no more than the renderer actually knows.
+    const certain = completed.assetName.trim().toLowerCase().endsWith('.msi')
+    return (
+      <Button
+        disabled={
+          running || isInFlight(this.silentInstallGuard, completed.path)
+        }
+        onClick={this.startSilentInstall}
+      >
+        {t(
+          certain
+            ? 'githubReleases.silentInstall'
+            : 'githubReleases.silentInstallAttempt',
+          { file: completed.assetName }
+        )}
+      </Button>
+    )
+  }
+
+  private silentInstallNotice(state: ISilentInstallState): string {
+    const file = state.assetName
+    const result = state.result
+    if (result === null) {
+      return t('githubReleases.silentInstallRunning', {
+        file,
+        seconds: state.elapsedSeconds.toString(),
+      })
+    }
+    if (result.refusal !== null) {
+      const refusals: Readonly<Record<SilentInstallRefusal, TranslationKey>> = {
+        missing: 'githubReleases.silentInstallRefusedMissing',
+        'not-a-file': 'githubReleases.silentInstallRefusedNotAFile',
+        'size-mismatch': 'githubReleases.silentInstallRefusedSize',
+        'not-installable': 'githubReleases.silentInstallRefusedKind',
+        'unsupported-platform': 'githubReleases.silentInstallRefusedPlatform',
+      }
+      return t(refusals[result.refusal], { file })
+    }
+    if (result.launchError !== null) {
+      return t('githubReleases.silentInstallLaunchFailed', {
+        file,
+        detail: result.launchError,
+      })
+    }
+    const code = result.exitCode === null ? '?' : result.exitCode.toString()
+    return t(
+      result.ok
+        ? 'githubReleases.silentInstallSucceeded'
+        : 'githubReleases.silentInstallFailed',
+      { file, code }
+    )
+  }
+
+  private renderSilentInstall(state: ISilentInstallState) {
+    const running = state.result === null
+    const failed = state.result !== null && !state.result.ok
+    const output = state.result?.output ?? ''
+    return (
+      <div className="github-release-silent-install" aria-busy={running}>
+        {running && (
+          // No determinate value: an installer reports no progress of its own,
+          // and inventing a percentage would be a guess presented as fact.
+          <progress aria-label={state.assetName} />
+        )}
+        <span role={failed ? 'alert' : 'status'}>
+          {this.silentInstallNotice(state)}
+        </span>
+        {output.length > 0 && (
+          <code>{t('githubReleases.silentInstallOutput', { output })}</code>
+        )}
+      </div>
+    )
+  }
+
   private renderOperationStatus() {
     const progress = this.state.progress
     return (
@@ -2870,9 +3156,12 @@ export class GitHubReleasesView extends React.Component<
               <Button onClick={this.revealDownload}>
                 {t('githubReleases.showInFolder')}
               </Button>
+              {this.renderSilentInstallButton(this.state.completedDownload)}
             </div>
           </div>
         )}
+        {this.state.silentInstall !== null &&
+          this.renderSilentInstall(this.state.silentInstall)}
       </div>
     )
   }
