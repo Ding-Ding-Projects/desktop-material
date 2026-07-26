@@ -1,7 +1,13 @@
-import { git } from './core'
+import { git, IGitStringExecutionOptions } from './core'
 import { Repository } from '../../models/repository'
 import { IRemote } from '../../models/remote'
 import { envForRemoteOperation } from './environment'
+import { IFetchProgress, IPushProgress } from '../../models/progress'
+import {
+  FetchProgressParser,
+  PushProgressParser,
+  executionOptionsWithProgress,
+} from '../progress'
 
 const MaxTagNameLength = 245
 const MaxTagTargetLength = 512
@@ -453,7 +459,13 @@ export async function deleteReviewedLifecycleTag(
 export async function pushLifecycleTags(
   repository: Repository,
   remote: IRemote,
-  reviews: ReadonlyArray<ITagPushReview>
+  reviews: ReadonlyArray<ITagPushReview>,
+  /**
+   * Invoked with `git push --progress` readings so the toolbar progress button
+   * and the tag panel bar can both show a bulk tag push actually moving. When
+   * omitted the push runs exactly as before, without `--progress`.
+   */
+  progressCallback?: (progress: IPushProgress) => void
 ): Promise<void> {
   const reviewedRemote = validateRemote(remote)
   if (reviews.length === 0 || reviews.length > MaxTagInventoryEntries) {
@@ -482,9 +494,43 @@ export async function pushLifecycleTags(
       )
     }
   }
+  let opts: IGitStringExecutionOptions = {
+    env: await envForRemoteOperation(reviewedRemote.url),
+  }
+  if (progressCallback !== undefined) {
+    const title = `Pushing ${uniqueNames.length} tag${
+      uniqueNames.length === 1 ? '' : 's'
+    } to ${reviewedRemote.name}`
+    opts = await executionOptionsWithProgress(
+      { ...opts, trackLFSProgress: true },
+      new PushProgressParser(),
+      progress => {
+        progressCallback({
+          kind: 'push',
+          title,
+          description:
+            progress.kind === 'progress'
+              ? progress.details.text
+              : progress.text,
+          value: progress.percent,
+          remote: reviewedRemote.name,
+          branch: '',
+        })
+      }
+    )
+    progressCallback({
+      kind: 'push',
+      title,
+      value: 0,
+      remote: reviewedRemote.name,
+      branch: '',
+    })
+  }
+
   await git(
     [
       'push',
+      ...(progressCallback !== undefined ? ['--progress'] : []),
       ...reviews.map(review => {
         const expectedRemote =
           review.expectedRemoteRefObject === null
@@ -502,7 +548,7 @@ export async function pushLifecycleTags(
     ],
     repository.path,
     'pushLifecycleTags',
-    { env: await envForRemoteOperation(reviewedRemote.url) }
+    opts
   )
 }
 
@@ -511,7 +557,12 @@ export async function fetchLifecycleTags(
   repository: Repository,
   remote: IRemote,
   prune: boolean,
-  reviewedLocalTags: ReadonlyArray<ITagRefReview> = []
+  reviewedLocalTags: ReadonlyArray<ITagRefReview> = [],
+  /**
+   * Invoked with `git fetch --progress` readings. Omitted keeps the historical
+   * silent behaviour and the historical argv.
+   */
+  progressCallback?: (progress: IFetchProgress) => void
 ): Promise<void> {
   const reviewedRemote = validateRemote(remote)
   if (prune) {
@@ -540,16 +591,46 @@ export async function fetchLifecycleTags(
       )
     }
   }
+  let opts: IGitStringExecutionOptions = {
+    env: await envForRemoteOperation(reviewedRemote.url),
+  }
+  if (progressCallback !== undefined) {
+    const title = `Fetching tags from ${reviewedRemote.name}`
+    opts = await executionOptionsWithProgress(
+      { ...opts, trackLFSProgress: true },
+      new FetchProgressParser(),
+      progress => {
+        progressCallback({
+          kind: 'fetch',
+          title,
+          description:
+            progress.kind === 'progress'
+              ? progress.details.text
+              : progress.text,
+          value: progress.percent,
+          remote: reviewedRemote.name,
+        })
+      }
+    )
+    progressCallback({
+      kind: 'fetch',
+      title,
+      value: 0,
+      remote: reviewedRemote.name,
+    })
+  }
+
   await git(
     [
       'fetch',
+      ...(progressCallback !== undefined ? ['--progress'] : []),
       '--tags',
       ...(prune ? ['--prune', '--prune-tags'] : []),
       reviewedRemote.name,
     ],
     repository.path,
     prune ? 'fetchAndPruneLifecycleTags' : 'fetchLifecycleTags',
-    { env: await envForRemoteOperation(reviewedRemote.url) }
+    opts
   )
 }
 

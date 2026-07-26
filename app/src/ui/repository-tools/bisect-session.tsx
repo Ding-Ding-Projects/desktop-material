@@ -19,8 +19,12 @@ import {
   prepareRepositoryBisectRange,
 } from '../../lib/repository-bisect'
 import { Button } from '../lib/button'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 
 const MaximumInspectionOutput = 256 * 1024
+/** How much live command output the embedded bisect log keeps on screen. */
+const MaximumVisibleBisectLog = 64 * 1024
 
 type BisectPhase =
   | 'idle'
@@ -92,6 +96,18 @@ interface IRepositoryBisectSessionState {
   readonly review: BisectReview | null
   readonly status: string
   readonly error: string | null
+  /**
+   * The mutation phase that is currently moving HEAD, or null. Every one of
+   * `bisect start`, `bisect <verdict>` and `bisect reset` performs a full
+   * checkout, which is seconds to minutes on a large worktree.
+   *
+   * These commands take no `--progress` option (Git rejects it outright), so
+   * there is no byte or object count to report; the bar is honestly
+   * indeterminate and the live command output stands in for detail.
+   */
+  readonly runningPhase: BisectPhase | null
+  /** Live stdout from the running command, rendered as an embedded log. */
+  readonly commandLog: string
 }
 
 let nextBisectSequence = 0
@@ -104,6 +120,23 @@ function verdictLabel(verdict: GuidedBisectVerdict): string {
       return 'bad'
     case 'skip':
       return 'untestable and skip it'
+  }
+}
+
+/**
+ * The line shown while a command runs. Only the HEAD-moving phases get one;
+ * the instantaneous inspections keep whatever status their caller set.
+ */
+function inFlightStatus(phase: BisectPhase): string | null {
+  switch (phase) {
+    case 'starting':
+      return t('bisect.progressStarting')
+    case 'marking':
+      return t('bisect.progressMarking')
+    case 'resetting':
+      return t('bisect.progressResetting')
+    default:
+      return null
   }
 }
 
@@ -160,6 +193,8 @@ export class RepositoryBisectSession extends React.Component<
       review: null,
       status: 'Inspect the repository to start or resume a bisect session.',
       error: null,
+      runningPhase: null,
+      commandLog: '',
     }
   }
 
@@ -243,9 +278,19 @@ export class RepositoryBisectSession extends React.Component<
     this.commandStdout = ''
     this.commandOutputTruncated = false
     this.cancelRequested = false
-    this.mutationStarted =
+    const isMutation =
       phase === 'starting' || phase === 'marking' || phase === 'resetting'
-    this.setState({ phase, error: null })
+    this.mutationStarted = isMutation
+    // Previously the 'starting'/'marking'/'resetting' phases never touched
+    // `status`, so the role=status region kept showing the pre-confirmation
+    // review text for the whole checkout.
+    this.setState({
+      phase,
+      error: null,
+      runningPhase: phase,
+      commandLog: '',
+      status: inFlightStatus(phase) ?? this.state.status,
+    })
     void this.props.client
       .start({
         id,
@@ -277,6 +322,15 @@ export class RepositoryBisectSession extends React.Component<
     if (event.data.includes('CLI workbench output truncated')) {
       this.commandOutputTruncated = true
     }
+    // Mirror the captured output into state so the mutation phases render a
+    // real embedded log instead of silently buffering it.
+    if (this.state.runningPhase !== null) {
+      this.setState(state => ({
+        commandLog: `${state.commandLog}${event.data}`.slice(
+          -MaximumVisibleBisectLog
+        ),
+      }))
+    }
   }
 
   private onState = (event: ICLICommandStateEvent) => {
@@ -288,6 +342,7 @@ export class RepositoryBisectSession extends React.Component<
     }
     const phase = this.runPhase
     this.runId = null
+    this.setState({ runningPhase: null })
     if (this.cancelRequested || event.state === 'cancelled') {
       this.cancelRequested = false
       const mutationStarted = this.mutationStarted
@@ -761,6 +816,35 @@ export class RepositoryBisectSession extends React.Component<
     )
   }
 
+  /**
+   * The in-flight indicator for the three HEAD-moving bisect commands. Git
+   * offers no measurable progress for them, so this is an indeterminate bar
+   * plus the command's own live output.
+   */
+  private renderRunningProgress() {
+    const phase = this.state.runningPhase
+    if (phase === null || inFlightStatus(phase) === null) {
+      return null
+    }
+
+    return (
+      <div className="repository-bisect-running">
+        <OperationProgressRow
+          label={translateForAccessibleName('bisect.progressLabel')}
+          description={inFlightStatus(phase) ?? undefined}
+        />
+        <div
+          role="region"
+          aria-label={translateForAccessibleName('bisect.progressLogLabel')}
+        >
+          <pre className="repository-bisect-output">
+            {this.state.commandLog || '…'}
+          </pre>
+        </div>
+      </div>
+    )
+  }
+
   private renderProgress() {
     const session = this.state.session
     const head = this.state.head
@@ -975,6 +1059,7 @@ export class RepositoryBisectSession extends React.Component<
         >
           {this.state.status}
         </div>
+        {this.renderRunningProgress()}
         {this.state.error !== null && (
           <p className="repository-tools-error" role="alert">
             {this.state.error}

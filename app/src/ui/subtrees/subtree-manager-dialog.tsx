@@ -6,7 +6,14 @@ import { Account } from '../../models/account'
 import { IRemote } from '../../models/remote'
 import { PopupType } from '../../models/popup'
 import { Dispatcher } from '../dispatcher'
-import { getRemotes, IManagedSubtree } from '../../lib/git'
+import {
+  getRemotes,
+  IManagedSubtree,
+  ISubtreeSplitProgress,
+  parseSubtreeSplitProgress,
+} from '../../lib/git'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 import { getPreferredGenericCloneAccountKey } from '../../lib/automation/clone-account-fallback'
 import { findAccountForRemoteURL } from '../../lib/find-account'
 import { Button } from '../lib/button'
@@ -80,6 +87,12 @@ interface ISubtreeManagerDialogState {
   /** The latest streamed progress line from an operation, if any. */
   readonly progress: string | null
 
+  /**
+   * The parsed revision counter from `git subtree split`, when the in-flight
+   * operation is a split and Git has reported at least one reading.
+   */
+  readonly splitProgress: ISubtreeSplitProgress | null
+
   /** The most recent operation error, surfaced inline. */
   readonly error: string | null
 
@@ -147,6 +160,7 @@ export class SubtreeManager extends React.Component<
       remotes: [],
       activeOperationPrefix: null,
       progress: null,
+      splitProgress: null,
       error: null,
       notice: null,
       filterText: '',
@@ -285,6 +299,7 @@ export class SubtreeManager extends React.Component<
       error: null,
       notice: null,
       progress: null,
+      splitProgress: null,
     })
     this.props.onOperationStateChanged?.(true)
     return generation
@@ -297,7 +312,11 @@ export class SubtreeManager extends React.Component<
 
     this.operationInFlight = false
     if (this.isMounted) {
-      this.setState({ activeOperationPrefix: null, progress: null })
+      this.setState({
+        activeOperationPrefix: null,
+        progress: null,
+        splitProgress: null,
+      })
     }
     this.props.onOperationStateChanged?.(false)
   }
@@ -310,6 +329,52 @@ export class SubtreeManager extends React.Component<
     ) {
       this.setState({ progress: line })
     }
+  }
+
+  /**
+   * Split progress carries a real revision counter, so it drives a determinate
+   * bar; pull/push have only status text and stay indeterminate.
+   */
+  private onSplitProgress = (generation: number, line: string) => {
+    if (
+      !this.isMounted ||
+      !this.operationInFlight ||
+      generation !== this.operationGeneration
+    ) {
+      return
+    }
+    this.setState({
+      progress: line,
+      splitProgress: parseSubtreeSplitProgress(line),
+    })
+  }
+
+  private renderOperationProgress() {
+    if (this.state.progress === null) {
+      return null
+    }
+
+    const split = this.state.splitProgress
+    return (
+      <OperationProgressRow
+        className="subtrees-progress"
+        label={translateForAccessibleName('subtree.splitProgressLabel')}
+        description={
+          split === null
+            ? this.state.progress
+            : t('subtree.splitProgressCommits', {
+                processed: String(split.processed),
+                total: String(split.total),
+              })
+        }
+        value={split?.processed ?? null}
+        max={split?.total ?? null}
+        countText={
+          split === null ? undefined : `${split.processed}/${split.total}`
+        }
+        detail={split === null ? undefined : this.state.progress}
+      />
+    )
   }
 
   private onFilterTextChanged = (filterText: string) => {
@@ -519,7 +584,10 @@ export class SubtreeManager extends React.Component<
       const sha = await this.props.dispatcher.splitSubtree(
         this.props.repository,
         prefix,
-        { branch }
+        {
+          branch,
+          progressCallback: line => this.onSplitProgress(generation, line),
+        }
       )
 
       if (this.isMounted && generation === this.operationGeneration) {
@@ -850,15 +918,7 @@ export class SubtreeManager extends React.Component<
                   {this.state.notice}
                 </p>
               )}
-              {this.state.progress !== null && (
-                <p
-                  className="subtrees-progress"
-                  role="status"
-                  aria-live="polite"
-                >
-                  {this.state.progress}
-                </p>
-              )}
+              {this.renderOperationProgress()}
               {this.renderList()}
             </section>
           </div>

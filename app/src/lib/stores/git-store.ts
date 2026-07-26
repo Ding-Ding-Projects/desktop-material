@@ -21,7 +21,11 @@ import {
   IRemoteManagementPlan,
   IRemoteManagementSnapshot,
 } from '../../models/remote'
-import { IFetchProgress, IRevertProgress } from '../../models/progress'
+import {
+  IFetchProgress,
+  IPushProgress,
+  IRevertProgress,
+} from '../../models/progress'
 import {
   ICommitMessage,
   DefaultCommitMessage,
@@ -484,7 +488,10 @@ export class GitStore extends BaseStore {
   }
 
   /** Push one or more exact reviewed local tag objects. */
-  public async pushLifecycleTags(reviews: ReadonlyArray<ITagPushReview>) {
+  public async pushLifecycleTags(
+    reviews: ReadonlyArray<ITagPushReview>,
+    progressCallback?: (progress: IPushProgress) => void
+  ) {
     const remote = this.defaultRemote
     if (remote === null) {
       this.emitError(
@@ -493,7 +500,12 @@ export class GitStore extends BaseStore {
       return false
     }
     const result = await this.performFailableOperation(async () => {
-      await pushLifecycleTags(this.repository, remote, reviews)
+      await pushLifecycleTags(
+        this.repository,
+        remote,
+        reviews,
+        progressCallback
+      )
       return true
     })
     if (result !== true) {
@@ -508,7 +520,8 @@ export class GitStore extends BaseStore {
   /** Fetch remote tags, optionally pruning reviewed stale local tags. */
   public async fetchLifecycleTags(
     prune: boolean,
-    reviewedLocalTags: ReadonlyArray<ITagRefReview>
+    reviewedLocalTags: ReadonlyArray<ITagRefReview>,
+    progressCallback?: (progress: IFetchProgress) => void
   ) {
     const remote = this.defaultRemote
     if (remote === null) {
@@ -522,7 +535,8 @@ export class GitStore extends BaseStore {
         this.repository,
         remote,
         prune,
-        reviewedLocalTags
+        reviewedLocalTags,
+        progressCallback
       )
       return true
     })

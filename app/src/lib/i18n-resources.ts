@@ -1971,6 +1971,63 @@ export type TranslationKey =
   | 'accountFallback.notFoundBody'
   | 'accountFallback.notFoundNoAccounts'
   | 'accountFallback.triedAccounts'
+  | 'shallowHistory.progress.label'
+  | 'shallowHistory.progress.contacting'
+  | 'shallowHistory.progress.step'
+  | 'shallowHistory.progress.detail'
+  | 'shallowHistory.progress.valueText'
+  | 'shallowHistory.progress.valueTextCounted'
+  | 'tagLifecycle.progressLabel'
+  | 'tagLifecycle.workingStatus'
+  | 'tagLifecycle.refreshingStatus'
+  | 'tagLifecycle.creatingStatus'
+  | 'tagLifecycle.movingStatus'
+  | 'tagLifecycle.deletingLocalStatus'
+  | 'tagLifecycle.pushingStatus'
+  | 'tagLifecycle.pushingAllStatus'
+  | 'tagLifecycle.fetchingStatus'
+  | 'tagLifecycle.fetchingPrunedStatus'
+  | 'tagLifecycle.deletingRemoteStatus'
+  | 'remoteManager.applyProgressLabel'
+  | 'remoteManager.applyProgressStatus'
+  | 'remoteManager.applyProgressPreparing'
+  | 'bulkBranchDelete.progressLabel'
+  | 'bulkBranchDelete.progressStatus'
+  | 'bulkBranchDelete.progressCurrent'
+  | 'subtree.splitProgressLabel'
+  | 'subtree.splitProgressCommits'
+  | 'bisect.progressLabel'
+  | 'bisect.progressStarting'
+  | 'bisect.progressMarking'
+  | 'bisect.progressResetting'
+  | 'bisect.progressLogLabel'
+  | 'commitRewrite.progressLabel'
+  | 'commitRewrite.progressStatus'
+  | 'commitRewrite.progressPreparing'
+  | 'commit.maintenance.repacking'
+  | 'commit.maintenance.repackingLabel'
+  | 'ollama.manager.operationProgressLabel'
+  | 'ollama.manager.operationLoading'
+  | 'ollama.manager.operationUnloading'
+  | 'ollama.manager.operationDeleting'
+  | 'ollama.manager.operationCopying'
+  | 'ollama.manager.operationRenaming'
+  | 'ollama.manager.operationCancelled'
+  | 'addRepositories.progressLabel'
+  | 'addRepositories.progressStatus'
+  | 'notificationCentre.bulkProgressLabel'
+  | 'notificationCentre.bulkProgressStatus'
+  | 'notificationCentre.clearAllProgressStatus'
+  | 'cheapLfs.stage.hashingLabel'
+  | 'cheapLfs.stage.hashingStatus'
+  | 'cheapLfs.stage.releaseLabel'
+  | 'cheapLfs.stage.releaseStatus'
+  | 'cheapLfs.restore.label'
+  | 'cheapLfs.restore.status'
+  | 'cheapLfs.restore.cancel'
+  | 'batchClone.finalizingLabel'
+  | 'batchClone.finalizingStatus'
+  | 'batchClone.restoringStatus'
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
@@ -4439,6 +4496,71 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'accountFallback.notFoundNoAccounts':
     '{repository} could not be found, and no other account is signed in for this host.',
   'accountFallback.triedAccounts': 'Accounts tried: {accounts}.',
+  'shallowHistory.progress.label': 'Fetching older history',
+  'shallowHistory.progress.contacting': 'Contacting the remote',
+  'shallowHistory.progress.step': '{step}…',
+  'shallowHistory.progress.detail': '{step}: {value} of {total}',
+  'shallowHistory.progress.valueText': '{step}, {percent} percent complete',
+  'shallowHistory.progress.valueTextCounted':
+    '{step}, {value} of {total}, {percent} percent complete',
+  'tagLifecycle.progressLabel': 'Tag operation progress',
+  'tagLifecycle.workingStatus': 'Working on the reviewed tag operation…',
+  'tagLifecycle.refreshingStatus': 'Refreshing the tag inventory…',
+  'tagLifecycle.creatingStatus': 'Creating local tag {name}…',
+  'tagLifecycle.movingStatus': 'Moving local tag {name}…',
+  'tagLifecycle.deletingLocalStatus': 'Deleting local tag {name}…',
+  'tagLifecycle.pushingStatus': 'Pushing tag {name}…',
+  'tagLifecycle.pushingAllStatus': 'Pushing {count} local tags…',
+  'tagLifecycle.fetchingStatus': 'Fetching tags from {remote}…',
+  'tagLifecycle.fetchingPrunedStatus':
+    'Fetching and pruning tags from {remote}…',
+  'tagLifecycle.deletingRemoteStatus': 'Deleting remote tag {name}…',
+  'remoteManager.applyProgressLabel': 'Applying remote changes',
+  'remoteManager.applyProgressStatus':
+    'Applying remote change {index} of {total}…',
+  'remoteManager.applyProgressPreparing': 'Reading the current remote layout…',
+  'bulkBranchDelete.progressLabel': 'Deleting branches',
+  'bulkBranchDelete.progressStatus': 'Deleted {completed} of {total} branches…',
+  'bulkBranchDelete.progressCurrent': 'Deleting {name}…',
+  'subtree.splitProgressLabel': 'Splitting subtree history',
+  'subtree.splitProgressCommits': '{processed} of {total} commits rewritten',
+  'bisect.progressLabel': 'Bisect step progress',
+  'bisect.progressStarting': 'Starting the bisect session…',
+  'bisect.progressMarking':
+    'Recording the verdict and checking out the next commit…',
+  'bisect.progressResetting': 'Ending the session and restoring your branch…',
+  'bisect.progressLogLabel': 'Bisect command output',
+  'commitRewrite.progressLabel': 'Rewriting commits',
+  'commitRewrite.progressStatus':
+    'Replaying commit {index} of {total}: {summary}',
+  'commitRewrite.progressPreparing': 'Preparing the rewrite sequence…',
+  'commit.maintenance.repacking': 'Repacking the repository after the batches…',
+  'commit.maintenance.repackingLabel': 'Repository repack progress',
+  'ollama.manager.operationProgressLabel': 'Ollama operation progress',
+  'ollama.manager.operationLoading': 'Loading {model} into memory…',
+  'ollama.manager.operationUnloading': 'Unloading {model} from memory…',
+  'ollama.manager.operationDeleting': 'Deleting {model}…',
+  'ollama.manager.operationCopying': 'Copying {model}…',
+  'ollama.manager.operationRenaming': 'Renaming {model}…',
+  'ollama.manager.operationCancelled': 'Model operation stopped.',
+  'addRepositories.progressLabel': 'Adding repositories',
+  'addRepositories.progressStatus': 'Adding {name} — {index} of {total}',
+  'notificationCentre.bulkProgressLabel': 'Notification triage progress',
+  'notificationCentre.bulkProgressStatus':
+    'Updated {completed} of {total} notifications…',
+  'notificationCentre.clearAllProgressStatus':
+    'Marking {completed} of {total} notifications done…',
+  'cheapLfs.stage.hashingLabel': 'Hashing progress',
+  'cheapLfs.stage.hashingStatus': 'Hashing {path}…',
+  'cheapLfs.stage.releaseLabel': 'Release preparation progress',
+  'cheapLfs.stage.releaseStatus': 'Preparing release bucket…',
+  'cheapLfs.restore.label': 'Restoring large files',
+  'cheapLfs.restore.status':
+    'Restoring large files — {files} files, {bytes} transferred',
+  'cheapLfs.restore.cancel': 'Stop restoring',
+  'batchClone.finalizingLabel': 'Finishing the cloned repositories',
+  'batchClone.finalizingStatus': 'Registering {index} of {total} repositories…',
+  'batchClone.restoringStatus': 'Restoring large files in {name}…',
 }
 
 /** Hong Kong Cantonese catalog. Missing entries deliberately use English. */
@@ -6726,4 +6848,66 @@ export const cantoneseTranslations: Readonly<
   'accountFallback.notFoundNoAccounts':
     '搵唔到 {repository}，而呢個主機都冇第二個帳戶登入咗。',
   'accountFallback.triedAccounts': '試過嘅帳戶：{accounts}。',
+  'shallowHistory.progress.label': '攞緊舊嘅歷史',
+  'shallowHistory.progress.contacting': '聯絡緊遠端',
+  'shallowHistory.progress.step': '{step}…',
+  'shallowHistory.progress.detail': '{step}：{value} / {total}',
+  'shallowHistory.progress.valueText': '{step}，做咗 {percent}%',
+  'shallowHistory.progress.valueTextCounted':
+    '{step}，{value} / {total}，做咗 {percent}%',
+  'tagLifecycle.progressLabel': '標籤操作進度',
+  'tagLifecycle.workingStatus': '做緊你審過嘅標籤操作…',
+  'tagLifecycle.refreshingStatus': '刷新緊標籤清單…',
+  'tagLifecycle.creatingStatus': '起緊本機標籤 {name}…',
+  'tagLifecycle.movingStatus': '搬緊本機標籤 {name}…',
+  'tagLifecycle.deletingLocalStatus': '刪緊本機標籤 {name}…',
+  'tagLifecycle.pushingStatus': 'Push 緊標籤 {name}…',
+  'tagLifecycle.pushingAllStatus': 'Push 緊 {count} 個本機標籤…',
+  'tagLifecycle.fetchingStatus': '由 {remote} fetch 緊標籤…',
+  'tagLifecycle.fetchingPrunedStatus': '由 {remote} fetch 同清理緊標籤…',
+  'tagLifecycle.deletingRemoteStatus': '刪緊遠端標籤 {name}…',
+  'remoteManager.applyProgressLabel': '套用緊 remote 改動',
+  'remoteManager.applyProgressStatus':
+    '套用緊第 {index} / {total} 項 remote 改動…',
+  'remoteManager.applyProgressPreparing': '讀緊而家嘅 remote 佈局…',
+  'bulkBranchDelete.progressLabel': '刪緊分支',
+  'bulkBranchDelete.progressStatus': '刪咗 {completed} / {total} 個分支…',
+  'bulkBranchDelete.progressCurrent': '刪緊 {name}…',
+  'subtree.splitProgressLabel': 'Subtree 歷史分拆進度',
+  'subtree.splitProgressCommits': '重寫咗 {processed} / {total} 個 commit',
+  'bisect.progressLabel': 'Bisect 步驟進度',
+  'bisect.progressStarting': '開緊 bisect 會話…',
+  'bisect.progressMarking': '記低判斷，跟住 checkout 下一個 commit…',
+  'bisect.progressResetting': '收緊尾，幫你還原返原本個分支…',
+  'bisect.progressLogLabel': 'Bisect 指令輸出',
+  'commitRewrite.progressLabel': '重寫緊 commit',
+  'commitRewrite.progressStatus':
+    '重播緊第 {index} / {total} 個 commit：{summary}',
+  'commitRewrite.progressPreparing': '準備緊重寫次序…',
+  'commit.maintenance.repacking': '批次做完，repack 緊個 repository…',
+  'commit.maintenance.repackingLabel': 'Repository repack 進度',
+  'ollama.manager.operationProgressLabel': 'Ollama 操作進度',
+  'ollama.manager.operationLoading': '載入緊 {model} 入記憶體…',
+  'ollama.manager.operationUnloading': '由記憶體卸載緊 {model}…',
+  'ollama.manager.operationDeleting': '刪緊 {model}…',
+  'ollama.manager.operationCopying': '複製緊 {model}…',
+  'ollama.manager.operationRenaming': '改緊 {model} 個名…',
+  'ollama.manager.operationCancelled': '模型操作已經停咗。',
+  'addRepositories.progressLabel': '加緊 repository',
+  'addRepositories.progressStatus': '加緊 {name} — 第 {index} / {total} 個',
+  'notificationCentre.bulkProgressLabel': '通知整理進度',
+  'notificationCentre.bulkProgressStatus':
+    '處理咗 {completed} / {total} 個通知…',
+  'notificationCentre.clearAllProgressStatus':
+    '標記緊 {completed} / {total} 個通知做完…',
+  'cheapLfs.stage.hashingLabel': '計 hash 進度',
+  'cheapLfs.stage.hashingStatus': '計緊 {path} 嘅 hash…',
+  'cheapLfs.stage.releaseLabel': 'Release 準備進度',
+  'cheapLfs.stage.releaseStatus': '準備緊 release 空位…',
+  'cheapLfs.restore.label': '還原緊大檔案',
+  'cheapLfs.restore.status': '還原緊大檔案 — {files} 個檔案，傳咗 {bytes}',
+  'cheapLfs.restore.cancel': '停止還原',
+  'batchClone.finalizingLabel': '執緊 clone 完嘅 repository',
+  'batchClone.finalizingStatus': '登記緊第 {index} / {total} 個 repository…',
+  'batchClone.restoringStatus': '還原緊 {name} 入面嘅大檔案…',
 }

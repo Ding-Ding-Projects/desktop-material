@@ -99,6 +99,56 @@ export type PossibleSelections =
     }
   | { type: SelectionType.MissingRepository; repository: Repository }
 
+/**
+ * Live progress for a Cheap LFS materialize (restore) batch.
+ *
+ * The automatic materialize runs after every clone, repository selection,
+ * fetch and pull, and downloads every committed pointer's real bytes — that is
+ * arbitrarily many gigabytes. Before this state existed the automatic path
+ * passed no `onProgress` at all and the only feedback was a notification after
+ * the whole batch finished.
+ */
+export interface ICheapLfsRestoreState {
+  readonly repositoryId: number
+  readonly repositoryName: string
+  /** Pointers fully settled (materialized or failed). */
+  readonly filesCompleted: number
+  readonly filesTotal: number
+  /** Bytes transferred so far across the batch. */
+  readonly transferredBytes: number
+  /** Sum of every pending pointer's recorded size. */
+  readonly totalBytes: number
+}
+
+/**
+ * The post-clone finalization phase of a batch clone.
+ *
+ * `finalizeBatchClone` registers every cloned repository and then restores each
+ * one's Cheap LFS pointers, serially, before the batch is allowed to report
+ * completion. The batch state is already `isDone` by then, so without this the
+ * popup shows every row complete and the overall bar at 100% while the app
+ * silently downloads.
+ */
+export interface IBatchCloneFinalizingState {
+  /** Repositories fully registered and restored so far. */
+  readonly completed: number
+  readonly total: number
+  /** Display name or path of the repository being finalized. */
+  readonly current: string
+  /** What is happening to `current` right now. */
+  readonly stage: 'registering' | 'restoring'
+}
+
+/** One reading from a running bulk repository add. */
+export interface IAddRepositoriesProgress {
+  /** Repositories fully registered so far. */
+  readonly completed: number
+  /** Total paths handed to the batch. */
+  readonly total: number
+  /** Display name of the repository currently being registered. */
+  readonly current: string
+}
+
 /** All of the shared app state. */
 export interface IAppState {
   readonly automationSettings: IAutomationSettingsState
@@ -107,6 +157,27 @@ export interface IAppState {
    * The current list of repositories tracked in the application
    */
   readonly repositories: ReadonlyArray<Repository | CloningRepository>
+
+  /**
+   * Determinate progress for a running bulk repository add (multi-folder drag
+   * and drop, or Auto-detect repositories which can hand over 100 paths at
+   * once). Each path costs several serial child processes plus a GitHub API
+   * round trip, so the batch is a real wait. Null when none is running.
+   */
+  readonly addRepositoriesProgress: IAddRepositoriesProgress | null
+
+  /**
+   * The running Cheap LFS restore, or null. Surfaced app-wide because the
+   * automatic materialize is triggered by clone, selection, fetch and pull —
+   * none of which have the Cheap LFS panel open.
+   */
+  readonly cheapLfsRestore: ICheapLfsRestoreState | null
+
+  /**
+   * The batch clone's post-clone finalization phase, or null. Keeps the clone
+   * popup live while cloned repositories are registered and restored.
+   */
+  readonly batchCloneFinalizing: IBatchCloneFinalizingState | null
 
   /**
    * List of IDs of the most recently opened repositories (most recent first)
@@ -644,6 +715,17 @@ export type CommitOperationPhase =
        * ordinary single-batch commit, which keeps its existing behavior.
        */
       readonly batchProgress?: ICommitBatchProgress
+    }
+  | {
+      /**
+       * The single controlled `git repack -d` that runs after a multi-batch
+       * commit-and-push. It is slowest in exactly this case — the repository
+       * has just absorbed a very large change set — and reports no progress of
+       * its own, so it is surfaced as an indeterminate phase rather than being
+       * left to freeze the last batch label at 100%.
+       */
+      readonly kind: 'maintenance'
+      readonly operation: 'repacking'
     }
 
 export interface IRepositoryState {

@@ -10,7 +10,7 @@ import {
   AppFileStatusKind,
 } from '../../models/status'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
-import { Commit, CommitOneLine } from '../../models/commit'
+import { CommitOneLine } from '../../models/commit'
 
 import { merge } from '../merge'
 import { formatRebaseValue } from '../rebase'
@@ -560,7 +560,12 @@ export type RebaseInteractiveOptions = {
    */
   gitEditor?: string
   progressCallback?: (progress: IMultiCommitOperationProgress) => void
-  commits?: ReadonlyArray<Commit>
+  /**
+   * The commits being replayed, oldest first. Only `sha`/`summary` are read, so
+   * any `CommitOneLine`-shaped list works — the structured commit rewrite hands
+   * over its own reviewed list rather than fetching full `Commit` models.
+   */
+  commits?: ReadonlyArray<CommitOneLine>
   noVerify?: boolean
 } & HookCallbackOptions
 

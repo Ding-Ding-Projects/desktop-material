@@ -25,6 +25,12 @@ export interface IGitHubNotificationsError {
   readonly rateLimitReset: Date | null
 }
 
+/** Determinate counter for a running bulk notification mutation. */
+export interface IGitHubNotificationsBulkProgress {
+  readonly completed: number
+  readonly total: number
+}
+
 export interface IGitHubNotificationsState {
   readonly selectedAccountKey: string | null
   readonly filter: GitHubNotificationsFilter
@@ -33,6 +39,12 @@ export interface IGitHubNotificationsState {
   readonly loading: boolean
   readonly busyThreadId: string | null
   readonly clearingAll: boolean
+  /**
+   * Threads settled so far in the running Clear all, and the total it started
+   * with. Null when no Clear all is running. The list does not shrink until the
+   * whole worker pool resolves, so without this the panel looks frozen.
+   */
+  readonly clearAllProgress: IGitHubNotificationsBulkProgress | null
   readonly error: IGitHubNotificationsError | null
   readonly lastModified: string | null
   readonly lastUpdated: Date | null
@@ -77,6 +89,7 @@ const createState = (
   loading: false,
   busyThreadId: null,
   clearingAll: false,
+  clearAllProgress: null,
   error: null,
   lastModified: null,
   lastUpdated: null,
@@ -188,7 +201,12 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
     }
     this.active = false
     this.cancelContext()
-    this.update({ loading: false, busyThreadId: null, clearingAll: false })
+    this.update({
+      loading: false,
+      busyThreadId: null,
+      clearingAll: false,
+      clearAllProgress: null,
+    })
   }
 
   public dispose(): void {
@@ -316,7 +334,21 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
     let globalError: IGitHubNotificationsError | null = null
     let stopDequeuing = false
     let nextIndex = 0
-    this.update({ clearingAll: true, error: null })
+    this.update({
+      clearingAll: true,
+      clearAllProgress: { completed: 0, total: ids.length },
+      error: null,
+    })
+    const publishProgress = () => {
+      if (this.ownsClearAll(contextGeneration, accountKey)) {
+        this.update({
+          clearAllProgress: {
+            completed: succeeded.size + failed.size,
+            total: ids.length,
+          },
+        })
+      }
+    }
 
     const worker = async () => {
       while (
@@ -338,6 +370,7 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
             return
           }
           succeeded.add(id)
+          publishProgress()
         } catch (error) {
           if (
             !this.ownsClearAll(contextGeneration, accountKey) ||
@@ -346,6 +379,7 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
             return
           }
           failed.add(id)
+          publishProgress()
           const mappedError = githubNotificationsError(error)
           if (
             mappedError.kind === 'authentication' ||
@@ -383,6 +417,7 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
         item => !succeeded.has(item.id)
       ),
       clearingAll: false,
+      clearAllProgress: null,
       error:
         globalError !== null
           ? globalError

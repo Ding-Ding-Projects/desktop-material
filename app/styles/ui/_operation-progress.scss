@@ -1,0 +1,101 @@
+// Shared determinate/indeterminate progress row mounted by every long-running
+// operation surface (history deepen, tag lifecycle, bulk branch delete, subtree
+// split, bisect, remote plan apply, notification triage, Cheap LFS staging).
+.operation-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  margin: var(--spacing) 0;
+
+  .operation-progress-heading {
+    align-items: baseline;
+    display: flex;
+    gap: var(--spacing);
+    justify-content: space-between;
+  }
+
+  .operation-progress-description {
+    color: var(--md-sys-color-on-surface);
+    overflow-wrap: anywhere;
+  }
+
+  .operation-progress-count {
+    color: var(--md-sys-color-primary);
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .operation-progress-track {
+    background: var(--md-sys-color-surface-container-highest);
+    border-radius: 999px;
+    height: 6px;
+    overflow: hidden;
+    position: relative;
+
+    span {
+      background: var(--md-sys-color-primary);
+      border-radius: inherit;
+      display: block;
+      height: 100%;
+      transition: width 180ms var(--emph, ease);
+    }
+
+    // MD3 single traveling active indicator, matching the <progress>
+    // indeterminate treatment in _progress.scss so the two read as one system.
+    &.indeterminate::after {
+      animation: operation-progress-indeterminate 1.1s var(--emph, ease) infinite;
+      background: var(--md-sys-color-primary);
+      border-radius: inherit;
+      content: '';
+      inset: 0 auto 0 0;
+      position: absolute;
+      width: 34%;
+    }
+  }
+
+  .operation-progress-detail {
+    color: var(--md-sys-color-on-surface-variant);
+    overflow-wrap: anywhere;
+  }
+}
+
+// App-wide Cheap LFS restore strip, mounted under the toolbar because the
+// automatic materialize is triggered by clone / selection / fetch / pull.
+.cheap-lfs-restore-strip {
+  align-items: center;
+  background: var(--md-sys-color-surface-container);
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  display: flex;
+  flex: 0 0 auto;
+  gap: var(--spacing);
+  padding: var(--spacing-half) var(--spacing-double);
+
+  .operation-progress {
+    flex: 1 1 auto;
+    margin: 0;
+    min-width: 0;
+  }
+}
+
+@keyframes operation-progress-indeterminate {
+  0% {
+    transform: translateX(-140%);
+  }
+  100% {
+    transform: translateX(400%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .operation-progress .operation-progress-track {
+    span {
+      transition: none;
+    }
+
+    &.indeterminate::after {
+      animation-duration: 2.4s;
+      animation-timing-function: linear;
+    }
+  }
+}

@@ -23,7 +23,17 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { filterByMode } from '../lib/filter-string-list'
-import { t, LanguageModeChangedEvent } from '../../lib/i18n'
+import {
+  t,
+  LanguageModeChangedEvent,
+  translateForAccessibleName,
+} from '../../lib/i18n'
+import {
+  IBatchCloneFinalizingState,
+  ICheapLfsRestoreState,
+} from '../../lib/app-state'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { formatBytes } from '../lib/bytes'
 
 /** localStorage id used to persist the clone-queue filter mode. */
 const BatchCloneFilterListId = 'batch-clone-queue'
@@ -40,6 +50,16 @@ interface IBatchCloneProgressProps {
 
   /** The current batch clone state, or null when there is no active batch. */
   readonly batchCloneState: IBatchCloneState | null
+
+  /**
+   * The post-clone finalization phase, or null. The batch reports `isDone`
+   * before registration and Cheap LFS restore have run, so this keeps the
+   * popup honest instead of showing 100% while gigabytes still download.
+   */
+  readonly finalizing?: IBatchCloneFinalizingState | null
+
+  /** The Cheap LFS restore running inside finalization, if any. */
+  readonly cheapLfsRestore?: ICheapLfsRestoreState | null
 
   /** Whether the dialog is the top most in the dialog stack. */
   readonly isTopMost: boolean
@@ -332,6 +352,57 @@ export class BatchCloneProgress extends React.Component<
     )
   }
 
+  /**
+   * The extra stage row that keeps the popup live after the clone queue itself
+   * reports done: one determinate bar for repositories registered/restored,
+   * plus a nested determinate byte bar for the repository being restored.
+   */
+  private renderFinalizingStage() {
+    const finalizing = this.props.finalizing
+    if (finalizing === null || finalizing === undefined) {
+      return null
+    }
+
+    const restore = this.props.cheapLfsRestore ?? null
+    return (
+      <div className="batch-clone-finalizing">
+        <OperationProgressRow
+          label={translateForAccessibleName('batchClone.finalizingLabel')}
+          description={
+            finalizing.stage === 'restoring'
+              ? t('batchClone.restoringStatus', { name: finalizing.current })
+              : t('batchClone.finalizingStatus', {
+                  index: String(
+                    Math.min(finalizing.completed + 1, finalizing.total)
+                  ),
+                  total: String(finalizing.total),
+                })
+          }
+          value={finalizing.completed}
+          max={finalizing.total}
+          countText={`${finalizing.completed}/${finalizing.total}`}
+          detail={
+            finalizing.stage === 'restoring' ? undefined : finalizing.current
+          }
+        />
+        {restore !== null && (
+          <OperationProgressRow
+            className="batch-clone-finalizing-bytes"
+            label={translateForAccessibleName('cheapLfs.restore.label')}
+            description={t('cheapLfs.restore.status', {
+              files: `${restore.filesCompleted}/${restore.filesTotal}`,
+              bytes: `${formatBytes(restore.transferredBytes)} / ${formatBytes(
+                restore.totalBytes
+              )}`,
+            })}
+            value={restore.transferredBytes}
+            max={restore.totalBytes > 0 ? restore.totalBytes : null}
+          />
+        )}
+      </div>
+    )
+  }
+
   private renderQueueFilter(items: ReadonlyArray<IBatchCloneItem>) {
     if (items.length <= MinItemsToFilter) {
       return null
@@ -472,6 +543,7 @@ export class BatchCloneProgress extends React.Component<
             <progress value={state.overallProgress || undefined} />
             <div className="percent">{overall}%</div>
           </div>
+          {this.renderFinalizingStage()}
           {this.renderQueueFilter(state.items)}
           <ul className="batch-clone-list">
             {this.getFilteredItems(

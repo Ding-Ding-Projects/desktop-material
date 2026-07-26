@@ -28,10 +28,13 @@ import {
   LanguageModeChangedEvent,
   translate,
   translatedVariable,
+  translateForAccessibleName,
   TranslationKey,
   TranslationVariables,
 } from '../../lib/i18n'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
+import { Repository } from '../../models/repository'
+import { OperationProgressRow } from '../lib/operation-progress-row'
 
 interface IAddExistingRepositoryProps {
   readonly dispatcher: Dispatcher
@@ -85,6 +88,18 @@ interface IAddExistingRepositoryState {
   readonly scanRootPath?: string
   readonly scanWasTruncated: boolean
   readonly repositoryScanError: string | null
+
+  /**
+   * Determinate progress while the dialog registers the selected paths. The
+   * auto-detect scan can hand over 100 paths to a strictly serial loop, so the
+   * dialog now stays open and reports each one instead of dismissing first and
+   * leaving the app silent.
+   */
+  readonly addProgress: {
+    readonly completed: number
+    readonly total: number
+    readonly current: string
+  } | null
 }
 
 /** The component for adding an existing local repository. */
@@ -94,6 +109,8 @@ export class AddExistingRepository extends React.Component<
 > {
   private pathTextBoxRef = React.createRef<TextBox>()
   private scanRequestId = 0
+  /** Guards the streamed add-progress callbacks against a late unmount. */
+  private isMounted = false
 
   public constructor(props: IAddExistingRepositoryProps) {
     super(props)
@@ -114,10 +131,12 @@ export class AddExistingRepository extends React.Component<
       alreadyAddedCount: 0,
       scanWasTruncated: false,
       repositoryScanError: null,
+      addProgress: null,
     }
   }
 
   public componentDidMount(): void {
+    this.isMounted = true
     document.addEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -125,6 +144,7 @@ export class AddExistingRepository extends React.Component<
   }
 
   public componentWillUnmount(): void {
+    this.isMounted = false
     document.removeEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -438,6 +458,36 @@ export class AddExistingRepository extends React.Component<
     )
   }
 
+  private renderAddProgress() {
+    const progress = this.state.addProgress
+    if (progress === null) {
+      return null
+    }
+
+    return (
+      <OperationProgressRow
+        className="add-existing-repository-progress"
+        label={translateForAccessibleName(
+          'addRepositories.progressLabel',
+          {},
+          this.state.languageMode
+        )}
+        description={translate(
+          'addRepositories.progressStatus',
+          this.state.languageMode,
+          {
+            name: Path.basename(progress.current) || progress.current,
+            index: String(Math.min(progress.completed + 1, progress.total)),
+            total: String(progress.total),
+          }
+        )}
+        value={progress.completed}
+        max={progress.total}
+        countText={`${progress.completed}/${progress.total}`}
+      />
+    )
+  }
+
   public render() {
     return (
       <Dialog
@@ -449,11 +499,16 @@ export class AddExistingRepository extends React.Component<
         loading={
           this.state.isTrustingRepository ||
           this.state.isCheckingRepository ||
-          this.state.isScanningForRepositories
+          this.state.isScanningForRepositories ||
+          this.state.addProgress !== null
         }
-        disabled={this.state.isScanningForRepositories}
+        disabled={
+          this.state.isScanningForRepositories ||
+          this.state.addProgress !== null
+        }
       >
         <DialogContent>
+          {this.renderAddProgress()}
           <Row>
             <TextBox
               ref={this.pathTextBoxRef}
@@ -660,9 +715,30 @@ export class AddExistingRepository extends React.Component<
   }
 
   private addResolvedRepositories = async (paths: ReadonlyArray<string>) => {
-    this.props.onDismissed()
     const { dispatcher } = this.props
-    const repositories = await dispatcher.addRepositories(paths)
+    // The dialog used to dismiss itself here and only then await the add, so
+    // up to 100 repositories were registered with nothing on screen at all.
+    // It now stays open with a determinate bar and dismisses afterwards.
+    this.setState({
+      addProgress: { completed: 0, total: paths.length, current: paths[0] },
+    })
+    let repositories: ReadonlyArray<Repository>
+    try {
+      repositories = await dispatcher.addRepositories(
+        paths,
+        undefined,
+        (completed, total, path) => {
+          if (this.isMounted) {
+            this.setState({ addProgress: { completed, total, current: path } })
+          }
+        }
+      )
+    } finally {
+      if (this.isMounted) {
+        this.setState({ addProgress: null })
+      }
+      this.props.onDismissed()
+    }
 
     if (repositories.length > 0) {
       dispatcher.closeFoldout(FoldoutType.Repository)

@@ -10,10 +10,12 @@ import { Button } from '../lib/button'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
+  translate,
   translateForAccessibleName,
   TranslationKey,
   TranslationVariables,
 } from '../../lib/i18n'
+import { OperationProgressRow } from '../lib/operation-progress-row'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
 import { LocalizedText } from '../lib/localized-text'
 
@@ -27,7 +29,12 @@ class ReviewedBranchListChangedError extends Error {}
 interface IBulkBranchDeleteDispatcher {
   readonly deleteReviewedBranches: (
     repository: Repository,
-    reviewed: ReadonlyArray<IReviewedBranchDeletion>
+    reviewed: ReadonlyArray<IReviewedBranchDeletion>,
+    onBranchDeleted?: (
+      completed: number,
+      total: number,
+      result: IReviewedBranchDeletionResult
+    ) => void
   ) => Promise<ReadonlyArray<IReviewedBranchDeletionResult>>
 }
 
@@ -47,12 +54,27 @@ interface IBulkBranchDeleteState {
   readonly results: ReadonlyArray<IReviewedBranchDeletionResult>
   readonly error: ILocalizedMessage | string | null
   readonly languageMode: LanguageMode
+  /**
+   * Determinate progress across the serial per-branch `git update-ref -d`
+   * runs. Null when no deletion is in flight.
+   */
+  readonly progress: IBulkBranchDeleteProgress | null
+}
+
+interface IBulkBranchDeleteProgress {
+  readonly completed: number
+  readonly total: number
+  /** Name of the branch that just settled, for the detail line. */
+  readonly lastName: string | null
 }
 
 export class BulkBranchDelete extends React.Component<
   IBulkBranchDeleteProps,
   IBulkBranchDeleteState
 > {
+  /** Guards the streamed per-branch callbacks against a late unmount. */
+  private isMounted = false
+
   public constructor(props: IBulkBranchDeleteProps) {
     super(props)
     this.state = {
@@ -63,10 +85,12 @@ export class BulkBranchDelete extends React.Component<
       results: [],
       error: null,
       languageMode: getPersistedLanguageMode(),
+      progress: null,
     }
   }
 
   public componentDidMount(): void {
+    this.isMounted = true
     document.addEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -74,6 +98,7 @@ export class BulkBranchDelete extends React.Component<
   }
 
   public componentWillUnmount(): void {
+    this.isMounted = false
     document.removeEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
@@ -182,6 +207,62 @@ export class BulkBranchDelete extends React.Component<
     this.setState({ confirming: true, error: null })
   private cancelConfirmation = () => this.setState({ confirming: false })
 
+  /**
+   * Append each branch's outcome as it settles instead of holding the whole
+   * results list back until the serial loop finishes.
+   */
+  private onBranchDeleted = (
+    completed: number,
+    total: number,
+    result: IReviewedBranchDeletionResult
+  ) => {
+    if (!this.isMounted) {
+      return
+    }
+    this.setState(state => ({
+      progress: { completed, total, lastName: result.name },
+      results: [...state.results, result],
+    }))
+  }
+
+  /**
+   * Replaces the static "Deleting…" paragraph. The count is known before the
+   * first spawn, so this is determinate from the very first frame.
+   */
+  private renderDeleteProgress() {
+    if (!this.state.busy) {
+      return null
+    }
+
+    const progress = this.state.progress
+    const total = progress?.total ?? this.state.reviewedNames.size
+    const completed = progress?.completed ?? 0
+
+    return (
+      <OperationProgressRow
+        className="bulk-branch-delete-progress"
+        label={this.accessibleText('bulkBranchDelete.progressLabel')}
+        description={translate(
+          'bulkBranchDelete.progressStatus',
+          this.state.languageMode,
+          { completed: String(completed), total: String(total) }
+        )}
+        value={completed}
+        max={total}
+        countText={`${completed}/${total}`}
+        detail={
+          progress?.lastName == null
+            ? undefined
+            : translate(
+                'bulkBranchDelete.progressCurrent',
+                this.state.languageMode,
+                { name: progress.lastName }
+              )
+        }
+      />
+    )
+  }
+
   private confirmDelete = async () => {
     try {
       const candidates = new Map(
@@ -194,19 +275,28 @@ export class BulkBranchDelete extends React.Component<
         }
         return { name, expectedSha: branch.tip.sha }
       })
-      this.setState({ busy: true, confirming: false, error: null, results: [] })
+      this.setState({
+        busy: true,
+        confirming: false,
+        error: null,
+        results: [],
+        progress: { completed: 0, total: reviewed.length, lastName: null },
+      })
       const results = await this.props.dispatcher.deleteReviewedBranches(
         this.props.repository,
-        reviewed
+        reviewed,
+        this.onBranchDeleted
       )
       this.setState({
         busy: false,
         reviewedNames: new Set(),
         results,
+        progress: null,
       })
     } catch (error) {
       this.setState({
         busy: false,
+        progress: null,
         error:
           error instanceof ReviewedBranchListChangedError
             ? { key: 'bulkBranchDelete.reviewChangedError' }
@@ -348,14 +438,7 @@ export class BulkBranchDelete extends React.Component<
                 </div>
               </div>
             ) : null}
-            {this.state.busy ? (
-              <p role="status">
-                <LocalizedText
-                  translationKey="bulkBranchDelete.deleting"
-                  languageMode={this.state.languageMode}
-                />
-              </p>
-            ) : null}
+            {this.renderDeleteProgress()}
             {this.state.error !== null ? (
               <p role="alert">
                 {typeof this.state.error === 'string'

@@ -22,6 +22,8 @@ import {
 import { Dialog, DialogContent, DialogError, DialogFooter } from '../dialog'
 import { getRemoteManagementSnapshot, readGitIgnoreAtRoot } from '../../lib/git'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 import { ForkSettings } from './fork-settings'
 import { ForkContributionTarget } from '../../models/workflow-preferences'
 import { GitConfigLocation, GitConfig } from './git-config'
@@ -90,12 +92,24 @@ export enum RepositorySettingsTab {
   ForkSettings,
 }
 
+interface IRemoteApplyProgress {
+  /** Mutations that have finished. Zero while the first snapshot is read. */
+  readonly completed: number
+  readonly total: number
+}
+
 interface IRepositorySettingsState {
   readonly selectedTab: RepositorySettingsTab
   /** The last bounded, credential-redacted Remote Manager inspection. */
   readonly remoteSnapshot: IRemoteManagementSnapshot | null
   readonly remoteManagementDirty: boolean
   readonly remoteManagementPlan: IRemoteManagementPlan | null
+  /**
+   * Determinate progress for the reviewed remote plan. Each mutation is
+   * bracketed by a full remote snapshot, so a modest plan is still ~130 serial
+   * child processes; null means no plan is being applied.
+   */
+  readonly remoteApplyProgress: IRemoteApplyProgress | null
   readonly ignoreText: string | null
   readonly ignoreTextHasChanged: boolean
   readonly disabled: boolean
@@ -143,6 +157,7 @@ export class RepositorySettings extends React.Component<
       remoteSnapshot: null,
       remoteManagementDirty: false,
       remoteManagementPlan: null,
+      remoteApplyProgress: null,
       ignoreText: null,
       ignoreTextHasChanged: false,
       disabled: false,
@@ -320,7 +335,13 @@ export class RepositorySettings extends React.Component<
         onSubmit={this.onSubmit}
         disabled={dialogBusy}
         dismissDisabled={this.state.subtreeOperationInProgress}
-        loading={this.state.subtreeOperationInProgress}
+        // The remote plan apply is a long serial run of child processes; fold
+        // it into the same header spinner the subtree operations already use so
+        // the dialog never just goes inert.
+        loading={
+          this.state.subtreeOperationInProgress ||
+          (this.state.disabled && this.state.remoteManagementPlan !== null)
+        }
       >
         {this.renderErrors()}
 
@@ -373,6 +394,7 @@ export class RepositorySettings extends React.Component<
 
           <div className="active-tab">{this.renderActiveTab()}</div>
         </div>
+        {this.renderRemoteApplyProgress()}
         <DialogFooter>
           <OkCancelButtonGroup
             okButtonText="Save"
@@ -578,6 +600,43 @@ export class RepositorySettings extends React.Component<
     this.props.dispatcher.openInBrowser('https://git-scm.com/docs/gitignore')
   }
 
+  private onRemoteMutationApplied = (completed: number, total: number) => {
+    if (!this.isMounted) {
+      return
+    }
+    this.setState({ remoteApplyProgress: { completed, total } })
+  }
+
+  private renderRemoteApplyProgress() {
+    if (!this.state.disabled || this.state.remoteManagementPlan === null) {
+      return null
+    }
+
+    const progress = this.state.remoteApplyProgress
+    const description =
+      progress === null
+        ? t('remoteManager.applyProgressPreparing')
+        : t('remoteManager.applyProgressStatus', {
+            index: String(Math.min(progress.completed + 1, progress.total)),
+            total: String(progress.total),
+          })
+
+    return (
+      <OperationProgressRow
+        className="repository-settings-remote-apply-progress"
+        label={translateForAccessibleName('remoteManager.applyProgressLabel')}
+        description={description}
+        value={progress?.completed ?? null}
+        max={progress?.total ?? null}
+        countText={
+          progress === null
+            ? undefined
+            : `${progress.completed}/${progress.total}`
+        }
+      />
+    )
+  }
+
   private onSubmit = async () => {
     if (this.state.subtreeOperationInProgress) {
       return
@@ -598,17 +657,25 @@ export class RepositorySettings extends React.Component<
     const errors = new Array<JSX.Element | string>()
 
     if (this.state.remoteManagementPlan !== null) {
+      // Total is not known until the plan is expanded inside the library, so
+      // the row starts indeterminate and becomes determinate on the first
+      // onMutationApplied callback.
+      this.setState({ remoteApplyProgress: null })
       try {
         const remoteSnapshot =
           await this.props.dispatcher.applyRemoteManagementPlan(
             this.props.repository,
             this.state.remoteManagementPlan,
-            { signal: this.remoteManagementAbortController.signal }
+            {
+              signal: this.remoteManagementAbortController.signal,
+              onMutationApplied: this.onRemoteMutationApplied,
+            }
           )
         this.setState({
           remoteSnapshot,
           remoteManagementDirty: false,
           remoteManagementPlan: null,
+          remoteApplyProgress: null,
         })
       } catch (e) {
         if (this.remoteManagementAbortController.signal.aborted) {
@@ -617,6 +684,7 @@ export class RepositorySettings extends React.Component<
         log.error('RepositorySettings: guarded remote plan stopped', e)
         this.setState({
           disabled: false,
+          remoteApplyProgress: null,
           selectedTab: RepositorySettingsTab.Remote,
           errors: [
             e instanceof Error

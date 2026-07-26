@@ -150,7 +150,17 @@ function normalizeReviewedBranchDeletion(
  */
 export async function deleteReviewedLocalBranches(
   repository: Repository,
-  reviewedBranches: ReadonlyArray<IReviewedBranchDeletion>
+  reviewedBranches: ReadonlyArray<IReviewedBranchDeletion>,
+  /**
+   * Invoked after each branch settles, with the number completed, the total,
+   * and that branch's result. Deletion is one `git update-ref` child process
+   * per branch, strictly serially, so up to 100 branches is a visible wait.
+   */
+  onBranchDeleted?: (
+    completed: number,
+    total: number,
+    result: IReviewedBranchDeletionResult
+  ) => void
 ): Promise<ReadonlyArray<IReviewedBranchDeletionResult>> {
   if (
     reviewedBranches.length === 0 ||
@@ -212,6 +222,7 @@ export async function deleteReviewedLocalBranches(
 
   const results: IReviewedBranchDeletionResult[] = []
   for (const branch of reviewed) {
+    let result: IReviewedBranchDeletionResult
     try {
       await git(
         ['update-ref', '-d', formatAsLocalRef(branch.name), branch.expectedSha],
@@ -221,18 +232,20 @@ export async function deleteReviewedLocalBranches(
       log.info(
         `Deleted reviewed local branch ${branch.name} (was ${branch.expectedSha})`
       )
-      results.push({
+      result = {
         name: branch.name,
         status: 'deleted',
         detail: `Deleted at ${branch.expectedSha.slice(0, 12)}.`,
-      })
+      }
     } catch {
-      results.push({
+      result = {
         name: branch.name,
         status: 'failed',
         detail: 'The branch moved or could not be deleted.',
-      })
+      }
     }
+    results.push(result)
+    onBranchDeleted?.(results.length, reviewed.length, result)
   }
   return results
 }

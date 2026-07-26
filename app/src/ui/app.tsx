@@ -81,6 +81,8 @@ import {
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
 import { RepositoriesList } from './repositories-list'
+import { OperationProgressRow } from './lib/operation-progress-row'
+import { formatBytes } from './lib/bytes'
 import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
@@ -3383,6 +3385,8 @@ export class App extends React.Component<IAppProps, IAppState> {
             dispatcher={this.props.dispatcher}
             onDismissed={onPopupDismissedFn}
             batchCloneState={this.state.batchCloneState}
+            finalizing={this.state.batchCloneFinalizing}
+            cheapLfsRestore={this.state.cheapLfsRestore}
             isTopMost={isTopMost}
           />
         )
@@ -5781,6 +5785,7 @@ export class App extends React.Component<IAppProps, IAppState> {
         {this.renderUpdateDownloadProgress()}
         {this.renderRepositoryTabStrip()}
         {this.renderToolbar()}
+        {this.renderCheapLfsRestoreProgress()}
         {this.renderBanner()}
         {this.renderSubmoduleRepositoryContext()}
         <CrashProofBoundary
@@ -5821,6 +5826,59 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
   }
 
+  /**
+   * The app-wide Cheap LFS restore strip. The automatic materialize runs after
+   * clone, repository selection, fetch and pull — none of which have the Cheap
+   * LFS panel open — and can move many gigabytes, so it gets a determinate
+   * byte bar and a cancel right under the toolbar.
+   */
+  private renderCheapLfsRestoreProgress() {
+    const restore = this.state.cheapLfsRestore
+    if (restore === null) {
+      return null
+    }
+
+    const repository = this.state.repositories.find(
+      candidate => candidate.id === restore.repositoryId
+    )
+
+    return (
+      <div className="cheap-lfs-restore-strip">
+        <OperationProgressRow
+          label={translateForAccessibleName('cheapLfs.restore.label')}
+          description={t('cheapLfs.restore.status', {
+            files: `${restore.filesCompleted}/${restore.filesTotal}`,
+            bytes: `${formatBytes(restore.transferredBytes)} / ${formatBytes(
+              restore.totalBytes
+            )}`,
+          })}
+          value={restore.transferredBytes}
+          max={restore.totalBytes > 0 ? restore.totalBytes : null}
+          countText={`${restore.filesCompleted}/${restore.filesTotal}`}
+          detail={restore.repositoryName}
+        />
+        {repository instanceof Repository && (
+          <Button onClick={this.onCancelCheapLfsRestore}>
+            {t('cheapLfs.restore.cancel')}
+          </Button>
+        )}
+      </div>
+    )
+  }
+
+  private onCancelCheapLfsRestore = () => {
+    const restore = this.state.cheapLfsRestore
+    if (restore === null) {
+      return
+    }
+    const repository = this.state.repositories.find(
+      candidate => candidate.id === restore.repositoryId
+    )
+    if (repository instanceof Repository) {
+      this.props.dispatcher.cancelAutoMaterializeCheapLfs(repository)
+    }
+  }
+
   private renderUpdateDownloadProgress() {
     if (this.state.updateState.status !== UpdateStatus.UpdateAvailable) {
       return null
@@ -5846,35 +5904,54 @@ export class App extends React.Component<IAppProps, IAppState> {
     const { useCustomShell, selectedShell } = this.state
     const filterText = this.state.repositoryFilterText
     const repositories = this.state.repositories
+    const addProgress = this.state.addRepositoriesProgress
     return (
-      <RepositoriesList
-        accounts={this.state.accounts}
-        filterText={filterText}
-        onFilterTextChanged={this.onRepositoryFilterTextChanged}
-        selectedRepository={selectedRepository}
-        onSelectionChanged={this.onSelectionChanged}
-        repositories={repositories}
-        recentRepositories={this.state.recentRepositories}
-        showRecentRepositories={this.state.showRecentRepositories}
-        showBranchNameInRepoList={this.state.showBranchNameInRepoList}
-        repositoryListDensity={
-          this.state.appearanceCustomization.repositoryListDensity
-        }
-        localRepositoryStateLookup={this.state.localRepositoryStateLookup}
-        askForConfirmationOnRemoveRepository={
-          this.state.askForConfirmationOnRepositoryRemoval
-        }
-        onRemoveRepository={this.removeRepository}
-        onViewOnGitHub={this.viewOnGitHub}
-        onForkRepository={this.forkRepository}
-        onOpenInNewWindow={this.openRepositoryInNewWindow}
-        onOpenInShell={this.openInShell}
-        onShowRepository={this.showRepository}
-        onOpenInExternalEditor={this.openInExternalEditor}
-        externalEditorLabel={this.externalEditorLabel}
-        shellLabel={useCustomShell ? undefined : selectedShell}
-        dispatcher={this.props.dispatcher}
-      />
+      <>
+        {addProgress !== null && (
+          <OperationProgressRow
+            className="repository-list-add-progress"
+            label={translateForAccessibleName('addRepositories.progressLabel')}
+            description={t('addRepositories.progressStatus', {
+              name: addProgress.current,
+              index: String(
+                Math.min(addProgress.completed + 1, addProgress.total)
+              ),
+              total: String(addProgress.total),
+            })}
+            value={addProgress.completed}
+            max={addProgress.total}
+            countText={`${addProgress.completed}/${addProgress.total}`}
+          />
+        )}
+        <RepositoriesList
+          accounts={this.state.accounts}
+          filterText={filterText}
+          onFilterTextChanged={this.onRepositoryFilterTextChanged}
+          selectedRepository={selectedRepository}
+          onSelectionChanged={this.onSelectionChanged}
+          repositories={repositories}
+          recentRepositories={this.state.recentRepositories}
+          showRecentRepositories={this.state.showRecentRepositories}
+          showBranchNameInRepoList={this.state.showBranchNameInRepoList}
+          repositoryListDensity={
+            this.state.appearanceCustomization.repositoryListDensity
+          }
+          localRepositoryStateLookup={this.state.localRepositoryStateLookup}
+          askForConfirmationOnRemoveRepository={
+            this.state.askForConfirmationOnRepositoryRemoval
+          }
+          onRemoveRepository={this.removeRepository}
+          onViewOnGitHub={this.viewOnGitHub}
+          onForkRepository={this.forkRepository}
+          onOpenInNewWindow={this.openRepositoryInNewWindow}
+          onOpenInShell={this.openInShell}
+          onShowRepository={this.showRepository}
+          onOpenInExternalEditor={this.openInExternalEditor}
+          externalEditorLabel={this.externalEditorLabel}
+          shellLabel={useCustomShell ? undefined : selectedShell}
+          dispatcher={this.props.dispatcher}
+        />
+      </>
     )
   }
 

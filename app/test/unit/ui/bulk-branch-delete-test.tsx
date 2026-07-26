@@ -64,6 +64,64 @@ describe('bulk branch delete', () => {
     assert(screen.getByText(/Deleted at b{12}/))
   })
 
+  it('reports determinate progress and streams results as each branch settles', async () => {
+    const repository = new Repository('C:\\repo', 1, null, false)
+    const main = branch('main', 'a'.repeat(40))
+    const one = branch('feature/one', 'b'.repeat(40))
+    const two = branch('feature/two', 'c'.repeat(40))
+
+    // Hold the deletion open so the in-flight bar can be inspected mid-run.
+    let release: () => void = () => undefined
+    const finished = new Promise<void>(resolve => {
+      release = resolve
+    })
+
+    render(
+      <BulkBranchDelete
+        repository={repository}
+        allBranches={[main, one, two]}
+        currentBranch={main}
+        defaultBranch={main}
+        dispatcher={{
+          deleteReviewedBranches: async (
+            _repository,
+            reviewed,
+            onBranchDeleted
+          ) => {
+            const results = reviewed.map(item => ({
+              name: item.name,
+              status: 'deleted' as const,
+              detail: `Deleted at ${item.expectedSha.slice(0, 12)}.`,
+            }))
+            onBranchDeleted?.(1, reviewed.length, results[0])
+            await finished
+            onBranchDeleted?.(2, reviewed.length, results[1])
+            return results
+          },
+        }}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete branches…' }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /feature\/one/ }))
+    fireEvent.click(screen.getByRole('checkbox', { name: /feature\/two/ }))
+    fireEvent.click(screen.getByRole('button', { name: 'Review deletion (2)' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete reviewed branches' })
+    )
+
+    const bar = await screen.findByRole('progressbar')
+    await waitFor(() => assert.equal(bar.getAttribute('aria-valuenow'), '1'))
+    assert.equal(bar.getAttribute('aria-valuemax'), '2')
+    // The results list must not stay empty for the whole run.
+    assert(screen.getByText(/Deleted at b{12}/))
+    assert(screen.queryByText(/Deleted at c{12}/) === null)
+
+    release()
+    await waitFor(() => assert(screen.getByText(/Deleted at c{12}/)))
+    await waitFor(() => assert(screen.queryByRole('progressbar') === null))
+  })
+
   it('surfaces stale-review failure without claiming deletion', async () => {
     const repository = new Repository('C:\\repo', 1, null, false)
     const main = branch('main', 'a'.repeat(40))

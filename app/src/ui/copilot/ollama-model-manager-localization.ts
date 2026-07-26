@@ -141,6 +141,24 @@ export function getOllamaModelManagerStrings(
     configurationPartial: text('ollama.manager.configurationPartial'),
     renamePartial: text('ollama.manager.renamePartial'),
     pullCancelled: text('ollama.manager.pullCancelled'),
+    operationProgressLabel: text('ollama.manager.operationProgressLabel'),
+    operationCancelled: text('ollama.manager.operationCancelled'),
+    operationStatus: (kind, model) => {
+      switch (kind) {
+        case 'load':
+          return text('ollama.manager.operationLoading', { model })
+        case 'unload':
+          return text('ollama.manager.operationUnloading', { model })
+        case 'delete':
+          return text('ollama.manager.operationDeleting', { model })
+        case 'copy':
+          return text('ollama.manager.operationCopying', { model })
+        case 'rename':
+          return text('ollama.manager.operationRenaming', { model })
+        case 'pull':
+          return text('ollama.manager.pulling')
+      }
+    },
     chatTitle: text('ollama.manager.chatTitle'),
     chatHint: text('ollama.manager.chatHint'),
     chatModelLabel: text('ollama.manager.chatModelLabel'),

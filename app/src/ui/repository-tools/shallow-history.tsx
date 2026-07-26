@@ -6,6 +6,10 @@ import {
   ICLIWorkbenchOperationRequest,
 } from '../../lib/cli-workbench'
 import { Button } from '../lib/button'
+import { OperationProgressRow } from '../lib/operation-progress-row'
+import { t, translateForAccessibleName } from '../../lib/i18n'
+import { FetchProgressParser } from '../../lib/progress/fetch'
+import { GitProgressStream } from '../../lib/progress/stream'
 import {
   IRepositoryShallowHistoryRequest,
   normalizeRepositoryDeepenCommitCount,
@@ -64,6 +68,22 @@ interface IRepositoryShallowHistoryState {
   readonly status: string
   readonly output: string
   readonly error: string | null
+  /**
+   * Live reading of `git fetch --progress` while the deepen/unshallow fetch
+   * runs. Null whenever no fetch is in flight.
+   */
+  readonly fetchProgress: IShallowHistoryFetchProgress | null
+}
+
+interface IShallowHistoryFetchProgress {
+  /** Overall percent across the weighted fetch steps, 0-100. */
+  readonly percent: number
+  /** The most recent progress line from Git, e.g. 'Receiving objects'. */
+  readonly description: string
+  /** Units done for the step Git is currently reporting, when it gives them. */
+  readonly value: number | null
+  /** Total units for that step, when Git gives them. */
+  readonly total: number | null
 }
 
 let nextShallowHistorySequence = 0
@@ -122,6 +142,7 @@ export class RepositoryShallowHistory extends React.Component<
   private mounted = false
   private runId: string | null = null
   private commandStdout = ''
+  private fetchProgressStream: GitProgressStream | null = null
   private commandOutputTruncated = false
   private cancelRequested = false
   private mutationStarted = false
@@ -147,6 +168,7 @@ export class RepositoryShallowHistory extends React.Component<
       status: 'Check whether this repository has a shallow history boundary.',
       output: '',
       error: null,
+      fetchProgress: null,
     }
   }
 
@@ -231,12 +253,27 @@ export class RepositoryShallowHistory extends React.Component<
     this.commandStdout = ''
     this.commandOutputTruncated = false
     this.cancelRequested = false
+    // Only the deepen/unshallow fetch runs `--progress`; everything else here
+    // is an instantaneous inspection with nothing to report.
+    this.fetchProgressStream =
+      phase === 'fetching'
+        ? new GitProgressStream(new FetchProgressParser())
+        : null
     const title = stepTitle(phase)
     this.setState(state => ({
       phase,
       status: `${title}…`,
       error: null,
       output: appendVisibleOutput(state.output, `\n${title}…\n`),
+      fetchProgress:
+        phase === 'fetching'
+          ? {
+              percent: 0,
+              description: t('shallowHistory.progress.contacting'),
+              value: null,
+              total: null,
+            }
+          : null,
     }))
     try {
       await this.props.client.start({
@@ -276,11 +313,45 @@ export class RepositoryShallowHistory extends React.Component<
     if (event.data.includes('CLI workbench output truncated')) {
       this.commandOutputTruncated = true
     }
+    if (event.stream === 'stderr') {
+      this.consumeFetchProgress(event.data)
+    }
     const visible =
       event.stream === 'stderr' ? `[diagnostic] ${event.data}` : event.data
     this.setState(state => ({
       output: appendVisibleOutput(state.output, visible),
     }))
+  }
+
+  /**
+   * Turn `git fetch --progress` stderr into the determinate bar above the
+   * output pane. Git reports counting/compressing/receiving/resolving as
+   * separate weighted steps, so the overall percent comes from the shared
+   * FetchProgressParser while the per-step counts drive the detail line.
+   */
+  private consumeFetchProgress(data: string) {
+    const stream = this.fetchProgressStream
+    if (stream === null) {
+      return
+    }
+
+    let next: IShallowHistoryFetchProgress | null = null
+    for (const parsed of stream.push(data)) {
+      if (parsed.kind !== 'progress') {
+        continue
+      }
+      const { title, value, total } = parsed.details
+      next = {
+        percent: Math.round(parsed.percent * 100),
+        description: title,
+        value: Number.isFinite(value) ? value : null,
+        total: typeof total === 'number' && total > 0 ? total : null,
+      }
+    }
+
+    if (next !== null) {
+      this.setState({ fetchProgress: next })
+    }
   }
 
   private onState = (event: ICLICommandStateEvent) => {
@@ -294,6 +365,10 @@ export class RepositoryShallowHistory extends React.Component<
 
     const phase = this.state.phase
     this.runId = null
+    // The command has terminated, so no bar should keep animating regardless of
+    // which branch below reports the outcome.
+    this.fetchProgressStream = null
+    this.setState({ fetchProgress: null })
     if (this.cancelRequested || event.state === 'cancelled') {
       this.cancelRequested = false
       this.mutationStarted = false
@@ -714,6 +789,54 @@ export class RepositoryShallowHistory extends React.Component<
     }
   }
 
+  private renderFetchProgress() {
+    const progress = this.state.fetchProgress
+    if (progress === null) {
+      return null
+    }
+
+    const counted = progress.value !== null && progress.total !== null
+    const percent = String(progress.percent)
+    const step = progress.description
+    const detail = counted
+      ? t('shallowHistory.progress.detail', {
+          step,
+          value: progress.value!.toLocaleString(),
+          total: progress.total!.toLocaleString(),
+        })
+      : step
+
+    return (
+      <OperationProgressRow
+        className="repository-shallow-history-progress"
+        label={translateForAccessibleName('shallowHistory.progress.label')}
+        description={t('shallowHistory.progress.step', { step })}
+        countText={`${percent}%`}
+        // Git reports nothing measurable until the remote starts counting, so
+        // the row stays indeterminate through the initial handshake.
+        value={progress.percent > 0 ? progress.percent : null}
+        max={100}
+        valueText={
+          counted
+            ? translateForAccessibleName(
+                'shallowHistory.progress.valueTextCounted',
+                {
+                  step,
+                  value: String(progress.value),
+                  total: String(progress.total),
+                  percent,
+                }
+              )
+            : translateForAccessibleName('shallowHistory.progress.valueText', {
+                step,
+                percent,
+              })
+        }
+        detail={detail}
+      />
+    )
+  }
+
   private renderCurrentState() {
     const label =
       this.state.isShallow === null
@@ -951,6 +1074,7 @@ export class RepositoryShallowHistory extends React.Component<
                   {this.state.error}
                 </p>
               )}
+              {this.renderFetchProgress()}
               <div role="region" aria-label="Shallow history details">
                 <pre className="repository-shallow-history-output">
                   {this.state.output || 'No additional details.'}
