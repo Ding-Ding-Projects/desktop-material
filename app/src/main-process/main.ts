@@ -591,7 +591,12 @@ function handleQuickActionArguments(
 }
 
 async function handleCommandLineArguments(argv: string[]): Promise<boolean> {
-  if (handleQuickActionArguments(argv, now())) {
+  // Only once Electron will let us create a window. This function is also
+  // called at module scope, long before `ready`, where opening the quick-action
+  // window would throw and surface as an unhandled rejection. The initial
+  // command line is re-examined from the `ready` handler instead; this branch
+  // exists for `second-instance`, which is always post-ready.
+  if (app.isReady() && handleQuickActionArguments(argv, now())) {
     return true
   }
 

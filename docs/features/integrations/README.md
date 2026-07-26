@@ -5,6 +5,8 @@ editor, shell, provider, and user-level Git configuration without placing
 credentials or machine-specific state in a repository.
 
 - [Windows-only platform support](windows-only-platform-support.md)
+- [Windows Explorer context menu and quick-action
+  window](windows-explorer-context-menu.md)
 - [Automated update build status and release
   notes](automated-updates-and-release-notes.md)
 - [Build & Run output controls](build-run-output-controls.md)
