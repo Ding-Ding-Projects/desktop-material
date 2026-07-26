@@ -71,6 +71,11 @@ import {
   isInFlight,
   releaseInFlight,
 } from '../../lib/cheap-lfs/in-flight-guard'
+import {
+  externalOpenGuard,
+  externalOpenTarget,
+} from '../../lib/external-open-guard'
+import { ExternalOpenBusy } from '../lib/external-open-busy'
 
 const ReleasesSearchFilterId = 'github-releases-search'
 
@@ -1914,13 +1919,21 @@ export class GitHubReleasesView extends React.Component<
     if (completed === null) {
       return
     }
-    try {
-      await (this.props.revealDownload ?? showItemInFolder)(completed.path)
-    } catch {
-      this.setState({
-        error: 'The downloaded release asset could not be shown in its folder.',
-      })
-    }
+    // Guarded per path: a stuttered click must not stack two file-manager
+    // windows on the same downloaded asset.
+    await externalOpenGuard.run(
+      externalOpenTarget('file-manager', completed.path),
+      async () => {
+        try {
+          await (this.props.revealDownload ?? showItemInFolder)(completed.path)
+        } catch {
+          this.setState({
+            error:
+              'The downloaded release asset could not be shown in its folder.',
+          })
+        }
+      }
+    )
   }
 
   private openDownload = async () => {
@@ -1928,9 +1941,18 @@ export class GitHubReleasesView extends React.Component<
     if (completed === null) {
       return
     }
+    // The request/generation checks below only discard a *stale* answer; they
+    // do not stop a second click from handing the same installer to the OS
+    // again. The guard is what makes that one open per gesture.
+    await externalOpenGuard.run(
+      externalOpenTarget('download', completed.path),
+      () => this.startOpenDownload(completed.path)
+    )
+  }
+
+  private startOpenDownload = async (path: string) => {
     const generation = this.generation
     const request = ++this.openDownloadRequest
-    const path = completed.path
     this.setState({ error: null })
     try {
       const result = await (this.props.openDownload ?? shell.openPath)(path)
@@ -3171,6 +3193,7 @@ export class GitHubReleasesView extends React.Component<
               <code>{this.state.completedDownload.localDigest}</code>
             </div>
             <div className="github-release-download-actions">
+<<<<<<< HEAD
               <Button onClick={this.openDownload}>
                 {t('githubReleases.openFile')}
               </Button>
@@ -3178,6 +3201,32 @@ export class GitHubReleasesView extends React.Component<
                 {t('githubReleases.showInFolder')}
               </Button>
               {this.renderSilentInstallButton(this.state.completedDownload)}
+=======
+              <ExternalOpenBusy
+                target={externalOpenTarget(
+                  'download',
+                  this.state.completedDownload.path
+                )}
+              >
+                {isOpening => (
+                  <Button onClick={this.openDownload} ariaBusy={isOpening}>
+                    {t('githubReleases.openFile')}
+                  </Button>
+                )}
+              </ExternalOpenBusy>
+              <ExternalOpenBusy
+                target={externalOpenTarget(
+                  'file-manager',
+                  this.state.completedDownload.path
+                )}
+              >
+                {isOpening => (
+                  <Button onClick={this.revealDownload} ariaBusy={isOpening}>
+                    {t('githubReleases.showInFolder')}
+                  </Button>
+                )}
+              </ExternalOpenBusy>
+>>>>>>> fix/open-file-debounce
             </div>
           </div>
         )}

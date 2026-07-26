@@ -167,6 +167,19 @@ export interface IButtonProps {
    * */
   readonly ariaControls?: string
 
+  /**
+   * Whether the action this button started is still running.
+   *
+   * Assistive technology announces the control as busy, which is how a guarded
+   * one-shot action (an external editor launch, an upload) tells the user why a
+   * second activation is doing nothing. Only `true` reaches the DOM; `false`
+   * and omitted are the same default state.
+   *
+   * Note that a hyphenated `aria-busy` attribute written on this component is
+   * silently dropped by React — it has to come through this prop.
+   */
+  readonly ariaBusy?: boolean
+
   /** Whether the input field should auto focus when mounted. */
   readonly autoFocus?: boolean
 
@@ -274,6 +287,9 @@ export class Button extends React.Component<IButtonProps, {}> {
         aria-pressed={this.props.ariaPressed}
         aria-hidden={this.props.ariaHidden}
         aria-controls={this.props.ariaControls}
+        // Emitted only while busy: `aria-busy="false"` is the default state
+        // and would only add noise to every control that can ever be busy.
+        aria-busy={this.props.ariaBusy === true ? true : undefined}
         autoFocus={this.props.autoFocus}
       >
         {tooltip && (

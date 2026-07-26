@@ -11,6 +11,10 @@ the repository untouched and offers Preferences recovery. Repository-specific
 editor overrides are resolved before the app default and never change another
 repository's choice.
 
+Repeated activation of the same target while a launch is still starting is
+suppressed, so a stuttered double-click opens exactly one editor. See the
+[Duplicate-open guard](duplicate-open-guard.md).
+
 Verification includes diff-header, file/repository context-menu, conflict row,
 editor launch, and repository override suites. Discovery details are in
 [Broad editor support](broad-editor-support.md).

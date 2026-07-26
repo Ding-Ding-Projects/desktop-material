@@ -23,6 +23,11 @@ import {
   startCLICommand,
 } from '../main-process-proxy'
 import {
+  externalOpenGuard,
+  externalOpenTarget,
+} from '../../lib/external-open-guard'
+import { ExternalOpenBusy } from '../lib/external-open-busy'
+import {
   getRepositoryToolOperation,
   IRepositoryArchiveRequest,
   IRepositoryToolOperation,
@@ -1257,16 +1262,19 @@ export class RepositoryTools extends React.Component<
       return
     }
     const reveal = this.props.revealArchive ?? showItemInFolder
-    void reveal(path).catch(error => {
-      if (this.mounted) {
-        this.setState({
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Unable to reveal the exported archive.',
-        })
-      }
-    })
+    // Guarded per path so a stuttered click opens one file-manager window.
+    void externalOpenGuard
+      .run(externalOpenTarget('file-manager', path), () => reveal(path))
+      .catch(error => {
+        if (this.mounted) {
+          this.setState({
+            error:
+              error instanceof Error
+                ? error.message
+                : 'Unable to reveal the exported archive.',
+          })
+        }
+      })
   }
 
   private onConfirmOperation = () => {
@@ -2187,7 +2195,18 @@ export class RepositoryTools extends React.Component<
               Clear
             </Button>
             {this.state.completedArchivePath !== null && (
-              <Button onClick={this.onRevealArchive}>Show in folder</Button>
+              <ExternalOpenBusy
+                target={externalOpenTarget(
+                  'file-manager',
+                  this.state.completedArchivePath
+                )}
+              >
+                {isOpening => (
+                  <Button onClick={this.onRevealArchive} ariaBusy={isOpening}>
+                    Show in folder
+                  </Button>
+                )}
+              </ExternalOpenBusy>
             )}
           </div>
         </div>

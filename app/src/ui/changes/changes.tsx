@@ -128,6 +128,7 @@ export class Changes extends React.Component<IChangesProps, {}> {
           externalEditorLabel={this.props.externalEditorLabel}
           isExternalEditorAvailable={this.props.isExternalEditorAvailable}
           onOpenInExternalEditor={this.onOpenInExternalEditor}
+          externalEditorTargetPath={this.fullPath}
         />
 
         <SeamlessDiffSwitcher
@@ -153,9 +154,13 @@ export class Changes extends React.Component<IChangesProps, {}> {
     )
   }
 
+  /** Absolute path of the file the diff header's editor button would open. */
+  private get fullPath() {
+    return Path.join(this.props.repository.path, this.props.file.path)
+  }
+
   private onOpenInExternalEditor = () => {
-    const fullPath = Path.join(this.props.repository.path, this.props.file.path)
-    this.props.onOpenInExternalEditor(fullPath)
+    this.props.onOpenInExternalEditor(this.fullPath)
   }
 
   private onShowSideBySideDiffChanged = (showSideBySideDiff: boolean) => {

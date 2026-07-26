@@ -17,6 +17,7 @@ credentials or machine-specific state in a repository.
 - [Editor discovery and one-click
   opening](editor-discovery-and-one-click-opening.md)
 - [One-click editor actions](one-click-editor-actions.md)
+- [Duplicate-open guard](duplicate-open-guard.md)
 - [Broad editor support](broad-editor-support.md)
 - [Copilot commit-message controls](copilot-commit-message-controls.md)
 - [Ollama model manager](ollama-model-manager.md)

@@ -28,7 +28,7 @@ import { BuildRunPanel } from './build-run/build-run-panel'
 import { OpencodeFixDialog } from './build-run/opencode-fix-dialog'
 import { OpencodeSendDialog } from './build-run/opencode-send-dialog'
 import { assertNever } from '../lib/fatal-error'
-import { shell } from '../lib/app-shell'
+import { openFolderInFileManager } from '../lib/app-shell'
 import { updateStore, UpdateStatus } from './lib/update-store'
 import { t, translateForAccessibleName } from '../lib/i18n'
 import { RetryAction } from '../models/retry-actions'
@@ -5988,7 +5988,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    shell.showFolderContents(repository.path)
+    openFolderInFileManager(repository.path)
   }
 
   private onRepositoryDropdownStateChanged = (newState: DropdownState) => {

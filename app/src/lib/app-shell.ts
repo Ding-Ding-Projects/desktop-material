@@ -9,6 +9,7 @@ import {
   moveItemToTrash,
   forceDeleteDirectory,
 } from '../ui/main-process-proxy'
+import { externalOpenGuard, externalOpenTarget } from './external-open-guard'
 
 export interface IAppShell {
   readonly moveItemToTrash: (path: string) => Promise<void>
@@ -64,10 +65,36 @@ export const shell: IAppShell = {
 /**
  * Reveals a file from a repository in the native file manager.
  *
+ * Guarded per path so a repeated context-menu invocation cannot stack two
+ * Explorer/Finder windows on the same file; the claim is released as soon as
+ * the reveal settles.
+ *
  * @param repository The currently active repository instance
  * @param path The path of the file relative to the root of the repository
  */
 export function revealInFileManager(repository: Repository, path: string) {
   const fullyQualifiedFilePath = Path.join(repository.path, path)
-  return shell.showItemInFolder(fullyQualifiedFilePath)
+  return revealPathInFileManager(fullyQualifiedFilePath)
+}
+
+/**
+ * Reveals an absolute path in the native file manager, guarded against the
+ * duplicate window a stuttered click would otherwise open.
+ */
+export function revealPathInFileManager(fullPath: string) {
+  return externalOpenGuard.run(
+    externalOpenTarget('file-manager', fullPath),
+    () => shell.showItemInFolder(fullPath)
+  )
+}
+
+/**
+ * Opens a folder's contents in the native file manager, guarded per path so a
+ * stuttered click opens exactly one window.
+ */
+export function openFolderInFileManager(fullPath: string) {
+  return externalOpenGuard.run(
+    externalOpenTarget('file-manager', fullPath),
+    () => shell.showFolderContents(fullPath)
+  )
 }

@@ -31,6 +31,7 @@ import {
 } from '../../models/pull-request'
 import { KeyboardShortcut } from '../keyboard-shortcut/keyboard-shortcut'
 import { formatNumber } from '../../lib/format-number'
+import { externalOpenTarget } from '../../lib/external-open-guard'
 import { MaterialSymbol } from '../lib/material-symbol'
 
 function formatMenuItemLabel(text: string) {
@@ -239,7 +240,8 @@ export class NoChanges extends React.Component<
     itemId: MenuIDs,
     title: string,
     description?: string | JSX.Element,
-    onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
+    onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void,
+    externalOpenTargetKey?: string
   ) {
     const menuItem = this.getMenuItemInfo(itemId)
 
@@ -257,6 +259,7 @@ export class NoChanges extends React.Component<
         buttonText={formatMenuItemLabel(menuItem.label)}
         disabled={!menuItem.enabled}
         onClick={onClick}
+        externalOpenTarget={externalOpenTargetKey}
       />
     )
   }
@@ -268,7 +271,8 @@ export class NoChanges extends React.Component<
       'open-working-directory',
       `View the files of your repository in ${fileManager}`,
       undefined,
-      this.onShowInFileManagerClicked
+      this.onShowInFileManagerClicked,
+      externalOpenTarget('file-manager', this.props.repository.path)
     )
   }
 
@@ -335,7 +339,8 @@ export class NoChanges extends React.Component<
       itemId,
       title,
       description,
-      this.onOpenInExternalEditorClicked
+      this.onOpenInExternalEditorClicked,
+      externalOpenTarget('editor', this.props.repository.path)
     )
   }
 
