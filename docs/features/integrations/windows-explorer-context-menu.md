@@ -156,11 +156,30 @@ Verified on a Windows 11 host during development:
   requirements.
 - The quick-action window builds as its own bundle and the launch path opens it.
 
-**Not yet verified:** live `Add-AppxPackage -Register` and the resulting
-top-level menu entry. That requires sideloading to be enabled on the host, which
-is a system security setting the agent does not change. A cold-open timing
-figure from a packaged build is likewise still outstanding; the instrumentation
-is in place and logs `Quick action window interactive in <n>ms`.
+Verified live on 2026-07-26 (Windows 11 Pro 26200, Developer Mode already
+enabled — no security setting was changed):
+
+- `Add-AppxPackage -Register … -ExternalLocation …` on the CI-built package
+  from release `v3.6.3-beta3-zadttgmugx` registers cleanly per user:
+  `DesktopMaterial.ShellExtension_1.0.0.0_x64__6yspk5eyn48ge`.
+- The registered manifest wires both surfaces (`Directory`,
+  `Directory\Background`) to the compiled class, and the DLL activates for
+  real: `DllGetClassObject` returns `S_OK`, the root command reports
+  `ECS_ENABLED` (proving the app-beside-DLL check), and the tooltip returns its
+  coded `E_NOTIMPL`.
+- Right-clicking a folder in an Explorer window opens the Windows 11 modern
+  menu (its `Microsoft.UI.Content.PopupWindowSiteBridge` popups appear on
+  demand). This ran on an off-screen desktop, where DWM does not compose XAML
+  popups, so a pixel capture of the open menu is not obtainable headlessly —
+  an interactive-session screenshot remains the one outstanding capture.
+- The verification exposed a packaging gap, now fixed: packaged builds ship
+  `shell-extension/` under `resources\app`, while registration needs it beside
+  `GitHubDesktop.exe`. Registration now self-heals by copying the shipped
+  folder into place (`decideShellExtensionPackageSource`), which also rescues
+  every already-shipped build.
+
+A cold-open timing figure from a packaged build is still outstanding; the
+instrumentation is in place and logs `Quick action window interactive in <n>ms`.
 
 ## Build
 

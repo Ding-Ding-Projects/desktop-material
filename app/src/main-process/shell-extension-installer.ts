@@ -1,5 +1,6 @@
 import * as Path from 'path'
 import { execFile } from 'child_process'
+import { cp } from 'fs/promises'
 import { HKEY, enumerateValuesSafe } from 'registry-js'
 import { pathExists } from '../lib/path-exists'
 import {
@@ -10,6 +11,7 @@ import {
   buildRegisterPackageArguments,
   buildUnregisterPackageArguments,
   decideContextMenuMode,
+  decideShellExtensionPackageSource,
   parsePackageRegistrationOutput,
 } from '../lib/shell-extension-package'
 
@@ -35,6 +37,42 @@ export function shellExtensionPackageDirectory(): string {
   // `process.execPath` is the running executable, so a portable or side-by-side
   // install registers its own copy rather than another install's.
   return Path.join(Path.dirname(process.execPath), 'shell-extension')
+}
+
+/**
+ * Where packaged builds actually ship the folder: the packager bundles the
+ * whole app directory into `resources\app`, so the package arrives there
+ * rather than beside the executable where registration needs it.
+ */
+export function shellExtensionResourcesDirectory(): string {
+  return Path.join(process.resourcesPath, 'app', 'shell-extension')
+}
+
+/**
+ * Make the registrable layout exist, copying the shipped folder beside the
+ * executable when this install has never registered before. Returns the
+ * package directory, or null when this build ships no package at all.
+ */
+async function ensureRegistrableShellExtensionPackage(): Promise<
+  string | null
+> {
+  const packageDirectory = shellExtensionPackageDirectory()
+  const resourcesDirectory = shellExtensionResourcesDirectory()
+  const [besideExecutable, insideResources] = await Promise.all([
+    pathExists(Path.join(packageDirectory, 'AppxManifest.xml')),
+    pathExists(Path.join(resourcesDirectory, 'AppxManifest.xml')),
+  ])
+  switch (
+    decideShellExtensionPackageSource(besideExecutable, insideResources)
+  ) {
+    case 'beside-executable':
+      return packageDirectory
+    case 'copy-from-resources':
+      await cp(resourcesDirectory, packageDirectory, { recursive: true })
+      return packageDirectory
+    case 'missing':
+      return null
+  }
 }
 
 function powerShellPath(): string {
@@ -122,15 +160,21 @@ export async function observeModernContextMenu(): Promise<IModernContextMenuObse
     }
   }
 
-  const manifestPath = Path.join(
-    shellExtensionPackageDirectory(),
-    'AppxManifest.xml'
-  )
-
-  const [packagePresent, packageRegistered] = await Promise.all([
-    pathExists(manifestPath),
-    isPackageRegistered(),
-  ])
+  // Present in either location counts: registration self-heals the layout by
+  // copying the shipped folder beside the executable.
+  const [besideExecutable, insideResources, packageRegistered] =
+    await Promise.all([
+      pathExists(
+        Path.join(shellExtensionPackageDirectory(), 'AppxManifest.xml')
+      ),
+      pathExists(
+        Path.join(shellExtensionResourcesDirectory(), 'AppxManifest.xml')
+      ),
+      isPackageRegistered(),
+    ])
+  const packagePresent =
+    decideShellExtensionPackageSource(besideExecutable, insideResources) !==
+    'missing'
 
   return {
     isWindows11OrLater: isWindows11OrLater(),
@@ -162,17 +206,19 @@ export async function getContextMenuMode(
  * lets the package reference binaries that live outside it.
  */
 export async function registerShellExtensionPackage(): Promise<void> {
-  const packageDirectory = shellExtensionPackageDirectory()
-  const manifestPath = Path.join(packageDirectory, 'AppxManifest.xml')
+  const packageDirectory = await ensureRegistrableShellExtensionPackage()
 
-  if (!(await pathExists(manifestPath))) {
+  if (packageDirectory === null) {
     throw new Error(
       'This build does not include the Windows 11 shell extension package.'
     )
   }
 
   await runPowerShell(
-    buildRegisterPackageArguments(manifestPath, Path.dirname(process.execPath))
+    buildRegisterPackageArguments(
+      Path.join(packageDirectory, 'AppxManifest.xml'),
+      Path.dirname(process.execPath)
+    )
   )
 }
 

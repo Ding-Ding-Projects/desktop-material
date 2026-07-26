@@ -12,6 +12,7 @@ import {
   buildShellExtensionManifest,
   buildUnregisterPackageArguments,
   decideContextMenuMode,
+  decideShellExtensionPackageSource,
   escapeXml,
   formatX500Publisher,
   manifestClsid,
@@ -315,6 +316,33 @@ describe('shell extension package', () => {
         ).modernBlocker,
         'requires-windows-11'
       )
+    })
+  })
+
+  describe('package source decision', () => {
+    // The 2026-07-26 live verification found packaged builds ship the folder
+    // only under resources\app, so registration must self-heal by copying it
+    // beside the executable — the layout the manifest's relative paths need.
+    it('prefers the layout registration requires', () => {
+      assert.equal(
+        decideShellExtensionPackageSource(true, true),
+        'beside-executable'
+      )
+      assert.equal(
+        decideShellExtensionPackageSource(true, false),
+        'beside-executable'
+      )
+    })
+
+    it('copies from resources when only the shipped copy exists', () => {
+      assert.equal(
+        decideShellExtensionPackageSource(false, true),
+        'copy-from-resources'
+      )
+    })
+
+    it('reports a build without the package as missing', () => {
+      assert.equal(decideShellExtensionPackageSource(false, false), 'missing')
     })
   })
 })

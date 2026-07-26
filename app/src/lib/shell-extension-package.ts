@@ -240,6 +240,36 @@ export function buildShellExtensionManifest(
 }
 
 /** Which context-menu implementation is actually serving the user. */
+/** Where the registrable package directory can come from in this install. */
+export type ShellExtensionPackageSource =
+  /** Already beside the executable — the layout registration requires. */
+  | 'beside-executable'
+  /** Shipped inside the packaged app resources; copy it beside the exe. */
+  | 'copy-from-resources'
+  /** This build does not include the package at all. */
+  | 'missing'
+
+/**
+ * Decide where the registrable package comes from.
+ *
+ * Packaged builds ship `shell-extension/` inside the app resources (the
+ * packager bundles the whole app directory), but registration needs it beside
+ * `GitHubDesktop.exe`: the manifest's `shell-extension\...` paths resolve
+ * against the external location, which must also contain the executable.
+ * Copying once at registration self-heals every already-shipped build — the
+ * 2026-07-26 live verification found no shipped build could register at all
+ * because the folder only existed under `resources\app`.
+ */
+export function decideShellExtensionPackageSource(
+  besideExecutable: boolean,
+  insideResources: boolean
+): ShellExtensionPackageSource {
+  if (besideExecutable) {
+    return 'beside-executable'
+  }
+  return insideResources ? 'copy-from-resources' : 'missing'
+}
+
 export type ContextMenuMode =
   /** The packaged handler is registered: verbs are in the top-level menu. */
   | 'modern'

@@ -1,5 +1,29 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Windows 11 context menu LIVE; packaging gap fixed
+
+The packaged handler is registered and verified on this host
+(`DesktopMaterial.ShellExtension_1.0.0.0_x64__6yspk5eyn48ge`, from the CI-built
+`v3.6.3-beta3-zadttgmugx` payload). No security setting was changed — Developer
+Mode was already enabled. Verified: manifest wires `Directory` +
+`Directory\Background` to the compiled class; `DllGetClassObject` S_OK; root
+command `ECS_ENABLED` (app-beside-DLL check passes); right-clicking a folder in
+Explorer opens the Win11 modern menu (PopupHost windows on demand) — exercised
+on an off-screen desktop via Lowlevel MCP, where DWM does not compose XAML
+popups, so the one outstanding capture is an interactive-session screenshot of
+the open menu (registration + activation + menu-opens are proven; the entry
+rendering inside it is not pixel-proven yet).
+
+Found and fixed in the same pass: packaged builds ship `shell-extension/` under
+`resources\app`, but registration needs it beside `GitHubDesktop.exe` — no
+shipped build could register at all. Registration now self-heals by copying the
+shipped folder into place (`decideShellExtensionPackageSource`, three new
+tests), and the settings pane counts either location as package-present. Gates:
+both tsc projects, 110/110 extension tests, `yarn test:script` 68/68, prettier
+clean. NEXT AGENT: an interactive-session screenshot of the top-level menu
+entry (right-click any folder on the real desktop) completes the evidence; the
+registered package on this host already serves it.
+
 ## 2026-07-26 — Integration cycle complete: CI verified green, two releases shipped
 
 Remote `main` = `6d3b2f0834`; CI run
