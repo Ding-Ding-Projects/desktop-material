@@ -172,6 +172,17 @@ export function canStillWriteTo(stream: IGuardableStream | null): boolean {
  *                     default logs them at error level so an unexpected stream
  *                     failure stays visible rather than disappearing.
  */
+/**
+ * The ambient `log` global is installed by both app processes, but this module
+ * is also compiled by the script project (via with-hooks-env), which does not
+ * load the app's global declarations. Declare the shape locally; the try/catch
+ * in the guard keeps a genuinely absent global from ever breaking containment.
+ */
+declare const log: {
+  warn(message: string, error?: Error): void
+  error(message: string, error?: Error): void
+}
+
 export function guardStreamAgainstPeerClose(
   stream: IGuardableStream,
   subsystem: string,
