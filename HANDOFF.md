@@ -1,5 +1,47 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Windows Explorer context menu + quick-action window
+
+Branch `feat/windows-context-menu` (worktree), three commits, **not yet merged
+or pushed**: `48e1f02b45` (classic verbs), `807a6f5267` (quick-action window +
+packaged Windows 11 handler), plus an unrelated pre-existing prettier fix to
+`.github/workflows/cheap-lfs-cloud-compression.yml` that was blocking
+`yarn lint`.
+
+Shipped: per-user (`HKCU`-only, never elevated) Explorer verbs on folders and
+folder backgrounds — "Open with OpenCode here" and "Open in Desktop Material";
+a small always-on-top MD3 quick-action window (own webpack entry
+`quick-action`) doing status → commit → push for one folder; and a real
+`IExplorerCommand` COM server in a sparse MSIX for top-level Windows 11
+placement. Settings → Integrations reports which implementation is actually
+serving the menu. Full detail:
+`docs/features/integrations/windows-explorer-context-menu.md`.
+
+**Verified**: tsc clean; `yarn lint` green; targeted suites green (151 tests
+across the three new files plus the ipc/i18n/settings-search/settings-surfaces
+contract tests). The COM DLL compiles with MSVC and exports
+`DllGetClassObject`/`DllCanUnloadNow` undecorated; the generated manifest passes
+real MSIX schema validation via `makeappx pack` — which is what caught the
+X.500 quoted-publisher and bare-GUID requirements, and that `Directory` item
+types come from the **desktop5** schema, not desktop4.
+
+**Bug found and fixed by actually launching the app**, not by tests:
+`handleCommandLineArguments` runs at module scope *before* `app.on('ready')`,
+so the quick-action branch tried to create a `BrowserWindow` too early and died
+as an unhandled rejection. Now guarded on `app.isReady()`; the initial command
+line is handled from the `ready` handler and that branch serves
+`second-instance` only.
+
+**NOT verified, needs a human or a differently-configured host**:
+live `Add-AppxPackage -Register` and the resulting top-level menu entry — it
+needs sideloading enabled in Windows Settings, which is a system security
+setting the agent will not change. No certificate is ever installed by design
+(trusting a self-signed cert is a machine-wide change); the classic verbs are
+the documented automatic fallback. A cold-open millisecond figure from a
+packaged build is also still outstanding — the instrumentation is in and logs
+`Quick action window interactive in <n>ms`; the dev bundle is 11.4 MB vs the
+main renderer's 25.8 MB, which is a size proxy, not a timing.
+
 ## 2026-07-25 SESSION HANDOFF — read this first / 交接即讀
 
 Seven cycles pushed today (tips: `f9e07c9c42` → `72876526d4` → `7c588cb224` →

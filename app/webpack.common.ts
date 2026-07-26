@@ -129,6 +129,33 @@ export const crash = merge({}, commonConfig, {
   ],
 })
 
+/**
+ * The quick-action window's renderer. A separate bundle from `renderer` on
+ * purpose: the window is opened from an Explorer right-click and is judged on
+ * how fast it appears, so it must not pay for the full workspace bundle.
+ */
+export const quickAction = merge({}, commonConfig, {
+  entry: { 'quick-action': path.resolve(__dirname, 'src/quick-action/index') },
+  target: 'electron-renderer',
+  plugins: [
+    new HtmlWebpackPlugin({
+      title: 'GitHub Desktop',
+      filename: 'quick-action.html',
+      chunks: ['quick-action'],
+    }),
+    new webpack.DefinePlugin(
+      Object.assign({}, replacements, {
+        __PROCESS_KIND__: JSON.stringify('ui'),
+      })
+    ),
+  ],
+  resolve: {
+    // Match the main renderer: prevent browser-specific module variants, which
+    // would break the node-side git and keytar usage this window needs.
+    aliasFields: [],
+  },
+})
+
 export const cli = merge({}, commonConfig, {
   entry: { cli: path.resolve(__dirname, 'src/cli/main') },
   target: 'node',

@@ -17,6 +17,13 @@ import { DesktopNotificationPermission } from 'desktop-notifications'
 import { NotificationCallback } from 'desktop-notifications'
 import { DesktopAliveEvent } from './stores/alive-store'
 import { CLIAction } from './cli-action'
+import { IQuickActionRequest } from './quick-action'
+import {
+  IWindowsContextMenuApplyRequest,
+  IWindowsContextMenuApplyResponse,
+  IWindowsContextMenuLabels,
+  IWindowsContextMenuState,
+} from './windows-context-menu'
 import {
   IBuildRunLogEvent,
   IBuildRunPlan,
@@ -194,6 +201,19 @@ export type RequestChannels = {
   'show-installing-update': () => void
   'install-windows-cli': () => void
   'uninstall-windows-cli': () => void
+  /** main -> quick-action renderer: the folder and verb it was opened for. */
+  'quick-action-request': (
+    request: IQuickActionRequest,
+    launchedAt: number
+  ) => void
+  /** quick-action renderer -> main: listening, send the request. */
+  'quick-action-ready': () => void
+  /** quick-action renderer -> main: dismiss the window. */
+  'quick-action-close': () => void
+  /** quick-action renderer -> main: hand this folder to the full app. */
+  'quick-action-open-in-app': (path: string) => void
+  /** quick-action renderer -> main: measured launch-to-interactive time. */
+  'quick-action-opened': (elapsedMs: number) => void
   'build-run-log': (event: IBuildRunLogEvent) => void
   'build-run-state': (event: IBuildRunStateEvent) => void
   'actions-local-run-log': (event: IActionsLocalRunLogEvent) => void
@@ -257,6 +277,17 @@ export type RequestResponseChannels = {
   'set-agent-server-remote-site-url': (
     value: string
   ) => Promise<IAgentServerStatus>
+  'get-windows-context-menu-state': (
+    labels: IWindowsContextMenuLabels
+  ) => Promise<IWindowsContextMenuState>
+  'set-windows-context-menu-entry': (
+    request: IWindowsContextMenuApplyRequest
+  ) => Promise<IWindowsContextMenuApplyResponse>
+  /** Register or unregister the packaged Windows 11 top-level handler. */
+  'set-modern-context-menu-installed': (request: {
+    readonly installed: boolean
+    readonly labels: IWindowsContextMenuLabels
+  }) => Promise<IWindowsContextMenuApplyResponse>
   'get-path': (path: PathType) => Promise<string>
   'get-app-architecture': () => Promise<Architecture>
   'get-app-path': () => Promise<string>

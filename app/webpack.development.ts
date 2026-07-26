@@ -86,11 +86,27 @@ const crashConfig = merge({}, common.crash, config, {
   },
 })
 
+const quickActionConfig = merge({}, common.quickAction, config, {
+  module: {
+    rules: [
+      {
+        test: /\.(scss|css)$/,
+        use: [
+          'style-loader',
+          { loader: 'css-loader', options: { sourceMap: true } },
+          { loader: 'sass-loader', options: { sourceMap: true } },
+        ],
+      },
+    ],
+  },
+})
+
 // eslint-disable-next-line no-restricted-syntax
 export default [
   mainConfig,
   rendererConfig,
   crashConfig,
+  quickActionConfig,
   cliConfig,
   highlighterConfig,
 ]

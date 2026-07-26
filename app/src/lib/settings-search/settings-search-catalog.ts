@@ -117,6 +117,24 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       descriptionKey: 'settings.integrationsShellSubtitle',
       keywords: ['terminal', 'shell', 'bash', 'powershell', '終端機'],
     },
+    {
+      id: 'integrations-windows-context-menu',
+      tab: PreferencesTab.Integrations,
+      titleKey: 'settings.contextMenuHeading',
+      descriptionKey: 'settings.contextMenuDescription',
+      keywords: [
+        'explorer',
+        'right click',
+        'right-click',
+        'context menu',
+        'shell extension',
+        'opencode',
+        'folder',
+        '右鍵',
+        '選單',
+        '檔案總管',
+      ],
+    },
     // Copilot
     {
       id: 'copilot-models',

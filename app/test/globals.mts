@@ -57,7 +57,18 @@ mock.module('electron', {
   namedExports: {
     clipboard: { writeText: () => {} },
     shell: {},
-    ipcRenderer: { on: mock.fn(x => {}) },
+    ipcRenderer: {
+      on: mock.fn(x => {}),
+      // Real `invoke` always returns a promise, so the stub rejects rather than
+      // throwing synchronously: a component that probes the main process on
+      // mount must exercise its own error path here, not crash the render.
+      // A test that needs a specific reply mocks the module itself.
+      invoke: mock.fn(async () =>
+        Promise.reject(
+          new Error('electron.ipcRenderer.invoke is not available in tests')
+        )
+      ),
+    },
     ipcMain: {
       on: () => {},
       once: () => {},

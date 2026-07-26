@@ -1457,6 +1457,40 @@ export type TranslationKey =
   | 'settings.integrationsCustomEditorLabel'
   | 'settings.integrationsCustomShellLabel'
   | 'settings.integrationsSelectEditor'
+  | 'settings.contextMenuHeading'
+  | 'settings.contextMenuDescription'
+  | 'settings.contextMenuPlacementNote'
+  | 'settings.contextMenuOpencodeLabel'
+  | 'settings.contextMenuOpencodeDescription'
+  | 'settings.contextMenuDesktopMaterialLabel'
+  | 'settings.contextMenuDesktopMaterialDescription'
+  | 'settings.contextMenuOpencodeMissing'
+  | 'settings.contextMenuAppPathUnknown'
+  | 'settings.contextMenuNeedsRepair'
+  | 'settings.contextMenuBusy'
+  | 'settings.contextMenuStateError'
+  | 'settings.contextMenuApplyError'
+  | 'settings.contextMenuModernLabel'
+  | 'settings.contextMenuModernDescription'
+  | 'settings.contextMenuModeModern'
+  | 'settings.contextMenuModeClassic'
+  | 'settings.contextMenuModeNone'
+  | 'settings.contextMenuNeedsWindows11'
+  | 'settings.contextMenuPackageMissing'
+  | 'settings.contextMenuNeedsDeveloperMode'
+  | 'quickAction.loading'
+  | 'quickAction.notARepository'
+  | 'quickAction.noChanges'
+  | 'quickAction.needSummary'
+  | 'quickAction.detachedHead'
+  | 'quickAction.busy'
+  | 'quickAction.changeCount'
+  | 'quickAction.summaryLabel'
+  | 'quickAction.summaryPlaceholder'
+  | 'quickAction.commitAndPush'
+  | 'quickAction.openInFullApp'
+  | 'quickAction.pushed'
+  | 'quickAction.genericError'
   | 'push.ghCliFallbackSuccessTitle'
   | 'push.ghCliFallbackSuccessBody'
   | 'clone.visibilityPublic'
@@ -3847,6 +3881,55 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.integrationsCustomEditorLabel': 'Custom editor',
   'settings.integrationsCustomShellLabel': 'Custom shell',
   'settings.integrationsSelectEditor': 'Select editor',
+  'settings.contextMenuHeading': 'Windows context menu',
+  'settings.contextMenuDescription':
+    'Add Desktop Material actions to the right-click menu for folders and folder backgrounds in File Explorer.',
+  'settings.contextMenuPlacementNote':
+    'Windows 11 hides these classic entries behind “Show more options” (or press Shift+F10 to open the classic menu directly). Placing them in the top-level Windows 11 menu needs a packaged shell extension, which this build does not install.',
+  'settings.contextMenuOpencodeLabel': 'Open with OpenCode here',
+  'settings.contextMenuOpencodeDescription':
+    'Opens a terminal in the folder running the opencode CLI.',
+  'settings.contextMenuDesktopMaterialLabel': 'Open in Desktop Material',
+  'settings.contextMenuDesktopMaterialDescription':
+    'Opens the folder as a repository, adding it if it is not already in your list.',
+  'settings.contextMenuOpencodeMissing':
+    'opencode was not found on this computer, so this entry cannot be added.',
+  'settings.contextMenuAppPathUnknown':
+    'The application path could not be determined, so entries cannot be added.',
+  'settings.contextMenuNeedsRepair':
+    'This entry exists but does not match this install. Turn it off and on again to repair it.',
+  'settings.contextMenuBusy': 'Updating the context menu…',
+  'settings.contextMenuStateError':
+    'Unable to read the current context menu state.',
+  'settings.contextMenuApplyError': 'Unable to update the context menu.',
+  'settings.contextMenuModernLabel': 'Show in the main Windows 11 menu',
+  'settings.contextMenuModernDescription':
+    'Registers a packaged shell extension so the actions appear at the top level of the right-click menu instead of under “Show more options”.',
+  'settings.contextMenuModeModern':
+    'Active: actions appear in the main right-click menu.',
+  'settings.contextMenuModeClassic':
+    'Active: actions appear under “Show more options”.',
+  'settings.contextMenuModeNone': 'No context menu actions are installed.',
+  'settings.contextMenuNeedsWindows11':
+    'The main-menu placement needs Windows 11.',
+  'settings.contextMenuPackageMissing':
+    'This build does not include the packaged shell extension.',
+  'settings.contextMenuNeedsDeveloperMode':
+    'The main-menu placement needs sideloading enabled in Windows Settings → System → For developers. Desktop Material will not change that setting for you.',
+  'quickAction.loading': 'Reading the folder…',
+  'quickAction.notARepository': 'This folder is not a Git repository.',
+  'quickAction.noChanges': 'No changes to commit.',
+  'quickAction.needSummary': 'Enter a summary to commit.',
+  'quickAction.detachedHead':
+    'This repository is not on a branch. Open it in the full app to continue.',
+  'quickAction.busy': 'Working…',
+  'quickAction.changeCount': '{count} changed file(s) ready to commit.',
+  'quickAction.summaryLabel': 'Summary',
+  'quickAction.summaryPlaceholder': 'Describe your changes',
+  'quickAction.commitAndPush': 'Commit & push',
+  'quickAction.openInFullApp': 'Open in full app',
+  'quickAction.pushed': 'Committed {sha} and pushed.',
+  'quickAction.genericError': 'Something went wrong.',
   'push.ghCliFallbackSuccessTitle': 'Pushed using GitHub CLI credentials',
   'push.ghCliFallbackSuccessBody':
     'The push to {remote} was rejected, so Desktop Material retried it with your GitHub CLI login and it succeeded.',
@@ -6300,6 +6383,50 @@ export const cantoneseTranslations: Readonly<
   'settings.integrationsCustomEditorLabel': '自訂編輯器',
   'settings.integrationsCustomShellLabel': '自訂命令列',
   'settings.integrationsSelectEditor': '揀編輯器',
+  'settings.contextMenuHeading': 'Windows 右鍵選單',
+  'settings.contextMenuDescription':
+    '喺檔案總管撳右鍵嗰陣，喺資料夾同資料夾空白位加返 Desktop Material 嘅動作。',
+  'settings.contextMenuPlacementNote':
+    'Windows 11 會將呢啲經典項目收埋喺「顯示更多選項」入面（或者撳 Shift+F10 直接開經典選單）。想擺上 Windows 11 第一層選單就要裝打包過嘅 shell extension，呢個版本冇裝。',
+  'settings.contextMenuOpencodeLabel': '喺呢度開 OpenCode',
+  'settings.contextMenuOpencodeDescription':
+    '喺該資料夾開個終端機，即刻行 opencode CLI。',
+  'settings.contextMenuDesktopMaterialLabel': '用 Desktop Material 打開',
+  'settings.contextMenuDesktopMaterialDescription':
+    '將個資料夾當 repository 打開；如果未喺清單度會順手加埋。',
+  'settings.contextMenuOpencodeMissing':
+    '喺呢部電腦搵唔到 opencode，所以加唔到呢個項目。',
+  'settings.contextMenuAppPathUnknown':
+    '搵唔到應用程式路徑，所以加唔到呢啲項目。',
+  'settings.contextMenuNeedsRepair':
+    '呢個項目存在，但同今次安裝對唔上。閂咗再開一次就會整返好。',
+  'settings.contextMenuBusy': '更新緊右鍵選單…',
+  'settings.contextMenuStateError': '讀唔到而家嘅右鍵選單狀態。',
+  'settings.contextMenuApplyError': '更新唔到右鍵選單。',
+  'settings.contextMenuModernLabel': '喺 Windows 11 主選單度出',
+  'settings.contextMenuModernDescription':
+    '註冊一個打包好嘅 shell extension，令啲動作直接喺右鍵選單第一層度出，唔使揿「顯示更多選項」。',
+  'settings.contextMenuModeModern': '而家係：啲動作喺右鍵主選單度出。',
+  'settings.contextMenuModeClassic': '而家係：啲動作喺「顯示更多選項」入面。',
+  'settings.contextMenuModeNone': '而家冇裝任何右鍵選單動作。',
+  'settings.contextMenuNeedsWindows11': '要 Windows 11 先可以擺上主選單。',
+  'settings.contextMenuPackageMissing': '呢個版本冇打包個 shell extension。',
+  'settings.contextMenuNeedsDeveloperMode':
+    '要喺 Windows 設定 → 系統 → 開發人員專用 度開咗側載，先可以擺上主選單。Desktop Material 唔會幫你改呢個設定。',
+  'quickAction.loading': '讀緊個資料夾…',
+  'quickAction.notARepository': '呢個資料夾唔係 Git repository。',
+  'quickAction.noChanges': '冇改動可以 commit。',
+  'quickAction.needSummary': '打個摘要先可以 commit。',
+  'quickAction.detachedHead':
+    '呢個 repository 而家唔喺任何 branch 上面。用完整版打開再搞。',
+  'quickAction.busy': '做緊嘢…',
+  'quickAction.changeCount': '有 {count} 個檔案改咗，可以 commit。',
+  'quickAction.summaryLabel': '摘要',
+  'quickAction.summaryPlaceholder': '講吓你改咗啲乜',
+  'quickAction.commitAndPush': 'Commit 埋 push',
+  'quickAction.openInFullApp': '用完整版打開',
+  'quickAction.pushed': 'Commit 咗 {sha}，亦都 push 咗喇。',
+  'quickAction.genericError': '有嘢出錯咗。',
   'push.ghCliFallbackSuccessTitle': '用咗 GitHub CLI 帳戶推送成功',
   'push.ghCliFallbackSuccessBody':
     '推送去 {remote} 一開始俾人拒絕，所以 Desktop Material 改用你嘅 GitHub CLI 登入再試一次，今次搞掂咗。',
