@@ -365,7 +365,7 @@ export const BulkActionSurfaceRegistry: ReadonlyArray<IBulkActionSurfaceRegistra
       status: 'implemented',
       operations: ['publish-drafts', 'delete-releases'],
       safety:
-        'Every exact release fingerprint is revalidated immediately before mutation; partial completion is reported.',
+        'Every exact release fingerprint is revalidated immediately before mutation. Publishing stops at the first failure; deletion reports determinate progress, continues past a failed release with its reason, and states how many were deleted, failed, and never attempted.',
     },
     {
       id: 'tags',

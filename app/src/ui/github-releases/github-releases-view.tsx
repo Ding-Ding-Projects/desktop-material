@@ -12,6 +12,7 @@ import {
   IGitHubReleaseMutationReview,
 } from '../../lib/stores/github-releases-store'
 import {
+  GitHubReleaseMaximumPages,
   IGitHubRelease,
   IGitHubReleaseAsset,
   IGitHubReleaseDraft,
@@ -19,6 +20,17 @@ import {
   normalizeGitHubReleaseAssetName,
   normalizeGitHubReleaseDraft,
 } from '../../lib/github-releases'
+import {
+  bulkReleaseDeleteAttempted,
+  bulkReleaseDeleteRemaining,
+  bulkReleaseDeleteReportedFailures,
+  finishBulkReleaseDelete,
+  IBulkReleaseDeleteState,
+  recordBulkReleaseDeleteFailure,
+  recordBulkReleaseDeleteSuccess,
+  requestBulkReleaseDeleteStop,
+  startBulkReleaseDelete,
+} from '../../lib/github-release-bulk-delete'
 import { IGitHubReleaseTransferProgressEvent } from '../../lib/github-release-transfer'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { Button } from '../lib/button'
@@ -40,6 +52,7 @@ type ReleaseStatusFilter = 'all' | 'published' | 'prerelease' | 'draft'
 
 type BusyOperation =
   | 'releases'
+  | 'releases-all'
   | 'assets'
   | 'create'
   | 'update'
@@ -51,7 +64,10 @@ type BusyOperation =
   | 'bulk-publish'
   | 'bulk-delete'
 
-const BusyOperationLabels: Record<BusyOperation, string> = {
+const BusyOperationLabels: Record<
+  Exclude<BusyOperation, 'releases-all'>,
+  string
+> = {
   releases: 'Loading releases…',
   assets: 'Loading release assets…',
   create: 'Creating release…',
@@ -63,6 +79,23 @@ const BusyOperationLabels: Record<BusyOperation, string> = {
   'delete-asset': 'Deleting release asset…',
   'bulk-publish': 'Publishing selected release drafts…',
   'bulk-delete': 'Deleting selected releases…',
+}
+
+/**
+ * The exhaustive walk reports its live count next to its own button, so the
+ * shared busy line stays a stable, translated label instead of a second place
+ * announcing the same changing numbers.
+ */
+function busyOperationLabel(operation: BusyOperation): string {
+  return operation === 'releases-all'
+    ? t('githubReleases.loadAllBusy')
+    : BusyOperationLabels[operation]
+}
+
+/** Live counters for the exhaustive release walk. */
+interface ILoadAllProgress {
+  readonly loaded: number
+  readonly page: number
 }
 
 interface IReleaseEditorState extends IGitHubReleaseDraft {
@@ -142,6 +175,8 @@ interface IGitHubReleasesViewState {
   readonly nextAssetPage: number | null
   readonly assetsCapped: boolean
   readonly busy: BusyOperation | null
+  readonly loadAllProgress: ILoadAllProgress | null
+  readonly bulkDelete: IBulkReleaseDeleteState | null
   readonly failedOperation: 'releases' | 'assets' | null
   readonly message: string | null
   readonly error: string | null
@@ -186,6 +221,8 @@ function initialState(
     nextAssetPage: null,
     assetsCapped: false,
     busy: null,
+    loadAllProgress: null,
+    bulkDelete: null,
     failedOperation: null,
     message: null,
     error: null,
@@ -273,6 +310,14 @@ export class GitHubReleasesView extends React.Component<
   private mounted = false
   private generation = 0
   private operationController: AbortController | null = null
+  /**
+   * A soft stop for the bulk deletion batch, kept off React state on purpose.
+   * State updates are asynchronous, so a flag read between two deletions has to
+   * be an instance field to be seen by the iteration that follows the click.
+   * Unlike the hard Cancel it never aborts the request already in flight, so
+   * the operator is never told a release was skipped while it was in fact sent.
+   */
+  private bulkDeleteStopRequested = false
   private lastProgressAt = 0
   private openDownloadRequest = 0
   private selectAllVisibleRef = React.createRef<HTMLInputElement>()
@@ -323,6 +368,16 @@ export class GitHubReleasesView extends React.Component<
     })
   }
 
+  /**
+   * Claim the single Releases operation slot, or refuse the caller.
+   *
+   * `this.operationController` is the synchronous in-flight claim (the same
+   * pattern as `lib/cheap-lfs/in-flight-guard.ts`): it is assigned before the
+   * first `await` and released in a `finally`, so a stuttered double-click on
+   * "Load all releases" or "Delete reviewed releases" cannot start the work
+   * twice. `this.state.busy` only mirrors the claim so the control also renders
+   * disabled — React would apply that state long after the second click.
+   */
   private startOperation(operation: BusyOperation): {
     readonly generation: number
     readonly controller: AbortController
@@ -430,6 +485,111 @@ export class GitHubReleasesView extends React.Component<
           failedOperation: canceled ? null : 'releases',
           error: canceled ? null : errorMessage(error),
           message: canceled ? 'Release loading canceled.' : null,
+        })
+      }
+    } finally {
+      this.finishOperation(operation.controller)
+    }
+  }
+
+  /**
+   * Page through every remaining release so the search filter covers the whole
+   * repository instead of the pages that happen to be on screen.
+   *
+   * The walk resumes from the page the interactive loader stopped at, appends
+   * into the same `releases` array the filter already reads, and names its own
+   * stopping point. A page ceiling, a rate limit, a cancellation, and a
+   * provider failure each keep what already loaded and say so — nothing here
+   * quietly hands back a short list as if it were the whole repository.
+   */
+  private loadAllReleases = async () => {
+    const startPage = this.state.nextReleasePage
+    if (startPage === null) {
+      return
+    }
+    const operation = this.startOperation('releases-all')
+    if (operation === null) {
+      return
+    }
+    const alreadyLoaded = this.state.releases.length
+    let lastPage = this.state.releasePage
+    this.setState({
+      loadAllProgress: { loaded: alreadyLoaded, page: Math.max(1, lastPage) },
+    })
+    try {
+      const inventory = await this.props.releasesStore.listAll(
+        this.props.repository,
+        operation.controller.signal,
+        {
+          startPage,
+          keepPartial: true,
+          onPage: progress => {
+            lastPage = progress.page
+            if (this.isCurrent(operation.generation, operation.controller)) {
+              this.setState({
+                loadAllProgress: {
+                  loaded: alreadyLoaded + progress.loaded,
+                  page: progress.page,
+                },
+              })
+            }
+          },
+        }
+      )
+      if (!this.isCurrent(operation.generation, operation.controller)) {
+        return
+      }
+      const releases = appendUnique(this.state.releases, inventory.releases)
+      const loaded = releases.length.toString()
+      // A walk that ended early can be resumed from the page after the last one
+      // it actually parsed; a walk that reached the end or the ceiling cannot.
+      const resumePage =
+        inventory.outcome === 'complete' ||
+        inventory.outcome === 'page-limit' ||
+        lastPage >= GitHubReleaseMaximumPages
+          ? null
+          : lastPage + 1
+      const rateLimited = inventory.outcome === 'rate-limit'
+      const failed = inventory.outcome === 'failed'
+      const notice =
+        inventory.outcome === 'complete'
+          ? t('githubReleases.loadAllComplete', { loaded })
+          : inventory.outcome === 'page-limit'
+          ? t('githubReleases.loadAllTruncated', {
+              loaded,
+              pages: GitHubReleaseMaximumPages.toString(),
+            })
+          : rateLimited
+          ? t('githubReleases.loadAllRateLimited', { loaded })
+          : failed
+          ? t('githubReleases.loadAllFailed', {
+              loaded,
+              detail: errorMessage(inventory.error),
+            })
+          : t('githubReleases.loadAllCanceled', { loaded })
+      this.finishOperation(operation.controller)
+      this.setState({
+        releases,
+        releasePage: lastPage,
+        nextReleasePage: resumePage,
+        releasesCapped: inventory.outcome === 'page-limit',
+        busy: null,
+        loadAllProgress: null,
+        // Retrying a rate-limited or failed walk must not reload from page one:
+        // that would discard everything this walk did manage to load.
+        failedOperation: null,
+        error: rateLimited || failed ? notice : null,
+        message: rateLimited || failed ? null : notice,
+      })
+    } catch (error) {
+      if (this.isCurrent(operation.generation, operation.controller)) {
+        this.finishOperation(operation.controller)
+        this.setState({
+          busy: null,
+          loadAllProgress: null,
+          failedOperation: null,
+          error: errorMessage(error),
+          message: null,
         })
       }
     } finally {
@@ -651,6 +811,9 @@ export class GitHubReleasesView extends React.Component<
         upload: null,
         error: null,
         message: null,
+        // The previous batch's summary belongs to the selection that produced
+        // it; a new review starts with no result to misread.
+        bulkDelete: null,
       })
     } catch (error) {
       this.setState({ error: errorMessage(error) })
@@ -1018,9 +1181,137 @@ export class GitHubReleasesView extends React.Component<
   private dismissConfirmation = () =>
     this.setState({ confirmation: null, error: null })
 
+  /**
+   * Ask the batch to stop between deletions.
+   *
+   * This is not the hard Cancel: the release already sent to the provider is
+   * allowed to finish, because reporting it as "not attempted" while GitHub is
+   * deleting it would be a lie about destructive work.
+   */
+  private stopBulkDelete = () => {
+    if (this.state.busy !== 'bulk-delete' || this.bulkDeleteStopRequested) {
+      return
+    }
+    this.bulkDeleteStopRequested = true
+    this.setState(state => ({
+      bulkDelete:
+        state.bulkDelete === null
+          ? null
+          : requestBulkReleaseDeleteStop(state.bulkDelete),
+    }))
+  }
+
+  private bulkDeleteSummary(state: IBulkReleaseDeleteState): string {
+    const remaining = bulkReleaseDeleteRemaining(state)
+    const counts = {
+      deleted: state.deleted.toString(),
+      failed: state.failures.length.toString(),
+      total: state.total.toString(),
+    }
+    return remaining > 0
+      ? t('githubReleases.bulkDeleteSummaryStopped', {
+          ...counts,
+          attempted: bulkReleaseDeleteAttempted(state).toString(),
+          remaining: remaining.toString(),
+        })
+      : t('githubReleases.bulkDeleteSummary', counts)
+  }
+
+  /**
+   * Delete every reviewed release one at a time, reporting determinate progress
+   * and surviving individual failures.
+   *
+   * A release the provider refuses is recorded with its bounded reason and the
+   * batch continues: one stale fingerprint in a fifty-release selection used to
+   * abandon the other forty-nine with no record of which had already gone.
+   */
+  private executeBulkDelete = async (confirmation: {
+    readonly releases: ReadonlyArray<IGitHubRelease>
+    readonly reviews: ReadonlyArray<IGitHubReleaseMutationReview>
+  }) => {
+    const operation = this.startOperation('bulk-delete')
+    if (operation === null) {
+      return
+    }
+    this.bulkDeleteStopRequested = false
+    const total = confirmation.releases.length
+    const deletedIds = new Set<number>()
+    let progress = startBulkReleaseDelete(total)
+    this.setState({ bulkDelete: progress })
+    try {
+      for (let index = 0; index < total; index++) {
+        if (
+          this.bulkDeleteStopRequested ||
+          operation.controller.signal.aborted
+        ) {
+          progress = requestBulkReleaseDeleteStop(progress)
+          break
+        }
+        const review = confirmation.reviews[index]
+        const release = confirmation.releases[index]
+        if (review === undefined || release === undefined) {
+          // The reviewed pairs are built together, so a gap means the batch is
+          // no longer describing the selection the operator approved.
+          progress = requestBulkReleaseDeleteStop(progress)
+          break
+        }
+        try {
+          await this.props.releasesStore.delete(
+            this.props.repository,
+            review,
+            operation.controller.signal
+          )
+          deletedIds.add(release.id)
+          progress = recordBulkReleaseDeleteSuccess(progress)
+        } catch (error) {
+          if ((error as Error)?.name === 'AbortError') {
+            progress = requestBulkReleaseDeleteStop(progress)
+            break
+          }
+          progress = recordBulkReleaseDeleteFailure(progress, {
+            releaseId: release.id,
+            tagName: release.tagName,
+            reason: errorMessage(error),
+          })
+        }
+        if (!this.isCurrent(operation.generation, operation.controller)) {
+          return
+        }
+        this.setState({ bulkDelete: progress })
+      }
+      progress = finishBulkReleaseDelete(progress)
+      if (!this.isCurrent(operation.generation, operation.controller)) {
+        return
+      }
+      this.finishOperation(operation.controller)
+      this.setState(
+        {
+          busy: null,
+          confirmation: null,
+          bulkDelete: progress,
+          selectedReleaseIds: new Set(
+            [...this.state.selectedReleaseIds].filter(id => !deletedIds.has(id))
+          ),
+          error: null,
+          // The batch summary is rendered from `bulkDelete`; repeating it as a
+          // message would announce the same result twice.
+          message: null,
+        },
+        () => void this.loadReleases(true)
+      )
+    } finally {
+      this.finishOperation(operation.controller)
+      this.bulkDeleteStopRequested = false
+    }
+  }
+
   private executeConfirmation = async () => {
     const confirmation = this.state.confirmation
     if (confirmation === null) {
+      return
+    }
+    if (confirmation.kind === 'bulk-delete') {
+      await this.executeBulkDelete(confirmation)
       return
     }
     const operationName: BusyOperation =
@@ -1064,19 +1355,11 @@ export class GitHubReleasesView extends React.Component<
               'The reviewed release selection changed. Review the bulk action again.'
             )
           }
-          if (confirmation.kind === 'bulk-publish') {
-            await this.props.releasesStore.publish(
-              this.props.repository,
-              review,
-              operation.controller.signal
-            )
-          } else {
-            await this.props.releasesStore.delete(
-              this.props.repository,
-              review,
-              operation.controller.signal
-            )
-          }
+          await this.props.releasesStore.publish(
+            this.props.repository,
+            review,
+            operation.controller.signal
+          )
           completedIds.add(release.id)
         }
       }
@@ -1090,13 +1373,9 @@ export class GitHubReleasesView extends React.Component<
           ? `Deleted release ${confirmation.release.tagName}. The Git tag was not deleted.`
           : confirmation.kind === 'delete-asset'
           ? `Deleted asset ${confirmation.asset.name}.`
-          : confirmation.kind === 'bulk-publish'
-          ? `Published ${confirmation.releases.length} selected release ${
+          : `Published ${confirmation.releases.length} selected release ${
               confirmation.releases.length === 1 ? 'draft' : 'drafts'
             }.`
-          : `Deleted ${confirmation.releases.length} selected ${
-              confirmation.releases.length === 1 ? 'release' : 'releases'
-            }. Git tags were not deleted.`
       this.finishOperation(operation.controller)
       this.setState(
         {
@@ -1116,9 +1395,7 @@ export class GitHubReleasesView extends React.Component<
     } catch (error) {
       if (this.isCurrent(operation.generation, operation.controller)) {
         const canceled = (error as Error)?.name === 'AbortError'
-        const batch =
-          confirmation.kind === 'bulk-publish' ||
-          confirmation.kind === 'bulk-delete'
+        const batch = confirmation.kind === 'bulk-publish'
         const selectedReleaseIds = new Set(
           [...this.state.selectedReleaseIds].filter(id => !completedIds.has(id))
         )
@@ -1620,6 +1897,8 @@ export class GitHubReleasesView extends React.Component<
       this.state.releases.length === 0 &&
       this.state.releasePage === 0 &&
       this.state.busy === 'releases'
+    const loadAllProgress =
+      this.state.busy === 'releases-all' ? this.state.loadAllProgress : null
 
     return (
       <section
@@ -1871,7 +2150,10 @@ export class GitHubReleasesView extends React.Component<
             })}
           </div>
         )}
-        <div className="github-releases-pagination">
+        <div
+          className="github-releases-pagination"
+          aria-busy={this.state.busy === 'releases-all'}
+        >
           <Button
             disabled={
               this.state.busy !== null || this.state.nextReleasePage === null
@@ -1880,6 +2162,31 @@ export class GitHubReleasesView extends React.Component<
           >
             Load more releases
           </Button>
+          <Button
+            disabled={
+              this.state.busy !== null || this.state.nextReleasePage === null
+            }
+            ariaDescribedBy={
+              loadAllProgress === null
+                ? undefined
+                : 'github-releases-load-all-progress'
+            }
+            onClick={this.loadAllReleases}
+          >
+            {t('githubReleases.loadAll')}
+          </Button>
+          {loadAllProgress !== null && (
+            <span
+              id="github-releases-load-all-progress"
+              className="github-releases-load-all-progress"
+              role="status"
+            >
+              {t('githubReleases.loadAllProgress', {
+                loaded: loadAllProgress.loaded.toString(),
+                page: Math.max(1, loadAllProgress.page).toString(),
+              })}
+            </span>
+          )}
           <span>
             {this.state.releasesCapped
               ? 'Safety limit reached. Refresh to begin again.'
@@ -2073,7 +2380,7 @@ export class GitHubReleasesView extends React.Component<
           {confirmation.kind === 'bulk-publish'
             ? 'Each exact reviewed draft will be revalidated immediately before it is published. Processing stops on the first stale or failed item.'
             : confirmation.kind === 'bulk-delete'
-            ? 'Each exact reviewed release will be revalidated immediately before permanent deletion. Git tags are not deleted. Processing stops on the first stale or failed item.'
+            ? t('githubReleases.bulkDeleteReview')
             : isPublish
             ? 'This makes the reviewed draft visible to repository readers. Its tag, target, notes, pre-release state, and assets will be published as currently shown.'
             : isAsset
@@ -2427,16 +2734,96 @@ export class GitHubReleasesView extends React.Component<
     )
   }
 
+  /**
+   * Determinate progress for the reviewed deletion batch, and its result.
+   *
+   * The block outlives the run on purpose: the summary and the per-release
+   * reasons are the only record of destructive work that partly succeeded, so
+   * they stay until the operator reviews a new batch or changes repository.
+   */
+  private renderBulkDeleteProgress(state: IBulkReleaseDeleteState) {
+    const attempted = bulkReleaseDeleteAttempted(state)
+    const { shown, omitted } = bulkReleaseDeleteReportedFailures(state)
+    const counts = {
+      deleted: state.deleted.toString(),
+      failed: state.failures.length.toString(),
+      total: state.total.toString(),
+    }
+    return (
+      <div
+        className="github-releases-bulk-delete-progress"
+        aria-busy={state.running}
+      >
+        {state.running && (
+          <div className="github-releases-bulk-delete-meter">
+            {/*
+              `progress` already carries the progressbar role, so the explicit
+              value attributes are what make the batch's position legible to a
+              screen reader rather than a redundant role.
+            */}
+            <progress
+              max={Math.max(1, state.total)}
+              value={attempted}
+              aria-valuemin={0}
+              aria-valuemax={state.total}
+              aria-valuenow={attempted}
+              aria-label={translateForAccessibleName(
+                'githubReleases.bulkDeleteProgressLabel'
+              )}
+            />
+            <Button
+              disabled={state.stopRequested}
+              onClick={this.stopBulkDelete}
+            >
+              {t('githubReleases.bulkDeleteStop')}
+            </Button>
+          </div>
+        )}
+        <span role="status">
+          {!state.running
+            ? this.bulkDeleteSummary(state)
+            : state.stopRequested
+            ? t('githubReleases.bulkDeleteStopping', counts)
+            : t('githubReleases.bulkDeleteProgress', counts)}
+        </span>
+        {state.failures.length > 0 && (
+          <div className="github-releases-bulk-delete-failures">
+            <strong>{t('githubReleases.bulkDeleteFailures')}</strong>
+            <ul>
+              {shown.map(failure => (
+                <li key={failure.releaseId}>
+                  {t('githubReleases.bulkDeleteFailure', {
+                    tag: failure.tagName,
+                    reason: failure.reason,
+                  })}
+                </li>
+              ))}
+              {omitted > 0 && (
+                <li>
+                  {t('githubReleases.bulkDeleteFailuresOmitted', {
+                    count: omitted.toString(),
+                  })}
+                </li>
+              )}
+            </ul>
+          </div>
+        )}
+      </div>
+    )
+  }
+
   private renderOperationStatus() {
     const progress = this.state.progress
     return (
       <div className="github-releases-status" aria-live="polite">
         {this.state.busy !== null && (
           <div className="github-releases-busy" role="status">
-            <span>{BusyOperationLabels[this.state.busy]}</span>
+            <span>{busyOperationLabel(this.state.busy)}</span>
             <Button onClick={this.cancelOperation}>Cancel</Button>
           </div>
         )}
+        {this.state.bulkDelete !== null &&
+          this.renderBulkDeleteProgress(this.state.bulkDelete)}
         {progress !== null && (
           <div className="github-releases-progress">
             <progress
