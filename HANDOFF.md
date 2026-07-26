@@ -107,15 +107,32 @@ pushed** — push was explicitly out of scope for this task).
   so the list's own keyboard navigation reaches every checkbox. Clear and the
   Select-multiple toggle are disabled while a batch runs so a running batch's
   progress and cancel control can never be hidden.
-- **Local verification**: Prettier repo-wide clean, `npx tsc --noEmit` clean,
-  repo-wide `yarn eslint` clean. Targeted: 117/117 across 12 files
-  (`Test file accounting: 12/12 discovered file(s) produced results across 1
-  batch(es); 117 test(s) reported.`) covering the three new suites plus the
-  repositories-list, pull-all, i18n, and filter-mode suites. Broad UI/contract
-  sweep: 212 files, 1308 tests, 1 failure — `OllamaModelManager chat panel`,
-  a pre-existing timing flake in a suite that imports none of the changed
-  modules; re-running it in isolation failed a *different* pair of its tests,
-  which is the same non-deterministic behavior already recorded for that suite.
+- **Local verification**: `yarn lint` green end to end (Prettier repo-wide
+  check clean, `eslint-config-prettier-check` clean, repo-wide eslint clean) and
+  `npx tsc --noEmit` clean, all with `TEMP=C:\dm-temp`.
+  - Dependency-scoped sweep — every test file importing any changed module
+    (`section-filter-list`, `repositories-list`, `collection-surface-registry`,
+    `automation/pull-all`, `i18n-resources`, the new bulk modules): 247/247,
+    `ℹ fail 0`, `Test file accounting: 31/31 discovered file(s) produced results
+    across 1 batch(es); 247 test(s) reported.`, exit 0. Includes the two suites
+    that render `RepositoriesList` directly.
+  - Targeted sweep of the three new suites plus repositories-list, pull-all,
+    i18n, and filter-mode: 117/117, `ℹ fail 0`, `Test file accounting: 12/12 …
+    117 test(s) reported.`, exit 0.
+  - Broad UI/contract sweep (`app/test/unit/ui` plus every registration,
+    responsive, settings-search, palette, design/style, and surface suite):
+    212 files, 1308 tests, `ℹ fail 1` — `OllamaModelManager chat panel`. That
+    suite imports none of the changed modules; re-running it in isolation failed
+    a *different* pair of its own tests, i.e. the same non-deterministic timing
+    behavior already recorded for it in this file. Everything else passed.
+  - A full `node script/test.mjs` was started as well; batches 1 and 2 finished
+    clean (1388/1388 `ℹ fail 0`; 1338 tests, 1337 pass, 1 pre-existing skip,
+    `ℹ fail 0`) and batch 3 was still inside the slow Cheap LFS/git integration
+    files when the run was stopped, so the full-suite accounting line was never
+    emitted. Those remaining batches are Git/Cheap-LFS integration work that the
+    dependency-scoped sweep above shows is untouched by this change.
+  - SCSS: the new partial compiles standalone with `sass` (6,164 bytes), so the
+    bundle import cannot break the build.
 
 ## 2026-07-25 Anchor before the release review (#38 last defect)
 
