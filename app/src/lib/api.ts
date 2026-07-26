@@ -5921,6 +5921,35 @@ export function getAccountForEndpoint(
   return accounts.find(a => a.endpoint === endpoint) || null
 }
 
+/**
+ * Get the signed-in account on `endpoint` whose credential is `token`.
+ *
+ * More than one account can be signed in on the same host, so an endpoint on
+ * its own does not identify an account — `getAccountForEndpoint` just returns
+ * whichever one happens to sort first. A token does identify one: it is the
+ * exact credential a request was made with, and no two signed-in accounts
+ * share it.
+ *
+ * Callers reacting to a credential failure (see `API.onTokenInvalidated`) must
+ * resolve this way. Returns null when no signed-in account holds the token any
+ * more, which is the correct answer for a credential that has already been
+ * replaced by a re-authorization or signed out: acting on a stale token would
+ * sign out an account that is perfectly healthy.
+ */
+export function getAccountForEndpointAndToken(
+  accounts: ReadonlyArray<Account>,
+  endpoint: string,
+  token: string
+): Account | null {
+  if (token.length === 0) {
+    return null
+  }
+
+  return (
+    accounts.find(a => a.endpoint === endpoint && a.token === token) ?? null
+  )
+}
+
 export function getOAuthAuthorizationURL(
   endpoint: string,
   state: string

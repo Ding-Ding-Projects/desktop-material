@@ -3,7 +3,11 @@ import assert from 'node:assert'
 import { Account } from '../../src/models/account'
 import { AccountsStore } from '../../src/lib/stores'
 import { getKeyForAccount, getKeyForEndpoint } from '../../src/lib/auth'
-import { getDotComAPIEndpoint } from '../../src/lib/api'
+import {
+  getAccountForEndpoint,
+  getAccountForEndpointAndToken,
+  getDotComAPIEndpoint,
+} from '../../src/lib/api'
 import { InMemoryStore, AsyncInMemoryStore } from '../helpers/stores'
 
 describe('AccountsStore', () => {
@@ -167,6 +171,176 @@ describe('AccountsStore', () => {
       assert.deepStrictEqual(
         users.map(x => x.login),
         ['present']
+      )
+    })
+  })
+
+  /**
+   * The invalidated-token signal (`API.onTokenInvalidated`) carries the
+   * endpoint and the token the failing request was made with. AppStore used to
+   * resolve it with `getAccountForEndpoint`, which returns whichever account
+   * sorts first on the host — so with two accounts signed in on one host an
+   * invalidated token belonging to the second one signed nobody out and the app
+   * kept using the dead credential.
+   */
+  describe('signing out an account whose token was invalidated', () => {
+    const dotcom = getDotComAPIEndpoint()
+
+    const signInTwoAccountsOnOneHost = async () => {
+      const first = new Account(
+        'first-user',
+        dotcom,
+        'token-one',
+        [],
+        '',
+        1,
+        'First User',
+        'free'
+      )
+      const second = new Account(
+        'second-user',
+        dotcom,
+        'token-two',
+        [],
+        '',
+        2,
+        'Second User',
+        'free'
+      )
+      await accountsStore.addAccount(first)
+      await accountsStore.addAccount(second)
+
+      return { first, second }
+    }
+
+    it('resolves the second account by its token, not by endpoint position', async () => {
+      const { first, second } = await signInTwoAccountsOnOneHost()
+      const accounts = await accountsStore.getAll()
+
+      // The old route: the endpoint alone cannot tell the two apart.
+      assert.equal(getAccountForEndpoint(accounts, dotcom)?.login, 'first-user')
+
+      const affected = getAccountForEndpointAndToken(
+        accounts,
+        dotcom,
+        second.token
+      )
+      assert.equal(affected?.login, 'second-user')
+      assert.equal(affected?.id, second.id)
+
+      assert.equal(
+        getAccountForEndpointAndToken(accounts, dotcom, first.token)?.login,
+        'first-user'
+      )
+    })
+
+    it('signs out exactly the account whose token was invalidated', async () => {
+      const dataStore = new InMemoryStore()
+      const secureStore = new AsyncInMemoryStore()
+      accountsStore = new AccountsStore(dataStore, secureStore)
+      const { first, second } = await signInTwoAccountsOnOneHost()
+
+      const affected = getAccountForEndpointAndToken(
+        await accountsStore.getAll(),
+        dotcom,
+        second.token
+      )
+      assert.notEqual(affected, null)
+      await accountsStore.removeAccount(affected!)
+
+      const remaining = await accountsStore.getAll()
+      assert.deepStrictEqual(
+        remaining.map(x => x.login),
+        ['first-user'],
+        'only the account holding the invalidated token may be signed out'
+      )
+      assert.equal(remaining[0].token, 'token-one')
+
+      // The surviving account's credential must still be readable, and the
+      // signed-out one's must be gone.
+      assert.equal(
+        await secureStore.getItem(getKeyForAccount(first), first.login),
+        'token-one'
+      )
+      assert.equal(
+        await secureStore.getItem(getKeyForAccount(second), second.login),
+        null
+      )
+
+      const persisted = JSON.parse(dataStore.getItem('users'))
+      assert.deepStrictEqual(
+        persisted.map((x: { login: string }) => x.login),
+        ['first-user'],
+        'the signed-out account must not be resurrected by the save merge'
+      )
+    })
+
+    it('signs out the first account when its own token is invalidated', async () => {
+      const { first } = await signInTwoAccountsOnOneHost()
+
+      const affected = getAccountForEndpointAndToken(
+        await accountsStore.getAll(),
+        dotcom,
+        first.token
+      )
+      assert.equal(affected?.login, 'first-user')
+      await accountsStore.removeAccount(affected!)
+
+      assert.deepStrictEqual(
+        (await accountsStore.getAll()).map(x => x.login),
+        ['second-user']
+      )
+    })
+
+    it('signs nobody out for a token no signed-in account holds', async () => {
+      await signInTwoAccountsOnOneHost()
+      const accounts = await accountsStore.getAll()
+
+      // A token replaced by a re-authorization, or one belonging to an account
+      // that is already signed out. Acting on it would sign out a healthy
+      // account.
+      assert.equal(
+        getAccountForEndpointAndToken(accounts, dotcom, 'superseded-token'),
+        null
+      )
+      assert.equal(getAccountForEndpointAndToken(accounts, dotcom, ''), null)
+    })
+
+    it('does not match a token held on a different endpoint', async () => {
+      const enterprise = 'https://ghe.example.com/api/v3'
+      await accountsStore.addAccount(
+        new Account(
+          'shared-name',
+          dotcom,
+          'shared-token',
+          [],
+          '',
+          1,
+          '',
+          'free'
+        )
+      )
+      await accountsStore.addAccount(
+        new Account(
+          'shared-name',
+          enterprise,
+          'shared-token',
+          [],
+          '',
+          2,
+          '',
+          'free'
+        )
+      )
+      const accounts = await accountsStore.getAll()
+
+      assert.equal(
+        getAccountForEndpointAndToken(accounts, enterprise, 'shared-token')?.id,
+        2
+      )
+      assert.equal(
+        getAccountForEndpointAndToken(accounts, dotcom, 'shared-token')?.id,
+        1
       )
     })
   })

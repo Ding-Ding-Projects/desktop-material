@@ -272,6 +272,7 @@ import {
 import {
   API,
   getAccountForEndpoint,
+  getAccountForEndpointAndToken,
   getHTMLURL,
   IAPIOrganization,
   IAPIFullRepository,
@@ -1962,18 +1963,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private onTokenInvalidated = (endpoint: string, token: string) => {
-    const account = getAccountForEndpoint(this.accounts, endpoint)
+    // Several accounts can be signed in on the same host, so the endpoint on
+    // its own does not say whose credential died. Resolving by endpoint
+    // position used to pick whichever account sorted first and then bail on the
+    // token mismatch, which meant an invalidated token belonging to any account
+    // but the first signed nobody out at all — the app carried on using the
+    // dead credential and re-prompting forever.
+    //
+    // The token the failing request was made with is the identity. Matching on
+    // it signs out exactly the affected account and leaves every other account
+    // on the host signed in.
+    const account = getAccountForEndpointAndToken(
+      this.accounts,
+      endpoint,
+      token
+    )
 
     if (account === null) {
-      return
-    }
-
-    // If we have a token for the account but it doesn't match the token that
-    // was invalidated that likely means that someone held onto an account for
-    // longer than they should have which is bad but what's even worse is if we
-    // invalidate an active account.
-    if (account.token && account.token !== token) {
-      log.error(`Token for ${endpoint} invalidated but token mismatch`)
+      // No signed-in account on this endpoint holds this credential any more.
+      // Either it was already replaced by a re-authorization or the account is
+      // already signed out; invalidating an active account here would be worse
+      // than doing nothing.
+      log.warn(
+        `Token for ${endpoint} invalidated but no signed-in account holds it`
+      )
       return
     }
 
