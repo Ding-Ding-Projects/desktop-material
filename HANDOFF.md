@@ -1,5 +1,36 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Integration cycle complete: CI verified green, two releases shipped
+
+Remote `main` = `6d3b2f0834`; CI run
+[30192722432](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30192722432)
+on `b7146213fd` is **fully green** (Lint, Windows x64/arm64, E2E smoke, script
+tests). Everything below in this file dated 2026-07-26 is now merged, pushed,
+and CI-verified; issues #40 #41 #42 #43 #45 closed on that run. Releases
+`v3.6.3-beta3-zadtsszkum` (target `7608c04200`) and `v3.6.3-beta3-zadttgmugx`
+(target `b7146213fd`, the green tip) were published manually from the lanes'
+own verified artifacts because the Actions token currently cannot create ANY
+release (fallback run proved prerelease creation 403s too — **#44, needs an
+org admin**: the change window is 2026-07-25T20:55Z → 2026-07-26T02:50Z; tag
+pushes still work, repo rulesets empty, workflow grants unchanged).
+
+Local push gate, now mandatory and memory-recorded: app tsc **and**
+`yarn tsc -P script/tsconfig.json`, `node script/test.mjs` (all-batch fail-0 +
+accounting), `TEMP=C:/dm-temp yarn test:script`, `yarn lint`, and
+`yarn generate-docs-hub-catalog` whenever docs pages change (the staleness
+guard fails CI otherwise — it caught three un-catalogued docs on its first CI
+pass). The compression-workflow caller is pinned to a Prettier fixed point
+(byte-equality test vs the rendered template) after an automation reflow broke
+main's lint; CodeQL is pinned to `javascript-typescript` after the COM stub
+woke the cpp autobuilder.
+
+Open user-action items: promote `v3.6.3-beta3-zadttgmugx` to Latest
+(`gh release edit v3.6.3-beta3-zadttgmugx --repo
+Ding-Ding-Projects/desktop-material --latest`); investigate #44 in org
+settings; restore `read:project`/`project` token scopes for board updates.
+Open work: #22 closing capture, #23 screenshot tranche, #25 decision, #34
+submodule branch picker, #35 perf tranche 2, #39 publish-label remote read.
+
 ## 2026-07-26 — Windows Explorer context menu + quick-action window
 
 Branch `feat/windows-context-menu` (worktree), three commits, **not yet merged
