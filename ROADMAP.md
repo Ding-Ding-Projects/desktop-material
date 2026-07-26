@@ -29,6 +29,31 @@ and never deletes on-disk content. The picker is registered as its own audited
 bulk surface with its safety exclusions. Details in
 [HANDOFF.md](HANDOFF.md) and
 [docs/features/repository-management/repository-list-bulk-actions.md](docs/features/repository-management/repository-list-bulk-actions.md).
+## July 25 Cheap LFS cloud compression installs its own workflow — **Implemented on a branch, not merged**
+
+A repository could have cloud compression switched on and still compress
+nothing. Every entry point wrote the managed caller into the working tree and
+then asked the user to commit and push it; GitHub Actions only sees committed
+files, so the one step that made compression real was the step that silently
+never happened. Enabling compression, opening the Large files manager, and the
+automatic materialize pass now each detect a *committed* caller — never a
+working-tree file — and, when one is missing, write the canonical workflow,
+commit it with `Add Cheap LFS cloud compression workflow / 加入雲端壓縮工作流`,
+and push it in the background without blocking whatever the user is doing.
+
+Nothing that already exists is ever overwritten. A caller that differs from the
+canonical one is reported through a non-blocking notice offering a confirm-class
+one-click update; a file the app does not own is left completely alone. The push
+reuses the existing batching machinery and its proofs — the remote tip is
+asserted before the push and re-read from the remote afterwards — and reuses the
+first-publish anchor when the branch has never been published. A branch that has
+diverged from its remote is committed but deliberately not pushed, so a
+background push can never publish local commits the user has not reviewed. The
+one failure this provokes that nothing else does, GitHub refusing a
+`.github/workflows` push without the `workflow` scope, is named explicitly with
+its fix instead of being relayed as a raw refusal. Thirty tests cover every
+detection and publish decision, the full-SHA action-pin contract, and an
+end-to-end install against a real repository with a real local bare remote.
 
 ## July 25 Bundled-Git hooks, silent abort, and the 100k path cap — **Implemented, locally accepted**
 

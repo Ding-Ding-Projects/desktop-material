@@ -55,6 +55,17 @@ export type IErrorNoticeAction =
       /** Pre-localized action-button label resolved when the notice was made. */
       readonly label: string
     }
+  | {
+      /**
+       * Replace a divergent Cheap LFS cloud-compression workflow with the
+       * canonical one, then commit and push it. Destructive to the user's own
+       * edits, so the notice confirms before this is ever dispatched.
+       */
+      readonly kind: 'update-cheap-lfs-workflow'
+      readonly repositoryId: number
+      /** Pre-localized action-button label resolved when the notice was made. */
+      readonly label: string
+    }
 
 /** Caller-owned error data before normalization and queue insertion. */
 export interface IErrorNoticeInput {

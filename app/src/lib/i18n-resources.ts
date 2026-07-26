@@ -1678,6 +1678,28 @@ export type TranslationKey =
   | 'cheapLfs.cloud.workflowAdded'
   | 'cheapLfs.cloud.workflowReady'
   | 'cheapLfs.cloud.workflowDisabled'
+  | 'cheapLfs.cloud.autoInstall.startedTitle'
+  | 'cheapLfs.cloud.autoInstall.startedBody'
+  | 'cheapLfs.cloud.autoInstall.succeededTitle'
+  | 'cheapLfs.cloud.autoInstall.succeededBody'
+  | 'cheapLfs.cloud.autoInstall.deferredTitle'
+  | 'cheapLfs.cloud.autoInstall.deferredBody'
+  | 'cheapLfs.cloud.autoInstall.failedTitle'
+  | 'cheapLfs.cloud.autoInstall.failedBody'
+  | 'cheapLfs.cloud.autoInstall.failedWorkflowScope'
+  | 'cheapLfs.cloud.autoInstall.failedRejected'
+  | 'cheapLfs.cloud.autoInstall.failedUnknown'
+  | 'cheapLfs.cloud.autoInstall.failedNoRepository'
+  | 'cheapLfs.cloud.autoInstall.failedNoRemote'
+  | 'cheapLfs.cloud.autoInstall.failedDetachedHead'
+  | 'cheapLfs.cloud.autoInstall.updateTitle'
+  | 'cheapLfs.cloud.autoInstall.updateBody'
+  | 'cheapLfs.cloud.autoInstall.updateAction'
+  | 'cheapLfs.cloud.autoInstall.updateWarning'
+  | 'cheapLfs.cloud.autoInstall.updateConfirm'
+  | 'cheapLfs.cloud.autoInstall.updateCancel'
+  | 'cheapLfs.cloud.autoInstall.unownedTitle'
+  | 'cheapLfs.cloud.autoInstall.unownedBody'
   | 'cheapLfs.cloud.raw'
   | 'cheapLfs.cloud.compressed'
   | 'cheapLfs.cloud.mixed'
@@ -4003,6 +4025,44 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Cloud-compression workflow file is ready. Commit and push it once; pointer updates then arrive as GitHub Actions commits.',
   'cheapLfs.cloud.workflowDisabled':
     'Private cloud compression is off. Existing raw objects remain cloneable.',
+  'cheapLfs.cloud.autoInstall.startedTitle': 'Setting up cloud compression',
+  'cheapLfs.cloud.autoInstall.startedBody':
+    'This repository uses cloud compression but has no compression workflow. Adding {path} in the background; keep working.',
+  'cheapLfs.cloud.autoInstall.succeededTitle': 'Cloud compression is active',
+  'cheapLfs.cloud.autoInstall.succeededBody':
+    'Committed and pushed {path} to {branch}. Release objects are compressed one by one from now on.',
+  'cheapLfs.cloud.autoInstall.deferredTitle':
+    'Cloud compression workflow added',
+  'cheapLfs.cloud.autoInstall.deferredBody':
+    'Committed {path}. This branch has commits that are not on {remote} yet, so it was not pushed for you; compression starts after your next push.',
+  'cheapLfs.cloud.autoInstall.failedTitle':
+    'Could not set up cloud compression',
+  'cheapLfs.cloud.autoInstall.failedBody': '{path} was not installed. {reason}',
+  'cheapLfs.cloud.autoInstall.failedWorkflowScope':
+    'The push was rejected because the signed-in account lacks the `workflow` scope, which GitHub requires for any change under .github/workflows. Sign out and sign back in to grant it, or commit and push the file yourself.',
+  'cheapLfs.cloud.autoInstall.failedRejected':
+    'The push was rejected because the branch moved on the remote. Pull, then push again to activate compression.',
+  'cheapLfs.cloud.autoInstall.failedUnknown':
+    'The commit or push did not complete. The workflow file is still in Changes, so you can review and push it yourself.',
+  'cheapLfs.cloud.autoInstall.failedNoRepository':
+    'This checkout is not associated with a GitHub repository, so there is nowhere to run the compression workflow.',
+  'cheapLfs.cloud.autoInstall.failedNoRemote':
+    'This repository has no push remote configured, so the workflow cannot be published.',
+  'cheapLfs.cloud.autoInstall.failedDetachedHead':
+    'HEAD is detached, so there is no branch to commit the workflow on. Check out a branch and try again.',
+  'cheapLfs.cloud.autoInstall.updateTitle':
+    'Cloud compression workflow is out of date',
+  'cheapLfs.cloud.autoInstall.updateBody':
+    '{path} differs from the version this release of Desktop Material installs. It was left exactly as it is. Update it only if you did not mean to change it.',
+  'cheapLfs.cloud.autoInstall.updateAction': 'Update workflow',
+  'cheapLfs.cloud.autoInstall.updateWarning':
+    'This replaces your version of the file with the one Desktop Material ships, then commits and pushes it. Your edits to it are lost.',
+  'cheapLfs.cloud.autoInstall.updateConfirm': 'Replace and push',
+  'cheapLfs.cloud.autoInstall.updateCancel': 'Keep mine',
+  'cheapLfs.cloud.autoInstall.unownedTitle':
+    'Cloud compression workflow not installed',
+  'cheapLfs.cloud.autoInstall.unownedBody':
+    'A file Desktop Material does not manage already occupies {path}. It was left untouched, so cloud compression is not set up automatically here.',
   'cheapLfs.cloud.raw': 'Raw',
   'cheapLfs.cloud.compressed': 'Compressed · {savings}% smaller',
   'cheapLfs.cloud.mixed':
@@ -6279,6 +6339,40 @@ export const cantoneseTranslations: Readonly<
     '雲端壓縮 workflow 檔案已準備好。第一次 commit 同 push 之後，pointer 更新就會由 GitHub Actions commit 返嚟。',
   'cheapLfs.cloud.workflowDisabled':
     '私人雲端壓縮已關閉；原本 raw 物件照樣 clone 得返。',
+  'cheapLfs.cloud.autoInstall.startedTitle': '幫緊你開雲端壓縮',
+  'cheapLfs.cloud.autoInstall.startedBody':
+    '呢個 repo 用緊雲端壓縮，但係未有壓縮 workflow。而家喺背景幫你加返 {path}，你照做嘢就得。',
+  'cheapLfs.cloud.autoInstall.succeededTitle': '雲端壓縮開好喇',
+  'cheapLfs.cloud.autoInstall.succeededBody':
+    '已經 commit 同 push 咗 {path} 上 {branch}。之後每個 Release 物件會逐件壓縮。',
+  'cheapLfs.cloud.autoInstall.deferredTitle': '壓縮 workflow 已經 commit 咗',
+  'cheapLfs.cloud.autoInstall.deferredBody':
+    '已經 commit 咗 {path}。呢條 branch 仲有 commit 未上 {remote}，所以冇幫你 push；你下次 push 之後壓縮就會啟動。',
+  'cheapLfs.cloud.autoInstall.failedTitle': '開唔到雲端壓縮',
+  'cheapLfs.cloud.autoInstall.failedBody': '{path} 未裝到。{reason}',
+  'cheapLfs.cloud.autoInstall.failedWorkflowScope':
+    'Push 被拒絕，因為登入緊嘅帳戶冇 `workflow` 權限範圍；GitHub 規定改 .github/workflows 入面任何嘢都要有。請登出再登入授權，或者自己 commit 同 push 個檔案。',
+  'cheapLfs.cloud.autoInstall.failedRejected':
+    'Push 被拒絕，因為遠端 branch 已經行前咗。請先 pull，再 push 一次去啟動壓縮。',
+  'cheapLfs.cloud.autoInstall.failedUnknown':
+    'Commit 或者 push 未完成。個 workflow 檔案仲喺 Changes 度，你可以自己檢查同 push。',
+  'cheapLfs.cloud.autoInstall.failedNoRepository':
+    '呢個 checkout 冇連住 GitHub repo，所以冇地方行壓縮 workflow。',
+  'cheapLfs.cloud.autoInstall.failedNoRemote':
+    '呢個 repo 冇設定 push remote，所以個 workflow publish 唔到。',
+  'cheapLfs.cloud.autoInstall.failedDetachedHead':
+    'HEAD 而家係 detached，冇 branch 可以 commit 個 workflow。請 checkout 返一條 branch 再試。',
+  'cheapLfs.cloud.autoInstall.updateTitle': '壓縮 workflow 版本唔同咗',
+  'cheapLfs.cloud.autoInstall.updateBody':
+    '{path} 同呢個版本嘅 Desktop Material 會裝嘅唔一樣。個檔案原封不動冇改過。如果唔係你自己特登改，先好更新佢。',
+  'cheapLfs.cloud.autoInstall.updateAction': '更新 workflow',
+  'cheapLfs.cloud.autoInstall.updateWarning':
+    '呢個動作會用 Desktop Material 內置嗰份取代你嗰份，再 commit 同 push。你喺入面嘅改動會冇咗。',
+  'cheapLfs.cloud.autoInstall.updateConfirm': '取代並 push',
+  'cheapLfs.cloud.autoInstall.updateCancel': '保留我嗰份',
+  'cheapLfs.cloud.autoInstall.unownedTitle': '未安裝壓縮 workflow',
+  'cheapLfs.cloud.autoInstall.unownedBody':
+    '{path} 已經俾一個唔係 Desktop Material 管理嘅檔案佔咗。我哋原封不動冇郁過佢，所以呢度唔會自動開雲端壓縮。',
   'cheapLfs.cloud.raw': 'Raw 原檔',
   'cheapLfs.cloud.compressed': '已壓縮 · 慳咗 {savings}%',
   'cheapLfs.cloud.mixed':

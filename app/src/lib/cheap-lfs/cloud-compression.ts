@@ -17,8 +17,14 @@ const ACTIONS_CHECKOUT_SHA = 'de0fac2e4500dabe0009e67214ff5f5447ce83dd'
 export const CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH =
   '.github/workflows/cheap-lfs-cloud-compression.yml'
 
-const ManagedWorkflowMarker =
+/**
+ * First line of every caller this app owns. Anything at the workflow path that
+ * does not start with it belongs to somebody else and is never rewritten.
+ */
+export const CHEAP_LFS_MANAGED_WORKFLOW_MARKER =
   '# Managed by Desktop Material Cheap LFS. Review changes before committing.'
+
+const ManagedWorkflowMarker = CHEAP_LFS_MANAGED_WORKFLOW_MARKER
 
 const WorkflowWrites = new Map<string, Promise<void>>()
 const NoFollowFlag = constants.O_NOFOLLOW ?? 0
@@ -184,6 +190,16 @@ jobs:
 export interface IEnsureCheapLfsCloudCompressionResult {
   readonly path: string
   readonly changed: boolean
+  readonly policy: CheapLfsCloudCompressionPolicy
+}
+
+/** A read-only look at the workflow path, taken without writing anything. */
+export interface ICheapLfsWorkflowInspection {
+  readonly path: string
+  /** Exact working-tree bytes, or `null` when nothing occupies the path. */
+  readonly contents: string | null
+  /** The canonical caller for the repository's current policy. */
+  readonly canonicalContents: string
   readonly policy: CheapLfsCloudCompressionPolicy
 }
 
@@ -574,4 +590,34 @@ export async function ensureCheapLfsCloudCompressionWorkflow(
     await replaceManagedWorkflow(safePath.path, current, next, fileSystem)
     return { path: safePath.path, changed: true, policy }
   })
+}
+
+/**
+ * Read the workflow path without creating a directory, a file, or anything
+ * else. Used by the background installer to decide, before it touches the
+ * repository at all, whether a caller is already present.
+ *
+ * Every hardening `ensureCheapLfsCloudCompressionWorkflow` applies to a read
+ * applies here too — a symlink, junction, hard link, non-regular file, or
+ * oversized file at the path throws rather than being reported as content.
+ */
+export async function inspectCheapLfsCloudCompressionWorkflow(
+  repository: Repository,
+  preferences: IBuildRunPreferences = repository.buildRunPreferences,
+  fileSystem: ICheapLfsWorkflowFileSystem = nodeWorkflowFileSystem
+): Promise<ICheapLfsWorkflowInspection> {
+  const policy = getCheapLfsCloudCompressionPolicy(repository, preferences)
+  const canonicalContents = renderCheapLfsCloudCompressionWorkflow(
+    policy === 'enabled-private'
+  )
+  const safePath = await safeWorkflowPath(repository.path, false, fileSystem)
+  const snapshot = safePath.parentExists
+    ? await readWorkflowSnapshot(safePath.path, fileSystem)
+    : null
+  return {
+    path: safePath.path,
+    contents: snapshot?.contents ?? null,
+    canonicalContents,
+    policy,
+  }
 }
