@@ -221,3 +221,6 @@ build-iPhoneSimulator/
 # Used by RuboCop. Remote config files pulled in from inherit_from directive.
 # .rubocop-https?--*
 # ──── end Desktop Material: Ruby ────  (dm-template:ruby)
+
+# GitHub Pages local build output (pages.yml replay)
+_site/
