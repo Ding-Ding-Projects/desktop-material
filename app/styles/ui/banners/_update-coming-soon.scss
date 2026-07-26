@@ -1,0 +1,134 @@
+// The coming-update banner: an MD3 tonal surface that grows when its details
+// disclosure is open, rather than clipping them at the banner's fixed height.
+#update-coming-soon {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+
+  .coming-soon-icon {
+    margin-right: var(--spacing);
+    flex-shrink: 0;
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  a {
+    color: var(--md-sys-color-on-secondary-container);
+  }
+
+  .contents {
+    min-width: 0;
+  }
+
+  &.expanded {
+    height: auto;
+    min-height: 48px;
+    overflow: visible;
+    align-items: flex-start;
+    padding-top: var(--spacing-half);
+    padding-bottom: var(--spacing);
+
+    .contents {
+      align-items: flex-start;
+    }
+  }
+}
+
+.update-coming-soon-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  min-width: 0;
+}
+
+.update-coming-soon-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-half);
+  min-width: 0;
+}
+
+.update-coming-soon-headline {
+  font-weight: var(--font-weight-semibold);
+}
+
+.update-coming-soon-estimate {
+  // Always visually subordinate to the headline: it is an estimate, not news.
+  opacity: 0.87;
+}
+
+.update-coming-soon-disclosure {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  min-width: 0;
+}
+
+.update-coming-soon-toggle {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--spacing-half);
+  // An adequate target without stretching the collapsed banner.
+  min-height: 32px;
+  padding: 0 var(--spacing-half);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: currentColor;
+  font-size: var(--font-size-sm);
+  cursor: pointer;
+  transition: background-color 120ms ease;
+
+  &:hover {
+    background: color-mix(in srgb, currentColor 12%, transparent);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--md-sys-color-primary);
+    outline-offset: 1px;
+  }
+}
+
+.update-coming-soon-details {
+  font-size: var(--font-size-sm);
+  max-width: 640px;
+
+  dl {
+    display: grid;
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: 2px var(--spacing);
+    margin: 0;
+  }
+
+  // Each row is its own grid subject so long values wrap instead of clipping.
+  .update-coming-soon-detail {
+    display: contents;
+  }
+
+  dt {
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+  }
+
+  dd {
+    margin: 0;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  code {
+    font-family: var(--font-family-monospace);
+  }
+
+  .update-coming-soon-links {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: var(--spacing);
+    margin-left: var(--spacing-half);
+  }
+
+  .update-coming-soon-notice {
+    margin: var(--spacing-half) 0 0 0;
+    opacity: 0.87;
+  }
+}

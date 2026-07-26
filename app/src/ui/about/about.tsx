@@ -20,6 +20,11 @@ import { formatDate } from '../../lib/format-date'
 import { DefaultAppDisplayName } from '../../models/app-identity'
 import { MaterialSymbol } from '../lib/material-symbol'
 import { t } from '../../lib/i18n'
+import { deriveUpdateArrivalEstimate } from '../../lib/update-coming-soon-estimate'
+import {
+  UpdateComingSoonDetails,
+  updateArrivalEstimateText,
+} from '../updates/update-coming-soon-details'
 
 interface IAboutProps {
   /**
@@ -61,6 +66,11 @@ interface IAboutProps {
   readonly allowDevelopment?: boolean
 }
 
+interface IAboutState {
+  /** Whether the coming-update details disclosure is open. */
+  readonly isComingSoonExpanded: boolean
+}
+
 interface IUpdateInfoProps {
   readonly message: string
   readonly richMessage?: JSX.Element
@@ -84,7 +94,12 @@ class UpdateInfo extends React.Component<IUpdateInfoProps> {
  * A dialog that presents information about the
  * running application such as name and version.
  */
-export class About extends React.Component<IAboutProps> {
+export class About extends React.Component<IAboutProps, IAboutState> {
+  public constructor(props: IAboutProps) {
+    super(props)
+    this.state = { isComingSoonExpanded: false }
+  }
+
   private get canCheckForUpdates() {
     return (
       __RELEASE_CHANNEL__ !== 'development' ||
@@ -162,7 +177,7 @@ export class About extends React.Component<IAboutProps> {
       case UpdateStatus.UpdateAvailable:
         return <UpdateInfo message="Downloading update…" loading={true} />
       case UpdateStatus.UpdateComingSoon:
-        return <UpdateInfo message={t('update.comingSoon')} />
+        return this.renderUpdateComingSoon()
       case UpdateStatus.UpdateNotAvailable:
         if (!lastSuccessfulCheck) {
           return null
@@ -195,6 +210,50 @@ export class About extends React.Component<IAboutProps> {
       default:
         return assertNever(status, `Unknown update status ${status}`)
     }
+  }
+
+  /**
+   * The same coming-update announcement the banner shows, in the one dialog a
+   * user opens specifically to ask about updates. When the probe produced no
+   * detail (an older check, or an unreadable response) this degrades to the
+   * plain headline rather than inventing a schedule for it.
+   */
+  private renderUpdateComingSoon() {
+    const { comingSoonSignal } = this.props.updateState
+    const message = t('update.comingSoon')
+    if (comingSoonSignal === null) {
+      return <UpdateInfo message={message} />
+    }
+
+    const estimate = deriveUpdateArrivalEstimate(comingSoonSignal, Date.now())
+    const richMessage = (
+      <div className="update-coming-soon-body">
+        <span className="update-coming-soon-summary">
+          <span className="update-coming-soon-headline">{message}</span>
+          <span className="update-coming-soon-estimate">
+            {updateArrivalEstimateText(estimate)}
+          </span>
+        </span>
+        <UpdateComingSoonDetails
+          signal={comingSoonSignal}
+          estimate={estimate}
+          isExpanded={this.state.isComingSoonExpanded}
+          onToggleExpanded={this.onToggleComingSoonExpanded}
+          detailsId="about-update-coming-soon-details"
+        />
+      </div>
+    )
+
+    return (
+      <UpdateInfo
+        message={`${message}. ${updateArrivalEstimateText(estimate)}`}
+        richMessage={richMessage}
+      />
+    )
+  }
+
+  private onToggleComingSoonExpanded = () => {
+    this.setState({ isComingSoonExpanded: !this.state.isComingSoonExpanded })
   }
 
   private renderUpdateErrors() {

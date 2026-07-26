@@ -2,6 +2,31 @@ import * as React from 'react'
 import { About } from './about'
 import { getName, getVersion } from '../lib/app-proxy'
 import { IUpdateState, UpdateStatus } from '../lib/update-store'
+import { IUpdateComingSoonSignal } from '../../lib/update-coming-soon-estimate'
+
+/**
+ * Stand-in evidence so this preview dialog can show the coming-update surface
+ * with its estimate and details. Only ever used by this dev-only dialog; the
+ * real surface is driven entirely by what the probe observed.
+ */
+function sampleComingSoonSignal(): IUpdateComingSoonSignal {
+  const minute = 60 * 1000
+  return {
+    kind: 'build-running',
+    headSHA: 'a'.repeat(40),
+    commitURL: null,
+    runURL: null,
+    runStartedAt: Date.now() - 4 * minute,
+    recentRunDurations: [18 * minute, 21 * minute, 19 * minute],
+    recentReleaseTimes: [
+      Date.now() - 2 * 24 * 60 * minute,
+      Date.now() - 5 * 24 * 60 * minute,
+      Date.now() - 9 * 24 * 60 * minute,
+    ],
+    targetTag: null,
+    latestReleaseTag: null,
+  }
+}
 
 interface IAboutTestDialogProps {
   /**
@@ -37,6 +62,7 @@ export class AboutTestDialog extends React.Component<
         newReleases: [],
         prioritizeUpdate: false,
         prioritizeUpdateInfoUrl: undefined,
+        comingSoonSignal: null,
       },
     }
   }
@@ -82,7 +108,10 @@ export class AboutTestDialog extends React.Component<
   private onCheckForNonStaggeredUpdates = async () => {
     this.setUpdateState({ status: UpdateStatus.CheckingForUpdates })
     await this.delay(5000)
-    this.setUpdateState({ status: UpdateStatus.UpdateComingSoon })
+    this.setUpdateState({
+      status: UpdateStatus.UpdateComingSoon,
+      comingSoonSignal: sampleComingSoonSignal(),
+    })
     await this.delay(5000)
     this.setUpdateState({ status: UpdateStatus.UpdateAvailable })
     await this.delay(10000)
