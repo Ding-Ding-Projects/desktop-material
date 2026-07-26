@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Desktop Material · Documentation</title>
+    <meta
+      name="description"
+      content="Documentation hub for Desktop Material, a Windows-only Material Design 3 (M3 Expressive) remake of GitHub Desktop: features, installation, references, verification records and contributor guides."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="stylesheet" href="assets/site/docs-hub.css" />
+    <script>
+      // Resolve the stored theme and language before first paint so the page
+      // never flashes the wrong palette or the wrong language mode.
+      ;(function () {
+        try {
+          var theme = localStorage.getItem('dm-docs-theme')
+          if (theme === 'light' || theme === 'dark') {
+            document.documentElement.setAttribute('data-theme', theme)
+          }
+          var lang = localStorage.getItem('dm-docs-lang')
+          if (lang === 'en' || lang === 'yue' || lang === 'bi') {
+            document.documentElement.setAttribute('data-lang', lang)
+          }
+        } catch (error) {
+          /* Storage may be unavailable; the defaults are already correct. */
+        }
+      })()
+    </script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main" data-i18n="skipLink"
+      >Skip to main content</a
+    >
+
+    <header class="app-bar">
+      <a class="app-bar__brand" href="#overview">
+        <span class="app-bar__mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" focusable="false">
+            <path
+              d="M12 2 2 7v10l10 5 10-5V7Zm0 2.3 7.2 3.6-7.2 3.6-7.2-3.6Zm-8 5.4 7 3.5v5.2l-7-3.5Zm16 0v5.2l-7 3.5v-5.2Z"
+            />
+          </svg>
+        </span>
+        <span class="app-bar__titles">
+          <span class="app-bar__title">Desktop Material</span>
+          <span class="app-bar__subtitle" data-i18n="brandSubtitle"
+            >Documentation</span
+          >
+        </span>
+      </a>
+
+      <nav data-i18n-attr="aria-label=navLabel">
+        <a
+          class="btn btn--text i18n-inline"
+          href="#install"
+          data-i18n="navInstall"
+          >Install</a
+        >
+        <a
+          class="btn btn--text i18n-inline"
+          href="#search"
+          data-i18n="navSearch"
+          >Search</a
+        >
+        <a
+          class="btn btn--text i18n-inline"
+          href="#features"
+          data-i18n="navFeatures"
+          >Features</a
+        >
+        <a
+          class="btn btn--text i18n-inline"
+          href="#reference"
+          data-i18n="navReference"
+          >Reference</a
+        >
+      </nav>
+
+      <div class="app-bar__actions">
+        <button
+          type="button"
+          id="theme-toggle"
+          class="btn btn--icon"
+          aria-pressed="false"
+          data-i18n-attr="aria-label=themeToggle;title=themeToggle"
+        >
+          <svg class="icon-dark" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5 2 3h-4Zm0 20-2-3h4ZM2 12l3-2v4Zm20 0-3 2v-4ZM5 5l3.5.9-2.6 2.6ZM19 19l-3.5-.9 2.6-2.6ZM19 5l-.9 3.5-2.6-2.6ZM5 19l.9-3.5 2.6 2.6Z"
+            />
+          </svg>
+          <svg class="icon-light" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20 15.2A8.5 8.5 0 0 1 8.8 4 8.5 8.5 0 1 0 20 15.2Z" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          id="prefs-toggle"
+          class="btn btn--icon"
+          aria-expanded="false"
+          aria-controls="prefs"
+          data-i18n-attr="aria-label=prefsToggle;title=prefsToggle"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M3 7h10a3 3 0 0 1 5.8 0H21v2h-2.2a3 3 0 0 1-5.8 0H3Zm0 8h5.2a3 3 0 0 1 5.8 0h7v2h-7a3 3 0 0 1-5.8 0H3Z"
+            />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <section
+      id="prefs"
+      class="prefs"
+      hidden
+      data-i18n-attr="aria-label=prefsHeading"
+    >
+      <div class="prefs__inner">
+        <fieldset>
+          <legend data-i18n="prefLang">Language mode</legend>
+          <label class="checkbox">
+            <input type="radio" name="lang" value="en" />
+            <span>English</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="lang" value="yue" />
+            <span lang="zh-HK">廣東話</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="lang" value="bi" />
+            <span class="i18n-inline" data-i18n="langBi">Bilingual</span>
+          </label>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefFunEn">Playfulness — English</legend>
+          <div class="slider-row">
+            <input
+              type="range"
+              id="fun-en"
+              min="1"
+              max="5"
+              step="1"
+              value="3"
+              data-i18n-attr="aria-label=prefFunEn"
+            />
+            <output id="fun-en-value" for="fun-en"></output>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefFunYue">Playfulness — 廣東話</legend>
+          <div class="slider-row">
+            <input
+              type="range"
+              id="fun-yue"
+              min="1"
+              max="5"
+              step="1"
+              value="3"
+              data-i18n-attr="aria-label=prefFunYue"
+            />
+            <output id="fun-yue-value" for="fun-yue"></output>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefTheme">Theme</legend>
+          <label class="checkbox">
+            <input type="radio" name="theme" value="system" />
+            <span class="i18n-inline" data-i18n="themeSystem">System</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="theme" value="light" />
+            <span class="i18n-inline" data-i18n="themeLight">Light</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="theme" value="dark" />
+            <span class="i18n-inline" data-i18n="themeDark">Dark</span>
+          </label>
+        </fieldset>
+
+        <p class="md-body" data-i18n="prefNote"></p>
+      </div>
+    </section>
+
+    <main id="main">
+      <section class="hero" id="overview">
+        <div class="hero__inner">
+          <p class="eyebrow" data-i18n="heroBadge"></p>
+          <h1 class="md-display" data-i18n-tone="heroTitle">
+            Desktop Material documentation
+          </h1>
+          <p class="hero__lead" data-i18n-tone="heroLead"></p>
+          <div class="hero__actions">
+            <a
+              class="btn btn--filled i18n-inline"
+              href="#install"
+              data-i18n="ctaInstall"
+              >Install on Windows</a
+            >
+            <a
+              class="btn btn--tonal i18n-inline"
+              href="#features"
+              data-i18n="ctaFeatures"
+              >Browse features</a
+            >
+            <a
+              class="btn btn--outlined i18n-inline"
+              href="#search"
+              data-i18n="ctaSearch"
+              >Search the docs</a
+            >
+            <a
+              class="btn btn--text i18n-inline"
+              href="https://github.com/Ding-Ding-Projects/desktop-material"
+              data-i18n="ctaRepo"
+              >View the repository</a
+            >
+          </div>
+          <ul class="hero__facts">
+            <li data-i18n="fact1"></li>
+            <li data-i18n="fact2"></li>
+            <li data-i18n="fact3"></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="install">
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="installTitle">Install</h2>
+          <p data-i18n-tone="installLead"></p>
+        </div>
+
+        <div class="panel">
+          <h3 class="md-title" data-i18n="installOneLiner"></h3>
+          <div class="code">
+            <div class="code__bar">
+              <span>Windows PowerShell 5.1 / PowerShell 7</span>
+              <button
+                type="button"
+                class="btn btn--text btn--small"
+                data-copy-target="cmd-release"
+                data-i18n-attr="aria-label=copyLabel"
+              >
+                <span class="i18n-inline" data-i18n="copy">Copy</span>
+              </button>
+            </div>
+            <pre><code id="cmd-release">Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression</code></pre>
+          </div>
+          <p class="md-body" data-i18n="installOneLinerNote"></p>
+        </div>
+
+        <div class="panel">
+          <h3 class="md-title" data-i18n="installSource"></h3>
+          <div class="code">
+            <div class="code__bar">
+              <span>-FromSource</span>
+              <button
+                type="button"
+                class="btn btn--text btn--small"
+                data-copy-target="cmd-source"
+                data-i18n-attr="aria-label=copyLabel"
+              >
+                <span class="i18n-inline" data-i18n="copy">Copy</span>
+              </button>
+            </div>
+            <pre><code id="cmd-source">&amp; ([scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))) -FromSource</code></pre>
+          </div>
+          <p class="md-body" data-i18n="installLocal"></p>
+          <div class="code">
+            <div class="code__bar">
+              <span>Local checkout</span>
+              <button
+                type="button"
+                class="btn btn--text btn--small"
+                data-copy-target="cmd-local"
+                data-i18n-attr="aria-label=copyLabel"
+              >
+                <span class="i18n-inline" data-i18n="copy">Copy</span>
+              </button>
+            </div>
+            <pre><code id="cmd-local">./script/install-windows.ps1 -FromSource</code></pre>
+          </div>
+          <p class="md-body" data-i18n="installSourceNote"></p>
+        </div>
+
+        <div class="panel">
+          <p class="md-body" data-i18n="installReview"></p>
+          <ul class="link-row">
+            <li>
+              <a
+                class="i18n-inline"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest"
+                data-i18n="linkReleases"
+                >Latest release downloads</a
+              >
+            </li>
+            <li>
+              <a
+                class="i18n-inline"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1"
+                data-i18n="linkScript"
+                >Read install-windows.ps1</a
+              >
+            </li>
+            <li>
+              <a
+                class="i18n-inline"
+                href="installation.html"
+                data-i18n="linkInstallDoc"
+                >Full installation guide</a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="search">
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="searchTitle">
+            Search the documentation
+          </h2>
+          <p data-i18n-tone="searchLead"></p>
+        </div>
+
+        <div class="search-bar">
+          <div class="search-bar__field">
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path
+                d="M10 2a8 8 0 1 0 4.9 14.3l5.4 5.4 1.4-1.4-5.4-5.4A8 8 0 0 0 10 2Zm0 2a6 6 0 1 1 0 12 6 6 0 0 1 0-12Z"
+              />
+            </svg>
+            <label
+              class="visually-hidden"
+              for="search-input"
+              data-i18n="searchLabel"
+              >Search the documentation catalog</label
+            >
+            <input
+              id="search-input"
+              type="search"
+              autocomplete="off"
+              spellcheck="false"
+              maxlength="512"
+              aria-describedby="search-mode-hint search-engine-note"
+              data-i18n-attr="placeholder=searchPlaceholder"
+            />
+          </div>
+          <div class="search-bar__tools">
+            <button
+              type="button"
+              id="search-mode"
+              class="btn btn--outlined btn--small"
+              aria-pressed="false"
+            >
+              <span class="i18n-inline" data-i18n="searchModeRegex"
+                >Regular expression</span
+              >
+            </button>
+            <button
+              type="button"
+              id="builder-toggle"
+              class="btn btn--tonal btn--small"
+              aria-expanded="false"
+              aria-controls="regex-builder"
+            >
+              <span class="i18n-inline" data-i18n="searchBuilderShow"
+                >Open regex builder</span
+              >
+            </button>
+            <button
+              type="button"
+              id="search-clear"
+              class="btn btn--text btn--small"
+            >
+              <span class="i18n-inline" data-i18n="searchClear">Clear</span>
+            </button>
+          </div>
+        </div>
+
+        <p
+          id="search-mode-hint"
+          class="search-note"
+          data-i18n="searchModeHint"
+        ></p>
+        <p
+          id="search-engine-note"
+          class="search-note"
+          data-i18n="searchEngine"
+        ></p>
+        <p class="search-note">
+          <span data-i18n="searchFullText"></span>
+          <a
+            class="i18n-inline"
+            href="search.html"
+            data-i18n="searchFullTextLink"
+            >Open full-text search</a
+          >
+        </p>
+
+        <div id="regex-builder" class="builder panel" hidden>
+          <h3 class="md-title" data-i18n="builderHeading">Regex builder</h3>
+          <p class="md-body" data-i18n="builderIntro"></p>
+          <p id="rb-sync" class="md-body"></p>
+
+          <div class="builder__grid">
+            <div class="token-group">
+              <h4 data-i18n="bLiterals">Literal text</h4>
+              <p class="md-body" data-i18n="bLiteralsHint"></p>
+              <div class="inline-form">
+                <label
+                  class="visually-hidden"
+                  for="rb-literal"
+                  data-i18n="bLiterals"
+                  >Literal text</label
+                >
+                <input
+                  id="rb-literal"
+                  class="text-input"
+                  type="text"
+                  maxlength="200"
+                  autocomplete="off"
+                  data-i18n-attr="placeholder=bLiteralPlaceholder"
+                />
+                <button
+                  type="button"
+                  id="rb-literal-insert"
+                  class="btn btn--tonal btn--small"
+                >
+                  <span class="i18n-inline" data-i18n="bInsert">Insert</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="token-group">
+              <h4 data-i18n="bClasses">Character classes</h4>
+              <div class="chip-row">
+                <button type="button" class="chip" data-insert="\d">\d</button>
+                <button type="button" class="chip" data-insert="\D">\D</button>
+                <button type="button" class="chip" data-insert="\w">\w</button>
+                <button type="button" class="chip" data-insert="\W">\W</button>
+                <button type="button" class="chip" data-insert="\s">\s</button>
+                <button type="button" class="chip" data-insert="\S">\S</button>
+                <button type="button" class="chip" data-insert=".">.</button>
+                <button type="button" class="chip" data-insert="[\s\S]">
+                  [\s\S]
+                </button>
+              </div>
+              <div class="inline-form">
+                <label
+                  class="visually-hidden"
+                  for="rb-class"
+                  data-i18n="bClassChars"
+                  >Characters or ranges</label
+                >
+                <input
+                  id="rb-class"
+                  class="text-input"
+                  type="text"
+                  maxlength="80"
+                  autocomplete="off"
+                  data-i18n-attr="placeholder=bClassPlaceholder"
+                />
+                <label class="checkbox">
+                  <input type="checkbox" id="rb-class-negate" />
+                  <span class="i18n-inline" data-i18n="bClassNegate"
+                    >Negate</span
+                  >
+                </label>
+                <button
+                  type="button"
+                  id="rb-class-insert"
+                  class="btn btn--tonal btn--small"
+                >
+                  <span class="i18n-inline" data-i18n="bInsert">Insert</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="token-group">
+              <h4 data-i18n="bAnchors">Anchors and boundaries</h4>
+              <div class="chip-row">
+                <button type="button" class="chip" data-insert="^">^</button>
+                <button type="button" class="chip" data-insert="$">$</button>
+                <button type="button" class="chip" data-insert="\b">\b</button>
+                <button type="button" class="chip" data-insert="\B">\B</button>
+              </div>
+            </div>
+
+            <div class="token-group">
+              <h4 data-i18n="bGroups">Groups and lookaround</h4>
+              <div class="chip-row">
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="("
+                  data-wrap-close=")"
+                >
+                  ( … )
+                </button>
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="(?:"
+                  data-wrap-close=")"
+                >
+                  (?: … )
+                </button>
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="(?="
+                  data-wrap-close=")"
+                >
+                  (?= … )
+                </button>
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="(?!"
+                  data-wrap-close=")"
+                >
+                  (?! … )
+                </button>
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="(?&lt;="
+                  data-wrap-close=")"
+                >
+                  (?&lt;= … )
+                </button>
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="(?&lt;!"
+                  data-wrap-close=")"
+                >
+                  (?&lt;! … )
+                </button>
+              </div>
+              <div class="inline-form">
+                <label
+                  class="visually-hidden"
+                  for="rb-group-name"
+                  data-i18n="bGroupName"
+                  >Group name</label
+                >
+                <input
+                  id="rb-group-name"
+                  class="text-input"
+                  type="text"
+                  maxlength="40"
+                  autocomplete="off"
+                  data-i18n-attr="placeholder=bGroupNamePlaceholder"
+                />
+                <button
+                  type="button"
+                  id="rb-group-named"
+                  class="btn btn--tonal btn--small"
+                >
+                  <span class="i18n-inline" data-i18n="bInsert">Insert</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="token-group">
+              <h4 data-i18n="bAlternation">Alternation</h4>
+              <p class="md-body" data-i18n="bAltHint"></p>
+              <div class="chip-row">
+                <button type="button" class="chip" data-insert="|">|</button>
+                <button
+                  type="button"
+                  class="chip"
+                  data-wrap-open="(?:"
+                  data-wrap-close="|)"
+                >
+                  (?: … | … )
+                </button>
+              </div>
+            </div>
+
+            <div class="token-group">
+              <h4 data-i18n="bQuantifiers">Quantifiers</h4>
+              <div class="chip-row">
+                <button type="button" class="chip" data-insert="*">*</button>
+                <button type="button" class="chip" data-insert="+">+</button>
+                <button type="button" class="chip" data-insert="?">?</button>
+                <button type="button" class="chip" data-insert="*?">*?</button>
+                <button type="button" class="chip" data-insert="+?">+?</button>
+              </div>
+              <div class="inline-form">
+                <label
+                  class="visually-hidden"
+                  for="rb-quant-min"
+                  data-i18n="bQuantMin"
+                  >Minimum</label
+                >
+                <input
+                  id="rb-quant-min"
+                  class="text-input"
+                  type="number"
+                  min="0"
+                  max="999"
+                  value="1"
+                />
+                <label
+                  class="visually-hidden"
+                  for="rb-quant-max"
+                  data-i18n="bQuantMax"
+                  >Maximum</label
+                >
+                <input
+                  id="rb-quant-max"
+                  class="text-input"
+                  type="number"
+                  min="0"
+                  max="999"
+                />
+                <label class="checkbox">
+                  <input type="checkbox" id="rb-quant-lazy" />
+                  <span class="i18n-inline" data-i18n="bQuantLazy">Lazy</span>
+                </label>
+                <button
+                  type="button"
+                  id="rb-quant-insert"
+                  class="btn btn--tonal btn--small"
+                >
+                  <span class="i18n-inline" data-i18n="bInsert">Insert</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <label class="field">
+            <span data-i18n="bPattern">Pattern</span>
+            <input
+              id="rb-pattern"
+              class="text-input text-input--mono"
+              type="text"
+              maxlength="512"
+              spellcheck="false"
+              autocomplete="off"
+              aria-invalid="false"
+              aria-describedby="rb-pattern-hint rb-feedback"
+            />
+          </label>
+          <p id="rb-pattern-hint" class="md-body" data-i18n="bPatternHint"></p>
+
+          <fieldset>
+            <legend data-i18n="bFlags">Flags</legend>
+            <div class="checkbox-row">
+              <label class="checkbox">
+                <input type="checkbox" class="rb-flag" value="g" />
+                <span class="i18n-inline" data-i18n="flagG">g</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" class="rb-flag" value="i" />
+                <span class="i18n-inline" data-i18n="flagI">i</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" class="rb-flag" value="m" />
+                <span class="i18n-inline" data-i18n="flagM">m</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" class="rb-flag" value="s" />
+                <span class="i18n-inline" data-i18n="flagS">s</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" class="rb-flag" value="u" />
+                <span class="i18n-inline" data-i18n="flagU">u</span>
+              </label>
+              <label class="checkbox">
+                <input type="checkbox" class="rb-flag" value="y" />
+                <span class="i18n-inline" data-i18n="flagY">y</span>
+              </label>
+            </div>
+          </fieldset>
+
+          <label class="field">
+            <span data-i18n="bSample">Sample text</span>
+            <textarea
+              id="rb-sample"
+              class="textarea"
+              maxlength="20000"
+              spellcheck="false"
+              aria-describedby="rb-sample-hint"
+            >
+docs/features/repository-management/sparse-checkout.md
+docs/features/integrations/ollama-model-manager.md
+docs/verification/cheap-lfs-bambu-build-2026-07-23.md
+Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</textarea
+            >
+          </label>
+          <p id="rb-sample-hint" class="md-body" data-i18n="bSampleHint"></p>
+
+          <p
+            id="rb-feedback"
+            class="feedback"
+            role="status"
+            aria-live="polite"
+          ></p>
+
+          <h4 class="md-title" data-i18n="bMatches">Live matches</h4>
+          <ul id="rb-matches" class="matches"></ul>
+
+          <div class="btn-row">
+            <button
+              type="button"
+              id="rb-apply"
+              class="btn btn--filled btn--small"
+            >
+              <span class="i18n-inline" data-i18n="bApply">Use in search</span>
+            </button>
+            <button
+              type="button"
+              id="rb-take-query"
+              class="btn btn--outlined btn--small"
+            >
+              <span class="i18n-inline" data-i18n="bTakeQuery"
+                >Take the search text</span
+              >
+            </button>
+            <button
+              type="button"
+              id="rb-copy-pattern"
+              class="btn btn--text btn--small"
+            >
+              <span class="i18n-inline" data-i18n="bCopyPattern"
+                >Copy pattern</span
+              >
+            </button>
+            <button
+              type="button"
+              id="rb-copy-literal"
+              class="btn btn--text btn--small"
+            >
+              <span class="i18n-inline" data-i18n="bCopyLiteral"
+                >Copy as /pattern/flags</span
+              >
+            </button>
+            <button
+              type="button"
+              id="rb-reset"
+              class="btn btn--text btn--small"
+            >
+              <span class="i18n-inline" data-i18n="bReset">Reset</span>
+            </button>
+          </div>
+
+          <p class="md-body" data-i18n="bLimits"></p>
+        </div>
+
+        <p
+          id="search-status"
+          class="search-status"
+          role="status"
+          aria-live="polite"
+        ></p>
+        <ul
+          id="search-results"
+          class="results"
+          data-i18n-attr="aria-label=resultsLabel"
+        ></ul>
+      </section>
+
+      <section class="section" id="features">
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="featuresTitle">
+            Feature documentation
+          </h2>
+          <p data-i18n-tone="featuresLead"></p>
+        </div>
+        <ul class="card-grid">
+          <li>
+            <a class="card" href="features/agent-api/">
+              <span class="card__title" data-i18n="cFeatAgentTitle"></span>
+              <p class="card__body" data-i18n="cFeatAgentBody"></p>
+              <span class="card__meta">features/agent-api/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/repository-management/">
+              <span class="card__title" data-i18n="cFeatRepoTitle"></span>
+              <p class="card__body" data-i18n="cFeatRepoBody"></p>
+              <span class="card__meta">features/repository-management/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/integrations/">
+              <span
+                class="card__title"
+                data-i18n="cFeatIntegrationsTitle"
+              ></span>
+              <p class="card__body" data-i18n="cFeatIntegrationsBody"></p>
+              <span class="card__meta">features/integrations/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/identity-and-workspace/">
+              <span class="card__title" data-i18n="cFeatIdentityTitle"></span>
+              <p class="card__body" data-i18n="cFeatIdentityBody"></p>
+              <span class="card__meta">features/identity-and-workspace/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/collaboration/">
+              <span class="card__title" data-i18n="cFeatCollabTitle"></span>
+              <p class="card__body" data-i18n="cFeatCollabBody"></p>
+              <span class="card__meta">features/collaboration/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/review-and-diff/">
+              <span class="card__title" data-i18n="cFeatReviewTitle"></span>
+              <p class="card__body" data-i18n="cFeatReviewBody"></p>
+              <span class="card__meta">features/review-and-diff/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/quality-and-reliability/">
+              <span class="card__title" data-i18n="cFeatQualityTitle"></span>
+              <p class="card__body" data-i18n="cFeatQualityBody"></p>
+              <span class="card__meta">features/quality-and-reliability/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/design-system/">
+              <span class="card__title" data-i18n="cFeatDesignTitle"></span>
+              <p class="card__body" data-i18n="cFeatDesignBody"></p>
+              <span class="card__meta">features/design-system/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="features/github-desktop-demand-backlog.html">
+              <span class="card__title" data-i18n="cFeatBacklogTitle"></span>
+              <p class="card__body" data-i18n="cFeatBacklogBody"></p>
+              <span class="card__meta"
+                >features/github-desktop-demand-backlog</span
+              >
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section" id="reference">
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="referenceTitle">
+            Reference and process
+          </h2>
+          <p data-i18n-tone="referenceLead"></p>
+        </div>
+        <ul class="card-grid">
+          <li>
+            <a class="card" href="installation.html">
+              <span class="card__title" data-i18n="cRefInstallTitle"></span>
+              <p class="card__body" data-i18n="cRefInstallBody"></p>
+              <span class="card__meta">installation</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="regex-guide.html">
+              <span class="card__title" data-i18n="cRefRegexTitle"></span>
+              <p class="card__body" data-i18n="cRefRegexBody"></p>
+              <span class="card__meta">regex-guide</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="known-issues.html">
+              <span class="card__title" data-i18n="cRefKnownTitle"></span>
+              <p class="card__body" data-i18n="cRefKnownBody"></p>
+              <span class="card__meta">known-issues</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="verification/">
+              <span class="card__title" data-i18n="cRefVerifyTitle"></span>
+              <p class="card__body" data-i18n="cRefVerifyBody"></p>
+              <span class="card__meta">verification/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="contributing/setup.html">
+              <span class="card__title" data-i18n="cRefContribTitle"></span>
+              <p class="card__body" data-i18n="cRefContribBody"></p>
+              <span class="card__meta">contributing/setup</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="technical/packaging.html">
+              <span class="card__title" data-i18n="cRefTechTitle"></span>
+              <p class="card__body" data-i18n="cRefTechBody"></p>
+              <span class="card__meta">technical/</span>
+            </a>
+          </li>
+          <li>
+            <a class="card" href="process/release-planning.html">
+              <span class="card__title" data-i18n="cRefProcessTitle"></span>
+              <p class="card__body" data-i18n="cRefProcessBody"></p>
+              <span class="card__meta">process/</span>
+            </a>
+          </li>
+          <li>
+            <a
+              class="card"
+              href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/postman/desktop-material.postman_collection.json"
+            >
+              <span class="card__title" data-i18n="cRefPostmanTitle"></span>
+              <p class="card__body" data-i18n="cRefPostmanBody"></p>
+              <span class="card__meta">docs/postman/ · github.com</span>
+            </a>
+          </li>
+        </ul>
+      </section>
+
+      <section class="section" id="links">
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="linksTitle">Project links</h2>
+          <p data-i18n-tone="linksLead"></p>
+        </div>
+        <ul class="link-row">
+          <li>
+            <a
+              class="i18n-inline"
+              href="https://github.com/Ding-Ding-Projects/desktop-material"
+              data-i18n="linkRepo"
+              >Source repository</a
+            >
+          </li>
+          <li>
+            <a
+              class="i18n-inline"
+              href="https://github.com/Ding-Ding-Projects/desktop-material/issues"
+              data-i18n="linkIssues"
+              >Issues</a
+            >
+          </li>
+          <li>
+            <a
+              class="i18n-inline"
+              href="https://github.com/Ding-Ding-Projects/desktop-material/discussions"
+              data-i18n="linkDiscussions"
+              >Discussions</a
+            >
+          </li>
+          <li>
+            <a
+              class="i18n-inline"
+              href="https://github.com/Ding-Ding-Projects/desktop-material/wiki"
+              data-i18n="linkWiki"
+              >Wiki</a
+            >
+          </li>
+          <li>
+            <a
+              class="i18n-inline"
+              href="https://github.com/Ding-Ding-Projects/desktop-material/releases"
+              data-i18n="linkReleasesPage"
+              >Releases</a
+            >
+          </li>
+          <li>
+            <a class="i18n-inline" href="../index.html" data-i18n="linkSite"
+              >Project site</a
+            >
+          </li>
+          <li>
+            <a class="i18n-inline" href="README.html" data-i18n="linkReadme"
+              >Documentation index</a
+            >
+          </li>
+          <li>
+            <a
+              class="i18n-inline"
+              href="integrations/azure-devops.html"
+              data-i18n="linkProviders"
+              >Provider setup</a
+            >
+          </li>
+          <li>
+            <a
+              class="i18n-inline"
+              href="learn-more/unreachable-commits.html"
+              data-i18n="linkLearn"
+              >Unreachable commits</a
+            >
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="site-footer__inner">
+        <p class="md-body" data-i18n="footerNote"></p>
+        <p class="md-body">
+          <a
+            class="i18n-inline"
+            href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/LICENSE"
+            data-i18n="footerLicense"
+            >MIT licensed</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <div
+      id="toasts"
+      class="toasts"
+      data-i18n-attr="aria-label=notifications"
+      role="region"
+    ></div>
+
+    <script src="assets/site/docs-hub-strings.js"></script>
+    <script src="assets/site/docs-hub-catalog.js"></script>
+    <script src="assets/site/docs-hub.js"></script>
+  </body>
+</html>

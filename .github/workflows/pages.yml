@@ -91,6 +91,28 @@ jobs:
           done
           test -f _site/docs/index.html
 
+      # The hand-built Material Design 3 hub becomes /docs/. The pandoc loop
+      # above rendered docs/README.md to that same path, so the Markdown index
+      # keeps its own stable URL at /docs/README.html and nothing is lost.
+      - name: Publish the documentation hub
+        run: |
+          set -euo pipefail
+          pandoc docs/README.md \
+            --from gfm \
+            --to html5 \
+            --standalone \
+            --template site/docs-template.html \
+            --lua-filter site/md-links.lua \
+            --metadata pagetitle="Desktop Material documentation" \
+            --variable docsroot="" \
+            --output _site/docs/README.html
+          cp docs/index.html _site/docs/index.html
+          mkdir -p _site/docs/assets/site
+          cp -R docs/assets/site/. _site/docs/assets/site/
+          test -f _site/docs/README.html
+          test -f _site/docs/assets/site/docs-hub.js
+          grep -q 'docs-hub-catalog.js' _site/docs/index.html
+
       - name: Build documentation search index
         run: |
           node site/build-search-index.js _site
