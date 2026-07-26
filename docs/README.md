@@ -1,9 +1,56 @@
 # Desktop Material documentation
 
+> **Read this documentation as a website:
+> <https://ding-ding-projects.github.io/desktop-material/docs/>**
+>
+> The published hub adds catalog search over every page — plain text by
+> default, with an opt-in regular-expression mode and a full regex builder —
+> English, playful Hong Kong Cantonese and bilingual language modes, and light
+> and dark Material Design 3 themes. The project landing page is
+> <https://ding-ding-projects.github.io/desktop-material/>.
+>
+> This Markdown index stays authoritative for browsing the tree on GitHub.
+
 Desktop Material keeps the upstream
 [GitHub Desktop](https://github.com/desktop/desktop) development documentation
 while adding product, Material Design, acceptance, and publishing guidance for
 this fork.
+
+## Documentation map
+
+- **Install and run** — [Installation](installation.md),
+  [Known issues](known-issues.md)
+- **Features** — [Feature documentation index](features/README.md), grouped as
+  [Agent API](features/agent-api/README.md),
+  [Repository management](features/repository-management/README.md),
+  [Integrations](features/integrations/README.md),
+  [Identity and workspace](features/identity-and-workspace/README.md),
+  [Collaboration](features/collaboration/README.md),
+  [Review and diff](features/review-and-diff/README.md),
+  [Quality and reliability](features/quality-and-reliability/README.md), and
+  [Design system](features/design-system/README.md)
+- **Search and regex** — [Regex guide](regex-guide.md)
+- **Evidence** — [Verification records](verification/README.md)
+- **Contributing** — [Development environment setup](contributing/setup.md),
+  [Style guide](contributing/styleguide.md),
+  [Troubleshooting](contributing/troubleshooting.md)
+- **Internals** — [Packaging](technical/packaging.md),
+  [Dialogs](technical/dialogs.md), [Developer OAuth app](technical/oauth.md),
+  [Automatic Git proxy support](technical/proxies.md)
+- **Process** — [Release planning](process/release-planning.md),
+  [Issue triage](process/issue-triage.md),
+  [Pull requests](process/pull-requests.md)
+- **Providers** — [Azure DevOps](integrations/azure-devops.md),
+  [Bitbucket](integrations/bitbucket.md), [GitLab](integrations/gitlab.md)
+- **API collections** —
+  [master Postman collection](postman/desktop-material.postman_collection.json),
+  [Agent API collection](features/agent-api/desktop-material-agent-api.postman_collection.json)
+- **Wiki sources** — [Home](wiki/Home.md),
+  [User guide](wiki/User-Guide.md),
+  [Developer guide](wiki/Developer-Guide.md),
+  [Feature gallery](wiki/Feature-Gallery.md)
+
+The sections below keep the full detail behind each area.
 
 Desktop Material itself is supported and released on Windows only. Inherited
 non-Windows source and historical upstream documentation do not define a
