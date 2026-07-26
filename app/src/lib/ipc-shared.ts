@@ -85,6 +85,7 @@ import {
   IGitHubReleaseAssetUploadRequest,
   IGitHubReleaseTransferProgressEvent,
 } from './github-release-transfer'
+import { ISilentInstallRequest, ISilentInstallResult } from './silent-install'
 import {
   INotificationAutomationRunRequest,
   INotificationCommandResult,
@@ -230,6 +231,9 @@ export type RequestResponseChannels = {
   'upload-release-asset': (
     request: IGitHubReleaseAssetUploadRequest
   ) => Promise<GitHubReleaseAssetUploadTransferResult>
+  'silent-install-release-asset': (
+    request: ISilentInstallRequest
+  ) => Promise<ISilentInstallResult>
   'get-agent-server-status': () => Promise<IAgentServerStatus>
   'set-agent-server-enabled': (enabled: boolean) => Promise<IAgentServerStatus>
   'initialize-agent-server': (

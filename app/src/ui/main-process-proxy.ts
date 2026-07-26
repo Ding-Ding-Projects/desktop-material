@@ -102,6 +102,18 @@ export const isWindowFocused = invokeProxy('is-window-focused', 0)
 /** Tell the main process to focus on the main window. */
 export const focusWindow = sendProxy('focus-window', 0)
 
+/**
+ * Run a downloaded release asset's installer unattended in the main process.
+ *
+ * The renderer only awaits the result, so an installer that runs for minutes
+ * never blocks the interface. The main process re-verifies the exact file
+ * before launching it and never elevates.
+ */
+export const silentInstallReleaseAsset = invokeProxy(
+  'silent-install-release-asset',
+  1
+)
+
 const _showItemInFolder = invokeProxy('show-item-in-folder', 1)
 
 export const showItemInFolder = (path: string) =>
