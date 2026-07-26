@@ -914,6 +914,37 @@
   background: var(--md-sys-color-primary-container);
 }
 
+// The "another signed-in account can see this repository" offer. It sits with
+// the surface's own error but reads as a remedy, not a second failure, so it
+// uses the tertiary container rather than the error container. Wrapping keeps
+// the long bilingual body and the account-named action button legible at narrow
+// widths and at 200% display scale.
+.repository-account-fallback-notice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 11px;
+  border-radius: 12px;
+  font-size: 11px;
+  color: var(--md-sys-color-on-tertiary-container);
+  background: var(--md-sys-color-tertiary-container);
+}
+
+.repository-account-fallback-notice-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 220px;
+  min-width: 0;
+
+  > span,
+  > strong {
+    overflow-wrap: anywhere;
+  }
+}
+
 .github-release-download-result {
   code {
     display: block;

@@ -25,6 +25,16 @@ import {
   IGitHubReleaseTransferProgressEvent,
 } from '../github-release-transfer'
 import { APIError } from '../http'
+import { getAutoSwitchAccountToRepositoryOwner } from '../auto-switch-account-preference'
+import {
+  getRepositoryAccountTargetFromGitHubRepository as releasesAccountTarget,
+  relayRepositoryAccountFallbackAttempts,
+  RepositoryAccountProbe,
+} from '../repository-account-fallback'
+import {
+  probeRepositoryWithAccountAPI,
+  runSurfaceWithRepositoryAccountFallback,
+} from '../repository-account-fallback-service'
 import { AccountsStore } from './accounts-store'
 
 export type GitHubReleaseOperation =
@@ -335,12 +345,21 @@ export interface IGitHubReleasesStoreDependencies {
   readonly apiFor: (account: Account) => IGitHubReleasesAPI
   readonly downloadAsset: typeof downloadGitHubReleaseAssetThroughMainProcess
   readonly uploadAsset: typeof uploadGitHubReleaseAssetThroughMainProcess
+  /**
+   * Read-only check of whether one identity can see a repository. Overridable
+   * so tests can exercise the account fallback without network access.
+   */
+  readonly probeRepositoryAccount?: RepositoryAccountProbe
+  /** The user's `autoSwitchAccountToRepositoryOwner` preference. */
+  readonly isAutoSwitchAccountEnabled?: () => boolean
 }
 
 const defaultDependencies: IGitHubReleasesStoreDependencies = {
   apiFor: account => API.fromAccount(account),
   downloadAsset: downloadGitHubReleaseAssetThroughMainProcess,
   uploadAsset: uploadGitHubReleaseAssetThroughMainProcess,
+  probeRepositoryAccount: probeRepositoryWithAccountAPI,
+  isAutoSwitchAccountEnabled: getAutoSwitchAccountToRepositoryOwner,
 }
 
 interface IRequestContext {
@@ -405,6 +424,7 @@ function accountsEqual(
 export class GitHubReleasesStore {
   private accounts = new Array<Account>()
   private generation = 0
+  private lastUsedAccount: Account | null = null
   private readonly activeControllers = new Set<AbortController>()
 
   public constructor(
@@ -542,15 +562,71 @@ export class GitHubReleasesStore {
       if (signal?.aborted) {
         controller.abort()
       }
-      const result = await work(context, controller.signal)
-      this.assertContextCurrent(repository, context, controller.signal)
-      return result
+
+      // GitHub answers a private repository the selected identity cannot see
+      // with 404, so a Releases "not found" is as likely to be the wrong
+      // account as a deleted release. Let the shared fallback try the other
+      // identities signed into this same endpoint before giving up.
+      const run = await runSurfaceWithRepositoryAccountFallback({
+        target: releasesAccountTarget(context.repository),
+        accounts: this.accounts,
+        initialAccount: context.account,
+        isNotFound: error => {
+          const converted = githubReleasesError(error, operation)
+          return (
+            converted instanceof GitHubReleasesError &&
+            converted.kind === 'not-found'
+          )
+        },
+        autoSwitchEnabled:
+          this.dependencies.isAutoSwitchAccountEnabled?.() ?? true,
+        probe: this.dependencies.probeRepositoryAccount,
+        signal: controller.signal,
+        work: async account => {
+          const bound = this.contextForAccount(context, account)
+          const value = await work(bound, controller.signal)
+          this.assertContextCurrent(repository, bound, controller.signal)
+          return value
+        },
+      })
+
+      this.lastUsedAccount = run.account
+      return run.result
     } catch (error) {
-      throw githubReleasesError(error, operation)
+      const converted = githubReleasesError(error, operation)
+      relayRepositoryAccountFallbackAttempts(error, converted)
+      throw converted
     } finally {
       signal?.removeEventListener('abort', cancel)
       this.activeControllers.delete(controller)
     }
+  }
+
+  /** Rebind a request context to another identity on the same endpoint. */
+  private contextForAccount(
+    context: IRequestContext,
+    account: Account
+  ): IRequestContext {
+    if (getAccountKey(account) === getAccountKey(context.account)) {
+      return context
+    }
+
+    return {
+      ...context,
+      account,
+      api: this.dependencies.apiFor(account),
+      anonymous: account.token.length === 0,
+    }
+  }
+
+  /**
+   * The identity the most recent Releases request actually used.
+   *
+   * The view shows account context already; after a fallback the account shown
+   * must be the one that answered, not the one that was asked first.
+   */
+  public getLastUsedAccount(): Account | null {
+    return this.lastUsedAccount
   }
 
   private assertContextCurrent(

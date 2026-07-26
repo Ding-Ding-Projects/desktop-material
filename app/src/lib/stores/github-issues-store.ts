@@ -18,6 +18,16 @@ import {
   IGitHubIssueUpdate,
 } from '../github-issues'
 import { APIError } from '../http'
+import { getAutoSwitchAccountToRepositoryOwner } from '../auto-switch-account-preference'
+import {
+  getRepositoryAccountTargetFromGitHubRepository as issuesAccountTarget,
+  relayRepositoryAccountFallbackAttempts,
+  RepositoryAccountProbe,
+} from '../repository-account-fallback'
+import {
+  probeRepositoryWithAccountAPI,
+  runSurfaceWithRepositoryAccountFallback,
+} from '../repository-account-fallback-service'
 import { AccountsStore } from './accounts-store'
 
 export type GitHubIssueOperation =
@@ -233,10 +243,16 @@ export interface IGitHubIssuesAPI {
 
 export interface IGitHubIssuesStoreDependencies {
   readonly apiFor: (account: Account) => IGitHubIssuesAPI
+  /** Read-only check of whether one identity can see a repository. */
+  readonly probeRepositoryAccount?: RepositoryAccountProbe
+  /** The user's `autoSwitchAccountToRepositoryOwner` preference. */
+  readonly isAutoSwitchAccountEnabled?: () => boolean
 }
 
 const defaultDependencies: IGitHubIssuesStoreDependencies = {
   apiFor: account => API.fromAccount(account),
+  probeRepositoryAccount: probeRepositoryWithAccountAPI,
+  isAutoSwitchAccountEnabled: getAutoSwitchAccountToRepositoryOwner,
 }
 
 interface IRequestContext {
@@ -322,6 +338,7 @@ function accountsEqual(
 export class GitHubIssuesStore {
   private accounts = new Array<Account>()
   private generation = 0
+  private lastUsedAccount: Account | null = null
   private readonly activeControllers = new Set<AbortController>()
 
   public constructor(
@@ -423,17 +440,63 @@ export class GitHubIssuesStore {
       if (signal?.aborted) {
         controller.abort()
       }
-      const result = await work(context, controller.signal)
-      if (assertAfter) {
-        this.assertContextCurrent(repository, context, controller.signal)
-      }
-      return result
+
+      // A private repository the selected identity cannot see answers 404, so
+      // an Issues "not found" may simply be the wrong account. Try the other
+      // identities on this endpoint before reporting failure.
+      const run = await runSurfaceWithRepositoryAccountFallback({
+        target: issuesAccountTarget(context.repository),
+        accounts: this.accounts,
+        initialAccount: context.account,
+        isNotFound: error => {
+          const converted = githubIssuesError(error, operation)
+          return (
+            converted instanceof GitHubIssuesError &&
+            converted.kind === 'not-found'
+          )
+        },
+        autoSwitchEnabled:
+          this.dependencies.isAutoSwitchAccountEnabled?.() ?? true,
+        probe: this.dependencies.probeRepositoryAccount,
+        signal: controller.signal,
+        work: async account => {
+          const bound = this.contextForAccount(context, account)
+          const value = await work(bound, controller.signal)
+          if (assertAfter) {
+            this.assertContextCurrent(repository, bound, controller.signal)
+          }
+          return value
+        },
+      })
+
+      this.lastUsedAccount = run.account
+      return run.result
     } catch (error) {
-      throw githubIssuesError(error, operation)
+      const converted = githubIssuesError(error, operation)
+      relayRepositoryAccountFallbackAttempts(error, converted)
+      throw converted
     } finally {
       signal?.removeEventListener('abort', cancel)
       this.activeControllers.delete(controller)
     }
+  }
+
+  /** Rebind a request context to another identity on the same endpoint. */
+  private contextForAccount(
+    context: IRequestContext,
+    account: Account
+  ): IRequestContext {
+    return getAccountKey(account) === getAccountKey(context.account)
+      ? context
+      : { ...context, account, api: this.dependencies.apiFor(account) }
+  }
+
+  /**
+   * The identity the most recent Issues request actually used, which is not the
+   * selected account when the fallback had to step in.
+   */
+  public getLastUsedAccount(): Account | null {
+    return this.lastUsedAccount
   }
 
   public createMutationReview(

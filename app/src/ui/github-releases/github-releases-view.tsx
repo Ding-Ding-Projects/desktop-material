@@ -21,7 +21,12 @@ import {
 } from '../../lib/github-releases'
 import { IGitHubReleaseTransferProgressEvent } from '../../lib/github-release-transfer'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
+import {
+  getRepositoryAccountTargetFromGitHubRepository,
+  IRepositoryAccountTarget,
+} from '../../lib/repository-account-fallback'
 import { Button } from '../lib/button'
+import { RepositoryAccountFallbackNotice } from '../lib/repository-account-fallback-notice'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import { LinkButton } from '../lib/link-button'
 import {
@@ -529,6 +534,17 @@ export class GitHubReleasesView extends React.Component<
   private loadMoreReleases = () => void this.loadReleases(false)
 
   private refreshReleases = () => void this.loadReleases(true)
+
+  /**
+   * The repository a standing account-fallback offer would name, or null when
+   * this repository is not on GitHub and the fallback can never apply.
+   */
+  private accountFallbackTarget(): IRepositoryAccountTarget | null {
+    const gitHubRepository = this.props.repository.gitHubRepository
+    return gitHubRepository === null
+      ? null
+      : getRepositoryAccountTargetFromGitHubRepository(gitHubRepository)
+  }
 
   private retryFailedOperation = () => {
     if (this.state.failedOperation === 'assets') {
@@ -2465,6 +2481,11 @@ export class GitHubReleasesView extends React.Component<
             )}
           </div>
         )}
+        <RepositoryAccountFallbackNotice
+          target={this.accountFallbackTarget()}
+          disabled={this.state.busy !== null}
+          onAccepted={this.retryFailedOperation}
+        />
         {this.state.message !== null && (
           <p className="github-releases-message" role="status">
             {this.state.message}
