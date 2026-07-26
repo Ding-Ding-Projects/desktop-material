@@ -27,7 +27,11 @@ jobs:
     timeout-minutes: 60
     env:
       RELEASE_TARGET_SHA: ${{ github.sha }}
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
+      # takes precedence when configured: since 2026-07-26 the workflow token
+      # is refused by POST /releases (issue #44), while a user PAT publishes
+      # fine. An empty/absent secret falls back to the workflow token.
+      GH_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
     steps:
       - name: Require a main-branch manual dispatch
         shell: bash
