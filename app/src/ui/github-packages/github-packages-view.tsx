@@ -1162,7 +1162,7 @@ export class GitHubPackagesView extends React.Component<
         <div className="github-packages-toolbar">
           <div className="github-packages-search">
             <input
-              data-search-surface-id={PackagesSearchFilterId}
+              data-search-surface-id="github-packages-search"
               value={this.state.packageQuery}
               onChange={this.onPackageQueryChange}
               placeholder="Search package names, types, visibility…"
@@ -1174,7 +1174,7 @@ export class GitHubPackagesView extends React.Component<
               spellCheck={false}
             />
             <FilterModeControl
-              searchSurfaceId={PackagesSearchFilterId}
+              searchSurfaceId="github-packages-search"
               mode={this.state.packageSearchMode}
               caseSensitive={this.state.packageSearchCaseSensitive}
               onModeChange={this.onPackageSearchModeChange}
@@ -1304,7 +1304,7 @@ export class GitHubPackagesView extends React.Component<
         </div>
         <div className="github-packages-search">
           <input
-            data-search-surface-id={PackageVersionsSearchFilterId}
+            data-search-surface-id="github-package-versions-search"
             value={this.state.versionQuery}
             onChange={this.onVersionQueryChange}
             placeholder="Search digests, tags, descriptions…"
@@ -1316,7 +1316,7 @@ export class GitHubPackagesView extends React.Component<
             spellCheck={false}
           />
           <FilterModeControl
-            searchSurfaceId={PackageVersionsSearchFilterId}
+            searchSurfaceId="github-package-versions-search"
             mode={this.state.versionSearchMode}
             caseSensitive={this.state.versionSearchCaseSensitive}
             onModeChange={this.onVersionSearchModeChange}

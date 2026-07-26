@@ -41,16 +41,27 @@ describe('organization repository Git authentication wiring', () => {
       'private async performScheduledPull',
       'private refreshMentionables'
     )
+    // The canonical-remote resolver is the seam that still refreshes provider
+    // metadata (and therefore the credential account) before Git network I/O.
+    const canonical = section(
+      appStore,
+      'private async repositoryWithCanonicalRemoteForNetwork',
+      'private async withCanonicalRemoteForNetwork'
+    )
+    assert.match(
+      canonical,
+      /repositoryWithRefreshedGitHubRepository\(\s*latestRepository,\s*true,\s*false,\s*true\s*\)/
+    )
 
     assert.match(
       scheduledPush,
-      /repositoryWithRefreshedGitHubRepository\(repository\)/
+      /repositoryWithCanonicalRemoteForNetwork\(\s*repository,\s*isBackgroundTask\s*\)/
     )
     requiresAccountRouting(scheduledPush)
     assert.match(scheduledPush, /pushRepo[\s\S]+accountKey/)
     assert.match(
       scheduledPull,
-      /repositoryWithRefreshedGitHubRepository\(repository\)/
+      /repositoryWithCanonicalRemoteForNetwork\(repository, true\)/
     )
     requiresAccountRouting(scheduledPull)
     assert.match(scheduledPull, /pullRepo[\s\S]+accountKey/)

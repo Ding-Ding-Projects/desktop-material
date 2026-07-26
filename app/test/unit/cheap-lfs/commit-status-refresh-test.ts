@@ -174,6 +174,11 @@ describe('cheap LFS commit status diff refresh', () => {
       accounts: [],
       assertTemporaryRepositoryIsSafe: async () => undefined,
       isTemporaryRepositoryActive: () => true,
+      // Push-after-commit resolves the canonical remote first; this test
+      // exercises checkpoint sequencing against a local remote, so the
+      // resolution seam passes the repository straight through.
+      repositoryWithCanonicalRemoteForNetwork: async (target: Repository) =>
+        target,
       repositoryStateCache: {
         get: () => state,
         update: (_repository: Repository, update: (value: any) => any) =>

@@ -65,6 +65,18 @@ function setRefreshedRepositoryWrapper(store: AppStore): void {
       action: (repository: Repository) => Promise<T>
     ) => action(repository)
   )
+  // Network entry points now resolve the canonical remote before running the
+  // operation. These tests exercise pull safety, not remote canonicalization,
+  // so the seam passes the repository straight through like the wrapper above.
+  Reflect.set(
+    store,
+    'withCanonicalRemoteForNetwork',
+    async <T>(
+      repository: Repository,
+      _isBackgroundTask: boolean,
+      action: (repository: Repository) => Promise<T>
+    ) => action(repository)
+  )
 }
 
 async function setupTrackedPreviewRepository(t: TestContext): Promise<{

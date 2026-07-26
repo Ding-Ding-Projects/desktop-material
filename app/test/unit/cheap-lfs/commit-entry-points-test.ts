@@ -38,17 +38,14 @@ describe('cheap LFS commit entry points', () => {
     assert.ok(execute > legacyFlush)
     assert.match(
       body.slice(legacyFlush, execute),
-      /onHookFailure: async \(\) => 'abort' \},\s*true/
+      /onHookFailure: async \(\) => 'abort', isBackgroundTask \},\s*true/
     )
     assert.match(
       body,
       /const requiresPush = pushAfterCommit \|\| batches\.length > 1/
     )
     const readPending = body.indexOf('readPendingCommitPushBatchState(')
-    const push = body.indexOf(
-      'this.performScheduledPush(repository, null)',
-      readPending
-    )
+    const push = body.indexOf('this.performScheduledPush(', readPending)
     const proveAndClear = body.indexOf(
       'this.proveAndClearPendingCommitPushBatch(',
       push
@@ -56,6 +53,10 @@ describe('cheap LFS commit entry points', () => {
     assert.ok(readPending > execute)
     assert.ok(push > readPending)
     assert.ok(proveAndClear > push)
+    assert.match(
+      body.slice(push, proveAndClear),
+      /performScheduledPush\(\s*repository,\s*null,\s*isBackgroundTask\s*\)/
+    )
     assert.match(
       body,
       /onRecoveredPostCommitFailure:\s*\(\) =>\s*this\.postCommitMaintenanceWarning\(repository\)/
@@ -121,7 +122,7 @@ describe('cheap LFS commit entry points', () => {
   it('waits for verified materialization when opening or completing a clone', () => {
     assert.match(
       source,
-      /await this\.maybeAutoMaterializeCheapLfs\(repository, \{\s*requireSelected: true/
+      /await this\.maybeAutoMaterializeCheapLfs\(refreshedRepository, \{\s*requireSelected: true/
     )
     // The loop now also publishes a 'restoring' finalization reading per
     // repository so the clone popup stays live, but it must still await every
@@ -144,7 +145,7 @@ describe('cheap LFS commit entry points', () => {
 
     assert.match(
       body,
-      /this\._commitIncludedChanges\(\s*repository,\s*context,\s*false,\s*true,\s*\(\) => this\.isScheduledAutomationFenceCurrent\(fence\)\s*\)/
+      /this\._commitIncludedChanges\(\s*repository,\s*context,\s*false,\s*true,\s*\(\) => this\.isScheduledAutomationFenceCurrent\(fence\),\s*true\s*\)/
     )
     assert.doesNotMatch(body, /performScheduledPush\(repository, null\)/)
     assert.doesNotMatch(body, /createCommit\(/)

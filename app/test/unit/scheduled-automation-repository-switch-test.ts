@@ -251,7 +251,7 @@ describe('scheduled automation repository selection', () => {
       let effects = 0
       Object.assign(store, {
         selectedRepository: repository,
-        repositoryWithRefreshedGitHubRepository: async () => {
+        repositoryWithCanonicalRemoteForNetwork: async () => {
           Reflect.set(store, 'selectedRepository', replacement)
           return repository
         },
@@ -279,7 +279,7 @@ describe('scheduled automation repository selection', () => {
     let pushes = 0
     Object.assign(store, {
       selectedRepository: repository,
-      repositoryWithRefreshedGitHubRepository: async () => {
+      repositoryWithCanonicalRemoteForNetwork: async () => {
         Reflect.set(store, 'selectedRepository', refreshed)
         return refreshed
       },

@@ -11,6 +11,7 @@ const guide = read('app/src/ui/lib/regex-builder/regex-builder-guide.tsx')
 const palette = read('app/src/ui/lib/regex-builder/regex-builder-palette.tsx')
 const tester = read('app/src/ui/lib/regex-builder/regex-test-area.tsx')
 const diffSearch = read('app/src/ui/diff/side-by-side-diff.tsx')
+const diffSearchMatcher = read('app/src/ui/diff/diff-search-matcher.ts')
 
 describe('Regex builder v2 style contract', () => {
   it('keeps a 50px margin between the dialog and the viewport edges', () => {
@@ -137,7 +138,12 @@ describe('Regex builder v2 style contract', () => {
 
   it('bounds diff search globally and announces truncation', () => {
     assert.match(diffSearch, /const MaxDiffSearchResults = 5000/)
-    assert.match(diffSearch, /if \(options\.mode === FilterMode\.Regex\)/)
+    // The matcher compilation (including the safe-regex branch) now lives in
+    // the extracted DiffSearchMatcher; the view only consumes its result.
+    assert.match(
+      diffSearchMatcher,
+      /if \(options\.mode === FilterMode\.Regex\)/
+    )
     assert.match(diffSearch, /found\.truncated/)
     assert.match(diffSearch, /additional results were truncated for safety/)
   })
