@@ -4,6 +4,7 @@ import { createReadStream } from 'fs'
 import { lstat, mkdtemp, readFile, realpath, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import { basename, isAbsolute, join, resolve } from 'path'
+import { guardStreamAgainstPeerClose } from '../peer-closed-stream-error'
 import {
   ICheapLfsGhcrPreparedImage,
   ICheapLfsGhcrProgress,
@@ -657,9 +658,10 @@ class DefaultOrasRunner implements ICheapLfsGhcrOrasRunner {
           )
         }
       })
-      child.stdin.on('error', () => {
-        // A failed child can close stdin before its close event supplies status.
-      })
+      // A failed child can close stdin before its close event supplies status.
+      // The guard is permanent so a repeated peer-closed report cannot find a
+      // listener-less stream; the close handler above owns the outcome.
+      guardStreamAgainstPeerClose(child.stdin, 'cheap-lfs ORAS stdin')
       child.stdin.end(request.stdin)
     })
   }

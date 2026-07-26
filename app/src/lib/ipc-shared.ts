@@ -162,6 +162,12 @@ export type RequestChannels = {
   blur: () => void
   'update-accounts': (accounts: ReadonlyArray<EndpointToken>) => void
   'accounts-changed': () => void
+  /**
+   * A main-process background failure that was contained instead of crashing
+   * the app. Carries no detail on purpose: the diagnostics stay in the log so
+   * an arbitrary error message can never copy a credential into the UI.
+   */
+  'contained-background-failure': () => void
   'quit-and-install-updates': () => void
   'quit-app': () => void
   'open-repository-in-new-window': (path: string | null) => void

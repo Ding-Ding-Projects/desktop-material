@@ -5086,3 +5086,55 @@ state: installer run `29671087924` and release
   opened`); both pass in isolation and on re-run, and neither touches this
   change. Push was explicitly out of scope for this task, so the work stays on
   `feat/ollama-settings-tab`.
+
+## 2026-07-26 `write EOF` crash — peer-closed stream writes
+
+Branch `fix/write-eof-crash` (not pushed; push was explicitly out of scope).
+Fixes the user-reported unrecoverable dialog from build `zadtrqvojl`:
+`Error: write EOF at WriteWrap.onWriteComplete (node:internal/stream_base_commons:87:19)`.
+
+- Root cause, reproduced byte-for-byte before any fix: `writeGitHubCliInput` in
+  `app/src/main-process/github-release-transfer.ts` attached a per-write
+  `child.stdin.once('error', …)` and removed it from the write's own completion
+  callback. When a multi-megabyte write to the `gh api --input -` stdin pipe
+  completes with `UV_EOF` (the `gh` child exited — an expiring token forcing
+  re-authorization is the everyday cause), Node reports the failure twice: the
+  callback first, then an `'error'` event on the stream a tick later, by which
+  point the listener was gone. Unlistened `'error'` in the main process →
+  `handleUncaughtException` → `CrashWindow`. `endGitHubCliInput` had the same
+  shape.
+- Guards added: a permanent `child.stdin` guard installed with the `gh` child
+  plus writability checks in both stdin helpers; try/catch around the Electron
+  `ClientRequest.write`/`end`; error listener ordering and a single guarded
+  reply helper in the trampoline server (always-reply semantics preserved);
+  request/response/connection/`clientError`/post-bind server guards in the
+  agent server; the previously listener-less hooks proxy-process server; and
+  permanent guards replacing `once('error')` on the ORAS and Docker credential
+  helper stdin pipes.
+- Process backstop: `app/src/lib/peer-closed-stream-error.ts` classifies only
+  errors carrying the shape of a peer-closed stream write (errno code plus an
+  I/O syscall, Node stream-state codes, or an anchored message form — needed
+  because `withSourceMappedStack` and `getIpcFriendlyError` both flatten an
+  error to `{ name, message, stack }`). Main-process `uncaughtException` /
+  `unhandledRejection`, the `uncaught-exception` IPC handler, and the renderer
+  handler contain a match as a logged non-fatal plus a non-blocking notice
+  (new `contained-background-failure` main→renderer channel, no detail in the
+  payload). Everything unrecognized stays as fatal as before.
+- Note for whoever wires OAuth work: this app has **no** OAuth loopback HTTP
+  listener. Sign-in and re-authorization use the `x-github-desktop-auth`
+  protocol deep link; the local HTTP responder a browser can disconnect from is
+  the agent server, which is guarded above.
+- Local verification: `tsc --noEmit` clean; Prettier clean for every touched
+  file (the repo-wide check still flags
+  `.github/workflows/cheap-lfs-cloud-compression.yml`, which is untouched here
+  and already reformatted on `main` — this branch's base predates that commit);
+  `eslint --rulesdir ./eslint-rules` clean across `app/src`, `app/test`,
+  `script`, `eslint-rules`, and `changelog.json`; targeted suite green. New
+  tests in `app/test/unit/peer-closed-stream-error-test.ts`,
+  `app/test/unit/trampoline-peer-close-test.ts`,
+  `app/test/unit/agent-server-peer-close-test.ts`, and
+  `app/test/unit/main-process/github-release-transfer-peer-close-test.ts`; the
+  stdin fixture reproduces Node's real double-report ordering and was confirmed
+  to fail against the pre-fix code.
+- Docs: `docs/features/quality-and-reliability/peer-closed-stream-writes.md`
+  plus its category index entry.

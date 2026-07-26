@@ -7,6 +7,7 @@ import type { IGitExecutionOptions } from '../git/core'
 import { getRepoHooks } from './get-repo-hooks'
 import { createHooksProxy } from './hooks-proxy'
 import { getShellEnv } from './get-shell-env'
+import { guardStreamAgainstPeerClose } from '../peer-closed-stream-error'
 import memoizeOne from 'memoize-one'
 import {
   getCacheHooksEnv,
@@ -68,6 +69,10 @@ export async function withHooksEnv<T>(
       }),
     { validateConnection: async receivedToken => receivedToken === token }
   )
+  // A git hook can be killed while the proxy is still writing to its
+  // connection. Without a listener that write's 'error' event is process-fatal,
+  // so own it here: the hook's own failure path already reports the outcome.
+  guardStreamAgainstPeerClose(server, 'hooks proxy server')
   const port = await new Promise<number>(resolve => {
     server.listen(0, '127.0.0.1', () =>
       resolve((server.address() as AddressInfo).port)

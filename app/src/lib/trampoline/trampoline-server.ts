@@ -11,6 +11,55 @@ import {
   isValidTrampolineToken,
   wasTrampolineTokenRecentlyDisposed,
 } from './trampoline-tokens'
+import {
+  canStillWriteTo,
+  guardStreamAgainstPeerClose,
+  isPeerClosedStreamError,
+} from '../peer-closed-stream-error'
+
+/**
+ * Reply to a trampoline client, or account for the fact that it is no longer
+ * there.
+ *
+ * The always-reply guarantee exists so a live Git process is never left waiting
+ * on a socket that will not be closed. It has to survive the opposite race too:
+ * Git can be killed, time out, or finish while a handler is still resolving,
+ * and a write to that dropped socket completes with `EOF`/`EPIPE`. Node reports
+ * that as an `'error'` event, which is process-fatal on a socket with no
+ * listener — the accepted-socket guard below keeps one attached for the
+ * socket's whole life, and this check avoids provoking the write at all.
+ *
+ * @returns `true` when the reply was handed to the socket.
+ */
+export function replyToTrampolineClient(
+  socket: Socket,
+  response?: string
+): boolean {
+  if (!canStillWriteTo(socket)) {
+    log.warn(
+      'Trampoline client disconnected before its reply could be written; nothing is waiting on it.'
+    )
+    return false
+  }
+
+  try {
+    if (response === undefined) {
+      socket.end()
+    } else {
+      socket.end(response)
+    }
+    return true
+  } catch (error) {
+    // `end()` throws only on a socket that was torn down between the check and
+    // the call. The client is gone either way.
+    log.warn(
+      `Unable to reply to a trampoline client: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    )
+    return false
+  }
+}
 
 /**
  * Describe a command for a log line without ever including the token, the
@@ -132,12 +181,20 @@ export class TrampolineServer {
   private onNewConnection(socket: Socket) {
     const parser = new TrampolineCommandParser()
 
+    // Attach the error listener *first*. A client that vanishes between accept
+    // and the first read would otherwise emit 'error' on a bare socket, and an
+    // unlistened 'error' event terminates the process.
+    socket.on('error', this.onClientError)
+
     // Messages coming from the trampoline client will be separated by \0
-    socket.pipe(split2(/\0/)).on('data', data => {
+    const messages = socket.pipe(split2(/\0/))
+    // `pipe` does not forward errors, so the split stream needs its own
+    // listener or a torn-down read side becomes an uncaught exception here
+    // rather than on the socket.
+    guardStreamAgainstPeerClose(messages, 'trampoline client stream')
+    messages.on('data', data => {
       this.onDataReceived(socket, parser, data)
     })
-
-    socket.on('error', this.onClientError)
   }
 
   private onDataReceived(
@@ -151,7 +208,7 @@ export class TrampolineServer {
       parser.processValue(value)
     } catch (error) {
       log.error('Error processing trampoline data', error)
-      socket.end()
+      replyToTrampolineClient(socket)
       return
     }
 
@@ -161,7 +218,7 @@ export class TrampolineServer {
 
     const command = parser.toCommand()
     if (command === null) {
-      socket.end()
+      replyToTrampolineClient(socket)
       return
     }
 
@@ -213,14 +270,14 @@ export class TrampolineServer {
           )}: the token is no longer valid because ${provenance}.`
         )
 
-        socket.end()
+        replyToTrampolineClient(socket)
         return
       }
 
       const handler = this.commandHandlers.get(command.identifier)
 
       if (handler === undefined) {
-        socket.end()
+        replyToTrampolineClient(socket)
         return
       }
 
@@ -234,11 +291,7 @@ export class TrampolineServer {
         return undefined
       })
 
-      if (result !== undefined) {
-        socket.end(result)
-      } else {
-        socket.end()
-      }
+      replyToTrampolineClient(socket, result)
     } catch (error) {
       log.error(
         `Unexpected failure handling trampoline command ${describeTrampolineCommand(
@@ -248,12 +301,9 @@ export class TrampolineServer {
       )
 
       // Always reply, even on an unexpected failure, so the client is never
-      // left waiting on a socket which will not be closed.
-      try {
-        socket.end()
-      } catch {
-        // The socket may already have been destroyed by the client.
-      }
+      // left waiting on a socket which will not be closed. The helper is a
+      // no-op when the client already disconnected.
+      replyToTrampolineClient(socket)
     }
   }
 
@@ -263,6 +313,16 @@ export class TrampolineServer {
   }
 
   private onClientError = (error: Error) => {
+    if (isPeerClosedStreamError(error)) {
+      // Git went away before we replied. Every trampoline command is scoped to
+      // one Git process, so there is nothing left to fail.
+      log.warn(
+        `Trampoline client disconnected (${
+          (error as NodeJS.ErrnoException).code ?? error.message
+        })`
+      )
+      return
+    }
     log.error('Trampoline client error', error)
   }
 }
