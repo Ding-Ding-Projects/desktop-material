@@ -506,6 +506,15 @@ export class AppWindow {
     ipcWebContents.send(this.window.webContents, 'accounts-changed')
   }
 
+  /**
+   * Tell the renderer that a background failure was contained in the main
+   * process, so it can show a non-blocking notice. Never shows the window:
+   * containment must not steal focus from whatever the user is doing.
+   */
+  public sendContainedBackgroundFailure() {
+    ipcWebContents.send(this.window.webContents, 'contained-background-failure')
+  }
+
   /** Send the app launch timing stats to the renderer. */
   public sendLaunchTimingStats(stats: ILaunchStats) {
     ipcWebContents.send(this.window.webContents, 'launch-timing-stats', stats)

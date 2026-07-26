@@ -46,6 +46,11 @@ import {
 } from '../lib/cheap-lfs/upload-stall-detector'
 import { createGitHubAPIRequestHeaders } from '../lib/github-rest-api-version'
 import {
+  canStillWriteTo,
+  guardStreamAgainstPeerClose,
+  isPeerClosedStreamError,
+} from '../lib/peer-closed-stream-error'
+import {
   createElectronActionsFetcher,
   IActionsTransferDependencies,
 } from './actions-transfer'
@@ -911,6 +916,33 @@ async function reconcileStalledUpload(
   }
 }
 
+/**
+ * Keep a `gh` stdin failure from becoming a process-fatal uncaught exception.
+ *
+ * A multi-megabyte write to the child's stdin pipe can still be in flight when
+ * `gh` exits — a token that expired mid-upload and forced a re-authorization is
+ * the everyday way that happens. libuv completes the write with `EOF` on
+ * Windows (`EPIPE` elsewhere) and Node reports it *twice*: once through the
+ * write callback, and once as an `'error'` event on `child.stdin`.
+ *
+ * Both `writeGitHubCliInput` and `endGitHubCliInput` used to satisfy the second
+ * report with a per-write `once('error')` listener, which their own completion
+ * callback removed a tick too early:
+ *
+ * ```text
+ * Error: write EOF
+ *     at WriteWrap.onWriteComplete (node:internal/stream_base_commons:87:19)
+ * ```
+ *
+ * One permanent listener, installed with the child, closes that window. The
+ * upload still fails through the write callback and the CLI's exit code, so
+ * nothing here changes the transfer's outcome — only whether the app survives
+ * to report it.
+ */
+function guardGitHubCliInput(child: ChildProcessWithoutNullStreams) {
+  guardStreamAgainstPeerClose(child.stdin, 'github-release-transfer gh stdin')
+}
+
 function writeGitHubCliInput(
   child: ChildProcessWithoutNullStreams,
   chunk: Buffer,
@@ -923,7 +955,6 @@ function writeGitHubCliInput(
       if (!settled) {
         settled = true
         signal.removeEventListener('abort', onAbort)
-        child.stdin.removeListener('error', onError)
         if (error === undefined || error === null) {
           resolveWrite()
         } else if (error.name === 'AbortError') {
@@ -934,14 +965,22 @@ function writeGitHubCliInput(
       }
     }
     const onAbort = () => finish(abortError())
-    const onError = (error: Error) => finish(error)
     signal.addEventListener('abort', onAbort, { once: true })
-    child.stdin.once('error', onError)
     if (signal.aborted) {
       finish(abortError())
       return
     }
-    child.stdin.write(chunk, error => finish(error))
+    if (!canStillWriteTo(child.stdin)) {
+      // `gh` already closed its input. Writing anyway throws synchronously on
+      // some Node versions and resolves into a torn-down stream on others.
+      finish(new ReleaseTransferFailure('cli-failed'))
+      return
+    }
+    try {
+      child.stdin.write(chunk, error => finish(error))
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error(String(error)))
+    }
   })
 }
 
@@ -956,7 +995,6 @@ function endGitHubCliInput(
       if (!settled) {
         settled = true
         signal.removeEventListener('abort', onAbort)
-        child.stdin.removeListener('error', onError)
         if (error === undefined || error === null) {
           resolveEnd()
         } else if (error.name === 'AbortError') {
@@ -967,14 +1005,23 @@ function endGitHubCliInput(
       }
     }
     const onAbort = () => finish(abortError())
-    const onError = (error: Error) => finish(error)
     signal.addEventListener('abort', onAbort, { once: true })
-    child.stdin.once('error', onError)
     if (signal.aborted) {
       finish(abortError())
       return
     }
-    child.stdin.end(() => finish())
+    if (!canStillWriteTo(child.stdin)) {
+      // The stream is already closed. Every byte the caller streamed has been
+      // accounted for by the write callbacks above, so treat the missing FIN
+      // as the CLI failure it is rather than ending a destroyed stream.
+      finish(new ReleaseTransferFailure('cli-failed'))
+      return
+    }
+    try {
+      child.stdin.end(() => finish())
+    } catch (error) {
+      finish(error instanceof Error ? error : new Error(String(error)))
+    }
   })
 }
 
@@ -1099,6 +1146,9 @@ async function runGitHubCliUpload(
   } catch {
     throw new ReleaseTransferFailure('cli-unavailable')
   }
+  // Installed before the first byte is written: a peer-closed stdin write must
+  // never find this stream without an 'error' listener.
+  guardGitHubCliInput(child)
   let processIsClosed = false
   let processHasExited = false
   const sourceStream: {
@@ -2132,21 +2182,43 @@ export const createElectronGitHubReleaseUploadFetcher =
           failSource()
           return
         }
-        request.write(chunk, undefined, () => {
-          if (settled) {
-            return
-          }
-          uploadedBytes = nextUploadedBytes
-          // The callback only proves Chromium accepted this chunk, not that it
-          // reached the wire, so do not present a cached native progress sample
-          // as stronger evidence. Production uses gh before this path. This
-          // no-CLI fallback reports bounded queue progress and still fails on a
-          // stall if GitHub closes or never completes the response.
-          reportedBytes = uploadedBytes
-          watchdog.recordActivity()
-          onProgress?.(reportedBytes)
-          body.resume()
-        })
+        // GitHub can send FIN (or Chromium can tear the pipe down) between the
+        // completion callback and the next chunk. Electron surfaces that as a
+        // synchronous throw from `write`, which would escape this stream's
+        // 'data' handler as an uncaught exception; route it into the same
+        // retryable failure path every other transport error uses.
+        try {
+          request.write(chunk, undefined, () => {
+            if (settled) {
+              return
+            }
+            uploadedBytes = nextUploadedBytes
+            // The callback only proves Chromium accepted this chunk, not that
+            // it reached the wire, so do not present a cached native progress
+            // sample as stronger evidence. Production uses gh before this path.
+            // This no-CLI fallback reports bounded queue progress and still
+            // fails on a stall if GitHub closes or never completes the response.
+            reportedBytes = uploadedBytes
+            watchdog.recordActivity()
+            onProgress?.(reportedBytes)
+            body.resume()
+          })
+        } catch (error) {
+          settle(() => {
+            try {
+              request.abort()
+            } catch {
+              // Aborting an already-torn-down request is redundant, not fatal.
+            }
+            rejectPromise(
+              isPeerClosedStreamError(error)
+                ? new ReleaseTransferFailure('network')
+                : error instanceof Error
+                ? error
+                : new ReleaseTransferFailure('network')
+            )
+          })
+        }
       })
       body.on('end', () => {
         if (settled) {
@@ -2158,7 +2230,13 @@ export const createElectronGitHubReleaseUploadFetcher =
           failSource()
           return
         }
-        request.end()
+        try {
+          request.end()
+        } catch {
+          // The peer closed before the final FIN. `close`/`error` still settle
+          // this promise; ending a dead request must not escape as uncaught.
+          settle(() => rejectPromise(new ReleaseTransferFailure('network')))
+        }
       })
       body.on('error', () => failSource())
     })

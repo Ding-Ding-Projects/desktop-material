@@ -33,6 +33,7 @@ import {
   withSourceMappedStack,
 } from '../lib/source-map-support'
 import { now } from './now'
+import { classifyPeerClosedStreamError } from '../lib/peer-closed-stream-error'
 import { showUncaughtException } from './show-uncaught-exception'
 import { buildContextMenu } from './menu/build-context-menu'
 import { OrderedWebRequest } from './ordered-webrequest'
@@ -136,6 +137,72 @@ let handlingFatalError = false
 type OnDidLoadFn = (window: AppWindow) => void
 /** See the `onDidLoad` function. */
 const pendingOnDidLoadFns = new Array<OnDidLoadFn>()
+
+/**
+ * Contain the one exception family that must not take the app down with it.
+ *
+ * A write that completes after its peer already closed — a `gh` upload whose
+ * child exited, a trampoline client Git killed, a browser that navigated away
+ * from the agent server — is reported by Node as an `'error'` event as well as
+ * through its own callback. Every one of those streams now keeps a listener
+ * attached, but a stream added later (or one inside a dependency) could still
+ * let one through, and losing an in-progress upload is not a reason to destroy
+ * every window and show the unrecoverable-error dialog.
+ *
+ * This is deliberately not a general safety net: only errors carrying the exact
+ * shape of a peer-closed stream write are contained. Everything else — every
+ * error this classifier has no positive evidence about — stays fatal.
+ *
+ * @param error     The reportable error, already source-mapped.
+ * @param failureKind Grouping key for the non-fatal report.
+ * @param evidence  The original throwable, when one is available.
+ *                  `withSourceMappedStack` rebuilds an error as a plain
+ *                  `{ name, message, stack }`, dropping `code`/`errno`/
+ *                  `syscall`, so classify the original first and fall back to
+ *                  the message-only form.
+ *
+ * @returns `true` when the exception was contained and must not reach the
+ *          crash dialog.
+ */
+function containPeerClosedStreamException(
+  error: Error,
+  failureKind: string,
+  evidence: unknown = error
+): boolean {
+  const code =
+    classifyPeerClosedStreamError(evidence) ??
+    classifyPeerClosedStreamError(error)
+  if (code === null) {
+    return false
+  }
+
+  try {
+    log.error(
+      `Contained a write to a closed peer (${code}); the owning operation fails on its own.`,
+      error
+    )
+  } catch {
+    // Containment must not depend on logging succeeding.
+  }
+
+  reportErrorSafely(
+    error,
+    { ...getExtraErrorContext(), failureKind, peerClosedStreamCode: code },
+    true
+  )
+
+  // Surface it where the user can see it without blocking them, and only in a
+  // window that already exists — containment must never create UI.
+  for (const window of windows.values()) {
+    try {
+      window.sendContainedBackgroundFailure()
+    } catch {
+      // A window tearing down mid-notice is not itself a failure.
+    }
+  }
+
+  return true
+}
 
 function handleUncaughtException(error: Error) {
   if (handlingFatalError) {
@@ -321,14 +388,32 @@ app.on('will-quit', event => {
   ownedProcessShutdown.handle(event)
 })
 
-process.on('uncaughtException', (error: Error) => {
-  error = withSourceMappedStack(error)
+process.on('uncaughtException', (thrown: Error) => {
+  const error = withSourceMappedStack(thrown)
+  if (
+    containPeerClosedStreamException(
+      error,
+      'main-process-peer-closed-write',
+      thrown
+    )
+  ) {
+    return
+  }
   reportErrorSafely(error, getExtraErrorContext())
   handleUncaughtException(error)
 })
 
 process.on('unhandledRejection', reason => {
   const error = withSourceMappedStack(normalizeUnhandledRejection(reason))
+  if (
+    containPeerClosedStreamException(
+      error,
+      'main-process-peer-closed-write-rejection',
+      reason
+    )
+  ) {
+    return
+  }
   reportErrorSafely(error, {
     ...getExtraErrorContext(),
     failureKind: 'main-process-unhandled-rejection',
@@ -1043,7 +1128,19 @@ app.on('ready', () => {
     setLogLevel(verbose ? 'debug' : 'info')
   )
 
-  ipcMain.on('uncaught-exception', (_, error) => handleUncaughtException(error))
+  ipcMain.on('uncaught-exception', (_, error) => {
+    // The renderer contains these itself; this is the same boundary applied
+    // again in case an older renderer build reports one.
+    if (
+      containPeerClosedStreamException(
+        error,
+        'renderer-process-peer-closed-write'
+      )
+    ) {
+      return
+    }
+    handleUncaughtException(error)
+  })
 
   ipcMain.on('send-error-report', (_, error, extra, nonFatal) => {
     reportErrorSafely(error, { ...getExtraErrorContext(), ...extra }, nonFatal)

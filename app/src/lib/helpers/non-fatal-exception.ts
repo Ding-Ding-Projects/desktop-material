@@ -45,6 +45,7 @@ export type ExceptionKinds =
   | 'NoSuggestedActionsProvided'
   | 'NoSuggestedActionsProvided'
   | 'resizeObserverLoopCompleted'
+  | 'peerClosedStreamWrite'
 
 export function sendNonFatalException(kind: ExceptionKinds, error: Error) {
   if (getHasOptedOutOfStats()) {

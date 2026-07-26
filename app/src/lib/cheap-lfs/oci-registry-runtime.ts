@@ -2,6 +2,7 @@ import { createHash } from 'crypto'
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process'
 import { lstat, open, realpath } from 'fs/promises'
 import { join, relative, resolve, isAbsolute, basename } from 'path'
+import { guardStreamAgainstPeerClose } from '../peer-closed-stream-error'
 
 export type CheapLfsRegistryProvider = 'ghcr' | 'docker-hub'
 export type CheapLfsOrasArchitecture = 'x64' | 'arm64'
@@ -659,7 +660,13 @@ export class SpawnDockerCredentialHelperRunner
             )
           )
         }, request.timeoutMs)
-        child.stdin.once('error', () => undefined)
+        // Permanent, not `once`: a peer-closed write can report more than one
+        // error, and the second one would find a listener-less stream and take
+        // the process down. The close/timeout paths above own the outcome.
+        guardStreamAgainstPeerClose(
+          child.stdin,
+          'cheap-lfs docker credential helper stdin'
+        )
         child.stdin.end(request.stdin)
       }
     )

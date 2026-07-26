@@ -78,6 +78,7 @@ import { PullRequestCoordinator } from '../lib/stores/pull-request-coordinator'
 import { ElementAppearanceCoordinator } from '../lib/stores/element-appearance-coordinator'
 
 import { sendNonFatalException } from '../lib/helpers/non-fatal-exception'
+import { classifyPeerClosedStreamError } from '../lib/peer-closed-stream-error'
 import { enableUnhandledRejectionReporting } from '../lib/feature-flag'
 import { AheadBehindStore } from '../lib/stores/ahead-behind-store'
 import {
@@ -218,6 +219,28 @@ const sendErrorWithContext = (
 const resizeLoopCompletedMessage =
   'ResizeObserver loop completed with undelivered notifications.'
 
+let rendererUnhandledRejectionSink: ((error: Error) => void) | null = null
+let pendingRendererUnhandledRejectionNotice = false
+
+/**
+ * Show a contained background failure as a non-blocking in-app notice.
+ *
+ * The message is always a fixed string chosen by the caller, never text taken
+ * from the error, so an arbitrary failure can never copy a credential into the
+ * UI. A notice raised before the dispatcher exists is replayed once it does.
+ */
+function showContainedBackgroundFailureNotice(message: string) {
+  if (rendererUnhandledRejectionSink === null) {
+    pendingRendererUnhandledRejectionNotice = true
+    return
+  }
+  try {
+    rendererUnhandledRejectionSink(new Error(message))
+  } catch {
+    pendingRendererUnhandledRejectionNotice = true
+  }
+}
+
 const onUncaughtException = (error: unknown) => {
   // This is a known issue with the ResizeObserver API in Chromium 132 which is
   // fixed in 133 that we can safely ignore.
@@ -232,6 +255,29 @@ const onUncaughtException = (error: unknown) => {
     sendNonFatalException(
       'resizeObserverLoopCompleted',
       withSourceMappedStack(error)
+    )
+    return
+  }
+
+  // A write that finished after its peer closed — a trampoline client Git
+  // killed, a socket torn down mid-reply. The operation fails through its own
+  // error path; destroying the window over it would lose the user's work for
+  // no reason. Deliberately narrow: anything this does not positively
+  // recognize still crashes, exactly as before.
+  const peerClosedCode = classifyPeerClosedStreamError(error)
+  if (peerClosedCode !== null) {
+    const containedError = withSourceMappedStack(error)
+    try {
+      log.error(
+        `Contained a write to a closed peer (${peerClosedCode})`,
+        containedError
+      )
+    } catch {
+      // Containment must not depend on logging succeeding.
+    }
+    sendNonFatalException('peerClosedStreamWrite', containedError)
+    showContainedBackgroundFailureNotice(
+      'A background transfer stopped because the connection closed. Desktop Material contained the error so you can keep working.'
     )
     return
   }
@@ -256,9 +302,6 @@ process.on(
   }
 )
 
-let rendererUnhandledRejectionSink: ((error: Error) => void) | null = null
-let pendingRendererUnhandledRejectionNotice = false
-
 /**
  * Keep an unexpected background rejection from disappearing into DevTools.
  * Reporting retains the original Error, while the in-app notice is deliberately
@@ -282,18 +325,9 @@ window.addEventListener('unhandledrejection', ev => {
     // Error reporting cannot become a second unhandled rejection.
   }
 
-  const notice = new Error(
+  showContainedBackgroundFailureNotice(
     'A background action stopped unexpectedly. Desktop Material contained the error so you can keep working.'
   )
-  if (rendererUnhandledRejectionSink === null) {
-    pendingRendererUnhandledRejectionNotice = true
-  } else {
-    try {
-      rendererUnhandledRejectionSink(notice)
-    } catch {
-      pendingRendererUnhandledRejectionNotice = true
-    }
-  }
   ev.preventDefault()
 })
 
@@ -627,6 +661,15 @@ if (pendingRendererUnhandledRejectionNotice) {
     )
   )
 }
+
+// The main process contained a background failure (an upload whose connection
+// closed, for example). It sends no detail on purpose; the diagnostics stay in
+// the log while the user gets a notice instead of a crash dialog.
+ipcRenderer.on('contained-background-failure', () =>
+  showContainedBackgroundFailureNotice(
+    'A background action stopped because the connection closed. Desktop Material contained the error so you can keep working.'
+  )
+)
 
 document.body.classList.add(`platform-${process.platform}`)
 

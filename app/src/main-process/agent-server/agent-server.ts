@@ -30,6 +30,11 @@ import {
   IAgentDeviceCredentialStore,
   PairedDeviceStore,
 } from './paired-device-store'
+import {
+  canStillWriteTo,
+  guardStreamAgainstPeerClose,
+  isPeerClosedStreamError,
+} from '../../lib/peer-closed-stream-error'
 
 const MaxBodyBytes = 64 * 1024
 const MaxActiveCommands = 8
@@ -193,6 +198,45 @@ async function readJSONBody(request: Http.IncomingMessage): Promise<unknown> {
   }
 }
 
+/**
+ * Finish a response, or accept that the client is no longer listening.
+ *
+ * A browser tab closing, a page navigating away, or a paired device dropping
+ * off the LAN all end the connection while a handler is still running. Writing
+ * to that socket completes with `EPIPE`/`ECONNRESET`, which Node also reports
+ * as an `'error'` event; on a response whose socket has no listener that event
+ * is process-fatal. Nothing is lost by skipping the write — there is nobody to
+ * read it.
+ *
+ * @returns `true` when the response was written.
+ */
+function endResponse(
+  response: Http.ServerResponse,
+  status: number,
+  headers: Http.OutgoingHttpHeaders,
+  body?: string
+): boolean {
+  if (!canStillWriteTo(response) || response.headersSent) {
+    return false
+  }
+  try {
+    response.writeHead(status, headers)
+    if (body === undefined) {
+      response.end()
+    } else {
+      response.end(body)
+    }
+    return true
+  } catch (error) {
+    log.warn(
+      `[agent-server] Client disconnected before the response was written: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    )
+    return false
+  }
+}
+
 function writeJSON(
   response: Http.ServerResponse,
   status: number,
@@ -200,14 +244,18 @@ function writeJSON(
   redact = true
 ): void {
   const body = JSON.stringify(redact ? redactAgentValue(value) : value)
-  response.writeHead(status, {
-    'Content-Type': 'application/json; charset=utf-8',
-    'Content-Length': Buffer.byteLength(body),
-    'Cache-Control': 'no-store',
-    'X-Content-Type-Options': 'nosniff',
-    'X-Frame-Options': 'DENY',
-  })
-  response.end(body)
+  endResponse(
+    response,
+    status,
+    {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Content-Length': Buffer.byteLength(body),
+      'Cache-Control': 'no-store',
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+    },
+    body
+  )
 }
 
 /**
@@ -329,6 +377,11 @@ export class AgentServer {
     this.token ??= randomBytes(32).toString('hex')
 
     const server = Http.createServer((request, response) => {
+      // A client that disappears mid-request would otherwise surface as an
+      // unlistened 'error' on the request, the response, or their shared
+      // socket — each of which is a process-fatal event.
+      guardStreamAgainstPeerClose(request, 'agent-server request')
+      guardStreamAgainstPeerClose(response, 'agent-server response')
       this.handleRequest(request, response).catch(error => {
         const status = error instanceof HTTPError ? error.status : 500
         const message =
@@ -337,14 +390,50 @@ export class AgentServer {
           writeJSON(response, status, {
             error: { code: `http_${status}`, message },
           })
-        } else {
-          response.end()
+        } else if (canStillWriteTo(response)) {
+          try {
+            response.end()
+          } catch {
+            // The client dropped between the check and the call.
+          }
         }
       })
     })
     server.requestTimeout = 70_000
     server.headersTimeout = 10_000
     server.keepAliveTimeout = 5_000
+    // Malformed requests and connections that die during the handshake arrive
+    // here instead of on a request object. Node's default behavior destroys the
+    // socket, but an unlistened 'clientError' plus a bad-request write can
+    // still escape; own both explicitly.
+    server.on('clientError', (error: Error, socket) => {
+      if (!isPeerClosedStreamError(error)) {
+        log.warn(
+          `[agent-server] Rejected a malformed request: ${error.message}`
+        )
+      }
+      if (canStillWriteTo(socket)) {
+        try {
+          socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n')
+        } catch {
+          // The peer is already gone; destroying below is enough.
+        }
+      }
+      socket.destroy()
+    })
+    server.on('connection', socket =>
+      guardStreamAgainstPeerClose(socket, 'agent-server connection')
+    )
+
+    // A permanent listener so a post-bind server error (a dropped accept, an
+    // interface disappearing) is never an unlistened 'error' event. The
+    // transient bind listener below is removed once listening succeeds.
+    server.on('error', error => {
+      if (isPeerClosedStreamError(error)) {
+        return
+      }
+      log.error('[agent-server] Server error', error)
+    })
 
     const bindAddress = this.mode === 'local' ? '127.0.0.1' : '0.0.0.0'
     const listen = (port: number) =>
@@ -582,13 +671,12 @@ export class AgentServer {
     const url = new URL(request.url ?? '/', 'http://agent.invalid')
 
     if (request.method === 'OPTIONS') {
-      response.writeHead(204, {
+      endResponse(response, 204, {
         'Cache-Control': 'no-store',
         'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
         'Access-Control-Allow-Headers': 'Authorization, Content-Type',
         'Access-Control-Max-Age': '600',
       })
-      response.end()
       return
     }
 
@@ -639,8 +727,7 @@ export class AgentServer {
         throw new HTTPError(404, 'Paired device not found')
       }
       this.notifyStatusChanged()
-      response.writeHead(204, { 'Cache-Control': 'no-store' })
-      response.end()
+      endResponse(response, 204, { 'Cache-Control': 'no-store' })
       return
     }
 
@@ -654,8 +741,7 @@ export class AgentServer {
         this.enqueue(command)
       )
       if (result === undefined) {
-        response.writeHead(202, { 'Cache-Control': 'no-store' })
-        response.end()
+        endResponse(response, 202, { 'Cache-Control': 'no-store' })
       } else {
         writeJSON(response, 200, result)
       }
