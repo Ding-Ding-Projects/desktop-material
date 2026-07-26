@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import {
+  appendVersionHistoryPage,
   classifyVersionHistoryDiffLine,
   IVersionHistoryEntry,
   IVersionHistoryPage,
@@ -28,17 +29,26 @@ function createDeferred<T>(): {
   return { promise, resolve: resolveValue }
 }
 
-function historyEntry(sha: string, summary: string): IVersionHistoryEntry {
+function historyEntry(
+  sha: string,
+  summary: string,
+  committedAt = new Date('2026-07-11T12:00:00Z')
+): IVersionHistoryEntry {
   return {
     sha,
     shortSha: sha.slice(0, 7),
     summary,
     body: '',
-    committedAt: new Date('2026-07-11T12:00:00Z'),
+    committedAt,
     undoOf: null,
     redoOf: null,
     restoreOf: null,
   }
+}
+
+/** Timestamps that descend the way a newest-first timeline does. */
+function at(minutesAgo: number): Date {
+  return new Date(Date.UTC(2026, 6, 11, 12, 0, 0) - minutesAgo * 60_000)
 }
 
 function historyPage(
@@ -56,6 +66,134 @@ function historyPage(
 }
 
 describe('versioned store history', () => {
+  it('keeps a paged timeline linear when the offset window slides', () => {
+    const loaded = [
+      historyEntry('aaaaaaaa', 'Third', at(1)),
+      historyEntry('bbbbbbbb', 'Second', at(2)),
+    ]
+    // A commit landed between the two reads, so the store's second page starts
+    // one entry earlier and repeats the tail of the first page.
+    const shifted = [
+      historyEntry('bbbbbbbb', 'Second', at(2)),
+      historyEntry('cccccccc', 'First', at(3)),
+    ]
+
+    assert.deepStrictEqual(
+      appendVersionHistoryPage(loaded, shifted).map(entry => entry.sha),
+      ['aaaaaaaa', 'bbbbbbbb', 'cccccccc']
+    )
+  })
+
+  it('never pages a newer commit in underneath older ones', () => {
+    const loaded = [historyEntry('aaaaaaaa', 'Third', at(1))]
+    const withNewer = [
+      historyEntry('dddddddd', 'Newer than everything loaded', at(0)),
+      historyEntry('cccccccc', 'First', at(3)),
+    ]
+
+    assert.deepStrictEqual(
+      appendVersionHistoryPage(loaded, withNewer).map(entry => entry.sha),
+      ['aaaaaaaa', 'cccccccc']
+    )
+  })
+
+  it('starts a new timeline when the panel is pointed at another store', async () => {
+    const first = historyEntry('11111111', 'Alpha element change')
+    const second = historyEntry('22222222', 'Beta element change')
+    const requestedSkips: number[] = []
+    const sourceFor = (
+      entry: IVersionHistoryEntry
+    ): IVersionedStoreHistorySource => ({
+      getHistory: skip => {
+        requestedSkips.push(skip ?? 0)
+        return Promise.resolve(historyPage([entry], false))
+      },
+      getFiles: () => Promise.resolve([]),
+      getDiff: () => Promise.resolve(''),
+    })
+
+    const panel = (entry: IVersionHistoryEntry, sourceKey: string) => (
+      <VersionedStoreHistory
+        title="Element history"
+        timelineLabel="Element timeline"
+        description="Test history"
+        source={sourceFor(entry)}
+        sourceKey={sourceKey}
+        readOnly={true}
+        onDismissed={() => {}}
+      />
+    )
+
+    const view = render(panel(first, 'alpha'))
+    await waitFor(() =>
+      assert.ok(screen.getByRole('option', { name: /Alpha element change/i }))
+    )
+
+    view.rerender(panel(second, 'beta'))
+
+    // The previous repository's commits cannot remain in a timeline that now
+    // describes a different repository.
+    await waitFor(() =>
+      assert.ok(screen.getByRole('option', { name: /Beta element change/i }))
+    )
+    assert.equal(
+      screen.queryByRole('option', { name: /Alpha element change/i }),
+      null
+    )
+    assert.deepStrictEqual(requestedSkips, [0, 0])
+  })
+
+  it('pages by what the store served, not by what survived the guard', async () => {
+    const shared = historyEntry('bbbbbbbb', 'Second snapshot', at(2))
+    const pages = [
+      historyPage(
+        [historyEntry('aaaaaaaa', 'Third snapshot', at(1)), shared],
+        true
+      ),
+      historyPage(
+        [shared, historyEntry('cccccccc', 'First snapshot', at(3))],
+        false
+      ),
+    ]
+    const requestedSkips: number[] = []
+    let call = 0
+    const source: IVersionedStoreHistorySource = {
+      getHistory: skip => {
+        requestedSkips.push(skip ?? 0)
+        return Promise.resolve(pages[call++])
+      },
+      getFiles: () => Promise.resolve([]),
+      getDiff: () => Promise.resolve(''),
+    }
+
+    render(
+      <VersionedStoreHistory
+        title="Settings history"
+        timelineLabel="Settings timeline"
+        description="Test history"
+        source={source}
+        readOnly={true}
+        onDismissed={() => {}}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('option', { name: /Third snapshot/i }))
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    await waitFor(() =>
+      assert.ok(screen.getByRole('option', { name: /First snapshot/i }))
+    )
+
+    // Two entries were read even though one was dropped as a repeat, so the
+    // next page has to skip two — otherwise the same window is fetched forever.
+    assert.deepStrictEqual(requestedSkips, [0, 2])
+    assert.equal(
+      screen.getAllByRole('option', { name: /Second snapshot/i }).length,
+      1
+    )
+  })
+
   it('classifies unified diff lines for the read-only viewer', () => {
     assert.equal(classifyVersionHistoryDiffLine('diff --git a/a b/a'), 'header')
     assert.equal(

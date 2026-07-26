@@ -1,7 +1,16 @@
-import { appendFile, mkdir, open, readFile, stat, rm } from 'fs/promises'
+import {
+  appendFile,
+  mkdir,
+  open,
+  readdir,
+  readFile,
+  stat,
+  rm,
+} from 'fs/promises'
 import { randomUUID } from 'crypto'
 import { join } from 'path'
 import { git } from '../git/core'
+import { getDefaultBranch } from '../helpers/default-branch'
 import { initGitRepository } from '../git/init'
 import { setConfigValue } from '../git/config'
 import { getChangedFiles, getCommits } from '../git/log'
@@ -23,6 +32,10 @@ const commitAuthorEmail = 'desktop-material@localhost'
 export const ProfileUndoTrailer = 'Desktop-Material-Undo-Of'
 export const ProfileRedoTrailer = 'Desktop-Material-Redo-Of'
 export const ProfileRestoreTrailer = 'Desktop-Material-Restore-Of'
+/** Records the diverged tip whose tree a repair commit folded back in. */
+export const ProfileFoldTrailer = 'Desktop-Material-Fold-Of'
+/** Records the tip whose tree a repair commit restored after a fold. */
+export const ProfileFoldRestoreTrailer = 'Desktop-Material-Fold-Restore-Of'
 
 const profileStateFiles = ['settings.json', 'tabs.json'] as const
 const fullSHA = /^[0-9a-f]{40}$/i
@@ -70,6 +83,11 @@ export async function ensureProfileRepository(
     await setConfigValue(repository, 'user.name', commitAuthorName)
     await setConfigValue(repository, 'user.email', commitAuthorEmail)
     await setConfigValue(repository, 'commit.gpgsign', 'false')
+
+    // A repository that a previous build (or an interrupted mutation) left with
+    // more than one head is folded back into one linear timeline before any
+    // caller can append to it.
+    await repairProfileHistoryLinearityLocked(repository)
   })
 
   return repository
@@ -233,6 +251,194 @@ function parseProfileLockOwner(
   }
 }
 
+/**
+ * The append-only invariant every owned repository holds: exactly one branch
+ * ref, HEAD attached to it, and every commit reachable from exactly one parent.
+ *
+ * `strayTips` are commits that were reachable from some other ref (or from a
+ * detached HEAD) and therefore formed a second head.
+ */
+export interface IProfileLinearityRepair {
+  /** True when the repository already satisfied the invariant. */
+  readonly linear: boolean
+  /** Tips folded forward as ordinary audit commits, newest last. */
+  readonly foldedTips: ReadonlyArray<string>
+  /** Redundant refs removed because they were already reachable from HEAD. */
+  readonly removedRefs: ReadonlyArray<string>
+  /** True when a detached HEAD was reattached to the canonical branch. */
+  readonly reattachedHead: boolean
+  /**
+   * Merge commits found in the surviving timeline. These predate the invariant
+   * and cannot be removed without rewriting published local history, so they
+   * are reported rather than repaired.
+   */
+  readonly mergeCommits: ReadonlyArray<string>
+}
+
+interface IRepositoryRefState {
+  /** `refs/heads/x` when HEAD is attached, otherwise null. */
+  readonly headRef: string | null
+  /** The commit a detached HEAD points at, otherwise null. */
+  readonly detachedAt: string | null
+  /** Every ref in the repository, keyed by full refname. */
+  readonly refs: ReadonlyMap<string, string>
+}
+
+/**
+ * Read HEAD and every ref straight off disk.
+ *
+ * The overwhelmingly common case is one branch and an attached HEAD, and this
+ * runs for every element repository on startup, so the check must not pay for a
+ * Git subprocess before it knows there is anything to repair.
+ */
+async function readRepositoryRefState(
+  path: string
+): Promise<IRepositoryRefState> {
+  const gitDir = join(path, '.git')
+  const refs = new Map<string, string>()
+
+  const collectLooseRefs = async (
+    directory: string,
+    prefix: string
+  ): Promise<void> => {
+    const entries = await readdir(directory, { withFileTypes: true }).catch(
+      error => {
+        if (isFileSystemError(error, 'ENOENT')) {
+          return []
+        }
+        throw error
+      }
+    )
+
+    for (const entry of entries) {
+      const child = join(directory, entry.name)
+      if (entry.isDirectory()) {
+        await collectLooseRefs(child, `${prefix}${entry.name}/`)
+        continue
+      }
+      const contents = (await readFile(child, 'utf8').catch(error => {
+        if (isFileSystemError(error, 'ENOENT')) {
+          return ''
+        }
+        throw error
+      })) as string
+      const sha = contents.trim()
+      if (fullSHA.test(sha)) {
+        refs.set(`${prefix}${entry.name}`, sha)
+      }
+    }
+  }
+
+  await collectLooseRefs(join(gitDir, 'refs'), 'refs/')
+
+  const packed = await readFile(join(gitDir, 'packed-refs'), 'utf8').catch(
+    error => {
+      if (isFileSystemError(error, 'ENOENT')) {
+        return ''
+      }
+      throw error
+    }
+  )
+  for (const line of packed.split(/\r?\n/g)) {
+    const match = /^([0-9a-f]{40}) (refs\/.+)$/.exec(line.trim())
+    if (match !== null && !refs.has(match[2])) {
+      refs.set(match[2], match[1])
+    }
+  }
+
+  const head = (
+    await readFile(join(gitDir, 'HEAD'), 'utf8').catch(error => {
+      if (isFileSystemError(error, 'ENOENT')) {
+        return ''
+      }
+      throw error
+    })
+  ).trim()
+
+  if (head.startsWith('ref: ')) {
+    return { headRef: head.slice(5).trim(), detachedAt: null, refs }
+  }
+
+  return {
+    headRef: null,
+    detachedAt: fullSHA.test(head) ? head : null,
+    refs,
+  }
+}
+
+/** Resolve the commit HEAD points at, or null when HEAD is unborn. */
+async function resolveHead(repository: Repository): Promise<string | null> {
+  const result = await git(
+    ['rev-parse', '--verify', '--quiet', 'HEAD^{commit}'],
+    repository.path,
+    'profileResolveHead',
+    { successExitCodes: new Set([0, 1, 128]) }
+  )
+  const sha = result.stdout.trim()
+  return fullSHA.test(sha) ? sha : null
+}
+
+/** Whether `candidate` is already reachable from `tip`. */
+async function isAncestorCommit(
+  repository: Repository,
+  candidate: string,
+  tip: string
+): Promise<boolean> {
+  const result = await git(
+    ['merge-base', '--is-ancestor', candidate, tip],
+    repository.path,
+    'profileIsAncestor',
+    { successExitCodes: new Set([0, 1, 128]) }
+  )
+  return result.exitCode === 0
+}
+
+/** Parent SHAs of one commit, oldest-listed first. */
+async function commitParents(
+  repository: Repository,
+  sha: string
+): Promise<ReadonlyArray<string>> {
+  const result = await git(
+    ['rev-list', '--no-walk', '--parents', sha],
+    repository.path,
+    'profileCommitParents'
+  )
+  return result.stdout.trim().split(/\s+/g).slice(1).filter(Boolean)
+}
+
+/**
+ * Refuse to append to a parent other than the one the caller reserved.
+ *
+ * Every audited mutation samples HEAD, mutates the working tree, and then
+ * commits. Without this compare-and-swap a writer that lost the race would
+ * quietly build on a tip it never inspected, and its rollback would rewind past
+ * the winner's commit.
+ */
+async function assertProfileHeadUnchanged(
+  repository: Repository,
+  expectedHead: string | null
+): Promise<void> {
+  const head = await resolveHead(repository)
+  if (head !== expectedHead) {
+    throw new Error(
+      'Profile history moved while this change was being prepared; nothing was committed'
+    )
+  }
+}
+
+/** Whether an interrupted merge would turn the next commit into a merge commit. */
+async function hasPendingMerge(repository: Repository): Promise<boolean> {
+  return stat(join(repository.path, '.git', 'MERGE_HEAD')).then(
+    () => true,
+    error => {
+      if (isFileSystemError(error, 'ENOENT')) {
+        return false
+      }
+      throw error
+    }
+  )
+}
+
 /** Remove a leftover `.git/index.lock` from a previous crashed session. */
 export async function clearStaleLock(path: string): Promise<void> {
   try {
@@ -253,9 +459,32 @@ export async function clearStaleLock(path: string): Promise<void> {
 export async function commitAllChanges(
   repository: Repository,
   message: string,
-  options: { readonly allowEmpty?: boolean } = {}
+  options: {
+    readonly allowEmpty?: boolean
+    /**
+     * The commit this write reserved as its parent, or null for the first
+     * commit in an unborn repository. When supplied, the append is verified
+     * before and after `git commit` so a raced or merge-shaped write is
+     * rejected instead of silently forking the timeline.
+     */
+    readonly expectedParent?: string | null
+  } = {}
 ): Promise<boolean> {
   const { path } = repository
+  const { expectedParent } = options
+
+  // Cheap enough (one `stat`) to guard every append: an interrupted merge left
+  // in the repository is the only way a plain `git commit` here can produce a
+  // second-parent commit and fork the timeline.
+  if (await hasPendingMerge(repository)) {
+    throw new Error(
+      'Profile repository has an unfinished merge; refusing to append a merge commit'
+    )
+  }
+
+  if (expectedParent !== undefined) {
+    await assertProfileHeadUnchanged(repository, expectedParent)
+  }
 
   await git(['add', '-A'], path, 'profileStage')
 
@@ -280,7 +509,36 @@ export async function commitAllChanges(
 
   await git(commitArgs, path, 'profileCommit')
 
+  if (expectedParent !== undefined) {
+    await assertAppendedExactlyOneChild(repository, expectedParent)
+  }
+
   return true
+}
+
+/** Verify the commit just written is the single linear child it claimed to be. */
+async function assertAppendedExactlyOneChild(
+  repository: Repository,
+  expectedParent: string | null
+): Promise<void> {
+  const head = await resolveHead(repository)
+  if (head === null) {
+    throw new Error('Profile commit did not advance HEAD')
+  }
+
+  const parents = await commitParents(repository, head)
+  const expected = expectedParent === null ? [] : [expectedParent]
+  if (
+    parents.length !== expected.length ||
+    parents.some((parent, index) => parent !== expected[index])
+  ) {
+    throw new Error(
+      `Profile commit ${head.slice(
+        0,
+        7
+      )} is not a linear child of the reserved parent`
+    )
+  }
 }
 
 /**
@@ -735,10 +993,33 @@ export async function redoLastProfileChange(
  * files, but callers backing other stores (e.g. the notification centre) pass
  * their own file list so the same non-destructive restore mechanism applies.
  */
-export async function restoreProfileTo(
+export function restoreProfileTo(
   repository: Repository,
   sha: string,
   stateFiles: ReadonlyArray<string> = profileStateFiles
+): Promise<void> {
+  return restoreProfileToInternal(repository, sha, stateFiles)
+}
+
+/**
+ * Run a deterministic competing write between the restore's worktree mutation
+ * and its audit commit, so tests can prove the compare-and-swap refuses to
+ * commit onto a parent another writer has already replaced.
+ */
+export function restoreProfileToWithRaceObserverForTesting(
+  repository: Repository,
+  sha: string,
+  stateFiles: ReadonlyArray<string>,
+  onMutated: () => Promise<void>
+): Promise<void> {
+  return restoreProfileToInternal(repository, sha, stateFiles, onMutated)
+}
+
+async function restoreProfileToInternal(
+  repository: Repository,
+  sha: string,
+  stateFiles: ReadonlyArray<string>,
+  onMutated?: () => Promise<void>
 ): Promise<void> {
   await assertReachableProfileCommit(repository, sha)
   const traversal = await getProfileHistoryTraversal(repository)
@@ -762,6 +1043,7 @@ export async function restoreProfileTo(
           await rm(join(repository.path, file), { force: true })
         }
       }
+      await onMutated?.()
     },
     operationMessage(
       `Restore profile to ${sha.slice(0, 7)}`,
@@ -886,9 +1168,19 @@ async function revertWithoutCommitting(
 }
 
 /**
- * Keep an audited mutation atomic. Both a failed worktree mutation and a
- * failed audit commit restore HEAD, the index, and tracked profile files to
- * their exact pre-operation state.
+ * Keep an audited mutation atomic *and* append-only.
+ *
+ * The caller sampled `originalHead` before deciding what to undo, redo, or
+ * restore, so that commit is reserved as the parent: the mutation is rejected
+ * if anything moved HEAD in between, and the audit commit is verified to be its
+ * single linear child.
+ *
+ * Recovery restores the index and working tree, but never moves the branch ref
+ * backwards. Rewinding to `originalHead` used to be correct only while this was
+ * the sole writer; once a concurrent window (or this store's own debounced
+ * commit timer) had appended, the rewind abandoned that commit and left the
+ * repository with unreachable history. Keeping the ref where it is preserves
+ * every commit and leaves the next compare-and-swap a truthful tip to build on.
  */
 async function runProfileHistoryMutation(
   repository: Repository,
@@ -896,21 +1188,226 @@ async function runProfileHistoryMutation(
   mutate: () => Promise<void>,
   message: string
 ): Promise<void> {
+  await assertProfileHeadUnchanged(repository, originalHead)
+
   try {
     await mutate()
-    await commitAllChanges(repository, message, { allowEmpty: true })
+    await commitAllChanges(repository, message, {
+      allowEmpty: true,
+      expectedParent: originalHead,
+    })
   } catch (err) {
-    try {
-      await git(
-        ['reset', '--hard', originalHead],
-        repository.path,
-        'profileHistoryRollback'
-      )
-    } catch (rollbackError) {
-      log.error('Failed to roll back profile history mutation', rollbackError)
-    }
+    await rollbackProfileHistoryMutation(repository)
     throw err
   }
+}
+
+/** Discard a partial mutation without discarding anybody's commits. */
+async function rollbackProfileHistoryMutation(
+  repository: Repository
+): Promise<void> {
+  try {
+    // An interrupted revert leaves sequencer state behind that would otherwise
+    // leak into the next commit this repository makes.
+    await git(
+      ['revert', '--quit'],
+      repository.path,
+      'profileHistoryQuitRevert',
+      {
+        successExitCodes: new Set([0, 1, 128]),
+      }
+    )
+    await git(
+      ['reset', '--hard', 'HEAD'],
+      repository.path,
+      'profileHistoryRollback'
+    )
+  } catch (rollbackError) {
+    log.error('Failed to roll back profile history mutation', rollbackError)
+  }
+}
+
+/**
+ * Fold a repository that has more than one head back into one linear timeline.
+ *
+ * Nothing is ever discarded. A ref that is already reachable from HEAD is
+ * simply dropped, because every commit it named survives on the canonical
+ * branch. A genuinely diverged tip is replayed *forward* as two ordinary audit
+ * commits — its tree, then the tree that was live before the fold — so both
+ * states stay reachable, diffable, and restorable from the single timeline the
+ * history panel renders, and the live setting is left exactly as it was.
+ *
+ * Callers must already hold the repository lock.
+ */
+async function repairProfileHistoryLinearityLocked(
+  repository: Repository
+): Promise<IProfileLinearityRepair> {
+  const { path } = repository
+  const state = await readRepositoryRefState(path)
+  const branchRefs = [...state.refs.keys()].filter(ref =>
+    ref.startsWith('refs/heads/')
+  )
+  const foreignRefs = [...state.refs.keys()].filter(
+    ref => !ref.startsWith('refs/heads/')
+  )
+
+  const alreadyLinear =
+    state.detachedAt === null &&
+    foreignRefs.length === 0 &&
+    branchRefs.length <= 1 &&
+    (branchRefs.length === 0 || branchRefs[0] === state.headRef)
+
+  if (alreadyLinear) {
+    return {
+      linear: true,
+      foldedTips: [],
+      removedRefs: [],
+      reattachedHead: false,
+      mergeCommits: [],
+    }
+  }
+
+  const strayTips = new Map<string, string>()
+  let reattachedHead = false
+
+  // A detached HEAD is a head in its own right: commits made from it never
+  // update a branch, so they vanish from `git log` the moment HEAD moves.
+  if (state.detachedAt !== null) {
+    const canonical = branchRefs[0] ?? `refs/heads/${await getDefaultBranch()}`
+    if (!state.refs.has(canonical)) {
+      await git(
+        ['update-ref', canonical, state.detachedAt],
+        path,
+        'profileLinearityAdoptDetached'
+      )
+    } else {
+      strayTips.set(canonical, state.detachedAt)
+    }
+    await git(
+      ['symbolic-ref', 'HEAD', canonical],
+      path,
+      'profileLinearityReattach'
+    )
+    await git(
+      ['reset', '--hard', 'HEAD'],
+      path,
+      'profileLinearityResetDetached'
+    )
+    reattachedHead = true
+  }
+
+  const headRef = state.headRef ?? branchRefs[0] ?? null
+  for (const ref of [...branchRefs, ...foreignRefs]) {
+    if (ref === headRef) {
+      continue
+    }
+    const sha = state.refs.get(ref)
+    if (sha !== undefined) {
+      strayTips.set(ref, sha)
+    }
+  }
+
+  const removedRefs = new Array<string>()
+  const foldedTips = new Array<string>()
+
+  for (const [ref, sha] of strayTips) {
+    const head = await resolveHead(repository)
+    if (head === null) {
+      break
+    }
+
+    if (!(await isAncestorCommit(repository, sha, head))) {
+      await foldDivergedTip(repository, sha, head)
+      foldedTips.push(sha)
+    }
+
+    // Safe now: either the tip was already reachable, or its tree was just
+    // replayed onto the canonical branch.
+    if (state.refs.has(ref) && ref !== headRef) {
+      await git(
+        ['update-ref', '-d', ref, sha],
+        path,
+        'profileLinearityDropStrayRef',
+        { successExitCodes: new Set([0, 1, 128]) }
+      )
+      removedRefs.push(ref)
+    }
+  }
+
+  return {
+    linear: false,
+    foldedTips,
+    removedRefs,
+    reattachedHead,
+    mergeCommits: await findMergeCommits(repository),
+  }
+}
+
+/** Replay a diverged tip's tree forward, then restore the live tree. */
+async function foldDivergedTip(
+  repository: Repository,
+  strayTip: string,
+  headBeforeFold: string
+): Promise<void> {
+  const shortStray = strayTip.slice(0, 7)
+
+  await git(
+    ['read-tree', '-u', '--reset', strayTip],
+    repository.path,
+    'profileLinearityFoldTree'
+  )
+  await commitAllChanges(
+    repository,
+    operationMessage(
+      `Fold diverged history ${shortStray}`,
+      ProfileFoldTrailer,
+      strayTip
+    ),
+    { allowEmpty: true, expectedParent: headBeforeFold }
+  )
+
+  const foldCommit = await resolveHead(repository)
+  await git(
+    ['read-tree', '-u', '--reset', headBeforeFold],
+    repository.path,
+    'profileLinearityRestoreTree'
+  )
+  await commitAllChanges(
+    repository,
+    operationMessage(
+      `Restore state after folding ${shortStray}`,
+      ProfileFoldRestoreTrailer,
+      strayTip
+    ),
+    { allowEmpty: true, expectedParent: foldCommit }
+  )
+}
+
+/** Merge commits left in the surviving timeline, newest first. */
+async function findMergeCommits(
+  repository: Repository
+): Promise<ReadonlyArray<string>> {
+  const result = await git(
+    ['rev-list', '--merges', 'HEAD'],
+    repository.path,
+    'profileLinearityFindMerges',
+    { successExitCodes: new Set([0, 128]) }
+  )
+  return result.stdout.trim().split(/\r?\n/g).filter(Boolean)
+}
+
+/**
+ * Restore the append-only single-head invariant for one owned repository.
+ *
+ * Exposed for stores that adopt a repository they did not create, and for the
+ * tests that prove a deliberately forked fixture is folded rather than pruned.
+ */
+export function repairProfileHistoryLinearity(
+  repository: Repository
+): Promise<IProfileLinearityRepair> {
+  return withProfileRepositoryLock(repository, () =>
+    repairProfileHistoryLinearityLocked(repository)
+  )
 }
 
 async function profileFileExistsAtCommit(

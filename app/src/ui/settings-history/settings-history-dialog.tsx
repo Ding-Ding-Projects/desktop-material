@@ -66,6 +66,7 @@ export function SettingsHistoryDialog(props: ISettingsHistoryDialogProps) {
         emptyTitle="No history for this tab yet"
         emptyDescription="Opening, closing, or changing this tab's saved properties will appear here."
         source={source}
+        sourceKey={`${scope.kind}:${scope.tabId}`}
         readOnly={true}
         onDismissed={props.onDismissed}
       />

@@ -160,6 +160,7 @@ export function AppearanceElementHistoryDialog(
         timelineLabel="Element-local Git history"
         description={`Every ${props.title.toLocaleLowerCase()} change is committed in its own local Git repository at ${displayPath}. Undo, redo, and restore always create another commit.`}
         source={props.source}
+        sourceKey={props.repositoryPath}
         onStoreMutated={props.onMutation}
         onDismissed={props.onDismissed}
       />
