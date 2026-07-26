@@ -441,6 +441,13 @@
       d: 'Repository Settings → Remote includes an SSH Working Copy manager for a canonical checkout on a chosen host. After saving and testing non-secret host metadata, a user can clone…',
     },
     {
+      t: 'Windows Explorer context menu and quick-action window',
+      h: 'features/integrations/windows-explorer-context-menu.html',
+      s: 'features/integrations/windows-explorer-context-menu.md',
+      c: 'features',
+      d: 'Adds Desktop Material actions to the File Explorer right-click menu on folders and folder backgrounds, and gives those actions a small dedicated window instead of booting the…',
+    },
+    {
       t: 'Windows-only platform support',
       h: 'features/integrations/windows-only-platform-support.html',
       s: 'features/integrations/windows-only-platform-support.md',
@@ -476,6 +483,13 @@
       d: 'Root causes for this feature were found live on a 211k-file repository, where background Git maintenance, stale locks, deleted-directory polling, and a slow first git status…',
     },
     {
+      t: 'Peer-closed stream writes',
+      h: 'features/quality-and-reliability/peer-closed-stream-writes.html',
+      s: 'features/quality-and-reliability/peer-closed-stream-writes.md',
+      c: 'features',
+      d: 'A write that finishes after the thing on the other end already went away is a routine event, not a crash. This document describes how Desktop Material contains that class of…',
+    },
+    {
       t: 'Quality and reliability',
       h: 'features/quality-and-reliability/',
       s: 'features/quality-and-reliability/README.md',
@@ -509,6 +523,13 @@
       s: 'features/repository-management/automatic-commit-push-batching.md',
       c: 'features',
       d: 'Desktop Material keeps one automatic Git push below a decimal 1.5 GB (1,500,000,000-byte) ceiling when a large selection contains many ordinary files. Changed blobs are capped…',
+    },
+    {
+      t: 'Cheap LFS asset versioning and commit provenance',
+      h: 'features/repository-management/cheap-lfs-asset-versioning.html',
+      s: 'features/repository-management/cheap-lfs-asset-versioning.md',
+      c: 'features',
+      d: 'A pinned large file is not frozen. Users edit the video, re-export the model, re-record the sample, and commit again. This page describes exactly what Cheap LFS does with the…',
     },
     {
       t: 'Cheap LFS OCI registry backend',
