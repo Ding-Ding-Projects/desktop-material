@@ -125,9 +125,11 @@ describe('legacy local commit batching entry points', () => {
     const repack = body.indexOf('repackAfterBatchedCommit(')
     assert.ok(runBatches >= 0)
     assert.ok(repack > runBatches)
+    // The repack publishes the maintenance commit-operation phase while it
+    // runs and always clears that phase again, even when the repack throws.
     assert.match(
       body,
-      /batches\.length > 1\s*\)\s*\{\s*await this\.repackAfterBatchedCommit\(/
+      /batches\.length > 1\s*\)\s*\{[\s\S]*?operation: 'repacking'[\s\S]*?try \{\s*await this\.repackAfterBatchedCommit\(repository\)\s*\} finally \{[\s\S]*?commitOperationPhase: null/
     )
   })
 
