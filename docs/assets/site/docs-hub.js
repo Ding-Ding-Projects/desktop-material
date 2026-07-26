@@ -34,6 +34,13 @@
    * this timer catches the overrun afterwards and stops the run from repeating.
    */
   var EvaluationBudgetMilliseconds = 750
+
+  /**
+   * How many separate evaluations must overrun before matching is paused. One
+   * overrun is far more likely to be the tab being descheduled than a runaway
+   * pattern; a genuinely catastrophic pattern overruns on call after call.
+   */
+  var RequiredOverrunsBeforePausing = 3
   var MaximumRenderedResults = 60
   var MaximumRenderedMatches = 100
 
@@ -452,20 +459,27 @@
         plainCompiled.error === undefined ? plainCompiled.regex : null
     }
 
+    // Plain-text matching is a substring scan with no backtracking, so it is
+    // never timed; only a user-supplied regular expression needs a backstop.
+    var timed = searchState.mode === 'regex'
+    var overruns = 0
     var hits = []
     for (var i = 0; i < CATALOG.length; i++) {
       var entry = CATALOG[i]
       if (matcher.lastIndex !== undefined) {
         matcher.lastIndex = 0
       }
-      var callStarted = Date.now()
+      var callStarted = timed ? Date.now() : 0
       var matched = matcher.test(haystackOf(entry))
-      if (Date.now() - callStarted > EvaluationBudgetMilliseconds) {
-        searchResults.innerHTML = ''
-        searchStatus.setAttribute('data-tone', 'error')
-        searchStatus.textContent = t('errSlow')
-        toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
-        return
+      if (timed && Date.now() - callStarted > EvaluationBudgetMilliseconds) {
+        overruns++
+        if (overruns >= RequiredOverrunsBeforePausing) {
+          searchResults.innerHTML = ''
+          searchStatus.setAttribute('data-tone', 'error')
+          searchStatus.textContent = t('errSlow')
+          toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
+          return
+        }
       }
       if (matched) {
         hits.push(entry)
@@ -629,18 +643,22 @@
 
     var regex = compiled.regex
     var results = []
+    var overruns = 0
     var match
     regex.lastIndex = 0
     for (;;) {
       var callStarted = Date.now()
       match = regex.exec(sample)
       if (Date.now() - callStarted > EvaluationBudgetMilliseconds) {
-        builderPaused = true
-        parts.feedback.setAttribute('data-tone', 'warn')
-        parts.feedback.textContent = t('errSlow')
-        parts.matches.innerHTML = ''
-        toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
-        return
+        overruns++
+        if (overruns >= RequiredOverrunsBeforePausing) {
+          builderPaused = true
+          parts.feedback.setAttribute('data-tone', 'warn')
+          parts.feedback.textContent = t('errSlow')
+          parts.matches.innerHTML = ''
+          toast(t('errSlowTitle') + ' — ' + t('errSlow'), 'error')
+          return
+        }
       }
       if (match === null) {
         break
