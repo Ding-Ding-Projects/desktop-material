@@ -169,6 +169,23 @@ resources to get familiar with how things work:
 - **[Troubleshooting](contributing/troubleshooting.md)** - some additional
   known issues if you're having environment issues
 
+### Adding or renaming a documentation page
+
+The published hub's search reads a static catalog of this tree,
+`assets/site/docs-hub-catalog.js`. It is a generated file: after adding,
+renaming, retitling or rewording the opening paragraph of any page under
+`docs/`, regenerate it and commit the result.
+
+```sh
+yarn generate-docs-hub-catalog
+```
+
+`yarn test:script` fails when the committed catalog has drifted from the tree,
+naming the page and field that changed, so CI catches a missed regeneration.
+The generator is `script/generate-docs-hub-catalog.mjs` and it formats its
+output with the repository's own Prettier configuration, so a regeneration
+never breaks `yarn prettier`.
+
 ## Process
 
 Details about how the team is organizing and shipping Desktop Material:

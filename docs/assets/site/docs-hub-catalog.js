@@ -1,9 +1,14 @@
 /**
  * Desktop Material documentation catalog.
  *
- * Generated from the real Markdown tree under `docs`. Each record is
- * `{ t: title, h: rendered href, s: markdown source path, c: category, d: description }`.
- * Regenerate after adding or renaming a documentation page.
+ * GENERATED FILE — do not edit by hand.
+ * Regenerate with: yarn generate-docs-hub-catalog
+ *
+ * Built from the real Markdown tree under `docs`. Each record is
+ * `{ t: title, h: rendered href, s: source path, c: category, d: description }`.
+ * script/generate-docs-hub-catalog-test.mjs fails when this file drifts from
+ * the tree, so a page added, renamed, retitled or reworded without a
+ * regeneration is caught in CI.
  */
 ;(function (global) {
   'use strict'
