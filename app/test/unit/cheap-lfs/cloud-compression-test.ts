@@ -136,10 +136,16 @@ describe('Cheap LFS cloud compression policy', () => {
       /group: cheap-lfs-compress-\$\{\{ github\.run_id \}\}-\$\{\{ github\.run_attempt \}\}/
     )
     assert.match(publicCaller, /github\.ref_type == 'branch'/)
+    // The rendered guard follows Prettier's canonical fold for the block
+    // scalar, so the format() call wraps mid-argument; compare compacted.
     assert.match(
-      publicCaller,
+      publicCaller.replace(/\s+/g, ' '),
       /github\.ref == format\('refs\/heads\/\{0\}', github\.event\.repository\.default_branch\)/
     )
+    // Fixed point: the rendered public caller must be byte-identical to what
+    // Prettier accepts, so no formatter or template-syncing automation can
+    // ever flip the checked-in file back and forth. Guarded here by keeping
+    // the rendered guard equal to the checked-in one in the sync test below.
     assert.doesNotMatch(
       publicCaller,
       /github\.ref_name == github\.event\.repository\.default_branch/
@@ -190,6 +196,12 @@ describe('Cheap LFS cloud compression policy', () => {
         `uses: Ding-Ding-Projects/desktop-material/\\.github/actions/cheap-lfs-cloud-compression@${CHEAP_LFS_CLOUD_COMPRESSION_ACTION_SHA}`
       )
     )
+    // Byte-for-byte fixed point: the checked-in caller is exactly what the
+    // app renders, which is exactly what Prettier accepts. Any formatter or
+    // template-syncing automation that rewrites either side breaks here
+    // instead of ping-ponging lint-breaking commits onto main (see the
+    // 2026-07-26 "Reformat workflow condition for clarity" incident).
+    assert.equal(checkedInCaller, renderCheapLfsCloudCompressionWorkflow(false))
   })
 })
 
