@@ -3193,15 +3193,6 @@ export class GitHubReleasesView extends React.Component<
               <code>{this.state.completedDownload.localDigest}</code>
             </div>
             <div className="github-release-download-actions">
-<<<<<<< HEAD
-              <Button onClick={this.openDownload}>
-                {t('githubReleases.openFile')}
-              </Button>
-              <Button onClick={this.revealDownload}>
-                {t('githubReleases.showInFolder')}
-              </Button>
-              {this.renderSilentInstallButton(this.state.completedDownload)}
-=======
               <ExternalOpenBusy
                 target={externalOpenTarget(
                   'download',
@@ -3226,7 +3217,7 @@ export class GitHubReleasesView extends React.Component<
                   </Button>
                 )}
               </ExternalOpenBusy>
->>>>>>> fix/open-file-debounce
+              {this.renderSilentInstallButton(this.state.completedDownload)}
             </div>
           </div>
         )}
