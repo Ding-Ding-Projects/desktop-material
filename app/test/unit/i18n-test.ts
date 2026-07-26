@@ -134,6 +134,27 @@ describe('recent UI internationalization', () => {
     }
   })
 
+  it('says a modified pinned file becomes a new asset in every mode', () => {
+    for (const key of [
+      'cheapLfs.localState.pointer',
+      'cheapLfs.localState.materialized',
+      'cheapLfs.localState.modified',
+    ] as const) {
+      const english = translate(key, 'english')
+      const cantonese = translate(key, 'cantonese')
+      assert.notEqual(english, cantonese)
+      assert.equal(translate(key, 'bilingual'), `${english} · ${cantonese}`)
+    }
+    const english = translate('cheapLfs.localState.modified', 'english')
+    const cantonese = translate('cheapLfs.localState.modified', 'cantonese')
+    assert.match(english, /new release asset/)
+    assert.match(english, /left untouched/)
+    assert.match(english, /older commits still restore their own version/)
+    assert.match(cantonese, /全新 release asset/)
+    assert.match(cantonese, /唔會郁/)
+    assert.match(cantonese, /舊 commit/)
+  })
+
   it('explains Cheap LFS failure isolation and the next-commit retry in every mode', () => {
     const variables = { count: '2', names: 'one.bin, two.bin', omitted: '0' }
     const english = translate('cheapLfs.pinFailures.many', 'english', variables)

@@ -1364,10 +1364,10 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
           } · ${entry.pointer.image}`
     const localStateLabel =
       entry.workingTreeState === 'materialized'
-        ? 'Materialized locally · verified against the committed pointer'
+        ? t('cheapLfs.localState.materialized')
         : entry.workingTreeState === 'modified'
-        ? 'Local bytes changed · pin again to store this version'
-        : 'Pointer stored locally'
+        ? t('cheapLfs.localState.modified')
+        : t('cheapLfs.localState.pointer')
     return (
       <article className="cheap-lfs-row" key={entry.relativePath}>
         <div className="cheap-lfs-row-heading">

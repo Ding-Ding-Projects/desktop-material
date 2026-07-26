@@ -60,6 +60,12 @@ Material is displaying or how a repository is represented in the application.
   preparation exposes up to three bounded worker lanes with queue, provider,
   phase, byte, elapsed-time, throughput, and ETA context plus a
   keyboard-accessible storage-recommendation disclosure.
+- [Cheap LFS asset versioning and commit
+  provenance](cheap-lfs-asset-versioning.md) — treat every uploaded release
+  asset as write-once, so editing a pinned file uploads the new bytes as a new
+  asset and every historical commit keeps restoring its own version, deduplicate
+  byte-identical content on proven provider digests, and record the introducing
+  commit in the committed pointer plus a best-effort asset label.
 - [Cheap LFS OCI registry
   backend](cheap-lfs-oci-registry-backend.md) — store the repository object set
   as one logical GHCR or Docker Hub image, reuse unchanged layers across

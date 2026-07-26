@@ -47,6 +47,7 @@ export type GitHubReleaseOperation =
   | 'upload'
   | 'download'
   | 'delete-asset'
+  | 'update-asset-label'
 
 export type GitHubReleasesAvailability =
   | 'available'
@@ -157,6 +158,7 @@ const operationLabels: Readonly<Record<GitHubReleaseOperation, string>> = {
   upload: 'upload the release asset',
   download: 'download the release asset',
   'delete-asset': 'delete the release asset',
+  'update-asset-label': 'update the release asset label',
 }
 
 function abortError(message: string): Error {
@@ -397,6 +399,18 @@ export interface IGitHubReleasesAPI {
     assetId: number,
     signal?: AbortSignal
   ): Promise<void>
+  /**
+   * Rewrite one asset's label. Optional so an endpoint (or a test double) that
+   * cannot relabel assets stays a valid Releases API; the only caller is the
+   * best-effort Cheap LFS commit-provenance annotator, which skips instead.
+   */
+  updateReleaseAsset?(
+    owner: string,
+    name: string,
+    assetId: number,
+    label: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAsset>
 }
 
 export interface IGitHubReleasesStoreDependencies {
@@ -1072,6 +1086,45 @@ export class GitHubReleasesStore {
           context.repository.owner.login,
           context.repository.name,
           asset.id,
+          requestSignal
+        )
+      }
+    )
+  }
+
+  /**
+   * Rewrite one reviewed asset's label without touching its name or bytes.
+   * The asset is revalidated against the review first, exactly like deletion,
+   * so a relabel can never land on an object that changed after it was seen.
+   */
+  public updateAssetLabel(
+    repository: Repository,
+    review: IGitHubReleaseMutationReview,
+    label: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAsset> {
+    return this.run(
+      repository,
+      'update-asset-label',
+      signal,
+      async (context, requestSignal) => {
+        const asset = await this.revalidateReviewedAsset(
+          repository,
+          context,
+          requestSignal,
+          review
+        )
+        this.assertContextCurrent(repository, context, requestSignal)
+        if (context.api.updateReleaseAsset === undefined) {
+          throw new Error(
+            'This GitHub endpoint does not support updating a release asset label.'
+          )
+        }
+        return await context.api.updateReleaseAsset(
+          context.repository.owner.login,
+          context.repository.name,
+          asset.id,
+          label,
           requestSignal
         )
       }

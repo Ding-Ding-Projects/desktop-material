@@ -43,6 +43,13 @@ import {
   IGitHubReleaseMutationReview,
 } from '../stores/github-releases-store'
 import {
+  buildCheapLfsAssetAnnotationTargets,
+  findCheapLfsAssetForContent,
+  findCheapLfsAssetsForParts,
+  formatCheapLfsAssetLabel,
+  ICheapLfsAnnotatablePin,
+} from './asset-version'
+import {
   cheapLfsPointerTextSizeInBytes,
   CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_PART_SIZE_BYTES,
@@ -214,6 +221,17 @@ export interface ICheapLfsReleasesGateway {
     readonly bytes: number
     readonly localDigest: string
   }>
+  /**
+   * Rewrite one existing asset's label. Optional: only the commit-provenance
+   * annotator uses it, every other Cheap LFS flow works without it, and a
+   * gateway that cannot label assets simply skips annotation.
+   */
+  updateAssetLabel?(
+    repository: Repository,
+    review: IGitHubReleaseMutationReview,
+    label: string,
+    signal?: AbortSignal
+  ): Promise<IGitHubReleaseAsset>
   deleteAsset(
     repository: Repository,
     review: IGitHubReleaseMutationReview,
@@ -1152,6 +1170,67 @@ function dedupeMultiPartBaseName(
   throw new Error('Cheap LFS could not choose unique release part names.')
 }
 
+/**
+ * Upload one asset, treating its Cheap LFS annotation label as metadata that
+ * must never be able to cost the user an upload.
+ *
+ * The label is generated, bounded, control-character-free ASCII, so GitHub
+ * accepting it is the overwhelmingly likely outcome — but the transfer layer
+ * verifies the echoed label and rejects a mismatch, and a `gh` CLI fallback or
+ * an enterprise provider could in principle drop it. When a labeled attempt
+ * fails for any reason other than cancellation, exactly one unlabeled attempt
+ * follows. That is safe because every post-upload validation failure inside the
+ * transfer layer removes the asset it rejected before throwing, so the retry
+ * never races an object left behind under the same name.
+ *
+ * A retry that also fails throws its own error: it is the more recent fact, and
+ * it is the one that describes a genuine transfer problem rather than a label.
+ */
+async function uploadCheapLfsAnnotatedAsset(
+  releases: ICheapLfsReleasesGateway,
+  repository: Repository,
+  review: IGitHubReleaseMutationReview,
+  sourcePath: string,
+  name: string,
+  label: string | null,
+  signal: AbortSignal | undefined,
+  onProgress:
+    | ((progress: IGitHubReleaseTransferProgressEvent) => void)
+    | undefined,
+  range: IGitHubReleaseAssetUploadRange | undefined,
+  expectedDigest: string,
+  onAnnotationDropped?: () => void
+) {
+  const upload = (assetLabel: string | null) =>
+    releases.uploadAsset(
+      repository,
+      review,
+      sourcePath,
+      name,
+      assetLabel,
+      signal ?? new AbortController().signal,
+      onProgress,
+      range,
+      expectedDigest
+    )
+  if (label === null) {
+    return await upload(null)
+  }
+  try {
+    return await upload(label)
+  } catch (error) {
+    if (signal?.aborted === true || (error as Error)?.name === 'AbortError') {
+      throw error
+    }
+    onAnnotationDropped?.()
+    log.warn(
+      `Cheap LFS could not attach its provenance label to “${name}”; retrying the upload without it.`,
+      error
+    )
+    return await upload(null)
+  }
+}
+
 /** The `<base>.partNNN` name for one part, zero-padded to a stable width. */
 function partAssetName(
   base: string,
@@ -1523,9 +1602,29 @@ export async function pinFileToRelease(
     const { release, releaseTag, assets: releaseAssets } = bucket
     preflightProjectedPointer(sourceSizeInBytes, releaseTag, baseName)
 
+    // What this asset is, attached to the asset itself. The introducing commit
+    // does not exist yet — the pin runs before the commit it is prepared for —
+    // so `commit=` is written pending here and filled in afterwards by
+    // `annotateCheapLfsPinnedAssets`.
+    const annotationLabel = formatCheapLfsAssetLabel({
+      relativePath: trackedRelativePath,
+      sha256: hashed.sha256,
+    })
+
     if (hashed.parts.length <= 1) {
       const part = hashed.parts[0]
-      const assetName = dedupeAssetName(baseName, releaseAssets, hashed.sha256)
+      // Editing a pinned file produces different bytes, a different SHA-256,
+      // and therefore a different asset — the earlier commit's asset is never
+      // touched. Re-pinning bytes this bucket already proved it holds reuses
+      // that asset instead of uploading a byte-identical copy.
+      const reusable = findCheapLfsAssetForContent(
+        releaseAssets,
+        hashed.sizeInBytes,
+        hashed.sha256
+      )
+      const assetName =
+        reusable?.name ??
+        dedupeAssetName(baseName, releaseAssets, hashed.sha256)
       const pointer: ICheapLfsPointer = {
         version: CHEAP_LFS_POINTER_VERSION,
         releaseTag,
@@ -1540,22 +1639,36 @@ export async function pinFileToRelease(
       const attemptAssets = new Array<IGitHubReleaseAsset>()
       try {
         onStage?.('uploading')
-        const review = releases.createMutationReview(repository, release)
-        const upload = await releases.uploadAsset(
-          repository,
-          review,
-          uploadSourcePath,
-          assetName,
-          null,
-          signal ?? new AbortController().signal,
-          aggregateProgress(onProgress, 0, hashed.sizeInBytes, part.length),
-          undefined,
-          `sha256:${part.sha256}`
-        )
-        // Record ownership before validating the response. A digest or byte-count
-        // mismatch still means GitHub accepted an asset that this attempt owns.
-        attemptAssets.push(upload.asset)
-        ensureRawUploadMatchesHash(upload, part.length, hashed.sha256)
+        let storedAsset = reusable
+        if (storedAsset === null) {
+          const review = releases.createMutationReview(repository, release)
+          const upload = await uploadCheapLfsAnnotatedAsset(
+            releases,
+            repository,
+            review,
+            uploadSourcePath,
+            assetName,
+            annotationLabel,
+            signal,
+            aggregateProgress(onProgress, 0, hashed.sizeInBytes, part.length),
+            undefined,
+            `sha256:${part.sha256}`
+          )
+          // Record ownership before validating the response. A digest or byte-count
+          // mismatch still means GitHub accepted an asset that this attempt owns.
+          attemptAssets.push(upload.asset)
+          ensureRawUploadMatchesHash(upload, part.length, hashed.sha256)
+          storedAsset = upload.asset
+        } else {
+          // A reused asset transferred no bytes, but the caller's progress
+          // contract still has to reach the file's full size.
+          onProgress?.({
+            operationId: `cheap-lfs-reuse-${storedAsset.id}`,
+            direction: 'upload',
+            transferredBytes: hashed.sizeInBytes,
+            totalBytes: hashed.sizeInBytes,
+          })
+        }
         onStage?.('verifying')
         if (verifiedSource !== undefined && trackedPaths !== undefined) {
           await trackedPaths.revalidateSource(verifiedSource.source)
@@ -1576,7 +1689,7 @@ export async function pinFileToRelease(
             pointerText
           )
         }
-        return { pointer, asset: upload.asset, releaseId: release.id }
+        return { pointer, asset: storedAsset, releaseId: release.id }
       } catch (error) {
         return await rethrowAfterAttemptAssetCleanup(
           error,
@@ -1589,15 +1702,27 @@ export async function pinFileToRelease(
       }
     }
 
-    const partBaseName = dedupeMultiPartBaseName(
-      baseName,
+    // All-or-nothing reuse: a split file whose every part is already proven
+    // present in this bucket writes a pointer naming those assets and uploads
+    // nothing. A single missing part falls back to a whole fresh family.
+    const reusableParts = findCheapLfsAssetsForParts(
       releaseAssets,
-      hashed.sha256,
-      hashed.parts.length
+      hashed.parts
     )
+    const partBaseName =
+      reusableParts !== null
+        ? baseName
+        : dedupeMultiPartBaseName(
+            baseName,
+            releaseAssets,
+            hashed.sha256,
+            hashed.parts.length
+          )
     const parts: ReadonlyArray<ICheapLfsPointerPart> = hashed.parts.map(
       (part, index) => ({
-        name: partAssetName(partBaseName, index, hashed.parts.length),
+        name:
+          reusableParts?.[index].name ??
+          partAssetName(partBaseName, index, hashed.parts.length),
         sizeInBytes: part.length,
         sha256: part.sha256,
       })
@@ -1622,7 +1747,21 @@ export async function pinFileToRelease(
     let currentRelease = release
     try {
       onStage?.('uploading')
-      for (let index = 0; index < hashed.parts.length; index++) {
+      if (reusableParts !== null) {
+        firstAsset = reusableParts[0]
+        transferred = hashed.sizeInBytes
+        onProgress?.({
+          operationId: `cheap-lfs-reuse-${reusableParts[0].id}`,
+          direction: 'upload',
+          transferredBytes: hashed.sizeInBytes,
+          totalBytes: hashed.sizeInBytes,
+        })
+      }
+      for (
+        let index = 0;
+        reusableParts === null && index < hashed.parts.length;
+        index++
+      ) {
         const part = hashed.parts[index]
         const pointerPart = parts[index]
         if (index > 0) {
@@ -1640,13 +1779,14 @@ export async function pinFileToRelease(
           currentRelease = refreshed
         }
         const review = releases.createMutationReview(repository, currentRelease)
-        const upload = await releases.uploadAsset(
+        const upload = await uploadCheapLfsAnnotatedAsset(
+          releases,
           repository,
           review,
           uploadSourcePath,
           pointerPart.name,
-          null,
-          signal ?? new AbortController().signal,
+          annotationLabel,
+          signal,
           aggregateProgress(
             onProgress,
             transferred,
@@ -1701,6 +1841,99 @@ export async function pinFileToRelease(
       await trackedPaths.cleanupOwned(verifiedSource.owned)
     }
   }
+}
+
+/** What one post-commit annotation pass achieved. Never a failure. */
+export interface ICheapLfsAnnotationOutcome {
+  /** Assets whose label now names the introducing commit. */
+  readonly annotated: number
+  /** Assets that could not be annotated; the pointer still records them. */
+  readonly skipped: number
+}
+
+/**
+ * Record, on the release assets themselves, the commit that introduced them.
+ *
+ * A pin necessarily runs *before* the commit it prepares, so the introducing
+ * commit id cannot exist at upload time. This second pass closes that gap once
+ * the commit is real: every asset the commit's pins produced gets a label of
+ * the form `cheap-lfs/v1 sha256=<digest> commit=<sha> path=<tracked path>`, so
+ * the GitHub Releases page alone answers "which commit added this file?".
+ *
+ * It is metadata, and it behaves like metadata. Nothing here throws, no error
+ * reaches the caller, an already-committed pointer is never modified, and a
+ * gateway with no `updateAssetLabel` simply reports everything skipped. The
+ * durable, offline, tamper-evident record of the same fact remains the pointer
+ * file in Git history — `git log -p -- <path>` shows the exact asset name and
+ * digest committed at every revision, and that record needs no provider at all.
+ */
+export async function annotateCheapLfsPinnedAssets(
+  releases: ICheapLfsReleasesGateway,
+  repository: Repository,
+  pins: ReadonlyArray<ICheapLfsAnnotatablePin>,
+  commitSha: string,
+  signal?: AbortSignal
+): Promise<ICheapLfsAnnotationOutcome> {
+  const targets = buildCheapLfsAssetAnnotationTargets(pins, commitSha)
+  if (targets.length === 0 || releases.updateAssetLabel === undefined) {
+    return { annotated: 0, skipped: targets.length }
+  }
+  let annotated = 0
+  let skipped = 0
+  const releasesByTag = new Map<string, IGitHubRelease | null>()
+  for (const target of targets) {
+    if (signal?.aborted === true) {
+      skipped++
+      continue
+    }
+    try {
+      if (!releasesByTag.has(target.releaseTag)) {
+        releasesByTag.set(
+          target.releaseTag,
+          await releases.getReleaseByTag(repository, target.releaseTag, signal)
+        )
+      }
+      const release = releasesByTag.get(target.releaseTag) ?? null
+      const asset = release?.assets.find(
+        candidate => candidate.name === target.assetName
+      )
+      if (release === undefined || release === null || asset === undefined) {
+        skipped++
+        continue
+      }
+      await releases.updateAssetLabel(
+        repository,
+        releases.createMutationReview(repository, release, asset),
+        target.label,
+        signal
+      )
+      annotated++
+    } catch (error) {
+      // Provenance is recoverable from Git history; a failed label is not worth
+      // surfacing as an error after a commit the user already completed.
+      skipped++
+      log.warn(
+        `Cheap LFS could not label release asset “${target.assetName}” with its introducing commit.`,
+        error
+      )
+    }
+  }
+  return { annotated, skipped }
+}
+
+/** Reduce pinned files to exactly what the annotator needs. */
+export function cheapLfsAnnotatablePins(
+  pinned: ReadonlyArray<ICheapLfsAutoPinnedFile>
+): ReadonlyArray<ICheapLfsAnnotatablePin> {
+  return pinned.map(file => ({
+    relativePath: file.relativePath,
+    releaseTag: file.result.pointer.releaseTag,
+    assetName: file.result.pointer.assetName,
+    sha256: file.result.pointer.sha256,
+    ...(file.result.pointer.parts === undefined
+      ? {}
+      : { partNames: file.result.pointer.parts.map(part => part.name) }),
+  }))
 }
 
 /** Release methods used by the browser-assisted manual fallback. */

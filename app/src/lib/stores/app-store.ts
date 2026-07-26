@@ -30,8 +30,11 @@ import {
   GitLabMergeRequestStore,
   IGitLabMergeRequestMutationReview,
 } from './gitlab-merge-request-store'
+import { ICheapLfsAnnotatablePin } from '../cheap-lfs/asset-version'
 import {
+  annotateCheapLfsPinnedAssets,
   autoPinLargeFilesForCommit,
+  cheapLfsAnnotatablePins,
   createCheapLfsMaterializeCache,
   defaultCheapLfsFileSystem,
   ICheapLfsAutoPinFailure,
@@ -1089,6 +1092,12 @@ interface ICheapLfsCommitPinOutcome {
   readonly failures: ReadonlyArray<ICheapLfsAutoPinFailure>
   /** Every OCI pointer/key path which must be committed as one snapshot. */
   readonly commitPaths: ReadonlyArray<string>
+  /**
+   * Release-backed pins, retained only so the assets they uploaded can be
+   * labeled with the introducing commit once that commit exists. Absent on the
+   * OCI route, whose provenance lives in the image manifest instead.
+   */
+  readonly annotatablePins?: ReadonlyArray<ICheapLfsAnnotatablePin>
 }
 
 function cheapLfsOciAutoPinPhase(
@@ -6044,6 +6053,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       let pinned: ICheapLfsCommitPinOutcome['pinned']
       let pinFailures: ReadonlyArray<ICheapLfsAutoPinFailure>
       let cheapLfsCommitPaths: ReadonlyArray<string>
+      let annotatablePins: ReadonlyArray<ICheapLfsAnnotatablePin> = []
       try {
         const pinResult = await this.autoPinLargeFilesBeforeCommit(
           repository,
@@ -6053,6 +6063,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         pinned = pinResult.pinned
         pinFailures = pinResult.failures
         cheapLfsCommitPaths = pinResult.commitPaths
+        annotatablePins = pinResult.annotatablePins ?? []
 
         // The Release compressor is driven by a repository-owned workflow. An
         // automatic pin must install that caller before the status refresh and
@@ -6543,6 +6554,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
         return false
       }
       if (lastCommitSha !== undefined) {
+        // The pins ran before this commit existed, so their release assets were
+        // uploaded with a pending commit id. Fill it in now that the commit is
+        // real. This is metadata only: it never throws, never blocks the commit
+        // flow, and the committed pointer remains the authoritative record of
+        // which asset each revision of the file resolves to.
+        if (annotatablePins.length > 0) {
+          const annotatedCommitSha = lastCommitSha
+          const annotatedPins = annotatablePins
+          void annotateCheapLfsPinnedAssets(
+            this.githubReleasesStore,
+            repository,
+            annotatedPins,
+            annotatedCommitSha
+          ).catch(() => undefined)
+        }
         if (!this.isTemporaryRepositoryActive(repository)) {
           return false
         }
@@ -15463,6 +15489,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           pinned: result.pinned,
           failures: mergeFailures(result.failures),
           commitPaths: result.pinned.map(file => file.relativePath),
+          annotatablePins: cheapLfsAnnotatablePins(result.pinned),
         }
       } catch (error) {
         if (
@@ -15492,6 +15519,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           pinned: automaticallyPinned,
           failures: partialFailures,
           commitPaths: automaticallyPinned.map(file => file.relativePath),
+          annotatablePins: cheapLfsAnnotatablePins(automaticallyPinned),
         }
       }
       const completedBytes = automaticallyPinned.reduce(
@@ -15589,6 +15617,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               }))
           ),
           commitPaths: pinned.map(file => file.relativePath),
+          annotatablePins: cheapLfsAnnotatablePins(pinned),
         }
       }
       // manualPinFilesToRelease fences cancellation before its pointer commit.
@@ -15601,6 +15630,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
         commitPaths: [...automaticallyPinned, ...manual].map(
           file => file.relativePath
         ),
+        annotatablePins: cheapLfsAnnotatablePins([
+          ...automaticallyPinned,
+          ...manual,
+        ]),
       }
     } finally {
       this.cheapLfsManualUploadRequests.delete(repository.id)
