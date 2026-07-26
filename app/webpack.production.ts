@@ -60,11 +60,24 @@ const crashConfig = merge({}, common.crash, config, {
   ],
 })
 
+const quickActionConfig = merge({}, common.quickAction, config, {
+  module: {
+    rules: [
+      {
+        test: /\.(scss|css)$/,
+        use: [MiniCssExtractPlugin.loader, 'css-loader', 'sass-loader'],
+      },
+    ],
+  },
+  plugins: [new MiniCssExtractPlugin({ filename: 'quick-action.css' })],
+})
+
 // eslint-disable-next-line no-restricted-syntax
 export default [
   mainConfig,
   rendererConfig,
   crashConfig,
+  quickActionConfig,
   cliConfig,
   highlighterConfig,
 ]

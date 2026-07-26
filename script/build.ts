@@ -55,6 +55,7 @@ import {
 import { updateLicenseDump } from './licenses/update-license-dump'
 import { verifyInjectedSassVariables } from './validate-sass/validate-all'
 import { prepareBundledCheapLfsOrasForBuild } from './prepare-cheap-lfs-oras'
+import { buildShellExtension } from './build-shell-extension'
 import { join } from 'path'
 import assert from 'assert'
 
@@ -82,6 +83,19 @@ if (require.main === module) {
 
   console.log('Copying static resources…')
   copyStaticResources()
+
+  if (process.platform === 'win32') {
+    // Optional: the Windows 11 top-level context menu needs a compiled COM
+    // server. When the C++ toolchain is absent the build continues and the app
+    // falls back to the classic context-menu verbs, which need no native code.
+    console.log('Building Windows shell extension…')
+    const shellExtension = buildShellExtension(outRoot)
+    console.log(
+      shellExtension.built
+        ? `  built into ${shellExtension.outputDirectory}`
+        : `  skipped (${shellExtension.reason})`
+    )
+  }
 
   if (process.platform === 'win32') {
     console.log('Preparing pinned Cheap LFS ORAS runtime…')

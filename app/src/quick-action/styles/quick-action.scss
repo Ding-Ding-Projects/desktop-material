@@ -1,0 +1,218 @@
+// Standalone Material Design 3 styling for the quick-action window.
+//
+// This window is a separate bundle from the main renderer and deliberately does
+// not pull in the app's full stylesheet — loading it would defeat the point of
+// a fast-opening panel. The tokens below mirror the app's M3 roles closely
+// enough that the panel reads as the same product, and both colour schemes are
+// defined so the panel follows the OS setting without a theme store.
+
+:root {
+  --qa-primary: #4a5aa8;
+  --qa-on-primary: #ffffff;
+  --qa-surface: #fbf8ff;
+  --qa-surface-container: #eff0fa;
+  --qa-on-surface: #1a1b21;
+  --qa-on-surface-variant: #45464f;
+  --qa-outline: #767680;
+  --qa-error: #ba1a1a;
+  --qa-success: #146c2e;
+  --qa-radius-l: 16px;
+  --qa-radius-m: 12px;
+  --qa-radius-s: 8px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --qa-primary: #b9c3ff;
+    --qa-on-primary: #1a2b78;
+    --qa-surface: #121318;
+    --qa-surface-container: #1e1f25;
+    --qa-on-surface: #e3e1e9;
+    --qa-on-surface-variant: #c6c5d0;
+    --qa-outline: #90909a;
+    --qa-error: #ffb4ab;
+    --qa-success: #7cdc94;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  background: var(--qa-surface);
+  color: var(--qa-on-surface);
+  font-family: system-ui, 'Segoe UI Variable Text', 'Segoe UI', 'Noto Sans HK', 'Microsoft JhengHei', sans-serif;
+  font-size: 14px;
+  line-height: 1.45;
+  // The frameless window is dragged by its header, not its whole body.
+  user-select: none;
+}
+
+#desktop-quick-action-container,
+.quick-action-window {
+  height: 100%;
+}
+
+.quick-action-window {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+  gap: 4px;
+}
+
+.quick-action-header {
+  -webkit-app-region: drag;
+  padding-bottom: 8px;
+  flex: 0 0 auto;
+}
+
+.quick-action-title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 500;
+  line-height: 1.3;
+  // Long folder names must not push the panel wider or clip its controls.
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-action-path {
+  margin: 2px 0 0;
+  font-size: 11px;
+  color: var(--qa-on-surface-variant);
+  user-select: text;
+  // Keep the tail of the path visible: the leaf folders identify it, and the
+  // panel must never grow wider than the window to fit one.
+  direction: rtl;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-action-branch {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--qa-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quick-action-body {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.quick-action-status {
+  margin: 0;
+  font-size: 13px;
+  color: var(--qa-on-surface-variant);
+
+  &.quick-action-status-success {
+    color: var(--qa-success);
+    font-weight: 500;
+  }
+}
+
+.quick-action-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--qa-on-surface-variant);
+}
+
+.quick-action-summary {
+  -webkit-app-region: no-drag;
+  user-select: text;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--qa-radius-s);
+  border: 1px solid var(--qa-outline);
+  background: var(--qa-surface-container);
+  color: inherit;
+  font: inherit;
+
+  &:focus-visible {
+    outline: 2px solid var(--qa-primary);
+    outline-offset: 1px;
+    border-color: var(--qa-primary);
+  }
+
+  &:disabled {
+    opacity: 0.5;
+  }
+}
+
+.quick-action-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.quick-action-primary,
+.quick-action-secondary {
+  -webkit-app-region: no-drag;
+  // M3 minimum touch target, so the buttons stay reachable at every scale.
+  min-height: 40px;
+  padding: 0 20px;
+  border-radius: 20px;
+  font: inherit;
+  font-weight: 500;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--qa-primary);
+    outline-offset: 2px;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.38;
+  }
+}
+
+.quick-action-primary {
+  border: none;
+  background: var(--qa-primary);
+  color: var(--qa-on-primary);
+}
+
+.quick-action-secondary {
+  border: 1px solid var(--qa-outline);
+  background: transparent;
+  color: var(--qa-primary);
+}
+
+.quick-action-live {
+  margin-top: auto;
+  font-size: 12px;
+  user-select: text;
+  // Reserve a line so a message appearing does not shift the buttons.
+  min-height: 1.4em;
+  overflow-wrap: anywhere;
+}
+
+.quick-action-progress {
+  color: var(--qa-on-surface-variant);
+}
+
+.quick-action-error {
+  color: var(--qa-error);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}

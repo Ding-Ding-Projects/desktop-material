@@ -60,8 +60,11 @@ import parseCommandLineArgs from 'minimist'
 import { CLIAction } from '../lib/cli-action'
 import {
   getWindowsContextMenuState,
+  setModernContextMenuInstalled,
   setWindowsContextMenuEntryInstalled,
 } from './windows-context-menu-installer'
+import { QuickActionWindow } from './quick-action-window'
+import { IQuickActionRequest, decideQuickAction } from '../lib/quick-action'
 import {
   buildRunner,
   codexRunner,
@@ -515,7 +518,83 @@ if (__DARWIN__) {
   })
 }
 
+/** Quick-action windows currently open, keyed by their webContents id. */
+const quickActionWindows = new Map<number, QuickActionWindow>()
+
+/**
+ * Open the small always-on-top window for an Explorer context-menu verb.
+ *
+ * `launchedAt` is the earliest timestamp this process knows about, so the
+ * renderer can report a launch-to-interactive figure that includes process
+ * startup rather than only the window's own load.
+ */
+function openQuickActionWindow(
+  request: IQuickActionRequest,
+  launchedAt: number
+) {
+  const window = new QuickActionWindow(request, launchedAt)
+  quickActionWindows.set(window.webContents.id, window)
+
+  window.onClose(() => {
+    quickActionWindows.delete(window.webContents.id)
+    // A quick action never keeps the app alive on its own: if it was the only
+    // reason this process started, closing it should quit rather than leave an
+    // invisible process behind.
+    if (!__DARWIN__ && windows.size === 0 && quickActionWindows.size === 0) {
+      app.quit()
+    }
+  })
+
+  window.onFailedToLoad(() => {
+    log.error('Quick action window failed to load; falling back to the app')
+    window.close()
+    handleCLIAction({ kind: 'open-repository', path: request.path })
+  })
+
+  window.load()
+  window.show()
+}
+
+/**
+ * Handle a command line that may request a quick action.
+ *
+ * Returns true when the arguments were a quick action (valid or not) and the
+ * normal window logic must not also run. An invalid request degrades to opening
+ * the folder in the full app rather than failing silently.
+ */
+function handleQuickActionArguments(
+  argv: ReadonlyArray<string>,
+  launchedAt: number
+): boolean {
+  const args = parseCommandLineArgs([...argv], {
+    string: ['quick-action', 'path'],
+  })
+  const decision = decideQuickAction(args)
+
+  switch (decision.kind) {
+    case 'not-requested':
+      return false
+    case 'invalid':
+      log.error(`Ignoring malformed quick action request: ${decision.reason}`)
+      return false
+    case 'quick-action':
+      if (decision.request.verb === 'open-in-full-app') {
+        handleCLIAction({
+          kind: 'open-repository',
+          path: decision.request.path,
+        })
+      } else {
+        openQuickActionWindow(decision.request, launchedAt)
+      }
+      return true
+  }
+}
+
 async function handleCommandLineArguments(argv: string[]): Promise<boolean> {
+  if (handleQuickActionArguments(argv, now())) {
+    return true
+  }
+
   const args = parseCommandLineArgs(argv, {
     boolean: ['protocol-launcher'],
   })
@@ -624,7 +703,11 @@ app.on('ready', () => {
 
   possibleProtocols.forEach(protocol => setAsDefaultProtocolClient(protocol))
 
-  createWindow()
+  // A quick action opens only its own small window. Booting the full workspace
+  // alongside it would erase the startup saving the feature exists for.
+  if (!handleQuickActionArguments(process.argv, launchTime)) {
+    createWindow()
+  }
 
   agentServerController = new AgentServerController(
     Path.join(app.getPath('userData'), 'agent-server.json'),
@@ -1022,6 +1105,22 @@ app.on('ready', () => {
     ipcMain.on('install-windows-cli', () => installWindowsCLI())
     ipcMain.on('uninstall-windows-cli', () => uninstallWindowsCLI())
 
+    // Quick-action window plumbing. Each handler resolves the calling window
+    // from the event sender so several quick windows can coexist.
+    ipcMain.on('quick-action-ready', event =>
+      quickActionWindows.get(event.sender.id)?.onRendererReady()
+    )
+    ipcMain.on('quick-action-close', event =>
+      quickActionWindows.get(event.sender.id)?.close()
+    )
+    ipcMain.on('quick-action-open-in-app', (event, path) => {
+      quickActionWindows.get(event.sender.id)?.close()
+      handleCLIAction({ kind: 'open-repository', path })
+    })
+    ipcMain.on('quick-action-opened', (_event, elapsedMs) => {
+      log.info(`Quick action window interactive in ${elapsedMs}ms`)
+    })
+
     // Explorer context-menu entries. Both handlers are per-user (HKCU) and
     // never elevate; the labels come from the renderer because the language
     // mode lives in localStorage.
@@ -1038,6 +1137,22 @@ app.on('ready', () => {
         )
         return {
           result,
+          state: await getWindowsContextMenuState(request.labels),
+        }
+      }
+    )
+    ipcMain.handle(
+      'set-modern-context-menu-installed',
+      async (_event, request) => {
+        const { error } = await setModernContextMenuInstalled(request.installed)
+        return {
+          // The packaged handler is not a per-entry concept; the id is carried
+          // only so the reply shape matches the classic one.
+          result: {
+            id: 'open-in-desktop-material' as const,
+            installed: request.installed,
+            error,
+          },
           state: await getWindowsContextMenuState(request.labels),
         }
       }

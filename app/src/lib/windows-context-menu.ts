@@ -29,11 +29,15 @@
  *
  * ## Windows 11 placement
  *
- * These are *classic* shell verbs. Windows 11's default compact context menu
- * hides classic verbs behind **Show more options** (Shift+F10 opens the classic
- * menu directly). Surfacing them in the top-level Windows 11 menu requires a
- * packaged `IExplorerCommand` shipped in a sparse MSIX, which this feature does
- * not do — the settings copy says so plainly rather than implying otherwise.
+ * These are *classic* shell verbs, which Windows 11's compact context menu
+ * hides behind **Show more options** (Shift+F10 opens the classic menu
+ * directly). Top-level placement instead needs a packaged `IExplorerCommand`,
+ * which `lib/shell-extension-package` provides via a sparse MSIX.
+ *
+ * The two coexist deliberately: the packaged route needs Windows 11 and a
+ * machine that permits sideloading, so these classic verbs remain the fallback
+ * that works everywhere. The settings pane reports which one is actually
+ * serving the menu rather than assuming the better one succeeded.
  *
  * ## Known edge: trailing backslash
  *
@@ -43,6 +47,12 @@
  * verbs are no-ops there, so the payload keeps the simple quoting rather than
  * carrying a workaround that would obscure the common case.
  */
+
+import { quickActionLaunchArguments } from './quick-action'
+import {
+  ContextMenuMode,
+  ModernContextMenuBlocker,
+} from './shell-extension-package'
 
 /**
  * The only hive this module will ever emit. Per-user scope is a hard
@@ -277,16 +287,19 @@ export function buildOpencodeCommand(
 }
 
 /**
- * Build the command that opens the folder as a repository.
+ * Build the command Explorer runs for the Desktop Material verb.
  *
- * `--cli-open=` is the argument `handleCommandLineArguments` already parses for
- * the `desktop-material` CLI shim, so this reuses the existing open/add
- * repository path instead of adding a second entry point to maintain.
+ * This opens the small always-on-top quick-action window scoped to the folder,
+ * not the full application: a right-click is a momentary intent, and restoring
+ * every repository and tab to service it would be slower than the action
+ * itself. The quick window carries an "open in the full app" escape hatch for
+ * anything it does not cover.
  */
 export function buildDesktopMaterialCommand(appPath: string): string {
-  return `${quoteWindowsCommandArgument(appPath)} ${quoteWindowsCommandArgument(
-    '--cli-open=%V'
-  )}`
+  return formatWindowsCommand(
+    appPath,
+    quickActionLaunchArguments('status-commit-push', '%V')
+  )
 }
 
 function verbKeyPath(surface: ContextMenuSurface, verbName: string): string {
@@ -518,6 +531,13 @@ export interface IWindowsContextMenuState {
     /** Present when the entry cannot currently be installed on this host. */
     readonly unavailableReason: WindowsContextMenuUnavailableReason | null
   }>
+  /**
+   * Which implementation is actually serving the menu, and why the packaged
+   * top-level one is unavailable when it is. Null while the mode has not been
+   * probed (for example off Windows).
+   */
+  readonly mode: ContextMenuMode | null
+  readonly modernBlocker: ModernContextMenuBlocker | null
 }
 
 /**
@@ -549,7 +569,7 @@ export function summarizeWindowsContextMenuState(
     }
   })
 
-  return { supported: true, entries }
+  return { supported: true, entries, mode: null, modernBlocker: null }
 }
 
 /** The state reported on every non-Windows host: the feature does not apply. */
@@ -561,6 +581,8 @@ export function unsupportedWindowsContextMenuState(): IWindowsContextMenuState {
       state: 'not-installed' as const,
       unavailableReason: null,
     })),
+    mode: null,
+    modernBlocker: null,
   }
 }
 

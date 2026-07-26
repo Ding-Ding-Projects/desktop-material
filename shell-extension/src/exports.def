@@ -1,0 +1,8 @@
+; COM in-process server exports. Listed explicitly rather than via
+; __declspec(dllexport) so the names are undecorated, which is what
+; CoGetClassObject requires.
+LIBRARY DesktopMaterialShellExtension
+
+EXPORTS
+    DllGetClassObject   PRIVATE
+    DllCanUnloadNow     PRIVATE

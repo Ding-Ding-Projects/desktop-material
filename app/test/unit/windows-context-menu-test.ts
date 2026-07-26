@@ -17,6 +17,7 @@ import {
   summarizeWindowsContextMenuState,
   unsupportedWindowsContextMenuState,
 } from '../../src/lib/windows-context-menu'
+import { decideQuickAction } from '../../src/lib/quick-action'
 
 // These tests only exercise payload *generation*. Nothing here reads or writes
 // the live registry — the installer that performs that I/O is deliberately kept
@@ -153,11 +154,33 @@ describe('windows context menu payload generation', () => {
   })
 
   describe('desktop material command', () => {
-    it('uses the --cli-open argument the CLI shim already parses', () => {
+    it('opens the quick-action window rather than the full app', () => {
       assert.equal(
         buildDesktopMaterialCommand(AppPath),
-        `"${AppPath}" "--cli-open=%V"`
+        `"${AppPath}" "--quick-action=status-commit-push" "--path=%V"`
       )
+    })
+
+    it('emits argv the launch-path parser accepts', () => {
+      // The generated command and the argument parser must agree; a drift here
+      // would surface only as a right-click that silently does nothing.
+      const command = buildDesktopMaterialCommand(AppPath)
+      const match = /"--quick-action=([^"]+)" "--path=([^"]+)"/.exec(command)
+      assert.notEqual(match, null)
+      assert.deepEqual(
+        decideQuickAction({
+          'quick-action': match![1],
+          path: 'C:\\Users\\test\\repo',
+        }),
+        {
+          kind: 'quick-action',
+          request: {
+            verb: 'status-commit-push',
+            path: 'C:\\Users\\test\\repo',
+          },
+        }
+      )
+      assert.equal(match![2], '%V')
     })
   })
 

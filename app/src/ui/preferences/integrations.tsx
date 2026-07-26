@@ -640,6 +640,94 @@ export class Integrations extends React.Component<
     )
   }
 
+  private onModernContextMenuChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    const installed = event.currentTarget.checked
+    this.setState({
+      contextMenuBusyId: 'open-in-desktop-material',
+      contextMenuError: null,
+    })
+    ipcRenderer
+      .invoke('set-modern-context-menu-installed', {
+        installed,
+        labels: this.contextMenuLabels(),
+      })
+      .then(({ result, state }) =>
+        this.setState({
+          contextMenu: state,
+          contextMenuBusyId: null,
+          contextMenuError: result.error,
+        })
+      )
+      .catch(() =>
+        this.setState({
+          contextMenuBusyId: null,
+          contextMenuError: translate(
+            'settings.contextMenuApplyError',
+            this.state.languageMode
+          ),
+        })
+      )
+  }
+
+  /**
+   * The packaged Windows 11 handler, plus an honest statement of which
+   * implementation is actually serving the menu right now.
+   */
+  private renderModernContextMenu() {
+    const { contextMenu, contextMenuBusyId, languageMode } = this.state
+    const mode = contextMenu?.mode ?? null
+    const blocker = contextMenu?.modernBlocker ?? null
+    const descriptionId = 'context-menu-modern-description'
+
+    const blockerText =
+      blocker === 'requires-windows-11'
+        ? translate('settings.contextMenuNeedsWindows11', languageMode)
+        : blocker === 'package-missing'
+        ? translate('settings.contextMenuPackageMissing', languageMode)
+        : blocker === 'developer-mode-required'
+        ? translate('settings.contextMenuNeedsDeveloperMode', languageMode)
+        : null
+
+    const modeText =
+      mode === 'modern'
+        ? translate('settings.contextMenuModeModern', languageMode)
+        : mode === 'classic'
+        ? translate('settings.contextMenuModeClassic', languageMode)
+        : mode === 'none'
+        ? translate('settings.contextMenuModeNone', languageMode)
+        : null
+
+    return (
+      <div className="context-menu-entry">
+        <Checkbox
+          label={translate('settings.contextMenuModernLabel', languageMode)}
+          value={mode === 'modern' ? CheckboxValue.On : CheckboxValue.Off}
+          onChange={this.onModernContextMenuChanged}
+          disabled={
+            contextMenu === null ||
+            contextMenuBusyId !== null ||
+            (blocker !== null && mode !== 'modern')
+          }
+          ariaDescribedBy={descriptionId}
+        />
+        <p id={descriptionId} className="settings-description">
+          {translate('settings.contextMenuModernDescription', languageMode)}
+          {/* Stated even when the modern route works, because the classic
+              entries stay installed underneath it. */}{' '}
+          {translate('settings.contextMenuPlacementNote', languageMode)}
+          {blockerText !== null && <> {blockerText}</>}
+        </p>
+        {modeText !== null && (
+          <p className="settings-description context-menu-mode" role="status">
+            {modeText}
+          </p>
+        )}
+      </div>
+    )
+  }
+
   private renderWindowsContextMenu() {
     if (!__WIN32__) {
       return null
@@ -667,9 +755,7 @@ export class Integrations extends React.Component<
           'settings.contextMenuDesktopMaterialDescription',
           this.onDesktopMaterialEntryChanged
         )}
-        <p className="settings-description context-menu-placement-note">
-          {translate('settings.contextMenuPlacementNote', languageMode)}
-        </p>
+        {this.renderModernContextMenu()}
         <p aria-live="polite" className="settings-description">
           {contextMenuBusyId !== null &&
             translate('settings.contextMenuBusy', languageMode)}
