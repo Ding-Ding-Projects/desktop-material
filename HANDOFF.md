@@ -1,5 +1,47 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Multi-account token-invalidation fix re-verified; worktree sweep
+
+A reported bug — `AppStore.onTokenInvalidated` resolving the affected account by
+endpoint position, so a second same-host account's invalidated token signed
+nobody out — was investigated and found **already fixed and on `main`**.
+Commit `3e692befb2` ("Sign out the account whose token actually failed") is an
+ancestor of `origin/main`: `getAccountForEndpointAndToken`
+([api.ts:5975](app/src/lib/api.ts:5975)) matches endpoint **plus** the exact
+token the failing request used, and `onTokenInvalidated`
+([app-store.ts:2013](app/src/lib/stores/app-store.ts:2013)) uses it, so exactly
+the affected account is signed out and other accounts on the host stay signed
+in. A token no signed-in account holds signs nobody out and logs a warning.
+Coverage already exists at
+[accounts-store-test.ts:186](app/test/unit/accounts-store-test.ts:186) — five
+tests including the two-dotcom-accounts / second-token case, the first-account
+case, the unheld-token case, and same-token-different-endpoint. Re-verified this
+session: `node script/test.mjs app/test/unit/accounts-store-test.ts` with
+`TEMP=C:\dm-temp` → **21/21 pass, 0 fail**. No source change was needed, so
+nothing new was written to `app/`.
+
+Worktree/branch sweep completed in the same pass. `git worktree list` now shows
+only the main checkout; branch `claude/determined-heyrovsky-eca6d2` was merged
+(identical tip `12d3ed4600`) and deleted; no stashes exist. 43 stale directories
+under `.claude/worktrees/` were left behind by earlier sessions. Before deleting
+anything, every file in the two non-empty ones was hashed and checked against
+git's object store: `agent-a55be6fd4ca9e9180` — 103/103 blobs already known;
+`material-design-ui-audit-763c44` — 3572/3576 known, and the four outliers were
+two test files byte-identical to `main` (CRLF-vs-LF hashing artifact) and the
+two `icon-logo.icon/icon.json` assets, which are **semantically equal** to
+`main` and differ only by a stray reformatting. Conclusion: no unique,
+uncommitted, or unpushed work in either. All 74 `node_modules` junctions were
+deleted as links (never followed) and the real `node_modules` trees were
+verified intact afterwards.
+
+NEXT AGENT: three directories remain under `.claude/worktrees/` and are safe to
+delete — `determined-heyrovsky-eca6d2` (empty; held only by this session's
+shell cwd, so it frees on session exit), plus `agent-a55be6fd4ca9e9180` (206M)
+and `material-design-ui-audit-763c44` (629M), both verified content-redundant
+above. The recursive deletes for the last two were refused by the permission
+classifier in this session; the audit copy's stale `WORKTREE-IN-USE.md` marker
+dates from 2026-07-20 and its branch no longer exists.
+
 ## 2026-07-26 — Windows 11 context menu LIVE; packaging gap fixed
 
 The packaged handler is registered and verified on this host
