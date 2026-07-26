@@ -1,5 +1,43 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Unit-test repair after the remote-automation hardening
+
+The `f8eca3ac84` hardening moved scheduled commit/push, pull preview, and
+commit-batch flows onto `repositoryWithCanonicalRemoteForNetwork` before
+network I/O but did not update the test suite, so the Windows x64 unit job
+failed in CI (and in the dependent Express/Super Express release runs).
+Commit `6d6bda8a79` repairs the suite without touching the hardened runtime
+behavior:
+
+- Structural-store tests (`Object.create(AppStore.prototype)`) that mocked
+  `repositoryWithRefreshedGitHubRepository` or `withRefreshedGitHubRepository`
+  now stub the canonical-remote seam instead: the scheduled-automation
+  repository-switch tests mock `repositoryWithCanonicalRemoteForNetwork`, the
+  pull-preview suite's `setRefreshedRepositoryWrapper` also stubs
+  `withCanonicalRemoteForNetwork`, and the Cheap LFS unborn-root checkpoint
+  test passes the repository straight through the new seam.
+- Source-guard regexes were re-pinned to the hardened call shapes:
+  `isBackgroundTask` threading in the split-push/legacy-flush and scheduled
+  `_commitIncludedChanges` calls, `maybeAutoMaterializeCheapLfs(
+  refreshedRepository, …)` on repository open, the multiline
+  `performScheduledPush(repository, null, isBackgroundTask)` probe, and the
+  regex-mode branch that moved into the extracted `diff-search-matcher.ts`.
+  The organization-account wiring test now also asserts the canonical
+  resolver delegates to `repositoryWithRefreshedGitHubRepository(
+  latestRepository, true, false, true)`, keeping the account-routing chain
+  guarded end to end.
+- The GitHub Packages explorer search inputs and `FilterModeControl`s now
+  carry the literal surface IDs (`github-packages-search`,
+  `github-package-versions-search`) the collection-surface audit requires;
+  JSX const references are invisible to that static audit.
+
+Verification: the seven previously failing files pass 54/54 locally, and the
+full unit suite reports 793/793 files with 6306 tests — the only local
+failure is `get-shell-env-test.ts (pwsh)`, which fails identically on clean
+`f8eca3ac84` and is a pre-existing local-shell environment issue, not a
+regression. Remote CI on the push is tracked from the run list; no remote
+success is inferred before it lands.
+
 ## 2026-07-26 — Remote repair, unattended Git, and distribution surfaces
 
 - Before Git network work, Desktop Material now resolves the exact matched
