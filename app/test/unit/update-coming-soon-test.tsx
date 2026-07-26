@@ -6,27 +6,49 @@ import { ActionsMetadataJSONError } from '../../src/lib/actions-response'
 import {
   getUpdateFeedRepository,
   isNewerDesktopMaterialBuildInProgress,
+  probeUpdateComingSoon,
   updateBuildProbeDegradation,
 } from '../../src/lib/desktop-material-update-build'
-import { translate } from '../../src/lib/i18n'
+import { translate, translatedVariable } from '../../src/lib/i18n'
 import {
   cantoneseTranslations,
   englishTranslations,
+  TranslationKey,
 } from '../../src/lib/i18n-resources'
+import {
+  deriveUpdateArrivalEstimate,
+  dismissUpdateComingSoon,
+  IDismissalStorage,
+  isUpdateComingSoonDismissed,
+  IUpdateComingSoonSignal,
+  UpdateComingSoonDismissalKey,
+} from '../../src/lib/update-coming-soon-estimate'
 import { About } from '../../src/ui/about/about'
+import { UpdateComingSoon } from '../../src/ui/banners/update-coming-soon'
 import {
   IUpdateState,
   UpdateStatus,
   UpdateStore,
 } from '../../src/ui/lib/update-store'
-import { render, screen } from '../helpers/ui/render'
+import { fireEvent, render, screen } from '../helpers/ui/render'
 
 const installedSHA = '1'.repeat(40)
 const buildSHA = '2'.repeat(40)
+const laterSHA = '3'.repeat(40)
 const ciRunID = 123456788
 const installerRunID = 123456789
 const updatesURL =
   'https://github.com/Ding-Ding-Projects/desktop-material/releases/latest/download/'
+
+// A fixed clock, so every estimate below is exact rather than approximately
+// asserted. Estimates are derived from elapsed time, never from the wall clock.
+const minute = 60 * 1000
+const day = 24 * 60 * minute
+const now = Date.UTC(2026, 6, 24, 12, 0, 0)
+
+function isoDate(epochMilliseconds: number): string {
+  return new Date(epochMilliseconds).toISOString()
+}
 
 function jsonResponse(value: unknown): Response {
   return new Response(JSON.stringify(value), {
@@ -69,6 +91,25 @@ function updateState(status: UpdateStatus): IUpdateState {
     newReleases: [],
     prioritizeUpdate: false,
     prioritizeUpdateInfoUrl: undefined,
+    comingSoonSignal: null,
+  }
+}
+
+/** A minimal observed signal; each test overrides only what it exercises. */
+function comingSoonSignal(
+  overrides: Partial<IUpdateComingSoonSignal> = {}
+): IUpdateComingSoonSignal {
+  return {
+    kind: 'build-running',
+    headSHA: buildSHA,
+    commitURL: null,
+    runURL: null,
+    runStartedAt: null,
+    recentRunDurations: [],
+    recentReleaseTimes: [],
+    targetTag: null,
+    latestReleaseTag: null,
+    ...overrides,
   }
 }
 
@@ -380,13 +421,15 @@ describe('update coming soon', () => {
     const before = storageSnapshot()
     const store = new UpdateStore({
       generateReleaseSummary: async () => [],
-      probeForNewerBuild: async () => true,
+      probeForNewerBuild: async () => comingSoonSignal(),
       subscribeToUpdaterEvents: false,
     })
 
     await updateStoreAccess(store).onUpdateNotAvailable()
 
     assert.equal(store.state.status, UpdateStatus.UpdateComingSoon)
+    // The observed signal reaches the UI, but only through the live state.
+    assert.equal(store.state.comingSoonSignal?.headSHA, buildSHA)
     assert.notEqual(localStorage.getItem('last-successful-update-check'), null)
     const after = storageSnapshot()
     after.delete('last-successful-update-check')
@@ -395,8 +438,8 @@ describe('update coming soon', () => {
   })
 
   it('does not let a slow build probe overwrite a real available release', async () => {
-    let resolveProbe!: (value: boolean) => void
-    const probe = new Promise<boolean>(resolve => {
+    let resolveProbe!: (value: IUpdateComingSoonSignal | null) => void
+    const probe = new Promise<IUpdateComingSoonSignal | null>(resolve => {
       resolveProbe = resolve
     })
     const store = new UpdateStore({
@@ -408,10 +451,12 @@ describe('update coming soon', () => {
 
     const noUpdateTransition = access.onUpdateNotAvailable()
     access.onUpdateAvailable()
-    resolveProbe(true)
+    resolveProbe(comingSoonSignal())
     await noUpdateTransition
 
     assert.equal(store.state.status, UpdateStatus.UpdateAvailable)
+    // A superseded "coming soon" must not leave its details behind either.
+    assert.equal(store.state.comingSoonSignal, null)
   })
 
   it('classifies only bounded-read failures as a handled degradation', () => {
@@ -527,7 +572,7 @@ describe('update coming soon', () => {
         probes++
         onDegraded?.('metadata-too-large')
         onDegraded?.('metadata-too-large')
-        return false
+        return null
       },
       subscribeToUpdaterEvents: false,
     })
@@ -551,7 +596,7 @@ describe('update coming soon', () => {
       generateReleaseSummary: async () => {
         throw new Error('release feed unavailable')
       },
-      probeForNewerBuild: async () => false,
+      probeForNewerBuild: async () => null,
       subscribeToUpdaterEvents: false,
     })
 
@@ -611,5 +656,437 @@ describe('update coming soon', () => {
 
     localStorage.removeItem('appearance-customization-v1')
     localStorage.removeItem('language-mode-v1')
+  })
+
+  it('times a running build against the median of recent successful runs', () => {
+    const estimate = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'build-running',
+        runStartedAt: now - 6 * minute,
+        // Deliberately unsorted: the median, not the newest run, decides.
+        recentRunDurations: [22 * minute, 18 * minute, 20 * minute],
+      }),
+      now
+    )
+
+    assert.equal(estimate?.basis, 'running-workflow')
+    assert.equal(estimate?.medianMilliseconds, 20 * minute)
+    assert.equal(estimate?.sampleSize, 3)
+    assert.equal(estimate?.etaMilliseconds, 14 * minute)
+    assert.equal(estimate?.isOverdue, false)
+  })
+
+  it('reports a long-running build as due rather than inventing a new time', () => {
+    const overdue = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'build-running',
+        runStartedAt: now - 45 * minute,
+        recentRunDurations: [20 * minute, 20 * minute],
+      }),
+      now
+    )
+    assert.equal(overdue?.isOverdue, true)
+    assert.equal(overdue?.etaMilliseconds, null)
+
+    // Nothing comparable to measure against is stated as such, not guessed.
+    const unmeasured = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'build-running',
+        runStartedAt: now - 6 * minute,
+        recentRunDurations: [],
+      }),
+      now
+    )
+    assert.equal(unmeasured?.basis, 'running-workflow')
+    assert.equal(unmeasured?.etaMilliseconds, null)
+    assert.equal(unmeasured?.isOverdue, false)
+    assert.equal(unmeasured?.sampleSize, 0)
+  })
+
+  it('says only "shortly" for a green build that has no release yet', () => {
+    const estimate = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'awaiting-release',
+        // Cadence data exists, but publishing is not a cadence question.
+        recentReleaseTimes: [now - day, now - 4 * day, now - 7 * day],
+      }),
+      now
+    )
+
+    assert.equal(estimate?.basis, 'green-ci-no-release')
+    assert.equal(estimate?.etaMilliseconds, null)
+    assert.equal(estimate?.isOverdue, false)
+    assert.equal(estimate?.sampleSize, 0)
+  })
+
+  it('falls back to the median gap between the last releases', () => {
+    const estimate = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'newer-commit',
+        recentReleaseTimes: [
+          now - day,
+          now - 4 * day,
+          now - 8 * day,
+          now - 11 * day,
+        ],
+      }),
+      now
+    )
+
+    // Gaps of 3, 4 and 3 days: a median of 3, counted from the newest release.
+    assert.equal(estimate?.basis, 'release-cadence')
+    assert.equal(estimate?.medianMilliseconds, 3 * day)
+    assert.equal(estimate?.sampleSize, 3)
+    assert.equal(estimate?.etaMilliseconds, 2 * day)
+
+    const overdue = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'newer-commit',
+        recentReleaseTimes: [now - 10 * day, now - 13 * day, now - 16 * day],
+      }),
+      now
+    )
+    assert.equal(overdue?.isOverdue, true)
+    assert.equal(overdue?.etaMilliseconds, null)
+
+    // One release is no cadence, and is never rounded up into one.
+    const single = deriveUpdateArrivalEstimate(
+      comingSoonSignal({
+        kind: 'newer-commit',
+        recentReleaseTimes: [now - day],
+      }),
+      now
+    )
+    assert.equal(single?.basis, 'release-cadence')
+    assert.equal(single?.etaMilliseconds, null)
+    assert.equal(single?.isOverdue, false)
+    assert.equal(single?.sampleSize, 0)
+  })
+
+  it('produces no estimate at all when nothing was observed', () => {
+    assert.equal(deriveUpdateArrivalEstimate(null, now), null)
+  })
+
+  it('remembers a dismissal per coming build, not per banner appearance', () => {
+    const entries = new Map<string, string>()
+    const storage: IDismissalStorage = {
+      getItem: key => entries.get(key) ?? null,
+      setItem: (key, value) => {
+        entries.set(key, value)
+      },
+    }
+
+    const running = comingSoonSignal({ kind: 'build-running' })
+    assert.equal(isUpdateComingSoonDismissed(running, storage), false)
+
+    dismissUpdateComingSoon(running, storage)
+    assert.equal(entries.get(UpdateComingSoonDismissalKey), buildSHA)
+    assert.equal(isUpdateComingSoonDismissed(running, storage), true)
+
+    // The same build later waiting on its release is not a new announcement.
+    assert.equal(
+      isUpdateComingSoonDismissed(
+        comingSoonSignal({ kind: 'awaiting-release' }),
+        storage
+      ),
+      true
+    )
+
+    // A genuinely different commit is.
+    assert.equal(
+      isUpdateComingSoonDismissed(
+        comingSoonSignal({ headSHA: laterSHA }),
+        storage
+      ),
+      false
+    )
+  })
+
+  it('keeps working when the dismissal store refuses to answer', () => {
+    const denied: IDismissalStorage = {
+      getItem: () => {
+        throw new Error('storage denied')
+      },
+      setItem: () => {
+        throw new Error('storage denied')
+      },
+    }
+
+    // Losing a dismissal is acceptable; losing the banner or crashing is not.
+    assert.equal(isUpdateComingSoonDismissed(comingSoonSignal(), denied), false)
+    assert.doesNotThrow(() =>
+      dismissUpdateComingSoon(comingSoonSignal(), denied)
+    )
+  })
+
+  it('announces the coming update and discloses its basis on demand', () => {
+    localStorage.removeItem(UpdateComingSoonDismissalKey)
+    const signal = comingSoonSignal({
+      kind: 'build-running',
+      runStartedAt: now - 5 * minute,
+      runURL: `https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/${ciRunID}`,
+      recentRunDurations: [20 * minute, 20 * minute, 26 * minute],
+      recentReleaseTimes: [now - day, now - 4 * day, now - 7 * day],
+      latestReleaseTag: 'release-3.5.0',
+    })
+    const view = render(<UpdateComingSoon signal={signal} now={now} />)
+
+    const summary = screen.getByRole('status')
+    assert.match(summary.textContent ?? '', /New update coming soon/)
+    // 20 minutes typical, 5 already spent, and always worded as an estimate.
+    assert.match(summary.textContent ?? '', /Estimated in about 15 min/)
+
+    const toggle = screen.getByRole('button', { name: 'Show more details' })
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false')
+    assert.equal(
+      screen.queryByText(/Median duration of the last 3 successful runs/),
+      null
+    )
+
+    fireEvent.click(toggle)
+
+    const expanded = screen.getByRole('button', { name: 'Hide details' })
+    assert.equal(expanded.getAttribute('aria-expanded'), 'true')
+    const region = document.querySelector('.update-coming-soon-details')
+    assert.equal(expanded.getAttribute('aria-controls'), region?.id)
+    assert.ok(
+      screen.getByText(/Median duration of the last 3 successful runs/),
+      'estimate basis'
+    )
+    assert.ok(
+      screen.getByText(/A Windows build for a newer commit is running now/),
+      'driving signal'
+    )
+    assert.ok(
+      screen.getByText('About one release every 3 days, over 2 gaps'),
+      'recent cadence'
+    )
+    assert.ok(screen.getByText('release-3.5.0'), 'latest published release')
+    assert.ok(screen.getByText('Not tagged yet'), 'unknown target version')
+    assert.ok(screen.getByText(/not a promise/), 'estimate disclaimer')
+    assert.equal(
+      screen
+        .getByRole('link', { name: 'View the build run' })
+        .getAttribute('href'),
+      signal.runURL
+    )
+
+    view.unmount()
+  })
+
+  it('stays dismissed until a different build is announced', () => {
+    localStorage.removeItem(UpdateComingSoonDismissalKey)
+    const signal = comingSoonSignal({ recentRunDurations: [20 * minute] })
+
+    const view = render(<UpdateComingSoon signal={signal} now={now} />)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Dismiss this message' })
+    )
+    assert.equal(screen.queryByRole('status'), null)
+    assert.equal(localStorage.getItem(UpdateComingSoonDismissalKey), buildSHA)
+    view.unmount()
+
+    const again = render(<UpdateComingSoon signal={signal} now={now} />)
+    assert.equal(screen.queryByRole('status'), null)
+    again.unmount()
+
+    const next = render(
+      <UpdateComingSoon
+        signal={comingSoonSignal({ headSHA: laterSHA })}
+        now={now}
+      />
+    )
+    assert.ok(screen.getByRole('status'))
+    next.unmount()
+
+    localStorage.removeItem(UpdateComingSoonDismissalKey)
+  })
+
+  it('collects run and release samples once a build is proven', async () => {
+    const requests = new Array<string>()
+    const signal = await probeUpdateComingSoon({
+      updatesURL,
+      installedSHA,
+      fetcher: async input => {
+        const url = input.toString()
+        requests.push(url)
+        if (url.includes('/compare/')) {
+          return jsonResponse({ status: 'ahead' })
+        }
+        if (url.includes('/jobs?')) {
+          return jsonResponse({
+            jobs: [
+              {
+                name: 'Windows x64',
+                status: 'in_progress',
+                run_id: ciRunID,
+                head_sha: buildSHA,
+              },
+            ],
+          })
+        }
+        if (url.includes('/releases?')) {
+          return jsonResponse([
+            { tag_name: 'release-3.5.0', published_at: isoDate(now - day) },
+            { tag_name: 'release-3.4.0', published_at: isoDate(now - 4 * day) },
+          ])
+        }
+        if (url.includes('status=success')) {
+          return jsonResponse({
+            workflow_runs: [
+              {
+                head_branch: 'main',
+                conclusion: 'success',
+                head_sha: '4'.repeat(40),
+                run_started_at: isoDate(now - day),
+                updated_at: isoDate(now - day + 21 * minute),
+              },
+            ],
+          })
+        }
+        return jsonResponse({
+          workflow_runs: [
+            {
+              id: ciRunID,
+              status: 'in_progress',
+              event: 'push',
+              head_branch: 'main',
+              head_sha: buildSHA,
+              path: '.github/workflows/ci.yml',
+              html_url: `https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/${ciRunID}`,
+              run_started_at: isoDate(now - 5 * minute),
+            },
+          ],
+        })
+      },
+    })
+
+    assert.equal(signal?.kind, 'build-running')
+    assert.equal(signal?.headSHA, buildSHA)
+    assert.equal(signal?.runStartedAt, now - 5 * minute)
+    assert.match(signal?.runURL ?? '', /\/actions\/runs\/123456788$/)
+    assert.deepEqual(signal?.recentRunDurations, [21 * minute])
+    assert.deepEqual(signal?.recentReleaseTimes, [now - day, now - 4 * day])
+    assert.equal(signal?.latestReleaseTag, 'release-3.5.0')
+    // Samples are only paid for after a newer build is already proven.
+    assert.equal(requests.length, 5)
+    assert.match(requests[3], /status=success/)
+    assert.match(requests[4], /\/releases\?/)
+  })
+
+  it('recognizes a built-but-unreleased commit without a running build', async () => {
+    const requests = new Array<string>()
+    const signal = await probeUpdateComingSoon({
+      updatesURL,
+      installedSHA,
+      fetcher: async input => {
+        const url = input.toString()
+        requests.push(url)
+        if (url.includes('/compare/')) {
+          return jsonResponse({
+            status: 'ahead',
+            html_url: `https://github.com/Ding-Ding-Projects/desktop-material/compare/${installedSHA}...${buildSHA}`,
+            commits: [{ sha: buildSHA }],
+          })
+        }
+        if (url.includes('/releases?')) {
+          return jsonResponse([
+            { tag_name: 'release-3.5.0', published_at: isoDate(now - day) },
+          ])
+        }
+        if (url.includes('status=success')) {
+          return jsonResponse({
+            workflow_runs: [
+              {
+                head_branch: 'main',
+                conclusion: 'success',
+                head_sha: buildSHA,
+                run_started_at: isoDate(now - day),
+                updated_at: isoDate(now - day + 19 * minute),
+              },
+            ],
+          })
+        }
+        return jsonResponse({ workflow_runs: [] })
+      },
+    })
+
+    assert.equal(signal?.kind, 'awaiting-release')
+    assert.equal(signal?.headSHA, buildSHA)
+    assert.equal(signal?.runURL, null)
+    assert.match(signal?.commitURL ?? '', /\/compare\//)
+    assert.equal(requests.length, 5)
+    assert.match(requests[2], /\/compare\/.+\.\.\.main$/)
+  })
+
+  it('reports no coming update when main is not ahead of the running build', async () => {
+    const requests = new Array<string>()
+    const signal = await probeUpdateComingSoon({
+      updatesURL,
+      installedSHA,
+      fetcher: async input => {
+        requests.push(input.toString())
+        return input.toString().includes('/compare/')
+          ? jsonResponse({ status: 'identical', commits: [] })
+          : jsonResponse({ workflow_runs: [] })
+      },
+    })
+
+    assert.equal(signal, null)
+    // Two in-progress checks plus one compare: no samples are fetched.
+    assert.equal(requests.length, 3)
+  })
+
+  it('never lets a supplementary detail fail the whole probe', async () => {
+    const signal = await probeUpdateComingSoon({
+      updatesURL,
+      installedSHA,
+      fetcher: async input => {
+        const url = input.toString()
+        if (url.includes('status=success') || url.includes('/releases?')) {
+          return new Response('nope', { status: 500 })
+        }
+        if (url.includes('/compare/')) {
+          return jsonResponse({ status: 'ahead', commits: [{ sha: buildSHA }] })
+        }
+        return jsonResponse({ workflow_runs: [] })
+      },
+    })
+
+    // The verdict survives; only the details it could not read are missing.
+    assert.equal(signal?.kind, 'newer-commit')
+    assert.deepEqual(signal?.recentRunDurations, [])
+    assert.deepEqual(signal?.recentReleaseTimes, [])
+    assert.equal(signal?.latestReleaseTag, null)
+  })
+
+  it('publishes every coming-update string in both languages', () => {
+    const keys = Object.keys(englishTranslations).filter(key =>
+      key.startsWith('update.comingSoon.')
+    ) as ReadonlyArray<TranslationKey>
+
+    assert.equal(keys.length, 33)
+    for (const key of keys) {
+      assert.equal(typeof englishTranslations[key], 'string', key)
+      assert.equal(typeof cantoneseTranslations[key], 'string', key)
+      assert.notEqual(englishTranslations[key], '', key)
+      assert.notEqual(cantoneseTranslations[key], '', key)
+    }
+
+    // The details are evidence, so they read the same in every language mode.
+    assert.equal(
+      translate('update.comingSoon.basisGreenCI', 'bilingual'),
+      'The build already passed, so only the publishing step is outstanding · 建置已經過咗，淨返發布呢一步'
+    )
+    // A translated duration must not leak one language into the other half.
+    assert.equal(
+      translate('update.comingSoon.cadenceValue', 'bilingual', {
+        gap: translatedVariable('update.comingSoon.durationDays', {
+          count: '3',
+        }),
+        count: '2',
+      }),
+      'About one release every 3 days, over 2 gaps · 大約每 3 日出一個 release，睇咗 2 段間隔'
+    )
   })
 })

@@ -114,7 +114,11 @@ import { DiscardChanges } from './discard-changes'
 import { Welcome } from './welcome'
 import { FirstRunChecklist } from './welcome/first-run-checklist'
 import { AppMenuBar } from './app-menu'
-import { UpdateAvailable, renderBanner } from './banners'
+import { UpdateAvailable, UpdateComingSoon, renderBanner } from './banners'
+import {
+  isUpdateComingSoonDismissed,
+  updateComingSoonTargetKey,
+} from '../lib/update-coming-soon-estimate'
 import { Preferences } from './preferences'
 import { SettingsHistoryDialog } from './settings-history'
 import { IVersionedStoreHistorySource } from './version-history'
@@ -6408,6 +6412,10 @@ export class App extends React.Component<IAppProps, IAppState> {
       this.state.isUpdateShowcaseVisible
     ) {
       banner = this.renderUpdateBanner()
+    } else if (
+      this.state.updateState.status === UpdateStatus.UpdateComingSoon
+    ) {
+      banner = this.renderUpdateComingSoonBanner()
     }
     return (
       <div role="alert" aria-atomic="false">
@@ -6439,6 +6447,28 @@ export class App extends React.Component<IAppProps, IAppState> {
         isUpdateShowcaseVisible={this.state.isUpdateShowcaseVisible}
         emoji={this.state.emoji}
         key={'update-available'}
+      />
+    )
+  }
+
+  /**
+   * The "an update is on its way" banner.
+   *
+   * It is deliberately the lowest-priority banner: anything actually actionable
+   * — a conflict, or an update already downloaded — outranks news about a build
+   * that has not shipped yet. A dismissal is remembered against the coming
+   * build, so this renders nothing until a genuinely new signal appears.
+   */
+  private renderUpdateComingSoonBanner(): JSX.Element | null {
+    const signal = this.state.updateState.comingSoonSignal
+    if (signal === null || isUpdateComingSoonDismissed(signal)) {
+      return null
+    }
+
+    return (
+      <UpdateComingSoon
+        signal={signal}
+        key={`update-coming-soon-${updateComingSoonTargetKey(signal)}`}
       />
     )
   }

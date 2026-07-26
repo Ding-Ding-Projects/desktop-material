@@ -26,9 +26,10 @@ import { getVersion } from './app-proxy'
 import { getUserAgent } from '../../lib/http'
 import { runAfterRendererShutdown } from './renderer-shutdown'
 import {
-  isNewerDesktopMaterialBuildInProgress,
+  probeUpdateComingSoon,
   UpdateBuildProbeDegradation,
 } from '../../lib/desktop-material-update-build'
+import { IUpdateComingSoonSignal } from '../../lib/update-coming-soon-estimate'
 
 /** The last version a showcase was seen. */
 export const lastShowCaseVersionSeen = 'version-of-last-showcase'
@@ -61,11 +62,17 @@ export interface IUpdateState {
   newReleases: ReadonlyArray<ReleaseSummary> | null
   prioritizeUpdate: boolean
   prioritizeUpdateInfoUrl: string | undefined
+  /**
+   * What the app observed about the update that is on its way, when the status
+   * is `UpdateComingSoon`. Remote and transient, exactly like the status it
+   * accompanies: it is never persisted between update checks.
+   */
+  comingSoonSignal: IUpdateComingSoonSignal | null
 }
 
 interface IUpdateStoreDependencies {
   readonly generateReleaseSummary?: typeof generateReleaseSummary
-  readonly probeForNewerBuild?: typeof isNewerDesktopMaterialBuildInProgress
+  readonly probeForNewerBuild?: typeof probeUpdateComingSoon
   readonly subscribeToUpdaterEvents?: boolean
 }
 
@@ -77,8 +84,9 @@ export class UpdateStore {
   private newReleases: ReadonlyArray<ReleaseSummary> | null = null
   private isX64ToARM64ImmediateAutoUpdate: boolean = false
   private updateTransitionGeneration = 0
+  private comingSoonSignal: IUpdateComingSoonSignal | null = null
   private readonly generateReleaseSummary: typeof generateReleaseSummary
-  private readonly probeForNewerBuild: typeof isNewerDesktopMaterialBuildInProgress
+  private readonly probeForNewerBuild: typeof probeUpdateComingSoon
   /**
    * Whether the "some Actions data was skipped" notice has already been shown.
    * The probe runs on every update check, so an oversized GitHub response
@@ -104,7 +112,7 @@ export class UpdateStore {
     this.generateReleaseSummary =
       dependencies.generateReleaseSummary ?? generateReleaseSummary
     this.probeForNewerBuild =
-      dependencies.probeForNewerBuild ?? isNewerDesktopMaterialBuildInProgress
+      dependencies.probeForNewerBuild ?? probeUpdateComingSoon
     const lastSuccessfulCheckTime = getNumber(lastSuccessfulCheckKey, 0)
 
     if (lastSuccessfulCheckTime > 0) {
@@ -147,6 +155,8 @@ export class UpdateStore {
   private onUpdateAvailable = () => {
     this.updateTransitionGeneration++
     this.touchLastChecked()
+    // A real release has overtaken whatever was being packaged.
+    this.comingSoonSignal = null
     this.status = UpdateStatus.UpdateAvailable
     this.emitDidChange()
   }
@@ -168,18 +178,20 @@ export class UpdateStore {
   private async refreshUpdateNotAvailableState(): Promise<void> {
     const generation = ++this.updateTransitionGeneration
     // This is so we can check for pretext changelog for showcasing a recent update
-    const [newReleases, newerBuildInProgress] = await Promise.all([
+    const [newReleases, comingSoonSignal] = await Promise.all([
       this.generateReleaseSummary(),
-      this.isNewerBuildInProgress(),
+      this.probeForComingSoonSignal(),
     ])
     if (generation !== this.updateTransitionGeneration) {
       return
     }
     this.newReleases = newReleases
     this.touchLastChecked()
-    this.status = newerBuildInProgress
-      ? UpdateStatus.UpdateComingSoon
-      : UpdateStatus.UpdateNotAvailable
+    this.comingSoonSignal = comingSoonSignal
+    this.status =
+      comingSoonSignal !== null
+        ? UpdateStatus.UpdateComingSoon
+        : UpdateStatus.UpdateNotAvailable
     this.emitDidChange()
   }
 
@@ -200,13 +212,15 @@ export class UpdateStore {
       this.newReleases.length === 1 &&
       this.newReleases[0].latestVersion === getVersion() &&
       (await isRunningUnderARM64Translation())
+    // The update stopped being "coming" the moment it landed on disk.
+    this.comingSoonSignal = null
     this.status = UpdateStatus.UpdateReady
     this.emitDidChange()
 
     this.updatePriorityUpdateStatus()
   }
 
-  private async isNewerBuildInProgress(): Promise<boolean> {
+  private async probeForComingSoonSignal(): Promise<IUpdateComingSoonSignal | null> {
     try {
       return await this.probeForNewerBuild({
         updatesURL: __UPDATES_URL__,
@@ -215,7 +229,7 @@ export class UpdateStore {
       })
     } catch (error) {
       log.warn('Unable to check for an update build in progress.', error)
-      return false
+      return null
     }
   }
 
@@ -288,6 +302,7 @@ export class UpdateStore {
       isX64ToARM64ImmediateAutoUpdate: this.isX64ToARM64ImmediateAutoUpdate,
       prioritizeUpdate: this.prioritizeUpdate,
       prioritizeUpdateInfoUrl: this.prioritizeUpdateInfoUrl,
+      comingSoonSignal: this.comingSoonSignal,
     }
   }
 

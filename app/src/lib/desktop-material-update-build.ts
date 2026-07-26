@@ -2,6 +2,10 @@ import {
   ActionsMetadataJSONError,
   readBoundedActionsJSON,
 } from './actions-response'
+import {
+  IUpdateComingSoonSignal,
+  UpdateComingSoonSignalKind,
+} from './update-coming-soon-estimate'
 
 const GitHubHost = 'github.com'
 const GitHubAPIHost = 'api.github.com'
@@ -15,8 +19,18 @@ const BuildJobName = 'Windows x64'
 const MaximumProbeBytes = 2 * 1024 * 1024
 const ProbeTimeoutMilliseconds = 10_000
 const MaximumRunsPerWorkflow = 10
+/** How many finished runs and published releases the estimate samples. */
+const MaximumSamples = 5
+/** A run longer than this is treated as an outlier, not a typical duration. */
+const MaximumPlausibleRunMilliseconds = 12 * 60 * 60 * 1000
 const ObjectIDPattern = /^[0-9a-f]{40}$/
 const RepositoryPartPattern = /^[A-Za-z0-9_.-]{1,100}$/
+const ReleaseTagPattern = /^[\w.+-]{1,80}$/
+
+const ActionsHeaders = {
+  Accept: 'application/vnd.github+json',
+  'X-GitHub-Api-Version': '2022-11-28',
+}
 
 type Fetcher = (input: RequestInfo, init?: RequestInit) => Promise<Response>
 
@@ -34,6 +48,24 @@ export interface IDesktopMaterialUpdateBuildProbe {
    * ever answers "no newer build was proven".
    */
   readonly onDegraded?: (degradation: UpdateBuildProbeDegradation) => void
+  /**
+   * Called with the run that proved a newer build, immediately before the
+   * probe answers "yes". Purely observational: it reports what was already
+   * verified rather than adding a request or changing the verdict.
+   */
+  readonly onActiveBuild?: (build: IActiveBuildSignal) => void
+}
+
+/** The exact in-progress run which proved a newer build is being packaged. */
+export interface IActiveBuildSignal {
+  /** Which workflow file the run belongs to. */
+  readonly workflowFile: string
+  readonly runID: number
+  readonly headSHA: string
+  /** The run's page on github.com, when the API advertised a safe one. */
+  readonly runURL: string | null
+  /** When the run started, in epoch milliseconds, when known. */
+  readonly runStartedAt: number | null
 }
 
 /**
@@ -63,6 +95,8 @@ interface IWorkflowBuild {
 interface IActiveBuildRun {
   readonly id: number
   readonly sha: string
+  readonly url: string | null
+  readonly startedAt: number | null
 }
 
 const WorkflowBuilds: ReadonlyArray<IWorkflowBuild> = [
@@ -94,6 +128,41 @@ function normalizeObjectID(value: unknown): string | null {
 
 function normalizeRunID(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    ? value
+    : null
+}
+
+/**
+ * Keep only links that genuinely point at github.com over HTTPS. The payload
+ * comes from api.github.com, but a URL that ends up in a clickable banner is
+ * never trusted on provenance alone.
+ */
+function normalizeGitHubURL(value: unknown): string | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+  try {
+    const url = new URL(value)
+    return url.protocol === 'https:' &&
+      url.hostname.toLowerCase() === GitHubHost
+      ? url.toString()
+      : null
+  } catch {
+    return null
+  }
+}
+
+/** Read an ISO timestamp as epoch milliseconds, or null when unusable. */
+function normalizeTimestamp(value: unknown): number | null {
+  if (typeof value !== 'string') {
+    return null
+  }
+  const parsed = Date.parse(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+function normalizeReleaseTag(value: unknown): string | null {
+  return typeof value === 'string' && ReleaseTagPattern.test(value)
     ? value
     : null
 }
@@ -157,7 +226,14 @@ function activeBuildRuns(
       id !== null &&
       !runs.some(candidate => candidate.id === id)
     ) {
-      runs.push({ id, sha })
+      runs.push({
+        id,
+        sha,
+        url: normalizeGitHubURL(run.html_url),
+        startedAt:
+          normalizeTimestamp(run.run_started_at) ??
+          normalizeTimestamp(run.created_at),
+      })
     }
   }
   return runs
@@ -221,6 +297,7 @@ export async function isNewerDesktopMaterialBuildInProgress({
   fetcher = fetch,
   signal: callerSignal,
   onDegraded,
+  onActiveBuild,
 }: IDesktopMaterialUpdateBuildProbe): Promise<boolean> {
   const repository = getUpdateFeedRepository(updatesURL)
   const installed = normalizeObjectID(installedSHA)
@@ -252,13 +329,8 @@ export async function isNewerDesktopMaterialBuildInProgress({
 
   const timeout = AbortSignal.timeout(ProbeTimeoutMilliseconds)
   const signal = combineAbortSignals(callerSignal, timeout)
-  const repositoryPath = `${encodeURIComponent(
-    repository.owner
-  )}/${encodeURIComponent(repository.name)}`
-  const headers = {
-    Accept: 'application/vnd.github+json',
-    'X-GitHub-Api-Version': '2022-11-28',
-  }
+  const repositoryPath = repositoryAPIPath(repository)
+  const headers = ActionsHeaders
   const comparedSHAs = new Map<string, boolean>()
   for (const workflow of WorkflowBuilds) {
     const workflowURL = new URL(
@@ -309,10 +381,237 @@ export async function isNewerDesktopMaterialBuildInProgress({
         comparedSHAs.set(run.sha, isAhead)
       }
       if (isAhead) {
+        onActiveBuild?.({
+          workflowFile: workflow.file,
+          runID: run.id,
+          headSHA: run.sha,
+          runURL: run.url,
+          runStartedAt: run.startedAt,
+        })
         return true
       }
     }
   }
 
   return false
+}
+
+function repositoryAPIPath(repository: IUpdateRepository): string {
+  return `${encodeURIComponent(repository.owner)}/${encodeURIComponent(
+    repository.name
+  )}`
+}
+
+/**
+ * Read one supplementary leg without ever failing the probe.
+ *
+ * The legs below only enrich an estimate that is already labelled as an
+ * estimate, so an unavailable, oversized, or malformed response means "this
+ * detail is unknown" rather than an error. The load-bearing verdict — is a
+ * newer build actually coming — is decided before any of them run.
+ */
+async function readOptionalActionsJSON(
+  fetcher: Fetcher,
+  url: string,
+  signal: AbortSignal
+): Promise<unknown | null> {
+  try {
+    const response = await fetcher(url, { headers: ActionsHeaders, signal })
+    if (!response.ok) {
+      await response.body?.cancel().catch(() => undefined)
+      return null
+    }
+    return await readBoundedActionsJSON(response, signal, MaximumProbeBytes)
+  } catch {
+    return null
+  }
+}
+
+/** The head commit of a `compare` result, which is its final commit. */
+function compareHeadSHA(value: unknown): string | null {
+  const input = record(value)
+  if (input === null || !Array.isArray(input.commits)) {
+    return null
+  }
+  const head = record(input.commits[input.commits.length - 1])
+  return head === null ? null : normalizeObjectID(head.sha)
+}
+
+interface IFinishedRunSample {
+  readonly headSHA: string | null
+  readonly durationMilliseconds: number | null
+}
+
+function finishedRunSamples(value: unknown): ReadonlyArray<IFinishedRunSample> {
+  const input = record(value)
+  if (input === null || !Array.isArray(input.workflow_runs)) {
+    return []
+  }
+
+  const samples = new Array<IFinishedRunSample>()
+  for (const value of input.workflow_runs.slice(0, MaximumSamples)) {
+    const run = record(value)
+    if (
+      run === null ||
+      run.head_branch !== 'main' ||
+      run.conclusion !== 'success'
+    ) {
+      continue
+    }
+    const started =
+      normalizeTimestamp(run.run_started_at) ??
+      normalizeTimestamp(run.created_at)
+    const finished = normalizeTimestamp(run.updated_at)
+    const duration =
+      started !== null && finished !== null ? finished - started : null
+    samples.push({
+      headSHA: normalizeObjectID(run.head_sha),
+      durationMilliseconds:
+        duration !== null &&
+        duration > 0 &&
+        duration <= MaximumPlausibleRunMilliseconds
+          ? duration
+          : null,
+    })
+  }
+  return samples
+}
+
+interface IReleaseSamples {
+  readonly publishedTimes: ReadonlyArray<number>
+  readonly latestTag: string | null
+  readonly draftTag: string | null
+}
+
+function releaseSamples(body: unknown): IReleaseSamples {
+  if (!Array.isArray(body)) {
+    return { publishedTimes: [], latestTag: null, draftTag: null }
+  }
+
+  const publishedTimes = new Array<number>()
+  let latestTag: string | null = null
+  let draftTag: string | null = null
+  for (const value of body.slice(0, MaximumSamples)) {
+    const release = record(value)
+    if (release === null) {
+      continue
+    }
+    const tag = normalizeReleaseTag(release.tag_name)
+    if (release.draft === true) {
+      // A visible draft is the one place the fork names the coming version
+      // before it exists. Anonymous callers rarely see one, hence "if known".
+      draftTag ??= tag
+      continue
+    }
+    const published = normalizeTimestamp(release.published_at)
+    if (published !== null) {
+      publishedTimes.push(published)
+      latestTag ??= tag
+    }
+  }
+  return { publishedTimes, latestTag, draftTag }
+}
+
+/**
+ * Gather everything observable about an update that is on its way, so the UI
+ * can say *when* as well as *that* — always as an estimate.
+ *
+ * The verdict itself is still decided by `isNewerDesktopMaterialBuildInProgress`
+ * and, failing that, by a single `compare` against `main`. Only once a newer
+ * commit is proven does this spend requests on the samples an estimate needs,
+ * so the ordinary "you are up to date" check costs one extra request.
+ */
+export async function probeUpdateComingSoon({
+  updatesURL,
+  installedSHA,
+  fetcher = fetch,
+  signal: callerSignal,
+  onDegraded,
+}: IDesktopMaterialUpdateBuildProbe): Promise<IUpdateComingSoonSignal | null> {
+  const repository = getUpdateFeedRepository(updatesURL)
+  const installed = normalizeObjectID(installedSHA)
+  if (repository === null || installed === null) {
+    return null
+  }
+
+  // Assigned from a callback, so it is read through an object the compiler
+  // cannot narrow away across the await.
+  const observed: { build: IActiveBuildSignal | null } = { build: null }
+  const isBuilding = await isNewerDesktopMaterialBuildInProgress({
+    updatesURL,
+    installedSHA,
+    fetcher,
+    signal: callerSignal,
+    onDegraded,
+    onActiveBuild: build => {
+      observed.build ??= build
+    },
+  })
+
+  const timeout = AbortSignal.timeout(ProbeTimeoutMilliseconds)
+  const signal = combineAbortSignals(callerSignal, timeout)
+  const repositoryPath = repositoryAPIPath(repository)
+  const active = isBuilding ? observed.build : null
+
+  let kind: UpdateComingSoonSignalKind = 'build-running'
+  let headSHA: string
+  let commitURL: string | null = null
+  let workflowFile = WorkflowBuilds[0].file
+
+  if (active !== null) {
+    headSHA = active.headSHA
+    workflowFile = active.workflowFile
+  } else {
+    const compare = await readOptionalActionsJSON(
+      fetcher,
+      `https://${GitHubAPIHost}/repos/${repositoryPath}/compare/${installed}...main`,
+      signal
+    )
+    if (compare === null || compareStatus(compare) !== 'ahead') {
+      return null
+    }
+    const head = compareHeadSHA(compare)
+    if (head === null) {
+      return null
+    }
+    kind = 'newer-commit'
+    headSHA = head
+    commitURL = normalizeGitHubURL(record(compare)?.html_url)
+  }
+
+  const runsURL = new URL(
+    `https://${GitHubAPIHost}/repos/${repositoryPath}/actions/workflows/${workflowFile}/runs`
+  )
+  runsURL.searchParams.set('branch', 'main')
+  runsURL.searchParams.set('status', 'success')
+  runsURL.searchParams.set('per_page', MaximumSamples.toString())
+  const samples = finishedRunSamples(
+    await readOptionalActionsJSON(fetcher, runsURL.toString(), signal)
+  )
+  if (kind === 'newer-commit' && samples.some(s => s.headSHA === headSHA)) {
+    // The commit is already built and green, so only publishing is left.
+    kind = 'awaiting-release'
+  }
+
+  const releasesURL = new URL(
+    `https://${GitHubAPIHost}/repos/${repositoryPath}/releases`
+  )
+  releasesURL.searchParams.set('per_page', MaximumSamples.toString())
+  const releases = releaseSamples(
+    await readOptionalActionsJSON(fetcher, releasesURL.toString(), signal)
+  )
+
+  return {
+    kind,
+    headSHA,
+    commitURL,
+    runURL: active?.runURL ?? null,
+    runStartedAt: active?.runStartedAt ?? null,
+    recentRunDurations: samples
+      .map(sample => sample.durationMilliseconds)
+      .filter((duration): duration is number => duration !== null),
+    recentReleaseTimes: releases.publishedTimes,
+    targetTag: releases.draftTag,
+    latestReleaseTag: releases.latestTag,
+  }
 }

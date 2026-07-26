@@ -12,6 +12,39 @@ export type TranslationKey =
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
   | 'update.comingSoon'
+  | 'update.comingSoon.showDetails'
+  | 'update.comingSoon.hideDetails'
+  | 'update.comingSoon.detailsLabel'
+  | 'update.comingSoon.estimateNotice'
+  | 'update.comingSoon.etaMinutes'
+  | 'update.comingSoon.etaHours'
+  | 'update.comingSoon.etaDays'
+  | 'update.comingSoon.etaShortly'
+  | 'update.comingSoon.etaAnyMinute'
+  | 'update.comingSoon.etaUnknown'
+  | 'update.comingSoon.durationMinutes'
+  | 'update.comingSoon.durationHours'
+  | 'update.comingSoon.durationDays'
+  | 'update.comingSoon.targetLabel'
+  | 'update.comingSoon.targetUnknown'
+  | 'update.comingSoon.signalLabel'
+  | 'update.comingSoon.signalBuildRunning'
+  | 'update.comingSoon.signalAwaitingRelease'
+  | 'update.comingSoon.signalNewerCommit'
+  | 'update.comingSoon.basisLabel'
+  | 'update.comingSoon.basisRunningWorkflow'
+  | 'update.comingSoon.basisRunningWorkflowUnmeasured'
+  | 'update.comingSoon.basisGreenCI'
+  | 'update.comingSoon.basisCadence'
+  | 'update.comingSoon.basisCadenceUnmeasured'
+  | 'update.comingSoon.cadenceLabel'
+  | 'update.comingSoon.cadenceValue'
+  | 'update.comingSoon.cadenceUnknown'
+  | 'update.comingSoon.commitLabel'
+  | 'update.comingSoon.viewCommit'
+  | 'update.comingSoon.viewRun'
+  | 'update.comingSoon.latestReleaseLabel'
+  | 'update.comingSoon.latestReleaseUnknown'
   | 'appearance.updateProgressColor'
   | 'appearance.useAccentColor'
   | 'appearance.languageMode'
@@ -1932,6 +1965,49 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
   'update.comingSoon': 'New update coming soon',
+  'update.comingSoon.showDetails': 'Show more details',
+  'update.comingSoon.hideDetails': 'Hide details',
+  'update.comingSoon.detailsLabel': 'Coming update details',
+  'update.comingSoon.estimateNotice':
+    'This is an estimate derived from public build signals, not a promise.',
+  'update.comingSoon.etaMinutes': 'Estimated in about {count} min',
+  'update.comingSoon.etaHours': 'Estimated in about {count} h',
+  'update.comingSoon.etaDays': 'Estimated in about {count} days',
+  'update.comingSoon.etaShortly': 'Estimated to arrive shortly',
+  'update.comingSoon.etaAnyMinute': 'Estimated to arrive any minute now',
+  'update.comingSoon.etaUnknown': 'No arrival time can be estimated yet',
+  'update.comingSoon.durationMinutes': '{count} min',
+  'update.comingSoon.durationHours': '{count} h',
+  'update.comingSoon.durationDays': '{count} days',
+  'update.comingSoon.targetLabel': 'Target version',
+  'update.comingSoon.targetUnknown': 'Not tagged yet',
+  'update.comingSoon.signalLabel': 'Driving signal',
+  'update.comingSoon.signalBuildRunning':
+    'A Windows build for a newer commit is running now',
+  'update.comingSoon.signalAwaitingRelease':
+    'A newer commit built successfully; no release carries it yet',
+  'update.comingSoon.signalNewerCommit':
+    'A newer commit is on main; no build has finished for it yet',
+  'update.comingSoon.basisLabel': 'Estimate basis',
+  'update.comingSoon.basisRunningWorkflow':
+    'Median duration of the last {count} successful runs, minus the time this run has already taken',
+  'update.comingSoon.basisRunningWorkflowUnmeasured':
+    'A run is in progress, but no finished run was readable to time it against',
+  'update.comingSoon.basisGreenCI':
+    'The build already passed, so only the publishing step is outstanding',
+  'update.comingSoon.basisCadence':
+    'Median gap between the last {count} published releases, measured from the newest one',
+  'update.comingSoon.basisCadenceUnmeasured':
+    'Not enough published releases to measure a cadence',
+  'update.comingSoon.cadenceLabel': 'Recent cadence',
+  'update.comingSoon.cadenceValue':
+    'About one release every {gap}, over {count} gaps',
+  'update.comingSoon.cadenceUnknown': 'Not measured',
+  'update.comingSoon.commitLabel': 'Commit',
+  'update.comingSoon.viewCommit': 'Compare on GitHub',
+  'update.comingSoon.viewRun': 'View the build run',
+  'update.comingSoon.latestReleaseLabel': 'Latest published release',
+  'update.comingSoon.latestReleaseUnknown': 'Unknown',
   'appearance.updateProgressColor': 'Update progress color',
   'appearance.useAccentColor': 'Use accent color',
   'appearance.languageMode': 'Language',
@@ -4322,6 +4398,48 @@ export const cantoneseTranslations: Readonly<
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
   'update.comingSoon': '新版本就快焗好出爐',
+  'update.comingSoon.showDetails': '睇多啲詳情',
+  'update.comingSoon.hideDetails': '收埋詳情',
+  'update.comingSoon.detailsLabel': '新版本詳情',
+  'update.comingSoon.estimateNotice':
+    '呢個係根據公開建置訊號嘅估算，唔係承諾。',
+  'update.comingSoon.etaMinutes': '估計仲有大約 {count} 分鐘',
+  'update.comingSoon.etaHours': '估計仲有大約 {count} 小時',
+  'update.comingSoon.etaDays': '估計仲有大約 {count} 日',
+  'update.comingSoon.etaShortly': '估計好快就到',
+  'update.comingSoon.etaAnyMinute': '估計隨時都到',
+  'update.comingSoon.etaUnknown': '暫時估唔到幾時到',
+  'update.comingSoon.durationMinutes': '{count} 分鐘',
+  'update.comingSoon.durationHours': '{count} 小時',
+  'update.comingSoon.durationDays': '{count} 日',
+  'update.comingSoon.targetLabel': '目標版本',
+  'update.comingSoon.targetUnknown': '仲未開 tag',
+  'update.comingSoon.signalLabel': '訊號來源',
+  'update.comingSoon.signalBuildRunning':
+    '有個更新 commit 嘅 Windows 建置而家行緊',
+  'update.comingSoon.signalAwaitingRelease':
+    '更新 commit 已經建置成功，但仲未有 release 帶住佢',
+  'update.comingSoon.signalNewerCommit':
+    'main 上面有更新 commit，仲未有建置完成',
+  'update.comingSoon.basisLabel': '估算依據',
+  'update.comingSoon.basisRunningWorkflow':
+    '最近 {count} 次成功建置嘅中位時間，減去今次已經行咗嘅時間',
+  'update.comingSoon.basisRunningWorkflowUnmeasured':
+    '有建置行緊，但讀唔到已完成嘅建置嚟做比較',
+  'update.comingSoon.basisGreenCI': '建置已經過咗，淨返發布呢一步',
+  'update.comingSoon.basisCadence':
+    '最近 {count} 段發布間隔嘅中位數，由最新一個 release 起計',
+  'update.comingSoon.basisCadenceUnmeasured':
+    '已發布嘅 release 唔夠多，量唔到節奏',
+  'update.comingSoon.cadenceLabel': '近期發布節奏',
+  'update.comingSoon.cadenceValue':
+    '大約每 {gap}出一個 release，睇咗 {count} 段間隔',
+  'update.comingSoon.cadenceUnknown': '未量到',
+  'update.comingSoon.commitLabel': 'Commit',
+  'update.comingSoon.viewCommit': '喺 GitHub 睇對比',
+  'update.comingSoon.viewRun': '睇吓個建置',
+  'update.comingSoon.latestReleaseLabel': '最新已發布版本',
+  'update.comingSoon.latestReleaseUnknown': '唔知',
   'appearance.updateProgressColor': '更新進度列顏色',
   'appearance.useAccentColor': '跟強調色',
   'appearance.languageMode': '語言',
