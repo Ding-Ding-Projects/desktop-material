@@ -504,11 +504,193 @@ describe('GitHub Releases store', () => {
 
     const inventory = await store.listAll(repository)
     assert.equal(inventory.complete, true)
+    assert.equal(inventory.outcome, 'complete')
+    assert.equal(inventory.error, null)
     assert.deepEqual(
       inventory.releases.map(entry => entry.id),
       [release.id, 8]
     )
     assert.deepEqual(requestedPages, [1, 2])
+  })
+
+  it('walks to exhaustion from a resume page and reports each page', async () => {
+    // The Releases view already holds page one, so the exhaustive walk resumes
+    // rather than re-reading what is on screen, and reports its running count
+    // so the button can show honest progress.
+    const requestedPages = new Array<number>()
+    const progress = new Array<[number, number]>()
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => {
+            requestedPages.push(page)
+            return {
+              releases: [{ ...release, id: page * 10 }],
+              page,
+              nextPage: page < 4 ? page + 1 : null,
+              capped: false,
+            }
+          },
+        })
+      )
+    )
+
+    const inventory = await store.listAll(repository, undefined, {
+      startPage: 2,
+      onPage: page => progress.push([page.page, page.loaded]),
+    })
+
+    assert.equal(inventory.outcome, 'complete')
+    assert.deepEqual(requestedPages, [2, 3, 4])
+    assert.deepEqual(progress, [
+      [2, 1],
+      [3, 2],
+      [4, 3],
+    ])
+    assert.deepEqual(
+      inventory.releases.map(entry => entry.id),
+      [20, 30, 40]
+    )
+  })
+
+  it('never reads past the page ceiling, even when it resumes', async () => {
+    // The API layer refuses to parse past the ceiling, so a resumed walk must
+    // stop at the same absolute page rather than counting its own iterations.
+    const requestedPages = new Array<number>()
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => {
+            requestedPages.push(page)
+            return {
+              releases: [{ ...release, id: page * 10 }],
+              page,
+              nextPage: page + 1,
+              capped: false,
+            }
+          },
+        })
+      )
+    )
+
+    const inventory = await store.listAll(repository, undefined, {
+      startPage: 8,
+    })
+
+    assert.equal(inventory.complete, false)
+    assert.equal(inventory.outcome, 'page-limit')
+    assert.deepEqual(requestedPages, [8, 9, 10])
+  })
+
+  it('keeps the pages already read when the walk is canceled', async () => {
+    const controller = new AbortController()
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => {
+            if (page === 3) {
+              controller.abort()
+            }
+            return {
+              releases: [{ ...release, id: page * 10 }],
+              page,
+              nextPage: page + 1,
+              capped: false,
+            }
+          },
+        })
+      )
+    )
+
+    const inventory = await store.listAll(repository, controller.signal, {
+      keepPartial: true,
+    })
+
+    assert.equal(inventory.complete, false)
+    assert.equal(inventory.outcome, 'canceled')
+    assert.deepEqual(
+      inventory.releases.map(entry => entry.id),
+      [10, 20]
+    )
+  })
+
+  it('stops cleanly on the API rate limit and keeps what loaded', async () => {
+    // A rate limit part-way through a long walk must not throw away the pages
+    // that did load; the operator keeps a filterable, honestly-labelled set.
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => {
+            if (page === 3) {
+              throw new APIError(
+                new Response('{}', {
+                  status: 403,
+                  headers: { 'X-RateLimit-Reset': '1900000000' },
+                }),
+                null
+              )
+            }
+            return {
+              releases: [{ ...release, id: page * 10 }],
+              page,
+              nextPage: page + 1,
+              capped: false,
+            }
+          },
+        })
+      )
+    )
+
+    const inventory = await store.listAll(repository, undefined, {
+      keepPartial: true,
+    })
+
+    assert.equal(inventory.complete, false)
+    assert.equal(inventory.outcome, 'rate-limit')
+    assert.deepEqual(
+      inventory.releases.map(entry => entry.id),
+      [10, 20]
+    )
+    assert.equal(
+      (inventory.error as GitHubReleasesError).kind === 'rate-limit',
+      true
+    )
+  })
+
+  it('still throws a mid-walk failure for the Cheap LFS review', async () => {
+    // The batch review must never mistake a partial walk for the inventory, so
+    // the default keeps failing loudly instead of returning what it managed.
+    const store = await storeWith(
+      new FakeAccountsStore([selected]),
+      dependencies(() =>
+        fakeAPI({
+          fetchReleases: async (_owner, _name, page = 1) => {
+            if (page === 2) {
+              throw new APIError(new Response('{}', { status: 500 }), null)
+            }
+            return {
+              releases: [release],
+              page,
+              nextPage: 2,
+              capped: false,
+            }
+          },
+        })
+      )
+    )
+
+    await assert.rejects(() => store.listAll(repository), GitHubReleasesError)
+
+    const kept = await store.listAll(repository, undefined, {
+      keepPartial: true,
+    })
+    assert.equal(kept.outcome, 'failed')
+    assert.equal(kept.releases.length, 1)
+    assert.ok(kept.error instanceof GitHubReleasesError)
   })
 
   it('reports a capped inventory as incomplete rather than as proof', async () => {
@@ -530,6 +712,7 @@ describe('GitHub Releases store', () => {
 
     const inventory = await store.listAll(repository)
     assert.equal(inventory.complete, false)
+    assert.equal(inventory.outcome, 'page-limit')
     assert.equal(inventory.releases.length, 1)
   })
 

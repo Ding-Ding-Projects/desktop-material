@@ -51,11 +51,49 @@ export type GitHubReleasesAvailability =
  */
 export const CheapLfsReleaseInventoryMaximumPages = GitHubReleaseMaximumPages
 
+/**
+ * Why one bounded inventory walk stopped.
+ *
+ * Only `complete` means every remaining release was read. Each other outcome
+ * names the exact reason the walk is partial so no caller — and no operator
+ * reading the Releases view — can mistake a truncated list for the whole
+ * repository.
+ */
+export type GitHubReleaseInventoryOutcome =
+  | 'complete'
+  | 'page-limit'
+  | 'rate-limit'
+  | 'canceled'
+  | 'failed'
+
+/** One page the walk finished reading, reported while it is still running. */
+export interface IGitHubReleaseInventoryProgress {
+  readonly page: number
+  /** Releases accumulated by this walk so far, across every page it read. */
+  readonly loaded: number
+}
+
+export interface IGitHubReleaseInventoryOptions {
+  /** Resume from a page already known to exist; defaults to the first page. */
+  readonly startPage?: number
+  readonly onPage?: (progress: IGitHubReleaseInventoryProgress) => void
+  /**
+   * Report a cancellation, a rate limit, or a provider failure as an outcome
+   * and keep the pages already read, instead of throwing them away with the
+   * error. Interactive callers set this so a stop late in a long walk still
+   * leaves the operator with everything that did load.
+   */
+  readonly keepPartial?: boolean
+}
+
 /** One bounded pass over the complete release inventory. */
 export interface ICheapLfsReleaseInventory {
   readonly releases: ReadonlyArray<IGitHubRelease>
-  /** `false` when the page ceiling stopped the walk before the last page. */
+  /** `false` when anything stopped the walk before the last page. */
   readonly complete: boolean
+  readonly outcome: GitHubReleaseInventoryOutcome
+  /** The failure that stopped a `keepPartial` walk, else `null`. */
+  readonly error: Error | null
 }
 
 export type GitHubReleasesErrorKind =
@@ -77,6 +115,26 @@ export class GitHubReleasesError extends Error {
     super(message)
     this.name = 'GitHubReleasesError'
   }
+}
+
+function inventory(
+  releases: ReadonlyArray<IGitHubRelease>,
+  outcome: GitHubReleaseInventoryOutcome,
+  error: Error | null = null
+): ICheapLfsReleaseInventory {
+  return { releases, complete: outcome === 'complete', outcome, error }
+}
+
+/** Classify the stop a `keepPartial` walk reports instead of throwing. */
+function inventoryStopOutcome(
+  error: unknown
+): Exclude<GitHubReleaseInventoryOutcome, 'complete' | 'page-limit'> {
+  if ((error as Error)?.name === 'AbortError') {
+    return 'canceled'
+  }
+  return error instanceof GitHubReleasesError && error.kind === 'rate-limit'
+    ? 'rate-limit'
+    : 'failed'
 }
 
 const operationLabels: Readonly<Record<GitHubReleaseOperation, string>> = {
@@ -682,33 +740,50 @@ export class GitHubReleasesStore {
    * Read the complete release inventory in one bounded pass.
    *
    * The Cheap LFS batch review needs every release, not one interactive page:
-   * a bucket it cannot see is a bucket it would create a second time. The walk
-   * stops at `CheapLfsReleaseInventoryMaximumPages`, and a page the parser
-   * already reported as capped ends the walk as *incomplete* — a truncated view
-   * is never passed off as proof that the unseen releases are absent.
+   * a bucket it cannot see is a bucket it would create a second time. The
+   * Releases view's "Load all releases" walks the same path so its search
+   * filter runs over the whole repository rather than the first page.
+   *
+   * The walk never reads past `CheapLfsReleaseInventoryMaximumPages`, which is
+   * the same ceiling the API layer refuses to parse beyond, and a page the
+   * parser already reported as capped ends the walk as *incomplete* — a
+   * truncated view is never passed off as proof that the unseen releases are
+   * absent. `startPage` resumes from a page the caller already holds so an
+   * interactive walk does not re-read what is on screen; the ceiling stays
+   * absolute, so resuming can never push the walk past it.
    */
   public async listAll(
     repository: Repository,
-    signal?: AbortSignal
+    signal?: AbortSignal,
+    options: IGitHubReleaseInventoryOptions = {}
   ): Promise<ICheapLfsReleaseInventory> {
     const releases = new Array<IGitHubRelease>()
-    let page = 1
-    for (
-      let visited = 0;
-      visited < CheapLfsReleaseInventoryMaximumPages;
-      visited++
-    ) {
-      const listed = await this.list(repository, page, signal)
+    let page = Math.max(1, options.startPage ?? 1)
+    while (page <= CheapLfsReleaseInventoryMaximumPages) {
+      let listed
+      try {
+        listed = await this.list(repository, page, signal)
+      } catch (error) {
+        if (options.keepPartial !== true) {
+          throw error
+        }
+        return inventory(
+          releases,
+          inventoryStopOutcome(error),
+          error instanceof Error ? error : new Error(String(error))
+        )
+      }
       releases.push(...listed.releases)
+      options.onPage?.({ page: listed.page, loaded: releases.length })
       if (listed.capped) {
-        return { releases, complete: false }
+        return inventory(releases, 'page-limit')
       }
       if (listed.nextPage === null) {
-        return { releases, complete: true }
+        return inventory(releases, 'complete')
       }
       page = listed.nextPage
     }
-    return { releases, complete: false }
+    return inventory(releases, 'page-limit')
   }
 
   /** Resolve one release by tag through the repository-selected account. */

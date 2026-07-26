@@ -1671,6 +1671,24 @@ export type TranslationKey =
   | 'githubReleases.openFile'
   | 'githubReleases.showInFolder'
   | 'githubReleases.openFileError'
+  | 'githubReleases.loadAll'
+  | 'githubReleases.loadAllBusy'
+  | 'githubReleases.loadAllProgress'
+  | 'githubReleases.loadAllComplete'
+  | 'githubReleases.loadAllTruncated'
+  | 'githubReleases.loadAllRateLimited'
+  | 'githubReleases.loadAllFailed'
+  | 'githubReleases.loadAllCanceled'
+  | 'githubReleases.bulkDeleteReview'
+  | 'githubReleases.bulkDeleteProgressLabel'
+  | 'githubReleases.bulkDeleteProgress'
+  | 'githubReleases.bulkDeleteStop'
+  | 'githubReleases.bulkDeleteStopping'
+  | 'githubReleases.bulkDeleteSummary'
+  | 'githubReleases.bulkDeleteSummaryStopped'
+  | 'githubReleases.bulkDeleteFailures'
+  | 'githubReleases.bulkDeleteFailure'
+  | 'githubReleases.bulkDeleteFailuresOmitted'
   | 'cheapLfs.pinFailures.title'
   | 'cheapLfs.pinFailures.one'
   | 'cheapLfs.pinFailures.many'
@@ -3865,6 +3883,37 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'githubReleases.showInFolder': 'Show in folder',
   'githubReleases.openFileError':
     'The downloaded release asset could not be opened. Check that Windows has an app associated with this file type, then try again. {detail}',
+  'githubReleases.loadAll': 'Load all releases',
+  'githubReleases.loadAllBusy': 'Loading every release…',
+  'githubReleases.loadAllProgress':
+    'Loading every release… {loaded} of ? loaded, through page {page}.',
+  'githubReleases.loadAllComplete':
+    'Loaded every release in this repository: {loaded} in total. The search filter now covers all of them.',
+  'githubReleases.loadAllTruncated':
+    'Loaded {loaded} releases and stopped at the {pages}-page safety limit. Older releases past that limit were not loaded, so the filter does not cover them.',
+  'githubReleases.loadAllRateLimited':
+    'Stopped at GitHub’s API rate limit with {loaded} releases loaded. The releases already loaded are still shown and still filterable. Try again after the limit resets.',
+  'githubReleases.loadAllFailed':
+    'Stopped after {loaded} releases were loaded. {detail}',
+  'githubReleases.loadAllCanceled':
+    'Stopped loading. {loaded} releases are loaded and still filterable.',
+  'githubReleases.bulkDeleteReview':
+    'Each exact reviewed release is revalidated immediately before permanent deletion, one at a time, with progress shown. Git tags are not deleted. A release that fails is reported with its reason and the remaining releases continue.',
+  'githubReleases.bulkDeleteProgressLabel':
+    'Selected release deletion progress',
+  'githubReleases.bulkDeleteProgress':
+    'Deleting selected releases: {deleted} deleted, {failed} failed, of {total}.',
+  'githubReleases.bulkDeleteStop': 'Stop after this release',
+  'githubReleases.bulkDeleteStopping':
+    'Stopping after the release now being deleted. {deleted} deleted, {failed} failed, of {total}.',
+  'githubReleases.bulkDeleteSummary':
+    'Deleted {deleted} of {total} selected releases, {failed} failed. Git tags were not deleted.',
+  'githubReleases.bulkDeleteSummaryStopped':
+    'Stopped after {attempted} of {total} selected releases: {deleted} deleted, {failed} failed, {remaining} not attempted. Git tags were not deleted.',
+  'githubReleases.bulkDeleteFailures': 'Releases that could not be deleted',
+  'githubReleases.bulkDeleteFailure': '{tag}: {reason}',
+  'githubReleases.bulkDeleteFailuresOmitted':
+    'and {count} more not shown here.',
   'cheapLfs.settings.sectionHeading': 'Large files & storage (Cheap LFS)',
   'cheapLfs.settings.autoMaterialize': 'Download large files after cloning',
   'cheapLfs.settings.autoPin': 'Pin large files when committing',
@@ -5970,6 +6019,35 @@ export const cantoneseTranslations: Readonly<
   'githubReleases.showInFolder': '喺資料夾顯示',
   'githubReleases.openFileError':
     '開唔到下載咗嘅 Release 檔案。請檢查 Windows 有冇 app 可以開呢種檔案，跟住再試。{detail}',
+  'githubReleases.loadAll': '載入全部 Release',
+  'githubReleases.loadAllBusy': '載入緊全部 Release…',
+  'githubReleases.loadAllProgress':
+    '載入緊全部 Release… 已載入 {loaded} 個（總數未知），去到第 {page} 頁。',
+  'githubReleases.loadAllComplete':
+    '成個 repository 嘅 Release 都載入晒喇，一共 {loaded} 個。而家搜尋會篩晒全部。',
+  'githubReleases.loadAllTruncated':
+    '載入咗 {loaded} 個 Release，去到 {pages} 頁嘅安全上限就停。超出上限嘅舊 Release 未載入，所以篩選唔包佢哋。',
+  'githubReleases.loadAllRateLimited':
+    '撞到 GitHub API 用量上限，已載入 {loaded} 個 Release 就停低。已經載入嘅照樣顯示、照樣可以篩選。等上限重設之後再試。',
+  'githubReleases.loadAllFailed':
+    '載入咗 {loaded} 個 Release 之後停低。{detail}',
+  'githubReleases.loadAllCanceled':
+    '已經停止載入。而家有 {loaded} 個 Release，仲可以照篩選。',
+  'githubReleases.bulkDeleteReview':
+    '每個已審核嘅 Release 都會喺永久刪除前即時重新核實，逐個處理並顯示進度。Git tag 唔會刪除。有 Release 失敗會列出原因，其餘嘅會繼續處理。',
+  'githubReleases.bulkDeleteProgressLabel': '刪除已選 Release 嘅進度',
+  'githubReleases.bulkDeleteProgress':
+    '刪除緊已選 Release：已刪除 {deleted} 個、失敗 {failed} 個，總共 {total} 個。',
+  'githubReleases.bulkDeleteStop': '刪完呢個就停',
+  'githubReleases.bulkDeleteStopping':
+    '刪完手上呢個就會停。已刪除 {deleted} 個、失敗 {failed} 個，總共 {total} 個。',
+  'githubReleases.bulkDeleteSummary':
+    '喺 {total} 個已選 Release 入面刪除咗 {deleted} 個，{failed} 個失敗。Git tag 冇刪除。',
+  'githubReleases.bulkDeleteSummaryStopped':
+    '喺 {total} 個已選 Release 入面處理咗 {attempted} 個就停：刪除咗 {deleted} 個、{failed} 個失敗、{remaining} 個未處理。Git tag 冇刪除。',
+  'githubReleases.bulkDeleteFailures': '刪唔到嘅 Release',
+  'githubReleases.bulkDeleteFailure': '{tag}：{reason}',
+  'githubReleases.bulkDeleteFailuresOmitted': '仲有 {count} 個未喺度列出。',
   'cheapLfs.settings.sectionHeading': '大型檔案同儲存（Cheap LFS）',
   'cheapLfs.settings.autoMaterialize': 'Clone 完自動下載大檔案',
   'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',

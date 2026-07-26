@@ -104,6 +104,12 @@ function fakeStore(overrides: Record<string, unknown> = {}) {
       nextPage: page === 1 ? 2 : null,
       capped: false,
     }),
+    listAll: async () => ({
+      releases: [draft],
+      complete: true,
+      outcome: 'complete',
+      error: null,
+    }),
     listAssets: async () => ({
       assets: [asset],
       page: 1,
@@ -679,6 +685,300 @@ describe('GitHub Releases view', () => {
     await waitFor(() => assert.deepEqual(deleted, [draft.id, stable.id]))
   })
 
+  it('loads every release page so the search filter covers all of them', async () => {
+    // The filter must recompute over the grown set, not over a second list:
+    // a release the walk loaded but the search bar cannot reach would be a
+    // silently truncated result.
+    const names = ['Alpha', 'Bravo', 'Zephyr']
+    const pageReleases = (page: number) => [
+      {
+        ...draft,
+        id: page * 10,
+        tagName: `v0.${page}.0`,
+        name: names[page - 1],
+        draft: false,
+      },
+    ]
+    const walkedPages = new Array<number>()
+    const store = fakeStore({
+      list: async (_repository: Repository, page: number) => ({
+        releases: pageReleases(page),
+        page,
+        nextPage: page < 3 ? page + 1 : null,
+        capped: false,
+      }),
+      listAll: async (
+        _repository: Repository,
+        _signal: AbortSignal | undefined,
+        options: {
+          readonly startPage: number
+          readonly onPage?: (progress: { page: number; loaded: number }) => void
+        }
+      ) => {
+        const releases = new Array<IGitHubRelease>()
+        for (let page = options.startPage; page <= 3; page++) {
+          walkedPages.push(page)
+          releases.push(...pageReleases(page))
+          options.onPage?.({ page, loaded: releases.length })
+        }
+        return {
+          releases,
+          complete: true,
+          outcome: 'complete',
+          error: null,
+        }
+      },
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText('1 of 1 shown')))
+    assert.equal(screen.queryByText('Zephyr'), null)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load all releases' }))
+    await waitFor(() => assert.ok(screen.getByText('3 of 3 shown')))
+    // The walk resumed rather than re-reading the page already on screen.
+    assert.deepEqual(walkedPages, [2, 3])
+    assert.ok(screen.getByText('Zephyr'))
+    assert.ok(
+      screen.getByText(
+        'Loaded every release in this repository: 3 in total. The search filter now covers all of them.'
+      )
+    )
+    // The walk reached the end, so there is nothing left to page through. The
+    // control stays keyboard reachable and reports its state through ARIA.
+    const loadAll = screen.getByRole('button', { name: 'Load all releases' })
+    assert.equal(loadAll.getAttribute('aria-disabled'), 'true')
+    assert.equal(loadAll.tagName, 'BUTTON')
+
+    const search = screen.getByLabelText('Search loaded releases')
+    fireEvent.change(search, { target: { value: 'Zephyr' } })
+
+    await waitFor(() =>
+      assert.ok(screen.getByText('Filtering 1 of 3 loaded releases'))
+    )
+    assert.ok(screen.getByText('1 of 3 shown'))
+    assert.ok(screen.getByText('Zephyr'))
+    assert.equal(screen.queryByText('Alpha'), null)
+    assert.equal(screen.queryByText('Bravo'), null)
+  })
+
+  it('says the exhaustive walk was truncated instead of hiding it', async () => {
+    const store = fakeStore({
+      list: async (_repository: Repository, page: number) => ({
+        releases: [{ ...draft, id: page * 10, tagName: `v0.${page}.0` }],
+        page,
+        nextPage: 2,
+        capped: false,
+      }),
+      listAll: async () => ({
+        releases: [{ ...draft, id: 20, tagName: 'v0.2.0' }],
+        complete: false,
+        outcome: 'page-limit',
+        error: null,
+      }),
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText('1 of 1 shown')))
+    fireEvent.click(screen.getByRole('button', { name: 'Load all releases' }))
+
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Loaded 2 releases and stopped at the 10-page safety limit. Older releases past that limit were not loaded, so the filter does not cover them.'
+        )
+      )
+    )
+    assert.ok(screen.getByText('Safety limit reached. Refresh to begin again.'))
+  })
+
+  it('keeps what loaded and names the rate limit that stopped the walk', async () => {
+    const store = fakeStore({
+      list: async (_repository: Repository, page: number) => ({
+        releases: [{ ...draft, id: page * 10, tagName: `v0.${page}.0` }],
+        page,
+        nextPage: page + 1,
+        capped: false,
+      }),
+      listAll: async () => ({
+        releases: [
+          { ...draft, id: 20, tagName: 'v0.2.0' },
+          { ...draft, id: 30, tagName: 'v0.3.0' },
+        ],
+        complete: false,
+        outcome: 'rate-limit',
+        error: new Error('rate limited'),
+      }),
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText('1 of 1 shown')))
+    fireEvent.click(screen.getByRole('button', { name: 'Load all releases' }))
+
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Stopped at GitHub’s API rate limit with 3 releases loaded. The releases already loaded are still shown and still filterable. Try again after the limit resets.'
+        )
+      )
+    )
+    // What did load stays loaded and filterable, and the walk can resume.
+    assert.ok(screen.getByText('3 of 3 shown'))
+    assert.equal(
+      screen
+        .getByRole('button', { name: 'Load all releases' })
+        .getAttribute('aria-disabled'),
+      null
+    )
+  })
+
+  it('shows determinate progress and stops bulk deletion between releases', async () => {
+    const second = { ...draft, id: 8, tagName: 'v0.9.0', draft: false }
+    const third = { ...draft, id: 9, tagName: 'v0.8.0', draft: false }
+    const attempted = new Array<number>()
+    let releaseFirstDelete: () => void = () => undefined
+    const firstDelete = new Promise<void>(resolve => {
+      releaseFirstDelete = resolve
+    })
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft, second, third],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+      delete: async (
+        _repository: Repository,
+        review: IGitHubReleaseMutationReview
+      ) => {
+        attempted.push(review.releaseId)
+        if (review.releaseId === draft.id) {
+          await firstDelete
+        }
+      },
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByLabelText('Select all visible releases'))
+    )
+    fireEvent.click(screen.getByLabelText('Select all visible releases'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected (3)' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete reviewed releases' })
+    )
+
+    const meter = await screen.findByRole('progressbar', {
+      name: 'Selected release deletion progress',
+    })
+    assert.equal(meter.getAttribute('aria-valuenow'), '0')
+    assert.equal(meter.getAttribute('aria-valuemax'), '3')
+    assert.ok(
+      screen.getByText('Deleting selected releases: 0 deleted, 0 failed, of 3.')
+    )
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Stop after this release' })
+    )
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Stopping after the release now being deleted. 0 deleted, 0 failed, of 3.'
+        )
+      )
+    )
+
+    // The release already sent still finishes and is still counted.
+    releaseFirstDelete()
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Stopped after 1 of 3 selected releases: 1 deleted, 0 failed, 2 not attempted. Git tags were not deleted.'
+        )
+      )
+    )
+    assert.deepEqual(attempted, [draft.id])
+  })
+
+  it('reports every failed release without abandoning the rest of the batch', async () => {
+    const second = { ...draft, id: 8, tagName: 'v0.9.0', draft: false }
+    const third = { ...draft, id: 9, tagName: 'v0.8.0', draft: false }
+    const attempted = new Array<number>()
+    const store = fakeStore({
+      list: async () => ({
+        releases: [draft, second, third],
+        page: 1,
+        nextPage: null,
+        capped: false,
+      }),
+      delete: async (
+        _repository: Repository,
+        review: IGitHubReleaseMutationReview
+      ) => {
+        attempted.push(review.releaseId)
+        if (review.releaseId === second.id) {
+          throw new Error('GitHub denied permission to delete the release.')
+        }
+      },
+    })
+    render(
+      <GitHubReleasesView
+        repository={repository}
+        accounts={[account]}
+        releasesStore={store}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByLabelText('Select all visible releases'))
+    )
+    fireEvent.click(screen.getByLabelText('Select all visible releases'))
+    fireEvent.click(screen.getByRole('button', { name: 'Delete selected (3)' }))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Delete reviewed releases' })
+    )
+
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          'Deleted 2 of 3 selected releases, 1 failed. Git tags were not deleted.'
+        )
+      )
+    )
+    // The failure did not cancel the release queued behind it.
+    assert.deepEqual(attempted, [draft.id, second.id, third.id])
+    assert.ok(screen.getByText('Releases that could not be deleted'))
+    assert.ok(
+      screen.getByText(
+        'v0.9.0: GitHub denied permission to delete the release.'
+      )
+    )
+  })
+
   it('focuses an enabled fallback after clearing a filtered-out selection', async () => {
     const store = fakeStore({
       list: async () => ({
@@ -787,6 +1087,7 @@ describe('GitHub Releases view', () => {
         name: /篩選同選取/,
       })
       assert.ok(within(cantoneseToggle).getByText('顯示 1 個 · 已選 0 個'))
+      assert.ok(screen.getByRole('button', { name: '載入全部 Release' }))
       cantonese.unmount()
       cantonese = null
 
@@ -809,6 +1110,7 @@ describe('GitHub Releases view', () => {
           '1 shown · 0 selected · 顯示 1 個 · 已選 0 個'
         )
       )
+      assert.ok(screen.getByText('Load all releases · 載入全部 Release'))
     } finally {
       cantonese?.unmount()
       bilingual?.unmount()

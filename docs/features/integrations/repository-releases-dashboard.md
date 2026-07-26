@@ -26,6 +26,31 @@ substring, and regular-expression matching plus published, prerelease, and
 draft status filters. **Load more releases** requests the next bounded provider
 page before filtering it locally.
 
+**Load all releases** pages through every remaining release in one walk so the
+search bar filters the whole repository instead of the pages that happen to be
+on screen. It resumes from the page the interactive loader stopped at, appends
+into the same loaded catalog the filter already reads — there is no second,
+unfiltered list — and reports a live `{loaded} of ?` count next to its own
+button while it runs. The walk shares the ten-page ceiling the release API
+layer refuses to parse past, which bounds one repository at 300 releases. It
+never truncates silently: reaching the ceiling, hitting GitHub's API rate
+limit, being canceled, and failing each produce their own message naming what
+stopped the walk and how many releases are loaded. A rate limit, a
+cancellation, and a provider failure all keep the pages that did load and leave
+the button enabled so the walk can resume from the next unread page rather than
+restarting from page one.
+
+Deleting a multi-release selection reports determinate progress: a
+`role="progressbar"` meter carrying `aria-valuenow`/`aria-valuemax`, a
+`role="status"` line counting deleted and failed against the reviewed total,
+and **Stop after this release**. The stop is deliberately not the hard Cancel —
+the release already sent to GitHub is allowed to finish, because reporting
+destructive work as "not attempted" while it is running would be untrue. A
+release the provider refuses no longer abandons the rest of the batch: its
+bounded reason is listed and the remaining releases continue. The closing
+summary states exactly how many were deleted, how many failed, and how many
+were never attempted, and it stays on screen until a new batch is reviewed.
+
 Release dates include a locale-aware 24-hour `HH:mm` time. After an asset has
 downloaded and passed its existing size/digest checks, the result offers both
 **Show in folder** and **Open file**. Open-file completion and failure callbacks
@@ -40,6 +65,17 @@ regular expression, and provider failure remain distinct states. A retry keeps
 already loaded data and repeats only the failed scope. Destructive or
 publishing controls stay disabled until their exact reviewed selection is
 valid.
+
+The exhaustive walk distinguishes completion, the page ceiling, the API rate
+limit, cancellation, and a provider failure, and never reports a partial list
+as the whole repository. A rate-limited or failed walk reports its notice
+without offering the page-one retry, which would discard everything it loaded.
+Bulk deletion distinguishes a clean batch, a batch with per-release failures, a
+stop between releases, and a hard cancel; a result arriving after the batch
+closed is ignored so an out-of-order response cannot resurrect the run or push
+the counters past the reviewed total. Only one Releases operation runs at a
+time: the operation slot is claimed synchronously before the first `await`, so
+a stuttered double-click on either control cannot start the work twice.
 
 ## Security considerations
 
@@ -56,7 +92,17 @@ reflow, explicit readable size floors, bilingual wrapping, low-height list
 space, Material tokens, containment, focus, and narrow fallback. Provider
 behavior, localized compact controls, 24-hour timestamps, guarded Open file
 lifecycle, and zero-result focus recovery remain in the GitHub Releases unit
-suites. The corrected production bundle completed in 390 seconds wall (Yarn
+suites. `github-release-bulk-delete-test.ts` covers the deletion progress
+reducer: clean completion, per-release failures that do not abandon the batch,
+the exact split after a stop, ignored out-of-order results, clamped and
+control-character-flattened provider reasons, and the bounded failure list.
+`github-releases-store-test.ts` covers the exhaustive walk — resuming from a
+page, reporting each page, refusing to read past the absolute ceiling, keeping
+what loaded on cancellation and on the API rate limit, and still failing loudly
+by default for the Cheap LFS inventory review. The view suite proves the search
+filter recomputes over the fully loaded set and that bulk deletion renders its
+progressbar, stop, and partial-failure summary. The corrected production bundle
+completed in 390 seconds wall (Yarn
 387.64 seconds). Its 1,179,200-byte `out/renderer.css` has SHA-256
 `6fba1434112ea5c02256a12e6ce8af42f5c870f0db5835155acb8075708d9d28`.
 Off-screen Win32 acceptance kept one 960×660 physical viewport while probing
