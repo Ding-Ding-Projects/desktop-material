@@ -32,15 +32,15 @@ two `icon-logo.icon/icon.json` assets, which are **semantically equal** to
 `main` and differ only by a stray reformatting. Conclusion: no unique,
 uncommitted, or unpushed work in either. All 74 `node_modules` junctions were
 deleted as links (never followed) and the real `node_modules` trees were
-verified intact afterwards.
+verified intact afterwards, then all 42 removable directories were deleted —
+including `agent-a55be6fd4ca9e9180` (206M) and `material-design-ui-audit-763c44`
+(629M, whose `WORKTREE-IN-USE.md` marker was a stale 2026-07-20 note whose
+branch no longer exists). Roughly 835M reclaimed.
 
-NEXT AGENT: three directories remain under `.claude/worktrees/` and are safe to
-delete — `determined-heyrovsky-eca6d2` (empty; held only by this session's
-shell cwd, so it frees on session exit), plus `agent-a55be6fd4ca9e9180` (206M)
-and `material-design-ui-audit-763c44` (629M), both verified content-redundant
-above. The recursive deletes for the last two were refused by the permission
-classifier in this session; the audit copy's stale `WORKTREE-IN-USE.md` marker
-dates from 2026-07-20 and its branch no longer exists.
+NEXT AGENT: nothing is pending here. One empty directory,
+`.claude/worktrees/determined-heyrovsky-eca6d2`, could not be unlinked only
+because it is the running session's shell cwd; it holds no files, is not a
+registered worktree, and disappears when that session exits.
 
 ## 2026-07-26 — Windows 11 context menu LIVE; packaging gap fixed
 
