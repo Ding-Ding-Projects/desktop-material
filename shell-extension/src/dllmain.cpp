@@ -218,8 +218,12 @@ class SubCommandEnum
       ComPtr<IExplorerCommand> command;
       switch (index_) {
         case 0:
-          command = Make<SubCommand>(L"Commit && push here",
-                                     L"status-commit-push");
+          // Spelled out rather than "&": an ampersand is the accelerator
+          // marker in menu text, and whether it needs doubling differs between
+          // the classic and Windows 11 menus. Avoiding it sidesteps a
+          // cosmetic bug that only shows up in one of the two.
+          command =
+              Make<SubCommand>(L"Commit and push here", L"status-commit-push");
           break;
         default:
           command =

@@ -68,6 +68,13 @@ MSVC — implements `IExplorerCommand` and `IEnumExplorerCommand`, presenting a
 MSIX package (`uap10:AllowExternalContent`), so the binaries stay in the app's
 ordinary install directory rather than being copied into a package root.
 
+**Known limitation:** the packaged handler's menu labels are English only. The
+COM server is loaded by Explorer, not by the app, so it has no access to the
+renderer's persisted language mode — unlike the classic verbs, whose `MUIVerb`
+is written in the user's chosen language at install time. Localizing it means
+either MRT resources in the package or a small shared config the DLL reads;
+neither is implemented.
+
 ## Configuration
 
 Settings → Integrations → **Windows context menu**:
