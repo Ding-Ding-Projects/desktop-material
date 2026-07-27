@@ -1,0 +1,100 @@
+import {
+  AudioSettingsStorageKey,
+  clampFunnyLevel,
+  DefaultAudioSystemSettings,
+  parseAudioSettings,
+} from './audio/audio-settings'
+import { translate, TranslationKey, TranslationVariables } from './i18n'
+import { LanguageMode } from '../models/language-mode'
+
+/**
+ * Per-language playfulness, 1 (fully serious) .. 5 (maximum playfulness).
+ *
+ * The level styles the voice and never the facts: every band of a key family
+ * states the same paths, counts, and consequences in unambiguous words.
+ */
+export interface IFunnyLevels {
+  readonly english: number
+  readonly cantonese: number
+}
+
+/** The persisted defaults, used whenever the stored settings are unreadable. */
+export const DefaultFunnyLevels: IFunnyLevels = {
+  english: DefaultAudioSystemSettings.funnyLevelEnglish,
+  cantonese: DefaultAudioSystemSettings.funnyLevelCantonese,
+}
+
+/** The voice band a funny level selects; the facts are identical in each. */
+export type FunnyBand = 'plain' | 'light' | 'playful'
+
+/**
+ * Key families which carry a `.plain` / `.light` / `.playful` variant.
+ *
+ * Listing them keeps the composed key literal-checked against
+ * `TranslationKey`, so a family that is missing a band fails to compile.
+ */
+export type FunnyLevelTextBase =
+  | 'tabs.overflowDescription'
+  | 'ignoredSubmodule.intro'
+  | 'ignoredSubmodule.reviewLead'
+
+/** Read the persisted per-language funny levels, defaulting when unreadable. */
+export function readFunnyLevels(): IFunnyLevels {
+  if (typeof localStorage === 'undefined') {
+    return DefaultFunnyLevels
+  }
+
+  try {
+    const settings = parseAudioSettings(
+      localStorage.getItem(AudioSettingsStorageKey)
+    )
+    return {
+      english: settings.funnyLevelEnglish,
+      cantonese: settings.funnyLevelCantonese,
+    }
+  } catch {
+    return DefaultFunnyLevels
+  }
+}
+
+/** 1-2 reads plain, 3 reads lightly playful, 4-5 reads maximally playful. */
+export function funnyBand(level: number): FunnyBand {
+  const clamped = clampFunnyLevel(
+    level,
+    DefaultAudioSystemSettings.funnyLevelEnglish
+  )
+  if (clamped <= 2) {
+    return 'plain'
+  }
+  return clamped === 3 ? 'light' : 'playful'
+}
+
+/**
+ * Translate a `<base>.plain` / `.light` / `.playful` key family, picking each
+ * language's own band from its own funny level.
+ *
+ * Bilingual mode joins the two languages exactly the way the shared translate
+ * helper does, so English can read plainly while Cantonese reads playfully (or
+ * the other way round) without either side losing a fact.
+ */
+export function translateWithFunnyLevel(
+  base: FunnyLevelTextBase,
+  languageMode: LanguageMode,
+  levels: IFunnyLevels = DefaultFunnyLevels,
+  variables: TranslationVariables = {}
+): string {
+  const englishKey: TranslationKey = `${base}.${funnyBand(levels.english)}`
+  const cantoneseKey: TranslationKey = `${base}.${funnyBand(levels.cantonese)}`
+
+  if (languageMode === 'cantonese') {
+    return translate(cantoneseKey, 'cantonese', variables)
+  }
+  if (languageMode === 'bilingual') {
+    return `${translate(englishKey, 'english', variables)} · ${translate(
+      cantoneseKey,
+      'cantonese',
+      variables
+    )}`
+  }
+  return translate(englishKey, 'english', variables)
+}

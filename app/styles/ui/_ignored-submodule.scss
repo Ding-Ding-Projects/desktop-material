@@ -1,0 +1,144 @@
+dialog.ignored-submodule-dialog {
+  width: min(760px, calc(100vw - 40px));
+  height: min(760px, calc(100vh - 70px));
+  max-height: calc(100vh - 54px);
+
+  > form {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .ignored-submodule-select,
+  .ignored-submodule-confirm {
+    display: flex;
+    min-height: 0;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .ignored-submodule-intro,
+  .ignored-submodule-confirm-lead,
+  .ignored-submodule-destination-help {
+    margin: 0;
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+    line-height: 1.5;
+  }
+
+  .ignored-submodule-truncated {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-half);
+    margin: 0;
+    font-size: var(--font-size-sm);
+  }
+
+  .ignored-submodule-filter-row {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--spacing-half);
+    flex-wrap: wrap;
+
+    .ignored-submodule-filter-text {
+      min-width: 0;
+      flex: 1 1 220px;
+    }
+  }
+
+  .ignored-submodule-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-half);
+    flex-wrap: wrap;
+  }
+
+  .ignored-submodule-count,
+  .ignored-submodule-summary {
+    margin: 0;
+    color: var(--text-secondary-color);
+    font-size: var(--font-size-sm);
+  }
+
+  .ignored-submodule-list {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    overflow-y: auto;
+  }
+
+  .ignored-submodule-row {
+    display: flex;
+    min-width: 0;
+    align-items: baseline;
+    gap: var(--spacing-half);
+    padding: var(--spacing-quarter) 0;
+    flex-wrap: wrap;
+
+    .ignored-submodule-row-meta,
+    .ignored-submodule-row-proof {
+      color: var(--text-secondary-color);
+      font-size: var(--font-size-sm);
+      word-break: break-word;
+    }
+  }
+
+  .ignored-submodule-will,
+  .ignored-submodule-wont,
+  .ignored-submodule-confirm-files,
+  .ignored-submodule-rejections ul {
+    margin: 0;
+    padding-inline-start: var(--spacing-double);
+    line-height: 1.5;
+  }
+
+  .ignored-submodule-confirm-files {
+    max-height: 220px;
+    overflow-y: auto;
+    word-break: break-word;
+  }
+
+  .ignored-submodule-will-heading,
+  .ignored-submodule-wont-heading {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-half);
+    margin: var(--spacing-half) 0 0;
+    font-size: var(--font-size);
+  }
+
+  .ignored-submodule-rejections,
+  .ignored-submodule-recovery {
+    color: var(--error-color);
+  }
+
+  .ignored-submodule-progress {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-half);
+    padding: var(--spacing-half) var(--spacing);
+
+    progress {
+      flex: 1 1 auto;
+    }
+  }
+
+  .ignored-submodule-success {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing);
+  }
+
+  .ignored-submodule-empty {
+    margin: 0;
+    color: var(--text-secondary-color);
+  }
+}

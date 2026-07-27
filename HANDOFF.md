@@ -1,5 +1,39 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Ignored files to a local submodule (local phase, on a branch)
+
+Built on the isolated worktree branch `worktree-agent-a1c6b6311afbc2837`; not
+merged and not pushed. It implements only the **local** half of the roadmap
+entry: candidates come from `git status --porcelain=1 -z --untracked-files=all
+--ignored=traditional` and each is proven by `git check-ignore -v -z --stdin`
+run *without* `--no-index`, so a tracked path — including one force-added
+against an ignore pattern — can never be proven ignored and can never be
+selected. Eleven per-file rejection reasons and nine destination reasons are all
+fail-closed. Every staged copy is verified by size and SHA-256 while the parent
+repository is still strictly read-only; the first index mutation anywhere is the
+new repository's own commit, and the single `git submodule add` follows it.
+Originals are only ever read and are re-hashed at their exact original paths
+afterwards. Independent recovery copies under
+`<git-dir>/desktop-material/ignored-submodule-recovery/<run>/` are deleted only
+after that final verification and are named in every failure.
+
+Local evidence: **36/36** focused tests (9 pure planning, 22 against real
+temporary Git repositories, 5 dialog), and **732/732** across the cheap-lfs,
+submodule, repository-settings, collection-surface-registry,
+search-surface-filters, and i18n suites (61 files). Root `npx tsc --noEmit` is
+clean and `npx eslint --rulesdir ./eslint-rules` is clean on every touched file.
+Two mutation checks confirm the safety tests are load-bearing: adding
+`--no-index` to `check-ignore` fails exactly the two tracked-file tests, and
+disabling the staged-copy hash comparison fails exactly the copy-proof abort
+test.
+
+Still open: merge to `main`, push, CI, and headless screenshot acceptance. The
+publish phase — Release/OCI storage selection, Cheap LFS upload, pointer
+conversion, provider repository creation, remote creation, and push — is
+deliberately **not** built; the module imports none of that code and a source
+test asserts it. Detail in
+[docs/features/repository-management/ignored-files-to-local-submodule.md](docs/features/repository-management/ignored-files-to-local-submodule.md).
+
 ## 2026-07-27 — Session summary: fifteen pushes, and what is still open
 
 Pushed to `main` through `821ab93d57`. Full local gate on that tree:

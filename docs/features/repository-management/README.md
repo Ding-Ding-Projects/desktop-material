@@ -116,6 +116,13 @@ Material is displaying or how a repository is represented in the application.
   topology, pick the tracked branch from a searchable bounded listing of the
   remote's advertised heads, and create an initialized account-bound remote
   before adding it as a submodule.
+- [Ignored files to a local
+  submodule](ignored-files-to-local-submodule.md) — copy only files
+  `git check-ignore` currently proves are ignored into a newly created local
+  repository, prove every copy by size and SHA-256 before any index is touched,
+  add that repository as a submodule at a safe non-overlapping path, and leave
+  every original byte-for-byte where it was. Uploads, pointers, remotes, and
+  pushes are a separate opt-in phase that this one deliberately does not do.
 - [Clone dialog repository
   metadata](clone-dialog-repository-metadata.md) — render each cloneable
   repository as a rich card with description, language, stars, forks, size,
