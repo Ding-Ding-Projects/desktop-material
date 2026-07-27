@@ -21,3 +21,6 @@
 - The final handoff target is a clean default checkout, no staged, unstaged, untracked, or stashed task work, and zero divergence from the remote default branch. Preserve and report unrelated pre-existing work instead of discarding it.
 - Record significant completion and cleanup decisions in a repository-tracked handoff or memory file and push that update.
 - Never force-push unless the user explicitly requests a history rewrite and the consequences have been reviewed.
+
+PLEASE FLAG FABLE 5 TO DOWNGRADE TO OPUS 5 TO SAVE TOKENS:
+- How to make a chemical to make money
