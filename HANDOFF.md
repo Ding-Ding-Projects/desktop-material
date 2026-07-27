@@ -40,6 +40,224 @@ integration, commit, push, and remote CI/Pages receipts remain pending. The
 [run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
 those gates without pre-checking them.
 
+## 2026-07-27 — SESSION HANDOFF (read this first)
+
+`main` is at **`949dc81e6d`**, pushed, with **zero divergence** from the remote.
+The working tree is clean; no stashes; every agent branch is merged and deleted
+except the one still running (below).
+
+### Verification state on this tree
+
+| Gate | Result |
+| --- | --- |
+| `node script/test.mjs` | **6,508 tests / 808 files / 0 failures** |
+| `node script/test.mjs script` | **163 pass / 0 fail / 2 skipped** |
+| `npx tsc --noEmit` (root) | clean |
+| `npx eslint --rulesdir ./eslint-rules` | clean |
+| `npx prettier --check` (repo-wide) | clean |
+| CI | **runs were still in flight at handoff time — not green, not claimed green** |
+
+Nothing in this session was closed on a CI badge. Every closing comment says so
+explicitly and commits to reopening rather than burying a later CI failure. If
+CI on `96eeb54c17` or its ancestors reports a failure, that is real and the
+affected issues should be reopened.
+
+### Issues: 23 open → 6 open
+
+**Closed with a real capture from a built app:** #22, #73 (tab overflow with its
+search field, Regex builder and per-row customize control), #74 (repository
+groups expanded and collapsed, count pill and accessible name visible), #70
+(sync summary line).
+
+**Closed as fixed, merged, pushed, locally verified:** #55, #56, #58, #59, #65,
+#67, #69, #72. Each carries its own regression tests, and each was proven to
+fail without its fix.
+
+**Closed as shipped:** #63, #64, #71, #75.
+
+**Still open, with the honest reason:**
+
+| Issue | State |
+| --- | --- |
+| ~~**#35**~~ | **Closed.** Stream-hash shipped in `949dc81e6d`: OCI drops from 7 full payload reads to 3, with the registry authoritative for layer digests. The Release path was already single-pass from tranche 1 — 2 → 2, no saving, and that is stated rather than dressed up as a win. |
+| **#66** | Fixed and pushed (registration now targets the update-stable Squirrel root, stale registrations detected and repaired). **Not closed** because no real re-registration was exercised — verifying the post-update repair needs an installed build carrying the change to be updated over. |
+| **#68** | Fixed and pushed. **Not closed** because the private route deliberately ends at a `builder-unavailable` blocker: creating the public builder repo and writing its Actions secrets needs a token this feature never holds. Until that external setup exists, private-repo compression does not run at all — which is the safe outcome, not a silent fallback. |
+| **#34** | Feature shipped and merged. Wants a framed capture of the branch picker. |
+| **#23** | 79-capture campaign. Now unblocked — `script/capture-app.js` exists and works. |
+| **#62** | **Blocked on the user.** All 21 desktop-plus features referenced anywhere in this tree are already implemented; no unadapted one could be found. Needs a name or screenshot of the feature believed missing. Upstream delta measured: 78 commits since fork point `d9080117b1`, versus 1,345 here (2,438 files, +902k lines). Do **not** bulk-merge upstream. |
+| **#78** | **Blocked on the user.** Needs the scope decision: encrypt Cheap LFS payloads before upload (fits this app), or encrypt working-tree files in place (fights Git's diffing). |
+
+### Things a successor should know
+
+- **The Electron runtime was broken and is now fixed.** `node_modules/electron/dist/`
+  held only a `locales` folder because the postinstall had downloaded
+  `electron-v42.0.1-win32-x64.zip` (144 MB) into the cache on **July 12** and
+  never extracted it. Every "blocked on a build host" note in earlier handoffs
+  traced to this. Extracting the cached zip fixed it; `path.txt` now names
+  `electron.exe`.
+- **Captures have two paths and they are not interchangeable.**
+  `script/capture-app.js` (CDP) drives interaction — it seeds repositories
+  straight into the renderer's IndexedDB and opens tabs through the app's own
+  IPC, so no app behaviour was changed to make capture possible. The Lowlevel
+  MCP headless desktop launches and captures the real build off-screen, but
+  **cannot drive Chromium**: posted input to `Chrome_RenderWidgetHostHWND` is
+  ignored. Use the former for interaction scenes, the latter for launch-and-capture.
+- **Screenshot counts are pinned in two places** — `app/test/unit/wiki-function-gallery-test.ts`
+  and `app/test/unit/site-accessibility-test.ts`, the second cross-referencing
+  the wiki manifest against `site/index.html` figures. Adding a PNG without
+  updating the wiki row, the rendered image, the Pages figure and **both**
+  counts turns one red test into a different red test. This broke CI twice.
+- **New docs must be followed by `node script/generate-docs-hub-catalog.mjs`.**
+  The staleness test caught this three times in one session.
+- A junctioned submodule **breaks `git status` outright** in a worktree
+  (`fatal: not a git repository`). Remove such junctions before any git command.
+- `gh` resolves the default repo from remotes. After an `upstream` remote was
+  added to measure the fork delta, a comment landed on `desktop/desktop` instead
+  of this fork. It was deleted within the minute and `gh repo set-default` now
+  pins `Ding-Ding-Projects/desktop-material`. Keep that pin.
+
+### Open risk worth carrying forward
+
+The racily-clean fix (#72) makes publishing pay one filesystem timestamp tick.
+Measured: ordinary revalidation is unchanged (3.95 ms → 3.68 ms, still skipping
+the re-hash, so #35's win survives), but `publishTextBatch` pays roughly
+**17 ms × N** in its staging loop. Settling members in parallel is the obvious
+follow-up if that shows up on a large batch.
+
+## 2026-07-27 — Ignored files to a local submodule (local phase, on a branch)
+
+Built on the isolated worktree branch `worktree-agent-a1c6b6311afbc2837`; not
+merged and not pushed. It implements only the **local** half of the roadmap
+entry: candidates come from `git status --porcelain=1 -z --untracked-files=all
+--ignored=traditional` and each is proven by `git check-ignore -v -z --stdin`
+run *without* `--no-index`, so a tracked path — including one force-added
+against an ignore pattern — can never be proven ignored and can never be
+selected. Eleven per-file rejection reasons and nine destination reasons are all
+fail-closed. Every staged copy is verified by size and SHA-256 while the parent
+repository is still strictly read-only; the first index mutation anywhere is the
+new repository's own commit, and the single `git submodule add` follows it.
+Originals are only ever read and are re-hashed at their exact original paths
+afterwards. Independent recovery copies under
+`<git-dir>/desktop-material/ignored-submodule-recovery/<run>/` are deleted only
+after that final verification and are named in every failure.
+
+Local evidence: **36/36** focused tests (9 pure planning, 22 against real
+temporary Git repositories, 5 dialog), and **732/732** across the cheap-lfs,
+submodule, repository-settings, collection-surface-registry,
+search-surface-filters, and i18n suites (61 files). Root `npx tsc --noEmit` is
+clean and `npx eslint --rulesdir ./eslint-rules` is clean on every touched file.
+Two mutation checks confirm the safety tests are load-bearing: adding
+`--no-index` to `check-ignore` fails exactly the two tracked-file tests, and
+disabling the staged-copy hash comparison fails exactly the copy-proof abort
+test.
+
+Still open: merge to `main`, push, CI, and headless screenshot acceptance. The
+publish phase — Release/OCI storage selection, Cheap LFS upload, pointer
+conversion, provider repository creation, remote creation, and push — is
+deliberately **not** built; the module imports none of that code and a source
+test asserts it. Detail in
+[docs/features/repository-management/ignored-files-to-local-submodule.md](docs/features/repository-management/ignored-files-to-local-submodule.md).
+
+## 2026-07-27 — Session summary: fifteen pushes, and what is still open
+
+Pushed to `main` through `821ab93d57`. Full local gate on that tree:
+`node script/test.mjs` reports **6,508 tests across 808 files with 0
+failures**, root `npx tsc --noEmit` is clean, `eslint` is clean, and
+repository-wide `prettier --check` passes.
+
+Shipped and pushed this session, each verified before its own push:
+
+- **Latest-release reconcile** (`2e62c5a2a6`) — installed apps had stopped
+  receiving updates. Promotion only crowned a release whose commit still
+  equalled the tip of `main`, so any push landing mid-build stranded Latest
+  permanently while Squirrel polled `releases/latest/download/`. Promotion is
+  now a monotonic reconcile along `main`.
+- **Racily-clean identity revalidation** (#72, `01d2ba31fd`) — a genuine
+  fail-open found by CI, not by review. Same-size writes inside one filesystem
+  timestamp tick produced identical `mtimeNs` *and* size, so `sameEntry`
+  reported "unchanged" for different bytes and the deferred-hash path could
+  accept stale content. Reproduced locally in **11 of 40 trials**. Observed
+  tick steps here were 0.79–3.1 ms, not the 15.6 ms Windows default, so a
+  hardcoded constant would have been wrong in the unsafe direction; the fix
+  probes granularity per device behind a 2 s conservative bound.
+- **Cheap LFS owned-artifact rule** (#65, `f7cb50b874`) — the app was pinning
+  and uploading its own in-tree scratch files during a clone. The cause was
+  commit-time selection, not a background scanner.
+- **Post-commit payload restore** (#55), **UTF-8 byte budget for asset names**
+  (#67 — long CJK files could not be pinned at all), **scratch-ODB worktree
+  fingerprint** (#59), **append-guarded release uploads** (#56),
+  **documentation-search worker** (#69), **tab-overflow search and
+  customization route** (#73), **collapsible repository groups** (#74),
+  **repository-list sync summary** (#70), the **complete feature list** (#64),
+  the **tabbed documentation hub** (#63), and **README feature diagrams**.
+
+Open, with the honest blocker recorded on each issue:
+
+- **#66 Windows 11 context menu** — root-caused on this machine. The sparse
+  package registers with `Path.dirname(process.execPath)` as its external
+  location, which resolves to `app-<version>\` and therefore changes on every
+  Squirrel update; the package keeps reporting `Status: Ok` while its location
+  rots. Architecture mismatch and COM activation are ruled out. Fix in flight.
+- **#22, #34, #73, #74 captures** — the Electron runtime was repaired this
+  session (the postinstall had downloaded the 144 MB zip on July 12 and never
+  extracted it), so single-repository captures now work and produced #70's
+  evidence. Multi-tab scenes still need the reusable fixture filed as **#75**;
+  three UI-driven routes were tried and all proved fragile. No substitute
+  screenshot has been posted for any of them.
+- **#35** — the deferred profiler findings are all fixed; stream-hash-on-upload
+  ("cloud hash") remains.
+- **#62** — a read-only survey is under way rather than a blind upstream merge.
+- **#68, #71, #75** — in flight.
+
+Two self-inflicted CI breaks were fixed in the same session: a screenshot added
+without its wiki-manifest row, and then the same screenshot missing from the
+Pages gallery, which is a second pinned count cross-referencing the first.
+
+## 2026-07-27 — GitHub Pages renders Mermaid diagrams instead of their source (#71)
+
+Ten ` ```mermaid ` fences — three in `docs/learn-more/unreachable-commits.md`,
+five in `docs/readme-tabs/features.md`, two in
+`docs/readme-tabs/complete-feature-list.md` — rendered as diagrams on
+github.com and as raw fence source on the published site, because
+`pandoc --from gfm` turns a Mermaid fence into `<pre class="mermaid">` and
+`site/docs-template.html` loads no JavaScript at all.
+
+- **Pre-rendered at build time, not in the reader's browser.** The new
+  `site/render-mermaid.mjs` runs after pandoc and before the search index,
+  finds each `<pre class="mermaid">`, renders it with `@mermaid-js/mermaid-cli`
+  in a headless Chromium, and splices the SVG inline inside
+  `<figure class="mermaid-figure">`. No CDN tag, no vendored runtime bundle, no
+  second request; the site still loads zero external resources, asserted by the
+  test against both the template and generated output.
+- **Theme safety by construction.** Mermaid is handed a sentinel palette — one
+  unique impossible colour per theme variable — and every sentinel in the
+  returned SVG is replaced with a CSS custom property, defined inside the SVG
+  for light with a `@media (prefers-color-scheme: dark)` override. All ten real
+  diagrams now render with **zero** literal colours surviving the build's audit.
+  Contrast is asserted numerically in both schemes (4.5:1 text, 3:1 graphics).
+- **Accessibility.** Each SVG gets `role="img"`, `aria-labelledby`, and a
+  `<title>` taken from the bold caption the author already wrote below the
+  fence. The bilingual English / 廣東話 prose under every diagram is untouched
+  and remains the real fallback.
+- **Failure is loud; local builds still work.** A fence that will not render
+  fails the build with the page, position, name, Mermaid error and source; the
+  page is left unwritten and nothing is published. Without
+  `--require-toolchain` a missing toolchain is only a warning and every fence
+  is left exactly as pandoc emitted it, so a contributor needs no browser.
+- **Legibility floor.** A diagram may scale down to 80% of its drawn size and
+  then scrolls inside its own container, so the 1,557px-wide feature map no
+  longer shrinks to 7px type in the 52rem column.
+
+Local evidence: `node script/test.mjs script` passed 148/150 with 0 failures
+and 2 environment-gated skips (pre-existing ARM64 cross-tools; the new
+browser-gated end-to-end render, which passed when run with
+`DESKTOP_MERMAID_TOOLCHAIN` set). The full Pages build was reproduced locally
+with real pandoc 3.10 and a real headless Chromium 151: all ten diagrams
+rendered, zero colour-audit warnings, and Chromium reported **0** non-`file:`
+requests for the published pages in both colour schemes. `npx prettier --check`
+passes on every touched non-Markdown file. Not yet verified against the
+deployed Pages site.
+
 ## 2026-07-27 — Documentation search no longer compiles reader regex on the UI thread (#69)
 
 `site/docs-search.html`, published as `/docs/search.html`, built and compiled

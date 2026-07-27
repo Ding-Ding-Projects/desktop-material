@@ -66,8 +66,11 @@ Material is displaying or how a repository is represented in the application.
   verified GitHub Release pointer, recover a stalled or length-rejected native
   upload automatically through a bounded trusted GitHub CLI transport, retain a
   verified whole-batch browser handoff, automatically cloud-compress public
-  repository objects one at a time (private repositories require explicit
-  opt-in), publish new storage as prereleases, migrate exact legacy drafts in
+  repository objects one at a time from a caller committed to that repository
+  (an opted-in private repository gets no caller at all and spends none of its
+  own Actions minutes; compression is routed to the encrypted public builder
+  behind a fail-closed leak guard, and unconfirmed visibility runs neither
+  route), publish new storage as prereleases, migrate exact legacy drafts in
   place, restore explicitly public GitHub.com assets while signed out, fail
   safely at bounded capacity limits, and restore and verify raw or mixed
   objects locally while decompressing only `part-deflate` objects. Automatic
@@ -116,6 +119,13 @@ Material is displaying or how a repository is represented in the application.
   topology, pick the tracked branch from a searchable bounded listing of the
   remote's advertised heads, and create an initialized account-bound remote
   before adding it as a submodule.
+- [Ignored files to a local
+  submodule](ignored-files-to-local-submodule.md) — copy only files
+  `git check-ignore` currently proves are ignored into a newly created local
+  repository, prove every copy by size and SHA-256 before any index is touched,
+  add that repository as a submodule at a safe non-overlapping path, and leave
+  every original byte-for-byte where it was. Uploads, pointers, remotes, and
+  pushes are a separate opt-in phase that this one deliberately does not do.
 - [Clone dialog repository
   metadata](clone-dialog-repository-metadata.md) — render each cloneable
   repository as a rich card with description, language, stars, forks, size,

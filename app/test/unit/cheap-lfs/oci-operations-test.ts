@@ -47,8 +47,10 @@ import {
 } from '../../../src/lib/cheap-lfs/oci-operations'
 import {
   ICheapLfsPointerCandidate,
+  defaultCheapLfsFileSystem,
   writeCheapLfsPointerAtomically,
 } from '../../../src/lib/cheap-lfs/operations'
+import { defaultCheapLfsTrackedPathStore } from '../../../src/lib/cheap-lfs/tracked-path-store'
 import {
   CHEAP_LFS_POINTER_VERSION,
   serializeCheapLfsPointer,
@@ -214,6 +216,26 @@ function inventoryFileSystem(
     hashFile: async path => {
       const bytes = await readFile(path)
       return { sha256: sha256(bytes), sizeInBytes: bytes.length }
+    },
+    removeFile: path => rm(path),
+  }
+}
+
+/**
+ * The production seam — a real tracked-path store and real disk — with every
+ * `hashFile` call recorded, so a test can assert how many separate whole-file
+ * read passes one pin actually performs.
+ */
+function trackedFileSystem(hashedPaths: string[]): ICheapLfsOciFileSystem {
+  return {
+    trackedPaths: defaultCheapLfsTrackedPathStore,
+    scanPointerCandidates: async () => [],
+    readPointerText: path => readFile(path, 'utf8'),
+    writePointer: (path, text) =>
+      defaultCheapLfsFileSystem.writePointer(path, text),
+    hashFile: (path, signal) => {
+      hashedPaths.push(path)
+      return defaultCheapLfsFileSystem.hashFile(path, signal)
     },
     removeFile: path => rm(path),
   }
@@ -2008,6 +2030,32 @@ describe('Cheap LFS OCI orchestration', () => {
     assert.equal(await readFile(removedPath, 'utf8'), lateEdit)
     assert.equal(await readFile(keptPath, 'utf8'), keptText)
     assert.match(result.failures[0].message, /pointer changed/)
+  })
+
+  it('pins through the tracked-path store without one extra whole-file pass', async () => {
+    const root = await temporaryRepository()
+    const bytes = Buffer.from('one streamed read pass is the whole budget')
+    const path = join(root, 'single-pass.bin')
+    await writeFile(path, bytes)
+    const hashedPaths: string[] = []
+    const runtime = new FakeRuntime()
+
+    const result = await pinCheapLfsFilesToOci(
+      publicContext(root),
+      [{ relativePath: 'single-pass.bin' }],
+      { runtime, fileSystem: trackedFileSystem(hashedPaths) }
+    )
+
+    assert.equal(result.published, true)
+    assert.deepEqual(result.commitPaths, ['single-pass.bin'])
+    // The private upload copy is hashed once, by the streamed copy the store
+    // makes, and re-proved for free by the staging pass that reads it to build
+    // the image. Nothing on this route may re-read a payload to hash it again.
+    assert.deepEqual(hashedPaths, [])
+    assert.equal(
+      parseCheapLfsGhcrPointer(await readFile(path, 'utf8'))?.object,
+      `sha256:${sha256(bytes)}`
+    )
   })
 
   it('honors cancellation before any scan, upload, or local mutation', async () => {

@@ -665,6 +665,13 @@
       d: 'Desktop Material inventories the newest 500 entries in refs/stash, including stashes created by the Git CLI, another desktop client, or an editor. External entries carry an…',
     },
     {
+      t: 'Ignored files to a local Cheap LFS submodule (local phase)',
+      h: 'features/repository-management/ignored-files-to-local-submodule.html',
+      s: 'features/repository-management/ignored-files-to-local-submodule.md',
+      c: 'features',
+      d: 'A reviewed workflow that copies working files Git itself currently proves are ignored into a newly created local Git repository and registers that repository as a submodule of…',
+    },
+    {
       t: 'Named multi-stash manager',
       h: 'features/repository-management/named-stash-manager.html',
       s: 'features/repository-management/named-stash-manager.md',
@@ -1036,6 +1043,13 @@
       d: 'This document explains a bit about our testing infrastructure, and how you can contribute tests to go with changes to the codebase.',
     },
     {
+      t: 'App Capture Fixture',
+      h: 'technical/app-capture-fixture.html',
+      s: 'technical/app-capture-fixture.md',
+      c: 'technical',
+      d: 'script/capture-app.js launches the built app with N repositories already open as tabs, optionally drives a few UI steps, and writes a PNG. It exists so screenshots of multi-tab…',
+    },
+    {
       t: 'Platform specific button order',
       h: 'technical/button-order.html',
       s: 'technical/button-order.md',
@@ -1062,6 +1076,13 @@
       s: 'technical/discard-changes.md',
       c: 'technical',
       d: 'The Discard Changes feature allows users to clean up uncommitted changes from a repository, and has evolved over time to support different workflows.',
+    },
+    {
+      t: 'Documentation site build',
+      h: 'technical/documentation-site-build.html',
+      s: 'technical/documentation-site-build.md',
+      c: 'technical',
+      d: 'The published documentation site at',
     },
     {
       t: 'E2E Smoke Tests',

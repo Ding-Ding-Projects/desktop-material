@@ -240,6 +240,24 @@ The fixture also forwards renderer console errors and page errors to the job log
 to make failures easier to diagnose when the app dies before Playwright can make
 useful assertions.
 
+## Screenshot Captures
+
+The smoke suite is for assertions, not evidence images. When a change needs a
+screenshot of the real built app — especially a multi-tab surface such as the
+tab overflow dropdown — use the capture fixture documented in
+[App capture fixture](app-capture-fixture.md):
+
+```bash
+node script/capture-app.js --out=overflow.png --tabs=14 --size=1100x760 \
+  --step=click:.repository-tab-overflow --step=wait:800
+```
+
+It reuses this harness's launch shape (a throwaway `--user-data-dir` and the
+same isolated Git environment), drives the same first-run flow, and seeds the
+repositories directly into the renderer's database rather than driving the
+Add-repository dialog. That document also records the setup routes that do
+**not** work, so they are not rediscovered one attempt at a time.
+
 ## Limitations And Tradeoffs
 
 - The suite is intentionally narrow. It protects critical integration paths, not

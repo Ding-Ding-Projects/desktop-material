@@ -359,6 +359,18 @@ export class Submodules extends React.Component<
     })
   }
 
+  private onShowIgnoredSubmodule = () => {
+    if (this.openTransitionInFlight) {
+      return
+    }
+
+    this.props.dispatcher.showPopup({
+      type: PopupType.IgnoredSubmodule,
+      repository: this.props.repository,
+      onAdded: this.loadSubmodules,
+    })
+  }
+
   private onConfigure = (submodule: IManagedSubmodule) => {
     if (this.openTransitionInFlight) {
       return
@@ -763,6 +775,20 @@ export class Submodules extends React.Component<
                 >
                   <Octicon symbol={octicons.plus} />
                   <LocalizedText translationKey="submodule.addAction" />
+                </Button>
+                <Button
+                  type="button"
+                  disabled={
+                    this.state.isBusyGlobal || this.state.isOpeningRepository
+                  }
+                  onClick={this.onShowIgnoredSubmodule}
+                  ariaLabel={translateForAccessibleName(
+                    'ignoredSubmodule.openAction'
+                  )}
+                  tooltip={t('ignoredSubmodule.openTooltip')}
+                >
+                  <Octicon symbol={octicons.fileDirectory} />
+                  <LocalizedText translationKey="ignoredSubmodule.openAction" />
                 </Button>
                 {hasSubmodules && (
                   <Button

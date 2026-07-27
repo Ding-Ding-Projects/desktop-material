@@ -1547,6 +1547,7 @@ export type TranslationKey =
   | 'settings.contextMenuNeedsWindows11'
   | 'settings.contextMenuPackageMissing'
   | 'settings.contextMenuNeedsDeveloperMode'
+  | 'settings.contextMenuRegistrationStale'
   | 'quickAction.loading'
   | 'quickAction.notARepository'
   | 'quickAction.noChanges'
@@ -1781,6 +1782,7 @@ export type TranslationKey =
   | 'cheapLfs.cloud.workflowAdded'
   | 'cheapLfs.cloud.workflowReady'
   | 'cheapLfs.cloud.workflowDisabled'
+  | 'cheapLfs.cloud.builderRouted'
   | 'cheapLfs.cloud.autoInstall.startedTitle'
   | 'cheapLfs.cloud.autoInstall.startedBody'
   | 'cheapLfs.cloud.autoInstall.succeededTitle'
@@ -1803,6 +1805,13 @@ export type TranslationKey =
   | 'cheapLfs.cloud.autoInstall.updateCancel'
   | 'cheapLfs.cloud.autoInstall.unownedTitle'
   | 'cheapLfs.cloud.autoInstall.unownedBody'
+  | 'cheapLfs.cloud.autoInstall.visibilityUnknownTitle'
+  | 'cheapLfs.cloud.autoInstall.visibilityUnknownBody'
+  | 'cheapLfs.cloud.autoInstall.builderTitle'
+  | 'cheapLfs.cloud.autoInstall.builderUnavailableBody'
+  | 'cheapLfs.cloud.autoInstall.builderLeakRefusedBody'
+  | 'cheapLfs.cloud.autoInstall.builderNoIdentityBody'
+  | 'cheapLfs.cloud.autoInstall.builderPreparationFailedBody'
   | 'cheapLfs.cloud.raw'
   | 'cheapLfs.cloud.compressed'
   | 'cheapLfs.cloud.mixed'
@@ -1874,6 +1883,88 @@ export type TranslationKey =
   | 'cheapLfs.settings.storageRelease'
   | 'cheapLfs.settings.storageGhcr'
   | 'cheapLfs.settings.storageDockerHub'
+  | 'ignoredSubmodule.dialogTitle'
+  | 'ignoredSubmodule.openAction'
+  | 'ignoredSubmodule.openTooltip'
+  | 'ignoredSubmodule.intro.plain'
+  | 'ignoredSubmodule.intro.light'
+  | 'ignoredSubmodule.intro.playful'
+  | 'ignoredSubmodule.reviewLead.plain'
+  | 'ignoredSubmodule.reviewLead.light'
+  | 'ignoredSubmodule.reviewLead.playful'
+  | 'ignoredSubmodule.loading'
+  | 'ignoredSubmodule.loadFailed'
+  | 'ignoredSubmodule.empty'
+  | 'ignoredSubmodule.truncated'
+  | 'ignoredSubmodule.searchLabel'
+  | 'ignoredSubmodule.searchPlaceholder'
+  | 'ignoredSubmodule.searchTarget'
+  | 'ignoredSubmodule.noMatches'
+  | 'ignoredSubmodule.filterCount'
+  | 'ignoredSubmodule.regexError'
+  | 'ignoredSubmodule.listLabel'
+  | 'ignoredSubmodule.proof'
+  | 'ignoredSubmodule.fileMeta'
+  | 'ignoredSubmodule.selectAll'
+  | 'ignoredSubmodule.clearSelection'
+  | 'ignoredSubmodule.selectionSummary'
+  | 'ignoredSubmodule.destinationLabel'
+  | 'ignoredSubmodule.destinationHelp'
+  | 'ignoredSubmodule.reviewAction'
+  | 'ignoredSubmodule.reviewHeading'
+  | 'ignoredSubmodule.reviewDestination'
+  | 'ignoredSubmodule.reviewFilesHeading'
+  | 'ignoredSubmodule.willHeading'
+  | 'ignoredSubmodule.willCopy'
+  | 'ignoredSubmodule.willCreate'
+  | 'ignoredSubmodule.willAdd'
+  | 'ignoredSubmodule.willKeep'
+  | 'ignoredSubmodule.willRecover'
+  | 'ignoredSubmodule.wontHeading'
+  | 'ignoredSubmodule.wontUpload'
+  | 'ignoredSubmodule.wontRemote'
+  | 'ignoredSubmodule.wontPointer'
+  | 'ignoredSubmodule.wontCommit'
+  | 'ignoredSubmodule.wontReplace'
+  | 'ignoredSubmodule.confirmAction'
+  | 'ignoredSubmodule.backAction'
+  | 'ignoredSubmodule.cancelAction'
+  | 'ignoredSubmodule.doneAction'
+  | 'ignoredSubmodule.progressHeading'
+  | 'ignoredSubmodule.progressStatus'
+  | 'ignoredSubmodule.progressLabel'
+  | 'ignoredSubmodule.successHeading'
+  | 'ignoredSubmodule.successDescription'
+  | 'ignoredSubmodule.rejectedHeading'
+  | 'ignoredSubmodule.rejectedRow'
+  | 'ignoredSubmodule.failedHeading'
+  | 'ignoredSubmodule.recoveryRetained'
+  | 'ignoredSubmodule.notification.startedTitle'
+  | 'ignoredSubmodule.notification.startedBody'
+  | 'ignoredSubmodule.notification.succeededTitle'
+  | 'ignoredSubmodule.notification.succeededBody'
+  | 'ignoredSubmodule.notification.failedTitle'
+  | 'ignoredSubmodule.notification.failedBody'
+  | 'ignoredSubmodule.reason.notProvenIgnored'
+  | 'ignoredSubmodule.reason.symbolicLink'
+  | 'ignoredSubmodule.reason.reparsePoint'
+  | 'ignoredSubmodule.reason.notRegularFile'
+  | 'ignoredSubmodule.reason.gitControlPath'
+  | 'ignoredSubmodule.reason.nestedRepository'
+  | 'ignoredSubmodule.reason.pathEscape'
+  | 'ignoredSubmodule.reason.duplicateSelection'
+  | 'ignoredSubmodule.reason.destinationCollision'
+  | 'ignoredSubmodule.reason.insideDestination'
+  | 'ignoredSubmodule.reason.staleInventory'
+  | 'ignoredSubmodule.destination.empty'
+  | 'ignoredSubmodule.destination.absolute'
+  | 'ignoredSubmodule.destination.segments'
+  | 'ignoredSubmodule.destination.gitControlPath'
+  | 'ignoredSubmodule.destination.existingSubmodule'
+  | 'ignoredSubmodule.destination.repositoryRoot'
+  | 'ignoredSubmodule.destination.unsafeLink'
+  | 'ignoredSubmodule.destination.occupied'
+  | 'ignoredSubmodule.destination.ignored'
   | 'githubReleases.compactTools'
   | 'githubReleases.compactSummary'
   | 'githubReleases.filterSummary'
@@ -4128,6 +4219,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This build does not include the packaged shell extension.',
   'settings.contextMenuNeedsDeveloperMode':
     'The main-menu placement needs sideloading enabled in Windows Settings → System → For developers. Desktop Material will not change that setting for you.',
+  'settings.contextMenuRegistrationStale':
+    'The registration still points at a folder from an earlier version, so Windows is no longer showing these actions. Turn this on again to re-register it against the current install.',
   'quickAction.loading': 'Reading the folder…',
   'quickAction.notARepository': 'This folder is not a Git repository.',
   'quickAction.noChanges': 'No changes to commit.',
@@ -4450,7 +4543,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.cloud.privateToggle':
     'Enable cloud compression for this private repository',
   'cheapLfs.cloud.privateHelp':
-    'Off by default for private repositories. Enabling uses your private GitHub Actions minutes and adds a reviewed workflow change to this repository.',
+    'Off by default for private repositories. Enabling adds no workflow here and spends none of your private GitHub Actions minutes: compression runs on a free public runner through the encrypted builder, and nothing that identifies this repository — its name, your file paths, or asset names — is published there.',
   'cheapLfs.cloud.visibilityUnknown':
     'Off until GitHub confirms whether this repository is public or private.',
   'cheapLfs.cloud.localOnly':
@@ -4461,6 +4554,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Cloud-compression workflow file is ready. Commit and push it once; pointer updates then arrive as GitHub Actions commits.',
   'cheapLfs.cloud.workflowDisabled':
     'Private cloud compression is off. Existing raw objects remain cloneable.',
+  'cheapLfs.cloud.builderRouted':
+    'No workflow was added to this private repository and none of your private Actions minutes are spent. Compression runs through the encrypted public builder, which is set up outside Desktop Material; until it is, objects stay raw and cloneable.',
   'cheapLfs.cloud.autoInstall.startedTitle': 'Setting up cloud compression',
   'cheapLfs.cloud.autoInstall.startedBody':
     'This repository uses cloud compression but has no compression workflow. Adding {path} in the background; keep working.',
@@ -4499,6 +4594,20 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Cloud compression workflow not installed',
   'cheapLfs.cloud.autoInstall.unownedBody':
     'A file Desktop Material does not manage already occupies {path}. It was left untouched, so cloud compression is not set up automatically here.',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownTitle':
+    'Cloud compression is waiting on repository visibility',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownBody':
+    'GitHub has not confirmed whether this repository is public or private, so nothing was installed and nothing was prepared anywhere public. Sign in or refresh the repository, then compression resumes on its own.',
+  'cheapLfs.cloud.autoInstall.builderTitle':
+    'Private compression runs on the external builder',
+  'cheapLfs.cloud.autoInstall.builderUnavailableBody':
+    'No compression workflow was added to this private repository, because every pass would bill your own Actions minutes. Compression belongs on the encrypted public builder, whose registration is ready: builder {builder}, project {project}, secrets {secrets}. Desktop Material cannot create that public repository or write its secrets for you, so compression does not run until you do. Nothing about this repository was published anywhere.',
+  'cheapLfs.cloud.autoInstall.builderLeakRefusedBody':
+    'Preparing the external builder was stopped because a value bound for a public place carried this repository’s name, a file path, or an asset name. Nothing was installed and nothing was published. Rename the colliding item or keep compression off.',
+  'cheapLfs.cloud.autoInstall.builderNoIdentityBody':
+    'This checkout has no private GitHub repository to register with the external builder, so nothing was installed and nothing was published.',
+  'cheapLfs.cloud.autoInstall.builderPreparationFailedBody':
+    'The external-builder registration could not be prepared, so compression did not start. Nothing was installed in this repository and nothing was published anywhere. Objects stay raw and cloneable; try again after reopening the repository.',
   'cheapLfs.cloud.raw': 'Raw',
   'cheapLfs.cloud.compressed': 'Compressed · {savings}% smaller',
   'cheapLfs.cloud.mixed':
@@ -4660,6 +4769,138 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.storageRelease': 'GitHub published prerelease',
   'cheapLfs.settings.storageGhcr': 'GHCR · one OCI image',
   'cheapLfs.settings.storageDockerHub': 'Docker Hub · one OCI image',
+  'ignoredSubmodule.dialogTitle': 'Move ignored files into a local submodule',
+  'ignoredSubmodule.openAction': 'Ignored files to a local submodule…',
+  'ignoredSubmodule.openTooltip':
+    'Copy files Git currently proves are ignored into a new local repository and add it as a submodule. The originals stay exactly where they are.',
+  // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
+  // playful). Every band states the same facts — only Git-proven ignored
+  // files are listed, copies are verified, the originals are never touched,
+  // and nothing is uploaded — because the voice moves and the facts never do.
+  'ignoredSubmodule.intro.plain':
+    'This lists only files Git currently proves are ignored. Selected files are copied into a new local repository, each copy is verified by size and SHA-256, and the repository is added as a submodule. Your original files stay byte-for-byte at their current paths. Nothing is uploaded, no remote is created, and nothing is pushed.',
+  'ignoredSubmodule.intro.light':
+    'Only files Git itself swears are ignored show up here. The ones you pick get copied into a new local repository, every copy is checked by size and SHA-256, and that repository is added as a submodule. Your originals stay byte-for-byte where they are. Nothing is uploaded, no remote is created, and nothing is pushed.',
+  'ignoredSubmodule.intro.playful':
+    'Only files Git will personally vouch for as ignored get in here — no guessing, no reading .gitignore over its shoulder. Whatever you tick gets copied into a brand-new local repository, every copy frisked for size and SHA-256, and that repository joins the family as a submodule. Your originals do not move one byte. Nothing is uploaded, no remote is created, and nothing is pushed.',
+  'ignoredSubmodule.reviewLead.plain':
+    'Review this before it runs. Every step below happens locally, in this order, and the copy proofs finish before anything is added to Git.',
+  'ignoredSubmodule.reviewLead.light':
+    'Have a proper look before this runs. Everything below happens locally, in this order, and every copy is proven before Git is asked to change anything.',
+  'ignoredSubmodule.reviewLead.playful':
+    'Last look before the button does something real. Everything below happens on this machine, in this order, and every copy has to pass its size and hash check before Git is allowed to touch a single index entry.',
+  'ignoredSubmodule.loading': 'Asking Git which files it currently ignores…',
+  'ignoredSubmodule.loadFailed':
+    'Could not read the ignored files from Git: {error}',
+  'ignoredSubmodule.empty':
+    'Git does not currently prove any working file in this repository is ignored, so there is nothing to move.',
+  'ignoredSubmodule.truncated':
+    'Only the first {count} ignored files are listed. Narrow your ignore rules or move these first, then reopen this dialog for the rest.',
+  'ignoredSubmodule.searchLabel': 'Search ignored files',
+  'ignoredSubmodule.searchPlaceholder': 'Path, ignore rule, or pattern',
+  'ignoredSubmodule.searchTarget': 'Ignored files',
+  'ignoredSubmodule.noMatches': 'No ignored file matches this search.',
+  'ignoredSubmodule.filterCount': '{visible} of {total} ignored files',
+  'ignoredSubmodule.regexError':
+    'Invalid regular expression: {message}. Every ignored file is still listed.',
+  'ignoredSubmodule.listLabel': 'Ignored files Git proves are ignored',
+  'ignoredSubmodule.proof': 'Ignored by {source}:{line} — {pattern}',
+  'ignoredSubmodule.fileMeta': '{bytes} bytes',
+  'ignoredSubmodule.selectAll': 'Select all listed',
+  'ignoredSubmodule.clearSelection': 'Clear selection',
+  'ignoredSubmodule.selectionSummary': '{count} files selected · {bytes} bytes',
+  'ignoredSubmodule.destinationLabel': 'New submodule folder',
+  'ignoredSubmodule.destinationHelp':
+    'A repository-relative folder that does not exist yet and does not overlap an existing submodule. The new repository is created here.',
+  'ignoredSubmodule.reviewAction': 'Review this operation',
+  'ignoredSubmodule.reviewHeading': 'Confirm before anything changes',
+  'ignoredSubmodule.reviewDestination': 'New submodule folder: {path}',
+  'ignoredSubmodule.reviewFilesHeading':
+    'These {count} files will be copied ({bytes} bytes)',
+  'ignoredSubmodule.willHeading': 'What this will do',
+  'ignoredSubmodule.willCopy':
+    'Copy each listed file into {path}, keeping its exact relative path, and verify every copy by size and SHA-256.',
+  'ignoredSubmodule.willCreate':
+    'Create a new Git repository in {path} and make one commit there containing those verified copies.',
+  'ignoredSubmodule.willAdd':
+    'Add that repository to this repository as a submodule at {path}. The change is staged, not committed — you review and commit it yourself.',
+  'ignoredSubmodule.willKeep':
+    'Leave every original file byte-for-byte at its current path. Nothing is moved, linked, or truncated.',
+  'ignoredSubmodule.willRecover':
+    'Keep an independent copy of every original outside the working tree until all of them pass a final check, then delete those copies.',
+  'ignoredSubmodule.wontHeading': 'What this will not do',
+  'ignoredSubmodule.wontUpload':
+    'It will not upload any Cheap LFS object or choose a storage provider.',
+  'ignoredSubmodule.wontRemote':
+    'It will not create a repository on GitHub or any other host, and will not add a remote.',
+  'ignoredSubmodule.wontPointer':
+    'It will not convert any file into a Cheap LFS pointer.',
+  'ignoredSubmodule.wontCommit':
+    'It will not commit in this repository and will not push anything anywhere.',
+  'ignoredSubmodule.wontReplace':
+    'It will not replace your original files with links.',
+  'ignoredSubmodule.confirmAction': 'Copy files and add the submodule',
+  'ignoredSubmodule.backAction': 'Back to the file list',
+  'ignoredSubmodule.cancelAction': 'Cancel',
+  'ignoredSubmodule.doneAction': 'Done',
+  'ignoredSubmodule.progressHeading': 'Copying and verifying',
+  'ignoredSubmodule.progressStatus': 'Verified {completed} of {total} files…',
+  'ignoredSubmodule.progressLabel': 'Ignored file staging progress',
+  'ignoredSubmodule.successHeading': 'Submodule added',
+  'ignoredSubmodule.successDescription':
+    '{count} verified copies ({bytes} bytes) are committed in the new repository at {path}, which is now staged as a submodule. Every original is unchanged at its original path. Review and commit the staged change when you are ready.',
+  'ignoredSubmodule.rejectedHeading':
+    'These files were refused and nothing was changed',
+  'ignoredSubmodule.rejectedRow': '{path} — {reason}',
+  'ignoredSubmodule.failedHeading': 'The operation stopped',
+  'ignoredSubmodule.recoveryRetained':
+    'Your original files were never written to. Independent copies are still available at {path}.',
+  'ignoredSubmodule.notification.startedTitle': 'Staging ignored files',
+  'ignoredSubmodule.notification.startedBody':
+    'Copying and verifying {count} ignored files into {path}. Originals are left untouched.',
+  'ignoredSubmodule.notification.succeededTitle': 'Local submodule created',
+  'ignoredSubmodule.notification.succeededBody':
+    '{count} verified copies are committed in {path} and the submodule is staged. Every original is unchanged. Nothing was uploaded or pushed.',
+  'ignoredSubmodule.notification.failedTitle': 'Ignored file staging stopped',
+  'ignoredSubmodule.notification.failedBody':
+    'Nothing was added to this repository. {error}',
+  'ignoredSubmodule.reason.notProvenIgnored':
+    'Git does not currently prove this path is ignored — a tracked file never can be.',
+  'ignoredSubmodule.reason.symbolicLink':
+    'This path is a link or junction, which is never followed.',
+  'ignoredSubmodule.reason.reparsePoint':
+    'This path reaches its content through a reparse point, junction, or mount point, so its bytes do not live where the path says.',
+  'ignoredSubmodule.reason.notRegularFile': 'This path is not a regular file.',
+  'ignoredSubmodule.reason.gitControlPath':
+    'This path is inside a Git control directory.',
+  'ignoredSubmodule.reason.nestedRepository':
+    'This path is inside another Git repository.',
+  'ignoredSubmodule.reason.pathEscape': 'This path leaves the repository root.',
+  'ignoredSubmodule.reason.duplicateSelection':
+    'This path was selected more than once.',
+  'ignoredSubmodule.reason.destinationCollision':
+    'This path would collide with another selected file at the destination, which Windows treats as the same name.',
+  'ignoredSubmodule.reason.insideDestination':
+    'This path is inside the new submodule folder.',
+  'ignoredSubmodule.reason.staleInventory':
+    'This file changed since it was listed, so the bytes you reviewed are no longer the bytes on disk.',
+  'ignoredSubmodule.destination.empty': 'Enter a folder for the new submodule.',
+  'ignoredSubmodule.destination.absolute':
+    'Enter a folder relative to this repository, not an absolute path.',
+  'ignoredSubmodule.destination.segments':
+    'The folder cannot contain empty, current-directory, or parent-directory segments.',
+  'ignoredSubmodule.destination.gitControlPath':
+    'The folder cannot use Git control directories.',
+  'ignoredSubmodule.destination.existingSubmodule':
+    'The folder overlaps a submodule this repository already has.',
+  'ignoredSubmodule.destination.repositoryRoot':
+    'The folder cannot be the repository root itself.',
+  'ignoredSubmodule.destination.unsafeLink':
+    'The folder is a link, junction, or mount point and is never followed.',
+  'ignoredSubmodule.destination.occupied':
+    'The folder already exists and is not empty. Choose one that does not exist yet.',
+  'ignoredSubmodule.destination.ignored':
+    'Git ignores this folder, so it cannot hold a submodule. Choose a folder your ignore rules do not match.',
   'cheapLfs.pinFailures.title': 'Some large files were not pinned',
   'cheapLfs.pinFailures.one':
     '{names} remains in Changes and was excluded so its raw large-file content is not committed. Other selected safe changes can continue now; commit again to retry this file.',
@@ -6751,6 +6992,8 @@ export const cantoneseTranslations: Readonly<
   'settings.contextMenuPackageMissing': '呢個版本冇打包個 shell extension。',
   'settings.contextMenuNeedsDeveloperMode':
     '要喺 Windows 設定 → 系統 → 開發人員專用 度開咗側載，先可以擺上主選單。Desktop Material 唔會幫你改呢個設定。',
+  'settings.contextMenuRegistrationStale':
+    '個註冊仲指住舊版本嗰個資料夾，所以 Windows 已經冇再顯示呢啲動作。撳返開一次，就會用返而家嘅安裝重新註冊。',
   'quickAction.loading': '讀緊個資料夾…',
   'quickAction.notARepository': '呢個資料夾唔係 Git repository。',
   'quickAction.noChanges': '冇改動可以 commit。',
@@ -7056,7 +7299,7 @@ export const cantoneseTranslations: Readonly<
     '公開 repo 會自動開啟。第一次先檢查、commit 同 push 個 workflow 改動；之後每個 Release 物件會逐件壓縮。',
   'cheapLfs.cloud.privateToggle': '為呢個私人 repo 開啟雲端壓縮',
   'cheapLfs.cloud.privateHelp':
-    '私人 repo 預設關閉。開啟後會用你嘅私人 GitHub Actions 分鐘，亦會喺 repo 加一個畀你檢查嘅 workflow 改動。',
+    '私人 repo 預設關閉。開咗都唔會喺呢度加 workflow，亦唔會燒你嘅私人 Actions 分鐘：壓縮會經加密 builder 喺免費嘅公共 runner 度做，而且對外一個字都唔漏 —— repo 名、你嘅檔案路徑、asset 名，全部唔會 publish 出去。',
   'cheapLfs.cloud.visibilityUnknown':
     'GitHub 未確認個 repo 係公開定私人之前，會穩陣噉保持關閉。',
   'cheapLfs.cloud.localOnly':
@@ -7067,6 +7310,8 @@ export const cantoneseTranslations: Readonly<
     '雲端壓縮 workflow 檔案已準備好。第一次 commit 同 push 之後，pointer 更新就會由 GitHub Actions commit 返嚟。',
   'cheapLfs.cloud.workflowDisabled':
     '私人雲端壓縮已關閉；原本 raw 物件照樣 clone 得返。',
+  'cheapLfs.cloud.builderRouted':
+    '呢個私人 repo 冇加過 workflow，你嘅私人 Actions 分鐘一分鐘都冇燒。壓縮會經加密 public builder 做，而個 builder 要喺 Desktop Material 以外set好；未set好之前，啲物件會保持 raw，照樣 clone 得返。',
   'cheapLfs.cloud.autoInstall.startedTitle': '幫緊你開雲端壓縮',
   'cheapLfs.cloud.autoInstall.startedBody':
     '呢個 repo 用緊雲端壓縮，但係未有壓縮 workflow。而家喺背景幫你加返 {path}，你照做嘢就得。',
@@ -7101,6 +7346,20 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.cloud.autoInstall.unownedTitle': '未安裝壓縮 workflow',
   'cheapLfs.cloud.autoInstall.unownedBody':
     '{path} 已經俾一個唔係 Desktop Material 管理嘅檔案佔咗。我哋原封不動冇郁過佢，所以呢度唔會自動開雲端壓縮。',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownTitle':
+    '未知公定私，雲端壓縮暫時企定',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownBody':
+    'GitHub 未confirm呢個 repo 係公開定私人，所以乜都冇裝，公開嗰邊亦都乜都冇準備過。登入或者refresh返個 repo，壓縮就會自己接返落去。',
+  'cheapLfs.cloud.autoInstall.builderTitle':
+    '私人 repo 嘅壓縮改由外部 builder 做',
+  'cheapLfs.cloud.autoInstall.builderUnavailableBody':
+    '呢個私人 repo 冇加壓縮 workflow，因為每壓一次就燒你自己嘅 Actions 分鐘。壓縮應該擺去加密 public builder 度做，登記資料已經整好：builder {builder}、project {project}、secrets {secrets}。Desktop Material 唔可以幫你開嗰個公開 repo，亦唔會幫你寫 secret，所以你未搞掂之前壓縮唔會行。呢個 repo 嘅任何嘢都冇 publish 過去邊度。',
+  'cheapLfs.cloud.autoInstall.builderLeakRefusedBody':
+    '準備外部 builder 嗰陣即刻煞停咗：有個準備擺去公開位置嘅值，入面帶住呢個 repo 嘅名、檔案路徑或者 asset 名。乜都冇裝，乜都冇 publish。改個名避開撞，或者索性唔開壓縮。',
+  'cheapLfs.cloud.autoInstall.builderNoIdentityBody':
+    '呢個 checkout 冇私人 GitHub repo 可以拎去外部 builder 登記，所以乜都冇裝，亦冇 publish 過任何嘢。',
+  'cheapLfs.cloud.autoInstall.builderPreparationFailedBody':
+    '外部 builder 嘅登記資料整唔掂，所以壓縮冇開始過。呢個 repo 入面乜都冇裝，出面亦都乜都冇 publish。啲物件會保持 raw，照樣 clone 得返；重新開返個 repo 再試下。',
   'cheapLfs.cloud.raw': 'Raw 原檔',
   'cheapLfs.cloud.compressed': '已壓縮 · 慳咗 {savings}%',
   'cheapLfs.cloud.mixed':
@@ -7255,6 +7514,133 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.storageRelease': 'GitHub 已發佈 prerelease',
   'cheapLfs.settings.storageGhcr': 'GHCR · 一個 OCI image',
   'cheapLfs.settings.storageDockerHub': 'Docker Hub · 一個 OCI image',
+  'ignoredSubmodule.dialogTitle': '將被忽略嘅檔案搬入本機 submodule',
+  'ignoredSubmodule.openAction': '被忽略檔案搬入本機 submodule…',
+  'ignoredSubmodule.openTooltip':
+    '將 Git 而家證實係 ignored 嘅檔案複製入一個新嘅本機 repo，再加做 submodule。原本嗰啲檔案原地唔郁。',
+  // 三個語氣層次跟 funny level（1-2 正經、3 輕鬆、4-5 最好玩）。每一層講嘅事
+  // 完全一樣——只列 Git 證實 ignored 嘅檔案、每份複本都核對過、原檔一律唔郁、
+  // 亦唔會上載——因為語氣可以變，事實唔可以變。
+  'ignoredSubmodule.intro.plain':
+    '呢度只會列出 Git 而家證實係 ignored 嘅檔案。你揀嘅檔案會複製入一個新嘅本機 repo，每份複本都會核對大小同 SHA-256，然後將個 repo 加做 submodule。你原本嘅檔案會逐個 byte 留喺原本嘅路徑。唔會上載任何嘢，唔會開 remote，亦唔會 push。',
+  'ignoredSubmodule.intro.light':
+    '入到嚟嘅，全部係 Git 親口認咗係 ignored 嘅檔案。你剔嘅會複製入一個新嘅本機 repo，每份複本都要過大小同 SHA-256 呢兩關，跟住個 repo 加做 submodule。原檔逐個 byte 留喺原位。唔會上載，唔會開 remote，亦唔會 push。',
+  'ignoredSubmodule.intro.playful':
+    '呢度淨係收 Git 肯拍心口擔保係 ignored 嘅檔案——唔靠估，亦唔會偷睇 .gitignore 自己解讀。你剔邊個，邊個就會俾人抄一份入一個全新嘅本機 repo，每份複本都要量身高（大小）同對指紋（SHA-256），過到關個 repo 先入嚟做 submodule。原檔一個 byte 都唔會郁。唔上載、唔開 remote、唔 push。',
+  'ignoredSubmodule.reviewLead.plain':
+    '執行之前請先睇清楚。下面每一步都喺你部機做，順序如下；所有複製核對做完，先至會改動 Git。',
+  'ignoredSubmodule.reviewLead.light':
+    '撳落去之前，好好睇一睇。下面全部喺你部機做，順序如下；每份複本核對完，先至輪到 Git 改嘢。',
+  'ignoredSubmodule.reviewLead.playful':
+    '撳之前望多眼，呢下係真㗎。下面全部喺你部機做，順序如下；每份複本要先過大小同 hash 兩關，Git 先有資格郁一條 index 記錄。',
+  'ignoredSubmodule.loading': '問緊 Git 而家有邊啲檔案係 ignored…',
+  'ignoredSubmodule.loadFailed': '讀唔到 Git 嘅 ignored 檔案清單：{error}',
+  'ignoredSubmodule.empty':
+    'Git 而家證實唔到呢個 repo 有任何 working 檔案係 ignored，所以冇嘢可以搬。',
+  'ignoredSubmodule.truncated':
+    '只列出頭 {count} 個 ignored 檔案。你可以收窄 ignore 規則，或者先搬呢批，之後再開返呢個對話框處理其餘。',
+  'ignoredSubmodule.searchLabel': '搜尋被忽略嘅檔案',
+  'ignoredSubmodule.searchPlaceholder': '路徑、ignore 規則或者樣式',
+  'ignoredSubmodule.searchTarget': '被忽略嘅檔案',
+  'ignoredSubmodule.noMatches': '冇 ignored 檔案配對到呢個搜尋。',
+  'ignoredSubmodule.filterCount':
+    '{total} 個 ignored 檔案入面顯示緊 {visible} 個',
+  'ignoredSubmodule.regexError':
+    '正則表達式無效：{message}。所有 ignored 檔案照樣列晒出嚟。',
+  'ignoredSubmodule.listLabel': 'Git 證實係 ignored 嘅檔案',
+  'ignoredSubmodule.proof': '由 {source}:{line} 忽略 — {pattern}',
+  'ignoredSubmodule.fileMeta': '{bytes} bytes',
+  'ignoredSubmodule.selectAll': '全選列出嘅檔案',
+  'ignoredSubmodule.clearSelection': '清除選擇',
+  'ignoredSubmodule.selectionSummary': '揀咗 {count} 個檔案 · {bytes} bytes',
+  'ignoredSubmodule.destinationLabel': '新 submodule 資料夾',
+  'ignoredSubmodule.destinationHelp':
+    '要係一個相對呢個 repo、而家仲未存在、亦唔會同現有 submodule 重疊嘅資料夾。個新 repo 會喺呢度建立。',
+  'ignoredSubmodule.reviewAction': '檢查呢個操作',
+  'ignoredSubmodule.reviewHeading': '未改任何嘢之前，請確認',
+  'ignoredSubmodule.reviewDestination': '新 submodule 資料夾：{path}',
+  'ignoredSubmodule.reviewFilesHeading':
+    '以下 {count} 個檔案會被複製（{bytes} bytes）',
+  'ignoredSubmodule.willHeading': '呢個操作會做嘅嘢',
+  'ignoredSubmodule.willCopy':
+    '將每個列出嘅檔案照原本嘅相對路徑複製入 {path}，並且核對每份複本嘅大小同 SHA-256。',
+  'ignoredSubmodule.willCreate':
+    '喺 {path} 建立一個新嘅 Git repo，並且喺入面做一個 commit，裝住嗰啲核對過嘅複本。',
+  'ignoredSubmodule.willAdd':
+    '將嗰個 repo 以 submodule 形式加入呢個 repo 嘅 {path}。改動只會 stage 住，唔會 commit——由你自己檢查同 commit。',
+  'ignoredSubmodule.willKeep':
+    '每個原檔逐個 byte 留喺而家嘅路徑。唔會搬、唔會轉做 link、唔會截短。',
+  'ignoredSubmodule.willRecover':
+    '喺 working tree 以外保留每個原檔嘅獨立複本，直到全部通過最後檢查，之後先刪除嗰啲複本。',
+  'ignoredSubmodule.wontHeading': '呢個操作唔會做嘅嘢',
+  'ignoredSubmodule.wontUpload':
+    '唔會上載任何 Cheap LFS 物件，亦唔會揀儲存供應商。',
+  'ignoredSubmodule.wontRemote':
+    '唔會喺 GitHub 或者任何 host 開 repo，亦唔會加 remote。',
+  'ignoredSubmodule.wontPointer': '唔會將任何檔案轉做 Cheap LFS pointer。',
+  'ignoredSubmodule.wontCommit':
+    '唔會喺呢個 repo commit，亦唔會 push 去任何地方。',
+  'ignoredSubmodule.wontReplace': '唔會用 link 取代你原本嘅檔案。',
+  'ignoredSubmodule.confirmAction': '複製檔案並加入 submodule',
+  'ignoredSubmodule.backAction': '返去檔案清單',
+  'ignoredSubmodule.cancelAction': '取消',
+  'ignoredSubmodule.doneAction': '完成',
+  'ignoredSubmodule.progressHeading': '複製同核對緊',
+  'ignoredSubmodule.progressStatus':
+    '已核對 {total} 個檔案入面嘅 {completed} 個…',
+  'ignoredSubmodule.progressLabel': '被忽略檔案暫存進度',
+  'ignoredSubmodule.successHeading': 'Submodule 已加入',
+  'ignoredSubmodule.successDescription':
+    '{count} 份核對過嘅複本（{bytes} bytes）已經 commit 咗喺 {path} 嘅新 repo，而個 repo 已經 stage 咗做 submodule。每個原檔喺原本路徑上完全冇變。你準備好就檢查同 commit 嗰個 staged 改動。',
+  'ignoredSubmodule.rejectedHeading': '以下檔案被拒絕，亦冇改動過任何嘢',
+  'ignoredSubmodule.rejectedRow': '{path} — {reason}',
+  'ignoredSubmodule.failedHeading': '操作已停止',
+  'ignoredSubmodule.recoveryRetained':
+    '你原本嘅檔案由頭到尾冇被寫入過。獨立複本仲喺 {path}。',
+  'ignoredSubmodule.notification.startedTitle': '暫存緊被忽略嘅檔案',
+  'ignoredSubmodule.notification.startedBody':
+    '複製同核對緊 {count} 個 ignored 檔案入 {path}。原檔一律唔郁。',
+  'ignoredSubmodule.notification.succeededTitle': '本機 submodule 已建立',
+  'ignoredSubmodule.notification.succeededBody':
+    '{count} 份核對過嘅複本已經 commit 咗喺 {path}，submodule 亦已 stage。每個原檔完全冇變。冇上載過，亦冇 push 過。',
+  'ignoredSubmodule.notification.failedTitle': '被忽略檔案暫存已停止',
+  'ignoredSubmodule.notification.failedBody':
+    '呢個 repo 冇加入過任何嘢。{error}',
+  'ignoredSubmodule.reason.notProvenIgnored':
+    'Git 而家證實唔到呢個路徑係 ignored——被追蹤嘅檔案永遠都證實唔到。',
+  'ignoredSubmodule.reason.symbolicLink':
+    '呢個路徑係 link 或者 junction，一律唔會跟落去。',
+  'ignoredSubmodule.reason.reparsePoint':
+    '呢個路徑要經 reparse point、junction 或者掛載點先攞到內容，即係啲 bytes 唔係真係喺路徑講嘅位置。',
+  'ignoredSubmodule.reason.notRegularFile': '呢個路徑唔係普通檔案。',
+  'ignoredSubmodule.reason.gitControlPath': '呢個路徑喺 Git 控制目錄入面。',
+  'ignoredSubmodule.reason.nestedRepository':
+    '呢個路徑喺另一個 Git repo 入面。',
+  'ignoredSubmodule.reason.pathEscape': '呢個路徑走出咗 repo 根目錄。',
+  'ignoredSubmodule.reason.duplicateSelection': '呢個路徑俾人揀咗超過一次。',
+  'ignoredSubmodule.reason.destinationCollision':
+    '喺目的地，呢個路徑會同另一個揀咗嘅檔案撞名——Windows 當佢哋係同一個名。',
+  'ignoredSubmodule.reason.insideDestination':
+    '呢個路徑喺新 submodule 資料夾入面。',
+  'ignoredSubmodule.reason.staleInventory':
+    '呢個檔案自從上榜之後改過，即係你睇過嗰啲 bytes 已經唔係磁碟上嗰啲。',
+  'ignoredSubmodule.destination.empty': '請輸入新 submodule 嘅資料夾。',
+  'ignoredSubmodule.destination.absolute':
+    '請輸入相對呢個 repo 嘅資料夾，唔好用絕對路徑。',
+  'ignoredSubmodule.destination.segments':
+    '資料夾唔可以有空白、目前目錄或者上層目錄嘅路徑段。',
+  'ignoredSubmodule.destination.gitControlPath':
+    '資料夾唔可以用 Git 控制目錄。',
+  'ignoredSubmodule.destination.existingSubmodule':
+    '資料夾同呢個 repo 現有嘅 submodule 重疊咗。',
+  'ignoredSubmodule.destination.repositoryRoot':
+    '資料夾唔可以係 repo 根目錄本身。',
+  'ignoredSubmodule.destination.unsafeLink':
+    '資料夾係 link、junction 或者掛載點，一律唔會跟落去。',
+  'ignoredSubmodule.destination.occupied':
+    '資料夾已經存在而且唔係空。請揀一個仲未存在嘅。',
+  'ignoredSubmodule.destination.ignored':
+    'Git 忽略咗呢個資料夾，所以佢載唔到 submodule。請揀一個唔會被 ignore 規則配對嘅資料夾。',
   'cheapLfs.pinFailures.title': '有啲大檔案未 pin 到',
   'cheapLfs.pinFailures.one':
     '{names} 會留喺 Changes；為免原裝大檔案入咗 commit，今次已經排除佢。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢個檔案。',

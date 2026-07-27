@@ -153,6 +153,9 @@ active profile's style, label, and explicit language mode.
 | `material-shallow-clone.png` | Shallow-clone commit-depth controls |
 | `material-sparse-checkout.png` | Persistent three-step sparse-checkout guide in its disabled Choose state |
 | `repository-list-sync-summary.png` | Repository-list sync summary naming the last known push and pull state |
+| `tab-overflow-search.png` | Tab overflow dropdown with its search field and regex builder |
+| `repository-groups-expanded.png` | Repository group expanded with per-row sync summaries |
+| `repository-groups-collapsed.png` | Repository group collapsed with its member count pill |
 
 ## App identity and portable tabs
 
@@ -531,3 +534,9 @@ authentication choice, or remediation remain decision dialogs.
 ![Persistent three-step sparse-checkout guide in its disabled Choose state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-sparse-checkout.png)
 
 ![Repository-list sync summary naming the last known push and pull state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/repository-list-sync-summary.png)
+
+![Tab overflow dropdown with its search field and regex builder](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/tab-overflow-search.png)
+
+![Repository group expanded with per-row sync summaries](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/repository-groups-expanded.png)
+
+![Repository group collapsed with its member count pill](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/repository-groups-collapsed.png)

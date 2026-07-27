@@ -72,23 +72,56 @@ behavior. Cache archive download remains unavailable because GitHub exposes no
 supported cache-download API; the UI points users to downloadable workflow
 artifacts instead. Details and current receipts are in [HANDOFF.md](HANDOFF.md).
 
-## Ignored files to a local Cheap LFS submodule — **Planned, not implemented**
+## Ignored files to a local Cheap LFS submodule — **Local phase implemented and pushed**
 
-A future reviewed workflow will let users select only files that Git currently
-proves are ignored, stage verified copies in a newly created local submodule
-repository, and add that repository at a safe, non-overlapping path. The
-operation must reject links, reparse points, nested repositories, Git control
-paths, case-colliding destinations, and stale inventory; copy and hash proofs
-must finish before any topology change.
+Only the **local phase** is built; the publish phase below is still deferred.
+The reviewed local workflow is reachable from **Repository settings →
+Submodules → Ignored files to a local submodule…**. Candidates come from
+`git status --porcelain=1 -z --untracked-files=all --ignored=traditional` and
+every one is proven individually by `git check-ignore -v -z --stdin`, which is
+deliberately run *without* `--no-index` so a tracked path — including a
+force-added file that matches an ignore pattern — can never be proven ignored
+and therefore can never be selected. The exact source file, line, and pattern
+that proves each row is shown beside it. No `.gitignore` is ever parsed by the
+app.
 
-The ignored working files will remain byte-for-byte at their exact original
-parent-repository paths. Independent recovery copies must be retained until
-every original path passes final verification; the workflow will not replace
-the originals with links. Creating the local repository and submodule will not
-upload Cheap LFS objects, create a provider repository, or push. Release/OCI
-storage selection, upload, pointer conversion, remote creation, and push must be
-a separate explicit opt-in phase. This entry records design requirements only;
-no migration action is currently shipped.
+Every check is fail-closed, with its own named reason: `not-proven-ignored`,
+`symbolic-link`, `reparse-point`, `not-regular-file`, `git-control-path`,
+`nested-repository`, `path-escape`, `duplicate-selection`,
+`destination-case-collision`, `inside-destination`, and `stale-inventory`. The
+destination folder adds `empty`, `absolute`, `segments`, `git-control-path`,
+`existing-submodule`, `repository-root`, `unsafe-link`, `occupied`, and
+`ignored`. One refusal refuses the whole operation.
+
+Copy and hash proofs finish before any topology change. The phases run
+`validate → hash-originals → recovery-copy → stage-copy →
+initialize-repository → topology → final-verification → cleanup`: each staged
+copy is verified by size and SHA-256 while the parent repository is still
+strictly read-only, and the first index mutation anywhere — the new
+repository's own commit — happens only after every proof passes. The single
+`git submodule add` follows it and leaves the submodule and `.gitmodules`
+staged, not committed, with `./<path>` recorded as the URL so no machine path is
+committed.
+
+The ignored working files remain byte-for-byte at their exact original
+parent-repository paths; final verification re-hashes each one and the workflow
+has no code path that writes to an original. Independent recovery copies are
+written under `<git-dir>/desktop-material/ignored-submodule-recovery/<run>/`,
+outside the working tree, with a manifest, and are removed only after every
+original passes final verification — any failure retains them and names the
+directory in the error and in the UI.
+
+Creating the local repository and submodule uploads no Cheap LFS object,
+creates no provider repository, adds no remote, converts nothing into a
+pointer, and pushes nothing; the dialog states each of those to the user before
+the confirmation button and a source test asserts the module imports and
+references none of that code. **Release/OCI storage selection, upload, pointer
+conversion, remote creation, and push remain a separate explicit opt-in phase
+which is not built.** Also still outstanding: merge to `main`, publication, and
+headless screenshot acceptance. Focused coverage is 36/36 (9 pure planning, 22
+real-Git, 5 dialog), `tsc` and configured ESLint are clean, and the behaviour
+is documented in
+[docs/features/repository-management/ignored-files-to-local-submodule.md](docs/features/repository-management/ignored-files-to-local-submodule.md).
 
 ## July 25 Repository list bulk actions — **Implemented on a branch, not merged**
 

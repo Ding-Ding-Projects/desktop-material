@@ -101,11 +101,16 @@ import {
 } from '../cheap-lfs/oci-registry-runtime'
 import {
   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
+  cheapLfsCloudCompressionUsesInRepoWorkflow,
   ensureCheapLfsCloudCompressionWorkflow,
   IEnsureCheapLfsCloudCompressionResult,
   inspectCheapLfsCloudCompressionWorkflow,
-  isCheapLfsCloudCompressionEnabled,
 } from '../cheap-lfs/cloud-compression'
+import {
+  CheapLfsEncryptedBuilderPreparation,
+  cheapLfsPrivateIdentityFromRepository,
+  prepareCheapLfsEncryptedBuilder,
+} from '../cheap-lfs/encrypted-builder'
 import {
   claimInFlight,
   EmptyInFlightGuard,
@@ -118,6 +123,7 @@ import {
   cheapLfsWorkflowPublishIsBlocked,
   cheapLfsWorkflowPublishReasonKey,
   cheapLfsWorkflowPushFailureKey,
+  cheapLfsEncryptedBuilderBlockerKey,
   classifyCheapLfsWorkflowPushFailure,
   decideCheapLfsWorkflowInstall,
   decideCheapLfsWorkflowPublish,
@@ -6226,7 +6232,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 repository,
                 preferences
               )
-              if (isCheapLfsCloudCompressionEnabled(workflow.policy)) {
+              if (cheapLfsCloudCompressionUsesInRepoWorkflow(workflow.policy)) {
                 autoIncludedCheapLfsWorkflowPath =
                   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH
               }
@@ -14764,6 +14770,22 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (decision === 'disabled' || decision === 'installed') {
       return
     }
+    if (decision === 'blocked-visibility-unknown') {
+      // Fail closed, loudly. Installing a caller might bill private minutes and
+      // preparing a public builder might publish a private identifier, so
+      // neither route runs until GitHub says which this repository is.
+      this.postPersistentErrorNotice(
+        t('cheapLfs.cloud.autoInstall.visibilityUnknownTitle'),
+        t('cheapLfs.cloud.autoInstall.visibilityUnknownBody'),
+        cheapLfsWorkflowNoticeDedupeKey(repository.id, 'visibility-unknown'),
+        repository.id
+      )
+      return
+    }
+    if (decision === 'external-builder') {
+      await this.reportCheapLfsEncryptedBuilderRoute(repository)
+      return
+    }
     if (decision === 'blocked-unowned') {
       // Somebody else's file occupies the path. Never rewrite it, and never
       // offer to: the app has no idea what it does.
@@ -14821,6 +14843,58 @@ export class AppStore extends TypedBaseStore<IAppState> {
         error instanceof Error ? error.message : String(error)
       )
     }
+  }
+
+  /**
+   * Report — never perform — the private-repository compression route.
+   *
+   * A private repository is deliberately left without a caller: every pass of
+   * this long, bandwidth-heavy job would bill the user's own Actions minutes.
+   * Compression belongs on a free public runner through the encrypted builder
+   * instead, so this prepares that registration, proves through the leak guard
+   * that no public byte of it names the repository, and then stops. Creating
+   * the public builder and writing its secrets happens outside this app, and
+   * nothing here falls back to spending private minutes or publishes anything.
+   */
+  private async reportCheapLfsEncryptedBuilderRoute(
+    repository: Repository
+  ): Promise<void> {
+    const identity = cheapLfsPrivateIdentityFromRepository(repository)
+    let preparation: CheapLfsEncryptedBuilderPreparation
+    try {
+      preparation = await prepareCheapLfsEncryptedBuilder(identity)
+    } catch (error) {
+      // Fail closed and loudly. Nothing was installed and nothing was
+      // published; say so rather than leaving a silent gap.
+      log.error('Cheap LFS encrypted builder preparation failed', error)
+      this.postPersistentErrorNotice(
+        t('cheapLfs.cloud.autoInstall.builderTitle'),
+        t('cheapLfs.cloud.autoInstall.builderPreparationFailedBody'),
+        cheapLfsWorkflowNoticeDedupeKey(repository.id, 'external-builder'),
+        repository.id
+      )
+      return
+    }
+    const blocker = preparation.blocker
+    const body =
+      preparation.kind === 'registration-required'
+        ? t(cheapLfsEncryptedBuilderBlockerKey(blocker), {
+            builder: preparation.registration.builderName,
+            project: preparation.registration.projectId,
+            secrets: preparation.registration.secrets
+              .map(secret => secret.name)
+              .join(', '),
+          })
+        : t(cheapLfsEncryptedBuilderBlockerKey(blocker))
+    this.postPersistentErrorNotice(
+      t('cheapLfs.cloud.autoInstall.builderTitle'),
+      body,
+      cheapLfsWorkflowNoticeDedupeKey(
+        repository.id,
+        blocker === 'leak-refused' ? 'leak-refused' : 'external-builder'
+      ),
+      repository.id
+    )
   }
 
   /**

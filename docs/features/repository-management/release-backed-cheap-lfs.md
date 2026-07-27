@@ -95,14 +95,139 @@ remains the safe fallback while optional cloud compression runs.
 Cloud compression is automatic for a repository whose GitHub visibility is
 confirmed public. It is off by default for private repositories and runs there
 only after the user explicitly enables the persisted **Cloud compression**
-setting; unknown visibility fails closed. Opening the Large files manager, or
-saving the private opt-in in Repository Settings, writes one owned caller at
-`.github/workflows/cheap-lfs-cloud-compression.yml`. When the repository does
-not already carry that caller in its committed history, the app then commits and
-pushes it in the background — see
+setting; unknown visibility fails closed.
+
+Where it runs depends entirely on that visibility, and the app never guesses:
+
+| Policy | Route | What happens |
+| --- | --- | --- |
+| `automatic-public` | `in-repo-workflow` | Unchanged. One owned caller at `.github/workflows/cheap-lfs-cloud-compression.yml`, committed and pushed in the background. |
+| `enabled-private` | `encrypted-public-builder` | **No caller is installed.** Compression is registered for a free public runner instead — see [Private repositories](#private-repositories-the-encrypted-public-builder). |
+| `disabled-private`, `not-github` | `none` | Nothing. |
+| `visibility-unknown` | `blocked-visibility-unknown` | Neither route runs. The blocker is reported as a non-blocking notice. |
+
+For a public repository, opening the Large files manager writes the owned
+caller, and when the repository does not already carry it in its committed
+history the app commits and pushes it in the background — see
 [Background workflow install](#background-workflow-install). The caller also
-checks live event visibility, so a formerly public repository stops if it
-becomes private unless private consent was explicitly recorded.
+checks live event visibility, so a formerly public repository stops on its own
+the moment it becomes private, without waiting for the app to notice.
+
+`renderCheapLfsCloudCompressionWorkflow` still accepts a
+`privateRepositoryOptIn` argument, but nothing the app writes ever passes
+`true` any more. The private arm of the caller's runtime guard exists only so a
+caller installed by an older release can be recognized and rewritten closed;
+see [Closing a legacy private caller](#closing-a-legacy-private-caller).
+
+#### Private repositories: the encrypted public builder
+
+Compression is long-running and bandwidth-heavy — exactly the shape of job that
+burns Actions minutes fastest. On a private repository those minutes are the
+user's own, so the app refuses to install a caller there at all. Compression is
+routed to the **encrypted public builder** instead: the reviewed compressor runs
+on a free public runner while nothing about the private repository appears
+anywhere public.
+
+The app produces the registration and stops. It derives, from a SHA-256 digest
+of the private `owner/name` under three separate domain separators:
+
+- an **opaque project id** (16 characters), used as the public workflow's file
+  name, job id, and `repository_dispatch` type;
+- an **opaque secret suffix** (12 characters) shared by every secret name;
+- a **gibberish builder name** — three pronounceable five-letter syllable
+  groups, e.g. `nidef-dared-dekir` — for the public repository.
+
+None of the three is derived from the repository name in any readable way, none
+can be read back into one, and a one-character change in the name changes all
+three completely. They are stable for one repository so the same registration
+is reproduced on every machine. A party who already guesses the exact
+`owner/name` can confirm a match by recomputing the digest; the derivation
+hides the name, it does not defend against a confirmed guess.
+
+The committed public file is one neutral loader stub: a gibberish workflow
+name, `permissions: {}`, the opaque job id, three secret references *by name*,
+and one gzip+base64 blob. It decodes the blob into `$RUNNER_TEMP` and runs it.
+Nothing in it states what is built, for whom, or where the result goes — not
+even the word "compress".
+
+Three secrets live on the public builder, created by a human in GitHub's own
+secret store. Desktop Material never sees, stores, or transports their values,
+and never writes one into a file:
+
+| Secret | Holds |
+| --- | --- |
+| `RELEASE_TARGET_<SUFFIX>` | The private repository as `owner/name`. The **only** place it exists. |
+| `RELEASE_TOKEN_<SUFFIX>` | A fine-grained token scoped to that one private repository with read and write access to its contents. |
+| `RUNTIME_SOURCE_<SUFFIX>` | The pinned location the job fetches the compressor from. Deliberately neutral: a name like `COMPRESSOR_SOURCE` would tell any reader of the public builder what the job does. |
+
+> [!IMPORTANT]
+> `RELEASE_TOKEN_<SUFFIX>` is a token that can write to a private repository,
+> stored on a public one. The loader stub therefore triggers only on
+> `workflow_dispatch` and `repository_dispatch`, never on `push`,
+> `pull_request`, or `pull_request_target`, and the job body exits `78` on any
+> other event before it touches a secret. Scope the token to the one repository
+> and to contents only.
+
+The job body itself names nothing. It masks `RELEASE_TARGET` — and each half of
+it, since GitHub masks literal substrings — before first use, clones the
+private repository with the token, and runs the same SHA-pinned
+`cloud-compress.mjs` the public route uses, with `GITHUB_REPOSITORY` set to the
+private target. Verification semantics are therefore identical on both routes:
+every compressed object still round-trips to its exact original bytes with its
+recorded size and SHA-256 verified before adoption.
+
+Two leaks are closed in the body specifically because the runner is public.
+The compressor prints `<path> / <asset name>` for every object it touches, and
+writes the same into the job summary; Cheap LFS asset names are derived from
+user file paths, so both are private data. The body therefore runs it with
+`GITHUB_STEP_SUMMARY` unset and its entire transcript redirected into a
+runner-local file that is deleted and never echoed, uploaded, or summarized.
+Results move only through `gh` against the private target — never an Actions
+artifact, and never a release on the public builder.
+
+##### The leak guard
+
+Before a registration is returned, every public-bound value is scanned against
+every identifier of the private repository: the owner, the name, `owner/name`,
+each Cheap LFS asset name, each tracked path, each path segment, and each
+segment's stem without its extension. The scanned values are the builder name,
+the project id, the secret suffix, the committed loader path, the loader stub
+with its payload elided, and the **decoded** project body — base64 hides
+plaintext from a substring scan, so the guard opens the envelope rather than
+scanning the blob.
+
+An identifier of four characters or more is refused anywhere in a value. A
+shorter one is refused only as a whole word, because a bare substring scan for
+a two-letter repository name matches `grab` and would block every publication
+forever instead of the ones that actually leak.
+
+Any hit throws `CheapLfsPrivateIdentifierLeakError` and nothing is prepared,
+committed, or published. The error names the surface and the identifier's
+*length* only — a leak report that repeats the leaked value is another leak.
+This is deliberately fail-closed: a private repository whose name genuinely
+collides with the public template (say, one named `ubuntu`) can never be
+published safely, so it is refused and reported rather than published with a
+best-effort redaction.
+
+##### Where the app stops
+
+Desktop Material prepares the registration and goes no further. It cannot
+create a public repository or write an Actions secret on the user's behalf —
+doing either would mean holding a token, which this feature never does. So the
+private route always ends in the `builder-unavailable` blocker, reported as a
+persistent non-blocking notice that carries the builder name, the project id,
+and the three secret names. Until the public builder exists and its secrets are
+set, **compression does not run on a private repository at all**: objects stay
+raw, which is valid, cloneable storage. Nothing falls back to spending private
+minutes, and nothing is published publicly.
+
+#### Closing a legacy private caller
+
+A caller installed by an older release into a private repository is not left
+armed. The next time the app touches the path it rewrites the file with the
+public template — whose guard reads `github.event.repository.private == false
+|| false` — so the workflow stops running rather than continuing to bill
+private minutes. An unowned file at the path is still never rewritten.
 
 #### Background workflow install
 
@@ -116,13 +241,28 @@ Detection reads the committed blob at the exact path
 `.github/workflows/cheap-lfs-cloud-compression.yml`, never the working tree
 alone, and produces one decision:
 
+The route is settled before anything else is considered, so no later branch can
+reach a state that writes a file into a private repository:
+
 | Observation | Decision | What happens |
 | --- | --- | --- |
 | Compression off, or a non-Release storage provider | `disabled` | Nothing. |
+| Private repository with the opt-in | `external-builder` | Nothing is installed. The encrypted-builder registration is prepared and its blocker reported once. |
+| Visibility not confirmed by GitHub | `blocked-visibility-unknown` | Neither route runs; reported once. |
 | No committed caller, working tree empty or already canonical | `install` | Write the canonical caller, commit it, push it. |
 | Committed caller is byte-identical to canonical | `installed` | Nothing, including when the user has edited their working copy. |
 | A caller exists but differs from canonical | `offer-update` | A non-blocking notice offers a confirm-class one-click update. Never replaced silently. |
 | Anything without the managed marker occupies the path | `blocked-unowned` | Left completely untouched; reported once. |
+
+`external-builder` and `blocked-visibility-unknown` win over every content
+observation, including `blocked-unowned`: whatever occupies the path, a private
+or unconfirmed repository is not somewhere this app installs, commits, or
+pushes a workflow.
+
+The same route gates the commit path. When an automatic large-file pin runs,
+`_commitIncludedChanges` includes an uncommitted managed caller in that commit
+only when `cheapLfsCloudCompressionUsesInRepoWorkflow` is true — a private
+repository has no caller to include, so nothing is added to the user's commit.
 
 The install itself never blocks the caller. It claims the repository through the
 Cheap LFS in-flight guard so a settings toggle, a panel sync, and a materialize
@@ -266,10 +406,14 @@ as a safely classified large-file candidate.
 
 The same settings surface shows public cloud compression as automatic and
 read-only. A private repository receives a separate off-by-default checkbox
-that explains private Actions usage before recording consent. English,
-playful Hong Kong-style Cantonese, and bilingual modes cover the setting,
-manager status, local-only decompression notice, raw/compressed/mixed
-pointer badges, and every background workflow-install notice.
+that states plainly, before recording consent, that enabling it adds no
+workflow and spends none of the user's private Actions minutes because
+compression runs on the encrypted public builder. Opting in therefore never
+reports "workflow added"; it reports the builder route and its blocker.
+English, playful Hong Kong-style Cantonese, and bilingual modes cover the
+setting, manager status, local-only decompression notice, raw/compressed/mixed
+pointer badges, and every background workflow-install, builder-route,
+visibility-blocked, and leak-refusal notice.
 
 ### Post-commit payload restore
 
@@ -581,6 +725,45 @@ a couple of seconds — the overwhelming majority — revalidates with no wait, 
 probe, and no re-hash, exactly as before. Publishing a pointer pays one
 granularity tick, because the replacement it just staged has to become provable
 before its identity may be trusted at the compare-and-exchange boundary.
+
+### The streaming-hash contract: who owns each digest
+
+A pin never re-reads a payload solely to hash it. Every digest a pin relies on
+is produced by a pass that had to read those bytes anyway — the streamed copy,
+the staging write, or the upload itself — and each route names exactly one
+**authority** for the bytes it publishes.
+
+| Route | Authority for the published bytes | Why |
+| --- | --- | --- |
+| OCI (GHCR, Docker Hub) | **The registry.** Each object layer is pushed as `<repository>@<digest>`, where the digest came from the single streamed pass that wrote the staged layer. The OCI distribution spec requires a registry to hash what it receives and reject a mismatch, so the push succeeding *is* the destination's confirmation. | The destination already computes the digest; computing it locally a second time buys nothing it does not prove. |
+| Release assets | **A streaming local hash.** GitHub returns no content digest when an asset upload completes, so the transport hashes each chunk in the same pass that writes it to the wire and reports that live digest as `localDigest`. | There is no cloud digest to defer to, so the local one must be produced during the upload rather than by a separate read. |
+| Materialize (both routes) | **Unchanged.** Every restored payload is hashed on arrival and must equal the pointer's `sha256` and byte size before it may replace anything. | Downloaded bytes are untrusted input; this contract is not weakened by anything above. |
+
+Removing a local pass does not remove a check. On the OCI route the staged
+layer is still bracketed by a `lstat` identity and size check immediately
+before and immediately after its own push, so a swapped or truncated staged
+file fails closed locally as well; the staging write itself refuses a short or
+torn write by comparing the staged length to the chunk length; and the private
+upload copy's *content* is re-proved for free by the staging pass, which
+refuses any source whose streamed plaintext digest differs from the object the
+pointer will name. A failed blob push happens strictly before the manifest is
+pushed, so a refused digest publishes nothing at all. On the release route a
+transport that cannot report the bytes it actually consumed is refused outright
+rather than trusted.
+
+The measurable effect, for one payload of *N* bytes through one pin:
+
+| Route | Full payload-sized reads before | After |
+| --- | --- | --- |
+| OCI | 7 — streamed copy, pre-publish re-hash, staging read, pre-push layer re-hash, ORAS push, post-publish re-hash, per-pointer re-hash | **3** — streamed copy, staging read, ORAS push |
+| Release | 2 — streamed copy, streamed upload | **2**, unchanged (already single-pass) |
+
+The release figure is deliberately flat: that route was already reduced to one
+streamed copy plus one streamed upload, and this work added regression tests
+for it rather than a saving. The four passes removed are all on the OCI route.
+A seam with no tracked-path store — structural test fakes and legacy adaptors —
+keeps its whole-file re-reads, because there `sourcePath` is the working-tree
+file itself and the re-read is its only proof.
 
 ## Private scratch and the owned-artifact rule
 
@@ -1028,7 +1211,22 @@ read-only Release context for metadata and asset downloads; the main process
 omits the `Authorization` header. Unknown/private visibility and GitHub
 Enterprise still require the exact repository-selected account. Anonymous
 create, update, publish, delete, upload, and mutation-review operations are
-rejected before transport. Public prerelease assets remain outside the stable
+rejected before transport.
+
+Cloud compression never installs a workflow into a private repository, so a
+private repository spends no Actions minutes on it and keeps no
+`.github/workflows` entry the app authored. When compression for a private
+repository is routed to the encrypted public builder, no identifier of that
+repository may reach any public place: not its name, its owner, its file paths,
+the asset names derived from them, or the release target, and not in a
+committed file, a workflow name, or a public runner's log. The registration is
+built from opaque hash-derived tokens, the release target and the token live
+only in Actions secrets, the committed loader stub is scanned with its payload
+elided, and the project body is scanned decoded rather than base64-encoded. A
+single hit fails the whole preparation closed — nothing is prepared, committed,
+or published, and the refusal reports the identifier's length rather than its
+value. Visibility that GitHub has not confirmed is treated the same way: no
+install, no public preparation, and a reported blocker. Public prerelease assets remain outside the stable
 Latest release. The feature never puts provider credentials in a pointer.
 Temporary downloads are cleaned on success and failure, and unverified bytes
 never replace a tracked file.
@@ -1191,7 +1389,22 @@ committed and the remote tip matches, that exactly one commit touching exactly
 one path is published, that a foreign file at the path is never rewritten, that
 a divergent managed caller is replaced only after confirmation, that a diverged
 branch is committed but never pushed, and that the user's staged selection
-survives untouched.
+survives untouched. It also drives the same real repository as an opted-in
+private repository and as one whose visibility GitHub has not confirmed,
+proving that neither writes the workflow path, creates a commit, or moves the
+remote tip, and that each reports its own deduped blocker notice.
+`cheap-lfs/encrypted-builder-test.ts` covers the private route on its own: the
+opaque derivations and their alphabets, stability for one repository and
+independence between two, the neutral loader stub, the gzip+base64 round-trip,
+every leak-prevention property of the job body (secrets-only configuration,
+masking before first use, `GITHUB_STEP_SUMMARY` unset, transcript captured and
+deleted, no Actions artifacts, dispatch-only triggers, and the SHA pin that
+keeps verification identical to the public route), and the leak guard —
+including an explicit assertion that no identifier of a private repository
+reaches any public-bound value, that the guard sees through the base64 envelope
+that would hide one, that a refusal never repeats the identifier it refused,
+that a short identifier is matched as a word and a long one anywhere, and that
+a name colliding with the public template is refused rather than published.
 `cheap-lfs/manual-upload-test.ts` covers whole-batch handoff names, atomic
 bucket rollover, Windows case-insensitive reservation, live preparation
 progress, free-space preflight, verified hardlink/copy staging, zero-byte and

@@ -1576,6 +1576,14 @@ function aggregateProgress(
  * Ensure the bytes accepted by the release transfer are still the bytes hashed
  * for the pointer. The source can be modified by another process during a
  * multi-gigabyte pin, so a successful HTTP upload alone is not sufficient.
+ *
+ * Unlike an OCI registry, GitHub returns no content digest the moment an asset
+ * upload completes, so the release route keeps a *local* authority: the upload
+ * transport hashes each chunk as it streams it to the wire and reports that
+ * live digest as `localDigest`. It is a streaming hash, not a second whole-file
+ * pass — the transfer layer deliberately skips its pre-upload read when Cheap
+ * LFS supplies the expected digest, and refuses to accept any transport that
+ * cannot report what it actually consumed.
  */
 function ensureRawUploadMatchesHash(
   upload: { readonly bytes: number; readonly localDigest: string },

@@ -133,6 +133,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'ignored-submodule-files',
+      label: 'Ignored files',
+      source: 'repository-settings/ignored-submodule-dialog.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'add-subtree-repositories',
       label: 'Add subtree repositories',
       source: 'subtrees/add-subtree-dialog.tsx',

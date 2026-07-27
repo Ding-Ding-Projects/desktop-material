@@ -157,11 +157,7 @@ describe('Cheap LFS cloud-compression workflow install decision', () => {
   })
 
   it('stays out of the way when compression is off or has no Release caller', () => {
-    for (const policy of [
-      'disabled-private',
-      'visibility-unknown',
-      'not-github',
-    ] as const) {
+    for (const policy of ['disabled-private', 'not-github'] as const) {
       assert.equal(
         decideCheapLfsWorkflowInstall(observation({ policy })),
         'disabled'
@@ -173,6 +169,43 @@ describe('Cheap LFS cloud-compression workflow install decision', () => {
         'disabled'
       )
     }
+  })
+
+  it('never installs a caller into an opted-in private repository', () => {
+    // Installing here would bill the user's own Actions minutes for every
+    // long compression pass. The external builder route is reported instead,
+    // whatever the repository already carries at the path.
+    for (const contents of [null, canonicalPublic, 'name: someone else\n']) {
+      assert.equal(
+        decideCheapLfsWorkflowInstall(
+          observation({
+            policy: 'enabled-private',
+            committedContents: contents,
+            workingTreeContents: contents,
+          })
+        ),
+        'external-builder'
+      )
+    }
+  })
+
+  it('fails closed and reports when GitHub has not confirmed visibility', () => {
+    // Neither route may run: installing might bill private minutes, and
+    // preparing a public builder might publish an identifier that turns out
+    // to be private. This is a reported blocker, never a silent `disabled`.
+    assert.equal(
+      decideCheapLfsWorkflowInstall(
+        observation({ policy: 'visibility-unknown' })
+      ),
+      'blocked-visibility-unknown'
+    )
+    // …unless there is no Release caller in the picture at all.
+    assert.equal(
+      decideCheapLfsWorkflowInstall(
+        observation({ policy: 'visibility-unknown', provider: 'ghcr' })
+      ),
+      'disabled'
+    )
   })
 })
 
@@ -543,10 +576,11 @@ async function setupFixture(t: TestContext): Promise<IFixture> {
 
 async function runInstall(
   fixture: IFixture,
-  replaceDivergent: boolean = false
+  replaceDivergent: boolean = false,
+  repository: Repository = fixture.repository
 ): Promise<void> {
   await (fixture.store as any).runCheapLfsWorkflowAutoInstall(
-    fixture.repository,
+    repository,
     replaceDivergent
   )
 }
@@ -718,6 +752,58 @@ describe('Cheap LFS cloud-compression workflow background install', () => {
     assert.equal(
       git(fixture.worktree, ['diff', '--cached', '--name-only']),
       'staged.txt'
+    )
+  })
+
+  it('installs nothing in an opted-in private repository and reports the builder route', async t => {
+    const fixture = await setupFixture(t)
+    const opted = repositoryAt(fixture.worktree, true, {
+      ...defaultBuildRunPreferences,
+      cheapLfsCloudCompression: true,
+    })
+    const before = git(fixture.worktree, ['rev-parse', 'HEAD'])
+
+    await runInstall(fixture, false, opted)
+
+    // Not one byte in the private repository, and not one private Actions
+    // minute: no caller, no commit, no push.
+    await assert.rejects(() => readFile(fixture.workflowPath, 'utf8'))
+    assert.equal(git(fixture.worktree, ['rev-parse', 'HEAD']), before)
+    assert.equal(
+      git(fixture.bare, ['rev-parse', 'refs/heads/main']),
+      fixture.remoteBranchSha
+    )
+    assert.deepEqual(fixture.notifications, [])
+    assert.equal(fixture.notices.length, 1)
+    assert.equal(
+      fixture.notices[0].dedupeKey,
+      cheapLfsWorkflowNoticeDedupeKey(opted.id, 'external-builder')
+    )
+    assert.equal(
+      fixture.notices[0].title,
+      'Private compression runs on the external builder'
+    )
+  })
+
+  it('fails closed and reports when GitHub has not confirmed visibility', async t => {
+    const fixture = await setupFixture(t)
+    const unknown = repositoryAt(fixture.worktree, null)
+    const before = git(fixture.worktree, ['rev-parse', 'HEAD'])
+
+    await runInstall(fixture, false, unknown)
+
+    // Neither route ran, and the blocker was reported rather than guessed past.
+    await assert.rejects(() => readFile(fixture.workflowPath, 'utf8'))
+    assert.equal(git(fixture.worktree, ['rev-parse', 'HEAD']), before)
+    assert.deepEqual(fixture.notifications, [])
+    assert.equal(fixture.notices.length, 1)
+    assert.equal(
+      fixture.notices[0].dedupeKey,
+      cheapLfsWorkflowNoticeDedupeKey(unknown.id, 'visibility-unknown')
+    )
+    assert.equal(
+      fixture.notices[0].title,
+      'Cloud compression is waiting on repository visibility'
     )
   })
 

@@ -165,6 +165,7 @@ import { getConflictResolutionModelDisplay } from '../lib/copilot/conflict-resol
 import { OpenWithExternalEditor } from './open-with-external-editor/open-with-external-editor'
 import {
   AddSubmoduleDialog,
+  IgnoredSubmoduleDialog,
   RepositorySettings,
   RepositorySettingsTab,
 } from './repository-settings'
@@ -3285,6 +3286,16 @@ export class App extends React.Component<IAppProps, IAppState> {
             apiRepositories={this.state.apiRepositories}
             onRefreshRepositories={this.onRefreshRepositories}
             onAdded={popup.onAdded}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.IgnoredSubmodule:
+        return (
+          <IgnoredSubmoduleDialog
+            key={`ignored-submodule-${popup.repository.hash}`}
+            repository={popup.repository}
+            dispatcher={this.props.dispatcher}
+            onCompleted={popup.onAdded}
             onDismissed={onPopupDismissedFn}
           />
         )

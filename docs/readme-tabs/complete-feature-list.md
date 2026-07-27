@@ -437,6 +437,7 @@ regex 模式，連預覽用嗰個大小寫選擇一齊帶過去。兩條失敗�
 | Feature / 功能 | vs. Desktop | Docs |
 | --- | --- | --- |
 | **Documentation hub** — a Material Design 3 hub on GitHub Pages with in-browser search over the full catalog, language modes, playfulness sliders, and a theme toggle.<br><sub>**文件中心** — GitHub Pages 上面嘅 Material Design 3 中心，喺瀏覽器搜尋成個目錄，有語言模式、搞笑程度滑桿同主題開關。</sub> | **Added** | [Docs hub](../README.md) |
+| **Pre-rendered documentation diagrams** — every Mermaid fence becomes theme-aware inline SVG at build time, legible in light and dark, named for screen readers, with the site still loading zero external resources.<br><sub>**預先畫好嘅文件圖表** — 每個 Mermaid fence 喺建置階段就變成識跟主題嘅 inline SVG，光暗兩個模式都睇得清，讀屏軟件有名可讀，個網站照樣零外部資源。</sub> | **Added** | [Documentation site build](../technical/documentation-site-build.md) |
 | **Categorized feature documentation** — **80** feature documents in **8** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **8** 個分類、**80** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
 | **Demand backlog ledger** — the 30-item GitHub Desktop demand backlog mapped to implemented feature contracts.<br><sub>**需求待辦帳簿** — 三十項 GitHub Desktop 需求，逐項對應到已實作嘅功能契約。</sub> | **Added** | [Demand backlog](../features/github-desktop-demand-backlog.md) |
 | **In-app version history** — an in-app changelog surface.<br><sub>**App 內版本歷史** — 喺 app 入面睇更新記錄。</sub> | Extended | — |

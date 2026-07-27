@@ -37,7 +37,8 @@ this fork.
   [Troubleshooting](contributing/troubleshooting.md)
 - **Internals** — [Packaging](technical/packaging.md),
   [Dialogs](technical/dialogs.md), [Developer OAuth app](technical/oauth.md),
-  [Automatic Git proxy support](technical/proxies.md)
+  [Automatic Git proxy support](technical/proxies.md),
+  [Documentation site build](technical/documentation-site-build.md)
 - **Process** — [Release planning](process/release-planning.md),
   [Issue triage](process/issue-triage.md),
   [Pull requests](process/pull-requests.md)
@@ -261,3 +262,5 @@ and how things work:
   Desktop is built and packaged for Windows
 - **[Automatic Git Proxy support](technical/proxies.md)** - a pre-launch
   overview and troubleshooting guide for Git automatic proxy support
+- **[App capture fixture](technical/app-capture-fixture.md)** - how to
+  screenshot the built app with N repositories already open as tabs

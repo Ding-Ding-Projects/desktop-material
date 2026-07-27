@@ -264,15 +264,99 @@ export type ShellExtensionPackageSource =
  * Copying once at registration self-heals every already-shipped build — the
  * 2026-07-26 live verification found no shipped build could register at all
  * because the folder only existed under `resources\app`.
+ *
+ * `refresh` re-copies over a folder that is already in place. It matters now
+ * that the external location outlives a single version
+ * ({@link decideShellExtensionExternalLocation}): the copy left at the Squirrel
+ * root by an earlier release would otherwise be the one every later release
+ * registers, forever.
  */
 export function decideShellExtensionPackageSource(
   besideExecutable: boolean,
-  insideResources: boolean
+  insideResources: boolean,
+  refresh: boolean = false
 ): ShellExtensionPackageSource {
+  if (refresh && insideResources) {
+    return 'copy-from-resources'
+  }
   if (besideExecutable) {
     return 'beside-executable'
   }
   return insideResources ? 'copy-from-resources' : 'missing'
+}
+
+/**
+ * Squirrel's per-version install directory, for example
+ * `app-3.6.3-beta3-zadtuyunxj`.
+ *
+ * Every update installs into a *new* one of these and eventually deletes the
+ * old one, so an absolute path recorded inside one has a shelf life of exactly
+ * one release.
+ */
+const SquirrelVersionDirectory =
+  /^app-\d+\.\d+\.\d+(?:[-+.][0-9A-Za-z][0-9A-Za-z.-]*)?$/i
+
+/**
+ * Compare two Windows paths for identity.
+ *
+ * Windows paths are case-insensitive and accept either separator, and the two
+ * values compared here reach this module from different sources — one from a
+ * PowerShell property, one from a `path.join` — so plain string equality would
+ * report a mismatch between two spellings of the same directory.
+ */
+export function isSameWindowsPath(left: string, right: string): boolean {
+  const normalize = (value: string) =>
+    value
+      .replace(/[\\/]+/g, '\\')
+      .replace(/\\+$/, '')
+      .toLowerCase()
+  return normalize(left) === normalize(right)
+}
+
+/**
+ * The version-stable root of a Squirrel install — the directory holding the
+ * update stub and every `app-<version>` directory — or null when the given
+ * directory is not one of those versioned directories (a development run, a
+ * portable layout, or an unpackaged build directory).
+ */
+export function squirrelUpdateRoot(executableDirectory: string): string | null {
+  const trimmed = executableDirectory.replace(/[\\/]+$/, '')
+  const separator = Math.max(
+    trimmed.lastIndexOf('\\'),
+    trimmed.lastIndexOf('/')
+  )
+  if (separator <= 0) {
+    return null
+  }
+  return SquirrelVersionDirectory.test(trimmed.slice(separator + 1))
+    ? trimmed.slice(0, separator)
+    : null
+}
+
+/**
+ * Decide which directory a registration names as the package's external
+ * location.
+ *
+ * Windows records that path inside the registration and never revisits it, so
+ * naming the directory `process.execPath` lives in — `app-<version>` in an
+ * installed build — makes the registration outlive the directory it points at.
+ * The next update installs beside it and eventually deletes it, while the
+ * package goes on reporting `Status: Ok` from a location that no longer exists
+ * and the context menu silently disappears (issue #66).
+ *
+ * The Squirrel root one level up is the stable answer: it holds the stub
+ * `GitHubDesktop.exe` that the manifest's `Executable` names and that Squirrel
+ * keeps pointed at the current version, and it survives every update. It is
+ * chosen only when that stub is really there — `updateRootHoldsLauncher` — so a
+ * layout without one keeps the executable's own directory rather than
+ * registering against a directory with no executable in it.
+ */
+export function decideShellExtensionExternalLocation(
+  executableDirectory: string,
+  updateRootHoldsLauncher: boolean
+): string {
+  const root = squirrelUpdateRoot(executableDirectory)
+  return root !== null && updateRootHoldsLauncher ? root : executableDirectory
 }
 
 export type ContextMenuMode =
@@ -291,6 +375,109 @@ export type ModernContextMenuBlocker =
   | 'package-missing'
   /** Loose registration needs Developer Mode or sideloading enabled. */
   | 'developer-mode-required'
+  /**
+   * A package is registered, but against a directory this install does not
+   * own. Explorer shows nothing while the package still reports itself
+   * installed, so this must never read as "on".
+   */
+  | 'registration-stale'
+
+/** What Windows reports about the registered package. */
+export interface IShellExtensionRegistration {
+  readonly registered: boolean
+  /**
+   * The directory Windows recorded for the registered manifest, or null when
+   * nothing is registered. A registration whose directory has since been
+   * deleted reports it as empty, which reads as null here.
+   */
+  readonly installLocation: string | null
+}
+
+/** How the live registration relates to this install. */
+export type ShellExtensionRegistrationState =
+  /** Nothing is registered: the user has not turned the feature on. */
+  | 'absent'
+  /** Registered against this install: the top-level menu really is live. */
+  | 'current'
+  /**
+   * Registered against a directory this install does not own — most often an
+   * `app-<version>` directory a later update deleted.
+   */
+  | 'stale'
+
+/** What the main process observed about the live registration. */
+export interface IShellExtensionRegistrationObservation {
+  readonly registration: IShellExtensionRegistration
+  /** Whether the recorded install location still exists on disk. */
+  readonly installLocationExists: boolean
+  /** The manifest directory this install would register. */
+  readonly expectedManifestDirectory: string
+  /** The external location this install would register against. */
+  readonly expectedExternalLocation: string
+}
+
+/**
+ * Decide whether the live registration still belongs to this install.
+ *
+ * `Get-AppxPackage` reports `Status: Ok` for a sparse package whose recorded
+ * directory has rotted away, so "is it registered" is not the question worth
+ * asking — "is it registered against *this* install" is.
+ */
+export function decideShellExtensionRegistrationState(
+  observation: IShellExtensionRegistrationObservation
+): ShellExtensionRegistrationState {
+  const location = observation.registration.installLocation
+
+  if (!observation.registration.registered) {
+    return 'absent'
+  }
+  if (location === null || location.length === 0) {
+    // Registered with nowhere recorded. Windows reports this once the
+    // registered directory is gone, which is exactly the rotted case.
+    return 'stale'
+  }
+  if (!observation.installLocationExists) {
+    return 'stale'
+  }
+  // Either recording convention counts. Windows records the manifest's own
+  // directory, but a registration naming the external location must not read
+  // as broken just because it spelled the same install differently.
+  return isSameWindowsPath(location, observation.expectedManifestDirectory) ||
+    isSameWindowsPath(location, observation.expectedExternalLocation)
+    ? 'current'
+    : 'stale'
+}
+
+/** What a launch-time freshness check should do about the registration. */
+export type ShellExtensionRepairAction = 'none' | 're-register'
+
+/**
+ * Decide whether a launch silently repairs the registration.
+ *
+ * Only a registration that already exists is rewritten. Repair restores what
+ * the user chose; it never makes the choice for them, so `absent` — the state
+ * of every user who never turned the feature on, and of everyone who turned it
+ * off — is left strictly alone.
+ */
+export function decideShellExtensionRepair(
+  state: ShellExtensionRegistrationState
+): ShellExtensionRepairAction {
+  return state === 'stale' ? 're-register' : 'none'
+}
+
+/**
+ * Whether the user can still operate the modern toggle despite `blocker`.
+ *
+ * A stale registration is the one blocker the toggle itself clears: turning it
+ * on re-registers against the current install. Every other blocker is a host
+ * prerequisite the app will not change, so the toggle stays disabled rather
+ * than offering an action that cannot succeed.
+ */
+export function isModernContextMenuActionable(
+  blocker: ModernContextMenuBlocker | null
+): boolean {
+  return blocker === null || blocker === 'registration-stale'
+}
 
 /** What the main process observed about the modern route. */
 export interface IModernContextMenuObservation {
@@ -299,8 +486,8 @@ export interface IModernContextMenuObservation {
   readonly packagePresent: boolean
   /** `Add-AppxPackage -Register` is permitted for this user. */
   readonly canRegisterLoosePackage: boolean
-  /** The package is currently registered for this user. */
-  readonly packageRegistered: boolean
+  /** How the live registration relates to this install. */
+  readonly registrationState: ShellExtensionRegistrationState
 }
 
 /**
@@ -323,14 +510,20 @@ export function decideContextMenuMode(
       ? 'package-missing'
       : !observation.canRegisterLoosePackage
       ? 'developer-mode-required'
+      : observation.registrationState === 'stale'
+      ? 'registration-stale'
       : null
 
-  if (observation.packageRegistered) {
-    // Registration is the ground truth: if the package is live the menu is
+  if (observation.registrationState === 'current') {
+    // A registration pointing at this install is the ground truth: the menu is
     // modern regardless of what the prerequisites now report.
     return { mode: 'modern', modernBlocker: null }
   }
 
+  // A stale registration deliberately does *not* report `modern`. The package
+  // exists, but Explorer is showing nothing from it, and reporting the mode the
+  // package claims rather than the one the user has is what turned issue #66
+  // from a broken feature into an invisible one.
   return {
     mode: classicInstalled ? 'classic' : 'none',
     modernBlocker,
@@ -375,7 +568,13 @@ export function buildUnregisterPackageArguments(): ReadonlyArray<string> {
   ])
 }
 
-/** PowerShell argv reporting whether the package is registered. */
+/**
+ * PowerShell argv reporting whether the package is registered *and where from*.
+ *
+ * The location is the half that matters: a registration recorded against a
+ * deleted directory still reports itself as registered, so asking only the
+ * yes/no question is how a dead context menu passes for a live one.
+ */
 export function buildQueryPackageArguments(): ReadonlyArray<string> {
   return Object.freeze([
     '-NoProfile',
@@ -383,11 +582,24 @@ export function buildQueryPackageArguments(): ReadonlyArray<string> {
     '-ExecutionPolicy',
     'Bypass',
     '-Command',
-    `if (Get-AppxPackage -Name '${ShellExtensionPackageName}') { 'registered' } else { 'absent' }`,
+    `$package = @(Get-AppxPackage -Name '${ShellExtensionPackageName}')[0]; if ($package) { 'registered'; "$($package.InstallLocation)" } else { 'absent' }`,
   ])
 }
 
-/** Interpret the output of {@link buildQueryPackageArguments}. */
-export function parsePackageRegistrationOutput(output: string): boolean {
-  return output.trim().toLowerCase() === 'registered'
+/**
+ * Interpret the output of {@link buildQueryPackageArguments}: the registration
+ * flag on the first line, the recorded directory on the second.
+ */
+export function parsePackageRegistrationOutput(
+  output: string
+): IShellExtensionRegistration {
+  const [flag = '', location = ''] = output.split(/\r?\n/)
+  const registered = flag.trim().toLowerCase() === 'registered'
+  const installLocation = location.trim()
+
+  return {
+    registered,
+    installLocation:
+      registered && installLocation.length > 0 ? installLocation : null,
+  }
 }

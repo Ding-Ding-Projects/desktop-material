@@ -1,9 +1,10 @@
 import { TranslationKey } from '../i18n-resources'
 import { CheapLfsStorageProvider } from '../../models/build-run-preferences'
+import { CheapLfsEncryptedBuilderBlocker } from './encrypted-builder'
 import {
   CheapLfsCloudCompressionPolicy,
   CHEAP_LFS_MANAGED_WORKFLOW_MARKER,
-  isCheapLfsCloudCompressionEnabled,
+  getCheapLfsCloudCompressionRoute,
 } from './cloud-compression'
 
 /**
@@ -39,16 +40,25 @@ export interface ICheapLfsWorkflowObservation {
 /**
  * What the background installer is allowed to do about the observation.
  *
- * - `disabled`        — compression is off, or the storage provider has no
- *                       Release caller at all. Do nothing.
- * - `install`         — the committed tree carries no caller. Write the
- *                       canonical file, commit it, and push it.
- * - `installed`       — the committed caller is already canonical. Do nothing;
- *                       a local edit on top of it is the user's business.
- * - `offer-update`    — a caller exists but differs from canonical. Never
- *                       replaced silently; surface a one-click confirm instead.
- * - `blocked-unowned` — something the app does not own occupies the path. Leave
- *                       it completely untouched and say so once.
+ * - `disabled`         — compression is off, or the storage provider has no
+ *                        Release caller at all. Do nothing.
+ * - `install`          — the committed tree carries no caller. Write the
+ *                        canonical file, commit it, and push it.
+ * - `installed`        — the committed caller is already canonical. Do nothing;
+ *                        a local edit on top of it is the user's business.
+ * - `offer-update`     — a caller exists but differs from canonical. Never
+ *                        replaced silently; surface a one-click confirm.
+ * - `blocked-unowned`  — something the app does not own occupies the path.
+ *                        Leave it completely untouched and say so once.
+ * - `external-builder` — a private repository that opted in. Installing a
+ *                        caller here would bill the user's private Actions
+ *                        minutes for every long compression pass, so nothing is
+ *                        installed and the encrypted public builder route is
+ *                        reported instead.
+ * - `blocked-visibility-unknown`
+ *                      — GitHub has not confirmed whether this repository is
+ *                        public or private. Neither route may run, and the
+ *                        blocker is reported rather than guessed past.
  */
 export type CheapLfsWorkflowInstallDecision =
   | 'disabled'
@@ -56,23 +66,35 @@ export type CheapLfsWorkflowInstallDecision =
   | 'installed'
   | 'offer-update'
   | 'blocked-unowned'
+  | 'external-builder'
+  | 'blocked-visibility-unknown'
 
 /**
  * Decide, fail-closed and without ever proposing an overwrite, what the
  * background installer may do.
  *
- * The unowned check runs before everything else: a file at this path that does
- * not carry the managed marker was written by somebody else, and no later
- * branch may reach a state that writes over it.
+ * The route is settled before anything else. A caller is only ever written
+ * into a repository GitHub has confirmed public; every other answer either
+ * does nothing or reports why, and none of them installs a file. After that
+ * the unowned check runs, because a file at this path that does not carry the
+ * managed marker was written by somebody else, and no later branch may reach a
+ * state that writes over it.
  */
 export function decideCheapLfsWorkflowInstall(
   observation: ICheapLfsWorkflowObservation
 ): CheapLfsWorkflowInstallDecision {
-  if (
-    !isCheapLfsCloudCompressionEnabled(observation.policy) ||
-    observation.provider !== 'release'
-  ) {
+  if (observation.provider !== 'release') {
     return 'disabled'
+  }
+  const route = getCheapLfsCloudCompressionRoute(observation.policy)
+  if (route === 'none') {
+    return 'disabled'
+  }
+  if (route === 'blocked-visibility-unknown') {
+    return 'blocked-visibility-unknown'
+  }
+  if (route === 'encrypted-public-builder') {
+    return 'external-builder'
   }
 
   const committed = observation.committedContents
@@ -241,7 +263,33 @@ export function cheapLfsWorkflowPublishReasonKey(
 /** Collapses repeated background installs for one repository into one card. */
 export function cheapLfsWorkflowNoticeDedupeKey(
   repositoryId: number,
-  scope: 'install' | 'update' | 'unowned'
+  scope:
+    | 'install'
+    | 'update'
+    | 'unowned'
+    | 'external-builder'
+    | 'visibility-unknown'
+    | 'leak-refused'
 ): string {
   return `cheap-lfs-cloud-compression-workflow:${scope}:${repositoryId}`
+}
+
+/**
+ * The localized explanation for a route that stops before any install.
+ *
+ * Every one of these is a fail-closed stop, not a retryable error: nothing was
+ * installed in the private repository and nothing was published publicly.
+ */
+export function cheapLfsEncryptedBuilderBlockerKey(
+  blocker: CheapLfsEncryptedBuilderBlocker
+): TranslationKey {
+  switch (blocker) {
+    case 'leak-refused':
+      return 'cheapLfs.cloud.autoInstall.builderLeakRefusedBody'
+    case 'no-identity':
+      return 'cheapLfs.cloud.autoInstall.builderNoIdentityBody'
+    case 'builder-unavailable':
+    default:
+      return 'cheapLfs.cloud.autoInstall.builderUnavailableBody'
+  }
 }
