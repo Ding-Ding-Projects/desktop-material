@@ -1,8 +1,8 @@
 import assert from 'node:assert'
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import { join } from 'path'
 import { describe, it, TestContext } from 'node:test'
-import { writeFile } from 'fs/promises'
+import { readdir, writeFile } from 'fs/promises'
 import { exec } from 'dugite'
 
 import {
@@ -45,6 +45,45 @@ async function setupProofRepository(t: TestContext): Promise<Repository> {
   await runGit(repository, ['add', '--all'])
   await runGit(repository, ['commit', '-m', 'base'])
   return repository
+}
+
+async function looseObjectIds(repository: Repository): Promise<Set<string>> {
+  const objects = join(repository.path, '.git', 'objects')
+  const ids = new Set<string>()
+  for (const entry of await readdir(objects, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^[0-9a-f]{2}$/.test(entry.name)) {
+      continue
+    }
+    for (const file of await readdir(join(objects, entry.name))) {
+      ids.add(`${entry.name}${file}`)
+    }
+  }
+  return ids
+}
+
+/** Commit a Cheap LFS pointer, then materialize its payload in its place. */
+async function materializeCheapLfsPayload(
+  repository: Repository,
+  relativePath: string
+): Promise<{ readonly baseSha: string; readonly payloadObjectId: string }> {
+  await writeFile(join(repository.path, relativePath), 'cheap-lfs pointer\n')
+  await runGit(repository, ['add', '--', relativePath])
+  await runGit(repository, ['commit', '-m', 'pointer'])
+  const baseSha = await runGit(repository, ['rev-parse', 'HEAD'])
+  await writeFile(
+    join(repository.path, relativePath),
+    randomBytes(4 * 1024 * 1024)
+  )
+  return {
+    baseSha,
+    // `hash-object` without `-w` is the object id staging would produce; the
+    // proof must never be the thing that stores it.
+    payloadObjectId: await runGit(repository, [
+      'hash-object',
+      '--',
+      relativePath,
+    ]),
+  }
 }
 
 describe('Git-backed automatic commit batch proof', () => {
@@ -241,6 +280,84 @@ describe('Git-backed automatic commit batch proof', () => {
     )
     assert.deepEqual(await readCommitPushBatchIntent(repository), intent)
     assert.equal(await readPendingCommitPushBatch(repository), null)
+  })
+
+  it('captures a pre-commit intent without storing a materialized payload', async t => {
+    const repository = await setupProofRepository(t)
+    const { baseSha, payloadObjectId } = await materializeCheapLfsPayload(
+      repository,
+      'payload.bin'
+    )
+    const before = await looseObjectIds(repository)
+
+    const intent = await beginCommitPushBatchIntent(
+      repository,
+      baseSha,
+      ['planned.txt'],
+      target
+    )
+
+    const added = [...(await looseObjectIds(repository))].filter(
+      id => !before.has(id)
+    )
+    assert.deepEqual(
+      added,
+      [intent.objectId],
+      'only the durable intent blob may be added to the repository'
+    )
+    assert.equal(added.includes(payloadObjectId), false)
+
+    // The unchanged working tree is still proven exactly, so the intent clears.
+    await clearCommitPushBatchIntentAfterNoCommit(repository, intent)
+    assert.equal(await readCommitPushBatchIntent(repository), null)
+  })
+
+  it('retains a no-commit intent when a materialized payload changed', async t => {
+    const repository = await setupProofRepository(t)
+    const { baseSha } = await materializeCheapLfsPayload(
+      repository,
+      'payload.bin'
+    )
+    const intent = await beginCommitPushBatchIntent(
+      repository,
+      baseSha,
+      ['planned.txt'],
+      target
+    )
+
+    // Only the payload's bytes change: HEAD, the branch and the index are all
+    // still exact, so the working-tree tree is the only thing that can notice.
+    await writeFile(
+      join(repository.path, 'payload.bin'),
+      randomBytes(4 * 1024 * 1024)
+    )
+
+    await assert.rejects(
+      clearCommitPushBatchIntentAfterNoCommit(repository, intent),
+      error =>
+        error instanceof CommitPushBatchError && error.kind === 'stale-commit'
+    )
+    assert.deepEqual(await readCommitPushBatchIntent(repository), intent)
+    assert.equal(await readPendingCommitPushBatch(repository), null)
+  })
+
+  it('retains a no-commit intent when only an untracked file appeared', async t => {
+    const repository = await setupProofRepository(t)
+    const base = await captureCommitPushBatchBase(repository)
+    const intent = await beginCommitPushBatchIntent(
+      repository,
+      base,
+      ['planned.txt'],
+      target
+    )
+    await writeFile(join(repository.path, 'appeared.txt'), 'appeared')
+
+    await assert.rejects(
+      clearCommitPushBatchIntentAfterNoCommit(repository, intent),
+      error =>
+        error instanceof CommitPushBatchError && error.kind === 'stale-commit'
+    )
+    assert.deepEqual(await readCommitPushBatchIntent(repository), intent)
   })
 
   it('recovers a crash after commit by proving before marking pending', async t => {
