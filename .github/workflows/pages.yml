@@ -112,6 +112,11 @@ jobs:
           test -f _site/docs/README.html
           test -f _site/docs/assets/site/docs-hub.js
           grep -q 'docs-hub-catalog.js' _site/docs/index.html
+          # Both /docs/index.html and /docs/search.html resolve the shared
+          # regex runner and worker relatively from /docs/, so publishing one
+          # surface without them would ship a search box that fails closed.
+          test -f _site/docs/assets/site/docs-regex-job.js
+          test -f _site/docs/assets/site/docs-hub-regex-worker.js
 
       - name: Build documentation search index
         run: |
@@ -119,6 +124,8 @@ jobs:
           rm -f _site/build-search-index.js
           test -s _site/docs/search-index.json
           test -f _site/docs/search.html
+          grep -q 'assets/site/docs-regex-job.js' _site/docs/search.html
+          grep -q 'assets/site/docs-hub-regex-worker.js' _site/docs/search.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

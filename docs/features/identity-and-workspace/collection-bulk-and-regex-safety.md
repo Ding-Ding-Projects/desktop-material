@@ -113,13 +113,24 @@ compositional work budget rather than multiplying the independent group and
 match limits. Stable registry IDs make an unreviewed new search field fail the
 source audit until it adopts the same invalid-regex and builder behavior.
 
-The published documentation hub is a static web surface and keeps its existing
-ECMAScript dialect and supported flag set. Its user pattern never runs on the
-page thread: a fresh same-origin Web Worker evaluates each bounded request, the
-page terminates it at a hard 750 ms deadline, and worker unavailability fails
-closed. Worker responses retain at most 24 bounded captures from the first match
-and bounded match previews, preventing structured-clone amplification. No app or
-documentation search transmits or persists a pattern or test sample.
+The published documentation site is a static web surface and keeps its existing
+ECMAScript dialect and supported flag set. Both of its pattern surfaces — the
+documentation hub at `/docs/` and the full-text search page at
+`/docs/search.html` — share one evaluator and one deadline owner. A reader's
+pattern never runs on the page thread: a fresh same-origin Web Worker
+(`docs-hub-regex-worker.js`) evaluates each bounded request, the shared runner
+in `docs-regex-job.js` terminates that worker at a hard 750 ms deadline from
+the page, and worker unavailability fails closed rather than falling back to
+the UI thread. Plain text is the default on both surfaces and is matched by
+bounded substring scans that compile nothing at all; a regular expression is
+treated as a pattern only after the reader opts in. Worker responses retain at
+most 24 bounded captures from the first match and bounded match previews, and
+the full-text scan returns match *offsets* into a corpus the page already
+holds rather than slices of it, preventing structured-clone amplification.
+Patterns are capped at 512 characters; the search corpus is capped at 200,000
+characters per page, 2,000 pages, and 12,000,000 characters in total, with at
+most 500 matches counted per page. No app or documentation search transmits or
+persists a pattern or test sample.
 
 Bulk operations pass operation-specific bounded identities, such as run IDs,
 repository IDs, release fingerprints, or exact branch tips. Destructive
@@ -146,4 +157,13 @@ compact-window reachability. `docs-hub-regex-worker-test.mjs` proves bounded
 search/highlight results, flags, captures, Unicode zero-width advancement,
 invalid input, absence of network APIs, UI-thread fail-closed behavior, and
 hard termination of a worker stuck in native backtracking. It also proves a
-200-capture, 20,000-character sample produces a compact bounded worker response.
+200-capture, 20,000-character sample produces a compact bounded worker response,
+covers the full-text `pages` operation's offsets, per-page and per-corpus
+bounds, and zero-width counting, and asserts that neither `docs-hub.js` nor
+`docs-search.html` contains a bare `new RegExp(` — the regression guard for the
+UI-thread compile that issue #69 reported. `docs-search-page-test.mjs` drives
+the real `/docs/search.html` in jsdom against the real worker on a real thread,
+covering plain-text default versus regex opt-in, match-case and whole-word
+behavior, address round-tripping, index-load failure, worker-absent fail-closed
+behavior, the regex builder and snippet buttons, and termination of `^(a+)+$`
+against a 20,000-character non-matching page within the 750 ms deadline.

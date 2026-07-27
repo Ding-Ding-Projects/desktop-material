@@ -659,13 +659,6 @@
     return /\([^()]*[+*][^()]*\)\s*[+*]/.test(pattern)
   }
 
-  /**
-   * At most one regex job per surface may be live. Search and builder preview
-   * get independent workers so updating one cannot cancel the other.
-   */
-  var regexJobs = { search: null, builder: null }
-  var regexJobSequence = 0
-
   function setRegexBusy(surface, busy) {
     var target =
       surface === 'search'
@@ -681,97 +674,35 @@
     }
   }
 
-  function cancelRegexJob(surface) {
-    var job = regexJobs[surface]
-    if (job === null) {
-      return
-    }
-    window.clearTimeout(job.timeout)
-    try {
-      job.worker.terminate()
-    } catch (error) {
-      /* A worker that already exited is already safely isolated. */
-    }
-    regexJobs[surface] = null
-    setRegexBusy(surface, false)
-  }
-
-  function finishRegexJob(surface, job) {
-    if (regexJobs[surface] !== job) {
-      return false
-    }
-    window.clearTimeout(job.timeout)
-    job.worker.terminate()
-    regexJobs[surface] = null
-    setRegexBusy(surface, false)
-    return true
-  }
-
   /**
-   * Runs one bounded regex operation outside the UI thread. A timeout always
-   * terminates the worker before reporting failure, which makes the deadline a
-   * real interruption rather than a post-call elapsed-time observation.
+   * At most one regex job per surface may be live. Search and builder preview
+   * get independent workers so updating one cannot cancel the other. The runner
+   * itself lives in `docs-regex-job.js` and is shared with the documentation
+   * search page, so both published surfaces enforce one identical deadline and
+   * worker-termination contract instead of two that can drift apart.
    */
+  var regexRunner =
+    window.DesktopMaterialRegexJob === undefined
+      ? null
+      : window.DesktopMaterialRegexJob.create({
+          workerPath: RegexWorkerPath,
+          budgetMilliseconds: EvaluationBudgetMilliseconds,
+          onBusy: setRegexBusy,
+        })
+
+  function cancelRegexJob(surface) {
+    if (regexRunner !== null) {
+      regexRunner.cancel(surface)
+    }
+  }
+
+  /** Fails closed: a missing runner never falls back to the UI thread. */
   function runRegexJob(surface, payload, onSuccess, onFailure) {
-    cancelRegexJob(surface)
-
-    if (typeof window.Worker !== 'function') {
+    if (regexRunner === null) {
       onFailure('unavailable', '')
       return
     }
-
-    var worker
-    try {
-      worker = new window.Worker(RegexWorkerPath)
-    } catch (error) {
-      onFailure('unavailable', '')
-      return
-    }
-
-    var requestId = ++regexJobSequence
-    var job = { worker: worker, timeout: 0, requestId: requestId }
-    regexJobs[surface] = job
-    setRegexBusy(surface, true)
-
-    job.timeout = window.setTimeout(function () {
-      if (!finishRegexJob(surface, job)) {
-        return
-      }
-      onFailure('timeout', '')
-    }, EvaluationBudgetMilliseconds)
-
-    worker.onmessage = function (event) {
-      var data = event.data
-      if (
-        data === null ||
-        typeof data !== 'object' ||
-        data.requestId !== requestId ||
-        !finishRegexJob(surface, job)
-      ) {
-        return
-      }
-      if (data.ok === true) {
-        onSuccess(data)
-      } else {
-        onFailure(data.code || 'unavailable', data.detail || '')
-      }
-    }
-    worker.onerror = function (event) {
-      if (typeof event.preventDefault === 'function') {
-        event.preventDefault()
-      }
-      if (finishRegexJob(surface, job)) {
-        onFailure('unavailable', '')
-      }
-    }
-
-    try {
-      worker.postMessage(Object.assign({ requestId: requestId }, payload))
-    } catch (error) {
-      if (finishRegexJob(surface, job)) {
-        onFailure('unavailable', '')
-      }
-    }
+    regexRunner.run(surface, payload, onSuccess, onFailure)
   }
 
   function regexFailureText(code, detail) {

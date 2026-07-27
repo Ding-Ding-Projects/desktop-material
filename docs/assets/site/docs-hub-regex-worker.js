@@ -1,5 +1,9 @@
 /**
- * Interruptible ECMAScript-regex evaluator for the static documentation hub.
+ * Interruptible ECMAScript-regex evaluator for the static documentation site.
+ *
+ * The only place a reader's pattern is ever compiled. Both published surfaces
+ * use it — the hub at `/docs/` (`search`, `builder`) and the full-text search
+ * page at `/docs/search.html` (`pages`).
  *
  * This worker has no network or DOM dependencies. The page creates a fresh
  * instance for every operation and terminates it after a hard deadline, so a
@@ -18,6 +22,19 @@
   var MaximumCapturePreviews = 24
   var MaximumCapturePreviewLength = 120
   var MaximumMatchPreviewLength = 240
+
+  /**
+   * Bounds for the full-text `pages` operation used by /docs/search.html. The
+   * corpus is a build-time artefact, not reader input, so it is allowed to be
+   * far larger than the hub catalog — but it is still bounded, because an
+   * oversized corpus is just a slower way to miss the page's deadline.
+   */
+  var MaximumPageEntries = 2000
+  var MaximumPageTextLength = 200000
+  var MaximumCorpusTextLength = 12000000
+  var MaximumPageHits = 200
+  var MaximumPageExcerpts = 10
+  var MaximumPageScanSteps = 500
 
   function reply(requestId, body) {
     scope.postMessage(Object.assign({ requestId: requestId }, body))
@@ -201,6 +218,106 @@
     reply(requestId, { ok: true, total: total, hits: hits })
   }
 
+  function validCorpus(pages) {
+    if (!Array.isArray(pages) || pages.length > MaximumPageEntries) {
+      return false
+    }
+    var totalLength = 0
+    for (var i = 0; i < pages.length; i++) {
+      if (
+        typeof pages[i] !== 'string' ||
+        pages[i].length > MaximumPageTextLength
+      ) {
+        return false
+      }
+      totalLength += pages[i].length
+      if (totalLength > MaximumCorpusTextLength) {
+        return false
+      }
+    }
+    return true
+  }
+
+  /**
+   * Full-text scan across the rendered documentation corpus.
+   *
+   * Only match *offsets* cross the structured-clone boundary — never slices of
+   * a multi-megabyte corpus the page already holds — so a pattern that matches
+   * everywhere cannot amplify one request into an enormous response.
+   */
+  function pages(requestId, message) {
+    if (!validCorpus(message.pages)) {
+      reply(requestId, { ok: false, code: 'invalid-request', detail: '' })
+      return
+    }
+
+    var compiled = compile(message.pattern, message.flags, true)
+    if (compiled.regex === undefined) {
+      reply(requestId, Object.assign({ ok: false }, compiled))
+      return
+    }
+
+    var maximumPages = boundedInteger(message.maximumPages, 60, MaximumPageHits)
+    var maximumExcerpts = boundedInteger(
+      message.maximumExcerpts,
+      3,
+      MaximumPageExcerpts
+    )
+    var regex = compiled.regex
+    var hits = []
+    var total = 0
+    var truncated = false
+
+    for (var i = 0; i < message.pages.length; i++) {
+      var text = message.pages[i]
+      var ranges = []
+      var found = 0
+      regex.lastIndex = 0
+      while (found < MaximumPageScanSteps) {
+        var match = regex.exec(text)
+        if (match === null) {
+          break
+        }
+        found++
+        // A zero-width match still counts and still points somewhere, exactly
+        // as this page has always reported it; one character is highlighted so
+        // the reader sees where it landed.
+        var start = match.index
+        var end =
+          match[0].length === 0
+            ? Math.min(start + 1, text.length)
+            : start + match[0].length
+        if (ranges.length < maximumExcerpts && end > start) {
+          ranges.push([start, end])
+        }
+        if (match[0].length === 0) {
+          regex.lastIndex = advanceStringIndex(
+            text,
+            match.index,
+            regex.unicode === true
+          )
+        }
+      }
+
+      if (found === 0) {
+        continue
+      }
+      total += found
+      hits.push({ pageIndex: i, matches: found, ranges: ranges })
+      if (hits.length >= maximumPages) {
+        truncated = i + 1 < message.pages.length
+        break
+      }
+    }
+
+    reply(requestId, {
+      ok: true,
+      total: total,
+      hits: hits,
+      truncated: truncated,
+    })
+  }
+
   function builder(requestId, message) {
     if (typeof message.sample !== 'string') {
       reply(requestId, { ok: false, code: 'invalid-request', detail: '' })
@@ -309,6 +426,10 @@
       }
       if (message.operation === 'builder') {
         builder(requestId, message)
+        return
+      }
+      if (message.operation === 'pages') {
+        pages(requestId, message)
         return
       }
       reply(requestId, { ok: false, code: 'invalid-request', detail: '' })

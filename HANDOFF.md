@@ -1,5 +1,50 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Documentation search no longer compiles reader regex on the UI thread (#69)
+
+`site/docs-search.html`, published as `/docs/search.html`, built and compiled
+reader-supplied patterns with a bare `new RegExp(...)` on the page thread. A
+catastrophically backtracking pattern such as `^(a+)+$` against a long
+non-matching page hung the tab with no recovery. This was pre-existing debt, not
+a regression from #63.
+
+- **One evaluator, one deadline owner.** The hub's job runner moved out of
+  `docs-hub.js` into `docs/assets/site/docs-regex-job.js`, and both published
+  surfaces now use it: a fresh same-origin worker per request, a page-owned
+  hard 750 ms timeout that calls `terminate()` before reporting failure, and a
+  fail-closed path when `Worker` is unavailable. Neither page keeps a private
+  copy of that logic any more.
+- **Same worker, new bounded operation.** `docs-hub-regex-worker.js` gained a
+  `pages` operation for the full-text corpus: at most 2,000 pages, 200,000
+  characters per page, 12,000,000 characters in total, 500 counted matches per
+  page and the requested excerpt cap per page. Only match *offsets* cross the
+  structured-clone boundary; the page slices excerpts from text it already
+  holds, so a pattern matching everywhere cannot amplify one reply.
+- **Plain text is still the default and no longer uses regex at all.** Plain
+  search is a bounded substring scan; match-case and whole-word are honoured
+  with an explicit ASCII word-boundary check rather than a compiled `\b`.
+  Regex stays an explicit opt-in, and query/pattern/options still round-trip
+  through the address bar. The regex builder, its six snippets, excerpt
+  highlighting, and the result and status copy are unchanged.
+- **Regression guard extended.** `docs-hub-regex-worker-test.mjs` now asserts
+  `doesNotMatch(/new RegExp\s*\(/)` against **both** `docs-hub.js` and
+  `docs-search.html`, and requires each to reference the shared runner and the
+  shared worker. The new `script/docs-search-page-test.mjs` drives the real
+  page in jsdom against the real worker on a real thread.
+- **Publication.** `/docs/search.html` and `/docs/index.html` sit at the same
+  depth, so `assets/site/docs-hub-regex-worker.js` resolves identically from
+  both; `pages.yml` now asserts the runner and worker ship next to
+  `search.html` and that the page references them. The site still loads zero
+  external resources.
+
+Local evidence: `node script/test.mjs script` passed 121/122 with 1 pre-existing
+skip and 0 failures, including 12 new worker/controller assertions and the new
+12-test `docs-search-page-test.mjs`, whose adversarial case measured `^(a+)+$`
+against a 20,000-character non-matching page terminating at ~815 ms wall clock
+(deadline 750 ms) with the page still answering a plain-text search afterwards.
+`npx prettier --check` passes on every touched non-Markdown file. No TypeScript
+was touched. Not yet verified in a real browser against the deployed Pages site.
+
 ## 2026-07-27 — Tabbed GitHub Pages hub with a site-wide search dock (#63)
 
 The published documentation hub (`docs/index.html`) is no longer one long
