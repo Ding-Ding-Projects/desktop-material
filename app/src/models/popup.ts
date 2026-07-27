@@ -94,6 +94,7 @@ export enum PopupType {
   ActionsLocalRun = 'ActionsLocalRun',
   RepositorySettings = 'RepositorySettings',
   AddSubmodule = 'AddSubmodule',
+  IgnoredSubmodule = 'IgnoredSubmodule',
   CloneableSubmodules = 'CloneableSubmodules',
   SubmoduleManager = 'SubmoduleManager',
   SubmoduleConfig = 'SubmoduleConfig',
@@ -325,6 +326,11 @@ export type PopupDetail =
     }
   | {
       type: PopupType.AddSubmodule
+      repository: Repository
+      onAdded: () => void | Promise<void>
+    }
+  | {
+      type: PopupType.IgnoredSubmodule
       repository: Repository
       onAdded: () => void | Promise<void>
     }
