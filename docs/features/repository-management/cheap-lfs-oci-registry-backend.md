@@ -3,7 +3,7 @@
 Desktop Material can represent the complete Cheap LFS object set for one Git
 repository as one logical OCI image in GitHub Container Registry (GHCR) or
 Docker Hub. Select **GHCR image** or **Docker Hub image** under **Repository
-settings → Build & Run → Large-file storage**. The backend primitives are
+settings → Cheap LFS → Large-file storage**. The backend primitives are
 provider-neutral even though their source filenames retain the original
 `ghcr-*` compatibility names.
 

@@ -1042,7 +1042,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     void this.props.dispatcher.showPopup({
       type: PopupType.RepositorySettings,
       repository: this.props.repository,
-      initialSelectedTab: RepositorySettingsTab.BuildRun,
+      initialSelectedTab: RepositorySettingsTab.CheapLfs,
     })
   }
 

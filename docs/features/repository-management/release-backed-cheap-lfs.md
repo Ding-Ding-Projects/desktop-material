@@ -23,7 +23,7 @@ decode the backing Release asset names. The same panel remains available from
 Repository Tools for users who enter through the tools hub. The repository-rail
 page owns its vertical scroll, keeping every row reachable in a long inventory.
 Choose **Open Cheap LFS settings** in that page to open **Repository settings →
-Build & run** directly.
+Cheap LFS** directly.
 
 The original bytes are in the named GitHub Release asset or ordered assets, not
 inside the Git commit. A fresh clone therefore receives the pointer first.
@@ -37,10 +37,12 @@ account-gated.
 
 ## Behavior and configuration
 
-**Repository settings → Build & run → Large-file storage** selects a
+**Repository settings → Cheap LFS → Large-file storage** selects a
 published GitHub prerelease, one GHCR OCI image, or one Docker Hub OCI image.
-The Large files page's direct settings action opens this tab; users do not need
-to leave the repository and hunt through global preferences.
+The Cheap LFS preferences live on their own tab in the Repository Settings
+dialog, immediately after **Build & run**, and the Large files page's direct
+settings action opens that tab; users do not need to leave the repository and
+hunt through global preferences.
 In the repository **Releases** catalog, Desktop Material hides recognized Cheap
 LFS storage-bucket prereleases by default so app-managed object storage does not
 crowd ordinary product releases. Choose **Show Cheap LFS storage releases** to
@@ -206,8 +208,8 @@ for its verified side object. If the selected Release has already reached its
 remains cloneable and locally materializable. Cheap LFS never deletes the
 historical raw asset merely to make room.
 
-Repository Build & Run settings provide three preferences, all enabled by
-default for compatibility:
+The repository's **Cheap LFS** settings tab provides three preferences, all
+enabled by default for compatibility:
 
 - **Pin large files before committing** replaces selected files strictly over
   100 MiB before every routed commit entry point when the source repository's
@@ -409,8 +411,9 @@ restore them with its selected authorized account, without an owner-only draft
 step.
 Per-repository auto-pin,
 three-wide-versus-sequential upload mode, auto-materialize, and private
-cloud-compression consent are stored with the repository's Build & Run
-preferences. Preferences written by an older app have no parallel-upload field
+cloud-compression consent are stored in the repository's shared Build & Run
+preference record and edited on the dedicated **Cheap LFS** settings tab.
+Preferences written by an older app have no parallel-upload field
 and resolve compatibly to the new default-on mode.
 
 Materialization writes verified bytes into a private sibling recovery
