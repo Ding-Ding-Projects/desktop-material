@@ -46,7 +46,7 @@ behavior. Cache archive download remains unavailable because GitHub exposes no
 supported cache-download API; the UI points users to downloadable workflow
 artifacts instead. Details and current receipts are in [HANDOFF.md](HANDOFF.md).
 
-## Ignored files to a local Cheap LFS submodule — **Implemented on a branch**
+## Ignored files to a local Cheap LFS submodule — **Local phase implemented and pushed**
 
 Only the **local phase** is built; the publish phase below is still deferred.
 The reviewed local workflow is reachable from **Repository settings →

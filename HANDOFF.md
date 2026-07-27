@@ -1,5 +1,89 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — SESSION HANDOFF (read this first)
+
+`main` is at **`96eeb54c17`**, pushed, with **zero divergence** from the remote.
+The working tree is clean; no stashes; every agent branch is merged and deleted
+except the one still running (below).
+
+### Verification state on this tree
+
+| Gate | Result |
+| --- | --- |
+| `node script/test.mjs` | **6,508 tests / 808 files / 0 failures** |
+| `node script/test.mjs script` | **163 pass / 0 fail / 2 skipped** |
+| `npx tsc --noEmit` (root) | clean |
+| `npx eslint --rulesdir ./eslint-rules` | clean |
+| `npx prettier --check` (repo-wide) | clean |
+| CI | **runs were still in flight at handoff time — not green, not claimed green** |
+
+Nothing in this session was closed on a CI badge. Every closing comment says so
+explicitly and commits to reopening rather than burying a later CI failure. If
+CI on `96eeb54c17` or its ancestors reports a failure, that is real and the
+affected issues should be reopened.
+
+### Issues: 23 open → 7 open
+
+**Closed with a real capture from a built app:** #22, #73 (tab overflow with its
+search field, Regex builder and per-row customize control), #74 (repository
+groups expanded and collapsed, count pill and accessible name visible), #70
+(sync summary line).
+
+**Closed as fixed, merged, pushed, locally verified:** #55, #56, #58, #59, #65,
+#67, #69, #72. Each carries its own regression tests, and each was proven to
+fail without its fix.
+
+**Closed as shipped:** #63, #64, #71, #75.
+
+**Still open, with the honest reason:**
+
+| Issue | State |
+| --- | --- |
+| **#35** | Deferred profiler findings are all fixed. Stream-hash-on-upload ("cloud hash") is **in flight** on `worktree-agent-a40d48b0a8b69a255` — that worktree is deliberately preserved. |
+| **#66** | Fixed and pushed (registration now targets the update-stable Squirrel root, stale registrations detected and repaired). **Not closed** because no real re-registration was exercised — verifying the post-update repair needs an installed build carrying the change to be updated over. |
+| **#68** | Fixed and pushed. **Not closed** because the private route deliberately ends at a `builder-unavailable` blocker: creating the public builder repo and writing its Actions secrets needs a token this feature never holds. Until that external setup exists, private-repo compression does not run at all — which is the safe outcome, not a silent fallback. |
+| **#34** | Feature shipped and merged. Wants a framed capture of the branch picker. |
+| **#23** | 79-capture campaign. Now unblocked — `script/capture-app.js` exists and works. |
+| **#62** | **Blocked on the user.** All 21 desktop-plus features referenced anywhere in this tree are already implemented; no unadapted one could be found. Needs a name or screenshot of the feature believed missing. Upstream delta measured: 78 commits since fork point `d9080117b1`, versus 1,345 here (2,438 files, +902k lines). Do **not** bulk-merge upstream. |
+| **#78** | **Blocked on the user.** Needs the scope decision: encrypt Cheap LFS payloads before upload (fits this app), or encrypt working-tree files in place (fights Git's diffing). |
+
+### Things a successor should know
+
+- **The Electron runtime was broken and is now fixed.** `node_modules/electron/dist/`
+  held only a `locales` folder because the postinstall had downloaded
+  `electron-v42.0.1-win32-x64.zip` (144 MB) into the cache on **July 12** and
+  never extracted it. Every "blocked on a build host" note in earlier handoffs
+  traced to this. Extracting the cached zip fixed it; `path.txt` now names
+  `electron.exe`.
+- **Captures have two paths and they are not interchangeable.**
+  `script/capture-app.js` (CDP) drives interaction — it seeds repositories
+  straight into the renderer's IndexedDB and opens tabs through the app's own
+  IPC, so no app behaviour was changed to make capture possible. The Lowlevel
+  MCP headless desktop launches and captures the real build off-screen, but
+  **cannot drive Chromium**: posted input to `Chrome_RenderWidgetHostHWND` is
+  ignored. Use the former for interaction scenes, the latter for launch-and-capture.
+- **Screenshot counts are pinned in two places** — `app/test/unit/wiki-function-gallery-test.ts`
+  and `app/test/unit/site-accessibility-test.ts`, the second cross-referencing
+  the wiki manifest against `site/index.html` figures. Adding a PNG without
+  updating the wiki row, the rendered image, the Pages figure and **both**
+  counts turns one red test into a different red test. This broke CI twice.
+- **New docs must be followed by `node script/generate-docs-hub-catalog.mjs`.**
+  The staleness test caught this three times in one session.
+- A junctioned submodule **breaks `git status` outright** in a worktree
+  (`fatal: not a git repository`). Remove such junctions before any git command.
+- `gh` resolves the default repo from remotes. After an `upstream` remote was
+  added to measure the fork delta, a comment landed on `desktop/desktop` instead
+  of this fork. It was deleted within the minute and `gh repo set-default` now
+  pins `Ding-Ding-Projects/desktop-material`. Keep that pin.
+
+### Open risk worth carrying forward
+
+The racily-clean fix (#72) makes publishing pay one filesystem timestamp tick.
+Measured: ordinary revalidation is unchanged (3.95 ms → 3.68 ms, still skipping
+the re-hash, so #35's win survives), but `publishTextBatch` pays roughly
+**17 ms × N** in its staging loop. Settling members in parallel is the obvious
+follow-up if that shows up on a large batch.
+
 ## 2026-07-27 — Ignored files to a local submodule (local phase, on a branch)
 
 Built on the isolated worktree branch `worktree-agent-a1c6b6311afbc2837`; not
