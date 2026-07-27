@@ -1,9 +1,17 @@
 import * as React from 'react'
 import classNames from 'classnames'
 import { Disposable } from 'event-kit'
+import memoizeOne from 'memoize-one'
+import {
+  CellMeasurer,
+  CellMeasurerCache,
+  List,
+  ListRowProps,
+} from 'react-virtualized'
 
 import { getGitHubNotificationURL } from '../../lib/github-notification-url'
 import {
+  GitHubNotificationsClearConcurrency,
   GitHubNotificationsStore,
   IGitHubNotificationsState,
 } from '../../lib/stores/github-notifications-store'
@@ -59,6 +67,28 @@ const notificationKinds = Object.keys(
   notificationKindLabels
 ) as ReadonlyArray<NotificationCentreKind>
 
+/** Estimated heights for unmeasured virtualized notification rows. */
+const LocalRowDefaultHeight = 88
+const GitHubRowDefaultHeight = 96
+
+function matchNotificationQuery<T>(
+  items: ReadonlyArray<T>,
+  getKey: (item: T) => ReadonlyArray<string>,
+  query: string,
+  mode: FilterMode,
+  caseSensitive: boolean
+): ReadonlyArray<T> {
+  const trimmed = query.trim()
+  if (trimmed.length === 0) {
+    return items
+  }
+  const { results } = matchWithMode(trimmed, items, getKey, {
+    mode,
+    caseSensitive,
+  })
+  return results.map(match => match.item)
+}
+
 export interface INotificationCentrePanelProps {
   readonly dispatcher: Dispatcher
   readonly entries: ReadonlyArray<INotificationEntry>
@@ -92,6 +122,9 @@ interface INotificationCentrePanelState {
   readonly confirmingClear: boolean
   readonly confirmingDone: IAPINotificationThread | null
   readonly github: IGitHubNotificationsState
+  /** Measured size of the virtualized list viewport (ResizeObserver). */
+  readonly listWidth: number
+  readonly listHeight: number
 }
 
 /**
@@ -119,6 +152,103 @@ export class NotificationCentrePanel extends React.Component<
   private bulkReturnFocus: HTMLButtonElement | null = null
   private selectAllCheckbox: HTMLInputElement | null = null
   private mounted = false
+  private listContainer: HTMLDivElement | null = null
+  private listResizeObserver: ResizeObserver | null = null
+
+  /**
+   * Measured row heights for the two virtualized lists. Rows wrap their text,
+   * so heights vary; keys are notification ids so heights survive filtering
+   * and reordering. Both caches are dropped when the viewport width changes.
+   */
+  private readonly localRowHeights = new CellMeasurerCache({
+    defaultHeight: LocalRowDefaultHeight,
+    fixedWidth: true,
+    keyMapper: rowIndex => this.visibleEntries[rowIndex]?.id ?? rowIndex,
+  })
+  private readonly githubRowHeights = new CellMeasurerCache({
+    defaultHeight: GitHubRowDefaultHeight,
+    fixedWidth: true,
+    keyMapper: rowIndex =>
+      this.visibleGitHubNotifications[rowIndex]?.id ?? rowIndex,
+  })
+
+  /**
+   * Memoized filter passes. A single render consults the visible sets several
+   * times (select-all state, bulk toolbar, and the list itself), so the
+   * chip/kind filter and matchWithMode pass run at most once per distinct
+   * input instead of once per consultation.
+   */
+  private readonly filterLocalEntries = memoizeOne(
+    (
+      entries: ReadonlyArray<INotificationEntry>,
+      filter: NotificationFilter,
+      kind: NotificationKindFilter,
+      query: string,
+      queryMode: FilterMode,
+      queryCaseSensitive: boolean
+    ): ReadonlyArray<INotificationEntry> => {
+      const filtered = entries.filter(entry => {
+        if (filter === 'unread' && entry.read) {
+          return false
+        }
+        return kind === 'all' || entry.kind === kind
+      })
+      // Two keys so fuzzy mode (which only scores the first two) still matches
+      // on the body, kind, and account folded into the "subtitle" key.
+      return matchNotificationQuery(
+        filtered,
+        entry => [
+          entry.title,
+          [
+            entry.body,
+            notificationKindLabels[entry.kind],
+            entry.accountKey ?? '',
+            entry.repositoryId?.toString() ?? '',
+          ].join(' '),
+        ],
+        query,
+        queryMode,
+        queryCaseSensitive
+      )
+    }
+  )
+
+  private readonly filterGitHubThreads = memoizeOne(
+    (
+      threads: ReadonlyArray<IAPINotificationThread>,
+      filter: NotificationFilter,
+      query: string,
+      queryMode: FilterMode,
+      queryCaseSensitive: boolean
+    ): ReadonlyArray<IAPINotificationThread> => {
+      const filtered = threads.filter(
+        thread => filter !== 'unread' || thread.unread
+      )
+      return matchNotificationQuery(
+        filtered,
+        thread => [
+          thread.subject.title,
+          [
+            thread.subject.type,
+            thread.repository.full_name,
+            thread.reason.replace(/_/g, ' '),
+          ].join(' '),
+        ],
+        query,
+        queryMode,
+        queryCaseSensitive
+      )
+    }
+  )
+
+  private readonly localVisibleIds = memoizeOne(
+    (entries: ReadonlyArray<INotificationEntry>) =>
+      entries.map(entry => entry.id)
+  )
+  private readonly githubVisibleIds = memoizeOne(
+    (threads: ReadonlyArray<IAPINotificationThread>) =>
+      threads.map(thread => thread.id)
+  )
 
   public constructor(props: INotificationCentrePanelProps) {
     super(props)
@@ -141,6 +271,8 @@ export class NotificationCentrePanel extends React.Component<
       confirmingClear: false,
       confirmingDone: null,
       github: this.githubStore.getState(),
+      listWidth: 0,
+      listHeight: 0,
     }
   }
 
@@ -161,11 +293,58 @@ export class NotificationCentrePanel extends React.Component<
   public componentWillUnmount() {
     this.mounted = false
     window.removeEventListener('keydown', this.onWindowKeyDown)
+    this.listResizeObserver?.disconnect()
+    this.listResizeObserver = null
     this.githubSubscription?.dispose()
     this.githubStore.stop()
     if (this.ownsGitHubStore) {
       this.githubStore.dispose()
     }
+  }
+
+  /**
+   * Measure the list viewport the same way ui/lib/list does: a ResizeObserver
+   * on the container, falling back to a direct measure so the first paint does
+   * not wait for the observer's initial callback.
+   */
+  private onListContainerRef = (element: HTMLDivElement | null) => {
+    if (element === this.listContainer) {
+      return
+    }
+    this.listResizeObserver?.disconnect()
+    this.listResizeObserver = null
+    this.listContainer = element
+    if (element === null) {
+      return
+    }
+    const ResizeObserverClass: typeof ResizeObserver | undefined = (
+      window as any
+    ).ResizeObserver
+    if (ResizeObserverClass !== undefined) {
+      this.listResizeObserver = new ResizeObserverClass(entries => {
+        for (const entry of entries) {
+          if (entry.target === this.listContainer) {
+            this.onListResized(entry.target as HTMLElement)
+          }
+        }
+      })
+      this.listResizeObserver.observe(element)
+    }
+    this.onListResized(element)
+  }
+
+  private onListResized(target: HTMLElement) {
+    const width = target.offsetWidth
+    const height = target.offsetHeight
+    if (width === this.state.listWidth && height === this.state.listHeight) {
+      return
+    }
+    if (width !== this.state.listWidth) {
+      // Wrapped text re-flows at a new width, so measured heights are stale.
+      this.localRowHeights.clearAll()
+      this.githubRowHeights.clearAll()
+    }
+    this.setState({ listWidth: width, listHeight: height })
   }
 
   private onGitHubState = (github: IGitHubNotificationsState) => {
@@ -447,8 +626,8 @@ export class NotificationCentrePanel extends React.Component<
 
   private get visibleIds(): ReadonlyArray<string> {
     return this.state.source === 'local'
-      ? this.visibleEntries.map(entry => entry.id)
-      : this.visibleGitHubNotifications.map(thread => thread.id)
+      ? this.localVisibleIds(this.visibleEntries)
+      : this.githubVisibleIds(this.visibleGitHubNotifications)
   }
 
   private get allVisibleSelected(): boolean {
@@ -682,71 +861,47 @@ export class NotificationCentrePanel extends React.Component<
     })
   }
 
+  /**
+   * Run the selection-scoped bulk mutation through the store's bounded worker
+   * pool (GitHubNotificationsClearConcurrency requests in flight) instead of
+   * one serial round trip per thread, and coalesce the progress re-renders to
+   * roughly one setState per settled pool batch. Per-thread failures stay
+   * selected so the user can retry them.
+   */
   private runGitHubBulk = async (action: 'read' | 'done') => {
     const ids = [...this.state.selectedGitHubIds]
     if (ids.length === 0 || this.state.bulkBusy) {
       return
     }
-    const context = {
-      selectedAccountKey: this.state.github.selectedAccountKey,
-      filter: this.state.github.filter,
-      participating: this.state.github.participating,
-    }
-    const failed = new Set<string>()
     this.setState({
       bulkBusy: true,
       confirmingBulk: null,
       bulkProgress: { completed: 0, total: ids.length },
     })
-    let completed = 0
-    for (const id of ids) {
-      const current = this.githubStore.getState()
-      if (
-        current.selectedAccountKey !== context.selectedAccountKey ||
-        current.filter !== context.filter ||
-        current.participating !== context.participating
-      ) {
-        if (this.mounted) {
-          this.setState({
-            bulkBusy: false,
-            bulkProgress: null,
-            selectedGitHubIds: new Set<string>(),
-          })
+    let lastReported = 0
+    const result = await this.githubStore.markSelectedThreads(
+      ids,
+      action,
+      (completed, total) => {
+        if (
+          this.mounted &&
+          (completed === total ||
+            completed - lastReported >= GitHubNotificationsClearConcurrency)
+        ) {
+          lastReported = completed
+          this.setState({ bulkProgress: { completed, total } })
         }
-        return
       }
-      const succeeded =
-        action === 'read'
-          ? await this.githubStore.markThreadRead(id)
-          : await this.githubStore.markThreadDone(id)
-      if (!succeeded) {
-        failed.add(id)
-      }
-      completed++
-      if (this.mounted) {
-        this.setState({ bulkProgress: { completed, total: ids.length } })
-      }
-    }
+    )
     if (!this.mounted || this.state.source !== 'github') {
-      return
-    }
-    const current = this.githubStore.getState()
-    if (
-      current.selectedAccountKey !== context.selectedAccountKey ||
-      current.filter !== context.filter ||
-      current.participating !== context.participating
-    ) {
-      this.setState({
-        bulkBusy: false,
-        bulkProgress: null,
-        selectedGitHubIds: new Set<string>(),
-      })
       return
     }
     this.setState({
       bulkBusy: false,
       bulkProgress: null,
-      selectedGitHubIds: failed,
+      selectedGitHubIds: result.canceled
+        ? new Set<string>()
+        : new Set(result.failedIds),
     })
   }
 
@@ -1227,8 +1382,8 @@ export class NotificationCentrePanel extends React.Component<
 
   /**
    * Determinate progress for the two bulk paths that were previously invisible
-   * to sighted users: the selection loop (one round trip per notification) and
-   * Clear all (a concurrency-4 worker pool over every loaded thread).
+   * to sighted users: the selection-scoped pool and Clear all (both run a
+   * concurrency-4 worker pool, one round trip per thread).
    */
   private renderBulkProgress() {
     const selection = this.state.bulkProgress
@@ -1358,52 +1513,65 @@ export class NotificationCentrePanel extends React.Component<
   }
 
   private get visibleEntries(): ReadonlyArray<INotificationEntry> {
-    const entries = this.props.entries.filter(entry => {
-      if (this.state.filter === 'unread' && entry.read) {
-        return false
-      }
-      return this.state.kind === 'all' || entry.kind === this.state.kind
-    })
-    // Two keys so fuzzy mode (which only scores the first two) still matches on
-    // the body, kind, and account folded into the "subtitle" key.
-    return this.matchQuery(entries, entry => [
-      entry.title,
-      [
-        entry.body,
-        notificationKindLabels[entry.kind],
-        entry.accountKey ?? '',
-        entry.repositoryId?.toString() ?? '',
-      ].join(' '),
-    ])
+    return this.filterLocalEntries(
+      this.props.entries,
+      this.state.filter,
+      this.state.kind,
+      this.state.query,
+      this.state.queryMode,
+      this.state.queryCaseSensitive
+    )
   }
 
   private get visibleGitHubNotifications(): ReadonlyArray<IAPINotificationThread> {
-    const threads = this.state.github.notifications.filter(
-      thread => this.state.github.filter !== 'unread' || thread.unread
+    return this.filterGitHubThreads(
+      this.state.github.notifications,
+      this.state.github.filter,
+      this.state.query,
+      this.state.queryMode,
+      this.state.queryCaseSensitive
     )
-    return this.matchQuery(threads, thread => [
-      thread.subject.title,
-      [
-        thread.subject.type,
-        thread.repository.full_name,
-        thread.reason.replace(/_/g, ' '),
-      ].join(' '),
-    ])
   }
 
-  private matchQuery<T>(
-    items: ReadonlyArray<T>,
-    getKey: (item: T) => ReadonlyArray<string>
-  ): ReadonlyArray<T> {
-    const query = this.state.query.trim()
-    if (query.length === 0) {
-      return items
+  private getLocalRowHeight = (row: { index: number }) => {
+    return this.localRowHeights.rowHeight(row) ?? LocalRowDefaultHeight
+  }
+
+  private getGitHubRowHeight = (row: { index: number }) => {
+    return this.githubRowHeights.rowHeight(row) ?? GitHubRowDefaultHeight
+  }
+
+  private renderLocalRow = ({ index, key, parent, style }: ListRowProps) => {
+    const entry = this.visibleEntries[index]
+    if (entry === undefined) {
+      return null
     }
-    const { results } = matchWithMode(query, items, getKey, {
-      mode: this.state.queryMode,
-      caseSensitive: this.state.queryCaseSensitive,
-    })
-    return results.map(match => match.item)
+    return (
+      <CellMeasurer
+        cache={this.localRowHeights}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
+      >
+        <div
+          style={style}
+          role="listitem"
+          className="notification-centre-virtual-row"
+        >
+          <NotificationListItem
+            entry={entry}
+            selected={this.state.selectedLocalIds.has(entry.id)}
+            selectionDisabled={this.state.bulkBusy}
+            onToggleSelected={this.onToggleLocalSelected}
+            onActivate={this.onActivate}
+            onToggleRead={this.onToggleRead}
+            onDelete={this.onDelete}
+            onOpenAutomations={this.onOpenAutomations}
+          />
+        </div>
+      </CellMeasurer>
+    )
   }
 
   private renderLocalList() {
@@ -1416,21 +1584,30 @@ export class NotificationCentrePanel extends React.Component<
       )
     }
     return (
-      <ol className="notification-centre-list">
-        {entries.map(entry => (
-          <NotificationListItem
-            key={entry.id}
-            entry={entry}
-            selected={this.state.selectedLocalIds.has(entry.id)}
-            selectionDisabled={this.state.bulkBusy}
-            onToggleSelected={this.onToggleLocalSelected}
-            onActivate={this.onActivate}
-            onToggleRead={this.onToggleRead}
-            onDelete={this.onDelete}
-            onOpenAutomations={this.onOpenAutomations}
-          />
-        ))}
-      </ol>
+      <div
+        className="notification-centre-list"
+        ref={this.onListContainerRef}
+        role="presentation"
+      >
+        <List
+          width={this.state.listWidth}
+          height={this.state.listHeight}
+          rowCount={entries.length}
+          rowHeight={this.getLocalRowHeight}
+          deferredMeasurementCache={this.localRowHeights}
+          rowRenderer={this.renderLocalRow}
+          overscanRowCount={6}
+          role="list"
+          containerRole="presentation"
+          aria-label="Local notifications"
+          // Extra pass-through props: react-virtualized List is a
+          // PureComponent, so the row-affecting inputs must appear in its
+          // props for changes to re-render the visible rows.
+          entries={entries}
+          selectedLocalIds={this.state.selectedLocalIds}
+          selectionDisabled={this.state.bulkBusy}
+        />
+      </div>
     )
   }
 
@@ -1545,6 +1722,40 @@ export class NotificationCentrePanel extends React.Component<
     )
   }
 
+  private renderGitHubRow = ({ index, key, parent, style }: ListRowProps) => {
+    const thread = this.visibleGitHubNotifications[index]
+    if (thread === undefined) {
+      return null
+    }
+    const { github } = this.state
+    return (
+      <CellMeasurer
+        cache={this.githubRowHeights}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
+      >
+        <div
+          style={style}
+          role="listitem"
+          className="notification-centre-virtual-row"
+        >
+          <GitHubNotificationListItem
+            thread={thread}
+            busy={github.busyThreadId === thread.id}
+            selected={this.state.selectedGitHubIds.has(thread.id)}
+            selectionDisabled={this.state.bulkBusy}
+            onToggleSelected={this.onToggleGitHubSelected}
+            onActivate={this.onActivateGitHub}
+            onMarkRead={this.onMarkGitHubRead}
+            onRequestDone={this.onRequestDone}
+          />
+        </div>
+      </CellMeasurer>
+    )
+  }
+
   private renderGitHubList() {
     const { github } = this.state
     const notifications = this.visibleGitHubNotifications
@@ -1569,21 +1780,32 @@ export class NotificationCentrePanel extends React.Component<
     return (
       <>
         {this.renderGitHubError()}
-        <ol className="notification-centre-list github-notifications-list">
-          {notifications.map(thread => (
-            <GitHubNotificationListItem
-              key={`${github.selectedAccountKey}:${thread.id}`}
-              thread={thread}
-              busy={github.busyThreadId === thread.id}
-              selected={this.state.selectedGitHubIds.has(thread.id)}
-              selectionDisabled={this.state.bulkBusy}
-              onToggleSelected={this.onToggleGitHubSelected}
-              onActivate={this.onActivateGitHub}
-              onMarkRead={this.onMarkGitHubRead}
-              onRequestDone={this.onRequestDone}
-            />
-          ))}
-        </ol>
+        <div
+          className="notification-centre-list github-notifications-list"
+          ref={this.onListContainerRef}
+          role="presentation"
+        >
+          <List
+            width={this.state.listWidth}
+            height={this.state.listHeight}
+            rowCount={notifications.length}
+            rowHeight={this.getGitHubRowHeight}
+            deferredMeasurementCache={this.githubRowHeights}
+            rowRenderer={this.renderGitHubRow}
+            overscanRowCount={6}
+            role="list"
+            containerRole="presentation"
+            aria-label="GitHub notifications"
+            // Extra pass-through props: react-virtualized List is a
+            // PureComponent, so the row-affecting inputs must appear in its
+            // props for changes to re-render the visible rows.
+            threads={notifications}
+            selectedGitHubIds={this.state.selectedGitHubIds}
+            selectionDisabled={this.state.bulkBusy}
+            busyThreadId={github.busyThreadId}
+            accountKey={github.selectedAccountKey}
+          />
+        </div>
       </>
     )
   }

@@ -45,8 +45,13 @@ const iconForSubject = (type: string): OcticonSymbol => {
 const readableReason = (reason: string): string =>
   reason.replace(/_/g, ' ').replace(/^./, value => value.toUpperCase())
 
-/** A remote GitHub inbox row; it is never persisted to local history. */
-export class GitHubNotificationListItem extends React.Component<IGitHubNotificationListItemProps> {
+/**
+ * A remote GitHub inbox row; it is never persisted to local history. A
+ * PureComponent so panel-wide re-renders (search keystrokes, bulk progress)
+ * skip rows whose props are unchanged. The row is hosted in a virtualized
+ * list whose positioned wrapper carries the listitem role.
+ */
+export class GitHubNotificationListItem extends React.PureComponent<IGitHubNotificationListItemProps> {
   private onActivate = () => this.props.onActivate(this.props.thread)
 
   private onMarkRead = (event: React.MouseEvent<HTMLButtonElement>) => {

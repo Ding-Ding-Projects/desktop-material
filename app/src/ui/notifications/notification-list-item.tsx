@@ -63,8 +63,13 @@ const kindIcons: Record<NotificationCentreKind, OcticonSymbol> = {
   info: octicons.info,
 }
 
-/** A single row in the notification centre list. */
-export class NotificationListItem extends React.Component<INotificationListItemProps> {
+/**
+ * A single row in the notification centre list. A PureComponent so that
+ * keystrokes, selection changes, and bulk progress updates in the panel only
+ * re-render the rows whose props actually changed. The row is hosted in a
+ * virtualized list whose positioned wrapper carries the listitem role.
+ */
+export class NotificationListItem extends React.PureComponent<INotificationListItemProps> {
   private onActivate = () => this.props.onActivate(this.props.entry)
 
   private onToggleRead = (event: React.MouseEvent) => {

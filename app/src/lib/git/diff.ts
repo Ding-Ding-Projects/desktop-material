@@ -1029,8 +1029,8 @@ export async function getWorkingDirectoryImage(
   )
 }
 
-function getTGAImage(contents: Buffer): Image {
-  const png = convertTGAToPNG(contents)
+async function getTGAImage(contents: Buffer): Promise<Image> {
+  const png = await convertTGAToPNG(contents)
   return new Image(
     png.buffer,
     png.toString('base64'),

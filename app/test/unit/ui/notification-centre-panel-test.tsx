@@ -1,5 +1,5 @@
 import assert from 'node:assert'
-import { describe, it } from 'node:test'
+import { afterEach, beforeEach, describe, it } from 'node:test'
 import * as React from 'react'
 
 import {
@@ -23,6 +23,132 @@ import {
   waitFor,
   within,
 } from '../../helpers/ui/render'
+
+const LIST_WIDTH = 360
+const LIST_HEIGHT = 480
+const ROW_HEIGHT = 90
+
+/**
+ * A ResizeObserver test double that reports a fixed size to the observed
+ * element and invokes the callback synchronously. The notification lists are
+ * virtualized, so without a measured viewport jsdom would render zero rows.
+ */
+class TestListResizeObserver implements ResizeObserver {
+  public constructor(private readonly callback: ResizeObserverCallback) {}
+
+  public observe(target: Element) {
+    Object.defineProperty(target, 'offsetWidth', {
+      configurable: true,
+      value: LIST_WIDTH,
+    })
+    Object.defineProperty(target, 'offsetHeight', {
+      configurable: true,
+      value: LIST_HEIGHT,
+    })
+
+    const contentRect = {
+      x: 0,
+      y: 0,
+      width: LIST_WIDTH,
+      height: LIST_HEIGHT,
+      top: 0,
+      right: LIST_WIDTH,
+      bottom: LIST_HEIGHT,
+      left: 0,
+      toJSON: () => ({}),
+    }
+
+    this.callback(
+      [
+        {
+          target,
+          contentRect,
+          borderBoxSize: [],
+          contentBoxSize: [],
+          devicePixelContentBoxSize: [],
+        },
+      ],
+      this
+    )
+  }
+
+  public unobserve() {}
+
+  public disconnect() {}
+}
+
+let hadGlobalResizeObserver = false
+let originalGlobalResizeObserver: typeof ResizeObserver | undefined
+let hadWindowResizeObserver = false
+let originalWindowResizeObserver: typeof ResizeObserver | undefined
+let originalOffsetWidth: PropertyDescriptor | undefined
+let originalOffsetHeight: PropertyDescriptor | undefined
+
+beforeEach(() => {
+  hadGlobalResizeObserver = 'ResizeObserver' in globalThis
+  originalGlobalResizeObserver = globalThis.ResizeObserver
+  hadWindowResizeObserver =
+    typeof window !== 'undefined' && 'ResizeObserver' in window
+  originalWindowResizeObserver =
+    typeof window !== 'undefined' ? window.ResizeObserver : undefined
+
+  Object.assign(globalThis, { ResizeObserver: TestListResizeObserver })
+  if (typeof window !== 'undefined') {
+    Object.assign(window, { ResizeObserver: TestListResizeObserver })
+  }
+
+  // jsdom computes no layout, so CellMeasurer would record 0px rows and the
+  // virtualized Grid's visible-range math would skip rows. Report a fixed row
+  // size at the prototype level; the observed viewport container still wins
+  // through its own instance properties defined by the observer double above.
+  originalOffsetWidth = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetWidth'
+  )
+  originalOffsetHeight = Object.getOwnPropertyDescriptor(
+    HTMLElement.prototype,
+    'offsetHeight'
+  )
+  Object.defineProperty(HTMLElement.prototype, 'offsetWidth', {
+    configurable: true,
+    get: () => LIST_WIDTH,
+  })
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', {
+    configurable: true,
+    get: () => ROW_HEIGHT,
+  })
+})
+
+afterEach(() => {
+  if (hadGlobalResizeObserver) {
+    Object.assign(globalThis, { ResizeObserver: originalGlobalResizeObserver })
+  } else {
+    Reflect.deleteProperty(globalThis, 'ResizeObserver')
+  }
+
+  if (typeof window !== 'undefined') {
+    if (hadWindowResizeObserver) {
+      Object.assign(window, { ResizeObserver: originalWindowResizeObserver })
+    } else {
+      Reflect.deleteProperty(window, 'ResizeObserver')
+    }
+  }
+
+  if (originalOffsetWidth !== undefined) {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      'offsetWidth',
+      originalOffsetWidth
+    )
+  }
+  if (originalOffsetHeight !== undefined) {
+    Object.defineProperty(
+      HTMLElement.prototype,
+      'offsetHeight',
+      originalOffsetHeight
+    )
+  }
+})
 
 const account = (
   login: string,
@@ -405,6 +531,94 @@ describe('NotificationCentrePanel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
     await waitFor(() => assert.deepEqual(reads, ['beta']))
     assert.deepEqual(dones, ['alpha'])
+  })
+
+  it('runs bulk done through the bounded pool and keeps failures selected', async () => {
+    const selected = account('first', 1)
+    const dones = new Array<string>()
+    let inFlight = 0
+    let maxInFlight = 0
+    const threads = Array.from({ length: 12 }, (_, index) =>
+      notification(`thread-${index}`, true, `Bulk thread ${index}`)
+    )
+    const api: IGitHubNotificationsAPI = {
+      fetchNotifications: async () => page(threads),
+      markNotificationThreadRead: async () => {},
+      markNotificationThreadDone: async id => {
+        inFlight++
+        maxInFlight = Math.max(maxInFlight, inFlight)
+        await new Promise(resolve => setTimeout(resolve, 1))
+        inFlight--
+        dones.push(id)
+        if (id === 'thread-3' || id === 'thread-7') {
+          throw new Error(`mutation failed for ${id}`)
+        }
+      },
+    }
+    const store = new GitHubNotificationsStore([selected], () => api)
+
+    render(
+      <NotificationCentrePanel
+        dispatcher={dispatcher}
+        entries={[]}
+        unreadCount={0}
+        repositories={[]}
+        accounts={[selected]}
+        githubNotificationsStore={store}
+      />
+    )
+
+    fireEvent.click(screen.getByRole('tab', { name: 'GitHub' }))
+    await waitFor(() => assert.ok(screen.getByText('Bulk thread 0')))
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: 'Select all visible notifications',
+      })
+    )
+    assert.equal(screen.getByText('12 selected').textContent, '12 selected')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Mark selected done' }))
+    const confirmation = screen.getByRole('alertdialog', {
+      name: 'Mark selected threads done?',
+    })
+    fireEvent.click(
+      within(confirmation).getByRole('button', { name: 'Mark done' })
+    )
+
+    await waitFor(() => assert.equal(dones.length, 12))
+    // The mutations run through a bounded worker pool: genuinely concurrent,
+    // but never more than the pool size in flight at once.
+    assert.ok(
+      maxInFlight > 1,
+      `expected pooled concurrency, saw ${maxInFlight}`
+    )
+    assert.ok(
+      maxInFlight <= 4,
+      `expected at most 4 in flight, saw ${maxInFlight}`
+    )
+
+    // Succeeded threads leave the inbox in one settled update; the failed
+    // threads stay visible and selected so the user can retry them.
+    await waitFor(() =>
+      assert.equal(screen.getByText('2 selected').textContent, '2 selected')
+    )
+    await waitFor(() => assert.equal(screen.queryByText('Bulk thread 0'), null))
+    assert.ok(screen.getByText('Bulk thread 3'))
+    assert.ok(screen.getByText('Bulk thread 7'))
+    assert.ok(
+      (
+        screen.getByRole('checkbox', {
+          name: 'Select GitHub notification: Bulk thread 3',
+        }) as HTMLInputElement
+      ).checked
+    )
+    assert.ok(
+      (
+        screen.getByRole('checkbox', {
+          name: 'Select GitHub notification: Bulk thread 7',
+        }) as HTMLInputElement
+      ).checked
+    )
   })
 
   it('confirms and clears every fully loaded GitHub notification', async () => {

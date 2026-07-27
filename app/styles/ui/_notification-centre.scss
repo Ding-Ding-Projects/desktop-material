@@ -569,15 +569,31 @@
   }
 }
 
+// Viewport for the virtualized notification list. The react-virtualized List
+// inside owns scrolling; this container only reserves and reports the space
+// (ResizeObserver) the panel gives it. Horizontal padding lives on margin so
+// the measured offset size equals the space rows can actually use.
 .notification-centre-list {
-  display: flex;
   flex: 1;
-  flex-direction: column;
-  gap: 4px;
-  margin: 0;
-  padding: 0 12px 14px;
-  overflow-y: auto;
-  list-style: none;
+  min-height: 0;
+  margin: 0 12px 14px;
+  overflow: hidden;
+
+  .ReactVirtualized__Grid:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--md-sys-color-primary) 40%, transparent);
+    outline-offset: -3px;
+  }
+}
+
+// The absolutely positioned virtual rows cannot use the old flex gap, so each
+// row carries the 4px spacing inside its measured height instead.
+.notification-centre-virtual-row {
+  box-sizing: border-box;
+  padding-bottom: 4px;
+
+  .notification-item {
+    list-style: none;
+  }
 }
 
 .notification-centre-tabpanel {
