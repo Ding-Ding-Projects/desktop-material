@@ -258,3 +258,5 @@ and how things work:
   Desktop is built and packaged for Windows
 - **[Automatic Git Proxy support](technical/proxies.md)** - a pre-launch
   overview and troubleshooting guide for Git automatic proxy support
+- **[App capture fixture](technical/app-capture-fixture.md)** - how to
+  screenshot the built app with N repositories already open as tabs

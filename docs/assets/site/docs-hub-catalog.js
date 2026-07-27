@@ -945,6 +945,13 @@
       d: 'This document explains a bit about our testing infrastructure, and how you can contribute tests to go with changes to the codebase.',
     },
     {
+      t: 'App Capture Fixture',
+      h: 'technical/app-capture-fixture.html',
+      s: 'technical/app-capture-fixture.md',
+      c: 'technical',
+      d: 'script/capture-app.js launches the built app with N repositories already open as tabs, optionally drives a few UI steps, and writes a PNG. It exists so screenshots of multi-tab…',
+    },
+    {
       t: 'Platform specific button order',
       h: 'technical/button-order.html',
       s: 'technical/button-order.md',

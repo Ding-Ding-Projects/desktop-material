@@ -3,6 +3,10 @@
 // ELECTRON_EXE), captures the first window to a PNG, and exits. Used to verify
 // the UI without depending on the interactive desktop.
 //
+// For anything that needs repositories open as tabs, a first-run flow driven
+// past, or UI steps before the shutter, use script/capture-app.js instead — see
+// docs/technical/app-capture-fixture.md.
+//
 // Usage: node script/headless-screenshot.js [outputPng]
 
 const path = require('path')
