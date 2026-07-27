@@ -35,8 +35,10 @@ import {
   annotateCheapLfsPinnedAssets,
   autoPinLargeFilesForCommit,
   cheapLfsAnnotatablePins,
+  cheapLfsRetainedPins,
   createCheapLfsMaterializeCache,
   defaultCheapLfsFileSystem,
+  discardCheapLfsRetainedPins,
   ICheapLfsAutoPinFailure,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinnedFile,
@@ -46,10 +48,13 @@ import {
   ICheapLfsMaterializeResult,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
+  ICheapLfsRetainedPin,
+  isCheapLfsPayloadProvenStored,
   CheapLfsPinStage,
   listAllCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
+  restoreCheapLfsPinnedPayloads,
   sanitizeCheapLfsFailureReason,
   selectCheapLfsAutoPinTargets,
   shouldAutoPinLargeFilesOnCommit,
@@ -1111,6 +1116,20 @@ interface ICheapLfsCommitPinOutcome {
    * OCI route, whose provenance lives in the image manifest instead.
    */
   readonly annotatablePins?: ReadonlyArray<ICheapLfsAnnotatablePin>
+  /**
+   * Verified private copies of the payloads this run uploaded, kept alive so
+   * the commit that records their pointers can put the real bytes straight
+   * back instead of downloading them again (#55). Ownership transfers with
+   * this outcome: the caller must discard every entry on every path.
+   */
+  readonly retainedPins?: ReadonlyArray<ICheapLfsRetainedPin>
+  /**
+   * Selected paths whose working-tree bytes were proven identical to the
+   * pointer HEAD already holds. Nothing was re-uploaded for them and they are
+   * dropped from the commit, because committing them would stage raw bytes
+   * over a pointer the commit already contains.
+   */
+  readonly alreadyStoredPaths?: ReadonlyArray<string>
 }
 
 function cheapLfsOciAutoPinPhase(
@@ -6164,7 +6183,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     let refreshAfterAutoPinFailure = false
     let autoIncludedCheapLfsWorkflowPath: string | null = null
-    const result = await this.withIsCommitting(repository, async () => {
+    // Owned by this method from the moment the pin outcome arrives: every exit
+    // path below runs through the `finally` that discards them.
+    let retainedCheapLfsPins: ReadonlyArray<ICheapLfsRetainedPin> = []
+    const commitPhase = async () => {
       // Auto-pin any selected file too large to push to a GitHub Release before
       // committing, so the tree holds a committable pointer instead of an
       // unpushable binary. Failed or partially selected large files stay out of
@@ -6173,6 +6195,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       let pinFailures: ReadonlyArray<ICheapLfsAutoPinFailure>
       let cheapLfsCommitPaths: ReadonlyArray<string>
       let annotatablePins: ReadonlyArray<ICheapLfsAnnotatablePin> = []
+      let alreadyStoredCheapLfsPaths: ReadonlyArray<string> = []
       try {
         const pinResult = await this.autoPinLargeFilesBeforeCommit(
           repository,
@@ -6183,6 +6206,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         pinFailures = pinResult.failures
         cheapLfsCommitPaths = pinResult.commitPaths
         annotatablePins = pinResult.annotatablePins ?? []
+        retainedCheapLfsPins = pinResult.retainedPins ?? []
+        alreadyStoredCheapLfsPaths = pinResult.alreadyStoredPaths ?? []
 
         // The Release compressor is driven by a repository-owned workflow. An
         // automatic pin must install that caller before the status refresh and
@@ -6242,7 +6267,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
         return false
       }
 
-      if (pinned.length > 0 || pinFailures.length > 0) {
+      if (
+        pinned.length > 0 ||
+        pinFailures.length > 0 ||
+        alreadyStoredCheapLfsPaths.length > 0
+      ) {
         // Re-read status so the just-written pointer content — not the original
         // binary — is staged for each success, and every failed raw file can be
         // removed from the explicit commit selection.
@@ -6254,6 +6283,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const failedPaths = new Set(
           pinFailures.map(failure => failure.relativePath)
         )
+        // A path proven to already hold exactly the pointer HEAD carries is
+        // dropped from the selection outright: nothing about it changed, and
+        // staging its raw bytes would overwrite that same commit's pointer.
+        for (const path of alreadyStoredCheapLfsPaths) {
+          failedPaths.add(path)
+          requiredCheapLfsPaths.delete(path)
+        }
         const originalSelectedPaths = new Set(selectedFiles.map(f => f.path))
         if (autoIncludedCheapLfsWorkflowPath !== null) {
           originalSelectedPaths.add(autoIncludedCheapLfsWorkflowPath)
@@ -6269,6 +6305,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
           failedPaths
         )
         this.postCheapLfsPinNotification(repository, pinned)
+        this.postCheapLfsAlreadyStoredNotification(
+          repository,
+          alreadyStoredCheapLfsPaths
+        )
         this.postCheapLfsPinFailureNotification(repository, pinFailures)
 
         // A failed large-file pin must never be converted into an allow-empty
@@ -6737,6 +6777,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
           return false
         }
 
+        // The pointers are committed, so the payloads this commit uploaded can
+        // go straight back on disk. Must precede the refresh below: it is what
+        // turns these paths from 'pointer' into 'materialized' and therefore
+        // what keeps the next detect point from downloading them again (#55).
+        await this.restorePinnedCheapLfsPayloads(
+          repository,
+          retainedCheapLfsPins
+        )
+        if (!this.isTemporaryRepositoryActive(repository)) {
+          return false
+        }
+
         await this.refreshChangesSection(repository, {
           includingStatus: true,
           clearPartialState: true,
@@ -6781,7 +6833,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }
 
       return lastCommitSha !== undefined
-    })
+    }
+
+    let result: boolean
+    try {
+      result = await this.withIsCommitting(repository, commitPhase)
+    } finally {
+      // Restored or not, the retained copies are this commit's to dispose of.
+      // A restore consumed the payload and leaves only its temp directory, so
+      // this call is exactly the right cleanup in both cases.
+      await this.discardRetainedCheapLfsPins(retainedCheapLfsPins)
+    }
 
     if (
       refreshAfterAutoPinFailure &&
@@ -15394,7 +15456,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
     forceAutoPin: boolean = false
   ): Promise<ICheapLfsCommitPinOutcome> {
     if (isSubmoduleRepository(repository)) {
-      return { pinned: [], failures: [], commitPaths: [] }
+      return {
+        pinned: [],
+        failures: [],
+        commitPaths: [],
+        alreadyStoredPaths: [],
+      }
     }
     // Pinning rewrites working-tree files; drop the status memo so the refresh
     // after this commit re-scans. The safety gate below deliberately reads a
@@ -15410,7 +15477,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     // Only the selected paths can be staged, so the scan is bounded to exactly
     // those (a ~49s whole-tree grep becomes ~130ms) and the result is still
     // narrowed by `selectedPathSet` so the gate's coverage is unchanged.
-    const managedRawEntries = (
+    const managedEntries = (
       await listAllCheapLfsPointers(
         repository,
         defaultCheapLfsFileSystem,
@@ -15420,6 +15487,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
       entry =>
         entry.workingTreeState !== 'pointer' &&
         selectedPathSet.has(entry.relativePath)
+    )
+    // A payload whose bytes are *proven* identical to the pointer HEAD already
+    // holds has nothing to upload and nothing to record: re-pinning it burns
+    // the user's bandwidth for an identical asset, and committing it would put
+    // raw bytes where the same commit already has that exact pointer. Anything
+    // the scan could not prove by hash stays in `managedRawEntries` and is
+    // re-pinned exactly as before, so an edited large file is never dropped.
+    const alreadyStoredPaths = new Set(
+      managedEntries
+        .filter(isCheapLfsPayloadProvenStored)
+        .map(entry => entry.relativePath)
+    )
+    const managedRawEntries = managedEntries.filter(
+      entry => !alreadyStoredPaths.has(entry.relativePath)
+    )
+    const alreadyStored = [...alreadyStoredPaths]
+    const pinSelectedPaths = selectedPaths.filter(
+      path => !alreadyStoredPaths.has(path)
     )
     const availability = getGitHubReleasesAvailability(
       repository,
@@ -15432,7 +15517,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
     ) {
       return managedRawEntries.length === 0
-        ? { pinned: [], failures: [], commitPaths: [] }
+        ? {
+            pinned: [],
+            failures: [],
+            commitPaths: [],
+            alreadyStoredPaths: alreadyStored,
+          }
         : {
             pinned: [],
             failures: managedRawEntries.map(entry => ({
@@ -15443,6 +15533,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 'This file has committed Cheap LFS pointer metadata. Enable automatic pinning or pin it from Large files & storage before committing its raw bytes.',
             })),
             commitPaths: [],
+            alreadyStoredPaths: alreadyStored,
           }
     }
     const selectedPathOrder = new Map(
@@ -15484,10 +15575,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
       }))
       this.emitUpdate()
     }
+    // Every verified upload copy this run kept alive, and the subset actually
+    // handed to the caller. The `finally` below discards the difference, so an
+    // abort, a failure, or the manual handoff can never leak a temp payload.
+    const retainedUploadCopies = new Array<ICheapLfsRetainedPin>()
+    let handedOffUploadCopies: ReadonlyArray<ICheapLfsRetainedPin> = []
+    const handOffRetainedPins = (
+      files: ReadonlyArray<ICheapLfsAutoPinnedFile>
+    ): ReadonlyArray<ICheapLfsRetainedPin> => {
+      handedOffUploadCopies = cheapLfsRetainedPins(files)
+      return handedOffUploadCopies
+    }
     const dependencies = {
       statSize: defaultCheapLfsFileSystem.statSize,
       readPointerText: defaultCheapLfsFileSystem.readPointerText,
-      pin: (
+      pin: async (
         target: {
           readonly absolutePath: string
           readonly relativePath: string
@@ -15498,8 +15600,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         onStage?: (stage: ICheapLfsAutoPinProgress['phase']) => void,
         onHashProgress?: (processedBytes: number) => void,
         laneIndex: number = 0
-      ) =>
-        pinFileToRelease(
+      ) => {
+        const result = await pinFileToRelease(
           this.githubReleasesStore,
           repository,
           this.requireCheapLfsAccount(repository),
@@ -15510,13 +15612,25 @@ export class AppStore extends TypedBaseStore<IAppState> {
               ['assets', 'assets-parallel-2', 'assets-parallel-3'][laneIndex] ??
               'assets',
             ...(releaseReview === null ? {} : { releaseReview }),
+            retainSourceForRestore: true,
           },
           signal,
           onProgress,
           defaultCheapLfsFileSystem,
           stage => onStage?.(stage),
           onHashProgress
-        ),
+        )
+        retainedUploadCopies.push(
+          ...cheapLfsRetainedPins([
+            {
+              relativePath: target.relativePath,
+              sizeInBytes: target.sizeInBytes,
+              result,
+            },
+          ])
+        )
+        return result
+      },
     }
     let controller = new AbortController()
     const automaticallyPinned = new Array<ICheapLfsAutoPinnedFile>()
@@ -15529,7 +15643,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       // closed before any pin worker can touch that path.
       const thresholdTargets = await selectCheapLfsAutoPinTargets(
         repository,
-        selectedPaths,
+        pinSelectedPaths,
         CheapLfsPinThresholdBytes,
         dependencies,
         controller.signal
@@ -15583,7 +15697,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const partialFailurePaths = new Set(
         partialFailures.map(failure => failure.relativePath)
       )
-      const pinEligiblePaths = selectedPaths.filter(
+      const pinEligiblePaths = pinSelectedPaths.filter(
         path => !partialFailurePaths.has(path)
       )
       const mergeFailures = (
@@ -15604,6 +15718,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
             pinned: [],
             failures: partialFailures,
             commitPaths: [],
+            alreadyStoredPaths: alreadyStored,
           }
         }
         const sizeByPath = new Map(
@@ -15656,6 +15771,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               }))
             ),
             commitPaths: [],
+            alreadyStoredPaths: alreadyStored,
           }
         }
         if (controller.signal.aborted) {
@@ -15708,6 +15824,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           pinned,
           failures: mergeFailures(failures),
           commitPaths: result.commitPaths,
+          alreadyStoredPaths: alreadyStored,
         }
       }
 
@@ -15742,6 +15859,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           pinned: [],
           failures: mergeFailures(abort.failures),
           commitPaths: [],
+          alreadyStoredPaths: alreadyStored,
         }
       }
       // GitHub answers the releases API with `[]` for a repository that has no
@@ -15780,6 +15898,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           failures: mergeFailures(result.failures),
           commitPaths: result.pinned.map(file => file.relativePath),
           annotatablePins: cheapLfsAnnotatablePins(result.pinned),
+          retainedPins: handOffRetainedPins(result.pinned),
+          alreadyStoredPaths: alreadyStored,
         }
       } catch (error) {
         if (
@@ -15810,6 +15930,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           failures: partialFailures,
           commitPaths: automaticallyPinned.map(file => file.relativePath),
           annotatablePins: cheapLfsAnnotatablePins(automaticallyPinned),
+          retainedPins: handOffRetainedPins(automaticallyPinned),
+          alreadyStoredPaths: alreadyStored,
         }
       }
       const completedBytes = automaticallyPinned.reduce(
@@ -15908,6 +16030,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
           ),
           commitPaths: pinned.map(file => file.relativePath),
           annotatablePins: cheapLfsAnnotatablePins(pinned),
+          retainedPins: handOffRetainedPins(pinned),
+          alreadyStoredPaths: alreadyStored,
         }
       }
       // manualPinFilesToRelease fences cancellation before its pointer commit.
@@ -15924,12 +16048,72 @@ export class AppStore extends TypedBaseStore<IAppState> {
           ...automaticallyPinned,
           ...manual,
         ]),
+        retainedPins: handOffRetainedPins([...automaticallyPinned, ...manual]),
+        alreadyStoredPaths: alreadyStored,
       }
     } finally {
       this.cheapLfsManualUploadRequests.delete(repository.id)
       if (this.cheapLfsCommitControllers.get(repository.id) === controller) {
         this.cheapLfsCommitControllers.delete(repository.id)
       }
+      // Anything retained but never handed to the caller — an aborted lane, a
+      // failed batch, a manual handoff that superseded the automatic result —
+      // is deleted here so no verified payload copy is left in the temp dir.
+      const handedOff = new Set(handedOffUploadCopies.map(pin => pin.owned))
+      await this.discardRetainedCheapLfsPins(
+        retainedUploadCopies.filter(pin => !handedOff.has(pin.owned))
+      )
+    }
+  }
+
+  /**
+   * Delete retained upload copies, reporting rather than throwing. A leaked or
+   * tampered-with temp must never fail an otherwise successful commit, and
+   * `cleanupOwned`'s identity check means a replaced temp is preserved and
+   * logged instead of deleted.
+   */
+  private async discardRetainedCheapLfsPins(
+    pins: ReadonlyArray<ICheapLfsRetainedPin>
+  ): Promise<void> {
+    if (pins.length === 0) {
+      return
+    }
+    const failures = await discardCheapLfsRetainedPins(pins)
+    for (const failure of failures) {
+      log.error(
+        `Cheap LFS could not discard the retained upload copy for ${failure.relativePath}: ${failure.message}`
+      )
+    }
+  }
+
+  /**
+   * Put the payloads this commit's pins uploaded back over the pointers the
+   * commit just recorded, so the files stay on disk instead of being
+   * downloaded again by the next materialize detect point (#55).
+   *
+   * Runs only after every commit batch succeeded, and only touches a path
+   * whose on-disk bytes are exactly the committed pointer text. The reinstall
+   * re-hashes the retained copy and enforces the pointer's size and SHA-256
+   * exactly as a download does, so nothing weaker than the download path can
+   * land. Any failure leaves the committed pointer untouched and that file
+   * simply materializes later, which is today's behavior.
+   */
+  private async restorePinnedCheapLfsPayloads(
+    repository: Repository,
+    pins: ReadonlyArray<ICheapLfsRetainedPin>
+  ): Promise<void> {
+    if (pins.length === 0) {
+      return
+    }
+    const outcome = await restoreCheapLfsPinnedPayloads(repository, pins)
+    for (const failure of outcome.failures) {
+      log.error(
+        `Cheap LFS could not restore the just-pinned payload for ${failure.relativePath}; it will be downloaded when needed: ${failure.message}`
+      )
+    }
+    if (outcome.restored.length > 0) {
+      // The inventory memo still describes these paths as bare pointers.
+      this.cheapLfsInventoryCache?.invalidate(repository.path)
     }
   }
 
@@ -16381,6 +16565,41 @@ export class AppStore extends TypedBaseStore<IAppState> {
       body: `Pinned ${pinned.length} ${
         pinned.length === 1 ? 'file' : 'files'
       } (${megabytes} MiB) to ${destination} before committing: ${names}.`,
+      repositoryId: repository.id,
+      action: { kind: 'open-repository', repositoryId: repository.id },
+    })
+  }
+
+  /**
+   * Tell the user which selected large files were left out of the commit
+   * because their bytes were already proven identical to the pointer the
+   * repository has committed. Nothing was uploaded and nothing was lost, but a
+   * file silently vanishing from a commit must never go unexplained.
+   */
+  private postCheapLfsAlreadyStoredNotification(
+    repository: Repository,
+    relativePaths: ReadonlyArray<string>
+  ): void {
+    if (relativePaths.length === 0) {
+      return
+    }
+    const names = relativePaths.slice(0, 3).join(', ')
+    const omitted = Math.max(0, relativePaths.length - 3)
+    this.postNotification({
+      kind: 'cheap-lfs',
+      title: t('cheapLfs.alreadyStored.title'),
+      body: t(
+        relativePaths.length === 1
+          ? 'cheapLfs.alreadyStored.one'
+          : omitted > 0
+          ? 'cheapLfs.alreadyStored.manyOmitted'
+          : 'cheapLfs.alreadyStored.many',
+        {
+          count: relativePaths.length.toString(),
+          names,
+          omitted: omitted.toString(),
+        }
+      ),
       repositoryId: repository.id,
       action: { kind: 'open-repository', repositoryId: repository.id },
     })

@@ -84,6 +84,7 @@ import {
 } from './release-review'
 import {
   defaultCheapLfsTrackedPathStore,
+  ICheapLfsOwnedFile,
   ICheapLfsTrackedFileProof,
   ICheapLfsTrackedPathStore,
   ICheapLfsVerifiedSourceCopy,
@@ -164,6 +165,13 @@ export type ICheapLfsManagedPointerEntry =
       readonly pointer: ICheapLfsPointer
       readonly workingTreeState: CheapLfsWorkingTreePointerState
       readonly workingTreeSizeInBytes?: number
+      /**
+       * The working tree's proven content hash, present only when the scan
+       * actually computed one. Absent whenever identity alone classified the
+       * entry, so a caller that needs proof must require this and never infer
+       * it from {@link ICheapLfsManagedPointerEntry.workingTreeState}.
+       */
+      readonly workingTreeSha256?: string
     }
   | {
       readonly kind: 'oci'
@@ -172,6 +180,8 @@ export type ICheapLfsManagedPointerEntry =
       readonly pointer: ICheapLfsGhcrPointer
       readonly workingTreeState: CheapLfsWorkingTreePointerState
       readonly workingTreeSizeInBytes?: number
+      /** See the Release variant: proof only, never inferred from state. */
+      readonly workingTreeSha256?: string
     }
 
 /**
@@ -323,12 +333,36 @@ export interface ICheapLfsPinOptions {
    * behavior and reviews nothing extra.
    */
   readonly releaseReview?: ICheapLfsReleaseReview
+  /**
+   * Keep the verified private upload copy alive after this pin returns instead
+   * of deleting it, and hand it back on {@link ICheapLfsPinResult.retainedSource}.
+   * Set by the commit flow so the payload it just uploaded can be reinstalled
+   * over the committed pointer rather than downloaded again minutes later.
+   *
+   * Ownership of the copy transfers to the caller, which must call
+   * `cleanupOwned` on it on every path — success, failure, and abort alike.
+   */
+  readonly retainSourceForRestore?: boolean
+}
+
+/** A verified private copy of a pinned payload, still on disk after the pin. */
+export interface ICheapLfsRetainedPinSource {
+  readonly owned: ICheapLfsOwnedFile
+  /** Whole-payload SHA-256, proven while the copy was made. */
+  readonly sha256: string
+  readonly sizeInBytes: number
 }
 
 export interface ICheapLfsPinResult {
   readonly pointer: ICheapLfsPointer
   readonly asset: IGitHubReleaseAsset
   readonly releaseId: number
+  /**
+   * The private upload copy this pin kept alive, present only when
+   * {@link ICheapLfsPinOptions.retainSourceForRestore} was set and a tracked
+   * path store produced one. The caller owns and must dispose of it.
+   */
+  readonly retainedSource?: ICheapLfsRetainedPinSource
 }
 
 /** Fine-grained stages shared by automatic and manual pin workflows. */
@@ -1686,6 +1720,9 @@ export async function pinFileToRelease(
     basename(options.absoluteFilePath)
   )
   let verifiedSource: ICheapLfsVerifiedSourceCopy | undefined
+  // Flipped only on the success path that actually hands the copy back, so
+  // every failure, abort, and early throw still deletes it in the `finally`.
+  let sourceRetainedByCaller = false
   let uploadSourcePath = options.absoluteFilePath
   let sourceSizeInBytes: number
   let hashed: {
@@ -1721,6 +1758,32 @@ export async function pinFileToRelease(
     )
   }
   preflightProjectedPointer(sourceSizeInBytes, options.releaseTag, baseName)
+  // The single-asset and split-asset routes both settle here, so the retained
+  // copy is handed over in exactly one place — after the pointer is published
+  // and the upload is proven, and never on a failure or abort.
+  const settlePin = (
+    pointer: ICheapLfsPointer,
+    settledAsset: IGitHubReleaseAsset,
+    releaseId: number
+  ): ICheapLfsPinResult => {
+    const retainedSource =
+      options.retainSourceForRestore === true &&
+      verifiedSource !== undefined &&
+      trackedPaths !== undefined
+        ? {
+            owned: verifiedSource.owned,
+            sha256: verifiedSource.sha256,
+            sizeInBytes: verifiedSource.sizeInBytes,
+          }
+        : undefined
+    sourceRetainedByCaller = retainedSource !== undefined
+    return {
+      pointer,
+      asset: settledAsset,
+      releaseId,
+      ...(retainedSource === undefined ? {} : { retainedSource }),
+    }
+  }
   try {
     onStage?.('release')
     const bucket = await allocateCheapLfsReleaseBucket(
@@ -1842,7 +1905,7 @@ export async function pinFileToRelease(
             pointerText
           )
         }
-        return { pointer, asset: storedAsset, releaseId: release.id }
+        return settlePin(pointer, storedAsset, release.id)
       } catch (error) {
         return await rethrowAfterAttemptAssetCleanup(
           error,
@@ -1978,7 +2041,7 @@ export async function pinFileToRelease(
       if (firstAsset === undefined) {
         throw new Error('Cheap LFS uploaded no parts for this file.')
       }
-      return { pointer, asset: firstAsset, releaseId: release.id }
+      return settlePin(pointer, firstAsset, release.id)
     } catch (error) {
       return await rethrowAfterAttemptAssetCleanup(
         error,
@@ -1990,7 +2053,11 @@ export async function pinFileToRelease(
       )
     }
   } finally {
-    if (verifiedSource !== undefined && trackedPaths !== undefined) {
+    if (
+      verifiedSource !== undefined &&
+      trackedPaths !== undefined &&
+      !sourceRetainedByCaller
+    ) {
       await trackedPaths.cleanupOwned(verifiedSource.owned)
     }
   }
@@ -2102,6 +2169,149 @@ export function cheapLfsAnnotatablePins(
       ? {}
       : { partNames: file.result.pointer.parts.map(part => part.name) }),
   }))
+}
+
+/**
+ * One pinned payload whose verified private copy survived its pin, together
+ * with the exact pointer text that pin published.
+ */
+export interface ICheapLfsRetainedPin {
+  readonly relativePath: string
+  /** Exactly what the working tree must hold before the payload goes back. */
+  readonly pointerText: string
+  readonly owned: ICheapLfsOwnedFile
+  /** Whole-payload SHA-256, proven when the private copy was made. */
+  readonly sha256: string
+  readonly sizeInBytes: number
+}
+
+/** Reduce pinned files to the retained copies a post-commit restore consumes. */
+export function cheapLfsRetainedPins(
+  pinned: ReadonlyArray<ICheapLfsAutoPinnedFile>
+): ReadonlyArray<ICheapLfsRetainedPin> {
+  return pinned.flatMap(file =>
+    file.result.retainedSource === undefined
+      ? []
+      : [
+          {
+            relativePath: file.relativePath,
+            pointerText: serializeCheapLfsPointer(file.result.pointer),
+            owned: file.result.retainedSource.owned,
+            sha256: file.result.retainedSource.sha256,
+            sizeInBytes: file.result.retainedSource.sizeInBytes,
+          },
+        ]
+  )
+}
+
+/** One retained payload that could not be reinstalled over its pointer. */
+export interface ICheapLfsRetainedPinFailure {
+  readonly relativePath: string
+  readonly message: string
+}
+
+/** What one post-commit payload restore pass achieved. Never a failure. */
+export interface ICheapLfsRestoredPayloads {
+  /** Paths whose real bytes are back in the working tree, verified. */
+  readonly restored: ReadonlyArray<string>
+  /**
+   * Paths left holding their committed pointer because the working tree no
+   * longer held exactly that pointer's bytes. Never an error: the pointer is
+   * committed, so the ordinary materialize path can still restore them.
+   */
+  readonly skipped: ReadonlyArray<string>
+  readonly failures: ReadonlyArray<ICheapLfsRetainedPinFailure>
+}
+
+/**
+ * Put the payloads a commit's pins just uploaded back into the working tree,
+ * over the pointers that same commit recorded.
+ *
+ * A pin uploads from a private copy, replaces the original with pointer text,
+ * and deletes both — so a repository that has just committed large files holds
+ * no copy of them at all, and the very next materialize detect point downloads
+ * bytes that were on this machine seconds earlier (#55). Retaining the verified
+ * copy across the commit and reinstalling it here removes that round trip
+ * entirely: the entry classifies as `materialized` instead of `pointer`, and
+ * the auto-materialize selector never sees it.
+ *
+ * Every guarantee of the download path is kept. A path is touched only when the
+ * bytes currently on disk are byte-for-byte the pointer this pin published, and
+ * `replaceFromPath` re-hashes the copy and rejects any size or SHA-256 drift
+ * exactly as a downloaded asset is rejected. Nothing here throws: on any
+ * failure the committed pointer is left untouched and that path simply falls
+ * back to today's behavior of downloading later.
+ */
+export async function restoreCheapLfsPinnedPayloads(
+  repository: Repository,
+  pins: ReadonlyArray<ICheapLfsRetainedPin>,
+  trackedPaths: ICheapLfsTrackedPathStore = defaultCheapLfsTrackedPathStore
+): Promise<ICheapLfsRestoredPayloads> {
+  const restored = new Array<string>()
+  const skipped = new Array<string>()
+  const failures = new Array<ICheapLfsRetainedPinFailure>()
+  for (const pin of pins) {
+    try {
+      const pointerBytes = Buffer.from(pin.pointerText, 'utf8')
+      const pointerSha256 = createHash('sha256')
+        .update(pointerBytes)
+        .digest('hex')
+      const proof = await trackedPaths.proveDestination(
+        repository.path,
+        pin.relativePath
+      )
+      if (
+        !proof.exists ||
+        proof.sizeInBytes !== pointerBytes.length ||
+        proof.sha256 !== pointerSha256
+      ) {
+        // Something other than this commit's pointer is on disk — a concurrent
+        // edit, a checkout, a failed commit. Leave it strictly alone.
+        skipped.push(pin.relativePath)
+        continue
+      }
+      await trackedPaths.replaceFromPath(
+        proof,
+        pin.owned.path,
+        pin.sha256,
+        pin.sizeInBytes
+      )
+      restored.push(pin.relativePath)
+    } catch (error) {
+      failures.push({
+        relativePath: pin.relativePath,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+  return { restored, skipped, failures }
+}
+
+/**
+ * Delete every retained private upload copy, whether or not it was restored.
+ *
+ * Safe to call after {@link restoreCheapLfsPinnedPayloads}: a consumed copy has
+ * already left its temp directory behind, and `cleanupOwned` removes exactly
+ * that. It is identity-checked, so a temp replaced by something else raises
+ * instead of deleting a stranger's file — that raise is collected here rather
+ * than thrown, because a leaked temp must never fail a completed commit.
+ */
+export async function discardCheapLfsRetainedPins(
+  pins: ReadonlyArray<ICheapLfsRetainedPin>,
+  trackedPaths: ICheapLfsTrackedPathStore = defaultCheapLfsTrackedPathStore
+): Promise<ReadonlyArray<ICheapLfsRetainedPinFailure>> {
+  const failures = new Array<ICheapLfsRetainedPinFailure>()
+  for (const pin of pins) {
+    try {
+      await trackedPaths.cleanupOwned(pin.owned)
+    } catch (error) {
+      failures.push({
+        relativePath: pin.relativePath,
+        message: error instanceof Error ? error.message : String(error),
+      })
+    }
+  }
+  return failures
 }
 
 /** Release methods used by the browser-assisted manual fallback. */
@@ -3423,6 +3633,7 @@ export async function listAllCheapLfsPointers(
         pointer: releasePointer,
         workingTreeState: candidate.workingTreeState ?? 'pointer',
         workingTreeSizeInBytes: candidate.workingTreeSizeInBytes,
+        workingTreeSha256: candidate.workingTreeSha256,
       })
       continue
     }
@@ -3445,10 +3656,49 @@ export async function listAllCheapLfsPointers(
         pointer: ociPointer,
         workingTreeState: candidate.workingTreeState ?? 'pointer',
         workingTreeSizeInBytes: candidate.workingTreeSizeInBytes,
+        workingTreeSha256: candidate.workingTreeSha256,
       })
     }
   }
   return entries
+}
+
+/**
+ * Whether an entry's working-tree bytes were *proven* to be exactly the payload
+ * its already-committed pointer names.
+ *
+ * Deliberately strict, because the one caller uses this to leave a path out of
+ * the user's commit. It requires an explicit content hash recorded by the scan
+ * and equal to the pointer's own digest, plus an exact size match, plus the
+ * `materialized` classification — which is what proves the pointer in the index
+ * is the committed one rather than a staged rewrite. A classification alone is
+ * never enough: identity-only scans legitimately leave `workingTreeSha256`
+ * undefined, and a path whose identity cannot be proven must be pinned and
+ * committed like any other edit rather than silently omitted.
+ */
+export function isCheapLfsPayloadProvenStored(
+  entry: ICheapLfsManagedPointerEntry
+): boolean {
+  if (entry.workingTreeState !== 'materialized') {
+    return false
+  }
+  const provenSha256 = entry.workingTreeSha256
+  const provenSize = entry.workingTreeSizeInBytes
+  if (provenSha256 === undefined || provenSize === undefined) {
+    return false
+  }
+  const pointerSha256 =
+    entry.kind === 'release'
+      ? entry.pointer.sha256
+      : entry.pointer.object.startsWith('sha256:')
+      ? entry.pointer.object.slice('sha256:'.length)
+      : null
+  return (
+    pointerSha256 !== null &&
+    pointerSha256.length > 0 &&
+    provenSha256.toLowerCase() === pointerSha256.toLowerCase() &&
+    provenSize === entry.pointer.sizeInBytes
+  )
 }
 
 /**
