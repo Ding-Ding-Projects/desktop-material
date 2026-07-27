@@ -1,5 +1,60 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Session summary: fifteen pushes, and what is still open
+
+Pushed to `main` through `821ab93d57`. Full local gate on that tree:
+`node script/test.mjs` reports **6,508 tests across 808 files with 0
+failures**, root `npx tsc --noEmit` is clean, `eslint` is clean, and
+repository-wide `prettier --check` passes.
+
+Shipped and pushed this session, each verified before its own push:
+
+- **Latest-release reconcile** (`2e62c5a2a6`) — installed apps had stopped
+  receiving updates. Promotion only crowned a release whose commit still
+  equalled the tip of `main`, so any push landing mid-build stranded Latest
+  permanently while Squirrel polled `releases/latest/download/`. Promotion is
+  now a monotonic reconcile along `main`.
+- **Racily-clean identity revalidation** (#72, `01d2ba31fd`) — a genuine
+  fail-open found by CI, not by review. Same-size writes inside one filesystem
+  timestamp tick produced identical `mtimeNs` *and* size, so `sameEntry`
+  reported "unchanged" for different bytes and the deferred-hash path could
+  accept stale content. Reproduced locally in **11 of 40 trials**. Observed
+  tick steps here were 0.79–3.1 ms, not the 15.6 ms Windows default, so a
+  hardcoded constant would have been wrong in the unsafe direction; the fix
+  probes granularity per device behind a 2 s conservative bound.
+- **Cheap LFS owned-artifact rule** (#65, `f7cb50b874`) — the app was pinning
+  and uploading its own in-tree scratch files during a clone. The cause was
+  commit-time selection, not a background scanner.
+- **Post-commit payload restore** (#55), **UTF-8 byte budget for asset names**
+  (#67 — long CJK files could not be pinned at all), **scratch-ODB worktree
+  fingerprint** (#59), **append-guarded release uploads** (#56),
+  **documentation-search worker** (#69), **tab-overflow search and
+  customization route** (#73), **collapsible repository groups** (#74),
+  **repository-list sync summary** (#70), the **complete feature list** (#64),
+  the **tabbed documentation hub** (#63), and **README feature diagrams**.
+
+Open, with the honest blocker recorded on each issue:
+
+- **#66 Windows 11 context menu** — root-caused on this machine. The sparse
+  package registers with `Path.dirname(process.execPath)` as its external
+  location, which resolves to `app-<version>\` and therefore changes on every
+  Squirrel update; the package keeps reporting `Status: Ok` while its location
+  rots. Architecture mismatch and COM activation are ruled out. Fix in flight.
+- **#22, #34, #73, #74 captures** — the Electron runtime was repaired this
+  session (the postinstall had downloaded the 144 MB zip on July 12 and never
+  extracted it), so single-repository captures now work and produced #70's
+  evidence. Multi-tab scenes still need the reusable fixture filed as **#75**;
+  three UI-driven routes were tried and all proved fragile. No substitute
+  screenshot has been posted for any of them.
+- **#35** — the deferred profiler findings are all fixed; stream-hash-on-upload
+  ("cloud hash") remains.
+- **#62** — a read-only survey is under way rather than a blind upstream merge.
+- **#68, #71, #75** — in flight.
+
+Two self-inflicted CI breaks were fixed in the same session: a screenshot added
+without its wiki-manifest row, and then the same screenshot missing from the
+Pages gallery, which is a second pinned count cross-referencing the first.
+
 ## 2026-07-27 — Documentation search no longer compiles reader regex on the UI thread (#69)
 
 `site/docs-search.html`, published as `/docs/search.html`, built and compiled
