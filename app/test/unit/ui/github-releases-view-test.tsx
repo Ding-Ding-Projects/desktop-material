@@ -127,6 +127,11 @@ function fakeStore(overrides: Record<string, unknown> = {}) {
       accountGeneration: 1,
       releaseId: release.id,
       releaseFingerprint: `release-${release.id}`,
+      releaseIdentityFingerprint: `release-identity-${release.id}`,
+      reviewedAssets: release.assets.map(candidate => ({
+        id: candidate.id,
+        fingerprint: `asset-identity-${candidate.id}`,
+      })),
       assetId: reviewedAsset?.id ?? null,
       assetFingerprint:
         reviewedAsset === null ? null : `asset-${reviewedAsset.id}`,
@@ -717,6 +722,11 @@ describe('GitHub Releases view', () => {
           accountGeneration: 1,
           releaseId: release.id,
           releaseFingerprint: `release-${release.id}`,
+          releaseIdentityFingerprint: `release-identity-${release.id}`,
+          reviewedAssets: release.assets.map(candidate => ({
+            id: candidate.id,
+            fingerprint: `asset-identity-${candidate.id}`,
+          })),
           assetId: null,
           assetFingerprint: null,
         }
