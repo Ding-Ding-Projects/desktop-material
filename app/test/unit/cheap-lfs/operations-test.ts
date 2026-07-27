@@ -133,7 +133,7 @@ const release: IGitHubRelease = {
   tagName: 'v1.0.0',
   targetCommitish: 'main',
   name: 'Stable',
-  body: 'Notes',
+  body: CheapLfsReleaseBodySentinel,
   draft: false,
   prerelease: true,
   createdAt: new Date(0),
@@ -1207,7 +1207,7 @@ describe('cheap LFS operations', () => {
     })
   })
 
-  it('materializes a pointer: downloads to temp, verifies, and replaces in place', async () => {
+  it('materializes from an unrecognized draft without publishing it', async () => {
     await withTempRepository(async (dir, repository) => {
       const content = Buffer.from('binary-ish payload '.repeat(500))
       const sha256 = createHash('sha256').update(content).digest('hex')
@@ -1224,6 +1224,7 @@ describe('cheap LFS operations', () => {
       const releaseWithAsset: IGitHubRelease = {
         ...release,
         tagName: 'v2.0.0',
+        body: 'Unrelated draft release notes',
         draft: true,
         assets: [
           { ...asset, name: 'payload.bin', sizeInBytes: content.length },
@@ -1281,8 +1282,8 @@ describe('cheap LFS operations', () => {
 
       assert.equal(await realpath(result.path), await realpath(trackedPath))
       assert.equal(result.bytes, content.length)
-      assert.equal(publishCount, 1)
-      assert.equal(currentRelease.draft, false)
+      assert.equal(publishCount, 0)
+      assert.equal(currentRelease.draft, true)
       // The pointer file is now the real bytes: in-place overwrite worked.
       assert.deepEqual(await readFile(trackedPath), content)
       // The temp file was renamed away, so it no longer exists.
@@ -1924,13 +1925,24 @@ describe('cheap LFS operations', () => {
     })
   })
 
-  it('publishes an older draft bucket in place before writing a new pointer', async () => {
+  it('publishes a legacy provenance-labeled draft bucket before writing a new pointer', async () => {
     await withTempRepository(async (dir, repository) => {
       const fixture = multipartBucketGateway('assets', 998)
       fixture.remotes.set('assets', {
         ...fixture.remotes.get('assets')!,
+        body: 'Legacy Cheap LFS release notes',
         draft: true,
         prerelease: true,
+        assets: fixture.remotes.get('assets')!.assets.map((candidate, index) =>
+          index === 0
+            ? {
+                ...candidate,
+                label: `cheap-lfs/v1 sha256=${'a'.repeat(
+                  64
+                )} commit=- path=legacy.bin`,
+              }
+            : candidate
+        ),
       })
 
       await pinFileToRelease(
@@ -1951,6 +1963,72 @@ describe('cheap LFS operations', () => {
       assert.deepEqual(fixture.publishedTags, ['assets'])
       assert.equal(fixture.remotes.get('assets')?.draft, false)
       assert.deepEqual(fixture.uploadedReleaseIds, [70, 70])
+    })
+  })
+
+  it('refuses to publish or append to an unrelated release with the requested tag', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const fixture = multipartBucketGateway('assets', 0)
+      fixture.remotes.set('assets', {
+        ...fixture.remotes.get('assets')!,
+        body: 'Product release notes',
+        draft: true,
+        prerelease: false,
+      })
+
+      await assert.rejects(
+        pinFileToRelease(
+          fixture.gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: join(dir, 'do-not-upload.bin'),
+            trackedRelativePath: 'do-not-upload.bin',
+            releaseTag: 'assets',
+          },
+          undefined,
+          undefined,
+          twoPartFileSystem()
+        ),
+        /not a managed Cheap LFS prerelease/
+      )
+
+      assert.deepEqual(fixture.publishedTags, [])
+      assert.deepEqual(fixture.uploadedReleaseIds, [])
+      assert.equal(fixture.remotes.get('assets')?.draft, true)
+    })
+  })
+
+  it('refuses to append to an unrelated published prerelease', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const fixture = multipartBucketGateway('assets', 0)
+      fixture.remotes.set('assets', {
+        ...fixture.remotes.get('assets')!,
+        body: 'Unrelated prerelease notes',
+        draft: false,
+        prerelease: true,
+      })
+
+      await assert.rejects(
+        pinFileToRelease(
+          fixture.gateway,
+          repository,
+          selected,
+          {
+            absoluteFilePath: join(dir, 'do-not-append.bin'),
+            trackedRelativePath: 'do-not-append.bin',
+            releaseTag: 'assets',
+          },
+          undefined,
+          undefined,
+          twoPartFileSystem()
+        ),
+        /not a managed Cheap LFS prerelease/
+      )
+
+      assert.deepEqual(fixture.publishedTags, [])
+      assert.deepEqual(fixture.uploadedReleaseIds, [])
+      assert.equal(fixture.remotes.get('assets')?.draft, false)
     })
   })
 

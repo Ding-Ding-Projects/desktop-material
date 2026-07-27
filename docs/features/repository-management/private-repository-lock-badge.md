@@ -2,8 +2,8 @@
 
 > **Delivery status — July 27, 2026:** the implementation, focused tests,
 > TypeScript checks, production build, and isolated real-window capture pass
-> locally. Default-branch integration, remote CI, Pages/wiki publication, and
-> installer/Release evidence remain pending.
+> locally and the source is integrated into local `main`. Remote push/CI,
+> Pages/wiki publication, and installer/Release evidence remain pending.
 
 Desktop Material shows a separate filled lock beside a repository's normal
 leading glyph when GitHub metadata explicitly identifies the repository as
@@ -87,9 +87,9 @@ exact `isPrivate: true` metadata without a network account or credential. The
 original-resolution image passed clipping, overlap, sizing, and private-data
 inspection.
 
-Packaged Windows E2E, default-branch integration, remote CI, Pages/wiki
-publication, and installer/Release verification remain pending. The image is
-assigned to the 84-scene local source gallery; its raw `main` URL becomes
+Packaged Windows E2E, remote push/CI, Pages/wiki publication, and
+installer/Release verification remain pending. The image is
+assigned to the 89-scene local source gallery; its raw `main` URL becomes
 publication evidence only after the default-branch push is verified.
 
 ## API applicability

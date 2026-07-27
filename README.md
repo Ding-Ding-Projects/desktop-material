@@ -6,10 +6,12 @@
 
 Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [GitHub Desktop](https://github.com/desktop/desktop). It rebuilds the entire application shell around Material Design 3 while keeping GitHub Desktop's full Git workflow and the same underlying stack: [TypeScript](https://www.typescriptlang.org), [React](https://react.dev), [Electron](https://www.electronjs.org), and [Sass](https://sass-lang.com). This project is in active development.
 
-> **Platform support:** Desktop Material is a Windows-only application. Windows
-> x64 is the installer and portable-ZIP target; Windows x64/arm64 builds and
-> Windows packaged E2E are the supported CI gates. macOS and Linux application
-> packages are not produced or supported.
+> **Platform support:** the graphical Electron edition remains Windows-only:
+> Windows x64 is its installer and portable-ZIP target, with Windows x64/arm64
+> builds and packaged Windows x64 E2E. A separate
+> [Linux-first terminal edition](docs/features/linux-tui/README.md) now provides
+> mouse, keyboard, and real text-field workflows as a Python package. It is not
+> a Linux build of the Electron application.
 
 <img
   width="1072"
@@ -28,8 +30,9 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > **652/652**, verifier contracts passed **14/14**, TypeScript is clean, the
 > exact Windows production build completed successfully, and the real built
 > app passed isolated off-screen English/bilingual interaction and privacy
-> inspection. Default-branch merge and push, remote CI, Pages/wiki publication,
-> packaged E2E, and installer/Release evidence remain pending. See
+> inspection. The source is integrated into local `main`; remote push, CI,
+> Pages/wiki publication, packaged E2E, and installer/Release evidence remain
+> pending. See
 > [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 > the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
 > and the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
@@ -53,9 +56,54 @@ Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.co
 See the [Install tab](docs/readme-tabs/install.md) for asset verification, manual
 downloads, and updater behavior.
 
+## Run the Linux-first TUI
+
+Install the trusted checkout as an isolated tool, then launch a repository with
+the literal `github` command:
+
+```bash
+uv tool install ./tui
+github /path/to/repository
+```
+
+`github`, `dmt`, and `desktop-material-tui` are identical launchers for this
+terminal edition. This alias does not replace GitHub CLI's `gh`. If another
+program or shell alias already owns `github`, use `dmt` or
+`desktop-material-tui` instead. Noninteractive discovery and status work too:
+
+```bash
+github --help
+github status --json
+```
+
+For development, run the locked project directly:
+
+```bash
+cd tui
+uv sync --locked --extra dev
+uv run desktop-material-tui
+```
+
+It supports mouse clicks, keyboard focus, editable single-line and multiline
+text controls, local Git workflows, GitHub workflows through `gh`, shared RE2
+search, localization, notifications, and XDG persistence. It does **not** yet
+claim all 201 graphical-edition capabilities; see the generated
+[parity contract](tui/contracts/parity.yaml) and
+[TUI documentation](docs/features/linux-tui/README.md).
+
+A minimal non-root Docker image is also available; the
+[container guide](docs/features/linux-tui/container.md) includes copy-paste
+build and interactive run commands with repository and XDG persistence mounts.
+
+<img
+  width="1072"
+  src="docs/assets/screenshots/linux-tui-overview.png"
+  alt="Desktop Material TUI running Changes in an off-screen Linux terminal"
+/>
+
 ## Explore the tabs
 
-- **[Install](docs/readme-tabs/install.md)** — Windows installer one-liner, script verification, manual downloads, and updater behavior
+- **[Install](docs/readme-tabs/install.md)** — Windows installer and Linux TUI source/package routes
 - **[Features](docs/readme-tabs/features.md)** — the full Material Design 3 shell plus every Git and GitHub workflow
 - **[Complete list](docs/readme-tabs/complete-feature-list.md)** — every feature in one bilingual table, labelled Added / Extended / Inherited against GitHub Desktop
 - **[Screenshots](docs/readme-tabs/screenshots.md)** — the annotated capture gallery

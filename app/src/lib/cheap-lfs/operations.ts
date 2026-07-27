@@ -51,6 +51,7 @@ import {
   findCheapLfsAssetsForParts,
   formatCheapLfsAssetLabel,
   ICheapLfsAnnotatablePin,
+  isCheapLfsReleaseBucket,
 } from './asset-version'
 import {
   cheapLfsPointerTextSizeInBytes,
@@ -2227,6 +2228,9 @@ export async function annotateCheapLfsPinnedAssets(
         )
       }
       const release = releasesByTag.get(target.releaseTag) ?? null
+      if (release !== null) {
+        ensureWritableCheapLfsReleaseBucket(release, target.releaseTag)
+      }
       const asset = release?.assets.find(
         candidate => candidate.name === target.assetName
       )
@@ -2569,6 +2573,29 @@ function ensureCheapLfsBucketTag(
   }
 }
 
+/**
+ * A release is writable Cheap LFS storage only when its provenance is
+ * recognizable without guessing from a user-controlled tag or title.
+ *
+ * Current buckets carry the exact body sentinel. Older legitimate buckets are
+ * retained through the stricter legacy proof in `isCheapLfsReleaseBucket`: a
+ * prerelease with at least one valid Cheap LFS asset-provenance label. Restore
+ * deliberately does not use this gate because an existing pointer may
+ * legitimately refer to an older or user-managed published release; the gate
+ * protects only provider mutations (publish and append).
+ */
+function ensureWritableCheapLfsReleaseBucket(
+  release: IGitHubRelease,
+  expectedTag: string
+): void {
+  ensureCheapLfsBucketTag(release, expectedTag)
+  if (release.draft || !isCheapLfsReleaseBucket(release)) {
+    throw new Error(
+      `Release “${expectedTag}” is not a managed Cheap LFS prerelease. Choose another tag; Desktop Material will not publish or append assets to an unrelated release.`
+    )
+  }
+}
+
 async function scanPointerCandidates(
   root: string,
   pathspec?: ReadonlyArray<string>
@@ -2583,10 +2610,16 @@ async function scanPointerCandidates(
 }
 
 /**
- * Publish an exact legacy Cheap LFS draft in place. Published prereleases are
- * visible to ordinary collaborators but remain outside GitHub's stable
- * `/releases/latest` feed. A concurrent publisher is accepted only when a
- * fresh lookup proves the same release id is now published.
+ * Publish an exact, provenance-recognized Cheap LFS draft in place. Published
+ * prereleases are visible to ordinary collaborators but remain outside
+ * GitHub's stable `/releases/latest` feed. An unrecognized draft is returned
+ * unchanged so read-only materialization can still use an explicitly named
+ * historical asset without turning restore into an unrelated Release
+ * mutation. Every append caller separately applies
+ * `ensureWritableCheapLfsReleaseBucket` and therefore fails closed.
+ *
+ * A concurrent publisher is accepted only when a fresh lookup proves the same
+ * release id is now published.
  */
 async function publishCheapLfsReleaseIfNeeded(
   releases: ICheapLfsReleasesGateway,
@@ -2596,7 +2629,7 @@ async function publishCheapLfsReleaseIfNeeded(
   signal?: AbortSignal
 ): Promise<IGitHubRelease> {
   ensureCheapLfsBucketTag(release, releaseTag)
-  if (!release.draft) {
+  if (!release.draft || !isCheapLfsReleaseBucket(release)) {
     return release
   }
 
@@ -2865,7 +2898,7 @@ async function allocateCheapLfsReleaseBucket(
     }
     const release = releaseCache.get(index) ?? null
     if (release !== null) {
-      ensureCheapLfsBucketTag(release, releaseTag)
+      ensureWritableCheapLfsReleaseBucket(release, releaseTag)
       return release
     }
     // A reviewed bucket that has since become invisible is not an absent
@@ -2982,7 +3015,7 @@ async function allocateCheapLfsReleaseBucket(
       }
       // Keep provider identity validation outside the conflict-recovery catch:
       // a successful create that returns the wrong tag is never a conflict.
-      ensureCheapLfsBucketTag(release, releaseTag)
+      ensureWritableCheapLfsReleaseBucket(release, releaseTag)
       if (release.draft) {
         throw new Error(
           `GitHub created the Cheap LFS release tagged “${releaseTag}” as a draft.`

@@ -45,14 +45,14 @@ than overstate it.
 
 ### At a glance / 一眼睇晒
 
-**200** features across **17** areas:
+**201** features across **17** areas:
 
-**17** 個範疇、合共 **200** 項功能：
+**17** 個範疇、合共 **201** 項功能：
 
 | Label | Count | Share | 意思 |
 | --- | ---: | ---: | --- |
-| **Added** | 133 | 66.5% | New in Desktop Material · Desktop Material 新加 |
-| **Extended** | 51 | 25.5% | Rebuilt or deepened · 重砌或者加深咗 |
+| **Added** | 134 | 66.7% | New in Desktop Material · Desktop Material 新加 |
+| **Extended** | 51 | 25.4% | Rebuilt or deepened · 重砌或者加深咗 |
 | **Inherited** | 16 | 8.0% | Same as GitHub Desktop · 同 GitHub Desktop 一樣 |
 
 ### What this list is counted from / 啲數字點嚟
@@ -63,13 +63,13 @@ Every number below is derived from this repository tree, not from memory:
 
 | Number | Where it comes from |
 | --- | --- |
-| **84** feature documents in **8** categories | `docs/features/**/*.md`, excluding the 9 `README.md` indexes |
+| **97** feature documents in **9** categories | `docs/features/**/*.md`, excluding the 10 `README.md` indexes |
 | **51** searchable collection surfaces | `SearchSurfaceRegistry` in `app/src/lib/collection-surface-registry.ts` |
 | **13** bulk-action surfaces | `BulkActionSurfaceRegistry` in the same file |
 | **87** command-palette commands in **6** groups | `CommandPaletteCatalog` in `app/src/lib/command-palette-catalog.ts` |
 | **19** `.gitignore` templates | `templateMeta` in `app/src/lib/gitignore/catalog.ts` |
 | **117** UI feature directories | immediate subdirectories of `app/src/ui/` |
-| **2,381** English / **2,357** Cantonese translation keys | `englishTranslations` and `cantoneseTranslations` in `app/src/lib/i18n-resources.ts` |
+| **2,416** English / **2,392** Cantonese translation keys | `englishTranslations` and `cantoneseTranslations` in `app/src/lib/i18n-resources.ts` |
 
 ---
 
@@ -98,7 +98,7 @@ Every number below is derived from this repository tree, not from memory:
 
 | Feature / 功能 | vs. Desktop | Docs |
 | --- | --- | --- |
-| **Three language modes** — persisted **English**, playful **Hong Kong Cantonese**, or compact **Bilingual**. English is the safe fallback; the Windows locale never silently replaces your choice. 2,381 English and 2,357 Cantonese keys.<br><sub>**三種語言模式** — 會記住嘅**英文**、抵死**香港廣東話**，或者精簡嘅**雙語**。英文係安全後備；Windows 地區設定唔會靜靜雞改咗你嘅選擇。英文有 2,381 個字串鍵，廣東話有 2,357 個。</sub> | **Added** | — |
+| **Three language modes** — persisted **English**, playful **Hong Kong Cantonese**, or compact **Bilingual**. English is the safe fallback; the Windows locale never silently replaces your choice. 2,416 English and 2,392 Cantonese keys.<br><sub>**三種語言模式** — 會記住嘅**英文**、抵死**香港廣東話**，或者精簡嘅**雙語**。英文係安全後備；Windows 地區設定唔會靜靜雞改咗你嘅選擇。英文有 2,416 個字串鍵，廣東話有 2,392 個。</sub> | **Added** | — |
 | **Funny-level sliders (1–5)** — independent playfulness levels for English and Cantonese. Tone changes at every level; the facts never do.<br><sub>**搞笑程度滑桿（1–5）** — 英文同廣東話各有一個。每一級變嘅係語氣，事實永遠唔變。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 | **Spoken narrator** — optional, off by default, English / Cantonese / both, serialized so utterances never overlap.<br><sub>**語音旁白** — 可選，預設熄咗，英文／廣東話／兩種都得，排住隊講，唔會疊聲。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 | **Recorded narration and melody assets** — pre-generated per-event voice clips and melody cues replace live speech and synthesis, with automatic fallback.<br><sub>**錄好嘅旁白同旋律素材** — 每個事件都有預先生成嘅語音同旋律，取代即時合成，唔得就自動回退。</sub> | **Added** | [Narration assets](../features/design-system/narration-assets.md) |
@@ -196,6 +196,7 @@ Every number below is derived from this repository tree, not from memory:
 | **Publish indicator for local-only branches** — including branches whose configured upstream was deleted.<br><sub>**純本機分支嘅發佈指示** — 連上游被刪咗嗰啲分支都認得。</sub> | Extended | — |
 | **Merge-tree conflict preview** — see the exact conflicting paths before a merge changes the worktree.<br><sub>**Merge-tree 衝突預覽** — merge 未改 worktree 之前就睇到邊啲路徑會撞。</sub> | Extended | — |
 | **Reviewed ordinary pull previews** — fetch, then review the exact current/upstream object IDs, ahead/behind state, integration route, and bounded incoming commits and files before Git touches a clean worktree. Confirmation revalidates the reviewed OID and integrates without a second fetch; a failed fetch cannot surface stale tracking data.<br><sub>**經審視嘅普通 pull 預覽** — 先 fetch，跟住喺 Git 郁乾淨 worktree 之前，睇清楚當前／上游嘅物件 ID、ahead／behind、整合路線同有界限嘅入站 commit 同檔案。確認嗰陣會重新驗證審過嗰個 OID 再整合，唔使再 fetch 一次；fetch 失敗就唔會攞舊資料出嚟呃你。</sub> | Extended | [Pull previews](../features/repository-management/pull-previews.md) |
+| **Deleted-upstream pull recovery** — when Git classifies a pull as missing its configured upstream and the exact remote confirms the branch is gone, offer a reviewed switch to the default branch. Optional local-branch deletion starts off, names any stranded commits, never deletes remotely, and reports the real retry through notifications.<br><sub>**上游分支被刪後嘅 pull 復原** — Git 話 pull 用嗰條上游唔見咗，而且精確遠端亦證實分支已刪，先提供經審視嘅切換到預設分支。可選本機刪分支每次都預設關閉，會講清楚有幾多 commit 可能留低，永遠唔刪遠端，重試真結果由通知交代。</sub> | **Added** | [Deleted-upstream recovery](../features/repository-management/deleted-upstream-pull-recovery.md) |
 | **Reviewed rebase onto a searched target** — a current→target summary with ahead/behind context and a bounded commit preview. Fresh preflight blocks dirty or conflicted repositories, exact refs are revalidated before Git starts, and Desktop Material never force-pushes automatically.<br><sub>**經審視、可搜尋目標嘅 rebase** — 有 current→target 摘要、ahead／behind 上下文同有界限嘅 commit 預覽。事前檢查會擋住有未提交改動或者衝突嘅倉庫，Git 開始前會重新驗證 ref，而且 Desktop Material 永遠唔會自動 force-push。</sub> | Extended | — |
 | **Reviewed batch repository sync** — pull active branches or fetch only, across an exact reviewed subset, with bounded concurrency and isolated results.<br><sub>**經審視嘅批量倉庫同步** — 喺審過嘅指定子集上 pull 活躍分支或者淨係 fetch，並行度有上限，結果各自獨立。</sub> | **Added** | [Batch sync](../features/repository-management/reviewed-batch-sync.md) |
 | **Pull all repositories** — from the repositories sheet with per-repository results; an ambiguous HTTPS authentication or not-found response can retry every remaining token-bearing account for that exact origin without displaying an identity or token.<br><sub>**一次過 pull 所有倉庫** — 喺倉庫側頁做，逐個倉庫有結果；HTTPS 驗證或者 not-found 曖昧嗰陣，可以用同 origin 嘅其他有權杖帳戶再試，但唔會顯示身分或者權杖。</sub> | **Added** | — |
@@ -440,7 +441,7 @@ regex 模式，連預覽用嗰個大小寫選擇一齊帶過去。兩條失敗�
 | --- | --- | --- |
 | **Documentation hub** — a Material Design 3 hub on GitHub Pages with in-browser search over the full catalog, language modes, playfulness sliders, and a theme toggle.<br><sub>**文件中心** — GitHub Pages 上面嘅 Material Design 3 中心，喺瀏覽器搜尋成個目錄，有語言模式、搞笑程度滑桿同主題開關。</sub> | **Added** | [Docs hub](../README.md) |
 | **Pre-rendered documentation diagrams** — every Mermaid fence becomes theme-aware inline SVG at build time, legible in light and dark, named for screen readers, with the site still loading zero external resources.<br><sub>**預先畫好嘅文件圖表** — 每個 Mermaid fence 喺建置階段就變成識跟主題嘅 inline SVG，光暗兩個模式都睇得清，讀屏軟件有名可讀，個網站照樣零外部資源。</sub> | **Added** | [Documentation site build](../technical/documentation-site-build.md) |
-| **Categorized feature documentation** — **84** feature documents in **8** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **8** 個分類、**84** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
+| **Categorized feature documentation** — **97** feature documents in **9** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **9** 個分類、**97** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
 | **Demand backlog ledger** — the 30-item GitHub Desktop demand backlog mapped to implemented feature contracts.<br><sub>**需求待辦帳簿** — 三十項 GitHub Desktop 需求，逐項對應到已實作嘅功能契約。</sub> | **Added** | [Demand backlog](../features/github-desktop-demand-backlog.md) |
 | **In-app version history** — an in-app changelog surface.<br><sub>**App 內版本歷史** — 喺 app 入面睇更新記錄。</sub> | Extended | — |
 | **Regex guide** — how every search bar matches and how the builder composes a pattern.<br><sub>**Regex 指南** — 每個搜尋欄點樣比對，同建構器點砌圖案。</sub> | **Added** | [Regex guide](../regex-guide.md) |
@@ -456,7 +457,7 @@ Not every difference is an addition. These are honest reductions in scope.
 
 | Difference / 分別 | Detail |
 | --- | --- |
-| **Windows only** — GitHub Desktop ships macOS and Linux builds; Desktop Material produces Windows x64 installers and portable ZIPs only. macOS and Linux application packages are not produced or supported.<br><sub>**淨係 Windows** — GitHub Desktop 有 macOS 同 Linux 版；Desktop Material 淨係出 Windows x64 安裝檔同免安裝 ZIP。macOS 同 Linux 應用程式套件唔會出，亦唔支援。</sub> | [Windows-only platform support](../features/integrations/windows-only-platform-support.md) |
+| **Graphical edition is Windows only** — GitHub Desktop ships macOS builds; Desktop Material's Electron edition produces Windows x64 installers and portable ZIPs only. A separate Python/Textual terminal edition targets Linux and tracks its own parity without claiming to be Electron.<br><sub>**圖形版淨係 Windows** — GitHub Desktop 有 macOS 版；Desktop Material 嘅 Electron 版淨係出 Windows x64 安裝檔同免安裝 ZIP。另有獨立 Python/Textual 終端版主攻 Linux，自己老實記低 parity，唔會扮係 Electron。</sub> | [Graphical-edition platform support](../features/integrations/windows-only-platform-support.md) |
 | **ARM64 through emulation** — the ARM64 package runs the audited x64 ORAS binary through Windows 11 x64 emulation and fails closed if it cannot start.<br><sub>**ARM64 靠模擬** — ARM64 套件用 Windows 11 x64 模擬行經審核嘅 x64 ORAS 執行檔，起唔到就直接 fail closed。</sub> | [OCI registry backend](../features/repository-management/cheap-lfs-oci-registry-backend.md) |
 | **Cheap LFS cache-archive download** — labelled unavailable, because GitHub exposes no supported download API for Actions cache archives.<br><sub>**Actions 快取封存下載** — 標明唔可用，因為 GitHub 冇提供受支援嘅下載 API。</sub> | — |
 

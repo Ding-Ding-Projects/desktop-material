@@ -28,7 +28,8 @@ this fork.
   [Collaboration](features/collaboration/README.md),
   [Review and diff](features/review-and-diff/README.md),
   [Quality and reliability](features/quality-and-reliability/README.md), and
-  [Design system](features/design-system/README.md)
+  [Design system](features/design-system/README.md), plus the separate
+  [Linux-first terminal edition](features/linux-tui/README.md)
 - **Search and regex** — [Regex guide](regex-guide.md)
 - **Evidence** — [Verification records](verification/README.md)
 - **Contributing** — [Development environment setup](contributing/setup.md),
@@ -53,9 +54,12 @@ this fork.
 
 The sections below keep the full detail behind each area.
 
-Desktop Material itself is supported and released on Windows only. Inherited
-non-Windows source and historical upstream documentation do not define a
-supported runtime; see [Windows-only platform support](features/integrations/windows-only-platform-support.md).
+Desktop Material's graphical Electron edition is supported and released on
+Windows only. The separate Python/Textual terminal edition targets Linux and
+has its own [support, packaging, interaction, and parity
+contract](features/linux-tui/README.md); it is not a non-Windows Electron
+runtime. See [graphical-edition platform
+support](features/integrations/windows-only-platform-support.md).
 
 ## Product and Material design
 
@@ -89,8 +93,8 @@ The July 27 browser, Cheap LFS restore, and private-badge continuation has
 completed local acceptance: **652/652** combined tests, **14/14** verifier
 contracts, clean TypeScript, an exact successful Windows production build, and
 real hidden-desktop interaction/privacy receipts. Packaged Windows E2E,
-default-branch merge/push, remote CI, Pages/wiki publication, and
-installer/Release evidence remain pending. The feature pages keep that local
+remote push/CI, Pages/wiki publication, and installer/Release evidence remain
+pending. The feature pages keep that local
 checkpoint separate from older published acceptance evidence.
 
 Appearance is now owner-scoped. Right-clicking an actual visual opens an editor

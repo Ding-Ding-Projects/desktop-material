@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 84 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 89 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
@@ -43,13 +43,15 @@ contract rejects missing, duplicate, or unassigned assets.
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
 >
-> **July 27 local acceptance:** one repository-list sync-summary scene plus the
+> **July 27 local acceptance:** one repository-list sync-summary scene, the
 > exact-90% restore, app-hosted authentication browser, and private-repository
-> lock receipts bring the source catalog to 84. The three new captures came
-> from the real production build on an isolated hidden Win32 desktop and passed
-> original-resolution accessibility, clipping, and privacy inspection. Their
-> default-branch, CI, Pages/wiki, packaged E2E, and installer/Release
-> publication receipts remain pending.
+> lock receipts, plus five Linux TUI receipts bring the source catalog to 89.
+> The three new Windows captures came from the real production build on an
+> isolated hidden Win32 desktop. The Linux TUI captures came from the real
+> Textual application in an ephemeral Debian environment, a real terminal, and
+> an isolated Xvfb display. All eight passed original-resolution accessibility,
+> clipping, and privacy inspection. Their default-branch, CI, Pages/wiki,
+> packaged E2E, and installer/Release publication receipts remain pending.
 
 The July 18–19 temporary-submodule and refreshed six-image set passed its local
 ten-pass off-screen inspection. A final 1440×960 post-build regression reopened
@@ -167,6 +169,11 @@ active profile's style, label, and explicit language mode.
 | `repository-groups-expanded.png` | Repository group expanded with per-row sync summaries |
 | `repository-groups-collapsed.png` | Repository group collapsed with its member count pill |
 | `private-repository-lock-badge.png` | Explicit private-metadata lock retained beside the repository logo |
+| `linux-tui-overview.png` | Linux terminal edition overview with repository navigation, status, and first-class workspace tabs |
+| `linux-tui-text-input.png` | Real terminal text-field editing and keyboard interaction |
+| `linux-tui-regex-builder.png` | Guided RE2-compatible regex builder with live matches and capture groups |
+| `linux-tui-bilingual-narrow.png` | Narrow bilingual terminal layout with readable English and playful Hong Kong-style Cantonese |
+| `linux-tui-cheap-lfs.png` | Linux terminal Cheap LFS workspace with repository-scoped transfer detail |
 
 ## App identity and portable tabs
 
@@ -176,6 +183,25 @@ folders, current-tab session import/export, and appropriate right-click
 customization/history context use the same profile/repository ownership model.
 
 ![Restart-restored profile app identity and favorite repository tab](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
+
+## Linux terminal edition
+
+The Linux terminal edition adapts Desktop Material's repository navigation,
+Git workflows, Cheap LFS controls, search, regex construction, language modes,
+and persisted appearance model for a keyboard-first Textual interface. These
+captures come from the real application running in a real Debian terminal and
+isolated Xvfb display; they cover the workspace overview, editable text input,
+the full regex builder, narrow bilingual layout, and Cheap LFS workspace.
+
+![Linux terminal edition overview with repository navigation, status, and workspace tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-overview.png)
+
+![Linux terminal edition text field accepting real keyboard input](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-text-input.png)
+
+![Linux terminal edition guided regex builder with live matches and capture groups](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-regex-builder.png)
+
+![Linux terminal edition narrow bilingual layout in English and playful Hong Kong-style Cantonese](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-bilingual-narrow.png)
+
+![Linux terminal edition Cheap LFS workspace with detailed repository-scoped transfer controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-cheap-lfs.png)
 
 ## App-hosted browser
 

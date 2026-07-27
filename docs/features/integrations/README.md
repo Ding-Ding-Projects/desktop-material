@@ -10,7 +10,7 @@ credentials or machine-specific state in a repository.
   isolated authentication escape. Combined local tests, the exact Windows
   production build, and hidden-desktop acceptance pass; packaged E2E and
   remote publication remain separate.
-- [Windows-only platform support](windows-only-platform-support.md)
+- [Windows-only graphical edition support](windows-only-platform-support.md)
 - [Windows Explorer context menu and quick-action
   window](windows-explorer-context-menu.md)
 - [Automated update build status and release

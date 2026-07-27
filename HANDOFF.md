@@ -1,5 +1,56 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Linux-first interactive TUI preview (locally verified)
+
+A new `tui/` Python project is a terminal-native sibling to the Windows-only
+Electron application. Its Textual shell is designed for both mouse and keyboard
+operation: repository/workspace tabs, buttons, lists, tables, checkboxes, and
+selectors are clickable, while repository paths, URLs, commit messages,
+provider bodies, API payloads, regex patterns, and sample text use real
+`Input`/`TextArea` controls.
+
+- Local Git covers repository open/create/clone, status/diff, file staging,
+  commit/amend/sign-off, fetch/pull/push, history, branches, stashes, plus
+  read-only tag/remote tools through argv-only bounded subprocess adapters.
+- The GitHub pane uses an installed, non-prompting `gh` CLI for issues, pull
+  requests, Actions, releases, packages, read-only Projects inventory, and a
+  bounded REST/GraphQL explorer. It does not store a GitHub token.
+- Shared literal/fuzzy/explicit-RE2 search enforces pattern, input, memory,
+  match, capture, and zero-width iteration bounds. Settings and notification
+  state use XDG paths, atomic TOML, SQLite WAL, and an isolated app-owned Git
+  history.
+- Linux packaging is a wheel plus source distribution. The additive Ubuntu CI
+  job tests Python 3.10/3.12/3.13; Python 3.12 also checks Ruff, mypy, package
+  contents, a fresh-wheel install, and the generated parity ledger.
+- An additive Windows Server 2022/Python 3.12 lane checks the non-PTY unit,
+  application, infrastructure, Cheap LFS, lint, and typed core. Linux PTY and
+  mouse acceptance remain Linux-only and are not inferred from that lane.
+- Cheap LFS reads and writes the canonical Windows Release-v1 pointer format
+  across Linux and Windows, uses a 500 MiB limit for new writes while retaining
+  2 GiB legacy reads, and verifies size/hash before restore with a local recovery
+  cache. The TUI preview does not yet implement OCI/GHCR or cloud-provider
+  writes, encryption, or automatic multi-file batching.
+- `tui/contracts/parity.yaml` is generated from the existing 201-row desktop
+  source of truth. Current mapping is 14 adapted, 53 partial, 132 not yet
+  available, and 2 terminal-owned; unmapped work can never default to complete.
+- Categorized docs under `docs/features/linux-tui/` cover installation,
+  interaction, accessibility, XDG persistence, Git/GitHub, RE2, language,
+  appearance, notifications, editor/history, security, failure modes, and
+  verification.
+
+Status: implementation commit `eee005c7f4`, integration merge `ba45dcfbaf`, and
+verification commit `fcb86eca4d` are integrated into local `main`. Local evidence is complete:
+187 Windows-hosted TUI/core tests passed with one Linux-only PTY skip, that PTY
+test passed on real Debian, all 164 focused Windows Cheap LFS tests passed, the
+wheel/sdist and fresh install were inspected, and a non-root remote Docker build
+ran successfully. Five original Lowlevel/Xvfb screenshots prove mouse clicks,
+editable Inputs/TextAreas, regex matches, bilingual narrow layout, and Cheap LFS
+preview; every disposable process, display, filesystem root, Docker image, and
+WSL distribution was removed and proven absent. Remote push, CI, Pages, and
+release receipts remain pending. The
+[run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
+the exact local evidence and hashes.
+
 ## 2026-07-27 — SESSION HANDOFF (read this first)
 
 `main` is at **`949dc81e6d`**, pushed, with **zero divergence** from the remote.
@@ -219,10 +270,10 @@ passes on every touched non-Markdown file. Not yet verified against the
 deployed Pages site.
 ## 2026-07-27 — Exact-90% restore, app-hosted browser, and private badge (local acceptance complete)
 
-Three user-facing continuations are locally accepted on the task branch. They
-are not yet merged or pushed to the default branch, packaged, published, or
-included in an installer/Release; do not attach older Cheap LFS live receipts
-or the current installer badge to these changes.
+Three user-facing continuations are locally accepted and integrated into local
+`main`. They are not yet pushed, packaged, published, or included in an
+installer/Release; do not attach older Cheap LFS live receipts or the current
+installer badge to these changes.
 
 **Cheap LFS restore scheduling and progress**
 
@@ -318,8 +369,8 @@ or the current installer badge to these changes.
 
 **Remaining gates**
 
-Default-branch integration and push, packaged Windows E2E, remote CI,
-installer/Release evidence, and Pages/wiki publication remain pending. No
+Remote push, packaged Windows E2E, remote CI, installer/Release evidence, and
+Pages/wiki publication remain pending. No
 remote or release success is claimed by this local receipt.
 
 Feature contracts:
@@ -3211,16 +3262,16 @@ This handoff records the wave's scope. Per-item build, screenshot, release, and
 remote-CI receipts are added only when the exact pushed commit and its green
 remote runs exist.
 
-## Platform support decision
+## Graphical edition platform support decision
 
-Desktop Material is a Windows-only application. Windows x64 is the published
-installer target; Windows x64/arm64 builds, the Windows x64 full-unit lane, and
-Windows x64 packaged E2E are the supported product gates. macOS and Linux app
-runtimes, packages, and E2E lanes are intentionally unsupported. Non-Windows
-runners may still host platform-neutral repository automation such as lint,
-Pages, static analysis, release metadata, or issue triage; those jobs are not
-application targets. Preserve this boundary in future CI, release, roadmap,
-and feature work unless the user explicitly changes it.
+Desktop Material's Electron application is Windows-only. Windows x64 is the
+published installer target; Windows x64/arm64 builds, the Windows x64 full-unit
+lane, and Windows x64 packaged E2E are the supported graphical product gates.
+macOS and Linux Electron runtimes, packages, and E2E lanes are intentionally
+unsupported. Non-Windows runners may still host platform-neutral repository
+automation. On July 27 the user explicitly authorized a separate Linux-first
+Python/Textual TUI; its wheel, tests, and headless terminal acceptance do not
+change this Electron boundary.
 
 The policy change has a tracked CI contract and a fresh combined-tree Windows
 gate: 592 unit files ran in three batches, with 4,161 passes, zero failures,

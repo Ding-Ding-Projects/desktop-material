@@ -3,8 +3,9 @@
 > **Delivery status — July 27, 2026:** local source acceptance is complete.
 > Combined tests, verifier contracts, TypeScript, the exact Windows production
 > build, and an isolated real-window interaction/privacy receipt passed.
-> Packaged E2E, default-branch merge/push, remote CI, Pages/wiki publication,
-> and installer/Release evidence remain pending; this is not a claim that the
+> The source is integrated into local `main`. Packaged E2E, remote push/CI,
+> Pages/wiki publication, and installer/Release evidence remain pending; this
+> is not a claim that the
 > feature is in the current installer.
 
 Desktop Material can open browser-bound HTTP and HTTPS links in a dedicated
@@ -142,9 +143,9 @@ removal from bookmark storage, and the authentication escape. The fixture used
 no real account, credential, or provider. The accepted 1144×741 image above
 passed original-resolution clipping, overlap, and private-data inspection.
 
-Packaged Windows E2E, default-branch merge/push, remote CI, Pages/wiki
-publication, and installer/Release verification remain pending. The locally
-accepted screenshot is assigned to the 84-scene source gallery, but its raw
+Packaged Windows E2E, remote push/CI, Pages/wiki publication, and
+installer/Release verification remain pending. The locally
+accepted screenshot is assigned to the 89-scene source gallery, but its raw
 `main` URL will not be a publication receipt until the default-branch push and
 Pages/wiki checks complete.
 

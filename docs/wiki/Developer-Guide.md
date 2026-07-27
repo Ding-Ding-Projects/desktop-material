@@ -150,8 +150,8 @@ The current maintenance additions in this section are implemented. Their exact
 production, headless, source-publication, and cleanup evidence remains centralized
 in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
-The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 77
-synthetic, user-facing visual functions and states associated with these subsystems. Each function
+The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 89
+captured, user-facing visual functions and states associated with these subsystems. Each function
 owns one distinct tracked PNG; missing, duplicate, and unassigned assets fail the catalog contract.
 Keep captures free of personal paths, account identifiers, credentials, signed URLs, and unbounded
 provider payloads. A tracked image reference does not replace exact-source build, CI, public

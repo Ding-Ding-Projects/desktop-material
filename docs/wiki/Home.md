@@ -4,10 +4,11 @@
 
 Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.
 
-> **Platform support:** Desktop Material is a Windows-only application. The
+> **Platform support:** the graphical Electron edition is Windows-only. Its
 > installer and portable-ZIP target is Windows x64, with Windows x64/arm64
-> build validation and Windows packaged E2E. macOS and Linux application
-> packages are not produced or supported.
+> build validation and packaged Windows E2E. A separate
+> [Linux-first TUI](../features/linux-tui/README.md) provides a terminal-native
+> Python package; it is not a Linux Electron build.
 
 **Desktop Material** is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop.
 It is a fork of [desktop/desktop](https://github.com/desktop/desktop) (MIT) with the entire
@@ -96,7 +97,7 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, the app-hosted browser, guided Git/GitHub functions, Cheap LFS restore progress, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 84 named visual scenes, with automated missing/duplicate coverage checks. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 89 named visual scenes, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |

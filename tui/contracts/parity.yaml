@@ -1,0 +1,2472 @@
+{
+  "schema_version": 1,
+  "generated": true,
+  "generator": "tui/tools/generate-parity-contract.mjs",
+  "source": {
+    "path": "docs/readme-tabs/complete-feature-list.md",
+    "sha256": "f775aa1fdac1870d3b6a29bd81870a835b9b8f29fb111926e30727efc926a287",
+    "declared_feature_count": 201,
+    "parsed_feature_count": 201,
+    "section_count": 17
+  },
+  "semantics": {
+    "adapted": "A terminal-native implementation covers the named user outcome, with documented terminal constraints.",
+    "partial": "A meaningful subset exists, but one or more behaviors named by the desktop row are absent.",
+    "not_yet_available": "No implementation evidence is mapped; this is backlog, not a parity claim.",
+    "terminal_owned": "The terminal emulator or operating environment owns this behavior; the TUI documents the boundary."
+  },
+  "status_summary": {
+    "adapted": 14,
+    "not_yet_available": 132,
+    "partial": 53,
+    "terminal_owned": 2
+  },
+  "features": [
+    {
+      "id": "1-material-design-3-m3-expressive-shell",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Material Design 3 (M3 Expressive) shell",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/README.md",
+      "tui_status": "adapted",
+      "reason": "The Textual shell carries the hierarchy, tonal surfaces, focus states, density, theme, and responsive intent that a terminal can render; pixel, font, elevation, ripple, and compositor effects remain terminal-owned.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    {
+      "id": "1-navigation-rail",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Navigation rail",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "A mouse-clickable repository rail and keyboard-reachable workspace tabs replace the graphical icon rail.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py"
+      ]
+    },
+    {
+      "id": "1-floating-pill-toolbar",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Floating pill toolbar",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "The active repository, branch divergence, fetch, pull, push, and editor actions are exposed in a terminal toolbar.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py"
+      ]
+    },
+    {
+      "id": "1-measured-toolbar-overflow",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Measured toolbar overflow",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "The layout has compact and narrow breakpoints, but does not yet provide the desktop edition's measured More-menu migration contract.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    {
+      "id": "1-elevated-workspace-cards",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Elevated workspace cards",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "1-animated-theme-reveal-material-ripple",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Animated theme reveal + Material ripple",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/material-ripple-and-theme-reveal.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "1-light-dark-system-theme",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Light / dark / system theme",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Light and dark themes apply live and the system choice persists; automatic terminal/system theme detection is not yet complete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    {
+      "id": "1-per-element-appearance-editors",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Per-element appearance editors",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/owner-scoped-appearance-and-history.md",
+      "tui_status": "partial",
+      "reason": "Settings provides live, persisted foreground, background, emphasis, and border overrides for six terminal surfaces, plus reset and settings history. Contextual per-owner invocation, repository/tab-specific owners, and font, size, radius, and spacing controls are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    {
+      "id": "1-git-backed-appearance-history",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Git-backed appearance history",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/owner-scoped-appearance-and-history.md",
+      "tui_status": "partial",
+      "reason": "Whole-config snapshots use one isolated XDG Git repository with in-app browse, read, restore, undo, and redo. Separate repositories and setting.json histories per appearance owner are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/profile_history.py",
+        "tui/src/desktop_material_tui/application/version_history.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    {
+      "id": "1-repository-logo-studio",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Repository logo studio",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "1-ui-font-customization",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "UI font customization",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "terminal_owned",
+      "reason": "The terminal emulator owns font family, point size, glyph fallback, and weight availability; the TUI does not pretend it can override them.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    {
+      "id": "1-density-control",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Density control",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "Comfortable and compact density are persisted and applied to terminal layout classes.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    {
+      "id": "1-ui-scale-slider-50-200-auto-fit",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "UI scale slider 50–200% + auto-fit",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "terminal_owned",
+      "reason": "Cell size and zoom belong to the terminal emulator. The app reflows at narrow widths instead of claiming control over terminal zoom.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    {
+      "id": "1-material-re-tint-of-stock-surfaces",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Material re-tint of stock surfaces",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "Textual widgets use the TUI token stylesheet for dark/light, accent, focus, error, and surface roles.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    {
+      "id": "1-universal-button-hint",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Universal button hint",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Primary shell buttons expose labels and selected tooltips, but complete tooltip coverage is not yet mapped.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py"
+      ]
+    },
+    {
+      "id": "1-exhaustive-responsive-gate",
+      "section": 1,
+      "section_title": "Material Design 3 shell and appearance",
+      "title": "Exhaustive responsive gate",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/responsiveness-and-resource-lifecycle.md",
+      "tui_status": "partial",
+      "reason": "Narrow and compact layout breakpoints exist. The dated Linux PTY and mouse run remains the acceptance authority and must not be inferred from source.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/tests/ui/test_advanced.py",
+        "tui/tests/ui/test_app_interactions.py",
+        "tui/tests/ui/test_responsive_and_localization.py",
+        "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+      ]
+    },
+    {
+      "id": "2-three-language-modes",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Three language modes",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "English, playful Hong Kong Cantonese, and compact bilingual modes persist with English fallback, and the shell plus shared controls localize. Most repository, GitHub, Advanced, and notification copy remains English-only.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/i18n/catalogs.py",
+        "tui/src/desktop_material_tui/ui/i18n/__init__.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/i18n/test_i18n.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    {
+      "id": "2-funny-level-sliders-1-5",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Funny-level sliders (1–5)",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/audio-system.md",
+      "tui_status": "partial",
+      "reason": "Independent persisted English and Cantonese choices from 1 to 5 are exposed and safety/error copy remains factual. Catalog tone variants currently exist at levels 1, 3, and 5, so levels 2 and 4 do not yet produce distinct wording.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/i18n/__init__.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/i18n/test_i18n.py"
+      ]
+    },
+    {
+      "id": "2-spoken-narrator",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Spoken narrator",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/audio-system.md",
+      "tui_status": "partial",
+      "reason": "The off-by-default preference, language, quiet hours, reduced sound, and screen-reader-yield controls persist; speech execution and serialized playback are not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py"
+      ]
+    },
+    {
+      "id": "2-recorded-narration-and-melody-assets",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Recorded narration and melody assets",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/narration-assets.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "2-distinct-sound-effect-event-mapping",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Distinct sound-effect event mapping",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/sfx-event-mapping.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "2-repository-themed-music",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Repository-themed music",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/repository-theme-music.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "2-quiet-hours-reduced-sound-and-screen-reader-coexistence",
+      "section": 2,
+      "section_title": "Language, tone, and audio",
+      "title": "Quiet hours, reduced sound, and screen-reader coexistence",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/audio-system.md",
+      "tui_status": "partial",
+      "reason": "The preferences persist, but narrator playback policy is not yet active.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py"
+      ]
+    },
+    {
+      "id": "3-repository-tabs",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Repository tabs",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-strip-settings-commit-chip.md",
+      "tui_status": "partial",
+      "reason": "Opened repositories get persisted, clickable, keyboard-selectable terminal tabs. Per-account tab ownership and inline rename are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/database.py",
+        "tui/tests/infrastructure/persistence/test_database.py",
+        "tui/tests/ui/test_app_interactions.py"
+      ]
+    },
+    {
+      "id": "3-per-tab-title-styling",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Per-tab title styling",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/owner-scoped-appearance-and-history.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-tab-groups",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Tab groups",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-group-persistence-boundaries",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Group persistence boundaries",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-pin-favourite-and-manual-arrange",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Pin, favourite, and manual arrange",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-search-tabs-arrange-tabs",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Search tabs / Arrange tabs",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "partial",
+      "reason": "The repository rail filters by name and path; aliases, arrangement, and the full desktop tab-search contract are not yet present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py"
+      ]
+    },
+    {
+      "id": "3-close-tabs-containing-and-its-guarded-inverse",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Close Tabs Containing… and its guarded inverse",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/collection-bulk-and-regex-safety.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-tab-strip-overflow-dropdown",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Tab-strip overflow dropdown",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-overflow-dropdown.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-tab-session-export-import",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Tab session export / import",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/tab-groups.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-drag-a-folder-onto-the-app",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Drag a folder onto the app",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "3-multiple-windows",
+      "section": 3,
+      "section_title": "Repository tabs and windows",
+      "title": "Multiple windows",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-github-com-and-github-enterprise-sign-in",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "GitHub.com and GitHub Enterprise sign-in",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-multiple-accounts-multiple-identities-per-host",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Multiple accounts, multiple identities per host",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/identity-and-workspace/multiple-accounts-and-repository-identity.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-per-repository-account-binding",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Per-repository account binding",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/multiple-accounts-and-repository-identity.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-gitlab-accounts",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "GitLab accounts",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/gitlab-merge-request.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-bitbucket-accounts",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Bitbucket accounts",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-bounded-oauth-scopes",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Bounded OAuth scopes",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/cheap-lfs-oci-registry-backend.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-organization-browsing-and-publishing",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Organization browsing and publishing",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-provider-triage",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Provider triage",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-credential-prompt-fifo",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "Credential-prompt FIFO",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/responsiveness-and-resource-lifecycle.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "4-github-cli-push-credential-fallback",
+      "section": 4,
+      "section_title": "Accounts and identity",
+      "title": "GitHub CLI push credential fallback",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/gh-cli-push-fallback.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-clone-add-local-create-repository",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Clone, add local, create repository",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "Click actions and real text inputs open a local path, clone a URL, or initialize a new repository using argv-safe Git calls.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/tests/ui/test_app_interactions.py"
+      ]
+    },
+    {
+      "id": "5-rich-clone-dialog-cards",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Rich clone dialog cards",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/clone-dialog-repository-metadata.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-multi-clone-queue",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Multi-clone queue",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-pause-resume-and-recover-clones",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Pause, resume, and recover clones",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-clone-queue-settings",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Clone queue settings",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/clone-queue-settings.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-background-auto-clone",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Background auto-clone",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-credential-free-private-clone-from-a-plain-https-url",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Credential-free private clone from a plain HTTPS URL",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-parent-folder-repository-discovery",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Parent-folder repository discovery",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/parent-folder-repository-discovery.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-repository-list-filter-and-alias",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Repository list filter and alias",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "The rail provides literal, fuzzy, and RE2 filtering by name/path; aliases are not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py"
+      ]
+    },
+    {
+      "id": "5-pinning-grouping-hiding-and-favourites",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Pinning, grouping, hiding, and favourites",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/repository-sidebar-and-pinning.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-repository-picker-filters",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Repository picker filters",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/repository-picker-filters-and-visibility.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-private-repository-lock-badge",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Private-repository lock badge",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/private-repository-lock-badge.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-repository-list-bulk-actions",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Repository list bulk actions",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/repository-list-bulk-actions.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-network-and-wsl-repository-paths",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Network and WSL repository paths",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/network-and-wsl-repository-paths.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-worktree-management",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Worktree management",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "The Advanced pane lists, adds, removes, and prunes worktrees with branch, start-point, detached, and force controls plus typed removal confirmation. Lock, move, rename, and repair are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_advanced_git_service.py",
+        "tui/tests/ui/test_advanced.py"
+      ]
+    },
+    {
+      "id": "5-submodule-add-and-management",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Submodule add and management",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/submodule-subtree-and-remote-creation.md",
+      "tui_status": "partial",
+      "reason": "The Advanced pane lists, initializes or updates, synchronizes, and guardedly deinitializes existing submodules with repository-relative path validation. Provider/account-aware add, streamed progress, and cancellation are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_advanced_git_service.py"
+      ]
+    },
+    {
+      "id": "5-temporary-submodule-viewer",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Temporary submodule viewer",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/submodule-repository-navigation.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-subtrees",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Subtrees",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/submodule-subtree-and-remote-creation.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-guided-sparse-checkout",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Guided sparse checkout",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/sparse-checkout.md",
+      "tui_status": "partial",
+      "reason": "The Advanced pane reads, applies, and disables cone or non-cone sparse patterns through editable controls and typed confirmation. The desktop three-step review flow and state-specific guide are not reproduced.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_advanced_git_service.py"
+      ]
+    },
+    {
+      "id": "5-remote-management",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Remote management",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "The repository service supports safe remote list/add/remove operations, while the terminal surface does not yet reproduce every desktop remote-management workflow.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py"
+      ]
+    },
+    {
+      "id": "5-automatic-remote-url-refresh",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Automatic remote URL refresh",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/automatic-remote-url-refresh.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-git-hook-inspection",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Git hook inspection",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/git-hook-execution.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-per-repo-gitignore-manager",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Per-repo `.gitignore` manager",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-global-ignore-management",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Global ignore management",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/global-ignore-management.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-repository-tools-panel",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Repository Tools panel",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Searchable remote and tag inventory plus worktree, submodule, sparse-checkout, reflog, and repository-diagnostics surfaces are reachable. Patch-series, planned commit rewriting, signing, Git LFS administration, and guided bisect are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_advanced_git_service.py"
+      ]
+    },
+    {
+      "id": "5-patch-series-import-and-export",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Patch-series import and export",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/patch-series.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-custom-git-command-presets",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Custom Git command presets",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/custom-git-command-presets.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-permanent-discard",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Permanent discard",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Selected-file discard is confirmation gated and names the target; the complete desktop permanent-discard surface is not yet present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "5-duplicate-open-guard",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Duplicate-open guard",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/duplicate-open-guard.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "5-native-large-repository-handling",
+      "section": 5,
+      "section_title": "Repository management",
+      "title": "Native large-repository handling",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/native-large-repository-handling.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-stage-by-file-hunk-or-line-commit-amend-undo",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Stage by file, hunk, or line; commit; amend; undo",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "File staging, unstaging, commit summary/body text boxes, sign-off, amend, and commit-and-push exist. Hunk/line staging and undo are not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/application/repository_service.py"
+      ]
+    },
+    {
+      "id": "6-co-authors-revert-cherry-pick-squash-and-reorder",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Co-authors, revert, cherry-pick, squash, and reorder",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-effective-git-author-disclosure",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Effective Git author disclosure",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-copilot-commit-message-controls",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Copilot commit-message controls",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/integrations/copilot-commit-message-controls.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-history-search-and-lane-graph",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "History search and lane graph",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/advanced-history-discovery.md",
+      "tui_status": "partial",
+      "reason": "History is searchable and selectable; the graphical lane graph is not reproduced in the terminal yet.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "6-advanced-history-discovery",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Advanced history discovery",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/advanced-history-discovery.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-selection-aware-commit-context-menu",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Selection-aware commit context menu",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-merge-commits-in-history",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Merge commits in History",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-file-history",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "File history",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-stashing",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Stashing",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "Named stash creation, apply, pop, and guarded drop are exposed through buttons and text input.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/application/repository_service.py"
+      ]
+    },
+    {
+      "id": "6-selective-stashes",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Selective stashes",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/selective-stashes.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-named-multi-stash-manager",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Named multi-stash manager",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/named-stash-manager.md",
+      "tui_status": "partial",
+      "reason": "The stashes pane lists multiple named stashes and provides apply, pop, create, and guarded drop actions. Rename, branch-from, exact object identity, and retained partial-failure context are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "6-external-stash-interoperability",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "External stash interoperability",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/external-stash-interoperability.md",
+      "tui_status": "partial",
+      "reason": "The pane reads the repository's real Git stash list, including entries created outside the TUI, and can apply, pop, or guardedly drop them. Explicit restore/branch-from flows and metadata-specific safety are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/git/porcelain.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "6-branch-create-rename-delete-switch-and-merge",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Branch create, rename, delete, switch, and merge",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "The branches pane exposes create, switch, merge, and guarded deletion. Rename exists at the service boundary but is not yet exposed in the pane.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "6-reviewed-bulk-branch-deletion",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Reviewed bulk branch deletion",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/reviewed-bulk-branch-deletion.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-branch-pin-hide-solo-and-restore",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Branch pin, hide, solo, and restore",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/branch-switcher-workflows.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-branch-sorting",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Branch sorting",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/branch-switcher-workflows.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-publish-indicator-for-local-only-branches",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Publish indicator for local-only branches",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-merge-tree-conflict-preview",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Merge-tree conflict preview",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-reviewed-ordinary-pull-previews",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Reviewed ordinary pull previews",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/pull-previews.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-deleted-upstream-pull-recovery",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Deleted-upstream pull recovery",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/deleted-upstream-pull-recovery.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-reviewed-rebase-onto-a-searched-target",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Reviewed rebase onto a searched target",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-reviewed-batch-repository-sync",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Reviewed batch repository sync",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/reviewed-batch-sync.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-pull-all-repositories",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Pull all repositories",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-deepen-or-unshallow",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Deepen or unshallow",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-tag-creation",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Tag creation",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-complete-tag-lifecycle",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Complete tag lifecycle",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/repository-management/tag-lifecycle-management.md",
+      "tui_status": "partial",
+      "reason": "Local list/create/delete operations exist; the full reviewed local/remote lifecycle is not yet mapped.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "6-merge-all-branches-or-worktrees",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Merge all branches or worktrees",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "6-git-operation-auto-fix",
+      "section": 6,
+      "section_title": "Commits, history, branches, and stashes",
+      "title": "Git operation auto-fix",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/git-operation-auto-fix.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-text-diffs-with-syntax-highlighting-and-word-diff",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Text diffs with syntax highlighting and word diff",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Selectable changed files load scrollable text diffs with line numbers; syntax and word-diff parity is incomplete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "7-image-diffs",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Image diffs",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-changed-file-tree-view",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Changed-file tree view",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/review-and-diff/changed-file-tree-view.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-expanded-diff-context",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Expanded diff context",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/review-and-diff/expanded-diff-context.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-structured-csv-and-tsv-diffs",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Structured CSV and TSV diffs",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/review-and-diff/structured-csv-and-tsv-diffs.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-tga-image-previews",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "TGA image previews",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/review-and-diff/tga-image-previews.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-svg-diff-hardening-and-display-controls",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "SVG diff hardening and display controls",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-diff-tab-size",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Diff tab size",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "7-sandboxed-markdown-previews",
+      "section": 7,
+      "section_title": "Review and diff",
+      "title": "Sandboxed Markdown previews",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/quality-and-reliability/responsiveness-and-resource-lifecycle.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "8-pull-request-list-and-branch-checkout",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "Pull-request list and branch checkout",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Pull requests can be listed and inspected; full fork/branch checkout parity is not yet mapped.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "8-check-runs-and-ci-status",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "Check runs and CI status",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "8-in-app-pull-request-review-workspace",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "In-app pull-request review workspace",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/collaboration/pull-request-review-workspace.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "8-in-app-pull-request-creation",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "In-app pull-request creation",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/collaboration/pull-request-creation.md",
+      "tui_status": "partial",
+      "reason": "Base, head, title, and body are editable in real terminal inputs and submitted through the bounded GitHub service. Template discovery, draft and maintainer controls, provider metadata, and exact-account selection are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "8-pull-request-lifecycle",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "Pull-request lifecycle",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/collaboration/pull-request-context-and-actions.md",
+      "tui_status": "partial",
+      "reason": "Comment, review, and merge operations are available; the desktop edition's complete lifecycle workspace is broader.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "8-pull-request-activity-notifications",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "Pull-request activity notifications",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/collaboration/pull-request-activity-notifications.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "8-fork-branch-checkout",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "Fork branch checkout",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/collaboration/fork-branch-checkout.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "8-github-projects-workspace",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "GitHub Projects workspace",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/collaboration/offline-github-projects.md",
+      "tui_status": "partial",
+      "reason": "A read-only project inventory is available when the token has project scope; mutation and offline workspace parity are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "8-github-issues",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "GitHub Issues",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Issue list, detail, creation, comments, state changes, and close operations are exposed; advanced triage parity remains incomplete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "8-gitlab-merge-requests",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "GitLab merge requests",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/gitlab-merge-request.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "8-branch-and-repository-rules",
+      "section": 8,
+      "section_title": "Pull requests and collaboration",
+      "title": "Branch and repository rules",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "9-actions-run-browser",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Actions run browser",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Workflow and run tables provide mouse/keyboard selection, refresh, and shared text/regex search. Dedicated workflow, branch, event, and status filters are absent, and event is not in the current search fields.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-job-step-and-log-inspection",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Job, step, and log inspection",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Jobs and bounded metadata are inspectable; complete streamed log browsing parity is not yet established.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-re-run-all-or-failed-jobs",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Re-run all or failed jobs",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "The service supports full or failed-job rerun requests, but the terminal UI exposes only a full rerun button.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-workflow-dispatch-with-inputs",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Workflow dispatch with inputs",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Workflow dispatch is available with a ref; arbitrary typed workflow input discovery is not yet complete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-cancel-workflow-runs",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Cancel workflow runs",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Selected run cancellation is confirmation gated. Cancellable-status and identity revalidation, duplicate suppression, a complete target summary, and polling until terminal state are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-actions-caches",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Actions caches",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "9-actions-artifacts",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Actions artifacts",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "9-local-github-actions-runner",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Local GitHub Actions runner",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/local-actions-runner.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "9-repository-releases-dashboard",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Repository Releases dashboard",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/repository-releases-dashboard.md",
+      "tui_status": "partial",
+      "reason": "Release inventory and detail are available; editing, asset upload, and the desktop dashboard's complete filtering are not yet present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-github-packages-explorer",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "GitHub Packages explorer",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/github-packages-explorer.md",
+      "tui_status": "partial",
+      "reason": "A read-only package inventory is exposed; version file transfer parity is not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "9-self-update-with-build-status-and-release-notes",
+      "section": 9,
+      "section_title": "GitHub Actions, releases, and packages",
+      "title": "Self-update with build status and release notes",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/integrations/automated-updates-and-release-notes.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-git-lfs-administration",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Git LFS administration",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-release-backed-cheap-lfs",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Release-backed Cheap LFS",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/release-backed-cheap-lfs.md",
+      "tui_status": "partial",
+      "reason": "The terminal edition reads and writes canonical v1 Release pointers and provides read-only preview, confirmed tracking, cache-first Release restore, and verification through gh with exact SHA-256 checks and no-overwrite recovery. Automatic commit/open/clone integration, cancelable confirmed transfers, paginated bucket rollover, manual browser handoff, and the desktop account-bound background workflows are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/domain/cheap_lfs.py",
+        "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/src/desktop_material_tui/cli.py",
+        "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
+        "tui/tests/unit/test_cheap_lfs_pointer.py",
+        "tui/tests/application/test_cheap_lfs.py",
+        "docs/features/linux-tui/cheap-lfs.md"
+      ]
+    },
+    {
+      "id": "10-cheap-lfs-oci-registry-backend",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Cheap LFS OCI registry backend",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/cheap-lfs-oci-registry-backend.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-cheap-lfs-asset-versioning",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Cheap LFS asset versioning",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/cheap-lfs-asset-versioning.md",
+      "tui_status": "partial",
+      "reason": "Content-derived immutable asset names, exact provider proofs, provenance labels, and ordinary Git pointer history preserve versions without clobbering an existing asset. Post-commit asset relabeling, cross-name content reuse, an in-app version browser, and the desktop lifecycle tooling are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/tests/application/test_cheap_lfs.py"
+      ]
+    },
+    {
+      "id": "10-large-files-manager",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Large files manager",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/release-backed-cheap-lfs.md",
+      "tui_status": "partial",
+      "reason": "A mouse- and keyboard-reachable Cheap LFS tab provides searchable inventory, real path/tag/repository text fields, a plan TextArea, and clickable Preview, Track, Verify, and Restore actions with typed mutation confirmation. Batch materialization, removal, the desktop settings set, and the complete state/filter surface are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss",
+        "tui/tests/ui/test_cheap_lfs.py",
+        "docs/features/linux-tui/cheap-lfs.md"
+      ]
+    },
+    {
+      "id": "10-automatic-preparation-with-worker-lanes",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Automatic preparation with worker lanes",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/release-backed-cheap-lfs.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-cloud-compression",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Cloud compression",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/release-backed-cheap-lfs.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-private-payload-encryption",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Private-payload encryption",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/cheap-lfs-oci-registry-backend.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-provider-migration",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Provider migration",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/cheap-lfs-oci-registry-backend.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-oversized-file-filter-and-two-lane-clone-repair",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Oversized-file filter and two-lane clone repair",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/release-backed-cheap-lfs.md",
+      "tui_status": "partial",
+      "reason": "Cheap LFS inventory identifies safe regular files strictly over 100 MiB and the manager can explicitly verify or restore canonical pointers. The Changes filter, automatic clone/open repair, and the desktop two-lane 90% look-ahead progress coordinator are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
+        "tui/tests/application/test_cheap_lfs.py"
+      ]
+    },
+    {
+      "id": "10-automatic-commit-and-push-batching",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "Automatic commit and push batching",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/automatic-commit-push-batching.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "10-oras-runtime",
+      "section": 10,
+      "section_title": "Cheap LFS — large files without Git LFS",
+      "title": "ORAS runtime",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/repository-management/cheap-lfs-oci-registry-backend.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "11-one-click-build-run",
+      "section": 11,
+      "section_title": "Build & Run and local AI",
+      "title": "One-click Build & Run",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/build-run-output-controls.md",
+      "tui_status": "partial",
+      "reason": "Persisted user-supplied build and run commands execute as bounded argv-only processes with repository-child working directories and captured output. Automatic project and runnable-profile discovery is not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/application/test_advanced_workspace.py",
+        "tui/tests/ui/test_advanced.py"
+      ]
+    },
+    {
+      "id": "11-install-build-and-run-in-one-action",
+      "section": 11,
+      "section_title": "Build & Run and local AI",
+      "title": "Install, build, and run in one action",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/build-run-output-controls.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "11-auto-ignore-build-outputs",
+      "section": 11,
+      "section_title": "Build & Run and local AI",
+      "title": "Auto-ignore build outputs",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "11-local-ai-build-repair",
+      "section": 11,
+      "section_title": "Build & Run and local AI",
+      "title": "Local AI build repair",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/local-ai-build-fix.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "11-optional-single-prompt-uac-pre-elevation",
+      "section": 11,
+      "section_title": "Build & Run and local AI",
+      "title": "Optional single-prompt UAC pre-elevation",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/local-ai-build-fix.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "11-ollama-model-manager",
+      "section": 11,
+      "section_title": "Build & Run and local AI",
+      "title": "Ollama model manager",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/ollama-model-manager.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-scheduled-commit-and-push-and-pull",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Scheduled commit-and-push and pull",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-run-commit-and-push-immediately",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Run commit-and-push immediately",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-local-agent-server",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Local agent server",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/agent-api/local-agent-http-api.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-paired-lan-devices",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Paired LAN devices",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/agent-api/local-agent-http-api.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-stdio-proxy-and-command-line-client",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Stdio proxy and command-line client",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/agent-api/local-agent-http-api.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-repository-bound-app-functions",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Repository-bound App functions",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/github-api-functions.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "12-github-api-rail",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "GitHub API rail",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/github-api-functions.md",
+      "tui_status": "partial",
+      "reason": "The terminal GitHub pane includes bounded REST and GraphQL request inputs plus a scrollable response viewer. Automatic action catalogs and hide/reveal behavior are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "12-executable-postman-collections",
+      "section": 12,
+      "section_title": "Automation, agent API, and command line",
+      "title": "Executable Postman collections",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/agent-api/README.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-fuzzy-substring-regex-filter-modes",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Fuzzy / substring / regex filter modes",
+      "upstream_relation": "added",
+      "desktop_documentation": "../regex-guide.md",
+      "tui_status": "adapted",
+      "reason": "The shared search bar provides literal, fuzzy, and explicit RE2 modes with synchronized flags.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/search.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/src/desktop_material_tui/ui/screens/notifications.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/ui/widgets/search_bar.py",
+        "tui/tests/ui/test_search_surfaces.py"
+      ]
+    },
+    {
+      "id": "13-safe-re2-regex-builder",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Safe RE2 regex builder",
+      "upstream_relation": "added",
+      "desktop_documentation": "../regex-guide.md",
+      "tui_status": "adapted",
+      "reason": "The builder composes literals, classes, anchors, groups, alternation, and quantifiers; exposes raw editing and flags; and evaluates bounded sample text with google-re2.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/search.py",
+        "tui/src/desktop_material_tui/ui/screens/regex_builder.py",
+        "tui/tests/application/test_search.py",
+        "tui/tests/ui/test_regex_builder.py"
+      ]
+    },
+    {
+      "id": "13-regex-builder-reflow",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Regex builder reflow",
+      "upstream_relation": "added",
+      "desktop_documentation": "../regex-guide.md",
+      "tui_status": "partial",
+      "reason": "The match/sample split participates in the terminal's generic narrow layout. Compact-height scrolling and explicit preservation of the token grid, tester, and footer are not implemented or accepted.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/regex_builder.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    {
+      "id": "13-command-palette",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Command palette",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/command-palette-appearance.md",
+      "tui_status": "partial",
+      "reason": "Ctrl+P opens a searchable command dialog with real keyboard focus and 20 clickable actions. The desktop palette's 87 localized commands, six groups, and richer row metadata are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py"
+      ]
+    },
+    {
+      "id": "13-command-palette-appearance-editor",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Command-palette appearance editor",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/command-palette-appearance.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-settings-search",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Settings search",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/settings-search.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-collection-bulk-actions-with-regex-safety",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Collection bulk actions with regex safety",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/collection-bulk-and-regex-safety.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-repository-content-search",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Repository content search",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "13-documentation-hub-search",
+      "section": 13,
+      "section_title": "Search everywhere and the regex builder",
+      "title": "Documentation-hub search",
+      "upstream_relation": "added",
+      "desktop_documentation": "../regex-guide.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "14-non-modal-dialog-framework",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "Non-modal dialog framework",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "14-dialog-wheel-and-trackpad-scrolling",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "Dialog wheel and trackpad scrolling",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/design-system/dialog-wheel-scrolling.md",
+      "tui_status": "partial",
+      "reason": "Scrollable Textual containers handle terminal wheel events and keyboard scrolling, but nested edge chaining and real trackpad acceptance are not implemented or evidenced.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    {
+      "id": "14-non-blocking-error-notices",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "Non-blocking error notices",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Informational and non-decision errors use corner notifications while confirmations remain decision dialogs. The user-selectable traditional blocking-error mode is absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py"
+      ]
+    },
+    {
+      "id": "14-scoped-index-lock-recovery",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "Scoped index.lock recovery",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/git-operation-auto-fix.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "14-notification-centre",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "Notification centre",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "A searchable, reviewable SQLite-backed history supports read state and clear-all confirmation. Event filters, visible-result selection, bulk unread/delete, bell/side-sheet presentation, and Git-backed recovery are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/notifications.py",
+        "tui/src/desktop_material_tui/ui/screens/notifications.py"
+      ]
+    },
+    {
+      "id": "14-live-github-inbox",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "Live GitHub inbox",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "14-md3-preferences-dialog",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "MD3 Preferences dialog",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "A terminal-native Settings tab exposes appearance, language, interaction, editor, narrator, accessibility, and history controls.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    {
+      "id": "14-md3-side-sheets",
+      "section": 14,
+      "section_title": "Notifications and dialogs",
+      "title": "MD3 side sheets",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "15-external-editor-discovery-and-opening",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "External editor discovery and opening",
+      "upstream_relation": "inherited",
+      "desktop_documentation": "../features/integrations/editor-discovery-and-one-click-opening.md",
+      "tui_status": "adapted",
+      "reason": "Installed editors are detected and the configured editor opens the active repository through an argv-safe process launch.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    {
+      "id": "15-broad-editor-catalog",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "Broad editor catalog",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/integrations/broad-editor-support.md",
+      "tui_status": "partial",
+      "reason": "Common Linux editors are detected, while the graphical edition's full cross-platform catalog is not reproduced.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py"
+      ]
+    },
+    {
+      "id": "15-one-click-editor-actions",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "One-click editor actions",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/integrations/one-click-editor-actions.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "15-per-repository-editor-overrides",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "Per-repository editor overrides",
+      "upstream_relation": "added",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "15-wsl-aware-editor-opening",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "WSL-aware editor opening",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/wsl-aware-editor-opening.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "15-open-in-shell",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "Open in shell",
+      "upstream_relation": "inherited",
+      "desktop_documentation": null,
+      "tui_status": "adapted",
+      "reason": "The Advanced pane launches the configured or auto-detected terminal in the active repository or a validated child directory using an argv-only process.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/application/test_advanced_workspace.py"
+      ]
+    },
+    {
+      "id": "15-windows-explorer-context-menu",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "Windows Explorer context menu",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/windows-explorer-context-menu.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "15-app-hosted-browser",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "App-hosted browser",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/app-hosted-browser.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "15-ssh-working-copies-and-remote-clone",
+      "section": 15,
+      "section_title": "Editors, shell, and OS integration",
+      "title": "SSH working copies and remote clone",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/integrations/ssh-working-copy-and-remote-clone.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "16-responsiveness-and-resource-lifecycle",
+      "section": 16,
+      "section_title": "Quality, reliability, and recovery",
+      "title": "Responsiveness and resource lifecycle",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/responsiveness-and-resource-lifecycle.md",
+      "tui_status": "partial",
+      "reason": "Async workers keep Git/GitHub calls off the UI loop and owned database resources close on unmount; exhaustive load and cancellation acceptance remains pending.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    {
+      "id": "16-coalesced-appearance-writes",
+      "section": 16,
+      "section_title": "Quality, reliability, and recovery",
+      "title": "Coalesced appearance writes",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/responsiveness-and-resource-lifecycle.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "16-peer-closed-stream-write-containment",
+      "section": 16,
+      "section_title": "Quality, reliability, and recovery",
+      "title": "Peer-closed stream write containment",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/quality-and-reliability/peer-closed-stream-writes.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "16-git-hook-execution-environment",
+      "section": 16,
+      "section_title": "Quality, reliability, and recovery",
+      "title": "Git hook execution environment",
+      "upstream_relation": "extended",
+      "desktop_documentation": "../features/quality-and-reliability/git-hook-execution.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "16-versioned-settings-history",
+      "section": 16,
+      "section_title": "Quality, reliability, and recovery",
+      "title": "Versioned settings history",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/identity-and-workspace/owner-scoped-appearance-and-history.md",
+      "tui_status": "partial",
+      "reason": "Atomic XDG configuration snapshots are committed to an isolated app-owned Git repository with in-app browse, restore, undo, and redo. Per-account ownership and the Ctrl+Alt+Z route are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/profile_history.py",
+        "tui/src/desktop_material_tui/application/version_history.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    {
+      "id": "16-safer-destructive-confirmations",
+      "section": 16,
+      "section_title": "Quality, reliability, and recovery",
+      "title": "Safer destructive confirmations",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "partial",
+      "reason": "Discard, branch and stash deletion, worktree removal, sparse-checkout changes, workflow cancellation, and clearing history use decision dialogs. The desktop row's undo, reset, and tag-deletion confirmations are not all exposed.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    {
+      "id": "17-documentation-hub",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Documentation hub",
+      "upstream_relation": "added",
+      "desktop_documentation": "../README.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-pre-rendered-documentation-diagrams",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Pre-rendered documentation diagrams",
+      "upstream_relation": "added",
+      "desktop_documentation": "../technical/documentation-site-build.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-categorized-feature-documentation",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Categorized feature documentation",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/README.md",
+      "tui_status": "adapted",
+      "reason": "The Linux TUI has a dedicated categorized documentation set covering behavior, configuration, failure modes, security, accessibility, and verification.",
+      "evidence": [
+        "docs/features/linux-tui/README.md"
+      ]
+    },
+    {
+      "id": "17-demand-backlog-ledger",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Demand backlog ledger",
+      "upstream_relation": "added",
+      "desktop_documentation": "../features/github-desktop-demand-backlog.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-in-app-version-history",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "In-app version history",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-regex-guide",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Regex guide",
+      "upstream_relation": "added",
+      "desktop_documentation": "../regex-guide.md",
+      "tui_status": "adapted",
+      "reason": "The TUI search and regex document names the RE2 dialect, flags, limits, escaping, and builder/search synchronization.",
+      "evidence": [
+        "docs/features/linux-tui/search-and-regex.md"
+      ]
+    },
+    {
+      "id": "17-wiki-and-postman-collections",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Wiki and Postman collections",
+      "upstream_relation": "added",
+      "desktop_documentation": "../wiki/Home.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-onboarding-tutorial-and-welcome-flow",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Onboarding tutorial and welcome flow",
+      "upstream_relation": "extended",
+      "desktop_documentation": null,
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-express-and-super-express-release-lanes",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Express and Super Express release lanes",
+      "upstream_relation": "added",
+      "desktop_documentation": "roadmap-and-receipts.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    }
+  ]
+}

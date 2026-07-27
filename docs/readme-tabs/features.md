@@ -9,6 +9,13 @@ Material ships. For milestone status and published CI/release evidence, see the
 [Roadmap & receipts](roadmap-and-receipts.md) tab; for annotated captures, see the
 [Screenshots](screenshots.md) tab.
 
+The separate [Linux-first terminal edition](../features/linux-tui/README.md)
+adapts these workflows for character-cell terminals with mouse clicks,
+keyboard focus, and real single-line/multiline text controls. Its generated
+[parity contract](../../tui/contracts/parity.yaml) maps all 201 desktop rows and
+marks missing work explicitly; the current preview is not described as full
+parity.
+
 > Looking for an exhaustive checklist instead of this prose tour? The
 > **[Complete list](complete-feature-list.md)** tab records every feature in one
 > bilingual (English / 廣東話) table and labels each one **Added**,
@@ -66,7 +73,7 @@ flowchart LR
   APP --> BASE
 ```
 
-**What the map says.** Desktop Material's 200 features sit in 17 numbered
+**What the map says.** Desktop Material's 201 features sit in 17 numbered
 areas, clustered here five ways: the shell you look at (1 Material 3 shell,
 2 language and audio, 3 tabs and windows, 13 search and the regex builder,
 14 notifications and dialogs); the Git you drive (5 repositories, 6 commits and
@@ -78,7 +85,7 @@ side of Git (11 Build & Run and local AI, 12 automation and the agent API,
 [Complete list](complete-feature-list.md), so the map is an index, not a
 summary.
 
-<sub>**張圖講咩。** Desktop Material 嘅 200 項功能分喺 17 個範疇，呢度夾埋做五嚿：你望住嘅外殼（1 Material 3 外殼、2 語言同聲音、3 分頁同視窗、13 搜尋同 regex、14 通知同對話框）；你揸住嘅 Git（5 倉庫、6 Commit 同分支、7 審閱同 diff、10 Cheap LFS）；你要傾偈嘅供應商（4 帳戶同身分、8 Pull request、9 Actions 同 Release）；Git 前後嗰啲工夫（11 Build & Run 同本機 AI、12 自動化同 agent API、15 編輯器同作業系統）；同埋托住成座嘢嘅地基（16 品質同復原、17 文件同工具）。啲號碼就係 [Complete list](complete-feature-list.md) 嘅章節號，所以呢張係索引，唔係摘要。</sub>
+<sub>**張圖講咩。** Desktop Material 嘅 201 項功能分喺 17 個範疇，呢度夾埋做五嚿：你望住嘅外殼（1 Material 3 外殼、2 語言同聲音、3 分頁同視窗、13 搜尋同 regex、14 通知同對話框）；你揸住嘅 Git（5 倉庫、6 Commit 同分支、7 審閱同 diff、10 Cheap LFS）；你要傾偈嘅供應商（4 帳戶同身分、8 Pull request、9 Actions 同 Release）；Git 前後嗰啲工夫（11 Build & Run 同本機 AI、12 自動化同 agent API、15 編輯器同作業系統）；同埋托住成座嘢嘅地基（16 品質同復原、17 文件同工具）。啲號碼就係 [Complete list](complete-feature-list.md) 嘅章節號，所以呢張係索引，唔係摘要。</sub>
 
 **Advanced Git and collaboration workflows (M21)**
 

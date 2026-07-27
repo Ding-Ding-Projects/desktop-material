@@ -10,9 +10,10 @@ A task-oriented tour of Desktop Material's features. It assumes you already know
 Desktop workflow (clone, commit, push, branch, pull request) — that all still works. This guide
 focuses on what Desktop Material adds on top.
 
-> Desktop Material is supported on Windows only. Use the published Windows x64
-> installer; macOS and Linux application packages are not produced or
-> supported.
+> The graphical Desktop Material edition is supported on Windows only. Use its
+> published Windows x64 installer. Linux users can use the separate
+> [terminal edition](../features/linux-tui/README.md), which has its own package
+> and parity boundary rather than a Linux Electron binary.
 
 **Feature guide**
 
@@ -44,7 +45,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 84-scene visual index: every
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 89-scene visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
@@ -1091,8 +1092,9 @@ the pointers, and resumes the same commit automatically. Older GitHub
 Enterprise versions safely fall back to the repository Releases listing. **Cancel** stops either
 path until the verified pointer commit begins; that short final mutation phase finishes as one
 reviewed operation. The app waits for and verifies every multipart asset before writing the pointer.
-A file fitting the 500 MiB per-asset cap initially uses one raw asset, while a
-larger file uses ordered raw ranges of at most 500 MiB each. Public repositories
+A file fitting the 500 MiB new-write cap initially uses one raw asset, while a
+larger file uses ordered raw ranges of at most 500 MiB each. Legacy pointers
+with parts up to 2 GiB remain readable. Public repositories
 then automatically receive one owned, SHA-pinned workflow file in Changes for
 review. Compression starts only after you commit and push that caller. Private
 repositories stay off until you explicitly enable **Cloud compression** in the
@@ -1155,9 +1157,12 @@ New buckets are published prereleases, so collaborators can fetch them while
 they remain outside the stable installer `/releases/latest` feed. For
 compatibility, older draft discovery is bounded to 100 pages of 100 releases
 because GitHub's direct tag lookup does not expose drafts. Desktop Material
-publishes the exact revalidated legacy draft before reuse. If it is outside
-those 10,000 releases, the Action leaves the object raw and reports a safe
-failure. The same rule applies when the Release has reached GitHub's 1,000-asset
+publishes a revalidated legacy draft before a new pin only when the exact
+managed-bucket sentinel or a valid legacy asset label proves its Cheap LFS
+provenance. The compression Action accepts only a published managed
+prerelease; it refuses a draft, stable Release, or unrelated same-tag
+prerelease before download or upload and leaves the raw pointer unchanged. The
+same safe fallback applies when the Release has reached GitHub's 1,000-asset
 capacity and therefore has no free slot for a compressed side asset. Cheap LFS
 retains the raw historical object instead of deleting it to force compression.
 

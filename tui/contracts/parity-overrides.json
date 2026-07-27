@@ -1,0 +1,568 @@
+{
+  "schema_version": 1,
+  "default": {
+    "status": "not_yet_available",
+    "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+    "evidence": []
+  },
+  "features": {
+    "Material Design 3 (M3 Expressive) shell": {
+      "status": "adapted",
+      "reason": "The Textual shell carries the hierarchy, tonal surfaces, focus states, density, theme, and responsive intent that a terminal can render; pixel, font, elevation, ripple, and compositor effects remain terminal-owned.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    "Navigation rail": {
+      "status": "adapted",
+      "reason": "A mouse-clickable repository rail and keyboard-reachable workspace tabs replace the graphical icon rail.",
+      "evidence": ["tui/src/desktop_material_tui/app.py"]
+    },
+    "Floating pill toolbar": {
+      "status": "adapted",
+      "reason": "The active repository, branch divergence, fetch, pull, push, and editor actions are exposed in a terminal toolbar.",
+      "evidence": ["tui/src/desktop_material_tui/app.py"]
+    },
+    "Measured toolbar overflow": {
+      "status": "partial",
+      "reason": "The layout has compact and narrow breakpoints, but does not yet provide the desktop edition's measured More-menu migration contract.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    "Light / dark / system theme": {
+      "status": "partial",
+      "reason": "Light and dark themes apply live and the system choice persists; automatic terminal/system theme detection is not yet complete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    "Per-element appearance editors": {
+      "status": "partial",
+      "reason": "Settings provides live, persisted foreground, background, emphasis, and border overrides for six terminal surfaces, plus reset and settings history. Contextual per-owner invocation, repository/tab-specific owners, and font, size, radius, and spacing controls are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    "Git-backed appearance history": {
+      "status": "partial",
+      "reason": "Whole-config snapshots use one isolated XDG Git repository with in-app browse, read, restore, undo, and redo. Separate repositories and setting.json histories per appearance owner are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/profile_history.py",
+        "tui/src/desktop_material_tui/application/version_history.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    "UI font customization": {
+      "status": "terminal_owned",
+      "reason": "The terminal emulator owns font family, point size, glyph fallback, and weight availability; the TUI does not pretend it can override them.",
+      "evidence": ["tui/src/desktop_material_tui/ui/screens/settings.py"]
+    },
+    "Density control": {
+      "status": "adapted",
+      "reason": "Comfortable and compact density are persisted and applied to terminal layout classes.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    "UI scale slider 50–200% + auto-fit": {
+      "status": "terminal_owned",
+      "reason": "Cell size and zoom belong to the terminal emulator. The app reflows at narrow widths instead of claiming control over terminal zoom.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    "Material re-tint of stock surfaces": {
+      "status": "adapted",
+      "reason": "Textual widgets use the TUI token stylesheet for dark/light, accent, focus, error, and surface roles.",
+      "evidence": ["tui/src/desktop_material_tui/ui/styles.tcss"]
+    },
+    "Universal button hint": {
+      "status": "partial",
+      "reason": "Primary shell buttons expose labels and selected tooltips, but complete tooltip coverage is not yet mapped.",
+      "evidence": ["tui/src/desktop_material_tui/app.py"]
+    },
+    "Exhaustive responsive gate": {
+      "status": "partial",
+      "reason": "Narrow and compact layout breakpoints exist. The dated Linux PTY and mouse run remains the acceptance authority and must not be inferred from source.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/tests/ui/test_advanced.py",
+        "tui/tests/ui/test_app_interactions.py",
+        "tui/tests/ui/test_responsive_and_localization.py",
+        "docs/verification/linux-tui-2026-07-27/run-manifest.md"
+      ]
+    },
+    "Three language modes": {
+      "status": "partial",
+      "reason": "English, playful Hong Kong Cantonese, and compact bilingual modes persist with English fallback, and the shell plus shared controls localize. Most repository, GitHub, Advanced, and notification copy remains English-only.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/i18n/catalogs.py",
+        "tui/src/desktop_material_tui/ui/i18n/__init__.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/i18n/test_i18n.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    "Funny-level sliders (1–5)": {
+      "status": "partial",
+      "reason": "Independent persisted English and Cantonese choices from 1 to 5 are exposed and safety/error copy remains factual. Catalog tone variants currently exist at levels 1, 3, and 5, so levels 2 and 4 do not yet produce distinct wording.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/i18n/__init__.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/i18n/test_i18n.py"
+      ]
+    },
+    "Spoken narrator": {
+      "status": "partial",
+      "reason": "The off-by-default preference, language, quiet hours, reduced sound, and screen-reader-yield controls persist; speech execution and serialized playback are not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py"
+      ]
+    },
+    "Quiet hours, reduced sound, and screen-reader coexistence": {
+      "status": "partial",
+      "reason": "The preferences persist, but narrator playback policy is not yet active.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py"
+      ]
+    },
+    "Repository tabs": {
+      "status": "partial",
+      "reason": "Opened repositories get persisted, clickable, keyboard-selectable terminal tabs. Per-account tab ownership and inline rename are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/database.py",
+        "tui/tests/infrastructure/persistence/test_database.py",
+        "tui/tests/ui/test_app_interactions.py"
+      ]
+    },
+    "Search tabs / Arrange tabs": {
+      "status": "partial",
+      "reason": "The repository rail filters by name and path; aliases, arrangement, and the full desktop tab-search contract are not yet present.",
+      "evidence": ["tui/src/desktop_material_tui/app.py"]
+    },
+    "Clone, add local, create repository": {
+      "status": "adapted",
+      "reason": "Click actions and real text inputs open a local path, clone a URL, or initialize a new repository using argv-safe Git calls.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/tests/ui/test_app_interactions.py"
+      ]
+    },
+    "Repository list filter and alias": {
+      "status": "partial",
+      "reason": "The rail provides literal, fuzzy, and RE2 filtering by name/path; aliases are not yet implemented.",
+      "evidence": ["tui/src/desktop_material_tui/app.py"]
+    },
+    "Worktree management": {
+      "status": "partial",
+      "reason": "The Advanced pane lists, adds, removes, and prunes worktrees with branch, start-point, detached, and force controls plus typed removal confirmation. Lock, move, rename, and repair are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_advanced_git_service.py",
+        "tui/tests/ui/test_advanced.py"
+      ]
+    },
+    "Submodule add and management": {
+      "status": "partial",
+      "reason": "The Advanced pane lists, initializes or updates, synchronizes, and guardedly deinitializes existing submodules with repository-relative path validation. Provider/account-aware add, streamed progress, and cancellation are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_advanced_git_service.py"
+      ]
+    },
+    "Guided sparse checkout": {
+      "status": "partial",
+      "reason": "The Advanced pane reads, applies, and disables cone or non-cone sparse patterns through editable controls and typed confirmation. The desktop three-step review flow and state-specific guide are not reproduced.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/integration/test_advanced_git_service.py"
+      ]
+    },
+    "Remote management": {
+      "status": "partial",
+      "reason": "The repository service supports safe remote list/add/remove operations, while the terminal surface does not yet reproduce every desktop remote-management workflow.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py"
+      ]
+    },
+    "Repository Tools panel": {
+      "status": "partial",
+      "reason": "Searchable remote and tag inventory plus worktree, submodule, sparse-checkout, reflog, and repository-diagnostics surfaces are reachable. Patch-series, planned commit rewriting, signing, Git LFS administration, and guided bisect are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_git.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/tests/integration/test_advanced_git_service.py"
+      ]
+    },
+    "Release-backed Cheap LFS": {
+      "status": "partial",
+      "reason": "The terminal edition reads and writes canonical v1 Release pointers and provides read-only preview, confirmed tracking, cache-first Release restore, and verification through gh with exact SHA-256 checks and no-overwrite recovery. Automatic commit/open/clone integration, cancelable confirmed transfers, paginated bucket rollover, manual browser handoff, and the desktop account-bound background workflows are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/domain/cheap_lfs.py",
+        "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/src/desktop_material_tui/cli.py",
+        "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
+        "tui/tests/unit/test_cheap_lfs_pointer.py",
+        "tui/tests/application/test_cheap_lfs.py",
+        "docs/features/linux-tui/cheap-lfs.md"
+      ]
+    },
+    "Cheap LFS asset versioning": {
+      "status": "partial",
+      "reason": "Content-derived immutable asset names, exact provider proofs, provenance labels, and ordinary Git pointer history preserve versions without clobbering an existing asset. Post-commit asset relabeling, cross-name content reuse, an in-app version browser, and the desktop lifecycle tooling are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/tests/application/test_cheap_lfs.py"
+      ]
+    },
+    "Large files manager": {
+      "status": "partial",
+      "reason": "A mouse- and keyboard-reachable Cheap LFS tab provides searchable inventory, real path/tag/repository text fields, a plan TextArea, and clickable Preview, Track, Verify, and Restore actions with typed mutation confirmation. Batch materialization, removal, the desktop settings set, and the complete state/filter surface are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss",
+        "tui/tests/ui/test_cheap_lfs.py",
+        "docs/features/linux-tui/cheap-lfs.md"
+      ]
+    },
+    "Oversized-file filter and two-lane clone repair": {
+      "status": "partial",
+      "reason": "Cheap LFS inventory identifies safe regular files strictly over 100 MiB and the manager can explicitly verify or restore canonical pointers. The Changes filter, automatic clone/open repair, and the desktop two-lane 90% look-ahead progress coordinator are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
+        "tui/tests/application/test_cheap_lfs.py"
+      ]
+    },
+    "Permanent discard": {
+      "status": "partial",
+      "reason": "Selected-file discard is confirmation gated and names the target; the complete desktop permanent-discard surface is not yet present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Stage by file, hunk, or line; commit; amend; undo": {
+      "status": "partial",
+      "reason": "File staging, unstaging, commit summary/body text boxes, sign-off, amend, and commit-and-push exist. Hunk/line staging and undo are not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/application/repository_service.py"
+      ]
+    },
+    "History search and lane graph": {
+      "status": "partial",
+      "reason": "History is searchable and selectable; the graphical lane graph is not reproduced in the terminal yet.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Stashing": {
+      "status": "adapted",
+      "reason": "Named stash creation, apply, pop, and guarded drop are exposed through buttons and text input.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/application/repository_service.py"
+      ]
+    },
+    "Named multi-stash manager": {
+      "status": "partial",
+      "reason": "The stashes pane lists multiple named stashes and provides apply, pop, create, and guarded drop actions. Rename, branch-from, exact object identity, and retained partial-failure context are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "External stash interoperability": {
+      "status": "partial",
+      "reason": "The pane reads the repository's real Git stash list, including entries created outside the TUI, and can apply, pop, or guardedly drop them. Explicit restore/branch-from flows and metadata-specific safety are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/infrastructure/git/porcelain.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Branch create, rename, delete, switch, and merge": {
+      "status": "partial",
+      "reason": "The branches pane exposes create, switch, merge, and guarded deletion. Rename exists at the service boundary but is not yet exposed in the pane.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Complete tag lifecycle": {
+      "status": "partial",
+      "reason": "Local list/create/delete operations exist; the full reviewed local/remote lifecycle is not yet mapped.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/repository_service.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Text diffs with syntax highlighting and word diff": {
+      "status": "partial",
+      "reason": "Selectable changed files load scrollable text diffs with line numbers; syntax and word-diff parity is incomplete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Pull-request list and branch checkout": {
+      "status": "partial",
+      "reason": "Pull requests can be listed and inspected; full fork/branch checkout parity is not yet mapped.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "In-app pull-request creation": {
+      "status": "partial",
+      "reason": "Base, head, title, and body are editable in real terminal inputs and submitted through the bounded GitHub service. Template discovery, draft and maintainer controls, provider metadata, and exact-account selection are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Pull-request lifecycle": {
+      "status": "partial",
+      "reason": "Comment, review, and merge operations are available; the desktop edition's complete lifecycle workspace is broader.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "GitHub Projects workspace": {
+      "status": "partial",
+      "reason": "A read-only project inventory is available when the token has project scope; mutation and offline workspace parity are not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "GitHub Issues": {
+      "status": "partial",
+      "reason": "Issue list, detail, creation, comments, state changes, and close operations are exposed; advanced triage parity remains incomplete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Actions run browser": {
+      "status": "partial",
+      "reason": "Workflow and run tables provide mouse/keyboard selection, refresh, and shared text/regex search. Dedicated workflow, branch, event, and status filters are absent, and event is not in the current search fields.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Job, step, and log inspection": {
+      "status": "partial",
+      "reason": "Jobs and bounded metadata are inspectable; complete streamed log browsing parity is not yet established.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Re-run all or failed jobs": {
+      "status": "partial",
+      "reason": "The service supports full or failed-job rerun requests, but the terminal UI exposes only a full rerun button.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Workflow dispatch with inputs": {
+      "status": "partial",
+      "reason": "Workflow dispatch is available with a ref; arbitrary typed workflow input discovery is not yet complete.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Cancel workflow runs": {
+      "status": "partial",
+      "reason": "Selected run cancellation is confirmation gated. Cancellable-status and identity revalidation, duplicate suppression, a complete target summary, and polling until terminal state are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Repository Releases dashboard": {
+      "status": "partial",
+      "reason": "Release inventory and detail are available; editing, asset upload, and the desktop dashboard's complete filtering are not yet present.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "GitHub Packages explorer": {
+      "status": "partial",
+      "reason": "A read-only package inventory is exposed; version file transfer parity is not yet implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "GitHub API rail": {
+      "status": "partial",
+      "reason": "The terminal GitHub pane includes bounded REST and GraphQL request inputs plus a scrollable response viewer. Automatic action catalogs and hide/reveal behavior are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/github_service.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Fuzzy / substring / regex filter modes": {
+      "status": "adapted",
+      "reason": "The shared search bar provides literal, fuzzy, and explicit RE2 modes with synchronized flags.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/search.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py",
+        "tui/src/desktop_material_tui/ui/screens/notifications.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/ui/widgets/search_bar.py",
+        "tui/tests/ui/test_search_surfaces.py"
+      ]
+    },
+    "Safe RE2 regex builder": {
+      "status": "adapted",
+      "reason": "The builder composes literals, classes, anchors, groups, alternation, and quantifiers; exposes raw editing and flags; and evaluates bounded sample text with google-re2.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/search.py",
+        "tui/src/desktop_material_tui/ui/screens/regex_builder.py",
+        "tui/tests/application/test_search.py",
+        "tui/tests/ui/test_regex_builder.py"
+      ]
+    },
+    "Regex builder reflow": {
+      "status": "partial",
+      "reason": "The match/sample split participates in the terminal's generic narrow layout. Compact-height scrolling and explicit preservation of the token grid, tester, and footer are not implemented or accepted.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/regex_builder.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    "Command palette": {
+      "status": "partial",
+      "reason": "Ctrl+P opens a searchable command dialog with real keyboard focus and 20 clickable actions. The desktop palette's 87 localized commands, six groups, and richer row metadata are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py"
+      ]
+    },
+    "Dialog wheel and trackpad scrolling": {
+      "status": "partial",
+      "reason": "Scrollable Textual containers handle terminal wheel events and keyboard scrolling, but nested edge chaining and real trackpad acceptance are not implemented or evidenced.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/src/desktop_material_tui/ui/styles.tcss"
+      ]
+    },
+    "Non-blocking error notices": {
+      "status": "partial",
+      "reason": "Informational and non-decision errors use corner notifications while confirmations remain decision dialogs. The user-selectable traditional blocking-error mode is absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py"
+      ]
+    },
+    "Notification centre": {
+      "status": "partial",
+      "reason": "A searchable, reviewable SQLite-backed history supports read state and clear-all confirmation. Event filters, visible-result selection, bulk unread/delete, bell/side-sheet presentation, and Git-backed recovery are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/notifications.py",
+        "tui/src/desktop_material_tui/ui/screens/notifications.py"
+      ]
+    },
+    "MD3 Preferences dialog": {
+      "status": "adapted",
+      "reason": "A terminal-native Settings tab exposes appearance, language, interaction, editor, narrator, accessibility, and history controls.",
+      "evidence": ["tui/src/desktop_material_tui/ui/screens/settings.py"]
+    },
+    "External editor discovery and opening": {
+      "status": "adapted",
+      "reason": "Installed editors are detected and the configured editor opens the active repository through an argv-safe process launch.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py"
+      ]
+    },
+    "Broad editor catalog": {
+      "status": "partial",
+      "reason": "Common Linux editors are detected, while the graphical edition's full cross-platform catalog is not reproduced.",
+      "evidence": ["tui/src/desktop_material_tui/app.py"]
+    },
+    "Open in shell": {
+      "status": "adapted",
+      "reason": "The Advanced pane launches the configured or auto-detected terminal in the active repository or a validated child directory using an argv-only process.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/application/test_advanced_workspace.py"
+      ]
+    },
+    "One-click Build & Run": {
+      "status": "partial",
+      "reason": "Persisted user-supplied build and run commands execute as bounded argv-only processes with repository-child working directories and captured output. Automatic project and runnable-profile discovery is not implemented.",
+      "evidence": [
+        "tui/src/desktop_material_tui/application/advanced_workspace.py",
+        "tui/src/desktop_material_tui/ui/screens/advanced.py",
+        "tui/tests/application/test_advanced_workspace.py",
+        "tui/tests/ui/test_advanced.py"
+      ]
+    },
+    "Responsiveness and resource lifecycle": {
+      "status": "partial",
+      "reason": "Async workers keep Git/GitHub calls off the UI loop and owned database resources close on unmount; exhaustive load and cancellation acceptance remains pending.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py"
+      ]
+    },
+    "Versioned settings history": {
+      "status": "partial",
+      "reason": "Atomic XDG configuration snapshots are committed to an isolated app-owned Git repository with in-app browse, restore, undo, and redo. Per-account ownership and the Ctrl+Alt+Z route are absent.",
+      "evidence": [
+        "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/config.py",
+        "tui/src/desktop_material_tui/infrastructure/persistence/profile_history.py",
+        "tui/src/desktop_material_tui/application/version_history.py",
+        "tui/src/desktop_material_tui/ui/screens/settings.py",
+        "tui/tests/ui/test_responsive_and_localization.py"
+      ]
+    },
+    "Safer destructive confirmations": {
+      "status": "partial",
+      "reason": "Discard, branch and stash deletion, worktree removal, sparse-checkout changes, workflow cancellation, and clearing history use decision dialogs. The desktop row's undo, reset, and tag-deletion confirmations are not all exposed.",
+      "evidence": [
+        "tui/src/desktop_material_tui/ui/screens/dialogs.py",
+        "tui/src/desktop_material_tui/ui/screens/repository_panes.py",
+        "tui/src/desktop_material_tui/ui/screens/github.py"
+      ]
+    },
+    "Categorized feature documentation": {
+      "status": "adapted",
+      "reason": "The Linux TUI has a dedicated categorized documentation set covering behavior, configuration, failure modes, security, accessibility, and verification.",
+      "evidence": ["docs/features/linux-tui/README.md"]
+    },
+    "Regex guide": {
+      "status": "adapted",
+      "reason": "The TUI search and regex document names the RE2 dialect, flags, limits, escaping, and builder/search synchronization.",
+      "evidence": ["docs/features/linux-tui/search-and-regex.md"]
+    }
+  }
+}

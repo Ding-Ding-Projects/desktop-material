@@ -13,7 +13,7 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
-## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Local acceptance complete; merge/publication pending**
+## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Integrated locally; publication pending**
 
 The Cheap LFS Release restore path now uses one FIFO coordinator shared by every
 file and multipart asset in a batch. It permits at most two active downloads
@@ -42,7 +42,8 @@ glyph or custom repository logo; public and unknown metadata show no lock.
 The badge is keyboard-focusable, localized, and included in the row's
 accessible name.
 
-Local acceptance is complete on the task branch. The combined browser,
+Local acceptance is complete and the source is integrated into local `main`.
+The combined browser,
 restore, localization, IPC, and badge suite passed **652/652 across 53 files**;
 the two CDP verifier contract suites passed **14/14**; full TypeScript checking
 is clean; and the exact Windows production build returned `0` without timeout
@@ -51,13 +52,45 @@ assets. A real built app on an isolated hidden Win32 desktop passed wide
 English and narrow bilingual restore receipts at the exact current-90% /
 look-ahead-10% state, browser redirect/popup/new-tab/bookmark/authentication
 escape receipts, and the private-badge capture, with no clipping, overlap, or
-private data. Packaged Windows E2E, default-branch merge/push, remote CI,
-Pages/wiki publication, and installer/Release evidence remain pending.
+private data. Packaged Windows E2E, remote push/CI, Pages/wiki publication, and
+installer/Release evidence remain pending.
 Detailed contracts and the evidence split are in [HANDOFF.md](HANDOFF.md),
 [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 the [app-hosted browser](docs/features/integrations/app-hosted-browser.md), and
 the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 
+## Linux-first interactive TUI — **Locally accepted; publication pending**
+
+A separate Python/Textual edition now adapts Desktop Material for Linux
+terminals without weakening the graphical edition's Windows-only boundary. The
+preview has a clickable repository rail, tabs, buttons, lists, tables, selects,
+and checkboxes; real single-line and multiline text controls; keyboard focus
+and shortcuts; local Git panes; GitHub workflows through `gh`; bounded RE2
+search and a full builder; English, Hong Kong Cantonese, and bilingual modes;
+non-blocking notifications; XDG state; editor/terminal integration; and
+app-owned Git-backed settings history.
+
+Cheap LFS interoperates with the Windows Release-v1 pointer format on both
+Linux and Windows, exposes clickable inventory/preview/track/verify/restore
+flows, and provides the same operations through the CLI. New TUI writes are
+bounded at 500 MiB while legacy reads remain compatible through 2 GiB; size and
+hash are verified before restoration. OCI/GHCR/cloud writes, encryption, and
+automatic batching remain explicit parity gaps.
+
+Packaging produces a wheel and source distribution, and the additive Ubuntu CI
+matrix covers Python 3.10, 3.12, and 3.13 plus lint, typing, tests, a fresh-wheel
+smoke install, and parity-contract drift. A separate Windows Server 2022/Python
+3.12 lane checks the non-PTY cross-platform core without claiming Windows PTY
+acceptance. The generated contract maps all 201 desktop rows conservatively: 14
+adapted, 53 partial, 132 not yet available, and 2 terminal-owned. It is
+deliberately not a full-parity claim.
+
+The [publish run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md)
+records the completed local matrix: 187 cross-platform tests plus a real Debian
+PTY pass, five original Lowlevel/Xvfb captures with mouse/text-field evidence,
+wheel/sdist and fresh-install inspection, a non-root Docker build, and complete
+disposable-resource cleanup. The latest remote `main` is integrated. Only the
+final default-branch push and exact CI/Pages/release receipts remain pending.
 ## July 26 reliability bug hunt — **Implemented and locally accepted**
 
 The latest `main` was fast-forwarded before inspection. The pass repaired the
@@ -920,7 +953,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
-| Documentation gallery expansion | **Historical 77-scene publication; 84-scene local source catalog** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes and three newly accepted local captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—bring the machine-checked source catalog to 84. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Remote rendering for the three new scenes remains pending the default-branch publication receipt. |
+| Documentation gallery expansion | **Historical 77-scene publication; 89-scene local source catalog** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes, three newly accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—and five verified Linux TUI captures bring the machine-checked source catalog to 89. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Remote rendering for the eight new scenes remains pending the default-branch publication receipt. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

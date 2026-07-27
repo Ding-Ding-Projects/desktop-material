@@ -2,17 +2,21 @@
 
 ## Setup
 
-Desktop Material development and product acceptance are supported on Windows
-only:
+Desktop Material's graphical Electron edition is developed and accepted on
+Windows only:
 
 - [Windows](./setup-windows.md)
+
+The separate Linux-first terminal edition is developed and accepted on Linux:
+
+- [Linux TUI development and verification](../features/linux-tui/verification.md)
 
 Windows ARM64 build details are available here:
 
 - [ARM64](./building-arm64.md)
 
-Inherited macOS and Linux setup files remain upstream reference material, not
-supported Desktop Material development or release targets.
+Inherited macOS and Linux **Electron** setup files remain upstream reference
+material, not supported graphical-edition development or release targets.
 
 ## Verification
 

@@ -37,6 +37,7 @@ import {
   parseCheapLfsPointer,
   serializeCheapLfsPointer,
 } from '../../../src/lib/cheap-lfs/pointer'
+import { CheapLfsReleaseBodySentinel } from '../../../src/lib/cheap-lfs/asset-version'
 import { defaultCheapLfsTrackedPathStore } from '../../../src/lib/cheap-lfs/tracked-path-store'
 
 const execFile = promisify(execFileCallback)
@@ -75,7 +76,7 @@ const release: IGitHubRelease = {
   tagName: 'assets',
   targetCommitish: 'main',
   name: 'Assets',
-  body: 'Notes',
+  body: CheapLfsReleaseBodySentinel,
   draft: false,
   prerelease: true,
   createdAt: new Date(0),
