@@ -1588,6 +1588,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private cheapLfsWorkflowInstalls: InFlightGuardState = EmptyInFlightGuard
 
+  /**
+   * Repositories whose commit-provenance annotation pass is running right now,
+   * and the chain a later pass queues behind. The pass is deliberately not
+   * awaited by the commit flow, so without this two passes could relabel assets
+   * in the same release buckets at once and invalidate each other's reviews.
+   */
+  private cheapLfsAnnotations: InFlightGuardState = EmptyInFlightGuard
+  private readonly cheapLfsAnnotationChain = new Map<string, Promise<void>>()
+
   /** Coordinates cloning many repositories at once (see BatchCloneStore). */
   private readonly batchCloneStore: BatchCloneStore
   private batchCloneState: IBatchCloneState | null = null
@@ -6701,12 +6710,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (annotatablePins.length > 0) {
           const annotatedCommitSha = lastCommitSha
           const annotatedPins = annotatablePins
-          void annotateCheapLfsPinnedAssets(
-            this.githubReleasesStore,
+          this.annotateCheapLfsPinsInBackground(
             repository,
             annotatedPins,
             annotatedCommitSha
-          ).catch(() => undefined)
+          )
         }
         if (!this.isTemporaryRepositoryActive(repository)) {
           return false
@@ -6781,6 +6789,50 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     return result
+  }
+
+  /**
+   * Fill in the introducing commit on one commit's pinned release assets,
+   * without blocking the commit flow and without ever overlapping the previous
+   * pass on the same repository.
+   *
+   * Annotation is metadata: it must not delay the UI, so it is not awaited. But
+   * an un-awaited pass can still be running when the next commit's pins start,
+   * and both passes relabel assets in the same release buckets — each one
+   * invalidating the reviews the other took. Passes therefore queue behind one
+   * another per repository, so a slow one only ever delays the next one (#56).
+   */
+  private annotateCheapLfsPinsInBackground(
+    repository: Repository,
+    pins: ReadonlyArray<ICheapLfsAnnotatablePin>,
+    commitSha: string
+  ): void {
+    const target = String(repository.id)
+    const claim = claimInFlight(this.cheapLfsAnnotations, target)
+    this.cheapLfsAnnotations = claim.state
+    const previous = claim.accepted
+      ? Promise.resolve()
+      : this.cheapLfsAnnotationChain.get(target) ?? Promise.resolve()
+    const pass = previous
+      .then(async () => {
+        await annotateCheapLfsPinnedAssets(
+          this.githubReleasesStore,
+          repository,
+          pins,
+          commitSha
+        )
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (this.cheapLfsAnnotationChain.get(target) === pass) {
+          this.cheapLfsAnnotationChain.delete(target)
+          this.cheapLfsAnnotations = releaseInFlight(
+            this.cheapLfsAnnotations,
+            target
+          )
+        }
+      })
+    this.cheapLfsAnnotationChain.set(target, pass)
   }
 
   private async _refreshRepositoryAfterCommit(

@@ -115,6 +115,63 @@ export function getGitHubReleaseFingerprint(release: IGitHubRelease): string {
   ])
 }
 
+/**
+ * The part of an asset a *sibling* upload genuinely depends on: which object it
+ * is, what it is called, and what bytes it holds.
+ *
+ * `label`, `downloadCount`, and `updatedAt` are deliberately absent. None of
+ * them is a precondition for appending a different asset to the same release: a
+ * relabel only rewrites provenance metadata, a download count moves whenever
+ * any third party fetches a public asset, and `updatedAt` moves with either.
+ * Requiring those three to be unchanged turned every long batch upload into a
+ * race it could not win while proving nothing about the safety of the append.
+ *
+ * Everything that does identify the object — id, name, lifecycle state, content
+ * type, size, and digest — is still compared exactly, so a deleted, renamed, or
+ * rewritten sibling still fails an append closed.
+ */
+export function getGitHubReleaseAssetIdentityFingerprint(
+  asset: IGitHubReleaseAsset
+): string {
+  return JSON.stringify([
+    asset.id,
+    asset.name,
+    asset.state,
+    asset.contentType,
+    asset.sizeInBytes,
+    asset.digest,
+  ])
+}
+
+/**
+ * The reviewed release's own identity, without its asset preview.
+ *
+ * The `assets` array embedded in a release payload is a preview: the reviewed
+ * snapshot and the revalidation read arrive from two different endpoints at two
+ * different times, and a bucket that is being filled legitimately gains assets
+ * between them. Comparing the release itself — id, tag, target, name, body,
+ * draft and prerelease state, timestamps, author, and URL — still refuses a
+ * re-tagged, re-created, re-drafted, or body-rewritten release, which is what an
+ * append actually depends on. Assets are compared separately, one by one.
+ */
+export function getGitHubReleaseIdentityFingerprint(
+  release: IGitHubRelease
+): string {
+  return JSON.stringify([
+    release.id,
+    release.tagName,
+    release.targetCommitish,
+    release.name,
+    release.body,
+    release.draft,
+    release.prerelease,
+    release.createdAt.toISOString(),
+    release.publishedAt?.toISOString() ?? null,
+    release.authorLogin,
+    release.htmlURL ?? null,
+  ])
+}
+
 const controlCharacters = /[\u0000-\u001f\u007f]/
 const invalidRepositoryPartCharacters = /[\u0000-\u001f\u007f/\\?#]/
 const invalidAssetNameCharacters = /[\u0000-\u001f\u007f/\\?#]/

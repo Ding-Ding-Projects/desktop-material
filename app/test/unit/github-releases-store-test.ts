@@ -334,6 +334,8 @@ describe('GitHub Releases store', () => {
           accountGeneration: 0,
           releaseId: release.id,
           releaseFingerprint: 'forged',
+          releaseIdentityFingerprint: 'forged',
+          reviewedAssets: [],
           assetId: null,
           assetFingerprint: null,
         },
@@ -1006,6 +1008,191 @@ describe('GitHub Releases store', () => {
       isStaleReview
     )
     assert.deepEqual(mutations, [])
+  })
+
+  /**
+   * Appending an asset is the one mutation that only adds to a release, and it
+   * is guarded separately from the replace-or-destroy mutations above. These
+   * three tests are the split of the single "everything fails closed" case:
+   * what an append must still refuse, what it must now tolerate, and how it
+   * treats a name that is already taken. See issue #56.
+   */
+  function appendStore(
+    accountsStore: FakeAccountsStore,
+    read: () => IGitHubRelease,
+    uploads: Array<string>
+  ) {
+    const api = fakeAPI({ fetchRelease: async () => read() })
+    return storeWith(accountsStore, {
+      ...dependencies(() => api),
+      uploadAsset: async (
+        _account,
+        _repository,
+        _releaseId,
+        _sourcePath,
+        name
+      ) => {
+        uploads.push(name)
+        return { ok: true, asset, bytes: 4, localDigest: asset.digest! }
+      },
+    })
+  }
+
+  const appendDigest = `sha256:${'b'.repeat(64)}`
+
+  it('fails an append closed when the release identity or a reviewed asset changed', async () => {
+    let remote: IGitHubRelease = release
+    const uploads = new Array<string>()
+    const store = await appendStore(
+      new FakeAccountsStore([selected]),
+      () => remote,
+      uploads
+    )
+    const review = store.createMutationReview(repository, release)
+    const isStaleReview = (error: unknown) =>
+      error instanceof GitHubReleasesError && error.kind === 'conflict'
+    const append = () =>
+      store.uploadAsset(
+        repository,
+        review,
+        'C:\\Build\\second.exe',
+        'second.exe',
+        null,
+        new AbortController().signal,
+        undefined,
+        undefined,
+        appendDigest
+      )
+
+    // The release itself was re-tagged, re-targeted, renamed, rewritten,
+    // re-drafted, or re-authored after it was reviewed.
+    for (const changed of [
+      { ...release, tagName: 'v1.0.1' },
+      { ...release, targetCommitish: 'other' },
+      { ...release, name: 'Renamed' },
+      { ...release, body: 'Rewritten after review' },
+      { ...release, draft: !release.draft },
+      { ...release, prerelease: !release.prerelease },
+      { ...release, publishedAt: new Date(1) },
+      { ...release, authorLogin: 'someone-else' },
+    ]) {
+      remote = changed
+      await assert.rejects(append(), isStaleReview)
+    }
+
+    // A reviewed asset was deleted, renamed, re-typed, resized, or had its
+    // bytes replaced — including by the cloud compression workflow's DELETE.
+    for (const assets of [
+      [],
+      [{ ...asset, id: asset.id + 1 }],
+      [{ ...asset, name: 'renamed.exe' }],
+      [{ ...asset, state: 'starter' }],
+      [{ ...asset, contentType: 'application/zip' }],
+      [{ ...asset, sizeInBytes: asset.sizeInBytes + 1 }],
+      [{ ...asset, digest: `sha256:${'f'.repeat(64)}` }],
+      [{ ...asset, digest: null }],
+    ]) {
+      remote = { ...release, assets }
+      await assert.rejects(append(), isStaleReview)
+    }
+    assert.deepEqual(uploads, [])
+  })
+
+  it('appends when siblings only appeared or their label, downloads, or timestamp moved', async () => {
+    let remote: IGitHubRelease = release
+    const uploads = new Array<string>()
+    const store = await appendStore(
+      new FakeAccountsStore([selected]),
+      () => remote,
+      uploads
+    )
+    const review = store.createMutationReview(repository, release)
+    const append = () =>
+      store.uploadAsset(
+        repository,
+        review,
+        'C:\\Build\\second.exe',
+        'second.exe',
+        null,
+        new AbortController().signal,
+        undefined,
+        undefined,
+        appendDigest
+      )
+
+    // A sibling this same batch uploaded a moment ago.
+    remote = {
+      ...release,
+      assets: [...release.assets, { ...asset, id: 20, name: 'sibling.bin' }],
+    }
+    await append()
+
+    // The provenance annotator relabeled a sibling, a stranger downloaded it,
+    // and GitHub moved its modification time for both reasons.
+    remote = {
+      ...release,
+      assets: [
+        {
+          ...asset,
+          label: 'cheap-lfs/v1 commit=abcdef',
+          downloadCount: asset.downloadCount + 7,
+          updatedAt: new Date(1_700_000_000_000),
+        },
+        { ...asset, id: 21, name: 'another-sibling.bin' },
+      ],
+    }
+    await append()
+
+    assert.deepEqual(uploads, ['second.exe', 'second.exe'])
+  })
+
+  it('refuses an asset name a stranger holds and accepts its own completed retry', async () => {
+    let remote: IGitHubRelease = release
+    const uploads = new Array<string>()
+    const store = await appendStore(
+      new FakeAccountsStore([selected]),
+      () => remote,
+      uploads
+    )
+    const review = store.createMutationReview(repository, release)
+    const isStaleReview = (error: unknown) =>
+      error instanceof GitHubReleasesError && error.kind === 'conflict'
+    const append = (expectedDigest?: string) =>
+      store.uploadAsset(
+        repository,
+        review,
+        'C:\\Build\\second.exe',
+        'second.exe',
+        null,
+        new AbortController().signal,
+        undefined,
+        undefined,
+        expectedDigest
+      )
+    const taken = (digest: string | null): IGitHubRelease => ({
+      ...release,
+      assets: [
+        ...release.assets,
+        { ...asset, id: 22, name: 'second.exe', digest },
+      ],
+    })
+
+    // Someone else's object already holds the name.
+    remote = taken(`sha256:${'c'.repeat(64)}`)
+    await assert.rejects(append(appendDigest), isStaleReview)
+    // A provider that reports no digest cannot prove whose object it is.
+    remote = taken(null)
+    await assert.rejects(append(appendDigest), isStaleReview)
+    // Neither can a caller that declares no digest of its own.
+    remote = taken(appendDigest)
+    await assert.rejects(append(undefined), isStaleReview)
+    assert.deepEqual(uploads, [])
+
+    // Same name, same bytes: this is the labeled attempt's own completed
+    // upload, so the unlabeled retry is idempotent rather than fatal.
+    remote = taken(appendDigest)
+    await append(appendDigest)
+    assert.deepEqual(uploads, ['second.exe'])
   })
 
   it('invalidates reviews when the repository or selected account generation changes', async () => {

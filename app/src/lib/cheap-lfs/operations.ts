@@ -1902,12 +1902,27 @@ export async function annotateCheapLfsPinnedAssets(
         skipped++
         continue
       }
-      await releases.updateAssetLabel(
+      const relabeled = await releases.updateAssetLabel(
         repository,
         releases.createMutationReview(repository, release, asset),
         target.label,
         signal
       )
+      // One release is read once and every one of its assets is annotated from
+      // that single snapshot, so the pass must carry its own mutations forward:
+      // relabeling asset one changes the release the review of asset two is
+      // taken from. Splicing the provider's own response back into the cached
+      // snapshot is not a whitelist of tolerated drift — it is this pass telling
+      // itself what it just did. Without it only the first asset of each release
+      // was ever labeled and the rest were silently skipped (#56).
+      if (relabeled !== undefined && relabeled !== null) {
+        releasesByTag.set(target.releaseTag, {
+          ...release,
+          assets: release.assets.map(candidate =>
+            candidate.id === relabeled.id ? relabeled : candidate
+          ),
+        })
+      }
       annotated++
     } catch (error) {
       // Provenance is recoverable from Git history; a failed label is not worth

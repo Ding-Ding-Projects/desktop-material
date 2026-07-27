@@ -10,7 +10,9 @@ import {
 } from '../github-release-transfer-client'
 import {
   getGitHubReleaseAssetFingerprint,
+  getGitHubReleaseAssetIdentityFingerprint,
   getGitHubReleaseFingerprint,
+  getGitHubReleaseIdentityFingerprint,
   GitHubReleaseMaximumPages,
   IGitHubRelease,
   IGitHubReleaseAsset,
@@ -443,12 +445,22 @@ interface IRequestContext {
   readonly anonymous: boolean
 }
 
+/** One reviewed sibling asset, compared individually by an append. */
+export interface IGitHubReviewedReleaseAsset {
+  readonly id: number
+  readonly fingerprint: string
+}
+
 export interface IGitHubReleaseMutationReview {
   readonly repositoryFingerprint: string
   readonly accountKey: string
   readonly accountGeneration: number
   readonly releaseId: number
   readonly releaseFingerprint: string
+  /** The reviewed release without its non-authoritative asset preview. */
+  readonly releaseIdentityFingerprint: string
+  /** Every asset the release held when it was reviewed, compared one by one. */
+  readonly reviewedAssets: ReadonlyArray<IGitHubReviewedReleaseAsset>
   readonly assetId: number | null
   readonly assetFingerprint: string | null
 }
@@ -738,6 +750,15 @@ export class GitHubReleasesStore {
       accountGeneration: context.generation,
       releaseId: release.id,
       releaseFingerprint: getGitHubReleaseFingerprint(release),
+      releaseIdentityFingerprint: getGitHubReleaseIdentityFingerprint(release),
+      reviewedAssets: Object.freeze(
+        release.assets.map(reviewed =>
+          Object.freeze({
+            id: reviewed.id,
+            fingerprint: getGitHubReleaseAssetIdentityFingerprint(reviewed),
+          })
+        )
+      ),
       assetId: asset?.id ?? null,
       assetFingerprint:
         asset === null ? null : getGitHubReleaseAssetFingerprint(asset),
@@ -777,6 +798,85 @@ export class GitHubReleasesStore {
     )
     this.assertContextCurrent(repository, context, signal)
     if (getGitHubReleaseFingerprint(release) !== review.releaseFingerprint) {
+      throw staleReviewError()
+    }
+    return release
+  }
+
+  /**
+   * Revalidate a reviewed release for the one mutation that only *adds* to it:
+   * uploading a new asset.
+   *
+   * `revalidateReviewedRelease` demands that the whole release payload — every
+   * sibling asset's label, download count, and modification time included — is
+   * byte-identical to the snapshot the caller reviewed. For a replace-or-destroy
+   * mutation that is exactly right. For an append it is not a safety
+   * precondition at all, and it is unsatisfiable in practice: the reviewed
+   * snapshot comes from one endpoint and the revalidation from another, a public
+   * asset's download count moves whenever a stranger fetches it, and any batch
+   * that uploads more than one file necessarily observes its own earlier
+   * siblings. A 15.8 GiB Cheap LFS pin therefore failed file after file with a
+   * conflict that described no real conflict at all (#56).
+   *
+   * The append guard keeps every check that protects the operation and drops
+   * only the ones that never did:
+   *
+   * 1. the release's own identity must be unchanged, so a re-tagged, re-created,
+   *    re-drafted, or body-rewritten release still fails closed;
+   * 2. every asset that existed at review time must still exist with identical
+   *    identity and content, so a deleted or rewritten sibling — including one
+   *    removed by the cloud compression workflow — still fails closed;
+   * 3. no asset that appeared *after* the review may hold the name being
+   *    uploaded, unless its digest is exactly the digest this caller is
+   *    uploading — that one is this attempt's own completed upload being
+   *    retried, not a stranger's object. A name already taken when the review
+   *    was made is not drift: the caller saw it and chose this name anyway, and
+   *    the provider is the authority on whether that is allowed;
+   * 4. siblings that merely appeared, or whose label, download count, or
+   *    modification time moved, are tolerated.
+   */
+  private async revalidateReviewedReleaseForAppend(
+    repository: Repository,
+    context: IRequestContext,
+    signal: AbortSignal,
+    review: IGitHubReleaseMutationReview,
+    name: string,
+    expectedDigest: string | undefined
+  ): Promise<IGitHubRelease> {
+    this.validateReviewContext(repository, context, review, false)
+    const release = await context.api.fetchRelease(
+      context.repository.owner.login,
+      context.repository.name,
+      review.releaseId,
+      signal
+    )
+    this.assertContextCurrent(repository, context, signal)
+    if (
+      getGitHubReleaseIdentityFingerprint(release) !==
+      review.releaseIdentityFingerprint
+    ) {
+      throw staleReviewError()
+    }
+    const current = new Map(release.assets.map(asset => [asset.id, asset]))
+    for (const reviewed of review.reviewedAssets) {
+      const asset = current.get(reviewed.id)
+      if (
+        asset === undefined ||
+        getGitHubReleaseAssetIdentityFingerprint(asset) !== reviewed.fingerprint
+      ) {
+        throw staleReviewError()
+      }
+    }
+    const reviewedIds = new Set(review.reviewedAssets.map(asset => asset.id))
+    const collision = release.assets.find(
+      asset => asset.name === name && !reviewedIds.has(asset.id)
+    )
+    if (
+      collision !== undefined &&
+      (expectedDigest === undefined ||
+        collision.digest === null ||
+        collision.digest !== expectedDigest)
+    ) {
       throw staleReviewError()
     }
     return release
@@ -1172,11 +1272,13 @@ export class GitHubReleasesStore {
       'upload',
       signal,
       async (context, requestSignal) => {
-        await this.revalidateReviewedRelease(
+        await this.revalidateReviewedReleaseForAppend(
           repository,
           context,
           requestSignal,
-          review
+          review,
+          name,
+          expectedDigest
         )
         this.assertContextCurrent(repository, context, requestSignal)
         return await this.dependencies.uploadAsset(

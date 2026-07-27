@@ -191,6 +191,11 @@ function multipartBucketGateway(baseTag: string, baseAssetCount: number) {
         accountGeneration: 1,
         releaseId: reviewedRelease.id,
         releaseFingerprint: 'fixture',
+        releaseIdentityFingerprint: 'fixture',
+        reviewedAssets: reviewedRelease.assets.map(candidate => ({
+          id: candidate.id,
+          fingerprint: 'fixture',
+        })),
         assetId: reviewedAsset?.id ?? null,
         assetFingerprint: reviewedAsset == null ? null : 'fixture',
       }
@@ -498,6 +503,11 @@ function inMemoryReleaseGateway(
       accountGeneration: 1,
       releaseId: reviewedRelease.id,
       releaseFingerprint: 'fixture',
+      releaseIdentityFingerprint: 'fixture',
+      reviewedAssets: reviewedRelease.assets.map(candidate => ({
+        id: candidate.id,
+        fingerprint: 'fixture',
+      })),
       assetId: reviewedAsset?.id ?? null,
       assetFingerprint: reviewedAsset == null ? null : 'fixture',
     }),
@@ -794,6 +804,139 @@ describe('cheap LFS operations', () => {
       if (process.platform !== 'win32') {
         assert.equal((await stat(filePath)).mode & 0o777, 0o751)
       }
+    })
+  })
+
+  /**
+   * Regression for #56. A large batch pin failed file after file with "The
+   * reviewed release, asset, repository, or account changed" because the upload
+   * guard compared the entire release payload — every sibling asset's label,
+   * download count, and modification time included — against the snapshot the
+   * batch had reviewed. A batch necessarily observes its own earlier siblings,
+   * the provenance annotator relabels them, and a public asset's download count
+   * moves whenever a stranger fetches it, so the comparison could not be
+   * satisfied. Nothing here is a fixture shortcut: this store is the real one,
+   * and the review it takes and revalidates uses the real fingerprints.
+   */
+  it('completes a multi-file batch while siblings appear and change in the same bucket', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const names = ['first.bin', 'second.bin', 'third.bin']
+      const contents = new Map<string, Buffer>()
+      for (const [index, name] of names.entries()) {
+        const content = Buffer.from(`cheap lfs payload ${index} `.repeat(64))
+        contents.set(name, content)
+        await writeFile(join(dir, name), content)
+      }
+
+      let bucket: IGitHubRelease = {
+        ...release,
+        id: 4242,
+        tagName: 'assets',
+        assets: [],
+      }
+      let nextAssetId = 900
+      let strangerDownloads = 0
+      // The world between the moment this batch reviews the bucket and the
+      // moment the upload guard re-reads it: the previous commit's provenance
+      // annotator relabels an asset, the cloud-compression workflow posts a
+      // `.deflate` sibling, and strangers download what is already published.
+      const driftBetweenReviewAndUpload = () => {
+        if (bucket.assets.length === 0) {
+          return
+        }
+        strangerDownloads++
+        const newest = bucket.assets[bucket.assets.length - 1]
+        bucket = {
+          ...bucket,
+          assets: [
+            ...bucket.assets.map(candidate => ({
+              ...candidate,
+              label: 'cheap-lfs/v1 relabelled after the commit landed',
+              downloadCount: candidate.downloadCount + strangerDownloads,
+              updatedAt: new Date(
+                candidate.updatedAt.getTime() + 60_000 * strangerDownloads
+              ),
+            })),
+            {
+              ...asset,
+              id: nextAssetId++,
+              name: `${newest.name}.deflate`,
+              sizeInBytes: Math.max(1, Math.floor(newest.sizeInBytes / 2)),
+              digest: `sha256:${createHash('sha256')
+                .update(`${newest.name}.deflate`)
+                .digest('hex')}`,
+            },
+          ],
+        }
+      }
+      const store = await storeWith(
+        dependencies(
+          () =>
+            fakeAPI({
+              fetchReleaseByTag: async () => bucket,
+              fetchRelease: async () => {
+                driftBetweenReviewAndUpload()
+                return bucket
+              },
+              fetchReleaseAssets: async () => ({
+                assets: bucket.assets,
+                page: 1,
+                nextPage: null,
+                capped: false,
+              }),
+            }),
+          {
+            uploadAsset: async (
+              _account,
+              _repository,
+              _releaseId,
+              sourcePath,
+              name
+            ) => {
+              const bytes = await readFile(sourcePath)
+              const uploaded: IGitHubReleaseAsset = {
+                ...asset,
+                id: nextAssetId++,
+                name,
+                label: null,
+                sizeInBytes: bytes.length,
+                digest: `sha256:${createHash('sha256')
+                  .update(bytes)
+                  .digest('hex')}`,
+              }
+              bucket = { ...bucket, assets: [...bucket.assets, uploaded] }
+              return {
+                ok: true,
+                asset: uploaded,
+                bytes: bytes.length,
+                localDigest: uploaded.digest!,
+              }
+            },
+          }
+        )
+      )
+
+      for (const name of names) {
+        const result = await pinFileToRelease(store, repository, selected, {
+          absoluteFilePath: join(dir, name),
+          trackedRelativePath: name,
+          releaseTag: 'assets',
+        })
+        assert.equal(result.pointer.releaseTag, 'assets')
+        assert.equal(result.pointer.assetName, name)
+        assert.equal(
+          result.pointer.sha256,
+          createHash('sha256').update(contents.get(name)!).digest('hex')
+        )
+      }
+      // Every file landed, and the drift the guard tolerated really happened.
+      const stored = bucket.assets.map(candidate => candidate.name)
+      for (const name of names) {
+        assert.ok(stored.includes(name), `${name} never reached the bucket`)
+      }
+      assert.ok(stored.some(name => name.endsWith('.deflate')))
+      assert.ok(bucket.assets.some(candidate => candidate.downloadCount > 0))
+      assert.ok(bucket.assets.some(candidate => candidate.label !== null))
     })
   })
 
@@ -1756,6 +1899,11 @@ describe('cheap LFS operations', () => {
           accountGeneration: 1,
           releaseId: reviewedRelease.id,
           releaseFingerprint: 'fixture',
+          releaseIdentityFingerprint: 'fixture',
+          reviewedAssets: reviewedRelease.assets.map(candidate => ({
+            id: candidate.id,
+            fingerprint: 'fixture',
+          })),
           assetId: reviewedAsset?.id ?? null,
           assetFingerprint: reviewedAsset === null ? null : 'fixture',
         }),
@@ -3526,6 +3674,8 @@ describe('cheap LFS operations', () => {
           accountGeneration: 1,
           releaseId: 1,
           releaseFingerprint: 'fixture',
+          releaseIdentityFingerprint: 'fixture',
+          reviewedAssets: [],
           assetId: null,
           assetFingerprint: null,
         }),
@@ -3593,6 +3743,8 @@ describe('cheap LFS operations', () => {
           accountGeneration: 1,
           releaseId: 92,
           releaseFingerprint: 'fixture',
+          releaseIdentityFingerprint: 'fixture',
+          reviewedAssets: [],
           assetId: null,
           assetFingerprint: null,
         }),

@@ -525,11 +525,59 @@ The order is therefore fixed:
 `allocateCheapLfsReleaseBucket` uses the review to stay fail-closed for anything
 that changes *after* it: a bucket the review proved exists, which the live
 lookup can no longer see, aborts instead of being created a second time. Every
-mutation still revalidates its own release fingerprint exactly as before.
+mutation still revalidates its own reviewed release before it runs — uploads
+through the append guard described next, everything else through the unchanged
+whole-payload comparison.
 
 An **already-published repository is untouched by all of this**. It returns
 `anchored: false`, takes no extra review, issues no extra request, and pins
 exactly as it did before.
+
+### Uploading is guarded as an append, not as a replacement
+
+`GitHubReleasesStore.uploadAsset` is the one mutation that only *adds* to a
+release, and it is revalidated by `revalidateReviewedReleaseForAppend` rather
+than by the whole-payload `revalidateReviewedRelease` that `update`, `publish`,
+`delete`, `deleteAsset`, and `updateAssetLabel` still use verbatim.
+
+The whole-payload comparison is unsatisfiable for an append and proves nothing
+about its safety. The reviewed snapshot is read from `GET /releases/tags/{tag}`
+and the revalidation from `GET /releases/{id}`; the `assets` array both carry is
+a preview, not an authority; a batch necessarily observes the siblings it
+uploaded a moment earlier; the provenance annotator rewrites sibling labels; the
+cloud-compression workflow posts `.deflate` siblings; and a public asset's
+`download_count` moves whenever any stranger fetches it. A 15.8 GiB batch pin
+therefore failed file after file with *“The reviewed release, asset, repository,
+or account changed”* when nothing meaningful had changed at all (issue #56).
+
+The append guard is still fail-closed. It requires, in order:
+
+1. **Release identity unchanged** — `getGitHubReleaseIdentityFingerprint` covers
+   id, tag, target commitish, name, body, draft and prerelease state, created
+   and published timestamps, author, and URL. A re-tagged, re-created,
+   re-drafted, or body-rewritten release still aborts.
+2. **Every reviewed asset still present and intact** —
+   `getGitHubReleaseAssetIdentityFingerprint` covers id, name, state, content
+   type, size, and digest. A deleted, renamed, re-typed, resized, or rewritten
+   sibling still aborts, which keeps the compression workflow's `DELETE`
+   correctly fatal.
+3. **The target name is free** — an asset that appeared *after* the review and
+   holds the name being uploaded aborts, unless its digest is exactly the digest
+   this caller is uploading. That one case is the label-drop retry finding its
+   own already-completed upload, which is idempotent rather than fatal.
+4. Anything else is tolerated: siblings that merely appeared, and sibling
+   `label`, `download_count`, or `updated_at` values that moved.
+
+Two supporting changes keep the two sides of the comparison honest. Both
+`fetchRelease` and `fetchReleaseByTag` now pass `reloadCache: true`, so the
+reviewed snapshot and the revalidation can never be served from different
+generations of GitHub's `max-age=60` cache. And `annotateCheapLfsPinnedAssets`
+splices each `updateAssetLabel` response back into the release snapshot it
+caches per tag, because relabeling one asset invalidates any review of that
+release taken before it — previously only the first asset of each release was
+ever annotated and the rest were silently counted as skipped. Annotation passes
+are also serialized per repository in `AppStore`, so a pass that is deliberately
+not awaited can never overlap the next one on the same buckets.
 
 ### The anchor push does not run `pre-push`
 

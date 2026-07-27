@@ -4193,7 +4193,13 @@ export class API {
     const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
       safeName
     )}/releases/${safeReleaseId}`
-    const response = await this.ghRequest('GET', path, { signal })
+    const response = await this.ghRequest('GET', path, {
+      signal,
+      // The mutation guard compares this read against a snapshot taken from
+      // `GET /releases/tags/{tag}`. GitHub serves both under `max-age=60`, so a
+      // cached generation on either side reports drift that never happened.
+      reloadCache: true,
+    })
     return parseGitHubRelease(
       await boundedGitHubReleaseResponse(
         response,
@@ -4221,7 +4227,13 @@ export class API {
     const path = `repos/${encodeURIComponent(safeOwner)}/${encodeURIComponent(
       safeName
     )}/releases/tags/${encodeURIComponent(safeTag)}`
-    const response = await this.ghRequest('GET', path, { signal })
+    const response = await this.ghRequest('GET', path, {
+      signal,
+      // This read produces the snapshot every later mutation is reviewed
+      // against, so it must never be a cached generation older than the
+      // revalidation it will be compared with.
+      reloadCache: true,
+    })
     if (response.status === 404) {
       await response.body?.cancel().catch(() => undefined)
       return null

@@ -9,6 +9,10 @@ import { GitHubRepository } from '../../../src/models/github-repository'
 import { Owner } from '../../../src/models/owner'
 import { Repository } from '../../../src/models/repository'
 import {
+  getGitHubReleaseAssetFingerprint,
+  getGitHubReleaseAssetIdentityFingerprint,
+  getGitHubReleaseFingerprint,
+  getGitHubReleaseIdentityFingerprint,
   IGitHubRelease,
   IGitHubReleaseAsset,
   normalizeGitHubReleaseAssetLabel,
@@ -138,6 +142,11 @@ function releaseBucket(tag: string) {
       accountGeneration: 1,
       releaseId: reviewedRelease.id,
       releaseFingerprint: 'fixture',
+      releaseIdentityFingerprint: 'fixture',
+      reviewedAssets: reviewedRelease.assets.map(candidate => ({
+        id: candidate.id,
+        fingerprint: 'fixture',
+      })),
       assetId: reviewedAsset?.id ?? null,
       assetFingerprint: reviewedAsset == null ? null : 'fixture',
     }),
@@ -224,6 +233,108 @@ function releaseBucket(tag: string) {
     rejectLabeledUploads: (value: boolean) => (rejectLabeledUploads = value),
     failLabelUpdates: (value: boolean) => (failLabelUpdates = value),
   }
+}
+
+/**
+ * A bucket whose relabel is guarded exactly the way the real store guards it:
+ * the reviewed release, and the reviewed asset, must still fingerprint
+ * identically when the label lands. Relabeling one asset therefore invalidates
+ * any review of the same release taken before it — which is why the annotator
+ * has to carry its own mutations forward instead of reusing one stale snapshot
+ * for every asset in a release (#56).
+ */
+function strictlyReviewedBucket(tag: string, assetCount: number) {
+  let current: IGitHubRelease = {
+    id: 77,
+    tagName: tag,
+    targetCommitish: 'trunk',
+    name: tag,
+    body: CheapLfsReleaseBodySentinel,
+    draft: false,
+    prerelease: true,
+    createdAt: new Date(0),
+    publishedAt: new Date(0),
+    authorLogin: 'fixture-bot',
+    assets: Array.from({ length: assetCount }, (_, index) =>
+      assetFixture({
+        id: 600 + index,
+        name: `annotated-${index}.bin`,
+        digest: `sha256:${sha256Of(Buffer.from(`annotated-${index}.bin`))}`,
+      })
+    ),
+  }
+  const labelUpdates = new Array<{ name: string; label: string }>()
+  const stale = () =>
+    new Error(
+      'The reviewed release, asset, repository, or account changed. Refresh Releases and review the operation again.'
+    )
+
+  const gateway: ICheapLfsReleasesGateway = {
+    getReleaseByTag: async (_repository, requestedTag) =>
+      requestedTag === current.tagName ? current : null,
+    create: async () => current,
+    listAssets: async () => ({
+      assets: current.assets,
+      page: 1,
+      nextPage: null,
+      capped: false,
+    }),
+    createMutationReview: (_repository, reviewedRelease, reviewedAsset) => ({
+      repositoryFingerprint: 'fixture',
+      accountKey: 'fixture',
+      accountGeneration: 1,
+      releaseId: reviewedRelease.id,
+      releaseFingerprint: getGitHubReleaseFingerprint(reviewedRelease),
+      releaseIdentityFingerprint:
+        getGitHubReleaseIdentityFingerprint(reviewedRelease),
+      reviewedAssets: reviewedRelease.assets.map(candidate => ({
+        id: candidate.id,
+        fingerprint: getGitHubReleaseAssetIdentityFingerprint(candidate),
+      })),
+      assetId: reviewedAsset?.id ?? null,
+      assetFingerprint:
+        reviewedAsset == null
+          ? null
+          : getGitHubReleaseAssetFingerprint(reviewedAsset),
+    }),
+    publish: async () => current,
+    uploadAsset: async () => {
+      throw new Error('upload not expected')
+    },
+    updateAssetLabel: async (_repository, review, label) => {
+      if (getGitHubReleaseFingerprint(current) !== review.releaseFingerprint) {
+        throw stale()
+      }
+      const target = current.assets.find(
+        candidate => candidate.id === review.assetId
+      )
+      if (
+        target === undefined ||
+        getGitHubReleaseAssetFingerprint(target) !== review.assetFingerprint
+      ) {
+        throw stale()
+      }
+      const updated = {
+        ...target,
+        label,
+        updatedAt: new Date(target.updatedAt.getTime() + 1000),
+      }
+      labelUpdates.push({ name: target.name, label })
+      current = {
+        ...current,
+        assets: current.assets.map(candidate =>
+          candidate.id === updated.id ? updated : candidate
+        ),
+      }
+      return updated
+    },
+    deleteAsset: async () => undefined,
+    downloadAsset: async () => {
+      throw new Error('download not expected')
+    },
+  }
+
+  return { gateway, labelUpdates, assets: () => current.assets }
 }
 
 async function withTempRepository(
@@ -723,6 +834,39 @@ describe('cheap LFS asset versioning', () => {
       assert.equal(annotation?.sha256, sha256Of(content))
       // Annotating never touches the asset name the pointer resolves through.
       assert.equal(bucket.assets()[0].name, result.pointer.assetName)
+    })
+  })
+
+  it('annotates every asset of one release, not only the first', async () => {
+    await withTempRepository(async (_dir, repository) => {
+      const bucket = strictlyReviewedBucket('assets', 4)
+      const commitSha = 'abcdef1234567890abcdef1234567890abcdef12'
+      const pins = bucket.assets().map(target => ({
+        relativePath: `tracked/${target.name}`,
+        releaseTag: 'assets',
+        assetName: target.name,
+        sha256: sha256Of(Buffer.from(target.name)),
+      }))
+
+      const outcome = await annotateCheapLfsPinnedAssets(
+        bucket.gateway,
+        repository,
+        pins,
+        commitSha
+      )
+
+      assert.deepEqual(outcome, { annotated: pins.length, skipped: 0 })
+      assert.deepEqual(
+        bucket.labelUpdates.map(update => update.name),
+        pins.map(pin => pin.assetName)
+      )
+      for (const [index, stored] of bucket.assets().entries()) {
+        const annotation = parseCheapLfsAssetLabel(stored.label)
+        assert.equal(annotation?.commitSha, commitSha)
+        assert.equal(annotation?.relativePath, pins[index].relativePath)
+        assert.equal(annotation?.sha256, pins[index].sha256)
+        assert.equal(stored.name, pins[index].assetName)
+      }
     })
   })
 
