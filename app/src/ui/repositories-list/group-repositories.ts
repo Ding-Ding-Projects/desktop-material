@@ -3,6 +3,7 @@ import {
   ILocalRepositoryState,
   nameOf,
   isRepositoryWithGitHubRepository,
+  RepositoryUpstreamState,
   RepositoryWithGitHubRepository,
 } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
@@ -63,6 +64,12 @@ export interface IRepositoryListItem extends IFilterListItem {
   readonly repository: Repositoryish
   readonly needsDisambiguation: boolean
   readonly aheadBehind: IAheadBehind | null
+  /**
+   * What the last status read established about HEAD and its upstream, or
+   * `'unknown'` when this repository has no cached state at all. Paired with
+   * `aheadBehind` so the row can say "not checked" instead of "0".
+   */
+  readonly upstreamState: RepositoryUpstreamState
   readonly changedFilesCount: number
   readonly branchName: string | null
   readonly defaultBranchName: string | null
@@ -184,6 +191,10 @@ const toSortedListItems = (
           ((groupNames.get(title) ?? 0) > 1 && group.kind === 'enterprise') ||
           ((allNames.get(title) ?? 0) > 1 && group.kind === 'recent'),
         aheadBehind: repoState?.aheadBehind ?? null,
+        // A repository with no cached state has never been inspected. Say so
+        // rather than borrowing the "no upstream" state, which would let the
+        // row imply we looked and found nothing to do.
+        upstreamState: repoState?.upstreamState ?? 'unknown',
         changedFilesCount: repoState?.changedFilesCount ?? 0,
         branchName: repoState?.branchName ?? null,
         defaultBranchName: repoState?.defaultBranchName ?? null,

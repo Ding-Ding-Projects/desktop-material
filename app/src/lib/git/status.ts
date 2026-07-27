@@ -21,7 +21,7 @@ import {
   stripUntrackedDirectorySuffix,
 } from '../status-parser'
 import { DiffSelectionType, DiffSelection } from '../../models/diff'
-import { Repository } from '../../models/repository'
+import { Repository, RepositoryUpstreamState } from '../../models/repository'
 import { IAheadBehind } from '../../models/branch'
 import { fatalError } from '../../lib/fatal-error'
 import { isMergeHeadSet, isSquashMsgSet } from './merge'
@@ -71,6 +71,31 @@ export interface IStatusResult {
 
   /** whether conflicting files present on repository */
   readonly doConflictedFilesExist: boolean
+}
+
+/**
+ * Classify what a parsed status says about HEAD and its tracking branch.
+ *
+ * The porcelain v2 branch headers are the only place this is knowable, so the
+ * mapping lives beside the parser that produces them:
+ *  - `branch.oid` is omitted for an unborn HEAD, leaving `currentTip` undefined
+ *  - `branch.head (detached)` is not recorded, leaving `currentBranch` undefined
+ *  - `branch.upstream` is emitted only when a tracking branch is configured
+ *
+ * Note that this never returns `'unknown'`; a parsed status is by definition a
+ * successful look at the repository. `'unknown'` is reserved for repositories
+ * whose status has not been read at all.
+ */
+export function upstreamStateFromStatus(
+  status: IStatusResult
+): RepositoryUpstreamState {
+  if (status.currentTip === undefined) {
+    return 'unborn'
+  }
+  if (status.currentBranch === undefined) {
+    return 'detached'
+  }
+  return status.currentUpstreamBranch === undefined ? 'no-upstream' : 'tracking'
 }
 
 interface IStatusHeadersData {

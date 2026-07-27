@@ -843,6 +843,38 @@ export type TranslationKey =
   | 'repositoryPicker.unhideMenu'
   | 'repositoryPicker.customizeNameMenu'
   | 'repositoryPicker.customizeLogoMenu'
+  | 'repositorySync.commitOne'
+  | 'repositorySync.commitMany'
+  | 'repositorySync.unknown.plain'
+  | 'repositorySync.unknown.light'
+  | 'repositorySync.unknown.playful'
+  | 'repositorySync.inSync.plain'
+  | 'repositorySync.inSync.light'
+  | 'repositorySync.inSync.playful'
+  | 'repositorySync.ahead.plain'
+  | 'repositorySync.ahead.light'
+  | 'repositorySync.ahead.playful'
+  | 'repositorySync.behind.plain'
+  | 'repositorySync.behind.light'
+  | 'repositorySync.behind.playful'
+  | 'repositorySync.diverged.plain'
+  | 'repositorySync.diverged.light'
+  | 'repositorySync.diverged.playful'
+  | 'repositorySync.noUpstream.plain'
+  | 'repositorySync.noUpstream.light'
+  | 'repositorySync.noUpstream.playful'
+  | 'repositorySync.detached.plain'
+  | 'repositorySync.detached.light'
+  | 'repositorySync.detached.playful'
+  | 'repositorySync.empty.plain'
+  | 'repositorySync.empty.light'
+  | 'repositorySync.empty.playful'
+  | 'repositorySync.cloning.plain'
+  | 'repositorySync.cloning.light'
+  | 'repositorySync.cloning.playful'
+  | 'repositorySync.missing.plain'
+  | 'repositorySync.missing.light'
+  | 'repositorySync.missing.playful'
   | 'repositoryBulk.enterSelection'
   | 'repositoryBulk.enterSelectionAria'
   | 'repositoryBulk.barAria'
@@ -3182,6 +3214,57 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositoryPicker.unhideMenu': 'Unhide repository',
   'repositoryPicker.customizeNameMenu': 'Customize name appearance',
   'repositoryPicker.customizeLogoMenu': 'Customize logo appearance',
+  // Repository-list sync line. The three bands per state are the funny-level
+  // voice (1-2 plain, 3 light, 4-5 playful); the counts and the state named in
+  // every band are identical, because the voice may change but the facts never
+  // do.
+  'repositorySync.commitOne': '1 commit',
+  'repositorySync.commitMany': '{count} commits',
+  'repositorySync.unknown.plain': 'Sync state unknown, not checked yet',
+  'repositorySync.unknown.light':
+    'Not checked yet, so the sync state is unknown',
+  'repositorySync.unknown.playful':
+    'No idea yet, nobody has looked at the remote',
+  'repositorySync.inSync.plain': 'In sync as of the last check',
+  'repositorySync.inSync.light': 'Nothing to push or pull as of the last check',
+  'repositorySync.inSync.playful':
+    'Spotless at the last check, nothing to push or pull',
+  'repositorySync.ahead.plain': '{ahead} to push, nothing to pull',
+  'repositorySync.ahead.light': '{ahead} waiting to push, nothing to pull',
+  'repositorySync.ahead.playful':
+    '{ahead} queued for take-off, nothing to pull',
+  'repositorySync.behind.plain': '{behind} to pull, nothing to push',
+  'repositorySync.behind.light': '{behind} waiting to pull, nothing to push',
+  'repositorySync.behind.playful':
+    '{behind} parked at the remote with your name on them, nothing to push',
+  'repositorySync.diverged.plain': '{ahead} to push, {behind} to pull',
+  'repositorySync.diverged.light':
+    'Diverged: {ahead} to push and {behind} to pull',
+  'repositorySync.diverged.playful':
+    'Diverged, {ahead} to push and {behind} to pull, pick a lane',
+  'repositorySync.noUpstream.plain': 'No upstream branch',
+  'repositorySync.noUpstream.light': 'No upstream branch to compare against',
+  'repositorySync.noUpstream.playful':
+    'No upstream branch, this one is off the grid',
+  'repositorySync.detached.plain': 'Detached HEAD, no branch to compare',
+  'repositorySync.detached.light':
+    'Detached HEAD, so there is no branch to compare',
+  'repositorySync.detached.playful':
+    'Detached HEAD, floating free with no branch to compare',
+  'repositorySync.empty.plain': 'No commits yet',
+  'repositorySync.empty.light':
+    'No commits yet, so there is nothing to compare',
+  'repositorySync.empty.playful': 'Blank page energy, no commits yet',
+  'repositorySync.cloning.plain': 'Cloning, sync state not known yet',
+  'repositorySync.cloning.light':
+    'Still cloning, so the sync state is not known yet',
+  'repositorySync.cloning.playful':
+    'Still cloning, hold your horses before asking about the remote',
+  'repositorySync.missing.plain': 'Missing from disk, sync state unknown',
+  'repositorySync.missing.light':
+    'Missing from disk, so the sync state is unknown',
+  'repositorySync.missing.playful':
+    'Vanished from disk, so the remote cannot be checked',
   'repositoryBulk.enterSelection': 'Select multiple',
   'repositoryBulk.enterSelectionAria': 'Select multiple repositories',
   'repositoryBulk.barAria': 'Bulk repository actions',
@@ -5780,6 +5863,42 @@ export const cantoneseTranslations: Readonly<
   'repositoryPicker.unhideMenu': '取消隱藏 repo',
   'repositoryPicker.customizeNameMenu': '自訂名稱外觀',
   'repositoryPicker.customizeLogoMenu': '自訂標誌外觀',
+  'repositorySync.commitOne': '1 個 commit',
+  'repositorySync.commitMany': '{count} 個 commit',
+  'repositorySync.unknown.plain': '未檢查過，同步狀態未知',
+  'repositorySync.unknown.light': '重未睇過，所以同步狀態係未知',
+  'repositorySync.unknown.playful': '完全未知，仲未有人望過個遠端',
+  'repositorySync.inSync.plain': '上次檢查時同步咗',
+  'repositorySync.inSync.light': '上次檢查時冇嘢要 push 又冇嘢要 pull',
+  'repositorySync.inSync.playful':
+    '上次望嗰陣乾乾淨淨，冇嘢要 push 又冇嘢要 pull',
+  'repositorySync.ahead.plain': '{ahead} 要 push，冇嘢要 pull',
+  'repositorySync.ahead.light': '有 {ahead} 排住隊等 push，冇嘢要 pull',
+  'repositorySync.ahead.playful': '{ahead} 喺跑道等起飛，冇嘢要 pull',
+  'repositorySync.behind.plain': '{behind} 要 pull，冇嘢要 push',
+  'repositorySync.behind.light': '有 {behind} 喺遠端等你 pull，冇嘢要 push',
+  'repositorySync.behind.playful':
+    '{behind} 喺遠端寫住你個名等你 pull，冇嘢要 push',
+  'repositorySync.diverged.plain': '{ahead} 要 push，{behind} 要 pull',
+  'repositorySync.diverged.light':
+    '已經分岔：{ahead} 要 push，{behind} 要 pull',
+  'repositorySync.diverged.playful':
+    '分咗岔喇，{ahead} 要 push、{behind} 要 pull，快啲揀邊條路',
+  'repositorySync.noUpstream.plain': '冇上游分支',
+  'repositorySync.noUpstream.light': '冇上游分支可以比較',
+  'repositorySync.noUpstream.playful': '冇上游分支，呢條枝自己玩自己',
+  'repositorySync.detached.plain': 'HEAD 已分離，冇分支可以比較',
+  'repositorySync.detached.light': 'HEAD 已分離，所以冇分支可以比較',
+  'repositorySync.detached.playful': 'HEAD 飄咗開，冇分支可以比較',
+  'repositorySync.empty.plain': '仲未有 commit',
+  'repositorySync.empty.light': '仲未有 commit，所以冇嘢可以比較',
+  'repositorySync.empty.playful': '一張白紙，仲未有 commit',
+  'repositorySync.cloning.plain': '複製緊，同步狀態未知',
+  'repositorySync.cloning.light': '仲複製緊，所以同步狀態未知',
+  'repositorySync.cloning.playful': '仲複製緊，等陣先問遠端啦',
+  'repositorySync.missing.plain': '磁碟上搵唔到，同步狀態未知',
+  'repositorySync.missing.light': '磁碟上搵唔到，所以同步狀態未知',
+  'repositorySync.missing.playful': '喺磁碟上人間蒸發，查唔到個遠端',
   'repositoryBulk.enterSelection': '揀多個',
   'repositoryBulk.enterSelectionAria': '一次揀多個 repo',
   'repositoryBulk.barAria': 'Repo 批次操作',

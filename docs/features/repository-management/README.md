@@ -41,6 +41,10 @@ Material is displaying or how a repository is represented in the application.
   visibility](repository-picker-filters-and-visibility.md) — combine status,
   account, service, and text filters, and locally hide repositories with an
   explicit recovery path.
+- [Repository list sync summary](repository-list-sync-summary.md) — a
+  low-emphasis line under each repository name giving the exact commits waiting
+  to push and to pull, an honest unknown state for anything never checked, and
+  no network call to paint it.
 - [Repository list bulk actions](repository-list-bulk-actions.md) — select the
   filter-visible rows to fetch, pull, favorite, group, or forget several
   repositories, with determinate progress, cancel between repositories, and a
