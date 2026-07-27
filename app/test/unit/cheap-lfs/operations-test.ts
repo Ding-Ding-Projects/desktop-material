@@ -26,6 +26,7 @@ import { Owner } from '../../../src/models/owner'
 import { Repository } from '../../../src/models/repository'
 import { AccountsStore } from '../../../src/lib/stores/accounts-store'
 import {
+  GitHubReleasesError,
   GitHubReleasesStore,
   IGitHubReleasesAPI,
   IGitHubReleasesStoreDependencies,
@@ -34,6 +35,7 @@ import {
   IGitHubRelease,
   IGitHubReleaseAsset,
 } from '../../../src/lib/github-releases'
+import { IGitHubReleaseTransferProgressEvent } from '../../../src/lib/github-release-transfer'
 import { CheapLfsReleaseBodySentinel } from '../../../src/lib/cheap-lfs/asset-version'
 import {
   createCheapLfsMaterializeCache,
@@ -41,6 +43,7 @@ import {
   defaultCheapLfsFileSystem,
   hashFilePartsSha256,
   ICheapLfsFileSystem,
+  ICheapLfsMaterializeTransferProgress,
   ICheapLfsReleasesGateway,
   listCheapLfsPointers,
   listAllCheapLfsPointers,
@@ -3216,12 +3219,15 @@ describe('cheap LFS operations', () => {
           },
         })
       )
+      const restoreProgress = new Array<ICheapLfsMaterializeTransferProgress>()
 
       const result = await materializePointer(
         store,
         repository,
         selected,
-        'huge.bin'
+        'huge.bin',
+        undefined,
+        update => restoreProgress.push(update)
       )
 
       assert.equal(await realpath(result.path), await realpath(trackedPath))
@@ -3230,6 +3236,440 @@ describe('cheap LFS operations', () => {
       assert.deepEqual(await readFile(trackedPath), whole)
       // Every downloaded part temp was cleaned up.
       assert.equal(destinations.length, 2)
+      for (const destination of destinations) {
+        await assert.rejects(stat(destination))
+      }
+      assert.ok(
+        restoreProgress.some(
+          update => update.phase === 'decompressing' && update.partOrdinal === 2
+        )
+      )
+      assert.ok(restoreProgress.some(update => update.phase === 'verifying'))
+      assert.equal(restoreProgress.at(-1)?.phase, 'materializing')
+      assert.equal(
+        restoreProgress.at(-1)?.logicalTransferredBytes,
+        whole.length
+      )
+      assert.equal(
+        restoreProgress.at(-1)?.actualTransferredBytes,
+        first.length + storedSecond.length
+      )
+      assert.equal(
+        restoreProgress.at(-1)?.actualTotalBytes,
+        first.length + storedSecond.length
+      )
+      assert.ok(
+        restoreProgress.every(
+          (update, index) =>
+            index === 0 ||
+            update.transferredBytes >=
+              restoreProgress[index - 1].transferredBytes
+        )
+      )
+    })
+  })
+
+  it('starts the next part at exactly 90% with only two downloads active', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const partBytes = [
+        Buffer.alloc(100, 0x31),
+        Buffer.alloc(100, 0x32),
+        Buffer.alloc(100, 0x33),
+      ]
+      const digest = (buffer: Buffer) =>
+        createHash('sha256').update(buffer).digest('hex')
+      const whole = Buffer.concat(partBytes)
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'look-ahead-parts',
+        assetName: 'look-ahead.bin',
+        sizeInBytes: whole.length,
+        sha256: digest(whole),
+        parts: partBytes.map((content, index) => ({
+          name: `look-ahead.bin.part00${index + 1}`,
+          sizeInBytes: content.length,
+          sha256: digest(content),
+        })),
+      }
+      const trackedPath = join(dir, 'look-ahead.bin')
+      await writeFile(trackedPath, serializeCheapLfsPointer(pointer), 'utf8')
+      const releaseWithParts: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: pointer.parts!.map((part, index) => ({
+          ...asset,
+          id: 2_000 + index,
+          name: part.name,
+          sizeInBytes: part.sizeInBytes,
+          digest: `sha256:${part.sha256}`,
+        })),
+      }
+      const started: string[] = []
+      const callbacks = new Map<
+        string,
+        (progress: IGitHubReleaseTransferProgressEvent) => void
+      >()
+      const finish = new Map<string, () => Promise<void>>()
+      const restoreProgress = new Array<ICheapLfsMaterializeTransferProgress>()
+      let active = 0
+      let maximumActive = 0
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithParts), {
+          downloadAsset: (
+            _account,
+            _repository,
+            _releaseId,
+            downloadedAsset,
+            destination,
+            _signal,
+            onProgress
+          ) =>
+            new Promise(resolve => {
+              const index = pointer.parts!.findIndex(
+                part => part.name === downloadedAsset.name
+              )
+              assert.notEqual(index, -1)
+              started.push(downloadedAsset.name)
+              active++
+              maximumActive = Math.max(maximumActive, active)
+              assert.ok(onProgress !== undefined)
+              callbacks.set(downloadedAsset.name, onProgress)
+              finish.set(downloadedAsset.name, async () => {
+                await writeFile(destination, partBytes[index])
+                active--
+                resolve({
+                  ok: true,
+                  path: destination,
+                  bytes: partBytes[index].length,
+                  localDigest: `sha256:${digest(partBytes[index])}`,
+                  matchesGitHubDigest: true,
+                })
+              })
+            }),
+        })
+      )
+
+      const operation = materializePointer(
+        store,
+        repository,
+        selected,
+        'look-ahead.bin',
+        undefined,
+        update => restoreProgress.push(update)
+      )
+      for (let attempt = 0; attempt < 200 && started.length < 1; attempt++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.deepEqual(started, ['look-ahead.bin.part001'])
+
+      callbacks.get('look-ahead.bin.part001')?.({
+        operationId: 'part-1',
+        direction: 'download',
+        transferredBytes: 89,
+        totalBytes: 100,
+      })
+      await new Promise<void>(resolve => setImmediate(resolve))
+      assert.deepEqual(started, ['look-ahead.bin.part001'])
+
+      callbacks.get('look-ahead.bin.part001')?.({
+        operationId: 'part-1',
+        direction: 'download',
+        transferredBytes: 90,
+        totalBytes: 100,
+      })
+      for (let attempt = 0; attempt < 200 && started.length < 2; attempt++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.deepEqual(started, [
+        'look-ahead.bin.part001',
+        'look-ahead.bin.part002',
+      ])
+
+      callbacks.get('look-ahead.bin.part002')?.({
+        operationId: 'part-2',
+        direction: 'download',
+        transferredBytes: 90,
+        totalBytes: 100,
+      })
+      await new Promise<void>(resolve => setImmediate(resolve))
+      assert.equal(started.length, 2)
+
+      await finish.get('look-ahead.bin.part001')?.()
+      for (let attempt = 0; attempt < 200 && started.length < 3; attempt++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.deepEqual(started, [
+        'look-ahead.bin.part001',
+        'look-ahead.bin.part002',
+        'look-ahead.bin.part003',
+      ])
+
+      await finish.get('look-ahead.bin.part002')?.()
+      await finish.get('look-ahead.bin.part003')?.()
+      const result = await operation
+      assert.equal(maximumActive, 2)
+      assert.equal(result.bytes, whole.length)
+      assert.deepEqual(await readFile(trackedPath), whole)
+      const overlapping = restoreProgress.find(
+        update =>
+          update.activeParts?.map(part => part.partOrdinal).join(',') === '1,2'
+      )
+      assert.notEqual(overlapping, undefined)
+      assert.equal(overlapping?.partOrdinal, 1)
+      assert.equal(overlapping?.queuedParts, 1)
+      const displayedPartOrdinals = restoreProgress.flatMap(update =>
+        update.partOrdinal === undefined ? [] : [update.partOrdinal]
+      )
+      assert.ok(
+        displayedPartOrdinals.every(
+          (ordinal, index) =>
+            index === 0 || ordinal >= displayedPartOrdinals[index - 1]
+        ),
+        `displayed part regressed: ${displayedPartOrdinals.join(', ')}`
+      )
+    })
+  })
+
+  it('aborts and drains a prefetched part before cleaning a corrupt restore', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const expectedParts = [Buffer.alloc(100, 0x41), Buffer.alloc(100, 0x42)]
+      const corruptFirst = Buffer.alloc(100, 0x43)
+      const digest = (buffer: Buffer) =>
+        createHash('sha256').update(buffer).digest('hex')
+      const whole = Buffer.concat(expectedParts)
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'look-ahead-corrupt',
+        assetName: 'corrupt.bin',
+        sizeInBytes: whole.length,
+        sha256: digest(whole),
+        parts: expectedParts.map((content, index) => ({
+          name: `corrupt.bin.part00${index + 1}`,
+          sizeInBytes: content.length,
+          sha256: digest(content),
+        })),
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      const trackedPath = join(dir, 'corrupt.bin')
+      await writeFile(trackedPath, pointerText, 'utf8')
+      const releaseWithParts: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: pointer.parts!.map((part, index) => ({
+          ...asset,
+          id: 2_100 + index,
+          name: part.name,
+          sizeInBytes: part.sizeInBytes,
+        })),
+      }
+      const destinations: string[] = []
+      let firstProgress:
+        | ((progress: IGitHubReleaseTransferProgressEvent) => void)
+        | undefined
+      let finishFirst: (() => Promise<void>) | undefined
+      let secondStarted = false
+      let secondDrained = false
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithParts), {
+          downloadAsset: (
+            _account,
+            _repository,
+            _releaseId,
+            downloadedAsset,
+            destination,
+            signal,
+            onProgress
+          ) => {
+            destinations.push(destination)
+            if (downloadedAsset.name.endsWith('001')) {
+              firstProgress = onProgress
+              return new Promise(resolve => {
+                finishFirst = async () => {
+                  await writeFile(destination, corruptFirst)
+                  resolve({
+                    ok: true,
+                    path: destination,
+                    bytes: corruptFirst.length,
+                    localDigest: `sha256:${digest(corruptFirst)}`,
+                    matchesGitHubDigest: true,
+                  })
+                }
+              })
+            }
+            secondStarted = true
+            return new Promise((_resolve, reject) => {
+              signal.addEventListener(
+                'abort',
+                () =>
+                  setImmediate(async () => {
+                    await writeFile(destination, Buffer.from('partial'))
+                    secondDrained = true
+                    const error = new Error('canceled')
+                    error.name = 'AbortError'
+                    reject(error)
+                  }),
+                { once: true }
+              )
+            })
+          },
+        })
+      )
+
+      const operation = materializePointer(
+        store,
+        repository,
+        selected,
+        'corrupt.bin'
+      )
+      for (
+        let attempt = 0;
+        attempt < 200 && firstProgress === undefined;
+        attempt++
+      ) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.ok(firstProgress !== undefined)
+      firstProgress({
+        operationId: 'corrupt-first',
+        direction: 'download',
+        transferredBytes: 90,
+        totalBytes: 100,
+      })
+      for (let attempt = 0; attempt < 200 && !secondStarted; attempt++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.equal(secondStarted, true)
+      await finishFirst?.()
+
+      await assert.rejects(operation, /does not match/)
+      assert.equal(secondDrained, true)
+      assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
+      for (const destination of destinations) {
+        await assert.rejects(stat(destination))
+      }
+    })
+  })
+
+  it('aborts a stalled earlier part immediately when its prefetch fails', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const partBytes = [Buffer.alloc(100, 0x51), Buffer.alloc(100, 0x52)]
+      const digest = (buffer: Buffer) =>
+        createHash('sha256').update(buffer).digest('hex')
+      const whole = Buffer.concat(partBytes)
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'look-ahead-prefetch-failure',
+        assetName: 'prefetch-failure.bin',
+        sizeInBytes: whole.length,
+        sha256: digest(whole),
+        parts: partBytes.map((content, index) => ({
+          name: `prefetch-failure.bin.part00${index + 1}`,
+          sizeInBytes: content.length,
+          sha256: digest(content),
+        })),
+      }
+      const pointerText = serializeCheapLfsPointer(pointer)
+      const trackedPath = join(dir, 'prefetch-failure.bin')
+      await writeFile(trackedPath, pointerText, 'utf8')
+      const releaseWithParts: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: pointer.parts!.map((part, index) => ({
+          ...asset,
+          id: 2_200 + index,
+          name: part.name,
+          sizeInBytes: part.sizeInBytes,
+        })),
+      }
+      const destinations: string[] = []
+      let firstProgress:
+        | ((progress: IGitHubReleaseTransferProgressEvent) => void)
+        | undefined
+      let firstAborted = false
+      let firstDrained = false
+      let secondStarted = false
+      let secondDrained = false
+      let failSecond: (() => Promise<void>) | undefined
+      const terminalError = new GitHubReleasesError(
+        'service',
+        'prefetched part 2 failed at provider',
+        503
+      )
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithParts), {
+          downloadAsset: (
+            _account,
+            _repository,
+            _releaseId,
+            downloadedAsset,
+            destination,
+            signal,
+            onProgress
+          ) => {
+            destinations.push(destination)
+            if (downloadedAsset.name.endsWith('001')) {
+              firstProgress = onProgress
+              return new Promise((_resolve, reject) => {
+                signal.addEventListener(
+                  'abort',
+                  () => {
+                    firstAborted = true
+                    setImmediate(async () => {
+                      await writeFile(destination, Buffer.from('partial-one'))
+                      firstDrained = true
+                      const error = new Error('earlier part canceled')
+                      error.name = 'AbortError'
+                      reject(error)
+                    })
+                  },
+                  { once: true }
+                )
+              })
+            }
+
+            secondStarted = true
+            return new Promise((_resolve, reject) => {
+              failSecond = async () => {
+                await writeFile(destination, Buffer.from('partial-two'))
+                secondDrained = true
+                reject(terminalError)
+              }
+            })
+          },
+        })
+      )
+
+      const operation = materializePointer(
+        store,
+        repository,
+        selected,
+        'prefetch-failure.bin'
+      )
+      for (
+        let attempt = 0;
+        attempt < 200 && firstProgress === undefined;
+        attempt++
+      ) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.ok(firstProgress !== undefined)
+      firstProgress({
+        operationId: 'stalled-first',
+        direction: 'download',
+        transferredBytes: 90,
+        totalBytes: 100,
+      })
+      for (let attempt = 0; attempt < 200 && !secondStarted; attempt++) {
+        await new Promise<void>(resolve => setTimeout(resolve, 10))
+      }
+      assert.equal(secondStarted, true)
+      await failSecond?.()
+
+      await assert.rejects(operation, error => error === terminalError)
+      assert.equal(firstAborted, true)
+      assert.equal(firstDrained, true)
+      assert.equal(secondDrained, true)
+      assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
       for (const destination of destinations) {
         await assert.rejects(stat(destination))
       }

@@ -42,16 +42,18 @@ import {
   ICheapLfsAutoPinFailure,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinnedFile,
+  ICheapLfsBatchProgress,
   ICheapLfsBatchMaterializeResult,
   ICheapLfsManagedPointerEntry,
-  ICheapLfsMaterializeFailure,
   ICheapLfsMaterializeResult,
+  ICheapLfsMaterializeTransferProgress,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
   ICheapLfsRetainedPin,
   isCheapLfsPayloadProvenStored,
   CheapLfsPinStage,
   listAllCheapLfsPointers,
+  materializeCheapLfsPointers,
   materializePointer,
   pinFileToRelease,
   restoreCheapLfsPinnedPayloads,
@@ -59,6 +61,12 @@ import {
   selectCheapLfsAutoPinTargets,
   shouldAutoPinLargeFilesOnCommit,
 } from '../cheap-lfs/operations'
+import {
+  CheapLfsRestoreLookAheadThresholdPercent,
+  CheapLfsRestoreProvider,
+  ICheapLfsRestoreLaneProgress,
+  ICheapLfsRestoreProgress,
+} from '../cheap-lfs/restore-progress'
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
 import {
   buildCheapLfsFirstPublishAbort,
@@ -1059,6 +1067,71 @@ interface ICheapLfsMaterializeBatchOptions {
   readonly shouldRun?: () => boolean
 }
 
+function cheapLfsRestoreProvider(
+  provider: string | undefined
+): CheapLfsRestoreProvider {
+  switch (provider) {
+    case 'release':
+      return 'github-release'
+    case 'ghcr':
+      return 'ghcr'
+    case 'docker-hub':
+      return 'docker-hub'
+    default:
+      return 'unknown'
+  }
+}
+
+function cheapLfsBatchRestoreProvider(
+  entries: ReadonlyArray<ICheapLfsManagedPointerEntry>
+): CheapLfsRestoreProvider {
+  const providers = new Set(
+    entries.map(entry => cheapLfsRestoreProvider(entry.provider))
+  )
+  return providers.size === 1 ? [...providers][0] : 'mixed'
+}
+
+function cheapLfsRestoreLane(
+  lane: NonNullable<ICheapLfsBatchProgress['activeMaterializations']>[number],
+  filesTotal: number
+): ICheapLfsRestoreLaneProgress {
+  // Multipart callbacks can interleave. The scheduler publishes active parts
+  // ordinal-sorted, so keep presenting the earliest unsettled part until it
+  // verifies instead of oscillating with whichever network callback was last.
+  const foregroundPart = lane.activeParts?.[0]
+  const partTotal =
+    foregroundPart !== undefined
+      ? foregroundPart.totalBytes
+      : lane.partOrdinal !== undefined &&
+        lane.partsTotal !== undefined &&
+        lane.partTransferredBytes !== undefined &&
+        lane.partTotalBytes !== undefined
+      ? lane.partTotalBytes
+      : undefined
+  const processedBytes =
+    foregroundPart !== undefined
+      ? foregroundPart.processedBytes
+      : partTotal === undefined
+      ? lane.processedBytes
+      : lane.partTransferredBytes ?? 0
+  const totalBytes = partTotal ?? lane.totalBytes
+  return {
+    provider: cheapLfsRestoreProvider(lane.provider),
+    phase: foregroundPart?.phase ?? lane.phase,
+    relativePath: lane.relativePath,
+    fileOrdinal: lane.fileOrdinal,
+    filesTotal,
+    partOrdinal: foregroundPart?.partOrdinal ?? lane.partOrdinal ?? null,
+    partsTotal: foregroundPart?.partsTotal ?? lane.partsTotal ?? null,
+    processedBytes,
+    totalBytes: totalBytes > 0 ? totalBytes : null,
+    percent:
+      totalBytes > 0
+        ? Math.min(100, Math.floor((processedBytes / totalBytes) * 100))
+        : null,
+  }
+}
+
 function cheapLfsMaterializeRepositoryKey(repository: Repository): string {
   const normalized = Path.normalize(Path.resolve(repository.path))
   return __WIN32__ ? normalized.toLowerCase() : normalized
@@ -1174,20 +1247,51 @@ function cheapLfsOciAutoPinPhase(
   }
 }
 
-function cheapLfsOciTransferProgress(
+export function cheapLfsOciTransferProgress(
   progress: ICheapLfsOciOperationProgress,
-  direction: IGitHubReleaseTransferProgressEvent['direction']
-): IGitHubReleaseTransferProgressEvent {
-  const totalBytes = Math.max(0, progress.transfer?.totalBytes ?? 0)
-  const transferredBytes = Math.min(
-    totalBytes,
-    Math.max(0, progress.transfer?.processedBytes ?? 0)
+  direction: IGitHubReleaseTransferProgressEvent['direction'],
+  logicalTotalBytes?: number
+): ICheapLfsMaterializeTransferProgress {
+  const actualTotalBytes = Math.min(
+    Number.MAX_SAFE_INTEGER,
+    Math.floor(Math.max(0, progress.transfer?.totalBytes ?? 0))
   )
+  const actualTransferredBytes = Math.min(
+    actualTotalBytes,
+    Math.floor(Math.max(0, progress.transfer?.processedBytes ?? 0))
+  )
+  const normalizedLogicalTotal =
+    logicalTotalBytes === undefined
+      ? actualTotalBytes
+      : Math.min(
+          Number.MAX_SAFE_INTEGER,
+          Math.floor(Math.max(0, logicalTotalBytes))
+        )
+  // OCI transfer totals describe the complete image (config, unequal object
+  // layers, and manifest), not the selected pointer's logical bytes. Project
+  // the cumulative image ratio onto that pointer without clamping physical
+  // bytes directly to its usually much smaller logical size.
+  const logicalTransferredBytes =
+    actualTotalBytes > 0
+      ? Number(
+          (BigInt(actualTransferredBytes) * BigInt(normalizedLogicalTotal)) /
+            BigInt(actualTotalBytes)
+        )
+      : 0
   return {
     operationId: `cheap-lfs-oci-${progress.phase}`,
     direction,
-    transferredBytes,
-    totalBytes,
+    transferredBytes: logicalTransferredBytes,
+    totalBytes: normalizedLogicalTotal,
+    ...(logicalTotalBytes === undefined
+      ? {}
+      : {
+          phase: 'downloading' as const,
+          logicalTransferredBytes,
+          logicalTotalBytes: normalizedLogicalTotal,
+          actualTransferredBytes,
+          actualTotalBytes,
+        }),
   }
 }
 
@@ -14771,7 +14875,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     entry: ICheapLfsManagedPointerEntry,
     signal?: AbortSignal,
-    onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
+    onProgress?: (progress: ICheapLfsMaterializeTransferProgress) => void,
     releaseCache = createCheapLfsMaterializeCache()
   ): Promise<ICheapLfsMaterializeResult> {
     if (entry.workingTreeState !== 'pointer') {
@@ -14812,7 +14916,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
           { runtime: session.runtime },
           signal,
           progress =>
-            onProgress?.(cheapLfsOciTransferProgress(progress, 'download'))
+            onProgress?.(
+              cheapLfsOciTransferProgress(
+                progress,
+                'download',
+                entry.pointer.sizeInBytes
+              )
+            )
         )
     )
     return {
@@ -15624,74 +15734,195 @@ export class AppStore extends TypedBaseStore<IAppState> {
           return emptySummary
         }
         const releaseCache = createCheapLfsMaterializeCache()
-        const materialized = new Array<ICheapLfsMaterializeResult>()
-        const failures = new Array<ICheapLfsMaterializeFailure>()
-        let canceled = false
-        const batchTotalBytes = pendingEntries.reduce(
-          (sum, entry) => sum + entry.pointer.sizeInBytes,
-          0
+        const entryByPath = new Map(
+          pendingEntries.map(entry => [entry.relativePath, entry] as const)
         )
-        // Bytes belonging to pointers that have already settled. The in-flight
-        // pointer's own byte progress is added on top so the bar advances
-        // inside a single multi-gigabyte file rather than only between files.
-        let settledBytes = 0
-        const publishRestore = (inFlightBytes: number) =>
-          this.updateCheapLfsRestore({
+        const batchProvider = cheapLfsBatchRestoreProvider(pendingEntries)
+        const startedAt = Date.now()
+        const actualByPath = new Map<
+          string,
+          { downloadedBytes: number; totalBytes: number | null }
+        >()
+
+        // Release pointers carry enough metadata to show their physical
+        // download total before the first request begins. OCI layer sizes are
+        // learned from provider progress instead of guessed from logical bytes.
+        for (const entry of pendingEntries) {
+          if (entry.kind !== 'release') {
+            continue
+          }
+          const actualTotal =
+            entry.pointer.parts?.reduce(
+              (sum, part) =>
+                sum + (part.deflatedSizeInBytes ?? part.sizeInBytes),
+              0
+            ) ?? entry.pointer.sizeInBytes
+          actualByPath.set(entry.relativePath, {
+            downloadedBytes: 0,
+            totalBytes: actualTotal,
+          })
+        }
+
+        const recordActualProgress = (
+          relativePath: string,
+          progress: ICheapLfsMaterializeTransferProgress
+        ) => {
+          const previous = actualByPath.get(relativePath)
+          const downloadedBytes = Math.max(
+            previous?.downloadedBytes ?? 0,
+            progress.actualTransferredBytes ?? progress.transferredBytes
+          )
+          const reportedTotal = progress.actualTotalBytes ?? progress.totalBytes
+          actualByPath.set(relativePath, {
+            downloadedBytes,
+            totalBytes:
+              reportedTotal > 0
+                ? Math.max(previous?.totalBytes ?? 0, reportedTotal)
+                : previous?.totalBytes ?? null,
+          })
+        }
+
+        const publishRestore = (batch: ICheapLfsBatchProgress) => {
+          const elapsedSeconds = Math.max(
+            0,
+            Math.floor((Date.now() - startedAt) / 1_000)
+          )
+          const actualDownloadedBytes =
+            actualByPath.size === 0
+              ? null
+              : [...actualByPath.values()].reduce(
+                  (sum, value) => sum + value.downloadedBytes,
+                  0
+                )
+          const hasCompleteActualTotal = pendingEntries.every(entry => {
+            const total = actualByPath.get(entry.relativePath)?.totalBytes
+            return total !== null && total !== undefined
+          })
+          const actualDownloadTotalBytes = hasCompleteActualTotal
+            ? pendingEntries.reduce(
+                (sum, entry) =>
+                  sum + (actualByPath.get(entry.relativePath)?.totalBytes ?? 0),
+                0
+              )
+            : null
+          const elapsedForRate = Math.max(
+            0.001,
+            (Date.now() - startedAt) / 1_000
+          )
+          const downloadRateBytesPerSecond =
+            actualDownloadedBytes !== null && actualDownloadedBytes > 0
+              ? Math.floor(actualDownloadedBytes / elapsedForRate)
+              : null
+          const logicalRateBytesPerSecond =
+            batch.transferredBytes > 0
+              ? batch.transferredBytes / elapsedForRate
+              : 0
+          const etaSeconds =
+            actualDownloadTotalBytes !== null &&
+            actualDownloadedBytes !== null &&
+            downloadRateBytesPerSecond !== null &&
+            downloadRateBytesPerSecond > 0
+              ? Math.ceil(
+                  Math.max(
+                    0,
+                    actualDownloadTotalBytes - actualDownloadedBytes
+                  ) / downloadRateBytesPerSecond
+                )
+              : logicalRateBytesPerSecond > 0
+              ? Math.ceil(
+                  Math.max(0, batch.totalBytes - batch.transferredBytes) /
+                    logicalRateBytesPerSecond
+                )
+              : null
+          const active = batch.activeMaterializations ?? []
+          const current = active.find(value => value.lane === 'current')
+          const prefetch = active.find(value => value.lane === 'prefetch')
+          const currentLane =
+            current === undefined
+              ? null
+              : cheapLfsRestoreLane(current, batch.totalFiles)
+          const prefetchLane =
+            prefetch === undefined
+              ? null
+              : cheapLfsRestoreLane(prefetch, batch.totalFiles)
+          const succeeded = batch.succeededFiles ?? 0
+          const failed = batch.failedFiles ?? 0
+          const progress: ICheapLfsRestoreProgress = {
             repositoryId: repository.id,
             repositoryName: repository.name,
-            filesCompleted: materialized.length + failures.length,
-            filesTotal: pendingEntries.length,
-            transferredBytes: Math.min(
-              settledBytes + inFlightBytes,
-              batchTotalBytes
-            ),
-            totalBytes: batchTotalBytes,
-          })
-        publishRestore(0)
-        try {
-          for (const entry of pendingEntries) {
-            if (materializeSignal.aborted) {
-              canceled = true
-              break
-            }
-            try {
-              materialized.push(
-                await this.withTemporaryRepositoryMutationGuard(
-                  repository,
-                  () =>
-                    this.materializeCheapLfsEntry(
-                      repository,
-                      entry,
-                      materializeSignal,
-                      progress => {
-                        options.onProgress?.(progress)
-                        publishRestore(progress.transferredBytes)
-                      },
-                      releaseCache
-                    )
-                )
-              )
-            } catch (error) {
-              if ((error as Error)?.name === 'AbortError') {
-                canceled = true
-                break
-              }
-              failures.push({
-                relativePath: entry.relativePath,
-                message: error instanceof Error ? error.message : String(error),
-              })
-            }
-            settledBytes += entry.pointer.sizeInBytes
-            publishRestore(0)
+            provider: batchProvider,
+            phase: materializeSignal.aborted
+              ? 'canceling'
+              : currentLane?.phase ?? 'preparing',
+            filesSucceeded: succeeded,
+            filesFailed: failed,
+            filesRemaining: Math.max(0, batch.totalFiles - succeeded - failed),
+            filesTotal: batch.totalFiles,
+            logicalProcessedBytes: batch.transferredBytes,
+            logicalTotalBytes: batch.totalBytes,
+            actualDownloadedBytes,
+            actualDownloadTotalBytes,
+            downloadRateBytesPerSecond,
+            etaSeconds,
+            elapsedSeconds,
+            queuedFiles:
+              batch.queuedFiles ??
+              Math.max(
+                0,
+                batch.totalFiles - batch.completedFiles - active.length
+              ),
+            queuedParts:
+              batch.queuedParts ??
+              active.reduce(
+                (sum, lane) =>
+                  sum +
+                  Math.max(0, (lane.partsTotal ?? 0) - (lane.partOrdinal ?? 0)),
+                0
+              ),
+            currentLane,
+            prefetchLane,
+            lookAheadThresholdPercent: CheapLfsRestoreLookAheadThresholdPercent,
+            failures: (batch.failures ?? []).map(failure => ({
+              relativePath: failure.relativePath,
+              reason: failure.message,
+            })),
+            cancelRequested: materializeSignal.aborted,
           }
+          this.updateCheapLfsRestore(progress)
+        }
+
+        let summary = emptySummary
+        try {
+          summary = await materializeCheapLfsPointers(
+            pendingEntries,
+            async (relativePath, signal, onProgress) => {
+              const entry = entryByPath.get(relativePath)
+              if (entry === undefined) {
+                throw new Error(
+                  `Cheap LFS restore lost its queued pointer: ${relativePath}`
+                )
+              }
+              return await this.withTemporaryRepositoryMutationGuard(
+                repository,
+                () =>
+                  this.materializeCheapLfsEntry(
+                    repository,
+                    entry,
+                    signal,
+                    progress => {
+                      recordActualProgress(relativePath, progress)
+                      options.onProgress?.(progress)
+                      onProgress(progress)
+                    },
+                    releaseCache
+                  )
+              )
+            },
+            materializeSignal,
+            publishRestore
+          )
         } finally {
           this.updateCheapLfsRestore(null)
-        }
-        const summary: ICheapLfsBatchMaterializeResult = {
-          materialized,
-          failures,
-          totalBytes: batchTotalBytes,
-          canceled,
         }
         this.cheapLfsInventoryCache?.invalidate(repository.path)
         await this._refreshRepository(repository)
@@ -15773,13 +16004,28 @@ export class AppStore extends TypedBaseStore<IAppState> {
     if (owners === undefined) {
       return
     }
+    let canceled = false
     for (const owner of [...owners]) {
       if (
         requestSignal === undefined ||
         owner.requestSignal === requestSignal
       ) {
+        canceled = true
         owner.controller.abort()
       }
+    }
+    const restore = this.cheapLfsRestore
+    if (
+      canceled &&
+      restore != null &&
+      restore.repositoryId === repository.id &&
+      'logicalProcessedBytes' in restore
+    ) {
+      this.updateCheapLfsRestore({
+        ...restore,
+        phase: 'canceling',
+        cancelRequested: true,
+      })
     }
   }
 

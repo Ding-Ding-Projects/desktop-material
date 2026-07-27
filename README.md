@@ -19,6 +19,27 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Locally accepted source — July 27, 2026:** Cheap LFS Release restores now
+> open one bounded look-ahead lane at the exact 90% download point and expose
+> detailed overall/file/part progress. Browser-bound links can also use a
+> secure app-hosted tabbed browser with an explicit system-browser escape.
+> Private repositories now keep a separate lock badge even when their leading
+> repository glyph is a fork or custom logo. The combined 53-file suite passed
+> **652/652**, verifier contracts passed **14/14**, TypeScript is clean, the
+> exact Windows production build completed successfully, and the real built
+> app passed isolated off-screen English/bilingual interaction and privacy
+> inspection. Default-branch merge and push, remote CI, Pages/wiki publication,
+> packaged E2E, and installer/Release evidence remain pending. See
+> [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md)
+> the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
+> and the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
+
+![Detailed Cheap LFS restore progress with the current transfer at exactly 90% and the next transfer already active](docs/assets/screenshots/cheap-lfs-restore-lookahead.png)
+
+![App-hosted browser showing redirect, popup, new-tab, bookmark, and private authentication behavior](docs/assets/screenshots/app-hosted-browser-authentication.png)
+
+![Repository picker showing the separate lock badge for explicit private metadata](docs/assets/screenshots/private-repository-lock-badge.png)
+
 ## Install on Windows
 
 Desktop Material's automated releases provide a per-user x64 Windows installer.

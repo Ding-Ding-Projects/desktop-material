@@ -14,6 +14,12 @@ Material ships. For milestone status and published CI/release evidence, see the
 > bilingual (English / 廣東話) table and labels each one **Added**,
 > **Extended**, or **Inherited** relative to upstream GitHub Desktop.
 
+> **Branch-only continuation:** the July 27 app-hosted browser and exact-90%
+> Cheap LFS restore look-ahead are implemented in the current source but have
+> not completed the combined Windows build, packaged/headless, CI, merge, or
+> publication gates. Their entries below are labelled accordingly and do not
+> revise older release receipts.
+
 **The whole feature set on one page / 成套功能一版睇晒**
 
 ```mermaid
@@ -59,7 +65,7 @@ flowchart LR
   APP --> BASE
 ```
 
-**What the map says.** Desktop Material's 197 features sit in 17 numbered
+**What the map says.** Desktop Material's 198 features sit in 17 numbered
 areas, clustered here five ways: the shell you look at (1 Material 3 shell,
 2 language and audio, 3 tabs and windows, 13 search and the regex builder,
 14 notifications and dialogs); the Git you drive (5 repositories, 6 commits and
@@ -71,7 +77,7 @@ side of Git (11 Build & Run and local AI, 12 automation and the agent API,
 [Complete list](complete-feature-list.md), so the map is an index, not a
 summary.
 
-<sub>**張圖講咩。** Desktop Material 嘅 197 項功能分喺 17 個範疇，呢度夾埋做五嚿：你望住嘅外殼（1 Material 3 外殼、2 語言同聲音、3 分頁同視窗、13 搜尋同 regex、14 通知同對話框）；你揸住嘅 Git（5 倉庫、6 Commit 同分支、7 審閱同 diff、10 Cheap LFS）；你要傾偈嘅供應商（4 帳戶同身分、8 Pull request、9 Actions 同 Release）；Git 前後嗰啲工夫（11 Build & Run 同本機 AI、12 自動化同 agent API、15 編輯器同作業系統）；同埋托住成座嘢嘅地基（16 品質同復原、17 文件同工具）。啲號碼就係 [Complete list](complete-feature-list.md) 嘅章節號，所以呢張係索引，唔係摘要。</sub>
+<sub>**張圖講咩。** Desktop Material 嘅 198 項功能分喺 17 個範疇，呢度夾埋做五嚿：你望住嘅外殼（1 Material 3 外殼、2 語言同聲音、3 分頁同視窗、13 搜尋同 regex、14 通知同對話框）；你揸住嘅 Git（5 倉庫、6 Commit 同分支、7 審閱同 diff、10 Cheap LFS）；你要傾偈嘅供應商（4 帳戶同身分、8 Pull request、9 Actions 同 Release）；Git 前後嗰啲工夫（11 Build & Run 同本機 AI、12 自動化同 agent API、15 編輯器同作業系統）；同埋托住成座嘢嘅地基（16 品質同復原、17 文件同工具）。啲號碼就係 [Complete list](complete-feature-list.md) 嘅章節號，所以呢張係索引，唔係摘要。</sub>
 
 **Advanced Git and collaboration workflows (M21)**
 
@@ -252,6 +258,29 @@ membership, because a group belongs to the profile that receives the import.
 - Repositories can be pinned from their context menu into a dedicated top group
 - Provider triage consumes the same exact repository-account binding selected in Repository Settings. One valid matching identity can bind an unassigned repository; multiple matches require an explicit labelled choice; missing, stale, permission, and organization-SSO states route to the appropriate sign-in or account-management recovery without silently replacing a valid binding
 
+**App-hosted browser — implemented on the current branch; integrated acceptance pending**
+
+- **Settings → Advanced → Open web links** persists whether HTTP(S) links open
+  inside Desktop Material or in the system browser
+- The app-hosted window supplies tabs, New tab, Back, Forward, Refresh/Stop, a
+  labelled URL bar, Go, ordinary bookmarks, and **Open externally**; bare hosts
+  become HTTPS, while arbitrary text is never sent to a search provider
+- Remote pages run in sandboxed `WebContentsView` tabs without Node, preload,
+  app IPC trust, Electron permissions, downloads, or certificate bypass.
+  Redirects remain in the current tab, `window.open` is captured into a new
+  trusted-chrome tab, and query/fragment/credential data is removed from logs
+  and bookmarks
+- Authentication uses an explicit intent, an in-memory session, no bookmarks,
+  automatic storage/cache cleanup, and a visible **Continue in system browser**
+  escape. See the [security and recovery contract](../features/integrations/app-hosted-browser.md)
+
+<sub>**App 內瀏覽器 — branch 已經整好，整合驗收仲排緊隊。** 你可以喺
+**Settings → Advanced → Open web links** 揀連結喺 app 入面定系統瀏覽器開。App
+內嗰個有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；遠端網頁鎖喺
+sandboxed `WebContentsView`，冇 Node、冇 preload、冇 app IPC 信任、冇權限、唔會
+幫你下載或者繞過壞憑證。登入分頁用記憶體工作階段、加唔到書籤，閂咗會清資料，
+亦永遠有得轉去系統瀏覽器。</sub>
+
 **Versioned settings & history**
 - Ordinary per-account settings remain in the profile Git repository and **Edit → Settings History…** (`Ctrl+Alt+Z`). Appearance and per-tab visual changes use the narrower element-local histories reached from their anchored editors
 - Each appearance editor names and copies its exact local repository path; every element-local undo, redo, or restore appends an audit commit instead of rewriting history
@@ -358,7 +387,7 @@ matches ask you to choose. Account credentials are never returned in a result.
   direct **Large files** manager lists, searches, pins, and materializes
   Release- and OCI-backed Cheap LFS pointers. It owns the repository page's
   vertical scroll, so a long inventory stays reachable, and its direct
-  **Open Cheap LFS settings** action opens **Repository settings → Build & run**.
+  **Open Cheap LFS settings** action opens **Repository settings → Cheap LFS**.
   For Release storage, automatic
   uploads prefer the trusted, isolated `gh api` exact-range transport, avoiding
   Electron's crash-prone native upload pipe when GitHub CLI is available; the
@@ -393,6 +422,13 @@ matches ask you to choose. Account credentials are never returned in a result.
   phases/bytes, worker and queue state, provider context, elapsed time,
   throughput, and ETA in a keyboard-accessible compact terminal below Commit.
   The panel also reports the selected-versus-recommended provider.
+  Release restore is separately capped at two shared download lanes: the next
+  file or multipart part starts only when the current provider transfer reaches
+  the exact 90% point. The shared restore panel distinguishes current and
+  look-ahead lanes; file/part ordinals; logical versus actual network bytes;
+  download, decompress, verify, materialize, and cancel phases; queue,
+  successes, failures, elapsed time, rate, and ETA. This continuation is
+  branch-only pending integrated Windows/build/CI acceptance.
   Failed raw
   files stay selected for retry while unrelated changes and successful pointers
   may commit. The Changes filter can isolate files over the same 100 MiB

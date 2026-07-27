@@ -5,6 +5,14 @@
 The generated mark above is documentation artwork. It is not embedded in the
 pointer format and is not required by the transfer protocol.
 
+> **Current restore continuation — July 27, 2026:** the current branch adds an
+> exact-90% two-lane Release restore pipeline and a substantially more detailed
+> shared restore-progress surface. Focused local coverage has passed, but the
+> combined production build, packaged Windows/headless acceptance, remote CI,
+> merge, and publication receipts remain pending. The historical live
+> acceptance evidence below is still evidence for the earlier shipped restore;
+> it must not be read as acceptance of this branch-only continuation.
+
 ![Cheap LFS manager after a live private-repository UI pin](../../assets/screenshots/cheap-lfs-ui-acceptance.png)
 
 The inspected acceptance frame above comes from the production bundle running
@@ -63,7 +71,7 @@ can fetch its assets while the bucket remains outside the installer's stable
 `/releases/latest` update feed. A draft created by an older Desktop Material is
 published in place only after its exact reviewed identity is revalidated.
 A file at or below the per-asset cap initially uploads as one raw asset. A
-larger file is split into ordered raw parts of at most 1.5 GiB — GitHub allows
+larger file is split into ordered raw parts of at most 500 MiB — GitHub allows
 release assets up to 2 GiB, but uploads near that ceiling proved unreliable,
 so new parts stay well below it — and the pointer records every part's name,
 size, and SHA-256 as well as the whole-file size and digest. The raw upload is
@@ -375,6 +383,60 @@ enabled by default for compatibility:
   never keep a stale pointer state (which previously also suppressed the
   local-deletion warning on Remove).
 
+### Exact-90% restore look-ahead and detailed progress
+
+Release-backed restore now uses one shared, batch-local download coordinator
+with a hard maximum of **two active HTTP downloads**. The current file or part
+keeps its first lane. As soon as the provider reports
+`transferred / total >= 90%`, the next file or multipart part may enter the
+second look-ahead lane. A report at 899/1000 does not open it; 900/1000 does.
+The threshold is fixed rather than user-configurable, so every clone/open,
+fetch/pull, single-file, and Materialize-all path gets the same bound.
+
+Multipart restore applies the same rule inside one pointer: resolve every
+required asset first, start part 1, and begin part 2 at part 1's exact 90%
+network point. The shared coordinator still caps the entire nested operation
+at two downloads, so file-level and part-level look-ahead cannot multiply into
+unbounded traffic. If a provider supplies no usable progress total, settlement
+of the current transfer is the conservative fallback that opens the next lane.
+
+Look-ahead is only a download scheduling optimization. Every part is still
+decompressed when required, checked against its own recorded size and SHA-256,
+assembled in pointer order, checked against the whole-file size and SHA-256,
+and atomically published only while the tracked pointer is unchanged. A failed
+prefetch is drained and its owned temporary data is cleaned; a failure stays
+attached to its input path and remaining pointers continue. Cancellation stops
+new work, aborts queued or active downloads, drains the two lanes, and leaves
+unverified pointers untouched.
+
+The shared restore panel is used by the Large files surface and clone/batch
+restore progress. It exposes substantially more than one aggregate percentage:
+
+- repository, provider, phase, current path, file ordinal, and multipart
+  ordinal;
+- succeeded, failed, remaining, total, queued-file, and queued-part counts;
+- logical restored bytes and, when the provider supplies them, actual
+  downloaded/compressed bytes;
+- overall progress plus separate **Current** and **Next at 90%** lane bars;
+- downloading, decompressing, verifying, materializing, and canceling states;
+- elapsed time, observed download rate, ETA, and the fixed 90% handoff point;
+  and
+- bounded per-file failure details plus an honest cancellation state.
+
+Visible counters and bars may update continuously, while the screen-reader live
+summary is bucketed to meaningful 10% transitions so frequent transfer events
+do not flood announcements. Reduced-motion mode removes the active shimmer,
+and narrow/bilingual layouts wrap rather than clipping at high Windows scale.
+Legacy sequential progress is adapted into this richer model, keeping older
+callers truthful while they adopt lane detail.
+
+<sub>**香港粵語速讀。** 而家下載去到**真係 90%**，下一個檔或者下一 part 就可以
+入第二條 lane 開工；89.9% 仲未得，啱啱 90% 就得。成個 batch 無論點套娃都最多兩
+個下載，唔會一開預取就成村人衝出去。介面會分開顯示目前／下一條 lane、檔同 part
+次序、邏輯還原位元組、實際下載位元組、速度、ETA、成功／失敗／排隊／剩餘，同埋
+下載、解壓、驗證、落盤、取消各階段。快係快咗，但 SHA-256、大小、指標冇變先換檔
+嗰啲安全檢查，一樣一粒都冇少。</sub>
+
 The Changes filter includes a **Large files** chip that matches working-tree
 files strictly over the same 100 MiB Cheap LFS threshold. Its bounded,
 generation-fenced size scan combines with text, regex, included/excluded, and
@@ -641,7 +703,9 @@ requests.
 Automatic clone/open materialization and explicit Materialize-all work share a
 repository-scoped scheduler. This keeps two UI entry points from concurrently
 publishing the same restored path through separate compare-and-swap recovery
-flows.
+flows. Within one active Release batch, the nested file/part download
+coordinator is separately capped at two lanes and opens its look-ahead lane only
+at the fixed 90% transfer boundary described above.
 
 ### When a path identity may replace a content re-hash
 
@@ -1237,6 +1301,16 @@ workflow content at the managed path is never overwritten.
 
 ## Verification
 
+The July 27 branch checkpoint passed **42/42** focused restore-progress checks
+covering the canonical model, shared renderer, styles, batch-clone integration,
+localization, exact 899/1000 versus 900/1000 threshold behavior, reduced motion,
+and narrow-layout copy. A focused **15/15** operations/AppStore integration
+gate also passed for the two-lane scheduler and production progress routing.
+Those are branch-local focused receipts only. The combined TypeScript/build
+gate, full unit and script suites, production bundle launch, real multi-part
+network exercise, packaged Windows E2E, off-screen 100–200% visual acceptance,
+remote CI, and publication remain pending.
+
 ### Live GitHub and Desktop Material UI acceptance — 2026-07-22
 
 Live acceptance used one retained public repository and one retained private
@@ -1323,11 +1397,11 @@ and digest. The corrected Action's bounded draft lookup produced the succeeding
 public and private results above. The full run, asset, pointer, screenshot, and
 remaining publication record is in the cloud-compression acceptance receipt.
 
-The focused Large files UI test also pins the factual 1.5 GiB-part copy.
+The focused Large files UI test also pins the factual 500 MiB-part copy.
 
 `cheap-lfs/pointer-test.ts` covers canonical single/multipart pointers, legacy
 deflated compatibility, size limits, part totals, path normalization, and the
-1.5 GiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
+500 MiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
 deduplicated asset names, 1,000-asset rollover without splitting groups,
 mutation reviews, attempt-owned cleanup, source race checks, cancellation,
 per-part and whole-file verification, paginated inventory reuse, and atomic

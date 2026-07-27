@@ -81,8 +81,8 @@ import {
 import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 
 import { RepositoriesList } from './repositories-list'
+import { CheapLfsRestoreProgress } from './lib/cheap-lfs-restore-progress'
 import { OperationProgressRow } from './lib/operation-progress-row'
-import { formatBytes } from './lib/bytes'
 import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
@@ -5863,10 +5863,9 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   /**
-   * The app-wide Cheap LFS restore strip. The automatic materialize runs after
-   * clone, repository selection, fetch and pull — none of which have the Cheap
-   * LFS panel open — and can move many gigabytes, so it gets a determinate
-   * byte bar and a cancel right under the toolbar.
+   * The app-wide Cheap LFS restore strip. One shared progress card exposes the
+   * foreground and 90%-look-ahead lanes plus logical/network/timing detail for
+   * clone, selection, fetch and pull restores.
    */
   private renderCheapLfsRestoreProgress() {
     const restore = this.state.cheapLfsRestore
@@ -5880,24 +5879,14 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     return (
       <div className="cheap-lfs-restore-strip">
-        <OperationProgressRow
-          label={translateForAccessibleName('cheapLfs.restore.label')}
-          description={t('cheapLfs.restore.status', {
-            files: `${restore.filesCompleted}/${restore.filesTotal}`,
-            bytes: `${formatBytes(restore.transferredBytes)} / ${formatBytes(
-              restore.totalBytes
-            )}`,
-          })}
-          value={restore.transferredBytes}
-          max={restore.totalBytes > 0 ? restore.totalBytes : null}
-          countText={`${restore.filesCompleted}/${restore.filesTotal}`}
-          detail={restore.repositoryName}
+        <CheapLfsRestoreProgress
+          progress={restore}
+          onCancel={
+            repository instanceof Repository
+              ? this.onCancelCheapLfsRestore
+              : undefined
+          }
         />
-        {repository instanceof Repository && (
-          <Button onClick={this.onCancelCheapLfsRestore}>
-            {t('cheapLfs.restore.cancel')}
-          </Button>
-        )}
       </div>
     )
   }

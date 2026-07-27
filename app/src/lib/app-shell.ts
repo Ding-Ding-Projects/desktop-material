@@ -10,6 +10,18 @@ import {
   forceDeleteDirectory,
 } from '../ui/main-process-proxy'
 import { externalOpenGuard, externalOpenTarget } from './external-open-guard'
+import {
+  BrowserOpenIntent,
+  BrowserOpenMode,
+  getBrowserOpenModePreference,
+} from './internal-browser'
+
+export interface IAppShellOpenExternalOptions {
+  /** Override the global setting for this launch only. */
+  readonly mode?: BrowserOpenMode
+  /** Explicitly marks a launch as an authentication flow. */
+  readonly intent?: BrowserOpenIntent
+}
 
 export interface IAppShell {
   readonly moveItemToTrash: (path: string) => Promise<void>
@@ -21,7 +33,10 @@ export interface IAppShell {
    */
   readonly forceDeleteDirectory: (path: string) => Promise<void>
   readonly beep: () => void
-  readonly openExternal: (path: string) => Promise<boolean>
+  readonly openExternal: (
+    path: string,
+    options?: IAppShellOpenExternalOptions
+  ) => Promise<boolean>
   /**
    * Reveals the specified file using the operating
    * system default application.
@@ -56,7 +71,11 @@ export const shell: IAppShell = {
   moveItemToTrash,
   forceDeleteDirectory,
   beep: electronShell.beep,
-  openExternal,
+  openExternal: (path, options = {}) =>
+    openExternal(path, {
+      mode: options.mode ?? getBrowserOpenModePreference(),
+      intent: options.intent ?? 'default',
+    }),
   showItemInFolder,
   showFolderContents,
   openPath: electronShell.openPath,

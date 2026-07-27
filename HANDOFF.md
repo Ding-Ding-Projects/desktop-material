@@ -217,7 +217,115 @@ rendered, zero colour-audit warnings, and Chromium reported **0** non-`file:`
 requests for the published pages in both colour schemes. `npx prettier --check`
 passes on every touched non-Markdown file. Not yet verified against the
 deployed Pages site.
+## 2026-07-27 — Exact-90% restore, app-hosted browser, and private badge (local acceptance complete)
 
+Three user-facing continuations are locally accepted on the task branch. They
+are not yet merged or pushed to the default branch, packaged, published, or
+included in an installer/Release; do not attach older Cheap LFS live receipts
+or the current installer badge to these changes.
+
+**Cheap LFS restore scheduling and progress**
+
+- `app/src/lib/cheap-lfs/operations.ts` gives one Release restore batch a FIFO
+  coordinator capped at two active HTTP downloads. File-level and multipart
+  look-ahead both use the same fixed threshold: 899/1000 stays single-lane and
+  900/1000 may start the next file or part. A provider with no usable progress
+  total opens the next lane only when the current transfer settles.
+- The look-ahead changes download scheduling only. Ordered part
+  decompression/verification, part and whole-file size/SHA-256 proofs,
+  unchanged-pointer compare-and-replace, input-ordered results, cancellation
+  draining, and owned-temp cleanup remain in the materialization path. The
+  shared coordinator prevents nested file/part prefetch from exceeding two
+  downloads.
+- `app/src/lib/cheap-lfs/restore-progress.ts` defines the canonical UI model:
+  repository/provider/phase, file totals, logical and actual downloaded bytes,
+  rate/ETA/elapsed time, queued work, fixed threshold, bounded failures,
+  cancel state, and separate current/look-ahead lane detail including file and
+  multipart ordinals.
+- `app/src/ui/lib/cheap-lfs-restore-progress.tsx` is reused by the Large files
+  manager and batch-clone restore progress. It keeps exact visible counters,
+  buckets screen-reader announcements to meaningful 10% transitions, removes
+  active shimmer under reduced motion, and wraps narrow/bilingual content
+  rather than clipping. Legacy sequential progress is adapted into the same
+  contract.
+- The combined local gate described below supersedes the earlier 42/42 and
+  15/15 focused checkpoints.
+
+**App-hosted browser**
+
+- `app/src/lib/internal-browser.ts` owns strict HTTP(S) normalization,
+  credential/query/fragment redaction, bounded bookmark persistence, the
+  persisted internal/external setting, explicit default/authentication intent,
+  serializable state, and runtime command/bounds validation.
+- `app/src/main-process/internal-browser-window.ts` separates trusted local
+  browser chrome from remote `WebContentsView` tabs. Remote content has Node
+  and preload disabled, context isolation/sandbox/web security enabled,
+  permissions and downloads denied, certificate errors refused, and no trusted
+  Desktop Material IPC registration. Valid HTTP(S) redirects stay in place,
+  `window.open` targets are captured into new tabs, app callbacks return to the
+  app, and only the allowlisted `mailto:`, `tel:`, and `ms-settings:` schemes
+  escape to Windows.
+- `app/src/internal-browser/` supplies New tab, close/activate tabs, URL bar,
+  Back/Forward, Refresh/Stop, Go, ordinary bookmarks, and **Open externally**.
+  Authentication tabs show a SIGN IN chip, cannot be bookmarked, use one
+  in-memory partition, clear its storage/cache after use, and expose
+  **Continue in system browser**.
+- `app/src/ui/preferences/advanced.tsx` persists the global choice. Main/menu
+  routing uses that choice for browser-bound links while authentication intent
+  remains explicit rather than inferred from URL text. Webpack produces a
+  separate trusted browser-chrome bundle.
+- The built browser passed the local redirect, popup, New tab, query-stripped
+  bookmark, authentication-session, and external-escape receipt described
+  below.
+
+**Private-repository lock badge**
+
+- `app/src/ui/repositories-list/repository-list-item.tsx` renders a separate
+  filled Material lock only when provider metadata is exactly
+  `isPrivate === true`. `false`, `null`, and missing GitHub metadata render no
+  privacy claim.
+- The lock remains visible beside a fork glyph or custom logo, is
+  keyboard-focusable, exposes a localized tooltip, and contributes **Private
+  repository** to the canonical row accessible name. Its fixed 22 px shape
+  (20 px in compact density) does not widen or clip bilingual rows.
+- The UI does not infer privacy from a URL, account, remote name, access
+  failure, or local filesystem state.
+
+**Local acceptance**
+
+- The combined browser, Cheap LFS restore, IPC, localization, and
+  private-badge test run passed **652/652 across 53 files**.
+- The two deterministic verifier contract suites passed **14/14**.
+- Full `tsc --noEmit` completed cleanly.
+- The exact Windows production command completed with `returncode 0`,
+  `timed_out false`, `client_ok true`, and no stderr. The resulting `out`
+  directory includes the normal renderer/main assets and the
+  `internal-browser` HTML, JavaScript, and CSS assets.
+- The real built app ran on an isolated hidden Win32 desktop. Wide English and
+  narrow bilingual restore receipts both proved the current lane at exactly
+  **90%** and the already-running next lane at **10%**, with no clipping,
+  overlap, or private data. The browser receipt proved same-tab redirect,
+  popup capture into a new tab, New tab, query-stripped bookmark storage, and
+  the explicit authentication escape without using a real account or
+  credential. The private-repository badge receipt proved the separate lock in
+  the real repository picker.
+
+| Accepted local capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/cheap-lfs-restore-lookahead.png` | 1440×960 | 106,724 | `001e9d09e95cf81c981f4b97a33c2aab958a93fce8eca064a8d0cea9df1e3a96` |
+| `docs/assets/screenshots/app-hosted-browser-authentication.png` | 1144×741 | 65,346 | `257960b35797e2f7e5f2a8e442c353e656d98af5ef4a088fe30113b641293f69` |
+| `docs/assets/screenshots/private-repository-lock-badge.png` | 960×660 | 87,517 | `7cf7e27565bceb3d584c24752c2e066b29abdbcafe066b25250fa65d3284de9a` |
+
+**Remaining gates**
+
+Default-branch integration and push, packaged Windows E2E, remote CI,
+installer/Release evidence, and Pages/wiki publication remain pending. No
+remote or release success is claimed by this local receipt.
+
+Feature contracts:
+[Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
+[App-hosted browser](docs/features/integrations/app-hosted-browser.md), and
+[Private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 ## 2026-07-27 — Documentation search no longer compiles reader regex on the UI thread (#69)
 
 `site/docs-search.html`, published as `/docs/search.html`, built and compiled

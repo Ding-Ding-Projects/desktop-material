@@ -3300,6 +3300,405 @@ function ensureMaterializeNotCanceled(signal: AbortSignal | undefined): void {
 }
 
 /**
+ * Release restores deliberately keep at most two HTTP downloads active. One
+ * slot belongs to the transfer approaching completion and the second lets the
+ * next file/part begin at the 90% look-ahead point.
+ */
+export const CheapLfsMaximumConcurrentMaterializeDownloads = 2
+
+/** The exact transfer percentage which opens the restore look-ahead lane. */
+export const CheapLfsMaterializeLookAheadThresholdPercent = 90
+const CheapLfsMaterializeLookAheadFraction =
+  CheapLfsMaterializeLookAheadThresholdPercent / 100
+
+/** Observable Release restore phases after pointer/release preparation. */
+export type CheapLfsMaterializePhase =
+  | 'downloading'
+  | 'decompressing'
+  | 'verifying'
+  | 'materializing'
+
+/**
+ * Release-specific detail carried alongside the legacy transfer event. The
+ * optional fields keep OCI and older callers structurally compatible while
+ * allowing the restore UI to distinguish network bytes from logical bytes and
+ * name the active part.
+ */
+export interface ICheapLfsMaterializeTransferProgress
+  extends IGitHubReleaseTransferProgressEvent {
+  readonly phase?: CheapLfsMaterializePhase
+  readonly logicalTransferredBytes?: number
+  readonly logicalTotalBytes?: number
+  readonly actualTransferredBytes?: number
+  readonly actualTotalBytes?: number
+  /** One-based ordinal of the part whose event caused this update. */
+  readonly partOrdinal?: number
+  readonly partsTotal?: number
+  readonly partTransferredBytes?: number
+  readonly partTotalBytes?: number
+  /**
+   * Stable, ordinal-sorted snapshot of every concurrently active multipart
+   * part. The top-level part fields mirror the first entry, so a later part's
+   * callback can never make the UI jump forward and then back again.
+   */
+  readonly activeParts?: ReadonlyArray<ICheapLfsActiveMaterializePartProgress>
+  /** Multipart parts not yet admitted to a network lane for this file. */
+  readonly queuedParts?: number
+}
+
+/** One started, not-yet-verified part of a multipart restore. */
+export interface ICheapLfsActiveMaterializePartProgress {
+  readonly partOrdinal: number
+  readonly partsTotal: number
+  readonly phase: CheapLfsMaterializePhase
+  readonly processedBytes: number
+  readonly totalBytes: number
+  readonly downloadComplete: boolean
+}
+
+/** Shared batch-local gate for Release asset downloads. */
+export interface ICheapLfsMaterializeDownloadCoordinator {
+  run<T>(signal: AbortSignal, download: () => Promise<T>): Promise<T>
+}
+
+interface ICheapLfsMaterializeDownloadWaiter {
+  readonly signal: AbortSignal
+  readonly resolve: (release: () => void) => void
+  readonly reject: (error: Error) => void
+  readonly cancel: () => void
+}
+
+class CheapLfsMaterializeDownloadCoordinator
+  implements ICheapLfsMaterializeDownloadCoordinator
+{
+  private active = 0
+  private readonly waiters = new Array<ICheapLfsMaterializeDownloadWaiter>()
+
+  public constructor(private readonly maximumConcurrency: number) {}
+
+  public async run<T>(
+    signal: AbortSignal,
+    download: () => Promise<T>
+  ): Promise<T> {
+    const release = await this.acquire(signal)
+    try {
+      ensureMaterializeNotCanceled(signal)
+      return await download()
+    } finally {
+      release()
+    }
+  }
+
+  private acquire(signal: AbortSignal): Promise<() => void> {
+    if (signal.aborted) {
+      return Promise.reject(
+        abortError('Cheap LFS materialization was canceled before downloading.')
+      )
+    }
+    if (this.active < this.maximumConcurrency) {
+      return Promise.resolve(this.occupy())
+    }
+
+    return new Promise<() => void>((resolve, reject) => {
+      const cancel = () => {
+        const index = this.waiters.indexOf(waiter)
+        if (index >= 0) {
+          this.waiters.splice(index, 1)
+        }
+        signal.removeEventListener('abort', cancel)
+        reject(
+          abortError(
+            'Cheap LFS materialization was canceled while waiting to download.'
+          )
+        )
+      }
+      const waiter: ICheapLfsMaterializeDownloadWaiter = {
+        signal,
+        resolve,
+        reject,
+        cancel,
+      }
+      this.waiters.push(waiter)
+      signal.addEventListener('abort', cancel, { once: true })
+      if (signal.aborted) {
+        cancel()
+      }
+    })
+  }
+
+  private occupy(): () => void {
+    this.active++
+    let released = false
+    return () => {
+      if (released) {
+        return
+      }
+      released = true
+      this.active--
+      this.startNext()
+    }
+  }
+
+  private startNext(): void {
+    while (this.waiters.length > 0) {
+      const waiter = this.waiters.shift()!
+      waiter.signal.removeEventListener('abort', waiter.cancel)
+      if (waiter.signal.aborted) {
+        waiter.reject(
+          abortError(
+            'Cheap LFS materialization was canceled while waiting to download.'
+          )
+        )
+        continue
+      }
+      waiter.resolve(this.occupy())
+      return
+    }
+  }
+}
+
+/**
+ * Create a FIFO coordinator shared by every Release pointer in one restore
+ * batch. The maximum remains fixed at two so nested file/part look-ahead cannot
+ * cascade into an unbounded number of network transfers.
+ */
+export function createCheapLfsMaterializeDownloadCoordinator(): ICheapLfsMaterializeDownloadCoordinator {
+  return new CheapLfsMaterializeDownloadCoordinator(
+    CheapLfsMaximumConcurrentMaterializeDownloads
+  )
+}
+
+function hasReachedCheapLfsMaterializeLookAhead(
+  transferredBytes: number,
+  totalBytes: number
+): boolean {
+  return (
+    Number.isFinite(transferredBytes) &&
+    Number.isFinite(totalBytes) &&
+    totalBytes > 0 &&
+    Math.max(0, transferredBytes) / totalBytes >=
+      CheapLfsMaterializeLookAheadFraction
+  )
+}
+
+function boundedCheapLfsTransferBytes(value: number, maximum: number): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0
+  }
+  return Math.min(maximum, Math.floor(value))
+}
+
+/**
+ * Convert transfer/stage progress into truthful whole-file work.
+ *
+ * Network bytes occupy the first 85% of the aggregate. Decompression,
+ * verification, assembly, and atomic replacement advance the remaining band,
+ * but an unsettled file is always held below 100%. The scheduler continues to
+ * use the unweighted physical transfer ratio for its exact 90% look-ahead.
+ */
+export function cheapLfsMaterializeStageAwareLogicalBytes(
+  progress: ICheapLfsMaterializeTransferProgress,
+  logicalTotalBytes: number
+): number {
+  const total = boundedCheapLfsTransferBytes(
+    logicalTotalBytes,
+    Number.MAX_SAFE_INTEGER
+  )
+  if (total === 0) {
+    return 0
+  }
+  const transferred = boundedCheapLfsTransferBytes(
+    progress.logicalTransferredBytes ?? progress.transferredBytes,
+    total
+  )
+  const phase = progress.phase ?? 'downloading'
+  const weighted =
+    phase === 'materializing'
+      ? Math.floor((total * 99) / 100)
+      : Math.floor(
+          (transferred *
+            (phase === 'verifying'
+              ? 95
+              : phase === 'decompressing'
+              ? 90
+              : 85)) /
+            100
+        )
+  return Math.min(total - 1, weighted)
+}
+
+interface ICheapLfsMaterializeDownloadPart {
+  readonly assetId: number
+  readonly logicalBytes: number
+  readonly actualBytes: number
+}
+
+interface ICheapLfsMaterializeDownloadProgressTracker {
+  report(index: number, progress: IGitHubReleaseTransferProgressEvent): void
+  complete(index: number): void
+  stage(index: number, phase: CheapLfsMaterializePhase): void
+  settle(index: number): void
+}
+
+/**
+ * Aggregate concurrently interleaved part events without letting an older
+ * callback move the whole-file bar backwards. Completion emits a synthetic
+ * final event when a provider omitted progress entirely, which also gives the
+ * file scheduler its no-progress look-ahead fallback.
+ */
+function createCheapLfsMaterializeDownloadProgressTracker(
+  releaseId: number,
+  parts: ReadonlyArray<ICheapLfsMaterializeDownloadPart>,
+  logicalTotalBytes: number,
+  onProgress:
+    | ((progress: ICheapLfsMaterializeTransferProgress) => void)
+    | undefined
+): ICheapLfsMaterializeDownloadProgressTracker {
+  const actualByPart = parts.map(() => 0)
+  const logicalByPart = parts.map(() => 0)
+  const lastEventByPart = new Array<
+    IGitHubReleaseTransferProgressEvent | undefined
+  >(parts.length)
+  const phaseByPart = parts.map<CheapLfsMaterializePhase>(() => 'downloading')
+  const startedByPart = parts.map(() => false)
+  const settledByPart = parts.map(() => false)
+
+  const emit = (
+    index: number,
+    progress: IGitHubReleaseTransferProgressEvent,
+    completed: boolean,
+    phase: CheapLfsMaterializePhase | undefined
+  ) => {
+    if (phase !== undefined) {
+      startedByPart[index] = true
+      phaseByPart[index] = phase
+    }
+    const part = parts[index]
+    const previousActual = actualByPart[index]
+    const actual = completed
+      ? part.actualBytes
+      : Math.max(
+          previousActual,
+          boundedCheapLfsTransferBytes(
+            progress.transferredBytes,
+            part.actualBytes
+          )
+        )
+    actualByPart[index] = actual
+    logicalByPart[index] =
+      part.actualBytes > 0
+        ? Math.max(
+            logicalByPart[index],
+            Math.min(
+              part.logicalBytes,
+              Math.round((actual / part.actualBytes) * part.logicalBytes)
+            )
+          )
+        : completed
+        ? part.logicalBytes
+        : 0
+    const logicalTransferredBytes = Math.min(
+      logicalTotalBytes,
+      logicalByPart.reduce((sum, value) => sum + value, 0)
+    )
+    const actualTransferredBytes = actualByPart.reduce(
+      (sum, value) => sum + value,
+      0
+    )
+    const actualTotalBytes = parts.reduce(
+      (sum, candidate) => sum + candidate.actualBytes,
+      0
+    )
+    const activeParts = parts.flatMap(
+      (candidate, candidateIndex): ICheapLfsActiveMaterializePartProgress[] =>
+        startedByPart[candidateIndex] && !settledByPart[candidateIndex]
+          ? [
+              {
+                partOrdinal: candidateIndex + 1,
+                partsTotal: parts.length,
+                phase: phaseByPart[candidateIndex],
+                processedBytes: actualByPart[candidateIndex],
+                totalBytes: candidate.actualBytes,
+                downloadComplete:
+                  actualByPart[candidateIndex] >= candidate.actualBytes,
+              },
+            ]
+          : []
+    )
+    const foreground = activeParts[0]
+    const foregroundIndex =
+      foreground === undefined ? index : foreground.partOrdinal - 1
+    const foregroundPart = parts[foregroundIndex]
+    const foregroundEvent = lastEventByPart[foregroundIndex] ?? progress
+    const foregroundActual = actualByPart[foregroundIndex]
+
+    onProgress?.({
+      ...foregroundEvent,
+      direction: 'download',
+      phase: foreground?.phase ?? phaseByPart[foregroundIndex],
+      // Preserve the legacy logical whole-file contract while exposing the
+      // actual compressed/network totals in the richer fields below.
+      transferredBytes: logicalTransferredBytes,
+      totalBytes: logicalTotalBytes,
+      logicalTransferredBytes,
+      logicalTotalBytes,
+      actualTransferredBytes,
+      actualTotalBytes,
+      partOrdinal: foregroundIndex + 1,
+      partsTotal: parts.length,
+      partTransferredBytes: foregroundActual,
+      partTotalBytes: foregroundPart.actualBytes,
+      activeParts,
+      queuedParts: startedByPart.filter(started => !started).length,
+    })
+  }
+
+  return {
+    report: (index, progress) => {
+      lastEventByPart[index] = progress
+      emit(index, progress, false, 'downloading')
+    },
+    complete: index => {
+      const part = parts[index]
+      const lastEvent: IGitHubReleaseTransferProgressEvent = lastEventByPart[
+        index
+      ] ?? {
+        operationId: `cheap-lfs-materialize-${releaseId}-${part.assetId}`,
+        direction: 'download',
+        transferredBytes: part.actualBytes,
+        totalBytes: part.actualBytes,
+      }
+      emit(index, lastEvent, true, 'downloading')
+    },
+    stage: (index, phase) => {
+      const part = parts[index]
+      const lastEvent: IGitHubReleaseTransferProgressEvent = lastEventByPart[
+        index
+      ] ?? {
+        operationId: `cheap-lfs-materialize-${releaseId}-${part.assetId}`,
+        direction: 'download',
+        transferredBytes: 0,
+        totalBytes: part.actualBytes,
+      }
+      emit(index, lastEvent, false, phase)
+    },
+    settle: index => {
+      settledByPart[index] = true
+      const part = parts[index]
+      const lastEvent: IGitHubReleaseTransferProgressEvent = lastEventByPart[
+        index
+      ] ?? {
+        operationId: `cheap-lfs-materialize-${releaseId}-${part.assetId}`,
+        direction: 'download',
+        transferredBytes: part.actualBytes,
+        totalBytes: part.actualBytes,
+      }
+      emit(index, lastEvent, false, undefined)
+    },
+  }
+}
+
+/**
  * Download a single-asset pointer's asset to a sibling temp, verify its streamed
  * SHA-256 and size against the pointer, and atomically rename it over the
  * tracked path. Any failure deletes the temp file and leaves the pointer intact.
@@ -3316,8 +3715,9 @@ async function materializeSingleAsset(
   trackedPaths: ICheapLfsTrackedPathStore | undefined,
   signal: AbortSignal | undefined,
   onProgress:
-    | ((progress: IGitHubReleaseTransferProgressEvent) => void)
+    | ((progress: ICheapLfsMaterializeTransferProgress) => void)
     | undefined,
+  downloadCoordinator: ICheapLfsMaterializeDownloadCoordinator,
   fs: ICheapLfsFileSystem
 ): Promise<ICheapLfsMaterializeResult> {
   const asset = resolveReleaseAsset(
@@ -3335,17 +3735,35 @@ async function materializeSingleAsset(
   )
   let downloadedPath = temporaryPath
   let trackedStoreOwnsDownload = false
+  const materializeSignal = signal ?? new AbortController().signal
+  const progress = createCheapLfsMaterializeDownloadProgressTracker(
+    release.id,
+    [
+      {
+        assetId: asset.id,
+        logicalBytes: pointer.sizeInBytes,
+        actualBytes: asset.sizeInBytes,
+      },
+    ],
+    pointer.sizeInBytes,
+    onProgress
+  )
   try {
-    const download = await releases.downloadAsset(
-      repository,
-      release.id,
-      asset,
-      temporaryPath,
-      signal ?? new AbortController().signal,
-      aggregateProgress(onProgress, 0, pointer.sizeInBytes, pointer.sizeInBytes)
-    )
+    const download = await downloadCoordinator.run(materializeSignal, () => {
+      progress.stage(0, 'downloading')
+      return releases.downloadAsset(
+        repository,
+        release.id,
+        asset,
+        temporaryPath,
+        materializeSignal,
+        update => progress.report(0, update)
+      )
+    })
+    progress.complete(0)
     downloadedPath = download.path
-    const verified = await fs.hashFile(download.path, signal)
+    progress.stage(0, 'verifying')
+    const verified = await fs.hashFile(download.path, materializeSignal)
     if (
       verified.sha256 !== pointer.sha256 ||
       verified.sizeInBytes !== pointer.sizeInBytes
@@ -3354,15 +3772,16 @@ async function materializeSingleAsset(
         'The downloaded asset does not match the cheap LFS pointer. The pointer was left in place.'
       )
     }
+    progress.stage(0, 'materializing')
     if (trackedProof !== undefined && trackedPaths !== undefined) {
-      ensureMaterializeNotCanceled(signal)
+      ensureMaterializeNotCanceled(materializeSignal)
       trackedStoreOwnsDownload = true
       await trackedPaths.replaceFromPath(
         trackedProof,
         download.path,
         pointer.sha256,
         pointer.sizeInBytes,
-        signal
+        materializeSignal
       )
     } else {
       await ensureMaterializeTargetUnchanged(
@@ -3372,7 +3791,7 @@ async function materializeSingleAsset(
         trackedPath,
         expectedPointerText
       )
-      ensureMaterializeNotCanceled(signal)
+      ensureMaterializeNotCanceled(materializeSignal)
       await fs.replaceFile(download.path, trackedPath)
     }
     return { path: trackedPath, bytes: verified.sizeInBytes }
@@ -3411,8 +3830,9 @@ async function materializeMultiPart(
   trackedPaths: ICheapLfsTrackedPathStore | undefined,
   signal: AbortSignal | undefined,
   onProgress:
-    | ((progress: IGitHubReleaseTransferProgressEvent) => void)
+    | ((progress: ICheapLfsMaterializeTransferProgress) => void)
     | undefined,
+  downloadCoordinator: ICheapLfsMaterializeDownloadCoordinator,
   fs: ICheapLfsFileSystem
 ): Promise<ICheapLfsMaterializeResult> {
   // Resolve every part up front so a missing one fails before any download.
@@ -3426,15 +3846,52 @@ async function materializeMultiPart(
     }
     return { part, asset }
   })
-  const partPaths = new Array<string>()
-  const expandedPaths = new Array<string>()
+  const controller = new AbortController()
+  const cancel = () => controller.abort()
+  signal?.addEventListener('abort', cancel, { once: true })
+  if (signal?.aborted) {
+    controller.abort()
+  }
+  const materializeSignal = controller.signal
+  const partPaths = new Set<string>()
+  const expandedPaths = new Set<string>()
   const assemblySources = new Array<string>()
   let assembledPath: string | null = null
   let assembledConsumed = false
   let trackedStoreOwnsAssembly = false
-  try {
-    let transferred = 0
-    for (const { part, asset } of resolved) {
+  const progress = createCheapLfsMaterializeDownloadProgressTracker(
+    release.id,
+    resolved.map(({ part, asset }) => ({
+      assetId: asset.id,
+      logicalBytes: part.sizeInBytes,
+      actualBytes: part.deflatedSizeInBytes ?? part.sizeInBytes,
+    })),
+    pointer.sizeInBytes,
+    onProgress
+  )
+  type PartDownloadOutcome =
+    | {
+        readonly status: 'fulfilled'
+        readonly value: { readonly path: string; readonly bytes: number }
+      }
+    | { readonly status: 'rejected'; readonly reason: unknown }
+  const downloads = new Map<number, Promise<PartDownloadOutcome>>()
+  let firstPartFailure: unknown
+  let hasPartFailure = false
+  const startPart = (index: number): void => {
+    if (
+      index >= resolved.length ||
+      downloads.has(index) ||
+      materializeSignal.aborted
+    ) {
+      return
+    }
+    const { asset } = resolved[index]
+    // Attach both branches immediately: a prefetched transfer can fail before
+    // ordered verification reaches it, and must never become an unhandled
+    // rejection.
+    const outcome: Promise<PartDownloadOutcome> = (async () => {
+      ensureMaterializeNotCanceled(materializeSignal)
       // Every part, every expansion, and the assembly below are payload-sized;
       // all three stage outside the working tree for the same reason as the
       // single-asset download.
@@ -3443,99 +3900,164 @@ async function materializeMultiPart(
         repository.path,
         trackedPath
       )
-      partPaths.push(partPath)
-      const download = await releases.downloadAsset(
-        repository,
-        release.id,
-        asset,
-        partPath,
-        signal ?? new AbortController().signal,
-        aggregateProgress(
-          onProgress,
-          transferred,
-          pointer.sizeInBytes,
-          part.sizeInBytes
+      partPaths.add(partPath)
+      ensureMaterializeNotCanceled(materializeSignal)
+      const download = await downloadCoordinator.run(materializeSignal, () => {
+        progress.stage(index, 'downloading')
+        return releases.downloadAsset(
+          repository,
+          release.id,
+          asset,
+          partPath,
+          materializeSignal,
+          update => {
+            progress.report(index, update)
+            if (
+              hasReachedCheapLfsMaterializeLookAhead(
+                update.transferredBytes,
+                update.totalBytes
+              )
+            ) {
+              startPart(index + 1)
+            }
+          }
         )
-      )
-      let verificationPath = download.path
-      if (part.deflatedSizeInBytes !== undefined) {
+      })
+      partPaths.add(download.path)
+      progress.complete(index)
+      // A provider may omit progress or report an unusable zero total. In that
+      // case completion itself opens the look-ahead lane.
+      startPart(index + 1)
+      return download
+    })().then<PartDownloadOutcome, PartDownloadOutcome>(
+      value => ({ status: 'fulfilled', value }),
+      reason => {
+        // A later prefetched part can fail while an earlier part is stalled.
+        // Record that terminal cause before aborting so the earlier sibling's
+        // resulting AbortError can never replace the actionable provider error.
+        if (!materializeSignal.aborted) {
+          if (!hasPartFailure) {
+            hasPartFailure = true
+            firstPartFailure = reason
+          }
+          controller.abort()
+        }
+        return { status: 'rejected', reason }
+      }
+    )
+    downloads.set(index, outcome)
+  }
+
+  try {
+    try {
+      ensureMaterializeNotCanceled(materializeSignal)
+      startPart(0)
+      for (let index = 0; index < resolved.length; index++) {
+        const { part } = resolved[index]
+        const outcome = await downloads.get(index)!
+        if (outcome.status === 'rejected') {
+          throw hasPartFailure ? firstPartFailure : outcome.reason
+        }
+        const download = outcome.value
+        let verificationPath = download.path
+        if (part.deflatedSizeInBytes !== undefined) {
+          progress.stage(index, 'decompressing')
+          if (
+            download.bytes !== part.deflatedSizeInBytes ||
+            fs.decompressFile === undefined
+          ) {
+            throw new Error(
+              'A compressed cheap LFS part does not match the pointer. The pointer was left in place.'
+            )
+          }
+          const expandedPath = await payloadTemporaryPath(
+            fs,
+            repository.path,
+            trackedPath
+          )
+          expandedPaths.add(expandedPath)
+          await fs.decompressFile(
+            download.path,
+            expandedPath,
+            part.sizeInBytes,
+            materializeSignal
+          )
+          verificationPath = expandedPath
+        }
+        progress.stage(index, 'verifying')
+        const verified = await fs.hashFile(verificationPath, materializeSignal)
         if (
-          download.bytes !== part.deflatedSizeInBytes ||
-          fs.decompressFile === undefined
+          verified.sha256 !== part.sha256 ||
+          verified.sizeInBytes !== part.sizeInBytes
         ) {
           throw new Error(
-            'A compressed cheap LFS part does not match the pointer. The pointer was left in place.'
+            'A downloaded cheap LFS part does not match the pointer. The pointer was left in place.'
           )
         }
-        const expandedPath = await payloadTemporaryPath(
-          fs,
-          repository.path,
-          trackedPath
-        )
-        expandedPaths.push(expandedPath)
-        await fs.decompressFile(
-          download.path,
-          expandedPath,
-          part.sizeInBytes,
-          signal
-        )
-        verificationPath = expandedPath
+        assemblySources.push(verificationPath)
+        progress.settle(index)
       }
-      const verified = await fs.hashFile(verificationPath, signal)
-      if (
-        verified.sha256 !== part.sha256 ||
-        verified.sizeInBytes !== part.sizeInBytes
-      ) {
-        throw new Error(
-          'A downloaded cheap LFS part does not match the pointer. The pointer was left in place.'
-        )
-      }
-      assemblySources.push(verificationPath)
-      transferred += part.sizeInBytes
-    }
-    assembledPath = await payloadTemporaryPath(fs, repository.path, trackedPath)
-    const assembled = await fs.assembleParts(
-      assemblySources,
-      assembledPath,
-      signal
-    )
-    if (
-      assembled.sha256 !== pointer.sha256 ||
-      assembled.sizeInBytes !== pointer.sizeInBytes
-    ) {
-      throw new Error(
-        'The reassembled cheap LFS file does not match the pointer. The pointer was left in place.'
-      )
-    }
-    if (trackedProof !== undefined && trackedPaths !== undefined) {
-      ensureMaterializeNotCanceled(signal)
-      trackedStoreOwnsAssembly = true
-      await trackedPaths.replaceFromPath(
-        trackedProof,
-        assembledPath,
-        pointer.sha256,
-        pointer.sizeInBytes,
-        signal
-      )
-    } else {
-      await ensureMaterializeTargetUnchanged(
+      progress.stage(resolved.length - 1, 'materializing')
+      assembledPath = await payloadTemporaryPath(
         fs,
         repository.path,
-        trackedRelativePath,
-        trackedPath,
-        expectedPointerText
+        trackedPath
       )
-      ensureMaterializeNotCanceled(signal)
-      await fs.replaceFile(assembledPath, trackedPath)
+      const assembled = await fs.assembleParts(
+        assemblySources,
+        assembledPath,
+        materializeSignal
+      )
+      if (
+        assembled.sha256 !== pointer.sha256 ||
+        assembled.sizeInBytes !== pointer.sizeInBytes
+      ) {
+        throw new Error(
+          'The reassembled cheap LFS file does not match the pointer. The pointer was left in place.'
+        )
+      }
+      if (trackedProof !== undefined && trackedPaths !== undefined) {
+        ensureMaterializeNotCanceled(materializeSignal)
+        trackedStoreOwnsAssembly = true
+        await trackedPaths.replaceFromPath(
+          trackedProof,
+          assembledPath,
+          pointer.sha256,
+          pointer.sizeInBytes,
+          materializeSignal
+        )
+      } else {
+        await ensureMaterializeTargetUnchanged(
+          fs,
+          repository.path,
+          trackedRelativePath,
+          trackedPath,
+          expectedPointerText
+        )
+        ensureMaterializeNotCanceled(materializeSignal)
+        await fs.replaceFile(assembledPath, trackedPath)
+      }
+      assembledConsumed = true
+      return { path: trackedPath, bytes: assembled.sizeInBytes }
+    } catch (error) {
+      // A verification/decompression failure may happen while later parts are
+      // prefetched. Stop and drain them before any owned temp is removed.
+      controller.abort()
+      // Conversely, a terminal prefetch failure may abort an earlier part's
+      // verification. Keep the first provider failure instead of replacing it
+      // with the verification stage's derivative AbortError.
+      throw hasPartFailure ? firstPartFailure : error
     }
-    assembledConsumed = true
-    return { path: trackedPath, bytes: assembled.sizeInBytes }
   } finally {
+    await Promise.all([...downloads.values()])
+    signal?.removeEventListener('abort', cancel)
     for (const partPath of partPaths) {
       await fs.removeFile(partPath)
+      forgetCheapLfsOwnedArtifact(partPath)
     }
     for (const expandedPath of expandedPaths) {
       await fs.removeFile(expandedPath)
+      forgetCheapLfsOwnedArtifact(expandedPath)
     }
     if (
       assembledPath !== null &&
@@ -3554,12 +4076,16 @@ async function materializeMultiPart(
 export interface ICheapLfsMaterializeCache {
   readonly releasesByTag: Map<string, Promise<IGitHubRelease | null>>
   readonly completeReleasesById: Map<number, Promise<IGitHubRelease>>
+  readonly downloadCoordinator: ICheapLfsMaterializeDownloadCoordinator
 }
 
-export function createCheapLfsMaterializeCache(): ICheapLfsMaterializeCache {
+export function createCheapLfsMaterializeCache(
+  downloadCoordinator = createCheapLfsMaterializeDownloadCoordinator()
+): ICheapLfsMaterializeCache {
   return {
     releasesByTag: new Map(),
     completeReleasesById: new Map(),
+    downloadCoordinator,
   }
 }
 
@@ -3596,7 +4122,7 @@ export async function materializePointer(
   account: Account,
   trackedRelativePath: string,
   signal?: AbortSignal,
-  onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void,
+  onProgress?: (progress: ICheapLfsMaterializeTransferProgress) => void,
   fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
   cache?: ICheapLfsMaterializeCache
 ): Promise<ICheapLfsMaterializeResult> {
@@ -3708,6 +4234,8 @@ export async function materializePointer(
       trackedPaths,
       signal,
       onProgress,
+      cache?.downloadCoordinator ??
+        createCheapLfsMaterializeDownloadCoordinator(),
       fs
     )
   }
@@ -3724,6 +4252,8 @@ export async function materializePointer(
     trackedPaths,
     signal,
     onProgress,
+    cache?.downloadCoordinator ??
+      createCheapLfsMaterializeDownloadCoordinator(),
     fs
   )
 }
@@ -3876,10 +4406,55 @@ export interface ICheapLfsBatchProgress {
   readonly totalFiles: number
   /** The file currently transferring, or `null` between files. */
   readonly currentPath: string | null
-  /** Bytes transferred so far across the whole batch. */
+  /**
+   * Stage-aware logical work across the batch. An unsettled file remains below
+   * its full logical size until verification and atomic replacement complete.
+   */
   readonly transferredBytes: number
   /** Sum of every file's byte size in the batch. */
   readonly totalBytes: number
+  /** Present only when every target reported trustworthy network totals. */
+  readonly actualTransferredBytes?: number
+  readonly actualTotalBytes?: number
+  /** Input-ordered snapshot of the at-most-two materialize lanes. */
+  readonly activeMaterializations?: ReadonlyArray<ICheapLfsActiveMaterializeProgress>
+  readonly succeededFiles?: number
+  readonly failedFiles?: number
+  readonly queuedFiles?: number
+  /** Not-yet-started multipart parts, including parts in queued files. */
+  readonly queuedParts?: number
+  readonly failures?: ReadonlyArray<ICheapLfsMaterializeFailure>
+}
+
+/** The minimal Release-or-OCI target accepted by the restore scheduler. */
+export interface ICheapLfsMaterializeTarget {
+  readonly relativePath: string
+  readonly pointer: {
+    readonly sizeInBytes: number
+    /** Release multipart metadata; registry objects omit this field. */
+    readonly parts?: ReadonlyArray<unknown>
+  }
+  readonly provider?: 'release' | CheapLfsOciRegistryProvider
+}
+
+/** Structured progress for one active restore lane. */
+export interface ICheapLfsActiveMaterializeProgress {
+  readonly relativePath: string
+  readonly provider?: 'release' | CheapLfsOciRegistryProvider
+  readonly phase: 'preparing' | CheapLfsMaterializePhase
+  readonly lane: 'current' | 'prefetch'
+  /** One-based position in the requested batch. */
+  readonly fileOrdinal: number
+  readonly processedBytes: number
+  readonly totalBytes: number
+  readonly actualTransferredBytes?: number
+  readonly actualTotalBytes?: number
+  readonly partOrdinal?: number
+  readonly partsTotal?: number
+  readonly partTransferredBytes?: number
+  readonly partTotalBytes?: number
+  readonly activeParts?: ReadonlyArray<ICheapLfsActiveMaterializePartProgress>
+  readonly queuedParts?: number
 }
 
 /** Observable automatic and browser-assisted cheap-LFS commit stages. */
@@ -4016,18 +4591,21 @@ export interface ICheapLfsBatchMaterializeResult {
 }
 
 /**
- * Materialize a set of committed pointers in sequence under one shared abort
- * signal, reporting cumulative progress over the whole batch. A per-pointer
- * failure is recorded and the remaining pointers still run; only cancellation
- * (an `AbortError`) stops the batch early. This never throws — the caller reads
- * the returned summary — so it is safe to drive from a fire-and-forget hook.
+ * Materialize committed pointers through a bounded two-lane pipeline. The next
+ * pointer starts exactly when the current transfer reaches 90%; a transfer
+ * without usable progress opens the lane when its materialize promise settles.
+ * Results and failures stay input ordered. A per-pointer failure is recorded
+ * and remaining pointers still run; only cancellation (an `AbortError`) stops
+ * the batch early. Active work is always drained before this function returns.
  */
-export async function materializeCheapLfsPointers(
-  entries: ReadonlyArray<ICheapLfsPointerEntry>,
+export async function materializeCheapLfsPointers<
+  TTarget extends ICheapLfsMaterializeTarget
+>(
+  entries: ReadonlyArray<TTarget>,
   materialize: (
     relativePath: string,
     signal: AbortSignal,
-    onProgress: (progress: IGitHubReleaseTransferProgressEvent) => void
+    onProgress: (progress: ICheapLfsMaterializeTransferProgress) => void
   ) => Promise<ICheapLfsMaterializeResult>,
   signal: AbortSignal,
   onProgress?: (progress: ICheapLfsBatchProgress) => void
@@ -4036,51 +4614,242 @@ export async function materializeCheapLfsPointers(
     (sum, entry) => sum + entry.pointer.sizeInBytes,
     0
   )
-  const materialized = new Array<ICheapLfsMaterializeResult>()
-  const failures = new Array<ICheapLfsMaterializeFailure>()
-  let completedBytes = 0
-  let completedFiles = 0
+  const controller = new AbortController()
   let canceled = false
+  const cancel = () => {
+    canceled = true
+    controller.abort()
+  }
+  signal.addEventListener('abort', cancel, { once: true })
+  if (signal.aborted) {
+    cancel()
+  }
 
-  for (const entry of entries) {
-    if (signal.aborted) {
-      canceled = true
-      break
-    }
-    const transferredBefore = completedBytes
-    try {
-      const result = await materialize(entry.relativePath, signal, progress =>
-        onProgress?.({
-          completedFiles,
-          totalFiles: entries.length,
-          currentPath: entry.relativePath,
-          transferredBytes: transferredBefore + progress.transferredBytes,
-          totalBytes,
-        })
-      )
-      materialized.push(result)
-    } catch (error) {
-      if ((error as Error)?.name === 'AbortError') {
-        canceled = true
-        break
+  const successes = new Array<ICheapLfsMaterializeResult | undefined>(
+    entries.length
+  )
+  const failures = new Array<ICheapLfsMaterializeFailure | undefined>(
+    entries.length
+  )
+  // Raw logical transfer drives each lane. Stage-aware work drives only the
+  // aggregate, reserving completion until the materialize promise settles.
+  const logicalTransferProgress = entries.map(() => 0)
+  const aggregateProgress = entries.map(() => 0)
+  const latestProgress = new Array<
+    ICheapLfsMaterializeTransferProgress | undefined
+  >(entries.length)
+  // Each file earns its own look-ahead admission. In particular, when file A
+  // opened prefetch B at 90%, A settling must not admit C while the now-current
+  // B is still below its own 90% boundary.
+  const lookAheadReady = entries.map(() => false)
+  const active = new Map<number, Promise<void>>()
+  let nextIndex = 0
+  let completedFiles = 0
+
+  const emitProgress = () => {
+    const activeIndices = [...active.keys()].sort((a, b) => a - b)
+    const activeMaterializations = activeIndices.map((index, laneIndex) => {
+      const update = latestProgress[index]
+      const result: ICheapLfsActiveMaterializeProgress = {
+        relativePath: entries[index].relativePath,
+        ...(entries[index].provider === undefined
+          ? {}
+          : { provider: entries[index].provider }),
+        phase:
+          update?.phase ?? (update === undefined ? 'preparing' : 'downloading'),
+        lane: laneIndex === 0 ? 'current' : 'prefetch',
+        fileOrdinal: index + 1,
+        processedBytes: logicalTransferProgress[index],
+        totalBytes: entries[index].pointer.sizeInBytes,
+        ...(update?.actualTransferredBytes === undefined
+          ? {}
+          : { actualTransferredBytes: update.actualTransferredBytes }),
+        ...(update?.actualTotalBytes === undefined
+          ? {}
+          : { actualTotalBytes: update.actualTotalBytes }),
+        ...(update?.partOrdinal === undefined
+          ? {}
+          : { partOrdinal: update.partOrdinal }),
+        ...(update?.partsTotal === undefined
+          ? {}
+          : { partsTotal: update.partsTotal }),
+        ...(update?.partTransferredBytes === undefined
+          ? {}
+          : { partTransferredBytes: update.partTransferredBytes }),
+        ...(update?.partTotalBytes === undefined
+          ? {}
+          : { partTotalBytes: update.partTotalBytes }),
+        ...(update?.activeParts === undefined
+          ? {}
+          : { activeParts: update.activeParts }),
+        ...(update?.queuedParts === undefined
+          ? {}
+          : { queuedParts: update.queuedParts }),
       }
-      failures.push({
-        relativePath: entry.relativePath,
-        message: error instanceof Error ? error.message : String(error),
-      })
-    }
-    completedBytes += entry.pointer.sizeInBytes
-    completedFiles++
+      return result
+    })
+    const transferredBytes = Math.min(
+      totalBytes,
+      entries.reduce(
+        (sum, entry, index) =>
+          sum +
+          (successes[index] !== undefined
+            ? entry.pointer.sizeInBytes
+            : aggregateProgress[index]),
+        0
+      )
+    )
+    const actualTotalsKnown =
+      entries.length > 0 &&
+      entries.every(
+        (_entry, index) => latestProgress[index]?.actualTotalBytes !== undefined
+      )
+    const actualTransferredBytes = actualTotalsKnown
+      ? latestProgress.reduce(
+          (sum, update) => sum + (update?.actualTransferredBytes ?? 0),
+          0
+        )
+      : undefined
+    const actualTotalBytes = actualTotalsKnown
+      ? latestProgress.reduce(
+          (sum, update) => sum + (update?.actualTotalBytes ?? 0),
+          0
+        )
+      : undefined
+    const queuedParts =
+      activeIndices.reduce((sum, index) => {
+        const update = latestProgress[index]
+        return (
+          sum +
+          (update?.queuedParts ?? entries[index].pointer.parts?.length ?? 0)
+        )
+      }, 0) +
+      entries
+        .slice(nextIndex)
+        .reduce((sum, entry) => sum + (entry.pointer.parts?.length ?? 0), 0)
     onProgress?.({
       completedFiles,
       totalFiles: entries.length,
-      currentPath: null,
-      transferredBytes: completedBytes,
+      currentPath: activeMaterializations[0]?.relativePath ?? null,
+      transferredBytes,
       totalBytes,
+      ...(actualTransferredBytes === undefined
+        ? {}
+        : { actualTransferredBytes }),
+      ...(actualTotalBytes === undefined ? {} : { actualTotalBytes }),
+      activeMaterializations,
+      succeededFiles: successes.filter(Boolean).length,
+      failedFiles: failures.filter(Boolean).length,
+      queuedFiles: Math.max(0, entries.length - nextIndex),
+      queuedParts,
+      failures: failures.filter(
+        (failure): failure is ICheapLfsMaterializeFailure =>
+          failure !== undefined
+      ),
     })
   }
 
-  return { materialized, failures, totalBytes, canceled }
+  const startNext = (): void => {
+    if (
+      canceled ||
+      controller.signal.aborted ||
+      active.size >= CheapLfsMaximumConcurrentMaterializeDownloads ||
+      nextIndex >= entries.length
+    ) {
+      return
+    }
+    const index = nextIndex++
+    const entry = entries[index]
+    // Defer the caller until after this lane is in the active map, because a
+    // test/provider is allowed to report progress synchronously.
+    const task = Promise.resolve()
+      .then(async () => {
+        try {
+          const result = await materialize(
+            entry.relativePath,
+            controller.signal,
+            update => {
+              if (!active.has(index)) {
+                return
+              }
+              latestProgress[index] = update
+              logicalTransferProgress[index] = Math.max(
+                logicalTransferProgress[index],
+                boundedCheapLfsTransferBytes(
+                  update.logicalTransferredBytes ?? update.transferredBytes,
+                  entry.pointer.sizeInBytes
+                )
+              )
+              aggregateProgress[index] = Math.max(
+                aggregateProgress[index],
+                cheapLfsMaterializeStageAwareLogicalBytes(
+                  update,
+                  entry.pointer.sizeInBytes
+                )
+              )
+              emitProgress()
+              if (
+                hasReachedCheapLfsMaterializeLookAhead(
+                  update.actualTransferredBytes ?? update.transferredBytes,
+                  update.actualTotalBytes ?? update.totalBytes
+                )
+              ) {
+                lookAheadReady[index] = true
+                startNext()
+              }
+            }
+          )
+          successes[index] = result
+          completedFiles++
+        } catch (error) {
+          if ((error as Error)?.name === 'AbortError') {
+            cancel()
+          } else {
+            failures[index] = {
+              relativePath: entry.relativePath,
+              message: error instanceof Error ? error.message : String(error),
+            }
+            completedFiles++
+          }
+        } finally {
+          active.delete(index)
+          emitProgress()
+          // Completion is the fallback when a provider emitted no progress or
+          // an unusable zero total. Once a look-ahead lane exists, however,
+          // the lane that is now current must cross its own 90% boundary before
+          // another queued file may occupy the vacancy.
+          const currentIndex = [...active.keys()].sort((a, b) => a - b)[0]
+          if (
+            currentIndex === undefined ||
+            lookAheadReady[currentIndex] === true
+          ) {
+            startNext()
+          }
+        }
+      })
+      .then(() => undefined)
+    active.set(index, task)
+    emitProgress()
+  }
+
+  try {
+    startNext()
+    while (active.size > 0) {
+      await Promise.race([...active.values()])
+    }
+  } finally {
+    controller.abort()
+    await Promise.all([...active.values()])
+    signal.removeEventListener('abort', cancel)
+  }
+
+  const materialized = successes.filter(
+    (result): result is ICheapLfsMaterializeResult => result !== undefined
+  )
+  const failed = failures.filter(
+    (failure): failure is ICheapLfsMaterializeFailure => failure !== undefined
+  )
+  return { materialized, failures: failed, totalBytes, canceled }
 }
 
 /** One selected file large enough to require an automatic pin before commit. */

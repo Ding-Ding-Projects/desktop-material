@@ -31,6 +31,11 @@ push batching and the responsive Releases correction are published through
 integrity proofs are complete; the serialized materialization correction keeps
 its final UI receipt in `HANDOFF.md`.
 
+The July 27 app-hosted browser and exact-90% Cheap LFS restore look-ahead are
+implemented on the current branch only. Focused restore checks pass, but their
+combined Windows build, packaged/headless interaction and clipping review,
+remote CI, merge, publication, and new gallery capture remain pending.
+
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
 read-only mutation boundaries and owned headless-resource cleanup. Initial
@@ -45,6 +50,7 @@ catalogued function or state owns one distinct screenshot rather than borrowing 
 - [Install on Windows](#install-on-windows)
 - [Material first run](#material-first-run)
 - [Signing in](#signing-in)
+- [App-hosted browser](#app-hosted-browser)
 - [Local Ollama model management](#local-ollama-model-management)
 - [Repository tabs](#repository-tabs)
 - [Command palette](#command-palette)
@@ -314,6 +320,55 @@ window, so a generic host's rename is detected even when its old branch still ex
 child-process close event cannot hang the completed fetch. Concurrent preparations for the same
 remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
 timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
+
+---
+
+## App-hosted browser
+
+> **Current branch preview:** implemented, but not yet accepted in a packaged
+> Windows artifact or published installer.
+
+Open **Settings → Advanced → Open web links** and choose:
+
+- **Inside Desktop Material** to send browser-bound HTTP(S) links to the
+  dedicated app-hosted window; or
+- **In the system browser** to preserve external-browser behavior.
+
+The selection persists and applies to later links. Authentication is marked
+explicitly by the app; Desktop Material does not guess from a hostname or URL
+path.
+
+The app-hosted window provides browser tabs, New tab, close, Back, Forward,
+Refresh/Stop, a labelled address field, Go, ordinary bookmarks, and **Open
+externally**. A bare host such as `example.com/docs` becomes HTTPS. Arbitrary
+words are not sent to a search engine. HTTP(S) redirects stay in the current
+tab; a page's `window.open` target is captured into a new app-hosted tab instead
+of receiving an unrestricted popup.
+
+Sign-in tabs show a **SIGN IN** marker and private-session notice. They cannot
+be bookmarked, use an in-memory session shared only with their sign-in popups,
+clear its storage/cache after the authentication browser closes, and always
+offer **Continue in system browser**. A valid Desktop Material callback returns
+to the app. Ordinary bookmarks persist, but their query strings and fragments
+are removed first so OAuth codes and signed parameters do not land in bookmark
+storage. Open tabs and their current URLs are not restored.
+
+Remote pages are not part of the trusted Desktop Material renderer. Each lives
+in a sandboxed `WebContentsView` with Node and preload disabled, context
+isolation and web security enabled, permissions denied, downloads blocked, and
+certificate failures refused. A blocked download explains that the page must
+be opened externally. Load, certificate, download, and renderer failures appear
+in the browser chrome with a refresh or external-browser recovery path.
+
+<sub>**香港粵語速讀。** **Settings → Advanced → Open web links** 揀 app 入面定系統
+瀏覽器。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
+自己就鎖喺 sandbox view，冇 Node、冇 app IPC、冇權限，壞憑證唔會夾硬放行。登入
+分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。呢
+版仲係 branch-only，未過完整 Windows／headless／CI 驗收。</sub>
+
+See [App-hosted browser](../features/integrations/app-hosted-browser.md) for
+persistence limits, complete failure behavior, security boundaries, and the
+pending acceptance gates.
 
 ---
 
@@ -1033,8 +1088,8 @@ the pointers, and resumes the same commit automatically. Older GitHub
 Enterprise versions safely fall back to the repository Releases listing. **Cancel** stops either
 path until the verified pointer commit begins; that short final mutation phase finishes as one
 reviewed operation. The app waits for and verifies every multipart asset before writing the pointer.
-A file fitting the 1.5 GiB per-asset cap initially uses one raw asset, while a
-larger file uses ordered raw ranges of at most 1.5 GiB each. Public repositories
+A file fitting the 500 MiB per-asset cap initially uses one raw asset, while a
+larger file uses ordered raw ranges of at most 500 MiB each. Public repositories
 then automatically receive one owned, SHA-pinned workflow file in Changes for
 review. Compression starts only after you commit and push that caller. Private
 repositories stay off until you explicitly enable **Cloud compression** in the
@@ -1058,6 +1113,39 @@ pointers can restore while signed out using read-only anonymous requests with no
 `Authorization` header. Private, unknown-visibility, and GitHub Enterprise
 Release pointers still require the repository-selected account; anonymous
 Release mutations are never allowed.
+
+### Exact-90% two-lane restore progress
+
+> **Current branch preview:** focused local checks pass; combined
+> Windows/build/headless/CI acceptance and publication remain pending.
+
+For Release-backed pointers, one restore batch now shares a coordinator with a
+hard limit of two HTTP downloads. The current file or multipart part owns the
+first lane. When the provider reports that transfer at **90% or greater**, the
+next file or part may start in the look-ahead lane: 89.9% stays single-lane,
+while exactly 90% opens it. If a provider has no usable progress total, the next
+item waits for the current transfer to settle.
+
+The detailed restore panel shows overall progress and separate **Current** and
+**Next at 90%** lanes, plus repository, provider, current phase, file and part
+ordinals, logical restored bytes, actual downloaded/compressed bytes when
+known, succeeded/failed/remaining/queued counts, elapsed time, download rate,
+ETA, bounded per-file failures, and cancellation. Downloading, decompressing,
+verifying, materializing, and canceling remain distinct instead of sharing one
+ambiguous percentage.
+
+The second lane does not weaken validation. Desktop Material still verifies
+every part's size and SHA-256, assembles parts in pointer order, verifies the
+whole file, and replaces only the unchanged pointer. Cancellation aborts queued
+and active work, drains both lanes, cleans owned temporary files, and leaves
+unverified pointers in place. Visible counters update exactly; screen-reader
+announcements are grouped into meaningful 10% transitions, reduced-motion mode
+removes active shimmer, and bilingual/narrow layouts wrap instead of clipping.
+
+<sub>**香港粵語速讀。** 下載真係到 90%，下一個檔或者 part 先可以入第二條
+lane；成個 batch 最多兩個下載。面板會分目前／下一條 lane、檔同 part 次序、邏輯
+同實際位元組、階段、速度、ETA、排隊、成功、失敗同取消。預取只係慳中間嗰幾秒，
+每 part 同全檔 SHA-256、大小、指標冇變先換檔，全部照舊要過關。</sub>
 
 New buckets are published prereleases, so collaborators can fetch them while
 they remain outside the stable installer `/releases/latest` feed. For

@@ -1,9 +1,11 @@
+/* eslint-disable react/jsx-no-bind -- localized radio labels depend on the live language mode */
 import * as React from 'react'
 import { ENABLE_TELEMETRY } from '../../lib/telemetry-flag'
 import { DialogContent } from '../dialog'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { LinkButton } from '../lib/link-button'
 import { MaterialSymbol } from '../lib/material-symbol'
+import { RadioGroup } from '../lib/radio-group'
 import { SamplesURL } from '../../lib/stats'
 import { isWindowsOpenSSHAvailable } from '../../lib/ssh/ssh'
 import {
@@ -17,6 +19,12 @@ import {
   setLargeRepositorySettings,
 } from '../../lib/large-repository/large-repository-settings'
 import { clearLargeRepositoryEvaluations } from '../../lib/large-repository/large-repository-controller'
+import {
+  BrowserOpenMode,
+  BrowserOpenModes,
+  getBrowserOpenModePreference,
+  setBrowserOpenModePreference,
+} from '../../lib/internal-browser'
 
 interface IAdvancedPreferencesProps {
   readonly useWindowsOpenSSH: boolean
@@ -43,6 +51,7 @@ interface IAdvancedPreferencesState {
   readonly largeRepoAutoDetect: boolean
   readonly largeRepoAutoRepack: boolean
   readonly largeRepoFileThreshold: number
+  readonly browserOpenMode: BrowserOpenMode
 }
 
 export class Advanced extends React.Component<
@@ -62,6 +71,7 @@ export class Advanced extends React.Component<
       largeRepoAutoDetect: largeRepo.autoDetect,
       largeRepoAutoRepack: largeRepo.autoRepack,
       largeRepoFileThreshold: largeRepo.thresholds.fileCount,
+      browserOpenMode: getBrowserOpenModePreference(),
     }
   }
 
@@ -159,6 +169,11 @@ export class Advanced extends React.Component<
       ...getLargeRepositorySettings(),
       autoRepack: value,
     })
+  }
+
+  private onBrowserOpenModeChanged = (mode: BrowserOpenMode) => {
+    const normalized = setBrowserOpenModePreference(mode)
+    this.setState({ browserOpenMode: normalized })
   }
 
   private reportDesktopUsageLabel() {
@@ -283,8 +298,37 @@ export class Advanced extends React.Component<
           </div>
         </div>
         {this.renderLargeRepositorySettings()}
+        {this.renderBrowserSettings()}
         {this.renderDataDisclosures()}
       </DialogContent>
+    )
+  }
+
+  private renderBrowserSettings() {
+    const { languageMode, browserOpenMode } = this.state
+    return (
+      <div className="advanced-section">
+        <h2 id="browser-open-mode-title">
+          {translate('settings.browserOpenModeTitle', languageMode)}
+        </h2>
+        <p className="settings-description" id="browser-open-mode-description">
+          {translate('settings.browserOpenModeDescription', languageMode)}
+        </p>
+        <RadioGroup<BrowserOpenMode>
+          ariaLabelledBy="browser-open-mode-title"
+          selectedKey={browserOpenMode}
+          radioButtonKeys={BrowserOpenModes}
+          onSelectionChanged={this.onBrowserOpenModeChanged}
+          renderRadioButtonLabelContents={mode =>
+            translate(
+              mode === 'internal'
+                ? 'settings.browserOpenModeInternal'
+                : 'settings.browserOpenModeExternal',
+              languageMode
+            )
+          }
+        />
+      </div>
     )
   }
 

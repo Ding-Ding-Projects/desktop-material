@@ -65,7 +65,14 @@ export const main = merge({}, commonConfig, {
 })
 
 export const renderer = merge({}, commonConfig, {
-  entry: { renderer: path.resolve(__dirname, 'src/ui/index') },
+  entry: {
+    renderer: path.resolve(__dirname, 'src/ui/index'),
+    // Keep the trusted browser chrome isolated as its own entry and HTML
+    // document while sharing one renderer compiler. A separate compiler loads
+    // and type-checks the full application graph again and pushes the existing
+    // production multi-compiler beyond its 12 GiB heap.
+    'internal-browser': path.resolve(__dirname, 'src/internal-browser/index'),
+  },
   target: 'electron-renderer',
   module: {
     rules: [
@@ -90,6 +97,11 @@ export const renderer = merge({}, commonConfig, {
     new HtmlWebpackPlugin({
       template: path.join(__dirname, 'static', 'index.html'),
       chunks: ['renderer'],
+    }),
+    new HtmlWebpackPlugin({
+      title: 'GitHub Desktop',
+      filename: 'internal-browser.html',
+      chunks: ['internal-browser'],
     }),
     new webpack.NormalModuleReplacementPlugin(/^vscode-jsonrpc$/, resource => {
       resource.request = 'vscode-jsonrpc/lib/node/main.js'

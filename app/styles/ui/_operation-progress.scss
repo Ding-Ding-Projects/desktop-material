@@ -63,18 +63,202 @@
 // App-wide Cheap LFS restore strip, mounted under the toolbar because the
 // automatic materialize is triggered by clone / selection / fetch / pull.
 .cheap-lfs-restore-strip {
-  align-items: center;
   background: var(--md-sys-color-surface-container);
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
   display: flex;
   flex: 0 0 auto;
-  gap: var(--spacing);
   padding: var(--spacing-half) var(--spacing-double);
 
-  .operation-progress {
+  > .cheap-lfs-restore-progress {
     flex: 1 1 auto;
+    max-height: min(50vh, 480px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+.cheap-lfs-restore-progress,
+.cheap-lfs-restore-progress * {
+  box-sizing: border-box;
+  min-width: 0;
+}
+
+.cheap-lfs-restore-progress {
+  background: var(--md-sys-color-surface-container-lowest);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 18px;
+  color: var(--md-sys-color-on-surface);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+  overflow-wrap: anywhere;
+  padding: var(--spacing);
+
+  .cheap-lfs-restore-header {
+    align-items: center;
+    display: grid;
+    gap: var(--spacing-half) var(--spacing);
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+
+  .cheap-lfs-restore-heading {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+
+    > span:last-child {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    strong {
+      font-size: var(--font-size-md);
+      line-height: 1.3;
+    }
+
+    .material-symbol {
+      color: var(--md-sys-color-primary);
+      flex: 0 0 auto;
+    }
+  }
+
+  .cheap-lfs-restore-repository {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    line-height: 1.35;
+  }
+
+  .cheap-lfs-restore-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-half);
+    justify-content: flex-end;
+
+    span {
+      background: var(--md-sys-color-secondary-container);
+      border-radius: 999px;
+      color: var(--md-sys-color-on-secondary-container);
+      font-size: var(--font-size-sm);
+      line-height: 1.3;
+      padding: 3px 9px;
+    }
+  }
+
+  .cheap-lfs-restore-cancel {
+    min-height: 40px;
+    min-width: 40px;
+    white-space: normal;
+  }
+
+  .cheap-lfs-restore-summary {
+    color: var(--md-sys-color-on-surface);
+    font-weight: var(--font-weight-semibold);
+    line-height: 1.4;
+  }
+
+  .cheap-lfs-restore-overall {
     margin: 0;
-    min-width: 0;
+  }
+
+  .cheap-lfs-restore-look-ahead {
+    align-items: flex-start;
+    align-self: flex-start;
+    background: var(--md-sys-color-primary-container);
+    border-radius: 12px;
+    color: var(--md-sys-color-on-primary-container);
+    display: flex;
+    gap: var(--spacing-half);
+    line-height: 1.4;
+    padding: var(--spacing-half) var(--spacing);
+
+    .material-symbol {
+      flex: 0 0 auto;
+      margin-top: 1px;
+    }
+  }
+
+  .cheap-lfs-restore-stats {
+    display: grid;
+    gap: var(--spacing-half);
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    margin: 0;
+
+    > div {
+      background: var(--md-sys-color-surface-container-low);
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      padding: var(--spacing-half) var(--spacing);
+    }
+
+    dt {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+      line-height: 1.3;
+    }
+
+    dd {
+      font-variant-numeric: tabular-nums;
+      line-height: 1.35;
+      margin: 0;
+    }
+  }
+
+  .cheap-lfs-restore-lane-waiting {
+    background: var(--md-sys-color-surface-container-low);
+    border-radius: 12px;
+    color: var(--md-sys-color-on-surface-variant);
+    padding: var(--spacing);
+  }
+}
+
+.batch-clone-finalizing {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing);
+  margin-bottom: var(--spacing);
+
+  > .operation-progress {
+    margin: 0;
+  }
+
+  .batch-clone-finalizing-restore {
+    max-height: min(44vh, 440px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+  }
+}
+
+@media (max-width: 700px) {
+  .cheap-lfs-restore-strip {
+    padding-inline: var(--spacing);
+  }
+
+  .cheap-lfs-restore-progress {
+    .cheap-lfs-restore-header {
+      align-items: stretch;
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+
+    .cheap-lfs-restore-heading {
+      grid-column: 1 / -1;
+    }
+
+    .cheap-lfs-restore-badges {
+      justify-content: flex-start;
+    }
+
+    .cheap-lfs-restore-cancel {
+      justify-self: stretch;
+    }
+
+    .cheap-lfs-restore-stats {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }
 
@@ -97,5 +281,12 @@
       animation-duration: 2.4s;
       animation-timing-function: linear;
     }
+  }
+
+  // The restore card stays completely static for reduced-motion users. Exact
+  // text and ARIA state still distinguish an indeterminate lane.
+  .cheap-lfs-restore-progress .operation-progress-track.indeterminate::after {
+    animation: none;
+    transform: none;
   }
 }

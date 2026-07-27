@@ -4,6 +4,11 @@ Desktop Material integration features connect Git workflows to operating-system,
 editor, shell, provider, and user-level Git configuration without placing
 credentials or machine-specific state in a repository.
 
+- [App-hosted browser](app-hosted-browser.md) — open HTTP(S) links in a
+  sandboxed `WebContentsView` tab with address/navigation controls, bookmarks,
+  popup and redirect capture, a persisted internal/external choice, and an
+  isolated authentication escape. Implemented on the current branch; combined
+  Windows/build/CI/publication acceptance is pending.
 - [Windows-only platform support](windows-only-platform-support.md)
 - [Windows Explorer context menu and quick-action
   window](windows-explorer-context-menu.md)

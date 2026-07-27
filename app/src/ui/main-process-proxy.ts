@@ -169,7 +169,8 @@ export async function showFolderContents(path: string) {
   }
 }
 
-export const openExternal = invokeProxy('open-external', 1)
+export const openExternal = invokeProxy('open-external', 2)
+export const setBrowserOpenMode = sendProxy('set-browser-open-mode', 1)
 export const moveItemToTrash = invokeProxy('move-to-trash', 1)
 
 /**

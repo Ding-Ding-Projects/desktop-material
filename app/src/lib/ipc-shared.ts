@@ -98,6 +98,14 @@ import {
   INotificationCommandResult,
   INotificationWebhookResult,
 } from './notifications/automation/notification-automation'
+import {
+  BrowserOpenMode,
+  IInternalBrowserContentBounds,
+  IInternalBrowserOAuthCallbackReceipt,
+  IInternalBrowserState,
+  IOpenExternalOptions,
+  InternalBrowserCommand,
+} from './internal-browser'
 
 /**
  * Defines the simplex IPC channel names we use from the renderer
@@ -158,7 +166,10 @@ export type RequestChannels = {
   'window-content-size-changed': (width: number, height: number) => void
   'app-menu': (menu: IMenu) => void
   'launch-timing-stats': (stats: ILaunchStats) => void
-  'url-action': (action: URLActionType) => void
+  'url-action': (
+    action: URLActionType,
+    internalBrowserCallbackId?: string
+  ) => void
   'cli-action': (action: CLIAction) => void
   'certificate-error': (
     certificate: Electron.Certificate,
@@ -214,6 +225,22 @@ export type RequestChannels = {
   'quick-action-open-in-app': (path: string) => void
   /** quick-action renderer -> main: measured launch-to-interactive time. */
   'quick-action-opened': (elapsedMs: number) => void
+  /** Persisted global preference used by native-menu web links. */
+  'set-browser-open-mode': (mode: BrowserOpenMode) => void
+  /** Internal-browser chrome -> main: listeners are ready for initial state. */
+  'internal-browser-ready': () => void
+  /** Internal-browser chrome -> main: a user-issued tab/navigation command. */
+  'internal-browser-command': (command: InternalBrowserCommand) => void
+  /** Internal-browser chrome -> main: native remote-view viewport. */
+  'internal-browser-content-bounds': (
+    bounds: IInternalBrowserContentBounds
+  ) => void
+  /** Main -> internal-browser chrome: sanitized, serializable tab state. */
+  'internal-browser-state': (state: IInternalBrowserState) => void
+  /** Trusted app renderer -> main: OAuth resolution and callback correlation. */
+  'internal-browser-oauth-result': (
+    receipt: IInternalBrowserOAuthCallbackReceipt
+  ) => void
   'build-run-log': (event: IBuildRunLogEvent) => void
   'build-run-state': (event: IBuildRunStateEvent) => void
   'actions-local-run-log': (event: IActionsLocalRunLogEvent) => void
@@ -301,7 +328,10 @@ export type RequestResponseChannels = {
     addSpellCheckMenu: boolean
   ) => Promise<ReadonlyArray<number> | null>
   'is-window-focused': () => Promise<boolean>
-  'open-external': (path: string) => Promise<boolean>
+  'open-external': (
+    path: string,
+    options: IOpenExternalOptions
+  ) => Promise<boolean>
   'is-in-application-folder': () => Promise<boolean | null>
   'move-to-applications-folder': () => Promise<void>
   'check-for-updates': (url: string) => Promise<Error | undefined>

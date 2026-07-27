@@ -28,7 +28,9 @@ const rendererConfig = merge({}, common.renderer, config, {
   },
   plugins: [
     // Necessary to be able to use MiniCssExtractPlugin as a loader.
-    new MiniCssExtractPlugin({ filename: 'renderer.css' }),
+    // The main workspace and trusted internal-browser chrome are separate
+    // entries in this one compiler, so each receives its own stylesheet.
+    new MiniCssExtractPlugin({ filename: '[name].css' }),
     new BundleAnalyzerPlugin({
       // this generates the static HTML file to view afterwards, rather
       // than disrupting the user

@@ -49,6 +49,10 @@ Material is displaying or how a repository is represented in the application.
   low-emphasis line under each repository name giving the exact commits waiting
   to push and to pull, an honest unknown state for anything never checked, and
   no network call to paint it.
+- [Private-repository lock
+  badge](private-repository-lock-badge.md) — show a separate localized,
+  keyboard-focusable lock only for explicit private provider metadata while
+  retaining the repository's fork glyph, custom logo, or ordinary icon.
 - [Repository list bulk actions](repository-list-bulk-actions.md) — select the
   filter-visible rows to fetch, pull, favorite, group, or forget several
   repositories, with determinate progress, cancel between repositories, and a
@@ -80,7 +84,13 @@ Material is displaying or how a repository is represented in the application.
   objects locally while decompressing only `part-deflate` objects. Automatic
   preparation exposes up to three bounded worker lanes with queue, provider,
   phase, byte, elapsed-time, throughput, and ETA context plus a
-  keyboard-accessible storage-recommendation disclosure.
+  keyboard-accessible storage-recommendation disclosure. The current branch
+  also gives Release restores one shared maximum-two-download coordinator:
+  the next file or part starts at the exact 90% network point, while a shared
+  detailed panel reports overall/current/look-ahead lanes, file and part
+  ordinals, logical and actual bytes, phase, rate, ETA, queue, failures, and
+  cancellation. Focused local checks pass; combined Windows/build/CI and
+  publication acceptance remains pending.
 - [Cheap LFS asset versioning and commit
   provenance](cheap-lfs-asset-versioning.md) — treat every uploaded release
   asset as write-once, so editing a pinned file uploads the new bytes as a new

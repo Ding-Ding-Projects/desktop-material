@@ -7,6 +7,7 @@ import { Repository } from '../../../src/models/repository'
 import { IGitHubReleaseAsset } from '../../../src/lib/github-releases'
 import {
   autoPinLargeFilesForCommit,
+  cheapLfsMaterializeStageAwareLogicalBytes,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinTarget,
   ICheapLfsPinResult,
@@ -161,9 +162,486 @@ describe('materializeCheapLfsPointers', () => {
     assert.equal(summary.failures.length, 0)
     assert.equal(summary.totalBytes, 400)
     assert.equal(summary.canceled, false)
-    // The second file's per-transfer progress is offset by the first file's
-    // completed bytes, proving progress is cumulative across the batch.
-    assert.ok(progresses.includes(110))
+    // The second file's downloading stage contributes 85% of its reported
+    // logical bytes until verification and atomic replacement settle.
+    assert.ok(progresses.includes(108))
+  })
+
+  it('holds aggregate progress below 100% until materialization settles', async () => {
+    const snapshots: number[] = []
+    let update:
+      | ((progress: {
+          operationId: string
+          direction: 'download'
+          transferredBytes: number
+          totalBytes: number
+          phase: 'downloading' | 'verifying' | 'materializing'
+        }) => void)
+      | undefined
+    let finish: (() => void) | undefined
+    const operation = materializeCheapLfsPointers(
+      [pointerEntry('staged.bin', 100)],
+      (relativePath, _signal, onProgress) =>
+        new Promise(resolve => {
+          update = onProgress
+          finish = () => resolve({ path: relativePath, bytes: 100 })
+        }),
+      new AbortController().signal,
+      progress => snapshots.push(progress.transferredBytes)
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    update?.({
+      operationId: 'download',
+      direction: 'download',
+      phase: 'downloading',
+      transferredBytes: 100,
+      totalBytes: 100,
+    })
+    assert.equal(snapshots.at(-1), 85)
+    update?.({
+      operationId: 'verify',
+      direction: 'download',
+      phase: 'verifying',
+      transferredBytes: 100,
+      totalBytes: 100,
+    })
+    assert.equal(snapshots.at(-1), 95)
+    update?.({
+      operationId: 'replace',
+      direction: 'download',
+      phase: 'materializing',
+      transferredBytes: 100,
+      totalBytes: 100,
+    })
+    assert.equal(snapshots.at(-1), 99)
+    assert.equal(snapshots.includes(100), false)
+
+    finish?.()
+    await operation
+    assert.equal(snapshots.at(-1), 100)
+    assert.equal(
+      cheapLfsMaterializeStageAwareLogicalBytes(
+        {
+          operationId: 'exact-look-ahead-remains-physical',
+          direction: 'download',
+          phase: 'downloading',
+          transferredBytes: 90,
+          totalBytes: 100,
+          actualTransferredBytes: 90,
+          actualTotalBytes: 100,
+        },
+        100
+      ),
+      76
+    )
+  })
+
+  it('counts multipart parts belonging to active and queued files', async () => {
+    const multipartEntry = (
+      relativePath: string,
+      parts: number
+    ): ICheapLfsPointerEntry => {
+      const entry = pointerEntry(relativePath, parts * 100)
+      return {
+        ...entry,
+        pointer: {
+          ...entry.pointer,
+          parts: Array.from({ length: parts }, (_, index) => ({
+            name: `${relativePath}.part${index + 1}`,
+            sizeInBytes: 100,
+            sha256: `${index + 1}`.repeat(64).slice(0, 64),
+          })),
+        },
+      }
+    }
+    const controller = new AbortController()
+    const queuedPartSnapshots: number[] = []
+    let update:
+      | ((progress: {
+          operationId: string
+          direction: 'download'
+          transferredBytes: number
+          totalBytes: number
+          queuedParts: number
+        }) => void)
+      | undefined
+    const operation = materializeCheapLfsPointers(
+      [
+        multipartEntry('two-parts.bin', 2),
+        multipartEntry('three-parts.bin', 3),
+      ],
+      (_relativePath, signal, onProgress) =>
+        new Promise((_resolve, reject) => {
+          update = onProgress
+          signal.addEventListener(
+            'abort',
+            () => {
+              const error = new Error('canceled')
+              error.name = 'AbortError'
+              reject(error)
+            },
+            { once: true }
+          )
+        }),
+      controller.signal,
+      progress => queuedPartSnapshots.push(progress.queuedParts ?? -1)
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    // Two not-yet-started parts in the active file plus all three parts in the
+    // queued file are represented before the provider's first callback.
+    assert.ok(queuedPartSnapshots.includes(5))
+    update?.({
+      operationId: 'part-one',
+      direction: 'download',
+      transferredBytes: 10,
+      totalBytes: 200,
+      queuedParts: 1,
+    })
+    assert.equal(queuedPartSnapshots.at(-1), 4)
+
+    controller.abort()
+    const summary = await operation
+    assert.equal(summary.canceled, true)
+  })
+
+  it('opens one look-ahead lane at exactly 90% and preserves input order', async () => {
+    const entries = [
+      pointerEntry('one.bin', 100),
+      pointerEntry('two.bin', 100),
+      pointerEntry('three.bin', 100),
+    ]
+    const started: string[] = []
+    const updates = new Map<
+      string,
+      (progress: {
+        operationId: string
+        direction: 'download'
+        transferredBytes: number
+        totalBytes: number
+      }) => void
+    >()
+    const finish = new Map<string, () => void>()
+    const aggregate: number[] = []
+    const laneSnapshots: string[][] = []
+    let active = 0
+    let maximumActive = 0
+
+    const operation = materializeCheapLfsPointers(
+      entries,
+      (relativePath, _signal, onProgress) =>
+        new Promise(resolve => {
+          started.push(relativePath)
+          active++
+          maximumActive = Math.max(maximumActive, active)
+          updates.set(relativePath, onProgress)
+          finish.set(relativePath, () => {
+            active--
+            resolve({ path: relativePath, bytes: 100 })
+          })
+        }),
+      new AbortController().signal,
+      progress => {
+        aggregate.push(progress.transferredBytes)
+        laneSnapshots.push(
+          (progress.activeMaterializations ?? []).map(
+            lane => `${lane.lane}:${lane.relativePath}`
+          )
+        )
+      }
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin'])
+    updates.get('one.bin')?.({
+      operationId: 'one',
+      direction: 'download',
+      transferredBytes: 89,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin'])
+
+    updates.get('one.bin')?.({
+      operationId: 'one',
+      direction: 'download',
+      transferredBytes: 90,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+
+    // Repeated threshold events and the prefetch lane reaching 100% cannot
+    // create a third active materialize.
+    updates.get('one.bin')?.({
+      operationId: 'one',
+      direction: 'download',
+      transferredBytes: 95,
+      totalBytes: 100,
+    })
+    updates.get('two.bin')?.({
+      operationId: 'two',
+      direction: 'download',
+      transferredBytes: 100,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+
+    // The second lane may finish first. Its vacancy admits the third target,
+    // while the public summary still follows input order.
+    finish.get('two.bin')?.()
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin'])
+    finish.get('three.bin')?.()
+    finish.get('one.bin')?.()
+    const summary = await operation
+
+    assert.equal(maximumActive, 2)
+    assert.deepEqual(
+      summary.materialized.map(result => result.path),
+      ['one.bin', 'two.bin', 'three.bin']
+    )
+    assert.ok(
+      aggregate.every(
+        (value, index) => index === 0 || value >= aggregate[index - 1]
+      )
+    )
+    assert.ok(
+      laneSnapshots.some(
+        lanes => lanes.join('|') === 'current:one.bin|prefetch:two.bin'
+      )
+    )
+  })
+
+  it('uses materialize completion when a provider emits no progress', async () => {
+    const started: string[] = []
+    let finishFirst: (() => void) | undefined
+    const operation = materializeCheapLfsPointers(
+      [pointerEntry('one.bin', 100), pointerEntry('two.bin', 100)],
+      relativePath =>
+        relativePath === 'one.bin'
+          ? new Promise(resolve => {
+              started.push(relativePath)
+              finishFirst = () => resolve({ path: relativePath, bytes: 100 })
+            })
+          : Promise.resolve().then(() => {
+              started.push(relativePath)
+              return { path: relativePath, bytes: 100 }
+            }),
+      new AbortController().signal
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin'])
+    finishFirst?.()
+    const summary = await operation
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+    assert.equal(summary.materialized.length, 2)
+  })
+
+  it('requires the newly current file to reach its own 90% boundary', async () => {
+    const started: string[] = []
+    const updates = new Map<
+      string,
+      (progress: {
+        operationId: string
+        direction: 'download'
+        transferredBytes: number
+        totalBytes: number
+      }) => void
+    >()
+    const finish = new Map<string, () => void>()
+    const operation = materializeCheapLfsPointers(
+      [
+        pointerEntry('one.bin', 100),
+        pointerEntry('two.bin', 100),
+        pointerEntry('three.bin', 100),
+      ],
+      (relativePath, _signal, onProgress) =>
+        new Promise(resolve => {
+          started.push(relativePath)
+          updates.set(relativePath, onProgress)
+          finish.set(relativePath, () =>
+            resolve({ path: relativePath, bytes: 100 })
+          )
+        }),
+      new AbortController().signal
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    updates.get('one.bin')?.({
+      operationId: 'one',
+      direction: 'download',
+      transferredBytes: 90,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+
+    updates.get('two.bin')?.({
+      operationId: 'two',
+      direction: 'download',
+      transferredBytes: 10,
+      totalBytes: 100,
+    })
+    finish.get('one.bin')?.()
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+
+    updates.get('two.bin')?.({
+      operationId: 'two',
+      direction: 'download',
+      transferredBytes: 89,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+
+    updates.get('two.bin')?.({
+      operationId: 'two',
+      direction: 'download',
+      transferredBytes: 90,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin', 'three.bin'])
+
+    finish.get('three.bin')?.()
+    finish.get('two.bin')?.()
+    const summary = await operation
+    assert.deepEqual(
+      summary.materialized.map(result => result.path),
+      ['one.bin', 'two.bin', 'three.bin']
+    )
+  })
+
+  it('uses physical OCI image bytes for the exact look-ahead boundary', async () => {
+    const entries = [
+      pointerEntry('registry.bin', 11_000),
+      pointerEntry('next.bin', 100),
+    ]
+    const started: string[] = []
+    const updates = new Map<
+      string,
+      (progress: {
+        operationId: string
+        direction: 'download'
+        transferredBytes: number
+        totalBytes: number
+        phase: 'downloading'
+        logicalTransferredBytes: number
+        logicalTotalBytes: number
+        actualTransferredBytes: number
+        actualTotalBytes: number
+      }) => void
+    >()
+    const finish = new Map<string, () => void>()
+    const operation = materializeCheapLfsPointers(
+      entries,
+      (relativePath, _signal, onProgress) =>
+        new Promise(resolve => {
+          started.push(relativePath)
+          updates.set(relativePath, onProgress)
+          finish.set(relativePath, () =>
+            resolve({
+              path: relativePath,
+              bytes: relativePath === 'registry.bin' ? 11_000 : 100,
+            })
+          )
+        }),
+      new AbortController().signal
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    updates.get('registry.bin')?.({
+      operationId: 'oci-before',
+      direction: 'download',
+      phase: 'downloading',
+      transferredBytes: 9_893,
+      totalBytes: 11_000,
+      logicalTransferredBytes: 9_893,
+      logicalTotalBytes: 11_000,
+      actualTransferredBytes: 1_529,
+      actualTotalBytes: 1_700,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['registry.bin'])
+
+    updates.get('registry.bin')?.({
+      operationId: 'oci-boundary',
+      direction: 'download',
+      phase: 'downloading',
+      transferredBytes: 9_900,
+      totalBytes: 11_000,
+      logicalTransferredBytes: 9_900,
+      logicalTotalBytes: 11_000,
+      actualTransferredBytes: 1_530,
+      actualTotalBytes: 1_700,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['registry.bin', 'next.bin'])
+
+    finish.get('next.bin')?.()
+    finish.get('registry.bin')?.()
+    const summary = await operation
+    assert.equal(summary.materialized.length, 2)
+  })
+
+  it('aborts and drains both active lanes without starting queued work', async () => {
+    const controller = new AbortController()
+    const started: string[] = []
+    const updates = new Map<
+      string,
+      (progress: {
+        operationId: string
+        direction: 'download'
+        transferredBytes: number
+        totalBytes: number
+      }) => void
+    >()
+    let aborted = 0
+    const operation = materializeCheapLfsPointers(
+      [
+        pointerEntry('one.bin', 100),
+        pointerEntry('two.bin', 100),
+        pointerEntry('three.bin', 100),
+      ],
+      (relativePath, signal, onProgress) =>
+        new Promise((_resolve, reject) => {
+          started.push(relativePath)
+          updates.set(relativePath, onProgress)
+          signal.addEventListener(
+            'abort',
+            () =>
+              setImmediate(() => {
+                aborted++
+                const error = new Error('canceled')
+                error.name = 'AbortError'
+                reject(error)
+              }),
+            { once: true }
+          )
+        }),
+      controller.signal
+    )
+
+    await new Promise<void>(resolve => setImmediate(resolve))
+    updates.get('one.bin')?.({
+      operationId: 'one',
+      direction: 'download',
+      transferredBytes: 90,
+      totalBytes: 100,
+    })
+    await new Promise<void>(resolve => setImmediate(resolve))
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
+
+    controller.abort()
+    const summary = await operation
+    assert.equal(summary.canceled, true)
+    assert.equal(aborted, 2)
+    assert.deepEqual(started, ['one.bin', 'two.bin'])
   })
 
   it('records a per-pointer failure and keeps going', async () => {
@@ -171,6 +649,7 @@ describe('materializeCheapLfsPointers', () => {
       pointerEntry('bad.bin', 100),
       pointerEntry('good.bin', 200),
     ]
+    const transferred: number[] = []
     const summary = await materializeCheapLfsPointers(
       entries,
       async relativePath => {
@@ -179,7 +658,8 @@ describe('materializeCheapLfsPointers', () => {
         }
         return { path: relativePath, bytes: 200 }
       },
-      new AbortController().signal
+      new AbortController().signal,
+      progress => transferred.push(progress.transferredBytes)
     )
     assert.equal(summary.materialized.length, 1)
     assert.equal(summary.materialized[0].path, 'good.bin')
@@ -187,6 +667,10 @@ describe('materializeCheapLfsPointers', () => {
     assert.equal(summary.failures[0].relativePath, 'bad.bin')
     assert.match(summary.failures[0].message, /boom/)
     assert.equal(summary.canceled, false)
+    // A setup failure reported no bytes, so it must not manufacture its full
+    // logical size or let a mixed-result progress bar claim 100%.
+    assert.equal(transferred.at(-1), 200)
+    assert.ok(transferred.every(value => value <= 200))
   })
 
   it('stops early and reports cancellation on an AbortError', async () => {

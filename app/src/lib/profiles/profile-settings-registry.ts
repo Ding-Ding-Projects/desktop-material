@@ -9,6 +9,8 @@
  * selected repository, recent repositories) are intentionally excluded — they
  * should not follow an account across machines.
  */
+import { announceBrowserPreferencesChanged } from '../internal-browser'
+
 export interface IProfileSettingEntry {
   /** The localStorage key to snapshot. */
   readonly key: string
@@ -56,6 +58,11 @@ export const profileSettingsRegistry: ReadonlyArray<IProfileSettingEntry> = [
   // Diff and appearance preferences
   { key: 'theme', label: 'appearance' },
   { key: 'language-mode-v1', label: 'language' },
+  { key: 'browser-open-mode-v1', label: 'browser link behavior' },
+  {
+    key: 'internal-browser-bookmarks-v1',
+    label: 'internal browser bookmarks',
+  },
   { key: 'zoom-factor', label: 'interface scale' },
   { key: 'zoom-auto-fit-enabled', label: 'automatic interface scaling' },
   { key: 'show-recent-repositories', label: 'recent repository visibility' },
@@ -138,6 +145,7 @@ export function applySettingsSnapshot(
       storage.setItem(key, value)
     }
   }
+  announceBrowserPreferencesChanged()
 }
 
 /**

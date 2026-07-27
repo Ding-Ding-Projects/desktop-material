@@ -21,6 +21,20 @@ import { TypedBaseStore } from './base-store'
 import { IOAuthAction } from '../parse-app-url'
 import { shell } from '../app-shell'
 import noop from 'lodash/noop'
+import { InternalBrowserOAuthCallbackResult } from '../internal-browser'
+
+export interface ISignInOAuthCallbackServices {
+  readonly requestOAuthToken: (
+    endpoint: string,
+    code: string
+  ) => Promise<string | null>
+  readonly fetchUser: (endpoint: string, token: string) => Promise<Account>
+}
+
+const defaultOAuthCallbackServices: ISignInOAuthCallbackServices = {
+  requestOAuthToken,
+  fetchUser,
+}
 
 /**
  * An enumeration of the possible steps that the sign in
@@ -128,6 +142,7 @@ export interface IAuthenticationState extends ISignInState {
     endpoint: string
     onAuthCompleted: (account: Account) => void
     onAuthError: (error: Error) => void
+    callbackResult: Promise<InternalBrowserOAuthCallbackResult>
   }
 }
 
@@ -157,7 +172,9 @@ export type SignInResult =
 export class SignInStore extends TypedBaseStore<SignInState | null> {
   private state: SignInState | null = null
 
-  public constructor() {
+  public constructor(
+    private readonly oauthCallbackServices: ISignInOAuthCallbackServices = defaultOAuthCallbackServices
+  ) {
     super()
   }
 
@@ -284,6 +301,14 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
     this.setState({ ...currentState, loading: true })
 
     const csrfToken = crypto.randomUUID()
+    let settleOAuthCallback:
+      | ((result: InternalBrowserOAuthCallbackResult) => void)
+      | null = null
+    const callbackResult = new Promise<InternalBrowserOAuthCallbackResult>(
+      resolve => {
+        settleOAuthCallback = resolve
+      }
+    )
 
     new Promise<Account>((resolve, reject) => {
       const { endpoint, resultCallback } = currentState
@@ -299,14 +324,18 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           endpoint,
           onAuthCompleted: resolve,
           onAuthError: reject,
+          callbackResult,
         },
       })
-      shell.openExternal(getOAuthAuthorizationURL(endpoint, csrfToken))
+      shell.openExternal(getOAuthAuthorizationURL(endpoint, csrfToken), {
+        intent: 'authentication',
+      })
     })
       .then(account => {
         if (!this.state || this.state.kind !== SignInStep.Authentication) {
           // Looks like the sign in flow has been aborted
           log.warn('[SignInStore] account resolved but session has changed')
+          settleOAuthCallback?.('rejected')
           return
         }
 
@@ -315,6 +344,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           log.info(
             '[SignInStore] authentication callback replaced the sign-in session'
           )
+          settleOAuthCallback?.('succeeded')
           return
         }
 
@@ -322,6 +352,7 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
           kind: SignInStep.Success,
           resultCallback: noop,
         })
+        settleOAuthCallback?.('succeeded')
       })
       .catch(e => {
         // Make sure we're still in the same sign in session
@@ -331,38 +362,72 @@ export class SignInStore extends TypedBaseStore<SignInState | null> {
         ) {
           log.info('[SignInStore] error with OAuth flow', e)
           this.setState({ ...this.state, error: e, loading: false })
+          settleOAuthCallback?.('failed')
         } else {
           log.info(`[SignInStore] OAuth error but session has changed: ${e}`)
+          settleOAuthCallback?.('rejected')
         }
       })
   }
 
-  public async resolveOAuthRequest(action: IOAuthAction) {
-    if (!this.state || this.state.kind !== SignInStep.Authentication) {
-      return
+  public async resolveOAuthRequest(
+    action: IOAuthAction
+  ): Promise<InternalBrowserOAuthCallbackResult> {
+    const currentState = this.state
+    if (
+      currentState === null ||
+      currentState.kind !== SignInStep.Authentication ||
+      currentState.oauthState === undefined
+    ) {
+      return 'rejected'
     }
 
-    if (!this.state.oauthState) {
-      return
-    }
-
-    if (this.state.oauthState.state !== action.state) {
+    const oauthState = currentState.oauthState
+    if (oauthState.state !== action.state) {
       log.warn(
         'requestAuthenticatedUser was not called with valid OAuth state. This is likely due to a browser reloading the callback URL. Contact GitHub Support if you believe this is an error'
       )
-      return
+      return 'rejected'
     }
 
-    const { endpoint } = this.state
-    const token = await requestOAuthToken(endpoint, action.code)
+    const isCurrentOAuthSession = () =>
+      this.state?.kind === SignInStep.Authentication &&
+      this.state.oauthState === oauthState
 
-    if (token) {
-      const account = await fetchUser(endpoint, token)
-      this.state.oauthState.onAuthCompleted(account)
-    } else {
-      this.state.oauthState.onAuthError(
-        new Error('Failed retrieving authenticated user')
+    try {
+      const token = await this.oauthCallbackServices.requestOAuthToken(
+        oauthState.endpoint,
+        action.code
       )
+      if (!isCurrentOAuthSession()) {
+        return 'rejected'
+      }
+      if (token === null || token.length === 0) {
+        oauthState.onAuthError(
+          new Error('Failed retrieving authenticated user')
+        )
+        return oauthState.callbackResult
+      }
+
+      const account = await this.oauthCallbackServices.fetchUser(
+        oauthState.endpoint,
+        token
+      )
+      if (!isCurrentOAuthSession()) {
+        return 'rejected'
+      }
+      oauthState.onAuthCompleted(account)
+      return oauthState.callbackResult
+    } catch (error) {
+      if (!isCurrentOAuthSession()) {
+        return 'rejected'
+      }
+      oauthState.onAuthError(
+        error instanceof Error
+          ? error
+          : new Error('Failed retrieving authenticated user')
+      )
+      return oauthState.callbackResult
     }
   }
 

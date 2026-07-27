@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 26, 2026**
+Updated: **July 27, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -12,6 +12,51 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Local acceptance complete; merge/publication pending**
+
+The Cheap LFS Release restore path now uses one FIFO coordinator shared by every
+file and multipart asset in a batch. It permits at most two active downloads
+and opens the look-ahead lane only when the current provider transfer reaches
+the exact 90% boundary; a missing or unusable progress total falls back to
+starting the next item when the current transfer settles. Per-part and
+whole-file size/SHA-256 verification, unchanged-pointer comparison, temporary
+artifact cleanup, cancellation draining, and input-ordered outcomes remain
+mandatory. The shared Large files and clone/batch restore surface now shows
+overall/current/look-ahead progress, repository/provider/phase, file and part
+ordinals, logical and actual network bytes, queued/remaining/succeeded/failed
+counts, rate, ETA, elapsed time, bounded failure details, and cancellation.
+
+Browser-bound HTTP(S) links can now follow a persisted global setting into a
+dedicated Desktop Material browser or the system browser. The app-hosted window
+provides tabs, New tab, address bar, Back/Forward, Refresh/Stop, Go, bookmarks,
+popup/redirect capture, and an explicit external escape. Remote pages live in
+permission-denied sandboxed `WebContentsView` tabs with no Node, preload, or
+trusted app IPC. Authentication is explicit rather than URL-guessed, uses a
+clearable in-memory partition, cannot be bookmarked, and always offers
+**Continue in system browser**.
+
+Repository-list privacy is now a separate filled-lock badge driven only by
+exact `isPrivate === true` provider metadata. It remains visible beside a fork
+glyph or custom repository logo; public and unknown metadata show no lock.
+The badge is keyboard-focusable, localized, and included in the row's
+accessible name.
+
+Local acceptance is complete on the task branch. The combined browser,
+restore, localization, IPC, and badge suite passed **652/652 across 53 files**;
+the two CDP verifier contract suites passed **14/14**; full TypeScript checking
+is clean; and the exact Windows production build returned `0` without timeout
+or stderr and produced the normal `out` bundle including the internal-browser
+assets. A real built app on an isolated hidden Win32 desktop passed wide
+English and narrow bilingual restore receipts at the exact current-90% /
+look-ahead-10% state, browser redirect/popup/new-tab/bookmark/authentication
+escape receipts, and the private-badge capture, with no clipping, overlap, or
+private data. Packaged Windows E2E, default-branch merge/push, remote CI,
+Pages/wiki publication, and installer/Release evidence remain pending.
+Detailed contracts and the evidence split are in [HANDOFF.md](HANDOFF.md),
+[Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
+the [app-hosted browser](docs/features/integrations/app-hosted-browser.md), and
+the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 
 ## July 26 reliability bug hunt — **Implemented and locally accepted**
 
@@ -578,7 +623,7 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   leaving small human-readable pointers at their tracked paths. Automatic pinning
   gates on commit entry points and downloads materialize detected pointers after
   clone, pull, user fetch, or open under one cancelable batch. Multi-gigabyte
-  files are split into ordered raw parts of at most 1.5 GiB with whole-file and
+  files are split into ordered raw parts of at most 500 MiB with whole-file and
   per-part SHA-256 verification. The manager lists and searches committed
   pointers, restores individually or all at once, and never requires browsing or
   decoding release asset names externally.
@@ -875,7 +920,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
-| Documentation gallery expansion | **77-scene source catalog** | README, wiki, and Pages source catalog 77 named visual scenes. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection; the July 23 continuation adds the Cheap LFS commit-progress, compact Releases, and live Bambu build frames to the prior group-chip, rich-palette, raw Cheap LFS, cloud-compression, and updater images. Remote rendering is checked as part of the exact-source publication receipt rather than encoded as mutable roadmap state. |
+| Documentation gallery expansion | **Historical 77-scene publication; 84-scene local source catalog** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes and three newly accepted local captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—bring the machine-checked source catalog to 84. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Remote rendering for the three new scenes remains pending the default-branch publication receipt. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

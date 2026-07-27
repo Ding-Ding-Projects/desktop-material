@@ -315,6 +315,13 @@
       d: "The repository tab strip's trailing cluster carries the signature per-account settings-repo feedback from the v2 design: a persistent commit chip, a Settings-history entry…",
     },
     {
+      t: 'App-hosted browser',
+      h: 'features/integrations/app-hosted-browser.html',
+      s: 'features/integrations/app-hosted-browser.md',
+      c: 'features',
+      d: 'Desktop Material can open browser-bound HTTP and HTTPS links in a dedicated app-hosted window instead of always handing them to the system browser. The window supplies a URL…',
+    },
+    {
       t: 'Automated update build status and release notes',
       h: 'features/integrations/automated-updates-and-release-notes.html',
       s: 'features/integrations/automated-updates-and-release-notes.md',
@@ -614,6 +621,13 @@
       s: 'features/repository-management/patch-series.md',
       c: 'features',
       d: 'Open Repository → Repository tools → Exchange patch series to move a reviewable sequence of commits without publishing a branch.',
+    },
+    {
+      t: 'Private-repository lock badge',
+      h: 'features/repository-management/private-repository-lock-badge.html',
+      s: 'features/repository-management/private-repository-lock-badge.md',
+      c: 'features',
+      d: "Desktop Material shows a separate filled lock beside a repository's normal leading glyph when GitHub metadata explicitly identifies the repository as private. The lock does not…",
     },
     {
       t: 'Reviewed ordinary Git pull previews',

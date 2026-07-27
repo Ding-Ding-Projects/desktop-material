@@ -16,7 +16,8 @@ the implemented feature contracts.
 - [Repository management](repository-management/README.md) — opening,
   organizing, and safely navigating repositories and nested repositories.
 - [Integrations](integrations/README.md) — user-level Git, editor, shell,
-  operating-system connections, and repository-bound provider packages.
+  operating-system connections, a sandboxed app-hosted browser, and
+  repository-bound provider packages.
 - [Identity and workspace](identity-and-workspace/README.md) — multiple
   accounts plus fast repository and branch navigation at workspace scale.
 - [Collaboration](collaboration/README.md) — pull-request review, creation,

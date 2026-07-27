@@ -32,8 +32,8 @@ import {
   IBatchCloneFinalizingState,
   ICheapLfsRestoreState,
 } from '../../lib/app-state'
+import { CheapLfsRestoreProgress } from '../lib/cheap-lfs-restore-progress'
 import { OperationProgressRow } from '../lib/operation-progress-row'
-import { formatBytes } from '../lib/bytes'
 
 /** localStorage id used to persist the clone-queue filter mode. */
 const BatchCloneFilterListId = 'batch-clone-queue'
@@ -386,17 +386,9 @@ export class BatchCloneProgress extends React.Component<
           }
         />
         {restore !== null && (
-          <OperationProgressRow
-            className="batch-clone-finalizing-bytes"
-            label={translateForAccessibleName('cheapLfs.restore.label')}
-            description={t('cheapLfs.restore.status', {
-              files: `${restore.filesCompleted}/${restore.filesTotal}`,
-              bytes: `${formatBytes(restore.transferredBytes)} / ${formatBytes(
-                restore.totalBytes
-              )}`,
-            })}
-            value={restore.transferredBytes}
-            max={restore.totalBytes > 0 ? restore.totalBytes : null}
+          <CheapLfsRestoreProgress
+            className="batch-clone-finalizing-restore"
+            progress={restore}
           />
         )}
       </div>

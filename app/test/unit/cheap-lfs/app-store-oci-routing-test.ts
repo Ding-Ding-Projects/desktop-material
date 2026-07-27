@@ -8,6 +8,7 @@ import { promisify } from 'node:util'
 import {
   AppStore,
   cheapLfsOciCommitProgress,
+  cheapLfsOciTransferProgress,
   projectCheapLfsMaterializedStatus,
   probeCheapLfsDockerHubCapability,
 } from '../../../src/lib/stores/app-store'
@@ -46,6 +47,49 @@ function deferred<T>() {
 }
 
 describe('AppStore Cheap LFS OCI routing', () => {
+  it('projects unequal multi-object OCI image bytes onto pointer bytes', () => {
+    const progressAt = (processedBytes: number) =>
+      cheapLfsOciTransferProgress(
+        {
+          phase: 'pulling',
+          currentPath: 'models/selected.bin',
+          completedFiles: 0,
+          totalFiles: 1,
+          attempt: 1,
+          maximumChunkBytes: 1024,
+          transfer: {
+            phase: 'downloading',
+            completedObjects: 2,
+            totalObjects: 3,
+            currentObjectSha256: 'a'.repeat(64),
+            processedBytes,
+            totalBytes: 1_700,
+          },
+        },
+        'download',
+        11_000
+      )
+
+    const before = progressAt(1_529)
+    assert.equal(before.actualTransferredBytes, 1_529)
+    assert.equal(before.actualTotalBytes, 1_700)
+    assert.equal(before.logicalTransferredBytes, 9_893)
+    assert.equal(before.logicalTotalBytes, 11_000)
+    assert.equal(before.phase, 'downloading')
+    assert.ok(before.actualTransferredBytes! / before.actualTotalBytes! < 0.9)
+
+    const boundary = progressAt(1_530)
+    assert.equal(boundary.actualTransferredBytes, 1_530)
+    assert.equal(boundary.actualTotalBytes, 1_700)
+    assert.equal(boundary.logicalTransferredBytes, 9_900)
+    assert.equal(boundary.transferredBytes, 9_900)
+    assert.equal(boundary.totalBytes, 11_000)
+    assert.equal(
+      boundary.actualTransferredBytes! / boundary.actualTotalBytes!,
+      0.9
+    )
+  })
+
   it('preserves all active OCI upload lanes for commit progress', () => {
     const activeFiles = [
       {
@@ -389,6 +433,7 @@ describe('AppStore Cheap LFS OCI routing', () => {
     let refreshes = 0
     let notified = false
     const progressEvents = new Array<IGitHubReleaseTransferProgressEvent>()
+    const restoreSnapshots = new Array<unknown>()
     const store = Object.create(AppStore.prototype) as AppStore
     Object.assign(store, {
       cheapLfsMaterializeOwners: new Map(),
@@ -422,6 +467,9 @@ describe('AppStore Cheap LFS OCI routing', () => {
       postCheapLfsMaterializeNotification: () => {
         notified = true
       },
+      updateCheapLfsRestore: (progress: unknown) => {
+        restoreSnapshots.push(progress)
+      },
     })
 
     await store._materializeAllCheapLfsPointers(
@@ -447,6 +495,33 @@ describe('AppStore Cheap LFS OCI routing', () => {
         ['release.ptr', 11, 11],
       ]
     )
+    const overlapping = restoreSnapshots.find(snapshot => {
+      const progress = snapshot as {
+        readonly currentLane?: { readonly relativePath?: string } | null
+        readonly prefetchLane?: { readonly relativePath?: string } | null
+      } | null
+      return (
+        progress?.currentLane?.relativePath === 'registry.ptr' &&
+        progress.prefetchLane?.relativePath === 'release.ptr'
+      )
+    }) as
+      | {
+          readonly provider: string
+          readonly logicalTotalBytes: number
+          readonly actualDownloadTotalBytes: number | null
+          readonly currentLane: { readonly provider: string }
+          readonly prefetchLane: { readonly provider: string }
+          readonly lookAheadThresholdPercent: number
+        }
+      | undefined
+    assert.notEqual(overlapping, undefined)
+    assert.equal(overlapping?.provider, 'mixed')
+    assert.equal(overlapping?.currentLane.provider, 'ghcr')
+    assert.equal(overlapping?.prefetchLane.provider, 'github-release')
+    assert.equal(overlapping?.logicalTotalBytes, 24)
+    assert.equal(overlapping?.actualDownloadTotalBytes, 24)
+    assert.equal(overlapping?.lookAheadThresholdPercent, 90)
+    assert.equal(restoreSnapshots.at(-1), null)
   })
 
   it('serializes auto, individual, and Materialize-all requests by checkout path', async t => {
@@ -515,6 +590,7 @@ describe('AppStore Cheap LFS OCI routing', () => {
       },
       _refreshRepository: async () => undefined,
       postCheapLfsMaterializeNotification: () => undefined,
+      updateCheapLfsRestore: () => undefined,
     })
 
     const automatic = store.maybeAutoMaterializeCheapLfs(repository)
@@ -828,6 +904,7 @@ describe('AppStore Cheap LFS OCI routing', () => {
       },
       _refreshRepository: async () => undefined,
       postCheapLfsMaterializeNotification: () => undefined,
+      updateCheapLfsRestore: () => undefined,
     })
 
     const summary = await store._materializeAllCheapLfsPointers(repository)
