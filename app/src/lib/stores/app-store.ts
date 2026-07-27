@@ -397,6 +397,8 @@ import {
   checkoutBranch,
   createCommit,
   createLocalCommitBatchingGitSession,
+  ILocalCommitBatchingGitPreparation,
+  LocalCommitBatchingGitError,
   getAuthorIdentity,
   getChangedFiles,
   getStatus,
@@ -9987,12 +9989,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
       },
       skipPushHooks: options?.isBackgroundTask === true,
     })
-    const prepared = await session.prepare((_paths, index, total) =>
-      t('push.commitBatch.message', {
-        current: String(index + 1),
-        total: String(total),
-      })
-    )
+    // Preparation is read-only: it inspects the local-only range and plans a
+    // rewrite. When the adapter refuses — a merge commit makes the range
+    // non-linear, a bound is exceeded, the remote cannot be read — there is
+    // simply nothing to batch, and the ordinary push that follows is the
+    // correct outcome. Absorbing the refusal here is safe precisely because
+    // it is raised before any mutation; a failure once rewriting has begun
+    // still propagates, so a half-rewritten history is never pushed blindly.
+    let prepared: ILocalCommitBatchingGitPreparation
+    try {
+      prepared = await session.prepare((_paths, index, total) =>
+        t('push.commitBatch.message', {
+          current: String(index + 1),
+          total: String(total),
+        })
+      )
+    } catch (error) {
+      if (error instanceof LocalCommitBatchingGitError) {
+        log.info(
+          `Local-commit push batching does not apply (${error.code}): ${error.message}`
+        )
+        return
+      }
+      throw error
+    }
     const result = await handleLocalCommitPushBatching(
       prepared.inspection,
       session.operations,

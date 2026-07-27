@@ -99,6 +99,31 @@ describe('legacy local commit batching entry points', () => {
     assert.match(body, /result\.mode === 'rewritten-commits'/)
   })
 
+  it('lets an ordinary push proceed when batching cannot apply', () => {
+    const body = methodBody(
+      'private async handleLegacyLocalCommitPushBatching(',
+      'private async performPush('
+    )
+    // A refusal raised by the read-only preparation — a merge commit makes
+    // the local-only range non-linear, a bound is exceeded, the remote
+    // cannot be read — must not fail the push. It is absorbed and the
+    // ordinary push that follows the helper runs.
+    assert.match(
+      body,
+      /catch \(error\) \{\s*if \(error instanceof LocalCommitBatchingGitError\) \{[\s\S]*?return\s*\}\s*throw error/
+    )
+    // Only the preparation is guarded. Once rewriting has begun a failure
+    // still propagates, so a half-rewritten history is never pushed blindly.
+    const guardEnd = body.indexOf('throw error')
+    const mutate = body.indexOf('handleLocalCommitPushBatching(')
+    assert.ok(guardEnd >= 0)
+    assert.ok(
+      mutate > guardEnd,
+      'the mutating batch call must sit outside the preparation guard'
+    )
+    assert.equal(body.match(/catch \(error\) \{/g)?.length, 1)
+  })
+
   it('passes the exact ordinary push target when no upstream is configured', () => {
     const body = methodBody(
       'private async handleLegacyLocalCommitPushBatching(',
