@@ -211,17 +211,14 @@
       notifications: 'Notifications',
 
       featuresCatalogue: 'Categorised feature documentation',
-<<<<<<< HEAD
       cFeatCompleteTitle: 'Complete feature list',
       cFeatCompleteBody:
         'Every feature in one bilingual table, each labelled Added, Extended or Inherited against upstream GitHub Desktop.',
-=======
       featuresEveryTitle: 'Every feature document',
       featuresEveryLead:
         'Each category tab below lists every feature document in that category, generated from the documentation tree itself. Nothing here is hand-maintained, so a new feature document appears as soon as the catalog is regenerated.',
       featuresComparison:
         'Feature list with the differences from the original GitHub Desktop',
->>>>>>> worktree-agent-a7a45498efaebbd51
       cFeatAgentTitle: 'Agent API',
       cFeatAgentBody:
         'Opt-in REST and MCP automation, authentication, transport boundaries and executable Postman requests.',
@@ -564,16 +561,13 @@
       notifications: '通知',
 
       featuresCatalogue: '分類功能文件',
-<<<<<<< HEAD
       cFeatCompleteTitle: '完整功能清單',
       cFeatCompleteBody:
         '所有功能一張雙語表睇晒，每項都標明對比上游 GitHub Desktop 係新加、加強定沿用。',
-=======
       featuresEveryTitle: '所有功能文件',
       featuresEveryLead:
         '下面每個分類分頁都會列晒嗰個分類入面所有功能文件，全部由文件樹本身生成。冇一項係人手維護，所以新增嘅功能文件一重新生成目錄就會出現。',
       featuresComparison: '功能清單，同原本 GitHub Desktop 嘅分別',
->>>>>>> worktree-agent-a7a45498efaebbd51
       cFeatAgentTitle: 'Agent API',
       cFeatAgentBody:
         '選擇性啟用嘅 REST 同 MCP 自動化、驗證、傳輸邊界，以及可執行嘅 Postman 請求。',
