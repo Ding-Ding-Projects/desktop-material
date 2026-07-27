@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { createHash } from 'node:crypto'
 import {
   access,
   mkdtemp,
@@ -7,6 +8,7 @@ import {
   rename,
   rm,
   symlink,
+  utimes,
   writeFile,
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -213,6 +215,81 @@ describe('Cheap LFS tracked path store', () => {
       await readFile(join(error.recoveryPaths[0], 'replacement'), 'utf8'),
       'second pointer\n'
     )
+  })
+
+  it('defers the destination hash to the owned-copy proof and publishes by identity', async t => {
+    const root = await repository(t)
+    const path = join(root, 'large.bin')
+    const payload = 'original payload bytes'
+    await writeFile(path, payload)
+    const store = new CheapLfsTrackedPathStore()
+
+    const verified = await store.prepareUpload(
+      root,
+      'large.bin',
+      path,
+      1024 * 1024
+    )
+
+    // The pre-copy proofs are identity-only; the streamed owned copy is the
+    // single authoritative content hash for the upload.
+    assert.equal(verified.destination.exists, true)
+    assert.equal(verified.destination.sha256, null)
+    assert.equal(
+      verified.sha256,
+      createHash('sha256').update(payload).digest('hex')
+    )
+    assert.equal(verified.source.sha256, verified.sha256)
+    assert.equal(
+      await readFile(verified.owned.path, 'utf8'),
+      payload,
+      'owned copy holds the verified bytes'
+    )
+
+    // An unchanged identity revalidates without re-reading the content, and
+    // the deferred-hash destination proof still publishes through quarantine.
+    await store.revalidateSource(verified.source)
+    await store.publishText(verified.destination, 'pointer text\n')
+    assert.equal(await readFile(path, 'utf8'), 'pointer text\n')
+    assert.deepEqual(await recoveryDirectories(root), [])
+    await store.cleanupOwned(verified.owned)
+  })
+
+  it('fails closed on identity drift and re-hashes only under a full content proof', async t => {
+    const root = await repository(t)
+    const path = join(root, 'drift.bin')
+    await writeFile(path, 'first payload content')
+    const store = new CheapLfsTrackedPathStore()
+    const verified = await store.prepareUpload(
+      root,
+      'drift.bin',
+      path,
+      1024 * 1024
+    )
+
+    // A same-size rewrite drifts only the identity metadata. The deferred-hash
+    // proofs must fail closed instead of trusting stale identities.
+    await writeFile(path, 'other payload content')
+    await assert.rejects(
+      store.revalidateSource(verified.source),
+      CheapLfsTrackedPathError
+    )
+    const publishError = await trackedError(
+      store.publishText(verified.destination, 'pointer text\n')
+    )
+    assert.ok(publishError.recoveryPaths.length >= 1)
+    assert.equal(await readFile(path, 'utf8'), 'other payload content')
+    await store.cleanupOwned(verified.owned)
+
+    // A metadata-only touch under a full (hashed) proof falls back to the
+    // content re-hash and still publishes.
+    const touched = join(root, 'touched.bin')
+    await writeFile(touched, 'stable content')
+    const hashedProof = await store.proveExisting(root, 'touched.bin')
+    const past = new Date(Date.now() - 60_000)
+    await utimes(touched, past, past)
+    await store.publishText(hashedProof, 'pointer after touch\n')
+    assert.equal(await readFile(touched, 'utf8'), 'pointer after touch\n')
   })
 
   it('consumes verified materialization temps on success, failure, and cancel', async t => {

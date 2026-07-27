@@ -2,6 +2,7 @@ import { constants } from 'fs'
 import type { BigIntStats } from 'fs'
 import { createHash, randomUUID } from 'crypto'
 import {
+  chmod,
   FileHandle,
   link,
   lstat,
@@ -122,6 +123,18 @@ export interface ICheapLfsTrackedPathStore {
     repositoryPath: string,
     relativePath: string
   ): Promise<ICheapLfsTrackedFileProof>
+  /**
+   * Like {@link proveDestination}, but captures only the strong path identity
+   * and defers the content hash: `sha256` stays `null` even for an existing
+   * file. Mutations verified against such a proof revalidate by identity and
+   * fail closed on any drift instead of accepting a hash match. Optional so
+   * structural test fakes remain compatible; callers fall back to
+   * `proveDestination`.
+   */
+  proveDestinationIdentity?(
+    repositoryPath: string,
+    relativePath: string
+  ): Promise<ICheapLfsTrackedFileProof>
   proveManagedPath(
     repositoryPath: string,
     relativePath: string,
@@ -165,10 +178,13 @@ interface IInternalTrackedProof extends ICheapLfsTrackedFileProof {
   readonly identity: IPathIdentity | null
 }
 
-interface IInternalSourceProof extends ICheapLfsSourceFileProof {
+interface IInternalSourceProof
+  extends Omit<ICheapLfsSourceFileProof, 'sha256'> {
   readonly owner: object
   readonly parent: IParentProof
   readonly identity: IPathIdentity
+  /** `null` while deferred; backfilled by the authoritative owned-copy hash. */
+  readonly sha256: string | null
 }
 
 interface IInternalOwnedFile extends ICheapLfsOwnedFile {
@@ -251,6 +267,23 @@ function sameEntry(
         left.modificationTimeNanoseconds ===
           right.modificationTimeNanoseconds &&
         left.sizeInBytes === right.sizeInBytes))
+  )
+}
+
+/**
+ * Rename/link-tolerant content identity: the same device, inode, and birth
+ * time with an unchanged modification time and size. `ctime` is deliberately
+ * excluded because `rename`, `link`, and mode fixes advance it without
+ * touching content, while every content write advances `mtime` (nanosecond
+ * precision) or the size. A match against an identity captured in the same
+ * operation proves the bytes hashed then are the bytes present now, so a
+ * revalidation may skip re-hashing; any mismatch must re-hash or fail closed.
+ */
+function sameContentEntry(left: IPathIdentity, right: IPathIdentity): boolean {
+  return (
+    sameEntry(left, right, false) &&
+    left.modificationTimeNanoseconds === right.modificationTimeNanoseconds &&
+    left.sizeInBytes === right.sizeInBytes
   )
 }
 
@@ -366,6 +399,27 @@ async function openRegularFile(
   }
 }
 
+/**
+ * Capture a path's strong identity with the same symlink/reparse/link-count
+ * refusals as {@link inspectPath}, but without paying a full content read.
+ * Used wherever an identity captured earlier in the same operation (always
+ * bracketed by at least one authoritative full-content hash) is revalidated.
+ */
+async function inspectPathIdentity(
+  path: string,
+  expectedLinks: bigint = 1n
+): Promise<{
+  readonly identity: IPathIdentity
+  readonly sizeInBytes: number
+}> {
+  const opened = await openRegularFile(path, expectedLinks)
+  await opened.handle.close()
+  return {
+    identity: opened.identity,
+    sizeInBytes: Number(opened.identity.sizeInBytes),
+  }
+}
+
 async function inspectPath(
   path: string,
   expectedLinks: bigint = 1n
@@ -417,7 +471,7 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
   }
 
   private requireSource(proof: ICheapLfsSourceFileProof): IInternalSourceProof {
-    const candidate = proof as IInternalSourceProof
+    const candidate = proof as unknown as IInternalSourceProof
     if (candidate.owner !== this.owner) {
       throw new CheapLfsTrackedPathError(
         'Cheap LFS rejected a foreign or forged source proof.'
@@ -534,12 +588,23 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
 
   private async proveLocation(
     location: IResolvedTrackedLocation,
-    requireExisting: boolean
+    requireExisting: boolean,
+    capture: 'hash' | 'identity' = 'hash'
   ): Promise<IInternalTrackedProof> {
     await this.revalidateParents(location.parents)
-    let inspected: Awaited<ReturnType<typeof inspectPath>> | null = null
+    let inspected: {
+      readonly identity: IPathIdentity
+      readonly sizeInBytes: number
+      readonly sha256: string | null
+    } | null = null
     try {
-      inspected = await inspectPath(location.absolutePath)
+      inspected =
+        capture === 'hash'
+          ? await inspectPath(location.absolutePath)
+          : {
+              ...(await inspectPathIdentity(location.absolutePath)),
+              sha256: null,
+            }
     } catch (error) {
       if (!isFileSystemError(error, 'ENOENT')) {
         throw error
@@ -584,6 +649,17 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
     )
   }
 
+  public async proveDestinationIdentity(
+    repositoryPath: string,
+    relativePath: string
+  ): Promise<ICheapLfsTrackedFileProof> {
+    return this.proveLocation(
+      await this.resolveLocation(repositoryPath, relativePath),
+      false,
+      'identity'
+    )
+  }
+
   public async proveManagedPath(
     repositoryPath: string,
     relativePath: string,
@@ -604,9 +680,9 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
   ): Promise<void> {
     const proof = this.requireProof(proofInput)
     await this.revalidateParents(proof.parents)
-    let current: Awaited<ReturnType<typeof inspectPath>> | null = null
+    let current: Awaited<ReturnType<typeof inspectPathIdentity>> | null = null
     try {
-      current = await inspectPath(proof.absolutePath)
+      current = await inspectPathIdentity(proof.absolutePath)
     } catch (error) {
       if (!isFileSystemError(error, 'ENOENT')) {
         throw error
@@ -620,12 +696,15 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       }
       return
     }
+    // A full ctime-inclusive identity match proves the bytes proven at capture
+    // time are untouched, so the content re-hash is skipped. Any drift fails
+    // closed exactly as the previous hash comparison did (metadata cannot
+    // drift back without advancing `ctime`).
     if (
       current === null ||
       proof.identity === null ||
       !sameEntry(proof.identity, current.identity, true) ||
-      current.sizeInBytes !== proof.sizeInBytes ||
-      current.sha256 !== proof.sha256
+      current.sizeInBytes !== proof.sizeInBytes
     ) {
       throw new CheapLfsTrackedPathError(
         'The tracked Cheap LFS file changed during the operation.'
@@ -678,13 +757,26 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       return proof
     }
     await this.revalidateParents(proof.parents)
-    const current = await inspectPath(proof.absolutePath)
-    if (
-      proof.identity === null ||
-      !sameEntry(proof.identity, current.identity, false) ||
-      proof.sha256 !== current.sha256 ||
-      proof.sizeInBytes !== current.sizeInBytes
-    ) {
+    // Removing an owned link only advances `ctime`/`nlink`; the inode, `mtime`
+    // and size still prove the content. On drift, fall back to the full
+    // content proof when the proof carries a hash, else fail closed.
+    const current = await inspectPathIdentity(proof.absolutePath)
+    let identity: IPathIdentity | null =
+      proof.identity !== null &&
+      sameContentEntry(proof.identity, current.identity)
+        ? current.identity
+        : null
+    if (identity === null && proof.identity !== null && proof.sha256 !== null) {
+      const rehashed = await inspectPath(proof.absolutePath)
+      if (
+        sameEntry(proof.identity, rehashed.identity, false) &&
+        proof.sha256 === rehashed.sha256 &&
+        proof.sizeInBytes === rehashed.sizeInBytes
+      ) {
+        identity = rehashed.identity
+      }
+    }
+    if (identity === null) {
       throw new CheapLfsTrackedPathError(
         'The tracked Cheap LFS file changed while its owned upload links were being cleaned.'
       )
@@ -692,11 +784,14 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
     await this.revalidateParents(proof.parents)
     return {
       ...proof,
-      identity: current.identity,
+      identity,
     } as IInternalTrackedProof
   }
 
-  private async sourceProof(pathInput: string): Promise<IInternalSourceProof> {
+  private async sourceProof(
+    pathInput: string,
+    capture: 'hash' | 'identity' = 'hash'
+  ): Promise<IInternalSourceProof> {
     if (
       typeof pathInput !== 'string' ||
       pathInput.length === 0 ||
@@ -750,7 +845,10 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       )
     }
     const path = canonicalPath
-    const inspected = await inspectPath(path)
+    const inspected =
+      capture === 'hash'
+        ? await inspectPath(path)
+        : { ...(await inspectPathIdentity(path)), sha256: null }
     return {
       owner: this.owner,
       absolutePath: path,
@@ -764,13 +862,20 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
   public async revalidateSource(
     proofInput: ICheapLfsSourceFileProof
   ): Promise<void> {
-    const proof = this.requireSource(proofInput)
+    await this.revalidateSourceProof(this.requireSource(proofInput))
+  }
+
+  private async revalidateSourceProof(
+    proof: IInternalSourceProof
+  ): Promise<void> {
     await this.revalidateParents([proof.parent])
-    const current = await inspectPath(proof.absolutePath)
+    // The ctime-inclusive identity match proves the proven bytes are still in
+    // place without re-reading them; any drift fails closed exactly as the
+    // previous full re-hash-and-compare did on an identity mismatch.
+    const current = await inspectPathIdentity(proof.absolutePath)
     if (
       !sameEntry(proof.identity, current.identity, true) ||
-      proof.sizeInBytes !== current.sizeInBytes ||
-      proof.sha256 !== current.sha256
+      proof.sizeInBytes !== current.sizeInBytes
     ) {
       throw new CheapLfsTrackedPathError(
         'The Cheap LFS source changed during the operation.'
@@ -789,7 +894,7 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
     readonly hashed: IHashResult
   }> {
     throwIfAborted(signal)
-    await this.revalidateSource(source)
+    await this.revalidateSourceProof(source)
     const directoryPath = await mkdtemp(
       join(tmpdir(), 'desktop-material-cheap-lfs-upload-')
     )
@@ -827,15 +932,19 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       const destinationIdentity = identity(
         await destinationHandle.stat({ bigint: true })
       )
+      // A pending (`null`) source hash is proven by this very copy: the
+      // identity checks bracketing the streamed read pin the hashed bytes to
+      // the proven source inode, and this hash becomes the authoritative
+      // content proof for everything published from the copy.
       if (
-        hashed.sha256 !== source.sha256 ||
+        (source.sha256 !== null && hashed.sha256 !== source.sha256) ||
         hashed.sizeInBytes !== source.sizeInBytes
       ) {
         throw new CheapLfsTrackedPathError(
           'The Cheap LFS source changed while its private copy was created.'
         )
       }
-      await this.revalidateSource(source)
+      await this.revalidateSourceProof(source)
       const owned = {
         owner: this.owner,
         path,
@@ -868,8 +977,11 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
     signal?: AbortSignal,
     onProgress?: (processedBytes: number) => void
   ): Promise<ICheapLfsVerifiedSourceCopy> {
+    // The destination and source are proven by identity only; the single
+    // streamed copy below is the one authoritative full-content hash for this
+    // upload, and every later revalidation compares against these identities.
     const destination = this.requireProof(
-      await this.proveDestination(repositoryPath, relativePath)
+      await this.proveDestinationIdentity(repositoryPath, relativePath)
     )
     let source: IInternalSourceProof
     if (destination.exists && samePath(destination.absolutePath, sourcePath)) {
@@ -879,10 +991,10 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
         parent: destination.parents[destination.parents.length - 1],
         identity: destination.identity!,
         sizeInBytes: destination.sizeInBytes,
-        sha256: destination.sha256!,
+        sha256: null,
       } as IInternalSourceProof
     } else {
-      source = await this.sourceProof(sourcePath)
+      source = await this.sourceProof(sourcePath, 'identity')
     }
     const copied = await this.createOwnedCopy(
       source,
@@ -890,9 +1002,13 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       signal,
       onProgress
     )
+    const provenSource = {
+      ...source,
+      sha256: copied.hashed.sha256,
+    } as IInternalSourceProof
     return {
       destination,
-      source,
+      source: provenSource as unknown as ICheapLfsSourceFileProof,
       owned: copied.owned,
       sha256: copied.hashed.sha256,
       sizeInBytes: copied.hashed.sizeInBytes,
@@ -1070,6 +1186,18 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       await this.revalidateParents(proof.parents)
       await this.assertRecoveryDirectory(staged)
       if (proof.exists) {
+        // Capture the identity at the last instant before the rename: a full
+        // ctime-inclusive match against the proof plus an inode/mtime/size
+        // match across the rename proves the quarantined bytes are the proven
+        // bytes without re-reading them. On any drift, fall back to the full
+        // content proof when the proof carries a hash, else restore.
+        let preQuarantine: IPathIdentity | null = null
+        try {
+          preQuarantine = (await inspectPathIdentity(proof.absolutePath))
+            .identity
+        } catch {
+          preQuarantine = null
+        }
         try {
           await rename(proof.absolutePath, staged.original)
           quarantined = true
@@ -1081,13 +1209,20 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
           }
           throw error
         }
-        const claimed = await inspectPath(staged.original)
-        if (
-          proof.identity === null ||
-          !sameEntry(proof.identity, claimed.identity, false) ||
-          claimed.sizeInBytes !== proof.sizeInBytes ||
-          claimed.sha256 !== proof.sha256
-        ) {
+        const claimed = await inspectPathIdentity(staged.original)
+        let claimMatches =
+          proof.identity !== null &&
+          preQuarantine !== null &&
+          sameEntry(proof.identity, preQuarantine, true) &&
+          sameContentEntry(preQuarantine, claimed.identity)
+        if (!claimMatches && proof.identity !== null && proof.sha256 !== null) {
+          const rehashed = await inspectPath(staged.original)
+          claimMatches =
+            sameEntry(proof.identity, rehashed.identity, false) &&
+            rehashed.sizeInBytes === proof.sizeInBytes &&
+            rehashed.sha256 === proof.sha256
+        }
+        if (!claimMatches) {
           return this.restoreWithoutOverwrite(
             staged.original,
             proof.absolutePath,
@@ -1135,12 +1270,16 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
         }
         throw error
       }
-      const published = await inspectPath(proof.absolutePath, 2n)
-      const replacement = await inspectPath(staged.replacement, 2n)
+      // The hard link makes the published name and the staged replacement the
+      // same inode; proving that (device/inode/birthtime) plus the unchanged
+      // staged identity replaces the two full re-hashes: the published bytes
+      // are exactly the bytes whose content proof produced the staged file.
+      const published = await inspectPathIdentity(proof.absolutePath, 2n)
+      const replacement = await inspectPathIdentity(staged.replacement, 2n)
       if (
         staged.replacementIdentity === null ||
-        !sameEntry(staged.replacementIdentity, replacement.identity, false) ||
-        published.sha256 !== replacement.sha256 ||
+        !sameContentEntry(staged.replacementIdentity, replacement.identity) ||
+        !sameEntry(published.identity, replacement.identity, false) ||
         published.sizeInBytes !== replacement.sizeInBytes
       ) {
         throw new CheapLfsTrackedPathError(
@@ -1154,11 +1293,8 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
         quarantined = false
       }
       await unlink(staged.replacement)
-      const finalDestination = await inspectPath(proof.absolutePath)
-      if (
-        finalDestination.sha256 !== replacement.sha256 ||
-        finalDestination.sizeInBytes !== replacement.sizeInBytes
-      ) {
+      const finalDestination = await inspectPathIdentity(proof.absolutePath)
+      if (!sameContentEntry(replacement.identity, finalDestination.identity)) {
         throw new CheapLfsTrackedPathError(
           `The Cheap LFS destination changed during cleanup. Recovery metadata remains at ${staged.directory}.`,
           [staged.directory],
@@ -1207,7 +1343,7 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
    * original name is free, otherwise the quarantined identity is surfaced.
    */
   private async consumeSource(source: IInternalSourceProof): Promise<void> {
-    await this.revalidateSource(source)
+    await this.revalidateSourceProof(source)
     const quarantine = join(
       dirname(source.absolutePath),
       `.${basename(source.absolutePath)}.cheap-lfs-consumed-${
@@ -1225,9 +1361,9 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       )
     }
 
-    let moved: Awaited<ReturnType<typeof inspectPath>>
+    let moved: Awaited<ReturnType<typeof inspectPathIdentity>>
     try {
-      moved = await inspectPath(quarantine)
+      moved = await inspectPathIdentity(quarantine)
     } catch (error) {
       throw new CheapLfsTrackedPathError(
         `The quarantined Cheap LFS materialization temp could not be verified and was preserved at ${quarantine}. (${String(
@@ -1236,9 +1372,11 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
         [quarantine]
       )
     }
+    // The rename only advances `ctime`; the inode/mtime/size match against the
+    // revalidated pre-rename identity proves the quarantined file is still the
+    // verified temp, without re-reading a multi-gigabyte payload.
     if (
-      !sameEntry(source.identity, moved.identity, false) ||
-      source.sha256 !== moved.sha256 ||
+      !sameContentEntry(source.identity, moved.identity) ||
       source.sizeInBytes !== moved.sizeInBytes
     ) {
       try {
@@ -1422,15 +1560,36 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
         await this.revalidateParents(proof.parents)
         await this.assertRecoveryDirectory(staged)
         if (proof.exists) {
+          // Same identity-first quarantine proof as `compareExchange`: never
+          // re-read a multi-gigabyte original when its identity provably
+          // matches; fall back to the content proof on drift when available.
+          let preQuarantine: IPathIdentity | null = null
+          try {
+            preQuarantine = (await inspectPathIdentity(proof.absolutePath))
+              .identity
+          } catch {
+            preQuarantine = null
+          }
           await rename(proof.absolutePath, staged.original)
           item.quarantined = true
-          const claimed = await inspectPath(staged.original)
+          const claimed = await inspectPathIdentity(staged.original)
+          let claimMatches =
+            proof.identity !== null &&
+            preQuarantine !== null &&
+            sameEntry(proof.identity, preQuarantine, true) &&
+            sameContentEntry(preQuarantine, claimed.identity)
           if (
-            proof.identity === null ||
-            !sameEntry(proof.identity, claimed.identity, false) ||
-            proof.sha256 !== claimed.sha256 ||
-            proof.sizeInBytes !== claimed.sizeInBytes
+            !claimMatches &&
+            proof.identity !== null &&
+            proof.sha256 !== null
           ) {
+            const rehashed = await inspectPath(staged.original)
+            claimMatches =
+              sameEntry(proof.identity, rehashed.identity, false) &&
+              proof.sha256 === rehashed.sha256 &&
+              proof.sizeInBytes === rehashed.sizeInBytes
+          }
+          if (!claimMatches) {
             item.preserve = true
             throw new CheapLfsTrackedPathError(
               'A tracked Cheap LFS batch member changed at the quarantine boundary.'
@@ -1545,40 +1704,113 @@ export class CheapLfsTrackedPathStore implements ICheapLfsTrackedPathStore {
       proof.identity === null
         ? 0o600
         : Number(proof.identity.mode & BigInt(0o777))
+
+    // The verified temp is operation-owned and normally sits beside the
+    // destination, so it is *claimed* into the private staging directory by
+    // rename instead of being read and rewritten in full a second time. The
+    // sourceProof hash above stays the store's authoritative content proof;
+    // every later step revalidates the claimed inode by identity and fails
+    // closed on drift. A cross-device source (where rename cannot move the
+    // inode) falls back to the original copy-and-verify staging.
+    const destinationParent = proof.parents[proof.parents.length - 1]
+    const claimByRename =
+      destinationParent !== undefined &&
+      source.identity.device === destinationParent.identity.device
+
+    let sourceClaimed = false
     let operationError: unknown = null
     try {
-      const staged = await this.stageReplacement(
-        proof,
-        async destination => {
-          const input = await open(
-            source.absolutePath,
-            constants.O_RDONLY | NoFollowFlag
-          )
-          try {
-            const copied = await hashHandle(
-              input,
-              Number.MAX_SAFE_INTEGER,
-              signal,
-              destination
+      let staged: Awaited<
+        ReturnType<CheapLfsTrackedPathStore['stageReplacement']>
+      >
+      if (claimByRename) {
+        throwIfAborted(signal)
+        const bare = await this.stageReplacement(proof)
+        const replacement = join(bare.directory, 'replacement')
+        try {
+          const current = await inspectPathIdentity(source.absolutePath)
+          if (!sameEntry(source.identity, current.identity, true)) {
+            throw new CheapLfsTrackedPathError(
+              'The materialized Cheap LFS source changed while staging.'
             )
-            if (
-              copied.sha256 !== expectedSha256 ||
-              copied.sizeInBytes !== expectedSizeInBytes
-            ) {
-              throw new CheapLfsTrackedPathError(
-                'The materialized Cheap LFS source changed while staging.'
-              )
-            }
-          } finally {
-            await input.close()
           }
-          await this.revalidateSource(source)
-        },
-        mode
-      )
+          await rename(source.absolutePath, replacement)
+          sourceClaimed = true
+        } catch (error) {
+          await rmdir(bare.directory).catch(() => undefined)
+          throw error
+        }
+        try {
+          await chmod(replacement, mode)
+          const claimed = await inspectPathIdentity(replacement)
+          if (!sameContentEntry(source.identity, claimed.identity)) {
+            throw new CheapLfsTrackedPathError(
+              `The claimed Cheap LFS materialization temp changed while staging and was preserved at ${bare.directory}.`,
+              [bare.directory]
+            )
+          }
+          staged = {
+            directory: bare.directory,
+            directoryIdentity: bare.directoryIdentity,
+            original: bare.original,
+            replacement,
+            replacementIdentity: claimed.identity,
+          }
+        } catch (error) {
+          if (error instanceof CheapLfsTrackedPathError) {
+            throw error
+          }
+          throw new CheapLfsTrackedPathError(
+            `Cheap LFS could not stage its claimed materialization temp; it was preserved at ${
+              bare.directory
+            }. (${String(error)})`,
+            [bare.directory]
+          )
+        }
+      } else {
+        staged = await this.stageReplacement(
+          proof,
+          async destination => {
+            const input = await open(
+              source.absolutePath,
+              constants.O_RDONLY | NoFollowFlag
+            )
+            try {
+              const copied = await hashHandle(
+                input,
+                Number.MAX_SAFE_INTEGER,
+                signal,
+                destination
+              )
+              if (
+                copied.sha256 !== expectedSha256 ||
+                copied.sizeInBytes !== expectedSizeInBytes
+              ) {
+                throw new CheapLfsTrackedPathError(
+                  'The materialized Cheap LFS source changed while staging.'
+                )
+              }
+            } finally {
+              await input.close()
+            }
+            await this.revalidateSourceProof(source)
+          },
+          mode
+        )
+      }
       await this.compareExchange(proof, staged)
     } catch (error) {
       operationError = error
+    }
+
+    if (sourceClaimed) {
+      // The temp now lives (or lived) inside the staging directory: the
+      // compare-exchange either consumed it on success or preserved it under
+      // its recovery paths, so there is no free-standing temp to consume.
+      if (operationError !== null) {
+        throw operationError
+      }
+      return
     }
 
     try {

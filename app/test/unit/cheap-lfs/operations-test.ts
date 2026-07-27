@@ -3420,6 +3420,104 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('classifies staged and materialized pointers through the batched cat-file reader', async () => {
+    await withTempRepository(async dir => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const materializedBytes = Buffer.from('materialized raw payload')
+      const materializedSha = createHash('sha256')
+        .update(materializedBytes)
+        .digest('hex')
+      const basePointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'assets',
+        assetName: 'materialized.bin',
+        sizeInBytes: materializedBytes.length,
+        sha256: materializedSha,
+      }
+      const stagedHeadPointer = { ...basePointer, assetName: 'staged-old.bin' }
+      const stagedIndexPointer = { ...basePointer, assetName: 'staged-new.bin' }
+      const resizedPointer = { ...basePointer, assetName: 'resized.bin' }
+      await writeFile(
+        join(dir, 'materialized.bin'),
+        serializeCheapLfsPointer(basePointer),
+        'utf8'
+      )
+      await writeFile(
+        join(dir, 'staged.bin'),
+        serializeCheapLfsPointer(stagedHeadPointer),
+        'utf8'
+      )
+      await writeFile(
+        join(dir, 'resized.bin'),
+        serializeCheapLfsPointer(resizedPointer),
+        'utf8'
+      )
+      await execFile('git', ['add', '--all'], { cwd: dir })
+      await execFile(
+        'git',
+        [
+          '-c',
+          'user.name=Cheap LFS Test',
+          '-c',
+          'user.email=cheap-lfs@example.test',
+          'commit',
+          '--quiet',
+          '-m',
+          'pointers',
+        ],
+        { cwd: dir }
+      )
+
+      // Stage a pointer rewrite, then materialize every worktree copy.
+      await writeFile(
+        join(dir, 'staged.bin'),
+        serializeCheapLfsPointer(stagedIndexPointer),
+        'utf8'
+      )
+      await execFile('git', ['add', '--', 'staged.bin'], { cwd: dir })
+      await writeFile(join(dir, 'materialized.bin'), materializedBytes)
+      await writeFile(join(dir, 'staged.bin'), materializedBytes)
+      await writeFile(
+        join(dir, 'resized.bin'),
+        Buffer.concat([materializedBytes, materializedBytes])
+      )
+
+      const candidates = await defaultCheapLfsFileSystem.scanPointerCandidates(
+        dir
+      )
+      const byPath = new Map(
+        candidates.map(candidate => [candidate.relativePath, candidate])
+      )
+
+      // index == HEAD with matching size: only the real content-hash equality
+      // proof suppresses the path from status as 'materialized'.
+      const materialized = byPath.get('materialized.bin')
+      assert.equal(materialized?.workingTreeState, 'materialized')
+      assert.equal(materialized?.metadataSource, 'index')
+      assert.equal(materialized?.workingTreeSha256, materializedSha)
+      assert.equal(
+        materialized?.workingTreeSizeInBytes,
+        materializedBytes.length
+      )
+
+      // The staged rewrite wins over HEAD (the batch reads `:path`), and an
+      // index/HEAD pointer mismatch stays visible as 'modified'.
+      const staged = byPath.get('staged.bin')
+      assert.equal(staged?.workingTreeState, 'modified')
+      assert.equal(staged?.text, serializeCheapLfsPointer(stagedIndexPointer))
+
+      // A size mismatch is already proof of modification, so it is classified
+      // without paying a content hash of the edited file.
+      const resized = byPath.get('resized.bin')
+      assert.equal(resized?.workingTreeState, 'modified')
+      assert.equal(resized?.workingTreeSha256, undefined)
+      assert.equal(
+        resized?.workingTreeSizeInBytes,
+        materializedBytes.length * 2
+      )
+    })
+  })
+
   it('scopes the inventory to a bounded pathspec and matches glob-magic names literally', async () => {
     await withTempRepository(async (dir, repository) => {
       await execFile('git', ['init', '--quiet'], { cwd: dir })

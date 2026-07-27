@@ -594,6 +594,12 @@ async function loadPreviousState(
   const migrationPaths = new Set(
     migrationEntries.map(entry => entry.relativePath)
   )
+  // A 'materialized' inventory entry already carries a full content-hash
+  // equality proof against the pointer digest, and `prepareMigrationSources`
+  // streams-and-hashes the exact private bytes that will be uploaded (aborting
+  // the migration on any disagreement with the pointer digest). Those two
+  // proofs bracket the migration, so re-hashing every multi-gigabyte file a
+  // third time here added no protection and is intentionally omitted.
   for (const entry of migrationEntries) {
     abortIfNeeded(signal)
     if (
@@ -605,19 +611,6 @@ async function loadPreviousState(
       throw new CheapLfsOciOperationError(
         'inconsistent-pointers',
         'Materialize every old-provider Cheap LFS OCI pointer without edits before continuing registry migration.'
-      )
-    }
-    const actual = await deps.fileSystem.hashFile(
-      absoluteTrackedPath(context.repositoryPath, entry.relativePath),
-      signal
-    )
-    if (
-      actual.sha256 !== pointerObjectSha256(entry.pointer) ||
-      actual.sizeInBytes !== entry.pointer.sizeInBytes
-    ) {
-      throw new CheapLfsOciOperationError(
-        'inconsistent-pointers',
-        'An existing materialized Cheap LFS file changed before its registry migration.'
       )
     }
   }
@@ -1415,9 +1408,13 @@ async function verifyMutationInputs(
                 sha256: proof.sha256,
                 sizeInBytes: proof.sizeInBytes,
               }
+        // A size-mismatch 'modified' entry carries no inventory hash (the
+        // scan proved modification from the size alone); its guard is the
+        // size plus the tracked-proof revalidation above.
         if (
-          actual.sha256 !== entry.workingTreeSha256 ||
-          actual.sizeInBytes !== entry.workingTreeSizeInBytes
+          actual.sizeInBytes !== entry.workingTreeSizeInBytes ||
+          (entry.workingTreeSha256 !== undefined &&
+            actual.sha256 !== entry.workingTreeSha256)
         ) {
           throw new Error(
             'The materialized Cheap LFS file changed while its new image was publishing.'
