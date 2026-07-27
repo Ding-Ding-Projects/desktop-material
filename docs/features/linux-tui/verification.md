@@ -18,7 +18,7 @@ Verify generated inventory drift from the repository root:
 node tui/tools/generate-parity-contract.mjs --check
 ```
 
-The contract generator must parse exactly 197 rows and 17 sections, reject
+The contract generator must parse exactly 198 rows and 17 sections, reject
 unknown overrides and duplicate IDs, and leave every unmapped row as
 `not_yet_available`.
 

@@ -13,7 +13,7 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
-## Linux-first interactive TUI — **Acceptance pending**
+## Linux-first interactive TUI — **Locally accepted; publication pending**
 
 A separate Python/Textual edition now adapts Desktop Material for Linux
 terminals without weakening the graphical edition's Windows-only boundary. The
@@ -24,20 +24,27 @@ search and a full builder; English, Hong Kong Cantonese, and bilingual modes;
 non-blocking notifications; XDG state; editor/terminal integration; and
 app-owned Git-backed settings history.
 
+Cheap LFS interoperates with the Windows Release-v1 pointer format on both
+Linux and Windows, exposes clickable inventory/preview/track/verify/restore
+flows, and provides the same operations through the CLI. New TUI writes are
+bounded at 500 MiB while legacy reads remain compatible through 2 GiB; size and
+hash are verified before restoration. OCI/GHCR/cloud writes, encryption, and
+automatic batching remain explicit parity gaps.
+
 Packaging produces a wheel and source distribution, and the additive Ubuntu CI
 matrix covers Python 3.10, 3.12, and 3.13 plus lint, typing, tests, a fresh-wheel
 smoke install, and parity-contract drift. A separate Windows Server 2022/Python
 3.12 lane checks the non-PTY cross-platform core without claiming Windows PTY
-acceptance. The generated contract maps all 197 desktop rows conservatively: 14
-adapted, 53 partial, 128 not yet available, and 2 terminal-owned. It is
+acceptance. The generated contract maps all 198 desktop rows conservatively: 14
+adapted, 53 partial, 129 not yet available, and 2 terminal-owned. It is
 deliberately not a full-parity claim.
 
-The remaining acceptance work is explicit in the
-[publish run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md):
-finish the full final-source quality matrix, exercise mouse clicks and Inputs/
-TextAreas through a real off-screen Linux terminal, inspect and promote genuine
-screenshots, complete cleanup, integrate the latest remote `main`, push, and
-record exact CI/Pages/release receipts.
+The [publish run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md)
+records the completed local matrix: 187 cross-platform tests plus a real Debian
+PTY pass, five original Lowlevel/Xvfb captures with mouse/text-field evidence,
+wheel/sdist and fresh-install inspection, a non-root Docker build, and complete
+disposable-resource cleanup. The latest remote `main` is integrated. Only the
+final default-branch push and exact CI/Pages/release receipts remain pending.
 
 ## July 26 reliability bug hunt — **Implemented and locally accepted**
 

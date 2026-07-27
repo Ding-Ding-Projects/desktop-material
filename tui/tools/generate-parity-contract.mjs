@@ -89,9 +89,9 @@ for (const line of source.split(/\r?\n/u)) {
   })
 }
 
-if (features.length !== 197) {
+if (features.length !== 198) {
   throw new Error(
-    `Expected 197 desktop feature rows, parsed ${features.length}. ` +
+    `Expected 198 desktop feature rows, parsed ${features.length}. ` +
       'Update the inventory parser and declared source count together.'
   )
 }
@@ -176,7 +176,7 @@ const contract = {
   source: {
     path: 'docs/readme-tabs/complete-feature-list.md',
     sha256: createHash('sha256').update(source).digest('hex'),
-    declared_feature_count: 197,
+    declared_feature_count: 198,
     parsed_feature_count: features.length,
     section_count: new Set(features.map(feature => feature.section)).size,
   },

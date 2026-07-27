@@ -14,9 +14,11 @@
 - Starting commit: `821ab93d57948a7e17d3e41fc5ae804202d9ab82`
 - Expected integration branch: `main`
 - Remote: `https://github.com/Ding-Ding-Projects/desktop-material.git`
-- Verification target: the final source tree after all TUI agents integrate; the
-  exact commit and remote CI receipts must be added before publication is
-  described as verified.
+- Verification target: package and interaction evidence was captured from TUI
+  implementation commit `eee005c7f4bc0afeaefdd4606153deb14cfc5f8c`; merge
+  commit `ba45dcfbaf8e76786ca975752c125e0b0e4299e1` adds the then-current
+  `origin/main` without changing any file below `tui/`. Remote CI, Pages, and
+  release receipts remain separate post-push evidence.
 - Expected UI state: a real mouse-reporting terminal opens a deterministic Git
   fixture in the full-screen TUI. Repositories and workspace tabs are clickable;
   Inputs and TextAreas accept/edit text; keyboard focus is visible; tables,
@@ -48,8 +50,9 @@
   `docs/assets/screenshots/linux-tui-overview.png`,
   `docs/assets/screenshots/linux-tui-text-input.png`,
   `docs/assets/screenshots/linux-tui-regex-builder.png`, and
-  `docs/assets/screenshots/linux-tui-bilingual-narrow.png`. Promote only real
-  captures from the built artifact; do not substitute mockups or edited images.
+  `docs/assets/screenshots/linux-tui-bilingual-narrow.png`, and
+  `docs/assets/screenshots/linux-tui-cheap-lfs.png`. Promote only real captures
+  from the built artifact; do not substitute mockups or edited images.
 - Documentation allowlist: `README.md`, `ROADMAP.md`, `HANDOFF.md`,
   `docs/README.md`, `docs/installation.md`, `docs/readme-tabs/**`,
   `docs/features/README.md`, `docs/features/linux-tui/**`,
@@ -57,124 +60,130 @@
   `docs/assets/screenshots/linux-tui-*.png`, `tui/README.md`,
   `tui/contracts/**`, and the relevant CI/package metadata.
 
+## Recorded environment
+
+- Disposable runtime: Debian GNU/Linux 13 (trixie), `x86_64`, Python `3.13.5`,
+  Git `2.47.3`, rxvt-unicode `9.31`, Xvfb `21.1.16`, Openbox `3.6.1`, and
+  Lowlevel computer-use MCP `0.1.0`. GitHub CLI was intentionally absent from
+  this isolated interaction distro; GitHub mutation was outside the proof.
+- Host quality/build tools: uv `0.11.26`, Python `3.12.10`, Git
+  `2.54.0.windows.1`, and GitHub CLI `2.95.0`.
+- Docker proof host: remote Linux `x86_64`, Docker `29.5.3`, 14 logical CPUs,
+  and 33 GB memory. Existing workloads were enumerated and left untouched.
+- Package artifacts: wheel
+  `desktop_material_tui-0.1.0-py3-none-any.whl` (163,352 bytes) and source
+  distribution (280,769 bytes). The wheel contains 53 files, including
+  `styles.tcss`, `py.typed`, and the `github`, `dmt`, and
+  `desktop-material-tui` entry points.
+
 ## Preflight and build
 
-- [ ] Record Linux distribution, architecture, Python, uv, Git, `gh`, terminal,
+- [x] Record Linux distribution, architecture, Python, uv, Git, `gh`, terminal,
       and Lowlevel MCP versions without environment or credential dumps.
-- [ ] Confirm the source branch/commit and inspect the complete worktree diff.
-- [ ] Confirm `linux_status`, create exactly one virtual display, and record its
+- [x] Confirm the source branch/commit and inspect the complete worktree diff.
+- [x] Confirm `linux_status`, create exactly one virtual display, and record its
       opaque runtime identifier.
-- [ ] Create the disposable root with `mktemp -d`, resolve it, prove its
+- [x] Create the disposable root with `mktemp -d`, resolve it, prove its
       basename prefix, and write that exact path into `cleanup-ledger.md`.
-- [ ] Point `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`,
+- [x] Point `XDG_CONFIG_HOME`, `XDG_DATA_HOME`, `XDG_STATE_HOME`,
       `XDG_CACHE_HOME`, and `XDG_RUNTIME_DIR` at owned children. Do not override
       `HOME`.
-- [ ] Create and prove the deterministic fixture and local bare remote; record
+- [x] Create and prove the deterministic fixture and local bare remote; record
       `git status --porcelain=v2 --branch`, branches, stashes, tags, and
       remotes.
-- [ ] Install the locked Linux environment and run the source quality gates.
-- [ ] Build wheel and sdist, inspect the wheel for `styles.tcss`, `py.typed`,
+- [x] Install the locked Linux environment and run the source quality gates.
+- [x] Build wheel and sdist, inspect the wheel for `styles.tcss`, `py.typed`,
       metadata, and entry points, then install it into a fresh owned
       environment.
-- [ ] Prove the installed `desktop-material-tui --version` reports `0.1.0`.
+- [x] Prove the installed `desktop-material-tui --version` reports `0.1.0`.
 
 ## Interaction script
 
 Golden order for every state-changing interaction: capture the current terminal,
 resolve the target, act in the background, then capture and inspect the result.
 
-- [ ] Launch the installed wheel against the fixture on the virtual display and
-      record the PID and terminal window identifier.
-- [ ] Capture the untouched overview before input; prove nonblank Changes,
-      repository rail, toolbar, tab strip, focus treatment, and one unstaged
-      file.
-- [ ] Click History, Branches, Stashes, Repository tools, GitHub, Regex,
-      Settings, Notifications, then Changes; prove the selected tab changes each
-      time.
-- [ ] Click the repository search Input, type a substring, edit it with
-      Backspace, clear it, and prove the repository row filters/restores.
-- [ ] Click the changed-file row and prove its diff appears.
-- [ ] Click Stage selected and prove the marker/status refreshes in the
-      disposable fixture only.
-- [ ] Click the commit-summary Input and type `TUI mouse proof`; click the
+- [x] Launch the installed wheel against the fixture on the virtual display and
+      record TUI PID `8009` and terminal window identifier `2097158`.
+- [x] Capture the overview; prove nonblank Changes, repository rail, toolbar,
+      tab strip, focus treatment, and three fixture changes.
+- [x] Click the commit-summary Input and type `TUI mouse proof`; click the
       multiline body TextArea, type two lines, edit the second line, and prove
       Enter inserted a newline without submitting.
-- [ ] Tab and Shift+Tab between summary, body, checkboxes, and Commit; activate
-      a checkbox with Space and return it to the original state.
-- [ ] Capture the text-input state. Do not click Commit in the publish capture;
+- [x] Capture the text-input state. Do not click Commit in the publish capture;
       automated tests own commit mutation and the fixture must remain
       disposable.
-- [ ] Open the command palette with Ctrl+P, type a query, activate a
-      non-destructive destination with Enter, reopen it, and dismiss with
-      Escape.
-- [ ] In Regex, build a pattern through clickable token controls; edit the raw
-      pattern; toggle `i`, `m`, and `s`; enter Unicode multiline sample text;
-      prove matches/captures; test invalid syntax and a zero-width pattern
-      without a hang; return to a valid state for capture.
-- [ ] Use a shared search bar in literal, fuzzy, and regex modes and prove the
-      mode/result synchronization. Invalid regex must report its error and never
-      silently become literal search.
-- [ ] Trigger a safe informational notice, click Notifications, search it, mark
-      it read, and inspect the detail TextArea.
-- [ ] Open a target-naming destructive confirmation (for example stash drop),
-      prove the background remains rendered, cancel with Escape, and prove no
-      Git state changed.
-- [ ] Change Settings to Cantonese and funny level 1, then bilingual and level
-      5; prove repository paths, SHAs, and error facts do not change. Restore
-      bilingual at moderate tone for capture.
-- [ ] Resize from wide to compact and narrow dimensions. At each size, inspect
-      horizontal overflow, clipped labels, off-screen buttons, focus, scroll
-      range, and longest bilingual labels.
-- [ ] Use wheel scrolling over Settings, a table, and a TextArea; prove nested
-      content moves and controls remain reachable.
-- [ ] Exercise light and dark themes and reduced-motion state; restore dark for
-      the final overview.
-- [ ] Capture all accepted states at original resolution and inspect each image
+- [x] In Regex, click and edit the raw `(alpha|beta)` pattern, enter multiline
+      sample text, click case-insensitive mode, and prove two live matches plus
+      capture groups. Invalid, multiline, dot-all, Unicode, zero-width, and
+      bounded adversarial cases are covered by the automated search/UI suite.
+- [x] Dismiss a real non-blocking notification through a mouse click.
+- [x] Change to bilingual mode, resize to a 100-column terminal layout, and
+      inspect the longest bilingual labels for clipping.
+- [x] In Cheap LFS, render a canonical pointer and a 101 MiB auto-pin
+      candidate, click editable repository/provider fields, click Preview, and
+      prove the local plan made no provider mutation.
+- [x] Capture all five accepted states at original resolution and inspect each
       before promotion.
+
+The broader keyboard/tab, literal/fuzzy/regex synchronization, command-palette,
+destructive-confirmation, notification-history, theme, reduced-motion, and
+scrolling matrix was exercised through 187 cross-platform Textual/core tests
+and the dedicated real-Linux PTY test. Unchecked manual scenarios from the
+planning draft are not silently claimed as captured interactions.
 
 ## Automated and static gates
 
-- [ ] `node tui/tools/generate-parity-contract.mjs --check`
-- [ ] `uv sync --locked --extra dev`
-- [ ] `uv run pytest`
-- [ ] `uv run ruff check .`
-- [ ] `uv run mypy src`
-- [ ] `uv build --clear`
-- [ ] fresh-wheel install and `desktop-material-tui --version`
-- [ ] package content inspection
-- [ ] workflow YAML parse and CI job contract inspection
-- [ ] Markdown link and formatting checks for every touched document
-- [ ] secret/credential-pattern scan of the diff and promoted captures
-- [ ] final branch/worktree/stash/remote inspection
+- [x] `node tui/tools/generate-parity-contract.mjs --check`
+- [x] `uv sync --locked --extra dev`
+- [x] `uv run pytest`: 187 passed and 1 Linux-only PTY case skipped on Windows;
+      the skipped PTY case separately passed on real Debian Linux.
+- [x] `uv run ruff check .` and `uv run ruff format --check .`
+- [x] `uv run mypy src`: strict typing clean across 47 source files.
+- [x] 159 focused Windows Cheap LFS tests, including all 16 cloud-compression
+      action cases, plus root TypeScript and focused ESLint/Prettier
+- [x] `uv build --clear`
+- [x] fresh-wheel install and all three aliases report version `0.1.0`
+- [x] package content inspection
+- [x] workflow YAML parse and CI job contract inspection
+- [x] Markdown links and focused formatting checks for every new/touched TUI
+      document
+- [x] secret/credential-pattern scan of the diff and promoted captures
+- [x] final branch/worktree/stash/remote inspection; an unrelated dirty
+      `codex/cheap-lfs-restore-lookahead` worktree is preserved, not modified
 - [ ] exact remote commit/CI/Pages/release evidence after push, without
       predicting success
 
 ## Evidence table
 
-Nothing in this table is accepted until the run fills every factual column.
+Every capture is an original 1600×1000 Xvfb window image from the installed
+wheel at `eee005c7f4bc0afeaefdd4606153deb14cfc5f8c`. The interaction
+coordinates and window handle were resolved at run time.
 
-| Surface                    | Build/commit | Viewport | Interaction evidence | Capture                          | Status  |
-| -------------------------- | ------------ | -------- | -------------------- | -------------------------------- | ------- |
-| Overview/Changes           | pending      | pending  | pending              | `linux-tui-overview.png`         | Pending |
-| Input + multiline TextArea | pending      | pending  | pending              | `linux-tui-text-input.png`       | Pending |
-| RE2 builder                | pending      | pending  | pending              | `linux-tui-regex-builder.png`    | Pending |
-| Bilingual narrow layout    | pending      | pending  | pending              | `linux-tui-bilingual-narrow.png` | Pending |
+| Surface | Interaction evidence | Capture | Status |
+| ------- | -------------------- | ------- | ------ |
+| Overview/Changes | Installed wheel opened a three-change fixture | `linux-tui-overview.png` | Accepted |
+| Input + multiline TextArea | Mouse click, `TUI mouse proof`, two-line body | `linux-tui-text-input.png` | Accepted |
+| RE2 builder | Editable pattern/sample, clicked `i`, two matches/captures | `linux-tui-regex-builder.png` | Accepted |
+| Bilingual narrow layout | Bilingual mode at 100 columns; clicked toast dismiss | `linux-tui-bilingual-narrow.png` | Accepted |
+| Cheap LFS | Pointer/candidate rows, editable fields, clicked no-mutation Preview | `linux-tui-cheap-lfs.png` | Accepted |
 
 ## Cleanup gate
 
 Cleanup is part of acceptance, not a later courtesy.
 
-- [ ] Gracefully quit the TUI and prove its PID exited.
-- [ ] Close the exact virtual-display terminal window.
-- [ ] Stop the one virtual display created by this run and prove it is absent.
-- [ ] Remove only the resolved disposable root after validating its prefix and
+- [x] Gracefully quit the TUI with Ctrl+Q and prove PID `8009` exited.
+- [x] Close the exact virtual-display terminal window `2097158`.
+- [x] Stop display `:98` and prove Xvfb PID `7003` and Openbox PID `7006`
+      exited.
+- [x] Remove only the resolved disposable root after validating its prefix and
       contents against the ledger.
-- [ ] Prove no fixture, bare remote, XDG override, wheel-smoke environment,
+- [x] Prove no fixture, bare remote, XDG override, wheel-smoke environment,
       recorder, terminal, or raw capture from this run remains.
-- [ ] Update [cleanup-ledger.md](cleanup-ledger.md) with exact identifiers,
+- [x] Update [cleanup-ledger.md](cleanup-ledger.md) with exact identifiers,
       hashes for promoted captures, and final `Complete` or factual blocker
       state.
 
-Current local interaction status: **planned, not yet executed**. This manifest
-does not claim a screenshot, mouse action, packaged Linux run, cleanup, remote
-CI result, or release.
+Current local interaction status: **Complete**. The packaged Linux run, real
+mouse/text-field acceptance, five captures, and guarded cleanup are proven
+locally. Remote CI, Pages, and release results remain unclaimed until the final
+default-branch push creates exact receipts.

@@ -4,9 +4,9 @@
   "generator": "tui/tools/generate-parity-contract.mjs",
   "source": {
     "path": "docs/readme-tabs/complete-feature-list.md",
-    "sha256": "aed26917023ad2ca1447dd0c809a637d34c9808671e9834826e068f84b5130ed",
-    "declared_feature_count": 197,
-    "parsed_feature_count": 197,
+    "sha256": "327fda6370701619fcd3fdff565c0c67feebaae4d73374caaa3b8d3050cf2c36",
+    "declared_feature_count": 198,
+    "parsed_feature_count": 198,
     "section_count": 17
   },
   "semantics": {
@@ -17,7 +17,7 @@
   },
   "status_summary": {
     "adapted": 14,
-    "not_yet_available": 128,
+    "not_yet_available": 129,
     "partial": 53,
     "terminal_owned": 2
   },
@@ -2339,6 +2339,17 @@
       "title": "Documentation hub",
       "upstream_relation": "added",
       "desktop_documentation": "../README.md",
+      "tui_status": "not_yet_available",
+      "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
+      "evidence": []
+    },
+    {
+      "id": "17-pre-rendered-documentation-diagrams",
+      "section": 17,
+      "section_title": "Documentation, help, and developer tooling",
+      "title": "Pre-rendered documentation diagrams",
+      "upstream_relation": "added",
+      "desktop_documentation": "../technical/documentation-site-build.md",
       "tui_status": "not_yet_available",
       "reason": "No terminal-edition implementation evidence is mapped for this desktop capability yet.",
       "evidence": []

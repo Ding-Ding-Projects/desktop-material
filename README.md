@@ -65,7 +65,7 @@ uv run desktop-material-tui
 It supports mouse clicks, keyboard focus, editable single-line and multiline
 text controls, local Git workflows, GitHub workflows through `gh`, shared RE2
 search, localization, notifications, and XDG persistence. It does **not** yet
-claim all 197 graphical-edition capabilities; see the generated
+claim all 198 graphical-edition capabilities; see the generated
 [parity contract](tui/contracts/parity.yaml) and
 [TUI documentation](docs/features/linux-tui/README.md).
 

@@ -28,6 +28,8 @@ async def test_repository_notification_and_github_search_bars_filter_models(
 
         repository_search = app.query_one("#repositories-search", SearchBar)
         repository_search.set_state(SearchState(query="beta"), emit=True)
+        # Dispatch Changed before waiting for the exclusive refresh worker it starts.
+        await pilot.pause()
         await app.workers.wait_for_complete()
         await pilot.pause()
         repositories = app.query_one("#repository-list", ListView)

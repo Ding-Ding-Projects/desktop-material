@@ -29,7 +29,7 @@ The first preview is version `0.1.0`. It provides a substantial vertical slice:
   accessibility, and search preferences through XDG paths;
 - retain reviewable notifications and isolated Git-backed settings history.
 
-This is not yet complete parity with the 197-row desktop inventory. The
+This is not yet complete parity with the 198-row desktop inventory. The
 generated [parity contract](../../../tui/contracts/parity.yaml) defaults every
 unmapped row to `not_yet_available`; its current summary is 14 adapted, 53
 partial, 128 not yet available, and 2 terminal-owned capabilities. The contract

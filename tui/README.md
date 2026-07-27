@@ -14,7 +14,7 @@ non-PTY CLI, Cheap LFS compatibility core, and Windows Terminal launch path are
 also tested on Windows with Python 3.12. The Electron application remains the
 full Windows GUI.
 
-This `0.1.0` preview does not yet claim all 197 desktop capabilities. The
+This `0.1.0` preview does not yet claim all 198 desktop capabilities. The
 generated `contracts/parity.yaml` ledger marks 14 rows adapted, 53 partial, 128
 not yet available, and 2 terminal-owned, with source evidence for every
 non-default mapping.

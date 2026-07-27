@@ -1,6 +1,6 @@
 # Desktop Material — Active parity handoff
 
-## 2026-07-27 — Linux-first interactive TUI preview (working tree)
+## 2026-07-27 — Linux-first interactive TUI preview (locally verified)
 
 A new `tui/` Python project is a terminal-native sibling to the Windows-only
 Electron application. Its Textual shell is designed for both mouse and keyboard
@@ -25,20 +25,31 @@ provider bodies, API payloads, regex patterns, and sample text use real
 - An additive Windows Server 2022/Python 3.12 lane checks the non-PTY unit,
   application, infrastructure, Cheap LFS, lint, and typed core. Linux PTY and
   mouse acceptance remain Linux-only and are not inferred from that lane.
-- `tui/contracts/parity.yaml` is generated from the existing 197-row desktop
-  source of truth. Current mapping is 14 adapted, 53 partial, 128 not yet
+- Cheap LFS reads and writes the canonical Windows Release-v1 pointer format
+  across Linux and Windows, uses a 500 MiB limit for new writes while retaining
+  2 GiB legacy reads, and verifies size/hash before restore with a local recovery
+  cache. The TUI preview does not yet implement OCI/GHCR or cloud-provider
+  writes, encryption, or automatic multi-file batching.
+- `tui/contracts/parity.yaml` is generated from the existing 198-row desktop
+  source of truth. Current mapping is 14 adapted, 53 partial, 129 not yet
   available, and 2 terminal-owned; unmapped work can never default to complete.
 - Categorized docs under `docs/features/linux-tui/` cover installation,
   interaction, accessibility, XDG persistence, Git/GitHub, RE2, language,
   appearance, notifications, editor/history, security, failure modes, and
   verification.
 
-Status: implementation and delivery artifacts are present in
-`codex/linux-tui-clone`; final repository-wide tests, the Lowlevel-MCP
-off-screen Linux mouse/text-box run, screenshots, cleanup ledger, remote-main
-integration, commit, push, and remote CI/Pages receipts remain pending. The
+Status: implementation commit `eee005c7f4` and integration merge
+`ba45dcfbaf` are present in `codex/linux-tui-clone`. Local evidence is complete:
+187 Windows-hosted TUI/core tests passed with one Linux-only PTY skip, that PTY
+test passed on real Debian, all 159 focused Windows Cheap LFS tests passed, the
+wheel/sdist and fresh install were inspected, and a non-root remote Docker build
+ran successfully. Five original Lowlevel/Xvfb screenshots prove mouse clicks,
+editable Inputs/TextAreas, regex matches, bilingual narrow layout, and Cheap LFS
+preview; every disposable process, display, filesystem root, Docker image, and
+WSL distribution was removed and proven absent. Remote default-branch
+integration, CI, Pages, and release receipts remain pending until push. The
 [run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
-those gates without pre-checking them.
+the exact local evidence and hashes.
 
 ## 2026-07-27 — SESSION HANDOFF (read this first)
 
