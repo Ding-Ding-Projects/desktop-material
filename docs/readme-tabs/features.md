@@ -14,6 +14,65 @@ Material ships. For milestone status and published CI/release evidence, see the
 > bilingual (English / 廣東話) table and labels each one **Added**,
 > **Extended**, or **Inherited** relative to upstream GitHub Desktop.
 
+**The whole feature set on one page / 成套功能一版睇晒**
+
+```mermaid
+flowchart LR
+  APP(["Desktop Material"])
+
+  subgraph SHELL["The shell you look at"]
+    A1["1. Material 3 shell"]
+    A2["2. Language and audio"]
+    A3["3. Tabs and windows"]
+    A13["13. Search and regex"]
+    A14["14. Notifications and dialogs"]
+  end
+
+  subgraph GITWORK["The Git you drive"]
+    A5["5. Repositories"]
+    A6["6. Commits and branches"]
+    A7["7. Review and diff"]
+    A10["10. Cheap LFS"]
+  end
+
+  subgraph PROVIDER["The providers you talk to"]
+    A4["4. Accounts and identity"]
+    A8["8. Pull requests"]
+    A9["9. Actions and releases"]
+  end
+
+  subgraph BESIDE["Work either side of Git"]
+    A11["11. Build and Run, local AI"]
+    A12["12. Automation and agent API"]
+    A15["15. Editors and OS"]
+  end
+
+  subgraph BASE["What holds it up"]
+    A16["16. Quality and recovery"]
+    A17["17. Docs and tooling"]
+  end
+
+  APP --> SHELL
+  APP --> GITWORK
+  APP --> PROVIDER
+  APP --> BESIDE
+  APP --> BASE
+```
+
+**What the map says.** Desktop Material's 197 features sit in 17 numbered
+areas, clustered here five ways: the shell you look at (1 Material 3 shell,
+2 language and audio, 3 tabs and windows, 13 search and the regex builder,
+14 notifications and dialogs); the Git you drive (5 repositories, 6 commits and
+branches, 7 review and diff, 10 Cheap LFS); the providers you talk to
+(4 accounts and identity, 8 pull requests, 9 Actions and releases); work either
+side of Git (11 Build & Run and local AI, 12 automation and the agent API,
+15 editors and OS integration); and the foundations (16 quality and recovery,
+17 documentation and tooling). Those numbers are the section numbers in the
+[Complete list](complete-feature-list.md), so the map is an index, not a
+summary.
+
+<sub>**張圖講咩。** Desktop Material 嘅 197 項功能分喺 17 個範疇，呢度夾埋做五嚿：你望住嘅外殼（1 Material 3 外殼、2 語言同聲音、3 分頁同視窗、13 搜尋同 regex、14 通知同對話框）；你揸住嘅 Git（5 倉庫、6 Commit 同分支、7 審閱同 diff、10 Cheap LFS）；你要傾偈嘅供應商（4 帳戶同身分、8 Pull request、9 Actions 同 Release）；Git 前後嗰啲工夫（11 Build & Run 同本機 AI、12 自動化同 agent API、15 編輯器同作業系統）；同埋托住成座嘢嘅地基（16 品質同復原、17 文件同工具）。啲號碼就係 [Complete list](complete-feature-list.md) 嘅章節號，所以呢張係索引，唔係摘要。</sub>
+
 **Advanced Git and collaboration workflows (M21)**
 
 - Keep multiple provider identities bound to the right repository; pin, hide,
@@ -86,6 +145,42 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 - The temporary-submodule Back owner offers **Tonal**, **Filled accent**, or **Outlined**, plus label choices. The vector repository-logo studio keeps bounded JSON import/export and safe code-native layers; an inherited row can jump to the profile default beside the same actual logo
 - Toolbar measurement respects Icons only and compact density. Build & Run overflows first, followed by Commit & Push; widening the window or shortening a dynamic label restores the same mounted controls deterministically, while an open **More** surface remains stable until it closes
 
+```mermaid
+flowchart TD
+  ELEM["Right-click the real element<br/>or press Shift+F10"]
+  HUB["Repository settings,<br/>Appearance hub"]
+  EDITOR["Anchored editor for<br/>that one owner"]
+  ELEM --> EDITOR
+  HUB --> EDITOR
+  EDITOR --> WRITE["Normalized, schema-checked value"]
+
+  subgraph OWNERS["One owner, one timeline"]
+    PROFILE["Profile owner"]
+    REPO["Repository owner"]
+    FEATURE["Feature owner"]
+    TABTITLE["Tab-title owner"]
+  end
+
+  WRITE --> OWNERS
+  REPO -.->|"a cleared value inherits"| PROFILE
+  OWNERS --> STORE["Its own local Git repo,<br/>one setting.json"]
+  STORE --> HISTORY["History: diff, undo,<br/>redo, restore"]
+  HISTORY -->|"appends an audit commit,<br/>never rewrites"| STORE
+```
+
+**How appearance is layered.** There is no central appearance studio. You reach
+an editor two ways — right-clicking the element that actually owns the look, or
+the Repository settings Appearance hub — and both commit through the same owner
+path, so an edit made either way is indistinguishable, History included. The
+normalized value lands on exactly one owner: a profile owner, a repository
+owner, a feature owner, or a single tab's title owner. A repository owner whose
+value is cleared inherits the matching profile value. Each owner keeps one
+`setting.json` in its own local Git repository, and its History panel can diff,
+undo, redo, or restore — each of which appends an audit commit rather than
+rewriting the chain.
+
+<sub>**外觀係點分層。** 呢度冇一個中央外觀工作室。你有兩條路開到編輯器：右擊真正擁有嗰個樣嘅元素，或者行 Repository settings 嘅 Appearance hub；兩條路都行同一個 owner 路徑落去，所以邊度改都一模一樣，連 History 都一樣。個正規化咗嘅數值淨係落喺一個 owner 度：profile owner、repository owner、feature owner，或者某一個分頁標題嘅 owner。Repository owner 清空咗個值，就會繼承返 profile 嗰個。每個 owner 喺自己嘅本機 Git repo 揸住一個 `setting.json`，History 面板可以睇 diff、undo、redo、還原 — 每一下都係加多個審計 commit，唔會改寫舊歷史。</sub>
+
 **Repository tabs**
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
 - Per-tab title styling: right-click the actual title for bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, one-click return to default, and that tab's dedicated Git history. The clicked tab initializes before the editor opens; an in-progress profile transition gives localized retry guidance instead of escaping to the app crash boundary
@@ -95,6 +190,36 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 - Keep the original **Close Tabs Containing…** regex workflow, or use the guarded inverse **Close all tabs except those containing…** action. The inverse matches a case-insensitive literal substring across the visible label, repository alias/name, and local path; live counts and a bounded preview make the result reviewable, and an empty or zero-match query cannot confirm
 - Pin important tabs and arrange each pinned or unpinned group manually with drag-and-drop or named keyboard move actions. Moving a member outside its named group ungroups only that tab; one-shot A→Z, Z→A, newest-opened, oldest-opened, repository-status, and favorites-first/last sorts keep every remaining named group together as one stable block. The chosen order persists without continuously reshuffling as repository status changes
 - Use **Search tabs** to switch by name, alias, path, or clone URL, and narrow **Arrange tabs** with its literal multi-key filter without changing the all-tab scope of one-shot sorts
+
+```mermaid
+flowchart TD
+  WIN["Window"] --> PROF["Active profile"]
+  PROF --> STRIP["Tab strip"]
+  STRIP --> PINNED["Pinned side"]
+  STRIP --> UNPINNED["Unpinned side"]
+  PINNED -.->|"no group may cross<br/>this boundary"| UNPINNED
+  PINNED --> CONTENT
+  UNPINNED --> CONTENT["Named groups plus<br/>loose tabs"]
+  CONTENT --> CHIP["Group chip: name, colour,<br/>count, collapsed state"]
+  CONTENT --> SORT["One-shot sorts move each<br/>group as a single block"]
+  CONTENT --> BIND["Every tab stays bound<br/>to one repository"]
+  CHIP --> COLLAPSE["Collapsing hides the members,<br/>the chip stays"]
+  BIND --> EXPORT["Export keeps order, pins,<br/>aliases; omits group ids"]
+```
+
+**How the strip is organized.** Tabs and their groups belong to a window and a
+profile, so switching either gives you that context's own strip. The strip has
+a protected pin boundary and no group is allowed to straddle it; each side
+holds its own named groups and loose tabs. A group is a label, never a
+behaviour change: its chip carries the name, colour, member count and collapsed
+state, collapsing hides the members while the chip stays reachable, the one-shot
+sorts move a whole group rather than shuffling a stranger into the middle of it,
+and deleting a group closes nothing. Each tab stays bound to its repository
+throughout. A portable session export deliberately carries order, pins,
+favourites, aliases, and per-tab appearance but not group definitions or
+membership, because a group belongs to the profile that receives the import.
+
+<sub>**成條分頁列點編排。** 分頁同佢哋嘅群組屬於某個視窗、某個 profile，所以轉窗或者轉 profile 就會見到嗰邊自己嗰條列。條列有一條受保護嘅釘住界線，冇任何群組跨得過；兩邊各自有自己嘅具名群組同散裝分頁。群組淨係一個標籤，唔會改行為：個 chip 寫住名、顏色、成員數同收埋咗未，收埋之後成員唔見但 chip 仲喺度撳得到，一次過排序係搬成嚿群組，唔會塞個唔相干嘅分頁入去中間，而刪群組更加唔會關到任何分頁。每個分頁自始至終都綁實佢嗰個倉庫。可攜嘅工作階段匯出會帶走次序、釘住、收藏、別名同逐分頁外觀，但故意唔帶群組定義同成員關係 — 因為群組係屬於接收匯入嗰個 profile 嘅。</sub>
 
 **Multi-account**
 - Multiple accounts including multiple identities per host; per-account tabs, repos, and settings
@@ -188,6 +313,34 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
 - Use the bundled stdio proxy or command-line client to list accounts/repos/tabs, inspect status, clone, commit, fetch/pull/push, manage branches/tabs, run automation, and dispatch workflows
 - Turn a validated REST catalog request or named GraphQL operation into a profile-backed **App function** from the API rail. Functions are bound to the exact repository, provider, and account; read functions extend the local MCP/REST agent catalog, while mutation functions always return to the visible review step
 
+```mermaid
+flowchart TD
+  UI["Visible UI"] --> PATH
+  SCHED["Scheduled automation"] --> PATH
+  AGENT["Agent API and CLI"] --> GATE["Loopback, bearer token,<br/>body and queue limits"]
+  GATE --> PATH["One command path:<br/>the same stores and safety checks"]
+  PATH --> BIND{"Repository account binding"}
+  BIND -->|"explicit and usable"| KEY["The stored account key selects<br/>a credential-vault identity"]
+  BIND -->|"stale, or missing permission"| RECOVER["Stops at sign-in or<br/>account recovery"]
+  BIND -->|"legacy, never bound"| MATCH["One exact-origin identity binds;<br/>several need a labelled choice"]
+  MATCH --> KEY
+  KEY --> GITOP["Fetch, pull, push, post-push<br/>refresh, remote-HEAD discovery"]
+  GITOP --> OUT["Results never carry a token"]
+```
+
+**Why three front doors reach one back door.** Whether a Git operation is
+started by clicking in the UI, by scheduled automation, or by the opt-in local
+agent server, it executes through the same stores and the same safety checks —
+the agent route simply passes a loopback, bearer-token, body-size and queue
+gate first. From there the repository's own account binding, not sign-in order,
+decides which identity is used: the stored account key selects a
+credential-vault identity, a binding that has gone stale or lost permission
+stops at account recovery instead of borrowing a neighbour, and a legacy
+never-bound repository is bound by a single exact-origin match while several
+matches ask you to choose. Account credentials are never returned in a result.
+
+<sub>**點解三度前門通向同一度後門。** 一個 Git 操作，無論係你喺介面撳出嚟、排程自動化跑出嚟，定係由你自己開啟嘅本機 agent 伺服器叫出嚟，都係行同一批 store 同同一批安全檢查 — agent 嗰條路淨係要先過 loopback、bearer token、body 大細同佇列嘅關卡。之後決定用邊個身分嘅，係倉庫自己嘅帳戶綁定，唔係邊個先登入：儲住嗰條帳戶 key 會撳出憑證保險庫入面嘅身分；綁定過期咗或者冇權限就停喺帳戶復原，唔會靜靜雞借隔籬個帳戶；而從來未綁過嘅舊倉庫，如果同 origin 淨係有一個身分就自動綁，有幾個就要你自己揀。結果永遠唔會帶住權杖走。</sub>
+
 **Power-user history, stashes, and windows**
 - Search History by title, message, tag, or hash and toggle a lane graph that visualizes commit ancestry
 - Use the repository-wide Stash Manager to create, inspect, apply, pop, rename, branch from, or delete an exact stash while retaining partial-failure context
@@ -262,6 +415,42 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
   message/final tree but necessarily receives new IDs and loses commit
   signatures. See
   [Automatic commit and push batching](../features/repository-management/automatic-commit-push-batching.md)
+
+```mermaid
+flowchart TD
+  SEL["Reviewed selection"] --> LFS["Cheap LFS first pins the files<br/>over its own threshold"]
+  LFS --> PLAN["Split into stable batches:<br/>1.4 GB of changed blobs, or<br/>10,000 files, whichever comes first"]
+  PLAN --> MANY{"More than one batch?"}
+  MANY -->|"no"| NORMAL["Ordinary commit behaviour,<br/>unchanged"]
+  MANY -->|"yes"| DEST["Prove a non-force push<br/>destination exists"]
+  DEST --> STAGE["Stage only this batch's paths"]
+  STAGE --> INTENT["Record the intent ref"]
+  INTENT --> COMMIT["Commit only those paths"]
+  COMMIT --> PENDING["Promote the proven commit<br/>to the pending ref"]
+  PENDING --> PUSH["Push that exact SHA:<br/>fast-forward rules, hooks still run"]
+  PUSH --> PROVE{"Is that commit<br/>the remote tip?"}
+  PROVE -->|"yes"| NEXT["Clear both checkpoints, refresh,<br/>then start the next batch"]
+  PROVE -->|"no"| KEEP["The checkpoint survives; the next<br/>attempt reconciles it before new work"]
+  NEXT --> STAGE
+```
+
+**How a huge selection reaches the remote.** Cheap LFS runs first, as a
+separate earlier step, so genuinely large files become pointers before ordinary
+Git bytes are ever measured. What remains is split on a stable file order under
+two ceilings at once — 1.4 GB of changed blobs (100 MB of the decimal 1.5 GB
+budget is reserved for pack overhead) and 10,000 files, plus a conservative
+48 MiB raw-diff estimate — so a mountain of tiny files splits too. One batch
+behaves exactly like an ordinary commit. Two or more, and Desktop Material
+first proves a non-force destination, then repeats a strict loop per batch:
+record an intent ref, commit only that batch's paths, promote the proven commit
+to a pending ref, push that exact SHA, and only create the next commit once the
+push is proven to be the remote tip. If the push, the app, or the machine dies
+mid-loop, those two compare-and-swap checkpoints are what the next attempt
+reconciles before it starts anything new. Ordinary pushes and your persistent
+Git configuration are untouched.
+
+<sub>**一大堆嘢係點樣推得上遠端。** Cheap LFS 行先，係獨立而且更早嘅一步，所以真係大嗰啲檔喺度量普通 Git 位元組之前就已經變咗指標。剩低嘅按穩定檔案次序切開，同時受兩條上限管住 — 1.4 GB 變更 blob（十進制 1.5 GB 預算入面留返 100 MB 俾打包開銷）同 10,000 個檔，再加一個保守嘅 48 MiB raw diff 估算 — 所以一大堆芝麻綠豆咁細嘅檔一樣切得開。得一批嘅話，行為同普通 commit 一模一樣。兩批或以上，Desktop Material 會先證明有一個唔使 force 嘅推送目的地，跟住逐批死板咁行呢個圈：寫低 intent ref、淨係 commit 呢批嘅路徑、將證實咗嘅 commit 升做 pending ref、推嗰個精確 SHA，直到證實佢真係遠端 tip 先至開下一個 commit。中途死機、閂咗 app 或者推到一半斷線，下次嘅嘗試就係靠嗰兩個 compare-and-swap 檢查點對返數，先至做新嘢。普通 push 同你嘅持久 Git 設定完全冇郁過。</sub>
+
 - Use the primary toolbar or application-menu Pull action to fetch and review the exact current/upstream object IDs, ahead/behind state, configured integration route, and bounded incoming commits and files before Git changes a clean worktree. Confirmation revalidates the full reviewed OID and integrates it without a second fetch; a failed fetch cannot surface stale tracking data. English, playful Hong Kong Cantonese, and bilingual review copy follow the saved language mode, while scheduled and local-agent automation remain noninteractive. See [Reviewed ordinary Git pull previews](../features/repository-management/pull-previews.md)
 - Rebase the current branch onto a searched target through a reviewed current→target summary with ahead/behind context and a bounded commit preview. Fresh preflight state blocks dirty or conflicted repositories and ongoing operations, exact refs are revalidated before Git starts, conflicts remain in the existing continue/abort flow, and Desktop Material never force-pushes automatically
 - Manage every named remote with guarded add/rename/update/default/remove operations, and inspect or create exact known client hooks through the effective `core.hooksPath` without displaying hook contents or absolute paths. Remote rows stack before their name, URL, and controls collapse below a readable width, and the Repository Tools workspace keeps its diagnostics and results vertically reachable at compact heights
