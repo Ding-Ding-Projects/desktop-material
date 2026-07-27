@@ -48,13 +48,11 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > prompted repository-scoped serialization; the corrected UI receipt remains
 > explicitly separated in `HANDOFF.md`.
 >
-> The July 27 source branch adds an exact-90% maximum-two-download restore
-> look-ahead with detailed file/part progress, plus a sandboxed app-hosted
-> browser with tabs, navigation, bookmarks, popup/redirect capture, a global
-> internal/external setting, and an isolated authentication escape. These two
-> continuations are branch-only: combined Windows build, packaged/headless
-> acceptance, CI, merge, publication, and a genuine gallery capture are still
-> pending.
+> The July 27 exact-90% restore look-ahead, sandboxed app-hosted browser, and
+> private-repository lock passed 652/652 combined tests, 14/14 verifier
+> contracts, full TypeScript, the exact Windows production build, and isolated
+> hidden-desktop interaction/privacy review. Packaged E2E and remote
+> CI/Pages/wiki/installer publication remain separate gates.
 
 M21 closes the complete 30-item GitHub Desktop demand brief: exact account and
 repository identity, native PR review/creation/activity, selective and external
@@ -97,8 +95,8 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 | Page | What it covers |
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
-| [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, the branch-only app-hosted browser, guided Git/GitHub functions, Cheap LFS restore progress, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 77 named visual scenes, with automated missing/duplicate coverage checks. |
+| [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, the app-hosted browser, guided Git/GitHub functions, Cheap LFS restore progress, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 84 named visual scenes, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
@@ -129,7 +127,7 @@ receipts as acceptance evidence.
   repository folders to open/switch tabs, or export/import the current tab session with aliases,
   pins, favorites, order, and appearance. Portable files intentionally omit profile-local group
   definitions and memberships.
-- **App-hosted web browser (current branch; integrated acceptance pending)** —
+- **App-hosted web browser** —
   the persisted **Settings → Advanced → Open web links** choice sends HTTP(S)
   links either to the system browser or a dedicated Desktop Material window
   with tabs, URL/navigation controls, bookmarks, popup/redirect capture, and an
@@ -137,8 +135,8 @@ receipts as acceptance evidence.
   `WebContentsView` tabs without Node, preload, or trusted app IPC.
   Authentication gets an explicit in-memory, non-bookmarkable session and a
   visible **Continue in system browser** path.
-- **Detailed two-lane Cheap LFS restore (current branch; integrated acceptance
-  pending)** — Release downloads share one coordinator capped at two. The next
+- **Detailed two-lane Cheap LFS restore** — Release downloads share one
+  coordinator capped at two. The next
   file or multipart part starts at exactly 90%, and the shared Large files and
   clone/batch panel distinguishes overall/current/look-ahead progress,
   file/part ordinals, logical and actual bytes, phases, queue, elapsed time,

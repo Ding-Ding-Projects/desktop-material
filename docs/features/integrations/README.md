@@ -7,8 +7,9 @@ credentials or machine-specific state in a repository.
 - [App-hosted browser](app-hosted-browser.md) — open HTTP(S) links in a
   sandboxed `WebContentsView` tab with address/navigation controls, bookmarks,
   popup and redirect capture, a persisted internal/external choice, and an
-  isolated authentication escape. Implemented on the current branch; combined
-  Windows/build/CI/publication acceptance is pending.
+  isolated authentication escape. Combined local tests, the exact Windows
+  production build, and hidden-desktop acceptance pass; packaged E2E and
+  remote publication remain separate.
 - [Windows-only platform support](windows-only-platform-support.md)
 - [Windows Explorer context menu and quick-action
   window](windows-explorer-context-menu.md)

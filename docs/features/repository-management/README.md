@@ -84,13 +84,14 @@ Material is displaying or how a repository is represented in the application.
   objects locally while decompressing only `part-deflate` objects. Automatic
   preparation exposes up to three bounded worker lanes with queue, provider,
   phase, byte, elapsed-time, throughput, and ETA context plus a
-  keyboard-accessible storage-recommendation disclosure. The current branch
-  also gives Release restores one shared maximum-two-download coordinator:
+  keyboard-accessible storage-recommendation disclosure. Release restores also
+  use one shared maximum-two-download coordinator:
   the next file or part starts at the exact 90% network point, while a shared
   detailed panel reports overall/current/look-ahead lanes, file and part
   ordinals, logical and actual bytes, phase, rate, ETA, queue, failures, and
-  cancellation. Focused local checks pass; combined Windows/build/CI and
-  publication acceptance remains pending.
+  cancellation. Combined local tests, the exact Windows production build, and
+  hidden-desktop acceptance pass; packaged E2E and remote publication remain
+  separate.
 - [Cheap LFS asset versioning and commit
   provenance](cheap-lfs-asset-versioning.md) — treat every uploaded release
   asset as write-once, so editing a pinned file uploads the new bytes as a new

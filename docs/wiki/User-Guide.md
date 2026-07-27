@@ -31,10 +31,11 @@ push batching and the responsive Releases correction are published through
 integrity proofs are complete; the serialized materialization correction keeps
 its final UI receipt in `HANDOFF.md`.
 
-The July 27 app-hosted browser and exact-90% Cheap LFS restore look-ahead are
-implemented on the current branch only. Focused restore checks pass, but their
-combined Windows build, packaged/headless interaction and clipping review,
-remote CI, merge, publication, and new gallery capture remain pending.
+The July 27 app-hosted browser, exact-90% Cheap LFS restore look-ahead, and
+private-repository lock passed 652/652 combined tests, 14/14 verifier
+contracts, full TypeScript, the exact Windows production build, and isolated
+hidden-desktop interaction/privacy review. Packaged E2E and remote
+CI/Pages/wiki/installer publication remain separate gates.
 
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
@@ -43,7 +44,7 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 77-scene visual index: every
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 84-scene visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
@@ -308,7 +309,7 @@ only on the same exact scheme, host, and port. An explicit push URL moves only w
 matched the old fetch URL; a separate deployment or write-only target remains untouched. Concurrent
 remote edits win, unsafe candidates are refused, and a provider/config failure leaves the current
 URL in place for a later explicit retry. See [Automatic remote URL
-refresh](../features/repository-management/automatic-remote-url-refresh.md) for the complete safety
+refresh](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/automatic-remote-url-refresh.md) for the complete safety
 and retry behavior.
 
 During background fetch, a local `refs/remotes/<remote>/HEAD` is reused only when it points inside
@@ -325,8 +326,10 @@ timeout. Clone cancellation remains stricter and waits for the owned process to 
 
 ## App-hosted browser
 
-> **Current branch preview:** implemented, but not yet accepted in a packaged
-> Windows artifact or published installer.
+> **Local acceptance complete:** combined tests, verifier contracts, full
+> TypeScript, the exact Windows production build, and hidden-desktop
+> interaction/privacy checks pass. Packaged E2E and remote publication remain
+> separate gates.
 
 Open **Settings → Advanced → Open web links** and choose:
 
@@ -364,9 +367,9 @@ in the browser chrome with a refresh or external-browser recovery path.
 瀏覽器。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
 自己就鎖喺 sandbox view，冇 Node、冇 app IPC、冇權限，壞憑證唔會夾硬放行。登入
 分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。呢
-版仲係 branch-only，未過完整 Windows／headless／CI 驗收。</sub>
+本機正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub>
 
-See [App-hosted browser](../features/integrations/app-hosted-browser.md) for
+See [App-hosted browser](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md) for
 persistence limits, complete failure behavior, security boundaries, and the
 pending acceptance gates.
 
@@ -1116,8 +1119,9 @@ Release mutations are never allowed.
 
 ### Exact-90% two-lane restore progress
 
-> **Current branch preview:** focused local checks pass; combined
-> Windows/build/headless/CI acceptance and publication remain pending.
+> **Local acceptance complete:** combined tests, verifier contracts,
+> TypeScript, the exact production build, and hidden-desktop acceptance pass.
+> Packaged E2E and remote publication remain separate gates.
 
 For Release-backed pointers, one restore batch now shares a coordinator with a
 hard limit of two HTTP downloads. The current file or multipart part owns the

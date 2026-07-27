@@ -5,13 +5,13 @@
 The generated mark above is documentation artwork. It is not embedded in the
 pointer format and is not required by the transfer protocol.
 
-> **Current restore continuation — July 27, 2026:** the current branch adds an
-> exact-90% two-lane Release restore pipeline and a substantially more detailed
-> shared restore-progress surface. Focused local coverage has passed, but the
-> combined production build, packaged Windows/headless acceptance, remote CI,
-> merge, and publication receipts remain pending. The historical live
-> acceptance evidence below is still evidence for the earlier shipped restore;
-> it must not be read as acceptance of this branch-only continuation.
+> **Restore continuation — July 27, 2026:** the exact-90% two-lane Release
+> restore pipeline and substantially more detailed shared progress surface
+> passed 652/652 combined tests, 14/14 verifier contracts, full TypeScript, the
+> exact Windows production build, and isolated wide-English/narrow-bilingual
+> hidden-desktop acceptance. Packaged E2E and remote
+> CI/Pages/wiki/installer publication remain separate gates. The historical
+> live acceptance below still belongs to the earlier shipped restore.
 
 ![Cheap LFS manager after a live private-repository UI pin](../../assets/screenshots/cheap-lfs-ui-acceptance.png)
 
@@ -384,6 +384,8 @@ enabled by default for compatibility:
   local-deletion warning on Remove).
 
 ### Exact-90% restore look-ahead and detailed progress
+
+![Detailed Cheap LFS restore progress with the current transfer at exactly 90% and the next transfer already active](../../assets/screenshots/cheap-lfs-restore-lookahead.png)
 
 Release-backed restore now uses one shared, batch-local download coordinator
 with a hard maximum of **two active HTTP downloads**. The current file or part
@@ -1301,15 +1303,16 @@ workflow content at the managed path is never overwritten.
 
 ## Verification
 
-The July 27 branch checkpoint passed **42/42** focused restore-progress checks
-covering the canonical model, shared renderer, styles, batch-clone integration,
-localization, exact 899/1000 versus 900/1000 threshold behavior, reduced motion,
-and narrow-layout copy. A focused **15/15** operations/AppStore integration
-gate also passed for the two-lane scheduler and production progress routing.
-Those are branch-local focused receipts only. The combined TypeScript/build
-gate, full unit and script suites, production bundle launch, real multi-part
-network exercise, packaged Windows E2E, off-screen 100–200% visual acceptance,
-remote CI, and publication remain pending.
+The July 27 combined browser, restore, IPC, localization, and private-badge
+gate passed **652/652 across 53 files**. It supersedes the earlier **42/42**
+restore-progress and **15/15** operations/AppStore checkpoints while retaining
+their exact 899/1000-versus-900/1000 threshold, reduced-motion, and
+narrow-layout coverage. The two verifier contract suites passed **14/14**,
+full TypeScript was clean, and the exact Windows production build returned
+zero with no timeout or stderr. A real built app on an isolated hidden Win32
+desktop passed wide English and narrow bilingual restore receipts at the
+current-90% / look-ahead-10% state without clipping, overlap, or private data.
+Packaged Windows E2E, remote CI, and publication remain separate gates.
 
 ### Live GitHub and Desktop Material UI acceptance — 2026-07-22
 

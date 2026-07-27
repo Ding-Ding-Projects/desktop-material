@@ -192,7 +192,7 @@ account or credential. It proves the private authentication notice, explicit
 system-browser action, bookmark exclusion, and sandboxed tab chrome from the
 real production bundle. Default-branch and remote publication gates remain
 pending. See the
-[app-hosted browser contract](../features/integrations/app-hosted-browser.md).
+[app-hosted browser contract](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md).
 
 <sub>**香港粵語速讀。** 分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門
 齊晒，網頁鎖喺 sandbox。呢張係真 build 喺 hidden desktop 嘅驗收相，冇用真帳戶

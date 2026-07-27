@@ -30,7 +30,7 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > app passed isolated off-screen English/bilingual interaction and privacy
 > inspection. Default-branch merge and push, remote CI, Pages/wiki publication,
 > packaged E2E, and installer/Release evidence remain pending. See
-> [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md)
+> [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 > the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
 > and the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 

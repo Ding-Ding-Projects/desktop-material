@@ -45,15 +45,15 @@ than overstate it.
 
 ### At a glance / 一眼睇晒
 
-**198** features across **17** areas:
+**200** features across **17** areas:
 
-**17** 個範疇、合共 **198** 項功能：
+**17** 個範疇、合共 **200** 項功能：
 
 | Label | Count | Share | 意思 |
 | --- | ---: | ---: | --- |
-| **Added** | 130 | 66.0% | New in Desktop Material · Desktop Material 新加 |
-| **Extended** | 51 | 25.9% | Rebuilt or deepened · 重砌或者加深咗 |
-| **Inherited** | 16 | 8.1% | Same as GitHub Desktop · 同 GitHub Desktop 一樣 |
+| **Added** | 133 | 66.5% | New in Desktop Material · Desktop Material 新加 |
+| **Extended** | 51 | 25.5% | Rebuilt or deepened · 重砌或者加深咗 |
+| **Inherited** | 16 | 8.0% | Same as GitHub Desktop · 同 GitHub Desktop 一樣 |
 
 ### What this list is counted from / 啲數字點嚟
 
@@ -63,13 +63,13 @@ Every number below is derived from this repository tree, not from memory:
 
 | Number | Where it comes from |
 | --- | --- |
-| **80** feature documents in **8** categories | `docs/features/**/*.md`, excluding the 9 `README.md` indexes |
+| **84** feature documents in **8** categories | `docs/features/**/*.md`, excluding the 9 `README.md` indexes |
 | **51** searchable collection surfaces | `SearchSurfaceRegistry` in `app/src/lib/collection-surface-registry.ts` |
 | **13** bulk-action surfaces | `BulkActionSurfaceRegistry` in the same file |
 | **87** command-palette commands in **6** groups | `CommandPaletteCatalog` in `app/src/lib/command-palette-catalog.ts` |
 | **19** `.gitignore` templates | `templateMeta` in `app/src/lib/gitignore/catalog.ts` |
 | **117** UI feature directories | immediate subdirectories of `app/src/ui/` |
-| **2,139** English / **2,115** Cantonese translation keys | `englishTranslations` and `cantoneseTranslations` in `app/src/lib/i18n-resources.ts` |
+| **2,381** English / **2,357** Cantonese translation keys | `englishTranslations` and `cantoneseTranslations` in `app/src/lib/i18n-resources.ts` |
 
 ---
 
@@ -98,7 +98,7 @@ Every number below is derived from this repository tree, not from memory:
 
 | Feature / 功能 | vs. Desktop | Docs |
 | --- | --- | --- |
-| **Three language modes** — persisted **English**, playful **Hong Kong Cantonese**, or compact **Bilingual**. English is the safe fallback; the Windows locale never silently replaces your choice. 2,139 English and 2,115 Cantonese keys.<br><sub>**三種語言模式** — 會記住嘅**英文**、抵死**香港廣東話**，或者精簡嘅**雙語**。英文係安全後備；Windows 地區設定唔會靜靜雞改咗你嘅選擇。英文有 2,139 個字串鍵，廣東話有 2,115 個。</sub> | **Added** | — |
+| **Three language modes** — persisted **English**, playful **Hong Kong Cantonese**, or compact **Bilingual**. English is the safe fallback; the Windows locale never silently replaces your choice. 2,381 English and 2,357 Cantonese keys.<br><sub>**三種語言模式** — 會記住嘅**英文**、抵死**香港廣東話**，或者精簡嘅**雙語**。英文係安全後備；Windows 地區設定唔會靜靜雞改咗你嘅選擇。英文有 2,381 個字串鍵，廣東話有 2,357 個。</sub> | **Added** | — |
 | **Funny-level sliders (1–5)** — independent playfulness levels for English and Cantonese. Tone changes at every level; the facts never do.<br><sub>**搞笑程度滑桿（1–5）** — 英文同廣東話各有一個。每一級變嘅係語氣，事實永遠唔變。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 | **Spoken narrator** — optional, off by default, English / Cantonese / both, serialized so utterances never overlap.<br><sub>**語音旁白** — 可選，預設熄咗，英文／廣東話／兩種都得，排住隊講，唔會疊聲。</sub> | **Added** | [Audio system](../features/design-system/audio-system.md) |
 | **Recorded narration and melody assets** — pre-generated per-event voice clips and melody cues replace live speech and synthesis, with automatic fallback.<br><sub>**錄好嘅旁白同旋律素材** — 每個事件都有預先生成嘅語音同旋律，取代即時合成，唔得就自動回退。</sub> | **Added** | [Narration assets](../features/design-system/narration-assets.md) |
@@ -152,6 +152,7 @@ Every number below is derived from this repository tree, not from memory:
 | **Repository list filter and alias** — text filter and per-repository alias.<br><sub>**倉庫清單篩選同別名** — 文字篩選同逐個倉庫改別名。</sub> | Inherited | — |
 | **Pinning, grouping, hiding, and favourites** — pin repositories into a dedicated top group, group them, hide them locally with an explicit recovery path, and hide the automatic Recent group from **Settings → Appearance**.<br><sub>**釘住、分組、隱藏同收藏** — 可以將倉庫釘上頂部群組、自訂分組、本機隱藏（有明確嘅復原方法），仲可以喺 **設定 → Appearance** 收埋自動嘅 Recent 群組。</sub> | **Added** | [Repository sidebar and pinning](../features/identity-and-workspace/repository-sidebar-and-pinning.md) |
 | **Repository picker filters** — combine status, bound account, provider service, and text. Local-only, unavailable-account, and unknown/signed-out scopes are explicit rather than inferred from a host name.<br><sub>**倉庫選擇器篩選** — 狀態、綁定帳戶、供應商服務同文字可以夾埋一齊用。純本機、帳戶唔可用同未知／已登出嘅範圍係明講嘅，唔係靠個主機名亂估。</sub> | Extended | [Picker filters](../features/repository-management/repository-picker-filters-and-visibility.md) |
+| **Private-repository lock badge** — show a separate localized, keyboard-focusable lock only when provider metadata is exactly private, while retaining the fork glyph, custom logo, or ordinary repository icon. Public and unknown metadata make no privacy claim.<br><sub>**私人 repo 鎖仔** — 淨係供應商資料明確話係 private 先顯示獨立、已本地化、鍵盤聚焦得到嘅鎖仔；fork 圖示、custom logo 或普通 repo icon 照樣保留。公開同未知資料唔會亂作私隱聲明。</sub> | **Added** | [Private-repository badge](../features/repository-management/private-repository-lock-badge.md) |
 | **Repository list bulk actions** — select the filter-visible rows to fetch, pull, favourite, group, or forget several repositories, with determinate progress, cancel between repositories, and a removal confirmation that never deletes on-disk content.<br><sub>**倉庫清單批量操作** — 揀篩選後見到嗰啲行去 fetch、pull、收藏、分組或者移除，有明確進度、每個倉庫之間可以取消，移除確認亦都唔會刪硬碟上嘅嘢。</sub> | **Added** | [Bulk actions](../features/repository-management/repository-list-bulk-actions.md) |
 | **Network and WSL repository paths** — retain UNC roots, detect mapped drives and WSL shares, and give offline reconnection guidance.<br><sub>**網絡同 WSL 倉庫路徑** — 保住 UNC 根目錄、認得對應磁碟機同 WSL 共享，離線嗰陣仲會教你點重新連接。</sub> | Extended | [Network and WSL paths](../features/repository-management/network-and-wsl-repository-paths.md) |
 | **Worktree management** — add, lock, move, rename, repair, remove, or prune worktrees.<br><sub>**Worktree 管理** — 新增、鎖定、搬、改名、修復、移除或者清理 worktree。</sub> | **Added** | — |
@@ -263,7 +264,7 @@ Every number below is derived from this repository tree, not from memory:
 | **Cloud compression** — public repository objects compress automatically one at a time; private repositories require explicit opt-in. Only `part-deflate` objects are decompressed on restore.<br><sub>**雲端壓縮** — 公開倉庫嘅物件會逐個自動壓縮；私有倉庫要明確選擇加入。還原嗰陣淨係解壓 `part-deflate` 物件。</sub> | **Added** | [Release-backed Cheap LFS](../features/repository-management/release-backed-cheap-lfs.md) |
 | **Private-payload encryption** — private-source chunks use AES-256-GCM with the intentionally tracked shared repository key. Public OCI and public GitHub.com Release pointers can restore while signed out.<br><sub>**私有內容加密** — 私有來源嘅分塊用 AES-256-GCM，鎖匙係刻意追蹤嘅共享倉庫鎖匙。公開 OCI 同公開 GitHub.com Release 指標就算登出都還原到。</sub> | **Added** | [OCI registry backend](../features/repository-management/cheap-lfs-oci-registry-backend.md) |
 | **Provider migration** — verified materialized files can move between GHCR and Docker Hub as a fresh full snapshot; existing Docker organization and collaborator namespaces are retained.<br><sub>**供應商遷移** — 已驗證實體化嘅檔可以喺 GHCR 同 Docker Hub 之間搬，做一個全新完整快照；原有嘅 Docker 組織同協作者命名空間會保留。</sub> | **Added** | [OCI registry backend](../features/repository-management/cheap-lfs-oci-registry-backend.md) |
-| **Oversized-file filter and two-lane clone repair** — the Changes filter isolates files over the same 100 MiB threshold, and the default clone/open detector repairs both new and older pointer-only clones through verified local materialization. On the current branch, Release restore uses one shared maximum-two-download coordinator: the next file or part starts at exactly 90%, and detailed overall/current/look-ahead progress distinguishes logical and actual bytes, phases, ordinals, queue, rate, ETA, failures, and cancellation. Integrated acceptance remains pending.<br><sub>**超大檔篩選同雙 lane clone 修復** — Changes 篩選可以隔離超過同一個 100 MiB 門檻嘅檔，而預設 clone／開啟偵測器會用經驗證嘅本機實體化修復新舊純指標 clone。今個 branch 嘅 Release 還原成批最多兩個下載；目前檔或者 part 啱啱到 90%，下一個先開工。詳細進度會分邏輯／實際位元組、階段、檔／part 次序、排隊、速度、ETA、失敗同取消；整合驗收仲未完成。</sub> | **Added** | [Release-backed Cheap LFS](../features/repository-management/release-backed-cheap-lfs.md) |
+| **Oversized-file filter and two-lane clone repair** — the Changes filter isolates files over the same 100 MiB threshold, and the default clone/open detector repairs both new and older pointer-only clones through verified local materialization. Release restore uses one shared maximum-two-download coordinator: the next file or part starts at exactly 90%, and detailed overall/current/look-ahead progress distinguishes logical and actual bytes, phases, ordinals, queue, rate, ETA, failures, and cancellation. Combined local tests, production build, and hidden-desktop acceptance pass; remote publication remains separate.<br><sub>**超大檔篩選同雙 lane clone 修復** — Changes 篩選可以隔離超過同一個 100 MiB 門檻嘅檔，而預設 clone／開啟偵測器會用經驗證嘅本機實體化修復新舊純指標 clone。Release 還原成批最多兩個下載；目前檔或者 part 啱啱到 90%，下一個先開工。詳細進度會分邏輯／實際位元組、階段、檔／part 次序、排隊、速度、ETA、失敗同取消。本機測試、正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub> | **Added** | [Release-backed Cheap LFS](../features/repository-management/release-backed-cheap-lfs.md) |
 | **Automatic commit and push batching** — when many small files approach a decimal 1.5 GB push, Desktop Material creates and pushes commits under a conservative 1.4 GB changed-blob budget, proving each fast-forward remote tip before creating the next commit and retaining a durable retry checkpoint. Ordinary pushes and persistent Git configuration stay unchanged.<br><sub>**自動 commit 同 push 分批** — 好多細檔夾埋逼近十進制 1.5 GB 推送上限嗰陣，Desktop Material 會用保守嘅 1.4 GB 變更 blob 預算分批建立同推送，每次建立下一個 commit 之前都證明遠端 tip 係快進，仲會留低耐用嘅重試檢查點。普通 push 同持久 Git 設定完全唔變。</sub> | **Added** | [Push batching](../features/repository-management/automatic-commit-push-batching.md) |
 | **ORAS runtime** — Windows builds ship digest-pinned ORAS 1.3.2 plus its Apache-2.0 licence; the ARM64 package runs that audited x64 binary through Windows 11 x64 emulation and fails closed if it cannot start.<br><sub>**ORAS 執行環境** — Windows 版本內附摘要鎖定嘅 ORAS 1.3.2 同佢嘅 Apache-2.0 授權；ARM64 套件用 Windows 11 x64 模擬行嗰個經審核嘅 x64 執行檔，起唔到就直接 fail closed。</sub> | **Added** | [OCI registry backend](../features/repository-management/cheap-lfs-oci-registry-backend.md) |
 
@@ -419,7 +420,7 @@ regex 模式，連預覽用嗰個大小寫選擇一齊帶過去。兩條失敗�
 | **WSL-aware editor opening** — open files and repositories that live inside WSL.<br><sub>**識 WSL 嘅編輯器開啟** — 開得到住喺 WSL 入面嘅檔案同倉庫。</sub> | **Added** | [WSL editor opening](../features/integrations/wsl-aware-editor-opening.md) |
 | **Open in shell** — launch the configured terminal in the repository.<br><sub>**喺 Shell 開啟** — 喺倉庫度開設定好嘅終端機。</sub> | Inherited | — |
 | **Windows Explorer context menu** — a shell extension plus a quick-action window.<br><sub>**Windows 檔案總管右鍵選單** — 一個 shell 擴充，加一個快速操作視窗。</sub> | **Added** | [Explorer context menu](../features/integrations/windows-explorer-context-menu.md) |
-| **App-hosted browser (branch-only; integrated acceptance pending)** — persist whether HTTP(S) links open in Desktop Material or the system browser. The app window supplies tabs, address/navigation controls, bookmarks, redirect and popup capture, and an external escape; remote pages stay in permission-denied sandboxed `WebContentsView` tabs without Node, preload, or trusted app IPC, while authentication uses a clearable in-memory session.<br><sub>**App 內瀏覽器（branch-only；整合驗收未完成）** — 記住 HTTP(S) 連結喺 Desktop Material 定系統瀏覽器開。App 視窗有分頁、網址／導覽控制、書籤、redirect／popup 接管同外部逃生門；遠端頁鎖喺拒絕權限嘅 sandboxed `WebContentsView`，冇 Node、preload 或可信 app IPC，登入就用可清除嘅記憶體工作階段。</sub> | **Added** | [App-hosted browser](../features/integrations/app-hosted-browser.md) |
+| **App-hosted browser** — persist whether HTTP(S) links open in Desktop Material or the system browser. The app window supplies tabs, address/navigation controls, bookmarks, redirect and popup capture, and an external escape; remote pages stay in permission-denied sandboxed `WebContentsView` tabs without Node, preload, or trusted app IPC, while authentication uses a clearable in-memory session. Combined local tests, production build, and hidden-desktop acceptance pass; remote publication remains separate.<br><sub>**App 內瀏覽器** — 記住 HTTP(S) 連結喺 Desktop Material 定系統瀏覽器開。App 視窗有分頁、網址／導覽控制、書籤、redirect／popup 接管同外部逃生門；遠端頁鎖喺拒絕權限嘅 sandboxed `WebContentsView`，冇 Node、preload 或可信 app IPC，登入就用可清除嘅記憶體工作階段。本機測試、正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub> | **Added** | [App-hosted browser](../features/integrations/app-hosted-browser.md) |
 | **SSH working copies and remote clone** — save a credential-vault-backed SSH working copy in **Repository Settings → Remote**, then Clone, inspect Status, Fetch, Pull, Push, or deploy Docker Compose. Updates are fast-forward-only on the configured branch; Desktop never resets or force-checks out the host.<br><sub>**SSH 工作副本同遠端 clone** — 喺 **Repository Settings → Remote** 儲一個由憑證保險庫撐住嘅 SSH 工作副本，跟住可以 Clone、睇 Status、Fetch、Pull、Push 或者部署 Docker Compose。更新淨係喺設定嗰條分支做快進；Desktop 永遠唔會 reset 或者強制 checkout 主機。</sub> | **Added** | [SSH working copies](../features/integrations/ssh-working-copy-and-remote-clone.md) |
 
 ## 16. Quality, reliability, and recovery / 品質、可靠性同復原
@@ -439,7 +440,7 @@ regex 模式，連預覽用嗰個大小寫選擇一齊帶過去。兩條失敗�
 | --- | --- | --- |
 | **Documentation hub** — a Material Design 3 hub on GitHub Pages with in-browser search over the full catalog, language modes, playfulness sliders, and a theme toggle.<br><sub>**文件中心** — GitHub Pages 上面嘅 Material Design 3 中心，喺瀏覽器搜尋成個目錄，有語言模式、搞笑程度滑桿同主題開關。</sub> | **Added** | [Docs hub](../README.md) |
 | **Pre-rendered documentation diagrams** — every Mermaid fence becomes theme-aware inline SVG at build time, legible in light and dark, named for screen readers, with the site still loading zero external resources.<br><sub>**預先畫好嘅文件圖表** — 每個 Mermaid fence 喺建置階段就變成識跟主題嘅 inline SVG，光暗兩個模式都睇得清，讀屏軟件有名可讀，個網站照樣零外部資源。</sub> | **Added** | [Documentation site build](../technical/documentation-site-build.md) |
-| **Categorized feature documentation** — **80** feature documents in **8** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **8** 個分類、**80** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
+| **Categorized feature documentation** — **84** feature documents in **8** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **8** 個分類、**84** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
 | **Demand backlog ledger** — the 30-item GitHub Desktop demand backlog mapped to implemented feature contracts.<br><sub>**需求待辦帳簿** — 三十項 GitHub Desktop 需求，逐項對應到已實作嘅功能契約。</sub> | **Added** | [Demand backlog](../features/github-desktop-demand-backlog.md) |
 | **In-app version history** — an in-app changelog surface.<br><sub>**App 內版本歷史** — 喺 app 入面睇更新記錄。</sub> | Extended | — |
 | **Regex guide** — how every search bar matches and how the builder composes a pattern.<br><sub>**Regex 指南** — 每個搜尋欄點樣比對，同建構器點砌圖案。</sub> | **Added** | [Regex guide](../regex-guide.md) |
