@@ -24,6 +24,7 @@ const indexSource = readFileSync(IndexPath, 'utf8')
 const scriptSources = [
   'docs-hub-strings.js',
   'docs-hub-catalog.js',
+  'docs-regex-job.js',
   'docs-hub.js',
 ].map(name => readFileSync(join(SiteRoot, name), 'utf8'))
 

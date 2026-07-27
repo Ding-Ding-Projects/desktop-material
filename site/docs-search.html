@@ -117,6 +117,14 @@
         outline: 2px solid var(--accent);
         outline-offset: 2px;
       }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+        white-space: nowrap;
+      }
       .options {
         display: flex;
         flex-wrap: wrap;
@@ -192,10 +200,21 @@
       .status[data-kind='error'] {
         color: #b3261e;
       }
+      .status[data-kind='warn'] {
+        color: #7a5900;
+      }
       @media (prefers-color-scheme: dark) {
         .status[data-kind='error'] {
           color: #f2b8b5;
         }
+        .status[data-kind='warn'] {
+          color: #ffd8a8;
+        }
+      }
+      .safety-note {
+        margin: 0.6rem 0 0;
+        color: var(--muted);
+        font-size: 0.85rem;
       }
       ol.results {
         list-style: none;
@@ -281,6 +300,8 @@
             name="q"
             placeholder="Search the documentation…"
             autocomplete="off"
+            aria-invalid="false"
+            aria-describedby="safety-note"
             autofocus
           />
           <button type="submit">Search</button>
@@ -299,6 +320,14 @@
             Whole word
           </label>
         </div>
+        <p class="safety-note" id="safety-note">
+          Plain text is the default. A regular expression is only ever treated
+          as a pattern once <strong>Regular expression</strong> is switched on,
+          and it is then evaluated in an isolated worker that this page stops
+          after a hard 750&nbsp;ms deadline, so a pattern such as
+          <code>^(a+)+$</code> cannot freeze the page. Patterns are capped at
+          512 characters. Nothing you type here leaves your browser.
+        </p>
       </form>
 
       <details class="builder" id="builder">
@@ -364,10 +393,23 @@
       <ol class="results" id="results"></ol>
     </main>
 
+    <script src="assets/site/docs-regex-job.js"></script>
     <script>
+      /**
+       * Documentation search.
+       *
+       * A reader's pattern is never compiled on this thread. Plain-text search
+       * is a bounded substring scan with no regular expression at all; regex
+       * search hands the pattern to the same isolated worker the documentation
+       * hub uses, through the same shared runner, and this page terminates that
+       * worker at a hard 750 ms deadline. `new RegExp` on user input does not
+       * belong in this file, and a test asserts that it is not here.
+       */
       ;(function () {
         var indexData = null
         var indexError = null
+        var corpus = []
+        var droppedPages = 0
         var form = document.getElementById('search-form')
         var queryInput = document.getElementById('query')
         var optRegex = document.getElementById('opt-regex')
@@ -378,6 +420,24 @@
         var MaxResults = 60
         var MaxMatchesPerPage = 3
         var ExcerptRadius = 90
+
+        /** Safety bounds, mirrored by the worker so neither side can drift. */
+        var MaximumPatternLength = 512
+        var MaximumPageCharacters = 200000
+        var MaximumCorpusCharacters = 12000000
+        var MaximumPlainScanSteps = 2000
+        var MaximumPlainMatchesPerPage = 500
+        var EvaluationBudgetMilliseconds = 750
+
+        /**
+         * Resolved by the browser against this page. `/docs/search.html` and
+         * `/docs/index.html` sit at the same depth, so the hub's own relative
+         * path reaches the same same-origin worker from either surface.
+         */
+        var RegexWorkerPath = 'assets/site/docs-hub-regex-worker.js'
+
+        /** A constant, never a reader's input: `\b` is ASCII in ECMAScript. */
+        var WordCharacter = /[0-9A-Za-z_]/
 
         function setStatus(message, kind) {
           statusEl.textContent = message
@@ -391,6 +451,27 @@
         function escapeRegex(value) {
           return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
         }
+
+        /**
+         * The one place a reader's pattern is allowed to run: a fresh worker
+         * this page owns the deadline for. A browser without workers fails
+         * closed — plain-text search keeps working, regex search does not
+         * silently fall back onto this thread.
+         */
+        var regexRunner =
+          window.DesktopMaterialRegexJob === undefined
+            ? null
+            : window.DesktopMaterialRegexJob.create({
+                workerPath: RegexWorkerPath,
+                budgetMilliseconds: EvaluationBudgetMilliseconds,
+                onBusy: function (surface, busy) {
+                  if (busy) {
+                    resultsEl.setAttribute('aria-busy', 'true')
+                  } else {
+                    resultsEl.removeAttribute('aria-busy')
+                  }
+                },
+              })
 
         // ---- Regex builder -------------------------------------------------
         var builderKind = document.getElementById('builder-kind')
@@ -492,19 +573,6 @@
           })
 
         // ---- Search --------------------------------------------------------
-        function compilePattern(query) {
-          var source
-          if (optRegex.checked) {
-            source = query
-          } else {
-            source = escapeRegex(query)
-          }
-          if (optWord.checked) {
-            source = '\\b(?:' + source + ')\\b'
-          }
-          return new RegExp(source, optCase.checked ? 'g' : 'gi')
-        }
-
         function excerptFor(text, start, end) {
           var from = Math.max(0, start - ExcerptRadius)
           var to = Math.min(text.length, end + ExcerptRadius)
@@ -515,7 +583,7 @@
           }
         }
 
-        function renderResults(matches, total) {
+        function renderResults(matches, total, note) {
           resultsEl.textContent = ''
           matches.forEach(function (entry) {
             var item = document.createElement('li')
@@ -544,8 +612,12 @@
             resultsEl.appendChild(item)
           })
 
+          var suffix = typeof note === 'string' && note !== '' ? ' ' + note : ''
           if (matches.length === 0) {
-            setStatus('No documentation page matched that search.')
+            setStatus(
+              'No documentation page matched that search.' + suffix,
+              suffix === '' ? undefined : 'warn'
+            )
           } else {
             setStatus(
               'Found ' +
@@ -556,14 +628,237 @@
                 matches.length +
                 ' page' +
                 (matches.length === 1 ? '' : 's') +
-                '.'
+                '.' +
+                suffix,
+              suffix === '' ? undefined : 'warn'
             )
           }
         }
 
+        /**
+         * True when `\b` holds at `index`, matching ECMAScript's ASCII-only
+         * word-boundary rule without compiling anything.
+         */
+        function wordCharacterAt(value, index) {
+          return (
+            index >= 0 &&
+            index < value.length &&
+            WordCharacter.test(value.charAt(index))
+          )
+        }
+
+        function boundedBy(text, start, end) {
+          return (
+            wordCharacterAt(text, start - 1) !== wordCharacterAt(text, start) &&
+            wordCharacterAt(text, end - 1) !== wordCharacterAt(text, end)
+          )
+        }
+
+        /**
+         * Plain text stays on this thread because it is a bounded substring
+         * scan: no pattern is compiled, so there is nothing to backtrack.
+         */
+        function runPlainSearch(query) {
+          var caseSensitive = optCase.checked
+          var wholeWord = optWord.checked
+          var needle = caseSensitive ? query : query.toLowerCase()
+          var matches = []
+          var total = 0
+
+          for (var i = 0; i < corpus.length; i++) {
+            var text = corpus[i]
+            var haystack = caseSensitive ? text : text.toLowerCase()
+            var excerpts = []
+            var found = 0
+            var steps = 0
+            var from = 0
+            while (steps < MaximumPlainScanSteps) {
+              steps++
+              var at = haystack.indexOf(needle, from)
+              if (at === -1) {
+                break
+              }
+              var end = at + needle.length
+              from = at + Math.max(1, needle.length)
+              if (wholeWord && !boundedBy(text, at, end)) {
+                continue
+              }
+              found++
+              total++
+              if (excerpts.length < MaxMatchesPerPage) {
+                excerpts.push(excerptFor(text, at, end))
+              }
+              if (found >= MaximumPlainMatchesPerPage) {
+                break
+              }
+            }
+            if (found > 0) {
+              matches.push({ page: indexData[i], excerpts: excerpts })
+            }
+            if (matches.length >= MaxResults) {
+              break
+            }
+          }
+
+          renderResults(matches, total, indexNote())
+        }
+
+        function regexFailureText(code, detail) {
+          if (code === 'invalid') {
+            return (
+              'That regular expression is not valid' +
+              (detail === '' ? '.' : ': ' + detail)
+            )
+          }
+          if (code === 'too-long-pattern') {
+            return (
+              'That pattern is too long. The limit is ' +
+              MaximumPatternLength +
+              ' characters, which is enough for any documentation search.'
+            )
+          }
+          if (code === 'timeout') {
+            return (
+              'That pattern exceeded the ' +
+              EvaluationBudgetMilliseconds +
+              ' ms evaluation deadline, so its isolated worker was stopped and ' +
+              'no results are shown. Simplify it — nested quantifiers such as ' +
+              '(a+)+ can take exponential time — then search again.'
+            )
+          }
+          if (code === 'invalid-request') {
+            return (
+              'The search index could not be evaluated safely. Reload the ' +
+              'page, or search with plain text instead.'
+            )
+          }
+          return (
+            'Safe regular-expression matching is unavailable in this browser, ' +
+            'so the pattern was not evaluated. Plain-text search still works.'
+          )
+        }
+
+        /**
+         * Flags a shape known to backtrack exponentially — a quantified group
+         * whose body is itself quantified, such as `(a+)+`. A warning, not a
+         * block: the reader may well know exactly what they asked for.
+         */
+        function looksCatastrophic(pattern) {
+          return /\([^()]*[+*][^()]*\)\s*[+*]/.test(pattern)
+        }
+
+        function indexNote() {
+          return droppedPages === 0
+            ? ''
+            : 'The last ' +
+                droppedPages +
+                ' page' +
+                (droppedPages === 1 ? ' was' : 's were') +
+                ' left out of this search because the index exceeded the ' +
+                'safe evaluation size.'
+        }
+
+        function runRegexSearch(query) {
+          var pattern = optWord.checked ? '\\b(?:' + query + ')\\b' : query
+          if (pattern.length > MaximumPatternLength) {
+            queryInput.setAttribute('aria-invalid', 'true')
+            setStatus(regexFailureText('too-long-pattern', ''), 'error')
+            return
+          }
+          if (regexRunner === null) {
+            setStatus(regexFailureText('unavailable', ''), 'error')
+            return
+          }
+
+          setStatus('Checking the pattern safely…')
+          regexRunner.run(
+            'search',
+            {
+              operation: 'pages',
+              pattern: pattern,
+              flags: optCase.checked ? 'g' : 'gi',
+              pages: corpus,
+              maximumPages: MaxResults,
+              maximumExcerpts: MaxMatchesPerPage,
+            },
+            function (data) {
+              queryInput.setAttribute('aria-invalid', 'false')
+              var hits = Array.isArray(data.hits) ? data.hits : []
+              var matches = []
+              for (var i = 0; i < hits.length; i++) {
+                var hit = hits[i]
+                if (
+                  hit === null ||
+                  typeof hit !== 'object' ||
+                  !Number.isInteger(hit.pageIndex) ||
+                  indexData[hit.pageIndex] === undefined
+                ) {
+                  continue
+                }
+                var text = corpus[hit.pageIndex]
+                var ranges = Array.isArray(hit.ranges) ? hit.ranges : []
+                var excerpts = []
+                for (var r = 0; r < ranges.length; r++) {
+                  var range = ranges[r]
+                  if (
+                    !Array.isArray(range) ||
+                    range.length !== 2 ||
+                    !Number.isInteger(range[0]) ||
+                    !Number.isInteger(range[1]) ||
+                    range[0] < 0 ||
+                    range[1] <= range[0] ||
+                    range[1] > text.length
+                  ) {
+                    continue
+                  }
+                  excerpts.push(excerptFor(text, range[0], range[1]))
+                }
+                matches.push({
+                  page: indexData[hit.pageIndex],
+                  excerpts: excerpts,
+                })
+              }
+
+              var note = indexNote()
+              if (data.truncated === true) {
+                note +=
+                  (note === '' ? '' : ' ') +
+                  'Scanning stopped at the first ' +
+                  MaxResults +
+                  ' matching pages.'
+              }
+              if (looksCatastrophic(query)) {
+                note +=
+                  (note === '' ? '' : ' ') +
+                  'This pattern nests a quantifier inside another quantified ' +
+                  'group, which can take exponential time on some inputs.'
+              }
+              renderResults(
+                matches,
+                Number.isInteger(data.total) ? data.total : matches.length,
+                note
+              )
+            },
+            function (code, detail) {
+              resultsEl.textContent = ''
+              queryInput.setAttribute(
+                'aria-invalid',
+                code === 'invalid' || code === 'too-long-pattern'
+                  ? 'true'
+                  : 'false'
+              )
+              setStatus(regexFailureText(code, detail), 'error')
+            }
+          )
+        }
+
         function runSearch() {
           var query = queryInput.value.trim()
+          if (regexRunner !== null) {
+            regexRunner.cancel('search')
+          }
           resultsEl.textContent = ''
+          queryInput.setAttribute('aria-invalid', 'false')
           if (query === '') {
             setStatus('Enter a search term to begin.')
             return
@@ -577,57 +872,18 @@
             return
           }
 
-          var pattern
-          try {
-            pattern = compilePattern(query)
-          } catch (error) {
-            setStatus(
-              'That regular expression is not valid: ' + error.message,
-              'error'
-            )
-            return
-          }
-
-          var matches = []
-          var total = 0
-          for (var i = 0; i < indexData.length; i++) {
-            var page = indexData[i]
-            pattern.lastIndex = 0
-            var excerpts = []
-            var found
-            var guard = 0
-            while ((found = pattern.exec(page.text)) !== null && guard < 500) {
-              guard++
-              total++
-              if (excerpts.length < MaxMatchesPerPage) {
-                excerpts.push(
-                  excerptFor(
-                    page.text,
-                    found.index,
-                    found.index + (found[0].length || 1)
-                  )
-                )
-              }
-              // A zero-length match would loop forever without this nudge.
-              if (found[0].length === 0) {
-                pattern.lastIndex++
-              }
-            }
-            if (excerpts.length > 0) {
-              matches.push({ page: page, excerpts: excerpts })
-            }
-            if (matches.length >= MaxResults) {
-              break
-            }
-          }
-          renderResults(matches, total)
-
           var params = new URLSearchParams()
           params.set('q', query)
           if (optRegex.checked) params.set('regex', '1')
           if (optCase.checked) params.set('case', '1')
           if (optWord.checked) params.set('word', '1')
           history.replaceState(null, '', '?' + params.toString())
+
+          if (optRegex.checked) {
+            runRegexSearch(query)
+          } else {
+            runPlainSearch(query)
+          }
         }
 
         form.addEventListener('submit', function (event) {
@@ -657,9 +913,34 @@
             return response.json()
           })
           .then(function (data) {
-            indexData = data.pages || []
+            var pages = Array.isArray(data.pages) ? data.pages : []
+            // The corpus crosses into a worker on every regex search, so it is
+            // bounded here as well as there: a documentation set that outgrows
+            // the budget loses its trailing pages and says so, rather than
+            // failing every pattern with an opaque worker error.
+            var used = 0
+            indexData = []
+            corpus = []
+            for (var i = 0; i < pages.length; i++) {
+              var text =
+                typeof pages[i].text === 'string'
+                  ? pages[i].text.slice(0, MaximumPageCharacters)
+                  : ''
+              if (used + text.length > MaximumCorpusCharacters) {
+                break
+              }
+              used += text.length
+              indexData.push(pages[i])
+              corpus.push(text)
+            }
+            droppedPages = pages.length - indexData.length
+
             setStatus(
-              'Ready to search ' + indexData.length + ' documentation pages.'
+              'Ready to search ' +
+                indexData.length +
+                ' documentation pages.' +
+                (droppedPages === 0 ? '' : ' ' + indexNote()),
+              droppedPages === 0 ? undefined : 'warn'
             )
             if (queryInput.value.trim() !== '') {
               runSearch()
