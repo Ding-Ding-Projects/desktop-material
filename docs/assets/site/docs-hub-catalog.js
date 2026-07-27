@@ -574,6 +574,13 @@
       d: 'Desktop Material inventories the newest 500 entries in refs/stash, including stashes created by the Git CLI, another desktop client, or an editor. External entries carry an…',
     },
     {
+      t: 'Ignored files to a local Cheap LFS submodule (local phase)',
+      h: 'features/repository-management/ignored-files-to-local-submodule.html',
+      s: 'features/repository-management/ignored-files-to-local-submodule.md',
+      c: 'features',
+      d: 'A reviewed workflow that copies working files Git itself currently proves are ignored into a newly created local Git repository and registers that repository as a submodule of…',
+    },
+    {
       t: 'Named multi-stash manager',
       h: 'features/repository-management/named-stash-manager.html',
       s: 'features/repository-management/named-stash-manager.md',
