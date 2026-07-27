@@ -22,11 +22,17 @@ const CheapLfsLegacyMaximumPartSizeBytes = 2 * 1024 * 1024 * 1024
 
 /**
  * The per-part size used for new uploads. GitHub requires each release asset
- * to be under 2 GiB, but uploads near that ceiling proved unreliable in
- * practice, so new parts are capped at 1.5 GiB. The parser retains support
- * for legacy pointers whose parts are up to exactly 2 GiB.
+ * to be under 2 GiB, but uploads anywhere near that ceiling proved unreliable
+ * in practice: a single failed part re-transfers gigabytes, and a slow link
+ * is far more likely to break before a part completes. New parts are
+ * therefore 500 MiB — small enough that a retry is cheap and progress is
+ * fine-grained, while still far larger than the per-request overhead.
+ *
+ * Shrinking this only affects newly written pointers. The parser retains
+ * support for existing pointers whose parts are up to exactly 2 GiB, so files
+ * pinned by earlier versions keep materializing unchanged.
  */
-export const CHEAP_LFS_PART_SIZE_BYTES = 1536 * 1024 * 1024
+export const CHEAP_LFS_PART_SIZE_BYTES = 500 * 1024 * 1024
 
 /**
  * Pointers are small, but a multi-part pointer for a very large file lists one
