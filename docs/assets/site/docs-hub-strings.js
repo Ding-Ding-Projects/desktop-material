@@ -180,6 +180,9 @@
       notifications: 'Notifications',
 
       featuresCatalogue: 'Categorised feature documentation',
+      cFeatCompleteTitle: 'Complete feature list',
+      cFeatCompleteBody:
+        'Every feature in one bilingual table, each labelled Added, Extended or Inherited against upstream GitHub Desktop.',
       cFeatAgentTitle: 'Agent API',
       cFeatAgentBody:
         'Opt-in REST and MCP automation, authentication, transport boundaries and executable Postman requests.',
@@ -492,6 +495,9 @@
       notifications: '通知',
 
       featuresCatalogue: '分類功能文件',
+      cFeatCompleteTitle: '完整功能清單',
+      cFeatCompleteBody:
+        '所有功能一張雙語表睇晒，每項都標明對比上游 GitHub Desktop 係新加、加強定沿用。',
       cFeatAgentTitle: 'Agent API',
       cFeatAgentBody:
         '選擇性啟用嘅 REST 同 MCP 自動化、驗證、傳輸邊界，以及可執行嘅 Postman 請求。',

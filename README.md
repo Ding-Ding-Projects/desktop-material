@@ -1,4 +1,4 @@
-**Overview** · [Install](docs/readme-tabs/install.md) · [Features](docs/readme-tabs/features.md) · [Screenshots](docs/readme-tabs/screenshots.md) · [Roadmap & receipts](docs/readme-tabs/roadmap-and-receipts.md) · [Development](docs/readme-tabs/development.md)
+**Overview** · [Install](docs/readme-tabs/install.md) · [Features](docs/readme-tabs/features.md) · [Complete list](docs/readme-tabs/complete-feature-list.md) · [Screenshots](docs/readme-tabs/screenshots.md) · [Roadmap & receipts](docs/readme-tabs/roadmap-and-receipts.md) · [Development](docs/readme-tabs/development.md)
 
 <sub>Tabbed README — GitHub can't run scripts, so each tab above is a separate page.</sub>
 
@@ -36,6 +36,7 @@ downloads, and updater behavior.
 
 - **[Install](docs/readme-tabs/install.md)** — Windows installer one-liner, script verification, manual downloads, and updater behavior
 - **[Features](docs/readme-tabs/features.md)** — the full Material Design 3 shell plus every Git and GitHub workflow
+- **[Complete list](docs/readme-tabs/complete-feature-list.md)** — every feature in one bilingual table, labelled Added / Extended / Inherited against GitHub Desktop
 - **[Screenshots](docs/readme-tabs/screenshots.md)** — the annotated capture gallery
 - **[Roadmap & receipts](docs/readme-tabs/roadmap-and-receipts.md)** — milestone status and published CI/release evidence
 - **[Development](docs/readme-tabs/development.md)** — build Desktop Material from source

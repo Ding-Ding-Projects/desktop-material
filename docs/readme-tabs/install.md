@@ -1,4 +1,4 @@
-[Overview](../../README.md) · **Install** · [Features](features.md) · [Screenshots](screenshots.md) · [Roadmap & receipts](roadmap-and-receipts.md) · [Development](development.md)
+[Overview](../../README.md) · **Install** · [Features](features.md) · [Complete list](complete-feature-list.md) · [Screenshots](screenshots.md) · [Roadmap & receipts](roadmap-and-receipts.md) · [Development](development.md)
 
 <sub>Tabbed README — GitHub can't run scripts, so each tab above is a separate page.</sub>
 

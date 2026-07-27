@@ -1,4 +1,4 @@
-[Overview](../../README.md) · [Install](install.md) · **Features** · [Screenshots](screenshots.md) · [Roadmap & receipts](roadmap-and-receipts.md) · [Development](development.md)
+[Overview](../../README.md) · [Install](install.md) · **Features** · [Complete list](complete-feature-list.md) · [Screenshots](screenshots.md) · [Roadmap & receipts](roadmap-and-receipts.md) · [Development](development.md)
 
 <sub>Tabbed README — GitHub can't run scripts, so each tab above is a separate page.</sub>
 
@@ -8,6 +8,11 @@ The full Material Design 3 shell plus every Git and GitHub workflow Desktop
 Material ships. For milestone status and published CI/release evidence, see the
 [Roadmap & receipts](roadmap-and-receipts.md) tab; for annotated captures, see the
 [Screenshots](screenshots.md) tab.
+
+> Looking for an exhaustive checklist instead of this prose tour? The
+> **[Complete list](complete-feature-list.md)** tab records every feature in one
+> bilingual (English / 廣東話) table and labels each one **Added**,
+> **Extended**, or **Inherited** relative to upstream GitHub Desktop.
 
 **Advanced Git and collaboration workflows (M21)**
 
