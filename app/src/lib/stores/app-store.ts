@@ -14660,6 +14660,23 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async commitAndPublishCheapLfsWorkflow(
     repository: Repository
   ): Promise<void> {
+    // This unattended flow reads the remote branch state and then pushes an
+    // app-generated commit. Resolve the canonical remote first so a repository
+    // transferred or renamed on GitHub is never probed — or published to — at
+    // a stale URL. Fail closed: an unproven destination reports the failure
+    // and stops.
+    try {
+      repository = await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        true
+      )
+    } catch (error) {
+      this.postCheapLfsWorkflowFailure(
+        repository,
+        error instanceof Error ? error.message : String(error)
+      )
+      return
+    }
     const before = await this.readCheapLfsWorkflowPublicationState(repository)
     const decision = decideCheapLfsWorkflowPublish(before)
     if (cheapLfsWorkflowPublishIsBlocked(decision)) {
@@ -15822,6 +15839,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * and an `ls-remote` read of the branch. A remote-tracking ref is never used
    * — it survives deletion of the remote branch and would wrongly report the
    * release route as usable.
+   *
+   * The `ls-remote` probe is real network I/O, so every caller must pass a
+   * repository already resolved through
+   * `repositoryWithCanonicalRemoteForNetwork` — otherwise a transferred or
+   * renamed repository is probed at its stale URL and the fail-closed
+   * `remoteBranchSha: null` answer wrongly reports a published branch as
+   * unpublished. Both entry chains (the release anchor and the workflow
+   * publish) canonicalize before their first call here.
    */
   private async readCheapLfsPublicationState(
     repository: Repository
@@ -15895,6 +15920,30 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async ensureCheapLfsReleaseAnchor(
     repository: Repository
   ): Promise<ICheapLfsReleaseAnchorOutcome> {
+    // The `ls-remote` reads and the create-only anchor push below must talk to
+    // the proven canonical remote: a repository transferred or renamed on
+    // GitHub would otherwise be probed — and its branch created — at whatever
+    // the stale URL still resolves to. Fail closed: an unproven destination
+    // refuses the anchor instead of publishing to it.
+    try {
+      repository = await this.repositoryWithCanonicalRemoteForNetwork(
+        repository,
+        true
+      )
+    } catch (error) {
+      const failure = error instanceof Error ? error : new Error(String(error))
+      log.warn(
+        'Could not resolve the canonical remote before the Cheap LFS release anchor.',
+        failure
+      )
+      return {
+        failure: {
+          reasonKey: 'cheapLfs.firstPublish.publishFailed',
+          detail: failure.message,
+        },
+        anchored: false,
+      }
+    }
     let observed = await this.readCheapLfsPublicationState(repository)
     let decision = decideCheapLfsFirstPublish(observed)
     if (decision === 'ready') {

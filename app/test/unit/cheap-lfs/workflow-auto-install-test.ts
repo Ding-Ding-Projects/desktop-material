@@ -512,6 +512,11 @@ async function setupFixture(t: TestContext): Promise<IFixture> {
     accounts: [],
     errorNotices: [],
     assertTemporaryRepositoryIsSafe: async () => undefined,
+    // The publish chain resolves the canonical remote before any network I/O;
+    // this fixture exercises a local bare remote, so the resolution seam
+    // passes the repository straight through.
+    repositoryWithCanonicalRemoteForNetwork: async (target: Repository) =>
+      target,
     _loadStatus: async () => undefined,
     _refreshRepository: async () => undefined,
     emitUpdate: () => undefined,
