@@ -65,6 +65,7 @@ import {
   CheapLfsRegistryRepositoryKeyPath,
 } from '../../../src/lib/cheap-lfs/ghcr-key'
 import { takeCheapLfsReleaseReview } from '../../../src/lib/cheap-lfs/release-review'
+import { resetCheapLfsScratchSessions } from '../../../src/lib/cheap-lfs/scratch-storage'
 
 const selected = new Account(
   'selected',
@@ -662,6 +663,98 @@ describe('cheap LFS operations', () => {
         }),
         /safe repository-relative path/i
       )
+    })
+  })
+
+  it('refuses to pin its own scratch even when a caller asks directly', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const gateway = {} as unknown as ICheapLfsReleasesGateway
+      const candidates = [
+        'vm/.cheeplfs-61dca085c3b02d74.tmp',
+        `vm/.disk.img.cheap-lfs-recovery-4821-${'0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0'}/original`,
+        'vm/.verify-f776493b3ff7f1df.tmp',
+      ]
+      for (const candidate of candidates) {
+        await assert.rejects(
+          pinFileToRelease(gateway, repository, selected, {
+            absoluteFilePath: join(dir, ...candidate.split('/')),
+            trackedRelativePath: candidate,
+            releaseTag: 'assets',
+          }),
+          /own private scratch/i
+        )
+      }
+    })
+  })
+
+  it('stages a materialized payload outside the working tree', async () => {
+    await withTempRepository(async (dir, repository) => {
+      // A real repository has a `.git` directory, which is where the payload
+      // scratch belongs — never beside the destination the user can commit.
+      await mkdir(join(dir, '.git'))
+      resetCheapLfsScratchSessions()
+      const content = Buffer.from('materialized payload bytes')
+      const sha256 = createHash('sha256').update(content).digest('hex')
+      const pointer: ICheapLfsPointer = {
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'private-scratch',
+        assetName: 'payload.bin',
+        sizeInBytes: content.length,
+        sha256,
+      }
+      const trackedPath = join(dir, 'payload.bin')
+      await writeFile(trackedPath, serializeCheapLfsPointer(pointer), 'utf8')
+      const releaseWithAsset: IGitHubRelease = {
+        ...release,
+        tagName: pointer.releaseTag,
+        assets: [
+          { ...asset, name: pointer.assetName, sizeInBytes: content.length },
+        ],
+      }
+      let destination: string | undefined
+      let workingTreeDuringDownload: ReadonlyArray<string> = []
+      const store = await storeWith(
+        dependencies(() => fakeAPIForRelease(releaseWithAsset), {
+          downloadAsset: async (
+            _account,
+            _repository,
+            _releaseId,
+            _asset,
+            dest
+          ) => {
+            destination = dest
+            await writeFile(dest, content)
+            workingTreeDuringDownload = await readdir(dir)
+            return {
+              ok: true,
+              path: dest,
+              bytes: content.length,
+              localDigest: `sha256:${sha256}`,
+              matchesGitHubDigest: true,
+            }
+          },
+        })
+      )
+
+      const result = await materializePointer(
+        store,
+        repository,
+        selected,
+        'payload.bin'
+      )
+
+      assert.equal(result.bytes, content.length)
+      assert.deepEqual(await readFile(trackedPath), content)
+      assert.notEqual(destination, undefined)
+      assert.equal(dirname(destination!).startsWith(join(dir, '.git')), true)
+      assert.match(basename(destination!), /^\.cheeplfs-[a-f0-9]{16}\.tmp$/)
+      // Mid-download the working tree held only the pointer being replaced.
+      assert.deepEqual(
+        workingTreeDuringDownload.filter(name => name !== '.git').sort(),
+        ['payload.bin']
+      )
+      await assert.rejects(stat(destination!))
+      resetCheapLfsScratchSessions()
     })
   })
 

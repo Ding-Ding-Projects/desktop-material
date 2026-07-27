@@ -435,6 +435,59 @@ repository-scoped scheduler. This keeps two UI entry points from concurrently
 publishing the same restored path through separate compare-and-swap recovery
 flows.
 
+## Private scratch and the owned-artifact rule
+
+Cheap LFS writes files of its own while it works. **Cheap LFS's own artifacts
+are never pin, upload, commit, or inventory candidates**, at any size. One
+shared predicate in `app/src/lib/cheap-lfs/owned-artifacts.ts` recognises all
+of them, and every scan consults that one predicate rather than repeating a
+pattern:
+
+| Artifact | Shape | Where it lives |
+| --- | --- | --- |
+| Payload staging temp (download, decompression, reassembly) | `.cheeplfs-<16 hex>.tmp` | `<git-dir>/desktop-material/cheap-lfs-scratch/session-<pid>-<hex>/` |
+| Pointer-text staging temp | `.cheeplfs-<16 hex>.tmp` | beside the tracked file, in the working tree |
+| Compare-and-exchange recovery directory | `.<name>.cheap-lfs-recovery-<pid>-<uuid>/` with `original` and `replacement` inside | beside the tracked file, in the working tree |
+| Manual-upload verification download | `.verify-<16 hex>.tmp` | the OS temporary directory |
+
+Payload temps are multi-gigabyte, so they are staged **outside the working
+tree**, in a directory the app creates and owns outright under the repository's
+git directory. The publishing `rename()` must stay atomic, so that private area
+is used only after the app proves it shares a device with the repository root;
+on a split device (a linked worktree whose git directory sits on another volume)
+the temp stays an in-tree sibling and relies on the exclusions below instead.
+The pointer temp and the recovery directory must be same-device siblings of the
+file they replace — the recovery directory quarantines the user's original by
+rename so a failed publish can roll it back — so those two stay in the working
+tree by design.
+
+The exclusions apply in `selectCheapLfsAutoPinTargets`, in both pointer scans
+(the `git grep` inventory and the disk-walk fallback, which never descends into
+a recovery directory), in `pinFileToRelease` and `planCheapLfsManualUpload` as
+fail-closed backstops before any transfer, and in the working-directory status
+projection so an artifact is never offered as a change to stage. Each repository
+open, add, clone, or post-pull also refreshes a managed block in the
+repository's private `.git/info/exclude`, so an artifact orphaned by a crash
+cannot be picked up by `git add -A`, by the app's own staging, or by the user's
+tooling. `info/exclude` is local-only and never committed.
+
+**Which way this fails.** Recognition is shape-based and fail-closed *for
+actions*: anything shaped like an artifact is never uploaded, pinned, or staged,
+whether or not this run created it. Skipping a path is a no-op on the bytes,
+while acting on one would publish private scratch to the user's release.
+Deletion is the opposite — provenance-based: the crash sweep only clears session
+directories inside the app-owned scratch tree, and in-tree temps are removed
+only by the failure paths that created them. A user file that genuinely carries
+one of these names is therefore never deleted; if it is tracked by Git it keeps
+its full status, diff, and commit behaviour, because both the status filter and
+`info/exclude` apply only to untracked paths, and `git add -f` still works.
+
+Without this rule, a clone's automatic materialization and a concurrent
+commit collided: the in-flight download appeared as a new multi-gigabyte
+untracked file, automatic pinning selected it, and the app uploaded its own
+scratch to the user's release — failing when materialize renamed the temp away
+mid-upload (issue #65).
+
 ## First publish: anchoring the release before any upload
 
 A GitHub Release tag can only be created against a commit GitHub already has.

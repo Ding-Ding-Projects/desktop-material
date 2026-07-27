@@ -225,6 +225,8 @@ describe('materializeCheapLfsPointers', () => {
   })
 })
 
+const scratchUuid = '0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0'
+
 describe('selectCheapLfsAutoPinTargets', () => {
   const threshold = 100
 
@@ -412,6 +414,77 @@ describe('selectCheapLfsAutoPinTargets', () => {
       [['large.bin', 240]]
     )
   })
+
+  it('never selects Cheap LFS scratch, however large it is', async () => {
+    const recovery = `.disk.img.cheap-lfs-recovery-4821-${scratchUuid}`
+    const scratch = [
+      'vm/.cheeplfs-61dca085c3b02d74.tmp',
+      'vm/.verify-f776493b3ff7f1df.tmp',
+      `vm/${recovery}/original`,
+      `vm/${recovery}/replacement`,
+    ]
+    const stated = new Array<string>()
+    const targets = await selectCheapLfsAutoPinTargets(
+      repository(),
+      [...scratch, 'vm/disk.img'],
+      threshold,
+      {
+        // Everything here is far over the threshold; only provenance, not size,
+        // may keep the app's own scratch out of an upload.
+        statSize: async absolutePath => {
+          stated.push(absolutePath)
+          return 1_610_612_736
+        },
+        readPointerText: async () => 'not a pointer\n',
+      }
+    )
+    assert.deepEqual(
+      targets.map(target => target.relativePath),
+      ['vm/disk.img']
+    )
+    // Excluded before the stat, so a scan never even touches the temp.
+    assert.equal(stated.length, 1)
+    assert.ok(stated[0].endsWith('disk.img'))
+  })
+
+  it('ignores scratch that appears mid-scan, as a clone materialize does', async () => {
+    // The reported failure: auto-materialize is streaming gigabytes into
+    // `vm/.cheeplfs-<hex>.tmp` while a commit selects candidates, so the app
+    // pinned and uploaded its own download (issue #65).
+    const selectedPaths = [
+      'vm/disk.img',
+      'vm/.cheeplfs-61dca085c3b02d74.tmp',
+      'vm/.cheeplfs-f776493b3ff7f1df.tmp',
+      'vm/.cheeplfs-3c4bfb89305f3cf7.tmp',
+    ]
+    const inFlight = new Map(
+      selectedPaths.map(path => [path, path.endsWith('.tmp') ? 0 : 4096])
+    )
+    const targets = await selectCheapLfsAutoPinTargets(
+      repository(),
+      selectedPaths,
+      threshold,
+      {
+        statSize: async absolutePath => {
+          const match = [...inFlight.keys()].find(path =>
+            absolutePath.replace(/\\/g, '/').endsWith(path)
+          )
+          if (match === undefined) {
+            throw new Error('missing')
+          }
+          // Each stat observes the download a little further along.
+          const grown = (inFlight.get(match) ?? 0) + 536_870_912
+          inFlight.set(match, grown)
+          return grown
+        },
+        readPointerText: async () => 'not a pointer\n',
+      }
+    )
+    assert.deepEqual(
+      targets.map(target => target.relativePath),
+      ['vm/disk.img']
+    )
+  })
 })
 
 describe('autoPinLargeFilesForCommit', () => {
@@ -441,6 +514,31 @@ describe('autoPinLargeFilesForCommit', () => {
     assert.equal(result.pinned[0].relativePath, 'big.bin')
     assert.equal(result.pinned[0].sizeInBytes, 200)
     assert.deepEqual(result.failures, [])
+  })
+
+  it('never hands Cheap LFS scratch to an upload', async () => {
+    const uploaded: string[] = []
+    const result = await autoPinLargeFilesForCommit(
+      repository(),
+      [
+        'vm/.cheeplfs-61dca085c3b02d74.tmp',
+        `vm/.disk.img.cheap-lfs-recovery-4821-${scratchUuid}/original`,
+        'vm/.verify-f776493b3ff7f1df.tmp',
+      ],
+      threshold,
+      {
+        statSize: async () => 1_610_612_736,
+        readPointerText: async () => 'not a pointer\n',
+        pin: async target => {
+          uploaded.push(target.relativePath)
+          return pinResult(target.relativePath)
+        },
+      }
+    )
+    assert.deepEqual(uploaded, [])
+    assert.deepEqual(result.pinned, [])
+    assert.deepEqual(result.failures, [])
+    assert.equal(result.totalBytes, 0)
   })
 
   it('reports preparation before pinning and a terminal upload state', async () => {

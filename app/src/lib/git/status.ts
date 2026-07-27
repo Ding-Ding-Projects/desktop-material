@@ -30,6 +30,7 @@ import { getRebaseInternalState } from './rebase'
 import { RebaseInternalState } from '../../models/rebase'
 import { isCherryPickHeadFound } from './cherry-pick'
 import { git } from '.'
+import { isCheapLfsOwnedArtifactPath } from '../cheap-lfs/owned-artifacts'
 import { largeRepositoryGitArgsForPath } from '../large-repository/large-repository-mode'
 import { access } from 'fs/promises'
 import * as Path from 'path'
@@ -391,6 +392,15 @@ function buildStatusMap(
   }
 
   if (status.kind === 'untracked') {
+    // Cheap LFS's own scratch — an in-flight multi-gigabyte materialize temp or
+    // a private recovery directory — is not a change the user made, and
+    // offering it here is what let a commit select and upload it (issue #65).
+    // Only untracked paths are hidden: a file the user actually committed under
+    // one of these names stays tracked, visible, and fully diffable.
+    if (isCheapLfsOwnedArtifactPath(entry.path)) {
+      return files
+    }
+
     // when a delete has been staged, but an untracked file exists with the
     // same path, we should ensure that we only draw one entry in the
     // changes list - see if an entry already exists for this path and
