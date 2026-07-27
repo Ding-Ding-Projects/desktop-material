@@ -1,5 +1,56 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Tabbed GitHub Pages hub with a site-wide search dock (#63)
+
+The published documentation hub (`docs/index.html`) is no longer one long
+scroll. Six top-level tabs — Overview, Install, Features, Reference, Search and
+Project links — each open a panel of their own, and Features and Reference carry
+generated sub-tabs so a category or a documentation folder is a page rather than
+a section to scroll past.
+
+- **Routing.** Every tab is a route and every route is the id of the panel it
+  opens, so `#features/design-system` and `#reference/technical` are shareable
+  addresses and Back returns to the previous tab. Unknown sub-routes fall back
+  to their parent tab; anything else falls back to Overview.
+- **No-JavaScript behaviour is a first-class case.** The committed markup hides
+  nothing and claims no ARIA tab state; `docs-hub.js` adds the tablist roles,
+  the roving tab stop, `aria-controls`, arrow/Home/End movement and the `hidden`
+  attributes at runtime. Without scripting the same file is one complete,
+  readable document whose tabs are ordinary in-page anchors.
+- **Search on every page.** The search box, the plain-text/regex switch, the
+  regex builder and the results moved into a dock above the panels, so they are
+  present on every tab. Plain text stays the default; regex remains an explicit
+  opt-in and still runs only in the existing fresh same-origin worker under the
+  page-owned 750 ms termination deadline. No new `RegExp` evaluation path was
+  added.
+- **Every documented feature is on the site.** `yarn generate-docs-hub-catalog`
+  now also refreshes four managed blocks in `docs/index.html` from the same
+  records the search catalog uses: 8 feature categories (78 feature pages) and
+  10 reference sections (84 pages), 162 generated document links in total.
+  Nothing is hand-maintained, and a drifted page fails `yarn test:script`.
+- **Appearance.** Density (comfortable/compact) and accent seed
+  (violet/teal/amber/rose) join theme, language mode and the two playfulness
+  sliders; all six persist in `localStorage` and apply before first paint.
+  Compact removes whitespace only — no control loses its hit target.
+- Issue #64's comparison list is linked at `readme-tabs/features.html` rather
+  than copied, so that page stays the single source for it.
+
+Local evidence: `node script/test.mjs script` passed 104/105 with 1 pre-existing
+skip and 0 failures, including the new `script/docs-hub-page-test.mjs` (14/14 —
+tab state, deep links, arrow-key movement, no-JS readability, plain-text default
+versus regex opt-in, builder⇄search synchronisation, the empty state, a real
+`^(a+)+$` termination measured at ~750 ms through the real worker on a real
+thread, and appearance persistence) and the extended
+`script/generate-docs-hub-catalog-test.mjs` (22/22, including a coverage
+assertion that every feature page is linked from the hub and a staleness
+assertion for the committed page). `npx prettier --check` passes on every
+touched file. Rendered checks in a real browser at 375×812, dark, bilingual,
+compact: no horizontal page overflow on any tab, no overflowing element outside
+the pre-existing `overflow-x: auto` code blocks, tab targets 48 px tall, and
+text contrast between 7.2:1 and 13.2:1 for tab, sub-tab, body, note and link
+roles. The Pages workflow is unchanged and its `docs-hub-catalog.js` assertion
+still holds.
+
 ## 2026-07-26 — Dedicated Cheap LFS tab in Repository Settings
 
 The Cheap LFS preferences moved out of the combined "Build, run & large

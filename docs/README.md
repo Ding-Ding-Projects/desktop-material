@@ -183,11 +183,35 @@ renaming, retitling or rewording the opening paragraph of any page under
 yarn generate-docs-hub-catalog
 ```
 
-`yarn test:script` fails when the committed catalog has drifted from the tree,
-naming the page and field that changed, so CI catches a missed regeneration.
-The generator is `script/generate-docs-hub-catalog.mjs` and it formats its
-output with the repository's own Prettier configuration, so a regeneration
-never breaks `yarn prettier`.
+The same command also refreshes four managed blocks inside `docs/index.html` —
+the feature-category and reference-section sub-tabs, and the page lists behind
+them — so every documented page is linked from the hub itself as static markup
+rather than something a script builds at runtime.
+
+`yarn test:script` fails when the committed catalog or the committed hub page
+has drifted from the tree, naming the page and field that changed, so CI catches
+a missed regeneration. The generator is `script/generate-docs-hub-catalog.mjs`
+and it formats its output with the repository's own Prettier configuration, so a
+regeneration never breaks `yarn prettier`.
+
+### Tabbed hub navigation
+
+The hub is a tabbed page rather than one long scroll. Each tab is a route, and
+each route is the id of the panel it opens: `#install`, `#features`,
+`#features/design-system`, `#reference/technical` and so on are all shareable
+addresses, and Back returns to the previous tab. `docs/assets/site/docs-hub.js`
+upgrades the navigation to an ARIA tablist on load — roles, `aria-selected`,
+`aria-controls`, one roving tab stop, and arrow/Home/End movement that activates
+on arrival.
+
+Without JavaScript the same file is a single readable document: no panel is
+hidden, no element claims a tab state, and every tab is an ordinary in-page
+anchor to a section that is already on the page.
+
+The search box, its plain-text/regex mode switch and the regex builder live in a
+dock above the panels, so they are on every tab and results appear wherever the
+reader is. Theme, language mode, playfulness, density and accent colour persist
+in `localStorage` and are applied before the first paint.
 
 ### Published hub regex isolation
 

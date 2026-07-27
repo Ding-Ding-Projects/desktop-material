@@ -148,6 +148,77 @@
   --md-scrim: rgba(0, 0, 0, 0.6);
 }
 
+/*
+ * Accent seeds. Each one only re-tones the primary role, so every surface,
+ * outline and body colour keeps the contrast the baseline scheme was built
+ * with. Light values come first; the dark values repeat under both the system
+ * preference and the manual dark override, exactly like the base scheme.
+ */
+:root[data-accent='teal'] {
+  --md-primary: #006a68;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #6ff7f3;
+  --md-on-primary-container: #00201f;
+}
+
+:root[data-accent='amber'] {
+  --md-primary: #8b5000;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #ffdcc0;
+  --md-on-primary-container: #2d1600;
+}
+
+:root[data-accent='rose'] {
+  --md-primary: #984061;
+  --md-on-primary: #ffffff;
+  --md-primary-container: #ffd9e2;
+  --md-on-primary-container: #3e001d;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-accent='teal']:not([data-theme='light']) {
+    --md-primary: #4cdad5;
+    --md-on-primary: #003736;
+    --md-primary-container: #00504e;
+    --md-on-primary-container: #6ff7f3;
+  }
+
+  :root[data-accent='amber']:not([data-theme='light']) {
+    --md-primary: #ffb877;
+    --md-on-primary: #4a2800;
+    --md-primary-container: #6a3b00;
+    --md-on-primary-container: #ffdcc0;
+  }
+
+  :root[data-accent='rose']:not([data-theme='light']) {
+    --md-primary: #ffb1c8;
+    --md-on-primary: #5e1133;
+    --md-primary-container: #7b2949;
+    --md-on-primary-container: #ffd9e2;
+  }
+}
+
+:root[data-theme='dark'][data-accent='teal'] {
+  --md-primary: #4cdad5;
+  --md-on-primary: #003736;
+  --md-primary-container: #00504e;
+  --md-on-primary-container: #6ff7f3;
+}
+
+:root[data-theme='dark'][data-accent='amber'] {
+  --md-primary: #ffb877;
+  --md-on-primary: #4a2800;
+  --md-primary-container: #6a3b00;
+  --md-on-primary-container: #ffdcc0;
+}
+
+:root[data-theme='dark'][data-accent='rose'] {
+  --md-primary: #ffb1c8;
+  --md-on-primary: #5e1133;
+  --md-primary-container: #7b2949;
+  --md-on-primary-container: #ffd9e2;
+}
+
 /* ------------------------------------------------------------- base type */
 
 *,
@@ -363,6 +434,161 @@ pre {
 .app-bar__actions {
   display: flex;
   gap: 0.25rem;
+}
+
+/* ---------------------------------------------------------------- tabs */
+
+/*
+ * M3 primary tabs. Without JavaScript these are ordinary anchors to the
+ * sections below, so they carry no selected state and every panel stays
+ * visible. The controller adds the tablist roles, the selected state and the
+ * `hidden` attribute on the panels that are not current.
+ */
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem;
+  padding: 0 clamp(0.5rem, 0.2rem + 1.4vw, 1.25rem);
+  background: var(--md-surface-container);
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.tab {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem 0.4rem;
+  min-height: 3rem;
+  padding: 0.5rem 1rem;
+  border-bottom: 3px solid transparent;
+  color: var(--md-on-surface-variant);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color var(--md-motion-short) var(--md-motion-easing),
+    color var(--md-motion-short) var(--md-motion-easing);
+}
+
+.tab:hover {
+  background: color-mix(in srgb, var(--md-on-surface) 8%, transparent);
+  color: var(--md-on-surface);
+}
+
+.tab[aria-selected='true'] {
+  color: var(--md-primary);
+  border-bottom-color: var(--md-primary);
+}
+
+/* Secondary tabs inside a panel: one category or section at a time. */
+.subtabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--md-outline-variant);
+}
+
+.subtab {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.2rem 0.4rem;
+  min-height: 2.5rem;
+  padding: 0.4rem 0.9rem;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-full);
+  background: var(--md-surface-container-low);
+  color: var(--md-on-surface-variant);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.3;
+  text-decoration: none;
+}
+
+.subtab:hover {
+  background: var(--md-surface-container-high);
+  color: var(--md-on-surface);
+}
+
+.subtab[aria-selected='true'] {
+  background: var(--md-secondary-container);
+  border-color: transparent;
+  color: var(--md-on-secondary-container);
+}
+
+.tab-panel[hidden],
+.subpanel[hidden] {
+  display: none;
+}
+
+.nojs-note {
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: 0.75rem clamp(0.75rem, 0.4rem + 1.6vw, 1.5rem);
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant);
+}
+
+.nojs-note span {
+  display: block;
+}
+
+:root[data-js='on'] .nojs-note {
+  display: none;
+}
+
+/* ------------------------------------------------------- generated lists */
+
+.doc-list {
+  display: grid;
+  gap: 0.6rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.doc-link {
+  display: block;
+  padding: 0.8rem 1rem;
+  border: 1px solid var(--md-outline-variant);
+  border-radius: var(--md-shape-md);
+  background: var(--md-surface-container-low);
+  color: inherit;
+  text-decoration: none;
+}
+
+.doc-link:hover {
+  background: var(--md-surface-container);
+}
+
+.doc-link__title {
+  display: block;
+  font-size: 0.9375rem;
+  font-weight: 500;
+}
+
+.doc-link__desc {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.8125rem;
+  color: var(--md-on-surface-variant);
+}
+
+.doc-link__path {
+  display: block;
+  margin-top: 0.35rem;
+  font-family: var(--md-font-mono);
+  font-size: 0.75rem;
+  color: var(--md-on-surface-variant);
+  overflow-wrap: anywhere;
+}
+
+.subpanel__meta {
+  margin: 0.35rem 0 0;
 }
 
 /* --------------------------------------------------------- M3 buttons */
@@ -701,6 +927,22 @@ a.card:hover {
 }
 
 /* ------------------------------------------------------------ search */
+
+/*
+ * The search dock sits outside the tab panels, so the search box, the regex
+ * builder and the results are reachable from every tab without scrolling back
+ * to a dedicated search page.
+ */
+.dock {
+  border-bottom: 1px solid var(--md-outline-variant);
+  background: var(--md-surface-container-low);
+}
+
+.dock__inner {
+  max-width: 74rem;
+  margin: 0 auto;
+  padding: 1rem clamp(0.75rem, 0.4rem + 1.6vw, 1.5rem);
+}
 
 .search-bar {
   display: flex;
@@ -1103,6 +1345,54 @@ a.card:hover {
   font-size: 0.875rem;
 }
 
+/* ------------------------------------------------------------ density */
+
+/*
+ * Compact density removes whitespace only. Control heights, hit targets and
+ * font sizes are untouched, so a denser page never costs a reader a usable
+ * click or touch target.
+ */
+:root[data-density='compact'] .section {
+  padding-block: clamp(1.1rem, 0.7rem + 1.4vw, 1.75rem);
+}
+
+:root[data-density='compact'] .hero__inner {
+  padding-block: clamp(1.4rem, 0.9rem + 1.8vw, 2.5rem);
+}
+
+:root[data-density='compact'] .dock__inner {
+  padding-block: 0.6rem;
+}
+
+:root[data-density='compact'] .prefs__inner {
+  padding-block: 0.85rem;
+}
+
+:root[data-density='compact'] .card-grid,
+:root[data-density='compact'] .doc-list {
+  gap: 0.5rem;
+}
+
+:root[data-density='compact'] .card {
+  padding: 0.8rem 0.95rem;
+}
+
+:root[data-density='compact'] .doc-link {
+  padding: 0.55rem 0.75rem;
+}
+
+:root[data-density='compact'] .panel {
+  padding: 0.9rem;
+}
+
+:root[data-density='compact'] .section__head {
+  margin-bottom: 1rem;
+}
+
+:root[data-density='compact'] .site-footer__inner {
+  padding-block: 1.25rem;
+}
+
 /* --------------------------------------------------------- responsive */
 
 @media (max-width: 34rem) {
@@ -1121,6 +1411,15 @@ a.card:hover {
 
   .btn {
     padding-inline: 1rem;
+  }
+
+  .tab {
+    flex: 1 1 auto;
+    padding-inline: 0.6rem;
+  }
+
+  .subtab {
+    padding-inline: 0.7rem;
   }
 
   .slider-row output {
@@ -1147,8 +1446,16 @@ a.card:hover {
   .card,
   .result,
   .panel,
-  .toast {
+  .toast,
+  .doc-link,
+  .subtab {
     border: 1px solid CanvasText;
+  }
+
+  /* Forced colours drop the accent underline, so name the current tab too. */
+  .tab[aria-selected='true'],
+  .subtab[aria-selected='true'] {
+    border: 2px solid Highlight;
   }
 }
 
@@ -1156,7 +1463,16 @@ a.card:hover {
   .app-bar,
   .prefs,
   .toasts,
-  .builder {
+  .builder,
+  .tabs,
+  .subtabs,
+  .dock {
     display: none !important;
+  }
+
+  /* Print the whole document, not just the tab that happened to be open. */
+  .tab-panel[hidden],
+  .subpanel[hidden] {
+    display: block !important;
   }
 }
