@@ -365,6 +365,53 @@ describe('recent UI internationalization', () => {
     )
   })
 
+  it('localizes the tab-overflow search surface and its customization route', () => {
+    const variables = {
+      visible: '2',
+      total: '7',
+      message: 'Unterminated group',
+      name: 'octo',
+      count: '7',
+    }
+    for (const key of [
+      'tabs.overflowSearchLabel',
+      'tabs.overflowSearchPlaceholder',
+      'tabs.overflowSearchTarget',
+      'tabs.overflowNoMatches',
+      'tabs.overflowFilterCount',
+      'tabs.overflowRegexError',
+      'tabs.overflowCustomize',
+      'tabs.overflowCustomizeLabel',
+      'tabs.overflowActionsHint',
+    ] as const) {
+      const english = translate(key, 'english', variables)
+      const cantonese = translate(key, 'cantonese', variables)
+      assert.notEqual(english, cantonese)
+      assert.equal(
+        translate(key, 'bilingual', variables),
+        `${english} · ${cantonese}`
+      )
+    }
+
+    // A tab's own name is interpolated verbatim into both catalogs.
+    assert.match(
+      translate('tabs.overflowCustomizeLabel', 'bilingual', { name: 'octo' }),
+      /octo[\s\S]*octo/
+    )
+    // Every funny band of the overflow description keeps the same facts: what
+    // this menu holds, and that a tab can be searched, switched to, or restyled.
+    for (const band of [
+      'tabs.overflowDescription.plain',
+      'tabs.overflowDescription.light',
+      'tabs.overflowDescription.playful',
+    ] as const) {
+      assert.match(translate(band, 'english'), /the strip/)
+      assert.match(translate(band, 'english'), /Search them, switch to one/)
+      assert.match(translate(band, 'cantonese'), /分頁/)
+      assert.notEqual(translate(band, 'english'), translate(band, 'cantonese'))
+    }
+  })
+
   it('uses only an explicit persisted language mode', () => {
     localStorage.removeItem('appearance-customization-v1')
     localStorage.removeItem('language-mode-v1')

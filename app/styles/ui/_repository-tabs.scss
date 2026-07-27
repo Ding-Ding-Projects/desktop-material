@@ -1828,6 +1828,47 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     }
   }
 
+  // The search field mirrors the tab-search popover: a pill input that shrinks
+  // with the sheet plus the shared filter-mode / regex-builder cluster.
+  .tab-overflow-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .tab-overflow-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 18px;
+    background: var(--md-sys-color-surface-container-high);
+    color: inherit;
+    font-size: 12px;
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .tab-overflow-error {
+    margin: 0;
+    color: var(--md-sys-color-error);
+    font-size: 11px;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .tab-overflow-hint {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
   .tab-overflow-results {
     min-width: 0;
     max-height: 350px;
@@ -1845,12 +1886,46 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     }
   }
 
+  // A row is the selectable option plus its own appearance-editor button, so
+  // an overflowed tab keeps the customization a visible tab has.
+  .tab-overflow-row {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .tab-overflow-result-customize {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
   .tab-overflow-result {
     display: flex;
+    flex: 1 1 auto;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    width: 100%;
     min-width: 0;
     padding: 9px 10px;
     border: 0;
@@ -1959,6 +2034,13 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
 
   .tab-overflow-popover .tab-overflow-results {
     max-height: 220px;
+  }
+
+  // At a narrow width (and at a high display scale, which narrows the sheet in
+  // CSS pixels) the builder's text label is the first thing to give: the input
+  // and the mode cluster both have to survive a long localized tab name.
+  .tab-overflow-popover .tab-overflow-filter-row .filter-regex-builder-label {
+    display: none;
   }
 
   .tab-search-popover .tab-search-filter-row .filter-regex-builder-label {

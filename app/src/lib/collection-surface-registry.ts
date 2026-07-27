@@ -277,6 +277,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'tab-overflow',
+      label: 'Overflowing tabs',
+      source: 'repository-tabs/tab-overflow-popover.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'tab-search',
       label: 'Open tabs',
       source: 'repository-tabs/tab-search-popover.tsx',
