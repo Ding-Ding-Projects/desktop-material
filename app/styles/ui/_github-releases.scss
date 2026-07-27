@@ -454,21 +454,32 @@
 }
 
 .github-releases-list {
-  display: grid;
   min-height: 0;
   flex: 1 1 auto;
-  gap: 8px;
-  align-content: start;
-  overflow: auto;
-  overscroll-behavior: contain;
-  scrollbar-gutter: stable;
+
+  // The rows are virtualized (react-virtualized List); the Grid owns the
+  // scrolling that used to live on this container.
+  .ReactVirtualized__Grid {
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    // The material shell paints every virtualized Grid with the plain surface
+    // color; these rows sit on the list panel's own container surface.
+    background: transparent !important;
+  }
 }
 
 .github-release-row-shell {
   display: grid;
+  box-sizing: border-box;
+  // The fixed virtualized slot: keep in sync with ReleaseRowHeight in
+  // github-releases-view.tsx. The bottom padding replaces the 8px grid gap
+  // the non-virtualized list used between rows.
+  height: 74px;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
   align-items: center;
+  padding-bottom: 8px;
+  overflow: hidden;
 }
 
 .github-release-row-checkbox {

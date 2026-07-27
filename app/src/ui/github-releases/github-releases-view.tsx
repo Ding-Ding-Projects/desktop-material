@@ -1,5 +1,7 @@
 import * as Path from 'path'
 import * as React from 'react'
+import { AutoSizer, List, ListRowProps } from 'react-virtualized'
+import memoizeOne from 'memoize-one'
 import { shell } from '../../lib/app-shell'
 import { t, translateForAccessibleName } from '../../lib/i18n'
 import { TranslationKey } from '../../lib/i18n-resources'
@@ -79,6 +81,20 @@ import { ExternalOpenBusy } from '../lib/external-open-busy'
 import { isCheapLfsReleaseBucket } from '../../lib/cheap-lfs/asset-version'
 
 const ReleasesSearchFilterId = 'github-releases-search'
+
+/**
+ * The fixed slot height of one virtualized release row: the 64px minimum row
+ * plus its border and the 8px spacing the list previously applied as a grid
+ * gap (see .github-release-row-shell in _github-releases.scss).
+ */
+const ReleaseRowHeight = 74
+
+/**
+ * Substitute viewport for environments where AutoSizer measures 0 (the first
+ * mount tick, and jsdom in unit tests): enough to render a screenful of rows.
+ */
+const ReleaseListFallbackWidth = 800
+const ReleaseListFallbackHeight = 600
 
 type ReleaseStatusFilter = 'all' | 'published' | 'prerelease' | 'draft'
 
@@ -387,6 +403,114 @@ export class GitHubReleasesView extends React.Component<
   private openDownloadRequest = 0
   private selectAllVisibleRef = React.createRef<HTMLInputElement>()
   private releaseSearchRef = React.createRef<HTMLInputElement>()
+  private releaseList: List | null = null
+
+  /**
+   * The Cheap LFS visibility split over the loaded releases, cached against
+   * its inputs: several derivations and every render consult it, and without
+   * the cache each call re-filtered the whole loaded set.
+   */
+  private computeReleaseVisibility = memoizeOne(
+    (
+      releases: ReadonlyArray<IGitHubRelease>,
+      showCheapLfsReleases: boolean
+    ) => {
+      const cheapLfsReleases = releases.filter(isCheapLfsReleaseBucket)
+      return {
+        releases: showCheapLfsReleases
+          ? releases
+          : releases.filter(release => !isCheapLfsReleaseBucket(release)),
+        cheapLfsReleases,
+      }
+    }
+  )
+
+  /**
+   * The single filtered, sorted list every surface reads, cached against its
+   * exact inputs so re-renders (and the post-render selection reconciliation)
+   * reuse the previous pass instead of refiltering and re-sorting every
+   * loaded release.
+   *
+   * Order is applied last, over whatever survived the status and search
+   * filters, so the two compose rather than fork: the filter decides which
+   * releases are shown and the sort only decides their order. Because both run
+   * over `state.releases`, an exhaustive "Load all releases" walk is covered by
+   * exactly the same pass as a single interactive page.
+   */
+  private computeVisibleReleases = memoizeOne(
+    (
+      releases: ReadonlyArray<IGitHubRelease>,
+      statusFilter: ReleaseStatusFilter,
+      search: string,
+      searchMode: FilterMode,
+      searchCaseSensitive: boolean,
+      sortOrder: ReleaseSortOrder
+    ): {
+      readonly releases: ReadonlyArray<IGitHubRelease>
+      readonly regexError: string | null
+    } => {
+      const matchingStatus =
+        statusFilter === 'all'
+          ? releases
+          : releases.filter(release => releaseStatus(release) === statusFilter)
+      const query = search.trim()
+      if (query.length === 0) {
+        return {
+          releases: sortReleases(matchingStatus, sortOrder),
+          regexError: null,
+        }
+      }
+
+      const { results, regexError } = matchWithMode(
+        query,
+        matchingStatus,
+        release => [
+          `${release.name} ${release.tagName}`,
+          [
+            release.body,
+            release.targetCommitish,
+            release.authorLogin,
+            ...release.assets.flatMap(asset => [
+              asset.name,
+              asset.label,
+              asset.contentType,
+            ]),
+          ].join(' '),
+        ],
+        {
+          mode: searchMode,
+          caseSensitive: searchCaseSensitive,
+        }
+      )
+      return {
+        releases: sortReleases(
+          results.map(match => match.item),
+          sortOrder
+        ),
+        regexError,
+      }
+    }
+  )
+
+  private computeLatestStableRelease = memoizeOne(
+    (releases: ReadonlyArray<IGitHubRelease>): IGitHubRelease | null => {
+      let latest: IGitHubRelease | null = null
+      for (const release of releases) {
+        if (releaseStatus(release) !== 'published') {
+          continue
+        }
+        const releaseTime = (release.publishedAt ?? release.createdAt).getTime()
+        const latestTime =
+          latest === null
+            ? Number.NEGATIVE_INFINITY
+            : (latest.publishedAt ?? latest.createdAt).getTime()
+        if (releaseTime > latestTime) {
+          latest = release
+        }
+      }
+      return latest
+    }
+  )
 
   public constructor(props: IGitHubReleasesViewProps) {
     super(props)
@@ -400,7 +524,10 @@ export class GitHubReleasesView extends React.Component<
     }
   }
 
-  public componentDidUpdate(prevProps: IGitHubReleasesViewProps) {
+  public componentDidUpdate(
+    prevProps: IGitHubReleasesViewProps,
+    prevState: IGitHubReleasesViewState
+  ) {
     if (
       repositoryKey(prevProps.repository) !==
         repositoryKey(this.props.repository) ||
@@ -410,6 +537,25 @@ export class GitHubReleasesView extends React.Component<
       return
     }
     this.reconcileSelectionWithVisibleReleases()
+
+    // The virtualized release list renders through react-virtualized's
+    // PureComponent Grid, which cannot see this component's state; poke it
+    // whenever anything a row reads may have changed (the same invalidation
+    // technique as ui/lib/list).
+    if (
+      prevState.releases !== this.state.releases ||
+      prevState.showCheapLfsReleases !== this.state.showCheapLfsReleases ||
+      prevState.statusFilter !== this.state.statusFilter ||
+      prevState.search !== this.state.search ||
+      prevState.searchMode !== this.state.searchMode ||
+      prevState.searchCaseSensitive !== this.state.searchCaseSensitive ||
+      prevState.sortOrder !== this.state.sortOrder ||
+      prevState.selectedReleaseId !== this.state.selectedReleaseId ||
+      prevState.selectedReleaseIds !== this.state.selectedReleaseIds ||
+      (prevState.busy === null) !== (this.state.busy === null)
+    ) {
+      this.releaseList?.forceUpdateGrid()
+    }
   }
 
   public componentWillUnmount() {
@@ -963,15 +1109,10 @@ export class GitHubReleasesView extends React.Component<
   }
 
   private getReleaseVisibility() {
-    const cheapLfsReleases = this.state.releases.filter(isCheapLfsReleaseBucket)
-    return {
-      releases: this.state.showCheapLfsReleases
-        ? this.state.releases
-        : this.state.releases.filter(
-            release => !isCheapLfsReleaseBucket(release)
-          ),
-      cheapLfsReleases,
-    }
+    return this.computeReleaseVisibility(
+      this.state.releases,
+      this.state.showCheapLfsReleases
+    )
   }
 
   private getSearchSampleItems = () =>
@@ -979,61 +1120,20 @@ export class GitHubReleasesView extends React.Component<
       release => `${release.name || release.tagName} ${release.tagName}`
     )
 
-  /**
-   * The single filtered, sorted list every surface reads.
-   *
-   * Order is applied last, over whatever survived the status and search
-   * filters, so the two compose rather than fork: the filter decides which
-   * releases are shown and the sort only decides their order. Because both run
-   * over `state.releases`, an exhaustive "Load all releases" walk is covered by
-   * exactly the same pass as a single interactive page.
-   */
   private getVisibleReleases(): {
     readonly releases: ReadonlyArray<IGitHubRelease>
     readonly regexError: string | null
   } {
-    const { statusFilter, search, sortOrder } = this.state
-    const releases = this.getReleaseVisibility().releases
-    const matchingStatus =
-      statusFilter === 'all'
-        ? releases
-        : releases.filter(release => releaseStatus(release) === statusFilter)
-    const query = search.trim()
-    if (query.length === 0) {
-      return {
-        releases: sortReleases(matchingStatus, sortOrder),
-        regexError: null,
-      }
-    }
-
-    const { results, regexError } = matchWithMode(
-      query,
-      matchingStatus,
-      release => [
-        `${release.name} ${release.tagName}`,
-        [
-          release.body,
-          release.targetCommitish,
-          release.authorLogin,
-          ...release.assets.flatMap(asset => [
-            asset.name,
-            asset.label,
-            asset.contentType,
-          ]),
-        ].join(' '),
-      ],
-      {
-        mode: this.state.searchMode,
-        caseSensitive: this.state.searchCaseSensitive,
-      }
+    const { statusFilter, search, searchMode, searchCaseSensitive, sortOrder } =
+      this.state
+    return this.computeVisibleReleases(
+      this.getReleaseVisibility().releases,
+      statusFilter,
+      search,
+      searchMode,
+      searchCaseSensitive,
+      sortOrder
     )
-    return {
-      releases: sortReleases(
-        results.map(match => match.item),
-        sortOrder
-      ),
-      regexError,
-    }
   }
 
   /**
@@ -1067,21 +1167,7 @@ export class GitHubReleasesView extends React.Component<
   }
 
   private latestStableRelease(): IGitHubRelease | null {
-    let latest: IGitHubRelease | null = null
-    for (const release of this.getReleaseVisibility().releases) {
-      if (releaseStatus(release) !== 'published') {
-        continue
-      }
-      const releaseTime = (release.publishedAt ?? release.createdAt).getTime()
-      const latestTime =
-        latest === null
-          ? Number.NEGATIVE_INFINITY
-          : (latest.publishedAt ?? latest.createdAt).getTime()
-      if (releaseTime > latestTime) {
-        latest = release
-      }
-    }
-    return latest
+    return this.computeLatestStableRelease(this.getReleaseVisibility().releases)
   }
 
   private releaseUrl(release: IGitHubRelease): string | null {
@@ -2164,6 +2250,72 @@ export class GitHubReleasesView extends React.Component<
     )
   }
 
+  private setReleaseListRef = (list: List | null) => {
+    this.releaseList = list
+  }
+
+  /**
+   * One virtualized release row. Every value the row reads that can change
+   * without changing the List's own props must be covered by the
+   * forceUpdateGrid invalidation in componentDidUpdate.
+   */
+  private renderReleaseRow = ({ index, key, style }: ListRowProps) => {
+    const release = this.getVisibleReleases().releases[index]
+    if (release === undefined) {
+      return null
+    }
+    const latestStableId = this.latestStableRelease()?.id ?? null
+    const selected = release.id === this.state.selectedReleaseId
+    const status = releaseStatus(release)
+    const date = release.publishedAt ?? release.createdAt
+    return (
+      <div className="github-release-row-shell" key={key} style={style}>
+        <label className="github-release-row-checkbox">
+          <input
+            type="checkbox"
+            value={release.id}
+            checked={this.state.selectedReleaseIds.has(release.id)}
+            disabled={this.state.busy !== null}
+            onChange={this.toggleReleaseSelection}
+            aria-label={`Select release ${release.tagName}`}
+          />
+        </label>
+        <button
+          type="button"
+          value={release.id}
+          className={`github-release-row status-${status}${
+            selected ? ' selected' : ''
+          }`}
+          aria-current={selected ? 'true' : undefined}
+          disabled={this.state.busy !== null}
+          onClick={this.selectReleaseFromButton}
+        >
+          <span className="github-release-row-title">
+            {release.name || release.tagName}
+          </span>
+          <span className="github-release-row-badges">
+            {release.id === latestStableId && (
+              <span className="github-release-latest-badge">Latest stable</span>
+            )}
+            <span className="github-release-row-state">
+              {releaseStatusLabel(release)}
+            </span>
+            {isCheapLfsReleaseBucket(release) && (
+              <span className="github-release-cheap-lfs-badge">
+                Cheap LFS storage
+              </span>
+            )}
+          </span>
+          <span className="github-release-row-tag">{release.tagName}</span>
+          <span className="github-release-row-date">
+            {release.draft ? 'Created' : 'Published'}{' '}
+            <ReleaseTimestamp date={date} />
+          </span>
+        </button>
+      </div>
+    )
+  }
+
   private renderReleaseList() {
     const { releases: visibleReleases, regexError } = this.getVisibleReleases()
     const visibility = this.getReleaseVisibility()
@@ -2178,7 +2330,6 @@ export class GitHubReleasesView extends React.Component<
     const selectedDraftCount = selectedReleases.filter(
       release => release.draft
     ).length
-    const latestStableId = this.latestStableRelease()?.id ?? null
     const hasFilters =
       this.state.search.trim().length > 0 || this.state.statusFilter !== 'all'
     const initiallyLoading =
@@ -2428,61 +2579,19 @@ export class GitHubReleasesView extends React.Component<
           </div>
         ) : (
           <div className="github-releases-list">
-            {visibleReleases.map(release => {
-              const selected = release.id === this.state.selectedReleaseId
-              const status = releaseStatus(release)
-              const date = release.publishedAt ?? release.createdAt
-              return (
-                <div className="github-release-row-shell" key={release.id}>
-                  <label className="github-release-row-checkbox">
-                    <input
-                      type="checkbox"
-                      value={release.id}
-                      checked={this.state.selectedReleaseIds.has(release.id)}
-                      disabled={this.state.busy !== null}
-                      onChange={this.toggleReleaseSelection}
-                      aria-label={`Select release ${release.tagName}`}
-                    />
-                  </label>
-                  <button
-                    type="button"
-                    value={release.id}
-                    className={`github-release-row status-${status}${
-                      selected ? ' selected' : ''
-                    }`}
-                    aria-current={selected ? 'true' : undefined}
-                    disabled={this.state.busy !== null}
-                    onClick={this.selectReleaseFromButton}
-                  >
-                    <span className="github-release-row-title">
-                      {release.name || release.tagName}
-                    </span>
-                    <span className="github-release-row-badges">
-                      {release.id === latestStableId && (
-                        <span className="github-release-latest-badge">
-                          Latest stable
-                        </span>
-                      )}
-                      <span className="github-release-row-state">
-                        {releaseStatusLabel(release)}
-                      </span>
-                      {isCheapLfsReleaseBucket(release) && (
-                        <span className="github-release-cheap-lfs-badge">
-                          Cheap LFS storage
-                        </span>
-                      )}
-                    </span>
-                    <span className="github-release-row-tag">
-                      {release.tagName}
-                    </span>
-                    <span className="github-release-row-date">
-                      {release.draft ? 'Created' : 'Published'}{' '}
-                      <ReleaseTimestamp date={date} />
-                    </span>
-                  </button>
-                </div>
-              )
-            })}
+            <AutoSizer>
+              {({ width, height }) => (
+                <List
+                  ref={this.setReleaseListRef}
+                  width={width || ReleaseListFallbackWidth}
+                  height={height || ReleaseListFallbackHeight}
+                  rowCount={visibleReleases.length}
+                  rowHeight={ReleaseRowHeight}
+                  rowRenderer={this.renderReleaseRow}
+                  overscanRowCount={10}
+                />
+              )}
+            </AutoSizer>
           </div>
         )}
         <div

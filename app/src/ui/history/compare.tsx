@@ -23,7 +23,14 @@ import { CompareBranchListItem } from './compare-branch-list-item'
 import { FancyTextBox } from '../lib/fancy-text-box'
 import * as octicons from '../octicons/octicons.generated'
 import { SelectionSource } from '../lib/filter-list'
-import { FilterMode, IMatches, matchWithMode } from '../../lib/fuzzy-find'
+import {
+  FilterMode,
+  IMatch,
+  IMatches,
+  matchWithMode,
+  mergeMatchesByDescendingScore,
+} from '../../lib/fuzzy-find'
+import { MaxRegexTotalInputLength } from '../../lib/safe-regex'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
   persistFilterMode,
@@ -131,6 +138,42 @@ interface ICompareSidebarState {
   readonly languageMode: LanguageMode
 }
 
+/**
+ * The cached inputs and outputs of the History commit filter.
+ *
+ * The filter runs over every loaded commit and the sidebar re-renders on every
+ * app-store update, so the result is cached against the exact inputs that
+ * produced it (the repo-wide memoize-one style, hand-rolled because search
+ * auto-deepening also needs incremental appends: when a commit batch arrives
+ * for an unchanged query only the added SHAs are matched and merged instead of
+ * re-filtering the whole history per batch).
+ */
+interface ICommitFilterCache {
+  readonly commitSHAs: ReadonlyArray<string>
+  readonly commitLookup: Map<string, Commit>
+  readonly query: string
+  readonly mode: FilterMode
+  readonly caseSensitive: boolean
+  readonly filterUnpushed: boolean
+  readonly filterTagged: boolean
+  readonly filterMine: boolean
+  readonly localCommitSHAs: ReadonlyArray<string>
+  readonly tagsToPush: ReadonlyArray<string> | null
+  readonly accounts: ReadonlyArray<Account>
+  readonly historyScope: HistoryScope
+  /** Query-match results in display order (scores kept for fuzzy merging). */
+  readonly results: ReadonlyArray<IMatch<string>>
+  /** The filtered SHAs handed to the commit list. */
+  readonly filteredSHAs: ReadonlyArray<string>
+  /**
+   * The total search-key length already fed to the regex engine, so appended
+   * batches preserve matchWithMode's cumulative fail-closed input cap.
+   */
+  readonly regexInputLength: number
+  /** The regex pass reported an error; appended batches must re-run in full. */
+  readonly regexError: boolean
+}
+
 /** localStorage key used to persist the History commit filter mode. */
 const CommitFilterListId = 'history-commits'
 const ShowCommitGraphKey = 'history-show-commit-graph'
@@ -149,6 +192,7 @@ export class CompareSidebar extends React.Component<
   private loadingMoreCommitsPromise: Promise<void> | null = null
   private loadingSearchCommitsPromise: Promise<void> | null = null
   private exhaustedSearchQuery: string | null = null
+  private commitFilterCache: ICommitFilterCache | null = null
   private isUnmounted = false
   private resultCount = 0
 
@@ -422,19 +466,84 @@ export class CompareSidebar extends React.Component<
    * Filter the loaded commit SHAs client-side using the current History filter
    * text / mode and the filter-chip predicates. When comparing branches (or
    * with an empty filter) the list is returned unchanged.
+   *
+   * The result is cached against its inputs, and when a new commit batch is
+   * appended for otherwise-unchanged inputs (search auto-deepening) only the
+   * added SHAs are matched and merged into the cached result.
    */
   private getFilteredCommitSHAs(
     commitSHAs: ReadonlyArray<string>
   ): ReadonlyArray<string> {
     const query = this.state.commitFilterText.trim()
 
-    const chipFilteredSHAs = this.hasActiveCommitFilterChips()
-      ? commitSHAs.filter(sha => this.commitMatchesFilterChips(sha))
-      : commitSHAs
-
-    if (query.length === 0) {
-      return chipFilteredSHAs
+    if (query.length === 0 && !this.hasActiveCommitFilterChips()) {
+      this.commitFilterCache = null
+      return commitSHAs
     }
+
+    const cache = this.commitFilterCache
+    const reusable =
+      cache !== null &&
+      cache.query === query &&
+      cache.mode === this.state.commitFilterMode &&
+      cache.caseSensitive === this.state.commitFilterCaseSensitive &&
+      cache.filterUnpushed === this.state.commitFilterUnpushed &&
+      cache.filterTagged === this.state.commitFilterTagged &&
+      cache.filterMine === this.state.commitFilterMine &&
+      cache.commitLookup === this.props.commitLookup &&
+      cache.localCommitSHAs === this.props.localCommitSHAs &&
+      cache.tagsToPush === this.props.tagsToPush &&
+      cache.accounts === this.props.accounts &&
+      cache.historyScope === this.props.compareState.historyScope
+        ? cache
+        : null
+
+    if (reusable !== null && reusable.commitSHAs === commitSHAs) {
+      return reusable.filteredSHAs
+    }
+
+    // Loading only ever appends to the SHA list (a scope or branch switch
+    // replaces the tip commit, and with it the first element), so matching
+    // endpoints prove the cached list is a prefix of the new one.
+    const previous =
+      reusable !== null &&
+      !reusable.regexError &&
+      reusable.commitSHAs.length > 0 &&
+      commitSHAs.length > reusable.commitSHAs.length &&
+      commitSHAs[0] === reusable.commitSHAs[0] &&
+      commitSHAs[reusable.commitSHAs.length - 1] ===
+        reusable.commitSHAs[reusable.commitSHAs.length - 1]
+        ? reusable
+        : null
+
+    const next = this.computeCommitFilterCache(commitSHAs, query, previous)
+    this.commitFilterCache = next
+    return next.filteredSHAs
+  }
+
+  /**
+   * Run the chip and query filters over `commitSHAs`, reusing `previous` (a
+   * proven prefix of `commitSHAs` filtered with identical inputs) so only the
+   * newly appended SHAs are matched. The merged output is byte-identical to a
+   * full pass: substring/regex matching preserves item order so appended
+   * results concatenate, and fuzzy results merge by descending score exactly
+   * as the matcher's stable sort would have ordered the combined list.
+   */
+  private computeCommitFilterCache(
+    commitSHAs: ReadonlyArray<string>,
+    query: string,
+    previous: ICommitFilterCache | null
+  ): ICommitFilterCache {
+    const mode = this.state.commitFilterMode
+    const caseSensitive = this.state.commitFilterCaseSensitive
+
+    const addedSHAs =
+      previous === null
+        ? commitSHAs
+        : commitSHAs.slice(previous.commitSHAs.length)
+    const chipFilteredSHAs = this.hasActiveCommitFilterChips()
+      ? addedSHAs.filter(sha => this.commitMatchesFilterChips(sha))
+      : addedSHAs
 
     // Two keys so fuzzy mode (which only scores the first two) still matches on
     // author and SHA: the summary is the "title", and author + full/short SHA
@@ -447,12 +556,74 @@ export class CompareSidebar extends React.Component<
       return getCommitSearchKeys(commit)
     }
 
-    const { results } = matchWithMode(query, chipFilteredSHAs, getKey, {
-      mode: this.state.commitFilterMode,
-      caseSensitive: this.state.commitFilterCaseSensitive,
+    const asCache = (
+      results: ReadonlyArray<IMatch<string>>,
+      filteredSHAs: ReadonlyArray<string>,
+      regexInputLength: number,
+      regexError: boolean
+    ): ICommitFilterCache => ({
+      commitSHAs,
+      commitLookup: this.props.commitLookup,
+      query,
+      mode,
+      caseSensitive,
+      filterUnpushed: this.state.commitFilterUnpushed,
+      filterTagged: this.state.commitFilterTagged,
+      filterMine: this.state.commitFilterMine,
+      localCommitSHAs: this.props.localCommitSHAs,
+      tagsToPush: this.props.tagsToPush,
+      accounts: this.props.accounts,
+      historyScope: this.props.compareState.historyScope,
+      results,
+      filteredSHAs,
+      regexInputLength,
+      regexError,
     })
 
-    return results.map(r => r.item)
+    if (query.length === 0) {
+      // Chip filtering preserves item order, so appended batches concatenate.
+      const filteredSHAs =
+        previous === null
+          ? chipFilteredSHAs
+          : [...previous.filteredSHAs, ...chipFilteredSHAs]
+      return asCache([], filteredSHAs, 0, false)
+    }
+
+    let regexInputLength = previous?.regexInputLength ?? 0
+    if (mode === FilterMode.Regex) {
+      for (const sha of chipFilteredSHAs) {
+        for (const key of getKey(sha)) {
+          regexInputLength += key.length
+        }
+      }
+      if (previous !== null && regexInputLength > MaxRegexTotalInputLength) {
+        // The regex engine fails closed once its cumulative input cap is
+        // exceeded, which an appended batch alone cannot see; re-run the whole
+        // list so the cap keeps its exact fail-closed behavior.
+        return this.computeCommitFilterCache(commitSHAs, query, null)
+      }
+    }
+
+    const { results, regexError } = matchWithMode(
+      query,
+      chipFilteredSHAs,
+      getKey,
+      { mode, caseSensitive }
+    )
+
+    const merged =
+      previous === null
+        ? results
+        : mode === FilterMode.Fuzzy
+        ? mergeMatchesByDescendingScore(previous.results, results)
+        : [...previous.results, ...results]
+
+    return asCache(
+      merged,
+      merged.map(r => r.item),
+      regexInputLength,
+      regexError !== null
+    )
   }
 
   private getCommitFilterSampleItems = (): ReadonlyArray<string> => {
