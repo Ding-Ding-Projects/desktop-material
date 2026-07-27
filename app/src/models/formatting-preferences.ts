@@ -4,28 +4,6 @@ import { enableFormattingPreferences } from '../lib/feature-flag'
 const localeCountryCode =
   new URL(location.href).hash.match(/lc=([A-Z]{2})/)?.[1] ?? null
 
-/**
- * Countries that predominantly use 12-hour time format.
- *
- * Most of the world uses 24-hour time, so we list the exceptions here and
- * default to 24-hour for unlisted countries.
- */
-const twelveHourCountries = new Set([
-  'GB', // United Kingdom
-  'IE', // Ireland
-  'US', // United States
-  'CA', // Canada (mixed, but 12-hour common)
-  'AU', // Australia
-  'NZ', // New Zealand
-  'ZA', // South Africa
-  'IN', // India
-  'PK', // Pakistan
-  'BD', // Bangladesh
-  'PH', // Philippines
-  'MX', // Mexico
-  'CO', // Colombia
-])
-
 // Sourced from https://en.wikipedia.org/wiki/Decimal_separator
 const decimalPointCountries = [
   'AU', // Australia
@@ -113,10 +91,6 @@ const decimalPointCountries = [
 const commaDigitGroupingCountries = ['US', 'GB', 'TH']
 const spaceDigitGroupingCountries = ['CA', 'DK', 'FI', 'SE', 'FR', 'DE']
 const dotDigitGroupingCountries = ['IT', 'NO', 'ES']
-
-function prefersTwelveHourTime(): boolean {
-  return localeCountryCode == null || twelveHourCountries.has(localeCountryCode)
-}
 
 function prefersDecimalPoint(): boolean {
   return (
@@ -267,9 +241,13 @@ export const numberFormats: ReadonlyArray<INumberFormat> = [
 ]
 
 export const defaultDateFormat: DateFormat = 'MMM d, yyyy'
-export const defaultTimeFormat: TimeFormat = prefersTwelveHourTime()
-  ? 'h:mm aaa'
-  : 'HH:mm'
+/**
+ * Every time in the app defaults to 24-hour display regardless of locale
+ * (previously an unknown or 12-hour-country locale defaulted to 12-hour).
+ * The Date & time preference still lets a user opt into a 12-hour pattern
+ * explicitly, and a stored choice is always honored.
+ */
+export const defaultTimeFormat: TimeFormat = 'HH:mm'
 
 export const defaultNumberFormat: INumberFormat = {
   thousandsSeparator: preferredThousandsSeparator(),
