@@ -152,6 +152,7 @@ active profile's style, label, and explicit language mode.
 | `material-history-deepening.png` | Full-history state after a verified deepen |
 | `material-shallow-clone.png` | Shallow-clone commit-depth controls |
 | `material-sparse-checkout.png` | Persistent three-step sparse-checkout guide in its disabled Choose state |
+| `repository-list-sync-summary.png` | Repository-list sync summary naming the last known push and pull state |
 
 ## App identity and portable tabs
 
@@ -528,3 +529,5 @@ authentication choice, or remediation remain decision dialogs.
 ![Shallow-clone commit-depth controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-shallow-clone.png)
 
 ![Persistent three-step sparse-checkout guide in its disabled Choose state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-sparse-checkout.png)
+
+![Repository-list sync summary naming the last known push and pull state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/repository-list-sync-summary.png)
