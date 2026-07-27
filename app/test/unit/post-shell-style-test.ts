@@ -19,6 +19,53 @@ describe('post-shell MD3 style contracts', () => {
     assert.match(style, /--md-sys-color-inverse-surface/)
   })
 
+  it('gives long Actions log lines a real horizontal scroll extent', () => {
+    const style = readStyle('_actions-log-viewer.scss')
+    const source = readFileSync(
+      join(process.cwd(), 'app', 'src', 'ui', 'actions', 'job-log-viewer.tsx'),
+      'utf8'
+    )
+
+    // Rows keep their full content width…
+    assert.match(
+      style,
+      /\.actions-log-line\s*\{[\s\S]*?min-width: max-content;/
+    )
+    // …and the virtualized Grid's single column is sized to the widest line,
+    // so react-virtualized computes a horizontal scroll extent instead of
+    // clipping long lines (a plain List's column always equals the viewport).
+    assert.match(
+      source,
+      /const columnWidth = Math\.max\(\s*width - scrollbar,\s*this\.getContentWidth\(lines\)\s*\)/
+    )
+    assert.match(
+      source,
+      /<Grid[\s\S]*?columnCount=\{1\}\s*columnWidth=\{columnWidth\}/
+    )
+    assert.doesNotMatch(source, /rowRenderer=/)
+  })
+
+  it('truncates conflict banner messages without losing View conflicts', () => {
+    const style = readStyle('banners/_conflicts.scss')
+
+    // text-overflow needs a non-visible overflow to truncate at all; without
+    // it the nowrap span pushes the trailing action out of the 48px banner.
+    assert.match(
+      style,
+      /\.banner-message\s*\{[\s\S]*?span\s*\{[\s\S]*?max-width: 100%;[\s\S]*?overflow: hidden;[\s\S]*?text-overflow: ellipsis;[\s\S]*?white-space: nowrap;/
+    )
+    assert.match(style, /\.link-button-component\s*\{[\s\S]*?flex-shrink: 0;/)
+  })
+
+  it('keeps the filtered-changes empty state clear of its Clear filters button', () => {
+    const changes = readStyle('changes/_changes-list.scss')
+
+    assert.match(
+      changes,
+      /\.no-changes-filtered\s*\{[\s\S]*?\.empty-state-description\s*\{[\s\S]*?max-height: 100px;[\s\S]*?overflow-y: auto;[\s\S]*?overflow-wrap: anywhere;[\s\S]*?white-space: pre-line;/
+    )
+  })
+
   it('keeps Actions and Agent Access responsive on narrow windows', () => {
     const actions = readStyle('_actions-view.scss')
     const actionsDialogs = readStyle('_actions-log-viewer.scss')

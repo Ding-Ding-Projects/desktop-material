@@ -620,6 +620,9 @@
 .actions-log-list {
   flex: 1 1 auto;
   min-height: 0;
+  // Scrolling happens inside the virtualized Grid: job-log-viewer.tsx sizes
+  // its single column to the widest log line so long lines get a real
+  // horizontal scrollbar instead of being clipped by this container.
   overflow: hidden;
   border-radius: 12px;
   color: var(--md-sys-color-inverse-on-surface);
@@ -628,6 +631,8 @@
 
 .actions-log-line {
   display: flex;
+  // Safety net under the Grid's measured column width: if the estimate ever
+  // falls short the row still grows to its content instead of squashing it.
   min-width: max-content;
   align-items: center;
   font-family: var(--font-family-monospace);

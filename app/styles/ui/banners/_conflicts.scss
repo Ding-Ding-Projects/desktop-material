@@ -9,9 +9,19 @@
   .banner-message {
     span {
       max-width: 100%;
+      // Without a non-visible overflow the ellipsis is inert and the flex
+      // item keeps its content-sized automatic minimum, pushing the trailing
+      // "View conflicts" action out of the clipped banner (the success banner
+      // in _successful.scss uses the same guard).
+      overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
       margin: 0 1ex;
+    }
+    // The trailing "View conflicts" LinkButton must survive long branch
+    // names; the message span absorbs all of the truncation instead.
+    .link-button-component {
+      flex-shrink: 0;
     }
     display: flex;
     flex: 1 1 auto;

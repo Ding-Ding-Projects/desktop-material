@@ -2,6 +2,7 @@ import { describe, it } from 'node:test'
 import assert from 'node:assert'
 import { ActionsLogParser } from '../../src/lib/actions-log-parser/action-log-parser'
 import {
+  getActionsLogLineLength,
   getActionsLogLineText,
   getVisibleActionsLogLines,
 } from '../../src/ui/actions/job-log-viewer'
@@ -42,5 +43,19 @@ describe('Actions job log viewer', () => {
       visible.some(line => getActionsLogLineText(line).includes('outside')),
       true
     )
+  })
+
+  it('measures line cells with pre tab stops and double-width characters', () => {
+    const lines = new ActionsLogParser(
+      'plain line\nab\tc\n中文 done',
+      ''
+    ).getParsedLogLinesTemplateData()
+
+    assert.equal(getActionsLogLineLength(lines[0]), 'plain line'.length)
+    // `white-space: pre` advances a tab to the next 8-column stop:
+    // 'ab' (2) + tab (to column 8) + 'c' (1).
+    assert.equal(getActionsLogLineLength(lines[1]), 9)
+    // Two CJK cells count double: 2×2 + ' done' (5).
+    assert.equal(getActionsLogLineLength(lines[2]), 9)
   })
 })

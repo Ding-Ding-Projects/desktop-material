@@ -793,6 +793,12 @@
   // clear-filters action stay reachable, matching the old image's behaviour.
   .empty-state-description {
     max-height: 100px;
+    // The copy embeds the user's filter text verbatim; when it exceeds the
+    // cap it must scroll inside the box instead of painting over the Clear
+    // filters button below, and unbroken tokens (long regexes, paths) must
+    // wrap rather than overflow the 180px-wide panel sideways.
+    overflow-y: auto;
+    overflow-wrap: anywhere;
     white-space: pre-line;
   }
 
