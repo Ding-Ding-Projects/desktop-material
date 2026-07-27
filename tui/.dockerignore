@@ -1,0 +1,11 @@
+# Send only the files required to build the local wheel. This keeps repository
+# history, test output, virtual environments, and credentials out of the image
+# build context.
+**
+!Dockerfile
+!.dockerignore
+!README.md
+!pyproject.toml
+!uv.lock
+!src/
+!src/**

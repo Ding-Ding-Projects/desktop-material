@@ -1,5 +1,10 @@
 # Setting Up Development Dependencies on Linux
 
+> This inherited page describes historical GitHub Desktop/Electron work and
+> does not define a supported Linux graphical build. For the supported,
+> separate Python/Textual terminal edition, use the
+> [Linux TUI installation guide](../features/linux-tui/install-and-packaging.md).
+
 You will need to install these tools on your machine:
 
  - Node.js

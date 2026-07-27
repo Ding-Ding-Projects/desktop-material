@@ -74,6 +74,120 @@ jobs:
       - run: yarn validate-changelog
       - name: Ensure a clean working directory
         run: git diff --name-status --exit-code
+  linux-tui:
+    name: Linux TUI · Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.10', '3.12', '3.13']
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.repository || github.repository }}
+          ref: ${{ inputs.ref }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: 0.11.26
+          enable-cache: true
+          cache-dependency-glob: tui/uv.lock
+      - name: Install locked TUI environment
+        working-directory: tui
+        run:
+          uv sync --locked --extra dev --python "${{ matrix.python-version }}"
+      - name: Verify generated parity contract
+        run: node tui/tools/generate-parity-contract.mjs --check
+      - name: Run TUI tests
+        working-directory: tui
+        run: uv run --python "${{ matrix.python-version }}" pytest
+      - name: Run TUI lint and types
+        if: matrix.python-version == '3.12'
+        working-directory: tui
+        run: |
+          uv run ruff check .
+          uv run mypy src
+      - name: Build wheel and source distribution
+        if: matrix.python-version == '3.12'
+        working-directory: tui
+        run: uv build --clear
+      - name: Smoke-test the built wheel
+        if: matrix.python-version == '3.12'
+        run: |
+          wheel="$(find tui/dist -maxdepth 1 -type f -name '*.whl' -print -quit)"
+          test -n "$wheel"
+          uv venv "$RUNNER_TEMP/desktop-material-tui-smoke" --python 3.12
+          uv pip install \
+            --python "$RUNNER_TEMP/desktop-material-tui-smoke/bin/python" \
+            "$wheel"
+          "$RUNNER_TEMP/desktop-material-tui-smoke/bin/desktop-material-tui" \
+            --version
+      - name: Upload Linux TUI packages
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v7
+        with:
+          name: desktop-material-tui-python
+          path: tui/dist/*
+          if-no-files-found: error
+          retention-days: 14
+      - name: Build and smoke-test the Linux TUI container
+        if: matrix.python-version == '3.12'
+        env:
+          IMAGE_NAME: desktop-material-tui:ci-${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          docker build --check --file tui/Dockerfile tui
+          docker build --file tui/Dockerfile --tag "$IMAGE_NAME" tui
+          trap 'docker image rm --force "$IMAGE_NAME" >/dev/null 2>&1 || true' EXIT
+
+          expected=$(cd tui && uv run --python 3.12 python -c \
+            'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          reported=$(docker run --rm "$IMAGE_NAME" --version)
+          if [ "$reported" != "desktop-material-tui $expected" ]; then
+            echo "Container entry point reported '$reported', expected version $expected." >&2
+            exit 1
+          fi
+
+          test "$(docker image inspect --format '{{.Config.User}}' "$IMAGE_NAME")" = dmt
+          test "$(docker image inspect --format '{{json .Config.Entrypoint}}' "$IMAGE_NAME")" \
+            = '["desktop-material-tui"]'
+  windows-tui-core:
+    name: Windows TUI core · Python 3.12
+    runs-on: windows-2022
+    permissions:
+      contents: read
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          repository: ${{ inputs.repository || github.repository }}
+          ref: ${{ inputs.ref }}
+      - name: Install Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: 0.11.26
+          enable-cache: true
+          cache-dependency-glob: tui/uv.lock
+      - name: Install locked TUI environment
+        working-directory: tui
+        run: uv sync --locked --extra dev --python 3.12
+      - name: Test non-PTY CLI, Cheap LFS, and core services
+        working-directory: tui
+        run: >-
+          uv run --python 3.12 pytest tests/unit tests/application
+          tests/infrastructure
+      - name: Lint and type-check cross-platform core
+        working-directory: tui
+        run: |
+          uv run ruff check src tests/unit tests/application tests/infrastructure
+          uv run mypy src
   build:
     name: ${{ matrix.friendlyName }} ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}

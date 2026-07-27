@@ -1518,7 +1518,11 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         )}
         <p className="cheap-lfs-pin-help">
           {provider === 'release'
-            ? 'Files up to 2 GiB upload as a single asset; larger files are split automatically into 1.5 GiB parts. A published prerelease is created without changing the stable Latest release.'
+            ? `Files up to ${formatBytes(
+                CHEAP_LFS_PART_SIZE_BYTES
+              )} upload as a single asset; larger files are split automatically into ${formatBytes(
+                CHEAP_LFS_PART_SIZE_BYTES
+              )} parts. A published prerelease is created without changing the stable Latest release.`
             : 'The full repository object set stays in one logical image. New versions reuse unchanged layers, split new data into at most 1.5 GiB layers, and halve a layer after upload timeout. Private-repository payloads are encrypted with the shared tracked key.'}
         </p>
         <div className="repository-tool-controls">

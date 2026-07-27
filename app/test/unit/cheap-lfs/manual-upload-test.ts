@@ -80,7 +80,7 @@ const release: IGitHubRelease = {
   tagName: 'assets',
   targetCommitish: 'main',
   name: 'assets',
-  body: '',
+  body: CheapLfsReleaseBodySentinel,
   draft: false,
   prerelease: true,
   createdAt: new Date(0),

@@ -24,6 +24,9 @@ const actionScript = join(
   'cloud-compress.mjs'
 )
 
+const CheapLfsReleaseBodySentinel =
+  '<!-- desktop-material:cheap-lfs-release-bucket:v1 -->'
+
 const sha256 = (data: Buffer) => createHash('sha256').update(data).digest('hex')
 
 function pointerFor(data: Buffer): string {
@@ -72,6 +75,9 @@ interface IFixtureOptions {
   readonly advanceRemoteAfterUpload?: boolean
   readonly wrongUploadedAssetName?: boolean
   readonly pointerText?: string
+  readonly unownedRelease?: boolean
+  readonly stableRelease?: boolean
+  readonly legacyRelease?: boolean
 }
 
 function hasLocalObject(cwd: string, oid: string): boolean {
@@ -119,6 +125,10 @@ async function withFixture(
       state: 'uploaded',
       size: original.length,
       digest: `sha256:${sha256(original)}`,
+      label:
+        options.legacyRelease === true
+          ? `cheap-lfs/v1 sha256=${sha256(original)} commit=- path=payload.bin`
+          : null,
       data: original,
     },
   ]
@@ -230,6 +240,13 @@ async function withFixture(
       }
       json(response, 200, {
         id: 7,
+        tag_name: 'assets',
+        body:
+          options.unownedRelease === true || options.legacyRelease === true
+            ? 'Ordinary release notes'
+            : CheapLfsReleaseBodySentinel,
+        draft: false,
+        prerelease: options.stableRelease !== true,
         upload_url: `http://127.0.0.1:${port}/upload{?name,label}`,
       })
       return
@@ -244,7 +261,9 @@ async function withFixture(
         {
           id: 7,
           tag_name: 'assets',
+          body: CheapLfsReleaseBodySentinel,
           draft: true,
+          prerelease: true,
           upload_url: `http://127.0.0.1:${port}/upload{?name,label}`,
         },
       ])
@@ -293,6 +312,7 @@ async function withFixture(
         state: 'uploaded',
         size: data.length,
         digest: `sha256:${sha256(data)}`,
+        label: null,
         data,
       }
       assets.push(asset)
@@ -487,18 +507,53 @@ describe('Cheap LFS cloud compression action', () => {
     })
   })
 
-  it('finds a draft release through the bounded inventory fallback', async () => {
+  it('finds but refuses a draft release without changing its raw pointer', async () => {
     const original = Buffer.from('draft release payload\n'.repeat(2048))
     await withFixture(original, { draftOnly: true }, async fixture => {
+      const result = await fixture.runAction()
+      assert.equal(result.code, 1)
+      assert.match(
+        result.stderr,
+        /refused a draft, stable, renamed, or unowned release/
+      )
+      assert.deepEqual(fixture.uploaded, [])
+      assert.equal(
+        await readFile(join(fixture.workspace, fixture.pointerPath), 'utf8'),
+        fixture.pointerText
+      )
+    })
+  })
+
+  it('refuses unrelated prerelease and stable release tags before upload', async () => {
+    const original = Buffer.from('owned boundary payload\n'.repeat(2048))
+    for (const options of [
+      { unownedRelease: true },
+      { stableRelease: true },
+    ] as const) {
+      await withFixture(original, options, async fixture => {
+        const result = await fixture.runAction()
+        assert.equal(result.code, 1)
+        assert.match(
+          result.stderr,
+          /refused a draft, stable, renamed, or unowned release/
+        )
+        assert.deepEqual(fixture.uploaded, [])
+        assert.equal(
+          await readFile(join(fixture.workspace, fixture.pointerPath), 'utf8'),
+          fixture.pointerText
+        )
+      })
+    }
+  })
+
+  it('accepts a legacy prerelease with an exact Cheap LFS asset label', async () => {
+    const original = Buffer.from('legacy provenance payload\n'.repeat(2048))
+    await withFixture(original, { legacyRelease: true }, async fixture => {
       const result = await fixture.runAction()
       assert.equal(result.code, 0, result.stderr)
       assert.match(result.stdout, /1 compressed, 0 kept raw, 0 failed safely/)
       assert.equal(fixture.uploaded.length, 1)
       assert.deepEqual(inflateRawSync(fixture.uploaded[0]), original)
-      assert.match(
-        await readFile(join(fixture.workspace, fixture.pointerPath), 'utf8'),
-        /^part-deflate /m
-      )
     })
   })
 

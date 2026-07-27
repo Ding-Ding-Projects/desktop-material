@@ -9,6 +9,10 @@ import { pipeline } from 'node:stream/promises'
 import { createDeflateRaw } from 'node:zlib'
 
 const POINTER_VERSION = 'desktop-material/cheap-lfs/v1'
+const RELEASE_BODY_SENTINEL =
+  '<!-- desktop-material:cheap-lfs-release-bucket:v1 -->'
+const LEGACY_ASSET_LABEL =
+  /^cheap-lfs\/v1 sha256=[a-f0-9]{64} commit=(?:-|[a-f0-9]{7,64}) path=.+$/
 const MAX_POINTER_BYTES = 512 * 1024
 const POINTER_BLOB_FILTER_BYTES = MAX_POINTER_BYTES + 1
 const MAX_ASSET_NAME_BYTES = 255
@@ -448,6 +452,23 @@ async function allAssets(releaseId) {
   throw new Error('Release has too many assets to inspect safely.')
 }
 
+function requireManagedRelease(release, assets, expectedTag) {
+  const legacyProvenance = assets.some(
+    asset =>
+      typeof asset.label === 'string' && LEGACY_ASSET_LABEL.test(asset.label)
+  )
+  if (
+    release?.tag_name !== expectedTag ||
+    release?.draft === true ||
+    release?.prerelease !== true ||
+    (release?.body !== RELEASE_BODY_SENTINEL && !legacyProvenance)
+  ) {
+    throw new Error(
+      'Cheap LFS cloud compression refused a draft, stable, renamed, or unowned release.'
+    )
+  }
+}
+
 async function downloadAsset(assetId, destination) {
   const response = await api(
     '/repos/' + repository + '/releases/assets/' + assetId,
@@ -754,6 +775,7 @@ async function compressObject(entry, object) {
     }
     const release = await releaseForTag(entry.pointer.releaseTag)
     const assets = await allAssets(release.id)
+    requireManagedRelease(release, assets, entry.pointer.releaseTag)
     const rawAsset = assets.find(asset => asset.name === object.name)
     if (!rawAsset || rawAsset.state !== 'uploaded') {
       throw new Error(

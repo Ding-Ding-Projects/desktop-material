@@ -1,0 +1,15 @@
+interface:
+  display_name: 'Verify Linux TUI Headlessly'
+  short_description: 'Reproduce real Linux TUI interaction captures'
+  default_prompt:
+    'Use $verify-linux-tui-headless to verify the current Linux TUI milestone
+    and refresh its evidence.'
+
+dependencies:
+  tools:
+    - type: 'mcp'
+      value: 'lowlevel-computer-use'
+      description: 'Headless Linux display, input, and capture control'
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,8 @@
+schema_version = 1
+active_profile = "fixture-bilingual"
+
+[language]
+mode = "bilingual"
+english_funny_level = 3
+cantonese_funny_level = 4
+

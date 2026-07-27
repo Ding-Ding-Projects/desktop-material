@@ -35,6 +35,17 @@ repeat the same verified restore. Explicitly public GitHub.com Release pointers
 can take this path while signed out; private and unknown repositories remain
 account-gated.
 
+### Linux terminal interoperability
+
+The separate Linux-first terminal edition reads and writes this same v1 Release
+pointer format. Its clickable **Cheap LFS** tab and `dmt cheap-lfs` commands
+provide local preview, confirmed track, cache-first verify, and confirmed
+restore with the same 500 MiB new-write and 2 GiB legacy-read boundaries. It
+does not yet reproduce the graphical edition's automatic commit/clone workers,
+Release bucket rollover, OCI providers, or cloud-compression publication. See
+[Cheap LFS in the terminal edition](../linux-tui/cheap-lfs.md) for its exact
+behavior, safety contract, CLI, and parity boundary.
+
 ## Behavior and configuration
 
 **Repository settings → Cheap LFS → Large-file storage** selects a
@@ -61,14 +72,21 @@ release tag, optional release name, and byte size. The default tag is `assets`;
 if it has no release, the app creates a published prerelease so collaborators
 can fetch its assets while the bucket remains outside the installer's stable
 `/releases/latest` update feed. A draft created by an older Desktop Material is
-published in place only after its exact reviewed identity is revalidated.
+published in place only after its exact reviewed identity and Cheap LFS
+provenance are revalidated. Current buckets carry the exact
+`<!-- desktop-material:cheap-lfs-release-bucket:v1 -->` body sentinel; a legacy
+prerelease remains writable when at least one asset carries a valid
+`cheap-lfs/v1` provenance label. A stable release or unrelated prerelease that
+happens to use the requested tag is never published or appended to; choose a
+different tag. Existing pointers can still restore from an explicitly named
+historical Release without claiming it as app-managed storage.
 A file at or below the per-asset cap initially uploads as one raw asset. A
-larger file is split into ordered raw parts of at most 1.5 GiB — GitHub allows
-release assets up to 2 GiB, but uploads near that ceiling proved unreliable,
-so new parts stay well below it — and the pointer records every part's name,
-size, and SHA-256 as well as the whole-file size and digest. The raw upload is
-immediately cloneable and remains the safe fallback while optional cloud
-compression runs.
+larger file is split into ordered raw parts of at most 500 MiB. GitHub
+historically allowed legacy Release pointers with parts up to 2 GiB, and the
+reader retains that compatibility, but new writes use the smaller retryable
+part size. The pointer records every part's name, size, and SHA-256 as well as
+the whole-file size and digest. The raw upload is immediately cloneable and
+remains the safe fallback while optional cloud compression runs.
 
 ### Cloud compression
 
@@ -198,12 +216,16 @@ the entire group moves to the next bucket and every generated pointer records
 that exact derived tag.
 
 Current buckets are published prereleases and resolve through GitHub's direct
-release-by-tag endpoint. For compatibility, the cloud Action can still locate
-an older draft through a bounded inventory of at most 100 pages of 100 releases;
-Desktop Material publishes that exact legacy bucket in place before new pins or
-materialization. A draft outside those **10,000 releases** fails safely without
-changing the pointer or raw asset. Compression also needs one free asset slot
-for its verified side object. If the selected Release has already reached its
+release-by-tag endpoint. For compatibility, bounded lookup can still identify
+an older draft among at most 100 pages of 100 releases. Desktop Material
+publishes that exact legacy bucket in place before a new pin only when the
+exact sentinel or a valid legacy asset-provenance label proves it is Cheap LFS
+storage. Materialization may read a pointer's unrecognized draft asset but does
+not publish that draft. The cloud Action mutates only a published, managed
+prerelease: a draft, stable Release, or unrelated prerelease is rejected before
+download or upload, leaving the raw pointer unchanged. Compression also needs
+one free asset slot for its verified side object. If the selected Release has
+already reached its
 **1,000-asset** capacity, the upload cannot be adopted and the raw pointer
 remains cloneable and locally materializable. Cheap LFS never deletes the
 historical raw asset merely to make room.
@@ -908,6 +930,8 @@ review, upload/download error, missing trusted GitHub CLI, CLI
 failure, changed source file, digest or size mismatch, oversized pointer
 projection, invalid part layout, insufficient temporary space, or cancellation
 before pointer commit leaves the original source or tracked pointer in place.
+An existing stable or otherwise unrecognized Release at the requested tag also
+fails before publish, upload, or pointer replacement and asks for another tag.
 Failed multipart pins attempt to delete only assets uploaded by that
 attempt and report any cleanup failure without touching pre-existing assets.
 CLI-unavailable, CLI-failed, and incomplete-asset messages direct the user to
@@ -993,6 +1017,10 @@ and uploads only that copy. The original source and destination proofs are
 revalidated after staging and immediately before provider publication and
 pointer replacement. Asset uploads also use exact account-bound Release
 mutation reviews, refreshing the Release snapshot before each later part.
+Release mutation additionally requires recognizable bucket provenance:
+published-prerelease status plus either the exact current body sentinel or a
+valid legacy asset label. A tag match, title, or prose mention is never enough,
+and read-only restore does not auto-publish an unrecognized draft.
 
 Private prerelease assets remain available only to users authorized for the
 repository. Explicitly public GitHub.com repositories use a blank-token,
@@ -1125,11 +1153,12 @@ and digest. The corrected Action's bounded draft lookup produced the succeeding
 public and private results above. The full run, asset, pointer, screenshot, and
 remaining publication record is in the cloud-compression acceptance receipt.
 
-The focused Large files UI test also pins the factual 1.5 GiB-part copy.
+The focused Large files UI test derives its 500 MiB part-size copy directly
+from the shared pointer constant so UI guidance cannot drift from new writes.
 
 `cheap-lfs/pointer-test.ts` covers canonical single/multipart pointers, legacy
 deflated compatibility, size limits, part totals, path normalization, and the
-1.5 GiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
+500 MiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
 deduplicated asset names, 1,000-asset rollover without splitting groups,
 mutation reviews, attempt-owned cleanup, source race checks, cancellation,
 per-part and whole-file verification, paginated inventory reuse, and atomic

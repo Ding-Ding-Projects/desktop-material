@@ -1,0 +1,8 @@
+schema_version = 1
+active_profile = "fixture-cantonese"
+
+[language]
+mode = "cantonese"
+english_funny_level = 2
+cantonese_funny_level = 5
+

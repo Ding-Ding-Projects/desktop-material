@@ -1,8 +1,9 @@
 name: Super Express Release
 
-# Manual emergency lane. It omits lint and E2E, but still requires the complete
-# unit and script test suites, a successful production build, package creation,
-# and exact asset checks before publishing an immutable release.
+# Manual emergency lane. It omits the desktop lint and E2E lanes, but still
+# requires the complete desktop unit/script suites and the TUI parity, tests,
+# lint, types, fresh-wheel smoke, production builds, and exact asset checks
+# before publishing an immutable release.
 on:
   workflow_dispatch:
     inputs:
@@ -68,6 +69,108 @@ jobs:
 
       - name: Run script tests
         run: yarn test:script
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: 0.11.26
+          enable-cache: true
+          cache-dependency-glob: tui/uv.lock
+
+      - name: Install locked TUI environment
+        working-directory: tui
+        run: uv sync --locked --extra dev --python 3.12
+
+      - name: Discover exact TUI package version
+        id: tui_version
+        shell: pwsh
+        run: |
+          $version = (
+            python -c "import tomllib; print(tomllib.load(open('tui/pyproject.toml', 'rb'))['project']['version'])"
+          ).Trim()
+          if (-not $version -or $version -match '\s') {
+            throw 'TUI pyproject.toml did not provide one usable package version.'
+          }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "TUI_VERSION=$version" >> $env:GITHUB_ENV
+
+      - name: Verify generated parity contract
+        run: node tui/tools/generate-parity-contract.mjs --check
+
+      - name: Run TUI tests
+        working-directory: tui
+        run: uv run --python 3.12 pytest
+
+      - name: Run TUI lint and types
+        working-directory: tui
+        run: |
+          uv run --python 3.12 ruff check .
+          uv run --python 3.12 mypy src
+
+      - name: Build TUI wheel and source distribution
+        working-directory: tui
+        run: uv build --clear
+
+      - name: Verify, smoke-test, and collect exact TUI payload
+        id: tui_payload
+        shell: pwsh
+        run: |
+          $wheels = @(Get-ChildItem -LiteralPath 'tui/dist' -Filter '*.whl')
+          $sdists = @(Get-ChildItem -LiteralPath 'tui/dist' -Filter '*.tar.gz')
+          if ($wheels.Count -ne 1 -or $sdists.Count -ne 1) {
+            throw 'Expected exactly one TUI wheel and one source distribution.'
+          }
+
+          $expectedWheel = "desktop_material_tui-$env:TUI_VERSION-py3-none-any.whl"
+          $expectedSdist = "desktop_material_tui-$env:TUI_VERSION.tar.gz"
+          if (
+            $wheels[0].Name -ne $expectedWheel -or
+            $sdists[0].Name -ne $expectedSdist
+          ) {
+            throw "Built TUI package names do not match pyproject.toml version $env:TUI_VERSION."
+          }
+
+          $smoke = Join-Path $env:RUNNER_TEMP 'desktop-material-tui-release-smoke'
+          uv venv $smoke --python 3.12 --clear
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to create TUI smoke environment.' }
+          $smokePython = Join-Path $smoke 'Scripts/python.exe'
+          $env:UV_NO_CACHE = '1'
+          uv pip install --python $smokePython $wheels[0].FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Fresh TUI wheel installation failed.' }
+          $installed = (
+            & $smokePython -c "import importlib.metadata; print(importlib.metadata.version('desktop-material-tui'))"
+          ).Trim()
+          if ($installed -ne $env:TUI_VERSION) {
+            throw "Fresh wheel installed version $installed, expected $env:TUI_VERSION."
+          }
+          $entryPoint = Join-Path $smoke 'Scripts/desktop-material-tui.exe'
+          $reported = (& $entryPoint --version).Trim()
+          if ($reported -ne "desktop-material-tui $env:TUI_VERSION") {
+            throw "Fresh wheel entry point reported '$reported'."
+          }
+
+          New-Item -ItemType Directory -Force 'release-payload/tui' | Out-Null
+          Copy-Item -LiteralPath $wheels[0].FullName -Destination 'release-payload/tui'
+          Copy-Item -LiteralPath $sdists[0].FullName -Destination 'release-payload/tui'
+          if (
+            (Get-Item "release-payload/tui/$expectedWheel").Length -eq 0 -or
+            (Get-Item "release-payload/tui/$expectedSdist").Length -eq 0
+          ) {
+            throw 'Collected TUI release payload contains an empty package.'
+          }
+          "wheel_name=$expectedWheel" >> $env:GITHUB_OUTPUT
+          "sdist_name=$expectedSdist" >> $env:GITHUB_OUTPUT
+          "TUI_WHEEL_NAME=$expectedWheel" >> $env:GITHUB_ENV
+          "TUI_SDIST_NAME=$expectedSdist" >> $env:GITHUB_ENV
+
+      - name: Restore the desktop packaging Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
 
       - name: Create a cross-lane monotonic package version
         id: version
@@ -156,6 +259,8 @@ jobs:
             release-payload/installers/GitHubDesktopSetup-x64.msi
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+            "release-payload/tui/$TUI_WHEEL_NAME"
+            "release-payload/tui/$TUI_SDIST_NAME"
           )
           for asset in "${required[@]}"; do
             if [ ! -s "$asset" ]; then
@@ -190,7 +295,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          gh release create "$RELEASE_TAG" release-payload/installers/* \
+          gh release create "$RELEASE_TAG" \
+            release-payload/installers/* release-payload/tui/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
@@ -214,7 +320,8 @@ jobs:
               -F prerelease=true \
               -f make_latest=false \
               -F body=@release-payload/release-notes.md >/dev/null
-            gh release upload "$RELEASE_TAG" release-payload/installers/* \
+            gh release upload "$RELEASE_TAG" \
+              release-payload/installers/* release-payload/tui/* \
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
@@ -237,6 +344,14 @@ jobs:
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
+          published_assets=$(gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for expected in "$TUI_WHEEL_NAME" "$TUI_SDIST_NAME"; do
+            if ! grep -Fqx "$expected" <<<"$published_assets"; then
+              echo "Published release is missing TUI asset $expected." >&2
+              exit 1
+            fi
+          done
 
       - name: Reconcile Latest to the newest main release
         if: ${{ inputs.publish }}

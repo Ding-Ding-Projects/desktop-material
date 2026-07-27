@@ -4,6 +4,7 @@ This folder keeps reproducible local acceptance records that support, but do
 not replace, exact-commit CI, Pages, wiki, and Release receipts in
 [`HANDOFF.md`](../../HANDOFF.md).
 
+- [Linux-first TUI publish run — 2026-07-27](linux-tui-2026-07-27/run-manifest.md)
 - [Pull-and-bug-hunt publish run — 2026-07-26](bug-hunt-2026-07-26/run-manifest.md)
 - [Tab groups and command palette — 2026-07-22](tab-groups-command-palette-2026-07-22.md)
 - [Automatic updater version ordering — 2026-07-22](auto-updater-version-order-2026-07-22.md)

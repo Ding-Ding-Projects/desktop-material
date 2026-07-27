@@ -28,7 +28,8 @@ this fork.
   [Collaboration](features/collaboration/README.md),
   [Review and diff](features/review-and-diff/README.md),
   [Quality and reliability](features/quality-and-reliability/README.md), and
-  [Design system](features/design-system/README.md)
+  [Design system](features/design-system/README.md), plus the separate
+  [Linux-first terminal edition](features/linux-tui/README.md)
 - **Search and regex** — [Regex guide](regex-guide.md)
 - **Evidence** — [Verification records](verification/README.md)
 - **Contributing** — [Development environment setup](contributing/setup.md),
@@ -52,9 +53,12 @@ this fork.
 
 The sections below keep the full detail behind each area.
 
-Desktop Material itself is supported and released on Windows only. Inherited
-non-Windows source and historical upstream documentation do not define a
-supported runtime; see [Windows-only platform support](features/integrations/windows-only-platform-support.md).
+Desktop Material's graphical Electron edition is supported and released on
+Windows only. The separate Python/Textual terminal edition targets Linux and
+has its own [support, packaging, interaction, and parity
+contract](features/linux-tui/README.md); it is not a non-Windows Electron
+runtime. See [graphical-edition platform
+support](features/integrations/windows-only-platform-support.md).
 
 ## Product and Material design
 

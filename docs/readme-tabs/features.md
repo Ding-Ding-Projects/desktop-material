@@ -9,6 +9,13 @@ Material ships. For milestone status and published CI/release evidence, see the
 [Roadmap & receipts](roadmap-and-receipts.md) tab; for annotated captures, see the
 [Screenshots](screenshots.md) tab.
 
+The separate [Linux-first terminal edition](../features/linux-tui/README.md)
+adapts these workflows for character-cell terminals with mouse clicks,
+keyboard focus, and real single-line/multiline text controls. Its generated
+[parity contract](../../tui/contracts/parity.yaml) maps all 197 desktop rows and
+marks missing work explicitly; the current preview is not described as full
+parity.
+
 > Looking for an exhaustive checklist instead of this prose tour? The
 > **[Complete list](complete-feature-list.md)** tab records every feature in one
 > bilingual (English / 廣東話) table and labels each one **Added**,

@@ -224,3 +224,13 @@ build-iPhoneSimulator/
 
 # GitHub Pages local build output (pages.yml replay)
 _site/
+
+# Desktop Material TUI: Python environments, bytecode, and tool caches
+**/__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/

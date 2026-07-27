@@ -4,10 +4,11 @@
 
 Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.
 
-> **Platform support:** Desktop Material is a Windows-only application. The
+> **Platform support:** the graphical Electron edition is Windows-only. Its
 > installer and portable-ZIP target is Windows x64, with Windows x64/arm64
-> build validation and Windows packaged E2E. macOS and Linux application
-> packages are not produced or supported.
+> build validation and packaged Windows E2E. A separate
+> [Linux-first TUI](../features/linux-tui/README.md) provides a terminal-native
+> Python package; it is not a Linux Electron build.
 
 **Desktop Material** is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop.
 It is a fork of [desktop/desktop](https://github.com/desktop/desktop) (MIT) with the entire

@@ -908,7 +908,7 @@ describe('CheapLfs panel', () => {
     assert.equal(trackedInput.value, 'big.psd')
     assert.ok(
       screen.getByText(
-        /larger files are split automatically into 1.5 GiB parts/
+        /larger files are split automatically into 500\.0 MiB parts/
       )
     )
 
@@ -921,7 +921,7 @@ describe('CheapLfs panel', () => {
     assert.equal(dispatcher.pinCalls[0].absoluteFilePath, pickedFile('big.psd'))
   })
 
-  it('splits a file above the 2 GiB cap and pins it after review', async () => {
+  it('splits a file above the current Release part cap and pins it after review', async () => {
     const dispatcher = new FakeCheapLfsDispatcher([])
     const sourceSize = 3 * 1024 * 1024 * 1024
     // Derived rather than hardcoded so changing the part size cannot leave a

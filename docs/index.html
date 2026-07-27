@@ -939,6 +939,13 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           >
           <a
             class="subtab i18n-inline"
+            id="subtab-features-linux-tui"
+            href="#features/linux-tui"
+            data-tab="features/linux-tui"
+            >Linux Tui</a
+          >
+          <a
+            class="subtab i18n-inline"
             id="subtab-features-quality-and-reliability"
             href="#features/quality-and-reliability"
             data-tab="features/quality-and-reliability"
@@ -1820,11 +1827,11 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 class="doc-link"
                 href="features/integrations/windows-only-platform-support.html"
                 ><span class="doc-link__title"
-                  >Windows-only platform support</span
+                  >Windows-only graphical edition support</span
                 ><span class="doc-link__desc"
-                  >Desktop Material is a Windows application. Windows is the
-                  only supported runtime, packaging target, installer target,
-                  and end-to-end acceptance environment. Source inherited…</span
+                  >Desktop Material's graphical Electron edition is a Windows
+                  application. Windows is its only supported runtime, packaging
+                  target, installer target, and end-to-end acceptance…</span
                 ><span class="doc-link__path"
                   >features/integrations/windows-only-platform-support.md</span
                 ></a
@@ -1842,6 +1849,187 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   Ubuntu.…</span
                 ><span class="doc-link__path"
                   >features/integrations/wsl-aware-editor-opening.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/linux-tui"
+          data-tab-panel="features/linux-tui"
+          aria-labelledby="subtab-features-linux-tui"
+        >
+          <h3 class="md-title-lg i18n-inline">Linux Tui</h3>
+          <p class="md-body subpanel__meta">
+            <strong>12</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/linux-tui/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/architecture-and-persistence.html"
+                ><span class="doc-link__title"
+                  >TUI architecture and XDG persistence</span
+                ><span class="doc-link__desc"
+                  >The terminal edition separates:</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/architecture-and-persistence.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="features/linux-tui/cheap-lfs.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS in the terminal edition</span
+                ><span class="doc-link__desc"
+                  >The Linux-first terminal edition can inspect, create, verify,
+                  and restore the same desktop-material/cheap-lfs/v1 GitHub
+                  Release pointers as the Windows graphical edition. It
+                  is…</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/cheap-lfs.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="features/linux-tui/container.html"
+                ><span class="doc-link__title">Linux TUI container</span
+                ><span class="doc-link__desc"
+                  >Desktop Material TUI ships a minimal multi-stage
+                  tui/Dockerfile for users who prefer an isolated Linux runtime.
+                  The builder creates a wheel from the local checkout,
+                  installs…</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/container.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/external-editor-and-version-history.html"
+                ><span class="doc-link__title"
+                  >TUI external editor and local version history</span
+                ><span class="doc-link__desc"
+                  >Settings includes editable editor and terminal command
+                  preferences plus editor detection. The toolbar's Editor action
+                  opens the active repository with the chosen program.
+                  The…</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/external-editor-and-version-history.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/github-workflows.html"
+                ><span class="doc-link__title">TUI GitHub workflows</span
+                ><span class="doc-link__desc"
+                  >GitHub features use the installed gh executable. Authenticate
+                  outside the app with the GitHub CLI's normal device/browser
+                  flow:</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/github-workflows.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/install-and-packaging.html"
+                ><span class="doc-link__title"
+                  >Linux TUI installation and packaging</span
+                ><span class="doc-link__desc"
+                  >Linux with Python 3.10 through 3.13;</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/install-and-packaging.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/interaction-and-accessibility.html"
+                ><span class="doc-link__title"
+                  >TUI interaction and accessibility</span
+                ><span class="doc-link__desc"
+                  >Mouse support is enabled when the application starts. In a
+                  compatible terminal, a user can:</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/interaction-and-accessibility.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/language-appearance-notifications.html"
+                ><span class="doc-link__title"
+                  >TUI language, appearance, and notifications</span
+                ><span class="doc-link__desc"
+                  >Settings persists exactly three application language
+                  modes:</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/language-appearance-notifications.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/repositories-and-git.html"
+                ><span class="doc-link__title"
+                  >TUI repository and Git workflows</span
+                ><span class="doc-link__desc"
+                  >The repository rail supports:</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/repositories-and-git.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/search-and-regex.html"
+                ><span class="doc-link__title">TUI search and RE2</span
+                ><span class="doc-link__desc"
+                  >Plain literal search is the default. A user must deliberately
+                  select fuzzy or regex mode. The shared search control keeps
+                  query, mode, case choice, RE2 flags, validation, and…</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/search-and-regex.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/linux-tui/security-and-failure-modes.html"
+                ><span class="doc-link__title"
+                  >TUI security and failure modes</span
+                ><span class="doc-link__desc"
+                  >Git, GitHub CLI, editor, and terminal launches use argument
+                  arrays with shell=False. NUL/control validation, explicit
+                  repository working directories, stdin policy, captured…</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/security-and-failure-modes.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="features/linux-tui/verification.html"
+                ><span class="doc-link__title">TUI verification</span
+                ><span class="doc-link__desc">From tui/:</span
+                ><span class="doc-link__path"
+                  >features/linux-tui/verification.md</span
                 ></a
               >
             </li>
@@ -1954,7 +2142,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Repository management
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>24</strong>
+            <strong>25</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/repository-management/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -2185,6 +2373,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   forget…</span
                 ><span class="doc-link__path"
                   >features/repository-management/repository-list-bulk-actions.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/repository-list-group-collapse.html"
+                ><span class="doc-link__title"
+                  >Repository list collapsible groups</span
+                ><span class="doc-link__desc"
+                  >The repository side sheet has always grouped rows — Pinned,
+                  Recent, a custom group name, one heading per GitHub owner, one
+                  per Enterprise host, and Other for everything…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/repository-list-group-collapse.md</span
                 ></a
               >
             </li>
@@ -2730,8 +2933,8 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 ><span class="doc-link__title"
                   >Development Environment Setup</span
                 ><span class="doc-link__desc"
-                  >Desktop Material development and product acceptance are
-                  supported on Windows only:</span
+                  >Desktop Material's graphical Electron edition is developed
+                  and accepted on Windows only:</span
                 ><span class="doc-link__path">contributing/setup.md</span></a
               >
             </li>
@@ -3117,11 +3320,11 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             </li>
             <li>
               <a class="doc-link" href="readme-tabs/install.html"
-                ><span class="doc-link__title">Install on Windows</span
+                ><span class="doc-link__title">Install the Linux-first TUI</span
                 ><span class="doc-link__desc"
-                  >Desktop Material's automated releases provide a per-user x64
-                  Windows installer. The Windows package command also creates
-                  dist/GitHub Desktop-x64.zip, and the gated release…</span
+                  >The terminal edition is a distinct Python/Textual package for
+                  Linux, not a Linux Electron build. Install a trusted checkout
+                  and open a repository with the literal launcher:</span
                 ><span class="doc-link__path">readme-tabs/install.md</span></a
               >
             </li>
@@ -3169,9 +3372,9 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
               <a class="doc-link" href="installation.html"
                 ><span class="doc-link__title">Installing Desktop Material</span
                 ><span class="doc-link__desc"
-                  >Desktop Material is supported on Windows only. The current
-                  automated release publishes Windows x64 installers and a
-                  Squirrel update feed; macOS and Linux packages are not…</span
+                  >Desktop Material has two distinct runtime surfaces. The
+                  graphical Electron edition is supported on Windows only and
+                  publishes Windows x64 installers plus a Squirrel update…</span
                 ><span class="doc-link__path">installation.md</span></a
               >
             </li>
@@ -3476,7 +3679,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Verification records
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>15</strong>
+            <strong>17</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="verification/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -3589,6 +3792,32 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   two…</span
                 ><span class="doc-link__path"
                   >verification/cheap-lfs-github-public-private-2026-07-22.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/linux-tui-2026-07-27/cleanup-ledger.html"
+                ><span class="doc-link__title"
+                  >Linux TUI publish cleanup ledger</span
+                ><span class="doc-link__desc"
+                  >Run ID: linux-tui-2026-07-27-019fa510</span
+                ><span class="doc-link__path"
+                  >verification/linux-tui-2026-07-27/cleanup-ledger.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/linux-tui-2026-07-27/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Linux TUI publish run manifest</span
+                ><span class="doc-link__desc"
+                  >Run ID: linux-tui-2026-07-27-019fa510</span
+                ><span class="doc-link__path"
+                  >verification/linux-tui-2026-07-27/run-manifest.md</span
                 ></a
               >
             </li>

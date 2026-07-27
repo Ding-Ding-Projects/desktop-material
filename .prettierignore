@@ -19,5 +19,12 @@ app/static/logos/prod/**/*.json
 app/static/logos/dev/**/*.json
 remote-site/.wrangler/
 
+# The standalone parity generator owns this deterministic JSON/YAML formatting.
+tui/contracts/parity.yaml
+tui/.mypy_cache/
+tui/.pytest_cache/
+tui/.ruff_cache/
+tui/.venv/
+
 # Agent worktrees are transient checkouts, never lint targets
 .claude/

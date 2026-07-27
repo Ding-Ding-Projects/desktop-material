@@ -453,7 +453,7 @@ Not every difference is an addition. These are honest reductions in scope.
 
 | Difference / 分別 | Detail |
 | --- | --- |
-| **Windows only** — GitHub Desktop ships macOS and Linux builds; Desktop Material produces Windows x64 installers and portable ZIPs only. macOS and Linux application packages are not produced or supported.<br><sub>**淨係 Windows** — GitHub Desktop 有 macOS 同 Linux 版；Desktop Material 淨係出 Windows x64 安裝檔同免安裝 ZIP。macOS 同 Linux 應用程式套件唔會出，亦唔支援。</sub> | [Windows-only platform support](../features/integrations/windows-only-platform-support.md) |
+| **Graphical edition is Windows only** — GitHub Desktop ships macOS builds; Desktop Material's Electron edition produces Windows x64 installers and portable ZIPs only. A separate Python/Textual terminal edition targets Linux and tracks its own parity without claiming to be Electron.<br><sub>**圖形版淨係 Windows** — GitHub Desktop 有 macOS 版；Desktop Material 嘅 Electron 版淨係出 Windows x64 安裝檔同免安裝 ZIP。另有獨立 Python/Textual 終端版主攻 Linux，自己老實記低 parity，唔會扮係 Electron。</sub> | [Graphical-edition platform support](../features/integrations/windows-only-platform-support.md) |
 | **ARM64 through emulation** — the ARM64 package runs the audited x64 ORAS binary through Windows 11 x64 emulation and fails closed if it cannot start.<br><sub>**ARM64 靠模擬** — ARM64 套件用 Windows 11 x64 模擬行經審核嘅 x64 ORAS 執行檔，起唔到就直接 fail closed。</sub> | [OCI registry backend](../features/repository-management/cheap-lfs-oci-registry-backend.md) |
 | **Cheap LFS cache-archive download** — labelled unavailable, because GitHub exposes no supported download API for Actions cache archives.<br><sub>**Actions 快取封存下載** — 標明唔可用，因為 GitHub 冇提供受支援嘅下載 API。</sub> | — |
 

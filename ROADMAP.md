@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 26, 2026**
+Updated: **July 27, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -12,6 +12,32 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## Linux-first interactive TUI — **Acceptance pending**
+
+A separate Python/Textual edition now adapts Desktop Material for Linux
+terminals without weakening the graphical edition's Windows-only boundary. The
+preview has a clickable repository rail, tabs, buttons, lists, tables, selects,
+and checkboxes; real single-line and multiline text controls; keyboard focus
+and shortcuts; local Git panes; GitHub workflows through `gh`; bounded RE2
+search and a full builder; English, Hong Kong Cantonese, and bilingual modes;
+non-blocking notifications; XDG state; editor/terminal integration; and
+app-owned Git-backed settings history.
+
+Packaging produces a wheel and source distribution, and the additive Ubuntu CI
+matrix covers Python 3.10, 3.12, and 3.13 plus lint, typing, tests, a fresh-wheel
+smoke install, and parity-contract drift. A separate Windows Server 2022/Python
+3.12 lane checks the non-PTY cross-platform core without claiming Windows PTY
+acceptance. The generated contract maps all 197 desktop rows conservatively: 14
+adapted, 53 partial, 128 not yet available, and 2 terminal-owned. It is
+deliberately not a full-parity claim.
+
+The remaining acceptance work is explicit in the
+[publish run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md):
+finish the full final-source quality matrix, exercise mouse clicks and Inputs/
+TextAreas through a real off-screen Linux terminal, inspect and promote genuine
+screenshots, complete cleanup, integrate the latest remote `main`, push, and
+record exact CI/Pages/release receipts.
 
 ## July 26 reliability bug hunt — **Implemented and locally accepted**
 
@@ -545,7 +571,7 @@ six-asset Windows x64 Release are verified for the `main` push recorded in
   leaving small human-readable pointers at their tracked paths. Automatic pinning
   gates on commit entry points and downloads materialize detected pointers after
   clone, pull, user fetch, or open under one cancelable batch. Multi-gigabyte
-  files are split into ordered raw parts of at most 1.5 GiB with whole-file and
+  files are split into ordered raw parts of at most 500 MiB with whole-file and
   per-part SHA-256 verification. The manager lists and searches committed
   pointers, restores individually or all at once, and never requires browsing or
   decoding release asset names externally.

@@ -1,5 +1,10 @@
 # Linux Testing and You
 
+> This inherited page concerns unofficial third-party GitHub Desktop/Electron
+> installers. Desktop Material's supported Linux surface is now the distinct
+> [Python/Textual TUI](../features/linux-tui/README.md); it does not use the
+> installer process below.
+
 GitHub Desktop doesn't currently support Linux in an official capacity, but many in the community have already been experimenting and testing it on their preferred distributions.
 
 This document outlines the process to help provide a set of quality installers, based on community feedback and contributions.
