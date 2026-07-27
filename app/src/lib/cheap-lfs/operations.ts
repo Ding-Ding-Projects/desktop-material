@@ -674,40 +674,117 @@ async function gitPointerPaths(
   return parseNulPaths(result.stdout, source === 'head' ? 'HEAD:' : undefined)
 }
 
-async function readGitPointerText(
+interface ICheapLfsGitPointerTextRequest {
+  readonly source: 'index' | 'head'
+  readonly relativePath: string
+}
+
+function gitPointerTextKey(request: ICheapLfsGitPointerTextRequest): string {
+  return `${request.source}:${request.relativePath}`
+}
+
+/**
+ * Read many index/HEAD pointer blobs through two `git cat-file` processes
+ * total instead of two to four spawns per pointer: one `--batch-check` pass
+ * proves every blob honors the bounded pointer format *before* any body is
+ * buffered, then one `--batch` pass streams the bounded bodies. Tracked paths
+ * never contain control characters, so newline-delimited stdin is unambiguous.
+ * Any missing, oversized, or short entry throws exactly as the per-file reads
+ * did.
+ */
+async function readGitPointerTextBatch(
   root: string,
-  source: 'index' | 'head',
-  relativePath: string
-): Promise<string> {
-  const object = `${source === 'index' ? '' : 'HEAD'}:${relativePath}`
-  const sizeResult = await git(
-    [...largeRepositoryGitArgsForPath(root), 'cat-file', '-s', object],
-    root,
-    'measureCheapLfsPointerBlob',
-    { maxBuffer: 1024 }
+  requests: ReadonlyArray<ICheapLfsGitPointerTextRequest>
+): Promise<ReadonlyMap<string, string>> {
+  const texts = new Map<string, string>()
+  if (requests.length === 0) {
+    return texts
+  }
+  const objectNames = requests.map(
+    request =>
+      `${request.source === 'index' ? '' : 'HEAD'}:${request.relativePath}`
   )
-  const size = Number(sizeResult.stdout.trim())
-  if (
-    !Number.isSafeInteger(size) ||
-    size < 1 ||
-    size > CheapLfsMaximumAnyPointerTextBytes
-  ) {
+  const stdin = `${objectNames.join('\n')}\n`
+  const check = await git(
+    [...largeRepositoryGitArgsForPath(root), 'cat-file', '--batch-check'],
+    root,
+    'measureCheapLfsPointerBlobs',
+    { stdin, maxBuffer: requests.length * 256 + 1024 }
+  )
+  const checkLines = check.stdout.split('\n').filter(line => line.length > 0)
+  if (checkLines.length !== requests.length) {
     throw new Error(
-      `Tracked Cheap LFS pointer ${relativePath} exceeds its bounded format size.`
+      'Git returned an incomplete Cheap LFS pointer measurement batch.'
     )
   }
-  const result = await git(
-    [...largeRepositoryGitArgsForPath(root), 'cat-file', 'blob', object],
-    root,
-    'readCheapLfsPointerBlob',
-    { encoding: 'buffer', maxBuffer: CheapLfsMaximumAnyPointerTextBytes }
-  )
-  if (result.stdout.length !== size) {
-    throw new Error(
-      `Git returned an incomplete Cheap LFS pointer for ${relativePath}.`
-    )
+  for (let index = 0; index < requests.length; index++) {
+    const fields = checkLines[index].split(' ')
+    if (fields.length < 3 || fields[1] !== 'blob') {
+      throw new Error(
+        `Git could not read the Cheap LFS pointer for ${requests[index].relativePath}.`
+      )
+    }
+    const size = Number(fields[2])
+    if (
+      !Number.isSafeInteger(size) ||
+      size < 1 ||
+      size > CheapLfsMaximumAnyPointerTextBytes
+    ) {
+      throw new Error(
+        `Tracked Cheap LFS pointer ${requests[index].relativePath} exceeds its bounded format size.`
+      )
+    }
   }
-  return result.stdout.toString('utf8')
+  const batch = await git(
+    [...largeRepositoryGitArgsForPath(root), 'cat-file', '--batch'],
+    root,
+    'readCheapLfsPointerBlobs',
+    {
+      stdin,
+      encoding: 'buffer',
+      maxBuffer:
+        requests.length * (CheapLfsMaximumAnyPointerTextBytes + 256) + 1024,
+    }
+  )
+  const buffer = batch.stdout
+  let offset = 0
+  for (const request of requests) {
+    const headerEnd = buffer.indexOf(0x0a, offset)
+    if (headerEnd === -1) {
+      throw new Error(
+        `Git returned an incomplete Cheap LFS pointer for ${request.relativePath}.`
+      )
+    }
+    const fields = buffer
+      .subarray(offset, headerEnd)
+      .toString('utf8')
+      .split(' ')
+    if (fields.length < 3 || fields[1] !== 'blob') {
+      throw new Error(
+        `Git could not read the Cheap LFS pointer for ${request.relativePath}.`
+      )
+    }
+    const size = Number(fields[2])
+    if (
+      !Number.isSafeInteger(size) ||
+      size < 1 ||
+      size > CheapLfsMaximumAnyPointerTextBytes
+    ) {
+      throw new Error(
+        `Tracked Cheap LFS pointer ${request.relativePath} exceeds its bounded format size.`
+      )
+    }
+    const body = buffer.subarray(headerEnd + 1, headerEnd + 1 + size)
+    if (body.length !== size) {
+      throw new Error(
+        `Git returned an incomplete Cheap LFS pointer for ${request.relativePath}.`
+      )
+    }
+    texts.set(gitPointerTextKey(request), body.toString('utf8'))
+    // Skip the body and the record-terminating newline `--batch` appends.
+    offset = headerEnd + 1 + size + 1
+  }
+  return texts
 }
 
 async function isGitWorkingTree(root: string): Promise<boolean> {
@@ -742,16 +819,30 @@ async function scanPointerCandidatesFromGit(
   const index = new Set(indexPaths)
   const head = new Set(headPaths)
   const paths = [...new Set([...working, ...index, ...head])].sort()
-  const candidates = new Array<ICheapLfsPointerCandidate>()
-  for (const untrustedPath of paths) {
-    const relativePath = validateCheapLfsTrackedPath(untrustedPath)
+  const store = defaultCheapLfsTrackedPathStore
+  const results = new Array<ICheapLfsPointerCandidate | null>(
+    paths.length
+  ).fill(null)
+  const pendingCandidates = new Array<{
+    readonly slot: number
+    readonly relativePath: string
+    readonly proof: ICheapLfsTrackedFileProof
+    readonly metadataSource: 'index' | 'head'
+    readonly compareHead: boolean
+  }>()
+  const requests = new Array<ICheapLfsGitPointerTextRequest>()
+  for (let slot = 0; slot < paths.length; slot++) {
+    const relativePath = validateCheapLfsTrackedPath(paths[slot])
     if (relativePath === null) {
       throw new Error('Git returned an unsafe Cheap LFS tracked path.')
     }
-    const trackedProof = await defaultCheapLfsTrackedPathStore.proveDestination(
+    // Identity-only proof: nothing is hashed until a classification below
+    // actually needs a content proof, and only a real hash equality may mark
+    // a path 'materialized'.
+    const trackedProof = await (store.proveDestinationIdentity?.(
       root,
       relativePath
-    )
+    ) ?? store.proveDestination(root, relativePath))
     if (!trackedProof.exists) {
       // A deleted path is intentionally absent from the current inventory.
       continue
@@ -782,12 +873,12 @@ async function scanPointerCandidatesFromGit(
       if (pointerIdentity(text) === null) {
         continue
       }
-      candidates.push({
+      results[slot] = {
         relativePath,
         text,
         workingTreeState: 'pointer',
         metadataSource: 'working-tree',
-      })
+      }
       continue
     }
 
@@ -798,38 +889,85 @@ async function scanPointerCandidatesFromGit(
     }
 
     const metadataSource = index.has(relativePath) ? 'index' : 'head'
-    const text = await readGitPointerText(root, metadataSource, relativePath)
+    const compareHead = metadataSource === 'index' && head.has(relativePath)
+    requests.push({ source: metadataSource, relativePath })
+    if (compareHead) {
+      requests.push({ source: 'head', relativePath })
+    }
+    pendingCandidates.push({
+      slot,
+      relativePath,
+      proof: trackedProof,
+      metadataSource,
+      compareHead,
+    })
+  }
+
+  // Two batched `cat-file` processes replace the two-to-four serial spawns
+  // each committed pointer used to pay.
+  const texts = await readGitPointerTextBatch(root, requests)
+  for (const pending of pendingCandidates) {
+    const text = texts.get(
+      gitPointerTextKey({
+        source: pending.metadataSource,
+        relativePath: pending.relativePath,
+      })
+    )
+    if (text === undefined) {
+      throw new Error(
+        `Git returned an incomplete Cheap LFS pointer for ${pending.relativePath}.`
+      )
+    }
     const identity = pointerIdentity(text)
     if (identity === null) {
       continue
-    }
-    const hashed = {
-      sha256: trackedProof.sha256!,
-      sizeInBytes: trackedProof.sizeInBytes,
     }
     // Suppression is safe only when the index pointer is itself committed.
     // A staged raw blob (HEAD still has a pointer), staged pointer rewrite, or
     // newly-added index pointer must remain visible and pass through re-pin
     // protection instead of being projected as clean.
     const indexMatchesHead =
-      metadataSource === 'index' &&
-      head.has(relativePath) &&
-      (await readGitPointerText(root, 'head', relativePath)) === text
-    candidates.push({
-      relativePath,
+      pending.compareHead &&
+      texts.get(
+        gitPointerTextKey({
+          source: 'head',
+          relativePath: pending.relativePath,
+        })
+      ) === text
+    let workingTreeSha256 = pending.proof.sha256 ?? undefined
+    let workingTreeSizeInBytes = pending.proof.sizeInBytes
+    let workingTreeState: 'materialized' | 'modified' = 'modified'
+    if (indexMatchesHead && workingTreeSizeInBytes === identity.sizeInBytes) {
+      // Only a real content-hash equality proof may suppress a path from
+      // status as 'materialized'. A size mismatch is already proof of
+      // modification, so it never pays for a hash of a large edited file.
+      if (workingTreeSha256 === undefined) {
+        const proven = await store.proveDestination(root, pending.relativePath)
+        if (!proven.exists || proven.sha256 === null) {
+          continue
+        }
+        workingTreeSha256 = proven.sha256
+        workingTreeSizeInBytes = proven.sizeInBytes
+      }
+      if (
+        workingTreeSizeInBytes === identity.sizeInBytes &&
+        workingTreeSha256 === identity.sha256
+      ) {
+        workingTreeState = 'materialized'
+      }
+    }
+    results[pending.slot] = {
+      relativePath: pending.relativePath,
       text,
-      workingTreeState:
-        indexMatchesHead &&
-        hashed.sizeInBytes === identity.sizeInBytes &&
-        hashed.sha256 === identity.sha256
-          ? 'materialized'
-          : 'modified',
-      metadataSource,
-      workingTreeSha256: hashed.sha256,
-      workingTreeSizeInBytes: hashed.sizeInBytes,
-    })
+      workingTreeState,
+      metadataSource: pending.metadataSource,
+      workingTreeSha256,
+      workingTreeSizeInBytes,
+    }
   }
-  return candidates
+  return results.filter(
+    (candidate): candidate is ICheapLfsPointerCandidate => candidate !== null
+  )
 }
 
 async function scanPointerCandidatesFromDisk(
@@ -858,6 +996,20 @@ async function scanPointerCandidatesFromDisk(
           })
         }
       } else if (entry.isFile()) {
+        // A file the bounded pointer format already excludes is skipped from a
+        // plain stat, before `proveExisting` would hash its entire content.
+        // Small enough candidates still receive the full existing proof
+        // (symlink/link-count/identity checks plus hash) before any text is
+        // trusted, and a file that grows past the bound between the stat and
+        // the proof is discarded by the size check below exactly as before.
+        try {
+          const quick = await lstat(join(dir, entry.name))
+          if (quick.size > CheapLfsMaximumAnyPointerTextBytes) {
+            continue
+          }
+        } catch {
+          continue
+        }
         let trackedProof: ICheapLfsTrackedFileProof
         try {
           trackedProof = await defaultCheapLfsTrackedPathStore.proveExisting(
@@ -2576,10 +2728,17 @@ export async function planCheapLfsManualUpload(
       )
     }
     trackedPathKeys.add(trackedPathKey)
-    const trackedProof = await trackedPaths?.proveDestination(
-      repository.path,
-      trackedRelativePath
-    )
+    // Identity-only proof: the batch's own `hashFileParts` pass below is the
+    // authoritative content hash, so proving the destination must not read the
+    // whole file a second time.
+    const trackedProof =
+      trackedPaths === undefined
+        ? undefined
+        : await (trackedPaths.proveDestinationIdentity?.(
+            repository.path,
+            trackedRelativePath
+          ) ??
+            trackedPaths.proveDestination(repository.path, trackedRelativePath))
     const baseName = normalizeGitHubReleaseAssetName(
       basename(candidate.absoluteFilePath)
     )
@@ -3639,9 +3798,10 @@ export async function selectCheapLfsAutoPinTargets(
     }
   }
 
-  // Proving a destination hashes its contents. Stat every selected path first
-  // so ordinary files never pay that cost while oversized files retain the
-  // exact tracked-path containment and identity proof used by pinning.
+  // Stat every selected path first so ordinary files never pay a proof, while
+  // oversized files retain the exact tracked-path containment and identity
+  // checks used by pinning. The identity proof defers the content hash — the
+  // pin path's owned-copy hash remains the single authoritative content proof.
   for (const candidate of oversizedCandidates) {
     if (signal?.aborted) {
       throw abortError('Cheap LFS commit upload was canceled.')
@@ -3650,10 +3810,14 @@ export async function selectCheapLfsAutoPinTargets(
     let trackedProof: ICheapLfsTrackedFileProof | undefined
     if (trackedPaths !== undefined) {
       try {
-        trackedProof = await trackedPaths.proveDestination(
+        trackedProof = await (trackedPaths.proveDestinationIdentity?.(
           repository.path,
           candidate.relativePath
-        )
+        ) ??
+          trackedPaths.proveDestination(
+            repository.path,
+            candidate.relativePath
+          ))
       } catch {
         continue
       }
