@@ -257,6 +257,14 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
       entry.text
     )
     const nameIndex = entry.deflated ? 4 : 3
+    // Deliberately measured in UTF-16 code units, not UTF-8 bytes, even though
+    // *writing* a name now budgets bytes. No string can spend fewer bytes than
+    // it has code units, so a 255-byte name is always within 255 characters:
+    // the character bound is the strictly wider of the two. Tightening this to
+    // bytes would orphan every pointer written by an earlier version under the
+    // old character budget — a 255-character CJK name is ~765 bytes — and those
+    // files are already pinned and already committed. A parser may widen what
+    // it accepts; it must never narrow it.
     if (match === null || match[nameIndex].length > 255) {
       return null
     }
@@ -352,6 +360,13 @@ export function validateCheapLfsTrackedPath(relPath: string): string | null {
     segments.some(segment => segment.length === 0) ||
     segments.some(
       segment =>
+        // Also deliberately UTF-16 code units. This bound describes the *local
+        // filesystem*, not GitHub: NTFS and APFS both count 255 name units the
+        // way JavaScript does, so a 200-character Chinese file name is a real,
+        // creatable file on the platforms this app ships to. Re-measuring in
+        // bytes would import ext4's 255-*byte* NAME_MAX and start refusing to
+        // track files the user is looking at in Explorer. The GitHub-side byte
+        // budget is enforced where it belongs, on the asset name.
         segment.length > 255 ||
         invalidWindowsSegmentCharacters.test(segment) ||
         /[ .]$/.test(segment) ||

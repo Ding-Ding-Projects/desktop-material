@@ -488,6 +488,63 @@ untracked file, automatic pinning selected it, and the app uploaded its own
 scratch to the user's release — failing when materialize renamed the temp away
 mid-upload (issue #65).
 
+## Asset naming and the UTF-8 byte budget
+
+Release asset names and labels are budgeted in **UTF-8 bytes**, not in
+JavaScript string length. A JavaScript string counts UTF-16 code units, so a
+200-character Chinese file name reads as "200" but encodes to 600 bytes, and an
+emoji costs four bytes for its two code units. GitHub publishes the number 255
+for asset names and labels without stating its unit, and this project has never
+probed the live API to settle it, so the byte reading is adopted deliberately as
+the fail-closed one: it is never looser than a character budget, so at worst it
+shortens a non-ASCII name GitHub would have accepted, whereas a character budget
+would offer GitHub a 765-byte name and be refused *after* the transfer had
+begun — in a multi-part pin, partway through a batch, with assets already on the
+release. Since this app is built for Cantonese-speaking users, CJK file names are
+ordinary input rather than an edge case.
+
+`truncateToUtf8ByteBudget` and `keepUtf8ByteTail` (`app/src/lib/utf8-budget.ts`)
+do all the trimming and cut only on code-point boundaries, so a surrogate pair
+is never halved and the result always re-encodes as well-formed UTF-8. The
+contract every naming site holds to:
+
+- **The suffix is never truncated.** `.partNNN`, `.deflate`, and any
+  disambiguating content hash are what make a name resolvable and unique. Only
+  the base is trimmed, and the multipart budget reserves the `.partNNN` tail up
+  front so the whole family fits once each part name is formed.
+- **The source base name is trimmed before it is validated,** not after, so a
+  long CJK file name shortens instead of being refused outright. Nothing is lost:
+  the asset name only records where the bytes are parked, and the committed
+  pointer keeps the file's real path in full.
+- **Truncation collisions are still separated by content.** Two different long
+  names that trim to the same bytes are pulled apart by `dedupeAssetName` and
+  `dedupeMultiPartBaseName`, which append a short SHA-256 prefix and then a
+  numbered variant, re-trimming the base each time so the result stays in budget.
+- **Labels follow the same rule.** A label ends with the tracked path, which is
+  exactly where non-ASCII text lives, so its over-long path is elided by bytes
+  behind the leading `...` marker, keeping the recognizable tail.
+- **The pointer parser is deliberately still character-measured.** No string
+  spends fewer bytes than it has code units, so 255 characters is the *wider*
+  bound and accepts everything the byte-budgeted writer can now produce.
+  Tightening it would orphan pointers written by earlier versions under the old
+  character rule — a 247-character CJK base plus `.part001` is 749 bytes, and
+  those files are already pinned and already committed. A parser may widen what
+  it accepts; it must never narrow it.
+- **The tracked-path segment check is also still character-measured,** because
+  it describes the *local filesystem* rather than GitHub. NTFS and APFS both
+  count 255 name units the way JavaScript does, so a 200-character Chinese file
+  name is a real, creatable file on the platforms this app ships to;
+  re-measuring in bytes would import ext4's 255-byte `NAME_MAX` and start
+  refusing to track files the user can see in Explorer.
+
+Manual release-asset uploads in the Releases view split the difference. The name
+the picker suggests from the chosen file is trimmed to the byte budget, so a
+long CJK file name still opens the upload panel with an editable name rather
+than refusing the file outright. The name the user then confirms is validated,
+not trimmed: for a published artifact the name is the user's own deliberate
+choice, so an over-budget one is reported before the transfer starts rather than
+silently renamed behind their back.
+
 ## First publish: anchoring the release before any upload
 
 A GitHub Release tag can only be created against a commit GitHub already has.
