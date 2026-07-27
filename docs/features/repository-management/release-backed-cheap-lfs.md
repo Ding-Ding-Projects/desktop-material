@@ -249,6 +249,70 @@ playful Hong Kong-style Cantonese, and bilingual modes cover the setting,
 manager status, local-only decompression notice, raw/compressed/mixed
 pointer badges, and every background workflow-install notice.
 
+### Post-commit payload restore
+
+A pin uploads from a private copy in the OS temp directory, replaces the
+working-tree original with pointer text, and deletes both. Before this contract
+existed, a repository that had just committed large files therefore held no
+copy of them at all: the post-commit inventory classified every freshly pinned
+path as `pointer`, and the very next auto-materialize detect point — a
+user-initiated fetch, any pull (including the pull that "Commit & push all"
+performs first), reopening or re-selecting the repository, or re-registering it
+— downloaded bytes that had been on the machine seconds earlier. Which detect
+point fired first is why the same commit sometimes re-downloaded everything and
+sometimes did not (#55).
+
+The commit flow now keeps the verified copy alive across the commit and puts it
+back:
+
+- `pinFileToRelease` accepts `retainSourceForRestore`. With it set, the private
+  upload copy is **not** deleted on the success path, and the pin result carries
+  the owned handle plus the payload's proven size and SHA-256. Every failure,
+  abort, and early throw still deletes it exactly as before.
+- The retained handles travel with the automatic-pin outcome. Whatever is not
+  handed back to the commit — an aborted lane, a failed batch, an automatic
+  batch superseded by the manual browser handoff — is discarded in the pin
+  run's own `finally`, and the commit discards what it received in a `finally`
+  of its own. No exit path leaks a temp payload.
+- After every commit batch succeeds, and before the Changes refresh, each
+  retained payload is reinstalled over the pointer that commit just recorded.
+- Restoring turns the entry from `pointer` into `materialized`, and
+  `materialized` is excluded from the set the auto-materialize detectors select.
+  The result is zero downloads for a file this machine just uploaded.
+
+Verification is not weakened anywhere. A path is touched only when the bytes
+currently on disk are byte-for-byte the pointer text that pin published — a
+concurrent edit, a checkout, or a failed commit leaves the path strictly alone.
+The reinstall goes through the same `replaceFromPath` the download path uses, so
+the retained copy is re-hashed and rejected on any size or SHA-256 drift exactly
+as a corrupted download is. Nothing here throws: on any failure the committed
+pointer is left intact and that file simply materializes later, which is the
+behavior that existed before this contract. `cleanupOwned` remains
+identity-checked, so a temp replaced by something else is preserved and logged
+rather than deleted.
+
+### Never re-pinning an unchanged payload
+
+A selected file whose working-tree bytes are *proven* identical to the pointer
+`HEAD` already holds is neither re-uploaded nor committed. Re-pinning it would
+spend the user's bandwidth on a byte-identical asset, and committing it would
+stage raw bytes into a commit that already contains that exact pointer.
+
+The proof required is deliberately strict, because the consequence is leaving a
+path out of the user's commit. All of the following must hold: the inventory
+scan recorded an explicit working-tree content hash, that hash equals the
+pointer's own digest, the sizes match exactly, and the entry classified as
+`materialized` — which is what proves the index pointer is the committed one
+rather than a staged rewrite. The classification alone is never sufficient:
+identity-only scans legitimately leave the working-tree hash undefined, and a
+size-mismatched `modified` entry has no hash at all. Anything the scan cannot
+prove is pinned and committed exactly as before, so a genuinely edited large
+file is never silently dropped from a commit.
+
+Files left out this way are reported in a notification naming them and stating
+that nothing was uploaded because the commit already holds their pointers, in
+English, playful Hong Kong-style Cantonese, and bilingual modes.
+
 ### Private pointer commit-key guard
 
 A private OCI pointer binds its exact shared registry key to the commit. The

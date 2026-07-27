@@ -1862,6 +1862,10 @@ export type TranslationKey =
   | 'cheapLfs.pinFailures.manyOmitted'
   | 'cheapLfs.pinFailures.reason'
   | 'cheapLfs.pinFailures.reasonWithStatus'
+  | 'cheapLfs.alreadyStored.title'
+  | 'cheapLfs.alreadyStored.one'
+  | 'cheapLfs.alreadyStored.many'
+  | 'cheapLfs.alreadyStored.manyOmitted'
   | 'cheapLfs.firstPublish.noRepository'
   | 'cheapLfs.firstPublish.noRemote'
   | 'cheapLfs.firstPublish.detachedHead'
@@ -4508,6 +4512,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     '{count} large files ({names}, plus {omitted} more) remain in Changes and were excluded from this commit. Other selected safe changes can continue now; commit again to retry these files.',
   'cheapLfs.pinFailures.reason': ' Reason: {reason}',
   'cheapLfs.pinFailures.reasonWithStatus': ' Reason: HTTP {status} — {reason}',
+  'cheapLfs.alreadyStored.title': 'Some large files were already stored',
+  'cheapLfs.alreadyStored.one':
+    '{names} was left out of this commit: its bytes were verified to be exactly the large file the committed pointer already names, so nothing was uploaded and the commit already holds that pointer.',
+  'cheapLfs.alreadyStored.many':
+    '{count} large files ({names}) were left out of this commit: their bytes were verified to be exactly the large files the committed pointers already name, so nothing was uploaded and the commit already holds those pointers.',
+  'cheapLfs.alreadyStored.manyOmitted':
+    '{count} large files ({names}, plus {omitted} more) were left out of this commit: their bytes were verified to be exactly the large files the committed pointers already name, so nothing was uploaded and the commit already holds those pointers.',
   'cheapLfs.firstPublish.noRepository':
     'This repository is not connected to a GitHub repository, so no release can hold its large files. Publish the repository to GitHub, then commit again.',
   'cheapLfs.firstPublish.noRemote':
@@ -7022,6 +7033,13 @@ export const cantoneseTranslations: Readonly<
     '{count} 個大檔案（{names}，仲有 {omitted} 個）會留喺 Changes，今次 commit 已經排除佢哋。其他揀咗嘅安全變更會照行；完成後再 commit 一次就會重試呢啲檔案。',
   'cheapLfs.pinFailures.reason': ' 原因：{reason}',
   'cheapLfs.pinFailures.reasonWithStatus': ' 原因：HTTP {status} — {reason}',
+  'cheapLfs.alreadyStored.title': '有啲大檔案本身已經存好咗',
+  'cheapLfs.alreadyStored.one':
+    '{names} 冇入今次 commit：核對過佢啲 bytes 同 commit 咗嘅 pointer 指住嗰個大檔案一模一樣，所以冇再上載，而個 commit 本身已經有嗰個 pointer。',
+  'cheapLfs.alreadyStored.many':
+    '{count} 個大檔案（{names}）冇入今次 commit：核對過佢哋啲 bytes 同 commit 咗嘅 pointer 指住嗰啲大檔案一模一樣，所以冇再上載，而個 commit 本身已經有嗰啲 pointer。',
+  'cheapLfs.alreadyStored.manyOmitted':
+    '{count} 個大檔案（{names}，仲有 {omitted} 個）冇入今次 commit：核對過佢哋啲 bytes 同 commit 咗嘅 pointer 指住嗰啲大檔案一模一樣，所以冇再上載，而個 commit 本身已經有嗰啲 pointer。',
   'cheapLfs.firstPublish.noRepository':
     '呢個 repository 未連到 GitHub repository，冇 release 可以放大檔案。請先將 repository 發佈到 GitHub，然後再 commit 一次。',
   'cheapLfs.firstPublish.noRemote':
