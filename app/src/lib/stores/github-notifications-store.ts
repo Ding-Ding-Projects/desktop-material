@@ -300,12 +300,52 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
    * and prevent stale results from updating the replacement inbox.
    */
   public async markAllThreadsDone(): Promise<IGitHubNotificationsClearResult> {
+    if (this.state.loading) {
+      return { attempted: 0, cleared: 0, failedIds: [], canceled: true }
+    }
+    return this.bulkMutateThreads(
+      this.state.notifications.map(item => item.id),
+      'done'
+    )
+  }
+
+  /**
+   * Mark a selection of threads read or done through the bounded worker pool.
+   * One HTTPS round trip per thread is unavoidable (the GitHub API has no bulk
+   * endpoint), but the pool keeps a small fixed number in flight instead of
+   * awaiting them serially, and the inbox is rewritten in a single state
+   * update when the pool settles. Per-thread failures are reported in
+   * `failedIds` so callers can keep them selected for retry.
+   */
+  public async markSelectedThreads(
+    ids: ReadonlyArray<string>,
+    action: 'read' | 'done',
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<IGitHubNotificationsClearResult> {
+    // A thread that is already read (or already gone from the inbox) needs no
+    // API call, matching the single-thread markThreadRead/markThreadDone
+    // behavior of treating it as trivially succeeded.
+    const eligible = new Set(
+      this.state.notifications
+        .filter(item => action === 'done' || item.unread)
+        .map(item => item.id)
+    )
+    return this.bulkMutateThreads(
+      ids.filter(id => eligible.has(id)),
+      action,
+      onProgress
+    )
+  }
+
+  private async bulkMutateThreads(
+    ids: ReadonlyArray<string>,
+    action: 'read' | 'done',
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<IGitHubNotificationsClearResult> {
     const account = this.accountForKey(this.state.selectedAccountKey)
-    const ids = this.state.notifications.map(item => item.id)
     if (
       !this.active ||
       account === null ||
-      this.state.loading ||
       this.state.busyThreadId !== null ||
       this.state.clearingAll
     ) {
@@ -341,12 +381,11 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
     })
     const publishProgress = () => {
       if (this.ownsClearAll(contextGeneration, accountKey)) {
+        const completed = succeeded.size + failed.size
         this.update({
-          clearAllProgress: {
-            completed: succeeded.size + failed.size,
-            total: ids.length,
-          },
+          clearAllProgress: { completed, total: ids.length },
         })
+        onProgress?.(completed, ids.length)
       }
     }
 
@@ -365,7 +404,11 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
         const controller = new AbortController()
         this.mutationControllers.add(controller)
         try {
-          await api.markNotificationThreadDone(id, controller.signal)
+          if (action === 'read') {
+            await api.markNotificationThreadRead(id, controller.signal)
+          } else {
+            await api.markNotificationThreadDone(id, controller.signal)
+          }
           if (!this.ownsClearAll(contextGeneration, accountKey)) {
             return
           }
@@ -413,9 +456,12 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
     const failedIds = ids.filter(id => failed.has(id))
     const failedCount = failedIds.length
     this.update({
-      notifications: this.state.notifications.filter(
-        item => !succeeded.has(item.id)
-      ),
+      notifications:
+        action === 'done'
+          ? this.state.notifications.filter(item => !succeeded.has(item.id))
+          : this.state.notifications.map(item =>
+              succeeded.has(item.id) ? { ...item, unread: false } : item
+            ),
       clearingAll: false,
       clearAllProgress: null,
       error:
@@ -427,7 +473,7 @@ export class GitHubNotificationsStore extends TypedBaseStore<IGitHubNotification
               kind: 'unknown',
               message: `${failedCount} GitHub notification${
                 failedCount === 1 ? '' : 's'
-              } could not be marked done. ${
+              } could not be marked ${action}. ${
                 failedCount === 1 ? 'It remains' : 'They remain'
               } in the inbox so you can retry.`,
               rateLimitReset: null,

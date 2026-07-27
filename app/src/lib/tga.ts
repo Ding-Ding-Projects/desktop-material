@@ -1,5 +1,5 @@
 import crc32 from 'buffer-crc32'
-import { deflateSync } from 'zlib'
+import { deflate } from 'zlib'
 
 /** Maximum source bytes accepted by the in-app TGA previewer. */
 export const MaxTGAFileBytes = 24 * 1024 * 1024
@@ -24,6 +24,28 @@ function fail(reason: TGAConversionFailure): never {
   throw new TGAConversionError(reason)
 }
 
+/**
+ * Pixels decoded between yields back to the event loop. Conversion runs on the
+ * renderer thread, so the per-pixel decode is chunked to keep input, animation,
+ * and list scrolling responsive while a large TGA is being converted.
+ */
+const TGADecodeChunkPixels = 256 * 1024
+
+const yieldToEventLoop = (): Promise<void> =>
+  new Promise(resolve => setImmediate(resolve))
+
+/**
+ * Asynchronous zlib deflate with the same default options as deflateSync, so
+ * the compressed IDAT bytes are identical to the previous synchronous output
+ * while the compression itself runs on the libuv thread pool.
+ */
+const deflateAsync = (data: Buffer): Promise<Buffer> =>
+  new Promise((resolve, reject) =>
+    deflate(data, (error, result) =>
+      error !== null ? reject(error) : resolve(result)
+    )
+  )
+
 function pngChunk(type: string, data: Buffer): Buffer {
   const typeBuffer = Buffer.from(type, 'ascii')
   const chunk = Buffer.allocUnsafe(12 + data.length)
@@ -37,7 +59,11 @@ function pngChunk(type: string, data: Buffer): Buffer {
   return chunk
 }
 
-function encodePNG(width: number, height: number, scanlines: Buffer): Buffer {
+async function encodePNG(
+  width: number,
+  height: number,
+  scanlines: Buffer
+): Promise<Buffer> {
   const header = Buffer.alloc(13)
   header.writeUInt32BE(width, 0)
   header.writeUInt32BE(height, 4)
@@ -50,7 +76,7 @@ function encodePNG(width: number, height: number, scanlines: Buffer): Buffer {
   return Buffer.concat([
     Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
     pngChunk('IHDR', header),
-    pngChunk('IDAT', deflateSync(scanlines)),
+    pngChunk('IDAT', await deflateAsync(scanlines)),
     pngChunk('IEND', Buffer.alloc(0)),
   ])
 }
@@ -62,8 +88,13 @@ function encodePNG(width: number, height: number, scanlines: Buffer): Buffer {
  * grayscale (type 3), and RLE true-color (type 10), including all four origin
  * orientations. Color-mapped and interleaved images deliberately fall back to
  * the binary-file experience.
+ *
+ * The conversion is asynchronous: the per-pixel decode yields to the event
+ * loop between chunks and the PNG deflate runs off-thread, so selecting a
+ * large TGA never blocks the renderer. The produced bytes are identical to
+ * the previous synchronous implementation.
  */
-export function convertTGAToPNG(input: Uint8Array): Buffer {
+export async function convertTGAToPNG(input: Uint8Array): Promise<Buffer> {
   if (input.byteLength > MaxTGAFileBytes) {
     fail('oversized')
   }
@@ -140,9 +171,15 @@ export function convertTGAToPNG(input: Uint8Array): Buffer {
     if (sourceOffset + pixelCount > contents.length) {
       fail('invalid')
     }
-    for (let fileIndex = 0; fileIndex < pixelCount; fileIndex++) {
-      const value = contents[sourceOffset++]
-      writePixel(fileIndex, value, value, value, 255)
+    for (let start = 0; start < pixelCount; start += TGADecodeChunkPixels) {
+      const end = Math.min(start + TGADecodeChunkPixels, pixelCount)
+      for (let fileIndex = start; fileIndex < end; fileIndex++) {
+        const value = contents[sourceOffset++]
+        writePixel(fileIndex, value, value, value, 255)
+      }
+      if (end < pixelCount) {
+        await yieldToEventLoop()
+      }
     }
     return encodePNG(width, height, scanlines)
   }
@@ -161,14 +198,25 @@ export function convertTGAToPNG(input: Uint8Array): Buffer {
   }
 
   if (imageType === 2) {
-    for (let fileIndex = 0; fileIndex < pixelCount; fileIndex++) {
-      writePixel(fileIndex, ...readColor())
+    for (let start = 0; start < pixelCount; start += TGADecodeChunkPixels) {
+      const end = Math.min(start + TGADecodeChunkPixels, pixelCount)
+      for (let fileIndex = start; fileIndex < end; fileIndex++) {
+        writePixel(fileIndex, ...readColor())
+      }
+      if (end < pixelCount) {
+        await yieldToEventLoop()
+      }
     }
     return encodePNG(width, height, scanlines)
   }
 
   let fileIndex = 0
+  let nextYieldAt = TGADecodeChunkPixels
   while (fileIndex < pixelCount) {
+    if (fileIndex >= nextYieldAt) {
+      await yieldToEventLoop()
+      nextYieldAt = fileIndex + TGADecodeChunkPixels
+    }
     if (sourceOffset >= contents.length) {
       fail('invalid')
     }

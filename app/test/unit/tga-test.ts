@@ -70,19 +70,19 @@ function pngPixels(png: Buffer): {
 }
 
 function expectFailure(input: Buffer, reason: TGAConversionError['reason']) {
-  assert.throws(
+  return assert.rejects(
     () => convertTGAToPNG(input),
     error => error instanceof TGAConversionError && error.reason === reason
   )
 }
 
 describe('TGA preview conversion', () => {
-  it('decodes uncompressed true-color pixels with bottom-right orientation', () => {
+  it('decodes uncompressed true-color pixels with bottom-right orientation', async () => {
     const input = Buffer.concat([
       tgaHeader(2, 2, 2, 24, 0x10),
       Buffer.from([255, 255, 255, 255, 0, 0, 0, 255, 0, 0, 0, 255]),
     ])
-    const result = pngPixels(convertTGAToPNG(input))
+    const result = pngPixels(await convertTGAToPNG(input))
 
     assert.equal(result.width, 2)
     assert.equal(result.height, 2)
@@ -92,35 +92,38 @@ describe('TGA preview conversion', () => {
     )
   })
 
-  it('decodes RLE true-color packets', () => {
+  it('decodes RLE true-color packets', async () => {
     const input = Buffer.concat([
       tgaHeader(10, 3, 1, 24, 0x20),
       Buffer.from([0x81, 0, 0, 255, 0, 0, 255, 0]),
     ])
 
     assert.deepEqual(
-      pngPixels(convertTGAToPNG(input)).pixels,
+      pngPixels(await convertTGAToPNG(input)).pixels,
       [255, 0, 0, 255, 255, 0, 0, 255, 0, 255, 0, 255]
     )
   })
 
-  it('decodes uncompressed grayscale pixels', () => {
+  it('decodes uncompressed grayscale pixels', async () => {
     const input = Buffer.concat([
       tgaHeader(3, 2, 1, 8, 0x20),
       Buffer.from([17, 200]),
     ])
 
     assert.deepEqual(
-      pngPixels(convertTGAToPNG(input)).pixels,
+      pngPixels(await convertTGAToPNG(input)).pixels,
       [17, 17, 17, 255, 200, 200, 200, 255]
     )
   })
 
-  it('rejects truncated, unsupported, and oversized inputs', () => {
-    expectFailure(tgaHeader(2, 1, 1, 24, 0x20), 'invalid')
-    expectFailure(tgaHeader(1, 1, 1, 8, 0x20), 'unsupported')
-    expectFailure(Buffer.alloc(MaxTGAFileBytes + 1), 'oversized')
-    expectFailure(tgaHeader(2, MaxTGADimension + 1, 1, 24, 0x20), 'oversized')
+  it('rejects truncated, unsupported, and oversized inputs', async () => {
+    await expectFailure(tgaHeader(2, 1, 1, 24, 0x20), 'invalid')
+    await expectFailure(tgaHeader(1, 1, 1, 8, 0x20), 'unsupported')
+    await expectFailure(Buffer.alloc(MaxTGAFileBytes + 1), 'oversized')
+    await expectFailure(
+      tgaHeader(2, MaxTGADimension + 1, 1, 24, 0x20),
+      'oversized'
+    )
   })
 
   it('converts valid TGA git diffs to browser-renderable PNG data', async t => {

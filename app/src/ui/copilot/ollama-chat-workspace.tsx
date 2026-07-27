@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import { clipboard } from 'electron'
 import { Disposable } from 'event-kit'
+import memoizeOne from 'memoize-one'
 
 import {
   accentPalettes,
@@ -153,6 +154,78 @@ const ChatImageMediaTypes = new Set<ChatImageMediaType>([
   'image/webp',
 ])
 
+interface IOllamaChatMessageProps {
+  readonly message: IChatSessionDocument['messages'][number]
+  /** True only for the in-flight assistant reply row. */
+  readonly streaming: boolean
+  readonly strings: IOllamaChatWorkspaceStrings
+  /**
+   * Style shared by every row; must be referentially stable between renders
+   * (the workspace memoizes it) so completed rows can bail out of updates.
+   */
+  readonly messageStyle: React.CSSProperties
+}
+
+/**
+ * One transcript row. A PureComponent so a streamed token chunk — which only
+ * changes the synthetic streaming row's content — re-renders just that row
+ * instead of reconciling every prior message and re-emitting every embedded
+ * base64 image on each delta.
+ */
+class OllamaChatMessage extends React.PureComponent<IOllamaChatMessageProps> {
+  private onCopy = () => clipboard.writeText(this.props.message.content)
+
+  private roleLabel(): string {
+    switch (this.props.message.role) {
+      case 'user':
+        return this.props.strings.chatYou
+      case 'assistant':
+        return this.props.strings.chatAssistant
+      case 'system':
+        return this.props.strings.chatSystem
+    }
+  }
+
+  public render(): JSX.Element {
+    const { message, streaming, strings, messageStyle } = this.props
+    return (
+      <div
+        className={`ollama-chat-message is-${message.role}${
+          streaming ? ' is-streaming' : ''
+        }`}
+        data-verification={`ollama-chat-${message.role}`}
+      >
+        <header>
+          <span className="ollama-chat-role">{this.roleLabel()}</span>
+          <Button
+            size="small"
+            ariaLabel={strings.chatCopy}
+            tooltip={strings.chatCopy}
+            disabled={message.content.length === 0}
+            onClick={this.onCopy}
+          >
+            {strings.chatCopy}
+          </Button>
+        </header>
+        {message.images !== undefined && (
+          <div className="ollama-chat-message-images">
+            {message.images.map((image, index) => (
+              <img
+                key={index}
+                src={`data:${image.mediaType};base64,${image.data}`}
+                alt={strings.chatImageAlt(index + 1)}
+              />
+            ))}
+          </div>
+        )}
+        <p style={messageStyle}>
+          {message.content.length === 0 && streaming ? '…' : message.content}
+        </p>
+      </div>
+    )
+  }
+}
+
 /** Persisted multi-conversation workspace for one Ollama provider. */
 export class OllamaChatWorkspace extends React.Component<
   IOllamaChatWorkspaceProps,
@@ -168,6 +241,16 @@ export class OllamaChatWorkspace extends React.Component<
   private fileInput: HTMLInputElement | null = null
   private transcript: HTMLDivElement | null = null
   private mounted = false
+
+  /**
+   * Memoized so every completed transcript row receives the identical style
+   * object between renders; a fresh object per render would defeat the row
+   * component's PureComponent bail-out during token streaming.
+   */
+  private readonly messageStyleFor = memoizeOne(
+    (style: IChatSessionDocument['fontSettings']['messageStyle'] | null) =>
+      tabTitleStyleToCss(style)
+  )
 
   public constructor(props: IOllamaChatWorkspaceProps) {
     super(props)
@@ -806,10 +889,6 @@ export class OllamaChatWorkspace extends React.Component<
     }
   }
 
-  private copyText(text: string): void {
-    clipboard.writeText(text)
-  }
-
   private scrollToBottom(): void {
     if (this.transcript !== null) {
       this.transcript.scrollTop = this.transcript.scrollHeight
@@ -957,68 +1036,6 @@ export class OllamaChatWorkspace extends React.Component<
     )
   }
 
-  private roleLabel(
-    role: IChatSessionDocument['messages'][number]['role']
-  ): string {
-    switch (role) {
-      case 'user':
-        return this.props.strings.chatYou
-      case 'assistant':
-        return this.props.strings.chatAssistant
-      case 'system':
-        return this.props.strings.chatSystem
-    }
-  }
-
-  private renderMessage(
-    message: IChatSessionDocument['messages'][number],
-    streaming: boolean = false
-  ): JSX.Element {
-    const { strings } = this.props
-    const messageStyle = tabTitleStyleToCss(
-      this.state.session?.fontSettings.messageStyle ?? null
-    )
-    return (
-      <div
-        key={message.id}
-        className={`ollama-chat-message is-${message.role}${
-          streaming ? ' is-streaming' : ''
-        }`}
-        data-verification={`ollama-chat-${message.role}`}
-      >
-        <header>
-          <span className="ollama-chat-role">
-            {this.roleLabel(message.role)}
-          </span>
-          <Button
-            size="small"
-            ariaLabel={strings.chatCopy}
-            tooltip={strings.chatCopy}
-            disabled={message.content.length === 0}
-            // eslint-disable-next-line react/jsx-no-bind
-            onClick={() => this.copyText(message.content)}
-          >
-            {strings.chatCopy}
-          </Button>
-        </header>
-        {message.images !== undefined && (
-          <div className="ollama-chat-message-images">
-            {message.images.map((image, index) => (
-              <img
-                key={index}
-                src={`data:${image.mediaType};base64,${image.data}`}
-                alt={strings.chatImageAlt(index + 1)}
-              />
-            ))}
-          </div>
-        )}
-        <p style={messageStyle}>
-          {message.content.length === 0 && streaming ? '…' : message.content}
-        </p>
-      </div>
-    )
-  }
-
   private renderSettings(): JSX.Element | null {
     const session = this.state.session
     if (!this.state.settingsOpen || session === null) {
@@ -1099,6 +1116,7 @@ export class OllamaChatWorkspace extends React.Component<
       )
     }
     const inputStyle = tabTitleStyleToCss(session.fontSettings.inputStyle)
+    const messageStyle = this.messageStyleFor(session.fontSettings.messageStyle)
     const effectiveModel = this.effectiveModel()
     return (
       <main className="ollama-chat-conversation">
@@ -1150,18 +1168,30 @@ export class OllamaChatWorkspace extends React.Component<
           {session.messages.length === 0 && !this.state.streaming ? (
             <p className="ollama-chat-empty">{strings.chatEmpty}</p>
           ) : (
-            session.messages.map(message => this.renderMessage(message))
+            session.messages.map(message => (
+              <OllamaChatMessage
+                key={message.id}
+                message={message}
+                streaming={false}
+                strings={strings}
+                messageStyle={messageStyle}
+              />
+            ))
           )}
-          {this.state.streaming &&
-            this.renderMessage(
-              {
+          {this.state.streaming && (
+            <OllamaChatMessage
+              key="__streaming__"
+              message={{
                 id: '__streaming__',
                 role: 'assistant',
                 content: this.state.streamingText,
                 createdAt: Date.now(),
-              },
-              true
-            )}
+              }}
+              streaming={true}
+              strings={strings}
+              messageStyle={messageStyle}
+            />
+          )}
         </div>
         {this.state.streaming && (
           <p
