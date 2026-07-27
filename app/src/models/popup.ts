@@ -126,6 +126,7 @@ export enum PopupType {
   OversizedFiles = 'OversizedFiles',
   CommitConflictsWarning = 'CommitConflictsWarning',
   PushNeedsPull = 'PushNeedsPull',
+  PullBranchDeleted = 'PullBranchDeleted',
   ConfirmForcePush = 'ConfirmForcePush',
   StashAndSwitchBranch = 'StashAndSwitchBranch',
   ConfirmDiscardStash = 'ConfirmDiscardStash',
@@ -453,6 +454,16 @@ export type PopupDetail =
   | {
       type: PopupType.PushNeedsPull
       repository: Repository
+    }
+  | {
+      type: PopupType.PullBranchDeleted
+      repository: Repository
+      /** The local branch whose remote-tracking branch no longer exists. */
+      branchName: string
+      /** The remote that no longer advertises the branch. */
+      remoteName: string
+      /** The branch name as it was expected to exist on that remote. */
+      remoteBranchName: string
     }
   | {
       type: PopupType.ConfirmForcePush
