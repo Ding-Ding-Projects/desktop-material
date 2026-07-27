@@ -269,6 +269,17 @@ export type TranslationKey =
   | 'submodule.addPathChecking'
   | 'submodule.addPathHelp'
   | 'submodule.addBranchHelp'
+  | 'submodule.addLoadBranchesAction'
+  | 'submodule.addLoadingBranches'
+  | 'submodule.addBranchListFailed'
+  | 'submodule.addBranchFilterLabel'
+  | 'submodule.addBranchPickerLabel'
+  | 'submodule.addBranchDefaultOption'
+  | 'submodule.addBranchCustomOption'
+  | 'submodule.addBranchListEmpty'
+  | 'submodule.addBranchListTruncated'
+  | 'submodule.addBranchFilterNoMatches'
+  | 'submodule.addBranchFilterInvalidPattern'
   | 'submodule.addReviewLabel'
   | 'submodule.addReviewHeading'
   | 'submodule.addReviewRepositoryLabel'
@@ -2452,6 +2463,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'A relative checkout path; the final segment becomes the default submodule name.',
   'submodule.addBranchHelp':
     'Leave empty to follow the repository’s remote default branch.',
+  'submodule.addLoadBranchesAction': 'Load branches',
+  'submodule.addLoadingBranches': 'Asking the remote for its branches…',
+  'submodule.addBranchListFailed':
+    'Desktop could not list branches from the remote: {error}. You can still type a branch name.',
+  'submodule.addBranchFilterLabel': 'Filter branches',
+  'submodule.addBranchPickerLabel': 'Branch from the remote',
+  'submodule.addBranchDefaultOption': '{branch} (remote default)',
+  'submodule.addBranchCustomOption': 'Custom branch (from the branch field)',
+  'submodule.addBranchListEmpty':
+    'The remote has no branches yet, so the submodule will follow its future default branch.',
+  'submodule.addBranchListTruncated':
+    'Showing the first {count} branches from the remote.',
+  'submodule.addBranchFilterNoMatches': 'No branches match the current filter.',
+  'submodule.addBranchFilterInvalidPattern':
+    'Invalid branch search pattern: {error}',
   'submodule.addReviewLabel': 'Submodule review',
   'submodule.addReviewHeading': 'Review',
   'submodule.addReviewRepositoryLabel': 'Repository',
@@ -5080,6 +5106,19 @@ export const cantoneseTranslations: Readonly<
   'submodule.addPathHelp':
     '請用相對 checkout 路徑；最後一段會成為預設子模組名稱。',
   'submodule.addBranchHelp': '留空就會跟 repo 嘅遠端預設分支。',
+  'submodule.addLoadBranchesAction': '載入分支',
+  'submodule.addLoadingBranches': '問緊遠端攞分支清單…',
+  'submodule.addBranchListFailed':
+    'Desktop 未能由遠端列出分支：{error}。你仍然可以自己打分支名。',
+  'submodule.addBranchFilterLabel': '篩選分支',
+  'submodule.addBranchPickerLabel': '遠端分支',
+  'submodule.addBranchDefaultOption': '{branch}（遠端預設）',
+  'submodule.addBranchCustomOption': '自訂分支（用分支欄打嗰個）',
+  'submodule.addBranchListEmpty':
+    '遠端暫時未有分支，子模組會跟佢將來嘅預設分支。',
+  'submodule.addBranchListTruncated': '只顯示遠端頭 {count} 條分支。',
+  'submodule.addBranchFilterNoMatches': '而家嘅篩選搵唔到分支。',
+  'submodule.addBranchFilterInvalidPattern': '分支搜尋 pattern 無效：{error}',
   'submodule.addReviewLabel': '子模組檢視',
   'submodule.addReviewHeading': '檢視',
   'submodule.addReviewRepositoryLabel': 'Repo',

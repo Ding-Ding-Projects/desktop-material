@@ -7,7 +7,7 @@ import {
   IAPIOrganization,
   IAPIRepository,
 } from '../../../src/lib/api'
-import { IAddSubmoduleOptions } from '../../../src/lib/git'
+import { IAddSubmoduleOptions, IRemoteHeadsListing } from '../../../src/lib/git'
 import { IAccountRepositories } from '../../../src/lib/stores/api-repositories-store'
 import { Account, getAccountKey } from '../../../src/models/account'
 import { Repository } from '../../../src/models/repository'
@@ -201,6 +201,35 @@ function renderDialog(
       onRefreshRepositories={() => undefined}
       onAdded={onAdded}
       onDismissed={() => undefined}
+    />
+  )
+}
+
+const remoteBranchListing: IRemoteHeadsListing = {
+  branches: [
+    { name: 'main', sha: 'a'.repeat(40) },
+    { name: 'release/v2', sha: 'b'.repeat(40) },
+  ],
+  defaultBranch: 'main',
+  truncated: false,
+}
+
+function renderDialogWithBranchLoader(
+  onListSourceBranches: (
+    repository: Repository,
+    url: string
+  ) => Promise<IRemoteHeadsListing>
+) {
+  return render(
+    <AddSubmoduleDialog
+      repository={repository}
+      dispatcher={{} as Dispatcher}
+      accounts={[]}
+      apiRepositories={new Map()}
+      onRefreshRepositories={() => undefined}
+      onAdded={() => undefined}
+      onDismissed={() => undefined}
+      onListSourceBranches={onListSourceBranches}
     />
   )
 }
@@ -674,6 +703,138 @@ describe('Clone-style Add Submodule dialog', () => {
     fireEvent.click(submit)
     assert.deepEqual(createAccounts, [])
     assert.equal(addCalls, 0)
+  })
+
+  it('loads remote branches and keeps the picker and branch field synchronized', async () => {
+    const listCalls = new Array<string>()
+    renderDialogWithBranchLoader(async (_repository, url) => {
+      listCalls.push(url)
+      return remoteBranchListing
+    })
+    chooseUrlAndFillSource()
+    fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+
+    const picker = (await screen.findByLabelText(
+      'Branch from the remote'
+    )) as HTMLSelectElement
+    assert.deepEqual(listCalls, [
+      'https://github.com/example/shared-library.git',
+    ])
+
+    // The remote default is pre-selected and visibly marked as the default.
+    assert.equal(picker.value, '')
+    assert.match(
+      picker.selectedOptions[0]?.textContent ?? '',
+      /main \(remote default\)/
+    )
+
+    // Picking a branch from the list writes it into the branch field.
+    fireEvent.change(picker, { target: { value: 'branch:release/v2' } })
+    assert.equal(
+      (screen.getByLabelText('Branch (optional)') as HTMLInputElement).value,
+      'release/v2'
+    )
+
+    // Typing free text deselects the list selection.
+    fireEvent.change(screen.getByLabelText('Branch (optional)'), {
+      target: { value: 'custom-branch' },
+    })
+    assert.equal(picker.value, 'custom')
+
+    // Picking the remote default results in an empty branch argument.
+    fireEvent.change(picker, { target: { value: '' } })
+    assert.equal(
+      (screen.getByLabelText('Branch (optional)') as HTMLInputElement).value,
+      ''
+    )
+  })
+
+  it('loads branches automatically when the URL field blurs, once per URL', async () => {
+    let listCalls = 0
+    renderDialogWithBranchLoader(async () => {
+      listCalls++
+      return remoteBranchListing
+    })
+    chooseUrlAndFillSource()
+    fireEvent.blur(screen.getByLabelText('Repository URL'))
+
+    await screen.findByLabelText('Branch from the remote')
+    assert.equal(listCalls, 1)
+
+    fireEvent.blur(screen.getByLabelText('Repository URL'))
+    assert.equal(listCalls, 1)
+  })
+
+  it('filters the loaded branch list while keeping the default option', async () => {
+    renderDialogWithBranchLoader(async () => remoteBranchListing)
+    chooseUrlAndFillSource()
+    fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+    await screen.findByLabelText('Branch from the remote')
+
+    fireEvent.change(screen.getByPlaceholderText('Filter branches'), {
+      target: { value: 'release' },
+    })
+    const picker = screen.getByLabelText(
+      'Branch from the remote'
+    ) as HTMLSelectElement
+    assert.deepEqual(
+      Array.from(picker.options).map(option => option.value),
+      ['', 'branch:release/v2']
+    )
+
+    fireEvent.change(screen.getByPlaceholderText('Filter branches'), {
+      target: { value: 'zzz-no-such-branch' },
+    })
+    assert.ok(screen.getByText('No branches match the current filter.'))
+  })
+
+  it('keeps manual branch entry working when listing the remote fails', async () => {
+    renderDialogWithBranchLoader(async () => {
+      throw new Error('remote unreachable')
+    })
+    chooseUrlAndFillSource()
+    fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+
+    const alert = await screen.findByRole('alert')
+    assert.match(
+      alert.textContent ?? '',
+      /could not list branches from the remote: remote unreachable/i
+    )
+    assert.equal(screen.queryByLabelText('Branch from the remote'), null)
+
+    fireEvent.change(screen.getByLabelText('Branch (optional)'), {
+      target: { value: 'stable' },
+    })
+    assert.notEqual(
+      screen
+        .getByRole('button', { name: 'Add submodule' })
+        .getAttribute('aria-disabled'),
+      'true'
+    )
+  })
+
+  it('reports an empty remote and a truncated branch listing honestly', async () => {
+    let listing: IRemoteHeadsListing = {
+      branches: [],
+      defaultBranch: null,
+      truncated: false,
+    }
+    renderDialogWithBranchLoader(async () => listing)
+    chooseUrlAndFillSource()
+    fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+
+    await screen.findByText(/remote has no branches yet/i)
+    const picker = screen.getByLabelText(
+      'Branch from the remote'
+    ) as HTMLSelectElement
+    assert.deepEqual(
+      Array.from(picker.options).map(option => option.textContent),
+      ['Remote default branch']
+    )
+
+    listing = { ...remoteBranchListing, truncated: true }
+    fireEvent.click(screen.getByRole('button', { name: 'Load branches' }))
+    await screen.findByText('Showing the first 2 branches from the remote.')
   })
 
   it('retries an already-created remote without creating a duplicate', async () => {

@@ -19,7 +19,20 @@ import {
 } from '../../lib/api'
 import { getPreferredGenericCloneAccountKey } from '../../lib/automation/clone-account-fallback'
 import { findAccountForRemoteURL } from '../../lib/find-account'
-import { validateSubmoduleAddPath } from '../../lib/git'
+import {
+  IListSubmoduleSourceBranchesOptions,
+  IRemoteHeadBranch,
+  IRemoteHeadsListing,
+  listSubmoduleSourceBranches,
+  validateSubmoduleAddPath,
+} from '../../lib/git'
+import { FilterMode } from '../../lib/fuzzy-find'
+import { FilterModeControl } from '../lib/filter-mode-control'
+import {
+  matchGroup,
+  persistFilterMode,
+  readPersistedFilterMode,
+} from '../lib/filter-list-mode'
 import { resolveSelectedAccount } from '../../lib/resolve-selected-account'
 import { IAccountRepositories } from '../../lib/stores/api-repositories-store'
 import { Dispatcher } from '../dispatcher'
@@ -79,6 +92,23 @@ interface IHostedTabState {
 
 type AddSubmoduleOperation = 'idle' | 'adding' | 'success'
 
+/** A loaded remote branch listing bound to the exact source URL it came from. */
+interface IBranchListState {
+  /** The trimmed source URL the listing was loaded for. */
+  readonly url: string
+  readonly branches: ReadonlyArray<IRemoteHeadBranch>
+  readonly defaultBranch: string | null
+  readonly truncated: boolean
+}
+
+/**
+ * Branch-picker option values are prefixed so a real branch name can never
+ * collide with the remote-default or custom-entry sentinels.
+ */
+const RemoteDefaultOptionValue = ''
+const CustomBranchOptionValue = 'custom'
+const branchOptionValue = (name: string) => `branch:${name}`
+
 interface IAddSubmoduleDialogState {
   readonly selectedTab: AddSubmoduleTab
   readonly dotCom: IHostedTabState
@@ -93,6 +123,12 @@ interface IAddSubmoduleDialogState {
   readonly createdRemote: IAPIFullRepository | null
   readonly path: string
   readonly branch: string
+  readonly branchList: IBranchListState | null
+  readonly branchListLoadingUrl: string | null
+  readonly branchListError: ILocalizedMessage | null
+  readonly branchFilter: string
+  readonly branchFilterMode: FilterMode
+  readonly branchFilterCaseSensitive: boolean
   readonly pathTouched: boolean
   readonly validatingPath: boolean
   readonly pathValidationError: ILocalizedMessage | null
@@ -116,6 +152,15 @@ export interface IAddSubmoduleDialogProps {
   readonly onRefreshRepositories: (account: Account) => void
   readonly onAdded: () => void | Promise<void>
   readonly onDismissed: () => void
+  /**
+   * Lists the branch heads a submodule source URL advertises. Defaults to the
+   * real Git-backed helper; tests inject a stub.
+   */
+  readonly onListSourceBranches?: (
+    repository: Repository,
+    url: string,
+    options?: IListSubmoduleSourceBranchesOptions
+  ) => Promise<IRemoteHeadsListing>
 }
 
 const emptyHostedState = (): IHostedTabState => ({
@@ -182,6 +227,8 @@ export class AddSubmoduleDialog extends React.Component<
   private operationController: AbortController | null = null
   private pathValidationController: AbortController | null = null
   private pathValidationSequence = 0
+  private branchListController: AbortController | null = null
+  private branchListSequence = 0
   private mounted = false
 
   public constructor(props: IAddSubmoduleDialogProps) {
@@ -200,6 +247,12 @@ export class AddSubmoduleDialog extends React.Component<
       createdRemote: null,
       path: '',
       branch: '',
+      branchList: null,
+      branchListLoadingUrl: null,
+      branchListError: null,
+      branchFilter: '',
+      branchFilterMode: readPersistedFilterMode('add-submodule-branches'),
+      branchFilterCaseSensitive: false,
       pathTouched: false,
       validatingPath: false,
       pathValidationError: null,
@@ -226,6 +279,7 @@ export class AddSubmoduleDialog extends React.Component<
       this.onLanguageModeChanged
     )
     this.pathValidationController?.abort()
+    this.branchListController?.abort()
     this.operationController?.abort()
   }
 
@@ -679,6 +733,102 @@ export class AddSubmoduleDialog extends React.Component<
   private onBranchChanged = (branch: string) =>
     this.setState({ branch, error: null })
 
+  private onUrlBlur = () => {
+    const source = this.state.url.trim()
+    if (
+      source.length === 0 ||
+      getSubmoduleSourceError(source) !== null ||
+      this.state.branchListLoadingUrl === source ||
+      this.state.branchList?.url === source
+    ) {
+      return
+    }
+    this.loadBranches()
+  }
+
+  private onLoadBranchesClicked = () => this.loadBranches()
+
+  private loadBranches = async () => {
+    const source = this.state.url.trim()
+    if (getSubmoduleSourceError(source) !== null) {
+      return
+    }
+
+    this.branchListController?.abort()
+    const controller = new AbortController()
+    const sequence = ++this.branchListSequence
+    this.branchListController = controller
+    this.setState({ branchListLoadingUrl: source, branchListError: null })
+
+    try {
+      const accountKey = await this.getSelectedAccountKey(source)
+      const listBranches =
+        this.props.onListSourceBranches ?? listSubmoduleSourceBranches
+      const listing = await listBranches(this.props.repository, source, {
+        accountKey,
+        signal: controller.signal,
+      })
+      if (this.mounted && sequence === this.branchListSequence) {
+        this.setState({
+          branchListLoadingUrl: null,
+          branchList: { url: source, ...listing },
+          branchFilter: '',
+        })
+      }
+    } catch (error) {
+      if (
+        this.mounted &&
+        sequence === this.branchListSequence &&
+        !controller.signal.aborted
+      ) {
+        this.setState({
+          branchListLoadingUrl: null,
+          branchListError: {
+            key: 'submodule.addBranchListFailed',
+            variables: {
+              error: error instanceof Error ? error.message : String(error),
+            },
+          },
+        })
+      }
+    } finally {
+      if (this.branchListController === controller) {
+        this.branchListController = null
+      }
+    }
+  }
+
+  private onBranchPicked = (event: React.FormEvent<HTMLSelectElement>) => {
+    const value = event.currentTarget.value
+    if (value === CustomBranchOptionValue) {
+      return
+    }
+    this.setState({
+      branch:
+        value === RemoteDefaultOptionValue ? '' : value.slice('branch:'.length),
+      error: null,
+    })
+  }
+
+  private onBranchFilterChanged = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => this.setState({ branchFilter: event.currentTarget.value })
+
+  private onBranchFilterModeChanged = (branchFilterMode: FilterMode) => {
+    persistFilterMode('add-submodule-branches', branchFilterMode)
+    this.setState({ branchFilterMode })
+  }
+
+  private onBranchFilterCaseSensitiveChanged = (
+    branchFilterCaseSensitive: boolean
+  ) => this.setState({ branchFilterCaseSensitive })
+
+  private onBranchFilterPatternApply = (branchFilter: string) =>
+    this.setState({ branchFilter })
+
+  private getBranchFilterSamples = () =>
+    this.state.branchList?.branches.map(branch => branch.name) ?? []
+
   private onProgress = (progress: string, progressValue: number) => {
     if (this.mounted) {
       const bounded = Math.max(0, Math.min(progressValue, 1))
@@ -1118,6 +1268,158 @@ export class AddSubmoduleDialog extends React.Component<
     )
   }
 
+  private renderBranchLoader() {
+    const source = this.state.url.trim()
+    const loading = this.state.branchListLoadingUrl !== null
+    const canLoad =
+      !loading && source.length > 0 && getSubmoduleSourceError(source) === null
+
+    return (
+      <div className="add-submodule-branch-loader">
+        <Button
+          type="button"
+          onClick={this.onLoadBranchesClicked}
+          disabled={!canLoad}
+          ariaLabel={this.accessibleText('submodule.addLoadBranchesAction')}
+        >
+          <LocalizedText
+            translationKey="submodule.addLoadBranchesAction"
+            languageMode={this.state.languageMode}
+          />
+        </Button>
+        <span
+          className="add-submodule-branch-status"
+          role="status"
+          aria-live="polite"
+        >
+          {loading ? (
+            <LocalizedText
+              translationKey="submodule.addLoadingBranches"
+              languageMode={this.state.languageMode}
+            />
+          ) : null}
+        </span>
+      </div>
+    )
+  }
+
+  private renderBranchPicker() {
+    const branchList = this.state.branchList
+    if (branchList === null || branchList.url !== this.state.url.trim()) {
+      return null
+    }
+
+    const filterText = this.state.branchFilter.trim()
+    const matches = matchGroup(
+      filterText,
+      branchList.branches,
+      branch => [branch.name, branch.sha],
+      {
+        mode: this.state.branchFilterMode,
+        caseSensitive: this.state.branchFilterCaseSensitive,
+      }
+    )
+    const branches = matches.results.map(match => match.item)
+    const trimmedBranch = this.state.branch.trim()
+    const pickerValue =
+      trimmedBranch === ''
+        ? RemoteDefaultOptionValue
+        : branchList.branches.some(branch => branch.name === trimmedBranch)
+        ? branchOptionValue(trimmedBranch)
+        : CustomBranchOptionValue
+    const defaultLabel =
+      branchList.defaultBranch === null
+        ? this.text('submodule.addRemoteDefaultBranchPlaceholder')
+        : this.text('submodule.addBranchDefaultOption', {
+            branch: branchList.defaultBranch,
+          })
+
+    return (
+      <div className="add-submodule-branch-picker">
+        <label>
+          <span>
+            <LocalizedText
+              translationKey="submodule.addBranchFilterLabel"
+              languageMode={this.state.languageMode}
+            />
+          </span>
+          <div className="add-submodule-branch-filter-field">
+            <input
+              data-search-surface-id="add-submodule-branches"
+              type="search"
+              value={this.state.branchFilter}
+              onChange={this.onBranchFilterChanged}
+              placeholder={this.text('submodule.addBranchFilterLabel')}
+            />
+            <FilterModeControl
+              searchSurfaceId="add-submodule-branches"
+              mode={this.state.branchFilterMode}
+              caseSensitive={this.state.branchFilterCaseSensitive}
+              onModeChange={this.onBranchFilterModeChanged}
+              onCaseSensitiveChange={this.onBranchFilterCaseSensitiveChanged}
+              regexBuilderTarget="Add submodule branches"
+              getSampleItems={this.getBranchFilterSamples}
+              filterText={this.state.branchFilter}
+              onRegexPatternApply={this.onBranchFilterPatternApply}
+            />
+          </div>
+        </label>
+        {matches.regexError !== null && (
+          <p className="add-submodule-branch-error" role="alert">
+            {this.renderMessage({
+              key: 'submodule.addBranchFilterInvalidPattern',
+              variables: { error: matches.regexError },
+            })}
+          </p>
+        )}
+        <Select
+          label={this.text('submodule.addBranchPickerLabel')}
+          value={pickerValue}
+          onChange={this.onBranchPicked}
+        >
+          <option value={RemoteDefaultOptionValue}>{defaultLabel}</option>
+          {pickerValue === CustomBranchOptionValue && (
+            <option value={CustomBranchOptionValue} disabled={true}>
+              {this.text('submodule.addBranchCustomOption')}
+            </option>
+          )}
+          {branches.map(branch => (
+            <option key={branch.name} value={branchOptionValue(branch.name)}>
+              {branch.name}
+            </option>
+          ))}
+        </Select>
+        {branchList.branches.length === 0 && (
+          <p className="add-submodule-branch-notice">
+            <LocalizedText
+              translationKey="submodule.addBranchListEmpty"
+              languageMode={this.state.languageMode}
+            />
+          </p>
+        )}
+        {branchList.truncated && (
+          <p className="add-submodule-branch-notice">
+            <LocalizedText
+              translationKey="submodule.addBranchListTruncated"
+              variables={{ count: String(branchList.branches.length) }}
+              languageMode={this.state.languageMode}
+            />
+          </p>
+        )}
+        {branchList.branches.length > 0 &&
+          branches.length === 0 &&
+          filterText.length > 0 && (
+            <p className="add-submodule-branch-notice">
+              <LocalizedText
+                translationKey="submodule.addBranchFilterNoMatches"
+                languageMode={this.state.languageMode}
+              />
+            </p>
+          )}
+      </div>
+    )
+  }
+
   private renderSource() {
     if (this.state.selectedTab === CreateRemoteTab) {
       return this.renderCreateRemote()
@@ -1136,6 +1438,7 @@ export class AddSubmoduleDialog extends React.Component<
               placeholder="https://github.com/owner/repository.git"
               value={this.state.url}
               onValueChanged={this.onUrlChanged}
+              onBlur={this.onUrlBlur}
               spellcheck={false}
               autoFocus={true}
               ariaDescribedBy="add-submodule-url-help"
@@ -1147,6 +1450,13 @@ export class AddSubmoduleDialog extends React.Component<
               languageMode={this.state.languageMode}
             />
           </p>
+          {this.renderBranchLoader()}
+          {this.state.branchListError !== null && (
+            <p className="add-submodule-branch-error" role="alert">
+              {this.renderMessage(this.state.branchListError)}
+            </p>
+          )}
+          {this.renderBranchPicker()}
         </DialogContent>
       )
     }
