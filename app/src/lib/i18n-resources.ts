@@ -843,6 +843,20 @@ export type TranslationKey =
   | 'repositoryPicker.unhideMenu'
   | 'repositoryPicker.customizeNameMenu'
   | 'repositoryPicker.customizeLogoMenu'
+  | 'repositoryPicker.groupRepositoryOne'
+  | 'repositoryPicker.groupRepositoryMany'
+  | 'repositoryPicker.groupCollapsed.plain'
+  | 'repositoryPicker.groupCollapsed.light'
+  | 'repositoryPicker.groupCollapsed.playful'
+  | 'repositoryPicker.groupExpanded.plain'
+  | 'repositoryPicker.groupExpanded.light'
+  | 'repositoryPicker.groupExpanded.playful'
+  | 'repositoryPicker.autoExpandedOne.plain'
+  | 'repositoryPicker.autoExpandedOne.light'
+  | 'repositoryPicker.autoExpandedOne.playful'
+  | 'repositoryPicker.autoExpandedMany.plain'
+  | 'repositoryPicker.autoExpandedMany.light'
+  | 'repositoryPicker.autoExpandedMany.playful'
   | 'repositorySync.commitOne'
   | 'repositorySync.commitMany'
   | 'repositorySync.unknown.plain'
@@ -3214,6 +3228,35 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositoryPicker.unhideMenu': 'Unhide repository',
   'repositoryPicker.customizeNameMenu': 'Customize name appearance',
   'repositoryPicker.customizeLogoMenu': 'Customize logo appearance',
+  // Repository-list group disclosure. The three bands are the funny-level
+  // voice (1-2 plain, 3 light, 4-5 playful). The group name and the member
+  // count are interpolated identically into every band: a folded group must
+  // say exactly how many repositories it is holding, however playfully it says
+  // that it is folded.
+  'repositoryPicker.groupRepositoryOne': '1 repository',
+  'repositoryPicker.groupRepositoryMany': '{count} repositories',
+  'repositoryPicker.groupCollapsed.plain': '{group}, {repositories}, collapsed',
+  'repositoryPicker.groupCollapsed.light':
+    '{group}, {repositories}, currently folded away',
+  'repositoryPicker.groupCollapsed.playful':
+    '{group}, {repositories}, folded up and hiding',
+  'repositoryPicker.groupExpanded.plain': '{group}, {repositories}, expanded',
+  'repositoryPicker.groupExpanded.light':
+    '{group}, {repositories}, currently open',
+  'repositoryPicker.groupExpanded.playful':
+    '{group}, {repositories}, wide open for business',
+  'repositoryPicker.autoExpandedOne.plain':
+    'Filtering expanded 1 collapsed group so its matches stay visible.',
+  'repositoryPicker.autoExpandedOne.light':
+    'Filtering opened 1 collapsed group so none of its matches can hide.',
+  'repositoryPicker.autoExpandedOne.playful':
+    'Popped 1 folded group open — a search hit was hiding in there.',
+  'repositoryPicker.autoExpandedMany.plain':
+    'Filtering expanded {count} collapsed groups so their matches stay visible.',
+  'repositoryPicker.autoExpandedMany.light':
+    'Filtering opened {count} collapsed groups so none of their matches can hide.',
+  'repositoryPicker.autoExpandedMany.playful':
+    'Popped {count} folded groups open — search hits were hiding in there.',
   // Repository-list sync line. The three bands per state are the funny-level
   // voice (1-2 plain, 3 light, 4-5 playful); the counts and the state named in
   // every band are identical, because the voice may change but the facts never
@@ -5863,6 +5906,29 @@ export const cantoneseTranslations: Readonly<
   'repositoryPicker.unhideMenu': '取消隱藏 repo',
   'repositoryPicker.customizeNameMenu': '自訂名稱外觀',
   'repositoryPicker.customizeLogoMenu': '自訂標誌外觀',
+  'repositoryPicker.groupRepositoryOne': '1 個 repo',
+  'repositoryPicker.groupRepositoryMany': '{count} 個 repo',
+  'repositoryPicker.groupCollapsed.plain': '{group}，{repositories}，已摺埋',
+  'repositoryPicker.groupCollapsed.light':
+    '{group}，{repositories}，而家摺埋咗',
+  'repositoryPicker.groupCollapsed.playful':
+    '{group}，{repositories}，摺埋晒匿咗喺入面',
+  'repositoryPicker.groupExpanded.plain': '{group}，{repositories}，已展開',
+  'repositoryPicker.groupExpanded.light': '{group}，{repositories}，而家打開咗',
+  'repositoryPicker.groupExpanded.playful':
+    '{group}，{repositories}，攤到大大版',
+  'repositoryPicker.autoExpandedOne.plain':
+    '篩選期間自動展開咗 1 個摺埋嘅組，令入面嘅結果唔會被隱藏。',
+  'repositoryPicker.autoExpandedOne.light':
+    '篩選幫你打開咗 1 個摺埋嘅組，唔會食咗入面嘅結果。',
+  'repositoryPicker.autoExpandedOne.playful':
+    '撬開咗 1 個摺埋嘅組 —— 有搵到嘅嘢匿咗喺入面。',
+  'repositoryPicker.autoExpandedMany.plain':
+    '篩選期間自動展開咗 {count} 個摺埋嘅組，令入面嘅結果唔會被隱藏。',
+  'repositoryPicker.autoExpandedMany.light':
+    '篩選幫你打開咗 {count} 個摺埋嘅組，唔會食咗入面嘅結果。',
+  'repositoryPicker.autoExpandedMany.playful':
+    '撬開咗 {count} 個摺埋嘅組 —— 有搵到嘅嘢匿咗喺入面。',
   'repositorySync.commitOne': '1 個 commit',
   'repositorySync.commitMany': '{count} 個 commit',
   'repositorySync.unknown.plain': '未檢查過，同步狀態未知',

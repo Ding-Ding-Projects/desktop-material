@@ -91,7 +91,12 @@ export interface IRepositorySyncSummaryText {
   readonly accessibleName: string
 }
 
-type FunnyBand = 'plain' | 'light' | 'playful'
+/**
+ * The funny-level voice a string is written in. Shared with the group-header
+ * disclosure text so both repository-list surfaces band playfulness the same
+ * way instead of drifting apart.
+ */
+export type FunnyBand = 'plain' | 'light' | 'playful'
 
 const SummaryTranslationKeys: Readonly<
   Record<RepositorySyncSummaryKind, Readonly<Record<FunnyBand, TranslationKey>>>
@@ -211,7 +216,8 @@ export function getRepositorySyncSummary(
   return { kind: 'in-sync', ahead, behind }
 }
 
-function bandForFunnyLevel(level: number): FunnyBand {
+/** Map a 1..5 funny level onto the three bands the resources are written in. */
+export function bandForFunnyLevel(level: number): FunnyBand {
   const clamped = clampFunnyLevel(
     level,
     DefaultAudioSystemSettings.funnyLevelEnglish

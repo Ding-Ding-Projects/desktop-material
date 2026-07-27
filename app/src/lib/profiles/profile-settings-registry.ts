@@ -63,6 +63,10 @@ export const profileSettingsRegistry: ReadonlyArray<IProfileSettingEntry> = [
     key: 'show-branch-name-in-repo-list',
     label: 'repository branch-name visibility',
   },
+  {
+    key: 'repository-list-collapsed-groups',
+    label: 'collapsed repository groups',
+  },
   { key: 'branch-sort-order', label: 'branch sort order' },
   { key: 'dateFormat', label: 'date format' },
   { key: 'timeFormat', label: 'time format' },

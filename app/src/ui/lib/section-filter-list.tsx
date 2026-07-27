@@ -93,6 +93,28 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
     identifier: GroupIdentifier
   ) => JSX.Element | null
 
+  /**
+   * Whether a group should render folded, i.e. as its header row alone.
+   *
+   * Answered while the row model is being built, so a collapsed group costs
+   * exactly one row instead of one row per hidden item: the virtualized list
+   * derives its section heights, row indices, and scroll extent from that model,
+   * and hiding rows any later would leave phantom slots behind.
+   *
+   * Only a group that actually renders a header can collapse — the header is the
+   * control that reopens it, so folding a headerless group would remove it from
+   * the list with no way back.
+   */
+  // eslint-disable-next-line react/no-unused-prop-types
+  readonly isGroupCollapsed?: (identifier: GroupIdentifier) => boolean
+
+  /**
+   * Optional stable DOM id for a group's row container, keyed by the index of
+   * the group in the `groups` prop. Lets a disclosure control inside a group
+   * header point `aria-controls` at the rows it actually discloses.
+   */
+  readonly getSectionId?: (group: number) => string | undefined
+
   /** Called to render content before/above the filter and list. */
   readonly renderPreList?: () => JSX.Element | null
 
@@ -193,6 +215,19 @@ interface ISectionFilterListProps<T extends IFilterListItem, GroupIdentifier> {
    */
   readonly onVisibleItemsChanged?: (items: ReadonlyArray<T>) => void
 
+  /**
+   * Called with the indices (into the `groups` prop) of the groups that
+   * survived the active filter, whenever that set changes and once after mount.
+   *
+   * Which groups still have matches is private component state — the match
+   * mode, case sensitivity, and chip filters all live here — so a consumer that
+   * needs to reason about "which groups are on screen right now" cannot
+   * recompute it faithfully. Treat the array as a snapshot; do not mutate it.
+   */
+  readonly onFilteredGroupsChanged?: (
+    groupIndices: ReadonlyArray<number>
+  ) => void
+
   /** Placeholder text for text box. Default is "Filter". */
   readonly placeholderText?: string
 
@@ -254,6 +289,7 @@ export class SectionFilterList<
   private list: SectionList | null = null
   private filterTextBox: TextBox | null = null
   private lastVisibleItemIds: ReadonlyArray<string> | null = null
+  private lastFilteredGroupIndices: ReadonlyArray<number> | null = null
 
   public constructor(props: ISectionFilterListProps<T, GroupIdentifier>) {
     super(props)
@@ -312,6 +348,7 @@ export class SectionFilterList<
     }
 
     this.emitVisibleItems()
+    this.emitFilteredGroups()
   }
 
   public componentDidMount() {
@@ -320,6 +357,7 @@ export class SectionFilterList<
     }
 
     this.emitVisibleItems()
+    this.emitFilteredGroups()
   }
 
   /**
@@ -348,6 +386,31 @@ export class SectionFilterList<
 
     this.lastVisibleItemIds = ids
     this.props.onVisibleItemsChanged(items)
+  }
+
+  /**
+   * Publish which groups survived the filter, guarded the same way as
+   * `emitVisibleItems`: consumers store the snapshot in their own state, so an
+   * unconditional call on every update would re-render this list forever.
+   */
+  private emitFilteredGroups() {
+    if (this.props.onFilteredGroupsChanged === undefined) {
+      return
+    }
+
+    const indices = this.state.groups
+    const previous = this.lastFilteredGroupIndices
+
+    if (
+      previous !== null &&
+      previous.length === indices.length &&
+      previous.every((index, position) => index === indices[position])
+    ) {
+      return
+    }
+
+    this.lastFilteredGroupIndices = indices
+    this.props.onFilteredGroupsChanged(indices)
   }
 
   public renderTextBox() {
@@ -561,6 +624,7 @@ export class SectionFilterList<
           sectionHasHeader={this.sectionHasHeader}
           getRowAriaLabel={this.getRowAriaLabel}
           getSectionAriaLabel={this.getSectionAriaLabel}
+          getSectionId={this.getSectionId}
           rowHeight={this.getRowHeight}
           selectedRows={
             rowIndexPathEquals(this.state.selectedRow, InvalidRowIndexPath)
@@ -629,6 +693,9 @@ export class SectionFilterList<
 
     return groupAriaLabel !== undefined ? groupAriaLabel : undefined
   }
+
+  private getSectionId = (section: number) =>
+    this.props.getSectionId?.(this.state.groups[section])
 
   private renderRow = (index: RowIndexPath) => {
     const row = this.state.rows[index.section][index.row]
@@ -945,19 +1012,33 @@ function createStateUpdate<T extends IFilterListItem, GroupIdentifier>(
 
     groupIndices.push(idx)
 
-    if (props.renderGroupHeader && group.showHeader !== false) {
+    const hasHeader =
+      props.renderGroupHeader !== undefined && group.showHeader !== false
+
+    if (hasHeader) {
       groupRows.push({ kind: 'group', identifier: group.identifier })
     }
 
-    for (const { item, matches } of items) {
-      if (selectedItem && item.id === selectedItem.id) {
-        selectedRow = {
-          section,
-          row: groupRows.length,
-        }
-      }
+    // A collapsed group contributes exactly one row — its header — to the
+    // virtualized model. Building it this way (rather than hiding rows during
+    // render) is what keeps `rowCount`, per-row heights, section offsets, and
+    // the scroll extent consistent: there is no such thing as a hidden row to
+    // leave a phantom slot behind. A group with no header is never collapsed,
+    // because nothing would be left to reopen it with.
+    const collapsed =
+      hasHeader && (props.isGroupCollapsed?.(group.identifier) ?? false)
 
-      groupRows.push({ kind: 'item', item, matches })
+    if (!collapsed) {
+      for (const { item, matches } of items) {
+        if (selectedItem && item.id === selectedItem.id) {
+          selectedRow = {
+            section,
+            row: groupRows.length,
+          }
+        }
+
+        groupRows.push({ kind: 'item', item, matches })
+      }
     }
 
     rows.push(groupRows)

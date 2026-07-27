@@ -482,6 +482,20 @@ export class Dispatcher {
   }
 
   /**
+   * Record that a repository-list group was folded or unfolded.
+   *
+   * The collapsed set is an ordinary registered profile setting, so this only
+   * has to tell the profile store that the registered settings moved. The store
+   * already owns the burst-safe cadence: `onAppStateChanged` restarts its
+   * debounce on every call, and the commit queue behind it coalesces whatever
+   * accumulated into a single history entry. Collapsing five groups in a row is
+   * therefore one readable, undoable settings commit rather than five.
+   */
+  public recordRepositoryGroupCollapseChange(): void {
+    this.profileStore.onAppStateChanged()
+  }
+
+  /**
    * Load a newest-first page of commits from the active settings profile. An
    * optional scope narrows the page to a single tab's history.
    */

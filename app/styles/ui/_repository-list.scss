@@ -169,6 +169,91 @@
     white-space: nowrap;
   }
 
+  // The group header is a disclosure button, so strip the user-agent button
+  // chrome and let it inherit the group-label typography it shares with every
+  // other filtered list. It fills its virtualized row so the whole 36px slot,
+  // not just the glyph, is a pointer and touch target.
+  .repository-group-header {
+    align-items: center;
+    background: none;
+    border: 0;
+    color: inherit;
+    cursor: pointer;
+    display: flex;
+    font: inherit;
+    gap: var(--spacing-half);
+    height: 100%;
+    letter-spacing: inherit;
+    text-align: left;
+    text-transform: inherit;
+    width: 100%;
+
+    &:focus-visible {
+      border-radius: 8px;
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+
+    .repository-group-label {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-x: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    // A folded group still has to say what it is holding.
+    .repository-group-count {
+      background: var(--md-sys-color-secondary-container);
+      border-radius: 999px;
+      color: var(--md-sys-color-on-secondary-container);
+      flex: 0 0 auto;
+      font-size: var(--font-size-xs);
+      letter-spacing: normal;
+      padding: 1px 6px;
+    }
+
+    .repository-group-chevron {
+      flex: 0 0 auto;
+      transition: transform 180ms var(--emph);
+    }
+
+    &[aria-expanded='false'] .repository-group-chevron {
+      transform: rotate(-90deg);
+    }
+  }
+
+  // Explicit at the site of the animation as well as through the global
+  // reduced-motion switch: the chevron still turns, it just stops sliding.
+  @media (prefers-reduced-motion: reduce) {
+    .repository-group-header .repository-group-chevron {
+      transition: none;
+    }
+  }
+
+  // Why folds opened themselves while a filter is running. The bilingual
+  // sentence is long and the sheet is 400px, so this wraps rather than
+  // clipping: the glyph holds the first line and the text takes the rest.
+  .repository-group-auto-expanded {
+    align-items: flex-start;
+    color: var(--md-sys-color-on-surface-variant);
+    display: flex;
+    font-size: var(--font-size-xs);
+    gap: var(--spacing-half);
+    line-height: 1.35;
+    padding: var(--spacing-half) 0 0;
+
+    .material-symbol {
+      flex: 0 0 auto;
+    }
+
+    > span {
+      flex: 1 1 auto;
+      min-width: 0;
+      overflow-wrap: anywhere;
+    }
+  }
+
   .new-repository-button {
     flex-shrink: 0;
 
