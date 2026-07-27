@@ -2,7 +2,7 @@
 
 ## 2026-07-27 — SESSION HANDOFF (read this first)
 
-`main` is at **`96eeb54c17`**, pushed, with **zero divergence** from the remote.
+`main` is at **`949dc81e6d`**, pushed, with **zero divergence** from the remote.
 The working tree is clean; no stashes; every agent branch is merged and deleted
 except the one still running (below).
 
@@ -22,7 +22,7 @@ explicitly and commits to reopening rather than burying a later CI failure. If
 CI on `96eeb54c17` or its ancestors reports a failure, that is real and the
 affected issues should be reopened.
 
-### Issues: 23 open → 7 open
+### Issues: 23 open → 6 open
 
 **Closed with a real capture from a built app:** #22, #73 (tab overflow with its
 search field, Regex builder and per-row customize control), #74 (repository
@@ -39,7 +39,7 @@ fail without its fix.
 
 | Issue | State |
 | --- | --- |
-| **#35** | Deferred profiler findings are all fixed. Stream-hash-on-upload ("cloud hash") is **in flight** on `worktree-agent-a40d48b0a8b69a255` — that worktree is deliberately preserved. |
+| ~~**#35**~~ | **Closed.** Stream-hash shipped in `949dc81e6d`: OCI drops from 7 full payload reads to 3, with the registry authoritative for layer digests. The Release path was already single-pass from tranche 1 — 2 → 2, no saving, and that is stated rather than dressed up as a win. |
 | **#66** | Fixed and pushed (registration now targets the update-stable Squirrel root, stale registrations detected and repaired). **Not closed** because no real re-registration was exercised — verifying the post-update repair needs an installed build carrying the change to be updated over. |
 | **#68** | Fixed and pushed. **Not closed** because the private route deliberately ends at a `builder-unavailable` blocker: creating the public builder repo and writing its Actions secrets needs a token this feature never holds. Until that external setup exists, private-repo compression does not run at all — which is the safe outcome, not a silent fallback. |
 | **#34** | Feature shipped and merged. Wants a framed capture of the branch picker. |
