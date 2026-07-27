@@ -209,7 +209,15 @@ export class GitConfigUserForm extends React.Component<
     // Only show the "Email" label above the textbox when the textbox is
     // presented independently, without the email dropdown, not when presented
     // as a consequence of the option "Other" selected in the dropdown.
-    const label = this.state.emailIsOther ? undefined : 'Email'
+    //
+    // "Other" can only have been selected when a dropdown exists to select it
+    // in. Without a signed-in account there are no suggestions, so the
+    // dropdown is never rendered, yet `emailIsOther` is still true because no
+    // email can match an empty suggestion list — which left the textbox with
+    // no visible label at all beneath "Name".
+    const presentedAsOtherOption =
+      this.state.emailIsOther && this.accountEmails.length > 0
+    const label = presentedAsOtherOption ? undefined : 'Email'
     // If there is not a label, provide a screen reader announcement.
     const ariaLabel = label ? undefined : 'Email'
 
