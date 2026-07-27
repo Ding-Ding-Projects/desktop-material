@@ -179,6 +179,7 @@ const ollamaManagerTranslationKeys: ReadonlyArray<TranslationKey> = [
   'ollama.manager.chatHistoryLoadMore',
   'ollama.manager.chatHistoryLoadingDiff',
   'ollama.manager.chatHistoryNoTextChanges',
+  'ollama.manager.chatHistoryDiffTruncated',
   'ollama.manager.chatHistoryDiffLabel',
   'ollama.manager.chatHistorySelectCommit',
   'ollama.manager.chatHistoryRetry',
@@ -224,7 +225,7 @@ describe('Ollama model manager internationalization', () => {
     const expectedKeys = [...ollamaManagerTranslationKeys].sort()
 
     assert.deepEqual(actualKeys, expectedKeys)
-    assert.equal(ollamaManagerTranslationKeys.length, 184)
+    assert.equal(ollamaManagerTranslationKeys.length, 185)
 
     for (const key of ollamaManagerTranslationKeys) {
       assert.equal(typeof englishTranslations[key], 'string', key)

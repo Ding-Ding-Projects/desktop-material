@@ -667,6 +667,14 @@
   font-weight: var(--font-weight-semibold);
 }
 
+// The honest tail of a capped diff: rendered inside the scrollable <pre> so it
+// appears exactly where the truncated lines would have been.
+.versioned-store-history-diff-truncated {
+  margin-top: 8px;
+  color: var(--md-sys-color-on-surface-variant);
+  font-style: italic;
+}
+
 @media (max-width: 760px) {
   .versioned-store-history-panel {
     top: 6px;

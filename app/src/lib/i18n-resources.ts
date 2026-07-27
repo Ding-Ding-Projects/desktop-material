@@ -1276,6 +1276,7 @@ export type TranslationKey =
   | 'ollama.manager.chatHistoryLoadMore'
   | 'ollama.manager.chatHistoryLoadingDiff'
   | 'ollama.manager.chatHistoryNoTextChanges'
+  | 'ollama.manager.chatHistoryDiffTruncated'
   | 'ollama.manager.chatHistoryDiffLabel'
   | 'ollama.manager.chatHistorySelectCommit'
   | 'ollama.manager.chatHistoryRetry'
@@ -3689,6 +3690,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ollama.manager.chatHistoryLoadingDiff': 'Loading diff…',
   'ollama.manager.chatHistoryNoTextChanges':
     'No textual changes for this selection.',
+  'ollama.manager.chatHistoryDiffTruncated':
+    'Showing the first {shown} lines; {hidden} more were truncated for safety.',
   'ollama.manager.chatHistoryDiffLabel': 'Chat history change diff',
   'ollama.manager.chatHistorySelectCommit':
     'Select a commit to inspect its changes.',
@@ -6226,6 +6229,8 @@ export const cantoneseTranslations: Readonly<
   'ollama.manager.chatHistoryLoadMore': '載入更多',
   'ollama.manager.chatHistoryLoadingDiff': '載入緊差異…',
   'ollama.manager.chatHistoryNoTextChanges': '呢個選項冇文字變更。',
+  'ollama.manager.chatHistoryDiffTruncated':
+    '安全起見只顯示頭 {shown} 行，仲有 {hidden} 行截咗冇顯示。',
   'ollama.manager.chatHistoryDiffLabel': '對話歷史變更差異',
   'ollama.manager.chatHistorySelectCommit': '揀一個 commit 嚟睇佢改咗啲乜。',
   'ollama.manager.chatHistoryRetry': '再試',

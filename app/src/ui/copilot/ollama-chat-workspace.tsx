@@ -1289,7 +1289,6 @@ export class OllamaChatWorkspace extends React.Component<
             formatEntrySummary={strings.chatHistorySummary}
             formatCommittedAt={strings.chatHistoryTimestamp}
             errorMessage={strings.chatHistoryError}
-            showAdvancedFilterControls={false}
             source={this.state.historySource}
             sourceKey={this.state.historySourceId ?? undefined}
             onStoreMutated={this.onHistoryMutation}

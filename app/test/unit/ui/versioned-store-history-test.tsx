@@ -8,6 +8,7 @@ import {
   IVersionHistoryEntry,
   IVersionHistoryPage,
   IVersionedStoreHistorySource,
+  MaxVersionHistoryDiffLines,
   VersionedStoreHistory,
 } from '../../../src/ui/version-history'
 import { DialogStackContext } from '../../../src/ui/dialog'
@@ -421,6 +422,125 @@ describe('versioned store history', () => {
     })
     await waitFor(() =>
       assert.ok(screen.getByRole('option', { name: /Restored settings/i }))
+    )
+  })
+
+  it('always exposes the mode control and regex builder beside the search input', async () => {
+    // Every embedding of the shared timeline is a registered search surface;
+    // its regex-builder access must exist at runtime, not only in the source
+    // the registry audit reads.
+    const source: IVersionedStoreHistorySource = {
+      getHistory: () =>
+        Promise.resolve(
+          historyPage([historyEntry('11111111', 'Snapshot')], false)
+        ),
+      getFiles: () => Promise.resolve([]),
+      getDiff: () => Promise.resolve(''),
+    }
+
+    render(
+      <VersionedStoreHistory
+        title="Chat history"
+        timelineLabel="Conversation timeline"
+        description="Test history"
+        source={source}
+        readOnly={true}
+        onDismissed={() => {}}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('option', { name: /Snapshot/i }))
+    )
+    assert.ok(screen.getByLabelText(/Filter mode: Fuzzy/))
+    assert.ok(screen.getByLabelText('Match case'))
+    assert.ok(screen.getByLabelText('Open regex builder'))
+  })
+
+  it('keeps the HEAD badge on the newest commit while filtering', async () => {
+    const entries = [
+      historyEntry('11111111', 'Changed theme', at(1)),
+      historyEntry('22222222', 'Marked notification read', at(2)),
+    ]
+    const source: IVersionedStoreHistorySource = {
+      getHistory: () => Promise.resolve(historyPage(entries, false)),
+      getFiles: () => Promise.resolve([]),
+      getDiff: () => Promise.resolve(''),
+      undoLastChange: () => Promise.resolve(),
+      redoLastChange: () => Promise.resolve(),
+      restoreTo: () => Promise.resolve(),
+    }
+
+    render(
+      <VersionedStoreHistory
+        title="Settings history"
+        timelineLabel="Settings timeline"
+        description="Test history"
+        source={source}
+        onDismissed={() => {}}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText('HEAD')))
+
+    fireEvent.change(screen.getByLabelText('Search version history'), {
+      target: { value: 'notification' },
+    })
+    await waitFor(() => {
+      assert.ok(
+        screen.getByRole('option', { name: /Marked notification read/i })
+      )
+      assert.equal(
+        screen.queryByRole('option', { name: /Changed theme/i }),
+        null
+      )
+    })
+
+    // The surviving row is not the newest loaded commit, so it must not wear
+    // the HEAD badge just because a filter ranked it first.
+    assert.equal(screen.queryByText('HEAD'), null)
+  })
+
+  it('caps an oversized diff and reports the truncation honestly', async () => {
+    const hiddenLines = 3
+    const diff = Array.from(
+      { length: MaxVersionHistoryDiffLines + hiddenLines },
+      (_, index) => `+line ${index}`
+    ).join('\n')
+    const source: IVersionedStoreHistorySource = {
+      getHistory: () =>
+        Promise.resolve(
+          historyPage([historyEntry('11111111', 'Big change')], false)
+        ),
+      getFiles: () => Promise.resolve(['settings.json']),
+      getDiff: () => Promise.resolve(diff),
+    }
+
+    const view = render(
+      <VersionedStoreHistory
+        title="Settings history"
+        timelineLabel="Settings timeline"
+        description="Test history"
+        source={source}
+        readOnly={true}
+        onDismissed={() => {}}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(
+        screen.getByText(
+          `Showing the first ${MaxVersionHistoryDiffLines} lines; ` +
+            `${hiddenLines} more were truncated for safety.`
+        )
+      )
+    )
+
+    // Exactly the capped line spans plus the truncation notice reach the DOM.
+    assert.equal(
+      view.container.querySelectorAll('.versioned-store-history-diff > span')
+        .length,
+      MaxVersionHistoryDiffLines + 1
     )
   })
 })

@@ -1,6 +1,7 @@
 import * as React from 'react'
 
 import classNames from 'classnames'
+import memoizeOne from 'memoize-one'
 import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -11,6 +12,15 @@ import { FilterModeControl } from '../lib/filter-mode-control'
 import { DialogStackContext } from '../dialog'
 
 const VersionHistoryPageSize = 50
+
+/**
+ * Upper bound on rendered diff lines, mirroring the 5,000-result cap the diff
+ * search applies elsewhere in the app. A snapshot diff of a large store can
+ * reach hundreds of thousands of lines; rendering one span per line beyond
+ * this bound only produces an unresponsive dialog, so the tail is replaced by
+ * an explicit truncation notice.
+ */
+export const MaxVersionHistoryDiffLines = 5000
 
 /** The common commit shape rendered by all versioned local stores. */
 export interface IVersionHistoryEntry {
@@ -81,6 +91,7 @@ export interface IVersionedStoreHistoryStrings {
   readonly loadMore: string
   readonly loadingDiff: string
   readonly noTextChanges: string
+  readonly diffTruncated: (shown: number, hidden: number) => string
   readonly diffLabel: string
   readonly selectCommit: string
   readonly retry: string
@@ -117,6 +128,8 @@ export const DefaultVersionedStoreHistoryStrings: IVersionedStoreHistoryStrings 
     loadMore: 'Load more',
     loadingDiff: 'Loading diff…',
     noTextChanges: 'No textual changes for this selection.',
+    diffTruncated: (shown, hidden) =>
+      `Showing the first ${shown} lines; ${hidden} more were truncated for safety.`,
     diffLabel: 'Version change diff',
     selectCommit: 'Select a commit to inspect its changes.',
     retry: 'Retry',
@@ -154,8 +167,6 @@ export interface IVersionedStoreHistoryProps {
   readonly formatCommittedAt?: (date: Date) => string
   /** Replace raw store exceptions with bounded, localized copy. */
   readonly errorMessage?: string
-  /** Hide the shared mode/regex controls for compact, localized embeddings. */
-  readonly showAdvancedFilterControls?: boolean
   /**
    * Render an inspect-only timeline: hide undo, redo, and restore. Used for
    * scoped views whose subject cannot be mutated without affecting the rest of
@@ -234,6 +245,12 @@ export function classifyVersionHistoryDiffLine(
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
+
+/**
+ * A stable stand-in for "no page loaded yet": memoized derivations compare
+ * their arguments by identity, so a fresh `[]` per call would defeat them.
+ */
+const NoEntries: ReadonlyArray<IVersionHistoryEntry> = []
 
 /**
  * Append one paged response to the timeline already on screen, keeping it a
@@ -654,41 +671,83 @@ export class VersionedStoreHistory extends React.Component<
     return this.props.errorMessage ?? getErrorMessage(error)
   }
 
+  /**
+   * Filter the loaded timeline once per (entries, filter state) change. The
+   * result is consulted by both the list and the filter status line in the
+   * same render pass, so without memoization every keystroke — and every
+   * unrelated re-render — paid two full match passes over every loaded entry.
+   */
+  private readonly filterEntries = memoizeOne(
+    (
+      entries: ReadonlyArray<IVersionHistoryEntry>,
+      filterText: string,
+      filterMode: FilterMode,
+      filterCaseSensitive: boolean,
+      filesBySha: IVersionedStoreHistoryState['filesBySha'],
+      formatEntrySummary: ((summary: string) => string) | undefined
+    ): {
+      readonly entries: ReadonlyArray<IVersionHistoryEntry>
+      readonly regexError: string | null
+    } => {
+      if (filterText.length === 0) {
+        return { entries, regexError: null }
+      }
+
+      const result = matchWithMode(
+        filterText,
+        entries,
+        entry => [
+          entry.summary,
+          formatEntrySummary?.(entry.summary) ?? entry.summary,
+          entry.body,
+          entry.sha,
+          entry.shortSha,
+          entry.committedAt.toISOString(),
+          entry.undoOf === null ? '' : 'undo',
+          entry.redoOf === null ? '' : 'redo',
+          entry.restoreOf === null ? '' : 'restore',
+          ...(filesBySha[entry.sha] ?? []),
+        ],
+        { mode: filterMode, caseSensitive: filterCaseSensitive }
+      )
+
+      return {
+        entries: result.results.map(match => match.item),
+        regexError: result.regexError,
+      }
+    }
+  )
+
   private getFilteredEntries() {
-    const entries = this.state.page?.entries ?? []
     const { filterText, filterMode, filterCaseSensitive, filesBySha } =
       this.state
-    if (filterText.length === 0) {
-      return { entries, regexError: null }
-    }
-
-    const result = matchWithMode(
+    return this.filterEntries(
+      this.state.page?.entries ?? NoEntries,
       filterText,
-      entries,
-      entry => [
-        entry.summary,
-        this.formatEntrySummary(entry.summary),
-        entry.body,
-        entry.sha,
-        entry.shortSha,
-        entry.committedAt.toISOString(),
-        entry.undoOf === null ? '' : 'undo',
-        entry.redoOf === null ? '' : 'redo',
-        entry.restoreOf === null ? '' : 'restore',
-        ...(filesBySha[entry.sha] ?? []),
-      ],
-      { mode: filterMode, caseSensitive: filterCaseSensitive }
+      filterMode,
+      filterCaseSensitive,
+      filesBySha,
+      this.props.formatEntrySummary
     )
-
-    return {
-      entries: result.results.map(match => match.item),
-      regexError: result.regexError,
-    }
   }
 
-  private renderFilter() {
+  /**
+   * The unfiltered row index of every loaded entry, rebuilt only when the
+   * loaded timeline changes. Rows need their position in the full timeline —
+   * the HEAD badge belongs to the newest loaded commit, not to whichever row
+   * a filter happens to rank first — and an `indexOf` per rendered row would
+   * rescan the whole list, turning each render into O(n²) comparisons.
+   */
+  private readonly getEntryIndexBySha = memoizeOne(
+    (entries: ReadonlyArray<IVersionHistoryEntry>) =>
+      new Map(entries.map((entry, index) => [entry.sha, index] as const))
+  )
+
+  private renderFilter(result: {
+    readonly entries: ReadonlyArray<IVersionHistoryEntry>
+    readonly regexError: string | null
+  }) {
     const { filterText, filterMode, filterCaseSensitive, page } = this.state
-    const result = this.getFilteredEntries()
     return (
       <div className="versioned-store-history-filter">
         <div className="versioned-store-history-filter-row">
@@ -703,19 +762,17 @@ export class VersionedStoreHistory extends React.Component<
             prefixedIcon={octicons.search}
             onValueChanged={this.onFilterTextChanged}
           />
-          {this.props.showAdvancedFilterControls === false ? null : (
-            <FilterModeControl
-              searchSurfaceId="version-history"
-              mode={filterMode}
-              caseSensitive={filterCaseSensitive}
-              onModeChange={this.onFilterModeChanged}
-              onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
-              regexBuilderTarget={this.strings.regexBuilderTarget}
-              getSampleItems={this.getFilterSamples}
-              filterText={filterText}
-              onRegexPatternApply={this.onFilterTextChanged}
-            />
-          )}
+          <FilterModeControl
+            searchSurfaceId="version-history"
+            mode={filterMode}
+            caseSensitive={filterCaseSensitive}
+            onModeChange={this.onFilterModeChanged}
+            onCaseSensitiveChange={this.onFilterCaseSensitiveChanged}
+            regexBuilderTarget={this.strings.regexBuilderTarget}
+            getSampleItems={this.getFilterSamples}
+            filterText={filterText}
+            onRegexPatternApply={this.onFilterTextChanged}
+          />
         </div>
         <div
           className="versioned-store-history-filter-status"
@@ -904,10 +961,11 @@ export class VersionedStoreHistory extends React.Component<
     }
 
     const result = this.getFilteredEntries()
+    const indexBySha = this.getEntryIndexBySha(page.entries)
 
     return (
       <>
-        {this.renderFilter()}
+        {this.renderFilter(result)}
         {result.entries.length === 0 ? (
           <div className="versioned-store-history-empty filtered">
             <Octicon symbol={octicons.search} />
@@ -917,7 +975,7 @@ export class VersionedStoreHistory extends React.Component<
         ) : (
           <ol className="versioned-store-history-list" role="listbox">
             {result.entries.map(entry =>
-              this.renderEntry(entry, page.entries.indexOf(entry))
+              this.renderEntry(entry, indexBySha.get(entry.sha) ?? -1)
             )}
           </ol>
         )}
@@ -944,6 +1002,34 @@ export class VersionedStoreHistory extends React.Component<
     )
   }
 
+  /**
+   * Split and classify a diff once per diff string instead of on every
+   * render. The dialog re-renders on each filter keystroke, selection change,
+   * and confirmation toggle, and re-splitting a multi-megabyte diff into
+   * fresh per-line spans each time made every one of those interactions pay
+   * for the whole diff again. Lines beyond the cap are dropped here, before
+   * any DOM is built for them.
+   */
+  private readonly getDiffLines = memoizeOne((diff: string) => {
+    const allLines = diff.split('\n')
+    const hiddenLineCount = Math.max(
+      0,
+      allLines.length - MaxVersionHistoryDiffLines
+    )
+    const visibleLines =
+      hiddenLineCount === 0
+        ? allLines
+        : allLines.slice(0, MaxVersionHistoryDiffLines)
+
+    return {
+      lines: visibleLines.map(line => ({
+        line,
+        kind: classifyVersionHistoryDiffLine(line),
+      })),
+      hiddenLineCount,
+    }
+  })
+
   private renderDiff() {
     if (this.state.loadingDiff) {
       return (
@@ -963,23 +1049,31 @@ export class VersionedStoreHistory extends React.Component<
       )
     }
 
+    const { lines, hiddenLineCount } = this.getDiffLines(this.state.diff)
+
     return (
       <pre
         className="versioned-store-history-diff"
         role="region"
         aria-label={this.strings.diffLabel}
       >
-        {this.state.diff.split('\n').map((line, index) => (
+        {lines.map(({ line, kind }, index) => (
           <span
-            className={`versioned-store-history-diff-${classifyVersionHistoryDiffLine(
-              line
-            )}`}
+            className={`versioned-store-history-diff-${kind}`}
             key={`${index}-${line}`}
           >
             {line.length === 0 ? ' ' : line}
             {'\n'}
           </span>
         ))}
+        {hiddenLineCount > 0 ? (
+          <span className="versioned-store-history-diff-truncated">
+            {this.strings.diffTruncated(
+              MaxVersionHistoryDiffLines,
+              hiddenLineCount
+            )}
+          </span>
+        ) : null}
       </pre>
     )
   }
