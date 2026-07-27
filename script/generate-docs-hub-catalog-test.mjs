@@ -3,12 +3,19 @@ import { readFileSync } from 'node:fs'
 import { describe, it } from 'node:test'
 
 import {
+  DefaultIndexPath,
   DefaultOutputPath,
   buildCatalogModule,
+  buildIndexDocument,
   collectCatalog,
   describeDocument,
+  escapeHtml,
+  fallbackLabel,
   findHeadingIndex,
+  groupFeatureCategories,
+  groupReferenceSections,
   renderedHref,
+  replaceManagedBlock,
   sectionOf,
   titleFor,
 } from './generate-docs-hub-catalog.mjs'
@@ -191,6 +198,99 @@ describe('committed documentation hub catalog', () => {
     }
 
     assert.equal(committed, expected)
+  })
+})
+
+describe('documentation hub page inventory', () => {
+  it('groups feature pages by category and keeps the category index apart', () => {
+    const groups = groupFeatureCategories([
+      { s: 'features/README.md', c: 'features' },
+      { s: 'features/design-system/README.md', c: 'features' },
+      { s: 'features/design-system/audio-system.md', c: 'features' },
+      { s: 'features/agent-api/local-agent-http-api.md', c: 'features' },
+      { s: 'installation.md', c: 'root' },
+    ])
+
+    assert.deepEqual(
+      groups.map(group => group.name),
+      ['agent-api', 'design-system']
+    )
+    const design = groups[1]
+    assert.equal(design.index.s, 'features/design-system/README.md')
+    assert.deepEqual(
+      design.pages.map(page => page.s),
+      ['features/design-system/audio-system.md']
+    )
+  })
+
+  it('groups every non-feature page by its documentation folder', () => {
+    const groups = groupReferenceSections([
+      { s: 'installation.md', c: 'root' },
+      { s: 'README.md', c: 'root' },
+      { s: 'technical/README.md', c: 'technical' },
+      { s: 'technical/oauth.md', c: 'technical' },
+      { s: 'features/design-system/audio-system.md', c: 'features' },
+    ])
+
+    assert.deepEqual(
+      groups.map(group => group.name),
+      ['root', 'technical']
+    )
+    // docs/README.md is a page in its own right, not a folder index.
+    assert.equal(groups[0].index, null)
+    assert.equal(groups[0].pages.length, 2)
+    assert.equal(groups[1].index.s, 'technical/README.md')
+  })
+
+  it('escapes page text and titles a folder the label map does not know', () => {
+    assert.equal(
+      escapeHtml('<b>"a" & b</b>'),
+      '&lt;b&gt;&quot;a&quot; &amp; b&lt;/b&gt;'
+    )
+    assert.equal(fallbackLabel('brand-new-folder'), 'Brand New Folder')
+  })
+
+  it('refuses to write a page that lost a managed block', () => {
+    assert.throws(
+      () => replaceManagedBlock('<main></main>', 'features-tabs', ''),
+      /features-tabs managed block is missing/
+    )
+    assert.equal(
+      replaceManagedBlock(
+        '<x><!-- docs-hub:features-tabs:start --><!-- docs-hub:features-tabs:end --></x>',
+        'features-tabs',
+        '<a></a>'
+      ),
+      '<x><!-- docs-hub:features-tabs:start -->\n<a></a>\n<!-- docs-hub:features-tabs:end --></x>'
+    )
+  })
+
+  it('lists every feature document on the hub page', () => {
+    const html = normalize(readFileSync(DefaultIndexPath, 'utf8'))
+    const missing = []
+    for (const entry of collectCatalog()) {
+      if (entry.c !== 'features' || entry.s.split('/').length < 3) {
+        continue
+      }
+      if (entry.s.endsWith('/README.md')) {
+        continue
+      }
+      if (!html.includes(`href="${escapeHtml(entry.h)}"`)) {
+        missing.push(entry.s)
+      }
+    }
+    assert.deepEqual(missing, [], 'feature pages missing from the hub page')
+  })
+
+  it('is current with the documentation tree', async () => {
+    const { source } = await buildIndexDocument()
+    const committed = normalize(readFileSync(DefaultIndexPath, 'utf8'))
+
+    assert.equal(
+      committed,
+      normalize(source),
+      `${DefaultIndexPath} is stale. Run \`${RegenerationCommand}\` and commit the result.`
+    )
   })
 })
 

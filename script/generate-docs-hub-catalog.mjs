@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * Regenerates the documentation-hub catalog consumed by docs/index.html.
+ * Regenerates the documentation-hub catalog consumed by docs/index.html, and
+ * the static page inventories inside the hub's Features and Reference tabs.
  *
  * The hub's search runs entirely in the reader's browser, so the list of
  * documentation pages has to be baked into a static module. This script walks
@@ -9,11 +10,15 @@
  * docs/assets/site/docs-hub-catalog.js formatted with the repository's own
  * Prettier configuration.
  *
+ * The same records are also rendered as plain HTML into managed blocks of
+ * docs/index.html, so every documented feature is listed on the site itself
+ * and stays readable with JavaScript switched off.
+ *
  * Usage: yarn generate-docs-hub-catalog [docsDirectory] [outputPath]
  *
  * script/generate-docs-hub-catalog-test.mjs fails when the committed catalog
- * has drifted from the tree, so CI catches a page that was added, renamed,
- * retitled or reworded without a regeneration.
+ * or the committed index has drifted from the tree, so CI catches a page that
+ * was added, renamed, retitled or reworded without a regeneration.
  */
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -28,6 +33,7 @@ export const DefaultOutputPath = resolve(
   repositoryRoot,
   'docs/assets/site/docs-hub-catalog.js'
 )
+export const DefaultIndexPath = resolve(repositoryRoot, 'docs/index.html')
 
 /** Directories under docs/ that hold no documentation pages. */
 const IgnoredDirectories = new Set(['assets'])
@@ -200,6 +206,239 @@ ${body}
 }
 
 /**
+ * Sub-tab labels. The key names a string in docs-hub-strings.js so the tab is
+ * localized like the rest of the chrome; the label is the English fallback
+ * that renders before the script runs and when JavaScript is unavailable.
+ */
+export const FeatureCategoryLabels = {
+  'agent-api': { key: 'cFeatAgentTitle', label: 'Agent API' },
+  collaboration: { key: 'cFeatCollabTitle', label: 'Collaboration' },
+  'design-system': { key: 'cFeatDesignTitle', label: 'Design system' },
+  'identity-and-workspace': {
+    key: 'cFeatIdentityTitle',
+    label: 'Identity and workspace',
+  },
+  integrations: { key: 'cFeatIntegrationsTitle', label: 'Integrations' },
+  'quality-and-reliability': {
+    key: 'cFeatQualityTitle',
+    label: 'Quality and reliability',
+  },
+  'repository-management': {
+    key: 'cFeatRepoTitle',
+    label: 'Repository management',
+  },
+  'review-and-diff': { key: 'cFeatReviewTitle', label: 'Review and diff' },
+}
+
+export const ReferenceSectionLabels = {
+  contributing: { key: 'secContributing', label: 'Contributing' },
+  handoff: { key: 'secHandoff', label: 'Handoff records' },
+  integrations: { key: 'secIntegrations', label: 'Provider integrations' },
+  'learn-more': { key: 'secLearnMore', label: 'Learn more' },
+  postman: { key: 'secPostman', label: 'Postman collections' },
+  process: { key: 'secProcess', label: 'Process' },
+  'readme-tabs': { key: 'secReadmeTabs', label: 'README tabs' },
+  root: { key: 'secRoot', label: 'Top-level pages' },
+  technical: { key: 'secTechnical', label: 'Technical notes' },
+  verification: { key: 'secVerification', label: 'Verification records' },
+  wiki: { key: 'secWiki', label: 'Wiki pages' },
+}
+
+/** Title-cases a directory name for a group the label map does not know. */
+export function fallbackLabel(name) {
+  return name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
+
+export function escapeHtml(value) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+/**
+ * Groups the feature documents by their category directory. The category's own
+ * README is kept aside as the index page rather than listed as a feature.
+ */
+export function groupFeatureCategories(entries) {
+  const groups = new Map()
+  for (const entry of entries) {
+    if (entry.c !== 'features') {
+      continue
+    }
+    const parts = entry.s.split('/')
+    if (parts.length < 3) {
+      continue
+    }
+    const category = parts[1]
+    if (!groups.has(category)) {
+      groups.set(category, { name: category, index: null, pages: [] })
+    }
+    const group = groups.get(category)
+    if (parts[2] === 'README.md') {
+      group.index = entry
+    } else {
+      group.pages.push(entry)
+    }
+  }
+  return [...groups.values()].sort((left, right) =>
+    left.name.localeCompare(right.name)
+  )
+}
+
+/** Groups every non-feature page by the docs/ folder that owns it. */
+export function groupReferenceSections(entries) {
+  const groups = new Map()
+  for (const entry of entries) {
+    if (entry.c === 'features') {
+      continue
+    }
+    if (!groups.has(entry.c)) {
+      groups.set(entry.c, { name: entry.c, index: null, pages: [] })
+    }
+    const group = groups.get(entry.c)
+    if (basename(entry.s) === 'README.md' && entry.c !== 'root') {
+      group.index = entry
+    } else {
+      group.pages.push(entry)
+    }
+  }
+  return [...groups.values()].sort((left, right) =>
+    left.name.localeCompare(right.name)
+  )
+}
+
+function labelFor(labels, name) {
+  return labels[name] ?? { key: null, label: fallbackLabel(name) }
+}
+
+function renderSubTab(id, route, { key, label }) {
+  const localized = key === null ? '' : ` data-i18n="${key}"`
+  return (
+    `<a class="subtab i18n-inline" id="${id}" href="#${route}" ` +
+    `data-tab="${route}"${localized}>${escapeHtml(label)}</a>`
+  )
+}
+
+function renderDocumentLink(entry) {
+  const description =
+    entry.d === ''
+      ? ''
+      : `<span class="doc-link__desc">${escapeHtml(entry.d)}</span>`
+  return (
+    `<li><a class="doc-link" href="${escapeHtml(entry.h)}">` +
+    `<span class="doc-link__title">${escapeHtml(entry.t)}</span>` +
+    description +
+    `<span class="doc-link__path">${escapeHtml(entry.s)}</span>` +
+    '</a></li>'
+  )
+}
+
+function renderSubPanel(id, route, { key, label }, group) {
+  const localized = key === null ? '' : ` data-i18n="${key}"`
+  const count = group.pages.length
+  const countKey = count === 1 ? 'docsCountOne' : 'docsCount'
+  const index =
+    group.index === null
+      ? ''
+      : ` · <a href="${escapeHtml(group.index.h)}">` +
+        '<span class="i18n-inline" data-i18n="categoryIndex">Category index</span>' +
+        '</a>'
+  return (
+    `<section class="subpanel" id="${route}" data-tab-panel="${route}" ` +
+    `aria-labelledby="${id}">` +
+    `<h3 class="md-title-lg i18n-inline"${localized}>${escapeHtml(
+      label
+    )}</h3>` +
+    '<p class="md-body subpanel__meta">' +
+    `<strong>${count}</strong> ` +
+    `<span class="i18n-inline" data-i18n="${countKey}">` +
+    `${count === 1 ? 'document' : 'documents'}</span>` +
+    index +
+    '</p>' +
+    '<ul class="doc-list">' +
+    group.pages.map(renderDocumentLink).join('') +
+    '</ul>' +
+    '</section>'
+  )
+}
+
+/** Renders the four managed blocks of docs/index.html, keyed by block name. */
+export function renderIndexBlocks(entries) {
+  const features = groupFeatureCategories(entries)
+  const sections = groupReferenceSections(entries)
+
+  const block = (groups, prefix, labels) => {
+    const tabs = []
+    const panels = []
+    for (const group of groups) {
+      const route = `${prefix}/${group.name}`
+      const id = `subtab-${prefix}-${group.name}`
+      const label = labelFor(labels, group.name)
+      tabs.push(renderSubTab(id, route, label))
+      panels.push(renderSubPanel(id, route, label, group))
+    }
+    return { tabs: tabs.join('\n'), panels: panels.join('\n') }
+  }
+
+  const featureBlock = block(features, 'features', FeatureCategoryLabels)
+  const referenceBlock = block(sections, 'reference', ReferenceSectionLabels)
+
+  return {
+    'features-tabs': featureBlock.tabs,
+    'features-panels': featureBlock.panels,
+    'reference-tabs': referenceBlock.tabs,
+    'reference-panels': referenceBlock.panels,
+  }
+}
+
+/** Replaces the body between one pair of managed-block markers. */
+export function replaceManagedBlock(html, name, body) {
+  const start = `<!-- docs-hub:${name}:start -->`
+  const end = `<!-- docs-hub:${name}:end -->`
+  const startIndex = html.indexOf(start)
+  const endIndex = html.indexOf(end)
+  if (startIndex === -1 || endIndex === -1 || endIndex < startIndex) {
+    throw new Error(`the ${name} managed block is missing from the hub page`)
+  }
+  return (
+    html.slice(0, startIndex + start.length) +
+    `\n${body}\n` +
+    html.slice(endIndex)
+  )
+}
+
+/**
+ * Builds docs/index.html exactly as it should appear on disk: the committed
+ * page with its four managed blocks refreshed from the tree, then formatted
+ * with the repository's own Prettier configuration.
+ */
+export async function buildIndexDocument({
+  docsDirectory = DefaultDocsDirectory,
+  indexPath = DefaultIndexPath,
+  entries,
+} = {}) {
+  const catalog = entries ?? collectCatalog(docsDirectory)
+  const original = readFileSync(indexPath, 'utf8')
+  let html = original
+  for (const [name, body] of Object.entries(renderIndexBlocks(catalog))) {
+    html = replaceManagedBlock(html, name, body)
+  }
+  const options = (await prettier.resolveConfig(indexPath)) ?? {}
+  const source = prettier.format(html, {
+    ...options,
+    filepath: indexPath,
+    endOfLine: 'lf',
+  })
+  return {
+    entries: catalog,
+    source,
+    usesCarriageReturns: /\r\n/.test(original),
+  }
+}
+
+/**
  * Builds the catalog module text exactly as it should appear on disk, using
  * the repository's Prettier configuration so a regeneration never breaks lint.
  */
@@ -221,6 +460,7 @@ export async function buildCatalogModule({
 export async function generateDocsHubCatalog({
   docsDirectory = DefaultDocsDirectory,
   outputPath = DefaultOutputPath,
+  indexPath = DefaultIndexPath,
 } = {}) {
   const { entries, source } = await buildCatalogModule({
     docsDirectory,
@@ -228,14 +468,25 @@ export async function generateDocsHubCatalog({
   })
   mkdirSync(dirname(outputPath), { recursive: true })
   writeFileSync(outputPath, source)
-  return { entries, source, outputPath }
+
+  const index = await buildIndexDocument({ docsDirectory, indexPath, entries })
+  // Prettier always emits LF; the page keeps whatever endings it was checked
+  // out with, so a regeneration never shows up as a whole-file diff.
+  writeFileSync(
+    indexPath,
+    index.usesCarriageReturns
+      ? index.source.replace(/\n/g, '\r\n')
+      : index.source
+  )
+
+  return { entries, source, outputPath, indexPath }
 }
 
 if (
   process.argv[1] !== undefined &&
   import.meta.url === pathToFileURL(resolve(process.argv[1])).href
 ) {
-  const { entries, outputPath } = await generateDocsHubCatalog({
+  const { entries, outputPath, indexPath } = await generateDocsHubCatalog({
     docsDirectory:
       process.argv[2] === undefined
         ? DefaultDocsDirectory
@@ -249,11 +500,15 @@ if (
   for (const entry of entries) {
     sections.set(entry.c, (sections.get(entry.c) ?? 0) + 1)
   }
+  const featureCategories = groupFeatureCategories(entries)
   console.log(
     `Generated ${entries.length} documentation catalog entries in ${outputPath}\n` +
       [...sections]
         .sort((left, right) => left[0].localeCompare(right[0]))
         .map(([section, count]) => `  ${section}: ${count}`)
-        .join('\n')
+        .join('\n') +
+      `\nRefreshed ${featureCategories.length} feature category pages and ` +
+      `${groupReferenceSections(entries).length} reference section pages in ` +
+      indexPath
   )
 }

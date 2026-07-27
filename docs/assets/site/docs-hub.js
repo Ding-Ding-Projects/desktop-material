@@ -21,6 +21,8 @@
     lang: 'dm-docs-lang',
     funEn: 'dm-docs-fun-en',
     funYue: 'dm-docs-fun-yue',
+    density: 'dm-docs-density',
+    accent: 'dm-docs-accent',
   }
 
   /** Safety bounds. Both are also enforced with `maxlength` in the markup. */
@@ -59,11 +61,16 @@
 
   // ----------------------------------------------------------- preferences
 
+  var Densities = ['comfortable', 'compact']
+  var Accents = ['violet', 'teal', 'amber', 'rose']
+
   var prefs = {
     theme: read(STORE.theme, 'system'),
     lang: read(STORE.lang, 'en'),
     funEn: clampLevel(read(STORE.funEn, '3')),
     funYue: clampLevel(read(STORE.funYue, '3')),
+    density: read(STORE.density, 'comfortable'),
+    accent: read(STORE.accent, 'violet'),
   }
 
   if (prefs.lang !== 'en' && prefs.lang !== 'yue' && prefs.lang !== 'bi') {
@@ -75,6 +82,12 @@
     prefs.theme !== 'dark'
   ) {
     prefs.theme = 'system'
+  }
+  if (Densities.indexOf(prefs.density) === -1) {
+    prefs.density = 'comfortable'
+  }
+  if (Accents.indexOf(prefs.accent) === -1) {
+    prefs.accent = 'violet'
   }
 
   function clampLevel(value) {
@@ -239,6 +252,317 @@
 
   if (darkQuery !== null && typeof darkQuery.addEventListener === 'function') {
     darkQuery.addEventListener('change', applyTheme)
+  }
+
+  /**
+   * Density and accent are pure presentation: the default of each is expressed
+   * by the absence of the attribute, so a stored default leaves the markup
+   * exactly as the pre-paint script left it.
+   */
+  function applyAppearance() {
+    var root = document.documentElement
+    if (prefs.density === 'comfortable') {
+      root.removeAttribute('data-density')
+    } else {
+      root.setAttribute('data-density', prefs.density)
+    }
+    if (prefs.accent === 'violet') {
+      root.removeAttribute('data-accent')
+    } else {
+      root.setAttribute('data-accent', prefs.accent)
+    }
+  }
+
+  // ------------------------------------------------------------------ tabs
+
+  var DefaultRoute = 'overview'
+
+  /**
+   * Every tab is a route, and every route is the id of the panel it shows.
+   * A sub-route is written `<tab>/<panel>`, so `#features/design-system` is a
+   * shareable address for one category page. Without JavaScript those same
+   * hashes are ordinary in-page anchors and every panel is visible, which is
+   * why the markup carries no `hidden` attribute and no ARIA tab state.
+   */
+  var tabGroups = []
+  var activeRoute = DefaultRoute
+
+  function panelFor(route) {
+    return document.getElementById(route)
+  }
+
+  function collectTabGroups() {
+    tabGroups = []
+    var lists = document.querySelectorAll('.tabs, .subtabs')
+    for (var i = 0; i < lists.length; i++) {
+      var list = lists[i]
+      var links = list.querySelectorAll('[data-tab]')
+      if (links.length === 0) {
+        continue
+      }
+      var group = {
+        name: list.getAttribute('data-subtabs') || '',
+        element: list,
+        entries: [],
+      }
+      list.setAttribute('role', 'tablist')
+      for (var j = 0; j < links.length; j++) {
+        var link = links[j]
+        var route = link.getAttribute('data-tab')
+        var panel = panelFor(route)
+        if (panel === null) {
+          continue
+        }
+        link.setAttribute('role', 'tab')
+        link.setAttribute('aria-controls', route)
+        link.setAttribute('aria-selected', 'false')
+        link.setAttribute('tabindex', '-1')
+        panel.setAttribute('role', 'tabpanel')
+        panel.setAttribute('tabindex', '-1')
+        group.entries.push({ route: route, link: link, panel: panel })
+      }
+      if (group.entries.length > 0) {
+        tabGroups.push(group)
+      }
+    }
+  }
+
+  function groupNamed(name) {
+    for (var i = 0; i < tabGroups.length; i++) {
+      if (tabGroups[i].name === name) {
+        return tabGroups[i]
+      }
+    }
+    return null
+  }
+
+  function knownRoute(route) {
+    for (var i = 0; i < tabGroups.length; i++) {
+      for (var j = 0; j < tabGroups[i].entries.length; j++) {
+        if (tabGroups[i].entries[j].route === route) {
+          return true
+        }
+      }
+    }
+    return false
+  }
+
+  /**
+   * Resolves any hash — stale, hand-typed or from an older link — to a route
+   * this page can actually show. An unknown sub-route falls back to its parent
+   * tab, and anything else falls back to the default tab.
+   */
+  function normalizeRoute(raw) {
+    var route = String(raw === null || raw === undefined ? '' : raw)
+    if (route.charAt(0) === '#') {
+      route = route.slice(1)
+    }
+    try {
+      route = decodeURIComponent(route)
+    } catch (error) {
+      /* A malformed escape is simply not a route. */
+    }
+    if (route === '') {
+      return DefaultRoute
+    }
+    if (knownRoute(route)) {
+      return route
+    }
+    var slash = route.indexOf('/')
+    if (slash > 0 && knownRoute(route.slice(0, slash))) {
+      return route.slice(0, slash)
+    }
+    return DefaultRoute
+  }
+
+  function selectInGroup(group, route) {
+    for (var i = 0; i < group.entries.length; i++) {
+      var entry = group.entries[i]
+      var current = entry.route === route
+      entry.link.setAttribute('aria-selected', current ? 'true' : 'false')
+      entry.link.setAttribute('tabindex', current ? '0' : '-1')
+      if (current) {
+        entry.panel.removeAttribute('hidden')
+      } else {
+        entry.panel.setAttribute('hidden', '')
+      }
+    }
+  }
+
+  /** The first route of a sub-tab group, used when a tab is entered bare. */
+  function defaultSubRoute(name) {
+    var group = groupNamed(name)
+    return group === null ? null : group.entries[0].route
+  }
+
+  function applyRoute(route) {
+    var top =
+      route.indexOf('/') === -1 ? route : route.slice(0, route.indexOf('/'))
+    var root = groupNamed('')
+    if (root !== null) {
+      selectInGroup(root, top)
+    }
+    for (var i = 0; i < tabGroups.length; i++) {
+      var group = tabGroups[i]
+      if (group.name === '') {
+        continue
+      }
+      var wanted =
+        group.name === top && route !== top
+          ? route
+          : defaultSubRoute(group.name)
+      selectInGroup(group, wanted)
+    }
+    activeRoute = route
+  }
+
+  function currentRoute() {
+    return activeRoute
+  }
+
+  /**
+   * Moves to a route. `push` records a history entry so Back returns to the
+   * previous tab; `focus` decides whether the tab itself or the panel it opened
+   * receives focus, which keeps activation from a content link readable.
+   */
+  function navigate(raw, options) {
+    var settings = options || {}
+    var route = normalizeRoute(raw)
+    applyRoute(route)
+
+    if (settings.push === true) {
+      var hash = '#' + route
+      try {
+        if (window.history && typeof window.history.pushState === 'function') {
+          window.history.pushState(null, '', hash)
+        } else {
+          window.location.hash = hash
+        }
+      } catch (error) {
+        window.location.hash = hash
+      }
+    }
+
+    if (settings.focus === 'panel') {
+      var panel = panelFor(route)
+      if (panel !== null && typeof panel.focus === 'function') {
+        panel.focus()
+      }
+    } else if (settings.focus === 'tab') {
+      var link = document.querySelector('[data-tab="' + cssEscape(route) + '"]')
+      if (link !== null && typeof link.focus === 'function') {
+        link.focus()
+      }
+    }
+
+    if (settings.scroll !== false && typeof window.scrollTo === 'function') {
+      window.scrollTo(0, 0)
+    }
+  }
+
+  /** Routes contain `/`, which an attribute selector must see quoted. */
+  function cssEscape(value) {
+    return value.replace(/["\\]/g, '\\$&')
+  }
+
+  function wireTabs() {
+    collectTabGroups()
+
+    for (var i = 0; i < tabGroups.length; i++) {
+      wireTabGroup(tabGroups[i])
+    }
+
+    // Any in-page link whose hash names a route becomes a tab activation, so
+    // hero buttons and cross-references open the right page instead of
+    // scrolling into a panel that is currently hidden.
+    document.addEventListener('click', function (event) {
+      if (event.target.closest === undefined || event.defaultPrevented) {
+        return
+      }
+      var link = event.target.closest('a[href]')
+      if (
+        link === null ||
+        link.hasAttribute('data-tab') ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return
+      }
+      var href = link.getAttribute('href')
+      if (href === null || href.charAt(0) !== '#' || href === '#') {
+        return
+      }
+      var route = href.slice(1)
+      if (!knownRoute(route)) {
+        return
+      }
+      event.preventDefault()
+      navigate(route, { push: true, focus: 'panel' })
+      var focusTarget = link.getAttribute('data-focus')
+      if (focusTarget !== null) {
+        var field = document.getElementById(focusTarget)
+        if (field !== null && typeof field.focus === 'function') {
+          field.focus()
+        }
+      }
+    })
+
+    window.addEventListener('hashchange', function () {
+      navigate(window.location.hash, { push: false, scroll: false })
+    })
+    window.addEventListener('popstate', function () {
+      navigate(window.location.hash, { push: false, scroll: false })
+    })
+
+    navigate(window.location.hash, { push: false, scroll: false })
+  }
+
+  function wireTabGroup(group) {
+    for (var i = 0; i < group.entries.length; i++) {
+      group.entries[i].link.addEventListener('click', function (event) {
+        event.preventDefault()
+        navigate(event.currentTarget.getAttribute('data-tab'), {
+          push: true,
+          focus: 'tab',
+        })
+      })
+    }
+
+    // Arrow keys move between tabs and activate on arrival, which is the
+    // recommended behaviour when switching a tab costs nothing.
+    group.element.addEventListener('keydown', function (event) {
+      var index = -1
+      for (var i = 0; i < group.entries.length; i++) {
+        if (group.entries[i].link === event.target) {
+          index = i
+        }
+      }
+      if (index === -1) {
+        return
+      }
+      var last = group.entries.length - 1
+      var next = index
+      if (event.key === 'ArrowRight') {
+        next = index === last ? 0 : index + 1
+      } else if (event.key === 'ArrowLeft') {
+        next = index === 0 ? last : index - 1
+      } else if (event.key === 'Home') {
+        next = 0
+      } else if (event.key === 'End') {
+        next = last
+      } else {
+        return
+      }
+      event.preventDefault()
+      navigate(group.entries[next].route, {
+        push: true,
+        focus: 'tab',
+        scroll: false,
+      })
+    })
   }
 
   // ---------------------------------------------------------------- toasts
@@ -1045,6 +1369,26 @@
         applyTheme()
       })
 
+    var densityInputs = document.querySelectorAll('input[name="density"]')
+    for (var d = 0; d < densityInputs.length; d++) {
+      densityInputs[d].checked = densityInputs[d].value === prefs.density
+      densityInputs[d].addEventListener('change', function (event) {
+        prefs.density = event.target.value
+        write(STORE.density, prefs.density)
+        applyAppearance()
+      })
+    }
+
+    var accentInputs = document.querySelectorAll('input[name="accent"]')
+    for (var a = 0; a < accentInputs.length; a++) {
+      accentInputs[a].checked = accentInputs[a].value === prefs.accent
+      accentInputs[a].addEventListener('change', function (event) {
+        prefs.accent = event.target.value
+        write(STORE.accent, prefs.accent)
+        applyAppearance()
+      })
+    }
+
     var funEn = document.getElementById('fun-en')
     funEn.addEventListener('input', function (event) {
       prefs.funEn = clampLevel(event.target.value)
@@ -1281,9 +1625,20 @@
 
   function start() {
     applyTheme()
+    applyAppearance()
     wire()
+    wireTabs()
     applyLanguage()
     setMode('plain')
+  }
+
+  // Exposed for the tabbed-navigation tests, which drive the real controller
+  // rather than a reimplementation of it. Nothing on the page reads this.
+  window.DesktopMaterialDocsHub = {
+    navigate: navigate,
+    normalizeRoute: normalizeRoute,
+    currentRoute: currentRoute,
+    searchState: searchState,
   }
 
   if (document.readyState === 'loading') {

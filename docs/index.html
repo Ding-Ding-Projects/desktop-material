@@ -11,17 +11,29 @@
     <meta name="color-scheme" content="light dark" />
     <link rel="stylesheet" href="assets/site/docs-hub.css" />
     <script>
-      // Resolve the stored theme and language before first paint so the page
-      // never flashes the wrong palette or the wrong language mode.
+      // Resolve the stored appearance and language before first paint so the
+      // page never flashes the wrong palette, density or language mode. The
+      // `data-js` flag lets the stylesheet hide the no-JavaScript guidance;
+      // everything else on the page still renders without this script.
       ;(function () {
+        var root = document.documentElement
+        root.setAttribute('data-js', 'on')
         try {
           var theme = localStorage.getItem('dm-docs-theme')
           if (theme === 'light' || theme === 'dark') {
-            document.documentElement.setAttribute('data-theme', theme)
+            root.setAttribute('data-theme', theme)
           }
           var lang = localStorage.getItem('dm-docs-lang')
           if (lang === 'en' || lang === 'yue' || lang === 'bi') {
-            document.documentElement.setAttribute('data-lang', lang)
+            root.setAttribute('data-lang', lang)
+          }
+          var density = localStorage.getItem('dm-docs-density')
+          if (density === 'compact') {
+            root.setAttribute('data-density', density)
+          }
+          var accent = localStorage.getItem('dm-docs-accent')
+          if (accent === 'teal' || accent === 'amber' || accent === 'rose') {
+            root.setAttribute('data-accent', accent)
           }
         } catch (error) {
           /* Storage may be unavailable; the defaults are already correct. */
@@ -50,33 +62,6 @@
           >
         </span>
       </a>
-
-      <nav data-i18n-attr="aria-label=navLabel">
-        <a
-          class="btn btn--text i18n-inline"
-          href="#install"
-          data-i18n="navInstall"
-          >Install</a
-        >
-        <a
-          class="btn btn--text i18n-inline"
-          href="#search"
-          data-i18n="navSearch"
-          >Search</a
-        >
-        <a
-          class="btn btn--text i18n-inline"
-          href="#features"
-          data-i18n="navFeatures"
-          >Features</a
-        >
-        <a
-          class="btn btn--text i18n-inline"
-          href="#reference"
-          data-i18n="navReference"
-          >Reference</a
-        >
-      </nav>
 
       <div class="app-bar__actions">
         <button
@@ -111,6 +96,80 @@
         </button>
       </div>
     </header>
+
+    <!--
+      Tab navigation. Without JavaScript these are ordinary in-page links to
+      sections that are all visible at once. `docs-hub.js` upgrades the nav to
+      an ARIA tablist, shows one panel at a time and routes on the URL hash, so
+      each tab is a page of its own with a shareable address.
+    -->
+    <nav
+      class="tabs"
+      id="tabs"
+      aria-label="Documentation sections"
+      data-i18n-attr="aria-label=navLabel"
+    >
+      <a
+        class="tab i18n-inline"
+        id="tab-overview"
+        href="#overview"
+        data-tab="overview"
+        data-i18n="navOverview"
+        >Overview</a
+      >
+      <a
+        class="tab i18n-inline"
+        id="tab-install"
+        href="#install"
+        data-tab="install"
+        data-i18n="navInstall"
+        >Install</a
+      >
+      <a
+        class="tab i18n-inline"
+        id="tab-features"
+        href="#features"
+        data-tab="features"
+        data-i18n="navFeatures"
+        >Features</a
+      >
+      <a
+        class="tab i18n-inline"
+        id="tab-reference"
+        href="#reference"
+        data-tab="reference"
+        data-i18n="navReference"
+        >Reference</a
+      >
+      <a
+        class="tab i18n-inline"
+        id="tab-search"
+        href="#search"
+        data-tab="search"
+        data-i18n="navSearch"
+        >Search</a
+      >
+      <a
+        class="tab i18n-inline"
+        id="tab-links"
+        href="#links"
+        data-tab="links"
+        data-i18n="navLinks"
+        >Project links</a
+      >
+    </nav>
+
+    <p class="nojs-note">
+      <span
+        >JavaScript is off, so every tab is shown below as one continuous page
+        and the search box is inactive. Every documentation link still
+        works.</span
+      >
+      <span lang="zh-HK"
+        >而家冇
+        JavaScript，所以下面所有分頁會一次過顯示，搜尋框亦唔會運作。所有文件連結照樣去到。</span
+      >
+    </p>
 
     <section
       id="prefs"
@@ -183,150 +242,56 @@
           </label>
         </fieldset>
 
+        <fieldset>
+          <legend data-i18n="prefDensity">Density</legend>
+          <label class="checkbox">
+            <input type="radio" name="density" value="comfortable" />
+            <span class="i18n-inline" data-i18n="densityComfortable"
+              >Comfortable</span
+            >
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="density" value="compact" />
+            <span class="i18n-inline" data-i18n="densityCompact">Compact</span>
+          </label>
+          <p class="md-body" data-i18n="densityNote"></p>
+        </fieldset>
+
+        <fieldset>
+          <legend data-i18n="prefAccent">Accent colour</legend>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="violet" />
+            <span class="i18n-inline" data-i18n="accentViolet">Violet</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="teal" />
+            <span class="i18n-inline" data-i18n="accentTeal">Teal</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="amber" />
+            <span class="i18n-inline" data-i18n="accentAmber">Amber</span>
+          </label>
+          <label class="checkbox">
+            <input type="radio" name="accent" value="rose" />
+            <span class="i18n-inline" data-i18n="accentRose">Rose</span>
+          </label>
+        </fieldset>
+
         <p class="md-body" data-i18n="prefNote"></p>
       </div>
     </section>
 
-    <main id="main">
-      <section class="hero" id="overview">
-        <div class="hero__inner">
-          <p class="eyebrow" data-i18n="heroBadge"></p>
-          <h1 class="md-display" data-i18n-tone="heroTitle">
-            Desktop Material documentation
-          </h1>
-          <p class="hero__lead" data-i18n-tone="heroLead"></p>
-          <div class="hero__actions">
-            <a
-              class="btn btn--filled i18n-inline"
-              href="#install"
-              data-i18n="ctaInstall"
-              >Install on Windows</a
-            >
-            <a
-              class="btn btn--tonal i18n-inline"
-              href="#features"
-              data-i18n="ctaFeatures"
-              >Browse features</a
-            >
-            <a
-              class="btn btn--outlined i18n-inline"
-              href="#search"
-              data-i18n="ctaSearch"
-              >Search the docs</a
-            >
-            <a
-              class="btn btn--text i18n-inline"
-              href="https://github.com/Ding-Ding-Projects/desktop-material"
-              data-i18n="ctaRepo"
-              >View the repository</a
-            >
-          </div>
-          <ul class="hero__facts">
-            <li data-i18n="fact1"></li>
-            <li data-i18n="fact2"></li>
-            <li data-i18n="fact3"></li>
-          </ul>
-        </div>
-      </section>
-
-      <section class="section" id="install">
-        <div class="section__head">
-          <h2 class="md-headline" data-i18n-tone="installTitle">Install</h2>
-          <p data-i18n-tone="installLead"></p>
-        </div>
-
-        <div class="panel">
-          <h3 class="md-title" data-i18n="installOneLiner"></h3>
-          <div class="code">
-            <div class="code__bar">
-              <span>Windows PowerShell 5.1 / PowerShell 7</span>
-              <button
-                type="button"
-                class="btn btn--text btn--small"
-                data-copy-target="cmd-release"
-                data-i18n-attr="aria-label=copyLabel"
-              >
-                <span class="i18n-inline" data-i18n="copy">Copy</span>
-              </button>
-            </div>
-            <pre><code id="cmd-release">Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression</code></pre>
-          </div>
-          <p class="md-body" data-i18n="installOneLinerNote"></p>
-        </div>
-
-        <div class="panel">
-          <h3 class="md-title" data-i18n="installSource"></h3>
-          <div class="code">
-            <div class="code__bar">
-              <span>-FromSource</span>
-              <button
-                type="button"
-                class="btn btn--text btn--small"
-                data-copy-target="cmd-source"
-                data-i18n-attr="aria-label=copyLabel"
-              >
-                <span class="i18n-inline" data-i18n="copy">Copy</span>
-              </button>
-            </div>
-            <pre><code id="cmd-source">&amp; ([scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))) -FromSource</code></pre>
-          </div>
-          <p class="md-body" data-i18n="installLocal"></p>
-          <div class="code">
-            <div class="code__bar">
-              <span>Local checkout</span>
-              <button
-                type="button"
-                class="btn btn--text btn--small"
-                data-copy-target="cmd-local"
-                data-i18n-attr="aria-label=copyLabel"
-              >
-                <span class="i18n-inline" data-i18n="copy">Copy</span>
-              </button>
-            </div>
-            <pre><code id="cmd-local">./script/install-windows.ps1 -FromSource</code></pre>
-          </div>
-          <p class="md-body" data-i18n="installSourceNote"></p>
-        </div>
-
-        <div class="panel">
-          <p class="md-body" data-i18n="installReview"></p>
-          <ul class="link-row">
-            <li>
-              <a
-                class="i18n-inline"
-                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest"
-                data-i18n="linkReleases"
-                >Latest release downloads</a
-              >
-            </li>
-            <li>
-              <a
-                class="i18n-inline"
-                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1"
-                data-i18n="linkScript"
-                >Read install-windows.ps1</a
-              >
-            </li>
-            <li>
-              <a
-                class="i18n-inline"
-                href="installation.html"
-                data-i18n="linkInstallDoc"
-                >Full installation guide</a
-              >
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <section class="section" id="search">
-        <div class="section__head">
-          <h2 class="md-headline" data-i18n-tone="searchTitle">
-            Search the documentation
-          </h2>
-          <p data-i18n-tone="searchLead"></p>
-        </div>
-
+    <!--
+      The search dock is deliberately outside the tab panels: it is present on
+      every tab, and its results render here whichever tab is open.
+    -->
+    <div
+      class="dock"
+      role="search"
+      aria-label="Documentation search"
+      data-i18n-attr="aria-label=searchDock"
+    >
+      <div class="dock__inner">
         <div class="search-bar">
           <div class="search-bar__field">
             <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -347,7 +312,7 @@
               spellcheck="false"
               maxlength="512"
               aria-invalid="false"
-              aria-describedby="search-mode-hint search-engine-note"
+              aria-describedby="search-mode-hint"
               data-i18n-attr="placeholder=searchPlaceholder"
             />
           </div>
@@ -388,20 +353,6 @@
           class="search-note"
           data-i18n="searchModeHint"
         ></p>
-        <p
-          id="search-engine-note"
-          class="search-note"
-          data-i18n="searchEngine"
-        ></p>
-        <p class="search-note">
-          <span data-i18n="searchFullText"></span>
-          <a
-            class="i18n-inline"
-            href="search.html"
-            data-i18n="searchFullTextLink"
-            >Open full-text search</a
-          >
-        </p>
 
         <div id="regex-builder" class="builder panel" hidden>
           <h3 class="md-title" data-i18n="builderHeading">Regex builder</h3>
@@ -767,165 +718,3130 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
           class="results"
           data-i18n-attr="aria-label=resultsLabel"
         ></ul>
+      </div>
+    </div>
+
+    <main id="main" tabindex="-1">
+      <section
+        class="tab-panel"
+        id="overview"
+        data-tab-panel="overview"
+        aria-labelledby="tab-overview"
+      >
+        <div class="hero">
+          <div class="hero__inner">
+            <p class="eyebrow" data-i18n="heroBadge"></p>
+            <h1 class="md-display" data-i18n-tone="heroTitle">
+              Desktop Material documentation
+            </h1>
+            <p class="hero__lead" data-i18n-tone="heroLead"></p>
+            <div class="hero__actions">
+              <a
+                class="btn btn--filled i18n-inline"
+                href="#install"
+                data-tab-link="install"
+                data-i18n="ctaInstall"
+                >Install on Windows</a
+              >
+              <a
+                class="btn btn--tonal i18n-inline"
+                href="#features"
+                data-tab-link="features"
+                data-i18n="ctaFeatures"
+                >Browse features</a
+              >
+              <a
+                class="btn btn--outlined i18n-inline"
+                href="#search"
+                data-tab-link="search"
+                data-focus="search-input"
+                data-i18n="ctaSearch"
+                >Search the docs</a
+              >
+              <a
+                class="btn btn--text i18n-inline"
+                href="https://github.com/Ding-Ding-Projects/desktop-material"
+                data-i18n="ctaRepo"
+                >View the repository</a
+              >
+            </div>
+            <ul class="hero__facts">
+              <li data-i18n="fact1"></li>
+              <li data-i18n="fact2"></li>
+              <li data-i18n="fact3"></li>
+            </ul>
+          </div>
+        </div>
       </section>
 
-      <section class="section" id="features">
+      <section
+        class="section tab-panel"
+        id="install"
+        data-tab-panel="install"
+        aria-labelledby="tab-install"
+      >
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="installTitle">Install</h2>
+          <p data-i18n-tone="installLead"></p>
+        </div>
+
+        <div class="panel">
+          <h3 class="md-title" data-i18n="installOneLiner"></h3>
+          <div class="code">
+            <div class="code__bar">
+              <span>Windows PowerShell 5.1 / PowerShell 7</span>
+              <button
+                type="button"
+                class="btn btn--text btn--small"
+                data-copy-target="cmd-release"
+                data-i18n-attr="aria-label=copyLabel"
+              >
+                <span class="i18n-inline" data-i18n="copy">Copy</span>
+              </button>
+            </div>
+            <pre><code id="cmd-release">Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1' | Microsoft.PowerShell.Utility\Invoke-Expression</code></pre>
+          </div>
+          <p class="md-body" data-i18n="installOneLinerNote"></p>
+        </div>
+
+        <div class="panel">
+          <h3 class="md-title" data-i18n="installSource"></h3>
+          <div class="code">
+            <div class="code__bar">
+              <span>-FromSource</span>
+              <button
+                type="button"
+                class="btn btn--text btn--small"
+                data-copy-target="cmd-source"
+                data-i18n-attr="aria-label=copyLabel"
+              >
+                <span class="i18n-inline" data-i18n="copy">Copy</span>
+              </button>
+            </div>
+            <pre><code id="cmd-source">&amp; ([scriptblock]::Create((Microsoft.PowerShell.Utility\Invoke-RestMethod 'https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/script/install-windows.ps1'))) -FromSource</code></pre>
+          </div>
+          <p class="md-body" data-i18n="installLocal"></p>
+          <div class="code">
+            <div class="code__bar">
+              <span>Local checkout</span>
+              <button
+                type="button"
+                class="btn btn--text btn--small"
+                data-copy-target="cmd-local"
+                data-i18n-attr="aria-label=copyLabel"
+              >
+                <span class="i18n-inline" data-i18n="copy">Copy</span>
+              </button>
+            </div>
+            <pre><code id="cmd-local">./script/install-windows.ps1 -FromSource</code></pre>
+          </div>
+          <p class="md-body" data-i18n="installSourceNote"></p>
+        </div>
+
+        <div class="panel">
+          <p class="md-body" data-i18n="installReview"></p>
+          <ul class="link-row">
+            <li>
+              <a
+                class="i18n-inline"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/releases/latest"
+                data-i18n="linkReleases"
+                >Latest release downloads</a
+              >
+            </li>
+            <li>
+              <a
+                class="i18n-inline"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/script/install-windows.ps1"
+                data-i18n="linkScript"
+                >Read install-windows.ps1</a
+              >
+            </li>
+            <li>
+              <a
+                class="i18n-inline"
+                href="installation.html"
+                data-i18n="linkInstallDoc"
+                >Full installation guide</a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section
+        class="section tab-panel"
+        id="features"
+        data-tab-panel="features"
+        aria-labelledby="tab-features"
+      >
         <div class="section__head">
           <h2 class="md-headline" data-i18n-tone="featuresTitle">
             Feature documentation
           </h2>
           <p data-i18n-tone="featuresLead"></p>
         </div>
-        <ul class="card-grid">
-          <li>
-            <a class="card" href="readme-tabs/complete-feature-list.html">
-              <span class="card__title" data-i18n="cFeatCompleteTitle"></span>
-              <p class="card__body" data-i18n="cFeatCompleteBody"></p>
-              <span class="card__meta">readme-tabs/complete-feature-list</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/agent-api/">
-              <span class="card__title" data-i18n="cFeatAgentTitle"></span>
-              <p class="card__body" data-i18n="cFeatAgentBody"></p>
-              <span class="card__meta">features/agent-api/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/repository-management/">
-              <span class="card__title" data-i18n="cFeatRepoTitle"></span>
-              <p class="card__body" data-i18n="cFeatRepoBody"></p>
-              <span class="card__meta">features/repository-management/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/integrations/">
-              <span
-                class="card__title"
-                data-i18n="cFeatIntegrationsTitle"
-              ></span>
-              <p class="card__body" data-i18n="cFeatIntegrationsBody"></p>
-              <span class="card__meta">features/integrations/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/identity-and-workspace/">
-              <span class="card__title" data-i18n="cFeatIdentityTitle"></span>
-              <p class="card__body" data-i18n="cFeatIdentityBody"></p>
-              <span class="card__meta">features/identity-and-workspace/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/collaboration/">
-              <span class="card__title" data-i18n="cFeatCollabTitle"></span>
-              <p class="card__body" data-i18n="cFeatCollabBody"></p>
-              <span class="card__meta">features/collaboration/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/review-and-diff/">
-              <span class="card__title" data-i18n="cFeatReviewTitle"></span>
-              <p class="card__body" data-i18n="cFeatReviewBody"></p>
-              <span class="card__meta">features/review-and-diff/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/quality-and-reliability/">
-              <span class="card__title" data-i18n="cFeatQualityTitle"></span>
-              <p class="card__body" data-i18n="cFeatQualityBody"></p>
-              <span class="card__meta">features/quality-and-reliability/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/design-system/">
-              <span class="card__title" data-i18n="cFeatDesignTitle"></span>
-              <p class="card__body" data-i18n="cFeatDesignBody"></p>
-              <span class="card__meta">features/design-system/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="features/github-desktop-demand-backlog.html">
-              <span class="card__title" data-i18n="cFeatBacklogTitle"></span>
-              <p class="card__body" data-i18n="cFeatBacklogBody"></p>
-              <span class="card__meta"
-                >features/github-desktop-demand-backlog</span
+
+        <nav
+          class="subtabs"
+          data-subtabs="features"
+          aria-label="Feature categories"
+          data-i18n-attr="aria-label=subnavFeatures"
+        >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-catalog"
+            href="#features/catalog"
+            data-tab="features/catalog"
+            data-i18n="subOverview"
+            >Overview</a
+          >
+          <!-- docs-hub:features-tabs:start -->
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-agent-api"
+            href="#features/agent-api"
+            data-tab="features/agent-api"
+            data-i18n="cFeatAgentTitle"
+            >Agent API</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-collaboration"
+            href="#features/collaboration"
+            data-tab="features/collaboration"
+            data-i18n="cFeatCollabTitle"
+            >Collaboration</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-design-system"
+            href="#features/design-system"
+            data-tab="features/design-system"
+            data-i18n="cFeatDesignTitle"
+            >Design system</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-identity-and-workspace"
+            href="#features/identity-and-workspace"
+            data-tab="features/identity-and-workspace"
+            data-i18n="cFeatIdentityTitle"
+            >Identity and workspace</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-integrations"
+            href="#features/integrations"
+            data-tab="features/integrations"
+            data-i18n="cFeatIntegrationsTitle"
+            >Integrations</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-quality-and-reliability"
+            href="#features/quality-and-reliability"
+            data-tab="features/quality-and-reliability"
+            data-i18n="cFeatQualityTitle"
+            >Quality and reliability</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-repository-management"
+            href="#features/repository-management"
+            data-tab="features/repository-management"
+            data-i18n="cFeatRepoTitle"
+            >Repository management</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-features-review-and-diff"
+            href="#features/review-and-diff"
+            data-tab="features/review-and-diff"
+            data-i18n="cFeatReviewTitle"
+            >Review and diff</a
+          >
+          <!-- docs-hub:features-tabs:end -->
+        </nav>
+
+        <section
+          class="subpanel"
+          id="features/catalog"
+          data-tab-panel="features/catalog"
+          aria-labelledby="subtab-features-catalog"
+        >
+          <ul class="card-grid">
+            <li>
+              <a class="card" href="features/agent-api/">
+                <span class="card__title" data-i18n="cFeatAgentTitle"></span>
+                <p class="card__body" data-i18n="cFeatAgentBody"></p>
+                <span class="card__meta">features/agent-api/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/repository-management/">
+                <span class="card__title" data-i18n="cFeatRepoTitle"></span>
+                <p class="card__body" data-i18n="cFeatRepoBody"></p>
+                <span class="card__meta">features/repository-management/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/integrations/">
+                <span
+                  class="card__title"
+                  data-i18n="cFeatIntegrationsTitle"
+                ></span>
+                <p class="card__body" data-i18n="cFeatIntegrationsBody"></p>
+                <span class="card__meta">features/integrations/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/identity-and-workspace/">
+                <span class="card__title" data-i18n="cFeatIdentityTitle"></span>
+                <p class="card__body" data-i18n="cFeatIdentityBody"></p>
+                <span class="card__meta">features/identity-and-workspace/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/collaboration/">
+                <span class="card__title" data-i18n="cFeatCollabTitle"></span>
+                <p class="card__body" data-i18n="cFeatCollabBody"></p>
+                <span class="card__meta">features/collaboration/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/review-and-diff/">
+                <span class="card__title" data-i18n="cFeatReviewTitle"></span>
+                <p class="card__body" data-i18n="cFeatReviewBody"></p>
+                <span class="card__meta">features/review-and-diff/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/quality-and-reliability/">
+                <span class="card__title" data-i18n="cFeatQualityTitle"></span>
+                <p class="card__body" data-i18n="cFeatQualityBody"></p>
+                <span class="card__meta"
+                  >features/quality-and-reliability/</span
+                >
+              </a>
+            </li>
+            <li>
+              <a class="card" href="features/design-system/">
+                <span class="card__title" data-i18n="cFeatDesignTitle"></span>
+                <p class="card__body" data-i18n="cFeatDesignBody"></p>
+                <span class="card__meta">features/design-system/</span>
+              </a>
+            </li>
+            <li>
+              <a
+                class="card"
+                href="features/github-desktop-demand-backlog.html"
               >
-            </a>
-          </li>
-        </ul>
+                <span class="card__title" data-i18n="cFeatBacklogTitle"></span>
+                <p class="card__body" data-i18n="cFeatBacklogBody"></p>
+                <span class="card__meta"
+                  >features/github-desktop-demand-backlog</span
+                >
+              </a>
+            </li>
+          </ul>
+
+          <div class="panel">
+            <h3 class="md-title" data-i18n="featuresEveryTitle">
+              Every feature document
+            </h3>
+            <p class="md-body" data-i18n="featuresEveryLead"></p>
+            <ul class="link-row">
+              <li>
+                <a
+                  class="i18n-inline"
+                  href="readme-tabs/features.html"
+                  data-i18n="featuresComparison"
+                  >Feature list with the differences from the original GitHub
+                  Desktop</a
+                >
+              </li>
+              <li>
+                <a class="i18n-inline" href="features/" data-i18n="navFeatures"
+                  >Features</a
+                >
+              </li>
+            </ul>
+          </div>
+        </section>
+        <!-- docs-hub:features-panels:start -->
+        <section
+          class="subpanel"
+          id="features/agent-api"
+          data-tab-panel="features/agent-api"
+          aria-labelledby="subtab-features-agent-api"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatAgentTitle">
+            Agent API
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>1</strong>
+            <span class="i18n-inline" data-i18n="docsCountOne">document</span> ·
+            <a href="features/agent-api/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/agent-api/local-agent-http-api.html"
+                ><span class="doc-link__title">Local Agent HTTP API</span
+                ><span class="doc-link__desc"
+                  >Desktop Material ships an opt-in Agent API for trusted
+                  automation. The main process owns one versioned command
+                  contract and publishes it through a REST compatibility
+                  surface…</span
+                ><span class="doc-link__path"
+                  >features/agent-api/local-agent-http-api.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/collaboration"
+          data-tab-panel="features/collaboration"
+          aria-labelledby="subtab-features-collaboration"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatCollabTitle">
+            Collaboration
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>6</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/collaboration/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/collaboration/fork-branch-checkout.html"
+                ><span class="doc-link__title"
+                  >Checkout branches from other forks</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's Branches side sheet includes Checkout from
+                  another fork… for authenticated GitHub repositories. The
+                  workflow discovers visible forks in the repository…</span
+                ><span class="doc-link__path"
+                  >features/collaboration/fork-branch-checkout.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/collaboration/offline-github-projects.html"
+                ><span class="doc-link__title"
+                  >Offline GitHub Projects workspace</span
+                ><span class="doc-link__desc"
+                  >Desktop Material exposes GitHub Projects inside the
+                  repository Tools hub for repositories associated with a GitHub
+                  account. The workspace is deliberately read-only: it
+                  can…</span
+                ><span class="doc-link__path"
+                  >features/collaboration/offline-github-projects.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/collaboration/pull-request-activity-notifications.html"
+                ><span class="doc-link__title"
+                  >Pull-request activity notifications</span
+                ><span class="doc-link__desc"
+                  >Desktop Material raises operating-system notifications for
+                  relevant pull request review submissions, issue/review
+                  comments, and failed checks received through its live
+                  provider…</span
+                ><span class="doc-link__path"
+                  >features/collaboration/pull-request-activity-notifications.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/collaboration/pull-request-context-and-actions.html"
+                ><span class="doc-link__title"
+                  >Rich pull-request context and actions</span
+                ><span class="doc-link__desc"
+                  >The pull-request workspace keeps the exact base/head
+                  repository, branch, head object ID, author, draft/state,
+                  mergeability, checks, files, commits, reviews, issue comments,
+                  and…</span
+                ><span class="doc-link__path"
+                  >features/collaboration/pull-request-context-and-actions.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/collaboration/pull-request-creation.html"
+                ><span class="doc-link__title"
+                  >Native pull request creation</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can compose and create a GitHub pull request
+                  without exposing a raw REST editor or handing reviewed content
+                  to a browser form. The dialog is bound to the…</span
+                ><span class="doc-link__path"
+                  >features/collaboration/pull-request-creation.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/collaboration/pull-request-review-workspace.html"
+                ><span class="doc-link__title"
+                  >Native pull request review workspace</span
+                ><span class="doc-link__desc"
+                  >Open a pull request's context menu and choose Manage Pull
+                  Request… to load a single account-bound workspace. The summary
+                  remains visible while five keyboard-accessible tabs…</span
+                ><span class="doc-link__path"
+                  >features/collaboration/pull-request-review-workspace.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/design-system"
+          data-tab-panel="features/design-system"
+          aria-labelledby="subtab-features-design-system"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatDesignTitle">
+            Design system
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>7</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/design-system/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/audio-system.html"
+                ><span class="doc-link__title"
+                  >Audio system (narrator, sound effects, per-repository
+                  music)</span
+                ><span class="doc-link__desc"
+                  >An optional, settings-gated audio layer. Every part is off by
+                  default and designed never to become annoying. Three
+                  cooperating parts:</span
+                ><span class="doc-link__path"
+                  >features/design-system/audio-system.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/command-palette-appearance.html"
+                ><span class="doc-link__title"
+                  >Command palette rows and appearance</span
+                ><span class="doc-link__desc"
+                  >The Ctrl+F command palette lists every named app function.
+                  Its result list is built for scanning: each row carries an
+                  icon, the command title, an optional keyword line, and
+                  a…</span
+                ><span class="doc-link__path"
+                  >features/design-system/command-palette-appearance.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/dialog-wheel-scrolling.html"
+                ><span class="doc-link__title"
+                  >Dialog wheel and trackpad scrolling</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's floating dialogs accept vertical
+                  mouse-wheel and trackpad gestures anywhere over their
+                  scrollable content. Users no longer need to aim at the
+                  narrow…</span
+                ><span class="doc-link__path"
+                  >features/design-system/dialog-wheel-scrolling.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/material-ripple-and-theme-reveal.html"
+                ><span class="doc-link__title"
+                  >Material ripple state layer and theme reveal pulse</span
+                ><span class="doc-link__desc"
+                  >Desktop Material mirrors the Desktop Material v2.dc.html
+                  prototype's two app-wide motion primitives:</span
+                ><span class="doc-link__path"
+                  >features/design-system/material-ripple-and-theme-reveal.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/narration-assets.html"
+                ><span class="doc-link__title"
+                  >Recorded narration + melody assets</span
+                ><span class="doc-link__desc"
+                  >Wires the 244 pre-generated audio assets in app/static/audio/
+                  into the optional audio runtime, so meaningful events can play
+                  a recorded human-style voice line and a composed…</span
+                ><span class="doc-link__path"
+                  >features/design-system/narration-assets.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/repository-theme-music.html"
+                ><span class="doc-link__title">Repository-themed music</span
+                ><span class="doc-link__desc"
+                  >Every repository gets its own recognizable, looping
+                  background theme — without shipping or downloading a single
+                  audio file. A stable hash of the repository's identity seeds
+                  a…</span
+                ><span class="doc-link__path"
+                  >features/design-system/repository-theme-music.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/design-system/sfx-event-mapping.html"
+                ><span class="doc-link__title"
+                  >Distinct sound-effect event mapping</span
+                ><span class="doc-link__desc"
+                  >Builds on the audio system to give each meaningful app event
+                  its own recognizable sound effect instead of routing
+                  everything through the shared commit / auto-commit cue.
+                  It…</span
+                ><span class="doc-link__path"
+                  >features/design-system/sfx-event-mapping.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/identity-and-workspace"
+          data-tab-panel="features/identity-and-workspace"
+          aria-labelledby="subtab-features-identity-and-workspace"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatIdentityTitle">
+            Identity and workspace
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>9</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/identity-and-workspace/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/branch-switcher-workflows.html"
+                ><span class="doc-link__title">Branch switcher workflows</span
+                ><span class="doc-link__desc"
+                  >The branch sheet combines local and remote branches with text
+                  filtering, recent branches, default-branch context,
+                  activity/alphabetical sorting, and explicit hidden/solo…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/branch-switcher-workflows.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/collection-bulk-and-regex-safety.html"
+                ><span class="doc-link__title"
+                  >Collection bulk actions and regex safety</span
+                ><span class="doc-link__desc"
+                  >Desktop Material gives collection search fields one shared
+                  fuzzy, substring, and regular-expression contract. A tracked
+                  registry maps each real search input to a stable
+                  surface…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/collection-bulk-and-regex-safety.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/multiple-accounts-and-repository-identity.html"
+                ><span class="doc-link__title"
+                  >Multiple accounts and repository identity</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can retain multiple GitHub.com identities,
+                  multiple accounts on one Enterprise host, and GitLab or
+                  Bitbucket identities. Account metadata is stored
+                  separately…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/multiple-accounts-and-repository-identity.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/owner-scoped-appearance-and-history.html"
+                ><span class="doc-link__title"
+                  >Owner-scoped appearance and history</span
+                ><span class="doc-link__desc"
+                  >Desktop Material attaches appearance controls to the element
+                  that owns the setting. A right-click or Shift+F10 opens an
+                  anchored editor beside the profile, feature,
+                  repository,…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/owner-scoped-appearance-and-history.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/repository-sidebar-and-pinning.html"
+                ><span class="doc-link__title"
+                  >Repository sidebar and pinning</span
+                ><span class="doc-link__desc"
+                  >The repository sheet is a searchable workspace switcher
+                  rather than a flat recent list. It groups pinned repositories
+                  first, can show or hide the Recent group, and keeps…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/repository-sidebar-and-pinning.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/settings-search.html"
+                ><span class="doc-link__title">Settings search / 設定搜尋</span
+                ><span class="doc-link__desc"
+                  >A search box at the top of the Settings (Preferences)
+                  dialog's left rail lets you find a setting by name,
+                  description, or keyword across every tab, and jump straight to
+                  the tab…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/settings-search.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/tab-groups.html"
+                ><span class="doc-link__title">Tab groups</span
+                ><span class="doc-link__desc"
+                  >Repository tabs can be collected into named, colored groups.
+                  A group is an organizational label over the existing strip: it
+                  never changes what a tab does, never closes a tab,…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/tab-groups.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/tab-overflow-dropdown.html"
+                ><span class="doc-link__title">Tab-strip overflow dropdown</span
+                ><span class="doc-link__desc"
+                  >When more repository tabs are open than the strip can show,
+                  the tabs that do not fit move into a &quot;more tabs&quot;
+                  dropdown instead of being clipped or reachable only by
+                  horizontal…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/tab-overflow-dropdown.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/identity-and-workspace/tab-strip-settings-commit-chip.html"
+                ><span class="doc-link__title"
+                  >Tab-strip settings commit chip</span
+                ><span class="doc-link__desc"
+                  >The repository tab strip's trailing cluster carries the
+                  signature per-account settings-repo feedback from the v2
+                  design: a persistent commit chip, a Settings-history
+                  entry…</span
+                ><span class="doc-link__path"
+                  >features/identity-and-workspace/tab-strip-settings-commit-chip.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/integrations"
+          data-tab-panel="features/integrations"
+          aria-labelledby="subtab-features-integrations"
+        >
+          <h3
+            class="md-title-lg i18n-inline"
+            data-i18n="cFeatIntegrationsTitle"
+          >
+            Integrations
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>21</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/integrations/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/automated-updates-and-release-notes.html"
+                ><span class="doc-link__title"
+                  >Automated update build status and release notes</span
+                ><span class="doc-link__desc"
+                  >Desktop Material distinguishes an available Windows update
+                  from a newer commit that GitHub Actions is still packaging.
+                  Automated GitHub Releases also explain which exact…</span
+                ><span class="doc-link__path"
+                  >features/integrations/automated-updates-and-release-notes.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/broad-editor-support.html"
+                ><span class="doc-link__title">Broad editor support</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's supported Windows catalog includes Visual
+                  Studio Code/VSCodium variants, JetBrains IDEs, Sublime Text,
+                  Vim/Neovim front ends, and other Windows editors.…</span
+                ><span class="doc-link__path"
+                  >features/integrations/broad-editor-support.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/build-run-output-controls.html"
+                ><span class="doc-link__title"
+                  >Build &amp; Run output controls</span
+                ><span class="doc-link__desc"
+                  >The Build &amp; Run log panel keeps long-running compiler and
+                  test output readable without changing or discarding the
+                  underlying stream. Three header controls let the user jump
+                  to…</span
+                ><span class="doc-link__path"
+                  >features/integrations/build-run-output-controls.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/copilot-commit-message-controls.html"
+                ><span class="doc-link__title"
+                  >Copilot commit-message controls</span
+                ><span class="doc-link__desc"
+                  >Eligible signed-in users can ask Copilot to draft a commit
+                  title and optional description from the currently included
+                  diff. The generated marker is cleared as soon as the
+                  user…</span
+                ><span class="doc-link__path"
+                  >features/integrations/copilot-commit-message-controls.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/custom-git-command-presets.html"
+                ><span class="doc-link__title">Custom Git command presets</span
+                ><span class="doc-link__desc"
+                  >Repository Tools provides a controlled extensibility point
+                  for commands that are useful to a team member but too personal
+                  or specialized for a permanent toolbar button. A…</span
+                ><span class="doc-link__path"
+                  >features/integrations/custom-git-command-presets.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/duplicate-open-guard.html"
+                ><span class="doc-link__title">Duplicate-open guard</span
+                ><span class="doc-link__desc"
+                  >Handing a path to something outside Desktop Material — an
+                  external editor, a terminal, the file manager, or the system
+                  default application — spawns a process, and none of
+                  those…</span
+                ><span class="doc-link__path"
+                  >features/integrations/duplicate-open-guard.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/editor-discovery-and-one-click-opening.html"
+                ><span class="doc-link__title"
+                  >Editor discovery and one-click opening</span
+                ><span class="doc-link__desc"
+                  >Desktop Material discovers a broad curated set of installed
+                  Windows editors, including Visual Studio Code/VSCodium
+                  variants, JetBrains IDEs, Sublime Text, and Vim/Neovim
+                  front…</span
+                ><span class="doc-link__path"
+                  >features/integrations/editor-discovery-and-one-click-opening.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/gh-cli-push-fallback.html"
+                ><span class="doc-link__title"
+                  >GitHub CLI push credential fallback</span
+                ><span class="doc-link__desc"
+                  >When a push to an organization-owned GitHub or GitHub
+                  Enterprise Server (GHES) repository is rejected for
+                  authentication reasons, Desktop Material can retry the push
+                  exactly…</span
+                ><span class="doc-link__path"
+                  >features/integrations/gh-cli-push-fallback.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/github-api-functions.html"
+                ><span class="doc-link__title"
+                  >Repository-bound GitHub API functions</span
+                ><span class="doc-link__desc"
+                  >Desktop Material automatically adds a small set of safe,
+                  read-only GitHub API functions to an eligible repository the
+                  first time its API functions surface is opened. The…</span
+                ><span class="doc-link__path"
+                  >features/integrations/github-api-functions.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/github-packages-explorer.html"
+                ><span class="doc-link__title"
+                  >Per-repository GitHub Packages explorer</span
+                ><span class="doc-link__desc"
+                  >Desktop Material exposes GitHub Packages beside Releases in
+                  the selected repository's Distribution surface. The explorer
+                  keeps the repository's chosen GitHub account and…</span
+                ><span class="doc-link__path"
+                  >features/integrations/github-packages-explorer.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/gitlab-merge-request.html"
+                ><span class="doc-link__title">GitLab merge requests</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can create, review, and manage GitLab merge
+                  requests natively for a repository whose selected account is a
+                  GitLab or self-hosted GitLab account, without…</span
+                ><span class="doc-link__path"
+                  >features/integrations/gitlab-merge-request.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/global-ignore-management.html"
+                ><span class="doc-link__title">Global ignore management</span
+                ><span class="doc-link__desc"
+                  >Open Settings → Git → Global ignore to manage rules that
+                  should apply to every local repository. Desktop Material reads
+                  Git's effective core.excludesFile; when none is…</span
+                ><span class="doc-link__path"
+                  >features/integrations/global-ignore-management.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/local-actions-runner.html"
+                ><span class="doc-link__title">Local GitHub Actions runner</span
+                ><span class="doc-link__desc"
+                  >Run a repository's GitHub Actions workflows on your own
+                  machine before pushing, using act driving Docker. The feature
+                  discovers and parses the workflows under…</span
+                ><span class="doc-link__path"
+                  >features/integrations/local-actions-runner.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/local-ai-build-fix.html"
+                ><span class="doc-link__title"
+                  >Local AI build repair with Codex or OpenCode</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can hand a failed Build &amp; Run stage, or
+                  a free-form repository request, to either the Codex CLI or
+                  OpenCode. The provider choice is stored with that
+                  repository…</span
+                ><span class="doc-link__path"
+                  >features/integrations/local-ai-build-fix.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/ollama-model-manager.html"
+                ><span class="doc-link__title">Ollama model manager</span
+                ><span class="doc-link__desc"
+                  >Desktop Material manages an Ollama provider without exposing
+                  the native API as a free-form request editor. There are two
+                  ways in.</span
+                ><span class="doc-link__path"
+                  >features/integrations/ollama-model-manager.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/one-click-editor-actions.html"
+                ><span class="doc-link__title">One-click editor actions</span
+                ><span class="doc-link__desc"
+                  >The selected external editor is one action away from
+                  repository rows, the Changes empty state, changed-file context
+                  menus, conflict rows, and the diff header. File actions
+                  pass…</span
+                ><span class="doc-link__path"
+                  >features/integrations/one-click-editor-actions.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/repository-releases-dashboard.html"
+                ><span class="doc-link__title"
+                  >Repository Releases dashboard</span
+                ><span class="doc-link__desc"
+                  >Open Releases from a GitHub repository rail to search and
+                  status-filter the bounded loaded catalog, select a release,
+                  inspect metadata and assets, or enter the existing…</span
+                ><span class="doc-link__path"
+                  >features/integrations/repository-releases-dashboard.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/ssh-working-copy-and-remote-clone.html"
+                ><span class="doc-link__title"
+                  >SSH working copies and remote clone</span
+                ><span class="doc-link__desc"
+                  >Repository Settings → Remote includes an SSH Working Copy
+                  manager for a canonical checkout on a chosen host. After
+                  saving and testing non-secret host metadata, a user can
+                  clone…</span
+                ><span class="doc-link__path"
+                  >features/integrations/ssh-working-copy-and-remote-clone.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/windows-explorer-context-menu.html"
+                ><span class="doc-link__title"
+                  >Windows Explorer context menu and quick-action window</span
+                ><span class="doc-link__desc"
+                  >Adds Desktop Material actions to the File Explorer
+                  right-click menu on folders and folder backgrounds, and gives
+                  those actions a small dedicated window instead of booting
+                  the…</span
+                ><span class="doc-link__path"
+                  >features/integrations/windows-explorer-context-menu.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/windows-only-platform-support.html"
+                ><span class="doc-link__title"
+                  >Windows-only platform support</span
+                ><span class="doc-link__desc"
+                  >Desktop Material is a Windows application. Windows is the
+                  only supported runtime, packaging target, installer target,
+                  and end-to-end acceptance environment. Source inherited…</span
+                ><span class="doc-link__path"
+                  >features/integrations/windows-only-platform-support.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/integrations/wsl-aware-editor-opening.html"
+                ><span class="doc-link__title">WSL-aware editor opening</span
+                ><span class="doc-link__desc"
+                  >On Windows, installed Visual Studio Code editions gain one
+                  editor choice per detected Windows Subsystem for Linux
+                  distribution, for example Visual Studio Code — WSL:
+                  Ubuntu.…</span
+                ><span class="doc-link__path"
+                  >features/integrations/wsl-aware-editor-opening.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/quality-and-reliability"
+          data-tab-panel="features/quality-and-reliability"
+          aria-labelledby="subtab-features-quality-and-reliability"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatQualityTitle">
+            Quality and reliability
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>5</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/quality-and-reliability/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/git-hook-execution.html"
+                ><span class="doc-link__title"
+                  >Git hook execution environment</span
+                ><span class="doc-link__desc"
+                  >Desktop Material runs a repository's own Git hooks
+                  (pre-commit, commit-msg, pre-push, …) through a proxy so a
+                  hook that expects a login shell environment behaves the same
+                  way…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/git-hook-execution.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/git-operation-auto-fix.html"
+                ><span class="doc-link__title">Git operation auto-fix</span
+                ><span class="doc-link__desc"
+                  >Safe, recognized auto-fixes for common Git operation
+                  failures. A pure decision module classifies a failed
+                  operation's error text into a known fixable case, proposes
+                  a…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/git-operation-auto-fix.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/native-large-repository-handling.html"
+                ><span class="doc-link__title"
+                  >Native large-repository handling</span
+                ><span class="doc-link__desc"
+                  >Root causes for this feature were found live on a 211k-file
+                  repository, where background Git maintenance, stale locks,
+                  deleted-directory polling, and a slow first git status…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/native-large-repository-handling.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/peer-closed-stream-writes.html"
+                ><span class="doc-link__title">Peer-closed stream writes</span
+                ><span class="doc-link__desc"
+                  >A write that finishes after the thing on the other end
+                  already went away is a routine event, not a crash. This
+                  document describes how Desktop Material contains that class
+                  of…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/peer-closed-stream-writes.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/responsiveness-and-resource-lifecycle.html"
+                ><span class="doc-link__title"
+                  >Responsiveness and resource lifecycle</span
+                ><span class="doc-link__desc"
+                  >Desktop Material bounds repeated background work and releases
+                  resources at the same lifecycle boundary that created them.
+                  The behavior is automatic; it adds no preference,…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/responsiveness-and-resource-lifecycle.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/repository-management"
+          data-tab-panel="features/repository-management"
+          aria-labelledby="subtab-features-repository-management"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatRepoTitle">
+            Repository management
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>23</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/repository-management/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/advanced-history-discovery.html"
+                ><span class="doc-link__title">Advanced history discovery</span
+                ><span class="doc-link__desc"
+                  >The History sidebar can search loaded commits by title, body,
+                  author, tag, or full/short object ID using fuzzy, substring,
+                  or regular-expression matching. Its filter chips…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/advanced-history-discovery.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/automatic-commit-push-batching.html"
+                ><span class="doc-link__title"
+                  >Automatic commit and push batching</span
+                ><span class="doc-link__desc"
+                  >Desktop Material keeps one automatic Git push below a decimal
+                  1.5 GB (1,500,000,000-byte) ceiling when a large selection
+                  contains many ordinary files. Changed blobs are capped…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/automatic-commit-push-batching.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/automatic-remote-url-refresh.html"
+                ><span class="doc-link__title"
+                  >Automatic remote URL refresh</span
+                ><span class="doc-link__desc"
+                  >Desktop Material repairs a checkout's configured GitHub
+                  remote when the provider reports that the repository was
+                  renamed or transferred. The repair is a preflight for
+                  network…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/automatic-remote-url-refresh.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/cheap-lfs-asset-versioning.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS asset versioning and commit provenance</span
+                ><span class="doc-link__desc"
+                  >A pinned large file is not frozen. Users edit the video,
+                  re-export the model, re-record the sample, and commit again.
+                  This page describes exactly what Cheap LFS does with
+                  the…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/cheap-lfs-asset-versioning.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/cheap-lfs-oci-registry-backend.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS OCI registry backend</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can represent the complete Cheap LFS object
+                  set for one Git repository as one logical OCI image in GitHub
+                  Container Registry (GHCR) or Docker Hub. Select GHCR…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/cheap-lfs-oci-registry-backend.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/clone-dialog-repository-metadata.html"
+                ><span class="doc-link__title"
+                  >Clone dialog repository metadata</span
+                ><span class="doc-link__desc"
+                  >Every row in the Clone dialog's GitHub repository list is a
+                  rich metadata card rather than a bare name, matching the
+                  Desktop Material v2 prototype. The card surfaces the…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/clone-dialog-repository-metadata.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/clone-queue-settings.html"
+                ><span class="doc-link__title">Clone queue settings</span
+                ><span class="doc-link__desc"
+                  >Desktop Material exposes its account-scoped automatic-clone
+                  policy at Settings → Clone queue. This page is the durable
+                  configuration surface for background discovery; it does…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/clone-queue-settings.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/external-stash-interoperability.html"
+                ><span class="doc-link__title"
+                  >External stash interoperability</span
+                ><span class="doc-link__desc"
+                  >Desktop Material inventories the newest 500 entries in
+                  refs/stash, including stashes created by the Git CLI, another
+                  desktop client, or an editor. External entries carry an…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/external-stash-interoperability.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/named-stash-manager.html"
+                ><span class="doc-link__title">Named multi-stash manager</span
+                ><span class="doc-link__desc"
+                  >The repository-wide Stash Manager inventories up to 500
+                  entries and supports more than one Desktop-managed stash per
+                  branch. A new stash can have a printable name, creation…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/named-stash-manager.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/network-and-wsl-repository-paths.html"
+                ><span class="doc-link__title"
+                  >Network and WSL repository paths</span
+                ><span class="doc-link__desc"
+                  >Add local repository accepts normal UNC shares, Windows
+                  mapped drives, and WSL UNC shares as first-class repository
+                  locations. It preserves the exact UNC root instead of…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/network-and-wsl-repository-paths.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/parent-folder-repository-discovery.html"
+                ><span class="doc-link__title"
+                  >Parent-folder repository discovery</span
+                ><span class="doc-link__desc"
+                  >Add Local Repository can scan a chosen parent folder, preview
+                  every safely detected Git working tree, and add the reviewed
+                  result in one action. This is a local discovery aid…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/parent-folder-repository-discovery.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/patch-series.html"
+                ><span class="doc-link__title">Patch-series exchange</span
+                ><span class="doc-link__desc"
+                  >Open Repository → Repository tools → Exchange patch series to
+                  move a reviewable sequence of commits without publishing a
+                  branch.</span
+                ><span class="doc-link__path"
+                  >features/repository-management/patch-series.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/pull-previews.html"
+                ><span class="doc-link__title"
+                  >Reviewed ordinary Git pull previews</span
+                ><span class="doc-link__desc"
+                  >The application-menu Pull action and a right click on the
+                  toolbar Pull remote button are a review boundary for an
+                  ordinary, single-repository Git pull. Desktop Material
+                  fetches…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/pull-previews.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/release-backed-cheap-lfs.html"
+                ><span class="doc-link__title"
+                  >Release-backed large-file storage</span
+                ><span class="doc-link__desc"
+                  >The generated mark above is documentation artwork. It is not
+                  embedded in the pointer format and is not required by the
+                  transfer protocol.</span
+                ><span class="doc-link__path"
+                  >features/repository-management/release-backed-cheap-lfs.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/repository-list-bulk-actions.html"
+                ><span class="doc-link__title"
+                  >Repository list bulk actions</span
+                ><span class="doc-link__desc"
+                  >The repository side sheet has a multi-select mode. Select
+                  multiple turns on a checkbox per row and a contextual
+                  selection bar that can fetch, pull, favorite, group, or
+                  forget…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/repository-list-bulk-actions.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/repository-picker-filters-and-visibility.html"
+                ><span class="doc-link__title"
+                  >Repository picker filters and visibility</span
+                ><span class="doc-link__desc"
+                  >The repository side sheet combines text search with account,
+                  provider, and status filters so a large local workspace can be
+                  narrowed without changing its saved repository list.</span
+                ><span class="doc-link__path"
+                  >features/repository-management/repository-picker-filters-and-visibility.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/reviewed-batch-sync.html"
+                ><span class="doc-link__title"
+                  >Reviewed batch repository sync</span
+                ><span class="doc-link__desc"
+                  >The repository picker exposes Sync repositories for
+                  workspace-scale network updates. The dialog loads the current
+                  persisted repositories, selects all by default, and lets
+                  the…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/reviewed-batch-sync.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/reviewed-bulk-branch-deletion.html"
+                ><span class="doc-link__title"
+                  >Reviewed bulk branch deletion</span
+                ><span class="doc-link__desc"
+                  >The Branches side sheet includes a compact cleanup panel for
+                  removing several local branches in one reviewed batch.
+                  Current, default, and remote-only branches never enter
+                  the…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/reviewed-bulk-branch-deletion.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/selective-stashes.html"
+                ><span class="doc-link__title">Selective stashes</span
+                ><span class="doc-link__desc"
+                  >The Stash Manager can save all working-tree changes or only
+                  an explicitly reviewed set of changed files. Selected scope
+                  operates on whole paths: it does not imply partial-line…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/selective-stashes.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/sparse-checkout.html"
+                ><span class="doc-link__title">Guided sparse checkout</span
+                ><span class="doc-link__desc"
+                  >Desktop Material manages cone-mode sparse checkout through a
+                  three-step Choose/Adjust/Restore → Review selection → Apply
+                  and refresh guide. The workflow changes which tracked…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/sparse-checkout.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/submodule-repository-navigation.html"
+                ><span class="doc-link__title"
+                  >Temporary submodule repository navigation</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can display an initialized submodule as a
+                  repository in the current workspace without importing that
+                  submodule into the app's saved repository catalog.</span
+                ><span class="doc-link__path"
+                  >features/repository-management/submodule-repository-navigation.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/submodule-subtree-and-remote-creation.html"
+                ><span class="doc-link__title"
+                  >Submodule, subtree, and remote creation workflows</span
+                ><span class="doc-link__desc"
+                  >Repository Settings brings dependency topology into one
+                  workspace. The Submodules surface can add, clone/update,
+                  synchronize, configure, remove, or temporarily open a
+                  recorded…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/submodule-subtree-and-remote-creation.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/tag-lifecycle-management.html"
+                ><span class="doc-link__title">Tag lifecycle management</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's Repository tools → Tag lifecycle surface
+                  manages local and remote Git tags without an editable command
+                  line. It provides a bounded inventory, creation and…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/tag-lifecycle-management.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="features/review-and-diff"
+          data-tab-panel="features/review-and-diff"
+          aria-labelledby="subtab-features-review-and-diff"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="cFeatReviewTitle">
+            Review and diff
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>6</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="features/review-and-diff/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
+            >
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/review-and-diff/changed-file-tree-view.html"
+                ><span class="doc-link__title">Changed-file tree view</span
+                ><span class="doc-link__desc"
+                  >Changes, commit History, and pull-request file lists share a
+                  persisted Flat/Tree selector. Tree mode groups safe
+                  repository-relative paths into a deterministic
+                  depth-first…</span
+                ><span class="doc-link__path"
+                  >features/review-and-diff/changed-file-tree-view.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/review-and-diff/changed-file-trees-and-diff-context.html"
+                ><span class="doc-link__title"
+                  >Changed-file trees and diff context</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can organize changed files by directory and
+                  remember how much surrounding text to reveal. Both features
+                  are presentation preferences: they do not modify…</span
+                ><span class="doc-link__path"
+                  >features/review-and-diff/changed-file-trees-and-diff-context.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/review-and-diff/expanded-diff-context.html"
+                ><span class="doc-link__title">Expanded diff context</span
+                ><span class="doc-link__desc"
+                  >Diff Options can automatically reveal whole-file context for
+                  eligible text diffs and can set manual expansion steps to 20,
+                  50, or 100 lines. The preference is local…</span
+                ><span class="doc-link__path"
+                  >features/review-and-diff/expanded-diff-context.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/review-and-diff/structured-csv-and-tsv-diffs.html"
+                ><span class="doc-link__title"
+                  >Structured CSV and TSV diffs</span
+                ><span class="doc-link__desc"
+                  >Changed .csv and .tsv files can switch between the ordinary
+                  Code diff and an accessible Table diff. RFC-4180 quoting,
+                  escaped delimiters, CRLF/LF, and multiline quoted
+                  fields…</span
+                ><span class="doc-link__path"
+                  >features/review-and-diff/structured-csv-and-tsv-diffs.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/review-and-diff/structured-data-and-tga-previews.html"
+                ><span class="doc-link__title"
+                  >Structured data and TGA previews</span
+                ><span class="doc-link__desc"
+                  >Desktop Material provides bounded, in-app review modes for
+                  delimited text and TGA image changes while preserving the
+                  existing Git diff as the source of truth.</span
+                ><span class="doc-link__path"
+                  >features/review-and-diff/structured-data-and-tga-previews.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/review-and-diff/tga-image-previews.html"
+                ><span class="doc-link__title">TGA image previews</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can review supported .tga changes through
+                  the existing image-diff modes after an in-memory conversion to
+                  a PNG data URL. It supports uncompressed 24/32-bit…</span
+                ><span class="doc-link__path"
+                  >features/review-and-diff/tga-image-previews.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <!-- docs-hub:features-panels:end -->
       </section>
 
-      <section class="section" id="reference">
+      <section
+        class="section tab-panel"
+        id="reference"
+        data-tab-panel="reference"
+        aria-labelledby="tab-reference"
+      >
         <div class="section__head">
           <h2 class="md-headline" data-i18n-tone="referenceTitle">
             Reference and process
           </h2>
           <p data-i18n-tone="referenceLead"></p>
         </div>
-        <ul class="card-grid">
-          <li>
-            <a class="card" href="installation.html">
-              <span class="card__title" data-i18n="cRefInstallTitle"></span>
-              <p class="card__body" data-i18n="cRefInstallBody"></p>
-              <span class="card__meta">installation</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="regex-guide.html">
-              <span class="card__title" data-i18n="cRefRegexTitle"></span>
-              <p class="card__body" data-i18n="cRefRegexBody"></p>
-              <span class="card__meta">regex-guide</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="known-issues.html">
-              <span class="card__title" data-i18n="cRefKnownTitle"></span>
-              <p class="card__body" data-i18n="cRefKnownBody"></p>
-              <span class="card__meta">known-issues</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="verification/">
-              <span class="card__title" data-i18n="cRefVerifyTitle"></span>
-              <p class="card__body" data-i18n="cRefVerifyBody"></p>
-              <span class="card__meta">verification/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="contributing/setup.html">
-              <span class="card__title" data-i18n="cRefContribTitle"></span>
-              <p class="card__body" data-i18n="cRefContribBody"></p>
-              <span class="card__meta">contributing/setup</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="technical/packaging.html">
-              <span class="card__title" data-i18n="cRefTechTitle"></span>
-              <p class="card__body" data-i18n="cRefTechBody"></p>
-              <span class="card__meta">technical/</span>
-            </a>
-          </li>
-          <li>
-            <a class="card" href="process/release-planning.html">
-              <span class="card__title" data-i18n="cRefProcessTitle"></span>
-              <p class="card__body" data-i18n="cRefProcessBody"></p>
-              <span class="card__meta">process/</span>
-            </a>
-          </li>
-          <li>
-            <a
-              class="card"
-              href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/postman/desktop-material.postman_collection.json"
+
+        <nav
+          class="subtabs"
+          data-subtabs="reference"
+          aria-label="Reference sections"
+          data-i18n-attr="aria-label=subnavReference"
+        >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-guides"
+            href="#reference/guides"
+            data-tab="reference/guides"
+            data-i18n="subGuides"
+            >Guides</a
+          >
+          <!-- docs-hub:reference-tabs:start -->
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-contributing"
+            href="#reference/contributing"
+            data-tab="reference/contributing"
+            data-i18n="secContributing"
+            >Contributing</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-handoff"
+            href="#reference/handoff"
+            data-tab="reference/handoff"
+            data-i18n="secHandoff"
+            >Handoff records</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-integrations"
+            href="#reference/integrations"
+            data-tab="reference/integrations"
+            data-i18n="secIntegrations"
+            >Provider integrations</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-learn-more"
+            href="#reference/learn-more"
+            data-tab="reference/learn-more"
+            data-i18n="secLearnMore"
+            >Learn more</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-process"
+            href="#reference/process"
+            data-tab="reference/process"
+            data-i18n="secProcess"
+            >Process</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-readme-tabs"
+            href="#reference/readme-tabs"
+            data-tab="reference/readme-tabs"
+            data-i18n="secReadmeTabs"
+            >README tabs</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-root"
+            href="#reference/root"
+            data-tab="reference/root"
+            data-i18n="secRoot"
+            >Top-level pages</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-technical"
+            href="#reference/technical"
+            data-tab="reference/technical"
+            data-i18n="secTechnical"
+            >Technical notes</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-verification"
+            href="#reference/verification"
+            data-tab="reference/verification"
+            data-i18n="secVerification"
+            >Verification records</a
+          >
+          <a
+            class="subtab i18n-inline"
+            id="subtab-reference-wiki"
+            href="#reference/wiki"
+            data-tab="reference/wiki"
+            data-i18n="secWiki"
+            >Wiki pages</a
+          >
+          <!-- docs-hub:reference-tabs:end -->
+        </nav>
+
+        <section
+          class="subpanel"
+          id="reference/guides"
+          data-tab-panel="reference/guides"
+          aria-labelledby="subtab-reference-guides"
+        >
+          <ul class="card-grid">
+            <li>
+              <a class="card" href="installation.html">
+                <span class="card__title" data-i18n="cRefInstallTitle"></span>
+                <p class="card__body" data-i18n="cRefInstallBody"></p>
+                <span class="card__meta">installation</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="regex-guide.html">
+                <span class="card__title" data-i18n="cRefRegexTitle"></span>
+                <p class="card__body" data-i18n="cRefRegexBody"></p>
+                <span class="card__meta">regex-guide</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="known-issues.html">
+                <span class="card__title" data-i18n="cRefKnownTitle"></span>
+                <p class="card__body" data-i18n="cRefKnownBody"></p>
+                <span class="card__meta">known-issues</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="verification/">
+                <span class="card__title" data-i18n="cRefVerifyTitle"></span>
+                <p class="card__body" data-i18n="cRefVerifyBody"></p>
+                <span class="card__meta">verification/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="contributing/setup.html">
+                <span class="card__title" data-i18n="cRefContribTitle"></span>
+                <p class="card__body" data-i18n="cRefContribBody"></p>
+                <span class="card__meta">contributing/setup</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="technical/packaging.html">
+                <span class="card__title" data-i18n="cRefTechTitle"></span>
+                <p class="card__body" data-i18n="cRefTechBody"></p>
+                <span class="card__meta">technical/</span>
+              </a>
+            </li>
+            <li>
+              <a class="card" href="process/release-planning.html">
+                <span class="card__title" data-i18n="cRefProcessTitle"></span>
+                <p class="card__body" data-i18n="cRefProcessBody"></p>
+                <span class="card__meta">process/</span>
+              </a>
+            </li>
+            <li>
+              <a
+                class="card"
+                href="https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/postman/desktop-material.postman_collection.json"
+              >
+                <span class="card__title" data-i18n="cRefPostmanTitle"></span>
+                <p class="card__body" data-i18n="cRefPostmanBody"></p>
+                <span class="card__meta">docs/postman/ · github.com</span>
+              </a>
+            </li>
+          </ul>
+        </section>
+        <!-- docs-hub:reference-panels:start -->
+        <section
+          class="subpanel"
+          id="reference/contributing"
+          data-tab-panel="reference/contributing"
+          aria-labelledby="subtab-reference-contributing"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secContributing">
+            Contributing
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>15</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="contributing/building-arm64.html"
+                ><span class="doc-link__title">Building Desktop for arm64</span
+                ><span class="doc-link__desc"
+                  >Desktop can be built and run on arm64 (aarch64) hardware such
+                  as a Raspberry Pi 3.</span
+                ><span class="doc-link__path"
+                  >contributing/building-arm64.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/engineering-values.html"
+                ><span class="doc-link__title"
+                  >GitHub Desktop Engineering Values</span
+                ><span class="doc-link__desc"
+                  >There's value in defining what we as shepherds of this
+                  project believe are important traits and practices. As we grow
+                  and welcome new members into our team it's beneficial
+                  to…</span
+                ><span class="doc-link__path"
+                  >contributing/engineering-values.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="contributing/github-enterprise-auth-from-dev-build.html"
+                ><span class="doc-link__title"
+                  >Authenticating GitHub Enterprise from a Desktop-dev
+                  Build</span
+                ><span class="doc-link__desc"
+                  >Find or create an organization on the GHE instance that you
+                  are an owner of</span
+                ><span class="doc-link__path"
+                  >contributing/github-enterprise-auth-from-dev-build.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/linting.html"
+                ><span class="doc-link__title">Linting</span
+                ><span class="doc-link__desc">What is linting, anyways?</span
+                ><span class="doc-link__path">contributing/linting.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/linux-testing-and-you.html"
+                ><span class="doc-link__title">Linux Testing and You</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop doesn't currently support Linux in an official
+                  capacity, but many in the community have already been
+                  experimenting and testing it on their preferred
+                  distributions.</span
+                ><span class="doc-link__path"
+                  >contributing/linux-testing-and-you.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/setup-linux.html"
+                ><span class="doc-link__title"
+                  >Setting Up Development Dependencies on Linux</span
+                ><span class="doc-link__desc"
+                  >You will need to install these tools on your machine:</span
+                ><span class="doc-link__path"
+                  >contributing/setup-linux.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/setup-macos.html"
+                ><span class="doc-link__title"
+                  >Setting Up Development Dependencies on macOS</span
+                ><span class="doc-link__desc"
+                  >You will need to install these tools on your machine:</span
+                ><span class="doc-link__path"
+                  >contributing/setup-macos.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/setup-windows.html"
+                ><span class="doc-link__title"
+                  >Setting Up Development Dependencies on Windows</span
+                ><span class="doc-link__desc"
+                  >You will need to install these tools on your machine:</span
+                ><span class="doc-link__path"
+                  >contributing/setup-windows.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/setup.html"
+                ><span class="doc-link__title"
+                  >Development Environment Setup</span
+                ><span class="doc-link__desc"
+                  >Desktop Material development and product acceptance are
+                  supported on Windows only:</span
+                ><span class="doc-link__path">contributing/setup.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/styleguide.html"
+                ><span class="doc-link__title">TypeScript Style Guide</span
+                ><span class="doc-link__desc"
+                  >Most of our preferred style when writing typescript is
+                  configured in our .eslintrc.yml files.</span
+                ><span class="doc-link__path"
+                  >contributing/styleguide.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/timeline-profile.html"
+                ><span class="doc-link__title"
+                  >Profiling Desktop using the Chrome Developer Tools</span
+                ><span class="doc-link__desc"
+                  >Sometimes performance issues are hard to identify and
+                  recreate. If you notice a regression and can reproduce it, you
+                  can use the Timeline tools in Chrome Dev Tools to take
+                  a…</span
+                ><span class="doc-link__path"
+                  >contributing/timeline-profile.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/tooling.html"
+                ><span class="doc-link__title"
+                  >Tooling Support for GitHub Desktop</span
+                ><span class="doc-link__desc">Recommended packages:</span
+                ><span class="doc-link__path">contributing/tooling.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/troubleshooting.html"
+                ><span class="doc-link__title">Known Issues</span
+                ><span class="doc-link__desc"
+                  >Here's a non-exhaustive list of environmental issues that you
+                  may encounter while working on GitHub Desktop:</span
+                ><span class="doc-link__path"
+                  >contributing/troubleshooting.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="contributing/upgrading-dependencies.html"
+                ><span class="doc-link__title">Upgrading Dependencies</span
+                ><span class="doc-link__desc"
+                  >This document outlines how we manage the dependencies that
+                  GitHub Desktop needs, as some need to be handled differently
+                  to others</span
+                ><span class="doc-link__path"
+                  >contributing/upgrading-dependencies.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="contributing/working-with-packages.html"
+                ><span class="doc-link__title">Working with Packages</span
+                ><span class="doc-link__desc"
+                  >As we are using yarn for managing packages, here are some
+                  helpful tips for whenever you need to work with them.</span
+                ><span class="doc-link__path"
+                  >contributing/working-with-packages.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/handoff"
+          data-tab-panel="reference/handoff"
+          aria-labelledby="subtab-reference-handoff"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secHandoff">
+            Handoff records
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>1</strong>
+            <span class="i18n-inline" data-i18n="docsCountOne">document</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="handoff/2026-07-24-session.html"
+                ><span class="doc-link__title"
+                  >Session handoff — Cheap LFS test + feature wave + audio /
+                  交接文件</span
+                ><span class="doc-link__desc"
+                  >Date: 2026-07-24. gh CLI is LOCKED to DingDingChae — do NOT
+                  gh auth switch and do not let Cheap LFS / push-fallback change
+                  it.</span
+                ><span class="doc-link__path"
+                  >handoff/2026-07-24-session.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/integrations"
+          data-tab-panel="reference/integrations"
+          aria-labelledby="subtab-reference-integrations"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secIntegrations">
+            Provider integrations
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>3</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="integrations/azure-devops.html"
+                ><span class="doc-link__title"
+                  >Authenticating to Azure DevOps with GitHub Desktop</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop now provides support for Git Credential
+                  Manager (GCM), which makes the task of authenticating to Azure
+                  DevOps repositories easy and secure. This feature can
+                  be…</span
+                ><span class="doc-link__path"
+                  >integrations/azure-devops.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="integrations/bitbucket.html"
+                ><span class="doc-link__title"
+                  >Authenticating to Bitbucket with GitHub Desktop</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop now provides support for Git Credential
+                  Manager (GCM), which makes the task of authenticating to
+                  Bitbucket repositories easy and secure. This feature can
+                  be…</span
+                ><span class="doc-link__path"
+                  >integrations/bitbucket.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="integrations/gitlab.html"
+                ><span class="doc-link__title"
+                  >Authenticating to GitLab with GitHub Desktop</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop now provides support for Git Credential
+                  Manager (GCM), which makes the task of authenticating to
+                  GitLab repositories easy and secure. This feature can be
+                  enabled…</span
+                ><span class="doc-link__path">integrations/gitlab.md</span></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/learn-more"
+          data-tab-panel="reference/learn-more"
+          aria-labelledby="subtab-reference-learn-more"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secLearnMore">
+            Learn more
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>1</strong>
+            <span class="i18n-inline" data-i18n="docsCountOne">document</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="learn-more/unreachable-commits.html"
+                ><span class="doc-link__title"
+                  >Reachable and Unreachable Commits</span
+                ><span class="doc-link__desc"
+                  >In Git, every commit will have at least one parent commit
+                  except the very first. Additionally, a repository may have any
+                  number of branches that begin at any particular commit.…</span
+                ><span class="doc-link__path"
+                  >learn-more/unreachable-commits.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/process"
+          data-tab-panel="reference/process"
+          aria-labelledby="subtab-reference-process"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secProcess">
+            Process
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>12</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="process/issue-triage.html"
+                ><span class="doc-link__title">Issue Triage</span
+                ><span class="doc-link__desc"
+                  >This document describes how we triage issues in
+                  desktop/desktop.</span
+                ><span class="doc-link__path">process/issue-triage.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/labels.html"
+                ><span class="doc-link__title"
+                  >Issue and Pull Request Labels</span
+                ><span class="doc-link__desc"
+                  >This section outlines the labels currently used in the
+                  project, and adds context about what each label
+                  represents.</span
+                ><span class="doc-link__path">process/labels.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/metrics.html"
+                ><span class="doc-link__title">GitHub Desktop Metrics</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop sends certain metrics to our analytics system,
+                  and we want you to understand what is being sent and why it's
+                  important to our ability to continue to improve the…</span
+                ><span class="doc-link__path">process/metrics.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/notes-for-contributors.html"
+                ><span class="doc-link__title">Notes For Contributors</span
+                ><span class="doc-link__desc"
+                  >We recommend open pull requests early - ideally as soon as
+                  you have something to show. This is especially helpful for
+                  large pieces of work, as continuous integration tests
+                  are…</span
+                ><span class="doc-link__path"
+                  >process/notes-for-contributors.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/pull-requests.html"
+                ><span class="doc-link__title">Pull Request Review Process</span
+                ><span class="doc-link__desc"
+                  >This document describes how pull requests are handled in
+                  desktop/desktop.</span
+                ><span class="doc-link__path">process/pull-requests.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/quality-process.html"
+                ><span class="doc-link__title">Quality Process</span
+                ><span class="doc-link__desc"
+                  >This document is a general outline of Quality Engineering
+                  practices for Desktop, both for scheduled and ad-hoc testing.
+                  The manual test cases used to test Desktop in both Mac…</span
+                ><span class="doc-link__path"
+                  >process/quality-process.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/release-planning.html"
+                ><span class="doc-link__title">Release Planning</span
+                ><span class="doc-link__desc"
+                  >This document outlines our process for planning and
+                  scheduling releases, so you can familiarize yourself with the
+                  flow of work from opening an issue to seeing it published in
+                  a…</span
+                ><span class="doc-link__path"
+                  >process/release-planning.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/roadmap.html"
+                ><span class="doc-link__title">Upstream historical roadmap</span
+                ><span class="doc-link__desc"
+                  >This page preserves the historical GitHub Desktop release
+                  themes inherited by Desktop Material. It is not the current
+                  Desktop Material plan. For the completed M0–M19…</span
+                ><span class="doc-link__path">process/roadmap.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/teams.html"
+                ><span class="doc-link__title">Teams</span
+                ><span class="doc-link__desc"
+                  >Who do you @ for what? See below!</span
+                ><span class="doc-link__path">process/teams.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/testing.html"
+                ><span class="doc-link__title">Testing</span
+                ><span class="doc-link__desc"
+                  >[ ] User can download latest (Mac &amp; Windows)
+                  Desktop</span
+                ><span class="doc-link__path">process/testing.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/what-is-desktop.html"
+                ><span class="doc-link__title"
+                  >What is GitHub Desktop and who is it for?</span
+                ><span class="doc-link__desc"
+                  >As we triage issues, evaluate pull requests, and discuss new
+                  features, the GitHub Desktop team is making decisions based on
+                  our vision for the GitHub Desktop product. The…</span
+                ><span class="doc-link__path"
+                  >process/what-is-desktop.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="process/writing-release-notes.html"
+                ><span class="doc-link__title">Writing Release Notes</span
+                ><span class="doc-link__desc"
+                  >Here's some basic guidelines for how we write our release
+                  notes and what we include in them. yarn draft-release is a
+                  great starting point, but not a final version.</span
+                ><span class="doc-link__path"
+                  >process/writing-release-notes.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/readme-tabs"
+          data-tab-panel="reference/readme-tabs"
+          aria-labelledby="subtab-reference-readme-tabs"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secReadmeTabs">
+            README tabs
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>6</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="readme-tabs/complete-feature-list.html"
+                ><span class="doc-link__title"
+                  >Complete feature list / 完整功能清單</span
+                ><span class="doc-link__desc"
+                  >Every feature Desktop Material ships, grouped by area, with
+                  an honest label for how each one relates to upstream GitHub
+                  Desktop. The Features tab is</span
+                ><span class="doc-link__path"
+                  >readme-tabs/complete-feature-list.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="readme-tabs/development.html"
+                ><span class="doc-link__title">Development</span
+                ><span class="doc-link__desc"
+                  >Full instructions live in docs/contributing/setup.md. In
+                  short, with Node 24.15.0:</span
+                ><span class="doc-link__path"
+                  >readme-tabs/development.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="readme-tabs/features.html"
+                ><span class="doc-link__title">Features</span
+                ><span class="doc-link__desc"
+                  >The full Material Design 3 shell plus every Git and GitHub
+                  workflow Desktop Material ships. For milestone status and
+                  published CI/release evidence, see the Roadmap &amp;
+                  receipts…</span
+                ><span class="doc-link__path">readme-tabs/features.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="readme-tabs/install.html"
+                ><span class="doc-link__title">Install on Windows</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's automated releases provide a per-user x64
+                  Windows installer. The Windows package command also creates
+                  dist/GitHub Desktop-x64.zip, and the gated release…</span
+                ><span class="doc-link__path">readme-tabs/install.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="readme-tabs/roadmap-and-receipts.html"
+                ><span class="doc-link__title">Roadmap &amp; receipts</span
+                ><span class="doc-link__desc"
+                  >The numbered roadmap now extends through M27. M0–M21 and M23
+                  have published receipts, M22 retains its separately tracked
+                  visual refresh, and the exact acceptance/publication…</span
+                ><span class="doc-link__path"
+                  >readme-tabs/roadmap-and-receipts.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="readme-tabs/screenshots.html"
+                ><span class="doc-link__title">Screenshots</span
+                ><span class="doc-link__desc"
+                  >The compact selection below keeps this README scannable. The
+                  guided feature gallery and task-oriented tutorial contain the
+                  full annotated set.</span
+                ><span class="doc-link__path"
+                  >readme-tabs/screenshots.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/root"
+          data-tab-panel="reference/root"
+          aria-labelledby="subtab-reference-root"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secRoot">
+            Top-level pages
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>4</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="installation.html"
+                ><span class="doc-link__title">Installing Desktop Material</span
+                ><span class="doc-link__desc"
+                  >Desktop Material is supported on Windows only. The current
+                  automated release publishes Windows x64 installers and a
+                  Squirrel update feed; macOS and Linux packages are not…</span
+                ><span class="doc-link__path">installation.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="known-issues.html"
+                ><span class="doc-link__title">Table of contents</span
+                ><span class="doc-link__desc">macOS</span
+                ><span class="doc-link__path">known-issues.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="README.html"
+                ><span class="doc-link__title"
+                  >Desktop Material documentation</span
+                ><span class="doc-link__desc"
+                  >Desktop Material keeps the upstream GitHub Desktop
+                  development documentation while adding product, Material
+                  Design, acceptance, and publishing guidance for this
+                  fork.</span
+                ><span class="doc-link__path">README.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="regex-guide.html"
+                ><span class="doc-link__title"
+                  >Regex guide — how search works in Desktop Material</span
+                ><span class="doc-link__desc"
+                  >Every search bar in Desktop Material (Changes, History,
+                  Branches, Repositories, Clone, Actions) has three power
+                  tools:</span
+                ><span class="doc-link__path">regex-guide.md</span></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/technical"
+          data-tab-panel="reference/technical"
+          aria-labelledby="subtab-reference-technical"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secTechnical">
+            Technical notes
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>20</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="technical/adding-tests.html"
+                ><span class="doc-link__title">Adding tests to the project</span
+                ><span class="doc-link__desc"
+                  >This document explains a bit about our testing
+                  infrastructure, and how you can contribute tests to go with
+                  changes to the codebase.</span
+                ><span class="doc-link__path"
+                  >technical/adding-tests.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/button-order.html"
+                ><span class="doc-link__title"
+                  >Platform specific button order</span
+                ><span class="doc-link__desc"
+                  >Since this version of Desktop was released, it has been
+                  particularly difficult to find a way for our buttons to
+                  conform to expectations across platform for Windows and
+                  macOS…</span
+                ><span class="doc-link__path"
+                  >technical/button-order.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/crafting-git-tests.html"
+                ><span class="doc-link__title">Crafting Git Tests</span
+                ><span class="doc-link__desc"
+                  >This document outlines the options available for creating
+                  tests around Git repositories and data.</span
+                ><span class="doc-link__path"
+                  >technical/crafting-git-tests.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/dialogs.html"
+                ><span class="doc-link__title">Dialog</span
+                ><span class="doc-link__desc"
+                  >Dialogs are the high-level component used to render popups
+                  such as Preferences, and repository setting as well as error
+                  messages. They're built upon the new dialog html
+                  element…</span
+                ><span class="doc-link__path">technical/dialogs.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/discard-changes.html"
+                ><span class="doc-link__title">Discard Changes</span
+                ><span class="doc-link__desc"
+                  >The Discard Changes feature allows users to clean up
+                  uncommitted changes from a repository, and has evolved over
+                  time to support different workflows.</span
+                ><span class="doc-link__path"
+                  >technical/discard-changes.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/e2e-smoke-tests.html"
+                ><span class="doc-link__title">E2E Smoke Tests</span
+                ><span class="doc-link__desc"
+                  >This document explains the end-to-end smoke test harness
+                  added for GitHub Desktop, what it covers, how it runs locally
+                  and in CI, and which repository files make up the…</span
+                ><span class="doc-link__path"
+                  >technical/e2e-smoke-tests.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/editor-integration.html"
+                ><span class="doc-link__title"
+                  >&quot;Open External Editor&quot; integration</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop supports the user choosing an external program
+                  to open their local repositories, and this is available from
+                  the top-level Repository menu or when right-clicking…</span
+                ><span class="doc-link__path"
+                  >technical/editor-integration.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/error-reporting.html"
+                ><span class="doc-link__title">Error Reporting</span
+                ><span class="doc-link__desc"
+                  >First we need to make the distinction between expected
+                  runtime errors and exceptions. Unfortunately both are
+                  represented with the Error class, but they're
+                  conceptually…</span
+                ><span class="doc-link__path"
+                  >technical/error-reporting.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/feature-flagging.html"
+                ><span class="doc-link__title">Feature Flagging</span
+                ><span class="doc-link__desc"
+                  >To ensure Desktop along without being blocked on design
+                  feedback, we need a way to be able to ship features that are
+                  stable but not necessarily ready for general usage.
+                  This…</span
+                ><span class="doc-link__path"
+                  >technical/feature-flagging.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="technical/future-repository-structure.html"
+                ><span class="doc-link__title">Future Repository Structure</span
+                ><span class="doc-link__desc"
+                  >This document is a work in progress which covers where things
+                  should be found and outlines how things will be organized in
+                  the GitHub Desktop source.</span
+                ><span class="doc-link__path"
+                  >technical/future-repository-structure.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/oauth.html"
+                ><span class="doc-link__title">Developer OAuth App</span
+                ><span class="doc-link__desc"
+                  >Because GitHub Desktop uses OAuth web application flow to
+                  interact with the GitHub API and perform actions on behalf of
+                  a user, it needs to be bundled with a Client ID and
+                  Secret.</span
+                ><span class="doc-link__path">technical/oauth.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/packaging.html"
+                ><span class="doc-link__title"
+                  >Building and Packaging Desktop Material</span
+                ><span class="doc-link__desc"
+                  >Desktop Material is built, packaged, tested, and released as
+                  a Windows-only application. The repository retains some
+                  inherited upstream platform adapters, but macOS and
+                  Linux…</span
+                ><span class="doc-link__path">technical/packaging.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/placeholders.html"
+                ><span class="doc-link__title">Placeholders</span
+                ><span class="doc-link__desc"
+                  >As GitHub Desktop uses Webpack to transpile, minify and merge
+                  our code into unified scripts for each configuration we
+                  define, we use some tricks to manage complexity and
+                  enable…</span
+                ><span class="doc-link__path"
+                  >technical/placeholders.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/proxies.html"
+                ><span class="doc-link__title">Automatic Git Proxy Support</span
+                ><span class="doc-link__desc"
+                  >This documented is intended to contain a high level
+                  architectural overview of the automatic Git proxy support
+                  we're intending to ship in GitHub Desktop 2.4. Since the
+                  primary…</span
+                ><span class="doc-link__path">technical/proxies.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/pull-requests.html"
+                ><span class="doc-link__title"
+                  >Checking out pull requests from a forked repository</span
+                ><span class="doc-link__desc"
+                  >PR #3602 introduced the ability to checkout a branch from a
+                  forked repository. In order to accomplish this, we needed a
+                  way to manage remotes on your behalf. This document is…</span
+                ><span class="doc-link__path"
+                  >technical/pull-requests.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/rebase-flow.html"
+                ><span class="doc-link__title">Rebase Flow</span
+                ><span class="doc-link__desc"
+                  >This document outlines the technical details about the rebase
+                  flow as implemented in GitHub Desktop. It is intended to be a
+                  simple subset of what is technically possible to do…</span
+                ><span class="doc-link__path">technical/rebase-flow.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/shell-integration.html"
+                ><span class="doc-link__title"
+                  >&quot;Open Shell&quot; integration</span
+                ><span class="doc-link__desc"
+                  >GitHub Desktop supports launching an available shell found on
+                  the user's machine, to work with Git repositories outside of
+                  Desktop.</span
+                ><span class="doc-link__path"
+                  >technical/shell-integration.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/syntax-highlighting.html"
+                ><span class="doc-link__title">Syntax Highlighted Diffs</span
+                ><span class="doc-link__desc"
+                  >We introduced syntax highlighted diffs in #3101.</span
+                ><span class="doc-link__path"
+                  >technical/syntax-highlighting.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/ui-component-testing.html"
+                ><span class="doc-link__title"
+                  >UI Component Testing with Testing Library</span
+                ><span class="doc-link__desc"
+                  >This document describes the supported path for DOM-based UI
+                  component tests in GitHub Desktop.</span
+                ><span class="doc-link__path"
+                  >technical/ui-component-testing.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="technical/windows-menu-bar.html"
+                ><span class="doc-link__title">Windows Menu Bar</span
+                ><span class="doc-link__desc"
+                  >One of the design decision early on with GitHub Desktop
+                  assumed a high-fidelity application menu. On macOS we get that
+                  for free since the application menu is detached from
+                  the…</span
+                ><span class="doc-link__path"
+                  >technical/windows-menu-bar.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/verification"
+          data-tab-panel="reference/verification"
+          aria-labelledby="subtab-reference-verification"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secVerification">
+            Verification records
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>15</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
+            <a href="verification/"
+              ><span class="i18n-inline" data-i18n="categoryIndex"
+                >Category index</span
+              ></a
             >
-              <span class="card__title" data-i18n="cRefPostmanTitle"></span>
-              <p class="card__body" data-i18n="cRefPostmanBody"></p>
-              <span class="card__meta">docs/postman/ · github.com</span>
-            </a>
-          </li>
-        </ul>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="verification/auto-updater-version-order-2026-07-22.html"
+                ><span class="doc-link__title"
+                  >Cross-lane automatic updater verification —
+                  2026-07-22/23</span
+                ><span class="doc-link__desc"
+                  >Desktop Material's installed legacy Super Express build
+                  3.6.3-beta3-s000000000201 now moves forward through the
+                  ordinary and Super Express release lanes. Both lanes use
+                  a…</span
+                ><span class="doc-link__path"
+                  >verification/auto-updater-version-order-2026-07-22.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/bug-hunt-2026-07-26/cleanup-ledger.html"
+                ><span class="doc-link__title">Bug-hunt cleanup ledger</span
+                ><span class="doc-link__desc"
+                  >Run ID: bug-hunt-2026-07-26-019f9f87</span
+                ><span class="doc-link__path"
+                  >verification/bug-hunt-2026-07-26/cleanup-ledger.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/bug-hunt-2026-07-26/run-manifest.html"
+                ><span class="doc-link__title"
+                  >Bug-hunt publish run manifest</span
+                ><span class="doc-link__desc"
+                  >Run ID: bug-hunt-2026-07-26-019f9f87</span
+                ><span class="doc-link__path"
+                  >verification/bug-hunt-2026-07-26/run-manifest.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/cheap-lfs-bambu-build-2026-07-23.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS Bambu build cloud, clone, and batching acceptance —
+                  2026-07-23</span
+                ><span class="doc-link__desc"
+                  >This receipt records a live public-repository Cheap LFS
+                  acceptance with a real 14.8 GB Windows build tree. The four
+                  app-created payload batches, managed cloud caller,…</span
+                ><span class="doc-link__path"
+                  >verification/cheap-lfs-bambu-build-2026-07-23.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/cheap-lfs-cloud-compression-2026-07-22.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS cloud compression acceptance — 2026-07-22</span
+                ><span class="doc-link__desc"
+                  >This receipt covers the public-auto/private-opt-in
+                  cloud-compression policy, one-object-at-a-time GitHub Actions
+                  implementation, automatic pointer adoption, failure-safe
+                  raw…</span
+                ><span class="doc-link__path"
+                  >verification/cheap-lfs-cloud-compression-2026-07-22.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/cheap-lfs-commit-progress-2026-07-23.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS commit progress and push batching —
+                  2026-07-23</span
+                ><span class="doc-link__desc"
+                  >This record covers the final local first-publication
+                  acceptance of the Cheap LFS commit terminal, bounded parallel
+                  uploads, OCI storage, provider routing, automatic…</span
+                ><span class="doc-link__path"
+                  >verification/cheap-lfs-commit-progress-2026-07-23.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/cheap-lfs-github-public-private-2026-07-22.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS public/private GitHub and UI acceptance —
+                  2026-07-22</span
+                ><span class="doc-link__desc"
+                  >Cheap LFS passed live GitHub storage, fresh-clone history,
+                  and Desktop Material UI acceptance in both repository
+                  visibility modes while authenticated as DingDingChae. The
+                  two…</span
+                ><span class="doc-link__path"
+                  >verification/cheap-lfs-github-public-private-2026-07-22.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/responsive-surface-matrix-2026-07-17.html"
+                ><span class="doc-link__title"
+                  >Responsive surface matrix — 2026-07-17</span
+                ><span class="doc-link__desc"
+                  >The final hidden-renderer smoke gate inventories every
+                  registered repository page, preferences page,
+                  repository-settings page, clone tab, notification tab, File
+                  History tab,…</span
+                ><span class="doc-link__path"
+                  >verification/responsive-surface-matrix-2026-07-17.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/tab-groups-command-palette-2026-07-22.html"
+                ><span class="doc-link__title"
+                  >Tab groups and command palette verification —
+                  2026-07-22</span
+                ><span class="doc-link__desc"
+                  >This receipt records local acceptance for the persistent
+                  tab-group and rich command-palette continuation. It does not
+                  claim a commit, remote publication, CI, Pages, wiki, or…</span
+                ><span class="doc-link__path"
+                  >verification/tab-groups-command-palette-2026-07-22.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/ui-design-audit-2026-07-20/cleanup-ledger.html"
+                ><span class="doc-link__title"
+                  >UI design audit cleanup ledger</span
+                ><span class="doc-link__desc"
+                  >Run ID: ui-design-audit-2026-07-20-9f64a2c1</span
+                ><span class="doc-link__path"
+                  >verification/ui-design-audit-2026-07-20/cleanup-ledger.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/ui-design-audit-2026-07-20/implementation-inventory.html"
+                ><span class="doc-link__title"
+                  >Desktop Material implementation UI inventory</span
+                ><span class="doc-link__desc"
+                  >Date: 2026-07-20 Worktree: desktop-material-ui-audit-20260720
+                  Scope: static implementation inventory for comparison with the
+                  supplied Material Design UI Recreation (1).zip…</span
+                ><span class="doc-link__path"
+                  >verification/ui-design-audit-2026-07-20/implementation-inventory.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/ui-design-audit-2026-07-20/reference-inventory.html"
+                ><span class="doc-link__title"
+                  >Desktop Material design-reference inventory</span
+                ><span class="doc-link__desc">Date: 2026-07-20</span
+                ><span class="doc-link__path"
+                  >verification/ui-design-audit-2026-07-20/reference-inventory.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/ui-design-audit-2026-07-20/run-manifest.html"
+                ><span class="doc-link__title"
+                  >UI design audit run manifest</span
+                ><span class="doc-link__desc"
+                  >Run ID: ui-design-audit-2026-07-20</span
+                ><span class="doc-link__path"
+                  >verification/ui-design-audit-2026-07-20/run-manifest.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/ui-design-audit-2026-07-20/runtime-plan.html"
+                ><span class="doc-link__title"
+                  >Runtime plan: full UI parity audit against the supplied
+                  design ZIP</span
+                ><span class="doc-link__desc"
+                  >This document defines the repeatable runtime audit for
+                  ui-design-audit-2026-07-20. It is a plan, not an execution
+                  receipt. A result may be called complete only when the…</span
+                ><span class="doc-link__path"
+                  >verification/ui-design-audit-2026-07-20/runtime-plan.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="verification/ui-design-audit-2026-07-20/static-findings.html"
+                ><span class="doc-link__title">Static UI audit findings</span
+                ><span class="doc-link__desc"
+                  >Date: 2026-07-20 Scope: post-remediation source and
+                  verification-harness review Runtime status: pending</span
+                ><span class="doc-link__path"
+                  >verification/ui-design-audit-2026-07-20/static-findings.md</span
+                ></a
+              >
+            </li>
+          </ul>
+        </section>
+        <section
+          class="subpanel"
+          id="reference/wiki"
+          data-tab-panel="reference/wiki"
+          aria-labelledby="subtab-reference-wiki"
+        >
+          <h3 class="md-title-lg i18n-inline" data-i18n="secWiki">
+            Wiki pages
+          </h3>
+          <p class="md-body subpanel__meta">
+            <strong>8</strong>
+            <span class="i18n-inline" data-i18n="docsCount">documents</span>
+          </p>
+          <ul class="doc-list">
+            <li>
+              <a class="doc-link" href="wiki/Agent-API.html"
+                ><span class="doc-link__title">Agent API</span
+                ><span class="doc-link__desc"
+                  >Desktop Material ships a built-in agent control surface so an
+                  AI agent can drive the app programmatically. It is exposed as
+                  an MCP server with a local HTTP + CLI fallback for…</span
+                ><span class="doc-link__path">wiki/Agent-API.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/Automation.html"
+                ><span class="doc-link__title">Automation</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can run parts of the Git workflow for you on
+                  a schedule or on demand: auto commit &amp; push, auto pull,
+                  and merge-all branches/worktrees. Automation is
+                  designed…</span
+                ><span class="doc-link__path">wiki/Automation.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/Developer-Guide.html"
+                ><span class="doc-link__title">Developer Guide</span
+                ><span class="doc-link__desc"
+                  >This page is for contributors. It describes how Desktop
+                  Material is put together and how to build and run it. Desktop
+                  Material is a fork of desktop/desktop (MIT), so much of…</span
+                ><span class="doc-link__path">wiki/Developer-Guide.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/Feature-Gallery.html"
+                ><span class="doc-link__title">Guided Feature Gallery</span
+                ><span class="doc-link__desc"
+                  >Treat every gallery entry as part of a workflow: find the
+                  capability, open its named surface, review the exact scope,
+                  and keep the resulting evidence.</span
+                ><span class="doc-link__path">wiki/Feature-Gallery.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/Home.html"
+                ><span class="doc-link__title">Desktop Material</span
+                ><span class="doc-link__desc"
+                  >Use this map to choose a starting point: learn the daily
+                  workflow in the User Guide, browse shipped surfaces in the
+                  Feature Gallery, or open a specialist guide for deeper
+                  details.</span
+                ><span class="doc-link__path">wiki/Home.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/Regex-Guide.html"
+                ><span class="doc-link__title"
+                  >Regex guide — how search works in Desktop Material</span
+                ><span class="doc-link__desc"
+                  >Every search bar in Desktop Material (Changes, History,
+                  Branches, Repositories, Clone, Actions) has three power
+                  tools:</span
+                ><span class="doc-link__path">wiki/Regex-Guide.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/Submodules.html"
+                ><span class="doc-link__title"
+                  >Submodules — little projects inside your project</span
+                ><span class="doc-link__desc"
+                  >This is the simplest page in the wiki. On purpose.</span
+                ><span class="doc-link__path">wiki/Submodules.md</span></a
+              >
+            </li>
+            <li>
+              <a class="doc-link" href="wiki/User-Guide.html"
+                ><span class="doc-link__title">User Guide</span
+                ><span class="doc-link__desc"
+                  >The safest rhythm is simple: inspect, stage, commit, then
+                  synchronize. The tools below add power without changing that
+                  basic loop.</span
+                ><span class="doc-link__path">wiki/User-Guide.md</span></a
+              >
+            </li>
+          </ul>
+        </section>
+        <!-- docs-hub:reference-panels:end -->
       </section>
 
-      <section class="section" id="links">
+      <section
+        class="section tab-panel"
+        id="search"
+        data-tab-panel="search"
+        aria-labelledby="tab-search"
+      >
+        <div class="section__head">
+          <h2 class="md-headline" data-i18n-tone="searchTitle">
+            Search the documentation
+          </h2>
+          <p data-i18n-tone="searchLead"></p>
+        </div>
+
+        <div class="panel">
+          <p class="md-body" data-i18n="searchScope"></p>
+          <p
+            class="md-body"
+            id="search-engine-note"
+            data-i18n="searchEngine"
+          ></p>
+          <p class="md-body">
+            <span data-i18n="searchFullText"></span>
+            <a
+              class="i18n-inline"
+              href="search.html"
+              data-i18n="searchFullTextLink"
+              >Open full-text search</a
+            >
+          </p>
+          <ul class="link-row">
+            <li>
+              <a
+                class="i18n-inline"
+                href="regex-guide.html"
+                data-i18n="cRefRegexTitle"
+                >Regex guide</a
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section
+        class="section tab-panel"
+        id="links"
+        data-tab-panel="links"
+        aria-labelledby="tab-links"
+      >
         <div class="section__head">
           <h2 class="md-headline" data-i18n-tone="linksTitle">Project links</h2>
           <p data-i18n-tone="linksLead"></p>
