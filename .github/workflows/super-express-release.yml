@@ -238,7 +238,7 @@ jobs:
             exit 1
           fi
 
-      - name: Promote only a still-current main release
+      - name: Reconcile Latest to the newest main release
         if: ${{ inputs.publish }}
         shell: bash
         run: bash .github/scripts/promote-current-release.sh

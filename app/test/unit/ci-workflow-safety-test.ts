@@ -100,9 +100,18 @@ describe('CI workflow safety', () => {
       releasePromotionScript,
       /git ls-remote origin refs\/heads\/main/
     )
+    // Latest is reconciled monotonically: a release whose build outlived a
+    // push to main still moves Latest forward along main, a commit that is
+    // not on main can never own Latest, and a demotion requires proof that
+    // the current Latest is off main — never a failed release listing.
+    assert.match(releasePromotionScript, /merge-base --is-ancestor/)
     assert.match(
       releasePromotionScript,
-      /Published superseded commit \$RELEASE_TARGET_SHA without changing Latest/
+      /is not on main; it will not own Latest/
+    )
+    assert.match(
+      releasePromotionScript,
+      /No promotable release in the newest page; leaving Latest untouched/
     )
     assert.doesNotMatch(installerWorkflow, /softprops\/action-gh-release/)
     assert.equal(
@@ -122,7 +131,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       installerWorkflow,
-      /Verify required release assets[\s\S]*?Preserve express installer payload[\s\S]*?Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Verify downloaded release payload[\s\S]*?Publish GitHub release[\s\S]*?Verify published release target[\s\S]*?Promote only a still-current main release/
+      /Verify required release assets[\s\S]*?Preserve express installer payload[\s\S]*?Generate bounded exact-SHA release notes[\s\S]*?Preserve exact release notes[\s\S]*?Revalidate immutable release tag before publishing[\s\S]*?Verify downloaded release payload[\s\S]*?Publish GitHub release[\s\S]*?Verify published release target[\s\S]*?Reconcile Latest to the newest main release/
     )
     assert.match(
       installerWorkflow,
@@ -156,11 +165,7 @@ describe('CI workflow safety', () => {
     )
     assert.match(
       releasePromotionScript,
-      /reconciled_tag=\$\(select_highest_target_tag\)/
-    )
-    assert.match(
-      releasePromotionScript,
-      /current_main_final=\$\(resolve_main\)/
+      /reconciled_tag=\$\(reconcile_once "\$current_main_after"\)/
     )
     assert.match(releasePromotionScript, /releases\/latest/)
 
