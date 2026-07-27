@@ -31,6 +31,7 @@ import {
 import { resolveSafeRepositoryPath } from './worktree-path-guard'
 import { validateEmptyFolder } from '../path-validation'
 import { IGitModulesEntry, parseGitModules } from './gitmodules'
+import { IRemoteHeadsListing, parseLsRemoteHeads } from './ls-remote-heads'
 import { removeConfigValueInFile, setConfigValueInFile } from './config'
 import { getRepositoryType } from './rev-parse'
 
@@ -312,6 +313,14 @@ export type SubmoduleTopologyKind =
 // they are re-exported here for the existing consumers.
 export { parseGitModules, resolveSubmoduleCloneUrl } from './gitmodules'
 export type { IGitModulesEntry } from './gitmodules'
+
+// The pure ls-remote branch-head parser lives in ./ls-remote-heads for the
+// same reason; it is re-exported here for the git-layer consumers.
+export {
+  MaximumRemoteHeadBranches,
+  parseLsRemoteHeads,
+} from './ls-remote-heads'
+export type { IRemoteHeadBranch, IRemoteHeadsListing } from './ls-remote-heads'
 
 /** A single line of parsed `git submodule status` output. */
 export interface ISubmoduleStatusEntry {
@@ -880,6 +889,51 @@ export async function validateSubmoduleAddPath(
       ? error.message
       : 'Desktop could not validate this submodule path.'
   }
+}
+
+export interface IListSubmoduleSourceBranchesOptions {
+  /** Stable signed-in account identity for the credential trampoline. */
+  readonly accountKey?: string
+  /** Cancellation for the spawned Git process. */
+  readonly signal?: AbortSignal
+}
+
+/**
+ * List the branch heads a submodule source URL advertises, together with the
+ * remote default branch resolved from the HEAD symref.
+ *
+ * The remote is asked for `HEAD` and `refs/heads/*` explicitly because
+ * `git ls-remote --heads` filters the HEAD symref advertisement out of the
+ * response, which would hide the default branch. An empty repository yields
+ * an empty listing rather than an error, and the branch list is bounded by
+ * `MaximumRemoteHeadBranches` with truncation reported.
+ */
+export async function listSubmoduleSourceBranches(
+  repository: Repository,
+  url: string,
+  options?: IListSubmoduleSourceBranchesOptions
+): Promise<IRemoteHeadsListing> {
+  const source = url.trim()
+  const sourceError = getSubmoduleSourceError(source)
+  if (sourceError !== null) {
+    throw new Error(sourceError)
+  }
+
+  throwIfAborted(options?.signal)
+
+  const { stdout } = await git(
+    ['ls-remote', '--symref', '--', source, 'HEAD', 'refs/heads/*'],
+    repository.path,
+    'listSubmoduleSourceBranches',
+    {
+      env: await envForRemoteOperation(source),
+      credentialAccountKey: options?.accountKey,
+      processCallback: getAbortableProcessCallback(options?.signal),
+    }
+  )
+  throwIfAborted(options?.signal)
+
+  return parseLsRemoteHeads(stdout)
 }
 
 /**

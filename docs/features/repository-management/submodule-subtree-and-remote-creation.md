@@ -17,6 +17,24 @@ description, and public/private choice, with private selected by default. It
 requests an initial commit so Git can clone the new repository immediately,
 then runs the ordinary account-aware `git submodule add` path.
 
+The URL route also offers a searchable **branch picker**. A "Load branches"
+action beside the URL field (also triggered automatically the first time the
+field blurs with a valid URL) runs `git ls-remote --symref` against the source
+for `HEAD` and `refs/heads/*` — `--heads` alone would drop the HEAD symref
+advertisement that names the remote default branch. While the listing loads a
+polite live-region status is announced; the loaded list renders as a
+`type="search"` filter input wired to the shared fuzzy/substring/regex filter
+stack and full regex builder (surface id `add-submodule-branches`, plain-text
+matching by default) above a select whose first entry is the remote default
+branch, visibly marked as the default and pre-selected. Picking a branch
+writes it into the free-text branch field; typing free text deselects the list
+(a disabled "custom branch" indicator appears); picking the remote-default
+entry clears the field so `git submodule add` runs without `-b`, exactly like
+leaving the branch empty today. The listing is bound to the exact URL it was
+loaded for and hides when the source changes. The free-text field always
+remains usable as a manual override, and the Create remote route keeps its
+existing no-branch behavior.
+
 The Submodules manager shows URL, tracked branch, current object ID, and
 initialized/up-to-date/out-of-date/conflicted state. Per-row actions retain
 their own progress and review; the separate temporary-open workflow is
@@ -48,7 +66,18 @@ mode is local UI metadata; source, ref, squash, and split drafts are transient.
 Submodule add rejects duplicate paths, occupied files or non-empty folders,
 absolute paths, parent traversal, `.git` segments, invalid branches, and stale
 account or organization selections before mutation. Cancellation stops the
-owned request/process. A remote-create failure never invokes Git. Because a
+owned request/process. A remote-create failure never invokes Git.
+
+Branch listing is non-blocking in every failure mode. An unreachable or
+unauthorized remote reports an inline `role="alert"` error and leaves manual
+branch entry (and submission) fully working. An empty repository is a valid,
+empty listing — the picker states the remote has no branches yet and the
+submodule follows its future default branch. A remote advertising more than
+5,000 heads is truncated at that bound with an explicit "showing the first N
+branches" notice; malformed `ls-remote` lines are skipped rather than treated
+as errors. A stale in-flight listing is aborted and sequence-guarded so it can
+never overwrite a newer load, and an invalid search regex keeps every branch
+visible while reporting the pattern error inline. Because a
 cancelled provider request can have an uncertain server result, the dialog asks
 the user to check the host before retrying; once a created result is known, a
 later Git failure is reported separately and the next attempt does not recreate
@@ -70,6 +99,16 @@ file, and non-empty-directory targets. Git receives the source, branch, and path
 as positional argv with an option separator, and account identity is passed to
 the credential trampoline rather than embedded in a URL.
 
+Branch listing revalidates the source URL (`getSubmoduleSourceError`) before
+spawning Git, passes it after the `--` separator, uses the same
+remote-operation environment and credential trampoline as the add itself, and
+honours an `AbortSignal` that kills the spawned process. The parsed branch
+list is bounded at 5,000 entries so a degenerate or adversarial remote cannot
+balloon renderer state. User-authored search patterns are compiled by the
+vetted RE2 engine (linear-time, no catastrophic backtracking) with the shared
+pattern- and input-length bounds; branch names and patterns are evaluated
+locally and never transmitted.
+
 Create remote accepts only an authenticated GitHub-family account and an owner
 from the loaded account data. Repository name and description are length- and
 character-bounded, provider cancellation is forwarded, and an unusable returned
@@ -83,7 +122,17 @@ submodule workspace boundary immediately before Git runs.
 
 `submodule-add-test.ts` and `add-submodule-dialog-test.tsx` cover source,
 branch, physical-path and occupied-target validation, provider/account
-selection, review, progress, cancellation, and responsive controls.
+selection, review, progress, cancellation, and responsive controls. The dialog
+suite also proves the branch picker: on-demand and blur-triggered loading (once
+per URL), default-branch pre-selection and its empty `-b` semantics,
+picker/free-text synchronization, filter narrowing with an honest no-match
+message, inline non-blocking load failures, and empty/truncated listings.
+`ls-remote-heads-test.ts` covers the pure `ls-remote --symref` parser: branch
+heads, the HEAD symref default, CRLF and SHA-256 output, malformed and
+out-of-scope lines, empty repositories, and the truncation cap.
+`collection-surface-registry-test.ts` audits the `add-submodule-branches`
+search surface's one-to-one binding with the shared filter control and regex
+builder.
 `submodule-remote-creation-test.ts` covers initialized public/private creation,
 organization ownership, strict metadata, cancellation uncertainty, unusable
 clone URLs, and no API call for invalid input. The dialog suite also proves

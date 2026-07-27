@@ -127,6 +127,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'shared-filter-list',
     },
     {
+      id: 'add-submodule-branches',
+      label: 'Add submodule branches',
+      source: 'repository-settings/add-submodule-dialog.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'add-subtree-repositories',
       label: 'Add subtree repositories',
       source: 'subtrees/add-subtree-dialog.tsx',
