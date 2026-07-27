@@ -7,6 +7,7 @@ import {
   readdir,
   rename,
   rm,
+  stat,
   symlink,
   utimes,
   writeFile,
@@ -269,7 +270,19 @@ describe('Cheap LFS tracked path store', () => {
 
     // A same-size rewrite drifts only the identity metadata. The deferred-hash
     // proofs must fail closed instead of trusting stale identities.
+    const beforeRewrite = await stat(path, { bigint: true })
     await writeFile(path, 'other payload content')
+    const afterRewrite = await stat(path, { bigint: true })
+    assert.equal(
+      afterRewrite.size,
+      beforeRewrite.size,
+      'the rewrite is same-size, so only a timestamp can reveal it'
+    )
+    assert.notEqual(
+      afterRewrite.mtimeNs,
+      beforeRewrite.mtimeNs,
+      'the capture settled past one timestamp tick, so the rewrite must move mtime'
+    )
     await assert.rejects(
       store.revalidateSource(verified.source),
       CheapLfsTrackedPathError
@@ -290,6 +303,71 @@ describe('Cheap LFS tracked path store', () => {
     await utimes(touched, past, past)
     await store.publishText(hashedProof, 'pointer after touch\n')
     assert.equal(await readFile(touched, 'utf8'), 'pointer after touch\n')
+  })
+
+  it('refuses a racy identity that cannot prove its own content', async t => {
+    const root = await repository(t)
+    const store = new CheapLfsTrackedPathStore()
+    // A modification time that is not older than the capture is exactly the
+    // "racily clean" case: a same-size rewrite landing in that window leaves
+    // mtime, ctime, and size identical, so the identity proves nothing. A
+    // future timestamp pins the store on that branch without depending on how
+    // fast this machine's disk happens to be.
+    const unreachable = new Date(Date.now() + 3_600_000)
+
+    const deferred = join(root, 'racy-deferred.bin')
+    await writeFile(deferred, 'first payload content')
+    await utimes(deferred, unreachable, unreachable)
+    const verified = await store.prepareUpload(
+      root,
+      'racy-deferred.bin',
+      deferred,
+      1024 * 1024
+    )
+    assert.equal(verified.destination.sha256, null)
+
+    // The source proof carries the hash the owned copy backfilled, so the same
+    // racy identity re-hashes and still revalidates rather than failing.
+    await store.revalidateSource(verified.source)
+
+    // Nothing at all changed on disk, so a pure identity comparison would say
+    // "unchanged" and publish. Without a content proof there is nothing to fall
+    // back to, so the deferred proof must fail closed instead.
+    const before = await stat(deferred, { bigint: true })
+    const publishError = await trackedError(
+      store.publishText(verified.destination, 'pointer text\n')
+    )
+    // Only the store's own quarantine-and-restore touched this file, and that
+    // moves ctime alone: the inode, mtime, and size it was proven with are
+    // untouched, so the refusal came from the racy capture and nothing else.
+    const after = await stat(deferred, { bigint: true })
+    assert.equal(after.ino, before.ino, 'the proven inode never drifted')
+    assert.equal(
+      after.mtimeNs,
+      before.mtimeNs,
+      'the proven modification time never drifted'
+    )
+    assert.equal(after.size, before.size, 'the proven size never drifted')
+    assert.ok(publishError.recoveryPaths.length >= 1)
+    assert.equal(await readFile(deferred, 'utf8'), 'first payload content')
+
+    await store.cleanupOwned(verified.owned)
+
+    // A tracked proof carrying its own full content proof publishes through the
+    // very same racy identity, by paying the content re-hash instead.
+    const hashed = join(root, 'racy-hashed.bin')
+    await writeFile(hashed, 'first payload content')
+    await utimes(hashed, unreachable, unreachable)
+    const hashedProof = await store.proveExisting(root, 'racy-hashed.bin')
+    assert.ok(hashedProof.sha256 !== null)
+    const preserved = await recoveryDirectories(root)
+    await store.publishText(hashedProof, 'pointer after re-hash\n')
+    assert.equal(await readFile(hashed, 'utf8'), 'pointer after re-hash\n')
+    assert.deepEqual(
+      await recoveryDirectories(root),
+      preserved,
+      'the re-hashed publish left no new recovery artifact'
+    )
   })
 
   it('consumes verified materialization temps on success, failure, and cancel', async t => {
