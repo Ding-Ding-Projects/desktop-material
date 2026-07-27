@@ -630,6 +630,13 @@
       d: 'The repository side sheet has a multi-select mode. Select multiple turns on a checkbox per row and a contextual selection bar that can fetch, pull, favorite, group, or forget…',
     },
     {
+      t: 'Repository list sync summary',
+      h: 'features/repository-management/repository-list-sync-summary.html',
+      s: 'features/repository-management/repository-list-sync-summary.md',
+      c: 'features',
+      d: 'Every row in the repository side sheet carries a small, low-emphasis second line under the repository name summarizing how far that repository has drifted from its tracked…',
+    },
+    {
       t: 'Repository picker filters and visibility',
       h: 'features/repository-management/repository-picker-filters-and-visibility.html',
       s: 'features/repository-management/repository-picker-filters-and-visibility.md',

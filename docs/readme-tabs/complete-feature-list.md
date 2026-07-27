@@ -63,7 +63,7 @@ Every number below is derived from this repository tree, not from memory:
 
 | Number | Where it comes from |
 | --- | --- |
-| **79** feature documents in **8** categories | `docs/features/**/*.md`, excluding the 9 `README.md` indexes |
+| **80** feature documents in **8** categories | `docs/features/**/*.md`, excluding the 9 `README.md` indexes |
 | **51** searchable collection surfaces | `SearchSurfaceRegistry` in `app/src/lib/collection-surface-registry.ts` |
 | **13** bulk-action surfaces | `BulkActionSurfaceRegistry` in the same file |
 | **87** command-palette commands in **6** groups | `CommandPaletteCatalog` in `app/src/lib/command-palette-catalog.ts` |
@@ -267,6 +267,49 @@ Every number below is derived from this repository tree, not from memory:
 | **Automatic commit and push batching** — when many small files approach a decimal 1.5 GB push, Desktop Material creates and pushes commits under a conservative 1.4 GB changed-blob budget, proving each fast-forward remote tip before creating the next commit and retaining a durable retry checkpoint. Ordinary pushes and persistent Git configuration stay unchanged.<br><sub>**自動 commit 同 push 分批** — 好多細檔夾埋逼近十進制 1.5 GB 推送上限嗰陣，Desktop Material 會用保守嘅 1.4 GB 變更 blob 預算分批建立同推送，每次建立下一個 commit 之前都證明遠端 tip 係快進，仲會留低耐用嘅重試檢查點。普通 push 同持久 Git 設定完全唔變。</sub> | **Added** | [Push batching](../features/repository-management/automatic-commit-push-batching.md) |
 | **ORAS runtime** — Windows builds ship digest-pinned ORAS 1.3.2 plus its Apache-2.0 licence; the ARM64 package runs that audited x64 binary through Windows 11 x64 emulation and fails closed if it cannot start.<br><sub>**ORAS 執行環境** — Windows 版本內附摘要鎖定嘅 ORAS 1.3.2 同佢嘅 Apache-2.0 授權；ARM64 套件用 Windows 11 x64 模擬行嗰個經審核嘅 x64 執行檔，起唔到就直接 fail closed。</sub> | **Added** | [OCI registry backend](../features/repository-management/cheap-lfs-oci-registry-backend.md) |
 
+### The Cheap LFS lifecycle / Cheap LFS 嘅一生
+
+```mermaid
+flowchart TD
+  PICK["Repository settings, Cheap LFS:<br/>Release prerelease, GHCR, or Docker Hub"]
+  PICK --> BIG["A changed file over<br/>the Cheap LFS threshold"]
+  BIG --> SAME{"Bytes proven identical to<br/>the committed pointer?"}
+  SAME -->|"yes"| SKIP["Not re-uploaded, not committed;<br/>a notice names the files"]
+  SAME -->|"no"| UP["Hash, prepare storage,<br/>upload, verify"]
+  UP --> PTR["The working file becomes<br/>small pointer text"]
+  PTR --> COMMIT["Git commits and pushes<br/>the pointer, not the bytes"]
+  COMMIT --> BACK["The verified upload copy is put<br/>straight back on this machine"]
+  COMMIT --> CLONE["Another clone receives<br/>the pointer first"]
+  CLONE --> DETECT["The clone/open detector, or<br/>Materialize all, downloads and verifies"]
+  DETECT --> MAT["Original bytes restored atomically;<br/>the committed blob stays a pointer"]
+```
+
+**What the lifecycle diagram says.** Each repository picks one backing store —
+a published GitHub prerelease, a GHCR image, or a Docker Hub image. A changed
+file over the 100 MiB threshold is prepared at commit time (or pinned by hand
+from the **Large files** manager): if its working-tree bytes are *proven*
+identical to the pointer the commit already holds, it is neither re-uploaded
+nor committed and a notice names it; otherwise it is hashed, uploaded, verified,
+and replaced in the working tree by five lines of pointer text. Git only ever
+commits and pushes that pointer. On the machine that did the upload the
+verified copy is reinstalled straight over the pointer, so nothing is
+re-downloaded seconds after being uploaded. Any other clone receives the
+pointer first, and the default-on clone/open detector — or **Materialize all**
+— downloads, verifies, and atomically restores the original bytes while the
+committed blob stays a pointer, so the next clone can repeat the same verified
+restore.
+
+**呢張生命週期圖講咩。** 每個倉庫揀一個後端：已發佈嘅 GitHub prerelease、GHCR
+映像，或者 Docker Hub 映像。超過 100 MiB 門檻嘅改動檔會喺 commit 嗰陣準備好
+（或者你自己喺 **Large files** 管理器手動釘），如果佢工作區嘅位元組**證實**同
+commit 入面嗰個指標一模一樣，就唔會再上載、亦唔會 commit，仲會出個通知逐個
+點名；否則就 hash、上載、驗證，然後將工作區嗰個檔換成五行指標文字。Git 由頭到
+尾淨係 commit 同 push 嗰個指標。喺上載嗰部機度，驗證過嘅副本會即刻裝返落去冚
+住個指標，所以啱啱上載完唔使再下載多一次。其他 clone 收到嘅係指標，預設開住
+嘅 clone／開啟偵測器 — 或者 **Materialize all** — 會下載、驗證，再原子咁還原
+原本嘅位元組，而 commit 咗嘅 blob 仍然係個指標，等下一個 clone 可以照辦煮碗再
+還原一次。
+
 ## 11. Build & Run and local AI / Build & Run 同本機 AI
 
 | Feature / 功能 | vs. Desktop | Docs |
@@ -304,6 +347,53 @@ Every number below is derived from this repository tree, not from memory:
 | **Collection bulk actions with regex safety** — **13** registered bulk-action surfaces share live counts, bounded previews, and a confirm that stays disabled on an empty or zero-match query.<br><sub>**帶 regex 安全嘅集合批量操作** — **13** 個已註冊嘅批量操作表面共用即時計數、有界限預覽，同埋查詢空白或者零命中就撳唔落嘅確認。</sub> | **Added** | [Bulk and regex safety](../features/identity-and-workspace/collection-bulk-and-regex-safety.md) |
 | **Repository content search** — search inside repository content.<br><sub>**倉庫內容搜尋** — 喺倉庫內容入面搵嘢。</sub> | **Added** | — |
 | **Documentation-hub search** — the project site searches the full documentation catalog in the reader's browser, with the same regex modes.<br><sub>**文件中心搜尋** — 專案網站喺讀者瀏覽器入面搜尋成個文件目錄，用同一套 regex 模式。</sub> | **Added** | [Regex guide](../regex-guide.md) |
+
+### The search and regex stack / 搜尋同 regex 嘅疊法
+
+```mermaid
+flowchart TD
+  BAR["Any registered search bar"] --> MODE{"Match mode"}
+  MODE -->|"fuzzy"| LIST
+  MODE -->|"substring"| LIST
+  MODE -->|"regex"| RE2["Safe RE2 adapter: linear time,<br/>no lookaround, no backreferences"]
+  BAR --> BUILDER["Regex Builder, seeded with the<br/>current query and case mode"]
+  BUILDER --> TEST["Tokens, raw editor, live tester<br/>on visible rows, in-app guide"]
+  TEST --> APPLY["Apply switches the surface to regex<br/>mode with the same case choice"]
+  APPLY --> RE2
+  RE2 --> OK{"Valid, and within<br/>the input caps?"}
+  OK -->|"yes"| LIST["Filtered list, alongside this<br/>surface's own filter chips"]
+  OK -->|"invalid or unsupported"| SOFT["Localized error; the unfiltered<br/>candidates stay visible"]
+  OK -->|"over an input or aggregate cap"| HARD["Fails closed with no matches"]
+  LIST --> BULK["Bulk surfaces act on exactly what is<br/>visible; confirm stays disabled on an<br/>empty or zero-match query"]
+```
+
+**What the search diagram says.** All 51 registered search bars share one
+contract: a mode control cycling fuzzy, contiguous substring, and safe RE2
+regex, a case toggle, and that surface's own filter chips. Regex mode compiles
+through a pure-JavaScript RE2 adapter — linear time, with lookaround and
+backreferences deliberately rejected — so a user-authored pattern cannot freeze
+the renderer. The Regex Builder opens from the same bar seeded with the current
+query and case mode, offers token categories, a raw editor, a live tester over
+the visible rows, and the guide, and applying a pattern switches that surface to
+regex mode with the same case choice the preview used. The two failure paths are
+different on purpose: an invalid, unsupported, or over-long pattern leaves the
+unfiltered candidates on screen with a localized error, while an input-size or
+aggregate-size cap fails closed with no matches so a compact list can never
+imply a filter is working when it is not. The 13 bulk-action surfaces then act
+on exactly what is visible, with live counts, a bounded preview, and a confirm
+that stays disabled on an empty or zero-match query.
+
+**呢張搜尋圖講咩。** 全部 51 個已註冊搜尋欄共用同一份契約：一個模式控制輪住轉
+模糊、連續子字串同安全 RE2 regex，一個大小寫開關，加埋嗰個表面自己嘅篩選 chip。
+Regex 模式係經一個純 JavaScript 嘅 RE2 轉接器編譯 — 線性時間，lookaround 同反
+向參照係刻意唔收 — 所以用家自己寫嘅 pattern 冇可能凍死個介面。Regex Builder 就
+喺同一個搜尋欄開出嚟，開嗰陣已經帶住當前嘅查詢同大小寫設定，有 token 分類、原
+始編輯器、對住見到嗰啲行嘅即時測試器同埋指南；撳 Apply 就會將嗰個表面轉做
+regex 模式，連預覽用嗰個大小寫選擇一齊帶過去。兩條失敗路線係故意唔同嘅：無效、
+唔支援或者太長嘅 pattern，會留低未篩選嘅候選喺畫面上再出個本地化錯誤；但輸入大
+細或者總量超標就直接 fail closed、零命中，等一個細細嘅清單唔會扮到好似篩緊嘢咁
+呃你。跟住 13 個批量操作表面就淨係針對你見到嗰啲嘢做嘢，有即時計數、有界限預
+覽，查詢空白或者零命中嗰陣個確認掣係㩒唔落嘅。
 
 ## 14. Notifications and dialogs / 通知同對話框
 
@@ -347,7 +437,7 @@ Every number below is derived from this repository tree, not from memory:
 | Feature / 功能 | vs. Desktop | Docs |
 | --- | --- | --- |
 | **Documentation hub** — a Material Design 3 hub on GitHub Pages with in-browser search over the full catalog, language modes, playfulness sliders, and a theme toggle.<br><sub>**文件中心** — GitHub Pages 上面嘅 Material Design 3 中心，喺瀏覽器搜尋成個目錄，有語言模式、搞笑程度滑桿同主題開關。</sub> | **Added** | [Docs hub](../README.md) |
-| **Categorized feature documentation** — **79** feature documents in **8** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **8** 個分類、**79** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
+| **Categorized feature documentation** — **80** feature documents in **8** categories, each covering the user workflow, persistence boundary, failure modes, security considerations, and expected checks.<br><sub>**分類功能文件** — **8** 個分類、**80** 份功能文件，每份都寫齊使用流程、持久化邊界、失敗模式、保安考量同應該做嘅檢查。</sub> | **Added** | [Feature docs](../features/README.md) |
 | **Demand backlog ledger** — the 30-item GitHub Desktop demand backlog mapped to implemented feature contracts.<br><sub>**需求待辦帳簿** — 三十項 GitHub Desktop 需求，逐項對應到已實作嘅功能契約。</sub> | **Added** | [Demand backlog](../features/github-desktop-demand-backlog.md) |
 | **In-app version history** — an in-app changelog surface.<br><sub>**App 內版本歷史** — 喺 app 入面睇更新記錄。</sub> | Extended | — |
 | **Regex guide** — how every search bar matches and how the builder composes a pattern.<br><sub>**Regex 指南** — 每個搜尋欄點樣比對，同建構器點砌圖案。</sub> | **Added** | [Regex guide](../regex-guide.md) |
