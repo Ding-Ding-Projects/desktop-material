@@ -273,6 +273,41 @@ export function matchWithMode<T>(
   }
 }
 
+/**
+ * Merge two score-descending match lists into the exact array a single stable
+ * descending sort over their concatenation would produce: an item from
+ * `right` only precedes one from `left` when its score is strictly greater,
+ * and each list keeps its internal order.
+ *
+ * Used by filter surfaces that append a freshly matched batch to an existing
+ * fuzzy result (e.g. History search auto-deepening) without re-matching and
+ * re-sorting the whole list.
+ */
+export function mergeMatchesByDescendingScore<T>(
+  left: ReadonlyArray<IMatch<T>>,
+  right: ReadonlyArray<IMatch<T>>
+): ReadonlyArray<IMatch<T>> {
+  const merged = new Array<IMatch<T>>(left.length + right.length)
+  let leftIndex = 0
+  let rightIndex = 0
+  let mergedIndex = 0
+
+  while (leftIndex < left.length && rightIndex < right.length) {
+    merged[mergedIndex++] =
+      right[rightIndex].score > left[leftIndex].score
+        ? right[rightIndex++]
+        : left[leftIndex++]
+  }
+  while (leftIndex < left.length) {
+    merged[mergedIndex++] = left[leftIndex++]
+  }
+  while (rightIndex < right.length) {
+    merged[mergedIndex++] = right[rightIndex++]
+  }
+
+  return merged
+}
+
 export function match<T>(
   query: string,
   items: ReadonlyArray<T>,

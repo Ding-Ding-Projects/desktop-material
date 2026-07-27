@@ -1,4 +1,5 @@
 import * as React from 'react'
+import memoizeOne from 'memoize-one'
 import { Disposable } from 'event-kit'
 import { Repository } from '../../models/repository'
 import {
@@ -208,6 +209,112 @@ export class ActionsView extends React.Component<
   private refreshButton: HTMLButtonElement | null = null
   private repositoryGeneration = 0
   private operationGeneration = 0
+
+  /**
+   * The filter and query pass over every loaded run, cached against its exact
+   * inputs: the view re-renders on every store update and keystroke, and
+   * without the cache each render re-matched all loaded runs (and handed
+   * RunList a fresh array, defeating its PureComponent).
+   */
+  private computeFilteredRunsWithError = memoizeOne(
+    (
+      runs: ReadonlyArray<IAPIWorkflowRun>,
+      workflows: ReadonlyArray<IAPIWorkflow>,
+      workflow: string,
+      branch: string,
+      event: string,
+      status: string,
+      runQuery: string,
+      runQueryMode: FilterMode,
+      runQueryCaseSensitive: boolean
+    ): {
+      readonly runs: ReadonlyArray<IAPIWorkflowRun>
+      readonly regexError: string | null
+    } => {
+      const selected = runs.filter(run => {
+        if (workflow !== 'all' && run.workflow_id !== Number(workflow)) {
+          return false
+        }
+        if (branch !== 'all' && run.head_branch !== branch) {
+          return false
+        }
+        if (event !== 'all' && run.event !== event) {
+          return false
+        }
+        if (status === 'queued' && run.status !== APICheckStatus.Queued) {
+          return false
+        }
+        if (
+          status === 'in_progress' &&
+          run.status !== APICheckStatus.InProgress
+        ) {
+          return false
+        }
+        if (
+          status === 'success' &&
+          run.conclusion !== APICheckConclusion.Success
+        ) {
+          return false
+        }
+        if (
+          status === 'failure' &&
+          run.conclusion !== APICheckConclusion.Failure
+        ) {
+          return false
+        }
+        return true
+      })
+
+      const query = runQuery.trim()
+      if (query.length === 0) {
+        return { runs: selected, regexError: null }
+      }
+
+      const workflowNames: ReadonlyMap<number, string> = new Map(
+        workflows.map(item => [item.id, item.name])
+      )
+      const { results, regexError } = matchWithMode(
+        query,
+        selected,
+        run => this.getRunSearchKeys(run, workflowNames),
+        {
+          mode: runQueryMode,
+          caseSensitive: runQueryCaseSensitive,
+        }
+      )
+      return { runs: results.map(r => r.item), regexError }
+    }
+  )
+
+  /**
+   * The sorted event and branch indexes for the filter dropdowns, rebuilt only
+   * when the loaded runs (or the extra values folded in) actually change
+   * rather than on every render.
+   */
+  private getSortedRunEvents = memoizeOne(
+    (runs: ReadonlyArray<IAPIWorkflowRun>, selectedEvent: string) =>
+      [
+        ...new Set([
+          ...(selectedEvent === 'all' ? [] : [selectedEvent]),
+          ...runs.map(x => x.event),
+        ]),
+      ].sort()
+  )
+
+  private getSortedRunBranches = memoizeOne(
+    (
+      branchNames: ReadonlyArray<string>,
+      runs: ReadonlyArray<IAPIWorkflowRun>
+    ) =>
+      [
+        ...new Set([
+          ...branchNames,
+          ...runs
+            .map(x => x.head_branch)
+            .filter((x): x is string => typeof x === 'string'),
+        ]),
+      ].sort()
+  )
 
   public constructor(props: IActionsViewProps) {
     super(props)
@@ -1742,56 +1849,17 @@ export class ActionsView extends React.Component<
 
   private getFilteredRunsWithError() {
     const { workflow, branch, event, status, actions } = this.state
-    const selected = actions.runs.filter(run => {
-      if (workflow !== 'all' && run.workflow_id !== Number(workflow)) {
-        return false
-      }
-      if (branch !== 'all' && run.head_branch !== branch) {
-        return false
-      }
-      if (event !== 'all' && run.event !== event) {
-        return false
-      }
-      if (status === 'queued' && run.status !== APICheckStatus.Queued) {
-        return false
-      }
-      if (
-        status === 'in_progress' &&
-        run.status !== APICheckStatus.InProgress
-      ) {
-        return false
-      }
-      if (
-        status === 'success' &&
-        run.conclusion !== APICheckConclusion.Success
-      ) {
-        return false
-      }
-      if (
-        status === 'failure' &&
-        run.conclusion !== APICheckConclusion.Failure
-      ) {
-        return false
-      }
-      return true
-    })
-
-    const query = this.state.runQuery.trim()
-    if (query.length === 0) {
-      return { runs: selected, regexError: null }
-    }
-
-    const workflowNames = this.getRunQueryWorkflowNames()
-    const { results, regexError } = matchWithMode(
-      query,
-      selected,
-      run => this.getRunSearchKeys(run, workflowNames),
-      {
-        mode: this.state.runQueryMode,
-        caseSensitive: this.state.runQueryCaseSensitive,
-      }
+    return this.computeFilteredRunsWithError(
+      actions.runs,
+      actions.workflows,
+      workflow,
+      branch,
+      event,
+      status,
+      this.state.runQuery,
+      this.state.runQueryMode,
+      this.state.runQueryCaseSensitive
     )
-    return { runs: results.map(r => r.item), regexError }
   }
 
   private getFilteredRuns() {
@@ -1837,20 +1905,11 @@ export class ActionsView extends React.Component<
     const selectedActiveCount = selectedRuns.filter(run =>
       isWorkflowRunCancellableStatus(run.status)
     ).length
-    const events = [
-      ...new Set([
-        ...(this.state.event === 'all' ? [] : [this.state.event]),
-        ...actions.runs.map(x => x.event),
-      ]),
-    ].sort()
-    const branches = [
-      ...new Set([
-        ...this.props.branchNames,
-        ...actions.runs
-          .map(x => x.head_branch)
-          .filter((x): x is string => typeof x === 'string'),
-      ]),
-    ].sort()
+    const events = this.getSortedRunEvents(actions.runs, this.state.event)
+    const branches = this.getSortedRunBranches(
+      this.props.branchNames,
+      actions.runs
+    )
     if (!actions.supported) {
       return (
         <main className="actions-view actions-empty">
