@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { AutoSizer, List, ListRowProps } from 'react-virtualized'
+import { AutoSizer, Grid, GridCellProps } from 'react-virtualized'
 import memoizeOne from 'memoize-one'
 import { IActionsJob } from '../../lib/actions-jobs'
 import { ActionsLogParser } from '../../lib/actions-log-parser/action-log-parser'
@@ -20,6 +20,49 @@ import { trapActionsDialogFocus } from './actions-dialog-focus'
 
 /** localStorage key used to persist the find-in-log filter mode. */
 const JobLogFilterListId = 'actions-job-log'
+
+/** Fixed height of one rendered log row (see `.actions-log-line`). */
+const ActionsLogRowHeight = 24
+
+/** Width of the line-number gutter (see `.actions-log-number`). */
+const ActionsLogNumberColumnWidth = 54
+
+/**
+ * Horizontal padding around the log text (the `code` element's 12px
+ * padding-right) plus slack for fonts whose bold advance differs from the
+ * measured regular advance.
+ */
+const ActionsLogLinePadding = 28
+
+/** Font shorthand size matching `.actions-log-line`'s font-size. */
+const ActionsLogFontSize = 11.5
+
+/**
+ * Character-cell count a log line occupies when rendered with
+ * `white-space: pre` in a monospace font: tabs advance to the next 8-column
+ * stop and East Asian wide characters occupy two cells.
+ */
+export function getActionsLogLineLength(line: ILogLineTemplateData): number {
+  const text = getActionsLogLineText(line)
+  let length = 0
+  for (const char of text) {
+    const codePoint = char.codePointAt(0) ?? 0
+    if (char === '\n' || char === '\r') {
+      // The parser keeps each line's trailing newline; it occupies no cell.
+      continue
+    } else if (char === '\t') {
+      length += 8 - (length % 8)
+    } else if (codePoint >= 0x1100) {
+      // Everything at or above Hangul Jamo (CJK, fullwidth forms, emoji)
+      // is treated as a double-width cell; an overestimate only widens the
+      // scrollable area, never clips.
+      length += 2
+    } else {
+      length += 1
+    }
+  }
+  return length
+}
 
 interface IJobLogViewerProps {
   readonly job: IActionsJob
@@ -72,10 +115,19 @@ export class JobLogViewer extends React.Component<
   IJobLogViewerProps,
   IJobLogViewerState
 > {
-  private list: List | null = null
+  private list: Grid | null = null
   private viewer: HTMLElement | null = null
   private previousFocus: HTMLElement | null = null
+  private logCharWidth: number | null = null
+  private scrollbarWidth: number | null = null
   private readonly groupToggleHandlers = new Map<number, () => void>()
+  private getMaxLineLength = memoizeOne(
+    (lines: ReadonlyArray<ILogLineTemplateData>) =>
+      lines.reduce(
+        (max, line) => Math.max(max, getActionsLogLineLength(line)),
+        0
+      )
+  )
   private parseLog = memoizeOne((log: string, prefix: string) =>
     new ActionsLogParser(log, prefix).getParsedLogLinesTemplateData()
   )
@@ -224,7 +276,7 @@ export class JobLogViewer extends React.Component<
     const matches = this.getMatches(this.getLines())
     const target = matches[this.state.match]
     if (target) {
-      this.list?.scrollToRow(target.index)
+      this.list?.scrollToCell({ columnIndex: 0, rowIndex: target.index })
     }
   }
 
@@ -247,8 +299,72 @@ export class JobLogViewer extends React.Component<
     return handler
   }
 
-  private setListRef = (list: List | null) => {
+  private setListRef = (list: Grid | null) => {
     this.list = list
+  }
+
+  /**
+   * Measures the advance width of one character cell in the log's monospace
+   * font, falling back to an estimate where layout measurement is
+   * unavailable (e.g. under tests).
+   */
+  private getLogCharWidth(): number {
+    if (this.logCharWidth === null) {
+      let width = ActionsLogFontSize * 0.62
+      try {
+        const probe = document.createElement('span')
+        probe.style.position = 'absolute'
+        probe.style.top = '-9999px'
+        probe.style.whiteSpace = 'pre'
+        probe.style.fontFamily = 'var(--font-family-monospace)'
+        probe.style.fontSize = `${ActionsLogFontSize}px`
+        probe.textContent = '0'.repeat(100)
+        document.body.appendChild(probe)
+        const measured = probe.getBoundingClientRect().width / 100
+        probe.remove()
+        if (measured > 0) {
+          width = measured
+        }
+      } catch {
+        // Keep the estimate; a shortfall is caught by the row's
+        // min-width: max-content safety net.
+      }
+      this.logCharWidth = width
+    }
+    return this.logCharWidth
+  }
+
+  /** Measures the width a classic (non-overlay) scrollbar occupies. */
+  private getScrollbarWidth(): number {
+    if (this.scrollbarWidth === null) {
+      let width = 17
+      try {
+        const probe = document.createElement('div')
+        probe.style.cssText =
+          'position:absolute;top:-9999px;width:50px;height:50px;overflow:scroll;'
+        document.body.appendChild(probe)
+        width = probe.offsetWidth - probe.clientWidth
+        probe.remove()
+      } catch {
+        // Keep the classic-scrollbar estimate.
+      }
+      this.scrollbarWidth = width
+    }
+    return this.scrollbarWidth
+  }
+
+  /**
+   * The pixel width the widest visible log line needs. Sizing the Grid's
+   * single column to this makes react-virtualized compute a real horizontal
+   * scroll extent, so long lines scroll instead of being clipped by the
+   * list's containers.
+   */
+  private getContentWidth(lines: ReadonlyArray<ILogLineTemplateData>): number {
+    return Math.ceil(
+      ActionsLogNumberColumnWidth +
+        this.getMaxLineLength(lines) * this.getLogCharWidth() +
+        ActionsLogLinePadding
+    )
   }
 
   private renderParsedContent(content: IParsedContent, index: number) {
@@ -267,7 +383,7 @@ export class JobLogViewer extends React.Component<
     )
   }
 
-  private renderRow = ({ index, key, style }: ListRowProps) => {
+  private renderRow = ({ rowIndex: index, key, style }: GridCellProps) => {
     const lines = this.getLines()
     const line = lines[index]
     const isMatch = this.getMatches(lines).some(match => match.index === index)
@@ -392,17 +508,35 @@ export class JobLogViewer extends React.Component<
           ) : (
             <div className="actions-log-list">
               <AutoSizer>
-                {({ width, height }) => (
-                  <List
-                    ref={this.setListRef}
-                    width={width}
-                    height={height}
-                    rowCount={lines.length}
-                    rowHeight={24}
-                    rowRenderer={this.renderRow}
-                    overscanRowCount={20}
-                  />
-                )}
+                {({ width, height }) => {
+                  // A Grid whose single column spans the widest line gives
+                  // react-virtualized a real horizontal scroll extent; a
+                  // plain List clips long lines (its column always equals
+                  // the viewport width). When the content fits, subtract
+                  // the vertical scrollbar so the fitting column does not
+                  // itself trigger a phantom horizontal scrollbar.
+                  const scrollbar =
+                    lines.length * ActionsLogRowHeight > height
+                      ? this.getScrollbarWidth()
+                      : 0
+                  const columnWidth = Math.max(
+                    width - scrollbar,
+                    this.getContentWidth(lines)
+                  )
+                  return (
+                    <Grid
+                      ref={this.setListRef}
+                      width={width}
+                      height={height}
+                      columnCount={1}
+                      columnWidth={columnWidth}
+                      rowCount={lines.length}
+                      rowHeight={ActionsLogRowHeight}
+                      cellRenderer={this.renderRow}
+                      overscanRowCount={20}
+                    />
+                  )
+                }}
               </AutoSizer>
             </div>
           )}
