@@ -440,6 +440,6 @@ jobs:
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
-      - name: Promote only a still-current main release
+      - name: Reconcile Latest to the newest main release
         shell: bash
         run: bash .github/scripts/promote-current-release.sh

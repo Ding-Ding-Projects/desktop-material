@@ -1,5 +1,73 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-26 — Dedicated Cheap LFS tab in Repository Settings
+
+The Cheap LFS preferences moved out of the combined "Build, run & large
+files" tab into their own **Cheap LFS** tab in the Repository Settings
+dialog, inserted immediately after **Build & run** (enum value = TabBar
+position invariant preserved; the conditional ForkSettings tab stays last).
+
+- New `app/src/ui/repository-settings/cheap-lfs-settings.tsx` renders the
+  storage-provider selector, auto-materialize / auto-pin / parallel-upload
+  toggles, and the cloud-compression consent, moved verbatim from
+  `build-run-settings.tsx`. The preference plumbing is unchanged: both tabs
+  edit the same `IBuildRunPreferences` working copy through the same
+  `onBuildRunPreferencesChanged` callback and the existing Save flow.
+- Deep links rerouted to the new tab: the `palette:cheap-lfs-settings`
+  command (`app.tsx`) and **Open Cheap LFS settings** in the Large files
+  manager (`repository-tools/cheap-lfs.tsx`). All other
+  `RepositorySettingsTab` callers keep their original intent.
+- Localization: `repositorySettings.cheapLfsTab` added ("Cheap LFS" /
+  "Cheap LFS 大檔案"), `repositorySettings.buildRunTab` renamed back to
+  "Build & run" / "建置同執行", and `cheapLfs.settings.location` now points
+  at the new tab. Settings search indexes only Preferences tabs, so no
+  search-catalog change was needed.
+- The responsive surface catalog gained the `repository-settings.CheapLfs`
+  surface (metadata count 91 → 92 pinned in
+  `responsive-surface-catalog-test.ts`).
+
+Verification: `build-run-cheap-lfs-settings-test.tsx` now exercises the new
+component plus new tab-wiring/i18n/negative cases; with `cheap-lfs-test.tsx`
+and `responsive-surface-catalog-test.ts` the three files pass 43/43, and the
+nine adjacent suites (repository-settings management/appearance, settings
+search/surfaces, build-run opencode/auto-pull, i18n, tab-session style,
+command-palette catalog) pass 80/80. `npx tsc --noEmit` is clean. Feature
+docs, the User Guide, and this handoff were updated to the new path
+**Repository settings → Cheap LFS**.
+
+## 2026-07-26 — Add Submodule dialog searchable branch picker (issue #34)
+
+The Add Submodule dialog's URL route now lists the remote's branches instead
+of relying on free-text alone. A "Load branches" action beside the URL field
+(also fired automatically on first blur with a valid URL) runs
+`git ls-remote --symref -- <url> HEAD refs/heads/*` — `--heads` alone was
+verified to suppress the HEAD symref line, so the ref patterns are explicit —
+through the new pure parser in `app/src/lib/git/ls-remote-heads.ts` and the
+spawning helper `listSubmoduleSourceBranches` in `app/src/lib/git/submodule.ts`
+(source revalidated before spawn, remote-operation env, credential trampoline,
+AbortSignal process kill, 5,000-branch cap with truncation reported, malformed
+lines skipped, empty repo yields an empty listing).
+
+The loaded list renders as the registered standalone search surface
+`add-submodule-branches` (literal IDs in JSX for the static audit): a
+`type="search"` input plus `FilterModeControl` on the shared
+fuzzy/substring/RE2 `matchGroup` stack with the invalid-regex `role="alert"`
+contract, then a select whose pre-selected first option is the visibly marked
+remote default. Picking writes the free-text branch field, typing free text
+deselects the list, and the remote-default option maps to an empty branch
+argument (no `-b`), preserving the existing `addSubmodule` call contract and
+Create remote behavior. All new copy is keyed in English and Cantonese
+(`submodule.addLoadBranches*`/`addBranch*` keys); loading is announced through
+a polite live region and failures are inline and non-blocking.
+
+Verification (local, this worktree): `collection-surface-registry-test.ts`
+4/4, `search-surface-filters-test.ts` 15/15, new `ls-remote-heads-test.ts`
+6/6, `ui/add-submodule-dialog-test.tsx` 16/16 (5 new picker tests), the eight
+existing submodule suites 55/55, `i18n-test.ts` 20/20, and root
+`npx tsc --noEmit` clean. Feature doc updated in
+`docs/features/repository-management/submodule-subtree-and-remote-creation.md`.
+Refs #34; remote CI has not run on this branch yet.
+
 ## 2026-07-26 — Unit-test repair after the remote-automation hardening
 
 The `f8eca3ac84` hardening moved scheduled commit/push, pull preview, and

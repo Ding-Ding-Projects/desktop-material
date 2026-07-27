@@ -83,6 +83,70 @@ dialog.clone-repository.add-submodule-dialog {
     font-size: var(--font-size-sm);
   }
 
+  .add-submodule-branch-loader {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: var(--spacing);
+    margin-top: var(--spacing);
+  }
+
+  .add-submodule-branch-status {
+    min-width: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .add-submodule-branch-error {
+    margin: var(--spacing) 0 0;
+    color: var(--md-sys-color-error);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
+  .add-submodule-branch-picker {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: var(--spacing);
+
+    > label {
+      display: flex;
+      min-width: 0;
+      flex-direction: column;
+      gap: 4px;
+    }
+  }
+
+  .add-submodule-branch-filter-field {
+    display: flex;
+    min-width: 0;
+    gap: 6px;
+    align-items: center;
+
+    > input {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .filter-mode-control {
+      flex: 0 1 auto;
+    }
+
+    .filter-regex-builder-label {
+      display: none;
+    }
+  }
+
+  .add-submodule-branch-notice {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    overflow-wrap: anywhere;
+  }
+
   .add-submodule-create-remote-content {
     display: flex;
     flex-direction: column;

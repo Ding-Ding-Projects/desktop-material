@@ -3,6 +3,7 @@ import { TabBar, TabBarType } from '../tab-bar'
 import { Remote } from './remote'
 import { GitIgnore } from './git-ignore'
 import { BuildRunSettings } from './build-run-settings'
+import { CheapLfsSettings } from './cheap-lfs-settings'
 import { Submodules } from './submodules'
 import { SubtreeManager } from '../subtrees/subtree-manager-dialog'
 import { LocalizedText } from '../lib/localized-text'
@@ -78,14 +79,15 @@ export enum RepositorySettingsTab {
   Remote = 0,
   IgnoredFiles,
   GitConfig,
-  // Note: BuildRun, Submodules, Subtrees, and Appearance are placed before the
-  // conditionally-rendered ForkSettings tab so the enum values keep matching
-  // the TabBar positions
+  // Note: BuildRun, CheapLfs, Submodules, Subtrees, and Appearance are placed
+  // before the conditionally-rendered ForkSettings tab so the enum values keep
+  // matching the TabBar positions
   // whether or not the fork tab is shown. Integrator note: if the remotes work
   // (b2:remotes) also inserts a tab here, keep the unconditionally-rendered
   // tabs contiguous and leave ForkSettings last; reconcile the numeric indices
   // so each enum value equals its TabBar position.
   BuildRun,
+  CheapLfs,
   Submodules,
   Subtrees,
   Automation,
@@ -371,6 +373,10 @@ export class RepositorySettings extends React.Component<
               <LocalizedText translationKey="repositorySettings.buildRunTab" />
             </span>
             <span>
+              <Octicon className="icon" symbol={octicons.database} />
+              <LocalizedText translationKey="repositorySettings.cheapLfsTab" />
+            </span>
+            <span>
               <Octicon className="icon" symbol={octicons.fileSubmodule} />
               <LocalizedText translationKey="submodule.title" />
             </span>
@@ -455,6 +461,15 @@ export class RepositorySettings extends React.Component<
       case RepositorySettingsTab.BuildRun: {
         return (
           <BuildRunSettings
+            repository={this.props.repository}
+            preferences={this.state.buildRunPreferences}
+            onPreferencesChanged={this.onBuildRunPreferencesChanged}
+          />
+        )
+      }
+      case RepositorySettingsTab.CheapLfs: {
+        return (
+          <CheapLfsSettings
             repository={this.props.repository}
             preferences={this.state.buildRunPreferences}
             onPreferencesChanged={this.onBuildRunPreferencesChanged}

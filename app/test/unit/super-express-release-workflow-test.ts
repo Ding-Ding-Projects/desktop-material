@@ -56,13 +56,17 @@ describe('Super Express Release workflow', () => {
     assert.match(workflow, /git rev-parse 'FETCH_HEAD\^\{commit\}'/)
     assert.match(
       workflow,
-      /Promote only a still-current main release[\s\S]*?bash \.github\/scripts\/promote-current-release\.sh/
+      /Reconcile Latest to the newest main release[\s\S]*?bash \.github\/scripts\/promote-current-release\.sh/
     )
     assert.match(promotionScript, /git ls-remote origin refs\/heads\/main/)
     assert.match(promotionScript, /select_highest_target_tag/)
     assert.match(promotionScript, /reconciled_tag=/)
     assert.match(promotionScript, /-f make_latest=true/)
     assert.match(promotionScript, /-f make_latest=false/)
+    // Monotonic reconcile: a superseded-but-on-main release still moves
+    // Latest forward, and only a provably off-main Latest may be demoted.
+    assert.match(promotionScript, /merge-base --is-ancestor/)
+    assert.match(promotionScript, /git rev-list --count/)
     assert.doesNotMatch(workflow, /cancel-in-progress:\s*true/)
   })
 

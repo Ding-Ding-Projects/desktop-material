@@ -1215,7 +1215,7 @@ export class App extends React.Component<IAppProps, IAppState> {
       case 'palette:background-queue':
         return this.showPreferencesTab(PreferencesTab.Queue)
       case 'palette:cheap-lfs-settings':
-        return this.showRepositorySettings(RepositorySettingsTab.BuildRun)
+        return this.showRepositorySettings(RepositorySettingsTab.CheapLfs)
       case 'palette:repository-automation':
         return this.showRepositorySettings(RepositorySettingsTab.Automation)
       case 'palette:tag-lifecycle':
@@ -1309,6 +1309,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     } else {
       this.props.dispatcher.showEnterpriseSignInDialog()
     }
+  }
+
+  private onInsufficientScopesNotNow = (
+    account: Account,
+    missingScopes: ReadonlyArray<string>
+  ) => {
+    this.props.dispatcher.recordInsufficientScopesDismissal(
+      account,
+      missingScopes
+    )
   }
 
   private onShowRepositorySubmodules = (
@@ -4113,6 +4123,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             account={popup.account}
             missingScopes={popup.missingScopes}
             onSignInAgain={this.onReauthorizeAccount}
+            onNotNow={this.onInsufficientScopesNotNow}
             onDismissed={onPopupDismissedFn}
           />
         )

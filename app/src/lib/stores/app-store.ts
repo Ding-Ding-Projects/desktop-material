@@ -309,6 +309,11 @@ import {
   missingRequiredScopes,
   parseGrantedScopes,
 } from '../oauth-scope-validation'
+import {
+  clearDismissedScopePrompt,
+  isScopePromptDismissed,
+  recordDismissedScopePrompt,
+} from '../insufficient-scopes-prompt'
 import { findAccountForRemoteURL } from '../find-account'
 import { shell } from '../app-shell'
 import {
@@ -4583,6 +4588,13 @@ export class AppStore extends TypedBaseStore<IAppState> {
         }
         const missing = missingRequiredScopes(parseGrantedScopes(header))
         if (missing.length > 0) {
+          if (isScopePromptDismissed(key, missing)) {
+            log.debug(
+              `Scope prompt for ${account.login} was dismissed for these ` +
+                `scopes; not re-prompting at launch`
+            )
+            continue
+          }
           this._showPopup({
             type: PopupType.InsufficientOAuthScopes,
             account,
@@ -4590,6 +4602,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           })
           return
         }
+        // Nothing is missing anymore; a stale "Not now" answer should not
+        // suppress a future prompt if the app later requires new scopes.
+        clearDismissedScopePrompt(key)
       } catch (e) {
         log.debug(
           `Scope audit for ${account.login} failed; skipping until next launch`,
@@ -4597,6 +4612,19 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
       }
     }
+  }
+
+  /**
+   * Persist a "Not now" answer to the insufficient-scopes prompt so the
+   * launch-time audit stops re-prompting for the same missing scopes. The
+   * prompt returns only when the app starts requiring a scope the user has
+   * not been asked about yet.
+   */
+  public _recordInsufficientScopesDismissal(
+    account: Account,
+    missingScopes: ReadonlyArray<string>
+  ): void {
+    recordDismissedScopePrompt(getAccountKey(account), missingScopes)
   }
 
   /**

@@ -269,6 +269,17 @@ export type TranslationKey =
   | 'submodule.addPathChecking'
   | 'submodule.addPathHelp'
   | 'submodule.addBranchHelp'
+  | 'submodule.addLoadBranchesAction'
+  | 'submodule.addLoadingBranches'
+  | 'submodule.addBranchListFailed'
+  | 'submodule.addBranchFilterLabel'
+  | 'submodule.addBranchPickerLabel'
+  | 'submodule.addBranchDefaultOption'
+  | 'submodule.addBranchCustomOption'
+  | 'submodule.addBranchListEmpty'
+  | 'submodule.addBranchListTruncated'
+  | 'submodule.addBranchFilterNoMatches'
+  | 'submodule.addBranchFilterInvalidPattern'
   | 'submodule.addReviewLabel'
   | 'submodule.addReviewHeading'
   | 'submodule.addReviewRepositoryLabel'
@@ -1953,6 +1964,7 @@ export type TranslationKey =
   | 'settingsSearch.entry.gitHooks.title'
   | 'settingsSearch.entry.gitHooks.desc'
   | 'repositorySettings.buildRunTab'
+  | 'repositorySettings.cheapLfsTab'
   | 'repositorySettings.automationTab'
   | 'repositorySettings.appearanceTab'
   | 'repositorySettings.appearance.intro'
@@ -2452,6 +2464,21 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'A relative checkout path; the final segment becomes the default submodule name.',
   'submodule.addBranchHelp':
     'Leave empty to follow the repository’s remote default branch.',
+  'submodule.addLoadBranchesAction': 'Load branches',
+  'submodule.addLoadingBranches': 'Asking the remote for its branches…',
+  'submodule.addBranchListFailed':
+    'Desktop could not list branches from the remote: {error}. You can still type a branch name.',
+  'submodule.addBranchFilterLabel': 'Filter branches',
+  'submodule.addBranchPickerLabel': 'Branch from the remote',
+  'submodule.addBranchDefaultOption': '{branch} (remote default)',
+  'submodule.addBranchCustomOption': 'Custom branch (from the branch field)',
+  'submodule.addBranchListEmpty':
+    'The remote has no branches yet, so the submodule will follow its future default branch.',
+  'submodule.addBranchListTruncated':
+    'Showing the first {count} branches from the remote.',
+  'submodule.addBranchFilterNoMatches': 'No branches match the current filter.',
+  'submodule.addBranchFilterInvalidPattern':
+    'Invalid branch search pattern: {error}',
   'submodule.addReviewLabel': 'Submodule review',
   'submodule.addReviewHeading': 'Review',
   'submodule.addReviewRepositoryLabel': 'Repository',
@@ -4202,7 +4229,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.files.one': '{count} large file',
   'cheapLfs.files.many': '{count} large files',
   'cheapLfs.managerRail': 'Large files',
-  'repositorySettings.buildRunTab': 'Build, run & large files',
+  'repositorySettings.buildRunTab': 'Build & run',
+  'repositorySettings.cheapLfsTab': 'Cheap LFS',
   'repositorySettings.automationTab': 'Automation (this repository)',
   'repositorySettings.appearanceTab': 'Appearance',
   'repositorySettings.appearance.intro':
@@ -4250,7 +4278,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.managerIntro':
     'Find, pin, search, and restore repository large files here. You do not need to browse GitHub Releases or decode asset names.',
   'cheapLfs.settings.location':
-    'Cheap LFS settings are in Repository settings → Build & run.',
+    'Cheap LFS settings are in Repository settings → Cheap LFS.',
   'cheapLfs.settings.open': 'Open Cheap LFS settings',
   'cheapLfs.cloud.title': 'Cloud compression',
   'cheapLfs.cloud.publicAutomatic':
@@ -5080,6 +5108,19 @@ export const cantoneseTranslations: Readonly<
   'submodule.addPathHelp':
     '請用相對 checkout 路徑；最後一段會成為預設子模組名稱。',
   'submodule.addBranchHelp': '留空就會跟 repo 嘅遠端預設分支。',
+  'submodule.addLoadBranchesAction': '載入分支',
+  'submodule.addLoadingBranches': '問緊遠端攞分支清單…',
+  'submodule.addBranchListFailed':
+    'Desktop 未能由遠端列出分支：{error}。你仍然可以自己打分支名。',
+  'submodule.addBranchFilterLabel': '篩選分支',
+  'submodule.addBranchPickerLabel': '遠端分支',
+  'submodule.addBranchDefaultOption': '{branch}（遠端預設）',
+  'submodule.addBranchCustomOption': '自訂分支（用分支欄打嗰個）',
+  'submodule.addBranchListEmpty':
+    '遠端暫時未有分支，子模組會跟佢將來嘅預設分支。',
+  'submodule.addBranchListTruncated': '只顯示遠端頭 {count} 條分支。',
+  'submodule.addBranchFilterNoMatches': '而家嘅篩選搵唔到分支。',
+  'submodule.addBranchFilterInvalidPattern': '分支搜尋 pattern 無效：{error}',
   'submodule.addReviewLabel': '子模組檢視',
   'submodule.addReviewHeading': '檢視',
   'submodule.addReviewRepositoryLabel': 'Repo',
@@ -6717,7 +6758,8 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.files.one': '{count} 個大檔案',
   'cheapLfs.files.many': '{count} 個大檔案',
   'cheapLfs.managerRail': '大檔案',
-  'repositorySettings.buildRunTab': '建置、執行同大型檔案',
+  'repositorySettings.buildRunTab': '建置同執行',
+  'repositorySettings.cheapLfsTab': 'Cheap LFS 大檔案',
   'repositorySettings.automationTab': '自動化（呢個存放庫）',
   'repositorySettings.appearanceTab': '外觀',
   'repositorySettings.appearance.intro':
@@ -6760,7 +6802,7 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.managerIntro':
     '喺呢度就可以搵、釘選、搜尋同還原 repo 嘅大檔案，唔使自己走入 GitHub Releases 猜資產檔名。',
   'cheapLfs.settings.location':
-    'Cheap LFS 設定喺 Repository settings → Build & run，唔使周圍搵。',
+    'Cheap LFS 設定喺 Repository settings → Cheap LFS 分頁，唔使周圍搵。',
   'cheapLfs.settings.open': '開啟 Cheap LFS 設定',
   'cheapLfs.cloud.title': '雲端壓縮',
   'cheapLfs.cloud.publicAutomatic':

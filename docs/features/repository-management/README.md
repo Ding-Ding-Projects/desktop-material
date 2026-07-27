@@ -104,8 +104,9 @@ Material is displaying or how a repository is represented in the application.
   bounded, link-safe set of working trees below one selected folder.
 - [Submodule, subtree, and remote creation
   workflows](submodule-subtree-and-remote-creation.md) — manage dependency
-  topology and create an initialized account-bound remote before adding it as a
-  submodule.
+  topology, pick the tracked branch from a searchable bounded listing of the
+  remote's advertised heads, and create an initialized account-bound remote
+  before adding it as a submodule.
 - [Clone dialog repository
   metadata](clone-dialog-repository-metadata.md) — render each cloneable
   repository as a rich card with description, language, stars, forks, size,

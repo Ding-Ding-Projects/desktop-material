@@ -3021,6 +3021,17 @@ export class Dispatcher {
     return this.appStore._recordLaunchStats(stats)
   }
 
+  /**
+   * Remember a "Not now" answer to the insufficient-scopes prompt so the
+   * launch-time audit stops re-prompting for the same missing scopes.
+   */
+  public recordInsufficientScopesDismissal(
+    account: Account,
+    missingScopes: ReadonlyArray<string>
+  ): void {
+    this.appStore._recordInsufficientScopesDismissal(account, missingScopes)
+  }
+
   /** Report any stats if needed. */
   public reportStats(): Promise<void> {
     return this.appStore._reportStats()

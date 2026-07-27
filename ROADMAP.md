@@ -218,6 +218,17 @@ unchanged. Details in
 [docs/features/integrations/ollama-model-manager.md](docs/features/integrations/
 ollama-model-manager.md).
 
+## July 26 dedicated Cheap LFS settings tab — **Implemented, locally accepted**
+
+The Cheap LFS preferences (storage provider, auto-pin, auto-download,
+parallel uploads, cloud-compression consent) moved from the combined
+"Build, run & large files" tab into their own **Cheap LFS** tab in
+Repository Settings, right after **Build & run** (which regained its plain
+name). The shared `IBuildRunPreferences` model and Save flow are unchanged;
+the palette command and the Large files manager's settings action now open
+the new tab directly. Targeted suites 43/43 and 80/80, `tsc` clean; docs and
+User Guide updated. Details in [HANDOFF.md](HANDOFF.md).
+
 ## July 24 mega wave — **Implemented, locally accepted**
 
 Five backlog features built in parallel by isolated Opus agents, each
