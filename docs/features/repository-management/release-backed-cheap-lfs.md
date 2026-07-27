@@ -499,6 +499,67 @@ repository-scoped scheduler. This keeps two UI entry points from concurrently
 publishing the same restored path through separate compare-and-swap recovery
 flows.
 
+### When a path identity may replace a content re-hash
+
+An upload of a multi-gigabyte payload cannot afford to read the file once per
+safety check, so `prepareUpload` captures the destination and the source by
+**identity only** — device, inode, birth time, change time, modification time,
+size, link count, and mode — and lets the single streamed owned copy be the
+operation's one authoritative content hash. Every later boundary revalidates
+that identity instead of re-reading the payload.
+
+That substitution is only sound while an identity match really does imply the
+bytes are unchanged, and by itself it does not. `mtime` is *reported* in
+nanoseconds but only moves once the clock the kernel stamps writes from has
+ticked, so two different writes inside one tick share a modification time, share
+a change time, and — for a same-size rewrite — share a size. An identity
+captured inside its own modification tick therefore proves nothing at all about
+content. This is the hazard Git calls **racily clean**, and Cheap LFS answers it
+the way Git does: distrust the stat cache and re-read.
+
+Concretely, an identity is **settled** only when its modification time is older
+than the moment it was captured by more than the volume's timestamp granularity.
+Only a settled identity may stand in for a re-hash:
+
+- **Settled and matching** — the identity is trusted and no content is read.
+  This is the ordinary case and it costs nothing extra.
+- **Racy, and the proof carries a full content hash** — the file is re-hashed
+  and the digest, size, and inode must all match. Deferred-hash proofs from
+  `prepareUpload` deliberately carry no hash.
+- **Racy with no content proof** — the operation fails closed exactly as an
+  identity mismatch always did, preserving the recovery directory and reporting
+  its path. No unproven bytes are ever published.
+
+Granularity is never assumed to be a universal constant. A file whose
+modification time is already more than **two seconds** older than the capture is
+settled immediately with no probe, no wait, and no extra read — two seconds is
+the coarsest granularity Desktop Material expects to meet, since FAT/exFAT-class
+volumes and several network filesystems quantize that far. Only a file modified
+inside that window consults the volume's real granularity, which is measured
+once per device by rewriting a private probe file and taking the smallest
+observable step between two modification times. Every observed step is a whole
+multiple of the true quantum, so the measurement can only over-estimate, which
+is the safe direction; a probed value is additionally floored at 16 ms because
+Windows stamps writes from a system clock whose default tick is 15.625 ms and
+which any process may raise or lower at runtime. A volume too coarse to show a
+step, a read-only tree, a denied write, or any other probe failure simply keeps
+the two-second bound — the probe never fails the operation it runs inside.
+
+A file that was written moments ago is settled by waiting out the remainder of
+its own modification tick and reading the identity again, so that the capture
+becomes provably older than one tick. Identities are settled *before* content is
+hashed, which also means the hash a proof carries is bracketed by a modification
+time any concurrent write is now bound to move. A modification time in the
+future, or one so recent that the volume's granularity would demand an
+unreasonable wait, is simply recorded as racy and takes the re-hash-or-fail
+branches above.
+
+The cost falls only where the risk is. A tracked file untouched for longer than
+a couple of seconds — the overwhelming majority — revalidates with no wait, no
+probe, and no re-hash, exactly as before. Publishing a pointer pays one
+granularity tick, because the replacement it just staged has to become provable
+before its identity may be trusted at the compare-and-exchange boundary.
+
 ## Private scratch and the owned-artifact rule
 
 Cheap LFS writes files of its own while it works. **Cheap LFS's own artifacts
@@ -1077,7 +1138,10 @@ truncated DEFLATE stream, over-expansion, and exact-size wrong-hash output.
 `cheap-lfs/tracked-path-store-test.ts` covers strict Windows spellings,
 canonical parent-chain and link rejection, private verified upload copies,
 source/destination revalidation, case-colliding batches, exclusive no-overwrite
-publication, rollback, and surfaced recovery artifacts.
+publication, rollback, and surfaced recovery artifacts. It also pins the
+racily-clean rule from both sides: a same-size rewrite after a settled capture
+must move the modification time and be refused, and an identity that can never
+settle must fail closed without a content proof while still publishing with one.
 `cheap-lfs/cloud-compression-action-test.ts` runs the real composite action
 against a temporary Git remote and fake GitHub Release API, proving a verified
 side asset and `part-deflate` commit, exact raw-pointer preservation on forced
