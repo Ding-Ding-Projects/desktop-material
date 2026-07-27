@@ -83,10 +83,31 @@ holding an array of the same step strings.
 | `click:<selector>`            | click a selector                           |
 | `click-text:<text>`           | click by exact visible text (links too)    |
 | `hover:<selector>`            | hover a selector                           |
+| `mouse:<x>,<y>`               | park the pointer at a viewport coordinate  |
+| `blur`                        | drop focus, so no focus tooltip is caught  |
 | `type:<selector>::<text>`     | fill a field                               |
 | `press:<key>`                 | press a key on the page                    |
 | `press:<selector>::<key>`     | press a key on a selector                  |
 | `resize:<WxH>`                | resize the window mid-run                  |
+| `optional:<step>`             | run a step, but do not fail when it cannot |
+
+A click leaves the pointer on whatever it clicked, so the shutter often catches
+that control's tooltip hanging over the surface being documented. End a sequence
+with `mouse:` on an empty corner — `--step=mouse:8,760` — to park the pointer
+before the capture. The update banner a fresh profile sometimes shows is cleared
+with `--step=optional:press:button[aria-label="Dismiss this message"]::Enter` —
+`optional:` because the banner is not always there, and `press:` rather than
+`click:` because a click leaves its tooltip behind after the button it was
+anchored to has gone. Tooltips follow focus too — a dialog focuses its close
+button as it opens — so end a dialog sequence with `--step=blur`, or the pane
+you meant to document arrives with the word "Close" printed over it.
+
+Two more traps worth knowing before writing a step list. `:has-text()` is a
+case-insensitive **substring** match, so `button:has-text("Run")` also matches
+_Preview unreachable object p**run**ing_; use `:text-is()` when the label is
+short. And menu items keep a duplicate `.sr-only` copy of their label, so
+`click-text:` never resolves one — reach for
+`[role=menuitem]:has-text("Manage .gitignore")` instead.
 
 Useful stable selectors on the tab strip: `.repository-tab-strip`,
 `.repository-tab-overflow` (the overflow button, present only when tabs actually

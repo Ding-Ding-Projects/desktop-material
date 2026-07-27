@@ -106,6 +106,12 @@ describe('capture-app step parsing', () => {
       kind: 'hover',
       selector: '.repository-tab',
     })
+    assert.deepEqual(parseStep('mouse:12,760'), {
+      kind: 'mouse',
+      x: 12,
+      y: 760,
+    })
+    assert.deepEqual(parseStep('blur'), { kind: 'blur' })
     assert.deepEqual(parseStep('type:input.search::capture'), {
       kind: 'type',
       selector: 'input.search',
@@ -125,6 +131,19 @@ describe('capture-app step parsing', () => {
       kind: 'resize',
       size: { width: 900, height: 700 },
     })
+    assert.deepEqual(parseStep('optional:click:.banner .close'), {
+      kind: 'optional',
+      step: { kind: 'click', selector: '.banner .close' },
+    })
+  })
+
+  it('refuses an optional step that wraps nothing or itself', () => {
+    assert.throws(() => parseStep('optional:'), /needs a step to wrap/)
+    assert.throws(
+      () => parseStep('optional:optional:wait:10'),
+      /cannot wrap itself/
+    )
+    assert.throws(() => parseStep('optional:teleport:.tab'), /Unknown capture/)
   })
 
   it('keeps selectors that contain a colon intact', () => {
@@ -141,6 +160,8 @@ describe('capture-app step parsing', () => {
     assert.throws(() => parseStep('click-text:'), /needs text/)
     assert.throws(() => parseStep('type:input.search'), /<selector>::<text>/)
     assert.throws(() => parseStep('resize:huge'), /<width>x<height>/)
+    assert.throws(() => parseStep('mouse:12'), /<x>,<y>/)
+    assert.throws(() => parseStep('blur:now'), /takes no argument/)
   })
 })
 

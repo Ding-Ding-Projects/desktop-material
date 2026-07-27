@@ -44,10 +44,13 @@
 //   click:<selector>             click a selector
 //   click-text:<text>            click by exact visible text (links included)
 //   hover:<selector>             hover a selector
+//   mouse:<x>,<y>                park the pointer at a viewport coordinate
+//   blur                         drop focus, so no focus tooltip is captured
 //   type:<selector>::<text>      fill a field
 //   press:<key>                  press a key on the page
 //   press:<selector>::<key>      press a key on a selector
 //   resize:<WxH>                 resize the window mid-run
+//   optional:<step>              run <step>, but do not fail when it cannot
 
 const { execFileSync } = require('child_process')
 const fs = require('fs')
@@ -107,6 +110,12 @@ function parseStep(raw) {
   const rest = separator === -1 ? '' : value.slice(separator + 1)
 
   switch (kind) {
+    case 'blur': {
+      if (rest.length > 0) {
+        throw new Error(`Step blur takes no argument: ${value}`)
+      }
+      return { kind }
+    }
     case 'wait': {
       const milliseconds = Number.parseInt(rest, 10)
       if (!Number.isFinite(milliseconds) || milliseconds < 0) {
@@ -127,6 +136,13 @@ function parseStep(raw) {
         throw new Error(`Step click-text needs text: ${value}`)
       }
       return { kind, text: rest }
+    }
+    case 'mouse': {
+      const match = /^(\d{1,5}),(\d{1,5})$/.exec(rest.trim())
+      if (match === null) {
+        throw new Error(`Step mouse needs <x>,<y>: ${value}`)
+      }
+      return { kind, x: Number(match[1]), y: Number(match[2]) }
     }
     case 'type': {
       const index = rest.indexOf('::')
@@ -159,6 +175,19 @@ function parseStep(raw) {
         throw new Error(`Step resize needs <width>x<height>: ${value}`)
       }
       return { kind, size }
+    }
+    case 'optional': {
+      // Some scenes only appear sometimes — the update banner a fresh profile
+      // shows is the reason this exists. Wrapping a step keeps the capture
+      // deterministic without pretending the element is always there.
+      if (rest.length === 0) {
+        throw new Error(`Step optional needs a step to wrap: ${value}`)
+      }
+      const step = parseStep(rest)
+      if (step.kind === 'optional') {
+        throw new Error(`Step optional cannot wrap itself: ${value}`)
+      }
+      return { kind, step }
     }
     default:
       throw new Error(`Unknown capture step: ${value}`)
@@ -483,6 +512,18 @@ async function openRepositoryTabs(
 
 async function runStep(page, electronApp, step, timeoutMilliseconds) {
   switch (step.kind) {
+    case 'optional':
+      try {
+        await runStep(
+          page,
+          electronApp,
+          step.step,
+          Math.min(3000, timeoutMilliseconds)
+        )
+      } catch {
+        // The wrapped step is allowed to find nothing to do.
+      }
+      return
     case 'wait':
       await page.waitForTimeout(step.milliseconds)
       return
@@ -514,6 +555,21 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
         .locator(step.selector)
         .first()
         .hover({ timeout: timeoutMilliseconds })
+      return
+    case 'mouse':
+      // Parking the pointer somewhere harmless is how a capture avoids
+      // photographing the tooltip of whatever the previous click left it over.
+      await page.mouse.move(step.x, step.y)
+      await page.waitForTimeout(250)
+      return
+    case 'blur':
+      // Tooltips follow focus as well as the pointer, and a dialog focuses its
+      // close button as it opens — which is how a capture of a settings pane
+      // ends up documenting the word "Close".
+      await page.evaluate(
+        '(() => { const a = document.activeElement; if (a && a.blur) { a.blur() } })()'
+      )
+      await page.waitForTimeout(250)
       return
     case 'type':
       await page
