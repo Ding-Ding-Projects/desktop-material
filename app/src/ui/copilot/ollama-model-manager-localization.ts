@@ -246,6 +246,11 @@ export function getOllamaModelManagerStrings(
       loadMore: text('ollama.manager.chatHistoryLoadMore'),
       loadingDiff: text('ollama.manager.chatHistoryLoadingDiff'),
       noTextChanges: text('ollama.manager.chatHistoryNoTextChanges'),
+      diffTruncated: (shown, hidden) =>
+        text('ollama.manager.chatHistoryDiffTruncated', {
+          shown: String(shown),
+          hidden: String(hidden),
+        }),
       diffLabel: text('ollama.manager.chatHistoryDiffLabel'),
       selectCommit: text('ollama.manager.chatHistorySelectCommit'),
       retry: text('ollama.manager.chatHistoryRetry'),

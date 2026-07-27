@@ -426,6 +426,8 @@ export const DefaultOllamaModelManagerStrings: IOllamaModelManagerStrings = {
     loadMore: 'Load more',
     loadingDiff: 'Loading diff…',
     noTextChanges: 'No textual changes for this selection.',
+    diffTruncated: (shown, hidden) =>
+      `Showing the first ${shown} lines; ${hidden} more were truncated for safety.`,
     diffLabel: 'Chat history change diff',
     selectCommit: 'Select a commit to inspect its changes.',
     retry: 'Retry',
