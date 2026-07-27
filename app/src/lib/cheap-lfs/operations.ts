@@ -79,6 +79,13 @@ import type {
 import { isCheapLfsRepositoryKeyPath } from './ghcr-key'
 import { requireSafeCheapLfsMaterializationPath } from './materialization-path'
 import {
+  forgetCheapLfsOwnedArtifact,
+  isCheapLfsOwnedArtifactName,
+  isCheapLfsOwnedArtifactPath,
+  registerCheapLfsOwnedArtifact,
+} from './owned-artifacts'
+import { allocateCheapLfsPayloadTemporaryPath } from './scratch-storage'
+import {
   cheapLfsReleaseReviewHasTag,
   ICheapLfsReleaseReview,
 } from './release-review'
@@ -286,6 +293,16 @@ export interface ICheapLfsFileSystem {
   replaceFile(from: string, to: string): Promise<void>
   removeFile(path: string): Promise<void>
   temporaryPathFor(path: string): string
+  /**
+   * Allocate a temp for a *payload-sized* write (a download, a decompression,
+   * a reassembly) rather than for pointer text. The real seam parks these in an
+   * app-owned directory outside the working tree so no scan, stage, or commit
+   * can ever see them. `null` means no same-device private area is available
+   * and the caller must fall back to `temporaryPathFor`, because the publishing
+   * rename has to stay atomic. Optional so structural test fakes keep working
+   * on `temporaryPathFor` alone.
+   */
+  allocatePayloadTemporaryPath?(repositoryPath: string): Promise<string | null>
   /**
    * Concatenate `sources` in order into `destination`, streaming the combined
    * SHA-256 and byte size. Used to reassemble a split file's downloaded parts.
@@ -836,6 +853,10 @@ async function scanPointerCandidatesFromGit(
     if (relativePath === null) {
       throw new Error('Git returned an unsafe Cheap LFS tracked path.')
     }
+    if (isCheapLfsOwnedArtifactPath(relativePath)) {
+      // Cheap LFS's own scratch, never inventoried as user content.
+      continue
+    }
     // Identity-only proof: nothing is hashed until a classification below
     // actually needs a content proof, and only a real hash equality may mark
     // a path 'materialized'.
@@ -987,6 +1008,11 @@ async function scanPointerCandidatesFromDisk(
     }
     for (const entry of entries) {
       const relPath = rel ? `${rel}/${entry.name}` : entry.name
+      // Cheap LFS's own scratch is skipped whole: a recovery directory is not
+      // descended into, so the quarantined original inside it is never scanned.
+      if (isCheapLfsOwnedArtifactName(entry.name)) {
+        continue
+      }
       if (entry.isDirectory()) {
         if (!CheapLfsSkipDirectories.has(entry.name)) {
           queue.push({
@@ -1052,8 +1078,33 @@ type CheapLfsPointerTempWriter = (
 const writePointerToTemp: CheapLfsPointerTempWriter = (file, text) =>
   file.writeFile(text, 'utf8')
 
+/**
+ * A staging temp beside `path`, on the same device, so the write can be
+ * published with an atomic `rename`. Only pointer-sized writes should use this
+ * seam directly — payload-sized ones go through `payloadTemporaryPathFor`,
+ * which keeps gigabytes out of the working tree entirely (issue #65).
+ */
 function temporaryPathFor(path: string): string {
-  return join(dirname(path), `.cheeplfs-${randomBytes(8).toString('hex')}.tmp`)
+  return registerCheapLfsOwnedArtifact(
+    join(dirname(path), `.cheeplfs-${randomBytes(8).toString('hex')}.tmp`)
+  )
+}
+
+/**
+ * Allocate a payload temp through whichever seam the injected filesystem
+ * provides, falling back to that filesystem's own in-tree sibling whenever no
+ * private same-device area exists (or the seam is absent, as in test fakes).
+ */
+async function payloadTemporaryPath(
+  fs: ICheapLfsFileSystem,
+  repositoryPath: string,
+  trackedPath: string
+): Promise<string> {
+  const privatePath =
+    fs.allocatePayloadTemporaryPath === undefined
+      ? null
+      : await fs.allocatePayloadTemporaryPath(repositoryPath)
+  return privatePath ?? fs.temporaryPathFor(trackedPath)
 }
 
 /**
@@ -1093,6 +1144,8 @@ export async function writeCheapLfsPointerAtomically(
       await unlink(tempPath).catch(() => undefined)
     }
     throw error
+  } finally {
+    forgetCheapLfsOwnedArtifact(tempPath)
   }
 }
 
@@ -1163,8 +1216,10 @@ export const defaultCheapLfsFileSystem: ICheapLfsFileSystem = {
   replaceFile: replaceFilePreservingMode,
   removeFile: async path => {
     await unlink(path).catch(() => undefined)
+    forgetCheapLfsOwnedArtifact(path)
   },
   temporaryPathFor,
+  allocatePayloadTemporaryPath: allocateCheapLfsPayloadTemporaryPath,
   assembleParts: assemblePartsOnDisk,
   decompressFile: decompressFileOnDisk,
   scanPointerCandidates,
@@ -1182,6 +1237,22 @@ function trackedPathStoreFor(
     fs.trackedPaths !== defaultCheapLfsTrackedPathStore
     ? fs.trackedPaths
     : undefined
+}
+
+/**
+ * Refuse, at the last choke point before any transfer, to publish Cheap LFS's
+ * own scratch. Selection already filters these out; this is the fail-closed
+ * backstop so no future caller can hand a private temp or a recovery
+ * directory's contents to an upload (issue #65).
+ */
+export function ensureCheapLfsPathIsNotOwnedArtifact(
+  trackedRelativePath: string
+): void {
+  if (isCheapLfsOwnedArtifactPath(trackedRelativePath)) {
+    throw new Error(
+      'Cheap LFS refused to upload one of its own private scratch files.'
+    )
+  }
 }
 
 function ensureReleasesAccount(repository: Repository, account: Account): void {
@@ -1679,6 +1750,7 @@ export async function pinFileToRelease(
       'Choose a safe repository-relative path without parent traversal or Git metadata to track with cheap LFS.'
     )
   }
+  ensureCheapLfsPathIsNotOwnedArtifact(trackedRelativePath)
   ensureReleasesAccount(repository, account)
   ensureCheapLfsReleaseFamilyTag(options.releaseTag)
 
@@ -2736,6 +2808,7 @@ export async function planCheapLfsManualUpload(
         'Choose a safe repository-relative path without parent traversal or Git metadata to track with cheap LFS.'
       )
     }
+    ensureCheapLfsPathIsNotOwnedArtifact(trackedRelativePath)
     const trackedPathKey = trackedRelativePath.toLowerCase()
     if (trackedPathKeys.has(trackedPathKey)) {
       throw new Error(
@@ -3002,7 +3075,14 @@ async function materializeSingleAsset(
     pointer.assetName,
     pointer.releaseTag
   )
-  const temporaryPath = fs.temporaryPathFor(trackedPath)
+  // A whole-file download is payload-sized, so it is staged outside the working
+  // tree: an in-tree gigabyte was visible to `git add -A`, to the changes list,
+  // and to automatic pinning, which uploaded it mid-download (issue #65).
+  const temporaryPath = await payloadTemporaryPath(
+    fs,
+    repository.path,
+    trackedPath
+  )
   let downloadedPath = temporaryPath
   let trackedStoreOwnsDownload = false
   try {
@@ -3051,6 +3131,11 @@ async function materializeSingleAsset(
       await fs.removeFile(downloadedPath)
     }
     throw error
+  } finally {
+    // Consumed by rename or deleted above; either way this process no longer
+    // owns the path, so a later hygiene sweep must not treat it as in flight.
+    forgetCheapLfsOwnedArtifact(temporaryPath)
+    forgetCheapLfsOwnedArtifact(downloadedPath)
   }
 }
 
@@ -3100,7 +3185,14 @@ async function materializeMultiPart(
   try {
     let transferred = 0
     for (const { part, asset } of resolved) {
-      const partPath = fs.temporaryPathFor(trackedPath)
+      // Every part, every expansion, and the assembly below are payload-sized;
+      // all three stage outside the working tree for the same reason as the
+      // single-asset download.
+      const partPath = await payloadTemporaryPath(
+        fs,
+        repository.path,
+        trackedPath
+      )
       partPaths.push(partPath)
       const download = await releases.downloadAsset(
         repository,
@@ -3125,7 +3217,11 @@ async function materializeMultiPart(
             'A compressed cheap LFS part does not match the pointer. The pointer was left in place.'
           )
         }
-        const expandedPath = fs.temporaryPathFor(trackedPath)
+        const expandedPath = await payloadTemporaryPath(
+          fs,
+          repository.path,
+          trackedPath
+        )
         expandedPaths.push(expandedPath)
         await fs.decompressFile(
           download.path,
@@ -3147,7 +3243,7 @@ async function materializeMultiPart(
       assemblySources.push(verificationPath)
       transferred += part.sizeInBytes
     }
-    assembledPath = fs.temporaryPathFor(trackedPath)
+    assembledPath = await payloadTemporaryPath(fs, repository.path, trackedPath)
     const assembled = await fs.assembleParts(
       assemblySources,
       assembledPath,
@@ -3197,6 +3293,9 @@ async function materializeMultiPart(
       !trackedStoreOwnsAssembly
     ) {
       await fs.removeFile(assembledPath)
+    }
+    if (assembledPath !== null) {
+      forgetCheapLfsOwnedArtifact(assembledPath)
     }
   }
 }
@@ -3793,6 +3892,10 @@ export async function selectCheapLfsAutoPinTargets(
     if (
       validated === null ||
       isCheapLfsRepositoryKeyPath(validated) ||
+      // Cheap LFS's own scratch is never a pin candidate. A materialize in
+      // flight parks gigabytes under one of these names beside the destination,
+      // and a concurrent commit used to select and upload them (issue #65).
+      isCheapLfsOwnedArtifactPath(validated) ||
       seen.has(validated.toLowerCase())
     ) {
       continue

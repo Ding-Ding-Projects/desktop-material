@@ -122,6 +122,7 @@ import {
   ICheapLfsStorageRecommendation,
   recommendCheapLfsStorage,
 } from '../cheap-lfs/storage-recommendation'
+import { ensureCheapLfsScratchHygiene } from '../cheap-lfs/scratch-storage'
 import {
   CheapLfsCommitKeyError,
   ICheapLfsRequiredCommitFile,
@@ -15070,6 +15071,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (isSubmoduleRepository(repository)) {
         return
       }
+      // Open, add, clone, and post-pull all reach here. Refresh the private
+      // scratch exclusions and clear anything a crashed run left in the
+      // app-owned scratch directory before any scan runs (issue #65).
+      await ensureCheapLfsScratchHygiene(repository.path)
       const prefs = repository.buildRunPreferences ?? defaultBuildRunPreferences
       const account = getGitHubReleasesAccount(repository, this.accounts)
       const releaseReadAccount = getGitHubReleasesReadAccount(
