@@ -344,6 +344,16 @@ interface ISectionListProps {
   readonly getSectionAriaLabel?: (section: number) => string | undefined
 
   /**
+   * Optional stable DOM id for a section's row container.
+   *
+   * A disclosure control rendered inside a section header needs something real
+   * to point `aria-controls` at, and the rows themselves are virtualized (so
+   * they cannot be the target). When supplied this id lands on the section's
+   * own grid container, which is exactly the region the header discloses.
+   */
+  readonly getSectionId?: (section: number) => string | undefined
+
+  /**
    * Optional callback for providing an aria label for screen readers for each
    * row.
    *
@@ -1390,7 +1400,7 @@ export class SectionList extends React.Component<
       return (
         <Grid
           key={section}
-          id={this.props.accessibleListId}
+          id={this.props.getSectionId?.(section) ?? this.props.accessibleListId}
           role="listbox"
           ref={this.getOnGridRef(section)}
           autoContainerWidth={true}

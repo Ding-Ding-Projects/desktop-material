@@ -66,6 +66,18 @@ import {
   unhideRepository,
 } from '../../lib/stores/repository-list-visibility'
 import {
+  countAutoExpandedRepositoryGroups,
+  getCollapsedRepositoryGroups,
+  isRepositoryFilterActive,
+  isRepositoryGroupCollapsed,
+  setRepositoryGroupCollapsed,
+} from '../../lib/stores/repository-group-collapse'
+import {
+  getAutoExpandedGroupsSegments,
+  getRepositoryGroupAccessibleName,
+  repositoryGroupRowsId,
+} from './repository-group-header'
+import {
   getProfileRepositoryLogoSignature,
   IRepositoryLogoLoader,
   repositoryLogoLoader,
@@ -197,6 +209,18 @@ interface IRepositoriesListState {
   readonly bulkNotice: string | null
   readonly bulkRemovalCandidates: ReadonlyArray<IBulkRepositoryItem> | null
   readonly bulkCancelRequested: boolean
+  /**
+   * Group keys the user has folded away, as persisted in the profile's
+   * registered settings. Held in state so a toggle repaints immediately; the
+   * store stays the source of truth across restarts.
+   */
+  readonly collapsedGroupKeys: ReadonlyArray<string>
+  /**
+   * Indices (into the chip-filtered groups) of the groups the text filter left
+   * on screen. Reported by the list, because only the list knows the match mode
+   * that produced them.
+   */
+  readonly filteredGroupIndices: ReadonlyArray<number>
 }
 
 /**
@@ -302,6 +326,77 @@ export class RepositoriesList extends React.Component<
   )
 
   /**
+   * The chip-filtered groups the list actually renders.
+   *
+   * Memoized on flattened arguments (rather than on the options object
+   * `filterRepositoryGroups` takes) so a fresh object literal cannot defeat the
+   * cache. Several surfaces need the very same array — the rendered list, the
+   * group headers, the section ids, and the auto-expanded notice — and they
+   * must agree on it or a header would report a count for a group that is not
+   * the one on screen.
+   */
+  private getFilteredGroups = memoizeOne(
+    (
+      allGroups: ReadonlyArray<
+        IFilterListGroup<IRepositoryListItem, RepositoryListGroup>
+      >,
+      accounts: ReadonlyArray<Account>,
+      accountFilter: RepositoryAccountFilter,
+      serviceFilter: RepositoryServiceFilter,
+      statusFilters: ReadonlyArray<RepositoryStatusFilter>,
+      hiddenRepositoryIds: ReadonlyArray<number>,
+      showHiddenRepositories: boolean
+    ) =>
+      filterRepositoryGroups(
+        allGroups,
+        accounts,
+        accountFilter,
+        serviceFilter,
+        {
+          statusFilters,
+          hiddenRepositoryIds,
+          showHiddenRepositories,
+        }
+      )
+  )
+
+  /**
+   * How many repositories each rendered group holds, keyed by group key.
+   *
+   * A folded group has to keep saying what is inside it, and the header only
+   * receives the group identifier, so the count is looked up here rather than
+   * recounted per header render.
+   */
+  private getGroupMemberCounts = memoizeOne(
+    (
+      groups: ReadonlyArray<
+        IFilterListGroup<IRepositoryListItem, RepositoryListGroup>
+      >
+    ) =>
+      new Map<string, number>(
+        groups.map(group => [getGroupKey(group.identifier), group.items.length])
+      )
+  )
+
+  /**
+   * Stable per-group DOM ids so each header's `aria-controls` names the row
+   * container it really discloses.
+   */
+  private getSectionIdGetter = memoizeOne(
+    (
+        groups: ReadonlyArray<
+          IFilterListGroup<IRepositoryListItem, RepositoryListGroup>
+        >
+      ) =>
+      (group: number) => {
+        const identifier = groups[group]?.identifier
+        return identifier === undefined
+          ? undefined
+          : repositoryGroupRowsId(getGroupKey(identifier))
+      }
+  )
+
+  /**
    * A memoized function for finding the selected list item based
    * on an IAPIRepository instance. The selected item will not be
    * recomputed as long as the provided list of repositories and
@@ -394,6 +489,8 @@ export class RepositoriesList extends React.Component<
       bulkNotice: null,
       bulkRemovalCandidates: null,
       bulkCancelRequested: false,
+      collapsedGroupKeys: getCollapsedRepositoryGroups(),
+      filteredGroupIndices: [],
     }
   }
 
@@ -726,20 +823,123 @@ export class RepositoriesList extends React.Component<
     }
   }
 
+  /** Whether the active text filter is narrowing the list right now. */
+  private get filterActive(): boolean {
+    return isRepositoryFilterActive(this.props.filterText)
+  }
+
+  /**
+   * Whether one group renders folded.
+   *
+   * While a filter is running this is always false. That is the whole of the
+   * "a search hit is never silently swallowed" rule: rather than counting
+   * matches hidden behind folds and hoping the user reads a warning, every fold
+   * simply opens for the duration of the filter and closes again — from the
+   * untouched persisted set — the moment the filter is cleared.
+   */
+  private isGroupCollapsed = (group: RepositoryListGroup) =>
+    isRepositoryGroupCollapsed(
+      this.state.collapsedGroupKeys,
+      getGroupKey(group),
+      this.filterActive
+    )
+
   private renderGroupHeader = (group: RepositoryListGroup) => {
     const label = this.getGroupLabel(group)
+    const groupKey = getGroupKey(group)
+    const collapsed = this.isGroupCollapsed(group)
+    const count =
+      this.getGroupMemberCounts(this.visibleGroups).get(groupKey) ?? 0
 
     return (
-      <TooltippedContent
-        key={getGroupKey(group)}
-        className="filter-list-group-header"
-        tooltip={label}
-        onlyWhenOverflowed={true}
-        tagName="div"
+      <button
+        key={groupKey}
+        type="button"
+        className="filter-list-group-header repository-group-header"
+        // The row's own aria-label is undefined for header rows, so this button
+        // is what assistive technology actually reads. It carries the group
+        // name, the exact member count, and the disclosure state, because the
+        // painted chevron and count pill are decorative.
+        aria-expanded={!collapsed}
+        aria-controls={repositoryGroupRowsId(groupKey)}
+        aria-label={getRepositoryGroupAccessibleName(
+          label,
+          count,
+          collapsed,
+          this.state.languageMode,
+          this.state.syncFunnyLevels
+        )}
+        data-group-key={groupKey}
+        onClick={this.onGroupHeaderClick}
+        onKeyDown={this.onGroupHeaderKeyDown}
       >
-        {label}
-      </TooltippedContent>
+        <MaterialSymbol
+          name="expand_more"
+          size={18}
+          className="repository-group-chevron"
+        />
+        <TooltippedContent
+          className="repository-group-label"
+          tooltip={label}
+          onlyWhenOverflowed={true}
+          tagName="span"
+        >
+          {label}
+        </TooltippedContent>
+        {collapsed && (
+          <span className="repository-group-count" aria-hidden="true">
+            {count}
+          </span>
+        )}
+      </button>
     )
+  }
+
+  private onGroupHeaderClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    // The header lives inside a list row; without this the row would also
+    // process the press and the side sheet would react to a fold.
+    event.stopPropagation()
+    this.toggleGroupCollapsed(event.currentTarget.dataset.groupKey)
+  }
+
+  private onGroupHeaderKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
+    if (
+      event.key !== 'Enter' &&
+      event.key !== ' ' &&
+      event.key !== 'Spacebar'
+    ) {
+      return
+    }
+
+    // Handle the disclosure here and suppress the button's own synthesized
+    // click. Letting both run would toggle twice and land the group exactly
+    // where it started, which reads as a dead key.
+    event.preventDefault()
+    event.stopPropagation()
+    this.toggleGroupCollapsed(event.currentTarget.dataset.groupKey)
+  }
+
+  /**
+   * Fold or unfold one group and persist the change.
+   *
+   * The write goes to a registered profile setting, so the profile store picks
+   * it up on its next debounced snapshot; the dispatcher call below is what
+   * tells the store to look. Nothing is committed per toggle — a burst of folds
+   * collapses into one settings-history entry.
+   */
+  private toggleGroupCollapsed(groupKey: string | undefined) {
+    if (groupKey === undefined || groupKey.length === 0) {
+      return
+    }
+
+    const collapsedGroupKeys = setRepositoryGroupCollapsed(
+      groupKey,
+      !this.state.collapsedGroupKeys.includes(groupKey)
+    )
+    this.setState({ collapsedGroupKeys })
+    this.props.dispatcher.recordRepositoryGroupCollapseChange()
   }
 
   private onItemClick = (item: IRepositoryListItem) => {
@@ -842,25 +1042,33 @@ export class RepositoriesList extends React.Component<
     (group: number) =>
       this.getGroupLabel(groups[group].identifier)
 
-  public render() {
-    const allGroups = this.getRepositoryGroups(
-      this.props.repositories,
-      this.props.localRepositoryStateLookup,
-      this.props.recentRepositories,
-      this.props.showRecentRepositories,
-      this.state.pinnedRepositoryIds
-    )
-    const groups = filterRepositoryGroups(
-      allGroups,
+  /**
+   * The groups the list is currently showing, after the account, service,
+   * status, and hidden-repository chips have had their say but before any text
+   * filter. Memoized, so every surface that asks gets the same array.
+   */
+  private get visibleGroups(): ReadonlyArray<
+    IFilterListGroup<IRepositoryListItem, RepositoryListGroup>
+  > {
+    return this.getFilteredGroups(
+      this.getRepositoryGroups(
+        this.props.repositories,
+        this.props.localRepositoryStateLookup,
+        this.props.recentRepositories,
+        this.props.showRecentRepositories,
+        this.state.pinnedRepositoryIds
+      ),
       this.props.accounts ?? [],
       this.state.accountFilter,
       this.state.serviceFilter,
-      {
-        statusFilters: this.state.statusFilters,
-        hiddenRepositoryIds: this.state.hiddenRepositoryIds,
-        showHiddenRepositories: this.state.showHiddenRepositories,
-      }
+      this.state.statusFilters,
+      this.state.hiddenRepositoryIds,
+      this.state.showHiddenRepositories
     )
+  }
+
+  public render() {
+    const groups = this.visibleGroups
 
     // So there's two types of selection at play here. There's the repository
     // selection for the whole app and then there's the keyboard selection in
@@ -890,11 +1098,14 @@ export class RepositoriesList extends React.Component<
           renderItem={this.renderItem}
           renderRowFocusTooltip={this.renderRowFocusTooltip}
           renderGroupHeader={this.renderGroupHeader}
+          isGroupCollapsed={this.isGroupCollapsed}
+          getSectionId={this.getSectionIdGetter(groups)}
           onItemClick={this.onItemClick}
           renderPostFilter={this.renderPostFilter}
           renderNoItems={this.renderNoItems}
           groups={groups}
           onVisibleItemsChanged={this.onVisibleItemsChanged}
+          onFilteredGroupsChanged={this.onFilteredGroupsChanged}
           invalidationProps={{
             repositories: this.props.repositories,
             filterText: this.props.filterText,
@@ -911,6 +1122,7 @@ export class RepositoriesList extends React.Component<
             showHiddenRepositories: this.state.showHiddenRepositories,
             repositoryLogoRevision: this.state.repositoryLogoChange.revision,
             languageMode: this.state.languageMode,
+            collapsedGroupKeys: this.state.collapsedGroupKeys,
           }}
           onItemContextMenu={this.onItemContextMenu}
           getGroupAriaLabel={this.getGroupAriaLabelGetter(groups)}
@@ -1074,6 +1286,7 @@ export class RepositoriesList extends React.Component<
               </button>
             ))}
           </div>
+          {this.renderAutoExpandedGroupsNotice()}
           {hiddenRepositoryCount > 0 && (
             <button
               type="button"
@@ -1107,6 +1320,54 @@ export class RepositoriesList extends React.Component<
             </button>
           )}
         </div>
+      </div>
+    )
+  }
+
+  /**
+   * Say, in words, why folded groups are open right now.
+   *
+   * Auto-expanding already guarantees no match is swallowed, but a fold
+   * silently reopening itself is confusing on its own. The count is exact: it
+   * counts only the folded groups the filter actually left on screen, so a
+   * folded group with no matches is never claimed to have been opened.
+   */
+  private renderAutoExpandedGroupsNotice() {
+    const groups = this.visibleGroups
+    const renderedGroupKeys = this.state.filteredGroupIndices.flatMap(index => {
+      const group = groups[index]
+      return group === undefined ? [] : [getGroupKey(group.identifier)]
+    })
+    const count = countAutoExpandedRepositoryGroups(
+      renderedGroupKeys,
+      this.state.collapsedGroupKeys,
+      this.filterActive
+    )
+    const segments = getAutoExpandedGroupsSegments(
+      count,
+      this.state.languageMode,
+      this.state.syncFunnyLevels
+    )
+
+    if (segments.length === 0) {
+      return null
+    }
+
+    return (
+      <div className="repository-group-auto-expanded" role="status">
+        <MaterialSymbol name="unfold_more" size={16} />
+        <span>
+          {segments.map((segment, index) => (
+            <React.Fragment key={segment.locale}>
+              {index > 0 && (
+                <span className="localized-text-separator" aria-hidden={true}>
+                  {' · '}
+                </span>
+              )}
+              <span lang={segment.locale}>{segment.text}</span>
+            </React.Fragment>
+          ))}
+        </span>
       </div>
     )
   }
@@ -1373,6 +1634,10 @@ export class RepositoriesList extends React.Component<
       event.stopPropagation()
       this.onExitBulkSelection()
     }
+  }
+
+  private onFilteredGroupsChanged = (groupIndices: ReadonlyArray<number>) => {
+    this.setState({ filteredGroupIndices: groupIndices })
   }
 
   private onVisibleItemsChanged = (

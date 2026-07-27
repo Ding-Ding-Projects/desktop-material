@@ -49,6 +49,11 @@ Material is displaying or how a repository is represented in the application.
   filter-visible rows to fetch, pull, favorite, group, or forget several
   repositories, with determinate progress, cancel between repositories, and a
   removal confirmation that never deletes on-disk content.
+- [Repository list collapsible
+  groups](repository-list-group-collapse.md) — fold a group heading away with a
+  keyboard-reachable disclosure control that keeps saying how many repositories
+  it holds, persisted as an undoable, diffable profile setting, and guaranteed
+  never to hide a filter match.
 - [Tag lifecycle management](tag-lifecycle-management.md) — inventory, create,
   move, sign, push, fetch, prune, and explicitly delete local and remote tags
   through stale-safe reviewed operations.
