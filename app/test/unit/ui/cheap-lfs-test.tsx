@@ -38,6 +38,60 @@ import {
   within,
 } from '../../helpers/ui/render'
 
+/**
+ * The pinned-file rows render inside a react-virtualized list sized by a
+ * ResizeObserver on its container. jsdom never fires resize notifications, so
+ * report a fixed viewport for any observed element (mirroring the stub used
+ * by the repositories-list tests).
+ */
+class TestResizeObserver {
+  public constructor(private readonly callback: ResizeObserverCallback) {}
+
+  public observe(target: Element) {
+    Object.defineProperty(target, 'offsetWidth', {
+      configurable: true,
+      value: 365,
+    })
+    Object.defineProperty(target, 'offsetHeight', {
+      configurable: true,
+      value: 360,
+    })
+    this.callback(
+      [
+        {
+          target,
+          contentRect: {
+            x: 0,
+            y: 0,
+            width: 365,
+            height: 360,
+            top: 0,
+            right: 365,
+            bottom: 360,
+            left: 0,
+            toJSON: () => ({}),
+          },
+          borderBoxSize: [],
+          contentBoxSize: [],
+          devicePixelContentBoxSize: [],
+        },
+      ],
+      this as unknown as ResizeObserver
+    )
+  }
+  public unobserve() {}
+  public disconnect() {}
+}
+
+Object.defineProperty(globalThis, 'ResizeObserver', {
+  configurable: true,
+  value: TestResizeObserver,
+})
+Object.defineProperty(window, 'ResizeObserver', {
+  configurable: true,
+  value: TestResizeObserver,
+})
+
 const gitHubRepository = new GitHubRepository(
   'material',
   new Owner('desktop', 'https://api.github.com', 1),
@@ -643,6 +697,38 @@ describe('CheapLfs panel', () => {
       name: /enable cloud compression for this private repository/i,
     })
     assert.equal(secondCheckbox.checked, false)
+  })
+
+  it('virtualizes the pinned-file list instead of mounting every row', async () => {
+    const manyPointers = Array.from({ length: 300 }, (_, index) =>
+      pointerEntry(`assets/blob-${String(index).padStart(3, '0')}.bin`, {
+        assetName: `blob-${index}.bin`,
+        sizeInBytes: 2048,
+      })
+    )
+    const dispatcher = new FakeCheapLfsDispatcher(manyPointers)
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+
+    await screen.findByText('assets/blob-000.bin')
+    assert.ok(screen.getByText('300 tracked by Cheap LFS'))
+    assert.ok(
+      document.querySelector('.cheap-lfs-rows [role="list"]'),
+      'Expected the pinned-file rows to render inside a list role'
+    )
+    assert.ok(
+      document.querySelector('.cheap-lfs-row-cell[role="listitem"]'),
+      'Expected each virtualized row to expose a listitem role'
+    )
+    await waitFor(() => {
+      const rows = document.querySelectorAll('.cheap-lfs-row')
+      assert.ok(rows.length > 0, 'Expected the list viewport to render rows')
+      assert.ok(
+        rows.length < 100,
+        `Expected virtualization to bound the mounted rows, got ${rows.length}`
+      )
+    })
   })
 
   it('filters the pinned files case-insensitively over their paths', async () => {

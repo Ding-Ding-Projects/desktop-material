@@ -198,6 +198,19 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 10px;
+
+  // The rows render inside a react-virtualized List; the ResizeObserver on
+  // this container feeds the list its viewport width.
+  .cheap-lfs-virtual-list {
+    outline: none;
+  }
+}
+
+// One virtualized cell per pinned file; the padding recreates the gap the
+// grid layout used to put between cards and is included in the measured
+// row height.
+.cheap-lfs-row-cell {
+  padding-bottom: 10px;
 }
 
 .cheap-lfs-row {
