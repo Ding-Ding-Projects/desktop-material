@@ -1,3 +1,5 @@
+import { utf8ByteLength } from './utf8-budget'
+
 /** GitHub's maximum documented page size for Releases. */
 export const GitHubReleasePageSize = 30
 
@@ -13,6 +15,29 @@ export const GitHubReleaseAssetMaximumCount = 1000
 /** Cover one release's complete documented asset capacity. */
 export const GitHubReleaseAssetMaximumPages =
   GitHubReleaseAssetMaximumCount / GitHubReleaseAssetPageSize
+
+/**
+ * Ceiling for an outbound release-asset name, measured in **UTF-8 bytes**.
+ *
+ * GitHub publishes the number 255 without stating its unit, and no probe of the
+ * live API is recorded anywhere in this project, so the unit is genuinely
+ * unknown rather than merely undocumented. This app therefore budgets bytes,
+ * which is the fail-closed reading: a byte budget is never looser than a
+ * character budget, so at worst it truncates a non-ASCII name GitHub would have
+ * accepted, whereas a character budget would hand GitHub a 765-byte name for a
+ * 255-character Chinese file and be refused *after* the upload started — in a
+ * multi-part pin, partway through a batch, with assets already on the release.
+ * Losing a few trailing characters of a name that Git history records in full
+ * is the cheaper mistake by a wide margin.
+ *
+ * The inbound parse of a name GitHub *returns* deliberately stays character-
+ * measured: it must accept anything the service is willing to hand back, and
+ * 255 characters is the wider bound of the two.
+ */
+export const GitHubReleaseAssetNameMaximumBytes = 255
+
+/** Ceiling for an outbound release-asset label, in UTF-8 bytes. See above. */
+export const GitHubReleaseAssetLabelMaximumBytes = 255
 
 /** Asset uploads are streamed from disk by the isolated main-process transfer. */
 export const GitHubReleaseAssetMaximumUploadBytes = 2 * 1024 * 1024 * 1024
@@ -531,25 +556,35 @@ export function validateGitHubReleaseRepositoryPart(
   return value
 }
 
+/**
+ * How a field's ceiling is measured. `characters` counts UTF-16 code units, the
+ * unit a JavaScript `.length` reports; `UTF-8 bytes` counts the encoded octets
+ * that actually travel to GitHub.
+ */
+type GitHubReleaseFieldLengthUnit = 'characters' | 'UTF-8 bytes'
+
 function normalizeField(
   value: unknown,
   label: string,
   maximumLength: number,
-  allowEmpty: boolean
+  allowEmpty: boolean,
+  unit: GitHubReleaseFieldLengthUnit = 'characters'
 ): string {
   if (typeof value !== 'string') {
     throw new Error(`${label} must be text.`)
   }
   const normalized = value.trim()
+  const measured =
+    unit === 'characters' ? normalized.length : utf8ByteLength(normalized)
   if (
-    normalized.length > maximumLength ||
+    measured > maximumLength ||
     (!allowEmpty && normalized.length === 0) ||
     controlCharacters.test(normalized)
   ) {
     throw new Error(
       `${label} must be ${
         allowEmpty ? `at most ${maximumLength}` : `1–${maximumLength}`
-      } characters and contain no control characters.`
+      } ${unit} and contain no control characters.`
     )
   }
   return normalized
@@ -594,7 +629,13 @@ export function validateGitHubReleaseTag(value: string): string {
 }
 
 export function normalizeGitHubReleaseAssetName(value: string): string {
-  const name = normalizeField(value, 'Asset name', 255, false)
+  const name = normalizeField(
+    value,
+    'Asset name',
+    GitHubReleaseAssetNameMaximumBytes,
+    false,
+    'UTF-8 bytes'
+  )
   if (name === '.' || name === '..' || invalidAssetNameCharacters.test(name)) {
     throw new Error('Asset name contains characters GitHub cannot safely use.')
   }
@@ -602,7 +643,13 @@ export function normalizeGitHubReleaseAssetName(value: string): string {
 }
 
 export function normalizeGitHubReleaseAssetLabel(value: string): string | null {
-  const label = normalizeField(value, 'Asset label', 255, true)
+  const label = normalizeField(
+    value,
+    'Asset label',
+    GitHubReleaseAssetLabelMaximumBytes,
+    true,
+    'UTF-8 bytes'
+  )
   return label.length === 0 ? null : label
 }
 

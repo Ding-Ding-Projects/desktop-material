@@ -24,10 +24,12 @@ import {
   IGitHubReleaseDraft,
   GitHubReleaseAssetMaximumCount,
   GitHubReleaseAssetMaximumPages,
+  GitHubReleaseAssetNameMaximumBytes,
   isUploadedGitHubReleaseAsset,
   normalizeGitHubReleaseAssetName,
   validateGitHubReleaseTag,
 } from '../github-releases'
+import { truncateToUtf8ByteBudget, utf8ByteLength } from '../utf8-budget'
 import {
   IGitHubReleaseAssetUploadRange,
   IGitHubReleaseTransferProgressEvent,
@@ -1205,30 +1207,59 @@ function ensureReleasesReadAccount(
   }
 }
 
-/** Add a deterministic suffix without exceeding an asset-name length cap. */
+/**
+ * Add a deterministic suffix without exceeding the asset-name budget, which is
+ * measured in **UTF-8 bytes** (see `GitHubReleaseAssetNameMaximumBytes`) rather
+ * than in JavaScript string length. A 255-character Chinese file name encodes
+ * to roughly 765 bytes, so a `.length` budget would let this app believe such a
+ * name was in range and only discover otherwise when GitHub refused the upload.
+ *
+ * The suffix is sacred: `.partNNN`, `.deflate`, and any disambiguating hash are
+ * what make the name resolvable and unique, so only the base is ever trimmed.
+ * `truncateToUtf8ByteBudget` cuts on code-point boundaries, which subsumes the
+ * older surrogate-pair guard — a pair is one code point and is never split.
+ */
 function appendAssetNameSuffix(
   name: string,
   suffix: string,
-  maximumLength: number = 255
+  maximumBytes: number = GitHubReleaseAssetNameMaximumBytes
 ): string {
-  const maximumPrefixLength = maximumLength - suffix.length
-  if (maximumPrefixLength < 1) {
+  const maximumPrefixBytes = maximumBytes - utf8ByteLength(suffix)
+  if (maximumPrefixBytes < 1) {
     throw new Error('The cheap LFS release asset suffix is too long.')
   }
-  let prefix = name.slice(0, maximumPrefixLength)
-  // Avoid ending on the first half of a UTF-16 surrogate pair.
-  const finalCodeUnit = prefix.charCodeAt(prefix.length - 1)
-  if (finalCodeUnit >= 0xd800 && finalCodeUnit <= 0xdbff) {
-    prefix = prefix.slice(0, -1)
-  }
+  const prefix = truncateToUtf8ByteBudget(name, maximumPrefixBytes)
   return normalizeGitHubReleaseAssetName(`${prefix}${suffix}`)
+}
+
+/**
+ * The asset name a pin starts from: the source file's base name, trimmed to the
+ * release-asset byte budget *before* it is validated.
+ *
+ * Trimming has to happen here rather than being left to the later suffixing
+ * step, because a 200-character Chinese file name is around 600 UTF-8 bytes and
+ * `normalizeGitHubReleaseAssetName` would reject it outright — refusing to pin
+ * a file the user can plainly see. Shortening the name costs the user nothing:
+ * the asset name is an implementation detail of where the bytes are parked, and
+ * the committed pointer records the file's real path in full, untruncated,
+ * forever. Two files that trim to the same name are still separated afterwards
+ * by `dedupeAssetName`/`dedupeMultiPartBaseName`, which append a content hash.
+ */
+function cheapLfsSourceAssetName(absoluteFilePath: string): string {
+  return normalizeGitHubReleaseAssetName(
+    truncateToUtf8ByteBudget(
+      basename(absoluteFilePath),
+      GitHubReleaseAssetNameMaximumBytes
+    )
+  )
 }
 
 function insertAssetNameHash(name: string, shortHash: string): string {
   const dot = name.lastIndexOf('.')
   if (dot > 0) {
+    // `.` is never half of a surrogate pair, so slicing at it is code-point safe.
     const suffix = `-${shortHash}${name.slice(dot)}`
-    if (suffix.length < 255) {
+    if (utf8ByteLength(suffix) < GitHubReleaseAssetNameMaximumBytes) {
       return appendAssetNameSuffix(name.slice(0, dot), suffix)
     }
   }
@@ -1311,11 +1342,15 @@ function dedupeMultiPartBaseName(
   }
 
   const width = Math.max(3, String(partCount).length)
-  const maximumBaseLength = 255 - `.part${'0'.repeat(width)}`.length
+  // Reserve the ASCII `.partNNN` tail every member of the family will carry, so
+  // the base still fits the byte budget once `partAssetName` extends it.
+  const maximumBaseBytes =
+    GitHubReleaseAssetNameMaximumBytes -
+    utf8ByteLength(`.part${'0'.repeat(width)}`)
   const short = sha256.slice(0, 7)
   for (let attempt = 0; attempt <= assetNames.size; attempt++) {
     const suffix = attempt === 0 ? `-${short}` : `-${short}-${attempt + 1}`
-    const candidate = appendAssetNameSuffix(name, suffix, maximumBaseLength)
+    const candidate = appendAssetNameSuffix(name, suffix, maximumBaseBytes)
     if (!collides(candidate)) {
       return candidate
     }
@@ -1682,9 +1717,7 @@ export async function pinFileToRelease(
   ensureReleasesAccount(repository, account)
   ensureCheapLfsReleaseFamilyTag(options.releaseTag)
 
-  const baseName = normalizeGitHubReleaseAssetName(
-    basename(options.absoluteFilePath)
-  )
+  const baseName = cheapLfsSourceAssetName(options.absoluteFilePath)
   let verifiedSource: ICheapLfsVerifiedSourceCopy | undefined
   let uploadSourcePath = options.absoluteFilePath
   let sourceSizeInBytes: number
@@ -2340,7 +2373,8 @@ function manualAssetCandidateBaseName(
   return appendAssetNameSuffix(
     baseName,
     `-${suffix}`,
-    255 - `.part${'0'.repeat(width)}`.length
+    GitHubReleaseAssetNameMaximumBytes -
+      utf8ByteLength(`.part${'0'.repeat(width)}`)
   )
 }
 
@@ -2754,9 +2788,7 @@ export async function planCheapLfsManualUpload(
             trackedRelativePath
           ) ??
             trackedPaths.proveDestination(repository.path, trackedRelativePath))
-    const baseName = normalizeGitHubReleaseAssetName(
-      basename(candidate.absoluteFilePath)
-    )
+    const baseName = cheapLfsSourceAssetName(candidate.absoluteFilePath)
     const sourceSize = await fs.statSize(candidate.absoluteFilePath)
     preflightProjectedPointer(sourceSize, baseReleaseTag, baseName)
     projectedAssetCount += Math.max(

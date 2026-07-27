@@ -117,7 +117,13 @@ with a `label` body only, so an asset name can never be changed by this path.
 
 The path is written last so a path containing spaces needs no quoting, and an
 over-long path keeps its tail behind a `...` marker to stay inside GitHub's
-255-character label ceiling; the untruncated path is always in the pointer.
+255-**byte** label ceiling; the untruncated path is always in the pointer. The
+ceiling is measured in UTF-8 bytes rather than in JavaScript string length, so a
+CJK or emoji path cannot spend three or four bytes per character past a
+character-shaped budget — see the naming contract in
+[release-backed-cheap-lfs.md](release-backed-cheap-lfs.md) for why the byte
+reading is the fail-closed one. Elision cuts only on code-point boundaries, so a
+surrogate pair is never halved.
 
 ## Failure modes
 
@@ -158,8 +164,8 @@ sent, refuses a duplicate asset name, and throws if a delete is ever attempted:
   and an incomplete upload; the lowest asset id wins;
 - a split file reuses only when every part is present;
 - the upload label round-trips through the real
-  `normalizeGitHubReleaseAssetLabel`, stays inside 255 characters, and elides
-  only the head of an over-long path;
+  `normalizeGitHubReleaseAssetLabel`, stays inside 255 UTF-8 bytes for ASCII,
+  CJK, and emoji paths alike, and elides only the head of an over-long path;
 - a foreign or malformed label never parses as Cheap LFS provenance;
 - the introducing commit is written to every asset of a pin, once per distinct
   asset;

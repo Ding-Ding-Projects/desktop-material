@@ -17,12 +17,14 @@ import {
 import {
   GitHubReleaseMaximumPages,
   IGitHubRelease,
+  GitHubReleaseAssetNameMaximumBytes,
   IGitHubReleaseAsset,
   IGitHubReleaseDraft,
   normalizeGitHubReleaseAssetLabel,
   normalizeGitHubReleaseAssetName,
   normalizeGitHubReleaseDraft,
 } from '../../lib/github-releases'
+import { truncateToUtf8ByteBudget } from '../../lib/utf8-budget'
 import {
   bulkReleaseDeleteAttempted,
   bulkReleaseDeleteRemaining,
@@ -1703,7 +1705,15 @@ export class GitHubReleasesView extends React.Component<
       if (sourcePath === null || !this.mounted) {
         return
       }
-      const name = normalizeGitHubReleaseAssetName(Path.basename(sourcePath))
+      // Only a *suggestion* for the editable name field, so it is trimmed to
+      // the byte budget rather than validated against it. A file named with 200
+      // Chinese characters is 600 UTF-8 bytes; rejecting it here would refuse
+      // to open the upload panel at all and leave the user no way to shorten
+      // the name, since the name field lives inside the panel that never opened.
+      const name = truncateToUtf8ByteBudget(
+        Path.basename(sourcePath),
+        GitHubReleaseAssetNameMaximumBytes
+      )
       this.setState({
         upload: {
           sourcePath,

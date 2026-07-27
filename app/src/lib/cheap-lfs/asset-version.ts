@@ -28,6 +28,7 @@ import {
   IGitHubReleaseAsset,
   isUploadedGitHubReleaseAsset,
 } from '../github-releases'
+import { keepUtf8ByteTail, utf8ByteLength } from '../utf8-budget'
 
 /**
  * Exact, invisible release-body marker written on every new Cheap LFS bucket.
@@ -50,8 +51,17 @@ export function isCheapLfsReleaseBody(
 /** Version marker every Cheap LFS asset label starts with. */
 export const CheapLfsAssetLabelPrefix = 'cheap-lfs/v1'
 
-/** GitHub's documented release-asset label ceiling. */
-export const CheapLfsMaximumAssetLabelLength = 255
+/**
+ * GitHub's release-asset label ceiling, budgeted in **UTF-8 bytes**.
+ *
+ * The label ends with the tracked path, and a tracked path is exactly where a
+ * Cantonese-speaking user's non-ASCII text lives, so the char-versus-byte
+ * question bites here for the same reason it bites asset names. GitHub's
+ * published 255 carries no unit and this project has never probed the live API,
+ * so the fail-closed byte reading is used: eliding a little more of a path this
+ * app already truncates costs nothing, while overshooting costs an upload.
+ */
+export const CheapLfsMaximumAssetLabelBytes = 255
 
 /**
  * Written in place of the elided head of an over-long tracked path. The tail is
@@ -92,22 +102,6 @@ export interface ICheapLfsAssetAnnotationInput {
 }
 
 /**
- * Trim to at most `maximumLength` UTF-16 code units without ending on the first
- * half of a surrogate pair, taking the tail rather than the head.
- */
-function keepTail(value: string, maximumLength: number): string {
-  if (value.length <= maximumLength) {
-    return value
-  }
-  let tail = value.slice(value.length - maximumLength)
-  const firstCodeUnit = tail.charCodeAt(0)
-  if (firstCodeUnit >= 0xdc00 && firstCodeUnit <= 0xdfff) {
-    tail = tail.slice(1)
-  }
-  return tail
-}
-
-/**
  * Build the canonical asset label for one pinned file, or `null` when the
  * inputs cannot produce a valid one.
  *
@@ -115,9 +109,11 @@ function keepTail(value: string, maximumLength: number): string {
  * marker, the whole-file digest, the introducing commit (or `-` when the pin
  * has not been committed yet), then the tracked path last so a path containing
  * spaces needs no quoting. It is plain ASCII apart from the path itself, never
- * carries a control character, and never exceeds GitHub's 255-character label
+ * carries a control character, and never exceeds GitHub's 255-byte label
  * ceiling — the three conditions `normalizeGitHubReleaseAssetLabel` enforces —
  * so a well-formed annotation can never be the reason an upload is rejected.
+ * The path is measured and elided in UTF-8 bytes, so a CJK or emoji path cannot
+ * smuggle three or four bytes per character past a character-shaped budget.
  */
 export function formatCheapLfsAssetLabel(
   annotation: ICheapLfsAssetAnnotationInput
@@ -147,20 +143,27 @@ export function formatCheapLfsAssetLabel(
   if (path.length === 0) {
     return null
   }
+  // The head and the marker are pure ASCII, so their byte and character counts
+  // coincide; only the path can spend more than one byte per character.
   const head = `${CheapLfsAssetLabelPrefix} sha256=${sha256} commit=${
     commit.length === 0 ? CheapLfsAssetLabelPendingCommit : commit
   } path=`
-  const budget = CheapLfsMaximumAssetLabelLength - head.length
+  const budget = CheapLfsMaximumAssetLabelBytes - utf8ByteLength(head)
   if (budget < CheapLfsAssetLabelTruncationMarker.length + 1) {
     return null
   }
-  if (path.length <= budget) {
+  if (utf8ByteLength(path) <= budget) {
     return `${head}${path}`
   }
-  const tail = keepTail(
+  const tail = keepUtf8ByteTail(
     path,
     budget - CheapLfsAssetLabelTruncationMarker.length
   )
+  // A path whose final code point alone overruns the remaining budget would
+  // elide to nothing, and a marker with no tail is not a readable annotation.
+  if (tail.length === 0) {
+    return null
+  }
   return `${head}${CheapLfsAssetLabelTruncationMarker}${tail}`
 }
 

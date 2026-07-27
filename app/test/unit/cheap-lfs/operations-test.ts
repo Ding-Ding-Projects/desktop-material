@@ -65,6 +65,10 @@ import {
   CheapLfsRegistryRepositoryKeyPath,
 } from '../../../src/lib/cheap-lfs/ghcr-key'
 import { takeCheapLfsReleaseReview } from '../../../src/lib/cheap-lfs/release-review'
+import {
+  truncateToUtf8ByteBudget,
+  utf8ByteLength,
+} from '../../../src/lib/utf8-budget'
 
 const selected = new Account(
   'selected',
@@ -391,6 +395,92 @@ async function withTempRepository(
   } finally {
     await rm(dir, { recursive: true, force: true })
   }
+}
+
+/** True when a string survives a UTF-8 round trip with no substitutions. */
+function isWellFormedUtf8(value: string): boolean {
+  return Buffer.from(value, 'utf8').toString('utf8') === value
+}
+
+/**
+ * Pin one 20-byte two-part file and report the names it uploaded under. Used by
+ * the non-ASCII naming tests, where what matters is the chosen asset names
+ * rather than the transfer mechanics the surrounding suite already covers.
+ */
+async function pinTwoPartFile(
+  repository: Repository,
+  filePath: string,
+  wholeSha: string,
+  partShas: ReadonlyArray<string>,
+  existingAssets: ReadonlyArray<IGitHubReleaseAsset>,
+  releaseTag: string = 'v9.0.0'
+) {
+  const draft: IGitHubRelease = {
+    ...release,
+    tagName: releaseTag,
+    assets: [...existingAssets],
+  }
+  const uploadedNames = new Array<string>()
+  const store = await storeWith(
+    dependencies(
+      () =>
+        fakeAPI({
+          fetchReleaseByTag: async () => draft,
+          fetchRelease: async () => draft,
+        }),
+      {
+        uploadAsset: async (
+          _account,
+          _repository,
+          _releaseId,
+          _path,
+          name,
+          _label,
+          _signal,
+          _onProgress,
+          range
+        ) => {
+          uploadedNames.push(name)
+          const index = range!.offset === 0 ? 0 : 1
+          return {
+            ok: true,
+            asset: { ...asset, name, sizeInBytes: range!.length },
+            bytes: range!.length,
+            localDigest: `sha256:${partShas[index]}`,
+          }
+        },
+      }
+    )
+  )
+  const fs: ICheapLfsFileSystem = {
+    ...defaultCheapLfsFileSystem,
+    statSize: async () => 20,
+    hashFile: async () => ({ sha256: wholeSha, sizeInBytes: 20 }),
+    hashFileParts: async () => ({
+      sha256: wholeSha,
+      sizeInBytes: 20,
+      parts: [
+        { offset: 0, length: 10, sha256: partShas[0] },
+        { offset: 10, length: 10, sha256: partShas[1] },
+      ],
+    }),
+    writePointer: async () => undefined,
+  }
+
+  const result = await pinFileToRelease(
+    store,
+    repository,
+    selected,
+    {
+      absoluteFilePath: filePath,
+      trackedRelativePath: 'tracked.bin',
+      releaseTag,
+    },
+    undefined,
+    undefined,
+    fs
+  )
+  return { uploadedNames, result }
 }
 
 async function assertCompressedMaterializationFailure(
@@ -2346,6 +2436,183 @@ describe('cheap LFS operations', () => {
       assert.notEqual(uploadedName, firstRetryName)
       assert.equal(result.pointer.assetName, uploadedName)
     })
+  })
+
+  it('keeps a long Chinese multipart name inside GitHub’s byte budget', async () => {
+    await withTempRepository(async (dir, repository) => {
+      // 200 Chinese characters is 600 UTF-8 bytes — comfortably inside a
+      // character budget and more than twice a byte budget. This is ordinary
+      // input for the audience this app is built for, not an exotic edge case.
+      const baseName = `${'測'.repeat(200)}.bin`
+      assert.ok(baseName.length < 255, 'still short by the old character rule')
+      const filePath = join(dir, baseName)
+      const wholeSha = 'a'.repeat(64)
+      const partShas = ['b'.repeat(64), 'c'.repeat(64)]
+      const { uploadedNames, result } = await pinTwoPartFile(
+        repository,
+        filePath,
+        wholeSha,
+        partShas,
+        []
+      )
+
+      assert.equal(uploadedNames.length, 2)
+      for (const name of uploadedNames) {
+        assert.ok(
+          utf8ByteLength(name) <= 255,
+          `${utf8ByteLength(name)} bytes exceeds GitHub's 255-byte ceiling`
+        )
+        // Truncation must eat the base, never the suffix that identifies the part.
+        assert.ok(isWellFormedUtf8(name))
+      }
+      assert.equal(uploadedNames[0].endsWith('.part001'), true)
+      assert.equal(uploadedNames[1].endsWith('.part002'), true)
+      // A byte budget of 255 leaves room for 82 three-byte characters beside the
+      // eight-byte `.partNNN` tail, so the name is genuinely shortened.
+      assert.ok(uploadedNames[0].length < baseName.length)
+      assert.deepEqual(
+        result.pointer.parts?.map(part => part.name),
+        uploadedNames
+      )
+    })
+  })
+
+  it('truncates an emoji name without splitting a surrogate pair', async () => {
+    await withTempRepository(async (dir, repository) => {
+      // Each emoji is one code point, two UTF-16 units, four UTF-8 bytes.
+      const baseName = `${'😀'.repeat(100)}.bin`
+      const filePath = join(dir, baseName)
+      const { uploadedNames } = await pinTwoPartFile(
+        repository,
+        filePath,
+        'a'.repeat(64),
+        ['b'.repeat(64), 'c'.repeat(64)],
+        []
+      )
+
+      for (const name of uploadedNames) {
+        assert.ok(utf8ByteLength(name) <= 255)
+        assert.ok(
+          isWellFormedUtf8(name),
+          'a split surrogate pair would encode as U+FFFD'
+        )
+        for (let index = 0; index < name.length; index++) {
+          const unit = name.charCodeAt(index)
+          assert.ok(
+            unit < 0xd800 || unit > 0xdfff || name.codePointAt(index)! > 0xffff,
+            'left an unpaired surrogate behind'
+          )
+          if (name.codePointAt(index)! > 0xffff) {
+            index++
+          }
+        }
+      }
+      assert.equal(uploadedNames[0].endsWith('.part001'), true)
+      assert.equal(uploadedNames[1].endsWith('.part002'), true)
+    })
+  })
+
+  it('separates two Chinese names that truncate to the same bytes', async () => {
+    await withTempRepository(async (dir, repository) => {
+      // Identical for the first 200 characters and different only afterwards,
+      // so any budget short enough to bite collapses them onto one name.
+      const shared = '測'.repeat(200)
+      const firstName = `${shared}甲.bin`
+      const secondName = `${shared}乙.bin`
+      const first = await pinTwoPartFile(
+        repository,
+        join(dir, firstName),
+        'a'.repeat(64),
+        ['b'.repeat(64), 'c'.repeat(64)],
+        []
+      )
+      // The second pin sees the first pin's assets already on the release.
+      const occupied = first.uploadedNames.map((name, index) => ({
+        ...asset,
+        id: 40 + index,
+        name,
+        sizeInBytes: 10,
+        digest: `sha256:${'f'.repeat(64)}`,
+      }))
+      const second = await pinTwoPartFile(
+        repository,
+        join(dir, secondName),
+        'd'.repeat(64),
+        ['e'.repeat(64), '0'.repeat(64)],
+        occupied
+      )
+
+      assert.deepEqual(
+        first.uploadedNames.map(name => truncateToUtf8ByteBudget(name, 255)),
+        first.uploadedNames
+      )
+      // Truncation alone would have produced identical names; the content-hash
+      // dedupe has to keep them apart even when the budget is measured in bytes.
+      for (const name of second.uploadedNames) {
+        assert.ok(utf8ByteLength(name) <= 255)
+        assert.ok(!first.uploadedNames.includes(name))
+      }
+      assert.equal(second.uploadedNames[0].endsWith('.part001'), true)
+      assert.equal(second.uploadedNames[1].endsWith('.part002'), true)
+      assert.equal(
+        new Set([...first.uploadedNames, ...second.uploadedNames]).size,
+        4
+      )
+    })
+  })
+
+  it('round-trips a truncated Chinese name through a committed pointer', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const baseName = `${'測'.repeat(200)}.bin`
+      const { result } = await pinTwoPartFile(
+        repository,
+        join(dir, baseName),
+        'a'.repeat(64),
+        ['b'.repeat(64), 'c'.repeat(64)],
+        []
+      )
+
+      const text = serializeCheapLfsPointer(result.pointer)
+      const parsed = parseCheapLfsPointer(text)
+      assert.notEqual(parsed, null)
+      assert.equal(parsed!.assetName, result.pointer.assetName)
+      assert.deepEqual(
+        parsed!.parts?.map(part => part.name),
+        result.pointer.parts?.map(part => part.name)
+      )
+      for (const part of parsed!.parts ?? []) {
+        assert.ok(utf8ByteLength(part.name) <= 255)
+      }
+    })
+  })
+
+  it('still parses a pointer whose name predates the byte budget', async () => {
+    // Exactly what an earlier version would have written under the old
+    // 255-*character* rule: a base trimmed to 247 characters so `.partNNN`
+    // reached 255 characters — 749 UTF-8 bytes, far past the byte budget the
+    // writer now applies. Those files are already pinned and already committed,
+    // so narrowing the parser to bytes would orphan them. It must only widen.
+    const legacyBase = '測'.repeat(247)
+    const legacyPart = `${legacyBase}.part001`
+    assert.equal(legacyPart.length, 255)
+    assert.ok(utf8ByteLength(legacyPart) > 255)
+    const text = [
+      `version ${CHEAP_LFS_POINTER_VERSION}`,
+      'release-tag cheap-lfs/assets',
+      `asset-name ${legacyBase}`,
+      'size 20',
+      `sha256 ${'a'.repeat(64)}`,
+      `part ${'b'.repeat(64)} 10 ${legacyPart}`,
+      `part ${'c'.repeat(64)} 10 ${legacyBase}.part002`,
+      '',
+    ].join('\n')
+
+    const parsed = parseCheapLfsPointer(text)
+    assert.notEqual(parsed, null)
+    assert.equal(parsed!.assetName, legacyBase)
+    assert.equal(parsed!.parts?.[0].name, legacyPart)
+    assert.equal(parsed!.parts?.[1].name, `${legacyBase}.part002`)
+    assert.equal(parsed!.parts?.length, 2)
   })
 
   it('rolls back only the attempt-owned single asset on response mismatch', async () => {

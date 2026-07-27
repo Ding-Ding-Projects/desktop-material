@@ -17,10 +17,11 @@ import {
   IGitHubReleaseAsset,
   normalizeGitHubReleaseAssetLabel,
 } from '../../../src/lib/github-releases'
+import { utf8ByteLength } from '../../../src/lib/utf8-budget'
 import {
   buildCheapLfsAssetAnnotationTargets,
   CheapLfsAssetLabelPendingCommit,
-  CheapLfsMaximumAssetLabelLength,
+  CheapLfsMaximumAssetLabelBytes,
   CheapLfsReleaseBodySentinel,
   findCheapLfsAssetForContent,
   findCheapLfsAssetsForParts,
@@ -359,7 +360,7 @@ describe('cheap LFS asset versioning', () => {
       label,
       `cheap-lfs/v1 sha256=${sha256} commit=${CheapLfsAssetLabelPendingCommit} path=assets/video.mp4`
     )
-    assert.ok(label!.length <= CheapLfsMaximumAssetLabelLength)
+    assert.ok(utf8ByteLength(label!) <= CheapLfsMaximumAssetLabelBytes)
     // The transfer layer verifies the echoed label against the normalized value
     // it sent, so a label that normalization would alter could fail an upload.
     assert.equal(normalizeGitHubReleaseAssetLabel(label!), label)
@@ -386,11 +387,46 @@ describe('cheap LFS asset versioning', () => {
     const relativePath = `${'nested/'.repeat(40)}very-large-video.mp4`
     const label = formatCheapLfsAssetLabel({ relativePath, sha256 })
     assert.ok(label !== null)
-    assert.ok(label.length <= CheapLfsMaximumAssetLabelLength)
+    assert.ok(utf8ByteLength(label) <= CheapLfsMaximumAssetLabelBytes)
     assert.equal(normalizeGitHubReleaseAssetLabel(label), label)
     const parsed = parseCheapLfsAssetLabel(label)
     assert.equal(parsed?.pathTruncated, true)
     assert.ok(parsed!.relativePath.endsWith('very-large-video.mp4'))
+    assert.ok(relativePath.endsWith(parsed!.relativePath))
+  })
+
+  it('elides a Chinese path by bytes rather than by characters', () => {
+    const sha256 = sha256Of(Buffer.from('content'))
+    // Three bytes per character: a path that a character budget would judge
+    // comfortably short still overruns the label's 255-byte ceiling.
+    const relativePath = `${'資產/'.repeat(30)}影片檔案.mp4`
+    const label = formatCheapLfsAssetLabel({ relativePath, sha256 })
+    assert.ok(label !== null)
+    assert.ok(label.length < CheapLfsMaximumAssetLabelBytes)
+    assert.ok(utf8ByteLength(label) <= CheapLfsMaximumAssetLabelBytes)
+    // A label GitHub refuses costs the upload, so it must survive normalization
+    // unchanged — which is now a byte-measured check.
+    assert.equal(normalizeGitHubReleaseAssetLabel(label), label)
+    const parsed = parseCheapLfsAssetLabel(label)
+    assert.equal(parsed?.pathTruncated, true)
+    assert.ok(parsed!.relativePath.endsWith('影片檔案.mp4'))
+    assert.ok(relativePath.endsWith(parsed!.relativePath))
+  })
+
+  it('elides an emoji path without splitting a surrogate pair', () => {
+    const sha256 = sha256Of(Buffer.from('content'))
+    const relativePath = `${'🎬📼'.repeat(40)}/clip.mp4`
+    const label = formatCheapLfsAssetLabel({ relativePath, sha256 })
+    assert.ok(label !== null)
+    assert.ok(utf8ByteLength(label) <= CheapLfsMaximumAssetLabelBytes)
+    assert.equal(
+      Buffer.from(label, 'utf8').toString('utf8'),
+      label,
+      'a split surrogate pair would encode as U+FFFD'
+    )
+    assert.equal(normalizeGitHubReleaseAssetLabel(label), label)
+    const parsed = parseCheapLfsAssetLabel(label)
+    assert.equal(parsed?.pathTruncated, true)
     assert.ok(relativePath.endsWith(parsed!.relativePath))
   })
 
