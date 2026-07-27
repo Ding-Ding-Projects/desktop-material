@@ -36,7 +36,8 @@ this fork.
   [Troubleshooting](contributing/troubleshooting.md)
 - **Internals** — [Packaging](technical/packaging.md),
   [Dialogs](technical/dialogs.md), [Developer OAuth app](technical/oauth.md),
-  [Automatic Git proxy support](technical/proxies.md)
+  [Automatic Git proxy support](technical/proxies.md),
+  [Documentation site build](technical/documentation-site-build.md)
 - **Process** — [Release planning](process/release-planning.md),
   [Issue triage](process/issue-triage.md),
   [Pull requests](process/pull-requests.md)

@@ -144,6 +144,18 @@
         border-radius: 8px;
         border: 1px solid var(--border);
       }
+      /* Mermaid fences are pre-rendered to inline SVG by
+         site/render-mermaid.mjs, so a diagram is part of the document rather
+         than an image request. It scales down to the column and scrolls
+         rather than clipping when a wide diagram cannot shrink further. */
+      .mermaid-figure {
+        margin: 1.5rem 0;
+        overflow-x: auto;
+      }
+      .mermaid-figure svg {
+        display: block;
+        height: auto;
+      }
       table {
         border-collapse: collapse;
         display: block;
