@@ -14,6 +14,7 @@ import {
   ICheapLfsPinResult,
 } from '../../../src/lib/cheap-lfs/operations'
 import {
+  CHEAP_LFS_PART_SIZE_BYTES,
   CHEAP_LFS_POINTER_VERSION,
   ICheapLfsPointer,
 } from '../../../src/lib/cheap-lfs/pointer'
@@ -922,13 +923,17 @@ describe('CheapLfs panel', () => {
 
   it('splits a file above the 2 GiB cap and pins it after review', async () => {
     const dispatcher = new FakeCheapLfsDispatcher([])
+    const sourceSize = 3 * 1024 * 1024 * 1024
+    // Derived rather than hardcoded so changing the part size cannot leave a
+    // stale expectation behind.
+    const expectedParts = Math.ceil(sourceSize / CHEAP_LFS_PART_SIZE_BYTES)
     render(
       <CheapLfs
         repository={repository}
         accounts={[]}
         dispatcher={dispatcher}
         chooseFileToPin={async () => pickedFile('huge.bin')}
-        statFileSize={async () => 3 * 1024 * 1024 * 1024}
+        statFileSize={async () => sourceSize}
       />
     )
     await screen.findByText(
@@ -941,7 +946,9 @@ describe('CheapLfs panel', () => {
 
     // The review notes the split into parts and the pin still proceeds; the
     // split itself is exercised in the operations unit tests.
-    await screen.findByText(/split into 2 parts/i)
+    await screen.findByText(
+      new RegExp(`split into ${expectedParts} parts`, 'i')
+    )
     fireEvent.click(await screen.findByRole('button', { name: 'Pin file' }))
 
     await waitFor(() => assert.equal(dispatcher.pinCalls.length, 1))
