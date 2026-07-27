@@ -571,10 +571,10 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       this.virtualListRef.current?.recomputeRowHeights(0)
     }
     this.lastListedVisible = visible
-    this.scheduleListHeightSync()
+    this.scheduleListHeightMeasure()
   }
 
-  private scheduleListHeightSync() {
+  private scheduleListHeightMeasure() {
     if (this.listHeightSyncId !== null) {
       clearImmediate(this.listHeightSyncId)
     }

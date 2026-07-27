@@ -124,7 +124,7 @@ export interface ICheapLfsTrackedPathStore {
     relativePath: string
   ): Promise<ICheapLfsTrackedFileProof>
   /**
-   * Like {@link proveDestination}, but captures only the strong path identity
+   * Like `proveDestination`, but captures only the strong path identity
    * and defers the content hash: `sha256` stays `null` even for an existing
    * file. Mutations verified against such a proof revalidate by identity and
    * fail closed on any drift instead of accepting a hash match. Optional so

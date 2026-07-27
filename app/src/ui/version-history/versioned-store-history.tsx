@@ -316,6 +316,93 @@ export class VersionedStoreHistory extends React.Component<
     }
   }
 
+  /**
+   * Filter the loaded timeline once per (entries, filter state) change. The
+   * result is consulted by both the list and the filter status line in the
+   * same render pass, so without memoization every keystroke — and every
+   * unrelated re-render — paid two full match passes over every loaded entry.
+   */
+  private readonly filterEntries = memoizeOne(
+    (
+      entries: ReadonlyArray<IVersionHistoryEntry>,
+      filterText: string,
+      filterMode: FilterMode,
+      filterCaseSensitive: boolean,
+      filesBySha: IVersionedStoreHistoryState['filesBySha'],
+      formatEntrySummary: ((summary: string) => string) | undefined
+    ): {
+      readonly entries: ReadonlyArray<IVersionHistoryEntry>
+      readonly regexError: string | null
+    } => {
+      if (filterText.length === 0) {
+        return { entries, regexError: null }
+      }
+
+      const result = matchWithMode(
+        filterText,
+        entries,
+        entry => [
+          entry.summary,
+          formatEntrySummary?.(entry.summary) ?? entry.summary,
+          entry.body,
+          entry.sha,
+          entry.shortSha,
+          entry.committedAt.toISOString(),
+          entry.undoOf === null ? '' : 'undo',
+          entry.redoOf === null ? '' : 'redo',
+          entry.restoreOf === null ? '' : 'restore',
+          ...(filesBySha[entry.sha] ?? []),
+        ],
+        { mode: filterMode, caseSensitive: filterCaseSensitive }
+      )
+
+      return {
+        entries: result.results.map(match => match.item),
+        regexError: result.regexError,
+      }
+    }
+  )
+
+  /**
+   * The unfiltered row index of every loaded entry, rebuilt only when the
+   * loaded timeline changes. Rows need their position in the full timeline —
+   * the HEAD badge belongs to the newest loaded commit, not to whichever row
+   * a filter happens to rank first — and an `indexOf` per rendered row would
+   * rescan the whole list, turning each render into O(n²) comparisons.
+   */
+  private readonly getEntryIndexBySha = memoizeOne(
+    (entries: ReadonlyArray<IVersionHistoryEntry>) =>
+      new Map(entries.map((entry, index) => [entry.sha, index] as const))
+  )
+
+  /**
+   * Split and classify a diff once per diff string instead of on every
+   * render. The dialog re-renders on each filter keystroke, selection change,
+   * and confirmation toggle, and re-splitting a multi-megabyte diff into
+   * fresh per-line spans each time made every one of those interactions pay
+   * for the whole diff again. Lines beyond the cap are dropped here, before
+   * any DOM is built for them.
+   */
+  private readonly getDiffLines = memoizeOne((diff: string) => {
+    const allLines = diff.split('\n')
+    const hiddenLineCount = Math.max(
+      0,
+      allLines.length - MaxVersionHistoryDiffLines
+    )
+    const visibleLines =
+      hiddenLineCount === 0
+        ? allLines
+        : allLines.slice(0, MaxVersionHistoryDiffLines)
+
+    return {
+      lines: visibleLines.map(line => ({
+        line,
+        kind: classifyVersionHistoryDiffLine(line),
+      })),
+      hiddenLineCount,
+    }
+  })
+
   public constructor(props: IVersionedStoreHistoryProps) {
     super(props)
 
@@ -671,53 +758,6 @@ export class VersionedStoreHistory extends React.Component<
     return this.props.errorMessage ?? getErrorMessage(error)
   }
 
-  /**
-   * Filter the loaded timeline once per (entries, filter state) change. The
-   * result is consulted by both the list and the filter status line in the
-   * same render pass, so without memoization every keystroke — and every
-   * unrelated re-render — paid two full match passes over every loaded entry.
-   */
-  private readonly filterEntries = memoizeOne(
-    (
-      entries: ReadonlyArray<IVersionHistoryEntry>,
-      filterText: string,
-      filterMode: FilterMode,
-      filterCaseSensitive: boolean,
-      filesBySha: IVersionedStoreHistoryState['filesBySha'],
-      formatEntrySummary: ((summary: string) => string) | undefined
-    ): {
-      readonly entries: ReadonlyArray<IVersionHistoryEntry>
-      readonly regexError: string | null
-    } => {
-      if (filterText.length === 0) {
-        return { entries, regexError: null }
-      }
-
-      const result = matchWithMode(
-        filterText,
-        entries,
-        entry => [
-          entry.summary,
-          formatEntrySummary?.(entry.summary) ?? entry.summary,
-          entry.body,
-          entry.sha,
-          entry.shortSha,
-          entry.committedAt.toISOString(),
-          entry.undoOf === null ? '' : 'undo',
-          entry.redoOf === null ? '' : 'redo',
-          entry.restoreOf === null ? '' : 'restore',
-          ...(filesBySha[entry.sha] ?? []),
-        ],
-        { mode: filterMode, caseSensitive: filterCaseSensitive }
-      )
-
-      return {
-        entries: result.results.map(match => match.item),
-        regexError: result.regexError,
-      }
-    }
-  )
-
   private getFilteredEntries() {
     const { filterText, filterMode, filterCaseSensitive, filesBySha } =
       this.state
@@ -730,18 +770,6 @@ export class VersionedStoreHistory extends React.Component<
       this.props.formatEntrySummary
     )
   }
-
-  /**
-   * The unfiltered row index of every loaded entry, rebuilt only when the
-   * loaded timeline changes. Rows need their position in the full timeline —
-   * the HEAD badge belongs to the newest loaded commit, not to whichever row
-   * a filter happens to rank first — and an `indexOf` per rendered row would
-   * rescan the whole list, turning each render into O(n²) comparisons.
-   */
-  private readonly getEntryIndexBySha = memoizeOne(
-    (entries: ReadonlyArray<IVersionHistoryEntry>) =>
-      new Map(entries.map((entry, index) => [entry.sha, index] as const))
-  )
 
   private renderFilter(result: {
     readonly entries: ReadonlyArray<IVersionHistoryEntry>
@@ -1001,34 +1029,6 @@ export class VersionedStoreHistory extends React.Component<
       </div>
     )
   }
-
-  /**
-   * Split and classify a diff once per diff string instead of on every
-   * render. The dialog re-renders on each filter keystroke, selection change,
-   * and confirmation toggle, and re-splitting a multi-megabyte diff into
-   * fresh per-line spans each time made every one of those interactions pay
-   * for the whole diff again. Lines beyond the cap are dropped here, before
-   * any DOM is built for them.
-   */
-  private readonly getDiffLines = memoizeOne((diff: string) => {
-    const allLines = diff.split('\n')
-    const hiddenLineCount = Math.max(
-      0,
-      allLines.length - MaxVersionHistoryDiffLines
-    )
-    const visibleLines =
-      hiddenLineCount === 0
-        ? allLines
-        : allLines.slice(0, MaxVersionHistoryDiffLines)
-
-    return {
-      lines: visibleLines.map(line => ({
-        line,
-        kind: classifyVersionHistoryDiffLine(line),
-      })),
-      hiddenLineCount,
-    }
-  })
 
   private renderDiff() {
     if (this.state.loadingDiff) {

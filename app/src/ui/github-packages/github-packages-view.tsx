@@ -393,6 +393,210 @@ export class GitHubPackagesView extends React.Component<
   private versionController: AbortController | null = null
   private transferController: AbortController | null = null
 
+  /**
+   * Memoized so that a render caused by unrelated state (transfer progress,
+   * page appends, selection) reuses the previous filter result instead of
+   * re-running matchWithMode over up to 100,000 rows, and so the row array
+   * identity is stable for the virtualized list.
+   */
+  private getVisiblePackages = memoizeOne(
+    (
+      packages: ReadonlyArray<IGitHubPackage>,
+      packageTypeFilter: PackageTypeFilter,
+      packageQuery: string,
+      mode: FilterMode,
+      caseSensitive: boolean
+    ) => {
+      const candidates =
+        packageTypeFilter === 'all'
+          ? packages
+          : packages.filter(value => value.packageType === packageTypeFilter)
+      const query = packageQuery.trim()
+      if (query.length === 0) {
+        return { packages: candidates, regexError: null as string | null }
+      }
+      const result = matchWithMode(
+        query,
+        candidates,
+        value => [
+          value.name,
+          `${value.packageType} ${value.visibility} ${
+            value.repository?.fullName ?? ''
+          }`,
+        ],
+        { mode, caseSensitive }
+      )
+      return {
+        packages: result.results.map(value => value.item),
+        regexError: result.regexError,
+      }
+    }
+  )
+
+  private getVisibleVersions = memoizeOne(
+    (
+      versions: ReadonlyArray<IGitHubPackageVersion>,
+      versionQuery: string,
+      mode: FilterMode,
+      caseSensitive: boolean
+    ) => {
+      const query = versionQuery.trim()
+      if (query.length === 0) {
+        return { versions, regexError: null as string | null }
+      }
+      const result = matchWithMode(
+        query,
+        versions,
+        value => [
+          value.name,
+          `${value.tags.join(' ')} ${value.description ?? ''} ${
+            value.license ?? ''
+          }`,
+        ],
+        { mode, caseSensitive }
+      )
+      return {
+        versions: result.results.map(value => value.item),
+        regexError: result.regexError,
+      }
+    }
+  )
+
+  /**
+   * Memoized on its data inputs so the virtualized List (a PureComponent)
+   * re-renders exactly when a row could look different and not otherwise.
+   */
+  private createPackageRowRenderer = memoizeOne(
+    (
+        packages: ReadonlyArray<IGitHubPackage>,
+        selectedPackageKey: string | null,
+        account: Account | null
+      ) =>
+      // Not a component: this is a react-virtualized rowRenderer callback, so
+      // ListRowProps is the library's parameter type rather than React props.
+      // eslint-disable-next-line react/prop-types
+      ({ index, key, style }: ListRowProps) => {
+        const value = packages[index]
+        if (value === undefined) {
+          return null
+        }
+        const selected = packageKey(value) === selectedPackageKey
+        const packageURL = providerURL(value.htmlURL, account)
+        return (
+          <div
+            key={key}
+            style={style}
+            role="listitem"
+            className="github-package-virtual-row"
+          >
+            <div className={`github-package-row${selected ? ' selected' : ''}`}>
+              <button
+                type="button"
+                className="github-package-select"
+                data-package-key={packageKey(value)}
+                onClick={this.onSelectPackage}
+                aria-pressed={selected}
+              >
+                <span className="github-package-row-header">
+                  <strong>{value.name}</strong>
+                  <span>
+                    <span className="github-package-kind">
+                      {value.packageType}
+                    </span>{' '}
+                    <span className="github-package-visibility">
+                      {value.visibility}
+                    </span>
+                  </span>
+                </span>
+                <span className="github-package-muted">
+                  {value.versionCount} version
+                  {value.versionCount === 1 ? '' : 's'} · updated{' '}
+                  {value.updatedAt.toLocaleString()}
+                </span>
+              </button>
+              {packageURL !== null && (
+                <LinkButton uri={packageURL}>Open on GitHub</LinkButton>
+              )}
+            </div>
+          </div>
+        )
+      }
+  )
+
+  private createVersionRowRenderer = memoizeOne(
+    (
+        versions: ReadonlyArray<IGitHubPackageVersion>,
+        account: Account | null,
+        isContainerPackage: boolean,
+        canDownload: boolean,
+        busyTransfer: BusyTransfer
+      ) =>
+      // Not a component: this is a react-virtualized rowRenderer callback, so
+      // ListRowProps is the library's parameter type rather than React props.
+      // eslint-disable-next-line react/prop-types
+      ({ index, key, style }: ListRowProps) => {
+        const version = versions[index]
+        if (version === undefined) {
+          return null
+        }
+        const versionURL = providerURL(
+          version.htmlURL ?? version.packageHTMLURL,
+          account
+        )
+        return (
+          <div
+            key={key}
+            style={style}
+            role="listitem"
+            className="github-package-virtual-row"
+          >
+            <div
+              className="github-package-version"
+              data-package-version-id={version.id}
+            >
+              <div className="github-package-version-header">
+                <code>{version.name}</code>
+                <span className="github-package-version-meta">
+                  {version.updatedAt.toLocaleString()}
+                </span>
+              </div>
+              {version.tags.length > 0 && (
+                <div
+                  className="github-package-tags"
+                  role="group"
+                  aria-label="Version tags"
+                >
+                  {version.tags.map(tag => (
+                    <span key={tag} className="github-package-tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="github-package-transfer-actions">
+                {versionURL !== null && (
+                  <LinkButton uri={versionURL}>Open on GitHub</LinkButton>
+                )}
+                {isContainerPackage && (
+                  <Button
+                    onClick={this.onDownloadVersion}
+                    disabled={!canDownload || busyTransfer !== null}
+                    tooltip={
+                      canDownload
+                        ? 'Inspect and download this immutable app file artifact'
+                        : 'Only Desktop Material GHCR file artifacts can be downloaded here'
+                    }
+                  >
+                    Download file
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      }
+  )
+
   public constructor(props: IGitHubPackagesViewProps) {
     super(props)
     this.state = initialState(props)
@@ -764,46 +968,6 @@ export class GitHubPackagesView extends React.Component<
     }
   }
 
-  /**
-   * Memoized so that a render caused by unrelated state (transfer progress,
-   * page appends, selection) reuses the previous filter result instead of
-   * re-running matchWithMode over up to 100,000 rows, and so the row array
-   * identity is stable for the virtualized list.
-   */
-  private getVisiblePackages = memoizeOne(
-    (
-      packages: ReadonlyArray<IGitHubPackage>,
-      packageTypeFilter: PackageTypeFilter,
-      packageQuery: string,
-      mode: FilterMode,
-      caseSensitive: boolean
-    ) => {
-      const candidates =
-        packageTypeFilter === 'all'
-          ? packages
-          : packages.filter(value => value.packageType === packageTypeFilter)
-      const query = packageQuery.trim()
-      if (query.length === 0) {
-        return { packages: candidates, regexError: null as string | null }
-      }
-      const result = matchWithMode(
-        query,
-        candidates,
-        value => [
-          value.name,
-          `${value.packageType} ${value.visibility} ${
-            value.repository?.fullName ?? ''
-          }`,
-        ],
-        { mode, caseSensitive }
-      )
-      return {
-        packages: result.results.map(value => value.item),
-        regexError: result.regexError,
-      }
-    }
-  )
-
   private visiblePackages() {
     return this.getVisiblePackages(
       this.state.packages,
@@ -815,34 +979,6 @@ export class GitHubPackagesView extends React.Component<
   }
 
   /** See getVisiblePackages; the same memoization for version rows. */
-  private getVisibleVersions = memoizeOne(
-    (
-      versions: ReadonlyArray<IGitHubPackageVersion>,
-      versionQuery: string,
-      mode: FilterMode,
-      caseSensitive: boolean
-    ) => {
-      const query = versionQuery.trim()
-      if (query.length === 0) {
-        return { versions, regexError: null as string | null }
-      }
-      const result = matchWithMode(
-        query,
-        versions,
-        value => [
-          value.name,
-          `${value.tags.join(' ')} ${value.description ?? ''} ${
-            value.license ?? ''
-          }`,
-        ],
-        { mode, caseSensitive }
-      )
-      return {
-        versions: result.results.map(value => value.item),
-        regexError: result.regexError,
-      }
-    }
-  )
 
   private visibleVersions() {
     return this.getVisibleVersions(
@@ -1279,64 +1415,6 @@ export class GitHubPackagesView extends React.Component<
     return total
   }
 
-  /**
-   * Memoized on its data inputs so the virtualized List (a PureComponent)
-   * re-renders exactly when a row could look different and not otherwise.
-   */
-  private createPackageRowRenderer = memoizeOne(
-    (
-        packages: ReadonlyArray<IGitHubPackage>,
-        selectedPackageKey: string | null,
-        account: Account | null
-      ) =>
-      ({ index, key, style }: ListRowProps) => {
-        const value = packages[index]
-        if (value === undefined) {
-          return null
-        }
-        const selected = packageKey(value) === selectedPackageKey
-        const packageURL = providerURL(value.htmlURL, account)
-        return (
-          <div
-            key={key}
-            style={style}
-            role="listitem"
-            className="github-package-virtual-row"
-          >
-            <div className={`github-package-row${selected ? ' selected' : ''}`}>
-              <button
-                type="button"
-                className="github-package-select"
-                data-package-key={packageKey(value)}
-                onClick={this.onSelectPackage}
-                aria-pressed={selected}
-              >
-                <span className="github-package-row-header">
-                  <strong>{value.name}</strong>
-                  <span>
-                    <span className="github-package-kind">
-                      {value.packageType}
-                    </span>{' '}
-                    <span className="github-package-visibility">
-                      {value.visibility}
-                    </span>
-                  </span>
-                </span>
-                <span className="github-package-muted">
-                  {value.versionCount} version
-                  {value.versionCount === 1 ? '' : 's'} · updated{' '}
-                  {value.updatedAt.toLocaleString()}
-                </span>
-              </button>
-              {packageURL !== null && (
-                <LinkButton uri={packageURL}>Open on GitHub</LinkButton>
-              )}
-            </div>
-          </div>
-        )
-      }
-  )
-
   private renderPackageList() {
     const visible = this.visiblePackages()
     const hasMore = Object.keys(this.state.nextPackagePages).length > 0
@@ -1449,7 +1527,7 @@ export class GitHubPackagesView extends React.Component<
             className="github-packages-list"
             style={{ height: packageListHeight }}
           >
-            <AutoSizer disableHeight>
+            <AutoSizer disableHeight={true}>
               {({ width }) => (
                 <List
                   {...virtualizedListContainerProps}
@@ -1471,76 +1549,6 @@ export class GitHubPackagesView extends React.Component<
   }
 
   /** See createPackageRowRenderer for the memoization rationale. */
-  private createVersionRowRenderer = memoizeOne(
-    (
-        versions: ReadonlyArray<IGitHubPackageVersion>,
-        account: Account | null,
-        isContainerPackage: boolean,
-        canDownload: boolean,
-        busyTransfer: BusyTransfer
-      ) =>
-      ({ index, key, style }: ListRowProps) => {
-        const version = versions[index]
-        if (version === undefined) {
-          return null
-        }
-        const versionURL = providerURL(
-          version.htmlURL ?? version.packageHTMLURL,
-          account
-        )
-        return (
-          <div
-            key={key}
-            style={style}
-            role="listitem"
-            className="github-package-virtual-row"
-          >
-            <div
-              className="github-package-version"
-              data-package-version-id={version.id}
-            >
-              <div className="github-package-version-header">
-                <code>{version.name}</code>
-                <span className="github-package-version-meta">
-                  {version.updatedAt.toLocaleString()}
-                </span>
-              </div>
-              {version.tags.length > 0 && (
-                <div
-                  className="github-package-tags"
-                  role="group"
-                  aria-label="Version tags"
-                >
-                  {version.tags.map(tag => (
-                    <span key={tag} className="github-package-tag">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              )}
-              <div className="github-package-transfer-actions">
-                {versionURL !== null && (
-                  <LinkButton uri={versionURL}>Open on GitHub</LinkButton>
-                )}
-                {isContainerPackage && (
-                  <Button
-                    onClick={this.onDownloadVersion}
-                    disabled={!canDownload || busyTransfer !== null}
-                    tooltip={
-                      canDownload
-                        ? 'Inspect and download this immutable app file artifact'
-                        : 'Only Desktop Material GHCR file artifacts can be downloaded here'
-                    }
-                  >
-                    Download file
-                  </Button>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      }
-  )
 
   private renderPackageDetail() {
     const selected = this.selectedPackage()
@@ -1641,7 +1649,7 @@ export class GitHubPackagesView extends React.Component<
             className="github-package-versions"
             style={{ height: versionListHeight }}
           >
-            <AutoSizer disableHeight>
+            <AutoSizer disableHeight={true}>
               {({ width }) => (
                 <List
                   {...virtualizedListContainerProps}
