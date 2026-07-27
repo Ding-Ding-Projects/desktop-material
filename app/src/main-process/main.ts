@@ -64,6 +64,7 @@ import {
   setModernContextMenuInstalled,
   setWindowsContextMenuEntryInstalled,
 } from './windows-context-menu-installer'
+import { repairStaleShellExtensionRegistration } from './shell-extension-installer'
 import { QuickActionWindow } from './quick-action-window'
 import { IQuickActionRequest, decideQuickAction } from '../lib/quick-action'
 import {
@@ -605,6 +606,13 @@ if (__DARWIN__) {
 
 /** Quick-action windows currently open, keyed by their webContents id. */
 const quickActionWindows = new Map<number, QuickActionWindow>()
+
+/**
+ * How long after launch the shell-extension registration is checked. Long
+ * enough to stay out of the cold-start path, short enough that a user who opens
+ * Explorer straight after launching finds their menu repaired.
+ */
+const ShellExtensionRepairDelayMs = 5_000
 
 /**
  * Open the small always-on-top window for an Explorer context-menu verb.
@@ -1210,6 +1218,25 @@ app.on('ready', () => {
     ipcMain.on('quick-action-opened', (_event, elapsedMs) => {
       log.info(`Quick action window interactive in ${elapsedMs}ms`)
     })
+
+    // An update installs into a new `app-<version>` directory and eventually
+    // deletes the old one, which used to strand the shell extension's
+    // registration on a path that no longer existed — the package still
+    // reported itself installed while Explorer showed nothing. Repair it here,
+    // and only for a user who already had it registered: this restores a
+    // choice, it never makes one.
+    //
+    // Deferred because the check shells out to PowerShell on every Windows
+    // launch, including the overwhelmingly common one where nothing is
+    // registered at all. A menu that has been broken since the last update can
+    // wait a few more seconds; a slower cold start cannot be given back.
+    setTimeout(
+      () =>
+        repairStaleShellExtensionRegistration().catch(error =>
+          log.warn('Could not check the shell-extension registration', error)
+        ),
+      ShellExtensionRepairDelayMs
+    )
 
     // Explorer context-menu entries. Both handlers are per-user (HKCU) and
     // never elevate; the labels come from the renderer because the language

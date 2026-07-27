@@ -83,6 +83,65 @@ before enabling or returning an icon. Both the DLL's PE machine and the sparse
 manifest identity match the product lane (`x64` or `arm64`); an ARM64 build on
 an x64 runner uses MSVC's `Hostx64\arm64` cross-toolchain.
 
+#### Where `<app-root>` points, and why it outlives an update
+
+Windows records the external location **once, at registration**, and never
+revisits it. An installed build runs from Squirrel's per-version directory
+(`%LOCALAPPDATA%\GitHubDesktop\app-<version>\`), which the *next* update
+replaces with a new one and eventually deletes — so a registration recorded
+against it is valid for exactly one release. The package goes on reporting
+`Status: Ok` from a folder that no longer exists, and the top-level menu
+silently disappears. That was issue #66.
+
+The contract is therefore:
+
+<!-- markdownlint-disable MD013 -->
+
+| Layout | External location | Why |
+| --- | --- | --- |
+| Installed (Squirrel) | `%LOCALAPPDATA%\GitHubDesktop\` — the update root | Holds the stub `GitHubDesktop.exe` the manifest's `Executable` names, which Squirrel keeps pointed at the current version, and survives every update. |
+| Anything else (development, portable, an unpackaged build directory) | The directory holding `process.execPath` | Unchanged behaviour: there is no versioned directory to climb out of. |
+
+<!-- markdownlint-enable MD013 -->
+
+The update root is only chosen when that stub executable is genuinely there;
+without it the manifest's `Executable` entry would not resolve, so the
+executable's own directory is kept instead. `process.execPath` still decides
+*which* install is registering, so a portable or side-by-side copy registers
+itself rather than another install.
+
+Because the external location now outlives the version that wrote it, the
+`shell-extension` folder copied beside the launcher is **refreshed on every
+registration** rather than only when absent — otherwise the first release's DLL
+would be the one every later release registers. The refresh is best-effort:
+Explorer keeps the DLL loaded once the menu has been shown, which locks the
+file, so a failed copy falls back to the folder already in place rather than
+losing a working registration.
+
+#### Repair after an update, and the stale state
+
+Registration state is not mirrored into a preference — the registration itself
+*is* the user's opt-in. On every Windows launch the app asks
+`Get-AppxPackage` not just *whether* the package is registered but **where
+from**, and compares that recorded directory against the one this install would
+register:
+
+- **absent** — nothing registered. Left strictly alone: repair restores a
+  choice, it never makes one, so a user who never turned the feature on (or who
+  turned it off) never finds it on.
+- **current** — recorded against this install. The mode reads `modern`.
+- **stale** — recorded somewhere this install does not own, or nowhere at all
+  (Windows empties `InstallLocation` once the folder is gone). Silently
+  re-registered against the current install, with the outcome logged.
+
+A stale registration deliberately **does not report `modern`**. It surfaces as
+the `registration-stale` blocker with the mode falling back to `classic` or
+`none`, because Explorer really is showing nothing; reporting the mode the
+*package* claims rather than the one the *user* has is what turned a broken
+feature into an invisible one. It is also the one blocker that leaves the
+toggle operable — switching it on re-registers — where every other blocker
+names a host prerequisite the app will not change and so disables the toggle.
+
 **Known limitation:** the packaged handler's menu labels are English only. The
 COM server is loaded by Explorer, not by the app, so it has no access to the
 renderer's persisted language mode — unlike the classic verbs, whose `MUIVerb`
@@ -105,6 +164,13 @@ by an app update, reports honestly. An entry whose command no longer matches the
 current install reads as present with a "turn it off and on again to repair"
 hint, because Explorer really is still showing it.
 
+The packaged toggle is the mirror image: a registration pointing outside this
+install reads as **off**, with a message saying it still points at a folder from
+an earlier version, because Explorer really is showing nothing. Launch-time
+repair normally clears it before the user ever opens the pane; it stays visible
+when the repair could not run (sideloading turned off since, or a build with no
+package).
+
 ## Failure modes
 
 <!-- markdownlint-disable MD013 -->
@@ -115,6 +181,9 @@ hint, because Explorer really is still showing it.
 | Windows 10 | Packaged handler unavailable (`requires-windows-11`); classic verbs work normally. |
 | Build has no shell extension (no C++ toolchain at build time) | `package-missing`; classic verbs work normally. |
 | Sideloading disabled | `developer-mode-required`. See the security note below. |
+| App updated after the handler was registered | The launch-time check finds the recorded location is no longer this install and re-registers silently. The user's opt-in is preserved either way: nothing is registered for a user who had it off. |
+| Registration is stale and cannot be repaired | `registration-stale`: reported as **not** active, with the reason, and the toggle stays operable so switching it on re-registers. A more fundamental blocker (Windows 10, no package, sideloading off) is named ahead of it, because that is what must be fixed first. |
+| Refreshing the copied package fails because Explorer has the DLL loaded | The registration proceeds against the copy already in place rather than failing. |
 | Registration fails at runtime | The error is shown verbatim and the classic verbs remain active. |
 | Quick window fails to load | Falls back to opening the folder in the full app. |
 | Unpublished repository has no remote, or several non-`origin` remotes | The commit still succeeds; the push is refused rather than guessing, and says so. |
@@ -174,7 +243,12 @@ register a package:
 - `app/test/unit/shell-extension-package-test.ts` — manifest generation, the
   X.500 publisher and bare-CLSID forms the MSIX schema requires, path-traversal
   refusal, x64/arm64 identity, mode decision, and a cross-check that the
-  manifest's CLSID matches the one compiled into `dllmain.cpp`.
+  manifest's CLSID matches the one compiled into `dllmain.cpp`. Plus the
+  update-stability contract: the chosen external location never contains an
+  `app-<version>` segment, an unpackaged layout is left exactly as it was, a
+  registration whose location is gone or belongs to another install reads as
+  stale, a stale registration never reports `modern`, and repair fires for
+  `stale` while `absent` is left alone.
 - `script/build-shell-extension-test.ts` — target-aware MSVC discovery, x64
   and ARM64 PE-machine validation, a real x64 DLL load from the packaged
   directory, root-executable state/icon resolution, and a real ARM64
@@ -211,6 +285,22 @@ enabled — no security setting was changed):
   `GitHubDesktop.exe`. Registration now self-heals by copying the shipped
   folder into place (`decideShellExtensionPackageSource`), which also rescues
   every already-shipped build.
+
+Diagnosed live on 2026-07-27 (issue #66, same host):
+
+- `Get-AppxPackage -Name DesktopMaterial.ShellExtension` reported
+  `Architecture: X64`, `Status: Ok` — and an `InstallLocation` of
+  `…\Local\dm-ctxmenu-live\GitHubDesktop-win32-x64\shell-extension`, a scratch
+  verification directory rather than the installed app. Two Squirrel
+  `app-<version>` directories coexisted at the time, which is exactly the state
+  that strands a registration.
+- Architecture mismatch, COM activation failure, and a missing package were all
+  ruled out. The registration was intact; the directory it named was not the
+  app.
+- The fix — a version-stable external location plus launch-time repair — is
+  covered by unit tests. A real post-update re-registration has not yet been
+  observed end to end on a shipped build, because that needs an installed build
+  carrying this change to be updated over; when it is, record it here.
 
 A cold-open timing figure from a packaged build is still outstanding; the
 instrumentation is in place and logs `Quick action window interactive in <n>ms`.

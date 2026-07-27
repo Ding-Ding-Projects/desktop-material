@@ -24,6 +24,7 @@ import {
   IWindowsContextMenuState,
   WindowsContextMenuEntryId,
 } from '../../lib/windows-context-menu'
+import { isModernContextMenuActionable } from '../../lib/shell-extension-package'
 
 const CustomIntegrationValue = 'other'
 const BranchPresetScriptDocumentationUrl =
@@ -688,6 +689,8 @@ export class Integrations extends React.Component<
         ? translate('settings.contextMenuPackageMissing', languageMode)
         : blocker === 'developer-mode-required'
         ? translate('settings.contextMenuNeedsDeveloperMode', languageMode)
+        : blocker === 'registration-stale'
+        ? translate('settings.contextMenuRegistrationStale', languageMode)
         : null
 
     const modeText =
@@ -708,7 +711,10 @@ export class Integrations extends React.Component<
           disabled={
             contextMenu === null ||
             contextMenuBusyId !== null ||
-            (blocker !== null && mode !== 'modern')
+            // A stale registration is the one blocker this toggle can clear,
+            // so it stays operable: switching it on re-registers against the
+            // current install.
+            (!isModernContextMenuActionable(blocker) && mode !== 'modern')
           }
           ariaDescribedBy={descriptionId}
         />

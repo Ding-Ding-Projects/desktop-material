@@ -12,11 +12,17 @@ import {
   buildShellExtensionManifest,
   buildUnregisterPackageArguments,
   decideContextMenuMode,
+  decideShellExtensionExternalLocation,
   decideShellExtensionPackageSource,
+  decideShellExtensionRegistrationState,
+  decideShellExtensionRepair,
   escapeXml,
   formatX500Publisher,
+  isModernContextMenuActionable,
+  isSameWindowsPath,
   manifestClsid,
   parsePackageRegistrationOutput,
+  squirrelUpdateRoot,
 } from '../../src/lib/shell-extension-package'
 
 // Generation-only coverage. Nothing here registers a package, writes a
@@ -245,10 +251,209 @@ describe('shell extension package', () => {
           arg.includes(ShellExtensionPackageName)
         )
       )
-      assert.equal(parsePackageRegistrationOutput('registered\r\n'), true)
-      assert.equal(parsePackageRegistrationOutput('  Registered '), true)
-      assert.equal(parsePackageRegistrationOutput('absent\n'), false)
-      assert.equal(parsePackageRegistrationOutput(''), false)
+      assert.deepEqual(
+        parsePackageRegistrationOutput(
+          'registered\r\nC:\\app\\shell-extension'
+        ),
+        { registered: true, installLocation: 'C:\\app\\shell-extension' }
+      )
+      assert.deepEqual(parsePackageRegistrationOutput('  Registered \r\n'), {
+        registered: true,
+        installLocation: null,
+      })
+      assert.deepEqual(parsePackageRegistrationOutput('absent\n'), {
+        registered: false,
+        installLocation: null,
+      })
+      assert.deepEqual(parsePackageRegistrationOutput(''), {
+        registered: false,
+        installLocation: null,
+      })
+    })
+
+    it('asks where the package is registered from, not only whether it is', () => {
+      // A registration recorded against a deleted directory still answers
+      // "registered", so the location is the half that detects issue #66.
+      assert.ok(
+        buildQueryPackageArguments().some(arg =>
+          arg.includes('InstallLocation')
+        )
+      )
+    })
+
+    it('registers against the location the caller chose', () => {
+      // The manifest may sit under the external location; the two arguments are
+      // distinct and must not be collapsed into one.
+      const args = buildRegisterPackageArguments(
+        'C:\\Users\\a\\AppData\\Local\\GitHubDesktop\\shell-extension\\AppxManifest.xml',
+        'C:\\Users\\a\\AppData\\Local\\GitHubDesktop'
+      )
+      assert.equal(
+        args[args.indexOf('-ExternalLocation') + 1],
+        'C:\\Users\\a\\AppData\\Local\\GitHubDesktop'
+      )
+    })
+  })
+
+  describe('external location', () => {
+    // Issue #66: Windows records the external location once and never revisits
+    // it, so naming Squirrel's `app-<version>` directory gives the registration
+    // a shelf life of exactly one update.
+    const installed =
+      'C:\\Users\\a\\AppData\\Local\\GitHubDesktop\\app-3.6.3-beta3-zadtuyunxj'
+    const root = 'C:\\Users\\a\\AppData\\Local\\GitHubDesktop'
+
+    it('recognises a Squirrel versioned directory and its stable root', () => {
+      assert.equal(squirrelUpdateRoot(installed), root)
+      assert.equal(squirrelUpdateRoot(`${installed}\\`), root)
+      assert.equal(squirrelUpdateRoot('C:\\Program Files\\Whatever'), null)
+      assert.equal(
+        squirrelUpdateRoot('C:\\dm-ctxmenu-live\\GitHubDesktop-win32-x64'),
+        null
+      )
+      // `app` alone is not a version directory; a bare drive has no root above.
+      assert.equal(squirrelUpdateRoot('C:\\app'), null)
+      assert.equal(squirrelUpdateRoot('C:\\'), null)
+    })
+
+    it('chooses a location no update can take away', () => {
+      const chosen = decideShellExtensionExternalLocation(installed, true)
+
+      assert.equal(chosen, root)
+      assert.equal(
+        /\\app-\d/.test(chosen),
+        false,
+        'the external location must not name a per-version install directory'
+      )
+    })
+
+    it('keeps the executable directory when the root holds no launcher', () => {
+      // Registering against a directory with no `GitHubDesktop.exe` in it would
+      // break the manifest's Executable entry, which is worse than rotting.
+      assert.equal(
+        decideShellExtensionExternalLocation(installed, false),
+        installed
+      )
+    })
+
+    it('leaves an unpackaged or development layout exactly as it was', () => {
+      const unpackaged = 'C:\\dm-ctxmenu-live\\GitHubDesktop-win32-x64'
+
+      assert.equal(
+        decideShellExtensionExternalLocation(unpackaged, false),
+        unpackaged
+      )
+      // Even if something above it happens to hold a launcher: without an
+      // `app-<version>` directory there is no Squirrel root to climb to.
+      assert.equal(
+        decideShellExtensionExternalLocation(unpackaged, true),
+        unpackaged
+      )
+    })
+
+    it('compares Windows paths the way Windows does', () => {
+      assert.equal(isSameWindowsPath('C:\\App\\X', 'c:\\app\\x'), true)
+      assert.equal(isSameWindowsPath('C:\\App\\X\\', 'C:/App/X'), true)
+      assert.equal(isSameWindowsPath('C:\\App\\X', 'C:\\App\\Y'), false)
+    })
+  })
+
+  describe('registration freshness', () => {
+    const expected = {
+      expectedExternalLocation: 'C:\\Users\\a\\AppData\\Local\\GitHubDesktop',
+      expectedManifestDirectory:
+        'C:\\Users\\a\\AppData\\Local\\GitHubDesktop\\shell-extension',
+    }
+
+    it('reports absent when nothing is registered', () => {
+      assert.equal(
+        decideShellExtensionRegistrationState({
+          ...expected,
+          registration: { registered: false, installLocation: null },
+          installLocationExists: false,
+        }),
+        'absent'
+      )
+    })
+
+    it('accepts either spelling of this install', () => {
+      for (const location of [
+        expected.expectedManifestDirectory,
+        expected.expectedExternalLocation,
+        'c:/users/a/appdata/local/githubdesktop/shell-extension/',
+      ]) {
+        assert.equal(
+          decideShellExtensionRegistrationState({
+            ...expected,
+            registration: { registered: true, installLocation: location },
+            installLocationExists: true,
+          }),
+          'current',
+          location
+        )
+      }
+    })
+
+    it('detects a registration whose location no longer exists', () => {
+      // The update case: `app-<version>` was deleted out from under a
+      // registration that still reports Status: Ok.
+      assert.equal(
+        decideShellExtensionRegistrationState({
+          ...expected,
+          registration: {
+            registered: true,
+            installLocation:
+              'C:\\Users\\a\\AppData\\Local\\GitHubDesktop\\app-3.6.3-beta3-zadtxjinmz\\shell-extension',
+          },
+          installLocationExists: false,
+        }),
+        'stale'
+      )
+    })
+
+    it('detects a registration pointing outside this install', () => {
+      // Both `app-<version>` directories can coexist for a while, so the old
+      // path existing proves nothing about which install owns it.
+      assert.equal(
+        decideShellExtensionRegistrationState({
+          ...expected,
+          registration: {
+            registered: true,
+            installLocation:
+              'C:\\Users\\a\\AppData\\Local\\GitHubDesktop\\app-3.6.3-beta3-zadtxjinmz\\shell-extension',
+          },
+          installLocationExists: true,
+        }),
+        'stale'
+      )
+    })
+
+    it('treats a registration with nowhere recorded as stale', () => {
+      // Windows empties InstallLocation once the registered folder is gone.
+      assert.equal(
+        decideShellExtensionRegistrationState({
+          ...expected,
+          registration: { registered: true, installLocation: null },
+          installLocationExists: false,
+        }),
+        'stale'
+      )
+    })
+  })
+
+  describe('post-update repair', () => {
+    it('repairs a stale registration', () => {
+      assert.equal(decideShellExtensionRepair('stale'), 're-register')
+    })
+
+    it('never registers for a user who did not ask for it', () => {
+      // `absent` covers everyone who never turned the feature on and everyone
+      // who turned it off. Repair restores a choice; it never makes one.
+      assert.equal(decideShellExtensionRepair('absent'), 'none')
+    })
+
+    it('leaves a healthy registration alone', () => {
+      assert.equal(decideShellExtensionRepair('current'), 'none')
     })
   })
 
@@ -257,12 +462,15 @@ describe('shell extension package', () => {
       isWindows11OrLater: true,
       packagePresent: true,
       canRegisterLoosePackage: true,
-      packageRegistered: false,
+      registrationState: 'absent' as const,
     }
 
     it('reports modern when the package is registered', () => {
       assert.deepEqual(
-        decideContextMenuMode({ ...capable, packageRegistered: true }, false),
+        decideContextMenuMode(
+          { ...capable, registrationState: 'current' },
+          false
+        ),
         { mode: 'modern', modernBlocker: null }
       )
     })
@@ -276,11 +484,57 @@ describe('shell extension package', () => {
             isWindows11OrLater: true,
             packagePresent: true,
             canRegisterLoosePackage: false,
-            packageRegistered: true,
+            registrationState: 'current',
           },
           true
         ),
         { mode: 'modern', modernBlocker: null }
+      )
+    })
+
+    it('refuses to call a stale registration modern', () => {
+      // Issue #66: the package reported Status: Ok from a directory a later
+      // update deleted, and the pane echoed it as "on" while Explorer showed
+      // nothing. A stale registration is a named, visible state instead.
+      assert.deepEqual(
+        decideContextMenuMode({ ...capable, registrationState: 'stale' }, true),
+        { mode: 'classic', modernBlocker: 'registration-stale' }
+      )
+      assert.deepEqual(
+        decideContextMenuMode(
+          { ...capable, registrationState: 'stale' },
+          false
+        ),
+        { mode: 'none', modernBlocker: 'registration-stale' }
+      )
+    })
+
+    it('keeps the stale toggle operable and every other blocker disabled', () => {
+      // Switching it on re-registers, which is the whole repair. Nothing else
+      // on this list is fixable from inside the app.
+      assert.equal(isModernContextMenuActionable('registration-stale'), true)
+      assert.equal(isModernContextMenuActionable(null), true)
+      assert.equal(isModernContextMenuActionable('requires-windows-11'), false)
+      assert.equal(isModernContextMenuActionable('package-missing'), false)
+      assert.equal(
+        isModernContextMenuActionable('developer-mode-required'),
+        false
+      )
+    })
+
+    it('names the prerequisite ahead of the staleness it prevents fixing', () => {
+      // Re-registering needs sideloading, so that is the actionable blocker
+      // even though the registration is also stale.
+      assert.equal(
+        decideContextMenuMode(
+          {
+            ...capable,
+            canRegisterLoosePackage: false,
+            registrationState: 'stale',
+          },
+          true
+        ).modernBlocker,
+        'developer-mode-required'
       )
     })
 
@@ -322,7 +576,7 @@ describe('shell extension package', () => {
             isWindows11OrLater: false,
             packagePresent: false,
             canRegisterLoosePackage: false,
-            packageRegistered: false,
+            registrationState: 'absent',
           },
           true
         ).modernBlocker,
@@ -355,6 +609,25 @@ describe('shell extension package', () => {
 
     it('reports a build without the package as missing', () => {
       assert.equal(decideShellExtensionPackageSource(false, false), 'missing')
+      assert.equal(
+        decideShellExtensionPackageSource(false, false, true),
+        'missing'
+      )
+    })
+
+    it('replaces the copy left behind by an earlier version when refreshing', () => {
+      // The external location now outlives the version that wrote it, so
+      // without a refresh every later release would register the first
+      // release's DLL forever.
+      assert.equal(
+        decideShellExtensionPackageSource(true, true, true),
+        'copy-from-resources'
+      )
+      // Nothing to refresh from: keep the working copy rather than losing it.
+      assert.equal(
+        decideShellExtensionPackageSource(true, false, true),
+        'beside-executable'
+      )
     })
   })
 })

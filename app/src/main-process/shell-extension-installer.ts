@@ -7,12 +7,17 @@ import {
   ContextMenuMode,
   IModernContextMenuObservation,
   ModernContextMenuBlocker,
+  ShellExtensionRegistrationState,
   buildQueryPackageArguments,
   buildRegisterPackageArguments,
   buildUnregisterPackageArguments,
   decideContextMenuMode,
+  decideShellExtensionExternalLocation,
   decideShellExtensionPackageSource,
+  decideShellExtensionRegistrationState,
+  decideShellExtensionRepair,
   parsePackageRegistrationOutput,
+  squirrelUpdateRoot,
 } from '../lib/shell-extension-package'
 
 /**
@@ -32,11 +37,36 @@ import {
 
 const PowerShellTimeoutMs = 30_000
 
-/** Where the shell-extension package lives inside an install. */
-export function shellExtensionPackageDirectory(): string {
-  // `process.execPath` is the running executable, so a portable or side-by-side
-  // install registers its own copy rather than another install's.
-  return Path.join(Path.dirname(process.execPath), 'shell-extension')
+/**
+ * The directory a registration names as the package's external location.
+ *
+ * Every relative path in the manifest — the DLL, the assets, and the
+ * `Executable` — resolves against this, so it must hold both
+ * `GitHubDesktop.exe` and the `shell-extension` folder. In an installed build
+ * that is the Squirrel root rather than the `app-<version>` directory
+ * `process.execPath` lives in: Windows records this path once and never
+ * revisits it, and the versioned directory is deleted by a later update while
+ * the registration recorded against it survives (issue #66).
+ *
+ * `process.execPath` still decides *which* install this is, so a portable or
+ * side-by-side layout registers its own copy rather than another install's.
+ */
+export async function shellExtensionExternalLocation(): Promise<string> {
+  const executableDirectory = Path.dirname(process.execPath)
+  const updateRoot = squirrelUpdateRoot(executableDirectory)
+  const updateRootHoldsLauncher =
+    updateRoot !== null &&
+    (await pathExists(Path.join(updateRoot, Path.basename(process.execPath))))
+
+  return decideShellExtensionExternalLocation(
+    executableDirectory,
+    updateRootHoldsLauncher
+  )
+}
+
+/** Where the shell-extension package must sit for a registration to work. */
+export async function shellExtensionPackageDirectory(): Promise<string> {
+  return Path.join(await shellExtensionExternalLocation(), 'shell-extension')
 }
 
 /**
@@ -49,26 +79,42 @@ export function shellExtensionResourcesDirectory(): string {
 }
 
 /**
- * Make the registrable layout exist, copying the shipped folder beside the
- * executable when this install has never registered before. Returns the
- * package directory, or null when this build ships no package at all.
+ * Make the registrable layout exist beside the executable the external
+ * location names, copying the shipped folder into place. Returns the package
+ * directory, or null when this build ships no package at all.
+ *
+ * The copy is refreshed on every registration, because the external location
+ * now outlives the version that wrote it: without this, the folder an earlier
+ * release left at the Squirrel root would be the one every later release
+ * registers. It is best-effort — Explorer keeps the DLL loaded once the menu
+ * has been shown, which locks the file — so a failed refresh falls back to the
+ * folder already in place rather than losing a working registration.
  */
-async function ensureRegistrableShellExtensionPackage(): Promise<
-  string | null
-> {
-  const packageDirectory = shellExtensionPackageDirectory()
+async function ensureRegistrableShellExtensionPackage(
+  packageDirectory: string
+): Promise<string | null> {
   const resourcesDirectory = shellExtensionResourcesDirectory()
   const [besideExecutable, insideResources] = await Promise.all([
     pathExists(Path.join(packageDirectory, 'AppxManifest.xml')),
     pathExists(Path.join(resourcesDirectory, 'AppxManifest.xml')),
   ])
   switch (
-    decideShellExtensionPackageSource(besideExecutable, insideResources)
+    decideShellExtensionPackageSource(besideExecutable, insideResources, true)
   ) {
     case 'beside-executable':
       return packageDirectory
     case 'copy-from-resources':
-      await cp(resourcesDirectory, packageDirectory, { recursive: true })
+      try {
+        await cp(resourcesDirectory, packageDirectory, { recursive: true })
+      } catch (error) {
+        if (!besideExecutable) {
+          throw error
+        }
+        log.warn(
+          'Could not refresh the shell-extension package; registering the copy already in place',
+          error
+        )
+      }
       return packageDirectory
     case 'missing':
       return null
@@ -137,16 +183,38 @@ function isWindows11OrLater(): boolean {
   return build >= 22000
 }
 
-async function isPackageRegistered(): Promise<boolean> {
+/**
+ * Ask Windows what is registered and judge it against this install.
+ *
+ * The judgement is the point: a package registered from a directory a later
+ * update deleted still answers "registered", so believing that answer is what
+ * let a dead context menu keep reporting itself as enabled.
+ */
+async function observeShellExtensionRegistration(): Promise<ShellExtensionRegistrationState> {
+  let output: string
   try {
-    return parsePackageRegistrationOutput(
-      await runPowerShell(buildQueryPackageArguments())
-    )
+    output = await runPowerShell(buildQueryPackageArguments())
   } catch {
-    // A failed query means we cannot prove it is registered, which for a status
-    // display is the same as not registered.
-    return false
+    // A failed query means we cannot prove anything is registered, which for a
+    // status display is the same as nothing being registered.
+    return 'absent'
   }
+
+  const registration = parsePackageRegistrationOutput(output)
+  const expectedExternalLocation = await shellExtensionExternalLocation()
+  const installLocationExists =
+    registration.installLocation !== null &&
+    (await pathExists(registration.installLocation))
+
+  return decideShellExtensionRegistrationState({
+    registration,
+    installLocationExists,
+    expectedManifestDirectory: Path.join(
+      expectedExternalLocation,
+      'shell-extension'
+    ),
+    expectedExternalLocation,
+  })
 }
 
 /** Probe everything the mode decision depends on. */
@@ -156,21 +224,20 @@ export async function observeModernContextMenu(): Promise<IModernContextMenuObse
       isWindows11OrLater: false,
       packagePresent: false,
       canRegisterLoosePackage: false,
-      packageRegistered: false,
+      registrationState: 'absent',
     }
   }
 
   // Present in either location counts: registration self-heals the layout by
   // copying the shipped folder beside the executable.
-  const [besideExecutable, insideResources, packageRegistered] =
+  const packageDirectory = await shellExtensionPackageDirectory()
+  const [besideExecutable, insideResources, registrationState] =
     await Promise.all([
-      pathExists(
-        Path.join(shellExtensionPackageDirectory(), 'AppxManifest.xml')
-      ),
+      pathExists(Path.join(packageDirectory, 'AppxManifest.xml')),
       pathExists(
         Path.join(shellExtensionResourcesDirectory(), 'AppxManifest.xml')
       ),
-      isPackageRegistered(),
+      observeShellExtensionRegistration(),
     ])
   const packagePresent =
     decideShellExtensionPackageSource(besideExecutable, insideResources) !==
@@ -180,7 +247,7 @@ export async function observeModernContextMenu(): Promise<IModernContextMenuObse
     isWindows11OrLater: isWindows11OrLater(),
     packagePresent,
     canRegisterLoosePackage: canRegisterLoosePackage(),
-    packageRegistered,
+    registrationState,
   }
 }
 
@@ -202,11 +269,16 @@ export async function getContextMenuMode(
 /**
  * Register the sparse package for the current user.
  *
- * The app's install directory is passed as the external location, which is what
- * lets the package reference binaries that live outside it.
+ * The update-stable install root is passed as the external location, which is
+ * what lets the package reference binaries that live outside it — and what
+ * keeps the reference valid after the next update moves the app into a new
+ * `app-<version>` directory.
  */
 export async function registerShellExtensionPackage(): Promise<void> {
-  const packageDirectory = await ensureRegistrableShellExtensionPackage()
+  const externalLocation = await shellExtensionExternalLocation()
+  const packageDirectory = await ensureRegistrableShellExtensionPackage(
+    Path.join(externalLocation, 'shell-extension')
+  )
 
   if (packageDirectory === null) {
     throw new Error(
@@ -217,7 +289,7 @@ export async function registerShellExtensionPackage(): Promise<void> {
   await runPowerShell(
     buildRegisterPackageArguments(
       Path.join(packageDirectory, 'AppxManifest.xml'),
-      Path.dirname(process.execPath)
+      externalLocation
     )
   )
 }
@@ -225,4 +297,52 @@ export async function registerShellExtensionPackage(): Promise<void> {
 /** Remove the registered package for the current user. */
 export async function unregisterShellExtensionPackage(): Promise<void> {
   await runPowerShell(buildUnregisterPackageArguments())
+}
+
+/** What a launch-time freshness check did. */
+export type ShellExtensionRepairOutcome =
+  /** Not Windows, so there is no registration to hold an opinion about. */
+  | 'not-applicable'
+  /** The user has not turned the feature on. Nothing is registered for them. */
+  | 'not-registered'
+  /** Already registered against this install. */
+  | 'current'
+  /** Was pointing somewhere this install does not own, and now is not. */
+  | 'repaired'
+  /** Needed repair and could not be repaired; settings reports it honestly. */
+  | 'failed'
+
+/**
+ * Repair a registration left pointing at a directory this install no longer
+ * owns — what a Squirrel update did to every registration recorded against
+ * `app-<version>` (issue #66).
+ *
+ * Silent, and opt-in preserving: only an *existing* registration is rewritten,
+ * so a user who never turned the feature on never finds it turned on, while a
+ * user who did gets their menu back without having to discover that toggling a
+ * setting off and on again is the cure.
+ */
+export async function repairStaleShellExtensionRegistration(): Promise<ShellExtensionRepairOutcome> {
+  if (process.platform !== 'win32') {
+    return 'not-applicable'
+  }
+
+  const state = await observeShellExtensionRegistration()
+  if (decideShellExtensionRepair(state) === 'none') {
+    return state === 'absent' ? 'not-registered' : 'current'
+  }
+
+  try {
+    await registerShellExtensionPackage()
+    log.info(
+      'Re-registered the Windows 11 shell extension: the previous registration pointed outside this install'
+    )
+    return 'repaired'
+  } catch (error) {
+    log.warn(
+      'Could not re-register the stale Windows 11 shell extension registration',
+      error
+    )
+    return 'failed'
+  }
 }

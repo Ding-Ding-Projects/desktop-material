@@ -1547,6 +1547,7 @@ export type TranslationKey =
   | 'settings.contextMenuNeedsWindows11'
   | 'settings.contextMenuPackageMissing'
   | 'settings.contextMenuNeedsDeveloperMode'
+  | 'settings.contextMenuRegistrationStale'
   | 'quickAction.loading'
   | 'quickAction.notARepository'
   | 'quickAction.noChanges'
@@ -4128,6 +4129,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This build does not include the packaged shell extension.',
   'settings.contextMenuNeedsDeveloperMode':
     'The main-menu placement needs sideloading enabled in Windows Settings → System → For developers. Desktop Material will not change that setting for you.',
+  'settings.contextMenuRegistrationStale':
+    'The registration still points at a folder from an earlier version, so Windows is no longer showing these actions. Turn this on again to re-register it against the current install.',
   'quickAction.loading': 'Reading the folder…',
   'quickAction.notARepository': 'This folder is not a Git repository.',
   'quickAction.noChanges': 'No changes to commit.',
@@ -6751,6 +6754,8 @@ export const cantoneseTranslations: Readonly<
   'settings.contextMenuPackageMissing': '呢個版本冇打包個 shell extension。',
   'settings.contextMenuNeedsDeveloperMode':
     '要喺 Windows 設定 → 系統 → 開發人員專用 度開咗側載，先可以擺上主選單。Desktop Material 唔會幫你改呢個設定。',
+  'settings.contextMenuRegistrationStale':
+    '個註冊仲指住舊版本嗰個資料夾，所以 Windows 已經冇再顯示呢啲動作。撳返開一次，就會用返而家嘅安裝重新註冊。',
   'quickAction.loading': '讀緊個資料夾…',
   'quickAction.notARepository': '呢個資料夾唔係 Git repository。',
   'quickAction.noChanges': '冇改動可以 commit。',
