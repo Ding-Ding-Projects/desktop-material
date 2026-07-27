@@ -15,6 +15,35 @@ safe Git loop, short-lived branches, conflict resolution, rebase, stash recovery
 automation, and account isolation. The diagrams are reproducible with
 `node script/generate-wiki-diagrams.js`.
 
+## Inherited external-UI assets — excluded from the capture mandate
+
+Every screenshot of **Desktop Material's own interface** is produced by the
+app's capture harness and is replaceable on demand. Six inherited assets are a
+documented exception, because they show **other products' interfaces** that
+this app cannot render and the harness therefore cannot reproduce:
+
+| Asset | External interface shown |
+| --- | --- |
+| `../assets/git-credential-manager.png` | Git Credential Manager (Windows) |
+| `../assets/ado-prompt.png` | Azure DevOps sign-in prompt |
+| `../assets/bitbucket-prompt.png` | Bitbucket sign-in prompt |
+| `../assets/gitlab-prompt.png` | GitLab sign-in prompt |
+| `../assets/unreachable-commits-history.png` | Upstream GitHub Desktop docs |
+| `../assets/unreachable-commits-demo.gif` | Upstream GitHub Desktop docs |
+
+They are referenced from `docs/integrations/azure-devops.md`,
+`docs/integrations/bitbucket.md`, `docs/integrations/gitlab.md`, and
+`docs/learn-more/unreachable-commits.md`, where they illustrate third-party
+sign-in flows a user meets outside this app.
+
+Recapturing them would require live Azure DevOps, Bitbucket, and GitLab
+accounts plus a credential-prompt environment, and the result would still be
+someone else's UI rather than evidence about this app. They are therefore
+**excluded** from "replace every screenshot" work and are not counted against
+capture coverage. Decision recorded 2026-07-27 (issue #25, option A). Anyone
+adding a new external-product screenshot should list it here with the same
+justification rather than leaving it to be mistaken for a stale app capture.
+
 | Custom app identity | Material Welcome | Appearance customization | Dynamic toolbar overflow |
 | --- | --- | --- | --- |
 | <img src="../assets/screenshots/material-app-identity-workspace.png" alt="Workspace with a customized in-app logo and name plus a favorite repository tab" width="320"><br><sub>Profile app identity</sub> | <img src="../assets/screenshots/material-welcome.png" alt="Pure Material first-run Welcome task card and tonal workspace preview" width="320"><br><sub>Material Welcome</sub> | <img src="../assets/screenshots/material-customization.png" alt="Appearance editor anchored beside its actual element with History, a dedicated local Git path, and burst-safe persistence" width="320"><br><sub>Anchored owner · burst-safe history</sub> | <img src="../assets/screenshots/material-toolbar-overflow.png" alt="Narrow app bar with lower-priority actions moved into the More surface before clipping" width="320"><br><sub>Measured More behavior</sub> |
