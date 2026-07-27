@@ -78,6 +78,14 @@ export type CLIWorkbenchOperation =
   | {
       readonly id: 'content-search'
       readonly pattern: string
+      /**
+       * Present only for an opt-in regex search: the pattern then runs through
+       * Git's extended-regexp engine instead of `--fixed-strings`. The renderer
+       * validates user-authored patterns with RE2JS before building this.
+       */
+      readonly patternMode?: 'extended-regexp'
+      /** Present only for a case-insensitive search (`--ignore-case`). */
+      readonly ignoreCase?: true
       readonly ref?: string
     }
   | {

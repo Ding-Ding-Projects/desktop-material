@@ -409,6 +409,22 @@ function normalizeSearchPattern(value: unknown): string {
   return value
 }
 
+/** Accept only the single allowlisted opt-in regex pattern mode. */
+function normalizeSearchPatternMode(value: unknown): 'extended-regexp' {
+  if (value !== 'extended-regexp') {
+    throw new Error('Content search pattern mode is invalid.')
+  }
+  return value
+}
+
+/** Accept only the literal opt-in case-insensitive flag. */
+function normalizeSearchIgnoreCase(value: unknown): true {
+  if (value !== true) {
+    throw new Error('Content search case flag is invalid.')
+  }
+  return value
+}
+
 /**
  * Accept one bounded branch, tag, HEAD, or object-ID revision name. Ranges,
  * reflog selectors, path-spec separators, and option-shaped values are
@@ -653,29 +669,38 @@ export async function resolveCLIWorkbenchOperation(
       )
     }
     case 'content-search': {
-      if ('ref' in value) {
-        requireExactFields(value, ['id', 'pattern', 'ref'])
-        const pattern = normalizeSearchPattern(value.pattern)
-        const ref = normalizeSearchRevision(value.ref)
-        return resolved(
-          { id: value.id, pattern, ref },
-          [
-            'grep',
-            '--line-number',
-            '--fixed-strings',
-            '-e',
-            pattern,
-            ref,
-            '--',
-          ],
-          false
-        )
-      }
-      requireExactFields(value, ['id', 'pattern'])
+      const optionalFields = ['patternMode', 'ignoreCase', 'ref'].filter(
+        field => field in value
+      )
+      requireExactFields(value, ['id', 'pattern', ...optionalFields])
       const pattern = normalizeSearchPattern(value.pattern)
+      const patternMode =
+        'patternMode' in value
+          ? normalizeSearchPatternMode(value.patternMode)
+          : null
+      const ignoreCase =
+        'ignoreCase' in value
+          ? normalizeSearchIgnoreCase(value.ignoreCase)
+          : null
+      const ref = 'ref' in value ? normalizeSearchRevision(value.ref) : null
       return resolved(
-        { id: value.id, pattern },
-        ['grep', '--line-number', '--fixed-strings', '-e', pattern, '--'],
+        {
+          id: value.id,
+          pattern,
+          ...(patternMode === null ? {} : { patternMode }),
+          ...(ignoreCase === null ? {} : { ignoreCase }),
+          ...(ref === null ? {} : { ref }),
+        },
+        [
+          'grep',
+          '--line-number',
+          patternMode === null ? '--fixed-strings' : '--extended-regexp',
+          ...(ignoreCase === null ? [] : ['--ignore-case']),
+          '-e',
+          pattern,
+          ...(ref === null ? [] : [ref]),
+          '--',
+        ],
         false
       )
     }
