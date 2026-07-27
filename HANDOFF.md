@@ -1,5 +1,50 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — GitHub Pages renders Mermaid diagrams instead of their source (#71)
+
+Ten ` ```mermaid ` fences — three in `docs/learn-more/unreachable-commits.md`,
+five in `docs/readme-tabs/features.md`, two in
+`docs/readme-tabs/complete-feature-list.md` — rendered as diagrams on
+github.com and as raw fence source on the published site, because
+`pandoc --from gfm` turns a Mermaid fence into `<pre class="mermaid">` and
+`site/docs-template.html` loads no JavaScript at all.
+
+- **Pre-rendered at build time, not in the reader's browser.** The new
+  `site/render-mermaid.mjs` runs after pandoc and before the search index,
+  finds each `<pre class="mermaid">`, renders it with `@mermaid-js/mermaid-cli`
+  in a headless Chromium, and splices the SVG inline inside
+  `<figure class="mermaid-figure">`. No CDN tag, no vendored runtime bundle, no
+  second request; the site still loads zero external resources, asserted by the
+  test against both the template and generated output.
+- **Theme safety by construction.** Mermaid is handed a sentinel palette — one
+  unique impossible colour per theme variable — and every sentinel in the
+  returned SVG is replaced with a CSS custom property, defined inside the SVG
+  for light with a `@media (prefers-color-scheme: dark)` override. All ten real
+  diagrams now render with **zero** literal colours surviving the build's audit.
+  Contrast is asserted numerically in both schemes (4.5:1 text, 3:1 graphics).
+- **Accessibility.** Each SVG gets `role="img"`, `aria-labelledby`, and a
+  `<title>` taken from the bold caption the author already wrote below the
+  fence. The bilingual English / 廣東話 prose under every diagram is untouched
+  and remains the real fallback.
+- **Failure is loud; local builds still work.** A fence that will not render
+  fails the build with the page, position, name, Mermaid error and source; the
+  page is left unwritten and nothing is published. Without
+  `--require-toolchain` a missing toolchain is only a warning and every fence
+  is left exactly as pandoc emitted it, so a contributor needs no browser.
+- **Legibility floor.** A diagram may scale down to 80% of its drawn size and
+  then scrolls inside its own container, so the 1,557px-wide feature map no
+  longer shrinks to 7px type in the 52rem column.
+
+Local evidence: `node script/test.mjs script` passed 148/150 with 0 failures
+and 2 environment-gated skips (pre-existing ARM64 cross-tools; the new
+browser-gated end-to-end render, which passed when run with
+`DESKTOP_MERMAID_TOOLCHAIN` set). The full Pages build was reproduced locally
+with real pandoc 3.10 and a real headless Chromium 151: all ten diagrams
+rendered, zero colour-audit warnings, and Chromium reported **0** non-`file:`
+requests for the published pages in both colour schemes. `npx prettier --check`
+passes on every touched non-Markdown file. Not yet verified against the
+deployed Pages site.
+
 ## 2026-07-27 — Documentation search no longer compiles reader regex on the UI thread (#69)
 
 `site/docs-search.html`, published as `/docs/search.html`, built and compiled

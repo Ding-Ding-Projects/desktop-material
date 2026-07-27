@@ -966,6 +966,13 @@
       d: 'The Discard Changes feature allows users to clean up uncommitted changes from a repository, and has evolved over time to support different workflows.',
     },
     {
+      t: 'Documentation site build',
+      h: 'technical/documentation-site-build.html',
+      s: 'technical/documentation-site-build.md',
+      c: 'technical',
+      d: 'The published documentation site at',
+    },
+    {
       t: 'E2E Smoke Tests',
       h: 'technical/e2e-smoke-tests.html',
       s: 'technical/e2e-smoke-tests.md',

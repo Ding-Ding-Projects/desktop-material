@@ -118,6 +118,34 @@ jobs:
           test -f _site/docs/assets/site/docs-regex-job.js
           test -f _site/docs/assets/site/docs-hub-regex-worker.js
 
+      # GitHub renders ```mermaid fences natively; pandoc turns them into
+      # <pre> blocks, so the published site used to show diagram source. The
+      # renderer below is installed outside the checkout so it cannot disturb
+      # the repository's own yarn-managed modules.
+      - name: Install the Mermaid pre-renderer
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/mermaid-toolchain"
+          cd "$RUNNER_TEMP/mermaid-toolchain"
+          npm init --yes >/dev/null
+          npm install --no-audit --no-fund \
+            @mermaid-js/mermaid-cli@11 puppeteer@25
+          npx puppeteer browsers install chrome
+
+      # Runs before the search index so diagram labels are indexed as page
+      # text, and with --require-toolchain so a build that cannot render a
+      # diagram fails instead of publishing the fence source.
+      - name: Pre-render Mermaid diagrams to inline SVG
+        run: |
+          set -euo pipefail
+          node site/render-mermaid.mjs _site --require-toolchain \
+            --toolchain "$RUNNER_TEMP/mermaid-toolchain"
+          rm -f _site/render-mermaid.mjs
+          test ! -f _site/render-mermaid.mjs
+          grep -q '<svg' _site/docs/learn-more/unreachable-commits.html
+          ! grep -q 'pre class="mermaid"' \
+            _site/docs/learn-more/unreachable-commits.html
+
       - name: Build documentation search index
         run: |
           node site/build-search-index.js _site
