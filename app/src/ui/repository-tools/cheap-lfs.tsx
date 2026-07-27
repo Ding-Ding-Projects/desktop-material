@@ -22,6 +22,13 @@ import {
 import { IGitHubReleaseTransferProgressEvent } from '../../lib/github-release-transfer'
 import { getGitHubReleasesAccount } from '../../lib/stores/github-releases-store'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
+import memoizeOne from 'memoize-one'
+import {
+  CellMeasurer,
+  CellMeasurerCache,
+  List,
+  ListRowProps,
+} from 'react-virtualized'
 import { Button } from '../lib/button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
@@ -31,7 +38,7 @@ import {
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
 import { showOpenDialog } from '../main-process-proxy'
-import { t } from '../../lib/i18n'
+import { getPersistedLanguageMode, t } from '../../lib/i18n'
 import {
   getCheapLfsCloudCompressionPolicy,
   getCheapLfsCloudCompressionStats,
@@ -144,10 +151,30 @@ interface ICheapLfsState {
   readonly cloudBusy: boolean
   readonly cloudPrivateOptIn: boolean
   readonly cloudWorkflowReady: boolean
+  /** The width of the pinned-file rows container, observed via ResizeObserver. */
+  readonly listWidth: number
+  /**
+   * Bumped after virtualized rows report new measured heights so the list
+   * viewport re-renders at the measured content height.
+   */
+  readonly measuredListEpoch: number
 }
 
 /** The persistence id for this panel's filter mode. */
 const CheapLfsFilterId = 'cheap-lfs-pointers'
+
+/** The estimated height of a pinned-file row before it is first measured. */
+const CheapLfsRowDefaultHeight = 132
+
+/**
+ * The lower bound for a pinned-file row height. Real rows measure taller;
+ * this also keeps rows renderable in environments whose layout engine
+ * reports zero heights (such as the unit-test DOM).
+ */
+const CheapLfsRowMinimumHeight = 64
+
+/** The maximum height of the virtualized pinned-file viewport. */
+const CheapLfsListMaximumHeight = 560
 
 /** The default release tag suggested when pinning a file. */
 const DefaultReleaseTag = 'assets'
@@ -208,6 +235,69 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   private materializeAllInFlight = false
   private readonly materializeHandlers = new Map<string, () => void>()
   private readonly removeHandlers = new Map<string, () => void>()
+  private readonly virtualListRef = React.createRef<List>()
+  private rowsContainer: HTMLDivElement | null = null
+  private readonly resizeObserver: ResizeObserver | null = null
+  private resizeTimeoutId: NodeJS.Immediate | null = null
+  private listHeightSyncId: NodeJS.Immediate | null = null
+  /** The list viewport height used by the most recent render. */
+  private renderedListHeight = 0
+  private lastListedWidth = 0
+  private lastListedVisible: ReadonlyArray<ICheapLfsManagedPointerEntry> | null =
+    null
+
+  /**
+   * Measured heights for the virtualized pinned-file rows, keyed by entry so
+   * a measurement survives filtering and list refreshes.
+   */
+  private readonly rowHeightCache = new CellMeasurerCache({
+    defaultHeight: CheapLfsRowDefaultHeight,
+    minHeight: CheapLfsRowMinimumHeight,
+    fixedWidth: true,
+    keyMapper: (rowIndex: number) => {
+      const entry = this.visiblePointers()[rowIndex]
+      return entry === undefined
+        ? rowIndex
+        : `${entry.kind}\0${entry.relativePath}`
+    },
+  })
+
+  /**
+   * The filtered pointer rows, memoized so filtering runs once per
+   * (pointers, filter, mode, case) change instead of on every render.
+   */
+  private readonly getVisiblePointers = memoizeOne(
+    (
+      pointers: ReadonlyArray<ICheapLfsManagedPointerEntry>,
+      filter: string,
+      filterMode: FilterMode,
+      caseSensitive: boolean
+    ): ReadonlyArray<ICheapLfsManagedPointerEntry> => {
+      const query = filter.trim()
+      if (query.length === 0) {
+        return pointers
+      }
+      const { results } = matchWithMode(
+        query,
+        pointers,
+        entry =>
+          entry.kind === 'release'
+            ? [
+                entry.relativePath,
+                `${entry.pointer.releaseTag} ${entry.pointer.assetName}`,
+                entry.provider,
+              ]
+            : [
+                entry.relativePath,
+                entry.pointer.image,
+                entry.pointer.object,
+                entry.provider,
+              ],
+        { mode: filterMode, caseSensitive }
+      )
+      return results.map(result => result.item)
+    }
+  )
 
   public constructor(props: ICheapLfsProps) {
     super(props)
@@ -229,6 +319,29 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       cloudPrivateOptIn:
         props.repository.buildRunPreferences.cheapLfsCloudCompression === true,
       cloudWorkflowReady: false,
+      listWidth: 0,
+      measuredListEpoch: 0,
+    }
+
+    const ResizeObserverClass: typeof ResizeObserver = (window as any)
+      .ResizeObserver
+
+    if (typeof ResizeObserverClass === 'function') {
+      this.resizeObserver = new ResizeObserverClass(entries => {
+        for (const { target } of entries) {
+          if (target === this.rowsContainer && this.rowsContainer !== null) {
+            // Reacting to a resize by setting state synchronously could cause
+            // a recursive update, so defer it until React finishes this frame.
+            if (this.resizeTimeoutId !== null) {
+              clearImmediate(this.resizeTimeoutId)
+            }
+            this.resizeTimeoutId = setImmediate(
+              this.onRowsContainerResized,
+              this.rowsContainer
+            )
+          }
+        }
+      })
     }
   }
 
@@ -251,6 +364,9 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       this.generation++
       this.operationController?.abort()
       this.operationController = null
+      // Row heights from the previous repository may collide by path; measure
+      // the new repository's rows from scratch.
+      this.rowHeightCache.clearAll()
       this.setState(
         {
           pointers: [],
@@ -280,6 +396,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         }
       )
     }
+    this.syncVirtualList()
   }
 
   public componentWillUnmount() {
@@ -288,6 +405,16 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     this.cloudGeneration++
     this.operationController?.abort()
     this.operationController = null
+    this.resizeObserver?.disconnect()
+    this.rowsContainer = null
+    if (this.resizeTimeoutId !== null) {
+      clearImmediate(this.resizeTimeoutId)
+      this.resizeTimeoutId = null
+    }
+    if (this.listHeightSyncId !== null) {
+      clearImmediate(this.listHeightSyncId)
+      this.listHeightSyncId = null
+    }
   }
 
   private startOperation(kind: CheapLfsBusy): {
@@ -399,29 +526,110 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     this.state.pointers.map(entry => entry.relativePath)
 
   private visiblePointers(): ReadonlyArray<ICheapLfsManagedPointerEntry> {
-    const query = this.state.filter.trim()
-    if (query.length === 0) {
-      return this.state.pointers
-    }
-    const { results } = matchWithMode(
-      query,
+    return this.getVisiblePointers(
       this.state.pointers,
-      entry =>
-        entry.kind === 'release'
-          ? [
-              entry.relativePath,
-              `${entry.pointer.releaseTag} ${entry.pointer.assetName}`,
-              entry.provider,
-            ]
-          : [
-              entry.relativePath,
-              entry.pointer.image,
-              entry.pointer.object,
-              entry.provider,
-            ],
-      { mode: this.state.filterMode, caseSensitive: this.state.caseSensitive }
+      this.state.filter,
+      this.state.filterMode,
+      this.state.caseSensitive
     )
-    return results.map(result => result.item)
+  }
+
+  private onRowsContainerRef = (element: HTMLDivElement | null) => {
+    if (this.rowsContainer !== null) {
+      this.resizeObserver?.unobserve(this.rowsContainer)
+    }
+    this.rowsContainer = element
+    if (element !== null) {
+      this.resizeObserver?.observe(element)
+    }
+  }
+
+  private onRowsContainerResized = (target: HTMLElement) => {
+    this.resizeTimeoutId = null
+    if (!this.mounted) {
+      return
+    }
+    const width = target.offsetWidth
+    if (this.state.listWidth !== width) {
+      this.setState({ listWidth: width })
+    }
+  }
+
+  /**
+   * Keeps the virtualized list consistent after each commit: re-measures rows
+   * when the viewport width or the visible entries changed, and re-renders
+   * the panel when freshly measured rows changed the list's content height.
+   */
+  private syncVirtualList() {
+    const visible = this.visiblePointers()
+    const width = this.state.listWidth
+    if (width !== this.lastListedWidth) {
+      this.lastListedWidth = width
+      this.rowHeightCache.clearAll()
+      this.virtualListRef.current?.recomputeRowHeights(0)
+    } else if (visible !== this.lastListedVisible) {
+      this.virtualListRef.current?.recomputeRowHeights(0)
+    }
+    this.lastListedVisible = visible
+    this.scheduleListHeightSync()
+  }
+
+  private scheduleListHeightSync() {
+    if (this.listHeightSyncId !== null) {
+      clearImmediate(this.listHeightSyncId)
+    }
+    this.listHeightSyncId = setImmediate(() => {
+      this.listHeightSyncId = null
+      if (!this.mounted) {
+        return
+      }
+      const height = this.computeListHeight(this.visiblePointers().length)
+      if (height !== this.renderedListHeight) {
+        this.setState(({ measuredListEpoch }) => ({
+          measuredListEpoch: measuredListEpoch + 1,
+        }))
+      }
+    })
+  }
+
+  /** The list viewport height: measured content height, up to the cap. */
+  private computeListHeight(rowCount: number): number {
+    let total = 0
+    for (let index = 0; index < rowCount; index++) {
+      total +=
+        this.rowHeightCache.getHeight(index, 0) ?? CheapLfsRowDefaultHeight
+    }
+    return Math.min(Math.ceil(total), CheapLfsListMaximumHeight)
+  }
+
+  private getVirtualRowHeight = (params: { index: number }): number =>
+    this.rowHeightCache.rowHeight(params) ?? CheapLfsRowDefaultHeight
+
+  private renderVirtualRow = ({ index, key, parent, style }: ListRowProps) => {
+    const visible = this.visiblePointers()
+    const entry = visible[index]
+    if (entry === undefined) {
+      return null
+    }
+    return (
+      <CellMeasurer
+        cache={this.rowHeightCache}
+        columnIndex={0}
+        key={key}
+        parent={parent}
+        rowIndex={index}
+      >
+        <div
+          style={style}
+          className="cheap-lfs-row-cell"
+          role="listitem"
+          aria-setsize={visible.length}
+          aria-posinset={index + 1}
+        >
+          {this.renderRow(entry)}
+        </div>
+      </CellMeasurer>
+    )
   }
 
   private materializeHandler(relativePath: string): () => void {
@@ -1409,6 +1617,8 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     const restorableCount = this.state.pointers.filter(
       entry => entry.workingTreeState === 'pointer'
     ).length
+    const listHeight = this.computeListHeight(visible.length)
+    this.renderedListHeight = listHeight
     return (
       <section
         className="cheap-lfs-list"
@@ -1470,8 +1680,30 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
               : 'No pinned file matches this search.'}
           </p>
         ) : (
-          <div className="cheap-lfs-rows">
-            {visible.map(entry => this.renderRow(entry))}
+          <div className="cheap-lfs-rows" ref={this.onRowsContainerRef}>
+            {this.state.listWidth > 0 && (
+              <List
+                ref={this.virtualListRef}
+                className="cheap-lfs-virtual-list"
+                role="list"
+                containerRole="presentation"
+                aria-label="Pinned files"
+                width={this.state.listWidth}
+                height={listHeight}
+                rowCount={visible.length}
+                rowHeight={this.getVirtualRowHeight}
+                rowRenderer={this.renderVirtualRow}
+                deferredMeasurementCache={this.rowHeightCache}
+                overscanRowCount={6}
+                // Pass-through props: the virtualized list is a PureComponent,
+                // so hand it everything the rows render beyond their count so
+                // filter, refresh, busy-state, and language changes re-render
+                // the rows.
+                visibleEntries={visible}
+                busyOperation={this.state.busy}
+                languageMode={getPersistedLanguageMode()}
+              />
+            )}
           </div>
         )}
       </section>
