@@ -630,6 +630,13 @@
       d: 'The repository side sheet has a multi-select mode. Select multiple turns on a checkbox per row and a contextual selection bar that can fetch, pull, favorite, group, or forget…',
     },
     {
+      t: 'Repository list collapsible groups',
+      h: 'features/repository-management/repository-list-group-collapse.html',
+      s: 'features/repository-management/repository-list-group-collapse.md',
+      c: 'features',
+      d: 'The repository side sheet has always grouped rows — Pinned, Recent, a custom group name, one heading per GitHub owner, one per Enterprise host, and Other for everything…',
+    },
+    {
       t: 'Repository list sync summary',
       h: 'features/repository-management/repository-list-sync-summary.html',
       s: 'features/repository-management/repository-list-sync-summary.md',
@@ -936,6 +943,13 @@
       s: 'technical/adding-tests.md',
       c: 'technical',
       d: 'This document explains a bit about our testing infrastructure, and how you can contribute tests to go with changes to the codebase.',
+    },
+    {
+      t: 'App Capture Fixture',
+      h: 'technical/app-capture-fixture.html',
+      s: 'technical/app-capture-fixture.md',
+      c: 'technical',
+      d: 'script/capture-app.js launches the built app with N repositories already open as tabs, optionally drives a few UI steps, and writes a PNG. It exists so screenshots of multi-tab…',
     },
     {
       t: 'Platform specific button order',
