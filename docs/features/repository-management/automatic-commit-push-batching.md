@@ -213,15 +213,62 @@ The two large-tree stdout budgets were raised in lockstep, from 64 MiB to
 already measuring 58 MiB, so leaving the old 64 MiB budget in place would have
 silently made *it* the real ceiling — reported as "Git returned too much raw
 diff data" instead of a legible path count. The same 160 MiB budget is used for
-the whole-tree `git add -A` in the proof capture, which emits up to one
-line-ending warning per path.
+the whole-tree path inventory and refresh in the proof capture, which can emit
+up to one line-ending warning per path.
+
+## Whole-tree fingerprints never store an object
+
+Both the batching adapter (`readWorkingTreeFingerprint`) and the pre-commit
+proof capture (`captureCommitPushBatchLocalState`) need the exact tree of the
+whole working tree: the adapter compares it against the index tree to decide
+`isWorktreeClean`, and the proof compares it against the tree recorded in the
+durable intent to prove that nothing moved while a commit failed. Both need a
+real content hash for every path, and neither needs those hashes *stored*.
+
+They used to be filled with `git add -A -- .`, which hashes every changed file
+**and writes it into `.git/objects`**. On a repository using Cheap LFS that
+copied every materialized multi-gigabyte payload into the object database as a
+loose blob on every commit and push — the exact bloat Cheap LFS exists to
+prevent — and did it again for every partially assembled `.cheeplfs-*.tmp` and
+`.<name>.cheap-lfs-recovery-*` artifact sitting in the working tree.
+
+`captureTemporaryWorktreeIndexTree` (`git/temporary-worktree-index.ts`) does the
+same work without storing anything:
+
+- `git ls-files -z --cached --others --exclude-standard` lists the exact path
+  universe `git add -A -- .` walks from the same scratch index — the seeded base
+  tree plus untracked, un-ignored files. An untracked embedded repository is
+  reported as `name/`; the trailing separator is stripped so its gitlink is
+  recorded exactly as staging records it.
+- `git update-index --add --remove --info-only -z --stdin` computes the identical
+  object ids (it runs the same `index_path` conversion, so `.gitattributes`,
+  clean filters and `core.autocrlf` apply identically) and does not store them.
+- `git write-tree --missing-ok` builds the identical tree from those ids.
+- The scratch index directory carries its own object database
+  (`<dir>/objects`, with an `info/alternates` file pointing at the repository's
+  real one), so even the few tree objects that *are* written land there and die
+  with the directory. An `info/alternates` file is used rather than
+  `GIT_ALTERNATE_OBJECT_DIRECTORIES` because that variable is split on the
+  platform path separator, which a repository path may legitimately contain.
+
+The returned object id is byte-for-byte the one the staging pass produced, so
+every drift these proofs detected is still detected identically: a changed file
+(including a changed materialized payload), an added or removed path, a mode
+change, a moved submodule. `git update-index` cannot express a directory/file
+collision — a tracked file replaced by a directory of the same name — so that
+one case falls back to `git add -A -- .` under the same scratch object
+database, which still stores nothing in the repository.
+
+What this does *not* fix is the read: a materialized payload is still hashed,
+because a content-exact fingerprint of a changed file cannot be computed without
+reading it. Skipping those paths, or recording something other than their
+content hash, would stop the proofs noticing that a payload changed.
 
 ## Temporary fingerprint index cleanup
 
 Both the batching adapter and the pre-commit proof capture build a *scratch*
 Git index in an OS temporary directory (`desktop-material-commit-batch-*` and
-`desktop-material-commit-intent-*`), filled with `git add -A` under
-`GIT_INDEX_FILE`.
+`desktop-material-commit-intent-*`) under `GIT_INDEX_FILE`.
 
 Cleaning that directory used to be an unconditional
 `rm(dir, { recursive: true, force: true })` inside a `finally`. On a 200k-file
@@ -242,11 +289,12 @@ proving a live owner and folded back into the same wait. The function never
 throws, so a scratch-index cleanup can no longer mask or abort the commit or
 push it belongs to.
 
-The trigger was removed as well: the whole-tree `git add -A` used a 256 KiB
-(and, in the proof capture, 8 KiB) stdout ceiling. A large working tree can emit
-one line-ending warning per path, so Node killed `git add` part-way through —
-which is what stranded `index.lock` in the first place. Both now use the same
-64 MiB path-inventory ceiling as the other large-tree Git reads.
+The trigger was removed as well: the whole-tree refresh used a 256 KiB (and, in
+the proof capture, 8 KiB) stdout ceiling. A large working tree can emit one
+line-ending warning per path, so Node killed Git part-way through — which is
+what stranded `index.lock` in the first place. The path inventory, the
+`update-index` refresh and the `git add -A` fallback all now use the same
+path-inventory ceiling as the other large-tree Git reads.
 
 ## Failure modes and recovery
 

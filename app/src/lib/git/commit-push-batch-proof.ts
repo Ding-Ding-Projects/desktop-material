@@ -11,6 +11,7 @@ import {
   CommitPushBatchError,
 } from '../commit-push-batching'
 import { removeTemporaryGitIndexDirectory } from './temporary-index-cleanup'
+import { captureTemporaryWorktreeIndexTree } from './temporary-worktree-index'
 import { git } from './core'
 import {
   readBlobTextsByObjectName,
@@ -21,7 +22,7 @@ import {
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
 const RemoteNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/
 const MaximumCommitProofOutputBytes = 64 * 1024 * 1024
-/** Whole-tree `git add -A` chatter ceiling; see the adapter's path inventory. */
+/** Whole-tree path-inventory ceiling; see the adapter's path inventory. */
 const MaximumWorktreeStagingOutputBytes = 160 * 1024 * 1024
 const MaximumCommitPushIntentBranchBytes = 1024
 const MaximumCommitPushIntentBytes =
@@ -185,35 +186,34 @@ async function captureCommitPushBatchLocalState(
   const temporaryDirectory = await mkdtemp(
     join(tmpdir(), 'desktop-material-commit-intent-')
   )
-  const temporaryIndex = join(temporaryDirectory, 'index')
-  const env = { GIT_INDEX_FILE: temporaryIndex }
   try {
-    await git(
-      baseSha === null ? ['read-tree', '--empty'] : ['read-tree', baseSha],
-      repository.path,
-      'captureAutomaticCommitBatchWorktreeBase',
-      { env, maxBuffer: 8 * 1024 }
-    )
-    // One line-ending warning per path can far exceed a small ceiling on a
-    // large working tree; being killed mid-stage is what strands `index.lock`.
-    // Kept in lockstep with the adapter's path-inventory ceiling so a
-    // several-hundred-thousand-path tree cannot reintroduce that failure.
-    await git(
-      ['add', '-A', '--', '.'],
-      repository.path,
-      'captureAutomaticCommitBatchWorktree',
-      { env, maxBuffer: MaximumWorktreeStagingOutputBytes }
-    )
-    const worktree = await git(
-      ['write-tree'],
-      repository.path,
-      'captureAutomaticCommitBatchWorktreeTree',
-      { env, maxBuffer: 8 * 1024 }
-    )
+    // The scratch index proves the whole working tree byte-for-byte, but its
+    // object ids never belong in the repository: a Cheap LFS payload staged
+    // here would be stored as a multi-gigabyte loose blob for a proof that only
+    // ever compares one tree id. The same ids are captured without storing any
+    // of them. Kept in lockstep with the adapter's path-inventory ceiling so a
+    // several-hundred-thousand-path tree cannot reintroduce the mid-stage kill
+    // that strands `index.lock`.
+    const worktreeTreeSha = await captureTemporaryWorktreeIndexTree({
+      run: (args, name, options) => git(args, repository.path, name, options),
+      repositoryPath: repository.path,
+      temporaryDirectory,
+      baseSha,
+      names: {
+        locateObjects: 'captureAutomaticCommitBatchWorktreeObjects',
+        readBase: 'captureAutomaticCommitBatchWorktreeBase',
+        listPaths: 'captureAutomaticCommitBatchWorktreePaths',
+        refreshPaths: 'captureAutomaticCommitBatchWorktree',
+        stageEverything: 'captureAutomaticCommitBatchWorktreeStage',
+        writeTree: 'captureAutomaticCommitBatchWorktreeTree',
+      },
+      maximumInventoryBytes: MaximumWorktreeStagingOutputBytes,
+      maximumSmallOutputBytes: 8 * 1024,
+    })
     return {
       indexTreeSha,
       worktreeTreeSha: requireObjectId(
-        worktree.stdout.trim(),
+        worktreeTreeSha,
         'pre-commit worktree tree'
       ),
     }

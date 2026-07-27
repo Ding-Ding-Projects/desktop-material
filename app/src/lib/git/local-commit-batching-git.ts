@@ -29,6 +29,7 @@ import {
 } from './core'
 import { envForRemoteOperation } from './environment'
 import { removeTemporaryGitIndexDirectory } from './temporary-index-cleanup'
+import { captureTemporaryWorktreeIndexTree } from './temporary-worktree-index'
 
 export const MaximumLocalCommitBatchingCommits = 4_096
 
@@ -1019,29 +1020,33 @@ export function createLocalCommitBatchingGitSession(
     headSha: string | null
   ): Promise<string> => {
     const temporaryDirectory = await dependencies.makeTemporaryDirectory()
-    const temporaryIndex = join(temporaryDirectory, 'index')
-    const env = { GIT_INDEX_FILE: temporaryIndex }
     try {
-      await run(
-        headSha === null ? ['read-tree', '--empty'] : ['read-tree', headSha],
-        'localCommitBatchingTemporaryReadTree',
-        { env, maxBuffer: MaximumSmallGitOutputBytes }
-      )
-      // A whole-tree stage on a very large working tree can emit one
-      // line-ending warning per path. The old 256 KiB ceiling made Node kill
-      // `git add` part-way through, which is what left `index.lock` behind for
-      // the cleanup pass to trip over in the first place.
-      await run(['add', '-A', '--', '.'], 'localCommitBatchingTemporaryAdd', {
-        env,
-        maxBuffer: MaximumPathInventoryOutputBytes,
+      // The fingerprint is the exact tree of the whole working tree, compared
+      // against the index tree to decide `isWorktreeClean`, so it needs a real
+      // content hash for every path. It does not need those hashes stored: a
+      // materialized Cheap LFS payload used to be copied into `.git/objects` as
+      // a loose blob on every push. A whole-tree stage on a very large working
+      // tree can also emit one line-ending warning per path, and the old 256
+      // KiB ceiling made Node kill Git part-way through, which is what left
+      // `index.lock` behind for the cleanup pass to trip over.
+      const fingerprint = await captureTemporaryWorktreeIndexTree({
+        run,
+        repositoryPath: repository.path,
+        temporaryDirectory,
+        baseSha: headSha,
+        names: {
+          locateObjects: 'localCommitBatchingTemporaryObjects',
+          readBase: 'localCommitBatchingTemporaryReadTree',
+          listPaths: 'localCommitBatchingTemporaryPaths',
+          refreshPaths: 'localCommitBatchingTemporaryAdd',
+          stageEverything: 'localCommitBatchingTemporaryStage',
+          writeTree: 'localCommitBatchingWorkingTreeFingerprint',
+        },
+        maximumInventoryBytes: MaximumPathInventoryOutputBytes,
+        maximumSmallOutputBytes: MaximumSmallGitOutputBytes,
       })
-      const result = await run(
-        ['write-tree'],
-        'localCommitBatchingWorkingTreeFingerprint',
-        { env, maxBuffer: MaximumSmallGitOutputBytes }
-      )
       return requireObjectId(
-        trimOneLine(result.stdout),
+        trimOneLine(fingerprint),
         'working tree fingerprint'
       )
     } finally {

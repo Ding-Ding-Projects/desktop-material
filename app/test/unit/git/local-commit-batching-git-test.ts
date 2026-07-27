@@ -1,5 +1,6 @@
 import assert from 'node:assert'
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'fs/promises'
+import { randomBytes } from 'node:crypto'
+import { chmod, mkdir, mkdtemp, readdir, rm, writeFile } from 'fs/promises'
 import { tmpdir } from 'os'
 import * as Path from 'path'
 import { describe, it } from 'node:test'
@@ -51,6 +52,20 @@ async function runGit(
 async function revParse(cwd: string, revision = 'HEAD') {
   const result = await runGit(cwd, ['rev-parse', revision])
   return result.stdout.trim()
+}
+
+async function looseObjectIds(worktree: string): Promise<Set<string>> {
+  const objects = Path.join(worktree, '.git', 'objects')
+  const ids = new Set<string>()
+  for (const entry of await readdir(objects, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !/^[0-9a-f]{2}$/.test(entry.name)) {
+      continue
+    }
+    for (const file of await readdir(Path.join(objects, entry.name))) {
+      ids.add(`${entry.name}${file}`)
+    }
+  }
+  return ids
 }
 
 async function commitFile(
@@ -1124,5 +1139,47 @@ describe('git/local-commit-batching-git', () => {
       (await runGit(fixture.worktree, ['status', '--porcelain'])).stdout,
       ''
     )
+  })
+
+  it('fingerprints a materialized Cheap LFS payload without storing it', async t => {
+    const fixture = await setupRepository(t)
+    const pointer = 'cheap-lfs pointer\n'
+    await commitFile(fixture.worktree, 'payload.bin', pointer, 'pointer')
+    const session = createLocalCommitBatchingGitSession(fixture.repository)
+
+    const clean = await session.operations.readFingerprint()
+    assert.equal(clean.isWorktreeClean, true)
+    assert.equal(clean.worktreeFingerprint, clean.indexTreeSha)
+
+    // Materialize the payload in place of its committed pointer text.
+    await writeFile(
+      Path.join(fixture.worktree, 'payload.bin'),
+      randomBytes(4 * 1024 * 1024)
+    )
+    const payloadObjectId = (
+      await runGit(fixture.worktree, ['hash-object', '--', 'payload.bin'])
+    ).stdout.trim()
+    const before = await looseObjectIds(fixture.worktree)
+
+    const dirty = await session.operations.readFingerprint()
+
+    assert.deepEqual(
+      [...(await looseObjectIds(fixture.worktree))].sort(),
+      [...before].sort(),
+      'a fingerprint must not add a single object to the repository'
+    )
+    assert.equal(
+      (await looseObjectIds(fixture.worktree)).has(payloadObjectId),
+      false
+    )
+    // The drift is still seen exactly: a materialized payload is unstaged work.
+    assert.equal(dirty.isWorktreeClean, false)
+    assert.notEqual(dirty.worktreeFingerprint, clean.worktreeFingerprint)
+    assert.equal(dirty.indexTreeSha, clean.indexTreeSha)
+
+    await writeFile(Path.join(fixture.worktree, 'payload.bin'), pointer)
+    const restored = await session.operations.readFingerprint()
+    assert.equal(restored.isWorktreeClean, true)
+    assert.equal(restored.worktreeFingerprint, clean.worktreeFingerprint)
   })
 })
