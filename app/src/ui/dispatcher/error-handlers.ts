@@ -286,6 +286,53 @@ export async function mergeConflictHandler(
 }
 
 /**
+ * Handler for a pull that failed because the current branch's remote-tracking
+ * branch no longer exists — it was deleted or renamed on the remote.
+ *
+ * The structured `NoExistingRemoteBranch` classification only nominates the
+ * failure; the store then asks the remote directly whether it still advertises
+ * the branch, and only a remote that answers "gone" produces the recovery
+ * offer. Anything else — an authentication failure, a dropped connection, a
+ * merge conflict, a dirty worktree, a push or merge that happened to hit the
+ * same code, or a remote that never answered — falls through to the ordinary
+ * Git error surface untouched.
+ */
+export async function pullBranchDeletedHandler(
+  error: Error,
+  dispatcher: Dispatcher
+): Promise<Error | null> {
+  const e = asErrorWithMetadata(error)
+  if (!e) {
+    return error
+  }
+
+  const gitError = asGitError(e.underlyingError)
+  if (gitError?.result.gitError !== DugiteError.NoExistingRemoteBranch) {
+    return error
+  }
+
+  const { repository, gitContext, retryAction } = e.metadata
+  if (!(repository instanceof Repository)) {
+    return error
+  }
+
+  // Switching branches is not the fix for a push or a merge that reported the
+  // same Git failure, so the operation itself has to be a pull.
+  const isPullOperation =
+    gitContext?.kind === 'pull' || retryAction?.type === RetryActionType.Pull
+  if (!isPullOperation) {
+    return error
+  }
+
+  const offered = await dispatcher.maybeOfferPullBranchDeletedRecovery(
+    repository,
+    { reportedMissingRemoteRef: true, isPullOperation: true }
+  )
+
+  return offered ? null : error
+}
+
+/**
  * Handler for when we attempt to install the global LFS filters and LFS throws
  * an error.
  */

@@ -25,6 +25,10 @@ Material is displaying or how a repository is represented in the application.
 - [Reviewed ordinary Git pull previews](pull-previews.md) — fetch before
   review, require a clean worktree, and integrate only the exact reviewed
   upstream object ID without a second network fetch.
+- [Deleted upstream pull
+  recovery](deleted-upstream-pull-recovery.md) — offer to switch to the default
+  branch and retry only after the remote itself confirms the tracked branch is
+  gone, refusing a dirty worktree and never pre-ticking the branch deletion.
 - [Automatic remote URL
   refresh](automatic-remote-url-refresh.md) — follow a GitHub repository rename
   or transfer before network work while preserving transport, web origin,

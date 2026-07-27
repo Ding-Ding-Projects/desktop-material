@@ -295,6 +295,11 @@ import {
 import { ICombinedRefCheck, IRefCheck } from '../../lib/ci-checks/ci-checks'
 import { ValidNotificationPullRequestReviewState } from '../../lib/valid-notification-pull-request-review'
 import { IPreparedPullPreview } from '../../lib/pull-preview'
+import {
+  IFailedPullSignals,
+  IPullBranchDeletedPlan,
+  PullBranchDeletedRecoveryOutcome,
+} from '../../lib/pull-branch-deleted'
 import { UnreachableCommitsTab } from '../history/unreachable-commits-dialog'
 import { sendNonFatalException } from '../../lib/helpers/non-fatal-exception'
 import { SignInResult } from '../../lib/stores/sign-in-store'
@@ -1876,6 +1881,42 @@ export class Dispatcher {
     if (options?.autoBuild !== false) {
       await this.maybeAutoBuildAfterPull(repository, beforeSha)
     }
+  }
+
+  /**
+   * Judge a failed pull and, when the remote confirms the branch is gone, open
+   * the deleted-upstream recovery decision. Returns whether it was offered.
+   */
+  public maybeOfferPullBranchDeletedRecovery(
+    repository: Repository,
+    signals: IFailedPullSignals
+  ): Promise<boolean> {
+    return this.appStore._maybeOfferPullBranchDeletedRecovery(
+      repository,
+      signals
+    )
+  }
+
+  /** Describe what deleted-upstream recovery would do, and what blocks it. */
+  public getPullBranchDeletedRecoveryPlan(
+    repository: Repository
+  ): Promise<IPullBranchDeletedPlan> {
+    return this.appStore._getPullBranchDeletedRecoveryPlan(repository)
+  }
+
+  /**
+   * Switch the repository to its resolved default branch and retry the pull,
+   * optionally deleting the stale local branch. Refusals and the retried
+   * pull's real result are returned rather than assumed.
+   */
+  public switchToDefaultBranchAndPull(
+    repository: Repository,
+    deleteStaleBranch: boolean = false
+  ): Promise<PullBranchDeletedRecoveryOutcome> {
+    return this.appStore._switchToDefaultBranchAndPull(
+      repository,
+      deleteStaleBranch
+    )
   }
 
   /** Fetch and return a bounded review without changing the current worktree. */

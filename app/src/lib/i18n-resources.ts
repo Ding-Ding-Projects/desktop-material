@@ -734,6 +734,41 @@ export type TranslationKey =
   | 'networkRepository.wslShare'
   | 'networkRepository.uncShare'
   | 'networkRepository.detected'
+  | 'pullBranchDeleted.title'
+  | 'pullBranchDeleted.loading'
+  | 'pullBranchDeleted.reviewAria'
+  | 'pullBranchDeleted.intro.plain'
+  | 'pullBranchDeleted.intro.light'
+  | 'pullBranchDeleted.intro.playful'
+  | 'pullBranchDeleted.offer'
+  | 'pullBranchDeleted.blockedTitle'
+  | 'pullBranchDeleted.blockedNoDefaultBranch'
+  | 'pullBranchDeleted.blockedNoCurrentBranch'
+  | 'pullBranchDeleted.blockedAlreadyOnDefaultBranch'
+  | 'pullBranchDeleted.blockedDirtyWorktree'
+  | 'pullBranchDeleted.blockedConflictedWorktree'
+  | 'pullBranchDeleted.blockedOperationInProgress'
+  | 'pullBranchDeleted.planFailed'
+  | 'pullBranchDeleted.deleteLabel'
+  | 'pullBranchDeleted.deleteHint'
+  | 'pullBranchDeleted.deleteStrandsCommits'
+  | 'pullBranchDeleted.deleteStrandsCommitsOne'
+  | 'pullBranchDeleted.deleteStrandsUnknown'
+  | 'pullBranchDeleted.deleteFullyMerged'
+  | 'pullBranchDeleted.switchAction'
+  | 'pullBranchDeleted.close'
+  | 'pullBranchDeleted.startedTitle'
+  | 'pullBranchDeleted.startedBody'
+  | 'pullBranchDeleted.recoveredTitle'
+  | 'pullBranchDeleted.recovered.plain'
+  | 'pullBranchDeleted.recovered.light'
+  | 'pullBranchDeleted.recovered.playful'
+  | 'pullBranchDeleted.retryFailedTitle'
+  | 'pullBranchDeleted.retryFailedBody'
+  | 'pullBranchDeleted.checkoutFailedTitle'
+  | 'pullBranchDeleted.checkoutFailedBody'
+  | 'pullBranchDeleted.deletionDone'
+  | 'pullBranchDeleted.deletionSkipped'
   | 'pullPreview.title'
   | 'pullPreview.loading'
   | 'pullPreview.progressTitle'
@@ -3204,6 +3239,66 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'networkRepository.uncShare': 'UNC network share',
   'networkRepository.detected':
     'Detected a {location}. Desktop Material keeps its exact path; reconnect it before Git operations if the location goes offline.',
+  'pullBranchDeleted.title': 'Remote branch is gone',
+  'pullBranchDeleted.loading':
+    'Checking what switching branches would do in this repository…',
+  'pullBranchDeleted.reviewAria': 'Deleted remote branch recovery',
+  'pullBranchDeleted.intro.plain':
+    'Pulling {repository} failed because {remote} no longer has the branch {remoteBranch}, which the local branch {branch} tracks.',
+  'pullBranchDeleted.intro.light':
+    'The pull of {repository} had nowhere to go: {remote} no longer has {remoteBranch}, and the local branch {branch} is still tracking it.',
+  'pullBranchDeleted.intro.playful':
+    '{repository} tried to pull from a branch that has left the building. {remote} no longer has {remoteBranch}, and your local {branch} is still loyally tracking the ghost.',
+  'pullBranchDeleted.offer':
+    'Desktop Material can check out {default} in {repository} and pull that instead.',
+  'pullBranchDeleted.blockedTitle': 'Cannot switch branches',
+  'pullBranchDeleted.blockedNoDefaultBranch':
+    'No default branch is configured for {repository}, so there is nothing to switch to. Desktop Material will not guess at one — check out the branch you want yourself.',
+  'pullBranchDeleted.blockedNoCurrentBranch':
+    '{repository} has no checked-out branch to move away from.',
+  'pullBranchDeleted.blockedAlreadyOnDefaultBranch':
+    '{repository} is already on its default branch, so switching to it would change nothing.',
+  'pullBranchDeleted.blockedDirtyWorktree':
+    '{repository} has uncommitted changes. Commit or stash them yourself first — switching branches here will never stash or discard your work for you.',
+  'pullBranchDeleted.blockedConflictedWorktree':
+    '{repository} has unresolved conflicts. Finish or abort that operation before switching branches.',
+  'pullBranchDeleted.blockedOperationInProgress':
+    'Another push, pull, or fetch is already running in {repository}. Wait for it to finish, then try again.',
+  'pullBranchDeleted.planFailed':
+    'Could not read the current state of {repository}. Nothing was changed.',
+  'pullBranchDeleted.deleteLabel': 'Also delete the local branch {branch}',
+  'pullBranchDeleted.deleteHint':
+    'Off by default. A failed pull is not a reason to delete a branch.',
+  'pullBranchDeleted.deleteStrandsCommits':
+    '{count} commits exist only on {branch} and not on {default}. Deleting the branch would strand them.',
+  'pullBranchDeleted.deleteStrandsCommitsOne':
+    '1 commit exists only on {branch} and not on {default}. Deleting the branch would strand it.',
+  'pullBranchDeleted.deleteStrandsUnknown':
+    'Desktop Material could not count the commits that exist only on {branch}. Deleting it may strand work.',
+  'pullBranchDeleted.deleteFullyMerged':
+    'Every commit on {branch} is already on {default}.',
+  'pullBranchDeleted.switchAction': 'Switch to {default} and pull',
+  'pullBranchDeleted.close': 'Close',
+  'pullBranchDeleted.startedTitle': 'Switching branch',
+  'pullBranchDeleted.startedBody':
+    'Switching {repository} from {branch} to {default} and pulling again.',
+  'pullBranchDeleted.recoveredTitle': 'Pulled the default branch',
+  'pullBranchDeleted.recovered.plain':
+    '{repository} is now on {default} and the pull completed.',
+  'pullBranchDeleted.recovered.light':
+    '{repository} has moved to {default}, and the pull finally went through.',
+  'pullBranchDeleted.recovered.playful':
+    '{repository} has moved on to {default}, and the pull that had nothing to pull from finally pulled something.',
+  'pullBranchDeleted.retryFailedTitle': 'Switched branch, pull failed',
+  'pullBranchDeleted.retryFailedBody':
+    '{repository} is now on {default}, but the pull failed: {error}',
+  'pullBranchDeleted.checkoutFailedTitle': 'Branch not switched',
+  'pullBranchDeleted.checkoutFailedBody':
+    '{repository} could not be checked out onto {default}. Nothing else was changed.',
+  'pullBranchDeleted.deletionDone':
+    'The local branch {branch} was deleted. Its remote branch was already gone.',
+  'pullBranchDeleted.deletionSkipped':
+    'The local branch {branch} was kept: {reason}',
   'pullPreview.title': 'Preview pull',
   'pullPreview.loading':
     'Fetching the latest upstream state without changing your worktree…',
@@ -6053,6 +6148,63 @@ export const cantoneseTranslations: Readonly<
   'networkRepository.uncShare': 'UNC 網絡共享',
   'networkRepository.detected':
     '偵測到以下位置：{location}。Desktop Material 會保留精確路徑；如果位置離線，做 Git 操作前請先重新連接。',
+  'pullBranchDeleted.title': '遠端分支已經冇咗',
+  'pullBranchDeleted.loading': '睇緊喺呢個 repo 轉分支會發生咩事…',
+  'pullBranchDeleted.reviewAria': '遠端分支被刪救援',
+  'pullBranchDeleted.intro.plain':
+    'Pull {repository}失敗，因為 {remote} 已經冇咗 {remoteBranch} 呢條分支，而本地分支 {branch} 就係追蹤住佢。',
+  'pullBranchDeleted.intro.light':
+    'Pull {repository} 拉咗個吉：{remote} 已經冇咗 {remoteBranch}，但係本地分支 {branch} 仲死心不息咁追蹤住佢。',
+  'pullBranchDeleted.intro.playful':
+    '{repository} 去 pull 一條走咗人嘅分支。{remote} 已經冇咗 {remoteBranch}，你部機嘅 {branch} 仲喺度癡心追蹤緊隻鬼。',
+  'pullBranchDeleted.offer':
+    'Desktop Material 可以喺 {repository} 幫你 checkout 返 {default}，然後 pull 嗰條。',
+  'pullBranchDeleted.blockedTitle': '轉唔到分支',
+  'pullBranchDeleted.blockedNoDefaultBranch':
+    '{repository} 未設定預設分支，所以冇嘢可以轉過去。Desktop Material 唔會靠估幫你揀——請你自己 checkout 想要嗰條。',
+  'pullBranchDeleted.blockedNoCurrentBranch':
+    '{repository} 而家冇 checkout 住任何分支，冇得走。',
+  'pullBranchDeleted.blockedAlreadyOnDefaultBranch':
+    '{repository} 本身已經企喺預設分支度，轉過去等於原地踏步。',
+  'pullBranchDeleted.blockedDirtyWorktree':
+    '{repository} 仲有未 commit 嘅改動。請你自己先 commit 或者 stash——喺呢度轉分支永遠唔會幫你 stash 或者掉咗啲嘢。',
+  'pullBranchDeleted.blockedConflictedWorktree':
+    '{repository} 仲有未解決嘅衝突。搞掂或者 abort 咗嗰個操作先至可以轉分支。',
+  'pullBranchDeleted.blockedOperationInProgress':
+    '{repository} 而家仲有另一個 push、pull 或者 fetch 喺度行緊。等佢完咗再試。',
+  'pullBranchDeleted.planFailed':
+    '讀唔到 {repository} 嘅現時狀態，乜都冇改過。',
+  'pullBranchDeleted.deleteLabel': '順手刪埋本地分支 {branch}',
+  'pullBranchDeleted.deleteHint': '預設係熄嘅。Pull 失敗唔係刪分支嘅理由。',
+  'pullBranchDeleted.deleteStrandsCommits':
+    '有 {count} 個 commit 只係喺 {branch} 度有，{default} 度冇。刪咗條分支就會斷咗佢哋條路。',
+  'pullBranchDeleted.deleteStrandsCommitsOne':
+    '有 1 個 commit 只係喺 {branch} 度有，{default} 度冇。刪咗條分支就會斷咗佢條路。',
+  'pullBranchDeleted.deleteStrandsUnknown':
+    'Desktop Material 數唔到 {branch} 獨有幾多個 commit。刪咗可能會斷咗啲嘢。',
+  'pullBranchDeleted.deleteFullyMerged':
+    '{branch} 上面每個 commit 喺 {default} 度都已經有。',
+  'pullBranchDeleted.switchAction': '轉去 {default} 再 pull',
+  'pullBranchDeleted.close': '閂咗佢',
+  'pullBranchDeleted.startedTitle': '轉緊分支',
+  'pullBranchDeleted.startedBody':
+    '幫緊 {repository} 由 {branch} 轉去 {default}，然後再 pull 一次。',
+  'pullBranchDeleted.recoveredTitle': '預設分支 pull 好咗',
+  'pullBranchDeleted.recovered.plain':
+    '{repository} 而家喺 {default} 度，pull 已經完成。',
+  'pullBranchDeleted.recovered.light':
+    '{repository} 搬咗去 {default}，今次 pull 終於過到骨。',
+  'pullBranchDeleted.recovered.playful':
+    '{repository} 移民去咗 {default}，之前拉極都拉唔到嘢嗰個 pull，今次終於拉到嘢返嚟。',
+  'pullBranchDeleted.retryFailedTitle': '轉咗分支，但係 pull 失敗',
+  'pullBranchDeleted.retryFailedBody':
+    '{repository} 而家喺 {default} 度，不過 pull 失敗咗：{error}',
+  'pullBranchDeleted.checkoutFailedTitle': '轉唔到分支',
+  'pullBranchDeleted.checkoutFailedBody':
+    '{repository} checkout 唔到去 {default}。其他嘢一律冇改過。',
+  'pullBranchDeleted.deletionDone':
+    '本地分支 {branch} 已經刪咗。佢個遠端分支本來就已經冇咗。',
+  'pullBranchDeleted.deletionSkipped': '本地分支 {branch} 保留咗：{reason}',
   'pullPreview.title': '預覽 Pull',
   'pullPreview.loading': 'Fetch 緊最新 upstream 狀態，唔會郁你個 worktree…',
   'pullPreview.progressTitle': '準備緊 Pull 預覽',

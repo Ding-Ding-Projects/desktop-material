@@ -567,6 +567,13 @@
       d: 'Desktop Material exposes its account-scoped automatic-clone policy at Settings → Clone queue. This page is the durable configuration surface for background discovery; it does…',
     },
     {
+      t: 'Deleted upstream pull recovery',
+      h: 'features/repository-management/deleted-upstream-pull-recovery.html',
+      s: 'features/repository-management/deleted-upstream-pull-recovery.md',
+      c: 'features',
+      d: "When a pull fails because the current branch's remote-tracking branch no longer exists — someone deleted it after merging a pull request, or renamed it on the remote — Desktop…",
+    },
+    {
       t: 'External stash interoperability',
       h: 'features/repository-management/external-stash-interoperability.html',
       s: 'features/repository-management/external-stash-interoperability.md',

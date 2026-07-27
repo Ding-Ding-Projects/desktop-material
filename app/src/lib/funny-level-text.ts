@@ -37,6 +37,8 @@ export type FunnyLevelTextBase =
   | 'tabs.overflowDescription'
   | 'ignoredSubmodule.intro'
   | 'ignoredSubmodule.reviewLead'
+  | 'pullBranchDeleted.intro'
+  | 'pullBranchDeleted.recovered'
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {

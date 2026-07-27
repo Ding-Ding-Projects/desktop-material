@@ -514,7 +514,24 @@ import {
   fetchRepositoryShallowHistory,
   applyForkBranchCheckoutPlan,
   reviewForkBranchCheckout,
+  getAheadBehind,
+  revSymmetricDifference,
 } from '../git'
+import {
+  isMissingRemoteRefFailure,
+  probeRemoteBranch,
+} from '../git/remote-branch-existence'
+import {
+  buildPullBranchDeletedPlan,
+  createPullBranchDeletedOfferBudget,
+  decidePullBranchDeletedRecovery,
+  IFailedPullFacts,
+  IFailedPullSignals,
+  IPullBranchDeletedOfferBudget,
+  IPullBranchDeletedPlan,
+  PullBranchDeletedDecision,
+  PullBranchDeletedRecoveryOutcome,
+} from '../pull-branch-deleted'
 import type {
   ICreateTagLifecycleOptions,
   IMoveTagLifecycleOptions,
@@ -10695,6 +10712,217 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
   }
 
+  /**
+   * Judge a failed pull and, when it really was a deleted upstream, open the
+   * recovery decision for it. Returns whether the offer was made.
+   *
+   * The structured Git failure only nominates the repository. The remote is
+   * then asked directly whether it still advertises the branch, so a network,
+   * credential, conflict, or dirty-worktree failure — and a remote that never
+   * answers — keeps the ordinary Git error surface instead.
+   */
+  public async _maybeOfferPullBranchDeletedRecovery(
+    repository: Repository,
+    signals: IFailedPullSignals
+  ): Promise<boolean> {
+    const decision = await this.decidePullBranchDeleted(repository, signals)
+    if (decision.kind !== 'offer') {
+      log.debug(
+        `Deleted-upstream recovery not offered for '${repository.name}': ${decision.reason}`
+      )
+      return false
+    }
+
+    this._showPopup({
+      type: PopupType.PullBranchDeleted,
+      repository,
+      branchName: decision.branchName,
+      remoteName: decision.remoteName,
+      remoteBranchName: decision.remoteBranchName,
+    })
+    return true
+  }
+
+  private async decidePullBranchDeleted(
+    repository: Repository,
+    signals: IFailedPullSignals
+  ): Promise<PullBranchDeletedDecision> {
+    const gitStore = this.gitStoreCache.get(repository)
+    const tip = gitStore.tip
+    const branch = tip.kind === TipState.Valid ? tip.branch : null
+    const defaultBranch =
+      this.repositoryStateCache.get(repository).branchesState.defaultBranch
+    const remoteName =
+      branch?.upstreamRemoteName ?? gitStore.currentRemote?.name ?? null
+    const remote =
+      remoteName === null
+        ? null
+        : gitStore.remotes.find(candidate => candidate.name === remoteName) ??
+          (gitStore.currentRemote?.name === remoteName
+            ? gitStore.currentRemote
+            : null)
+
+    const facts: IFailedPullFacts = {
+      reportedMissingRemoteRef: signals.reportedMissingRemoteRef,
+      isPullOperation: signals.isPullOperation,
+      hasRepository: true,
+      currentBranchName: branch?.name ?? null,
+      isOnDefaultBranch:
+        branch !== null &&
+        defaultBranch !== null &&
+        branch.name === defaultBranch.name,
+      remoteName: remote?.name ?? null,
+      remoteBranchName: branch?.upstreamWithoutRemote ?? null,
+    }
+
+    return decidePullBranchDeletedRecovery(facts, (_, remoteBranchName) =>
+      remote === null
+        ? Promise.resolve({
+            kind: 'indeterminate' as const,
+            reason: 'no-remote',
+          })
+        : probeRemoteBranch(
+            repository,
+            remote,
+            remoteBranchName,
+            getRepositoryCredentialAccountKey(this.accounts, repository)
+          )
+    )
+  }
+
+  /** Refresh, then describe what deleted-upstream recovery would actually do. */
+  public async _getPullBranchDeletedRecoveryPlan(
+    repository: Repository
+  ): Promise<IPullBranchDeletedPlan> {
+    await this._refreshRepository(repository)
+    return (await this.resolvePullBranchDeletedRecovery(repository)).plan
+  }
+
+  private async resolvePullBranchDeletedRecovery(repository: Repository) {
+    const state = this.repositoryStateCache.get(repository)
+    const { branchesState, changesState } = state
+    const { tip, defaultBranch } = branchesState
+    const staleBranch = tip.kind === TipState.Valid ? tip.branch : null
+
+    let unmergedCommitCount: number | null = null
+    if (staleBranch !== null && defaultBranch !== null) {
+      if (staleBranch.name === defaultBranch.name) {
+        unmergedCommitCount = 0
+      } else {
+        // `default...stale` counts each side separately. The right-hand count
+        // is the work that lives only on the stale branch, which is exactly
+        // what deleting that branch would strand.
+        const aheadBehind = await getAheadBehind(
+          repository,
+          revSymmetricDifference(defaultBranch.name, staleBranch.name)
+        )
+        unmergedCommitCount = aheadBehind?.behind ?? null
+      }
+    }
+
+    return {
+      plan: buildPullBranchDeletedPlan({
+        staleBranchName: staleBranch?.name ?? null,
+        defaultBranchName: defaultBranch?.name ?? null,
+        changedFileCount: changesState.workingDirectory.files.length,
+        hasConflicts: changesState.conflictState !== null,
+        isNetworkOperationInProgress: state.isPushPullFetchInProgress,
+        unmergedCommitCount,
+      }),
+      defaultBranch,
+      staleBranch,
+    }
+  }
+
+  /**
+   * Switch the repository to its resolved default branch and retry the pull,
+   * optionally deleting the stale local branch on the way.
+   *
+   * Every refusal is returned rather than worked around: no default branch is
+   * reported instead of guessed, and a dirty or conflicted worktree stops the
+   * switch instead of being stashed or discarded. The retried pull's own
+   * result is reported as it happened; it is never assumed to have succeeded.
+   */
+  public async _switchToDefaultBranchAndPull(
+    repository: Repository,
+    deleteStaleBranch: boolean = false
+  ): Promise<PullBranchDeletedRecoveryOutcome> {
+    await this._refreshRepository(repository)
+    const { plan, defaultBranch, staleBranch } =
+      await this.resolvePullBranchDeletedRecovery(repository)
+
+    if (plan.blocker !== null) {
+      return { kind: 'blocked', blocker: plan.blocker }
+    }
+    if (defaultBranch === null) {
+      return { kind: 'blocked', blocker: 'no-default-branch' }
+    }
+    if (staleBranch === null) {
+      return { kind: 'blocked', blocker: 'no-current-branch' }
+    }
+
+    // The worktree is already known clean, and pinning the strategy keeps a
+    // profile configured to always stash from quietly stashing here anyway.
+    await this._checkoutBranch(
+      repository,
+      defaultBranch,
+      UncommittedChangesStrategy.AskForConfirmation
+    )
+    await this._refreshRepository(repository)
+
+    const switchedTip =
+      this.repositoryStateCache.get(repository).branchesState.tip
+    if (
+      switchedTip.kind !== TipState.Valid ||
+      switchedTip.branch.name !== defaultBranch.name
+    ) {
+      return { kind: 'checkout-failed', defaultBranchName: defaultBranch.name }
+    }
+
+    let deletedStaleBranch = false
+    let deletionSkippedReason: string | null = null
+    if (deleteStaleBranch) {
+      try {
+        // Local only. The upstream is what vanished in the first place, so
+        // there is nothing left on the remote to delete.
+        await this._deleteBranch(repository, staleBranch, false, defaultBranch)
+        deletedStaleBranch = true
+      } catch (error) {
+        deletionSkippedReason =
+          error instanceof Error ? error.message : String(error)
+      }
+    }
+
+    // `_pull` reports Git failures through GitStore rather than by throwing,
+    // so the retry is watched here in order to report what actually happened
+    // instead of assuming the second attempt worked.
+    let reportedError: Error | null = null
+    const errorSubscription = this.gitStoreCache
+      .get(repository)
+      .onDidError(error => {
+        reportedError = reportedError ?? error
+      })
+    try {
+      await this._pull(repository)
+    } catch (error) {
+      reportedError =
+        reportedError ??
+        (error instanceof Error ? error : new Error(String(error)))
+    } finally {
+      errorSubscription.dispose()
+    }
+
+    const pullFailure: Error | null = reportedError
+    return {
+      kind: 'completed',
+      defaultBranchName: defaultBranch.name,
+      deletedStaleBranch,
+      deletionSkippedReason,
+      pull: pullFailure === null ? 'succeeded' : 'failed',
+      pullError: pullFailure === null ? null : pullFailure.message,
+    }
+  }
+
   /** Integrate only the exact upstream object accepted in a pull preview. */
   public async _pullReviewed(
     repository: Repository,
@@ -10906,6 +11134,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   ): Promise<ReadonlyArray<IPullAllResult>> {
     const repositories = await this.repositoriesStore.getAll()
     const repositoriesById = new Map(repositories.map(repo => [repo.id, repo]))
+    const recoveryBudget = createPullBranchDeletedOfferBudget()
 
     return runBoundedPullAll(
       repositories.map(repository => ({
@@ -10917,7 +11146,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (repository === undefined) {
           return { status: 'skipped', detail: 'Repository was removed.' }
         }
-        return this.performPullAllRepository(repository, reportProgress)
+        return this.performPullAllRepository(
+          repository,
+          reportProgress,
+          recoveryBudget
+        )
       },
       3,
       onProgress
@@ -10966,6 +11199,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const repositoriesById = new Map(
       candidates.map(repository => [repository.id, repository])
     )
+    const recoveryBudget = createPullBranchDeletedOfferBudget()
 
     return runBoundedPullAll(
       candidates.map(repository => ({
@@ -10978,7 +11212,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           return { status: 'skipped', detail: 'Repository was removed.' }
         }
         return request.operation === 'pull'
-          ? this.performPullAllRepository(repository, reportProgress)
+          ? this.performPullAllRepository(
+              repository,
+              reportProgress,
+              recoveryBudget
+            )
           : this.performFetchAllRepository(repository, reportProgress)
       },
       3,
@@ -11015,7 +11253,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   private async performPullAllRepository(
     repository: Repository,
-    reportProgress: (detail: string) => void
+    reportProgress: (detail: string) => void,
+    recoveryBudget?: IPullBranchDeletedOfferBudget
   ) {
     if (repository.missing) {
       return { status: 'skipped' as const, detail: 'Repository is missing.' }
@@ -11059,30 +11298,98 @@ export class AppStore extends TypedBaseStore<IAppState> {
     reportProgress(
       `Pulling ${tip.branch.name} from ${remote.name} and checking for updates.`
     )
-    await this.withPushPullFetch(repository, async () => {
-      const result = await pullWithAccountFallback(
-        remote.url,
-        this.accounts,
-        repository.accountKey,
-        accountKey => pullRepo(repository, remote, { accountKey })
-      )
-      usedFallbackAccount = result.usedFallbackAccount
-      reportProgress(`Updating ${remote.name} remote HEAD metadata.`)
-      const accountKey =
-        result.accountKey ??
-        getRepositoryCredentialAccountKey(this.accounts, repository)
-      await updateRemoteHEAD(repository, remote, false, accountKey).catch(
-        error => log.error('Failed updating remote HEAD after Pull all', error)
-      )
-      reportProgress('Refreshing the final repository state.')
-      await this._refreshRepository(repository)
-    })
+    try {
+      await this.withPushPullFetch(repository, async () => {
+        const result = await pullWithAccountFallback(
+          remote.url,
+          this.accounts,
+          repository.accountKey,
+          accountKey => pullRepo(repository, remote, { accountKey })
+        )
+        usedFallbackAccount = result.usedFallbackAccount
+        reportProgress(`Updating ${remote.name} remote HEAD metadata.`)
+        const accountKey =
+          result.accountKey ??
+          getRepositoryCredentialAccountKey(this.accounts, repository)
+        await updateRemoteHEAD(repository, remote, false, accountKey).catch(
+          error =>
+            log.error('Failed updating remote HEAD after Pull all', error)
+        )
+        reportProgress('Refreshing the final repository state.')
+        await this._refreshRepository(repository)
+      })
+    } catch (error) {
+      const offered =
+        recoveryBudget === undefined
+          ? null
+          : await this.offerBatchPullBranchDeletedRecovery(
+              repository,
+              error,
+              recoveryBudget
+            )
+      if (offered === null) {
+        throw error
+      }
+      return offered
+    }
 
     return {
       status: 'pulled' as const,
       detail: usedFallbackAccount
         ? PullAllFallbackSuccessDetail
         : 'Pull completed.',
+    }
+  }
+
+  /**
+   * Give one batch-sync repository the same deleted-upstream recovery a single
+   * repository pull gets, and describe the outcome in its result row.
+   *
+   * Recovery is reviewed per repository rather than collected into one bulk
+   * decision: the branch to leave, the work that deleting it would strand, and
+   * the right answer are different in every repository, and this fork reviews
+   * repository-scoped mutations one at a time everywhere else too. Returns
+   * `null` when the failure is not a deleted upstream, leaving the caller to
+   * report it as the ordinary failure it is.
+   */
+  private async offerBatchPullBranchDeletedRecovery(
+    repository: Repository,
+    error: unknown,
+    recoveryBudget: IPullBranchDeletedOfferBudget
+  ): Promise<{ readonly status: 'failed'; readonly detail: string } | null> {
+    if (!isMissingRemoteRefFailure(error)) {
+      return null
+    }
+
+    await this._refreshRepository(repository)
+    const decision = await this.decidePullBranchDeleted(repository, {
+      reportedMissingRemoteRef: true,
+      isPullOperation: true,
+    })
+    if (decision.kind !== 'offer') {
+      return null
+    }
+
+    const missing = `The remote no longer has branch ${decision.remoteBranchName}.`
+    if (recoveryBudget.offersRemaining <= 0) {
+      return {
+        status: 'failed' as const,
+        detail: `${missing} Too many repositories in this batch need the same recovery to review them all here — open this repository to switch to its default branch.`,
+      }
+    }
+
+    recoveryBudget.offersRemaining--
+    this._showPopup({
+      type: PopupType.PullBranchDeleted,
+      repository,
+      branchName: decision.branchName,
+      remoteName: decision.remoteName,
+      remoteBranchName: decision.remoteBranchName,
+    })
+
+    return {
+      status: 'failed' as const,
+      detail: `${missing} Switching to the default branch was offered for this repository.`,
     }
   }
 

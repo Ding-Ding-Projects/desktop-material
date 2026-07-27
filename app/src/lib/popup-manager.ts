@@ -96,6 +96,26 @@ export class PopupManager {
     const existingPopup = this.getPopupsOfType(popupToAdd.type)
 
     if (existingPopup.length > 0) {
+      // A batch sync can find a deleted upstream in several repositories at
+      // once, and each of those is its own decision about its own branch. They
+      // are allowed to coexist, one per repository; a second offer for the
+      // same repository would be identical and is dropped.
+      if (popupToAdd.type === PopupType.PullBranchDeleted) {
+        const alreadyOffered = existingPopup.some(
+          candidate =>
+            candidate.type === PopupType.PullBranchDeleted &&
+            candidate.repository.id === popupToAdd.repository.id
+        )
+        if (!alreadyOffered) {
+          const popup = { id: ++this.popupCounter, ...popupToAdd }
+          this.insertBeforeErrorPopups(popup)
+          this.checkStackLength()
+          return popup
+        }
+        this.notifyPopupRemoved(popupToAdd, 'removed')
+        return popupToAdd
+      }
+
       if (
         popupToAdd.type === PopupType.BranchRules ||
         popupToAdd.type === PopupType.SparseCheckout ||

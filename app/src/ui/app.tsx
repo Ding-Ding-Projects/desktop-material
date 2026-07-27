@@ -154,6 +154,7 @@ import { Button } from './lib/button'
 import { PopoverAnchorPosition } from './lib/popover'
 import { MergeAllDialog } from './merge-all'
 import { PullAllDialog } from './pull-all'
+import { PullBranchDeletedDialog } from './pull-branch-deleted'
 import { PullPreviewDialog } from './pull-preview'
 import { CommitAndPushAllDialog } from './commit-push-all'
 import { isCommitPushAllRepositoryClean } from '../lib/automation/commit-push-all'
@@ -3751,6 +3752,18 @@ export class App extends React.Component<IAppProps, IAppState> {
             key="push-needs-pull"
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      case PopupType.PullBranchDeleted:
+        return (
+          <PullBranchDeletedDialog
+            key={`pull-branch-deleted-${popup.repository.id}`}
+            dispatcher={this.props.dispatcher}
+            repository={popup.repository}
+            branchName={popup.branchName}
+            remoteName={popup.remoteName}
+            remoteBranchName={popup.remoteBranchName}
             onDismissed={onPopupDismissedFn}
           />
         )
