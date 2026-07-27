@@ -18,6 +18,10 @@ import { unstageAll } from './reset'
 import { ManualConflictResolution } from '../../models/manual-conflict-resolution'
 import { stageManualConflictResolution } from './stage'
 import { getRepoHooks } from '../hooks/get-repo-hooks'
+import {
+  readBlobTextsByObjectName,
+  readIndexStageEntries,
+} from './batched-object-reads'
 
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
 const AbbreviatedObjectIdPattern = /^[0-9a-f]{4,64}$/
@@ -584,26 +588,6 @@ function validateRequiredCommitFile(file: IRequiredCommitFile): void {
   }
 }
 
-async function readRequiredCommitFileFromGit(
-  repository: Repository,
-  revision: ':' | string,
-  relativePath: string,
-  operation: string,
-  isBackgroundTask: boolean = false
-): Promise<string | null> {
-  const object =
-    revision === ':' ? `:${relativePath}` : `${revision}:${relativePath}`
-  const result = await git(['show', object], repository.path, operation, {
-    successExitCodes: new Set([0, 1, 128]),
-    maxBuffer: MaximumRequiredCommitFileBytes + 1,
-    isBackgroundTask,
-  })
-  return result.exitCode === 0 &&
-    Buffer.byteLength(result.stdout, 'utf8') <= MaximumRequiredCommitFileBytes
-    ? result.stdout
-    : null
-}
-
 function requiredCommitFileBytesMatch(
   text: string | null,
   expectedSha256: string
@@ -627,42 +611,50 @@ async function stageAndVerifyRequiredCommitFiles(
       throw new Error('Git refused a duplicate required commit file proof.')
     }
     seen.add(identity)
-    await git(
-      ['add', '--force', '--', file.relativePath],
-      repository.path,
-      'stageRequiredCommitFile',
-      { isBackgroundTask }
-    )
-    const [stagedText, stagedEntry] = await Promise.all([
-      readRequiredCommitFileFromGit(
-        repository,
-        ':',
-        file.relativePath,
-        'verifyRequiredCommitFileBytes',
-        isBackgroundTask
-      ),
-      git(
-        ['ls-files', '--stage', '-z', '--', file.relativePath],
-        repository.path,
-        'verifyRequiredCommitFileMode',
-        { maxBuffer: 4 * 1024, isBackgroundTask }
-      ),
-    ])
-    const expectedEntry = new RegExp(
-      `^100644 [0-9a-f]{40,64} 0\\t${file.relativePath.replace(
-        /[.*+?^${}()|[\]\\]/g,
-        '\\$&'
-      )}\\0$`
-    )
+  }
+  if (files.length === 0) {
+    return
+  }
+  // One staging process for every required file. `--pathspec-file-nul` keeps
+  // each validated path literal, exactly like the prior per-file invocations.
+  await git(
+    ['add', '--force', '--pathspec-from-file=-', '--pathspec-file-nul'],
+    repository.path,
+    'stageRequiredCommitFile',
+    { stdin: files.map(file => file.relativePath).join('\0'), isBackgroundTask }
+  )
+  const [stagedTexts, stagedEntries] = await Promise.all([
+    readBlobTextsByObjectName(
+      repository,
+      files.map(file => `:${file.relativePath}`),
+      MaximumRequiredCommitFileBytes,
+      'verifyRequiredCommitFileBytes',
+      isBackgroundTask
+    ),
+    readIndexStageEntries(
+      repository,
+      files.map(file => file.relativePath),
+      'verifyRequiredCommitFileMode',
+      isBackgroundTask
+    ),
+  ])
+  files.forEach((file, index) => {
+    // Exactly one ordinary stage-0 regular-file record, and the exact staged
+    // bytes, per file — a mismatch fails that specific file, as before.
+    const entries = stagedEntries.get(file.relativePath) ?? []
+    const entryMatches =
+      entries.length === 1 &&
+      entries[0].mode === '100644' &&
+      entries[0].stage === '0'
     if (
-      !requiredCommitFileBytesMatch(stagedText, file.contentSha256) ||
-      !expectedEntry.test(stagedEntry.stdout)
+      !requiredCommitFileBytesMatch(stagedTexts[index], file.contentSha256) ||
+      !entryMatches
     ) {
       throw new Error(
         `Git could not stage the exact required control file “${file.relativePath}”.`
       )
     }
-  }
+  })
 }
 
 async function verifyRequiredCommitFiles(
@@ -671,19 +663,19 @@ async function verifyRequiredCommitFiles(
   files: ReadonlyArray<IRequiredCommitFile>,
   isBackgroundTask: boolean = false
 ): Promise<boolean> {
-  for (const file of files) {
-    const text = await readRequiredCommitFileFromGit(
-      repository,
-      commitSha,
-      file.relativePath,
-      'verifyRequiredCommittedFileBytes',
-      isBackgroundTask
-    )
-    if (!requiredCommitFileBytesMatch(text, file.contentSha256)) {
-      return false
-    }
+  if (files.length === 0) {
+    return true
   }
-  return true
+  const texts = await readBlobTextsByObjectName(
+    repository,
+    files.map(file => `${commitSha}:${file.relativePath}`),
+    MaximumRequiredCommitFileBytes,
+    'verifyRequiredCommittedFileBytes',
+    isBackgroundTask
+  )
+  return files.every((file, index) =>
+    requiredCommitFileBytesMatch(texts[index], file.contentSha256)
+  )
 }
 
 async function rollBackCommitMissingRequiredFile(

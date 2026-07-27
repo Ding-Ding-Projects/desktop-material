@@ -332,6 +332,58 @@ describe('Git-backed automatic commit batch proof', () => {
     assert.equal(await readPendingCommitPushBatch(repository), null)
   })
 
+  it('captures batched required-file proofs and recovers them after a crash', async t => {
+    const repository = await setupProofRepository(t)
+    const base = await captureCommitPushBatchBase(repository)
+    const pointers = [
+      { relativePath: 'pointer one.ptr', text: 'pointer one é\n' },
+      { relativePath: `quote'ptr.ptr`, text: 'pointer two\n' },
+      { relativePath: 'pointër-путь.ptr', text: 'pointer three\n' },
+    ]
+    for (const pointer of pointers) {
+      await writeFile(join(repository.path, pointer.relativePath), pointer.text)
+    }
+    await runGit(repository, [
+      'add',
+      '--',
+      ...pointers.map(pointer => pointer.relativePath),
+    ])
+
+    const intent = await beginCommitPushBatchIntent(
+      repository,
+      base,
+      pointers.map(pointer => pointer.relativePath),
+      target,
+      pointers.map(pointer => ({
+        relativePath: pointer.relativePath,
+        contentSha256: createHash('sha256')
+          .update(pointer.text, 'utf8')
+          .digest('hex'),
+      }))
+    )
+
+    assert.deepEqual(
+      intent.requiredFiles.map(file => file.relativePath),
+      pointers.map(pointer => pointer.relativePath)
+    )
+    for (const pointer of pointers) {
+      const staged = await runGit(repository, [
+        'rev-parse',
+        `:${pointer.relativePath}`,
+      ])
+      assert.equal(
+        intent.requiredFiles.find(
+          file => file.relativePath === pointer.relativePath
+        )?.objectId,
+        staged
+      )
+    }
+
+    await runGit(repository, ['commit', '-m', 'batched pointer crash window'])
+    const recovery = await recoverCommitPushBatchIntent(repository)
+    assert.equal(recovery.kind, 'recovered-commit')
+  })
+
   it('recovers an unborn root transition from its durable intent', async t => {
     const repository = await setupEmptyRepository(t)
     const base = await captureCommitPushBatchBase(repository)

@@ -1,6 +1,7 @@
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import { git } from './core'
+import { createLogParser } from './git-delimiter-parser'
 import { Repository } from '../../models/repository'
 import { largeRepositoryGitArgsForPath } from '../large-repository/large-repository-mode'
 
@@ -178,6 +179,27 @@ export async function isTrackedByLFS(
 }
 
 /**
+ * Parse `git check-attr --stdin -z filter` output — `<path> NUL <attr> NUL
+ * <value> NUL` triplets — into the set of paths whose `filter` attribute is
+ * `lfs`. `-z` keeps names containing spaces, quotes, and non-ASCII characters
+ * literal instead of C-quoted. Exported for tests.
+ */
+export function lfsTrackedPathsFromCheckAttr(
+  stdout: string
+): ReadonlySet<string> {
+  const tracked = new Set<string>()
+  const parsed = createLogParser({ path: '', attr: '', value: '' }).parse(
+    stdout
+  )
+  for (const entry of parsed) {
+    if (entry.attr === 'filter' && entry.value === 'lfs') {
+      tracked.add(entry.path)
+    }
+  }
+  return tracked
+}
+
+/**
  * Query a Git repository and filter the set of provided relative paths to see
  * which are not covered by the current Git LFS configuration.
  *
@@ -188,15 +210,28 @@ export async function filesNotTrackedByLFS(
   repository: Repository,
   filePaths: ReadonlyArray<string>
 ): Promise<ReadonlyArray<string>> {
-  const filesNotTrackedByGitLFS = new Array<string>()
-
-  for (const file of filePaths) {
-    const isTracked = await isTrackedByLFS(repository, file)
-
-    if (!isTracked) {
-      filesNotTrackedByGitLFS.push(file)
-    }
+  if (filePaths.length === 0) {
+    return []
   }
 
-  return filesNotTrackedByGitLFS
+  // One `check-attr` process answers every path — mirroring the batched merge
+  // driver lookup in diff.ts — instead of spawning Git once per file.
+  const { stdout } = await git(
+    [
+      ...largeRepositoryGitArgsForPath(repository.path),
+      'check-attr',
+      '--stdin',
+      '-z',
+      'filter',
+    ],
+    repository.path,
+    'filesNotTrackedByLFS',
+    { stdin: filePaths.join('\0') }
+  )
+
+  const tracked = lfsTrackedPathsFromCheckAttr(stdout)
+
+  // A path Git omits from its output is reported as not tracked, matching the
+  // prior per-file queries.
+  return filePaths.filter(path => !tracked.has(path))
 }
