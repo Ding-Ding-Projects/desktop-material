@@ -868,6 +868,13 @@
       d: "Here's some basic guidelines for how we write our release notes and what we include in them. yarn draft-release is a great starting point, but not a final version.",
     },
     {
+      t: 'Complete feature list / 完整功能清單',
+      h: 'readme-tabs/complete-feature-list.html',
+      s: 'readme-tabs/complete-feature-list.md',
+      c: 'readme-tabs',
+      d: 'Every feature Desktop Material ships, grouped by area, with an honest label for how each one relates to upstream GitHub Desktop. The Features tab is',
+    },
+    {
       t: 'Development',
       h: 'readme-tabs/development.html',
       s: 'readme-tabs/development.md',
