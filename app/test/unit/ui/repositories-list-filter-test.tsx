@@ -193,6 +193,7 @@ describe('RepositoriesList account and service filters', () => {
         clean.id,
         {
           aheadBehind: { ahead: 0, behind: 0 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 0,
           branchName: 'main',
           defaultBranchName: 'main',
@@ -202,6 +203,7 @@ describe('RepositoriesList account and service filters', () => {
         changed.id,
         {
           aheadBehind: { ahead: 0, behind: 0 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 1,
           branchName: 'main',
           defaultBranchName: 'main',
@@ -211,6 +213,7 @@ describe('RepositoriesList account and service filters', () => {
         ahead.id,
         {
           aheadBehind: { ahead: 2, behind: 0 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 0,
           branchName: 'main',
           defaultBranchName: 'main',
@@ -220,6 +223,7 @@ describe('RepositoriesList account and service filters', () => {
         behind.id,
         {
           aheadBehind: { ahead: 0, behind: 3 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 0,
           branchName: 'main',
           defaultBranchName: 'main',

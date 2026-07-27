@@ -260,6 +260,28 @@ export function isRepositoryWithForkedGitHubRepository(
 }
 
 /**
+ * What the most recent status read observed about HEAD and the branch it
+ * tracks.
+ *
+ * This exists so consumers can tell "there is nothing to report" apart from
+ * "nobody has looked yet". `aheadBehind` alone cannot: it is `null` both for a
+ * branch without an upstream and for a repository whose status has never been
+ * read, and rendering `0` for the latter would claim a freshness we do not
+ * have.
+ */
+export type RepositoryUpstreamState =
+  /** No status has established what HEAD tracks. Report unknown, never zero. */
+  | 'unknown'
+  /** HEAD is a branch with a tracking branch; `aheadBehind` is authoritative. */
+  | 'tracking'
+  /** HEAD is a branch, but no upstream tracking branch is configured. */
+  | 'no-upstream'
+  /** HEAD is detached, so there is no branch to compare against an upstream. */
+  | 'detached'
+  /** The repository has no commits yet (unborn HEAD). */
+  | 'unborn'
+
+/**
  * A snapshot for the local state for a given repository
  */
 export interface ILocalRepositoryState {
@@ -268,6 +290,13 @@ export interface ILocalRepositoryState {
    * branch found.
    */
   readonly aheadBehind: IAheadBehind | null
+
+  /**
+   * The shape of HEAD and its upstream at the last status read. Pairs with
+   * `aheadBehind` so a missing count can be reported honestly instead of being
+   * flattened into "in sync".
+   */
+  readonly upstreamState: RepositoryUpstreamState
   /**
    * The number of uncommitted changes currently in the repository.
    */

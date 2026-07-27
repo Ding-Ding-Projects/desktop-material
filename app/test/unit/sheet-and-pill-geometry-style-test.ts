@@ -66,7 +66,10 @@ describe('sheet and pill geometry contracts', () => {
     const style = read('app', 'styles', 'ui', '_repository-list.scss')
 
     // TS slot heights mirror the sheet SCSS: 34px chip + 2×10px padding
-    // (comfortable) and 28px chip + 2×5px (compact density).
+    // (comfortable) and, at compact density, a 28px chip beside the two-line
+    // name/sync-summary stack with 2×3px padding. Both slot heights are
+    // unchanged by that second line — the stack was sized to fit them, because
+    // a taller row than the virtualized slot makes rows overlap.
     assert.match(list, /const RowHeight = 54/)
     assert.match(list, /const CompactRowHeight = 38/)
     assert.match(list, /const GroupHeaderRowHeight = 36/)
@@ -77,7 +80,7 @@ describe('sheet and pill geometry contracts', () => {
     )
     assert.match(
       style,
-      /body\[data-dm-repository-list-density='compact'\][\s\S]*?padding-block: 5px;[\s\S]*?height: 28px;/
+      /body\[data-dm-repository-list-density='compact'\][\s\S]*?padding-block: 3px;[\s\S]*?height: 28px;/
     )
   })
 

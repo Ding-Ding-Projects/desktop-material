@@ -435,6 +435,7 @@ import {
   RebaseResult,
   getRebaseSnapshot,
   IStatusResult,
+  upstreamStateFromStatus,
   GitError,
   MergeResult,
   getBranchesDifferingFromUpstream,
@@ -7392,6 +7393,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     lookup.set(repository.id, {
       aheadBehind: status.branchAheadBehind || null,
+      upstreamState: upstreamStateFromStatus(status),
       changedFilesCount: status.workingDirectory.files.length,
       branchName: status.currentBranch ?? null,
       defaultBranchName,
@@ -7442,6 +7444,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const existing = lookup.get(repository.id)
       lookup.set(repository.id, {
         aheadBehind: aheadBehind,
+        // The fetch refreshes the counts, not the shape of HEAD, so the
+        // upstream state stays whatever the status read established. Without a
+        // previous entry we genuinely do not know it, and 'unknown' says so
+        // rather than inventing a tracking branch.
+        upstreamState: existing?.upstreamState ?? 'unknown',
         // We don't need to update changedFilesCount here since it was already
         // set when calling `updateSidebarIndicator()` with the status object.
         changedFilesCount: existing?.changedFilesCount ?? 0,

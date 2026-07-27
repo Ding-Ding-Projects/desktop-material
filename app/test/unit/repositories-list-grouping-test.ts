@@ -460,6 +460,7 @@ describe('repository list grouping', () => {
         clean.id,
         {
           aheadBehind: { ahead: 0, behind: 0 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 0,
           branchName: 'main',
           defaultBranchName: 'main',
@@ -469,6 +470,7 @@ describe('repository list grouping', () => {
         changed.id,
         {
           aheadBehind: { ahead: 0, behind: 0 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 2,
           branchName: 'main',
           defaultBranchName: 'main',
@@ -478,6 +480,7 @@ describe('repository list grouping', () => {
         ahead.id,
         {
           aheadBehind: { ahead: 2, behind: 0 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 0,
           branchName: 'main',
           defaultBranchName: 'main',
@@ -487,6 +490,7 @@ describe('repository list grouping', () => {
         behind.id,
         {
           aheadBehind: { ahead: 0, behind: 3 },
+          upstreamState: 'tracking' as const,
           changedFilesCount: 0,
           branchName: 'main',
           defaultBranchName: 'main',

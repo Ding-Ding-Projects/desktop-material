@@ -12,6 +12,12 @@ import {
   RepositoryListGroup,
   getGroupKey,
 } from './group-repositories'
+import {
+  getRepositorySyncSummary,
+  getRepositorySyncSummaryText,
+  IRepositorySyncFunnyLevels,
+  readRepositorySyncFunnyLevels,
+} from './repository-sync-summary'
 import { IFilterListGroup } from '../lib/filter-list'
 import { IMatches } from '../../lib/fuzzy-find'
 import {
@@ -181,6 +187,8 @@ interface IRepositoriesListState {
   readonly showHiddenRepositories: boolean
   readonly repositoryLogoChange: IRepositoryLogoChange
   readonly languageMode: LanguageMode
+  /** Read once (not per row) — the sync line's wording honours these. */
+  readonly syncFunnyLevels: IRepositorySyncFunnyLevels
   readonly bulkSelection: IRepositoryBulkSelection
   /** Repository ids the active filter is showing, deduped and selectable. */
   readonly visibleRepositoryIds: ReadonlyArray<number>
@@ -305,6 +313,44 @@ export class RepositoriesList extends React.Component<
   private getSelectedListItem = memoizeOne(findMatchingListItem)
 
   /**
+   * Accessible sync sentences for every repository, keyed by id.
+   *
+   * The row's `aria-label` replaces its inner text for assistive technology, so
+   * the sync line has to be folded into that label or it is never announced.
+   * Memoized on the state cache rather than on the filtered rows: the filter
+   * text is not an input here, so typing re-uses the same map instead of
+   * re-deriving one sentence per visible row per keystroke.
+   */
+  private getSyncAccessibleNames = memoizeOne(
+    (
+      repositories: ReadonlyArray<Repositoryish>,
+      localRepositoryStateLookup: ReadonlyMap<number, ILocalRepositoryState>,
+      languageMode: LanguageMode,
+      syncFunnyLevels: IRepositorySyncFunnyLevels
+    ) => {
+      const names = new Map<number, string>()
+
+      for (const repository of repositories) {
+        const state = localRepositoryStateLookup.get(repository.id)
+        names.set(
+          repository.id,
+          getRepositorySyncSummaryText(
+            getRepositorySyncSummary(
+              repository,
+              state?.upstreamState ?? 'unknown',
+              state?.aheadBehind ?? null
+            ),
+            languageMode,
+            syncFunnyLevels
+          ).accessibleName
+        )
+      }
+
+      return names
+    }
+  )
+
+  /**
    * Live references to the mounted row components, keyed by repository id, so
    * the row context menu's "Customize …" items can open the anchored appearance
    * editor owned by the correct row.
@@ -340,6 +386,7 @@ export class RepositoriesList extends React.Component<
       showHiddenRepositories: false,
       repositoryLogoChange: { revision: 0, repositoryPath: null },
       languageMode: getPersistedLanguageMode(),
+      syncFunnyLevels: readRepositorySyncFunnyLevels(),
       bulkSelection: emptyRepositoryBulkSelection,
       visibleRepositoryIds: [],
       bulkProgress: null,
@@ -437,8 +484,21 @@ export class RepositoriesList extends React.Component<
     const languageMode = normalizeLanguageMode(
       (event as CustomEvent<unknown>).detail
     )
-    if (languageMode !== this.state.languageMode) {
-      this.setState({ languageMode })
+    // The funny levels are persisted beside the language preference, so this is
+    // also the moment to pick up a changed playfulness without paying a
+    // localStorage read on every row of every render.
+    const syncFunnyLevels = readRepositorySyncFunnyLevels()
+    const funnyLevelsChanged =
+      syncFunnyLevels.english !== this.state.syncFunnyLevels.english ||
+      syncFunnyLevels.cantonese !== this.state.syncFunnyLevels.cantonese
+
+    if (languageMode !== this.state.languageMode || funnyLevelsChanged) {
+      this.setState({
+        languageMode,
+        syncFunnyLevels: funnyLevelsChanged
+          ? syncFunnyLevels
+          : this.state.syncFunnyLevels,
+      })
     }
   }
 
@@ -547,6 +607,8 @@ export class RepositoriesList extends React.Component<
         needsDisambiguation={item.needsDisambiguation}
         matches={matches}
         aheadBehind={item.aheadBehind}
+        upstreamState={item.upstreamState}
+        syncFunnyLevels={this.state.syncFunnyLevels}
         changedFilesCount={item.changedFilesCount}
         branchName={
           shouldShowBranchName(
@@ -753,14 +815,24 @@ export class RepositoriesList extends React.Component<
     showContextualMenu(items)
   }
 
-  private getItemAriaLabel = (item: IRepositoryListItem) =>
-    this.state.hiddenRepositoryIds.includes(item.repository.id)
+  private getItemAriaLabel = (item: IRepositoryListItem) => {
+    const name = this.state.hiddenRepositoryIds.includes(item.repository.id)
       ? translateForAccessibleName(
           'repositoryPicker.itemHiddenAria',
           { repository: item.repository.name },
           this.state.languageMode
         )
       : item.repository.name
+
+    const syncName = this.getSyncAccessibleNames(
+      this.props.repositories,
+      this.props.localRepositoryStateLookup,
+      this.state.languageMode,
+      this.state.syncFunnyLevels
+    ).get(item.repository.id)
+
+    return syncName === undefined ? name : `${name}, ${syncName}`
+  }
   private getGroupAriaLabelGetter =
     (
       groups: ReadonlyArray<

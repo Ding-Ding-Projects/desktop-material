@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { Repository } from '../../models/repository'
+import { Repository, RepositoryUpstreamState } from '../../models/repository'
 import { CloningRepository } from '../../models/cloning-repository'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
 import { Repositoryish } from './group-repositories'
@@ -40,6 +40,14 @@ import {
   RepositoryLogoAppearanceEditor,
 } from '../appearance'
 import { IVersionedStoreHistorySource } from '../version-history'
+import memoizeOne from 'memoize-one'
+import {
+  DefaultRepositorySyncFunnyLevels,
+  getRepositorySyncSummary,
+  getRepositorySyncSummaryText,
+  IRepositorySyncFunnyLevels,
+  IRepositorySyncSummaryText,
+} from './repository-sync-summary'
 
 /**
  * The Material Symbols Rounded ligature for a repository row's leading glyph.
@@ -92,6 +100,17 @@ interface IRepositoryListItemProps {
   /** Number of commits this local repo branch is behind or ahead of its remote branch */
   readonly aheadBehind: IAheadBehind | null
 
+  /**
+   * What the last status read established about HEAD and its upstream.
+   *
+   * Optional so focused tests can omit it; omitting it means the honest
+   * `'unknown'` state, never a fabricated "in sync".
+   */
+  readonly upstreamState?: RepositoryUpstreamState
+
+  /** Persisted per-language playfulness for the sync line's wording. */
+  readonly syncFunnyLevels?: IRepositorySyncFunnyLevels
+
   /** Number of uncommitted changes */
   readonly changedFilesCount: number
 
@@ -140,6 +159,31 @@ export class RepositoryListItem extends React.Component<
   IRepositoryListItemState
 > {
   private readonly listItemRef = createObservableRef<HTMLDivElement>()
+
+  /**
+   * Per-row memo for the sync line.
+   *
+   * Every argument is reference-stable between renders (the repository object,
+   * the interned upstream state, the `aheadBehind` object owned by the state
+   * cache, the language mode, and two numbers), so the whole derivation is
+   * skipped on the re-renders the filter box triggers on every keystroke.
+   */
+  private readonly getSyncSummaryText = memoizeOne(
+    (
+      repository: Repositoryish,
+      upstreamState: RepositoryUpstreamState,
+      aheadBehind: IAheadBehind | null,
+      languageMode: LanguageMode,
+      funnyEnglish: number,
+      funnyCantonese: number
+    ): IRepositorySyncSummaryText =>
+      getRepositorySyncSummaryText(
+        getRepositorySyncSummary(repository, upstreamState, aheadBehind),
+        languageMode,
+        { english: funnyEnglish, cantonese: funnyCantonese }
+      )
+  )
+
   private logoRequestId = 0
   private appearanceEditorRequestId = 0
   private coordinatorReadinessRetry: number | null = null
@@ -681,27 +725,30 @@ export class RepositoryListItem extends React.Component<
 
         {this.renderRepositoryIcon(repository, alias)}
 
-        <div
-          className={classNames(classNameList)}
-          style={tabTitleStyleToCss(this.state.nameStyle)}
-          tabIndex={0}
-          role="button"
-          aria-label={`Customize ${
-            alias ?? repository.name
-          } list-name appearance`}
-          aria-haspopup="dialog"
-          aria-expanded={
-            this.state.appearanceEditorKind === 'list-name' &&
-            this.state.appearanceEditorAnchor !== null
-          }
-          data-context-menu-owner="repository-list-name-appearance"
-          onKeyDown={this.onNameKeyDown}
-        >
-          {prefix ? <span className="prefix">{prefix}</span> : null}
-          <HighlightText
-            text={alias ?? repository.name}
-            highlight={this.props.matches.title}
-          />
+        <div className="repository-list-item-text">
+          <div
+            className={classNames(classNameList)}
+            style={tabTitleStyleToCss(this.state.nameStyle)}
+            tabIndex={0}
+            role="button"
+            aria-label={`Customize ${
+              alias ?? repository.name
+            } list-name appearance`}
+            aria-haspopup="dialog"
+            aria-expanded={
+              this.state.appearanceEditorKind === 'list-name' &&
+              this.state.appearanceEditorAnchor !== null
+            }
+            data-context-menu-owner="repository-list-name-appearance"
+            onKeyDown={this.onNameKeyDown}
+          >
+            {prefix ? <span className="prefix">{prefix}</span> : null}
+            <HighlightText
+              text={alias ?? repository.name}
+              highlight={this.props.matches.title}
+            />
+          </div>
+          {this.renderSyncSummary()}
         </div>
 
         {this.props.branchName !== null && (
@@ -738,6 +785,43 @@ export class RepositoryListItem extends React.Component<
           size={20}
         />
         {this.renderAppearanceEditor()}
+      </div>
+    )
+  }
+
+  /**
+   * The low-emphasis line under the repository name.
+   *
+   * It is painted purely from state the app already holds; rendering it never
+   * fetches, and it never invents a count. See `repository-sync-summary.ts`.
+   */
+  private renderSyncSummary(): JSX.Element {
+    const funnyLevels =
+      this.props.syncFunnyLevels ?? DefaultRepositorySyncFunnyLevels
+    // Only `segments` is painted here. The row's spoken name is assembled by
+    // RepositoriesList, because a ListRow's `aria-label` replaces its inner
+    // text for assistive technology.
+    const { segments } = this.getSyncSummaryText(
+      this.props.repository,
+      this.props.upstreamState ?? 'unknown',
+      this.props.aheadBehind,
+      this.props.languageMode ?? 'english',
+      funnyLevels.english,
+      funnyLevels.cantonese
+    )
+
+    return (
+      <div className="repository-sync-summary">
+        {segments.map((segment, index) => (
+          <React.Fragment key={segment.locale}>
+            {index > 0 && (
+              <span className="localized-text-separator" aria-hidden={true}>
+                {' · '}
+              </span>
+            )}
+            <span lang={segment.locale}>{segment.text}</span>
+          </React.Fragment>
+        ))}
       </div>
     )
   }
@@ -846,6 +930,8 @@ export class RepositoryListItem extends React.Component<
         nextProps.needsDisambiguation !== this.props.needsDisambiguation ||
         nextProps.matches !== this.props.matches ||
         nextProps.aheadBehind !== this.props.aheadBehind ||
+        nextProps.upstreamState !== this.props.upstreamState ||
+        nextProps.syncFunnyLevels !== this.props.syncFunnyLevels ||
         nextProps.changedFilesCount !== this.props.changedFilesCount ||
         nextProps.branchName !== this.props.branchName ||
         nextProps.isHidden !== this.props.isHidden ||
