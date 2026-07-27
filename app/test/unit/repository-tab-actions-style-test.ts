@@ -55,6 +55,30 @@ describe('repository tab action responsive styles', () => {
     )
     assert.match(
       style,
+      /\.tab-overflow-popover\s*\{[\s\S]*?min-width: 0;[\s\S]*?max-width: calc\(100vw - 52px\);[\s\S]*?max-height: min\([\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+    )
+    assert.match(
+      style,
+      /\.tab-overflow-results\s*\{[\s\S]*?max-height: 350px;[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/
+    )
+    // The overflow row is the option plus its own appearance-editor button. The
+    // option must be the part that gives way (flex: 1 1 auto over a fixed
+    // width) so a long tab name ellipsizes instead of pushing the button out of
+    // the sheet at a narrow width or a high display scale.
+    assert.match(
+      style,
+      /\.tab-overflow-row\s*\{[\s\S]*?display: flex;[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      style,
+      /\.tab-overflow-result\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      style,
+      /\.tab-overflow-input\s*\{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-width: 0;/
+    )
+    assert.match(
+      style,
       /\.popover-component:has\(\.close-tabs-except\),[\s\S]*?max-width: calc\(100vw - 20px\);[\s\S]*?max-height: var\(--available-height,[\s\S]*?overflow: hidden;/
     )
   })
@@ -76,6 +100,31 @@ describe('repository tab action responsive styles', () => {
     assert.match(
       style,
       /@media \(max-width: 520px\), \(max-height: 560px\)[\s\S]*?\.tab-search-popover \.tab-search-results\s*\{[\s\S]*?max-height: 220px;/
+    )
+    assert.match(
+      style,
+      /@media \(max-width: 520px\), \(max-height: 560px\)[\s\S]*?\.tab-overflow-popover \.tab-overflow-results\s*\{[\s\S]*?max-height: 220px;/
+    )
+    assert.match(
+      style,
+      /@media \(max-width: 520px\), \(max-height: 560px\)[\s\S]*?\.tab-overflow-popover \.tab-overflow-filter-row \.filter-regex-builder-label\s*\{[\s\S]*?display: none;/
+    )
+  })
+
+  it('gives the overflow search field and per-row customization visible focus', () => {
+    assert.match(
+      style,
+      /\.tab-overflow-input\s*\{[\s\S]*?&:focus-visible\s*\{[\s\S]*?outline: 2px solid/
+    )
+    assert.match(
+      style,
+      /\.tab-overflow-result-customize\s*\{[\s\S]*?&:focus-visible\s*\{[\s\S]*?outline: 2px solid/
+    )
+    // 32px keeps the icon button inside the 36px search-field rhythm while
+    // staying a comfortable pointer target next to the option row.
+    assert.match(
+      style,
+      /\.tab-overflow-result-customize\s*\{[\s\S]*?width: 32px;[\s\S]*?height: 32px;/
     )
   })
 

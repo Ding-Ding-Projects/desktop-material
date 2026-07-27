@@ -676,6 +676,23 @@ export class RepositoryTabStrip extends React.Component<
     const anchor = event.currentTarget as HTMLElement
     const titleAnchor =
       anchor.querySelector<HTMLElement>('.repository-tab-label') ?? anchor
+    this.showTabCommandMenu(tab, anchor, titleAnchor)
+  }
+
+  /**
+   * The tab command menu, shared by a right-click on a tab in the strip and a
+   * right-click on a row in the overflow dropdown.
+   *
+   * `anchor` positions the popovers this menu can open and `titleAnchor` the
+   * appearance editor. An overflowed tab has no element in the strip at all, so
+   * the overflow path passes the still-mounted overflow button for both rather
+   * than a row that is about to unmount with its popover.
+   */
+  private showTabCommandMenu(
+    tab: IRepositoryTab,
+    anchor: HTMLElement,
+    titleAnchor: HTMLElement
+  ) {
     const { tabs } = this.state.tabs
     const index = tabs.findIndex(t => t.id === tab.id)
 
@@ -1050,6 +1067,36 @@ export class RepositoryTabStrip extends React.Component<
     )
   }
 
+  /**
+   * Open the per-tab appearance editor for a tab that lives in the overflow
+   * dropdown.
+   *
+   * The dropdown closes first because its focus trap would otherwise fight the
+   * editor's, and the editor anchors to the overflow button: the row that was
+   * clicked unmounts with the dropdown, and `openStyleEditor` refuses a
+   * disconnected anchor.
+   */
+  private onOverflowCustomize = (tab: IRepositoryTab) => {
+    const anchor = this.state.overflowAnchor
+    if (anchor === null) {
+      return
+    }
+    this.setState({ overflowAnchor: null }, () => {
+      void this.openStyleEditor(tab, anchor)
+    })
+  }
+
+  /** Give an overflowed tab the same command menu a visible tab has. */
+  private onOverflowContextMenu = (tab: IRepositoryTab) => {
+    const anchor = this.state.overflowAnchor
+    if (anchor === null) {
+      return
+    }
+    this.setState({ overflowAnchor: null }, () =>
+      this.showTabCommandMenu(tab, anchor, anchor)
+    )
+  }
+
   private onTogglePinned = (tab: IRepositoryTab) => {
     const willPin = tab.isPinned !== true
     this.props.tabsStore
@@ -1312,7 +1359,10 @@ export class RepositoryTabStrip extends React.Component<
         anchor={overflowAnchor}
         languageMode={this.state.languageMode}
         resolveLabel={this.labelForTab}
+        resolveMatchKeys={this.matchKeysForTab}
         onSelect={this.onSelect}
+        onCustomize={this.onOverflowCustomize}
+        onContextMenu={this.onOverflowContextMenu}
         onClose={this.onOverflowDismiss}
       />
     )

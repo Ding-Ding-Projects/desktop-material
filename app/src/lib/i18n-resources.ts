@@ -140,7 +140,9 @@ export type TranslationKey =
   | 'tabs.overflowButton'
   | 'tabs.overflowButtonLabel'
   | 'tabs.overflowTitle'
-  | 'tabs.overflowDescription'
+  | 'tabs.overflowDescription.plain'
+  | 'tabs.overflowDescription.light'
+  | 'tabs.overflowDescription.playful'
   | 'tabs.overflowListLabel'
   | 'tabs.overflowEmpty'
   | 'tabs.overflowActiveSuffix'
@@ -149,6 +151,15 @@ export type TranslationKey =
   | 'tabs.overflowFavoriteChip'
   | 'tabs.overflowCountOne'
   | 'tabs.overflowCountMany'
+  | 'tabs.overflowSearchLabel'
+  | 'tabs.overflowSearchPlaceholder'
+  | 'tabs.overflowSearchTarget'
+  | 'tabs.overflowNoMatches'
+  | 'tabs.overflowFilterCount'
+  | 'tabs.overflowRegexError'
+  | 'tabs.overflowCustomize'
+  | 'tabs.overflowCustomizeLabel'
+  | 'tabs.overflowActionsHint'
   | 'language.english'
   | 'language.cantonese'
   | 'language.bilingual'
@@ -2336,7 +2347,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.overflowButton': '{count} more',
   'tabs.overflowButtonLabel': 'Show {count} more tabs',
   'tabs.overflowTitle': 'More tabs',
-  'tabs.overflowDescription': 'Tabs that did not fit in the strip.',
+  // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
+  // playful). Every band states the same fact — these tabs did not fit in the
+  // strip and are still fully usable from here — because the voice moves and
+  // the facts never do.
+  'tabs.overflowDescription.plain':
+    'Tabs that did not fit in the strip. Search them, switch to one, or customize one.',
+  'tabs.overflowDescription.light':
+    'These tabs ran out of room in the strip. Search them, switch to one, or customize one.',
+  'tabs.overflowDescription.playful':
+    'These tabs got elbowed off the strip. Search them, switch to one, or give one a makeover.',
   'tabs.overflowListLabel': 'Overflowing repository tabs',
   'tabs.overflowEmpty': 'Every tab fits in the strip.',
   'tabs.overflowActiveSuffix': ', active',
@@ -2345,6 +2365,17 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.overflowFavoriteChip': 'Favorite',
   'tabs.overflowCountOne': '1 tab in this menu',
   'tabs.overflowCountMany': '{count} tabs in this menu',
+  'tabs.overflowSearchLabel': 'Search tabs in this menu',
+  'tabs.overflowSearchPlaceholder': 'Name, alias, path, or URL',
+  'tabs.overflowSearchTarget': 'Overflowing tabs',
+  'tabs.overflowNoMatches': 'No tab in this menu matches this search.',
+  'tabs.overflowFilterCount': '{visible} of {total} tabs in this menu',
+  'tabs.overflowRegexError':
+    'Invalid regular expression: {message}. Every tab in this menu is still listed.',
+  'tabs.overflowCustomize': 'Customize appearance',
+  'tabs.overflowCustomizeLabel': 'Customize appearance of {name}',
+  'tabs.overflowActionsHint':
+    'Right-click a tab here for the same actions a tab in the strip has.',
   'language.english': 'English',
   'language.cantonese': 'Playful Hong Kong Cantonese',
   'language.bilingual': 'Bilingual',
@@ -5086,7 +5117,12 @@ export const cantoneseTranslations: Readonly<
   'tabs.overflowButton': '仲有 {count} 個',
   'tabs.overflowButtonLabel': '打開多 {count} 個分頁',
   'tabs.overflowTitle': '仲有啲分頁',
-  'tabs.overflowDescription': '呢啲分頁擠唔落條分頁列。',
+  'tabs.overflowDescription.plain':
+    '呢啲分頁擠唔落條分頁列。喺呢度可以搵、揀，或者改外觀。',
+  'tabs.overflowDescription.light':
+    '呢啲分頁喺條分頁列冇位企。喺呢度可以搵、揀，或者改外觀。',
+  'tabs.overflowDescription.playful':
+    '呢啲分頁俾人擠咗出嚟。喺呢度照搵、照揀，仲可以幫佢整色整水。',
   'tabs.overflowListLabel': '擠唔落嘅倉庫分頁',
   'tabs.overflowEmpty': '所有分頁都擺得落。',
   'tabs.overflowActiveSuffix': '，使用緊',
@@ -5095,6 +5131,16 @@ export const cantoneseTranslations: Readonly<
   'tabs.overflowFavoriteChip': '最愛',
   'tabs.overflowCountOne': '呢個選單有 1 個分頁',
   'tabs.overflowCountMany': '呢個選單有 {count} 個分頁',
+  'tabs.overflowSearchLabel': '喺呢個選單搵分頁',
+  'tabs.overflowSearchPlaceholder': '名、別名、路徑或者網址',
+  'tabs.overflowSearchTarget': '擠唔落嘅分頁',
+  'tabs.overflowNoMatches': '呢個選單冇分頁夾到呢個搜尋。',
+  'tabs.overflowFilterCount': '呢個選單 {total} 個分頁入面有 {visible} 個',
+  'tabs.overflowRegexError':
+    '規則式唔啱：{message}。呢個選單啲分頁一個都冇少，照樣列晒出嚟。',
+  'tabs.overflowCustomize': '整色整水',
+  'tabs.overflowCustomizeLabel': '幫「{name}」整色整水',
+  'tabs.overflowActionsHint': '喺呢度撳右鍵，分頁列有嘅功能一樣照有。',
   'language.english': '英文',
   'language.cantonese': '玩味港式廣東話',
   'language.bilingual': '雙語',
