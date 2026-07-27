@@ -1437,17 +1437,26 @@ async function verifyMutationInputs(
         target.sourceProof !== undefined &&
         target.trackedProof !== undefined
       ) {
+        // The tracked file and its private upload copy are both proven by
+        // settled identity, and the copy's *content* was already re-proven
+        // against `target.sha256` by the staging pass that read it to build
+        // the image (`stageObject` refuses a source whose streamed plaintext
+        // digest differs). Re-reading a multi-gigabyte private copy here
+        // would repeat a hash two other passes already computed.
         await fs.trackedPaths.revalidateSource(target.sourceProof)
         await fs.trackedPaths.revalidate(target.trackedProof)
-      }
-      const current = await fs.hashFile(target.sourcePath, signal)
-      if (
-        current.sha256 !== target.sha256 ||
-        current.sizeInBytes !== target.sizeInBytes
-      ) {
-        throw new Error(
-          'The selected Cheap LFS source changed while its image was publishing.'
-        )
+      } else {
+        // No tracked-path store: `sourcePath` is the working-tree file itself
+        // and this whole-file re-read is the only proof it did not change.
+        const current = await fs.hashFile(target.sourcePath, signal)
+        if (
+          current.sha256 !== target.sha256 ||
+          current.sizeInBytes !== target.sizeInBytes
+        ) {
+          throw new Error(
+            'The selected Cheap LFS source changed while its image was publishing.'
+          )
+        }
       }
     } catch (error) {
       if (isCancellation(error, signal)) {

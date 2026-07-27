@@ -327,24 +327,44 @@ function requirePublishDescriptor(
   }
 }
 
-async function requireLocalDescriptor(
+/**
+ * Cheap, read-free safety check for one local OCI artifact: a regular file, not
+ * a symlink, of exactly the descriptor's size. Used for payload-sized object
+ * layers, whose *content* digest is proven elsewhere — see
+ * {@link requirePreparedImage} for the streamed-hash/registry contract.
+ */
+async function requireLocalArtifactIdentity(
   path: string,
   descriptor: IOciDescriptor,
   provider: CheapLfsOciRegistryProvider
-): Promise<void> {
+): Promise<Awaited<ReturnType<typeof lstat>>> {
   requirePublishDescriptor(descriptor, provider)
-  const before = await lstat(path).catch(() => null)
+  const entry = await lstat(path).catch(() => null)
   if (
-    before === null ||
-    before.isSymbolicLink() ||
-    !before.isFile() ||
-    before.size !== descriptor.size
+    entry === null ||
+    entry.isSymbolicLink() ||
+    !entry.isFile() ||
+    entry.size !== descriptor.size
   ) {
     throw new CheapLfsGhcrTransportError(
       'integrity',
       'Cheap LFS GHCR rejected an unsafe or changed local OCI artifact.'
     )
   }
+  return entry
+}
+
+/**
+ * Identity check plus a full local SHA-256 pass. Reserved for the manifest and
+ * config documents, which are kilobytes of JSON and are the root of trust for
+ * every layer digest below them, so paying a whole read for them is free.
+ */
+async function requireLocalDescriptor(
+  path: string,
+  descriptor: IOciDescriptor,
+  provider: CheapLfsOciRegistryProvider
+): Promise<void> {
+  const before = await requireLocalArtifactIdentity(path, descriptor, provider)
   const actual = await hashBoundedFile(
     path,
     CheapLfsGhcrMaximumLayerBytes - 1,
@@ -444,8 +464,22 @@ async function requirePreparedImage(
     (layer): layer is typeof layer & { readonly localPath: string } =>
       layer.localPath !== null
   )
+  // "Cloud hash": an object layer's SHA-256 was already computed by the single
+  // streamed pass that wrote it, and the destination re-computes it again for
+  // free. Every layer is pushed as `<repository>@<streamed digest>`, and the
+  // OCI distribution spec requires a registry to verify the uploaded bytes
+  // against that digest and reject a mismatch, so the registry's acceptance is
+  // this blob's authoritative confirmation. Re-reading a multi-gigabyte staged
+  // layer here would buy nothing the push does not already prove, so only its
+  // identity and size are checked; content is left to the registry, and the
+  // push is bracketed by an inode check so a swap during the upload window
+  // fails closed locally too.
   await runBounded(localLayers, ParallelBlobLimit, async layer => {
-    await requireLocalDescriptor(layer.localPath, layer.descriptor, provider)
+    await requireLocalArtifactIdentity(
+      layer.localPath,
+      layer.descriptor,
+      provider
+    )
   })
 }
 
@@ -1003,6 +1037,16 @@ export async function publishCheapLfsGhcrImage(
             for (const layer of layers) {
               abortIfNeeded(options.signal)
               emit('object-chunk', layer.descriptor.digest, layer.objectSha256)
+              // The reference carries the digest the staging stream computed,
+              // so the registry hashes what it receives and refuses anything
+              // else. The brackets prove the same inode of the same size was
+              // on disk for the whole push, so a local swap cannot slip a
+              // different file past a digest the registry did confirm.
+              const beforePush = await requireLocalArtifactIdentity(
+                layer.localPath as string,
+                layer.descriptor,
+                provider
+              )
               try {
                 await runAuthenticated(
                   runner,
@@ -1018,6 +1062,17 @@ export async function publishCheapLfsGhcrImage(
                   options.signal,
                   timeoutMs
                 )
+                const afterPush = await requireLocalArtifactIdentity(
+                  layer.localPath as string,
+                  layer.descriptor,
+                  provider
+                )
+                if (!sameFile(beforePush, afterPush)) {
+                  throw new CheapLfsGhcrTransportError(
+                    'integrity',
+                    'Cheap LFS GHCR local OCI bytes do not match their descriptor.'
+                  )
+                }
               } catch (error) {
                 if (
                   error instanceof CheapLfsGhcrTransportError &&

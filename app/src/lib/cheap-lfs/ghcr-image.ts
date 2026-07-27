@@ -1038,6 +1038,17 @@ async function stageObject(
           )
         }
         const stored = await stat(path)
+        // The staged bytes are what the registry will hash, and nothing reads
+        // this file again before it is pushed, so a short or torn write has to
+        // fail here. AES-256-GCM is a stream cipher whose authentication tag is
+        // returned separately, so the staged length always equals the plaintext
+        // chunk length on both the encrypted and the plain route.
+        if (stored.size !== chunkSize) {
+          throw new CheapLfsGhcrImageError(
+            'integrity',
+            'Cheap LFS could not write verified object bytes.'
+          )
+        }
         const blob = descriptor(
           visibility === 'private'
             ? CheapLfsGhcrEncryptedObjectMediaType
