@@ -4,6 +4,8 @@ import {
   RepositoryArchiveFormat,
   RepositoryToolOperationID,
 } from '../../lib/cli-workbench'
+import { FilterMode } from '../../lib/fuzzy-find'
+import { compileSafeRegex } from '../../lib/safe-regex'
 
 export type { RepositoryArchiveFormat } from '../../lib/cli-workbench'
 
@@ -837,13 +839,22 @@ function normalizeContentSearchRevision(revision: string): string {
   return value
 }
 
+/** The matching options a content search adopts from the shared filter stack. */
+export interface IRepositoryContentSearchOptions {
+  readonly mode: FilterMode
+  readonly caseSensitive: boolean
+}
+
 /**
- * Accept one bounded single-line literal search text and an optional single
- * revision, never a Git option, range, or pathspec.
+ * Accept one bounded single-line search text and an optional single revision,
+ * never a Git option, range, or pathspec. Text is literal unless the shared
+ * filter stack's Regex mode is passed, which validates the user-authored
+ * pattern through RE2JS before Git's extended-regexp engine ever sees it.
  */
 export function prepareRepositoryContentSearch(
   pattern: string,
-  revision: string = ''
+  revision: string = '',
+  options?: IRepositoryContentSearchOptions
 ): CLIWorkbenchOperation {
   if (
     pattern.trim().length === 0 ||
@@ -855,13 +866,29 @@ export function prepareRepositoryContentSearch(
       `Enter search text of 1 to ${MaximumContentSearchLength} characters on one line.`
     )
   }
-  if (revision.trim().length === 0) {
-    return { id: 'content-search', pattern }
+  const regexMode = options?.mode === FilterMode.Regex
+  if (regexMode) {
+    const compilation = compileSafeRegex(
+      pattern,
+      options?.caseSensitive === true
+    )
+    if (compilation.regex === null) {
+      throw new Error(compilation.error ?? 'Enter a valid regular expression.')
+    }
   }
+  // Fuzzy matching has no server-side equivalent: it searches the literal
+  // text case-insensitively, mirroring the shared stack's fuzzy semantics.
+  const ignoreCase =
+    options !== undefined &&
+    (options.mode === FilterMode.Fuzzy || !options.caseSensitive)
   return {
     id: 'content-search',
     pattern,
-    ref: normalizeContentSearchRevision(revision),
+    ...(regexMode ? { patternMode: 'extended-regexp' as const } : {}),
+    ...(ignoreCase ? { ignoreCase: true as const } : {}),
+    ...(revision.trim().length === 0
+      ? {}
+      : { ref: normalizeContentSearchRevision(revision) }),
   }
 }
 

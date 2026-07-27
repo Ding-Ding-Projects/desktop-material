@@ -45,6 +45,7 @@ export {
 } from './operations'
 export type {
   IRepositoryArchiveRequest,
+  IRepositoryContentSearchOptions,
   IRepositoryFileBlameRequest,
   IRepositoryNoteRequest,
   IRepositoryPatchExportRequest,

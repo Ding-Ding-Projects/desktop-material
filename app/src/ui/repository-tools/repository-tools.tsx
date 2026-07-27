@@ -272,7 +272,7 @@ const UnsortedHubEntries: ReadonlyArray<IRepositoryToolsHubEntry> = [
     id: 'content-search',
     title: 'Search tracked content',
     description:
-      'Find literal text across every tracked file, with file and line references.',
+      'Find literal text or a regular expression across every tracked file, with file and line references.',
     category: 'Search & inspect',
     icon: octicons.codescan,
   },
@@ -408,6 +408,19 @@ const DefaultHubTool: RepositoryToolsHubToolID = 'status-summary'
 /** The per-surface persistence id for the tools-hub search's filter mode. */
 const RepositoryToolsFilterId = 'repository-tools-hub'
 
+/** The per-surface persistence id for the tracked-content search's mode. */
+const ContentSearchFilterId = 'repository-content-search'
+
+/**
+ * The content search runs in Git, which has no fuzzy matcher, so this surface
+ * offers exactly two honest modes: literal text (Substring, the plain-text
+ * default) and Regex. A persisted or cycled-to Fuzzy mode folds into the
+ * literal default instead of mislabeling a literal search as fuzzy.
+ */
+function normalizeContentSearchMode(mode: FilterMode): FilterMode {
+  return mode === FilterMode.Fuzzy ? FilterMode.Substring : mode
+}
+
 function isRepositoryToolsHubCategoryFilter(
   value: string
 ): value is RepositoryToolsHubCategoryFilter {
@@ -529,6 +542,8 @@ interface IRepositoryToolsState {
   readonly customGitCommandsBusy: boolean
   readonly searchActive: boolean
   readonly searchPattern: string
+  readonly searchMode: FilterMode
+  readonly searchCaseSensitive: boolean
   readonly searchRevision: string
   readonly notesActive: boolean
   readonly noteTarget: string
@@ -592,6 +607,12 @@ export class RepositoryTools extends React.Component<
       customGitCommandsBusy: false,
       searchActive: false,
       searchPattern: '',
+      searchMode: normalizeContentSearchMode(
+        readPersistedFilterMode(ContentSearchFilterId)
+      ),
+      // Git grep matches case-sensitively by default; the shared Aa toggle
+      // starts from that historical behavior instead of silently changing it.
+      searchCaseSensitive: true,
       searchRevision: '',
       notesActive: false,
       noteTarget: '',
@@ -1079,6 +1100,42 @@ export class RepositoryTools extends React.Component<
     this.setState({ searchRevision: event.currentTarget.value })
   }
 
+  private onSearchModeChanged = (mode: FilterMode) => {
+    const searchMode = normalizeContentSearchMode(mode)
+    persistFilterMode(ContentSearchFilterId, searchMode)
+    this.setState({ searchMode })
+  }
+
+  private onSearchCaseSensitiveChanged = (searchCaseSensitive: boolean) => {
+    this.setState({ searchCaseSensitive })
+  }
+
+  private onSearchRegexPatternApply = (searchPattern: string) => {
+    this.setState({ searchPattern })
+  }
+
+  /** Seed the regex builder's live tester with real matched result lines. */
+  private getContentSearchSampleItems = (): ReadonlyArray<string> =>
+    this.state.resultOperation === 'content-search' &&
+    this.state.output.length > 0
+      ? this.state.output.split('\n').slice(0, 50)
+      : []
+
+  /**
+   * The inline invalid-regex message for the tracked-content search, produced
+   * by the same RE2-backed matcher every collection filter validates with.
+   */
+  private getContentSearchRegexError(): string | null {
+    const { searchPattern, searchMode, searchCaseSensitive } = this.state
+    if (searchMode !== FilterMode.Regex || searchPattern.length === 0) {
+      return null
+    }
+    return matchWithMode(searchPattern, [], value => [value], {
+      mode: FilterMode.Regex,
+      caseSensitive: searchCaseSensitive,
+    }).regexError
+  }
+
   private runContentSearch = () => {
     if (this.isBusy() || !this.state.gitAvailable) {
       return
@@ -1086,7 +1143,11 @@ export class RepositoryTools extends React.Component<
     try {
       const operation = prepareRepositoryContentSearch(
         this.state.searchPattern,
-        this.state.searchRevision
+        this.state.searchRevision,
+        {
+          mode: this.state.searchMode,
+          caseSensitive: this.state.searchCaseSensitive,
+        }
       )
       void this.startCommand('content-search', operation, false)
     } catch (error) {
@@ -1923,6 +1984,7 @@ export class RepositoryTools extends React.Component<
   }
 
   private renderContentSearchCard(disabled: boolean) {
+    const searchRegexError = this.getContentSearchRegexError()
     return (
       <article className="repository-tool-card">
         <div>
@@ -1935,7 +1997,9 @@ export class RepositoryTools extends React.Component<
           </div>
           <p>
             Find literal text across every tracked file, with file and line
-            references. Untracked and ignored files are never searched.
+            references. The mode control opts into an RE2-checked regular
+            expression run by Git&apos;s extended-regexp engine. Untracked and
+            ignored files are never searched.
           </p>
           {this.renderDetailChips(
             'Search & inspect',
@@ -1950,15 +2014,48 @@ export class RepositoryTools extends React.Component<
               <label htmlFor="repository-tool-search-input">
                 Search tracked files for
               </label>
-              <input
-                id="repository-tool-search-input"
-                type="text"
-                value={this.state.searchPattern}
-                maxLength={256}
-                disabled={disabled}
-                placeholder="literal text, not a pattern"
-                onChange={this.onSearchPatternChanged}
-              />
+              <div className="repository-tool-search-field">
+                <input
+                  data-search-surface-id="repository-content-search"
+                  id="repository-tool-search-input"
+                  type="text"
+                  value={this.state.searchPattern}
+                  maxLength={256}
+                  disabled={disabled}
+                  placeholder={
+                    this.state.searchMode === FilterMode.Regex
+                      ? 'regular expression'
+                      : 'literal text, not a pattern'
+                  }
+                  aria-invalid={searchRegexError !== null}
+                  aria-describedby={
+                    searchRegexError === null
+                      ? undefined
+                      : 'repository-tool-search-error'
+                  }
+                  onChange={this.onSearchPatternChanged}
+                />
+                <FilterModeControl
+                  searchSurfaceId="repository-content-search"
+                  mode={this.state.searchMode}
+                  caseSensitive={this.state.searchCaseSensitive}
+                  onModeChange={this.onSearchModeChanged}
+                  onCaseSensitiveChange={this.onSearchCaseSensitiveChanged}
+                  regexBuilderTarget="Tracked content"
+                  getSampleItems={this.getContentSearchSampleItems}
+                  filterText={this.state.searchPattern}
+                  onRegexPatternApply={this.onSearchRegexPatternApply}
+                />
+              </div>
+              {searchRegexError !== null && (
+                <p
+                  id="repository-tool-search-error"
+                  className="repository-tool-search-error"
+                  role="alert"
+                >
+                  {searchRegexError}
+                </p>
+              )}
               <label htmlFor="repository-tool-search-revision">
                 At revision (optional)
               </label>
@@ -1978,7 +2075,9 @@ export class RepositoryTools extends React.Component<
           <div className="repository-tool-controls">
             <Button
               disabled={
-                disabled || this.state.searchPattern.trim().length === 0
+                disabled ||
+                this.state.searchPattern.trim().length === 0 ||
+                searchRegexError !== null
               }
               onClick={this.runContentSearch}
             >

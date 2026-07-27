@@ -25,11 +25,21 @@ function source(relativePath: string): string {
   return readFileSync(Path.join(uiRoot, relativePath), 'utf8')
 }
 
+/**
+ * Every opening JSX tag for the component, whether the element is
+ * self-closing or paired. Quoted strings and up to three levels of braces are
+ * consumed as attribute values so a `>` inside an attribute expression cannot
+ * terminate the tag early.
+ */
 function jsxTags(contents: string, component: string): ReadonlyArray<string> {
   const escaped = component.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const attribute = `(?:"[^"]*"|'[^']*'|\\{(?:[^{}]|\\{(?:[^{}]|\\{[^{}]*\\})*\\})*\\}|[^>"'{])`
   return (
     contents.match(
-      new RegExp(`<${escaped}(?:<[^>\\r\\n]+>)?[\\s\\S]*?\\/>`, 'g')
+      new RegExp(
+        `<${escaped}(?=[<\\s/>])(?:<[^>\\r\\n]+>)?${attribute}*?\\/?>`,
+        'g'
+      )
     ) ?? []
   )
 }
@@ -169,23 +179,90 @@ describe('collection surface registries', () => {
       'External builders must map one-to-one to controls that disable the inline builder'
     )
 
+    // Backstop: any input that looks like a search or filter field — a
+    // literal type="search", or a search/filter-flavored placeholder, label,
+    // class, or id — must carry a surface marker, so a new surface cannot
+    // dodge the registry audit by using type="text" or a wrapper component
+    // such as FancyTextBox. Literal markers must name a registered surface.
+    const searchLikeText = /search|filter/i
+    const searchLikeAttributes = [
+      'placeholder',
+      'aria-label',
+      'ariaLabel',
+      'label',
+      'className',
+      'id',
+    ]
+    // Inputs that mention search/filter in an attribute but are audited as
+    // something other than a collection search field. Every entry needs a
+    // reason; a genuine search input never belongs here.
+    const auditedNonSearchInputs: ReadonlyArray<{
+      readonly source: string
+      readonly attributeValue: string
+      readonly reason: string
+    }> = [
+      {
+        source: 'repository-tools/repository-tools.tsx',
+        attributeValue: 'repository-tool-search-revision',
+        reason:
+          'Revision scope for the tracked-content search: one branch, tag, ' +
+          'HEAD, or commit ID — not a collection search query.',
+      },
+    ]
+    const usedExclusions = new Set<string>()
+
     for (const [relativePath, contents] of sources) {
-      for (const component of ['input', 'TextBox']) {
+      for (const component of ['input', 'TextBox', 'FancyTextBox']) {
         for (const tag of jsxTags(contents, component)) {
-          if (/\btype=["']search["']/.test(tag)) {
-            const marker = literalAttribute(
-              tag,
-              component === 'input'
-                ? 'data-search-surface-id'
-                : 'searchSurfaceId'
-            )
-            assert.ok(
-              marker !== null,
-              `Native search input in ${relativePath} needs a stable search surface ID`
-            )
+          const isSearchLike =
+            /\btype=["']search["']/.test(tag) ||
+            searchLikeAttributes.some(attribute => {
+              const value = literalAttribute(tag, attribute)
+              return value !== null && searchLikeText.test(value)
+            })
+          if (!isSearchLike) {
+            continue
           }
+          const marker =
+            literalAttribute(tag, 'data-search-surface-id') ??
+            literalAttribute(tag, 'searchSurfaceId')
+          if (marker !== null) {
+            assert.ok(
+              registryIds.includes(marker),
+              `Search input in ${relativePath} is marked with unregistered surface ${marker}`
+            )
+            continue
+          }
+          // Expression-valued markers (e.g. searchSurfaceId={this.props.x})
+          // belong to the shared controls, whose exact registry binding is
+          // asserted below; their presence still proves the input is wired.
+          if (/\b(?:data-search-surface-id|searchSurfaceId)=\{/.test(tag)) {
+            continue
+          }
+          const exclusion = auditedNonSearchInputs.find(
+            candidate =>
+              candidate.source === relativePath &&
+              tag.includes(candidate.attributeValue)
+          )
+          if (exclusion !== undefined) {
+            usedExclusions.add(
+              `${exclusion.source}|${exclusion.attributeValue}`
+            )
+            continue
+          }
+          assert.fail(
+            `Search-like <${component}> in ${relativePath} needs a search ` +
+              `surface ID or an audited exclusion: ${tag}`
+          )
         }
       }
+    }
+
+    for (const exclusion of auditedNonSearchInputs) {
+      assert.ok(
+        usedExclusions.has(`${exclusion.source}|${exclusion.attributeValue}`),
+        `Stale audited exclusion for ${exclusion.attributeValue} in ${exclusion.source}`
+      )
     }
 
     const filterModeControl = source('lib/filter-mode-control.tsx')

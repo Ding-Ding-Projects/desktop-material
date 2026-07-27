@@ -229,6 +229,12 @@ export const SearchSurfaceRegistry: ReadonlyArray<ISearchSurfaceRegistration> =
       implementation: 'standalone',
     },
     {
+      id: 'repository-content-search',
+      label: 'Tracked content',
+      source: 'repository-tools/repository-tools.tsx',
+      implementation: 'standalone',
+    },
+    {
       id: 'provider-triage',
       label: 'Provider triage',
       source: 'repository-tools/provider-triage.tsx',

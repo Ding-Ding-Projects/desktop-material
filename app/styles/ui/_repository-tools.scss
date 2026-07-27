@@ -1367,6 +1367,25 @@
   }
 }
 
+.repository-tool-search-field {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+
+  input {
+    flex: 1 1 160px;
+    width: auto;
+  }
+}
+
+.repository-tool-search-error {
+  color: var(--md-sys-color-error);
+  font-size: 12px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
 .repository-note-confirm-message {
   background: var(--md-sys-color-surface);
   border: 1px solid var(--md-sys-color-outline-variant);

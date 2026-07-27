@@ -799,6 +799,51 @@ describe('Repository tools', () => {
     assert.equal(client.starts.length, 1)
   })
 
+  it('opts the content search into RE2-checked regex mode', async () => {
+    const client = new FakeRepositoryToolsClient()
+    renderTools(client)
+    await screen.findByText('git version 2.55.0')
+
+    try {
+      selectHubTool('content-search')
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Start content search' })
+      )
+      // Plain text (Substring) is the default; one cycle of the shared mode
+      // control opts into regex.
+      fireEvent.click(
+        screen.getByRole('button', {
+          name: 'Filter mode: Substring (click to change)',
+        })
+      )
+      fireEvent.change(screen.getByLabelText('Search tracked files for'), {
+        target: { value: '(' },
+      })
+      // An RE2-invalid pattern surfaces inline and blocks the search.
+      assert.ok(screen.getByRole('alert'))
+      const search = screen.getByRole('button', { name: 'Search' })
+      assert.equal(search.getAttribute('aria-disabled'), 'true')
+      fireEvent.click(search)
+      assert.equal(client.starts.length, 0)
+
+      fireEvent.change(screen.getByLabelText('Search tracked files for'), {
+        target: { value: 'todo|fixme' },
+      })
+      assert.equal(screen.queryByRole('alert'), null)
+      fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+      await waitFor(() => assert.equal(client.starts.length, 1))
+      assert.deepStrictEqual(client.starts[0].operation, {
+        id: 'content-search',
+        pattern: 'todo|fixme',
+        patternMode: 'extended-regexp',
+      })
+    } finally {
+      // The mode is persisted per surface; put later tests back on the
+      // plain-text default.
+      window.localStorage.removeItem('filter-mode/repository-content-search')
+    }
+  })
+
   it('saves and removes one commit note only after its own review', async () => {
     const client = new FakeRepositoryToolsClient()
     renderTools(client)

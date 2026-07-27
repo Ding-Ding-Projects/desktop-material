@@ -23,6 +23,7 @@ import {
   getRepositorySections,
   getRepositorySectionVisualIndex,
 } from '../../src/ui/repository-sections'
+import { FilterMode } from '../../src/lib/fuzzy-find'
 
 const fixtureRoot = join(tmpdir(), 'desktop-material-repository-tools')
 const repositoryPath = join(fixtureRoot, 'work', 'repo')
@@ -173,6 +174,65 @@ describe('repository tool recipes', () => {
       '-rev',
     ]) {
       assert.throws(() => prepareRepositoryContentSearch('x', revision))
+    }
+  })
+
+  it('passes the shared filter modes through to the content search', () => {
+    assert.deepStrictEqual(
+      prepareRepositoryContentSearch('TODO', '', {
+        mode: FilterMode.Substring,
+        caseSensitive: true,
+      }),
+      { id: 'content-search', pattern: 'TODO' }
+    )
+    assert.deepStrictEqual(
+      prepareRepositoryContentSearch('TODO', '', {
+        mode: FilterMode.Substring,
+        caseSensitive: false,
+      }),
+      { id: 'content-search', pattern: 'TODO', ignoreCase: true }
+    )
+    // Fuzzy has no server-side equivalent; it folds into a case-insensitive
+    // literal search, mirroring the shared stack's fuzzy case semantics.
+    assert.deepStrictEqual(
+      prepareRepositoryContentSearch('TODO', '', {
+        mode: FilterMode.Fuzzy,
+        caseSensitive: true,
+      }),
+      { id: 'content-search', pattern: 'TODO', ignoreCase: true }
+    )
+    assert.deepStrictEqual(
+      prepareRepositoryContentSearch('render(ing)?', ' release/2.0 ', {
+        mode: FilterMode.Regex,
+        caseSensitive: true,
+      }),
+      {
+        id: 'content-search',
+        pattern: 'render(ing)?',
+        patternMode: 'extended-regexp',
+        ref: 'release/2.0',
+      }
+    )
+    assert.deepStrictEqual(
+      prepareRepositoryContentSearch('todo|fixme', '', {
+        mode: FilterMode.Regex,
+        caseSensitive: false,
+      }),
+      {
+        id: 'content-search',
+        pattern: 'todo|fixme',
+        patternMode: 'extended-regexp',
+        ignoreCase: true,
+      }
+    )
+    // A regex-mode pattern must compile under RE2 before Git ever sees it.
+    for (const pattern of ['(', 'a{2,1}', '(?<broken']) {
+      assert.throws(() =>
+        prepareRepositoryContentSearch(pattern, '', {
+          mode: FilterMode.Regex,
+          caseSensitive: false,
+        })
+      )
     }
   })
 

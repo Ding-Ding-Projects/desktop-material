@@ -299,7 +299,13 @@ export class CompareSidebar extends React.Component<
       <div id="compare-view" role="tabpanel" aria-labelledby="history-tab">
         {this.renderPanelHeader()}
         <div className="compare-form">
+          {/*
+            This is the external textbox of the shared "branches" filter list
+            rendered below (BranchList wires it into its FilterList), whose
+            mode control and regex builder live inside that list.
+          */}
           <FancyTextBox
+            searchSurfaceId="branches"
             ariaLabel="Branch filter"
             symbol={octicons.gitBranch}
             displayClearButton={true}
