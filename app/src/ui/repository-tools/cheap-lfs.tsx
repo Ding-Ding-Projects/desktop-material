@@ -40,6 +40,7 @@ import {
 import { showOpenDialog } from '../main-process-proxy'
 import { getPersistedLanguageMode, t } from '../../lib/i18n'
 import {
+  cheapLfsCloudCompressionUsesInRepoWorkflow,
   getCheapLfsCloudCompressionPolicy,
   getCheapLfsCloudCompressionStats,
   IEnsureCheapLfsCloudCompressionResult,
@@ -1094,21 +1095,25 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       if (!this.isCurrentCloudRepository(repository, generation)) {
         return
       }
-      const enabled =
-        result.policy === 'automatic-public' ||
-        result.policy === 'enabled-private'
+      // Only a confirmed-public repository has a caller to be ready. A private
+      // repository that opted in compresses through the external builder and
+      // must never be told a workflow was added here, because none was.
+      const usesWorkflow = cheapLfsCloudCompressionUsesInRepoWorkflow(
+        result.policy
+      )
+      const routedToBuilder = result.policy === 'enabled-private'
       this.setState({
         cloudBusy: false,
-        cloudWorkflowReady: enabled,
-        notice: !enabled
+        cloudWorkflowReady: usesWorkflow,
+        notice: routedToBuilder
+          ? t('cheapLfs.cloud.builderRouted')
+          : !usesWorkflow
           ? result.changed
             ? t('cheapLfs.cloud.workflowDisabled')
             : this.state.notice
           : result.changed
           ? t('cheapLfs.cloud.workflowAdded')
-          : enabled
-          ? t('cheapLfs.cloud.workflowReady')
-          : this.state.notice,
+          : t('cheapLfs.cloud.workflowReady'),
       })
     } catch (error) {
       if (this.isCurrentCloudRepository(repository, generation)) {
@@ -1163,20 +1168,21 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
       notice: null,
     })
     try {
-      const result = await dispatcher.updateRepositoryBuildRunPreferences(
+      await dispatcher.updateRepositoryBuildRunPreferences(
         repository,
         preferences
       )
       if (!this.isCurrentCloudRepository(repository, generation)) {
         return
       }
+      // This toggle only exists on a private repository, and a private
+      // repository never gets a caller: opting in routes compression to the
+      // external builder instead of spending private Actions minutes.
       this.setState({
         cloudBusy: false,
-        cloudWorkflowReady: enabled,
+        cloudWorkflowReady: false,
         notice: enabled
-          ? result?.changed === true
-            ? t('cheapLfs.cloud.workflowAdded')
-            : t('cheapLfs.cloud.workflowReady')
+          ? t('cheapLfs.cloud.builderRouted')
           : t('cheapLfs.cloud.workflowDisabled'),
       })
     } catch (error) {

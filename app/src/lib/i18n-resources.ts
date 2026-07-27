@@ -1782,6 +1782,7 @@ export type TranslationKey =
   | 'cheapLfs.cloud.workflowAdded'
   | 'cheapLfs.cloud.workflowReady'
   | 'cheapLfs.cloud.workflowDisabled'
+  | 'cheapLfs.cloud.builderRouted'
   | 'cheapLfs.cloud.autoInstall.startedTitle'
   | 'cheapLfs.cloud.autoInstall.startedBody'
   | 'cheapLfs.cloud.autoInstall.succeededTitle'
@@ -1804,6 +1805,13 @@ export type TranslationKey =
   | 'cheapLfs.cloud.autoInstall.updateCancel'
   | 'cheapLfs.cloud.autoInstall.unownedTitle'
   | 'cheapLfs.cloud.autoInstall.unownedBody'
+  | 'cheapLfs.cloud.autoInstall.visibilityUnknownTitle'
+  | 'cheapLfs.cloud.autoInstall.visibilityUnknownBody'
+  | 'cheapLfs.cloud.autoInstall.builderTitle'
+  | 'cheapLfs.cloud.autoInstall.builderUnavailableBody'
+  | 'cheapLfs.cloud.autoInstall.builderLeakRefusedBody'
+  | 'cheapLfs.cloud.autoInstall.builderNoIdentityBody'
+  | 'cheapLfs.cloud.autoInstall.builderPreparationFailedBody'
   | 'cheapLfs.cloud.raw'
   | 'cheapLfs.cloud.compressed'
   | 'cheapLfs.cloud.mixed'
@@ -4453,7 +4461,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.cloud.privateToggle':
     'Enable cloud compression for this private repository',
   'cheapLfs.cloud.privateHelp':
-    'Off by default for private repositories. Enabling uses your private GitHub Actions minutes and adds a reviewed workflow change to this repository.',
+    'Off by default for private repositories. Enabling adds no workflow here and spends none of your private GitHub Actions minutes: compression runs on a free public runner through the encrypted builder, and nothing that identifies this repository — its name, your file paths, or asset names — is published there.',
   'cheapLfs.cloud.visibilityUnknown':
     'Off until GitHub confirms whether this repository is public or private.',
   'cheapLfs.cloud.localOnly':
@@ -4464,6 +4472,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Cloud-compression workflow file is ready. Commit and push it once; pointer updates then arrive as GitHub Actions commits.',
   'cheapLfs.cloud.workflowDisabled':
     'Private cloud compression is off. Existing raw objects remain cloneable.',
+  'cheapLfs.cloud.builderRouted':
+    'No workflow was added to this private repository and none of your private Actions minutes are spent. Compression runs through the encrypted public builder, which is set up outside Desktop Material; until it is, objects stay raw and cloneable.',
   'cheapLfs.cloud.autoInstall.startedTitle': 'Setting up cloud compression',
   'cheapLfs.cloud.autoInstall.startedBody':
     'This repository uses cloud compression but has no compression workflow. Adding {path} in the background; keep working.',
@@ -4502,6 +4512,20 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Cloud compression workflow not installed',
   'cheapLfs.cloud.autoInstall.unownedBody':
     'A file Desktop Material does not manage already occupies {path}. It was left untouched, so cloud compression is not set up automatically here.',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownTitle':
+    'Cloud compression is waiting on repository visibility',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownBody':
+    'GitHub has not confirmed whether this repository is public or private, so nothing was installed and nothing was prepared anywhere public. Sign in or refresh the repository, then compression resumes on its own.',
+  'cheapLfs.cloud.autoInstall.builderTitle':
+    'Private compression runs on the external builder',
+  'cheapLfs.cloud.autoInstall.builderUnavailableBody':
+    'No compression workflow was added to this private repository, because every pass would bill your own Actions minutes. Compression belongs on the encrypted public builder, whose registration is ready: builder {builder}, project {project}, secrets {secrets}. Desktop Material cannot create that public repository or write its secrets for you, so compression does not run until you do. Nothing about this repository was published anywhere.',
+  'cheapLfs.cloud.autoInstall.builderLeakRefusedBody':
+    'Preparing the external builder was stopped because a value bound for a public place carried this repository’s name, a file path, or an asset name. Nothing was installed and nothing was published. Rename the colliding item or keep compression off.',
+  'cheapLfs.cloud.autoInstall.builderNoIdentityBody':
+    'This checkout has no private GitHub repository to register with the external builder, so nothing was installed and nothing was published.',
+  'cheapLfs.cloud.autoInstall.builderPreparationFailedBody':
+    'The external-builder registration could not be prepared, so compression did not start. Nothing was installed in this repository and nothing was published anywhere. Objects stay raw and cloneable; try again after reopening the repository.',
   'cheapLfs.cloud.raw': 'Raw',
   'cheapLfs.cloud.compressed': 'Compressed · {savings}% smaller',
   'cheapLfs.cloud.mixed':
@@ -7061,7 +7085,7 @@ export const cantoneseTranslations: Readonly<
     '公開 repo 會自動開啟。第一次先檢查、commit 同 push 個 workflow 改動；之後每個 Release 物件會逐件壓縮。',
   'cheapLfs.cloud.privateToggle': '為呢個私人 repo 開啟雲端壓縮',
   'cheapLfs.cloud.privateHelp':
-    '私人 repo 預設關閉。開啟後會用你嘅私人 GitHub Actions 分鐘，亦會喺 repo 加一個畀你檢查嘅 workflow 改動。',
+    '私人 repo 預設關閉。開咗都唔會喺呢度加 workflow，亦唔會燒你嘅私人 Actions 分鐘：壓縮會經加密 builder 喺免費嘅公共 runner 度做，而且對外一個字都唔漏 —— repo 名、你嘅檔案路徑、asset 名，全部唔會 publish 出去。',
   'cheapLfs.cloud.visibilityUnknown':
     'GitHub 未確認個 repo 係公開定私人之前，會穩陣噉保持關閉。',
   'cheapLfs.cloud.localOnly':
@@ -7072,6 +7096,8 @@ export const cantoneseTranslations: Readonly<
     '雲端壓縮 workflow 檔案已準備好。第一次 commit 同 push 之後，pointer 更新就會由 GitHub Actions commit 返嚟。',
   'cheapLfs.cloud.workflowDisabled':
     '私人雲端壓縮已關閉；原本 raw 物件照樣 clone 得返。',
+  'cheapLfs.cloud.builderRouted':
+    '呢個私人 repo 冇加過 workflow，你嘅私人 Actions 分鐘一分鐘都冇燒。壓縮會經加密 public builder 做，而個 builder 要喺 Desktop Material 以外set好；未set好之前，啲物件會保持 raw，照樣 clone 得返。',
   'cheapLfs.cloud.autoInstall.startedTitle': '幫緊你開雲端壓縮',
   'cheapLfs.cloud.autoInstall.startedBody':
     '呢個 repo 用緊雲端壓縮，但係未有壓縮 workflow。而家喺背景幫你加返 {path}，你照做嘢就得。',
@@ -7106,6 +7132,20 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.cloud.autoInstall.unownedTitle': '未安裝壓縮 workflow',
   'cheapLfs.cloud.autoInstall.unownedBody':
     '{path} 已經俾一個唔係 Desktop Material 管理嘅檔案佔咗。我哋原封不動冇郁過佢，所以呢度唔會自動開雲端壓縮。',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownTitle':
+    '未知公定私，雲端壓縮暫時企定',
+  'cheapLfs.cloud.autoInstall.visibilityUnknownBody':
+    'GitHub 未confirm呢個 repo 係公開定私人，所以乜都冇裝，公開嗰邊亦都乜都冇準備過。登入或者refresh返個 repo，壓縮就會自己接返落去。',
+  'cheapLfs.cloud.autoInstall.builderTitle':
+    '私人 repo 嘅壓縮改由外部 builder 做',
+  'cheapLfs.cloud.autoInstall.builderUnavailableBody':
+    '呢個私人 repo 冇加壓縮 workflow，因為每壓一次就燒你自己嘅 Actions 分鐘。壓縮應該擺去加密 public builder 度做，登記資料已經整好：builder {builder}、project {project}、secrets {secrets}。Desktop Material 唔可以幫你開嗰個公開 repo，亦唔會幫你寫 secret，所以你未搞掂之前壓縮唔會行。呢個 repo 嘅任何嘢都冇 publish 過去邊度。',
+  'cheapLfs.cloud.autoInstall.builderLeakRefusedBody':
+    '準備外部 builder 嗰陣即刻煞停咗：有個準備擺去公開位置嘅值，入面帶住呢個 repo 嘅名、檔案路徑或者 asset 名。乜都冇裝，乜都冇 publish。改個名避開撞，或者索性唔開壓縮。',
+  'cheapLfs.cloud.autoInstall.builderNoIdentityBody':
+    '呢個 checkout 冇私人 GitHub repo 可以拎去外部 builder 登記，所以乜都冇裝，亦冇 publish 過任何嘢。',
+  'cheapLfs.cloud.autoInstall.builderPreparationFailedBody':
+    '外部 builder 嘅登記資料整唔掂，所以壓縮冇開始過。呢個 repo 入面乜都冇裝，出面亦都乜都冇 publish。啲物件會保持 raw，照樣 clone 得返；重新開返個 repo 再試下。',
   'cheapLfs.cloud.raw': 'Raw 原檔',
   'cheapLfs.cloud.compressed': '已壓縮 · 慳咗 {savings}%',
   'cheapLfs.cloud.mixed':

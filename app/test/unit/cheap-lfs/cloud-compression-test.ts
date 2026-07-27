@@ -29,8 +29,10 @@ import {
   CHEAP_LFS_CLOUD_COMPRESSION_ACTION_SHA,
   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH,
   ICheapLfsWorkflowFileSystem,
+  cheapLfsCloudCompressionUsesInRepoWorkflow,
   ensureCheapLfsCloudCompressionWorkflow,
   getCheapLfsCloudCompressionPolicy,
+  getCheapLfsCloudCompressionRoute,
   getCheapLfsCloudCompressionStats,
   renderCheapLfsCloudCompressionWorkflow,
 } from '../../../src/lib/cheap-lfs/cloud-compression'
@@ -124,6 +126,39 @@ describe('Cheap LFS cloud compression policy', () => {
       ),
       'enabled-private'
     )
+  })
+
+  it('sends only a confirmed-public repository down the in-repo workflow route', () => {
+    assert.deepEqual(
+      (
+        [
+          'automatic-public',
+          'enabled-private',
+          'disabled-private',
+          'visibility-unknown',
+          'not-github',
+        ] as const
+      ).map(getCheapLfsCloudCompressionRoute),
+      [
+        'in-repo-workflow',
+        'encrypted-public-builder',
+        'none',
+        'blocked-visibility-unknown',
+        'none',
+      ]
+    )
+    assert.equal(
+      cheapLfsCloudCompressionUsesInRepoWorkflow('automatic-public'),
+      true
+    )
+    for (const policy of [
+      'enabled-private',
+      'disabled-private',
+      'visibility-unknown',
+      'not-github',
+    ] as const) {
+      assert.equal(cheapLfsCloudCompressionUsesInRepoWorkflow(policy), false)
+    }
   })
 
   it('renders a SHA-pinned, one-job caller restricted to the exact default branch ref', () => {
@@ -225,7 +260,11 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
     }
   })
 
-  it('enables and then closes the managed private workflow guard', async () => {
+  it('never installs a caller in an opted-in private repository', async () => {
+    // Every compression pass a private caller runs is billed to the user's own
+    // Actions minutes. Opting in routes compression to the encrypted public
+    // builder instead, so no file — and no `.github/workflows` directory — is
+    // created here at all.
     const root = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-private-'))
     try {
       const enabledPreferences = {
@@ -236,14 +275,53 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
         repositoryAt(root, true, enabledPreferences),
         enabledPreferences
       )
-      assert.match(await readFile(enabled.path, 'utf8'), /\|\| true/)
+      assert.equal(enabled.policy, 'enabled-private')
+      assert.equal(enabled.changed, false)
+      await assert.rejects(() => readFile(enabled.path, 'utf8'))
+      await assert.rejects(() => readdir(join(root, '.github')))
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
 
-      const disabled = await ensureCheapLfsCloudCompressionWorkflow(
-        repositoryAt(root, true),
-        defaultBuildRunPreferences
+  it('closes a legacy armed private caller instead of leaving it running', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-legacy-'))
+    const workflow = join(
+      root,
+      ...CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH.split('/')
+    )
+    try {
+      await mkdir(dirname(workflow), { recursive: true })
+      // What an older release installed for an opted-in private repository.
+      await writeFile(
+        workflow,
+        renderCheapLfsCloudCompressionWorkflow(true),
+        'utf8'
       )
-      assert.equal(disabled.changed, true)
-      assert.match(await readFile(disabled.path, 'utf8'), /\|\| false/)
+      const enabledPreferences = {
+        ...defaultBuildRunPreferences,
+        cheapLfsCloudCompression: true,
+      }
+      const result = await ensureCheapLfsCloudCompressionWorkflow(
+        repositoryAt(root, true, enabledPreferences),
+        enabledPreferences
+      )
+      assert.equal(result.changed, true)
+      assert.match(await readFile(workflow, 'utf8'), /\|\| false/)
+    } finally {
+      await rm(root, { recursive: true, force: true })
+    }
+  })
+
+  it('fails closed and installs nothing while visibility is unknown', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'cheap-lfs-cloud-unknown-vis-'))
+    try {
+      const result = await ensureCheapLfsCloudCompressionWorkflow(
+        repositoryAt(root, null)
+      )
+      assert.equal(result.policy, 'visibility-unknown')
+      assert.equal(result.changed, false)
+      await assert.rejects(() => readFile(result.path, 'utf8'))
     } finally {
       await rm(root, { recursive: true, force: true })
     }
@@ -331,11 +409,16 @@ describe('Cheap LFS managed cloud-compression workflow', () => {
           }
         ),
       ])
-      assert.equal(publicResult.changed, true)
-      assert.equal(privateResult.changed, true)
+      // Both callers converge on the public template — an opted-in private
+      // repository no longer arms the guard — so whichever ran first rewrote
+      // the legacy file and the other found nothing left to change.
+      assert.equal(
+        [publicResult.changed, privateResult.changed].filter(Boolean).length,
+        1
+      )
       assert.equal(
         await readFile(workflow, 'utf8'),
-        renderCheapLfsCloudCompressionWorkflow(true)
+        renderCheapLfsCloudCompressionWorkflow(false)
       )
       assert.deepEqual(
         (await readdir(dirname(workflow))).filter(name =>
