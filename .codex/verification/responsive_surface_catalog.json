@@ -57,6 +57,7 @@
         { "member": "IgnoredFiles", "label": "Ignored files" },
         { "member": "GitConfig", "label": "Git config" },
         { "member": "BuildRun", "label": "Build & run" },
+        { "member": "CheapLfs", "label": "Cheap LFS" },
         { "member": "Submodules", "label": "Submodules" },
         { "member": "Subtrees", "label": "Subtrees" },
         { "member": "Automation", "label": "Automation" },

@@ -1205,7 +1205,9 @@ and updates the other pointers before the path is removed. The managed Release
 workflow is added to Changes for your review rather than committed silently.
 Materialize all reuses one paginated inventory per Release instead of repeating
 the same API pages for every pointer. Choose **Open Cheap LFS settings** to jump
-straight to **Repository settings → Build & run**. The Large files page owns the
+straight to **Repository settings → Cheap LFS**, the dedicated tab (right after
+**Build & run**) that holds the storage provider, auto-pin, auto-download,
+parallel-upload, and cloud-compression preferences. The Large files page owns the
 repository view's vertical scroll, so every row and action in a long inventory
 remains reachable without a competing nested page scroll.
 

@@ -339,7 +339,7 @@ describe('CheapLfs panel', () => {
     assert.ok(screen.getByText(/do not need to browse GitHub Releases/i))
   })
 
-  it('opens the Cheap LFS settings directly on Build & run', async () => {
+  it('opens the Cheap LFS settings directly on the Cheap LFS tab', async () => {
     const dispatcher = new FakeCheapLfsDispatcher([])
     render(
       <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
@@ -356,7 +356,7 @@ describe('CheapLfs panel', () => {
       assert.fail(`Expected Repository settings, got ${popup.type}`)
     }
     assert.equal(popup.repository, repository)
-    assert.equal(popup.initialSelectedTab, RepositorySettingsTab.BuildRun)
+    assert.equal(popup.initialSelectedTab, RepositorySettingsTab.CheapLfs)
   })
 
   it('lists committed pointers with path, tag, asset, and size', async () => {
