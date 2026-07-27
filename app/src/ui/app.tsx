@@ -1311,6 +1311,16 @@ export class App extends React.Component<IAppProps, IAppState> {
     }
   }
 
+  private onInsufficientScopesNotNow = (
+    account: Account,
+    missingScopes: ReadonlyArray<string>
+  ) => {
+    this.props.dispatcher.recordInsufficientScopesDismissal(
+      account,
+      missingScopes
+    )
+  }
+
   private onShowRepositorySubmodules = (
     repository: IAPIRepository,
     entries: ReadonlyArray<IGitModulesEntry>
@@ -4113,6 +4123,7 @@ export class App extends React.Component<IAppProps, IAppState> {
             account={popup.account}
             missingScopes={popup.missingScopes}
             onSignInAgain={this.onReauthorizeAccount}
+            onNotNow={this.onInsufficientScopesNotNow}
             onDismissed={onPopupDismissedFn}
           />
         )

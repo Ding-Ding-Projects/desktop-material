@@ -11,6 +11,16 @@ interface IInsufficientScopesDialogProps {
   /** Starts the sign-in flow that re-grants the full scope set. */
   readonly onSignInAgain: (account: Account) => void
 
+  /**
+   * Called when the dialog is dismissed without choosing to sign in again
+   * ("Not now", the close button, or Escape) so the answer can be persisted
+   * and the prompt stops reappearing on every launch.
+   */
+  readonly onNotNow: (
+    account: Account,
+    missingScopes: ReadonlyArray<string>
+  ) => void
+
   readonly onDismissed: () => void
 }
 
@@ -20,9 +30,23 @@ interface IInsufficientScopesDialogProps {
  * grant). Signing in again re-authorizes with the complete scope list.
  */
 export class InsufficientScopesDialog extends React.Component<IInsufficientScopesDialogProps> {
+  /**
+   * Distinguishes the sign-in submit from every other dismissal path so
+   * only a genuine "Not now" (or close/Escape) records a dismissal.
+   */
+  private signInRequested = false
+
   private onSubmit = () => {
+    this.signInRequested = true
     this.props.onDismissed()
     this.props.onSignInAgain(this.props.account)
+  }
+
+  private onDialogDismissed = () => {
+    if (!this.signInRequested) {
+      this.props.onNotNow(this.props.account, this.props.missingScopes)
+    }
+    this.props.onDismissed()
   }
 
   public render() {
@@ -37,7 +61,7 @@ export class InsufficientScopesDialog extends React.Component<IInsufficientScope
             : 'Grant additional GitHub permissions'
         }
         onSubmit={this.onSubmit}
-        onDismissed={this.props.onDismissed}
+        onDismissed={this.onDialogDismissed}
       >
         <DialogContent>
           <p>
