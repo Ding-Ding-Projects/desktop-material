@@ -61,8 +61,11 @@ Material is displaying or how a repository is represented in the application.
   verified GitHub Release pointer, recover a stalled or length-rejected native
   upload automatically through a bounded trusted GitHub CLI transport, retain a
   verified whole-batch browser handoff, automatically cloud-compress public
-  repository objects one at a time (private repositories require explicit
-  opt-in), publish new storage as prereleases, migrate exact legacy drafts in
+  repository objects one at a time from a caller committed to that repository
+  (an opted-in private repository gets no caller at all and spends none of its
+  own Actions minutes; compression is routed to the encrypted public builder
+  behind a fail-closed leak guard, and unconfirmed visibility runs neither
+  route), publish new storage as prereleases, migrate exact legacy drafts in
   place, restore explicitly public GitHub.com assets while signed out, fail
   safely at bounded capacity limits, and restore and verify raw or mixed
   objects locally while decompressing only `part-deflate` objects. Automatic
