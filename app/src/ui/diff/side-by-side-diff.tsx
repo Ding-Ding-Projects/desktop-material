@@ -438,6 +438,8 @@ export class SideBySideDiff extends React.Component<
     window.removeEventListener('keydown', this.onWindowKeyDown)
     document.removeEventListener('mouseup', this.onEndSelection)
     document.removeEventListener('find-text', this.showSearch)
+    document.removeEventListener('cut', this.onCutOrCopy)
+    document.removeEventListener('copy', this.onCutOrCopy)
     document.removeEventListener(
       'selectionchange',
       this.onDocumentSelectionChange
