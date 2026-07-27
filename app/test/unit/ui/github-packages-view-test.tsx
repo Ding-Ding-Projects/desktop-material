@@ -80,8 +80,19 @@ const packageVersion: IGitHubPackageVersion = {
   tags: ['desktop-material-file'],
 }
 
+const secondContainerPackage: IGitHubPackage = {
+  ...containerPackage,
+  id: 92,
+  name: 'material-files-extra',
+  updatedAt: new Date('2026-07-26T10:30:00Z'),
+  url: 'https://api.github.com/orgs/desktop/packages/container/material-files-extra',
+  htmlURL:
+    'https://github.com/orgs/desktop/packages/container/material-files-extra',
+}
+
 function clientWithVersions(
-  fetchVersions: IGitHubPackagesClient['fetchGitHubPackageVersions']
+  fetchVersions: IGitHubPackagesClient['fetchGitHubPackageVersions'],
+  containerPackages: ReadonlyArray<IGitHubPackage> = [containerPackage]
 ): IGitHubPackagesClient {
   return {
     fetchRepository: async () =>
@@ -90,13 +101,27 @@ function clientWithVersions(
         html_url: 'https://github.com/desktop/material',
       } as IAPIFullRepository),
     fetchGitHubPackages: async (_owner, packageType, page = 1) => ({
-      packages: packageType === 'container' ? [containerPackage] : [],
+      packages: packageType === 'container' ? [...containerPackages] : [],
       page,
       nextPage: null,
       capped: false,
     }),
     fetchGitHubPackageVersions: fetchVersions,
   }
+}
+
+function abortableHang(signal: AbortSignal | undefined): Promise<never> {
+  return new Promise((_resolve, reject) => {
+    signal?.addEventListener(
+      'abort',
+      () => {
+        const error = new Error('Canceled')
+        error.name = 'AbortError'
+        reject(error)
+      },
+      { once: true }
+    )
+  })
 }
 
 function selectContainerPackage(): void {
@@ -198,6 +223,123 @@ describe('GitHub Packages view', () => {
       await waitFor(() => selectContainerPackage())
       assert.ok(await screen.findByRole('button', { name: 'Download file' }))
       assert.equal(versionRequests, 2)
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('recovers from a canceled download and allows the next transfer', async () => {
+    const client = clientWithVersions(
+      async (_owner, _type, _name, page = 1) => ({
+        versions: [packageVersion],
+        page,
+        nextPage: null,
+        capped: false,
+      })
+    )
+    let downloadRequests = 0
+    const transferClient: IGitHubPackageFileTransferClient = {
+      uploadFile: async () => {
+        throw new Error('Unexpected upload')
+      },
+      downloadFile: async request => {
+        downloadRequests++
+        if (downloadRequests === 1) {
+          return abortableHang(request.signal)
+        }
+        return {
+          destinationPath: resolve('package-fixtures', 'material.package'),
+          fileName: 'material.package',
+          digest: `sha256:${'b'.repeat(64)}`,
+          sizeInBytes: 512,
+        }
+      },
+    }
+    const view = render(
+      <GitHubPackagesView
+        repository={repository}
+        accounts={[account]}
+        clientFactory={() => client}
+        transferClient={transferClient}
+      />
+    )
+
+    try {
+      await waitFor(() => selectContainerPackage())
+      fireEvent.click(
+        await screen.findByRole('button', { name: 'Download file' })
+      )
+      // The in-flight transfer shows the progress banner with its Cancel
+      // button; canceling must restore an actionable state, not wedge it.
+      fireEvent.click(await screen.findByRole('button', { name: 'Cancel' }))
+      await waitFor(() =>
+        assert.equal(
+          screen.queryByRole('button', { name: 'Cancel' }),
+          null,
+          'the transfer progress banner must clear after cancel'
+        )
+      )
+      assert.match(
+        (await screen.findByRole('alert')).textContent ?? '',
+        /Package download canceled\./
+      )
+      const downloadButton = await screen.findByRole('button', {
+        name: 'Download file',
+      })
+      assert.equal(
+        downloadButton.hasAttribute('disabled'),
+        false,
+        'transfer controls must be re-enabled after cancel'
+      )
+      fireEvent.click(downloadButton)
+      await waitFor(() => assert.equal(downloadRequests, 2))
+      assert.ok(
+        await screen.findByText(/Verified and downloaded material\.package\./)
+      )
+    } finally {
+      view.unmount()
+    }
+  })
+
+  it('loads the newly selected package versions while another load is in flight', async () => {
+    let firstRequestAborted = false
+    const client = clientWithVersions(
+      async (_owner, _type, name, page = 1, signal) => {
+        if (name === containerPackage.name) {
+          return abortableHang(signal).catch(error => {
+            firstRequestAborted = true
+            throw error
+          })
+        }
+        return {
+          versions: [packageVersion],
+          page,
+          nextPage: null,
+          capped: false,
+        }
+      },
+      [containerPackage, secondContainerPackage]
+    )
+    const view = render(
+      <GitHubPackagesView
+        repository={repository}
+        accounts={[account]}
+        clientFactory={() => client}
+      />
+    )
+
+    try {
+      // Select the package whose version request never settles on its own…
+      await waitFor(() => selectContainerPackage())
+      // …then switch to another package while that request is in flight. The
+      // aborted load must not leak loadingVersions and block this one.
+      fireEvent.click(
+        await screen.findByRole('button', {
+          name: /material-files-extra container private 1 version/i,
+        })
+      )
+      assert.ok(await screen.findByRole('button', { name: 'Download file' }))
+      await waitFor(() => assert.equal(firstRequestAborted, true))
     } finally {
       view.unmount()
     }

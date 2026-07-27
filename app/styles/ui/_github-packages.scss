@@ -152,13 +152,47 @@
   font-weight: 600;
 }
 
+// Both lists are virtualized (react-virtualized List). The container height is
+// set inline per render; row spacing lives on .github-package-virtual-row so
+// the fixed row heights include the former grid gap.
 .github-packages-list,
 .github-package-versions {
-  display: grid;
-  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
+
+  .ReactVirtualized__Grid {
+    outline: none;
+  }
+}
+
+.github-package-virtual-row {
+  padding-bottom: 10px;
+  overflow: hidden;
+}
+
+// Virtualized rows have data-driven fixed heights, so long values ellipsize or
+// scroll on one line instead of wrapping into a clipped extra line.
+.github-package-virtual-row .github-package-row-header,
+.github-package-virtual-row .github-package-version-header {
+  flex-wrap: nowrap;
+}
+
+.github-package-virtual-row .github-package-row-header strong,
+.github-package-virtual-row .github-package-select .github-package-muted,
+.github-package-virtual-row .github-package-version code {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.github-package-virtual-row .github-package-tags {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+}
+
+.github-package-virtual-row .github-package-transfer-actions {
+  flex-wrap: nowrap;
 }
 
 .github-package-row,
@@ -227,5 +261,12 @@
   .github-package-transfer-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  // Virtualized version rows have fixed heights; keep their action row
+  // horizontal so narrow panes never clip a stacked layout.
+  .github-package-virtual-row .github-package-transfer-actions {
+    align-items: center;
+    flex-direction: row;
   }
 }

@@ -1,5 +1,7 @@
 import * as Path from 'path'
 import * as React from 'react'
+import { AutoSizer, Index, List, ListRowProps } from 'react-virtualized'
+import memoizeOne from 'memoize-one'
 import { API, IAPIFullRepository, getHTMLURL } from '../../lib/api'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { getAccountForRepository } from '../../lib/get-account-for-repository'
@@ -35,6 +37,27 @@ import {
 
 const PackagesSearchFilterId = 'github-packages-search'
 const PackageVersionsSearchFilterId = 'github-package-versions-search'
+
+/**
+ * Width used before the AutoSizer has produced a real measurement (initial
+ * mount and non-laid-out environments such as jsdom report zero width).
+ */
+const VirtualizedListFallbackWidth = 640
+/** Maximum viewport height of a virtualized package or version list. */
+const VirtualizedListMaximumHeight = 480
+/** Vertical spacing preserved between virtualized rows (former grid gap). */
+const VirtualizedRowGap = 10
+const PackageRowBaseHeight = 80
+const PackageRowLinkExtraHeight = 26
+const VersionRowBaseHeight = 112
+const VersionRowTagsExtraHeight = 34
+
+/**
+ * react-virtualized's Grid defaults its inner cell container to role="row",
+ * which is nonsense between our role="list" and role="listitem" elements. The
+ * prop exists at runtime but is missing from the bundled typings.
+ */
+const virtualizedListContainerProps = { containerRole: 'presentation' }
 
 type PackageTypeFilter = 'all' | GitHubPackageType
 type BusyTransfer = 'upload' | 'download' | null
@@ -434,6 +457,36 @@ export class GitHubPackagesView extends React.Component<
     )
   }
 
+  /**
+   * Whether a settled request may still update state. Unlike isCurrent this
+   * deliberately ignores the abort flag: a canceled request that is still the
+   * owner of its slot must restore an actionable state instead of leaving the
+   * busy flag wedged forever. Ownership is compared against the controller the
+   * response belongs to, so a superseding request can never be clobbered.
+   */
+  private ownsVersionLoad(
+    generation: number,
+    controller: AbortController
+  ): boolean {
+    return (
+      this.mounted &&
+      generation === this.generation &&
+      this.versionController === controller
+    )
+  }
+
+  /** See ownsVersionLoad; the same rule for the single transfer slot. */
+  private ownsTransfer(
+    generation: number,
+    controller: AbortController
+  ): boolean {
+    return (
+      this.mounted &&
+      generation === this.generation &&
+      this.transferController === controller
+    )
+  }
+
   private loadPackages = async (refresh: boolean) => {
     const context = this.currentContext()
     if (context === null || this.state.loadingPackages) {
@@ -633,6 +686,10 @@ export class GitHubPackagesView extends React.Component<
         versions: [],
         nextVersionPage: null,
         versionsCapped: false,
+        // The aborted in-flight load can no longer clear this flag (its
+        // response is stale by definition), so reset it here or every future
+        // version load would be silently skipped.
+        loadingVersions: false,
         versionQuery: '',
         error: null,
         completedDownload: null,
@@ -674,18 +731,24 @@ export class GitHubPackagesView extends React.Component<
         !this.isCurrent(generation, controller) ||
         this.state.selectedPackageKey !== selectedKey
       ) {
+        // A stale response must never publish versions, but if this request
+        // still owns the slot it has to clear the loading flag on the way out
+        // or every future version load would be skipped.
+        if (this.ownsVersionLoad(generation, controller)) {
+          this.setState({ loadingVersions: false })
+        }
         return
       }
-      this.setState({
+      this.setState(state => ({
         versions: refresh
           ? result.versions
-          : appendVersions(this.state.versions, result.versions),
+          : appendVersions(state.versions, result.versions),
         nextVersionPage: result.nextPage,
-        versionsCapped: this.state.versionsCapped || result.capped,
+        versionsCapped: state.versionsCapped || result.capped,
         loadingVersions: false,
-      })
+      }))
     } catch (error) {
-      if (this.isCurrent(generation, controller)) {
+      if (this.ownsVersionLoad(generation, controller)) {
         this.setState({
           loadingVersions: false,
           error:
@@ -701,63 +764,93 @@ export class GitHubPackagesView extends React.Component<
     }
   }
 
-  private visiblePackages() {
-    const candidates =
-      this.state.packageTypeFilter === 'all'
-        ? this.state.packages
-        : this.state.packages.filter(
-            value => value.packageType === this.state.packageTypeFilter
-          )
-    const query = this.state.packageQuery.trim()
-    if (query.length === 0) {
-      return { packages: candidates, regexError: null as string | null }
-    }
-    const result = matchWithMode(
-      query,
-      candidates,
-      value => [
-        value.name,
-        `${value.packageType} ${value.visibility} ${
-          value.repository?.fullName ?? ''
-        }`,
-      ],
-      {
-        mode: this.state.packageSearchMode,
-        caseSensitive: this.state.packageSearchCaseSensitive,
+  /**
+   * Memoized so that a render caused by unrelated state (transfer progress,
+   * page appends, selection) reuses the previous filter result instead of
+   * re-running matchWithMode over up to 100,000 rows, and so the row array
+   * identity is stable for the virtualized list.
+   */
+  private getVisiblePackages = memoizeOne(
+    (
+      packages: ReadonlyArray<IGitHubPackage>,
+      packageTypeFilter: PackageTypeFilter,
+      packageQuery: string,
+      mode: FilterMode,
+      caseSensitive: boolean
+    ) => {
+      const candidates =
+        packageTypeFilter === 'all'
+          ? packages
+          : packages.filter(value => value.packageType === packageTypeFilter)
+      const query = packageQuery.trim()
+      if (query.length === 0) {
+        return { packages: candidates, regexError: null as string | null }
       }
-    )
-    return {
-      packages: result.results.map(value => value.item),
-      regexError: result.regexError,
+      const result = matchWithMode(
+        query,
+        candidates,
+        value => [
+          value.name,
+          `${value.packageType} ${value.visibility} ${
+            value.repository?.fullName ?? ''
+          }`,
+        ],
+        { mode, caseSensitive }
+      )
+      return {
+        packages: result.results.map(value => value.item),
+        regexError: result.regexError,
+      }
     }
+  )
+
+  private visiblePackages() {
+    return this.getVisiblePackages(
+      this.state.packages,
+      this.state.packageTypeFilter,
+      this.state.packageQuery,
+      this.state.packageSearchMode,
+      this.state.packageSearchCaseSensitive
+    )
   }
 
-  private visibleVersions() {
-    const query = this.state.versionQuery.trim()
-    if (query.length === 0) {
+  /** See getVisiblePackages; the same memoization for version rows. */
+  private getVisibleVersions = memoizeOne(
+    (
+      versions: ReadonlyArray<IGitHubPackageVersion>,
+      versionQuery: string,
+      mode: FilterMode,
+      caseSensitive: boolean
+    ) => {
+      const query = versionQuery.trim()
+      if (query.length === 0) {
+        return { versions, regexError: null as string | null }
+      }
+      const result = matchWithMode(
+        query,
+        versions,
+        value => [
+          value.name,
+          `${value.tags.join(' ')} ${value.description ?? ''} ${
+            value.license ?? ''
+          }`,
+        ],
+        { mode, caseSensitive }
+      )
       return {
-        versions: this.state.versions,
-        regexError: null as string | null,
+        versions: result.results.map(value => value.item),
+        regexError: result.regexError,
       }
     }
-    const result = matchWithMode(
-      query,
+  )
+
+  private visibleVersions() {
+    return this.getVisibleVersions(
       this.state.versions,
-      value => [
-        value.name,
-        `${value.tags.join(' ')} ${value.description ?? ''} ${
-          value.license ?? ''
-        }`,
-      ],
-      {
-        mode: this.state.versionSearchMode,
-        caseSensitive: this.state.versionSearchCaseSensitive,
-      }
+      this.state.versionQuery,
+      this.state.versionSearchMode,
+      this.state.versionSearchCaseSensitive
     )
-    return {
-      versions: result.results.map(value => value.item),
-      regexError: result.regexError,
-    }
   }
 
   private onPackageQueryChange = (event: React.ChangeEvent<HTMLInputElement>) =>
@@ -899,7 +992,7 @@ export class GitHubPackagesView extends React.Component<
           }
         },
       })
-      if (!this.isCurrent(generation, controller)) {
+      if (!this.ownsTransfer(generation, controller)) {
         return
       }
       this.setState(
@@ -914,7 +1007,7 @@ export class GitHubPackagesView extends React.Component<
         () => void this.loadPackages(true)
       )
     } catch (error) {
-      if (this.isCurrent(generation, controller)) {
+      if (this.ownsTransfer(generation, controller)) {
         this.setState({
           busyTransfer: null,
           transferProgress: null,
@@ -979,7 +1072,7 @@ export class GitHubPackagesView extends React.Component<
           }
         },
       })
-      if (!this.isCurrent(generation, controller)) {
+      if (!this.ownsTransfer(generation, controller)) {
         return
       }
       this.setState({
@@ -989,7 +1082,7 @@ export class GitHubPackagesView extends React.Component<
         message: `Verified and downloaded ${result.fileName}.`,
       })
     } catch (error) {
-      if (this.isCurrent(generation, controller)) {
+      if (this.ownsTransfer(generation, controller)) {
         this.setState({
           busyTransfer: null,
           transferProgress: null,
@@ -1006,7 +1099,30 @@ export class GitHubPackagesView extends React.Component<
     }
   }
 
-  private cancelTransfer = () => this.transferController?.abort()
+  private cancelTransfer = () => {
+    const controller = this.transferController
+    if (controller === null) {
+      return
+    }
+    // Release ownership before aborting so the canceled request's rejection
+    // handler cannot touch state that a newer transfer may own by then, and
+    // restore an actionable state immediately even if the underlying client
+    // never honors the abort signal.
+    this.transferController = null
+    controller.abort()
+    this.setState(state =>
+      state.busyTransfer === null
+        ? null
+        : {
+            busyTransfer: null,
+            transferProgress: null,
+            error:
+              state.busyTransfer === 'upload'
+                ? 'Package upload canceled.'
+                : 'Package download canceled.',
+          }
+    )
+  }
 
   private renderAvailability() {
     const remote = this.props.repository.gitHubRepository
@@ -1123,9 +1239,117 @@ export class GitHubPackagesView extends React.Component<
     )
   }
 
+  private packageRowHeight = ({ index }: Index): number => {
+    const { packages } = this.visiblePackages()
+    const value = packages[index]
+    const hasURL =
+      value !== undefined &&
+      providerURL(value.htmlURL, this.currentContext()?.account ?? null) !==
+        null
+    return (
+      PackageRowBaseHeight +
+      (hasURL ? PackageRowLinkExtraHeight : 0) +
+      VirtualizedRowGap
+    )
+  }
+
+  private versionRowHeight = ({ index }: Index): number => {
+    const { versions } = this.visibleVersions()
+    const value = versions[index]
+    const hasTags = value !== undefined && value.tags.length > 0
+    return (
+      VersionRowBaseHeight +
+      (hasTags ? VersionRowTagsExtraHeight : 0) +
+      VirtualizedRowGap
+    )
+  }
+
+  /** Viewport height: exact row total for short lists, capped for long ones. */
+  private listViewportHeight(
+    rowCount: number,
+    rowHeight: (info: Index) => number
+  ): number {
+    let total = 0
+    for (let index = 0; index < rowCount; index++) {
+      total += rowHeight({ index })
+      if (total >= VirtualizedListMaximumHeight) {
+        return VirtualizedListMaximumHeight
+      }
+    }
+    return total
+  }
+
+  /**
+   * Memoized on its data inputs so the virtualized List (a PureComponent)
+   * re-renders exactly when a row could look different and not otherwise.
+   */
+  private createPackageRowRenderer = memoizeOne(
+    (
+        packages: ReadonlyArray<IGitHubPackage>,
+        selectedPackageKey: string | null,
+        account: Account | null
+      ) =>
+      ({ index, key, style }: ListRowProps) => {
+        const value = packages[index]
+        if (value === undefined) {
+          return null
+        }
+        const selected = packageKey(value) === selectedPackageKey
+        const packageURL = providerURL(value.htmlURL, account)
+        return (
+          <div
+            key={key}
+            style={style}
+            role="listitem"
+            className="github-package-virtual-row"
+          >
+            <div className={`github-package-row${selected ? ' selected' : ''}`}>
+              <button
+                type="button"
+                className="github-package-select"
+                data-package-key={packageKey(value)}
+                onClick={this.onSelectPackage}
+                aria-pressed={selected}
+              >
+                <span className="github-package-row-header">
+                  <strong>{value.name}</strong>
+                  <span>
+                    <span className="github-package-kind">
+                      {value.packageType}
+                    </span>{' '}
+                    <span className="github-package-visibility">
+                      {value.visibility}
+                    </span>
+                  </span>
+                </span>
+                <span className="github-package-muted">
+                  {value.versionCount} version
+                  {value.versionCount === 1 ? '' : 's'} · updated{' '}
+                  {value.updatedAt.toLocaleString()}
+                </span>
+              </button>
+              {packageURL !== null && (
+                <LinkButton uri={packageURL}>Open on GitHub</LinkButton>
+              )}
+            </div>
+          </div>
+        )
+      }
+  )
+
   private renderPackageList() {
     const visible = this.visiblePackages()
     const hasMore = Object.keys(this.state.nextPackagePages).length > 0
+    const account = this.currentContext()?.account ?? null
+    const packageRowRenderer = this.createPackageRowRenderer(
+      visible.packages,
+      this.state.selectedPackageKey,
+      account
+    )
+    const packageListHeight = this.listViewportHeight(
+      visible.packages.length,
+      this.packageRowHeight
+    )
     return (
       <section aria-labelledby="github-packages-list-heading">
         <div className="github-packages-heading">
@@ -1221,54 +1445,102 @@ export class GitHubPackagesView extends React.Component<
             exact repository-ID association are intentionally excluded.
           </div>
         ) : (
-          <ul className="github-packages-list">
-            {visible.packages.map(value => {
-              const selected =
-                packageKey(value) === this.state.selectedPackageKey
-              const packageURL = providerURL(
-                value.htmlURL,
-                this.currentContext()?.account ?? null
-              )
-              return (
-                <li
-                  key={packageKey(value)}
-                  className={`github-package-row${selected ? ' selected' : ''}`}
-                >
-                  <button
-                    type="button"
-                    className="github-package-select"
-                    data-package-key={packageKey(value)}
-                    onClick={this.onSelectPackage}
-                    aria-pressed={selected}
-                  >
-                    <span className="github-package-row-header">
-                      <strong>{value.name}</strong>
-                      <span>
-                        <span className="github-package-kind">
-                          {value.packageType}
-                        </span>{' '}
-                        <span className="github-package-visibility">
-                          {value.visibility}
-                        </span>
-                      </span>
-                    </span>
-                    <span className="github-package-muted">
-                      {value.versionCount} version
-                      {value.versionCount === 1 ? '' : 's'} · updated{' '}
-                      {value.updatedAt.toLocaleString()}
-                    </span>
-                  </button>
-                  {packageURL !== null && (
-                    <LinkButton uri={packageURL}>Open on GitHub</LinkButton>
-                  )}
-                </li>
-              )
-            })}
-          </ul>
+          <div
+            className="github-packages-list"
+            style={{ height: packageListHeight }}
+          >
+            <AutoSizer disableHeight>
+              {({ width }) => (
+                <List
+                  {...virtualizedListContainerProps}
+                  role="list"
+                  aria-label="Repository packages"
+                  width={width > 0 ? width : VirtualizedListFallbackWidth}
+                  height={packageListHeight}
+                  rowCount={visible.packages.length}
+                  rowHeight={this.packageRowHeight}
+                  rowRenderer={packageRowRenderer}
+                  overscanRowCount={10}
+                />
+              )}
+            </AutoSizer>
+          </div>
         )}
       </section>
     )
   }
+
+  /** See createPackageRowRenderer for the memoization rationale. */
+  private createVersionRowRenderer = memoizeOne(
+    (
+        versions: ReadonlyArray<IGitHubPackageVersion>,
+        account: Account | null,
+        isContainerPackage: boolean,
+        canDownload: boolean,
+        busyTransfer: BusyTransfer
+      ) =>
+      ({ index, key, style }: ListRowProps) => {
+        const version = versions[index]
+        if (version === undefined) {
+          return null
+        }
+        const versionURL = providerURL(
+          version.htmlURL ?? version.packageHTMLURL,
+          account
+        )
+        return (
+          <div
+            key={key}
+            style={style}
+            role="listitem"
+            className="github-package-virtual-row"
+          >
+            <div
+              className="github-package-version"
+              data-package-version-id={version.id}
+            >
+              <div className="github-package-version-header">
+                <code>{version.name}</code>
+                <span className="github-package-version-meta">
+                  {version.updatedAt.toLocaleString()}
+                </span>
+              </div>
+              {version.tags.length > 0 && (
+                <div
+                  className="github-package-tags"
+                  role="group"
+                  aria-label="Version tags"
+                >
+                  {version.tags.map(tag => (
+                    <span key={tag} className="github-package-tag">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="github-package-transfer-actions">
+                {versionURL !== null && (
+                  <LinkButton uri={versionURL}>Open on GitHub</LinkButton>
+                )}
+                {isContainerPackage && (
+                  <Button
+                    onClick={this.onDownloadVersion}
+                    disabled={!canDownload || busyTransfer !== null}
+                    tooltip={
+                      canDownload
+                        ? 'Inspect and download this immutable app file artifact'
+                        : 'Only Desktop Material GHCR file artifacts can be downloaded here'
+                    }
+                  >
+                    Download file
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        )
+      }
+  )
 
   private renderPackageDetail() {
     const selected = this.selectedPackage()
@@ -1276,11 +1548,22 @@ export class GitHubPackagesView extends React.Component<
       return null
     }
     const visible = this.visibleVersions()
+    const account = this.currentContext()?.account ?? null
     const canDownload =
       selected.packageType === 'container' &&
-      (this.currentContext()?.account
-        ? isDotComAccount(this.currentContext()!.account)
-        : false)
+      account !== null &&
+      isDotComAccount(account)
+    const versionRowRenderer = this.createVersionRowRenderer(
+      visible.versions,
+      account,
+      selected.packageType === 'container',
+      canDownload,
+      this.state.busyTransfer
+    )
+    const versionListHeight = this.listViewportHeight(
+      visible.versions.length,
+      this.versionRowHeight
+    )
     return (
       <section
         className="github-package-detail"
@@ -1354,61 +1637,26 @@ export class GitHubPackagesView extends React.Component<
             No loaded package version matches this search.
           </div>
         ) : (
-          <ul className="github-package-versions">
-            {visible.versions.map(version => {
-              const versionURL = providerURL(
-                version.htmlURL ?? version.packageHTMLURL,
-                this.currentContext()?.account ?? null
-              )
-              return (
-                <li
-                  key={version.id}
-                  className="github-package-version"
-                  data-package-version-id={version.id}
-                >
-                  <div className="github-package-version-header">
-                    <code>{version.name}</code>
-                    <span className="github-package-version-meta">
-                      {version.updatedAt.toLocaleString()}
-                    </span>
-                  </div>
-                  {version.tags.length > 0 && (
-                    <div
-                      className="github-package-tags"
-                      role="group"
-                      aria-label="Version tags"
-                    >
-                      {version.tags.map(tag => (
-                        <span key={tag} className="github-package-tag">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className="github-package-transfer-actions">
-                    {versionURL !== null && (
-                      <LinkButton uri={versionURL}>Open on GitHub</LinkButton>
-                    )}
-                    {selected.packageType === 'container' && (
-                      <Button
-                        onClick={this.onDownloadVersion}
-                        disabled={
-                          !canDownload || this.state.busyTransfer !== null
-                        }
-                        tooltip={
-                          canDownload
-                            ? 'Inspect and download this immutable app file artifact'
-                            : 'Only Desktop Material GHCR file artifacts can be downloaded here'
-                        }
-                      >
-                        Download file
-                      </Button>
-                    )}
-                  </div>
-                </li>
-              )
-            })}
-          </ul>
+          <div
+            className="github-package-versions"
+            style={{ height: versionListHeight }}
+          >
+            <AutoSizer disableHeight>
+              {({ width }) => (
+                <List
+                  {...virtualizedListContainerProps}
+                  role="list"
+                  aria-label="Package versions"
+                  width={width > 0 ? width : VirtualizedListFallbackWidth}
+                  height={versionListHeight}
+                  rowCount={visible.versions.length}
+                  rowHeight={this.versionRowHeight}
+                  rowRenderer={versionRowRenderer}
+                  overscanRowCount={10}
+                />
+              )}
+            </AutoSizer>
+          </div>
         )}
       </section>
     )
