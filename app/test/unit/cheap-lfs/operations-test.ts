@@ -15,6 +15,7 @@ import {
 } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, dirname, join } from 'node:path'
+import { createReadStream } from 'node:fs'
 import { describe, it } from 'node:test'
 import { promisify } from 'node:util'
 import { deflateRaw as deflateRawCallback } from 'node:zlib'
@@ -66,6 +67,10 @@ import {
 } from '../../../src/lib/cheap-lfs/ghcr-key'
 import { takeCheapLfsReleaseReview } from '../../../src/lib/cheap-lfs/release-review'
 import { resetCheapLfsScratchSessions } from '../../../src/lib/cheap-lfs/scratch-storage'
+import {
+  ICheapLfsTrackedPathStore,
+  defaultCheapLfsTrackedPathStore,
+} from '../../../src/lib/cheap-lfs/tracked-path-store'
 import {
   truncateToUtf8ByteBudget,
   utf8ByteLength,
@@ -4237,6 +4242,225 @@ describe('cheap LFS operations', () => {
         /upload reached, bucket was created/
       )
       assert.equal(createdTags, 1)
+    })
+  })
+
+  /**
+   * GitHub returns no content digest the moment a release asset upload
+   * completes, so — unlike an OCI registry — the release route cannot make the
+   * destination the authority. It keeps a *local* one instead, computed by the
+   * same single pass that streams the bytes to the wire.
+   */
+  describe('streaming release upload hash', () => {
+    /** A gateway whose upload hashes exactly the bytes it puts on the wire. */
+    function streamingGateway(
+      tag: string,
+      streamedDigests: string[],
+      corrupt: boolean = false
+    ) {
+      let nextId = 900
+      let currentRelease: IGitHubRelease = {
+        ...release,
+        tagName: tag,
+        body: CheapLfsReleaseBodySentinel,
+        assets: [],
+      }
+      return inMemoryReleaseGateway(
+        () => currentRelease,
+        async (
+          _repository,
+          _review,
+          sourcePath,
+          name,
+          label,
+          _signal,
+          _onProgress,
+          range
+        ) => {
+          const hash = createHash('sha256')
+          let bytes = 0
+          const stream = createReadStream(
+            sourcePath,
+            range === undefined
+              ? {}
+              : { start: range.offset, end: range.offset + range.length - 1 }
+          )
+          for await (const value of stream) {
+            const chunk = value as Buffer
+            hash.update(chunk)
+            bytes += chunk.byteLength
+          }
+          const streamed = `sha256:${hash.digest('hex')}`
+          streamedDigests.push(streamed)
+          const uploaded: IGitHubReleaseAsset = {
+            ...asset,
+            id: nextId++,
+            name,
+            label,
+            sizeInBytes: bytes,
+            digest: streamed,
+          }
+          currentRelease = {
+            ...currentRelease,
+            assets: [...currentRelease.assets, uploaded],
+          }
+          return {
+            asset: uploaded,
+            bytes,
+            // A transport that cannot report what it truly consumed is exactly
+            // what the release route must refuse.
+            localDigest: corrupt ? `sha256:${'c'.repeat(64)}` : streamed,
+          }
+        },
+        async () => undefined
+      )
+    }
+
+    /**
+     * The production disk seam with every separate whole-file hash recorded.
+     * `Object.create` keeps the real tracked-path store's behaviour while
+     * making the object distinct from the default, which is what routes the
+     * pin down the production tracked-path branch rather than the legacy one.
+     */
+    function countingFileSystem(separatePasses: string[]): ICheapLfsFileSystem {
+      const trackedPaths: ICheapLfsTrackedPathStore = Object.create(
+        defaultCheapLfsTrackedPathStore
+      )
+      return {
+        ...defaultCheapLfsFileSystem,
+        trackedPaths,
+        hashFile: (path, signal) => {
+          separatePasses.push(path)
+          return defaultCheapLfsFileSystem.hashFile(path, signal)
+        },
+        hashFileParts: (path, partSize, signal, onProgress) => {
+          separatePasses.push(path)
+          return defaultCheapLfsFileSystem.hashFileParts(
+            path,
+            partSize,
+            signal,
+            onProgress
+          )
+        },
+      }
+    }
+
+    it('matches a reference hash without a separate whole-file pass', async () => {
+      await withTempRepository(async (dir, repository) => {
+        const content = Buffer.alloc(3 * 1024 * 1024)
+        for (let index = 0; index < content.length; index++) {
+          content[index] = (index * 7) % 251
+        }
+        const reference = createHash('sha256').update(content).digest('hex')
+        const filePath = join(dir, 'streamed.bin')
+        await writeFile(filePath, content)
+        const streamedDigests: string[] = []
+        const separatePasses: string[] = []
+
+        const result = await pinFileToRelease(
+          streamingGateway('assets', streamedDigests),
+          repository,
+          selected,
+          {
+            absoluteFilePath: filePath,
+            trackedRelativePath: 'streamed.bin',
+            releaseTag: 'assets',
+          },
+          undefined,
+          undefined,
+          countingFileSystem(separatePasses)
+        )
+
+        assert.deepEqual(streamedDigests, [`sha256:${reference}`])
+        assert.equal(result.pointer.sha256, reference)
+        assert.equal(result.pointer.sizeInBytes, content.length)
+        assert.deepEqual(separatePasses, [])
+        assert.equal(
+          parseCheapLfsPointer(await readFile(filePath, 'utf8'))?.sha256,
+          reference
+        )
+      })
+    })
+
+    it('leaves the source in place when the streamed digest disagrees', async () => {
+      await withTempRepository(async (dir, repository) => {
+        const content = Buffer.from('the transport must report what it sent')
+        const filePath = join(dir, 'disagreed.bin')
+        await writeFile(filePath, content)
+        const streamedDigests: string[] = []
+
+        await assert.rejects(
+          pinFileToRelease(
+            streamingGateway('assets', streamedDigests, true),
+            repository,
+            selected,
+            {
+              absoluteFilePath: filePath,
+              trackedRelativePath: 'disagreed.bin',
+              releaseTag: 'assets',
+            },
+            undefined,
+            undefined,
+            countingFileSystem([])
+          ),
+          /no longer matches the file that was hashed/
+        )
+        assert.deepEqual(await readFile(filePath), content)
+      })
+    })
+
+    it('still fails a materialize whose payload arrives corrupted', async () => {
+      await withTempRepository(async (dir, repository) => {
+        const content = Buffer.from('pointer integrity is unchanged')
+        const corrupted = Buffer.from('pointer integrity is UNCHANGED')
+        assert.equal(content.length, corrupted.length)
+        const pointer: ICheapLfsPointer = {
+          version: CHEAP_LFS_POINTER_VERSION,
+          releaseTag: 'assets',
+          assetName: 'corrupted.bin',
+          sizeInBytes: content.length,
+          sha256: createHash('sha256').update(content).digest('hex'),
+        }
+        const pointerText = serializeCheapLfsPointer(pointer)
+        const trackedPath = join(dir, 'corrupted.bin')
+        await writeFile(trackedPath, pointerText, 'utf8')
+        const releaseWithAsset: IGitHubRelease = {
+          ...release,
+          tagName: pointer.releaseTag,
+          assets: [
+            { ...asset, name: pointer.assetName, sizeInBytes: content.length },
+          ],
+        }
+        const gateway = inMemoryReleaseGateway(
+          () => releaseWithAsset,
+          async () => {
+            throw new Error('no upload expected')
+          },
+          async () => undefined
+        )
+
+        await assert.rejects(
+          materializePointer(
+            {
+              ...gateway,
+              downloadAsset: async (
+                _repository,
+                _releaseId,
+                _downloaded,
+                destination
+              ) => {
+                await writeFile(destination, corrupted)
+                return { path: destination, bytes: corrupted.length }
+              },
+            },
+            repository,
+            selected,
+            'corrupted.bin'
+          ),
+          /does not match the cheap LFS pointer/
+        )
+        assert.equal(await readFile(trackedPath, 'utf8'), pointerText)
+      })
     })
   })
 })

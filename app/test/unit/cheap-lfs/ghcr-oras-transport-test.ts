@@ -1,11 +1,12 @@
 import assert from 'node:assert'
 import { createHash } from 'node:crypto'
-import { copyFile, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { copyFile, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, it } from 'node:test'
 import {
   CheapLfsGhcrMaximumChunkBytes,
+  ICheapLfsGhcrPreparedImage,
   withPreparedCheapLfsGhcrImage,
 } from '../../../src/lib/cheap-lfs/ghcr-image'
 import {
@@ -13,6 +14,7 @@ import {
   CheapLfsGhcrTransportError,
   ICheapLfsGhcrOrasRequest,
   ICheapLfsGhcrOrasRunner,
+  ICheapLfsGhcrPackagePolicyRequest,
   getCheapLfsGhcrRetentionTag,
   getCheapLfsOciRegistryCapabilities,
   publishCheapLfsGhcrImage,
@@ -67,6 +69,72 @@ class FakeRunner implements ICheapLfsGhcrOrasRunner {
     })
     await this.operation(request)
   }
+}
+
+/**
+ * A fake ORAS backed by a conforming registry: every blob push names its digest
+ * in the reference, and the destination hashes the bytes it is handed and
+ * refuses anything whose digest disagrees, exactly as the OCI distribution
+ * spec requires. A refusal surfaces the way a failed `oras` process does.
+ */
+class FakeRegistry {
+  public readonly commands: string[] = []
+  public readonly confirmedDigests: string[] = []
+
+  public constructor(private readonly image: ICheapLfsGhcrPreparedImage) {}
+
+  public readonly handle = async (
+    request: ICheapLfsGhcrOrasRequest
+  ): Promise<void> => {
+    const [group, command] = request.args
+    this.commands.push(`${group} ${command ?? ''}`.trim())
+    if (group === 'blob' && command === 'push') {
+      const path = request.args[request.args.length - 1]
+      const reference = request.args[request.args.length - 2]
+      const expected = reference.slice(reference.indexOf('@') + 1)
+      const received = await readFile(path)
+      if (`sha256:${sha256(received)}` !== expected) {
+        throw new CheapLfsGhcrTransportError(
+          'process-failed',
+          'The packaged ORAS process failed.'
+        )
+      }
+      this.confirmedDigests.push(expected)
+    }
+    if (group === 'manifest' && command === 'fetch') {
+      const output = request.args[request.args.indexOf('--output') + 1]
+      await copyFile(this.image.manifestPath, output)
+    }
+  }
+}
+
+function publishOptions(
+  image: ICheapLfsGhcrPreparedImage,
+  oras: { readonly path: string; readonly digest: string }
+) {
+  return {
+    image,
+    registryRepository: 'ghcr.io/owner/package',
+    orasExecutablePath: oras.path,
+    orasExecutableSha256: oras.digest,
+    credentials: { username: 'test-user', token },
+    parallelBlobUploads: false,
+    keyCreated: false,
+    keyRelativePath: null,
+    packagePolicyVerifier: {
+      async verify(request: ICheapLfsGhcrPackagePolicyRequest) {
+        return {
+          provider: request.provider,
+          repositoryIdentity: request.repositoryIdentity,
+          sourceRepositoryUrl: request.sourceRepositoryUrl,
+          registryRepository: request.registryRepository,
+          visibility: request.visibility,
+          sourceRepositoryAccessVerified: true,
+          registryVisibilityVerified: true,
+        }
+      },
+    },
+  } as const
 }
 
 afterEach(async () => {
@@ -400,6 +468,182 @@ describe('Cheap LFS ORAS registry transport', () => {
     assert.throws(
       () => getCheapLfsGhcrRetentionTag(`sha256:${'A'.repeat(64)}`),
       CheapLfsGhcrTransportError
+    )
+  })
+
+  it('streams each object digest once and lets the registry confirm it', async () => {
+    const directory = await root()
+    const oras = await orasFixture(directory)
+    const bytes = Buffer.from('cloud hashed payload bytes')
+    const sourcePath = join(directory, 'cloud-hash.bin')
+    await writeFile(sourcePath, bytes)
+
+    await withPreparedCheapLfsGhcrImage(
+      {
+        repositoryIdentity,
+        sourceRepositoryUrl,
+        visibility: 'public',
+        desiredObjects: [
+          { sha256: sha256(bytes), sizeInBytes: bytes.length, sourcePath },
+        ],
+        maximumChunkBytes: 8,
+      },
+      async image => {
+        // The digest the single staging pass streamed is byte-for-byte the
+        // digest a separate whole-file pass would have produced.
+        for (const layer of image.layers) {
+          const staged = await readFile(layer.localPath!)
+          assert.equal(layer.descriptor.digest, `sha256:${sha256(staged)}`)
+          assert.equal(layer.descriptor.size, staged.byteLength)
+        }
+
+        const registry = new FakeRegistry(image)
+        const result = await publishCheapLfsGhcrImage({
+          ...publishOptions(image, oras),
+          runner: new FakeRunner(registry.handle),
+        })
+
+        assert.equal(result.manifestDigest, image.manifestDescriptor.digest)
+        assert.ok(image.layers.length > 1)
+        assert.deepEqual(registry.confirmedDigests, [
+          image.configDescriptor.digest,
+          ...image.layers.map(layer => layer.descriptor.digest),
+        ])
+      }
+    )
+  })
+
+  it('publishes nothing when the registry rejects a digest it did not compute', async () => {
+    const directory = await root()
+    const oras = await orasFixture(directory)
+    const bytes = Buffer.from('registry is the authority!')
+    const sourcePath = join(directory, 'authority.bin')
+    await writeFile(sourcePath, bytes)
+
+    await withPreparedCheapLfsGhcrImage(
+      {
+        repositoryIdentity,
+        sourceRepositoryUrl,
+        visibility: 'public',
+        desiredObjects: [
+          { sha256: sha256(bytes), sizeInBytes: bytes.length, sourcePath },
+        ],
+      },
+      async image => {
+        // Same length, different bytes: no local size or identity check can see
+        // this, so only the destination's own hash can refuse it.
+        const staged = image.layers[0].localPath!
+        const swapped = Buffer.from(await readFile(staged))
+        swapped[0] = swapped[0] ^ 0xff
+        await writeFile(staged, swapped)
+
+        const registry = new FakeRegistry(image)
+        await assert.rejects(
+          publishCheapLfsGhcrImage({
+            ...publishOptions(image, oras),
+            runner: new FakeRunner(registry.handle),
+          }),
+          (error: unknown) =>
+            error instanceof CheapLfsGhcrTransportError &&
+            error.kind === 'process-failed'
+        )
+
+        // The push was actually attempted — no local whole-file pass stood in
+        // for the registry — and the refusal stopped everything after it.
+        assert.equal(
+          registry.commands.some(command => command === 'blob push'),
+          true
+        )
+        assert.deepEqual(registry.confirmedDigests, [
+          image.configDescriptor.digest,
+        ])
+        assert.equal(
+          registry.commands.some(command => command.startsWith('manifest')),
+          false
+        )
+        assert.equal(
+          registry.commands.some(command => command.startsWith('tag')),
+          false
+        )
+      }
+    )
+  })
+
+  it('refuses a truncated object layer before it reaches the registry', async () => {
+    const directory = await root()
+    const oras = await orasFixture(directory)
+    const bytes = Buffer.from('an interrupted staging write')
+    const sourcePath = join(directory, 'interrupted.bin')
+    await writeFile(sourcePath, bytes)
+
+    await withPreparedCheapLfsGhcrImage(
+      {
+        repositoryIdentity,
+        sourceRepositoryUrl,
+        visibility: 'public',
+        desiredObjects: [
+          { sha256: sha256(bytes), sizeInBytes: bytes.length, sourcePath },
+        ],
+      },
+      async image => {
+        const staged = image.layers[0].localPath!
+        await writeFile(staged, (await readFile(staged)).subarray(0, 4))
+
+        const registry = new FakeRegistry(image)
+        await assert.rejects(
+          publishCheapLfsGhcrImage({
+            ...publishOptions(image, oras),
+            runner: new FakeRunner(registry.handle),
+          }),
+          (error: unknown) =>
+            error instanceof CheapLfsGhcrTransportError &&
+            error.kind === 'integrity'
+        )
+        assert.deepEqual(registry.commands, [])
+      }
+    )
+  })
+
+  it('fails closed when a staged object layer is replaced during its own push', async () => {
+    const directory = await root()
+    const oras = await orasFixture(directory)
+    const bytes = Buffer.from('swapped mid flight')
+    const sourcePath = join(directory, 'swapped.bin')
+    await writeFile(sourcePath, bytes)
+
+    await withPreparedCheapLfsGhcrImage(
+      {
+        repositoryIdentity,
+        sourceRepositoryUrl,
+        visibility: 'public',
+        desiredObjects: [
+          { sha256: sha256(bytes), sizeInBytes: bytes.length, sourcePath },
+        ],
+      },
+      async image => {
+        const staged = image.layers[0].localPath!
+        const registry = new FakeRegistry(image)
+        const runner = new FakeRunner(async request => {
+          await registry.handle(request)
+          if (
+            request.args[0] === 'blob' &&
+            request.args[request.args.length - 1] === staged
+          ) {
+            await writeFile(staged, Buffer.from('a completely different file'))
+          }
+        })
+
+        await assert.rejects(
+          publishCheapLfsGhcrImage({ ...publishOptions(image, oras), runner }),
+          (error: unknown) =>
+            error instanceof CheapLfsGhcrTransportError &&
+            error.kind === 'integrity'
+        )
+        assert.equal(
+          registry.commands.some(command => command.startsWith('manifest')),
+          false
+        )
+      }
     )
   })
 

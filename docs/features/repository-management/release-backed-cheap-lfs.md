@@ -704,6 +704,45 @@ probe, and no re-hash, exactly as before. Publishing a pointer pays one
 granularity tick, because the replacement it just staged has to become provable
 before its identity may be trusted at the compare-and-exchange boundary.
 
+### The streaming-hash contract: who owns each digest
+
+A pin never re-reads a payload solely to hash it. Every digest a pin relies on
+is produced by a pass that had to read those bytes anyway — the streamed copy,
+the staging write, or the upload itself — and each route names exactly one
+**authority** for the bytes it publishes.
+
+| Route | Authority for the published bytes | Why |
+| --- | --- | --- |
+| OCI (GHCR, Docker Hub) | **The registry.** Each object layer is pushed as `<repository>@<digest>`, where the digest came from the single streamed pass that wrote the staged layer. The OCI distribution spec requires a registry to hash what it receives and reject a mismatch, so the push succeeding *is* the destination's confirmation. | The destination already computes the digest; computing it locally a second time buys nothing it does not prove. |
+| Release assets | **A streaming local hash.** GitHub returns no content digest when an asset upload completes, so the transport hashes each chunk in the same pass that writes it to the wire and reports that live digest as `localDigest`. | There is no cloud digest to defer to, so the local one must be produced during the upload rather than by a separate read. |
+| Materialize (both routes) | **Unchanged.** Every restored payload is hashed on arrival and must equal the pointer's `sha256` and byte size before it may replace anything. | Downloaded bytes are untrusted input; this contract is not weakened by anything above. |
+
+Removing a local pass does not remove a check. On the OCI route the staged
+layer is still bracketed by a `lstat` identity and size check immediately
+before and immediately after its own push, so a swapped or truncated staged
+file fails closed locally as well; the staging write itself refuses a short or
+torn write by comparing the staged length to the chunk length; and the private
+upload copy's *content* is re-proved for free by the staging pass, which
+refuses any source whose streamed plaintext digest differs from the object the
+pointer will name. A failed blob push happens strictly before the manifest is
+pushed, so a refused digest publishes nothing at all. On the release route a
+transport that cannot report the bytes it actually consumed is refused outright
+rather than trusted.
+
+The measurable effect, for one payload of *N* bytes through one pin:
+
+| Route | Full payload-sized reads before | After |
+| --- | --- | --- |
+| OCI | 7 — streamed copy, pre-publish re-hash, staging read, pre-push layer re-hash, ORAS push, post-publish re-hash, per-pointer re-hash | **3** — streamed copy, staging read, ORAS push |
+| Release | 2 — streamed copy, streamed upload | **2**, unchanged (already single-pass) |
+
+The release figure is deliberately flat: that route was already reduced to one
+streamed copy plus one streamed upload, and this work added regression tests
+for it rather than a saving. The four passes removed are all on the OCI route.
+A seam with no tracked-path store — structural test fakes and legacy adaptors —
+keeps its whole-file re-reads, because there `sourcePath` is the working-tree
+file itself and the re-read is its only proof.
+
 ## Private scratch and the owned-artifact rule
 
 Cheap LFS writes files of its own while it works. **Cheap LFS's own artifacts
