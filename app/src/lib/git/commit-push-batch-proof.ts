@@ -12,6 +12,11 @@ import {
 } from '../commit-push-batching'
 import { removeTemporaryGitIndexDirectory } from './temporary-index-cleanup'
 import { git } from './core'
+import {
+  readBlobTextsByObjectName,
+  readCommitTreeEntries,
+  readIndexStageEntries,
+} from './batched-object-reads'
 
 const ObjectIdPattern = /^(?:[0-9a-f]{40}|[0-9a-f]{64})$/
 const RemoteNamePattern = /^[A-Za-z0-9][A-Za-z0-9._-]{0,254}$/
@@ -318,7 +323,7 @@ async function captureRequiredFileProofs(
     )
   }
   const seen = new Set<string>()
-  const proofs = new Array<ICommitPushBatchRequiredFileProof>()
+  const validatedPaths = new Array<string>()
   for (const file of files) {
     const relativePath = validateRequiredFilePath(file.relativePath)
     const identity = relativePath.toLowerCase()
@@ -330,28 +335,38 @@ async function captureRequiredFileProofs(
       )
     }
     seen.add(identity)
-    const [entry, text] = await Promise.all([
-      git(
-        ['ls-files', '--stage', '-z', '--', relativePath],
-        repository.path,
-        'captureAutomaticCommitRequiredFileEntry',
-        { maxBuffer: 8 * 1024 }
-      ),
-      git(
-        ['show', `:${relativePath}`],
-        repository.path,
-        'captureAutomaticCommitRequiredFileBytes',
-        { maxBuffer: MaximumRequiredCommitFileBytes + 1 }
-      ),
-    ])
-    const match = /^100644 ([0-9a-f]{40}|[0-9a-f]{64}) 0\t([^\0]+)\0$/.exec(
-      entry.stdout
-    )
+    validatedPaths.push(relativePath)
+  }
+  if (files.length === 0) {
+    return []
+  }
+  // A bounded number of processes captures every file's proof; each file is
+  // still bound individually to its own staged record and exact staged bytes.
+  const [stagedEntries, stagedTexts] = await Promise.all([
+    readIndexStageEntries(
+      repository,
+      validatedPaths,
+      'captureAutomaticCommitRequiredFileEntry'
+    ),
+    readBlobTextsByObjectName(
+      repository,
+      validatedPaths.map(relativePath => `:${relativePath}`),
+      MaximumRequiredCommitFileBytes,
+      'captureAutomaticCommitRequiredFileBytes'
+    ),
+  ])
+  const proofs = new Array<ICommitPushBatchRequiredFileProof>()
+  files.forEach((file, index) => {
+    const relativePath = validatedPaths[index]
+    const entries = stagedEntries.get(relativePath) ?? []
+    const text = stagedTexts[index]
     if (
-      match === null ||
-      match[2] !== relativePath ||
-      Buffer.byteLength(text.stdout, 'utf8') > MaximumRequiredCommitFileBytes ||
-      createHash('sha256').update(text.stdout, 'utf8').digest('hex') !==
+      entries.length !== 1 ||
+      entries[0].mode !== '100644' ||
+      entries[0].stage !== '0' ||
+      text === null ||
+      Buffer.byteLength(text, 'utf8') > MaximumRequiredCommitFileBytes ||
+      createHash('sha256').update(text, 'utf8').digest('hex') !==
         file.contentSha256
     ) {
       proofError(
@@ -360,8 +375,8 @@ async function captureRequiredFileProofs(
         relativePath
       )
     }
-    proofs.push({ relativePath, objectId: match[1] })
-  }
+    proofs.push({ relativePath, objectId: entries[0].objectId })
+  })
   return proofs
 }
 
@@ -370,20 +385,22 @@ async function verifyRequiredFilesInCommit(
   commitSha: string,
   files: ReadonlyArray<ICommitPushBatchRequiredFileProof>
 ): Promise<void> {
+  if (files.length === 0) {
+    return
+  }
+  const committedEntries = await readCommitTreeEntries(
+    repository,
+    commitSha,
+    files.map(file => file.relativePath),
+    'proveAutomaticCommitRequiredFile'
+  )
   for (const file of files) {
-    const result = await git(
-      ['ls-tree', '-z', commitSha, '--', file.relativePath],
-      repository.path,
-      'proveAutomaticCommitRequiredFile',
-      { maxBuffer: 8 * 1024 }
-    )
-    const match = /^100644 blob ([0-9a-f]{40}|[0-9a-f]{64})\t([^\0]+)\0$/.exec(
-      result.stdout
-    )
+    const entries = committedEntries.get(file.relativePath) ?? []
     if (
-      match === null ||
-      match[2] !== file.relativePath ||
-      match[1] !== file.objectId
+      entries.length !== 1 ||
+      entries[0].mode !== '100644' ||
+      entries[0].objectType !== 'blob' ||
+      entries[0].objectId !== file.objectId
     ) {
       proofError(
         'invalid-commit-proof',

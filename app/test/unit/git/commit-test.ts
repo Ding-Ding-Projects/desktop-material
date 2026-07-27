@@ -334,6 +334,100 @@ describe('git/commit', () => {
       )
     })
 
+    it('stages and verifies many required control files in one batched pass', async t => {
+      const repo = await setupEmptyRepository(t)
+      await writeFile(
+        path.join(repo.path, '.gitignore'),
+        '.desktop-material/\n'
+      )
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      await createCommit(
+        repo,
+        'base',
+        (
+          await getStatusOrThrow(repo)
+        ).workingDirectory.files
+      )
+      const requiredContents = [
+        { relativePath: '.desktop-material/pointer one.txt', text: 'one é\n' },
+        { relativePath: `.desktop-material/quote'ptr.txt`, text: 'two\n' },
+        { relativePath: '.desktop-material/pointër-путь.txt', text: 'three\n' },
+      ]
+      await mkdir(path.join(repo.path, '.desktop-material'))
+      for (const file of requiredContents) {
+        await writeFile(path.join(repo.path, file.relativePath), file.text)
+      }
+      await writeFile(path.join(repo.path, 'selected.txt'), 'selected\n')
+      const selected = (await getStatusOrThrow(repo)).workingDirectory.files
+
+      await createCommit(repo, 'batched pointers', selected, {
+        requiredFiles: requiredContents.map(file => ({
+          relativePath: file.relativePath,
+          contentSha256: createHash('sha256')
+            .update(file.text, 'utf8')
+            .digest('hex'),
+        })),
+      })
+
+      for (const file of requiredContents) {
+        const committed = await git(
+          ['show', `HEAD:${file.relativePath}`],
+          repo.path,
+          'readBatchedRequiredCommitFile'
+        )
+        assert.equal(committed.stdout, file.text, file.relativePath)
+      }
+    })
+
+    it('fails the exact required file whose staged bytes mismatch', async t => {
+      const repo = await setupEmptyRepository(t)
+      await writeFile(path.join(repo.path, 'base.txt'), 'base\n')
+      await createCommit(
+        repo,
+        'base',
+        (
+          await getStatusOrThrow(repo)
+        ).workingDirectory.files
+      )
+      await mkdir(path.join(repo.path, '.desktop-material'))
+      await writeFile(
+        path.join(repo.path, '.desktop-material/good.txt'),
+        'good\n'
+      )
+      await writeFile(
+        path.join(repo.path, '.desktop-material/bad file.txt'),
+        'actual\n'
+      )
+      const before = (
+        await exec(['rev-parse', 'HEAD'], repo.path)
+      ).stdout.trim()
+      const selected = (await getStatusOrThrow(repo)).workingDirectory.files
+
+      await assert.rejects(
+        createCommit(repo, 'mismatched pointer', selected, {
+          requiredFiles: [
+            {
+              relativePath: '.desktop-material/good.txt',
+              contentSha256: createHash('sha256')
+                .update('good\n', 'utf8')
+                .digest('hex'),
+            },
+            {
+              relativePath: '.desktop-material/bad file.txt',
+              contentSha256: createHash('sha256')
+                .update('expected-but-not-staged\n', 'utf8')
+                .digest('hex'),
+            },
+          ],
+        }),
+        /could not stage the exact required control file “\.desktop-material\/bad file\.txt”/
+      )
+      assert.equal(
+        (await exec(['rev-parse', 'HEAD'], repo.path)).stdout.trim(),
+        before
+      )
+    })
+
     it('rolls back when a hook removes a required file from the commit tree', async t => {
       const repo = await setupEmptyRepository(t)
       await writeFile(path.join(repo.path, 'base.txt'), 'base\n')

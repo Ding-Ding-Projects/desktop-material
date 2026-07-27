@@ -13,6 +13,7 @@ import {
   isUsingLFS,
   isTrackedByLFS,
   filesNotTrackedByLFS,
+  lfsTrackedPathsFromCheckAttr,
 } from '../../../src/lib/git/lfs'
 
 describe('git-lfs', () => {
@@ -107,6 +108,25 @@ describe('git-lfs', () => {
     })
   })
 
+  describe('lfsTrackedPathsFromCheckAttr', () => {
+    it('collects only paths whose filter value is exactly lfs', () => {
+      const stdout =
+        `photo one.png\0filter\0lfs\0` +
+        `naïve-путь.txt\0filter\0unspecified\0` +
+        `quote"na'me.mov\0filter\0lfs\0` +
+        `custom.bin\0filter\0lfs-other\0`
+      const tracked = lfsTrackedPathsFromCheckAttr(stdout)
+      assert.deepEqual(
+        [...tracked].sort(),
+        ['photo one.png', `quote"na'me.mov`].sort()
+      )
+    })
+
+    it('returns an empty set for empty output', () => {
+      assert.equal(lfsTrackedPathsFromCheckAttr('').size, 0)
+    })
+  })
+
   describe('filesNotTrackedByLFS', () => {
     it('returns files not listed in Git LFS', async t => {
       const repository = await setupEmptyRepository(t)
@@ -153,6 +173,26 @@ describe('git-lfs', () => {
       ])
 
       assert.equal(notFound.length, 0)
+    })
+
+    it('answers a mixed batch in one query, preserving input order', async t => {
+      const repository = await setupEmptyRepository(t)
+      await exec(['lfs', 'track', '*.png'], repository.path)
+
+      const notFound = await filesNotTrackedByLFS(repository, [
+        'b video.mp4',
+        'photo one.png',
+        `quote'clip.mov`,
+        'naïve-путь.png',
+      ])
+
+      assert.deepEqual(notFound, ['b video.mp4', `quote'clip.mov`])
+    })
+
+    it('returns an empty array for an empty path list', async t => {
+      const repository = await setupEmptyRepository(t)
+
+      assert.deepEqual(await filesNotTrackedByLFS(repository, []), [])
     })
   })
 })
