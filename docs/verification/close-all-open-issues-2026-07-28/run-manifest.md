@@ -83,6 +83,13 @@
 
 - Pushed checkpoint:
   `2fedf140e394fa2fea3e380203e716b6f7aa8628`.
+- Reviewed gate-repair/provenance checkpoint:
+  `107bd91a0026260426e40fa23241bbabbd853245`; branch CI
+  [`30376865471`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30376865471)
+  is queued. Rolling/public receipts:
+  [Discussion #54](https://github.com/Ding-Ding-Projects/desktop-material/discussions/54#discussioncomment-17815363)
+  and
+  [issue #23](https://github.com/Ding-Ding-Projects/desktop-material/issues/23#issuecomment-5106684118).
 - Branch CI:
   [`30370044526`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30370044526).
   Lint, Windows TUI core, and packaged Windows x64 E2E smoke passed. The
