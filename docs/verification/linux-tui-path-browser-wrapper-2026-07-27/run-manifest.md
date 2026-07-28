@@ -8,7 +8,8 @@
 - Starting commit: `f555d374a66f50fe8dcb343a84b94f75f8876a6e`
 - Product boundary: the Textual edition targets Linux first and retains its
   tested Windows Terminal/core path; the Electron edition remains Windows-only.
-- Source target: the final integrated commit recorded below after commit.
+- Source target: feature commit `62420efaf6`, integrated and pushed through
+  merge `f5f6f04c7e`.
 - Disposable owner prefix:
   `desktop-material-tui-browser-wrapper-20260727-`.
 - Capture target:
@@ -39,7 +40,7 @@
 
 ## Build and automated gates
 
-- [ ] Inspect the complete integrated diff and source status.
+- [x] Inspect the complete integrated diff and source status.
 - [x] Run the full locked Python test suite: 250 passed and one Linux-only case
       skipped on Windows in 182.76 seconds.
 - [x] Run Ruff lint and formatting checks.
@@ -115,5 +116,7 @@ source, automated gates, package installation, fixture-backed push/pull receipt,
 real packaged xterm launch, Open-dialog capture, and cleanup are accepted.
 Immediate quoted-paste normalization, the expanded folder-tree click path,
 80×24 live resize, and Ctrl+Q process-exit proof remain explicitly unaccepted
-live gates; their behavior is covered by the focused automated suite. Integration
-and publication are recorded by the final commit/push handoff.
+live gates; their behavior is covered by the focused automated suite.
+Integration is pushed through `f5f6f04c7e` and contained in current remote
+`main`. Pages `30323259671` and Cheap LFS cloud `30323259650` passed; CI
+`30323259648` and code scanning `30323259706` were still running at handoff.
