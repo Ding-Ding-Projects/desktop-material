@@ -43,15 +43,16 @@ contract rejects missing, duplicate, or unassigned assets.
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
 >
-> **July 27 local acceptance:** one repository-list sync-summary scene, the
+> **July 27 published acceptance:** one repository-list sync-summary scene, the
 > exact-90% restore, app-hosted authentication browser, and private-repository
 > lock receipts, plus five Linux TUI receipts bring the source catalog to 89.
 > The three new Windows captures came from the real production build on an
 > isolated hidden Win32 desktop. The Linux TUI captures came from the real
 > Textual application in an ephemeral Debian environment, a real terminal, and
 > an isolated Xvfb display. All eight passed original-resolution accessibility,
-> clipping, and privacy inspection. Their default-branch, CI, Pages/wiki,
-> packaged E2E, and installer/Release publication receipts remain pending.
+> clipping, and privacy inspection. Their default-branch, Pages, and wiki
+> publication and packaged Windows E2E are verified. Only the Linux TUI
+> compatibility correction rerun and installer/Release receipts remain pending.
 
 The July 18–19 temporary-submodule and refreshed six-image set passed its local
 ten-pass off-screen inspection. A final 1440×960 post-build regression reopened
@@ -216,13 +217,16 @@ be bookmarked, and always offer the system browser.
 The accepted capture uses a synthetic redirect/popup fixture and no real
 account or credential. It proves the private authentication notice, explicit
 system-browser action, bookmark exclusion, and sandboxed tab chrome from the
-real production bundle. Default-branch and remote publication gates remain
+real production bundle. The source and capture are pushed through `2abccae8fd`,
+and Pages/wiki publication and packaged Windows E2E are verified. Only the
+Linux TUI compatibility correction rerun and installer/Release evidence remain
 pending. See the
 [app-hosted browser contract](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md).
 
 <sub>**香港粵語速讀。** 分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門
 齊晒，網頁鎖喺 sandbox。呢張係真 build 喺 hidden desktop 嘅驗收相，冇用真帳戶
-或者密碼；main、CI、Pages/wiki 同 installer 發佈證據仲未完成。</sub>
+或者密碼；source 同相已經經 `2abccae8fd` 推上 main，Pages/wiki 亦 live，packaged
+Windows E2E 都過關。而家淨係 TUI correction 遙距 rerun 同 installer/Release 憑證未完成。</sub>
 
 ![App-hosted browser showing captured redirects, a sanitized bookmark, and the private authentication escape](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/app-hosted-browser-authentication.png)
 
@@ -301,8 +305,10 @@ coordinator. The next file or multipart part starts at the exact 90% network
 point, while the shared panel separates overall, current, and look-ahead lanes;
 file/part ordinals; logical and actual downloaded bytes; phase, queue, rate,
 ETA, failures, and cancellation. The scheduler, shared UI, production build,
-and wide English/narrow bilingual hidden-desktop receipts pass locally;
-default-branch and remote publication gates remain pending.
+and wide English/narrow bilingual hidden-desktop receipts pass. The exact
+source and screenshot are now live on default-branch Pages and the wiki;
+packaged Windows E2E is verified. Only the Linux TUI compatibility correction
+rerun and installer/Release evidence remain pending.
 
 ![Detailed Cheap LFS restore with the current transfer at exactly 90% and the next transfer already active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-restore-lookahead.png)
 

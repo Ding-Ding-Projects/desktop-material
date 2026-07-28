@@ -33,10 +33,12 @@ integrity proofs are complete; the serialized materialization correction keeps
 its final UI receipt in `HANDOFF.md`.
 
 The July 27 app-hosted browser, exact-90% Cheap LFS restore look-ahead, and
-private-repository lock passed 652/652 combined tests, 14/14 verifier
-contracts, full TypeScript, the exact Windows production build, and isolated
-hidden-desktop interaction/privacy review. Packaged E2E and remote
-CI/Pages/wiki/installer publication remain separate gates.
+private-repository lock passed the final focused **760/760 across 58 files**
+gate, 14/14 verifier contracts, full TypeScript, the exact Windows production
+build, and isolated hidden-desktop interaction/privacy review. The source and
+captures are pushed through `2abccae8fd`, and Pages/wiki publication is
+verified live. Packaged Windows E2E is verified. Only the Linux TUI
+compatibility correction rerun and installer/Release evidence remain pending.
 
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
@@ -327,10 +329,12 @@ timeout. Clone cancellation remains stricter and waits for the owned process to 
 
 ## App-hosted browser
 
-> **Local acceptance complete:** combined tests, verifier contracts, full
+> **Published source acceptance:** combined tests, verifier contracts, full
 > TypeScript, the exact Windows production build, and hidden-desktop
-> interaction/privacy checks pass. Packaged E2E and remote publication remain
-> separate gates.
+> interaction/privacy checks pass. The source and accepted capture are pushed
+> through `2abccae8fd`, and Pages/wiki publication is verified live. Packaged
+> Windows E2E is verified. Only the Linux TUI compatibility correction rerun
+> and installer/Release evidence remain pending.
 
 Open **Settings → Advanced → Open web links** and choose:
 
@@ -1121,9 +1125,12 @@ Release mutations are never allowed.
 
 ### Exact-90% two-lane restore progress
 
-> **Local acceptance complete:** combined tests, verifier contracts,
+> **Published source acceptance:** combined tests, verifier contracts,
 > TypeScript, the exact production build, and hidden-desktop acceptance pass.
-> Packaged E2E and remote publication remain separate gates.
+> The source and accepted capture are pushed through `2abccae8fd`, and
+> Pages/wiki publication is verified live. Packaged Windows E2E is verified.
+> Only the Linux TUI compatibility correction rerun and installer/Release
+> evidence remain pending.
 
 For Release-backed pointers, one restore batch now shares a coordinator with a
 hard limit of two HTTP downloads. The current file or multipart part owns the

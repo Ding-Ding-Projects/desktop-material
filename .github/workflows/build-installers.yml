@@ -189,6 +189,7 @@ jobs:
 
   tui_package:
     name: Linux TUI packages
+    if: needs.prepare.outputs.publish == 'true'
     needs: prepare
     runs-on: ubuntu-latest
     timeout-minutes: 25

@@ -75,6 +75,14 @@ describe('CI workflow safety', () => {
       installerWorkflow,
       /needs\.prepare\.outputs\.publish == 'true'/
     )
+    const tuiPackageJob = installerWorkflow.match(
+      /\r?\n  tui_package:\r?\n([\s\S]*?)(?=\r?\n  [a-z_]+:\r?\n)/
+    )
+    assert.notEqual(tuiPackageJob, null)
+    assert.match(
+      tuiPackageJob?.[1] ?? '',
+      /if: needs\.prepare\.outputs\.publish == 'true'/
+    )
     assert.match(installerWorkflow, /name: Express lint/)
     assert.match(installerWorkflow, /name: Express tests Windows x64/)
     assert.match(

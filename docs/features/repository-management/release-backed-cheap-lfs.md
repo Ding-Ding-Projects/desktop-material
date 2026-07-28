@@ -9,8 +9,10 @@ pointer format and is not required by the transfer protocol.
 > restore pipeline and substantially more detailed shared progress surface
 > passed 652/652 combined tests, 14/14 verifier contracts, full TypeScript, the
 > exact Windows production build, and isolated wide-English/narrow-bilingual
-> hidden-desktop acceptance. Packaged E2E and remote
-> CI/Pages/wiki/installer publication remain separate gates. The historical
+> hidden-desktop acceptance. The source is pushed through `2abccae8fd`, and
+> Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
+> TUI compatibility correction rerun and installer/Release evidence remain
+> pending. The historical
 > live acceptance below still belongs to the earlier shipped restore.
 
 ![Cheap LFS manager after a live private-repository UI pin](../../assets/screenshots/cheap-lfs-ui-acceptance.png)
@@ -1341,7 +1343,10 @@ full TypeScript was clean, and the exact Windows production build returned
 zero with no timeout or stderr. A real built app on an isolated hidden Win32
 desktop passed wide English and narrow bilingual restore receipts at the
 current-90% / look-ahead-10% state without clipping, overlap, or private data.
-Packaged Windows E2E, remote CI, and publication remain separate gates.
+The source and four new raw-main evidence assets are pushed through
+`2abccae8fd`, and Pages/wiki publication and packaged Windows E2E are verified.
+Only the Linux TUI compatibility correction rerun and installer/Release
+evidence remain pending.
 
 ### Live GitHub and Desktop Material UI acceptance — 2026-07-22
 

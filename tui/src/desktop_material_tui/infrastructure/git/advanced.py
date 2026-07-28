@@ -180,7 +180,9 @@ def parse_reflog(output: str) -> tuple[ReflogRecord, ...]:
             continue
         authored_at: datetime | None
         try:
-            authored_at = datetime.fromisoformat(fields[3])
+            iso_date = fields[3]
+            normalized = f"{iso_date[:-1]}+00:00" if iso_date.endswith("Z") else iso_date
+            authored_at = datetime.fromisoformat(normalized)
         except ValueError:
             authored_at = None
         records.append(

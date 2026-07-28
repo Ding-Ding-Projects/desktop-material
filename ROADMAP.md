@@ -13,7 +13,7 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
-## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Integrated locally; publication pending**
+## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Pushed; TUI correction rerun pending**
 
 The Cheap LFS Release restore path now uses one FIFO coordinator shared by every
 file and multipart asset in a batch. It permits at most two active downloads
@@ -42,9 +42,9 @@ glyph or custom repository logo; public and unknown metadata show no lock.
 The badge is keyboard-focusable, localized, and included in the row's
 accessible name.
 
-Local acceptance is complete and the source is integrated into local `main`.
-The combined browser,
-restore, localization, IPC, and badge suite passed **652/652 across 53 files**;
+Local acceptance is complete and the source is merged and pushed through
+`2abccae8fd`. The final focused browser, restore, localization, IPC, badge, and
+integration suite passed **760/760 across 58 files**;
 the two CDP verifier contract suites passed **14/14**; full TypeScript checking
 is clean; and the exact Windows production build returned `0` without timeout
 or stderr and produced the normal `out` bundle including the internal-browser
@@ -52,14 +52,17 @@ assets. A real built app on an isolated hidden Win32 desktop passed wide
 English and narrow bilingual restore receipts at the exact current-90% /
 look-ahead-10% state, browser redirect/popup/new-tab/bookmark/authentication
 escape receipts, and the private-badge capture, with no clipping, overlap, or
-private data. Packaged Windows E2E, remote push/CI, Pages/wiki publication, and
-installer/Release evidence remain pending.
+private data. Pages and wiki publication are verified live. The first remote CI
+run exposed Linux TUI-only Python 3.10/mypy compatibility defects. Only the
+locally green correction's push/remote rerun and installer/Release evidence
+remain pending. Packaged Windows E2E is verified by
+[job `90140843987`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843987).
 Detailed contracts and the evidence split are in [HANDOFF.md](HANDOFF.md),
 [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 the [app-hosted browser](docs/features/integrations/app-hosted-browser.md), and
 the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 
-## Linux-first interactive TUI — **Locally accepted; publication pending**
+## Linux-first interactive TUI — **Remote correction locally verified; rerun pending**
 
 A separate Python/Textual edition now adapts Desktop Material for Linux
 terminals without weakening the graphical edition's Windows-only boundary. The
@@ -86,11 +89,23 @@ adapted, 53 partial, 132 not yet available, and 2 terminal-owned. It is
 deliberately not a full-parity claim.
 
 The [publish run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md)
-records the completed local matrix: 187 cross-platform tests plus a real Debian
+records the completed local matrix: 193 cross-platform tests plus a real Debian
 PTY pass, five original Lowlevel/Xvfb captures with mouse/text-field evidence,
 wheel/sdist and fresh-install inspection, a non-root Docker build, and complete
-disposable-resource cleanup. The latest remote `main` is integrated. Only the
-final default-branch push and exact CI/Pages/release receipts remain pending.
+disposable-resource cleanup. The merged delivery is pushed through
+`2abccae8fd`, and Pages/wiki publication is verified.
+
+The first merged-source CI run then found a Python 3.10 compatibility boundary:
+Git 2.54 emits UTC timestamps ending in `Z`, which Python 3.10 does not accept
+through `datetime.fromisoformat`. It also found a Linux-typeshed mypy boundary
+around the guarded Windows `msvcrt` lock path. The correction normalizes only
+the terminal UTC designator, preserves numeric offsets and malformed-date
+behavior, dynamically types the platform-only lock module, and skips TUI
+packaging when an older upstream CI target is already non-publishable. An
+isolated CPython 3.10.20 rerun passed **193 tests** with one Linux-only PTY skip;
+Ruff, strict mypy, the 35 affected tests, and 8 workflow safety tests are green.
+The correction push and remote rerun remain pending.
+
 ## July 26 reliability bug hunt — **Implemented and locally accepted**
 
 The latest `main` was fast-forwarded before inspection. The pass repaired the
@@ -953,7 +968,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
-| Documentation gallery expansion | **Historical 77-scene publication; 89-scene local source catalog** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes, three newly accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—and five verified Linux TUI captures bring the machine-checked source catalog to 89. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Remote rendering for the eight new scenes remains pending the default-branch publication receipt. |
+| Documentation gallery expansion | **89-scene source catalog published** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes, three newly accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—and five verified Linux TUI captures bring the machine-checked source catalog to 89. All 89 source images are pushed through `2abccae8fd`, with Pages/wiki rendering and packaged Windows E2E verified. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Only the Linux TUI compatibility correction rerun and installer/Release evidence remain pending. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->

@@ -1,11 +1,12 @@
 # App-hosted browser
 
-> **Delivery status — July 27, 2026:** local source acceptance is complete.
+> **Delivery status — July 27, 2026:** source acceptance is complete.
 > Combined tests, verifier contracts, TypeScript, the exact Windows production
 > build, and an isolated real-window interaction/privacy receipt passed.
-> The source is integrated into local `main`. Packaged E2E, remote push/CI,
-> Pages/wiki publication, and installer/Release evidence remain pending; this
-> is not a claim that the
+> The source is merged and pushed through `2abccae8fd`; Pages and wiki
+> publication are verified live, and packaged Windows E2E is verified. Only the
+> Linux TUI compatibility correction rerun and installer/Release evidence
+> remain pending; this is not a claim that the
 > feature is in the current installer.
 
 Desktop Material can open browser-bound HTTP and HTTPS links in a dedicated
@@ -19,8 +20,10 @@ content outside the trusted app renderer.
 <sub>**香港粵語速讀。** 設定揀咗喺 Desktop Material 入面開連結，就會用一個有
 網址列、分頁、前後頁、重新整理、Go、書籤同「喺外部開啟」嘅 app 內瀏覽器。網頁
 本身係鎖喺 sandbox 嘅遠端 view，掂唔到 app IPC；登入分頁更加係即用即棄，唔會畀
-你加書籤。本機正式 build 同 hidden-desktop 驗收已經過關；main、CI、Pages/wiki
-同 installer/Release 發佈仲未完成，未可以扮成已經入咗 installer。</sub>
+你加書籤。本機正式 build 同 hidden-desktop 驗收已經過關；source 同相已經經
+`2abccae8fd` 推上 main，Pages/wiki 亦 live，packaged Windows E2E 都過關。而家淨係
+TUI correction 遙距 rerun 同 installer/Release 憑證未完成，未可以扮成已經入咗
+installer。</sub>
 
 ## Behavior and configuration
 
@@ -143,11 +146,11 @@ removal from bookmark storage, and the authentication escape. The fixture used
 no real account, credential, or provider. The accepted 1144×741 image above
 passed original-resolution clipping, overlap, and private-data inspection.
 
-Packaged Windows E2E, remote push/CI, Pages/wiki publication, and
-installer/Release verification remain pending. The locally
-accepted screenshot is assigned to the 89-scene source gallery, but its raw
-`main` URL will not be a publication receipt until the default-branch push and
-Pages/wiki checks complete.
+The source and accepted screenshot are pushed through `2abccae8fd`; its raw
+`main` URL is now a live publication receipt in the 89-scene gallery, and
+Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
+TUI compatibility correction rerun and installer/Release verification remain
+pending.
 
 ## API applicability
 

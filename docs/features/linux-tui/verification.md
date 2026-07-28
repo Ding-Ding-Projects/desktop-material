@@ -78,3 +78,22 @@ The Linux TUI is releasable only when:
 5. any published package is uniquely versioned and immutable;
 6. docs and the parity contract describe remaining gaps without calling them
    complete.
+
+## Python and historical-target compatibility
+
+Git may emit strict ISO timestamps with either a numeric UTC offset or a
+terminal uppercase `Z`. Python 3.10's `datetime.fromisoformat` does not accept
+the latter, so every Git/profile-history parser normalizes only that terminal
+designator to `+00:00`. Tests must cover `Z`, non-zero numeric offsets, and
+malformed input on the oldest supported Python version.
+
+Platform-only lock modules stay behind runtime boundaries. In particular,
+Linux mypy must not statically resolve the Windows-only `msvcrt.locking`
+members, and Windows checks must still exercise the same lock path.
+
+The release workflow can be loaded from a newer default branch while a
+`workflow_run` event targets an older commit. If `prepare` has already marked
+that upstream CI target as non-publishable, TUI packaging is skipped rather
+than assuming the historical commit contains `tui/`. A publishable current
+target still requires the locked environment, full matrix, wheel, source
+distribution, and fresh-install smoke test.

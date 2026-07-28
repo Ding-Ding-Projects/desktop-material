@@ -1,4 +1,4 @@
-from datetime import timezone
+from datetime import timedelta, timezone
 
 import pytest
 
@@ -81,6 +81,36 @@ def test_parse_history_records() -> None:
     assert commits[0].body == "Body line"
     assert commits[0].authored_at.tzinfo == timezone.utc
     assert commits[1].parents == ()
+
+
+@pytest.mark.parametrize(
+    ("iso_date", "expected_offset"),
+    [
+        ("2023-11-14T22:13:20Z", timedelta(0)),
+        ("2023-11-14T22:13:20+05:30", timedelta(hours=5, minutes=30)),
+    ],
+)
+def test_parse_history_accepts_utc_z_and_preserves_numeric_offsets(
+    iso_date: str,
+    expected_offset: timedelta,
+) -> None:
+    output = (
+        f"{OID_A}\x00\x00Ada\x00ada@example.test\x001700000000\x00{iso_date}\x00Subject\x00\x00\n"
+    )
+
+    commit = parse_history(output)[0]
+
+    assert commit.authored_at.utcoffset() == expected_offset
+
+
+def test_parse_history_rejects_malformed_iso_timestamp() -> None:
+    output = (
+        f"{OID_A}\x00\x00Ada\x00ada@example.test\x001700000000"
+        "\x00definitely-not-a-timestamp\x00Subject\x00\x00\n"
+    )
+
+    with pytest.raises(GitParseError, match="invalid ISO timestamp"):
+        parse_history(output)
 
 
 def test_parse_branches_filters_symbolic_remote_head() -> None:

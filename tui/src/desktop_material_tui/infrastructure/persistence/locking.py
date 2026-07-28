@@ -87,7 +87,7 @@ class FileLock:
     def _lock_handle(self) -> None:
         assert self._handle is not None
         if os.name == "nt":
-            import msvcrt
+            msvcrt: Any = importlib.import_module("msvcrt")
 
             self._handle.seek(0)
             msvcrt.locking(self._handle.fileno(), msvcrt.LK_NBLCK, 1)
@@ -100,7 +100,7 @@ class FileLock:
         if self._handle is not None:
             try:
                 if os.name == "nt":
-                    import msvcrt
+                    msvcrt: Any = importlib.import_module("msvcrt")
 
                     self._handle.seek(0)
                     msvcrt.locking(self._handle.fileno(), msvcrt.LK_UNLCK, 1)

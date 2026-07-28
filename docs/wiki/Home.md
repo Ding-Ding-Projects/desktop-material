@@ -50,10 +50,12 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > explicitly separated in `HANDOFF.md`.
 >
 > The July 27 exact-90% restore look-ahead, sandboxed app-hosted browser, and
-> private-repository lock passed 652/652 combined tests, 14/14 verifier
-> contracts, full TypeScript, the exact Windows production build, and isolated
-> hidden-desktop interaction/privacy review. Packaged E2E and remote
-> CI/Pages/wiki/installer publication remain separate gates.
+> private-repository lock passed the final focused **760/760 across 58 files**
+> gate, 14/14 verifier contracts, full TypeScript, the exact Windows production
+> build, and isolated hidden-desktop interaction/privacy review. The source and
+> captures are pushed through `2abccae8fd`, and Pages/wiki publication is
+> verified live. Packaged Windows E2E is verified. Only the Linux TUI
+> compatibility correction rerun and installer/Release evidence remain pending.
 
 M21 closes the complete 30-item GitHub Desktop demand brief: exact account and
 repository identity, native PR review/creation/activity, selective and external

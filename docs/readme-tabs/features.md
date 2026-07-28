@@ -21,12 +21,14 @@ parity.
 > bilingual (English / 廣東話) table and labels each one **Added**,
 > **Extended**, or **Inherited** relative to upstream GitHub Desktop.
 
-> **July 27 local acceptance:** the app-hosted browser, exact-90% Cheap LFS
-> restore look-ahead, and private-repository lock passed the combined 652/652
-> test gate, 14/14 verifier contracts, full TypeScript check, exact Windows
-> production build, and isolated hidden-desktop interaction/privacy review.
-> Packaged E2E and remote CI/Pages/wiki/installer publication remain separate
-> gates and do not revise older release receipts.
+> **July 27 published source acceptance:** the app-hosted browser, exact-90%
+> Cheap LFS restore look-ahead, and private-repository lock passed the final
+> focused **760/760 across 58 files** gate, 14/14 verifier contracts, full
+> TypeScript check, exact Windows production build, and isolated hidden-desktop
+> interaction/privacy review. The source and captures are pushed through
+> `2abccae8fd`, and Pages/wiki publication is verified live. Packaged Windows
+> E2E is verified. Only the Linux TUI compatibility correction rerun and
+> installer/Release evidence remain pending.
 
 **The whole feature set on one page / 成套功能一版睇晒**
 

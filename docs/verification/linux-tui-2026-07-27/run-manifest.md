@@ -71,12 +71,15 @@
 - Docker proof host: remote Linux `x86_64`, Docker `29.5.3`, 14 logical CPUs,
   and 33 GB memory. Existing workloads were enumerated and left untouched.
 - Package artifacts: wheel
-  `desktop_material_tui-0.1.0-py3-none-any.whl` (164,317 bytes, SHA-256
-  `7d137092340262cd92ade0291c1fd1c31d5b63f65f50c9e5f51d0f5780305555`)
-  and source distribution (282,597 bytes, SHA-256
-  `53e0674d29bfda053958a6862bb726964c6e5f9974b25b551c8b22f31c9bcfcc`).
+  `desktop_material_tui-0.1.0-py3-none-any.whl` (164,719 bytes, SHA-256
+  `e2d398a9962e8a173e6a4ebbcb24ee961e0832df4907b6e8657245250a31eade`)
+  and source distribution (281,881 bytes, SHA-256
+  `fd0e29ffd9f8ae37f892a3fe0450d2742131d8edb6338f70d6c1f5073afe54b2`).
   The wheel contains 53 files, including `styles.tcss`, `py.typed`, and the
-  `github`, `dmt`, and `desktop-material-tui` entry points.
+  `github`, `dmt`, and `desktop-material-tui` entry points. The accepted
+  96-file `tui/**` source manifest remained unchanged across the build at
+  SHA-256
+  `be94c5ce07f08c6f7d4f139c8fa9596c68c4775c27011f3e99c5a20ab8e109fa`.
 
 ## Preflight and build
 
@@ -129,7 +132,7 @@ resolve the target, act in the background, then capture and inspect the result.
 
 The broader keyboard/tab, literal/fuzzy/regex synchronization, command-palette,
 destructive-confirmation, notification-history, theme, reduced-motion, and
-scrolling matrix was exercised through 187 cross-platform Textual/core tests
+scrolling matrix was exercised through 193 cross-platform Textual/core tests
 and the dedicated real-Linux PTY test. Unchecked manual scenarios from the
 planning draft are not silently claimed as captured interactions.
 
@@ -137,10 +140,13 @@ planning draft are not silently claimed as captured interactions.
 
 - [x] `node tui/tools/generate-parity-contract.mjs --check`
 - [x] `uv sync --locked --extra dev`
-- [x] `uv run pytest`: 187 passed and 1 Linux-only PTY case skipped on Windows;
+- [x] `uv run pytest`: 193 passed and 1 Linux-only PTY case skipped on Windows;
       the skipped PTY case separately passed on real Debian Linux.
+- [x] the same complete 194-case collection passed under isolated CPython
+      3.10.20 and 3.12.10 environments after the merged-source CI correction.
 - [x] `uv run ruff check .` and `uv run ruff format --check .`
-- [x] `uv run mypy src`: strict typing clean across 47 source files.
+- [x] `uv run mypy src`: strict typing clean across 47 source files, including
+      an explicit Linux-platform mypy pass for the Windows lock boundary.
 - [x] 164 focused Windows Cheap LFS tests, including all 16 cloud-compression
       action cases, plus root TypeScript and focused ESLint/Prettier
 - [x] `uv build --clear`
@@ -150,10 +156,12 @@ planning draft are not silently claimed as captured interactions.
 - [x] Markdown links and focused formatting checks for every new/touched TUI
       document
 - [x] secret/credential-pattern scan of the diff and promoted captures
-- [x] final branch/worktree/stash/remote inspection; an unrelated dirty
-      `codex/cheap-lfs-restore-lookahead` worktree is preserved, not modified
-- [ ] exact remote commit/CI/Pages/release evidence after push, without
-      predicting success
+- [x] final integration branch/worktree/stash/remote inspection and guarded
+      cleanup left one clean `main` worktree, no task branches, and no stashes.
+- [x] merged delivery `2abccae8fd` is the exact pushed `origin/main`; Pages and
+      the Cheap LFS cloud-compression workflow succeeded.
+- [ ] exact corrective-commit CI and installer/release evidence after the
+      compatibility-fix push, without predicting success
 
 ## Evidence table
 
@@ -187,5 +195,8 @@ Cleanup is part of acceptance, not a later courtesy.
 
 Current local interaction status: **Complete**. The packaged Linux run, real
 mouse/text-field acceptance, five captures, and guarded cleanup are proven
-locally. Remote CI, Pages, and release results remain unclaimed until the final
-default-branch push creates exact receipts.
+locally. The merged source and Pages/wiki publication are live; the first
+merged-source matrix exposed Python 3.10 timestamp and Linux-mypy portability
+defects that now pass the full local correction gates. The corrective
+default-branch CI and installer/release verdict remain unclaimed until their
+exact post-push receipts exist.

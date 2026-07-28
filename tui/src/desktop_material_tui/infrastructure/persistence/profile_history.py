@@ -44,6 +44,16 @@ class SensitiveSettingError(ProfileHistoryError):
     """A caller attempted to commit secret-bearing material."""
 
 
+def _parse_git_datetime(value: str) -> datetime:
+    """Parse Git's strict ISO timestamp across all supported Python versions."""
+
+    normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
+    try:
+        return datetime.fromisoformat(normalized)
+    except ValueError as error:
+        raise ProfileHistoryError("Git returned an invalid profile history timestamp") from error
+
+
 @dataclass(frozen=True)
 class ProfileRevision:
     revision: str
@@ -166,7 +176,7 @@ class GitProfileHistory:
                 revisions.append(
                     ProfileRevision(
                         revision=parts[0],
-                        created_at=datetime.fromisoformat(parts[1]),
+                        created_at=_parse_git_datetime(parts[1]),
                         label=parts[2],
                     )
                 )
@@ -292,7 +302,7 @@ class GitProfileHistory:
             raise ProfileHistoryError("Git returned malformed profile history")
         return ProfileRevision(
             revision=parts[0],
-            created_at=datetime.fromisoformat(parts[1]),
+            created_at=_parse_git_datetime(parts[1]),
             label=parts[2],
         )
 

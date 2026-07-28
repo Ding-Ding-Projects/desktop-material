@@ -42,8 +42,13 @@ def _parse_iso_datetime(
 ) -> datetime | None:
     if value == "" and allow_empty:
         return None
+    # Python 3.10's ``datetime.fromisoformat`` does not understand the ISO 8601
+    # UTC designator even though newer Python versions do. Git and Git-adjacent
+    # fixtures may emit either spelling, so normalize only the terminal
+    # uppercase ``Z`` and leave numeric offsets untouched.
+    normalized = f"{value[:-1]}+00:00" if value.endswith("Z") else value
     try:
-        parsed = datetime.fromisoformat(value)
+        parsed = datetime.fromisoformat(normalized)
     except ValueError as error:
         raise GitParseError(output_kind, "invalid ISO timestamp", value) from error
     if parsed.tzinfo is None:

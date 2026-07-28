@@ -1,5 +1,41 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Remote TUI compatibility correction (locally verified)
+
+The first CI run for merged source `2abccae8fd` exposed two real portability
+defects after the earlier local matrix:
+
+- Git 2.54 on Ubuntu emits strict ISO UTC timestamps ending in `Z`. CPython
+  3.10 rejects that suffix in `datetime.fromisoformat`, which caused nine
+  direct Git/profile-history failures and two downstream TUI failures.
+- Linux typeshed deliberately does not expose the Windows-only
+  `msvcrt.locking` and `LK_*` members, so strict mypy rejected the statically
+  imported Windows branch even though its runtime guard was correct.
+
+The Git porcelain, reflog, and profile-history parsers now normalize only a
+terminal uppercase `Z` to `+00:00`; numeric offsets and malformed-date
+failure behavior remain unchanged. The Windows lock branch now imports
+`msvcrt` dynamically as `Any`, matching the existing `fcntl` runtime boundary.
+The installer workflow also skips TUI package work when `prepare` has already
+marked an upstream failed-CI target as non-publishable. That prevents a newly
+loaded workflow from assuming a historical pre-TUI target contains `tui/`,
+while successful current-source release runs still require the wheel and
+source distribution.
+
+Local correction evidence is green: the isolated CPython 3.10.20 full suite
+passed **193 tests** with one Windows-host Linux-PTY skip, the affected
+post-format set passed **35/35**, Ruff lint/format passed, strict mypy passed
+all 47 source files for both Linux and Windows platforms, 32 focused
+persistence/CLI tests passed, and the release workflow safety suite passed
+**8/8**. Packaged Windows E2E passed in
+[job `90140843987`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843987).
+Only the correction push/remote rerun and installer/Release evidence remain
+pending; the failed jobs are
+[Python 3.10](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843973),
+[Python 3.12 mypy](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843983),
+and the
+[historical-target TUI package job](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315814320/job/90141026604).
+
 ## 2026-07-27 — Linux-first interactive TUI preview (locally verified)
 
 A new `tui/` Python project is a terminal-native sibling to the Windows-only
@@ -39,15 +75,18 @@ provider bodies, API payloads, regex patterns, and sample text use real
   verification.
 
 Status: implementation commit `eee005c7f4`, integration merge `ba45dcfbaf`, and
-verification commit `fcb86eca4d` are integrated into local `main`. Local evidence is complete:
-187 Windows-hosted TUI/core tests passed with one Linux-only PTY skip, that PTY
+verification commit `fcb86eca4d` are integrated and pushed through merge
+`2abccae8fd`. Local evidence is complete:
+193 Windows-hosted TUI/core tests passed with one Linux-only PTY skip, that PTY
 test passed on real Debian, all 164 focused Windows Cheap LFS tests passed, the
 wheel/sdist and fresh install were inspected, and a non-root remote Docker build
 ran successfully. Five original Lowlevel/Xvfb screenshots prove mouse clicks,
 editable Inputs/TextAreas, regex matches, bilingual narrow layout, and Cheap LFS
 preview; every disposable process, display, filesystem root, Docker image, and
-WSL distribution was removed and proven absent. Remote push, CI, Pages, and
-release receipts remain pending. The
+WSL distribution was removed and proven absent. Pages/wiki publication is live;
+the first CI defects and locally verified correction are recorded immediately
+above. Packaged Windows E2E is verified; only the correction push/remote rerun
+and installer/Release evidence remain pending. The
 [run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
 the exact local evidence and hashes.
 
@@ -268,12 +307,14 @@ rendered, zero colour-audit warnings, and Chromium reported **0** non-`file:`
 requests for the published pages in both colour schemes. `npx prettier --check`
 passes on every touched non-Markdown file. Not yet verified against the
 deployed Pages site.
-## 2026-07-27 — Exact-90% restore, app-hosted browser, and private badge (local acceptance complete)
+## 2026-07-27 — Exact-90% restore, app-hosted browser, and private badge (pre-publication local receipt)
 
-Three user-facing continuations are locally accepted and integrated into local
-`main`. They are not yet pushed, packaged, published, or included in an
-installer/Release; do not attach older Cheap LFS live receipts or the current
-installer badge to these changes.
+At this pre-publication checkpoint, three user-facing continuations were
+locally accepted and integrated into local `main`. The source and captures were
+later pushed through `2abccae8fd`, and Pages/wiki publication is now verified
+live. Packaged Windows E2E is verified. Only the Linux TUI compatibility
+correction rerun and installer/Release evidence remain pending; do not attach
+an older installer badge to these changes.
 
 **Cheap LFS restore scheduling and progress**
 
@@ -367,11 +408,13 @@ installer badge to these changes.
 | `docs/assets/screenshots/app-hosted-browser-authentication.png` | 1144×741 | 65,346 | `257960b35797e2f7e5f2a8e442c353e656d98af5ef4a088fe30113b641293f69` |
 | `docs/assets/screenshots/private-repository-lock-badge.png` | 960×660 | 87,517 | `7cf7e27565bceb3d584c24752c2e066b29abdbcafe066b25250fa65d3284de9a` |
 
-**Remaining gates**
+**Publication update**
 
-Remote push, packaged Windows E2E, remote CI, installer/Release evidence, and
-Pages/wiki publication remain pending. No
-remote or release success is claimed by this local receipt.
+The source and accepted captures are pushed through `2abccae8fd`, and
+Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
+TUI compatibility correction rerun and installer/Release evidence remain
+pending. This pre-publication local receipt does not claim those remaining
+gates.
 
 Feature contracts:
 [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),

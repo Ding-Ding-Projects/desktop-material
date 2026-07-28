@@ -90,12 +90,13 @@ support](features/integrations/windows-only-platform-support.md).
   acceptance evidence and links to exact publication receipts
 
 The July 27 browser, Cheap LFS restore, and private-badge continuation has
-completed local acceptance: **652/652** combined tests, **14/14** verifier
-contracts, clean TypeScript, an exact successful Windows production build, and
-real hidden-desktop interaction/privacy receipts. Packaged Windows E2E,
-remote push/CI, Pages/wiki publication, and installer/Release evidence remain
-pending. The feature pages keep that local
-checkpoint separate from older published acceptance evidence.
+completed source acceptance: the final focused gate passed **760/760 across 58
+files**, **14/14** verifier contracts passed, TypeScript is clean, the exact
+Windows production build succeeded, and real hidden-desktop
+interaction/privacy receipts passed. The source and captures are merged and
+pushed through `2abccae8fd`, with Pages and wiki publication verified live.
+Packaged Windows E2E is verified. Only the Linux TUI compatibility correction
+rerun and installer/Release evidence remain pending.
 
 Appearance is now owner-scoped. Right-clicking an actual visual opens an editor
 beside it; every profile element, feature entry point, repository element, and

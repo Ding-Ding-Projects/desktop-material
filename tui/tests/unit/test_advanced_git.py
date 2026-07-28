@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from desktop_material_tui.infrastructure.git.advanced import (
     parse_reflog,
     parse_submodule_status,
@@ -47,7 +49,7 @@ def test_parse_submodules_keeps_spaces_and_description() -> None:
 
 def test_parse_reflog_handles_bad_dates_without_dropping_recovery_entry() -> None:
     output = (
-        "abcdef\x1fHEAD@{0}\x1fcommit: useful\x1f2026-07-27T12:30:00+00:00\x1e"
+        "abcdef\x1fHEAD@{0}\x1fcommit: useful\x1f2026-07-27T12:30:00Z\x1e"
         "123456\x1fHEAD@{1}\x1freset: moving\x1fnot-a-date\x1e"
     )
 
@@ -55,4 +57,5 @@ def test_parse_reflog_handles_bad_dates_without_dropping_recovery_entry() -> Non
 
     assert [record.selector for record in records] == ["HEAD@{0}", "HEAD@{1}"]
     assert records[0].authored_at is not None
+    assert records[0].authored_at.utcoffset() == timedelta(0)
     assert records[1].authored_at is None
