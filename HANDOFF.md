@@ -113,12 +113,18 @@ rules disabled, syntax checks, and `git diff --check` are green. The
 authoritative logs are
 `%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\post-ci-repair-{targeted-tests,contracts,format-lint}.log`.
 Those reviewed repairs and provenance fences are pushed at
-`107bd91a0026260426e40fa23241bbabbd853245`; branch CI run
+`107bd91a003f490fa3d91cc642a7beaa350d2c35`; branch CI run
 [`30376865471`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30376865471)
 is queued. The matching rolling checkpoint is
 [Discussion #54 comment 17815363](https://github.com/Ding-Ding-Projects/desktop-material/discussions/54#discussioncomment-17815363),
 and the private-gallery authority boundary is recorded on
 [#23 comment 5106684118](https://github.com/Ding-Ding-Projects/desktop-material/issues/23#issuecomment-5106684118).
+Those two earlier receipts printed a nonexistent source-gate SHA; the
+correction is explicit in
+[Discussion comment 17815648](https://github.com/Ding-Ding-Projects/desktop-material/discussions/54#discussioncomment-17815648)
+and
+[#23 comment 5107001088](https://github.com/Ding-Ding-Projects/desktop-material/issues/23#issuecomment-5107001088).
+Only `107bd91a003f490fa3d91cc642a7beaa350d2c35` is authoritative.
 
 The open-issue scan after that audit remains exactly #23, #80, #81, #82, #85,
 #87, #94, #95, and #96. Two #23 specialist frames still require read access to
