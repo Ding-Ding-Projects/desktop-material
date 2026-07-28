@@ -9,6 +9,7 @@ Screenshots of the real built app come from the capture fixture described in
 scenes such as the tab overflow dropdown, which cannot be produced by hand.
 
 - [Linux-first TUI publish run — 2026-07-27](linux-tui-2026-07-27/run-manifest.md)
+- [Linux TUI path browser and Git wrapper — 2026-07-27](linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
 - [Pull-and-bug-hunt publish run — 2026-07-26](bug-hunt-2026-07-26/run-manifest.md)
 - [Tab groups and command palette — 2026-07-22](tab-groups-command-palette-2026-07-22.md)
 - [Automatic updater version ordering — 2026-07-22](auto-updater-version-order-2026-07-22.md)

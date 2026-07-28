@@ -8,13 +8,31 @@ Electron package.
 
 ## Linux terminal edition
 
-From a trusted checkout with Python 3.10–3.13, Git, and
-[uv](https://docs.astral.sh/uv/):
+Install Python 3.10–3.13, Git, and [uv](https://docs.astral.sh/uv/), then run
+the following from the trusted parent directory where the checkout should be
+created:
+
+One-line Linux shell installation from a fresh parent directory:
+
+<!-- markdownlint-disable MD013 -->
 
 ```bash
-uv tool install ./tui
-github /path/to/repository
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
 ```
+
+One-line Windows PowerShell installation from a fresh parent directory:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Close and reopen the terminal afterward so the updated `PATH` is loaded, then
+run `github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The fully interactive acceptance
+target remains Linux-first; the Windows Terminal launch path and cross-platform
+core are also tested.
 
 The installed `github`, `dmt`, and `desktop-material-tui` commands are
 identical TUI launchers. The literal alias does not replace GitHub CLI's `gh`.
@@ -26,6 +44,18 @@ machine-readable status with:
 github --help
 github status --json
 ```
+
+Cheap-LFS-aware native Git forms are available immediately after installation:
+
+```bash
+github push --dry-run
+github push origin main
+github pull --ff-only
+github git status --short
+```
+
+See the [Git wrapper contract](features/linux-tui/cheap-lfs-git-wrapper.md) for
+preflight, restore, exit-code, and non-overwrite behavior.
 
 The locked contributor route remains:
 

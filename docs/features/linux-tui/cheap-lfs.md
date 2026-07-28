@@ -115,6 +115,24 @@ working tree or provider. Track and Restore print a plan and stop unless
 `--yes` is present. `--stage` is opt-in; neither surface commits or pushes the
 pointer automatically.
 
+The installed launcher also wraps native Git without shadowing the system
+executable:
+
+```bash
+github -C /work/project push --dry-run
+github -C /work/project push origin main
+github -C /work/project pull --ff-only
+github -C /work/project git status --short
+```
+
+Push runs a native dry-run, then scans safe working candidates and the
+publication delta, falling back to all source-ref history when the remote base
+cannot be proven locally. Pull materializes canonical pointers after native Git
+succeeds. The
+[Cheap LFS-aware Git wrapper guide](cheap-lfs-git-wrapper.md) records exact
+argv handling, exit codes, repeated-pull behavior, dry-run guarantees, and the
+boundary that never stages, commits, uploads, or rewrites automatically.
+
 Use `--repo OWNER/NAME` when `origin` is not a canonical GitHub.com URL and
 `--cache PATH` only when an explicitly chosen cache root is required. Sign in
 to `gh` through a trusted shell; the TUI does not request, display, or persist a
@@ -187,10 +205,12 @@ container, not this named volume.
 The terminal edition currently uses one GitHub Release bucket of at most 1,000
 reported assets. It does not yet provide the Windows edition's automatic
 commit/push worker lanes, bucket rollover and paginated inventory, manual
-browser upload handoff, automatic clone/pull/fetch/open materialization, Remove
-or Materialize-all batch actions, post-commit asset relabeling, OCI/GHCR/Docker
+browser upload handoff, automatic clone/fetch/open materialization, Remove or
+Materialize-all batch actions, post-commit asset relabeling, OCI/GHCR/Docker
 writes, private-payload encryption, provider migration, ORAS runtime, cloud
-compression publication, or cancellation after a confirmed transfer starts. It
+compression publication, or cancellation after a confirmed transfer starts.
+The explicit `github pull` wrapper now materializes after a successful native
+pull, but it does not reproduce the desktop two-lane background coordinator. It
 can read and restore a Windows-created deflated pointer.
 
 These omissions keep the related parity rows partial or unavailable in

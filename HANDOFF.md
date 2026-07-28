@@ -1,6 +1,67 @@
 # Desktop Material — Active parity handoff
 
-## 2026-07-27 — Remote TUI compatibility correction (locally verified)
+## 2026-07-27 — TUI path browser and Cheap LFS Git wrapper (automated gates green)
+
+The Linux-first Textual edition now has a folder-only browser in its Open and
+Create repository dialogs. Browse/Hide, Home, and Up remain reachable by mouse
+and keyboard while the repository path stays a real editable field. Matching
+outer single or double quotes are removed from pasted paths immediately where
+the terminal exposes bracketed paste, with the same normalization at
+submission. The input is treated only as a path: it is never evaluated by a
+shell.
+
+The literal `github` launcher now also provides bounded native-Git routing:
+
+- `github push` and `github git push` force a native parseable dry-run, inspect
+  the publication delta for Cheap LFS safety, and invoke the real native push
+  only after that preflight passes.
+- `github pull` and `github git pull` invoke native Git first, then materialize
+  canonical Cheap LFS pointers only after exact size and SHA-256 verification.
+- Other `github git <argv>` operations pass an argument vector directly to Git,
+  without shell parsing. The wrapper does not stage, commit, rewrite history,
+  upload payloads, or shadow the system `git` executable.
+
+The README and installation guide include one-line Linux shell and Windows
+PowerShell installs. Both install the `github`, `dmt`, and
+`desktop-material-tui` launchers through uv and run `uv tool update-shell` so
+uv's tool directory is added to future shell `PATH` values.
+
+Current automated evidence is green:
+
+| Gate | Result |
+| --- | --- |
+| full Windows-hosted TUI suite | **250 passed, 1 Linux-only skip in 182.76 s** |
+| focused path normalization/browser/Pilot suite | **29 passed** |
+| focused Cheap LFS Git-wrapper suite | **47 passed** |
+| Ruff lint and format | clean |
+| strict mypy, normal and explicit Linux platform | clean |
+| package build | wheel and source distribution built successfully |
+
+The final handoff accepted the source and package with one bounded visual gap.
+A disposable Debian/Xvfb/xterm run launched the packaged TUI and captured the
+real Open repository dialog. Its deterministic bare-remote fixture advanced
+through `safe-push` and `pointer`; the consumer restored 23 bytes whose SHA-256
+exactly matched both the pointer and cache object. The Windows uv tool install
+puts all three `0.1.0` launchers in `C:\Users\cntow\.local\bin`, which was
+already on `PATH`, and the Linux wheel smoke reported the same aliases. The
+owned distro, displays, fixtures, and virtual environments were destroyed and
+proved absent. Immediate bracketed-paste normalization, the expanded-tree
+click path, narrow live resize, and Ctrl+Q exit remain automated rather than
+accepted visual evidence, as recorded without inference in the
+[run manifest](docs/verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
+and
+[cleanup ledger](docs/verification/linux-tui-path-browser-wrapper-2026-07-27/cleanup-ledger.md).
+
+The preceding TUI compatibility correction commit `f555d374a6` is contained in
+`origin/main`. In
+[CI run `30317262582`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30317262582),
+the Linux TUI Python matrix and Windows TUI core job passed, but the workflow
+overall failed in the unrelated Windows x64 unit job. Installer
+[run `30318769692`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30318769692)
+failed and published no Release. The final integration/push SHA is the next
+handoff datum to record after publication.
+
+## 2026-07-27 — Remote TUI compatibility correction (TUI lanes green)
 
 The first CI run for merged source `2abccae8fd` exposed two real portability
 defects after the earlier local matrix:
@@ -29,8 +90,13 @@ all 47 source files for both Linux and Windows platforms, 32 focused
 persistence/CLI tests passed, and the release workflow safety suite passed
 **8/8**. Packaged Windows E2E passed in
 [job `90140843987`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843987).
-Only the correction push/remote rerun and installer/Release evidence remain
-pending; the failed jobs are
+Correction commit `f555d374a6` is contained in `origin/main`.
+[CI run `30317262582`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30317262582)
+passed the Linux TUI Python matrix and Windows TUI core job, but the overall
+workflow failed in the unrelated Windows x64 unit job. Installer
+[run `30318769692`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30318769692)
+failed and produced no Release. The earlier failed jobs that motivated the
+correction were
 [Python 3.10](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843973),
 [Python 3.12 mypy](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843983),
 and the
@@ -85,8 +151,10 @@ editable Inputs/TextAreas, regex matches, bilingual narrow layout, and Cheap LFS
 preview; every disposable process, display, filesystem root, Docker image, and
 WSL distribution was removed and proven absent. Pages/wiki publication is live;
 the first CI defects and locally verified correction are recorded immediately
-above. Packaged Windows E2E is verified; only the correction push/remote rerun
-and installer/Release evidence remain pending. The
+above. Packaged Windows E2E is verified. The correction is contained in
+`origin/main`, and its Linux TUI matrix and Windows TUI core jobs passed in run
+`30317262582`; that workflow still failed in the unrelated Windows x64 unit
+job, while installer run `30318769692` failed and published no Release. The
 [run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
 the exact local evidence and hashes.
 

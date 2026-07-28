@@ -61,6 +61,11 @@ helpers and SSH setup. A non-interactive failure is surfaced with the Git exit
 status and sanitized message; retry after repairing authentication or remote
 configuration.
 
+The scriptable `github git`, `github push`, and `github pull` wrapper preserves
+native Git argv and adds Cheap LFS-aware push/pull phases without a confirmation
+flag. See [Cheap LFS-aware Git CLI wrapper](cheap-lfs-git-wrapper.md) for its
+100 MiB preflight, dry-run, materialization, and repeated-pull boundaries.
+
 ## Destructive actions
 
 Discard, branch deletion, stash drop, worktree removal, sparse-checkout changes,

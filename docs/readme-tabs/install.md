@@ -8,10 +8,29 @@ The terminal edition is a distinct Python/Textual package for Linux, not a
 Linux Electron build. Install a trusted checkout and open a repository with the
 literal launcher:
 
+Linux shell, from a fresh parent directory:
+
+<!-- markdownlint-disable MD013 -->
+
 ```bash
-uv tool install ./tui
-github /path/to/repository
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
 ```
+
+Windows PowerShell, from a fresh parent directory:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Both one-liners require Git and
+[uv](https://docs.astral.sh/uv/getting-started/installation/). Close and reopen
+the terminal afterward so the updated `PATH` is loaded, then run
+`github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The interactive acceptance target
+remains Linux-first; the Windows Terminal launch path and cross-platform core
+are also tested.
 
 `github`, `dmt`, and `desktop-material-tui` are identical launchers for the
 terminal edition; the alias does not replace GitHub CLI's `gh`. If another
@@ -21,7 +40,16 @@ noninteractive commands are:
 ```bash
 github --help
 github status --json
+github push --dry-run
+github pull --ff-only
+github git status --short
 ```
+
+Open/Create includes a clickable folder browser and safe quoted-path paste.
+`github push` and `github pull` add Cheap LFS preflight/materialization, while
+`github git …` preserves other native Git arguments without a shell. The
+[Linux TUI guide](../features/linux-tui/README.md) links the detailed browser
+and wrapper contracts.
 
 `pipx install ./tui` is the corresponding isolated install route. The package
 supports Python 3.10–3.13 and requires Git; provider surfaces also require an

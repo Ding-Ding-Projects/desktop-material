@@ -13,7 +13,48 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
-## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Pushed; TUI correction rerun pending**
+## July 27 Linux TUI path browser and Git wrapper — **Handoff accepted with a bounded visual gap**
+
+The Linux-first terminal edition now adds a folder-only repository browser to
+its Open and Create dialogs without replacing the real editable path field.
+Browse/Hide, Home, and Up work by mouse and keyboard. A matching outer pair of
+single or double quotes is removed from pasted repository paths immediately
+when bracketed paste is available and again at submission as a
+terminal-independent fallback; path text is never evaluated by a shell.
+
+The literal `github` launcher also provides `github push`, `github pull`, and
+their `github git push` / `github git pull` forms. Push forces a parseable
+native dry-run, checks the publication delta for Cheap LFS safety, and invokes
+native Git only after the preflight passes. Pull invokes native Git first and
+then materializes canonical pointers with exact size/SHA-256 verification.
+Other `github git <argv>` operations remain argv-only native passthrough. The
+wrapper never stages, commits, rewrites history, uploads a payload, or shadows
+the system `git` executable.
+
+The full Windows-hosted TUI suite passes **250 tests** with one Linux-only skip
+in **182.76 seconds**. The focused path/browser suite passes **29/29**, the
+focused wrapper suite passes **47/47**, Ruff lint/format and strict mypy for
+both the normal and explicit Linux platform targets are clean, and the wheel
+and source distribution build successfully. Linux and Windows one-line uv
+install commands install all three aliases and update future shell `PATH`
+values. A disposable Linux fixture accepted safe dry-run/push/pull behavior and
+restored a 23-byte object with an exact pointer/cache hash match. The packaged
+TUI launched in real xterm/Xvfb and its Open dialog was inspected. Windows
+installs resolve all three aliases from the uv tool directory already on
+`PATH`; the Linux wheel smoke did likewise. Cleanup is complete. Immediate
+quoted-paste normalization, expanded-tree clicking, narrow live resizing, and
+Ctrl+Q exit remain automated rather than accepted visual evidence in the
+[dated run manifest](docs/verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md).
+
+The preceding compatibility commit `f555d374a6` is already contained in
+`origin/main`.
+[CI run `30317262582`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30317262582)
+passed the Linux TUI matrix and Windows TUI core job, although the overall
+workflow failed in the unrelated Windows x64 unit job. Installer
+[run `30318769692`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30318769692)
+failed and published no Release.
+
+## July 27 Cheap LFS restore look-ahead, app-hosted browser, and private badge — **Pushed; TUI lanes green, overall CI/Release failed**
 
 The Cheap LFS Release restore path now uses one FIFO coordinator shared by every
 file and multipart asset in a batch. It permits at most two active downloads
@@ -53,16 +94,18 @@ English and narrow bilingual restore receipts at the exact current-90% /
 look-ahead-10% state, browser redirect/popup/new-tab/bookmark/authentication
 escape receipts, and the private-badge capture, with no clipping, overlap, or
 private data. Pages and wiki publication are verified live. The first remote CI
-run exposed Linux TUI-only Python 3.10/mypy compatibility defects. Only the
-locally green correction's push/remote rerun and installer/Release evidence
-remain pending. Packaged Windows E2E is verified by
+run exposed Linux TUI-only Python 3.10/mypy compatibility defects. Correction
+commit `f555d374a6` is contained in `origin/main`, and remote run `30317262582`
+passed the Linux TUI matrix plus Windows TUI core. The overall workflow still
+failed in the unrelated Windows x64 unit job; installer run `30318769692`
+failed and produced no Release. Packaged Windows E2E is verified by
 [job `90140843987`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843987).
 Detailed contracts and the evidence split are in [HANDOFF.md](HANDOFF.md),
 [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 the [app-hosted browser](docs/features/integrations/app-hosted-browser.md), and
 the [private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 
-## Linux-first interactive TUI — **Remote correction locally verified; rerun pending**
+## Linux-first interactive TUI — **Remote TUI lanes green; overall CI/installer failed**
 
 A separate Python/Textual edition now adapts Desktop Material for Linux
 terminals without weakening the graphical edition's Windows-only boundary. The
@@ -104,7 +147,10 @@ behavior, dynamically types the platform-only lock module, and skips TUI
 packaging when an older upstream CI target is already non-publishable. An
 isolated CPython 3.10.20 rerun passed **193 tests** with one Linux-only PTY skip;
 Ruff, strict mypy, the 35 affected tests, and 8 workflow safety tests are green.
-The correction push and remote rerun remain pending.
+Correction commit `f555d374a6` is contained in `origin/main`. CI run
+`30317262582` passed the Linux TUI Python matrix and Windows TUI core job, but
+the workflow overall failed in the unrelated Windows x64 unit job. Installer
+run `30318769692` failed and created no Release.
 
 ## July 26 reliability bug hunt — **Implemented and locally accepted**
 
@@ -968,7 +1014,7 @@ The following items track the current cycle's progress against all six acceptanc
 | Clone-style Add Submodule | **Complete** | Verified hosted-provider and URL selection, exact-account affinity, reviewed relative path/branch, duplicate and occupied-path rejection, bounded progress, cancellation, list refresh, keyboard labels, and minimum-window containment |
 | Repository-wide feature revalidation | **Complete** | The historical revalidation verified the registered-surface and M0–M19 implementation inventory, focused and repository-wide tests, production builds/packages, isolated headless interaction, exact-SHA CI and installer runs, Pages, the seven-page wiki, and its then-current 52-image documentation gallery |
 | Live Bambu build Cheap LFS acceptance | **Remote storage, clone integrity, and serialization correction complete** | A public 14,809,588,162-byte, 8,305-file payload completed four proven UI batches after an HTTP 408 retry, cloud run `30048474438` reported 13/0/0 with raw fallback retained across 26 assets, UI commit `712ad85` passed verifier `30054805137`, and a fresh UI clone restored 10/10 hashes from 370–514-byte committed pointers. The first automatic/manual overlap prompted a normalized-checkout queue now covered by deterministic concurrency regressions; the live ten-pointer UI frame is promoted separately from the clone hash receipt. |
-| Documentation gallery expansion | **89-scene source catalog published** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes, three newly accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—and five verified Linux TUI captures bring the machine-checked source catalog to 89. All 89 source images are pushed through `2abccae8fd`, with Pages/wiki rendering and packaged Windows E2E verified. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Only the Linux TUI compatibility correction rerun and installer/Release evidence remain pending. |
+| Documentation gallery expansion | **89-scene source catalog published** | The published 77-scene history remains intact. Four upstream repository-list/tab scenes, three newly accepted Windows captures—exact-90% restore, app-hosted authentication browser, and private-repository lock badge—and five verified Linux TUI captures bring the machine-checked source catalog to 89. All 89 source images are pushed through `2abccae8fd`, with Pages/wiki rendering and packaged Windows E2E verified. Existing images remain in place unless a new deterministic capture passes original-resolution privacy inspection. Correction commit `f555d374a6` is in `origin/main`; its Linux TUI matrix and Windows TUI core jobs passed, while the overall workflow and installer run failed and no new Release was produced. |
 | Complete notifications and Releases dashboard | **Complete** | Verified every GitHub notification page, confirmed local/remote Clear all with partial-failure retention, release status metrics and loaded-result search/filtering, rich asset metadata, scoped retries, responsive layout, and inspected headless evidence |
 
 <!-- markdownlint-enable MD013 -->
