@@ -763,6 +763,13 @@
       d: 'The generated mark above is documentation artwork. It is not embedded in the pointer format and is not required by the transfer protocol.',
     },
     {
+      t: 'Custom repository group management',
+      h: 'features/repository-management/repository-group-management.html',
+      s: 'features/repository-management/repository-group-management.md',
+      c: 'features',
+      d: 'The repository side sheet groups rows under Pinned, Recent, one heading per GitHub owner, one per Enterprise host, Other, and any custom group a user has invented. A custom…',
+    },
+    {
       t: 'Repository list bulk actions',
       h: 'features/repository-management/repository-list-bulk-actions.html',
       s: 'features/repository-management/repository-list-bulk-actions.md',

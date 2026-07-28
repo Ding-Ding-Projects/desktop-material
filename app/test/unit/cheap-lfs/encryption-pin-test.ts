@@ -350,7 +350,10 @@ describe('Cheap LFS encryption on the pin path', () => {
       await writeFile(source, Buffer.from('bytes worth naming the stage for'))
       const bucket = inMemoryBucket()
       const fs = legacyFileSystem()
-      const phases: Array<string> = []
+      // `phase` is optional on the transfer event — a lane that has not
+      // reached a named stage yet reports none — so collect what is actually
+      // emitted rather than asserting a shape the event does not promise.
+      const phases: Array<string | undefined> = []
 
       await pinFileToRelease(
         bucket.gateway,
