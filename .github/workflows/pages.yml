@@ -118,6 +118,15 @@ jobs:
           test -f _site/docs/assets/site/docs-regex-job.js
           test -f _site/docs/assets/site/docs-hub-regex-worker.js
 
+      - name: Set up Node.js for the Cheap LFS guide contract
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: '.nvmrc'
+          cache: yarn
+
+      - name: Install the locked Cheap LFS guide test dependencies
+        run: yarn install --frozen-lockfile --ignore-scripts --non-interactive
+
       - name: Validate the Cheap LFS visual guide
         run: |
           node script/cheap-lfs-pages-test.mjs _site
