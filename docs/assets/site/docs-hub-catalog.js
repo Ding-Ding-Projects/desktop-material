@@ -1288,6 +1288,13 @@
       d: 'Run ID: cheap-lfs-pages-2026-07-27',
     },
     {
+      t: 'Cheap LFS GitHub Pages visual-guide verification',
+      h: 'verification/cheap-lfs-pages-2026-07-27/',
+      s: 'verification/cheap-lfs-pages-2026-07-27/README.md',
+      c: 'verification',
+      d: 'The dedicated site/cheap-lfs.html guide was exercised in an off-screen, installed Chrome process at 1440×960 and 390×844. The run loaded all 17 images (12 labelled concept…',
+    },
+    {
       t: 'Cheap LFS GitHub Pages visual guide — run manifest',
       h: 'verification/cheap-lfs-pages-2026-07-27/run-manifest.html',
       s: 'verification/cheap-lfs-pages-2026-07-27/run-manifest.md',

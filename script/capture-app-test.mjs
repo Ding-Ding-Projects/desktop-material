@@ -124,6 +124,26 @@ describe('capture-app option parsing', () => {
 })
 
 describe('capture-app step parsing', () => {
+  it('parses a menu step and rejects anything that is not a menu-event id', () => {
+    assert.deepEqual(parseStep('menu:show-repository-settings'), {
+      kind: 'menu',
+      name: 'show-repository-settings',
+    })
+    assert.deepEqual(parseStep('menu:  show-repository-settings  '), {
+      kind: 'menu',
+      name: 'show-repository-settings',
+    })
+
+    // Menu events are kebab-case identifiers. Anything else is a typo that
+    // would otherwise be sent into the renderer and silently ignored, leaving
+    // a capture of the wrong screen with no error to explain it.
+    assert.throws(() => parseStep('menu:'), /menu-event id/)
+    assert.throws(() => parseStep('menu:Show-Repository-Settings'), /menu/)
+    assert.throws(() => parseStep('menu:show repository settings'), /menu/)
+    assert.throws(() => parseStep('menu:-leading-dash'), /menu/)
+    assert.throws(() => parseStep("menu:alert('x')"), /menu/)
+  })
+
   it('parses every supported step kind', () => {
     assert.deepEqual(parseStep('wait:250'), { kind: 'wait', milliseconds: 250 })
     assert.deepEqual(parseStep('wait-for:.repository-tab-overflow'), {

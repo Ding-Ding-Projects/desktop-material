@@ -60,6 +60,9 @@
 //   resize:<WxH>                 resize the window mid-run
 //   min-size:<WxH>               lower the window's own minimum size
 //   metrics:<WxH>[@<scale>]      override the renderer viewport over CDP
+//   menu:<menu-event-id>         emit one of the app's own menu events (the
+//                                only route to a menu-only surface, because a
+//                                menu accelerator never reaches the page)
 //   optional:<step>              run <step>, but do not fail when it cannot
 
 const { execFileSync } = require('child_process')
@@ -222,6 +225,20 @@ function parseStep(raw) {
         throw new Error(`Step metrics scale must be in (0, 4]: ${value}`)
       }
       return { kind, size, scale }
+    }
+    case 'menu': {
+      // Emit one of the app's own menu events. Several surfaces — repository
+      // settings among them — are reachable only from the application menu,
+      // and an Electron menu accelerator is handled by the main process, so
+      // `press:Control+f` on the page does nothing at all. This sends the very
+      // same `menu-event` IPC that `build-default-menu.ts` sends when the real
+      // item is chosen, so the app still takes its own route to the surface;
+      // it is not a shortcut around the app's logic.
+      const name = rest.trim()
+      if (!/^[a-z][a-z0-9-]*$/.test(name)) {
+        throw new Error(`Step menu needs a menu-event id: ${value}`)
+      }
+      return { kind, name }
     }
     case 'optional': {
       // Some scenes only appear sometimes — the update banner a fresh profile
@@ -495,6 +512,16 @@ async function captureWindowPixels(electronApp, outPath) {
  * size. Lowering the floor from the main process changes the window, not the
  * application, and the shot stays an honest photograph of a real small window.
  */
+async function emitMenuEvent(electronApp, name) {
+  await electronApp.evaluate(({ BrowserWindow }, menuEventName) => {
+    const [window] = BrowserWindow.getAllWindows()
+    if (window === undefined) {
+      throw new Error('No BrowserWindow to send the menu event to')
+    }
+    window.webContents.send('menu-event', menuEventName)
+  }, name)
+}
+
 async function setWindowMinimumSize(electronApp, size) {
   await electronApp.evaluate(({ BrowserWindow }, target) => {
     const [window] = BrowserWindow.getAllWindows()
@@ -795,6 +822,10 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
     case 'metrics':
       await setDeviceMetrics(electronApp, page, step.size, step.scale)
       await page.waitForTimeout(400)
+      return
+    case 'menu':
+      await emitMenuEvent(electronApp, step.name)
+      await page.waitForTimeout(600)
       return
     default:
       throw new Error(`Unknown capture step: ${JSON.stringify(step)}`)
