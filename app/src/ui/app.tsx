@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as Path from 'path'
+import { CompositeDisposable } from 'event-kit'
 
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import {
@@ -152,6 +153,7 @@ import { INotificationEntry } from '../models/notification-centre'
 import { ErrorNoticeStack } from './error-notice-stack'
 import { CrashProofBoundary } from './crash-proof-boundary'
 import { Button } from './lib/button'
+import { Loading } from './lib/loading'
 import { PopoverAnchorPosition } from './lib/popover'
 import { MergeAllDialog } from './merge-all'
 import { PullAllDialog } from './pull-all'
@@ -199,6 +201,7 @@ import {
   RepositoryWorkspaceAppearanceEditor,
   ToolbarAppearanceEditor,
   UpdateProgressAppearanceEditor,
+  isAppearanceEditorContextMenuGesture,
 } from './appearance'
 import { LocalizedText } from './lib/localized-text'
 import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
@@ -276,6 +279,7 @@ import classNames from 'classnames'
 import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
 import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
+import { ManageRepositoryGroupDialog } from './repository-groups/manage-repository-group-dialog'
 import { ThankYou } from './thank-you'
 import {
   getUserContributions,
@@ -445,19 +449,18 @@ export const dialogTransitionTimeout = {
 const ModalPopupTypes = new Set<PopupType>([
   PopupType.InstallingUpdate,
   PopupType.PullPreview,
+  PopupType.CheapLfsPayloadPassword,
 ])
 
 export const bannerTransitionTimeout = { enter: 500, exit: 400 }
 
-/**
- * The time to delay (in ms) from when we've loaded the initial state to showing
- * the window. This is try to give Chromium enough time to flush our latest DOM
- * changes. See https://github.com/desktop/desktop/issues/1398.
- */
-const ReadyDelay = 100
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
+  private disposed = false
+  private readySent = false
+  private readonly subscriptions = new CompositeDisposable()
+  private deferredLaunchHandle: number | null = null
   private initializationError: Error | null = null
   /**
    * The checklist belongs to a welcome flow completed in this process. Keeping
@@ -480,6 +483,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     new ApplicationMenuAltKeyTracker()
 
   private updateIntervalHandle?: number
+  private reportStatsIntervalHandle?: number
+  private updateCheckIntervalHandle?: number
 
   private repositoryViewRef = React.createRef<RepositoryView>()
   private repositoryDropdownRef = React.createRef<ToolbarDropdown>()
@@ -548,22 +553,18 @@ export class App extends React.Component<IAppProps, IAppState> {
 
     props.dispatcher.loadInitialState().then(
       () => {
+        if (this.disposed) {
+          return
+        }
         this.loading = false
-        this.forceUpdate()
-
-        requestIdleCallback(
-          () => {
-            const now = performance.now()
-            sendReady(now - props.startTime)
-
-            requestIdleCallback(() => {
-              this.performDeferredLaunchActions()
-            })
-          },
-          { timeout: ReadyDelay }
-        )
+        if (this.mounted) {
+          this.forceUpdate(() => this.scheduleDeferredLaunchActions())
+        }
       },
       error => {
+        if (this.disposed) {
+          return
+        }
         const normalizedError =
           error instanceof Error
             ? error
@@ -580,98 +581,135 @@ export class App extends React.Component<IAppProps, IAppState> {
         }
         this.initializationError = normalizedError
         this.loading = false
-        this.forceUpdate(() => {
-          sendReady(performance.now() - props.startTime)
-        })
+        if (this.mounted) {
+          this.forceUpdate()
+        }
       }
     )
 
     this.state = props.appStore.getState()
-    props.appStore.onDidUpdate(state => {
-      if (this.state.showWelcomeFlow && !state.showWelcomeFlow) {
-        this.showFirstRunChecklist = true
-      }
-      this.syncAudioSystem(state)
-      this.setState(state)
-    })
-
-    props.appStore.onDidError(error => {
-      props.dispatcher.postError(error)
-    })
+    this.subscriptions.add(
+      props.appStore.onDidUpdate(state => {
+        if (this.state.showWelcomeFlow && !state.showWelcomeFlow) {
+          this.showFirstRunChecklist = true
+        }
+        this.syncAudioSystem(state)
+        this.setState(state)
+      }),
+      props.appStore.onDidError(error => {
+        props.dispatcher.postError(error)
+      })
+    )
 
     // Build & Run phase transitions get their own distinct audio cues, fed from
     // the dedicated build-run store (they don't travel through IAppState).
-    props.buildRunStore.onDidUpdate(repositoryId =>
-      this.syncBuildRunAudio(repositoryId)
+    this.subscriptions.add(
+      props.buildRunStore.onDidUpdate(repositoryId =>
+        this.syncBuildRunAudio(repositoryId)
+      )
     )
 
-    ipcRenderer.on('menu-event', (_, name) => this.onMenuEvent(name))
+    this.subscriptions.add(
+      ipcRenderer.on('menu-event', (_, name) => this.onMenuEvent(name))
+    )
 
-    updateStore.onDidChange(async state => {
-      const status = state.status
+    this.subscriptions.add(
+      updateStore.onDidChange(async state => {
+        const status = state.status
 
-      if (
-        !(__RELEASE_CHANNEL__ === 'development') &&
-        status === UpdateStatus.UpdateReady
-      ) {
-        this.props.dispatcher.setUpdateBannerVisibility(true)
-      }
+        if (
+          !(__RELEASE_CHANNEL__ === 'development') &&
+          status === UpdateStatus.UpdateReady
+        ) {
+          this.props.dispatcher.setUpdateBannerVisibility(true)
+        }
 
-      if (
-        status !== UpdateStatus.UpdateReady &&
-        (await updateStore.isUpdateShowcase())
-      ) {
-        this.props.dispatcher.setUpdateShowCaseVisibility(true)
-      }
-    })
+        if (
+          status !== UpdateStatus.UpdateReady &&
+          (await updateStore.isUpdateShowcase()) &&
+          this.mounted
+        ) {
+          this.props.dispatcher.setUpdateShowCaseVisibility(true)
+        }
+      })
+    )
 
-    updateStore.onError(error => {
-      log.error(`Error checking for updates`, error)
+    this.subscriptions.add(
+      updateStore.onError(error => {
+        log.error(`Error checking for updates`, error)
 
-      this.props.dispatcher.postError(error)
-    })
+        this.props.dispatcher.postError(error)
+      })
+    )
 
     // A GitHub Actions response too large to read in one go is expected and
     // recoverable, so it becomes one informative, non-blocking notification
     // rather than a generic "background action stopped unexpectedly" error.
     // The store already rate-limits this to once per session.
-    updateStore.onActionsMetadataSkipped(() => {
-      this.props.dispatcher.postNotification({
-        kind: 'app-error',
-        title: t('actionsMetadata.tooLarge.title'),
-        body: t('actionsMetadata.tooLarge.body'),
+    this.subscriptions.add(
+      updateStore.onActionsMetadataSkipped(() => {
+        this.props.dispatcher.postNotification({
+          kind: 'app-error',
+          title: t('actionsMetadata.tooLarge.title'),
+          body: t('actionsMetadata.tooLarge.body'),
+        })
       })
-    })
+    )
 
-    ipcRenderer.on('launch-timing-stats', (_, stats) => {
-      console.info(`App ready time: ${stats.mainReadyTime}ms`)
-      console.info(`Load time: ${stats.loadTime}ms`)
-      console.info(`Renderer ready time: ${stats.rendererReadyTime}ms`)
+    this.subscriptions.add(
+      ipcRenderer.on('launch-timing-stats', (_, stats) => {
+        console.info(`App ready time: ${stats.mainReadyTime}ms`)
+        console.info(`Load time: ${stats.loadTime}ms`)
+        console.info(`Renderer ready time: ${stats.rendererReadyTime}ms`)
 
-      this.props.dispatcher.recordLaunchStats(stats)
-    })
-
-    ipcRenderer.on('certificate-error', (_, certificate, error, url) => {
-      if (isCertificateErrorSuppressedFor(url)) {
-        return
-      }
-
-      this.props.dispatcher.showPopup({
-        type: PopupType.UntrustedCertificate,
-        certificate,
-        url,
+        this.props.dispatcher.recordLaunchStats(stats)
       })
-    })
+    )
 
-    dragAndDropManager.onDragEnded(this.onDragEnd)
+    this.subscriptions.add(
+      ipcRenderer.on('certificate-error', (_, certificate, error, url) => {
+        if (isCertificateErrorSuppressedFor(url)) {
+          return
+        }
+
+        this.props.dispatcher.showPopup({
+          type: PopupType.UntrustedCertificate,
+          certificate,
+          url,
+        })
+      })
+    )
+
+    this.subscriptions.add(dragAndDropManager.onDragEnded(this.onDragEnd))
   }
 
   public componentWillUnmount() {
     this.mounted = false
+    this.disposed = true
+    if (this.deferredLaunchHandle !== null) {
+      cancelIdleCallback(this.deferredLaunchHandle)
+      this.deferredLaunchHandle = null
+    }
     this.submoduleReturnInFlight.dispose()
+    this.subscriptions.dispose()
     window.clearInterval(this.updateIntervalHandle)
+    window.clearInterval(this.reportStatsIntervalHandle)
+    window.clearInterval(this.updateCheckIntervalHandle)
     document.body.classList.remove('repository-folder-dragging')
     document.removeEventListener('contextmenu', this.onCustomizationContextMenu)
+    document.removeEventListener('focus', this.onDocumentFocus, {
+      capture: true,
+    })
+    document.ondragenter = null
+    document.ondragleave = null
+    document.ondragover = null
+    document.ondrop = null
+    document.body.ondrop = null
+
+    if (shouldRenderApplicationMenu()) {
+      window.removeEventListener('keydown', this.onWindowKeyDown)
+      window.removeEventListener('keyup', this.onWindowKeyUp)
+    }
 
     if (__DARWIN__) {
       window.removeEventListener('keydown', this.onMacOSWindowKeyDown)
@@ -679,12 +717,19 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private async performDeferredLaunchActions() {
+    if (!this.mounted) {
+      return
+    }
+
     // Loading emoji is super important but maybe less important that loading
     // the app. So defer it until we have some breathing space.
     this.props.appStore.loadEmoji()
 
     this.props.dispatcher.reportStats()
-    setInterval(() => this.props.dispatcher.reportStats(), SendStatsInterval)
+    this.reportStatsIntervalHandle = window.setInterval(
+      () => this.props.dispatcher.reportStats(),
+      SendStatsInterval
+    )
 
     this.props.dispatcher.installGlobalLFSFilters(false)
 
@@ -693,15 +738,24 @@ export class App extends React.Component<IAppProps, IAppState> {
       __RELEASE_CHANNEL__ !== 'development' &&
       __RELEASE_CHANNEL__ !== 'test'
     ) {
-      setInterval(() => this.checkForUpdates(true), UpdateCheckInterval)
+      this.updateCheckIntervalHandle = window.setInterval(
+        () => this.checkForUpdates(true),
+        UpdateCheckInterval
+      )
       this.checkForUpdates(true)
     } else if (await updateStore.isUpdateShowcase()) {
       // The only purpose of this call is so we can see the showcase on dev/test
       // env. Prod and beta environment will trigger this during automatic check
       // for updates.
+      if (!this.mounted) {
+        return
+      }
       this.props.dispatcher.setUpdateShowCaseVisibility(true)
     }
 
+    if (!this.mounted) {
+      return
+    }
     log.info(`launching: ${getVersion()} (${getOS()})`)
     log.info(`execPath: '${process.execPath}'`)
 
@@ -709,13 +763,52 @@ export class App extends React.Component<IAppProps, IAppState> {
     if (
       __DEV__ === false &&
       this.state.askToMoveToApplicationsFolderSetting &&
-      __DARWIN__ &&
-      (await isInApplicationFolder()) === false
+      __DARWIN__
     ) {
-      this.showPopup({ type: PopupType.MoveToApplicationsFolder })
+      const inApplicationFolder = await isInApplicationFolder()
+      if (!this.mounted) {
+        return
+      }
+      if (!inApplicationFolder) {
+        this.showPopup({ type: PopupType.MoveToApplicationsFolder })
+      }
     }
 
-    this.setOnOpenBanner()
+    if (this.mounted) {
+      this.setOnOpenBanner()
+    }
+  }
+
+  private scheduleDeferredLaunchActions(): void {
+    if (!this.mounted || this.deferredLaunchHandle !== null) {
+      return
+    }
+
+    this.deferredLaunchHandle = requestIdleCallback(() => {
+      this.deferredLaunchHandle = null
+      void this.performDeferredLaunchActions().catch(error => {
+        const normalizedError = asError(error)
+        try {
+          log.error('Deferred launch actions failed', normalizedError)
+        } catch {
+          // Keep the already interactive shell independent of diagnostics.
+        }
+        try {
+          sendNonFatalException('deferredStartup', normalizedError)
+        } catch {
+          // Continue to the visible notification when telemetry is unavailable.
+        }
+        try {
+          this.props.dispatcher.postNotification({
+            kind: 'app-error',
+            title: 'A background startup task could not finish',
+            body: `${normalizedError.message} Desktop Material remains usable; reopen the affected surface to retry.`,
+          })
+        } catch {
+          // The failure remains contained when notification persistence is down.
+        }
+      })
+    })
   }
 
   /**
@@ -1655,6 +1748,17 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   public componentDidMount() {
     this.mounted = true
+    this.disposed = false
+    // componentDidMount is the first committed shell. Reveal the hidden native
+    // window here: requestAnimationFrame can be throttled while that window is
+    // hidden, and optional startup work must not own its visibility.
+    if (!this.readySent) {
+      this.readySent = true
+      sendReady(performance.now() - this.props.startTime)
+    }
+    if (!this.loading && this.initializationError === null) {
+      this.scheduleDeferredLaunchActions()
+    }
     document.addEventListener('contextmenu', this.onCustomizationContextMenu)
     document.ondragenter = e => {
       if (
@@ -1725,7 +1829,11 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
 
     this.updateWindowTitle()
-    window.requestAnimationFrame(() => this.syncFeatureAppearanceOwners())
+    window.requestAnimationFrame(() => {
+      if (this.mounted) {
+        this.syncFeatureAppearanceOwners()
+      }
+    })
   }
 
   private clearRepositoryFileDrag() {
@@ -1735,11 +1843,17 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   /**
    * Offer one consistent customization/history contract for otherwise
-   * unhandled shell surfaces. Existing specialized context menus win because
-   * they prevent the event before it reaches this document listener.
+   * unhandled shell surfaces. A physical secondary click needs Shift so the
+   * ordinary context menu remains available. Existing specialized context
+   * menus still win because they prevent the event before it reaches this
+   * document listener.
    */
   private onCustomizationContextMenu = (event: MouseEvent) => {
-    if (event.defaultPrevented || !(event.target instanceof Element)) {
+    if (
+      event.defaultPrevented ||
+      !isAppearanceEditorContextMenuGesture(event) ||
+      !(event.target instanceof Element)
+    ) {
       return
     }
     if (event.target.closest('[data-context-menu-owner="true"]') !== null) {
@@ -3970,6 +4084,16 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.ManageRepositoryGroup: {
+        return (
+          <ManageRepositoryGroupDialog
+            dispatcher={this.props.dispatcher}
+            repositories={this.state.repositories}
+            groupName={popup.groupName}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
       case PopupType.ThankYou:
         return (
           <ThankYou
@@ -4218,6 +4342,7 @@ export class App extends React.Component<IAppProps, IAppState> {
           <CheapLfsPayloadPassword
             key="cheap-lfs-payload-password"
             purpose={popup.purpose}
+            context={popup.context}
             requireIrreversibleAcknowledgement={
               popup.requireIrreversibleAcknowledgement
             }
@@ -6928,11 +7053,31 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   private reloadAppWindow = () => window.location.reload()
 
-  public render() {
-    if (this.loading) {
-      return null
-    }
+  private renderStartupShell(): JSX.Element {
+    return (
+      <>
+        {!__LINUX__ && (
+          <TitleBar
+            appIdentity={this.state.appearanceCustomization.appIdentity}
+            showAppIcon={false}
+            titleBarStyle="dark"
+            windowState={this.state.windowState}
+            windowZoomFactor={this.state.windowZoomFactor}
+          />
+        )}
+        <main className="startup-shell" aria-busy={true}>
+          <div className="startup-progress" role="status" aria-live="polite">
+            <span className="lazy-view-spinner" aria-hidden={true}>
+              <Loading />
+            </span>
+            <span>{t('startup.loading')}</span>
+          </div>
+        </main>
+      </>
+    )
+  }
 
+  public render() {
     if (this.initializationError !== null) {
       return (
         <section
@@ -6985,15 +7130,21 @@ export class App extends React.Component<IAppProps, IAppState> {
         style={{ tabSize: currentTabSize }}
       >
         <AppTheme theme={currentTheme} appearance={appearance} />
-        <ButtonHints />
-        {this.renderTitlebar()}
-        {this.state.showWelcomeFlow
-          ? this.renderWelcomeFlow()
-          : this.renderApp()}
-        {this.renderFirstRunChecklist()}
-        {this.renderErrorNotices()}
-        {this.renderZoomInfo()}
-        {this.renderFullScreenInfo()}
+        {this.loading ? (
+          this.renderStartupShell()
+        ) : (
+          <>
+            <ButtonHints />
+            {this.renderTitlebar()}
+            {this.state.showWelcomeFlow
+              ? this.renderWelcomeFlow()
+              : this.renderApp()}
+            {this.renderFirstRunChecklist()}
+            {this.renderErrorNotices()}
+            {this.renderZoomInfo()}
+            {this.renderFullScreenInfo()}
+          </>
+        )}
       </div>
     )
   }

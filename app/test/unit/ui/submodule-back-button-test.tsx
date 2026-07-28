@@ -49,10 +49,18 @@ describe('Submodule Back button contextual appearance editor', () => {
       documentSawPrevented = event.defaultPrevented
     }
     document.addEventListener('contextmenu', onDocumentContextMenu)
-    const wasNotCancelled = fireEvent.contextMenu(button)
+    const ordinaryRightClick = fireEvent.contextMenu(button, { button: 2 })
+    assert.equal(ordinaryRightClick, true)
+    assert.equal(documentSawPrevented, false)
+    assert.equal(screen.queryByRole('dialog'), null)
+
+    const shiftedRightClick = fireEvent.contextMenu(button, {
+      button: 2,
+      shiftKey: true,
+    })
     document.removeEventListener('contextmenu', onDocumentContextMenu)
 
-    assert.equal(wasNotCancelled, false)
+    assert.equal(shiftedRightClick, false)
     assert.equal(documentSawPrevented, true)
     const dialog = screen.getByRole('dialog', {
       name: 'Back button appearance',

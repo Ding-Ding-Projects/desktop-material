@@ -5,6 +5,7 @@ import * as React from 'react'
 import {
   AnchoredAppearanceEditor,
   getAppearanceRepositoryDisplayPath,
+  isAppearanceEditorContextMenuGesture,
   openAppearanceEditorFromContextMenu,
   openAppearanceEditorFromKeyDown,
 } from '../../../src/ui/appearance'
@@ -128,15 +129,46 @@ function Harness(props: IHarnessProps) {
 }
 
 describe('anchored appearance editor', () => {
-  it('opens from a pointer beside its owner, copies its repo path, closes outside, and restores focus', async () => {
+  it('distinguishes ordinary, shifted, and keyboard context-menu gestures', () => {
+    assert.equal(
+      isAppearanceEditorContextMenuGesture({
+        button: 2,
+        shiftKey: false,
+      }),
+      false
+    )
+    assert.equal(
+      isAppearanceEditorContextMenuGesture({
+        button: 2,
+        shiftKey: true,
+      }),
+      true
+    )
+    assert.equal(
+      isAppearanceEditorContextMenuGesture({
+        button: 0,
+        shiftKey: false,
+      }),
+      true
+    )
+  })
+
+  it('leaves ordinary right-click alone and opens from Shift+right-click beside its owner', async () => {
     const clipboard = captureClipboardWrites()
     try {
       render(<Harness />)
       const anchor = screen.getByRole('button', { name: 'Toolbar' })
       anchor.focus()
 
-      const wasNotCancelled = fireEvent.contextMenu(anchor)
-      assert.equal(wasNotCancelled, false)
+      const ordinaryRightClick = fireEvent.contextMenu(anchor, { button: 2 })
+      assert.equal(ordinaryRightClick, true)
+      assert.equal(screen.queryByRole('dialog'), null)
+
+      const shiftedRightClick = fireEvent.contextMenu(anchor, {
+        button: 2,
+        shiftKey: true,
+      })
+      assert.equal(shiftedRightClick, false)
       assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
       assert.ok(screen.getByRole('tab', { name: 'Customize' }))
       assert.ok(screen.getByRole('tab', { name: 'History' }))
@@ -259,7 +291,7 @@ describe('anchored appearance editor', () => {
     const anchor = screen.getByRole('button', { name: 'Toolbar' })
     anchor.focus()
 
-    fireEvent.contextMenu(anchor)
+    fireEvent.contextMenu(anchor, { button: 2, shiftKey: true })
     const editor = screen.getByRole('dialog', {
       name: 'Toolbar appearance',
     })
@@ -284,7 +316,7 @@ describe('anchored appearance editor', () => {
       assert.equal(document.activeElement, anchor)
     })
 
-    fireEvent.contextMenu(anchor)
+    fireEvent.contextMenu(anchor, { button: 2, shiftKey: true })
     assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
     fireEvent.keyDown(window, { key: 'Escape' })
     await waitFor(() => {
@@ -307,7 +339,10 @@ describe('anchored appearance editor', () => {
         }}
       />
     )
-    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }))
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }), {
+      button: 2,
+      shiftKey: true,
+    })
 
     const customize = screen.getByRole('tab', { name: 'Customize' })
     fireEvent.mouseDown(customize)
@@ -328,7 +363,7 @@ describe('anchored appearance editor', () => {
       />
     )
     const anchor = screen.getByRole('button', { name: 'Toolbar' })
-    fireEvent.contextMenu(anchor)
+    fireEvent.contextMenu(anchor, { button: 2, shiftKey: true })
     fireEvent.click(screen.getByRole('tab', { name: 'History' }))
 
     const history = await screen.findByRole('dialog', {
@@ -376,7 +411,10 @@ describe('anchored appearance editor', () => {
 
   it('lets rich editor children own the visual heading and History action', async () => {
     render(<Harness contentOwnsHeader={true} />)
-    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }))
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }), {
+      button: 2,
+      shiftKey: true,
+    })
 
     assert.ok(screen.getByRole('heading', { name: 'Owned toolbar controls' }))
     assert.equal(screen.queryByRole('tab', { name: 'Customize' }), null)

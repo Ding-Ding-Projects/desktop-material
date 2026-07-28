@@ -130,6 +130,36 @@ class DeferredJournal extends MemoryJournal {
   }
 }
 
+class DeferredLoadJournal extends MemoryJournal {
+  private releaseLoad: () => void = () => {}
+  public readonly loadStarted: Promise<void>
+  private readonly loadBlocked: Promise<void>
+
+  public constructor(snapshot: IBatchCloneJournalSnapshot | null) {
+    super(snapshot)
+    let markLoadStarted: () => void = () => {}
+    this.loadStarted = new Promise<void>(resolve => {
+      markLoadStarted = resolve
+    })
+    this.loadBlocked = new Promise<void>(resolve => {
+      this.releaseLoad = resolve
+    })
+    this.markLoadStarted = markLoadStarted
+  }
+
+  private readonly markLoadStarted: () => void
+
+  public release(): void {
+    this.releaseLoad()
+  }
+
+  public override async load() {
+    this.markLoadStarted()
+    await this.loadBlocked
+    return super.load()
+  }
+}
+
 function stagingManager(
   overrides: Partial<IBatchCloneStagingManager> = {}
 ): IBatchCloneStagingManager {
@@ -161,6 +191,42 @@ const second: IBatchCloneItem = {
 }
 
 describe('batch clone journal and recovery', () => {
+  it('waits for one in-flight recovery before starting a new batch', async () => {
+    const recoveredSnapshot: IBatchCloneJournalSnapshot = {
+      version: BatchCloneJournalVersion,
+      updatedAt: '2026-07-28T00:00:00.000Z',
+      items: [first],
+      statuses: [[first.path, { kind: 'pending' }]],
+      mode: BatchCloneMode.Sequential,
+      source: 'manual',
+      paused: true,
+    }
+    const journal = new DeferredLoadJournal(recoveredSnapshot)
+    let cloneCalls = 0
+    const store = new BatchCloneStore(
+      {
+        clone: async () => {
+          cloneCalls += 1
+          return true
+        },
+      } as unknown as CloningRepositoriesStore,
+      journal
+    )
+
+    const initialization = store.initialize()
+    await journal.loadStarted
+    const starting = store.startBatch([second], BatchCloneMode.Sequential)
+    journal.release()
+
+    await initialization
+    await assert.rejects(
+      starting,
+      /clone queue is already active or needs review/
+    )
+    assert.deepEqual(store.getState()?.items, [first])
+    assert.equal(cloneCalls, 0)
+  })
+
   it('finalizes only clone paths which were actually registered', () => {
     assert.deepEqual(
       selectRegisteredBatchClonePaths(

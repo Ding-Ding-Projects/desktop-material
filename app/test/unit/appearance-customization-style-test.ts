@@ -132,8 +132,9 @@ describe('appearance customization style contracts', () => {
 
     assert.match(appearance, /className="appearance-scope-note"/)
     assert.match(appearance, /role="note"/)
-    assert.match(appearance, /right-click that element/)
-    assert.match(appearance, /Each element keeps its settings/)
+    assert.match(appearance, /Shift\+right-click it/)
+    assert.match(appearance, /Context Menu key or Shift\+F10/)
+    assert.match(appearance, /Each element keeps[\s\S]*?its settings/)
 
     assert.match(
       preferences,

@@ -24,6 +24,7 @@ def isolated_xdg_environment(
     """Keep every app-owned file inside the per-test temporary directory."""
 
     home = tmp_path / "home"
+    home.mkdir(parents=True)
     roots = {
         "HOME": home,
         "XDG_CONFIG_HOME": tmp_path / "xdg-config",

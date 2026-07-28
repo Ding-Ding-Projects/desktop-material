@@ -26,6 +26,7 @@ import {
 } from '../repository-logo/repository-logo-loader'
 import { Dispatcher } from '../dispatcher'
 import { translateForAccessibleName } from '../../lib/i18n'
+import { openAppearanceEditorFromContextMenu } from '../appearance'
 
 interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
@@ -42,7 +43,8 @@ interface IRepositoryTabProps {
   readonly onRename: (tab: IRepositoryTab, label: string | null) => void
   readonly onContextMenu: (
     tab: IRepositoryTab,
-    event: React.MouseEvent<HTMLElement>
+    event: React.MouseEvent<HTMLElement>,
+    anchor?: HTMLElement
   ) => void
   readonly onOpenStyleEditor: (tab: IRepositoryTab, anchor: HTMLElement) => void
   readonly onDragStart: (
@@ -255,7 +257,7 @@ export class RepositoryTab extends React.Component<
 
   private onContextMenu = (event: React.MouseEvent<HTMLElement>) => {
     event.preventDefault()
-    this.props.onContextMenu(this.props.tab, event)
+    this.props.onContextMenu(this.props.tab, event, event.currentTarget)
   }
 
   private onFormatClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -268,11 +270,26 @@ export class RepositoryTab extends React.Component<
     )
   }
 
-  /** The visible title owns its editor; the surrounding frame keeps commands. */
+  /**
+   * Shift+right-click edits the visible title; an ordinary right-click opens
+   * the surrounding frame's tab command menu.
+   */
   private onLabelContextMenu = (event: React.MouseEvent<HTMLSpanElement>) => {
-    event.preventDefault()
+    if (
+      openAppearanceEditorFromContextMenu(event, anchor =>
+        this.props.onOpenStyleEditor(this.props.tab, anchor)
+      )
+    ) {
+      return
+    }
+
     event.stopPropagation()
-    this.props.onOpenStyleEditor(this.props.tab, event.currentTarget)
+    const frame = event.currentTarget.closest<HTMLElement>('.repository-tab')
+    this.props.onContextMenu(
+      this.props.tab,
+      event,
+      frame ?? event.currentTarget
+    )
   }
 
   private onDragStart = (event: React.DragEvent<HTMLElement>) => {

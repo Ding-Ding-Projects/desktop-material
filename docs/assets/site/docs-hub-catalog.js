@@ -270,7 +270,7 @@
       h: 'features/identity-and-workspace/owner-scoped-appearance-and-history.html',
       s: 'features/identity-and-workspace/owner-scoped-appearance-and-history.md',
       c: 'features',
-      d: 'Desktop Material attaches appearance controls to the element that owns the setting. A right-click or Shift+F10 opens an anchored editor beside the profile, feature, repository,…',
+      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, the keyboard Context Menu key, or Shift+F10 opens an anchored editor…',
     },
     {
       t: 'Identity and workspace features',
@@ -581,6 +581,13 @@
       d: 'From tui/:',
     },
     {
+      t: 'Canonical remote preflight warning',
+      h: 'features/quality-and-reliability/canonical-remote-preflight-warning.html',
+      s: 'features/quality-and-reliability/canonical-remote-preflight-warning.md',
+      c: 'features',
+      d: "Network mutations that depend on a GitHub repository association now fail closed when Desktop Material cannot prove the configured remote's canonical destination. Instead of…",
+    },
+    {
       t: 'Git hook execution environment',
       h: 'features/quality-and-reliability/git-hook-execution.html',
       s: 'features/quality-and-reliability/git-hook-execution.md',
@@ -614,6 +621,13 @@
       s: 'features/quality-and-reliability/peer-closed-stream-writes.md',
       c: 'features',
       d: 'A write that finishes after the thing on the other end already went away is a routine event, not a crash. This document describes how Desktop Material contains that class of…',
+    },
+    {
+      t: 'Progressive asynchronous loading',
+      h: 'features/quality-and-reliability/progressive-lazy-loading.html',
+      s: 'features/quality-and-reliability/progressive-lazy-loading.md',
+      c: 'features',
+      d: 'Desktop Material paints and reveals its usable application shell before optional startup work finishes. Expensive repository sections are evaluated only when selected, with…',
     },
     {
       t: 'Quality and reliability',
@@ -670,6 +684,13 @@
       s: 'features/repository-management/cheap-lfs-oci-registry-backend.md',
       c: 'features',
       d: 'Desktop Material can represent the complete Cheap LFS object set for one Git repository as one logical OCI image in GitHub Container Registry (GHCR) or Docker Hub. Select GHCR…',
+    },
+    {
+      t: 'Cheap LFS Release payload encryption',
+      h: 'features/repository-management/cheap-lfs-release-payload-encryption.html',
+      s: 'features/repository-management/cheap-lfs-release-payload-encryption.md',
+      c: 'features',
+      d: 'Desktop Material can encrypt newly uploaded GitHub Release-backed Cheap LFS payloads with a repository-scoped password. The option is deliberately off by default and applies…',
     },
     {
       t: 'Clone dialog repository metadata',
@@ -1307,6 +1328,13 @@
       s: 'verification/cheap-lfs-pages-2026-07-27/run-manifest.md',
       c: 'verification',
       d: 'Mode: publish',
+    },
+    {
+      t: 'Close-all-open-issues verification run',
+      h: 'verification/close-all-open-issues-2026-07-28/run-manifest.html',
+      s: 'verification/close-all-open-issues-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: close-all-open-issues-20260728',
     },
     {
       t: 'Linux TUI publish cleanup ledger',

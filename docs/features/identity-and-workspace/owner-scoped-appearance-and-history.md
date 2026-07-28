@@ -1,10 +1,12 @@
 # Owner-scoped appearance and history
 
 Desktop Material attaches appearance controls to the element that owns the
-setting. A right-click or `Shift+F10` opens an anchored editor beside the
-profile, feature, repository, tab, repository logo or name, or submodule Back
-control being changed. The editor exposes that owner's History without routing
-the edit through a shared appearance studio.
+setting. `Shift`+right-click, the keyboard Context Menu key, or `Shift+F10`
+opens an anchored editor beside the profile, feature, repository, tab,
+repository logo or name, or submodule Back control being changed. An ordinary
+right-click remains available to its native or component-specific command menu.
+The editor exposes that owner's History without routing the edit through a
+shared appearance studio.
 
 ## Behavior and configuration
 
@@ -27,14 +29,15 @@ Repository Settings → **Appearance** is a discoverable hub over those same fiv
 repository owners, not a second store. Each section renders the exact editor the
 anchored surface renders, commits through the same
 `setRepositoryAppearanceElement` owner path, and broadcasts the same
-invalidation, so an edit made in the dialog and an edit made by right-clicking
-the element are indistinguishable — including History, undo, and restore. There
-is no staged copy and no separate Save: a change lands in the owner's dedicated
-local Git repository immediately. Every section names whether each value is
-inherited or repository-owned, shows a bounded live preview, and offers a Reset
-that writes the inherited default back to that one owner. The hub is
-deliberately repository-scoped: it never writes a profile owner, so profile
-defaults stay editable only from their own elements and from Settings.
+invalidation, so an edit made in the dialog and an edit made by
+`Shift`+right-clicking the element are indistinguishable — including History, undo,
+and restore. There is no staged copy and no separate Save: a change lands in
+the owner's dedicated local Git repository immediately. Every section names
+whether each value is inherited or repository-owned, shows a bounded live
+preview, and offers a Reset that writes the inherited default back to that one
+owner. The hub is deliberately repository-scoped: it never writes a profile
+owner, so profile defaults stay editable only from their own elements and from
+Settings.
 
 The editor applies normalized, schema-checked values to only the selected
 owner. Its footer identifies the dedicated local repository, while History can
@@ -116,7 +119,8 @@ dispose the old subscriptions and initialize the new profile's owners before
 publishing their aggregate renderer projection.
 
 Tab history and repository-path lookups are deliberately nullable while the
-active profile's title owner is starting. A right-click first initializes the
+active profile's title owner is starting. `Shift`+right-click or the tab
+command menu's explicit **Customize Appearance…** action first initializes the
 clicked tab, including an inactive tab, and opens its editor only when both
 owner resources are ready. During a profile transition the live status region
 offers localized retry guidance. Delayed work is fenced by coordinator
@@ -161,7 +165,8 @@ feature, tab, and repository isolation plus migration and UUID races.
 `repository-tab-element-history-test.ts` exercise actual-element anchoring,
 focus return, inheritance changes, owner-local history refresh, profile
 replacement, stale-load rejection, and appearance-pending startup.
-`repository-tab-actions-test.tsx` covers right-clicking an inactive title and
+`repository-tab-actions-test.tsx` covers the ordinary command menu,
+`Shift`+right-clicking an inactive title, the explicit Customize action, and
 the non-crashing localized loading state.
 `repository-settings-appearance-test.tsx` covers the Repository Settings hub:
 every repository owner rendered with its inherited state, an edit and a reset

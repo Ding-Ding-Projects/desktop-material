@@ -693,8 +693,8 @@ const CanonicalGalleryOutputs = Object.freeze([
 ])
 
 /**
- * Audit-only v2 surfaces that are intentionally outside the frozen 68-image
- * documentation gallery. Each runner is also directly addressable through
+ * Audit-only v2 surfaces that are intentionally outside the 68-output
+ * canonical candidate batch. Each runner is also directly addressable through
  * --scenes for targeted multi-viewport inspection.
  */
 const AuditDesignScenes = Object.freeze([
@@ -6856,9 +6856,9 @@ async function main() {
       if (!exact) {
         if (!resilient) {
           fail(
-            `Canonical gallery did not produce the exact 68-output set: ${JSON.stringify(
-              { expected, actual }
-            )}`
+            `Canonical gallery did not produce the exact ${
+              expected.length
+            }-output set: ${JSON.stringify({ expected, actual })}`
           )
         }
         const missing = expected.filter(name => !capturedNames.includes(name))
@@ -6868,7 +6868,9 @@ async function main() {
           }; missing: ${missing.join(', ')}\n`
         )
       } else {
-        process.stdout.write('CANONICAL 68/68 exact output set\n')
+        process.stdout.write(
+          `CANONICAL ${expected.length}/${expected.length} exact output set\n`
+        )
       }
     }
     if (auditDesign) {

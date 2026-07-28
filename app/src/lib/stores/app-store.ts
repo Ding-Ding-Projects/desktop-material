@@ -144,6 +144,7 @@ import {
 import { ensureCheapLfsScratchHygiene } from '../cheap-lfs/scratch-storage'
 import {
   acquireCheapLfsOperationPassword,
+  cleanupLegacyCheapLfsPayloadPasswords,
   forgetSavedCheapLfsPayloadPassword,
   ICheapLfsOperationPassword,
   saveCheapLfsPayloadPassword,
@@ -295,6 +296,7 @@ import {
   IMultiCommitOperationProgress,
 } from '../../models/progress'
 import {
+  CheapLfsPayloadPasswordContext,
   CheapLfsPayloadPasswordPurpose,
   Popup,
   PopupType,
@@ -755,6 +757,7 @@ import {
 import { parseRemote } from '../../lib/remote-parsing'
 import { createTutorialRepository } from './helpers/create-tutorial-repository'
 import { sendNonFatalException } from '../helpers/non-fatal-exception'
+import { ProgressiveLoad } from '../progressive-load'
 import { getDefaultDir } from '../../ui/lib/default-dir'
 import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
@@ -916,6 +919,13 @@ import {
   setRepositoryAppearanceOverrides,
 } from '../appearance-customization'
 import type { ElementAppearanceCoordinator } from './element-appearance-coordinator'
+
+class CheapLfsPasswordPromptCanceledError extends Error {
+  public constructor() {
+    super('The Cheap LFS password prompt was canceled.')
+    this.name = 'AbortError'
+  }
+}
 
 const LastSelectedRepositoryIDKey = 'last-selected-repository-id'
 
@@ -1651,6 +1661,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private uncommittedChangesStrategy = defaultUncommittedChangesStrategy
 
   private selectedExternalEditor: string | null = null
+  private readonly externalEditorDiscoveryLoad = new ProgressiveLoad<
+    string | null
+  >()
+  private externalEditorResolutionGeneration = 0
 
   private resolvedExternalEditor: string | null = null
 
@@ -1767,6 +1781,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private readonly batchCloneStore: BatchCloneStore
   private batchCloneState: IBatchCloneState | null = null
   private readonly autoCloneStore: AutoCloneStore
+  private deferredStartupGeneration = 0
+  private deferredStartupShutdown = false
 
   /** Account-bound Releases coordinator backing the cheap-LFS delegations. */
   private readonly githubReleasesStore: GitHubReleasesStore
@@ -4590,9 +4606,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getEnum(uncommittedChangesStrategyKey, UncommittedChangesStrategy) ??
       defaultUncommittedChangesStrategy
 
-    this.updateSelectedExternalEditor(
-      await this.lookupSelectedExternalEditor()
-    ).catch(e => log.error('Failed resolving current editor at startup', e))
+    // This persisted label is safe to show while the availability scan runs.
+    // Every launch resolves the executable again before opening anything.
+    this.selectedExternalEditor =
+      localStorage.getItem(externalEditorKey) || null
+    this.externalEditorDiscoveryLoad.reset(this.selectedExternalEditor)
 
     const shellValue = localStorage.getItem(shellKey)
     this.selectedShell = shellValue ? parseShell(shellValue) : DefaultShell
@@ -4714,8 +4732,159 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.selectedCopilotModels = this.loadCopilotModelSelections()
     this.byokProviders = loadBYOKProviders()
 
-    await this.batchCloneStore.initialize()
-    await this.finalizeBatchClone()
+    this.emitUpdateNow()
+
+    // Filesystem/registry editor discovery, durable queue recovery and network
+    // refreshes must not keep the first usable shell hidden.
+    if (!this.deferredStartupShutdown) {
+      const deferredStartupGeneration = ++this.deferredStartupGeneration
+      void this.loadDeferredInitialState(deferredStartupGeneration).catch(
+        error => {
+          if (this.isDeferredStartupCurrent(deferredStartupGeneration)) {
+            this.reportDeferredStartupFailure(
+              'Deferred startup coordinator',
+              error instanceof Error ? error : new Error(String(error))
+            )
+          }
+        }
+      )
+    }
+
+    this.updateMenuLabelsForSelectedRepository()
+  }
+
+  private isDeferredStartupCurrent(generation: number): boolean {
+    return (
+      !this.deferredStartupShutdown &&
+      generation === this.deferredStartupGeneration
+    )
+  }
+
+  private async loadDeferredInitialState(generation: number): Promise<void> {
+    const editorDiscovery = this.runDeferredStartupStep(
+      'External editor availability',
+      async () => {
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        const completion = await this.externalEditorDiscoveryLoad.run(() =>
+          this.lookupSelectedExternalEditor()
+        )
+        if (
+          !completion.accepted ||
+          !this.isDeferredStartupCurrent(generation)
+        ) {
+          return
+        }
+        if (completion.state.kind === 'failed') {
+          throw completion.state.error
+        }
+
+        await this.updateSelectedExternalEditor(completion.state.value)
+        if (
+          !this.isDeferredStartupCurrent(generation) ||
+          this.selectedExternalEditor !== completion.state.value
+        ) {
+          return
+        }
+        if (completion.state.value === null) {
+          localStorage.removeItem(externalEditorKey)
+        } else {
+          localStorage.setItem(externalEditorKey, completion.state.value)
+        }
+        this.updateMenuLabelsForSelectedRepository()
+        this.emitUpdate()
+      },
+      generation
+    )
+
+    const accountRefresh = this.runDeferredStartupStep(
+      'Account refresh',
+      async () => {
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        await this.accountsStore.refresh()
+      },
+      generation
+    )
+
+    const scopeAudit = accountRefresh.then(async refreshed => {
+      if (!refreshed || !this.isDeferredStartupCurrent(generation)) {
+        return false
+      }
+      return this.runDeferredStartupStep(
+        'Account permission audit',
+        async () => {
+          await this.auditAccountOAuthScopes(generation)
+        },
+        generation
+      )
+    })
+
+    const cheapLfsCredentialCleanup = this.runDeferredStartupStep(
+      'Cheap LFS legacy credential cleanup',
+      async () => {
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        const result = await cleanupLegacyCheapLfsPayloadPasswords(
+          this.repositories
+        )
+        if (
+          result.kind === 'unavailable' ||
+          result.kind === 'cleanup-pending'
+        ) {
+          throw new Error(
+            'The operating-system credential vault could not finish Cheap LFS credential cleanup. It will retry at the next startup.'
+          )
+        }
+      },
+      generation
+    )
+
+    // Auto-clone observes the recovered queue, so preserve this one dependency
+    // while allowing every unrelated deferred step to make progress in parallel.
+    const cloneQueueRecovered = await this.runDeferredStartupStep(
+      'Clone queue recovery',
+      async () => {
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        await this.batchCloneStore.initialize()
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        await this.finalizeBatchClone()
+        if (!this.isDeferredStartupCurrent(generation)) {
+          return
+        }
+        this.notifyRecoveredBatchClone()
+        this.emitUpdate()
+      },
+      generation
+    )
+    if (cloneQueueRecovered && this.isDeferredStartupCurrent(generation)) {
+      await this.runDeferredStartupStep(
+        'Automatic clone monitoring',
+        async () => {
+          if (this.isDeferredStartupCurrent(generation)) {
+            this.autoCloneStore.start()
+          }
+        },
+        generation
+      )
+    }
+
+    await Promise.all([
+      editorDiscovery,
+      accountRefresh,
+      scopeAudit,
+      cheapLfsCredentialCleanup,
+    ])
+  }
+
+  private notifyRecoveredBatchClone(): void {
     const recoveredBatch = this.batchCloneStore.getState()
     if (recoveredBatch?.isPaused === true) {
       const interrupted = recoveredBatch.items.filter(item => {
@@ -4733,14 +4902,60 @@ export class AppStore extends TypedBaseStore<IAppState> {
         void this._showPopup({ type: PopupType.BatchCloneProgress })
       }
     }
-    this.autoCloneStore.start()
+  }
 
-    this.emitUpdateNow()
+  /**
+   * Contain one optional startup task without cancelling its siblings. A
+   * failure is both diagnostic and visible in the non-blocking notification
+   * centre; no modal is opened and no rejection is left unobserved.
+   */
+  private async runDeferredStartupStep(
+    label: string,
+    action: () => Promise<void>,
+    generation?: number
+  ): Promise<boolean> {
+    try {
+      await action()
+      return (
+        generation === undefined || this.isDeferredStartupCurrent(generation)
+      )
+    } catch (error) {
+      if (
+        generation === undefined ||
+        this.isDeferredStartupCurrent(generation)
+      ) {
+        this.reportDeferredStartupFailure(
+          label,
+          error instanceof Error ? error : new Error(String(error))
+        )
+      }
+      return false
+    }
+  }
 
-    this.accountsStore.refresh()
-    void this.auditAccountOAuthScopes()
-
-    this.updateMenuLabelsForSelectedRepository()
+  private reportDeferredStartupFailure(label: string, error: Error): void {
+    try {
+      log.error(`${label} failed during deferred startup`, error)
+    } catch {
+      // A diagnostic sink must not take down the already usable shell.
+    }
+    try {
+      sendNonFatalException(
+        'deferredStartup',
+        new Error(`${label}: ${error.message}`)
+      )
+    } catch {
+      // Continue to the visible notification when telemetry is unavailable.
+    }
+    try {
+      this.postNotification({
+        kind: 'app-error',
+        title: 'A background startup task could not finish',
+        body: `${label}: ${error.message} Desktop Material remains usable; reopen the affected surface to retry.`,
+      })
+    } catch {
+      // Startup remains contained even if notification persistence is down.
+    }
   }
 
   /**
@@ -4748,10 +4963,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * app's current features need (e.g. Releases requires the full `repo`
    * grant) and offer a re-authorization once per account per session.
    */
-  private async auditAccountOAuthScopes(): Promise<void> {
+  private async auditAccountOAuthScopes(
+    deferredStartupGeneration?: number
+  ): Promise<void> {
     const accounts = await this.accountsStore.getAll()
 
     for (const account of accounts) {
+      if (
+        deferredStartupGeneration !== undefined &&
+        !this.isDeferredStartupCurrent(deferredStartupGeneration)
+      ) {
+        return
+      }
       if (account.provider !== undefined && account.provider !== 'github') {
         continue
       }
@@ -4759,11 +4982,24 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (this.scopeAuditedAccounts.has(key)) {
         continue
       }
-      this.scopeAuditedAccounts.add(key)
 
       try {
         const api = API.fromAccount(account)
         const header = await api.fetchGrantedOAuthScopes()
+        const currentAccount = (await this.accountsStore.getAll()).find(
+          candidate =>
+            getAccountKey(candidate) === key &&
+            candidate.token === account.token
+        )
+        if (
+          currentAccount === undefined ||
+          (deferredStartupGeneration !== undefined &&
+            !this.isDeferredStartupCurrent(deferredStartupGeneration))
+        ) {
+          continue
+        }
+
+        this.scopeAuditedAccounts.add(key)
         if (header === null || header.length === 0) {
           // Fine-grained tokens and some proxies report no scopes; there is
           // nothing reliable to compare against.
@@ -4789,8 +5025,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // suppress a future prompt if the app later requires new scopes.
         clearDismissedScopePrompt(key)
       } catch (e) {
+        this.scopeAuditedAccounts.delete(key)
         log.debug(
-          `Scope audit for ${account.login} failed; skipping until next launch`,
+          `Scope audit for ${account.login} failed; leaving it retryable`,
           e
         )
       }
@@ -4984,10 +5221,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     }
 
     if (editors.length) {
-      const value = editors[0]
-      // store this value to avoid the lookup next time
-      localStorage.setItem(externalEditorKey, value)
-      return value
+      return editors[0]
     }
 
     return null
@@ -6353,7 +6587,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const pinResult = await this.autoPinLargeFilesBeforeCommit(
           repository,
           selectedFiles,
-          forceAutoPinLargeFiles
+          forceAutoPinLargeFiles,
+          isBackgroundTask
         )
         pinned = pinResult.pinned
         pinFailures = pinResult.failures
@@ -6395,8 +6630,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         }
       } catch (error) {
         const wasUserCanceled =
-          (error as Error)?.name === 'AbortError' &&
-          this.cheapLfsCommitCancelRequests.delete(repository.id)
+          error instanceof CheapLfsPasswordPromptCanceledError ||
+          ((error as Error)?.name === 'AbortError' &&
+            this.cheapLfsCommitCancelRequests.delete(repository.id))
         if (!this.isTemporaryRepositoryActive(repository)) {
           return false
         }
@@ -14635,9 +14871,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** This shouldn't be called directly. See `Dispatcher`. */
   public _getSubmodules(
-    repository: Repository
+    repository: Repository,
+    signal?: AbortSignal
   ): Promise<ReadonlyArray<IManagedSubmodule>> {
-    return getSubmodules(repository)
+    return getSubmodules(repository, signal)
   }
 
   /**
@@ -14797,7 +15034,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   /** Ask through the masked popup and settle even if its surface is removed. */
   private promptForCheapLfsPayloadPassword(
     repository: Repository,
-    purpose: CheapLfsPayloadPasswordPurpose
+    purpose: CheapLfsPayloadPasswordPurpose,
+    context?: CheapLfsPayloadPasswordContext
   ): Promise<{
     readonly password: Buffer
     readonly rememberPassword: boolean
@@ -14820,6 +15058,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         type: PopupType.CheapLfsPayloadPassword,
         repository,
         purpose,
+        ...(context === undefined ? {} : { context }),
         onSubmit: settle,
         onRemoved: () => settle(undefined, false),
       }).catch(error => {
@@ -14832,9 +15071,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   private cheapLfsPasswordPromptCanceled(): Error {
-    const error = new Error('The Cheap LFS password prompt was canceled.')
-    error.name = 'AbortError'
-    return error
+    return new CheapLfsPasswordPromptCanceledError()
   }
 
   /**
@@ -14843,7 +15080,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   private async acquireCheapLfsEncryptionPassword(
     repository: Repository,
-    requiredForEncryptedPointer: boolean = false
+    requiredForEncryptedPointer: boolean = false,
+    context?: CheapLfsPayloadPasswordContext,
+    allowPrompt: boolean = true
   ): Promise<ICheapLfsOperationPassword | undefined> {
     const preferences =
       repository.buildRunPreferences ?? defaultBuildRunPreferences
@@ -14858,7 +15097,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const credential = await acquireCheapLfsOperationPassword(
       repository,
       requiredForEncryptedPointer ? 'decrypt' : 'encrypt',
-      purpose => this.promptForCheapLfsPayloadPassword(repository, purpose),
+      purpose =>
+        allowPrompt
+          ? this.promptForCheapLfsPayloadPassword(repository, purpose, context)
+          : Promise.resolve(null),
       () =>
         this.postPersistentErrorNotice(
           t('cheapLfs.encryption.title'),
@@ -14868,7 +15110,43 @@ export class AppStore extends TypedBaseStore<IAppState> {
         )
     )
     if (credential === null) {
+      if (!allowPrompt) {
+        throw new Error(
+          'Encrypted Cheap LFS background commits require a password already saved in Windows Credential Manager. No upload was started.'
+        )
+      }
       throw this.cheapLfsPasswordPromptCanceled()
+    }
+    return credential
+  }
+
+  /**
+   * The commit worker is unattended only until it needs an encryption
+   * decision. A missing saved credential opens one blocking, masked prompt;
+   * cancellation throws before release anchoring or any upload can begin.
+   */
+  private async acquireCheapLfsCommitEncryptionPassword(
+    repository: Repository,
+    isBackgroundTask: boolean = false
+  ): Promise<ICheapLfsOperationPassword | undefined> {
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    if (
+      getCheapLfsStorageProvider(preferences) !== 'release' ||
+      preferences.cheapLfsPayloadEncryption !== true
+    ) {
+      return undefined
+    }
+    const credential = await this.acquireCheapLfsEncryptionPassword(
+      repository,
+      false,
+      'commit-auto-pin',
+      !isBackgroundTask
+    )
+    if (credential === undefined) {
+      throw new Error(
+        'The encrypted Cheap LFS commit did not acquire a password. No upload was started.'
+      )
     }
     return credential
   }
@@ -16378,7 +16656,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   private async autoPinLargeFilesBeforeCommit(
     repository: Repository,
     selectedFiles: ReadonlyArray<WorkingDirectoryFileChange>,
-    forceAutoPin: boolean = false
+    forceAutoPin: boolean = false,
+    isBackgroundTask: boolean = false
   ): Promise<ICheapLfsCommitPinOutcome> {
     if (isSubmoduleRepository(repository)) {
       return {
@@ -16539,7 +16818,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
               'assets',
             ...(releaseReview === null ? {} : { releaseReview }),
             retainSourceForRestore: true,
-            ...(encryptionPassword === undefined ? {} : { encryptionPassword }),
+            ...(encryptionPassword === undefined
+              ? {}
+              : {
+                  encryptionPassword,
+                  ...(prefs.cheapLfsCloudCompression === true
+                    ? { compressBeforeEncryption: true }
+                    : {}),
+                }),
           },
           signal,
           onProgress,
@@ -16764,7 +17050,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
       if (releaseEligibleTargets.length > 0) {
         encryptionPassword = (
-          await this.acquireCheapLfsEncryptionPassword(repository)
+          await this.acquireCheapLfsCommitEncryptionPassword(
+            repository,
+            isBackgroundTask
+          )
         )?.password
       }
       const anchor: ICheapLfsReleaseAnchorOutcome =
@@ -16889,7 +17178,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
               ...(releaseReview === null ? {} : { releaseReview }),
               ...(encryptionPassword === undefined
                 ? {}
-                : { encryptionPassword }),
+                : {
+                    encryptionPassword,
+                    ...(prefs.cheapLfsCloudCompression === true
+                      ? { compressBeforeEncryption: true }
+                      : {}),
+                  }),
             })
           ),
           controller.signal,
@@ -17705,9 +17999,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** This shouldn't be called directly. See `Dispatcher`. */
   public _getSubtrees(
-    repository: Repository
+    repository: Repository,
+    signal?: AbortSignal
   ): Promise<ReadonlyArray<IManagedSubtree>> {
-    return discoverSubtrees(repository)
+    return discoverSubtrees(repository, 400, signal)
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -17916,6 +18211,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public _setExternalEditor(selectedEditor: string) {
+    // A user choice always supersedes the optional startup discovery result.
+    this.externalEditorDiscoveryLoad.reset(selectedEditor)
     const promise = this.updateSelectedExternalEditor(selectedEditor)
     localStorage.setItem(externalEditorKey, selectedEditor)
     this.emitUpdate()
@@ -18518,6 +18815,20 @@ export class AppStore extends TypedBaseStore<IAppState> {
         this._removeCloningRepository(repository)
       } else {
         await this.repositoriesStore.removeRepository(repository)
+        // Filesystem and repository-store removal can fail. Delete credentials
+        // only after both irreversible steps succeeded, so a failed removal
+        // never strands an encrypted checkout without its remembered key.
+        const forgotten = await forgetSavedCheapLfsPayloadPassword(repository)
+        if (forgotten === 'unavailable') {
+          // The repository is already removed. Keep a non-secret persistent
+          // notice and let the main-process startup sweep retry both app-owned
+          // vault services without sending credential values to the renderer.
+          this.postPersistentErrorNotice(
+            t('cheapLfs.encryption.title'),
+            t('cheapLfs.encryption.forgetUnavailable'),
+            `cheap-lfs-password-cleanup-pending:${repository.id}`
+          )
+        }
       }
     } catch (err) {
       this.emitError(err)
@@ -20033,7 +20344,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public async _resolveCurrentEditor() {
-    const match = await findEditorOrDefault(this.selectedExternalEditor)
+    const requestedEditor = this.selectedExternalEditor
+    const generation = ++this.externalEditorResolutionGeneration
+    const match = await findEditorOrDefault(requestedEditor)
+    if (
+      generation !== this.externalEditorResolutionGeneration ||
+      requestedEditor !== this.selectedExternalEditor
+    ) {
+      return
+    }
     const resolvedExternalEditor = match != null ? match.editor : null
     if (this.resolvedExternalEditor !== resolvedExternalEditor) {
       this.resolvedExternalEditor = resolvedExternalEditor
@@ -21528,6 +21847,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   /** Stop background producers and durably drain this store's clone journal. */
   public async flushForShutdown(): Promise<void> {
+    this.deferredStartupShutdown = true
+    this.deferredStartupGeneration++
+    this.externalEditorDiscoveryLoad.reset(this.selectedExternalEditor)
     this.autoCloneStore.stop()
     // A renderer-owned Git child must not outlive the renderer. Persist the
     // paused/interrupted transition and await process-tree teardown before the
@@ -21548,6 +21870,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
   public _cancelQuittingApp() {
     resetRendererShutdown()
+    this.deferredStartupShutdown = false
+    this.deferredStartupGeneration++
     this.autoCloneStore.start()
     sendCancelQuittingSync()
   }

@@ -48,7 +48,11 @@ describe('repository section navigation source contract', () => {
     )
     assert.match(
       repositorySource,
-      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?<CheapLfs/
+      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?<LazyView<RepositoryToolsModule>[\s\S]*?render=\{this\.renderCheapLfsModule\}/
+    )
+    assert.match(
+      repositorySource,
+      /renderCheapLfsModule[\s\S]*?<module\.CheapLfs/
     )
     assert.match(repositorySource, /className="cheap-lfs-manager-view"/)
     assert.match(

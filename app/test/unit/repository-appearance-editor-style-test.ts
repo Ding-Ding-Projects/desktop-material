@@ -53,11 +53,17 @@ describe('repository owner appearance editors', () => {
       'repository-element-appearance-editors.tsx'
     )
 
-    // Right-clicking the row no longer opens the editor directly (that was
-    // triggerable by accident). The row exposes menu-driven openers that the
-    // repository context menu's "Customize …" items call, resolving the anchor
-    // from the row's own DOM.
-    assert.doesNotMatch(row, /openAppearanceEditorFromContextMenu/)
+    // Shift+right-click opens the exact owner while an ordinary right-click
+    // bubbles to the repository command menu. Its explicit "Customize …"
+    // entries still resolve the same anchors from the row's own DOM.
+    assert.match(
+      row,
+      /openAppearanceEditorFromContextMenu\(event, this\.openNameAppearanceEditor\)/
+    )
+    assert.match(
+      row,
+      /openAppearanceEditorFromContextMenu\(event, this\.openLogoAppearanceEditor\)/
+    )
     assert.match(row, /public openNameAppearanceEditorFromMenu\(\)/)
     assert.match(row, /public openLogoAppearanceEditorFromMenu\(\)/)
     assert.match(

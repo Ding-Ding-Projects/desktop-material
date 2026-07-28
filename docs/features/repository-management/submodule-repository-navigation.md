@@ -52,8 +52,9 @@ English is the safe fallback. The language choice is stored under the bounded
 `language-mode-v1` preference, is not silently replaced by the operating-system
 locale, and can migrate once from the former aggregate appearance value.
 
-To customize the temporary-context Back control, right-click the visible Back
-button. Its editor opens beside that button and offers:
+To customize the temporary-context Back control, `Shift`+right-click the visible
+Back button, or focus it and press the Context Menu key or `Shift+F10`. Its
+editor opens beside that button and offers:
 
 - style: **Tonal**, **Filled accent**, or **Outlined**; and
 - label: **Back to parent**, **Parent name**, or **Icon only**.

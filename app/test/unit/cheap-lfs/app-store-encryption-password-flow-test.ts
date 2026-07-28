@@ -1,4 +1,5 @@
 import assert from 'node:assert'
+import { createHash, randomBytes } from 'node:crypto'
 import { afterEach, describe, it, mock } from 'node:test'
 
 import { AppStore } from '../../../src/lib/stores/app-store'
@@ -17,6 +18,12 @@ import {
 } from '../../../src/lib/cheap-lfs/payload-encryption'
 import { Popup, PopupType } from '../../../src/models/popup'
 import { Repository } from '../../../src/models/repository'
+import {
+  AppFileStatusKind,
+  WorkingDirectoryFileChange,
+  WorkingDirectoryStatus,
+} from '../../../src/models/status'
+import { DiffSelection, DiffSelectionType } from '../../../src/models/diff'
 
 const encryptedReleasePreferences: IBuildRunPreferences = {
   ...defaultBuildRunPreferences,
@@ -31,6 +38,29 @@ const repository = {
   gitHubRepository: null,
   buildRunPreferences: encryptedReleasePreferences,
 } as Repository
+
+function runtimeCredential(): {
+  readonly value: string
+  readonly digest: string
+} {
+  const value = randomBytes(32).toString('base64url')
+  return {
+    value,
+    digest: createHash('sha256').update(value).digest('hex'),
+  }
+}
+
+function assertCredentialDigest(
+  value: Buffer | string | null | undefined,
+  expectedDigest: string
+): void {
+  assert.equal(
+    createHash('sha256')
+      .update(Buffer.isBuffer(value) ? value : value ?? '')
+      .digest('hex'),
+    expectedDigest
+  )
+}
 
 type PasswordFlowStore = {
   _showPopup(popup: Popup): Promise<void>
@@ -48,6 +78,17 @@ type PasswordFlowStore = {
   acquireCheapLfsMaterializationPassword(
     repository: Repository,
     pointer: ICheapLfsPointer
+  ): Promise<
+    | {
+        readonly password: Buffer
+        readonly source: 'vault' | 'prompt'
+        readonly rememberPassword: boolean
+      }
+    | undefined
+  >
+  acquireCheapLfsCommitEncryptionPassword(
+    repository: Repository,
+    isBackgroundTask?: boolean
   ): Promise<
     | {
         readonly password: Buffer
@@ -74,6 +115,9 @@ type PasswordFlowStore = {
   postPersistentErrorNotice(...args: ReadonlyArray<unknown>): void
 }
 
+type CommitPasswordFlowStore = PasswordFlowStore &
+  Pick<AppStore, '_commitIncludedChanges'>
+
 function createStore(
   onPopup: (
     popup: Extract<Popup, { type: PopupType.CheapLfsPayloadPassword }>
@@ -90,6 +134,65 @@ function createStore(
   }
   store.postPersistentErrorNotice = () => undefined
   return store
+}
+
+function configureCommitRoute(
+  store: PasswordFlowStore,
+  autoPin: () => Promise<{
+    readonly pinned: ReadonlyArray<never>
+    readonly failures: ReadonlyArray<{
+      readonly relativePath: string
+      readonly sizeInBytes: number
+      readonly message: string
+    }>
+    readonly commitPaths: ReadonlyArray<string>
+  }>
+): {
+  readonly store: CommitPasswordFlowStore
+  readonly gitOperations: () => number
+} {
+  const selectedFile = new WorkingDirectoryFileChange(
+    'large.bin',
+    { kind: AppFileStatusKind.Modified },
+    DiffSelection.fromInitialSelection(DiffSelectionType.All)
+  )
+  const state = {
+    changesState: {
+      workingDirectory: WorkingDirectoryStatus.fromFiles([selectedFile]),
+    },
+    allowEmptyCommit: false,
+  }
+  let gitOperations = 0
+  const commitStore = store as CommitPasswordFlowStore
+  Object.assign(commitStore, {
+    assertTemporaryRepositoryIsSafe: async () => undefined,
+    resumePendingCommitPushBatch: async () => undefined,
+    isTemporaryRepositoryActive: () => true,
+    repositoryStateCache: {
+      get: () => state,
+    },
+    gitStoreCache: {
+      get: () => ({
+        performFailableOperation: async () => {
+          gitOperations++
+          return undefined
+        },
+      }),
+    },
+    withIsCommitting: async (
+      _repository: Repository,
+      operation: () => Promise<boolean>
+    ) => await operation(),
+    autoPinLargeFilesBeforeCommit: autoPin,
+    cheapLfsCommitCancelRequests: new Set<number>(),
+    _loadStatus: async () => null,
+    postCheapLfsPinNotification: () => undefined,
+    postCheapLfsAlreadyStoredNotification: () => undefined,
+    postCheapLfsPinFailureNotification: () => undefined,
+    emitError: () => undefined,
+    _refreshRepository: async () => undefined,
+  })
+  return { store: commitStore, gitOperations: () => gitOperations }
 }
 
 afterEach(() => mock.restoreAll())
@@ -124,11 +227,12 @@ describe('AppStore Cheap LFS password prompting', () => {
 
   it('uses the masked decrypt popup again for every unsaved operation', async () => {
     mock.method(TokenStore, 'getItem', async () => null)
+    const sentinels = [runtimeCredential(), runtimeCredential()]
     let promptCount = 0
     const store = createStore(popup => {
       assert.equal(popup.purpose, 'decrypt')
-      promptCount++
-      popup.onSubmit(Buffer.from(`one-shot-${promptCount}`), false)
+      const sentinel = sentinels[promptCount++]
+      popup.onSubmit(Buffer.from(sentinel.value), false)
     })
 
     const first = await store.acquireCheapLfsEncryptionPassword(
@@ -136,7 +240,7 @@ describe('AppStore Cheap LFS password prompting', () => {
       true
     )
     assert.equal(first?.source, 'prompt')
-    assert.equal(first?.password.toString('utf8'), 'one-shot-1')
+    assertCredentialDigest(first?.password, sentinels[0].digest)
     first?.password.fill(0)
 
     const second = await store.acquireCheapLfsEncryptionPassword(
@@ -144,13 +248,222 @@ describe('AppStore Cheap LFS password prompting', () => {
       true
     )
     assert.equal(second?.source, 'prompt')
-    assert.equal(second?.password.toString('utf8'), 'one-shot-2')
+    assertCredentialDigest(second?.password, sentinels[1].digest)
     second?.password.fill(0)
     assert.equal(promptCount, 2)
   })
 
+  it('blocks the exact commit-time auto-pin password path before any encrypted upload can start', async () => {
+    mock.method(TokenStore, 'getItem', async () => null)
+    const sentinel = runtimeCredential()
+    let promptCount = 0
+    const store = createStore(popup => {
+      promptCount++
+      assert.equal(popup.purpose, 'encrypt')
+      assert.equal(popup.context, 'commit-auto-pin')
+      popup.onSubmit(Buffer.from(sentinel.value), false)
+    })
+
+    const credential = await store.acquireCheapLfsCommitEncryptionPassword(
+      repository
+    )
+
+    assert.equal(promptCount, 1)
+    assert.equal(credential?.source, 'prompt')
+    assertCredentialDigest(credential?.password, sentinel.digest)
+    credential?.password.fill(0)
+  })
+
+  it('cancels the commit-time path instead of returning an unencrypted fallback', async () => {
+    mock.method(TokenStore, 'getItem', async () => null)
+    const store = createStore(popup => {
+      assert.equal(popup.context, 'commit-auto-pin')
+      popup.onSubmit(undefined, false)
+    })
+
+    await assert.rejects(
+      store.acquireCheapLfsCommitEncryptionPassword(repository),
+      (error: Error) => error.name === 'AbortError'
+    )
+  })
+
+  it('never opens credential UI for an unattended encrypted commit', async () => {
+    mock.method(TokenStore, 'getItem', async () => null)
+    let promptCount = 0
+    const store = createStore(() => {
+      promptCount++
+    })
+
+    await assert.rejects(
+      store.acquireCheapLfsCommitEncryptionPassword(repository, true),
+      /background commits require a password already saved/
+    )
+    assert.equal(promptCount, 0)
+  })
+
+  it('runs the real commit entry through the blocking password gate before the provider upload', async () => {
+    mock.method(TokenStore, 'getItem', async () => null)
+    const sentinel = runtimeCredential()
+    const events = new Array<string>()
+    const passwordStore = createStore(popup => {
+      events.push('prompt')
+      assert.equal(popup.purpose, 'encrypt')
+      assert.equal(popup.context, 'commit-auto-pin')
+      popup.onSubmit(Buffer.from(sentinel.value), false)
+    })
+    const route = configureCommitRoute(passwordStore, async () => {
+      const credential =
+        await passwordStore.acquireCheapLfsCommitEncryptionPassword(repository)
+      events.push('password-acquired')
+      assertCredentialDigest(credential?.password, sentinel.digest)
+      try {
+        events.push('provider-anchor')
+        events.push('provider-upload')
+      } finally {
+        credential?.password.fill(0)
+      }
+      return {
+        pinned: [],
+        failures: [
+          {
+            relativePath: 'large.bin',
+            sizeInBytes: 101,
+            message: 'stop after the provider-order assertion',
+          },
+        ],
+        commitPaths: [],
+      }
+    })
+
+    assert.equal(
+      await route.store._commitIncludedChanges(repository, {
+        summary: 'encrypted auto-pin',
+        description: null,
+      }),
+      false
+    )
+    assert.deepEqual(events, [
+      'prompt',
+      'password-acquired',
+      'provider-anchor',
+      'provider-upload',
+    ])
+    assert.equal(route.gitOperations(), 0)
+  })
+
+  it('cancels the real commit entry with zero provider upload or plaintext fallback', async () => {
+    mock.method(TokenStore, 'getItem', async () => null)
+    let providerAnchors = 0
+    let providerUploads = 0
+    let emittedErrors = 0
+    const passwordStore = createStore(popup => {
+      assert.equal(popup.context, 'commit-auto-pin')
+      popup.onSubmit(undefined, false)
+    })
+    const route = configureCommitRoute(passwordStore, async () => {
+      const credential =
+        await passwordStore.acquireCheapLfsCommitEncryptionPassword(repository)
+      try {
+        providerAnchors++
+        providerUploads++
+      } finally {
+        credential?.password.fill(0)
+      }
+      return { pinned: [], failures: [], commitPaths: [] }
+    })
+    Object.assign(route.store, {
+      emitError: () => {
+        emittedErrors++
+      },
+    })
+
+    assert.equal(
+      await route.store._commitIncludedChanges(repository, {
+        summary: 'cancel encrypted auto-pin',
+        description: null,
+      }),
+      false
+    )
+    assert.equal(providerAnchors, 0)
+    assert.equal(providerUploads, 0)
+    assert.equal(route.gitOperations(), 0)
+    assert.equal(emittedErrors, 0)
+  })
+
+  it('passes the background-task fence through the real commit entry', async () => {
+    let observedBackgroundTask: boolean | undefined
+    const store = createStore(() => {
+      throw new Error('a background commit must not open a popup')
+    })
+    const route = configureCommitRoute(
+      store,
+      async (...args: ReadonlyArray<unknown>) => {
+        observedBackgroundTask = args[3] as boolean | undefined
+        return {
+          pinned: [],
+          failures: [
+            {
+              relativePath: 'large.bin',
+              sizeInBytes: 101,
+              message: 'stop after the background fence assertion',
+            },
+          ],
+          commitPaths: [],
+        }
+      }
+    )
+
+    assert.equal(
+      await route.store._commitIncludedChanges(
+        repository,
+        {
+          summary: 'background encrypted auto-pin',
+          description: null,
+        },
+        false,
+        false,
+        () => true,
+        true
+      ),
+      false
+    )
+    assert.equal(observedBackgroundTask, true)
+    assert.equal(route.gitOperations(), 0)
+  })
+
+  it('keeps the production password gate ahead of release anchoring and upload', () => {
+    const productionAutoPin = (
+      AppStore.prototype as unknown as {
+        autoPinLargeFilesBeforeCommit(
+          ...args: ReadonlyArray<unknown>
+        ): Promise<unknown>
+      }
+    ).autoPinLargeFilesBeforeCommit.toString()
+    const passwordGate = productionAutoPin.indexOf(
+      'acquireCheapLfsCommitEncryptionPassword'
+    )
+    const releaseAnchor = productionAutoPin.indexOf(
+      'ensureCheapLfsReleaseAnchor',
+      passwordGate
+    )
+    const providerUpload = productionAutoPin.indexOf(
+      'autoPinLargeFilesForCommit',
+      releaseAnchor
+    )
+
+    assert.ok(passwordGate >= 0)
+    assert.ok(releaseAnchor > passwordGate)
+    assert.ok(providerUpload > releaseAnchor)
+    assert.match(
+      productionAutoPin.slice(passwordGate, releaseAnchor),
+      /isBackgroundTask/
+    )
+  })
+
   it('confirms stale-vault removal before asking for a replacement', async () => {
-    let saved: string | null = 'stale-password'
+    const stale = runtimeCredential()
+    const replacementSentinel = runtimeCredential()
+    let saved: string | null = stale.value
     mock.method(TokenStore, 'getItem', async () => saved)
     mock.method(TokenStore, 'deleteItem', async () => {
       const existed = saved !== null
@@ -164,7 +477,7 @@ describe('AppStore Cheap LFS password prompting', () => {
       popup.onSubmit(
         popup.purpose === 'forget-stale'
           ? Buffer.alloc(0)
-          : Buffer.from('replacement-password'),
+          : Buffer.from(replacementSentinel.value),
         false
       )
     })
@@ -174,15 +487,16 @@ describe('AppStore Cheap LFS password prompting', () => {
     )
     assert.deepEqual(purposes, ['forget-stale', 'decrypt'])
     assert.equal(replacement?.source, 'prompt')
-    assert.equal(replacement?.password.toString('utf8'), 'replacement-password')
+    assertCredentialDigest(replacement?.password, replacementSentinel.digest)
     replacement?.password.fill(0)
     assert.equal(saved, null)
   })
 
   it('never hides a plaintext cleanup failure behind a stale-vault retry', () => {
     const store = createStore(() => undefined)
+    const sentinel = runtimeCredential()
     const credential = {
-      password: Buffer.from('stale-password'),
+      password: Buffer.from(sentinel.value),
       source: 'vault' as const,
       rememberPassword: false,
     }

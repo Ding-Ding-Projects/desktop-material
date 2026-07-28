@@ -682,10 +682,11 @@ export class RepositoryTabStrip extends React.Component<
 
   private onContextMenu = (
     tab: IRepositoryTab,
-    event: React.MouseEvent<HTMLElement>
+    event: React.MouseEvent<HTMLElement>,
+    explicitAnchor?: HTMLElement
   ) => {
     event.preventDefault()
-    const anchor = event.currentTarget as HTMLElement
+    const anchor = explicitAnchor ?? (event.currentTarget as HTMLElement)
     const titleAnchor =
       anchor.querySelector<HTMLElement>('.repository-tab-label') ?? anchor
     this.showTabCommandMenu(tab, anchor, titleAnchor)

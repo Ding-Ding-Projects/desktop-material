@@ -15,10 +15,17 @@ import { parseRawUnfoldedTrailers } from './interpret-trailers'
 import { createLogParser } from './git-delimiter-parser'
 import { forceUnwrap } from '../fatal-error'
 import assert from 'assert'
+import { createGitProcessAbortHandler } from './process-abort'
 
 // File mode 160000 is used by git specifically for submodules:
 // https://github.com/git/git/blob/v2.37.3/cache.h#L62-L69
 const SubmoduleFileMode = '160000'
+
+function throwIfLogAborted(signal?: AbortSignal): void {
+  if (signal?.aborted) {
+    throw new Error('Commit history request cancelled.')
+  }
+}
 
 function mapSubmoduleStatusFileModes(
   status: string,
@@ -122,8 +129,10 @@ export async function getCommits(
   revisionRange?: string,
   limit?: number,
   skip?: number,
-  additionalArgs: ReadonlyArray<string> = []
+  additionalArgs: ReadonlyArray<string> = [],
+  signal?: AbortSignal
 ): Promise<ReadonlyArray<Commit>> {
+  throwIfLogAborted(signal)
   const { formatArgs, parse } = createLogParser({
     sha: '%H', // SHA
     shortSha: '%h', // short SHA
@@ -162,10 +171,14 @@ export async function getCommits(
     ...additionalArgs,
     '--'
   )
+  const processAbort =
+    signal === undefined ? null : createGitProcessAbortHandler(signal)
   const result = await git(args, repository.path, 'getCommits', {
     successExitCodes: new Set([0, 128]),
     encoding: 'buffer',
-  })
+    processCallback: processAbort?.processCallback(undefined),
+  }).finally(() => processAbort?.waitForTermination())
+  throwIfLogAborted(signal)
 
   // if the repository has an unborn HEAD, return an empty history of commits
   if (result.exitCode === 128) {

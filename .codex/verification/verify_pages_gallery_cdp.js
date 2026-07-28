@@ -25,68 +25,53 @@ const galleryManifest = fs.readFileSync(
   path.resolve(__dirname, '../../docs/wiki/Feature-Gallery.md'),
   'utf8'
 )
+const screenshotDirectory = path.resolve(
+  __dirname,
+  '../../docs/assets/screenshots'
+)
+const ExpectedGalleryImageCount = 89
 const acceptedImageNames = Object.freeze(
   [...galleryManifest.matchAll(/^\| `([^`]+\.png)` \| ([^|]+?) \|$/gm)].map(
     ([, file]) => file
   )
 )
 if (
-  acceptedImageNames.length !== 77 ||
+  acceptedImageNames.length !== ExpectedGalleryImageCount ||
   new Set(acceptedImageNames).size !== acceptedImageNames.length
 ) {
-  fail('The guided gallery manifest must contain exactly 77 unique PNGs.')
+  fail(
+    `The guided gallery manifest must contain exactly ${ExpectedGalleryImageCount} unique PNGs.`
+  )
 }
 
-const responsiveImageDimensions = Object.freeze({
-  'material-repository-tools-scroll.png': Object.freeze({
-    width: 960,
-    height: 420,
-  }),
-  'material-responsive-overflow-fixed.png': Object.freeze({
-    width: 640,
-    height: 480,
-  }),
-  'material-toolbar-overflow.png': Object.freeze({
-    width: 720,
-    height: 687,
-  }),
-  'material-scale-200-autofit.png': Object.freeze({
-    width: 640,
-    height: 480,
-  }),
-})
-// Catalogued PNGs produced outside the canonical Batch A driver (per-feature CDP
-// verifiers and the live Cheap LFS captures) whose native dimensions differ from
-// the 1440x960 canonical default. Kept separate from the four pinned responsive
-// dimensions above so the assembled-Pages geometry gate stays honest for all 77.
-const catalogImageDimensions = Object.freeze({
-  'auto-updater-update-ready.png': Object.freeze({ width: 960, height: 660 }),
-  'cheap-lfs-bambu-build-live.png': Object.freeze({ width: 960, height: 660 }),
-  'cheap-lfs-cloud-compression.png': Object.freeze({ width: 960, height: 660 }),
-  'cheap-lfs-ui-acceptance.png': Object.freeze({ width: 1200, height: 752 }),
-  'material-command-palette-appearance.png': Object.freeze({
-    width: 1000,
-    height: 687,
-  }),
-  'material-github-releases-compact.png': Object.freeze({
-    width: 960,
-    height: 660,
-  }),
-  'material-ollama-model-manager.png': Object.freeze({
-    width: 1452,
-    height: 1001,
-  }),
-  'material-pull-preview.png': Object.freeze({ width: 960, height: 660 }),
-  'material-tab-groups.png': Object.freeze({ width: 1000, height: 687 }),
-})
+function readTrackedPngDimensions(file) {
+  const imagePath = path.join(screenshotDirectory, file)
+  let bytes
+  try {
+    bytes = fs.readFileSync(imagePath)
+  } catch {
+    fail(`The guided gallery asset is missing: ${file}.`)
+  }
+  if (
+    bytes.byteLength < 24 ||
+    bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a' ||
+    bytes.subarray(12, 16).toString('ascii') !== 'IHDR'
+  ) {
+    fail(`The guided gallery asset is not a valid PNG: ${file}.`)
+  }
+  return Object.freeze({
+    width: bytes.readUInt32BE(16),
+    height: bytes.readUInt32BE(20),
+  })
+}
+
+// Pages must deliver the original pixels committed for every accepted scene.
+// Read those dimensions from the tracked PNG headers so new specialist captures
+// and corrected responsive frames cannot silently inherit the old 1440×960
+// default or a stale hand-maintained exception.
 const acceptedImageDimensions = Object.freeze(
   Object.fromEntries(
-    acceptedImageNames.map(file => [
-      file,
-      responsiveImageDimensions[file] ??
-        catalogImageDimensions[file] ??
-        Object.freeze({ width: 1440, height: 960 }),
-    ])
+    acceptedImageNames.map(file => [file, readTrackedPngDimensions(file)])
   )
 )
 
@@ -350,7 +335,8 @@ module.exports = {
   acceptedImageDimensions,
   acceptedImageNames,
   assertReceipt,
+  ExpectedGalleryImageCount,
   geometryExpression,
   parseArguments,
-  responsiveImageDimensions,
+  readTrackedPngDimensions,
 }

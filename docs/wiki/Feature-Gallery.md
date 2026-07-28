@@ -180,8 +180,9 @@ active profile's style, label, and explicit language mode.
 
 The active profile can customize the in-app logo/name and rich name typography,
 with a live preview and clear/reset actions. Favorites, drag-to-open repository
-folders, current-tab session import/export, and appropriate right-click
-customization/history context use the same profile/repository ownership model.
+folders, current-tab session import/export, and appropriate
+`Shift`+right-click or keyboard customization/history context use the same
+profile/repository ownership model.
 
 ![Restart-restored profile app identity and favorite repository tab](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
 
@@ -354,8 +355,9 @@ Tools owns short-window vertical scrolling so Diagnostics and later results stay
 reachable. **Repository settings → Submodules → Add submodule…** opens the
 same provider/URL chooser as Clone, then reviews the safe relative destination
 and optional tracked branch before Git starts. The wider settings surface also
-shows the profile-wide Back preview; right-clicking it opens that element's
-editor beside it, with edits staged until the settings dialog is saved. An
+shows the profile-wide Back preview; `Shift`+right-clicking it (or focusing it
+and using the Context Menu key / `Shift+F10`) opens that element's editor beside
+it, with edits staged until the settings dialog is saved. An
 initialized row or changed/new submodule commit card's **Open temporary
 viewer** action opens that child read-only without adding it to the repository
 list. The context bar's visible **Close viewer** action clears the temporary

@@ -6,6 +6,11 @@ import {
   CheapLfsRestoreLookAheadThresholdPercent,
   ICheapLfsRestoreProgress,
 } from '../../../src/lib/cheap-lfs/restore-progress'
+import {
+  AudioSettingsStorageKey,
+  DefaultAudioSystemSettings,
+  serializeAudioSettings,
+} from '../../../src/lib/audio/audio-settings'
 import { CheapLfsRestoreProgress } from '../../../src/ui/lib/cheap-lfs-restore-progress'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
 
@@ -70,6 +75,7 @@ function progressFixture(
 beforeEach(() => {
   localStorage.removeItem('appearance-customization-v1')
   localStorage.removeItem('language-mode-v1')
+  localStorage.removeItem(AudioSettingsStorageKey)
 })
 
 describe('CheapLfsRestoreProgress', () => {
@@ -217,6 +223,64 @@ describe('CheapLfsRestoreProgress', () => {
     assert.equal(button.getAttribute('aria-disabled'), 'true')
     assert.equal(button.getAttribute('aria-busy'), 'true')
     assert.ok(screen.getByText('Phase: Stopping'))
+  })
+
+  it('localizes the truthful decrypting fact while each language keeps its own tone', () => {
+    localStorage.setItem('language-mode-v1', 'bilingual')
+    localStorage.setItem(
+      AudioSettingsStorageKey,
+      serializeAudioSettings({
+        ...DefaultAudioSystemSettings,
+        funnyLevelEnglish: 1,
+        funnyLevelCantonese: 5,
+      })
+    )
+    const base = progressFixture()
+    const view = render(
+      <CheapLfsRestoreProgress
+        progress={progressFixture({
+          phase: 'decrypting',
+          currentLane: {
+            ...base.currentLane!,
+            phase: 'decrypting',
+          },
+        })}
+      />
+    )
+
+    const badges = view.container.querySelectorAll(
+      '.cheap-lfs-restore-badges span'
+    )
+    const phaseBadge = badges[badges.length - 1]
+    assert.equal(
+      phaseBadge.textContent,
+      'Phase: Decrypting · 階段：幫啲加密資料解密緊'
+    )
+    assert.ok(screen.getByText('Decrypting · 幫啲加密資料解密緊'))
+
+    localStorage.setItem('language-mode-v1', 'english')
+    localStorage.setItem(
+      AudioSettingsStorageKey,
+      serializeAudioSettings({
+        ...DefaultAudioSystemSettings,
+        funnyLevelEnglish: 5,
+        funnyLevelCantonese: 1,
+      })
+    )
+    view.rerender(
+      <CheapLfsRestoreProgress
+        progress={progressFixture({
+          phase: 'decrypting',
+          currentLane: {
+            ...base.currentLane!,
+            phase: 'decrypting',
+          },
+        })}
+      />
+    )
+
+    assert.ok(screen.getByText('Phase: Decrypting the locked bytes'))
+    assert.ok(screen.getByText('Decrypting the locked bytes'))
   })
 
   it('renders the sequential compatibility snapshot without bogus lane data', () => {

@@ -9,6 +9,21 @@ export type TranslationKey =
   | 'ci.cancelled'
   | 'ci.skipped'
   | 'ci.stale'
+  | 'lazyView.loading.plain'
+  | 'lazyView.loading.light'
+  | 'lazyView.loading.playful'
+  | 'lazyView.failedTitle'
+  | 'lazyView.failedBody.plain'
+  | 'lazyView.failedBody.light'
+  | 'lazyView.failedBody.playful'
+  | 'lazyView.failedDetail'
+  | 'lazyView.retry'
+  | 'startup.loading'
+  | 'repositorySection.actions'
+  | 'repositorySection.releases'
+  | 'repositorySection.issues'
+  | 'repositorySection.triage'
+  | 'repositorySection.tools'
   | 'update.downloadingLabel'
   | 'update.downloadingValue'
   | 'update.comingSoon'
@@ -2017,11 +2032,15 @@ export type TranslationKey =
   | 'cheapLfs.encryption.forgetMissing'
   | 'cheapLfs.encryption.forgetUnavailable'
   | 'cheapLfs.encryption.dialog.encryptTitle'
+  | 'cheapLfs.encryption.dialog.commitTitle'
   | 'cheapLfs.encryption.dialog.decryptTitle'
   | 'cheapLfs.encryption.dialog.changeTitle'
   | 'cheapLfs.encryption.dialog.forgetTitle'
   | 'cheapLfs.encryption.dialog.staleForgetTitle'
   | 'cheapLfs.encryption.dialog.encryptDescription'
+  | 'cheapLfs.encryption.dialog.commitDescription.plain'
+  | 'cheapLfs.encryption.dialog.commitDescription.light'
+  | 'cheapLfs.encryption.dialog.commitDescription.playful'
   | 'cheapLfs.encryption.dialog.decryptDescription'
   | 'cheapLfs.encryption.dialog.changeDescription'
   | 'cheapLfs.encryption.dialog.forgetDescription'
@@ -2489,6 +2508,9 @@ export type TranslationKey =
   | 'cheapLfs.restore.phase.downloading'
   | 'cheapLfs.restore.phase.decompressing'
   | 'cheapLfs.restore.phase.decrypting'
+  | 'cheapLfs.restore.phase.decrypting.plain'
+  | 'cheapLfs.restore.phase.decrypting.light'
+  | 'cheapLfs.restore.phase.decrypting.playful'
   | 'cheapLfs.restore.phase.verifying'
   | 'cheapLfs.restore.phase.materializing'
   | 'cheapLfs.restore.phase.canceling'
@@ -2521,6 +2543,24 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ci.cancelled': 'cancelled',
   'ci.skipped': 'skipped',
   'ci.stale': 'stale',
+  'lazyView.loading.plain': 'Loading {name}…',
+  'lazyView.loading.light': 'Getting {name} ready…',
+  'lazyView.loading.playful': 'Waking up {name}…',
+  'lazyView.failedTitle': '{name} could not load',
+  'lazyView.failedBody.plain':
+    '{name} stopped while loading. The rest of Desktop Material is still usable.',
+  'lazyView.failedBody.light':
+    '{name} hit a snag while loading. The rest of Desktop Material is still usable.',
+  'lazyView.failedBody.playful':
+    '{name} tripped over its shoelaces while loading. The rest of Desktop Material is still usable.',
+  'lazyView.failedDetail': 'Reported error: {error}',
+  'lazyView.retry': 'Try again',
+  'startup.loading': 'Opening your workspace…',
+  'repositorySection.actions': 'Actions',
+  'repositorySection.releases': 'Releases',
+  'repositorySection.issues': 'Issues',
+  'repositorySection.triage': 'Triage',
+  'repositorySection.tools': 'Repository tools',
   'update.downloadingLabel': 'Downloading app update',
   'update.downloadingValue': 'Downloading',
   'update.comingSoon': 'New update coming soon',
@@ -2743,7 +2783,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'submodule.closeTemporaryViewer': 'Close viewer',
   'submodule.appearanceHeading': 'Back button appearance',
   'submodule.appearanceDescription':
-    'Right-click the preview Back button to open its editor beside the button. Save applies this to the active profile.',
+    'Shift+right-click the preview Back button, or focus it and press the Context Menu key or Shift+F10, to open its editor beside the button. Save applies this to the active profile.',
   'submodule.appearancePreview': 'Preview',
   'submodule.openUnavailable': 'Clone this submodule before opening it',
   'submodule.openFailed': 'Could not open {child} as a repository: {error}',
@@ -4418,7 +4458,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.soundFunnyEnglishLabel': 'English playfulness',
   'settings.soundFunnyCantoneseLabel': 'Cantonese playfulness',
   'settings.soundFunnyHint':
-    '1 is fully serious, 5 is maximum fun. Errors always stay clear.',
+    'Set English and Cantonese playfulness in Appearance. Errors always stay clear.',
   'settings.soundMusicHeading': 'Per-repository music',
   'settings.soundMusicEnableTitle': 'Play themed music',
   'settings.soundMusicEnableDescription':
@@ -4869,9 +4909,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositorySettings.automationTab': 'Automation (this repository)',
   'repositorySettings.appearanceTab': 'Appearance',
   'repositorySettings.appearance.intro':
-    'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by right-clicking the actual element.',
+    'Everything here belongs to this repository alone. Each section edits the same owner — the same setting, the same local Git repository, and the same history — that you reach by Shift+right-clicking the actual element.',
   'repositorySettings.appearance.introHint':
-    'Prefer editing in place? Right-click the repository row, its logo, or the toolbar (or press Shift+F10 with it focused) to open the very same editor beside it.',
+    'Prefer editing in place? Shift+right-click the repository row, its logo, or the toolbar (or focus it and press the Context Menu key or Shift+F10) to open the very same editor beside it.',
   'repositorySettings.appearance.loading':
     'Opening this repository’s appearance owners…',
   'repositorySettings.appearance.unavailable':
@@ -5175,6 +5215,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.encryption.forgetUnavailable':
     'Windows Credential Manager could not remove the saved password.',
   'cheapLfs.encryption.dialog.encryptTitle': 'Set a Release payload password',
+  'cheapLfs.encryption.dialog.commitTitle':
+    'Password required before encrypted commit',
   'cheapLfs.encryption.dialog.decryptTitle':
     'Enter the Release payload password',
   'cheapLfs.encryption.dialog.changeTitle':
@@ -5184,6 +5226,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Forget the password that did not work?',
   'cheapLfs.encryption.dialog.encryptDescription':
     'Enter the password for encrypting new Release payloads. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.plain':
+    'This commit is waiting for a password so its large files can be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.light':
+    'This commit is paused for a password: its large files will be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.commitDescription.playful':
+    'This commit is waiting at the encryption gate. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
   'cheapLfs.encryption.dialog.decryptDescription':
     'Enter the password that was used to encrypt this Release payload.',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -5712,6 +5760,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.restore.phase.downloading': 'Downloading',
   'cheapLfs.restore.phase.decompressing': 'Decompressing',
   'cheapLfs.restore.phase.decrypting': 'Decrypting',
+  'cheapLfs.restore.phase.decrypting.plain': 'Decrypting',
+  'cheapLfs.restore.phase.decrypting.light': 'Securely decrypting',
+  'cheapLfs.restore.phase.decrypting.playful': 'Decrypting the locked bytes',
   'cheapLfs.restore.phase.verifying': 'Verifying',
   'cheapLfs.restore.phase.materializing': 'Restoring',
   'cheapLfs.restore.phase.canceling': 'Stopping',
@@ -5771,6 +5822,24 @@ export const cantoneseTranslations: Readonly<
   'ci.cancelled': '已取消',
   'ci.skipped': '已略過',
   'ci.stale': '資料舊咗',
+  'lazyView.loading.plain': '載入緊 {name}…',
+  'lazyView.loading.light': '準備緊 {name}…',
+  'lazyView.loading.playful': '叫醒緊 {name}…',
+  'lazyView.failedTitle': '{name} 載入唔到',
+  'lazyView.failedBody.plain':
+    '{name} 載入途中停咗。Desktop Material 其他部分仍然用得。',
+  'lazyView.failedBody.light':
+    '{name} 載入途中撞到阻滯。Desktop Material 其他部分仍然用得。',
+  'lazyView.failedBody.playful':
+    '{name} 載入途中俾鞋帶絆親。Desktop Material 其他部分仍然用得。',
+  'lazyView.failedDetail': '錯誤詳情：{error}',
+  'lazyView.retry': '再試一次',
+  'startup.loading': '打開緊你嘅工作區…',
+  'repositorySection.actions': '操作',
+  'repositorySection.releases': '版本發布',
+  'repositorySection.issues': '問題',
+  'repositorySection.triage': '分流',
+  'repositorySection.tools': 'Repo 工具',
   'update.downloadingLabel': '下載緊應用程式更新',
   'update.downloadingValue': '下載緊',
   'update.comingSoon': '新版本就快焗好出爐',
@@ -5985,7 +6054,7 @@ export const cantoneseTranslations: Readonly<
   'submodule.closeTemporaryViewer': '關閉檢視器',
   'submodule.appearanceHeading': '返回掣外觀',
   'submodule.appearanceDescription':
-    '右擊預覽返回掣，就會喺掣旁邊打開編輯器。按「儲存」先套用到目前 profile。',
+    '撳住 Shift 再右擊預覽返回掣，或者 focus 住撳 Context Menu 掣／Shift+F10，就會喺掣旁邊打開編輯器。按「儲存」先套用到目前 profile。',
   'submodule.appearancePreview': '預覽',
   'submodule.openUnavailable': '要先複製呢個子模組先開得',
   'submodule.openFailed': '未能將 {child} 當 repo 打開：{error}',
@@ -7491,7 +7560,8 @@ export const cantoneseTranslations: Readonly<
   'settings.soundFunnyHeading': '旁白語氣',
   'settings.soundFunnyEnglishLabel': '英文搞笑程度',
   'settings.soundFunnyCantoneseLabel': '廣東話搞笑程度',
-  'settings.soundFunnyHint': '1 係認真，5 係最搞笑。出錯訊息永遠都會講清楚。',
+  'settings.soundFunnyHint':
+    '去「外觀」設定英文同廣東話搞笑程度。出錯訊息永遠都會講清楚。',
   'settings.soundMusicHeading': '每個 repository 嘅音樂',
   'settings.soundMusicEnableTitle': '播主題音樂',
   'settings.soundMusicEnableDescription':
@@ -7923,9 +7993,9 @@ export const cantoneseTranslations: Readonly<
   'repositorySettings.automationTab': '自動化（呢個存放庫）',
   'repositorySettings.appearanceTab': '外觀',
   'repositorySettings.appearance.intro':
-    '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你右 click 個實物時開嗰個。',
+    '呢度全部只係屬於呢個 repo。每一段都係改緊同一個主人——同一份設定、同一個本機 Git 倉、同一段歷史，即係你撳住 Shift 再右 click 個實物時開嗰個。',
   'repositorySettings.appearance.introHint':
-    '想就地改？右 click 個 repo 列、佢個 logo 或者工具列（或者 focus 住撳 Shift+F10），就會喺旁邊開返同一個編輯器。',
+    '想就地改？撳住 Shift 再右 click 個 repo 列、佢個 logo 或者工具列（或者 focus 住撳 Context Menu 掣／Shift+F10），就會喺旁邊開返同一個編輯器。',
   'repositorySettings.appearance.loading': '開緊呢個 repo 嘅外觀主人……',
   'repositorySettings.appearance.unavailable':
     '外觀主人仲啟動緊。請稍後再開 Repository settings。',
@@ -8210,12 +8280,19 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.encryption.forgetUnavailable':
     'Windows Credential Manager 移除唔到已儲存密碼。',
   'cheapLfs.encryption.dialog.encryptTitle': '設定 Release payload 密碼',
+  'cheapLfs.encryption.dialog.commitTitle': '加密 commit 前需要密碼',
   'cheapLfs.encryption.dialog.decryptTitle': '輸入 Release payload 密碼',
   'cheapLfs.encryption.dialog.changeTitle': '更改已儲存嘅 Release payload 密碼',
   'cheapLfs.encryption.dialog.forgetTitle': '忘記已儲存密碼？',
   'cheapLfs.encryption.dialog.staleForgetTitle': '忘記呢個無效密碼？',
   'cheapLfs.encryption.dialog.encryptDescription':
     '輸入用嚟加密新 Release payload 嘅密碼。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.plain':
+    '呢個 commit 正等緊密碼，之後先會將大檔 pin 好，而且只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.light':
+    '呢個 commit 暫停咗等密碼；大檔 pin 好之後只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.commitDescription.playful':
+    '呢個 commit 喺加密閘口等緊密碼。大檔 pin 好之後只會以加密 ciphertext 上載；撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
   'cheapLfs.encryption.dialog.decryptDescription':
     '輸入當初用嚟加密呢個 Release payload 嘅密碼。',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -8716,6 +8793,9 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.restore.phase.downloading': '下載緊',
   'cheapLfs.restore.phase.decompressing': '解壓緊',
   'cheapLfs.restore.phase.decrypting': '解密緊',
+  'cheapLfs.restore.phase.decrypting.plain': '解密緊',
+  'cheapLfs.restore.phase.decrypting.light': '安全解密緊',
+  'cheapLfs.restore.phase.decrypting.playful': '幫啲加密資料解密緊',
   'cheapLfs.restore.phase.verifying': '核實緊',
   'cheapLfs.restore.phase.materializing': '還原緊',
   'cheapLfs.restore.phase.canceling': '停緊',

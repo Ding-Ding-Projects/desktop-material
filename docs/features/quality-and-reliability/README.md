@@ -5,6 +5,11 @@ contracts that span more than one user workflow.
 
 ## Features
 
+- [Progressive asynchronous
+  loading](progressive-lazy-loading.md) — reveal the usable shell before
+  optional startup work, evaluate heavy inactive repository sections on first
+  activation, and contain each load behind accessible local progress, retry,
+  and newest-request-wins lifecycle guards.
 - [Responsiveness and resource
   lifecycle](responsiveness-and-resource-lifecycle.md) — avoid redundant remote
   discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,

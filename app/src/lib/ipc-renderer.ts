@@ -1,4 +1,5 @@
 import { RequestResponseChannels, RequestChannels } from './ipc-shared'
+import { Disposable } from 'event-kit'
 // eslint-disable-next-line no-restricted-imports
 import { ipcRenderer, IpcRendererEvent } from 'electron'
 
@@ -50,6 +51,9 @@ export function on<T extends keyof RequestChannels>(
   ) => void
 ) {
   ipcRenderer.on(channel, listener as any)
+  return new Disposable(() =>
+    ipcRenderer.removeListener(channel, listener as any)
+  )
 }
 
 /**

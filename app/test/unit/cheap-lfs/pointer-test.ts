@@ -134,6 +134,37 @@ describe('cheap LFS pointer', () => {
     assert.equal(isEncryptedCheapLfsPointer(multiPartPointer), false)
   })
 
+  it('round-trips a part compressed before encryption with every stage size', () => {
+    const compressedAndEncrypted: ICheapLfsPointer = {
+      ...encryptedPointer,
+      sizeInBytes: 300,
+      sha256: 'f'.repeat(64),
+      parts: [
+        {
+          name: 'secret.bin.deflate.encrypted',
+          sizeInBytes: 300,
+          sha256: 'f'.repeat(64),
+          deflatedSizeInBytes: 40,
+          encrypted: true,
+          storedSizeInBytes: 124,
+          storedSha256: 'a'.repeat(64),
+        },
+      ],
+    }
+
+    const text = serializeCheapLfsPointer(compressedAndEncrypted)
+    assert.match(
+      text,
+      new RegExp(
+        `part-encrypted-deflate ${'f'.repeat(64)} 300 40 124 ${'a'.repeat(
+          64
+        )} secret\\.bin\\.deflate\\.encrypted`
+      )
+    )
+    assert.deepEqual(parseCheapLfsPointer(text), compressedAndEncrypted)
+    assert.equal(isEncryptedCheapLfsPointer(compressedAndEncrypted), true)
+  })
+
   it('parses the exact encrypted pointer contract already pushed to main', () => {
     const pushedPointer = [
       `version ${CHEAP_LFS_POINTER_VERSION}`,

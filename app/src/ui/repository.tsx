@@ -51,16 +51,10 @@ import {
   accountSupportsActions,
   ActionsStore,
 } from '../lib/stores/actions-store'
-import { ActionsView } from './actions'
 import {
   getGitHubReleasesAvailability,
   GitHubReleasesStore,
 } from '../lib/stores/github-releases-store'
-import { GitHubDistributionView } from './github-packages'
-import { GitHubIssuesView } from './github-issues'
-import { GitHubAPIExplorer } from './github-api-explorer'
-import { CheapLfs, RepositoryTools } from './repository-tools'
-import { RepositoryProviderTriage } from './repository-tools/provider-triage'
 import { RepositorySettingsTab } from './repository-settings/repository-settings'
 import {
   getRepositorySections,
@@ -75,6 +69,47 @@ import {
 import { MaterialSymbol } from './lib/material-symbol'
 import { t } from '../lib/i18n'
 import { confirmAndCancelCheapLfsTransfer } from './changes/cheap-lfs-cancel-confirmation'
+import { LazyView } from './lib/lazy-view'
+import { ProgressiveLoad, ProgressiveLoadState } from '../lib/progressive-load'
+
+type ActionsModule = typeof import('./actions/actions-view')
+type GitHubDistributionModule =
+  typeof import('./github-packages/github-distribution-view')
+type GitHubIssuesModule = typeof import('./github-issues/github-issues-view')
+type GitHubAPIModule =
+  typeof import('./github-api-explorer/github-api-explorer')
+type RepositoryToolsModule =
+  typeof import('./repository-tools/repository-tools')
+type CheapLfsModule = typeof import('./repository-tools/cheap-lfs')
+type RepositoryProviderTriageModule =
+  typeof import('./repository-tools/provider-triage')
+
+const loadActionsModule = () =>
+  import(/* webpackChunkName: "repository-actions" */ './actions/actions-view')
+const loadGitHubDistributionModule = () =>
+  import(
+    /* webpackChunkName: "repository-releases" */ './github-packages/github-distribution-view'
+  )
+const loadGitHubIssuesModule = () =>
+  import(
+    /* webpackChunkName: "repository-issues" */ './github-issues/github-issues-view'
+  )
+const loadGitHubAPIModule = () =>
+  import(
+    /* webpackChunkName: "repository-github-api" */ './github-api-explorer/github-api-explorer'
+  )
+const loadRepositoryToolsModule = () =>
+  import(
+    /* webpackChunkName: "repository-tools" */ './repository-tools/repository-tools'
+  )
+const loadCheapLfsModule = () =>
+  import(
+    /* webpackChunkName: "repository-cheap-lfs" */ './repository-tools/cheap-lfs'
+  )
+const loadRepositoryProviderTriageModule = () =>
+  import(
+    /* webpackChunkName: "repository-provider-triage" */ './repository-tools/provider-triage'
+  )
 
 interface IRepositoryViewProps {
   readonly repository: Repository
@@ -192,17 +227,14 @@ interface IRepositoryViewState {
   /** Whether the floating account-switcher menu is open */
   readonly isAccountSwitcherOpen: boolean
 
-  /**
-   * How many submodules the repository declares (cloned or not), or null
-   * while unknown. Gates the tools hub's submodule manager entry.
-   */
-  readonly submoduleCount: number | null
+  /** Local, retryable inventory loaded only while Repository tools is active. */
+  readonly submoduleInventoryState: ProgressiveLoadState<number>
 
-  /**
-   * How many subtrees the repository history records, or null while unknown.
-   * Gates the tools hub's subtree manager entry.
-   */
-  readonly subtreeCount: number | null
+  /** Local, retryable history scan loaded only while Repository tools is active. */
+  readonly subtreeInventoryState: ProgressiveLoadState<number>
+
+  /** Repository identity owning both cached inventory values. */
+  readonly inventoryRepositoryHash: string
   readonly isGitHubAPIHidden: boolean
 }
 
@@ -225,6 +257,10 @@ export class RepositoryView extends React.Component<
   private focusChangesNeeded: boolean = false
   private repositoryViewUnmounted = false
   private submoduleOpenFromDiffInFlight = false
+  private readonly submoduleCountLoad = new ProgressiveLoad<number>()
+  private readonly subtreeCountLoad = new ProgressiveLoad<number>()
+  private submoduleCountAbortController: AbortController | null = null
+  private subtreeCountAbortController: AbortController | null = null
 
   public constructor(props: IRepositoryViewProps) {
     super(props)
@@ -233,30 +269,44 @@ export class RepositoryView extends React.Component<
       changesListScrollTop: 0,
       compareListScrollTop: 0,
       isAccountSwitcherOpen: false,
-      submoduleCount: null,
-      subtreeCount: null,
+      submoduleInventoryState: this.submoduleCountLoad.state,
+      subtreeInventoryState: this.subtreeCountLoad.state,
+      inventoryRepositoryHash: props.repository.hash,
       isGitHubAPIHidden: isGitHubAPITabHidden(props.repository.hash),
     }
   }
 
-  private loadSubmoduleCount = async () => {
+  private loadSubmoduleCount = () => {
     const repository = this.props.repository
-    try {
-      const submodules = await this.props.dispatcher.getSubmodules(repository)
-      if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
-      ) {
-        this.setState({ submoduleCount: submodules.length })
+    this.submoduleCountAbortController?.abort()
+    const abortController = new AbortController()
+    this.submoduleCountAbortController = abortController
+    const completion = this.submoduleCountLoad.run(async () => {
+      const submodules = await this.props.dispatcher.getSubmodules(
+        repository,
+        abortController.signal
+      )
+      return submodules.length
+    })
+    this.setState({
+      submoduleInventoryState: this.submoduleCountLoad.state,
+    })
+
+    void completion.then(result => {
+      if (this.submoduleCountAbortController === abortController) {
+        this.submoduleCountAbortController = null
       }
-    } catch {
       if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
+        !result.accepted ||
+        this.repositoryViewUnmounted ||
+        this.props.repository.hash !== repository.hash ||
+        this.getSelectedSection() !== RepositorySectionTab.RepositoryTools
       ) {
-        this.setState({ submoduleCount: null })
+        return
       }
-    }
+
+      this.setState({ submoduleInventoryState: result.state })
+    })
   }
 
   private onOpenSubmoduleManager = () => {
@@ -266,23 +316,52 @@ export class RepositoryView extends React.Component<
     })
   }
 
-  private loadSubtreeCount = async () => {
+  private loadSubtreeCount = () => {
     const repository = this.props.repository
-    try {
-      const subtrees = await this.props.dispatcher.getSubtrees(repository)
-      if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
-      ) {
-        this.setState({ subtreeCount: subtrees.length })
+    this.subtreeCountAbortController?.abort()
+    const abortController = new AbortController()
+    this.subtreeCountAbortController = abortController
+    const completion = this.subtreeCountLoad.run(async () => {
+      const subtrees = await this.props.dispatcher.getSubtrees(
+        repository,
+        abortController.signal
+      )
+      return subtrees.length
+    })
+    this.setState({
+      subtreeInventoryState: this.subtreeCountLoad.state,
+    })
+
+    void completion.then(result => {
+      if (this.subtreeCountAbortController === abortController) {
+        this.subtreeCountAbortController = null
       }
-    } catch {
       if (
-        !this.repositoryViewUnmounted &&
-        this.props.repository.hash === repository.hash
+        !result.accepted ||
+        this.repositoryViewUnmounted ||
+        this.props.repository.hash !== repository.hash ||
+        this.getSelectedSection() !== RepositorySectionTab.RepositoryTools
       ) {
-        this.setState({ subtreeCount: null })
+        return
       }
+
+      this.setState({ subtreeInventoryState: result.state })
+    })
+  }
+
+  private cancelRepositoryInventoryLoads(preserveCachedValues: boolean) {
+    this.submoduleCountAbortController?.abort()
+    this.subtreeCountAbortController?.abort()
+    this.submoduleCountAbortController = null
+    this.subtreeCountAbortController = null
+
+    return {
+      submoduleInventoryState: this.submoduleCountLoad.reset(
+        preserveCachedValues ? this.submoduleCountLoad.state.value : null
+      ),
+      subtreeInventoryState: this.subtreeCountLoad.reset(
+        preserveCachedValues ? this.subtreeCountLoad.state.value : null
+      ),
     }
   }
 
@@ -473,7 +552,7 @@ export class RepositoryView extends React.Component<
                 />
               </span>
             </span>
-            <span className="rail-label">Actions</span>
+            <span className="rail-label">{t('repositorySection.actions')}</span>
           </span>
         )}
         {this.showsGitHubReleases() && (
@@ -489,7 +568,9 @@ export class RepositoryView extends React.Component<
                 />
               </span>
             </span>
-            <span className="rail-label">Releases</span>
+            <span className="rail-label">
+              {t('repositorySection.releases')}
+            </span>
           </span>
         )}
         {this.showsGitHubReleases() && (
@@ -519,7 +600,7 @@ export class RepositoryView extends React.Component<
                 />
               </span>
             </span>
-            <span className="rail-label">Issues</span>
+            <span className="rail-label">{t('repositorySection.issues')}</span>
           </span>
         )}
         {this.showsGitHubAPI() && (
@@ -552,7 +633,7 @@ export class RepositoryView extends React.Component<
               />
             </span>
           </span>
-          <span className="rail-label">Triage</span>
+          <span className="rail-label">{t('repositorySection.triage')}</span>
         </span>
         <span
           className="rail-item"
@@ -572,7 +653,7 @@ export class RepositoryView extends React.Component<
               />
             </span>
           </span>
-          <span className="rail-label">Tools</span>
+          <span className="rail-label">{t('repositorySection.tools')}</span>
         </span>
       </TabBar>
     )
@@ -1243,6 +1324,170 @@ export class RepositoryView extends React.Component<
     this.props.dispatcher.changeImageDiffType(imageDiffType)
   }
 
+  /**
+   * Keep optional-view failures out of the modal popup stack. The local lazy
+   * boundary retains the retry while this notification makes the failure
+   * reviewable after the user navigates elsewhere.
+   */
+  private postLazyViewFailure = (name: string, error: Error): void => {
+    try {
+      log.error(`${name} failed to load progressively`, error)
+    } catch {
+      // The local failure surface must not depend on the diagnostic sink.
+    }
+    try {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('lazyView.failedTitle', { name }),
+        body: `${t('lazyView.failedBody.plain', { name })} ${t(
+          'lazyView.failedDetail',
+          { error: error.message }
+        )}`,
+        repositoryId: this.props.repository.id,
+      })
+    } catch (notificationError) {
+      try {
+        log.error(
+          'Unable to persist a progressive loading notice',
+          notificationError
+        )
+      } catch {
+        // The failure is still visible and retryable in its local boundary.
+      }
+    }
+  }
+
+  private renderActionsModule = (module: ActionsModule): React.ReactNode => {
+    const tip = this.props.state.branchesState.tip
+    const currentBranch = tip.kind === TipState.Valid ? tip.branch.name : null
+    const branches = [
+      ...(currentBranch === null ? [] : [currentBranch]),
+      ...this.props.state.branchesState.allBranches.map(branch => branch.name),
+    ].filter((branch, index, all) => all.indexOf(branch) === index)
+
+    return (
+      <module.ActionsView
+        repository={this.props.repository}
+        currentBranch={currentBranch}
+        branchNames={branches}
+        actionsStore={this.props.actionsStore}
+      />
+    )
+  }
+
+  private renderGitHubDistributionModule = (
+    module: GitHubDistributionModule
+  ): React.ReactNode => (
+    <module.GitHubDistributionView
+      repository={this.props.repository}
+      accounts={this.props.accounts}
+      releasesStore={this.props.releasesStore}
+    />
+  )
+
+  private renderCheapLfsModule = (module: CheapLfsModule): React.ReactNode => (
+    <div className="cheap-lfs-manager-view">
+      <module.CheapLfs
+        repository={this.props.repository}
+        accounts={this.props.accounts}
+        dispatcher={this.props.dispatcher}
+      />
+    </div>
+  )
+
+  private renderGitHubIssuesModule = (
+    module: GitHubIssuesModule
+  ): React.ReactNode => (
+    <module.GitHubIssuesView
+      repository={this.props.repository}
+      accounts={this.props.accounts}
+      issuesStore={this.props.issueWorkflowsStore}
+      dispatcher={this.props.dispatcher}
+    />
+  )
+
+  private renderGitHubAPIModule = (
+    module: GitHubAPIModule
+  ): React.ReactNode => (
+    <module.GitHubAPIExplorer
+      repository={this.props.repository}
+      accounts={this.props.accounts}
+      functionRegistry={this.props.dispatcher}
+      surface="functions"
+      autoCreateFunctions={true}
+      onHide={this.onHideGitHubAPI}
+    />
+  )
+
+  private renderProviderTriageModule = (
+    module: RepositoryProviderTriageModule
+  ): React.ReactNode => (
+    <module.RepositoryProviderTriage
+      repository={this.props.repository}
+      accounts={this.props.accounts}
+      onAssociateAccount={this.onAssociateProviderTriageAccount}
+      onSignIn={this.onShowAccounts}
+      onManageAccounts={this.onShowAccounts}
+      onChooseRepositoryAccount={this.onShowRepositoryAccount}
+      onReauthenticateAccount={this.onShowAccounts}
+    />
+  )
+
+  private renderRepositoryToolsModule = (
+    module: RepositoryToolsModule
+  ): React.ReactNode => {
+    const inventoryBelongsToRepository =
+      this.state.inventoryRepositoryHash === this.props.repository.hash
+    const unavailableInventory: ProgressiveLoadState<number> = {
+      kind: 'idle',
+      value: null,
+    }
+
+    return (
+      <module.RepositoryTools
+        repository={this.props.repository}
+        repositoryPath={this.props.repository.path}
+        onRefreshRepository={this.refreshRepository}
+        submoduleInventoryState={
+          inventoryBelongsToRepository
+            ? this.state.submoduleInventoryState
+            : unavailableInventory
+        }
+        onRetrySubmoduleInventory={this.loadSubmoduleCount}
+        onOpenSubmoduleManager={this.onOpenSubmoduleManager}
+        subtreeInventoryState={
+          inventoryBelongsToRepository
+            ? this.state.subtreeInventoryState
+            : unavailableInventory
+        }
+        onRetrySubtreeInventory={this.loadSubtreeCount}
+        onOpenSubtreeManager={this.onOpenSubtreeManager}
+        tagLifecycleDispatcher={this.props.dispatcher}
+        githubProjects={{
+          repository: this.props.repository,
+          accounts: this.props.accounts,
+        }}
+        githubAPIFunctions={
+          this.canUseGitHubAPI()
+            ? {
+                repository: this.props.repository,
+                accounts: this.props.accounts,
+                functionRegistry: this.props.dispatcher,
+                autoCreateFunctions: true,
+                onShowAPI: this.onShowGitHubAPI,
+              }
+            : undefined
+        }
+        cheapLfs={{
+          repository: this.props.repository,
+          accounts: this.props.accounts,
+          dispatcher: this.props.dispatcher,
+          available: this.showsGitHubReleases(),
+        }}
+      />
+    )
+  }
+
   private renderContent(): JSX.Element | null {
     const selectedSection = this.getSelectedSection()
     if (selectedSection === RepositorySectionTab.Changes) {
@@ -1250,104 +1495,73 @@ export class RepositoryView extends React.Component<
     } else if (selectedSection === RepositorySectionTab.History) {
       return this.renderContentForHistory()
     } else if (selectedSection === RepositorySectionTab.Actions) {
-      const tip = this.props.state.branchesState.tip
-      const currentBranch = tip.kind === TipState.Valid ? tip.branch.name : null
-      const branches = [
-        ...(currentBranch === null ? [] : [currentBranch]),
-        ...this.props.state.branchesState.allBranches.map(
-          branch => branch.name
-        ),
-      ].filter((branch, index, all) => all.indexOf(branch) === index)
       return (
-        <ActionsView
-          repository={this.props.repository}
-          currentBranch={currentBranch}
-          branchNames={branches}
-          actionsStore={this.props.actionsStore}
+        <LazyView<ActionsModule>
+          key="actions"
+          name={t('repositorySection.actions')}
+          load={loadActionsModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderActionsModule}
         />
       )
     } else if (selectedSection === RepositorySectionTab.Releases) {
       return (
-        <GitHubDistributionView
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          releasesStore={this.props.releasesStore}
+        <LazyView<GitHubDistributionModule>
+          key="releases"
+          name={t('repositorySection.releases')}
+          load={loadGitHubDistributionModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderGitHubDistributionModule}
         />
       )
     } else if (selectedSection === RepositorySectionTab.CheapLfs) {
       return (
-        <div className="cheap-lfs-manager-view">
-          <CheapLfs
-            repository={this.props.repository}
-            accounts={this.props.accounts}
-            dispatcher={this.props.dispatcher}
-          />
-        </div>
+        <LazyView<CheapLfsModule>
+          key="cheap-lfs"
+          name={t('cheapLfs.managerRail')}
+          load={loadCheapLfsModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderCheapLfsModule}
+        />
       )
     } else if (selectedSection === RepositorySectionTab.Issues) {
       return (
-        <GitHubIssuesView
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          issuesStore={this.props.issueWorkflowsStore}
-          dispatcher={this.props.dispatcher}
+        <LazyView<GitHubIssuesModule>
+          key="issues"
+          name={t('repositorySection.issues')}
+          load={loadGitHubIssuesModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderGitHubIssuesModule}
         />
       )
     } else if (selectedSection === RepositorySectionTab.GitHubAPI) {
       return (
-        <GitHubAPIExplorer
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          functionRegistry={this.props.dispatcher}
-          surface="functions"
-          autoCreateFunctions={true}
-          onHide={this.onHideGitHubAPI}
+        <LazyView<GitHubAPIModule>
+          key="github-api"
+          name={t('githubApi.railLabel')}
+          load={loadGitHubAPIModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderGitHubAPIModule}
         />
       )
     } else if (selectedSection === RepositorySectionTab.Triage) {
       return (
-        <RepositoryProviderTriage
-          repository={this.props.repository}
-          accounts={this.props.accounts}
-          onAssociateAccount={this.onAssociateProviderTriageAccount}
-          onSignIn={this.onShowAccounts}
-          onManageAccounts={this.onShowAccounts}
-          onChooseRepositoryAccount={this.onShowRepositoryAccount}
-          onReauthenticateAccount={this.onShowAccounts}
+        <LazyView<RepositoryProviderTriageModule>
+          key="triage"
+          name={t('repositorySection.triage')}
+          load={loadRepositoryProviderTriageModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderProviderTriageModule}
         />
       )
     } else if (selectedSection === RepositorySectionTab.RepositoryTools) {
       return (
-        <RepositoryTools
-          repository={this.props.repository}
-          repositoryPath={this.props.repository.path}
-          onRefreshRepository={this.refreshRepository}
-          submoduleCount={this.state.submoduleCount}
-          onOpenSubmoduleManager={this.onOpenSubmoduleManager}
-          subtreeCount={this.state.subtreeCount}
-          onOpenSubtreeManager={this.onOpenSubtreeManager}
-          tagLifecycleDispatcher={this.props.dispatcher}
-          githubProjects={{
-            repository: this.props.repository,
-            accounts: this.props.accounts,
-          }}
-          githubAPIFunctions={
-            this.canUseGitHubAPI()
-              ? {
-                  repository: this.props.repository,
-                  accounts: this.props.accounts,
-                  functionRegistry: this.props.dispatcher,
-                  autoCreateFunctions: true,
-                  onShowAPI: this.onShowGitHubAPI,
-                }
-              : undefined
-          }
-          cheapLfs={{
-            repository: this.props.repository,
-            accounts: this.props.accounts,
-            dispatcher: this.props.dispatcher,
-            available: this.showsGitHubReleases(),
-          }}
+        <LazyView<RepositoryToolsModule>
+          key="repository-tools"
+          name={t('repositorySection.tools')}
+          load={loadRepositoryToolsModule}
+          onError={this.postLazyViewFailure}
+          render={this.renderRepositoryToolsModule}
         />
       )
     } else {
@@ -1381,24 +1595,50 @@ export class RepositoryView extends React.Component<
 
   public componentDidMount() {
     window.addEventListener('keydown', this.onGlobalKeyDown)
-    this.loadSubmoduleCount()
-    this.loadSubtreeCount()
+    if (this.getSelectedSection() === RepositorySectionTab.RepositoryTools) {
+      this.loadSubmoduleCount()
+      this.loadSubtreeCount()
+    }
   }
 
   public componentWillUnmount() {
     window.removeEventListener('keydown', this.onGlobalKeyDown)
     this.repositoryViewUnmounted = true
+    this.cancelRepositoryInventoryLoads(false)
   }
 
   public componentDidUpdate(prevProps: IRepositoryViewProps): void {
     if (prevProps.repository.hash !== this.props.repository.hash) {
-      this.setState({
-        submoduleCount: null,
-        subtreeCount: null,
-        isGitHubAPIHidden: isGitHubAPITabHidden(this.props.repository.hash),
-      })
-      this.loadSubmoduleCount()
-      this.loadSubtreeCount()
+      const repositoryHash = this.props.repository.hash
+      const inventoryState = this.cancelRepositoryInventoryLoads(false)
+      this.setState(
+        {
+          ...inventoryState,
+          inventoryRepositoryHash: repositoryHash,
+          isGitHubAPIHidden: isGitHubAPITabHidden(this.props.repository.hash),
+        },
+        () => {
+          if (
+            this.props.repository.hash === repositoryHash &&
+            this.getSelectedSection() === RepositorySectionTab.RepositoryTools
+          ) {
+            this.loadSubmoduleCount()
+            this.loadSubtreeCount()
+          }
+        }
+      )
+    } else {
+      const wasRepositoryToolsActive =
+        prevProps.state.selectedSection === RepositorySectionTab.RepositoryTools
+      const repositoryToolsActive =
+        this.getSelectedSection() === RepositorySectionTab.RepositoryTools
+
+      if (!wasRepositoryToolsActive && repositoryToolsActive) {
+        this.loadSubmoduleCount()
+        this.loadSubtreeCount()
+      } else if (wasRepositoryToolsActive && !repositoryToolsActive) {
+        this.setState(this.cancelRepositoryInventoryLoads(true))
+      }
     }
 
     if (this.focusChangesNeeded) {

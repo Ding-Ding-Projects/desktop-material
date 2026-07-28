@@ -106,14 +106,36 @@ export function isAppearanceEditorContextMenuKey(
   return event.key === 'ContextMenu' || (event.key === 'F10' && event.shiftKey)
 }
 
-/** Open an anchored editor from a pointer context-menu event. */
+/**
+ * Whether a context-menu event expresses appearance-editing intent.
+ *
+ * A physical secondary click reports button 2 and needs Shift. Chromium emits
+ * button 0 for the keyboard Context Menu command, while the macOS Shift+F10
+ * compatibility path dispatches a plain event without a button. Both keyboard
+ * paths remain accepted.
+ */
+export function isAppearanceEditorContextMenuGesture(
+  event: Pick<React.MouseEvent<HTMLElement>, 'button' | 'shiftKey'>
+): boolean {
+  return event.shiftKey || event.button !== 2
+}
+
+/**
+ * Open an anchored editor from Shift+right-click or a keyboard-generated
+ * context-menu event. Returns whether the appearance gesture was handled.
+ */
 export function openAppearanceEditorFromContextMenu<T extends HTMLElement>(
   event: React.MouseEvent<T>,
   open: (anchor: T) => void
-): void {
+): boolean {
+  if (!isAppearanceEditorContextMenuGesture(event)) {
+    return false
+  }
+
   event.preventDefault()
   event.stopPropagation()
   open(event.currentTarget)
+  return true
 }
 
 /**

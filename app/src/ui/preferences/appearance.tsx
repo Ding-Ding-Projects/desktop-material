@@ -701,9 +701,9 @@ export class Appearance extends React.Component<
           <div>
             <h2 id="appearance-scope-note-title">Element appearance</h2>
             <p>
-              To customize a visual element, right-click that element and open
-              its anchored appearance editor. Each element keeps its settings
-              and history separate.
+              To customize a visual element, Shift+right-click it or focus it
+              and press the Context Menu key or Shift+F10. Each element keeps
+              its settings and history separate.
             </p>
           </div>
         </aside>

@@ -96,7 +96,7 @@ function resolvedValue(value: string, overridden: boolean): string {
 /**
  * The per-repository appearance hub inside Repository Settings.
  *
- * Every section renders the exact editor the anchored (right-click) surface
+ * Every section renders the exact editor the anchored direct-owner surface
  * renders, and commits through the exact same repository-scoped owner via
  * `Dispatcher.setRepositoryAppearanceElement`. There is no parallel store, no
  * staged copy, and no separate Save: a change lands in the owner's dedicated

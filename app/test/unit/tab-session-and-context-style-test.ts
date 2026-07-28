@@ -56,6 +56,7 @@ describe('tab session, folder drop, and customization context contracts', () => 
       readFile(Path.join(app, 'src/ui/window/app-brand.tsx'), 'utf8'),
     ])
     assert.match(appSource, /onCustomizationContextMenu/)
+    assert.match(appSource, /!isAppearanceEditorContextMenuGesture\(event\)/)
     assert.match(appSource, /getProfileAppearanceHistorySource/)
     assert.match(appSource, /getRepositoryAppearanceHistorySource/)
     assert.match(appSource, /getFeatureAppearanceHistorySource/)

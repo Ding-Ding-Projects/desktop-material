@@ -17,7 +17,11 @@ import {
 import { Select } from '../lib/select'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { AnchoredAppearanceEditor } from '../appearance'
+import {
+  AnchoredAppearanceEditor,
+  openAppearanceEditorFromContextMenu,
+  openAppearanceEditorFromKeyDown,
+} from '../appearance'
 import { IVersionedStoreHistorySource } from '../version-history'
 
 interface ISubmoduleBackButtonProps {
@@ -159,8 +163,8 @@ export class SubmoduleBackAppearanceEditor extends React.Component<ISubmoduleBac
 /**
  * The Back button shown in temporary submodule workspaces.
  *
- * The element owns its appearance editor: right-clicking it (or using the
- * keyboard Context Menu command) opens a bounded popover beside the button.
+ * The element owns its appearance editor: Shift+right-clicking it (or using
+ * the keyboard Context Menu command) opens a bounded popover beside the button.
  */
 export class SubmoduleBackButton extends React.Component<
   ISubmoduleBackButtonProps,
@@ -190,22 +194,13 @@ export class SubmoduleBackButton extends React.Component<
   }
 
   private onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    this.openEditor(event.currentTarget)
+    openAppearanceEditorFromContextMenu(event, anchor =>
+      this.openEditor(anchor)
+    )
   }
 
   private onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (
-      event.key !== 'ContextMenu' &&
-      !(event.key === 'F10' && event.shiftKey)
-    ) {
-      return
-    }
-
-    event.preventDefault()
-    event.stopPropagation()
-    this.openEditor(event.currentTarget)
+    openAppearanceEditorFromKeyDown(event, anchor => this.openEditor(anchor))
   }
 
   private onEditorClose = () => {

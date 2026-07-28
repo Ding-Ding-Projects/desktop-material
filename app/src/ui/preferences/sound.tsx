@@ -17,7 +17,6 @@ import { showOpenDialog } from '../main-process-proxy'
 import { AudioCueStore } from '../../lib/audio/audio-cue-store'
 import {
   AudioCueCategory,
-  clampFunnyLevel,
   IAudioSystemSettings,
   RepoMusicOverride,
 } from '../../lib/audio/audio-settings'
@@ -228,24 +227,6 @@ export class SoundPreferences extends React.Component<
             ttsVolume => this.update({ ttsVolume })
           )}
           {this.renderCooldown()}
-          <h3 className="sound-subheading">
-            <LocalizedText
-              translationKey="settings.soundFunnyHeading"
-              languageMode={languageMode}
-            />
-          </h3>
-          {this.renderFunnyLevel(
-            'settings.soundFunnyEnglishLabel',
-            'sound-funny-en',
-            settings.funnyLevelEnglish,
-            funnyLevelEnglish => this.update({ funnyLevelEnglish })
-          )}
-          {this.renderFunnyLevel(
-            'settings.soundFunnyCantoneseLabel',
-            'sound-funny-ct',
-            settings.funnyLevelCantonese,
-            funnyLevelCantonese => this.update({ funnyLevelCantonese })
-          )}
           <p className="settings-description">
             <LocalizedText
               translationKey="settings.soundFunnyHint"
@@ -464,37 +445,6 @@ export class SoundPreferences extends React.Component<
           />
           <span className="sound-slider-value" aria-hidden={true}>
             {Math.round(value * 100)}%
-          </span>
-        </div>
-      </div>
-    )
-  }
-
-  private renderFunnyLevel(
-    labelKey: Parameters<typeof translate>[0],
-    id: string,
-    value: number,
-    onChange: (value: number) => void
-  ) {
-    const label = translate(labelKey, this.state.languageMode)
-    return (
-      <div className="sound-field-group">
-        <label htmlFor={id}>{label}</label>
-        <div className="sound-slider-row">
-          <input
-            id={id}
-            type="range"
-            min={1}
-            max={5}
-            step={1}
-            value={value}
-            onChange={event =>
-              onChange(clampFunnyLevel(Number(event.currentTarget.value), 3))
-            }
-            aria-valuetext={`${value}`}
-          />
-          <span className="sound-slider-value" aria-hidden={true}>
-            {value}
           </span>
         </div>
       </div>

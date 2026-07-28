@@ -596,7 +596,7 @@ describe('TabSearchPopover', () => {
 })
 
 describe('RepositoryTab title appearance', () => {
-  it('opens the clicked inactive title editor and its independent Git history', async () => {
+  it('keeps ordinary title commands, their Customize action, and Shift+right-click appearance access', async () => {
     const alpha = new Repository('/work/alpha', 1, null, false)
     const beta = new Repository('/work/beta', 2, null, false)
     let style: IRepositoryTab['titleStyle'] = null
@@ -665,7 +665,12 @@ describe('RepositoryTab title appearance', () => {
 
     const label = screen.getByText('beta')
     assert.equal(label.classList.contains('repository-tab-label'), true)
-    fireEvent.contextMenu(label)
+    const ordinaryRightClick = fireEvent.contextMenu(label, { button: 2 })
+    assert.equal(ordinaryRightClick, false)
+    assert.equal(screen.queryByText('Tab appearance'), null)
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Customize Appearance…' })
+    )
 
     await waitFor(() => {
       assert.ok(screen.getByText('Tab appearance'))
@@ -698,7 +703,21 @@ describe('RepositoryTab title appearance', () => {
     )
     await waitFor(() => assert.equal(document.activeElement, label))
 
-    fireEvent.contextMenu(screen.getByRole('tab', { name: 'beta' }))
+    const shiftedRightClick = fireEvent.contextMenu(label, {
+      button: 2,
+      shiftKey: true,
+    })
+    assert.equal(shiftedRightClick, false)
+    await waitFor(() => assert.ok(screen.getByText('Tab appearance')))
+    assert.deepEqual(ensuredTabs, ['beta-tab', 'beta-tab'])
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Close beta tab title' })
+    )
+    await waitFor(() => assert.equal(document.activeElement, label))
+
+    fireEvent.contextMenu(screen.getByRole('tab', { name: 'beta' }), {
+      button: 2,
+    })
     assert.equal(
       screen.queryByText('Tab appearance'),
       null,

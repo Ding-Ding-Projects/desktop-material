@@ -632,12 +632,12 @@ fallback titles and localized group names both remain searchable.
 Cantonese, or bilingual language mode; theme and scale; repository-list behavior; branch sorting;
 formatting; and diff tab size. Visual customization belongs to the thing being changed.
 
-Right-click an actual element—or focus it and press `Shift+F10`—to open its editor beside that
-owner. Supported owners include the app identity/workspace, update progress bar, toolbar,
-repository list, repository tab strip, code/diff surface, each reviewed Material feature entry
-point, each repository name and logo, each tab title, and the temporary-submodule Back control.
-Right-clicking a row or frame outside the specialized owner still opens its normal Git context
-menu.
+`Shift`+right-click an actual element—or focus it and press the Context Menu key or
+`Shift+F10`—to open its editor beside that owner. Supported owners include the app
+identity/workspace, update progress bar, toolbar, repository list, repository tab strip,
+code/diff surface, each reviewed Material feature entry point, each repository name and logo,
+each tab title, and the temporary-submodule Back control. Ordinary right-click remains available
+to the native or component-specific Git context menu.
 
 Each owner has one strict `setting.json` in its own local Git repository. The anchored editor shows
 and copies that exact path and opens the owner's **History** manager. Undo, redo, and restore append
@@ -655,11 +655,12 @@ spacing, emphasis, and effects. It does not rename the signed executable or oper
 
 ### Repository, logo, and tab owners
 
-Right-click the selected repository workspace, toolbar, or tab-strip background for its
-repository-specific values and an **Edit profile default** route. Right-click the actual
-repository-list name for Word-style typography or its actual logo for the safe vector studio. A
-repository can inherit the profile owner; **Edit profile default** keeps that profile editor
-anchored beside the same real logo.
+`Shift`+right-click the selected repository workspace, toolbar, or tab-strip background for its
+repository-specific values and an **Edit profile default** route. `Shift`+right-click the actual
+repository-list name for Word-style typography or its actual logo for the safe vector studio. You
+can also focus an owner and press the Context Menu key or `Shift+F10`. A repository can inherit the
+profile owner; **Edit profile default** keeps that profile editor anchored beside the same real
+logo.
 
 If you would rather find everything in one place, **Repository settings → Appearance** lists the
 same five repository owners — list name, logo, tabs, toolbar, and workspace colors — using the very
@@ -667,7 +668,7 @@ same editors. It is a hub, not a second copy: each section says whether the valu
 repository-owned, shows a live preview, offers **Reset to default** for that one owner, and commits
 straight to the owner's own local Git repository, so the History, undo, and restore you see there
 are the same ones the anchored editor shows. The hub never changes a profile default; for that,
-right-click the element itself or use Settings.
+`Shift`+right-click the element itself, use its keyboard gesture, or use Settings.
 
 The toolbar editor includes text color, curated font family, 10–20 px title size, bold, italic,
 underline, strikethrough, small caps, case, character spacing, text effects, alignment, and a live
@@ -693,11 +694,13 @@ The vector logo workbench provides:
 
 Logo JSON is capped at 16 KiB, text and layer counts are bounded, and every value is normalized to
 the supported model. The studio never stores uploaded image bytes, HTML, or executable/raw SVG.
-Tabs and repository-list rows render only the app's code-generated SVG projection. Right-click an
-actual tab title for its own typography/color editor, dedicated repository, and history; structural
-tab state remains separate. Desktop Material initializes the clicked title before opening its editor.
-If an account/profile transition is still rebuilding that title owner, the editor stays closed and a
-localized status asks you to try again instead of taking down the app window.
+Tabs and repository-list rows render only the app's code-generated SVG projection.
+`Shift`+right-click an actual tab title, use its keyboard context-menu gesture, or choose the tab
+command menu's **Customize Appearance…** action for its own typography/color editor, dedicated
+repository, and history; structural tab state remains separate. Desktop Material initializes the
+clicked title before opening its editor. If an account/profile transition is still rebuilding that
+title owner, the editor stays closed and a localized status asks you to try again instead of taking
+down the app window.
 
 ![Layered custom repository-logo studio with a live preview and safe vector controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-repository-logo-studio.png)
 
@@ -1746,8 +1749,9 @@ list.
   local Git URL. Review the repository-relative checkout path and optional branch; Desktop rechecks
   duplicate/occupied destinations immediately before Git, reports bounded clone progress, and lets
   you cancel the running operation before refreshing the managed list. The same tab shows a Back
-  preview: right-click it (or press `Shift+F10`) to open that element's appearance editor beside
-  it. Changes remain staged with the rest of Repository Settings until **Save**. The adjacent
+  preview: `Shift`+right-click it (or focus it and press the Context Menu key or `Shift+F10`) to
+  open that element's appearance editor beside it. Changes remain staged with the rest of
+  Repository Settings until **Save**. The adjacent
   **Subtrees** tab embeds the full add, pull, push, and split manager. The same managed list opens
   as the Submodule Manager from the Tools tab's **Nested repositories** category, and clone-list
   rows show a submodule badge whose details dialog can clone any submodule as its own repository.
@@ -1758,8 +1762,9 @@ list.
   importing it. It does not enter the repository list, Recent, or the persisted last selection.
   The context bar's **Close viewer** action and Back control both return to the saved root and
   clear temporary state; repeated Open, Close, or Back activation cannot create another tab
-  or repository entry. Right-click the actual Back control to open the same anchored editor and
-  save its profile-wide style or label immediately.
+  or repository entry. `Shift`+right-click the actual Back control—or focus it and use the
+  Context Menu key or `Shift+F10`—to open the same anchored editor and save its profile-wide style
+  or label immediately.
   Uninitialized, stale, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets
   fail without changing repository persistence, and the manager stays available for recovery.
 

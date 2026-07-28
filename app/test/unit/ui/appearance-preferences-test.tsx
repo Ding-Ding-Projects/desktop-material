@@ -72,7 +72,7 @@ describe('Appearance preferences', () => {
       />
     )
 
-    assert.ok(screen.getByText(/right-click that element/i))
+    assert.ok(screen.getByText(/Shift\+right-click it/i))
     assert.ok(screen.getByLabelText('Language'))
     const englishFunnySlider = screen.getByRole('slider', {
       name: 'English playfulness',

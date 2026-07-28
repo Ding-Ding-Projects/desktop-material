@@ -204,10 +204,11 @@ receipts as acceptance evidence.
 ### Appearance, onboarding, and adaptive layout
 
 **Settings → Appearance** now keeps only ordinary language, theme, scale, list, sorting,
-formatting, and diff preferences. Custom visuals stay with their owners. Right-click the actual app
-identity/workspace, progress bar, toolbar, repository list, tab strip, code/diff surface, repository
-name or logo, tab title, reviewed Material entry point, or temporary-submodule Back control—or use
-`Shift+F10`—to open its editor beside it.
+formatting, and diff preferences. Custom visuals stay with their owners. `Shift`+right-click the
+actual app identity/workspace, progress bar, toolbar, repository list, tab strip, code/diff surface,
+repository name or logo, tab title, reviewed Material entry point, or temporary-submodule Back
+control—or focus it and use the Context Menu key or `Shift+F10`—to open its editor beside it.
+Ordinary right-click remains available for native and component-specific commands.
 
 Every owner has its own strict setting, local Git repository path, and History manager. Profile,
 feature, repository-instance, and tab-instance changes never share a mutable timeline; undo, redo,
@@ -307,9 +308,9 @@ the tonal workspace preview hides when a compact window needs the space.
 - **Temporary submodule navigation** — in the wider **Repository settings → Submodules** surface,
   choose **Open temporary viewer** on an initialized child—or from a changed/new submodule commit
   card—to inspect it read-only without adding it to the repository list, Recent, or persisted last
-  selection. **Close viewer** clears the temporary state and returns to the parent. Right-click the
-  Back preview to open its element-owned
-  editor beside it; changes remain staged until Save. Adjacent **Subtrees** embeds add, pull, push,
+  selection. **Close viewer** clears the temporary state and returns to the parent.
+  `Shift`+right-click the Back preview—or focus it and press the Context Menu key or `Shift+F10`—to
+  open its element-owned editor beside it; changes remain staged until Save. Adjacent **Subtrees** embeds add, pull, push,
   and split management. Back returns
   to the saved root; invalid or escaping paths fail closed without a partial import.
 

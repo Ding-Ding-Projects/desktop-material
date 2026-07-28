@@ -7,8 +7,9 @@ const {
   acceptedImageDimensions,
   acceptedImageNames,
   assertReceipt,
+  ExpectedGalleryImageCount,
   geometryExpression,
-  responsiveImageDimensions,
+  readTrackedPngDimensions,
 } = require('./verify_pages_gallery_cdp.js')
 
 function validReceipt() {
@@ -40,33 +41,43 @@ function validReceipt() {
 
 describe('Pages gallery CDP verifier contracts', () => {
   it('tracks the exact guided gallery at its accepted dimensions', () => {
-    assert.equal(acceptedImageNames.length, 77)
-    assert.equal(new Set(acceptedImageNames).size, 77)
-    assert.equal(Object.keys(acceptedImageDimensions).length, 77)
+    assert.equal(ExpectedGalleryImageCount, 89)
+    assert.equal(acceptedImageNames.length, 89)
+    assert.equal(new Set(acceptedImageNames).size, 89)
+    assert.equal(Object.keys(acceptedImageDimensions).length, 89)
     assert.deepEqual(acceptedImageDimensions['material-repository-tools.png'], {
       width: 1440,
       height: 960,
     })
     assert.deepEqual(
       acceptedImageDimensions['material-repository-tools-scroll.png'],
-      { width: 960, height: 420 }
+      { width: 1000, height: 679 }
     )
     assert.deepEqual(acceptedImageDimensions['add-submodule-dialog.png'], {
       width: 1440,
       height: 960,
     })
-    // Catalogued non-canonical PNGs keep their true native dimensions.
+    assert.deepEqual(
+      acceptedImageDimensions['material-responsive-overflow-fixed.png'],
+      { width: 1450, height: 997 }
+    )
+    assert.deepEqual(
+      acceptedImageDimensions['repository-list-sync-summary.png'],
+      { width: 390, height: 100 }
+    )
+    assert.deepEqual(acceptedImageDimensions['linux-tui-overview.png'], {
+      width: 1600,
+      height: 1000,
+    })
     assert.deepEqual(
       acceptedImageDimensions['material-ollama-model-manager.png'],
       { width: 1452, height: 1001 }
     )
-    assert.deepEqual(Object.keys(responsiveImageDimensions).sort(), [
-      'material-repository-tools-scroll.png',
-      'material-responsive-overflow-fixed.png',
-      'material-scale-200-autofit.png',
-      'material-toolbar-overflow.png',
-    ])
     for (const file of acceptedImageNames) {
+      assert.deepEqual(
+        acceptedImageDimensions[file],
+        readTrackedPngDimensions(file)
+      )
       assert.match(geometryExpression, new RegExp(file.replaceAll('.', '\\.')))
     }
   })

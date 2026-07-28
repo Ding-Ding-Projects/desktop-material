@@ -183,8 +183,10 @@ publication, release, or cleanup evidence.
   `app/src/models/element-appearance.ts` defines narrow profile, feature, repository, and tab-owner
   documents; `app/src/lib/stores/element-appearance-coordinator.ts` maps each to a separate
   `DedicatedSettingStore`. **Settings → Appearance** exposes ordinary preferences only. The actual
-  owner opens `AnchoredAppearanceEditor` by right-click or `Shift+F10`, with its own repository path
-  and `VersionedStoreHistory`. Repository Settings has no Appearance tab. The profile default
+  owner opens `AnchoredAppearanceEditor` by `Shift`+right-click, the keyboard Context Menu key, or
+  `Shift+F10`, leaving ordinary right-click to native or component-specific commands. The editor
+  carries its own repository path and `VersionedStoreHistory`. Repository Settings has no
+  Appearance tab. The profile default
   repository logo still uses `app/src/models/repository-logo.ts` and its
   versioned code-native vector model: bounded backgrounds and at most eight allowlisted mark/text
   layers, with strict color, transform, typography, text, and 16 KiB document normalization.

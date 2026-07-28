@@ -6,6 +6,16 @@ const fs = require('node:fs')
 const path = require('node:path')
 const test = require('node:test')
 const vm = require('node:vm')
+const {
+  CanonicalCandidateCount,
+  CanonicalGalleryOutputs,
+  CaptureBatches,
+  DeferredCanonicalOutputs,
+  ExpectedPublishedGalleryCount,
+  GalleryCapturePlan,
+  PublishedGalleryOutputs,
+  SpecialistCaptureEntries,
+} = require('./gallery_capture_plan.js')
 
 const driverPath = path.join(__dirname, 'capture_gallery_cdp.js')
 const source = fs.readFileSync(driverPath, 'utf8')
@@ -840,50 +850,41 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical mode plans 68 captures distinct from the 77 published images', () => {
+test('canonical and specialist batches own all 89 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
-  const gallery = fs.readFileSync(
-    path.join(__dirname, '..', '..', 'docs', 'wiki', 'Feature-Gallery.md'),
-    'utf8'
+  const publishedCanonical = outputs.filter(
+    output => !DeferredCanonicalOutputs.includes(output)
   )
-  const catalog = [
-    ...gallery.matchAll(/^\| `([^`]+)\.png` \| [^|]+ \|$/gm),
-  ].map(([, name]) => name)
+  const specialistOutputs = SpecialistCaptureEntries.map(entry => entry.output)
+  const expectedCatalog = [...publishedCanonical, ...specialistOutputs]
 
-  // Canonical outputs captured by the driver but intentionally not published to
-  // the guided gallery catalog (progress-only surface).
-  const deferredOutputs = ['material-cheap-lfs-preparing']
-  // Catalogued PNGs the canonical Batch A driver does not produce: covered by
-  // per-feature CDP verifiers and the live Cheap LFS captures.
-  const catalogOnlyOutputs = [
-    'auto-updater-update-ready',
-    'cheap-lfs-bambu-build-live',
-    'cheap-lfs-cloud-compression',
-    'cheap-lfs-commit-progress',
-    'cheap-lfs-ui-acceptance',
-    'material-command-palette-appearance',
-    'material-github-releases-compact',
-    'material-ollama-model-manager',
-    'material-pull-preview',
-    'material-tab-groups',
-  ]
-  const expectedCatalog = [
-    ...outputs.filter(output => !deferredOutputs.includes(output)),
-    ...catalogOnlyOutputs,
-  ]
-
-  assert.equal(outputs.length, 68)
-  assert.equal(new Set(outputs).size, 68)
-  assert.equal(catalog.length, 77)
-  assert.equal(new Set(catalog).size, 77)
-  assert.deepEqual([...expectedCatalog].sort(), [...catalog].sort())
-  for (const output of catalogOnlyOutputs) {
+  assert.equal(CanonicalCandidateCount, 68)
+  assert.deepEqual(CanonicalGalleryOutputs, outputs)
+  assert.equal(outputs.length, CanonicalCandidateCount)
+  assert.equal(new Set(outputs).size, CanonicalCandidateCount)
+  assert.deepEqual(DeferredCanonicalOutputs, ['material-cheap-lfs-preparing'])
+  assert.equal(publishedCanonical.length, 67)
+  assert.equal(specialistOutputs.length, 22)
+  assert.equal(new Set(specialistOutputs).size, 22)
+  assert.equal(ExpectedPublishedGalleryCount, 89)
+  assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 89)
+  assert.equal(GalleryCapturePlan.length, 89)
+  assert.deepEqual(
+    [...expectedCatalog].sort(),
+    [...PublishedGalleryOutputs].sort()
+  )
+  assert.deepEqual(
+    GalleryCapturePlan.map(entry => entry.output).sort(),
+    [...PublishedGalleryOutputs].sort()
+  )
+  for (const output of specialistOutputs) {
     assert.ok(!outputs.includes(output), output)
   }
-  for (const deferred of deferredOutputs) {
+  for (const deferred of DeferredCanonicalOutputs) {
     assert.ok(outputs.includes(deferred), deferred)
-    assert.ok(!catalog.includes(deferred), deferred)
+    assert.ok(!PublishedGalleryOutputs.includes(deferred), deferred)
   }
   for (const sceneName of scenes) {
     assert.ok(source.includes(`scene('${sceneName}'`), sceneName)
@@ -895,7 +896,25 @@ test('canonical mode plans 68 captures distinct from the 77 published images', (
   ]) {
     assert.ok(scenes.includes(required), required)
   }
-  assert.ok(source.includes("process.stdout.write('CANONICAL 68/68"))
+  for (const entry of GalleryCapturePlan) {
+    assert.ok(entry.scene.length > 0, entry.output)
+    assert.ok(entry.interaction.length > 0, entry.output)
+    assert.ok(entry.fixture.length > 0, entry.output)
+    assert.ok(entry.privacyGate.length > 0, entry.output)
+    assert.ok(entry.commands.length > 0, entry.output)
+    assert.ok(CaptureBatches[entry.batch], entry.output)
+    assert.ok(
+      entry.commands.every(
+        command => command.length > 0 && !command.includes('<output>')
+      ),
+      entry.output
+    )
+  }
+  assert.ok(
+    source.includes(
+      '`CANONICAL ${expected.length}/${expected.length} exact output set\\n`'
+    )
+  )
 })
 
 test('audit-design mode owns a separate exact five-surface catalog', () => {
