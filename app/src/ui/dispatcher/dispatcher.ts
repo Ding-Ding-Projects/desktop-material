@@ -1,5 +1,4 @@
 import { Disposable } from 'event-kit'
-import { t } from '../../lib/i18n'
 
 import {
   API,
@@ -190,6 +189,7 @@ import { IProfileHistoryPage, ProfileKey } from '../../models/profile'
 import { INotificationInput } from '../../models/notification-centre'
 import { INotificationAutomationRule } from '../../lib/notifications/automation/notification-automation'
 import { ErrorPresentationStyle } from '../../models/error-presentation'
+import { CanonicalRemoteVerificationError } from '../../lib/canonical-remote-verification-error'
 import {
   PullRequest,
   PullRequestSuggestedNextAction,
@@ -212,6 +212,7 @@ import {
 import { TipState, IValidBranch } from '../../models/tip'
 import { Banner, BannerType } from '../../models/banner'
 import type { IVersionedStoreHistorySource } from '../version-history/versioned-store-history'
+import { RepositorySettingsTab } from '../repository-settings/repository-settings'
 
 import { ApplicationTheme } from '../lib/application-theme'
 import { installCLI } from '../lib/install-cli'
@@ -870,6 +871,39 @@ export class Dispatcher {
   /** Dismiss one transient acknowledgement-only error notice. */
   public dismissErrorNotice(id: string): void {
     this.appStore._dismissErrorNotice(id)
+  }
+
+  /** Show an actionable, fail-closed warning for an unverifiable remote. */
+  public showCanonicalRemoteWarning(
+    error: CanonicalRemoteVerificationError
+  ): void {
+    this.appStore._showCanonicalRemoteWarning(error)
+  }
+
+  /** Open the exact repository's remote manager from a warning notice. */
+  public openRepositoryRemoteManager(
+    repositoryId: number,
+    noticeId: string
+  ): Promise<void> {
+    const repository =
+      this.appStore
+        .getState()
+        .repositories.find(candidate => candidate.id === repositoryId) ?? null
+
+    this.dismissErrorNotice(noticeId)
+    if (!(repository instanceof Repository)) {
+      return this.postError(
+        new Error(
+          'Desktop Material could not find the repository whose remote needs attention.'
+        )
+      )
+    }
+
+    return this.showPopup({
+      type: PopupType.RepositorySettings,
+      repository,
+      initialSelectedTab: RepositorySettingsTab.Remote,
+    })
   }
 
   /** Remove one verified stale `.git/index.lock` and refresh its repository. */
@@ -3786,71 +3820,6 @@ export class Dispatcher {
       )
     }
     return null
-  }
-
-  /**
-   * Record the passphrase the user confirmed in the Cheap LFS encryption gate.
-   *
-   * It is held for this app session and, when `remember` is set, additionally
-   * written to the OS credential manager. It is **never** routed through the
-   * repository preferences, `profileSettingsRegistry`, or any settings file:
-   * the profile settings store commits to a Git repository with retained
-   * history, where a passphrase would outlive its own deletion.
-   *
-   * Reports a non-blocking notice when the credential manager refuses, because
-   * "we could not remember it" is information, not a decision the user has to
-   * make before continuing.
-   */
-  public async setCheapLfsEncryptionPassphrase(
-    repository: Repository,
-    passphrase: string,
-    remember: boolean
-  ): Promise<void> {
-    const outcome = await this.appStore._setCheapLfsEncryptionPassphrase(
-      repository,
-      passphrase,
-      remember
-    )
-    if (outcome === 'vault-unavailable') {
-      this.postNotification({
-        kind: 'cheap-lfs',
-        title: t('cheapLfs.encryption.vaultUnavailableTitle'),
-        body: t('cheapLfs.encryption.vaultUnavailableBody'),
-        repositoryId: repository.id,
-      })
-      return
-    }
-    this.postNotification({
-      kind: 'cheap-lfs',
-      title: t('cheapLfs.encryption.enabledTitle', {
-        repository: repository.name,
-      }),
-      body: t('cheapLfs.encryption.enabledBody'),
-      repositoryId: repository.id,
-    })
-  }
-
-  /** Delete this repository's saved passphrase and lock the session copy. */
-  public async forgetCheapLfsEncryptionPassphrase(
-    repository: Repository
-  ): Promise<void> {
-    const forgotten = await this.appStore._forgetCheapLfsEncryptionPassphrase(
-      repository
-    )
-    this.postNotification({
-      kind: 'cheap-lfs',
-      title: forgotten
-        ? t('cheapLfs.encryption.forgottenTitle')
-        : t('cheapLfs.encryption.forgetFailedTitle'),
-      body: forgotten
-        ? t('cheapLfs.encryption.forgottenBody', {
-            repository: repository.name,
-          })
-        : t('cheapLfs.encryption.forgetFailedBody', {
-            repository: repository.name,
-          }),
-      repositoryId: repository.id,
-    })
   }
 
   /** Keep the reviewed Cheap LFS cloud-compression caller in policy sync. */

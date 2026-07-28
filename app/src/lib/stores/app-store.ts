@@ -68,20 +68,6 @@ import {
   ICheapLfsRestoreProgress,
 } from '../cheap-lfs/restore-progress'
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
-import { cheapLfsPartStoredSizeInBytes } from '../cheap-lfs/pointer'
-import { ICheapLfsPinEncryption } from '../cheap-lfs/encrypted-payload'
-import {
-  CheapLfsEncryptionGateError,
-  decideCheapLfsEncryption,
-} from '../cheap-lfs/encryption-gate'
-import {
-  CheapLfsPassphraseSaveOutcome,
-  forgetCheapLfsPassphrase,
-  lockCheapLfsPassphraseSession,
-  resolveCheapLfsPassphrase,
-  saveCheapLfsPassphrase,
-  unlockCheapLfsPassphraseForSession,
-} from '../cheap-lfs/passphrase-vault'
 import {
   buildCheapLfsFirstPublishAbort,
   CheapLfsBootstrapCommitMessage,
@@ -156,6 +142,17 @@ import {
   recommendCheapLfsStorage,
 } from '../cheap-lfs/storage-recommendation'
 import { ensureCheapLfsScratchHygiene } from '../cheap-lfs/scratch-storage'
+import {
+  acquireCheapLfsOperationPassword,
+  forgetSavedCheapLfsPayloadPassword,
+  ICheapLfsOperationPassword,
+  saveCheapLfsPayloadPassword,
+} from '../cheap-lfs/payload-encryption-credentials'
+import {
+  ICheapLfsPointer,
+  isEncryptedCheapLfsPointer,
+} from '../cheap-lfs/pointer'
+import { isOnlyCheapLfsAuthenticationError } from '../cheap-lfs/payload-encryption'
 import {
   CheapLfsCommitKeyError,
   ICheapLfsRequiredCommitFile,
@@ -297,7 +294,11 @@ import {
   IRevertProgress,
   IMultiCommitOperationProgress,
 } from '../../models/progress'
-import { Popup, PopupType } from '../../models/popup'
+import {
+  CheapLfsPayloadPasswordPurpose,
+  Popup,
+  PopupType,
+} from '../../models/popup'
 import { themeChangeMonitor } from '../../ui/lib/theme-change-monitor'
 import { getAppPath } from '../../ui/lib/app-proxy'
 import {
@@ -633,6 +634,7 @@ import {
 } from '../local-storage'
 import { t } from '../i18n'
 import { TranslationKey } from '../i18n-resources'
+import { CanonicalRemoteVerificationError } from '../canonical-remote-verification-error'
 import {
   defaultShowBranchNameInRepoListSetting,
   ShowBranchNameInRepoListSetting,
@@ -2415,7 +2417,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
       updateAccounts(endpointTokens)
 
-      this.refreshSelectedRepositoryAfterAccountChange()
+      // Account updates are background state refreshes. A temporarily
+      // unavailable provider must not become an unhandled renderer rejection
+      // (and therefore a generic red toast) while an unrelated action runs.
+      void this.refreshSelectedRepositoryAfterAccountChange().catch(error =>
+        log.warn(
+          'Could not refresh the selected repository after an account update.',
+          error
+        )
+      )
       this.autoCloneStore.dataChanged()
 
       this.emitUpdate()
@@ -7840,6 +7850,54 @@ export class AppStore extends TypedBaseStore<IAppState> {
     this.emitUpdate()
   }
 
+  /**
+   * Surface a fail-closed canonical-remote preflight as an actionable warning,
+   * not an unexplained renderer failure. No remote URL is copied into either
+   * the transient notice or persisted history.
+   */
+  public _showCanonicalRemoteWarning(
+    error: CanonicalRemoteVerificationError
+  ): void {
+    const repository =
+      (this.selectedRepository instanceof Repository &&
+      this.selectedRepository.id === error.repositoryId
+        ? this.selectedRepository
+        : this.repositories.find(
+            candidate => candidate.id === error.repositoryId
+          )) ?? null
+
+    if (repository === null) {
+      this.emitError(
+        new Error(
+          'Desktop Material could not find the repository whose remote needs attention.'
+        )
+      )
+      return
+    }
+
+    const title = t('remoteVerification.warningTitle')
+    const message = t('remoteVerification.warningBody')
+    this.errorNotices = enqueueErrorNotice(this.errorNotices, {
+      title,
+      message,
+      severity: 'warning',
+      dedupeKey: `canonical-remote-warning:${repository.id}`,
+      action: {
+        kind: 'edit-repository-remotes',
+        repositoryId: repository.id,
+        label: t('remoteVerification.changeUrl'),
+      },
+    }).notices
+    this.postNotification({
+      kind: 'info',
+      title,
+      body: message,
+      repositoryId: repository.id,
+      action: { kind: 'open-repository', repositoryId: repository.id },
+    })
+    this.emitUpdate()
+  }
+
   /** Remove a verified stale index lock for one idle repository. */
   public async _removeRepositoryLock(
     repositoryId: number,
@@ -8940,8 +8998,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
 
     if (apiRepo === null) {
       if (requireCanonicalRemote) {
-        throw new Error(
-          'GitHub could not verify the configured repository URL before the network operation.'
+        throw new CanonicalRemoteVerificationError(
+          repository.id,
+          'provider-unverified'
         )
       }
       // If the request fails, we want to preserve the existing GitHub
@@ -8962,8 +9021,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         `Could not prove the canonical URL for transferred repository remote '${matchedRemote.name}' (${remoteUpdate}). The next provider refresh will retry.`
       )
       if (requireCanonicalRemote) {
-        throw new Error(
-          'Git could not safely verify or update the transferred repository URL.'
+        throw new CanonicalRemoteVerificationError(
+          repository.id,
+          'unsafe-remote-update'
         )
       }
     }
@@ -14812,74 +14872,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return account
   }
 
-  /**
-   * What an about-to-run pin should do about encryption for this repository.
-   *
-   * `null` means "pin exactly as before" — the overwhelmingly common answer,
-   * and the one that takes no new branch anywhere downstream. Encryption is on
-   * only when this repository's own preference says so *and* the irreversible-
-   * loss gate was confirmed; a repository configured for encryption whose
-   * passphrase is not available throws instead of uploading readable bytes.
-   */
-  private async resolveCheapLfsPinEncryption(
-    repository: Repository
-  ): Promise<ICheapLfsPinEncryption | null> {
-    const preferences = repository.buildRunPreferences
-    const decision = decideCheapLfsEncryption({
-      enabled: preferences.cheapLfsEncryption,
-      acknowledgedIrreversible: preferences.cheapLfsEncryptionAcknowledged,
-      savePassphrase: preferences.cheapLfsEncryptionSavePassphrase,
-    })
-    if (decision === 'plaintext') {
-      return null
-    }
-    if (decision === 'blocked-needs-acknowledgement') {
-      throw new CheapLfsEncryptionGateError()
-    }
-    const passphrase = await resolveCheapLfsPassphrase(
-      repository.id,
-      preferences.cheapLfsEncryptionSavePassphrase === true,
-      // A background commit cannot open a modal and wait for it, so an
-      // unavailable passphrase is refused with a reason rather than guessed at.
-      // The vault being locked, missing, or throwing lands here too.
-      async () => null
-    )
-    if (passphrase === null) {
-      throw new Error(
-        'This repository encrypts its large files, and its passphrase is not available on this machine right now. Unlock encryption in Repository settings → Cheap LFS and commit again; nothing was uploaded and no file was replaced.'
-      )
-    }
-    return { password: passphrase }
-  }
-
-  /**
-   * Record the passphrase the user just confirmed in the encryption gate.
-   *
-   * Held for this app session, and additionally written to the OS credential
-   * vault when the user ticked "remember". It never reaches the profile
-   * settings store, `localStorage`, or any file — see
-   * `app/src/lib/cheap-lfs/passphrase-vault.ts` for why that matters here.
-   */
-  public async _setCheapLfsEncryptionPassphrase(
-    repository: Repository,
-    passphrase: string,
-    remember: boolean
-  ): Promise<CheapLfsPassphraseSaveOutcome | null> {
-    unlockCheapLfsPassphraseForSession(repository.id, passphrase)
-    if (!remember) {
-      return null
-    }
-    return await saveCheapLfsPassphrase(repository.id, passphrase)
-  }
-
-  /** Delete this repository's saved passphrase and lock the session copy. */
-  public async _forgetCheapLfsEncryptionPassphrase(
-    repository: Repository
-  ): Promise<boolean> {
-    lockCheapLfsPassphraseSession(repository.id)
-    return await forgetCheapLfsPassphrase(repository.id)
-  }
-
   private requireCheapLfsReadAccount(repository: Repository): Account {
     const account = getGitHubReleasesReadAccount(repository, this.accounts)
     if (account === null) {
@@ -14889,6 +14881,158 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
     }
     return account
+  }
+
+  /** Ask through the masked popup and settle even if its surface is removed. */
+  private promptForCheapLfsPayloadPassword(
+    repository: Repository,
+    purpose: CheapLfsPayloadPasswordPurpose
+  ): Promise<{
+    readonly password: Buffer
+    readonly rememberPassword: boolean
+  } | null> {
+    return new Promise(resolve => {
+      let settled = false
+      const settle = (
+        password: Buffer | undefined,
+        rememberPassword: boolean
+      ) => {
+        if (settled) {
+          password?.fill(0)
+          return
+        }
+        settled = true
+        resolve(password === undefined ? null : { password, rememberPassword })
+      }
+
+      void this._showPopup({
+        type: PopupType.CheapLfsPayloadPassword,
+        repository,
+        purpose,
+        onSubmit: settle,
+        onRemoved: () => settle(undefined, false),
+      }).catch(error => {
+        settle(undefined, false)
+        this.emitError(
+          error instanceof Error ? error : new Error(String(error))
+        )
+      })
+    })
+  }
+
+  private cheapLfsPasswordPromptCanceled(): Error {
+    const error = new Error('The Cheap LFS password prompt was canceled.')
+    error.name = 'AbortError'
+    return error
+  }
+
+  /**
+   * Resolve one operation-scoped password. An unsaved prompt result is never
+   * cached; the caller owns it and must zero it in `finally`.
+   */
+  private async acquireCheapLfsEncryptionPassword(
+    repository: Repository,
+    requiredForEncryptedPointer: boolean = false
+  ): Promise<ICheapLfsOperationPassword | undefined> {
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    if (
+      !requiredForEncryptedPointer &&
+      (getCheapLfsStorageProvider(preferences) !== 'release' ||
+        preferences.cheapLfsPayloadEncryption !== true)
+    ) {
+      return undefined
+    }
+
+    const credential = await acquireCheapLfsOperationPassword(
+      repository,
+      requiredForEncryptedPointer ? 'decrypt' : 'encrypt',
+      purpose => this.promptForCheapLfsPayloadPassword(repository, purpose),
+      () =>
+        this.postPersistentErrorNotice(
+          t('cheapLfs.encryption.title'),
+          t('cheapLfs.encryption.saveUnavailable'),
+          `cheap-lfs-password-save-unavailable:${repository.id}`,
+          repository.id
+        )
+    )
+    if (credential === null) {
+      throw this.cheapLfsPasswordPromptCanceled()
+    }
+    return credential
+  }
+
+  /**
+   * Materialization follows the pointer's immutable storage contract, not the
+   * repository's setting for future uploads. Legacy plaintext pointers must
+   * therefore stay restorable without an encryption prompt.
+   */
+  private acquireCheapLfsMaterializationPassword(
+    repository: Repository,
+    pointer: ICheapLfsPointer
+  ): Promise<ICheapLfsOperationPassword | undefined> {
+    return isEncryptedCheapLfsPointer(pointer)
+      ? this.acquireCheapLfsEncryptionPassword(repository, true)
+      : Promise.resolve(undefined)
+  }
+
+  private shouldReplaceStaleCheapLfsEncryptionPassword(
+    credential: ICheapLfsOperationPassword | undefined,
+    error: unknown
+  ): boolean {
+    return (
+      credential?.source === 'vault' && isOnlyCheapLfsAuthenticationError(error)
+    )
+  }
+
+  /**
+   * A vault password that fails authentication is never retried silently.
+   * Confirm its removal, then collect a fresh one-shot/savable password.
+   */
+  private async replaceStaleCheapLfsEncryptionPassword(
+    repository: Repository
+  ): Promise<ICheapLfsOperationPassword | null> {
+    const confirmation = await this.promptForCheapLfsPayloadPassword(
+      repository,
+      'forget-stale'
+    )
+    if (confirmation === null) {
+      return null
+    }
+    confirmation.password.fill(0)
+
+    const forgotten = await forgetSavedCheapLfsPayloadPassword(repository)
+    if (forgotten === 'unavailable') {
+      this.postPersistentErrorNotice(
+        t('cheapLfs.encryption.title'),
+        t('cheapLfs.encryption.forgetUnavailable'),
+        `cheap-lfs-password-forget-unavailable:${repository.id}`,
+        repository.id
+      )
+      return null
+    }
+
+    return (
+      (await this.acquireCheapLfsEncryptionPassword(repository, true)) ?? null
+    )
+  }
+
+  /** Persist a prompted decrypt password only after its GCM tag verified. */
+  private async rememberVerifiedCheapLfsEncryptionPassword(
+    repository: Repository,
+    credential: ICheapLfsOperationPassword | undefined
+  ): Promise<void> {
+    if (credential?.rememberPassword !== true) {
+      return
+    }
+    if (!(await saveCheapLfsPayloadPassword(repository, credential.password))) {
+      this.postPersistentErrorNotice(
+        t('cheapLfs.encryption.title'),
+        t('cheapLfs.encryption.saveUnavailable'),
+        `cheap-lfs-password-save-unavailable:${repository.id}`,
+        repository.id
+      )
+    }
   }
 
   /** This shouldn't be called directly. See `Dispatcher`. */
@@ -14920,19 +15064,34 @@ export class AppStore extends TypedBaseStore<IAppState> {
     try {
       if (provider === 'release') {
         const account = this.requireCheapLfsAccount(repository)
-        return await this.withTemporaryRepositoryMutationGuard(repository, () =>
-          pinFileToRelease(
-            this.githubReleasesStore,
+        const ownedCredential =
+          options.encryptionPassword === undefined
+            ? await this.acquireCheapLfsEncryptionPassword(repository)
+            : undefined
+        try {
+          return await this.withTemporaryRepositoryMutationGuard(
             repository,
-            account,
-            options,
-            signal,
-            onProgress,
-            undefined,
-            onStage,
-            onHashProgress
+            () =>
+              pinFileToRelease(
+                this.githubReleasesStore,
+                repository,
+                account,
+                ownedCredential === undefined
+                  ? options
+                  : {
+                      ...options,
+                      encryptionPassword: ownedCredential.password,
+                    },
+                signal,
+                onProgress,
+                undefined,
+                onStage,
+                onHashProgress
+              )
           )
-        )
+        } finally {
+          ownedCredential?.password.fill(0)
+        }
       }
 
       const selectedSource = Path.resolve(options.absoluteFilePath)
@@ -15061,27 +15220,58 @@ export class AppStore extends TypedBaseStore<IAppState> {
       )
     }
     if (entry.kind === 'release') {
-      return await materializePointer(
-        this.githubReleasesStore,
+      const ownedCredential = await this.acquireCheapLfsMaterializationPassword(
         repository,
-        this.requireCheapLfsReadAccount(repository),
-        entry.relativePath,
-        signal,
-        onProgress,
-        defaultCheapLfsFileSystem,
-        releaseCache,
-        // Consulted only when the pointer itself names encrypted assets. A
-        // saved or session-unlocked passphrase restores silently; anything else
-        // resolves to `null`, which cancels the restore and leaves the pointer
-        // in place rather than writing partial bytes over the user's file.
-        () =>
-          resolveCheapLfsPassphrase(
-            repository.id,
-            repository.buildRunPreferences.cheapLfsEncryptionSavePassphrase ===
-              true,
-            async () => null
-          )
+        entry.pointer
       )
+      const materialize = async (
+        credential: ICheapLfsOperationPassword | undefined
+      ) => {
+        const result = await materializePointer(
+          this.githubReleasesStore,
+          repository,
+          this.requireCheapLfsReadAccount(repository),
+          entry.relativePath,
+          signal,
+          onProgress,
+          defaultCheapLfsFileSystem,
+          releaseCache,
+          credential?.password
+        )
+        await this.rememberVerifiedCheapLfsEncryptionPassword(
+          repository,
+          credential
+        )
+        return result
+      }
+      try {
+        try {
+          return await materialize(ownedCredential)
+        } catch (error) {
+          if (
+            !this.shouldReplaceStaleCheapLfsEncryptionPassword(
+              ownedCredential,
+              error
+            )
+          ) {
+            throw error
+          }
+
+          const replacement = await this.replaceStaleCheapLfsEncryptionPassword(
+            repository
+          )
+          if (replacement === null) {
+            throw error
+          }
+          try {
+            return await materialize(replacement)
+          } finally {
+            replacement.password.fill(0)
+          }
+        }
+      } finally {
+        ownedCredential?.password.fill(0)
+      }
     }
     const result = await this.cheapLfsOciSessionRunner(
       {
@@ -15935,7 +16125,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
           }
           const actualTotal =
             entry.pointer.parts?.reduce(
-              (sum, part) => sum + cheapLfsPartStoredSizeInBytes(part),
+              (sum, part) =>
+                sum +
+                (part.storedSizeInBytes ??
+                  part.deflatedSizeInBytes ??
+                  part.sizeInBytes),
               0
             ) ?? entry.pointer.sizeInBytes
           actualByPath.set(entry.relativePath, {
@@ -16368,6 +16562,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         .map(file => file.path)
     )
     const selectedStorageProvider = getCheapLfsStorageProvider(prefs)
+    let encryptionPassword: Buffer | undefined
     let storageRecommendation: ICheapLfsStorageRecommendation | null = null
     // Set only after a first-publish anchor actually ran; see the re-review
     // below for why an inventory read before that point cannot be trusted.
@@ -16421,7 +16616,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         onHashProgress?: (processedBytes: number) => void,
         laneIndex: number = 0
       ) => {
-        const encryption = await this.resolveCheapLfsPinEncryption(repository)
         const result = await pinFileToRelease(
           this.githubReleasesStore,
           repository,
@@ -16434,7 +16628,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               'assets',
             ...(releaseReview === null ? {} : { releaseReview }),
             retainSourceForRestore: true,
-            ...(encryption === null ? {} : { encryption }),
+            ...(encryptionPassword === undefined ? {} : { encryptionPassword }),
           },
           signal,
           onProgress,
@@ -16657,6 +16851,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const releaseEligibleTargets = preflightTargets.filter(
         target => !partialFailurePaths.has(target.relativePath)
       )
+      if (releaseEligibleTargets.length > 0) {
+        encryptionPassword = (
+          await this.acquireCheapLfsEncryptionPassword(repository)
+        )?.password
+      }
       const anchor: ICheapLfsReleaseAnchorOutcome =
         releaseEligibleTargets.length === 0
           ? { failure: null, anchored: false }
@@ -16777,6 +16976,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
               trackedRelativePath: target.relativePath,
               releaseTag: 'assets',
               ...(releaseReview === null ? {} : { releaseReview }),
+              ...(encryptionPassword === undefined
+                ? {}
+                : { encryptionPassword }),
             })
           ),
           controller.signal,
@@ -16874,6 +17076,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         alreadyStoredPaths: alreadyStored,
       }
     } finally {
+      encryptionPassword?.fill(0)
       this.cheapLfsManualUploadRequests.delete(repository.id)
       if (this.cheapLfsCommitControllers.get(repository.id) === controller) {
         this.cheapLfsCommitControllers.delete(repository.id)

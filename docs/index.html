@@ -2104,7 +2104,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Quality and reliability
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>7</strong>
+            <strong>9</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/quality-and-reliability/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -2113,6 +2113,22 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             >
           </p>
           <ul class="doc-list">
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/canonical-remote-preflight-warning.html"
+                ><span class="doc-link__title"
+                  >Canonical remote preflight warning</span
+                ><span class="doc-link__desc"
+                  >Network mutations that depend on a GitHub repository
+                  association now fail closed when Desktop Material cannot prove
+                  the configured remote's canonical destination. Instead
+                  of…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/canonical-remote-preflight-warning.md</span
+                ></a
+              >
+            </li>
             <li>
               <a
                 class="doc-link"
@@ -2219,6 +2235,21 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                 ></a
               >
             </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/quality-and-reliability/root-renderer-resource-lifecycle.html"
+                ><span class="doc-link__title"
+                  >Root renderer resource lifecycle</span
+                ><span class="doc-link__desc"
+                  >The root App owns every long-lived renderer subscription and
+                  polling timer it starts. Store, updater, drag-manager, and IPC
+                  listeners are collected in one CompositeDisposable;…</span
+                ><span class="doc-link__path"
+                  >features/quality-and-reliability/root-renderer-resource-lifecycle.md</span
+                ></a
+              >
+            </li>
           </ul>
         </section>
         <section
@@ -2231,7 +2262,7 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
             Repository management
           </h3>
           <p class="md-body subpanel__meta">
-            <strong>29</strong>
+            <strong>30</strong>
             <span class="i18n-inline" data-i18n="docsCount">documents</span> ·
             <a href="features/repository-management/"
               ><span class="i18n-inline" data-i18n="categoryIndex"
@@ -2313,6 +2344,22 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
                   Container Registry (GHCR) or Docker Hub. Select GHCR…</span
                 ><span class="doc-link__path"
                   >features/repository-management/cheap-lfs-oci-registry-backend.md</span
+                ></a
+              >
+            </li>
+            <li>
+              <a
+                class="doc-link"
+                href="features/repository-management/cheap-lfs-release-payload-encryption.html"
+                ><span class="doc-link__title"
+                  >Cheap LFS Release payload encryption</span
+                ><span class="doc-link__desc"
+                  >Desktop Material can encrypt newly uploaded GitHub
+                  Release-backed Cheap LFS payloads with a repository-scoped
+                  password. The option is deliberately off by default and
+                  applies…</span
+                ><span class="doc-link__path"
+                  >features/repository-management/cheap-lfs-release-payload-encryption.md</span
                 ></a
               >
             </li>
@@ -4205,9 +4252,10 @@ Desktop Material is a Windows-only Material Design 3 remake of GitHub Desktop.</
               <a class="doc-link" href="wiki/Developer-Guide.html"
                 ><span class="doc-link__title">Developer Guide</span
                 ><span class="doc-link__desc"
-                  >This page is for contributors. It describes how Desktop
-                  Material is put together and how to build and run it. Desktop
-                  Material is a fork of desktop/desktop (MIT), so much of…</span
+                  >Long-lived work created by the root renderer must be released
+                  at the same lifecycle boundary. Store/updater/drag/IPC
+                  listeners belong in the root CompositeDisposable;
+                  polling…</span
                 ><span class="doc-link__path">wiki/Developer-Guide.md</span></a
               >
             </li>

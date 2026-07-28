@@ -37,6 +37,9 @@ export interface IErrorNotice {
   readonly createdAt: number
   readonly updatedAt: number
 
+  /** Warning notices share the same bounded, non-modal stack without red error chrome. */
+  readonly severity?: 'error' | 'warning'
+
   /** Optional narrowly-scoped recovery offered by this notice. */
   readonly action?: IErrorNoticeAction
 }
@@ -53,6 +56,12 @@ export type IErrorNoticeAction =
       /** Which recognized remediation to apply. */
       readonly fixKind: AutoFixKind
       /** Pre-localized action-button label resolved when the notice was made. */
+      readonly label: string
+    }
+  | {
+      /** Open the repository's remote manager after a fail-closed preflight. */
+      readonly kind: 'edit-repository-remotes'
+      readonly repositoryId: number
       readonly label: string
     }
   | {
@@ -73,6 +82,7 @@ export interface IErrorNoticeInput {
   readonly title?: string
   readonly message: string
   readonly details?: string | null
+  readonly severity?: 'error' | 'warning'
 
   /**
    * Use when several differently-worded failures represent one operation.
@@ -198,8 +208,9 @@ function normalizeInput(
     input.details,
     MaximumErrorNoticeDetailsLength
   )
+  const severity = input.severity === 'warning' ? 'warning' : 'error'
   const generatedDedupeKey = createHash('sha256')
-    .update(`${title}\u0000${message}\u0000${details ?? ''}`)
+    .update(`${severity}\u0000${title}\u0000${message}\u0000${details ?? ''}`)
     .digest('hex')
   const dedupeKey = normalizeText(
     input.dedupeKey,
@@ -217,6 +228,7 @@ function normalizeInput(
     occurrences: 1,
     createdAt: now,
     updatedAt: now,
+    severity,
     ...(input.action === undefined ? {} : { action: input.action }),
   }
 }

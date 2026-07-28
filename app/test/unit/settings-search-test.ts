@@ -79,6 +79,16 @@ describe('filterSettingsEntries', () => {
     assert.ok(results.some(r => r.item.id === 'appearance-theme'))
   })
 
+  it('finds the app-wide funny levels in Appearance by both languages', () => {
+    const english = filterSettingsEntries('funny level', substring).results
+    assert.ok(english.some(r => r.item.id === 'appearance-playfulness'))
+
+    const cantonese = filterSettingsEntries('搞笑程度', substring).results
+    const match = cantonese.find(r => r.item.id === 'appearance-playfulness')
+    assert.ok(match)
+    assert.strictEqual(match!.item.tab, PreferencesTab.Appearance)
+  })
+
   it('matches settings across more than one tab for a broad query', () => {
     const results = filterSettingsEntries('auto', substring).results
     const tabs = settingsTabsWithMatches(results)

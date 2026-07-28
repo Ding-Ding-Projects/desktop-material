@@ -111,7 +111,6 @@ import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
 } from '../../lib/i18n'
-import { IFunnyLevels, readFunnyLevels } from '../../lib/funny-level-text'
 
 interface IPreferencesProps {
   readonly dispatcher: Dispatcher
@@ -250,13 +249,6 @@ interface IPreferencesState {
   readonly settingsSearchCaseSensitive: boolean
   /** The active language mode, kept in sync with the persisted preference. */
   readonly languageMode: LanguageMode
-  /**
-   * Per-language playfulness, 1 (fully serious) .. 5 (maximum). Edited on the
-   * Appearance tab and written straight through to the persisted audio
-   * settings, which remain the single source of truth for both the written
-   * copy and the optional spoken narrator.
-   */
-  readonly funnyLevels: IFunnyLevels
 }
 
 /**
@@ -363,7 +355,6 @@ export class Preferences extends React.Component<
       ),
       settingsSearchCaseSensitive: false,
       languageMode: getPersistedLanguageMode(),
-      funnyLevels: readFunnyLevels(),
     }
   }
 
@@ -978,8 +969,7 @@ export class Preferences extends React.Component<
             }
             branchSortOrder={this.state.branchSortOrder}
             onBranchSortOrderChanged={this.onBranchSortOrderChanged}
-            funnyLevels={this.state.funnyLevels}
-            onFunnyLevelsChanged={this.onFunnyLevelsChanged}
+            funnyLevelSettingsStore={getAudioCueStore()}
           />
         )
         break
@@ -1298,21 +1288,6 @@ export class Preferences extends React.Component<
 
   private onBranchSortOrderChanged = (branchSortOrder: BranchSortOrder) => {
     this.setState({ branchSortOrder })
-  }
-
-  /**
-   * Persist a tone change immediately (like the other audio-system settings)
-   * rather than deferring it to Save, and write it through the audio store so
-   * the running narrator and the written copy never disagree about the level.
-   */
-  private onFunnyLevelsChanged = (funnyLevels: IFunnyLevels) => {
-    const store = getAudioCueStore()
-    store.setSettings({
-      ...store.getSettings(),
-      funnyLevelEnglish: funnyLevels.english,
-      funnyLevelCantonese: funnyLevels.cantonese,
-    })
-    this.setState({ funnyLevels })
   }
 
   private onShowCommitAuthorInfoChanged = (showCommitAuthorInfo: boolean) => {

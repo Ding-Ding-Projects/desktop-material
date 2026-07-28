@@ -5,6 +5,11 @@ contracts that span more than one user workflow.
 
 ## Features
 
+- [Root renderer resource
+  lifecycle](root-renderer-resource-lifecycle.md) — make store, updater,
+  drag-manager, and IPC subscriptions disposable; retain and clear deferred
+  polling timers; and release document/window handlers that otherwise keep a
+  stale root renderer alive after unmount.
 - [Responsiveness and resource
   lifecycle](responsiveness-and-resource-lifecycle.md) — avoid redundant remote
   discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,
@@ -34,6 +39,11 @@ contracts that span more than one user workflow.
   non-fast-forward push, forbidden org-remote push, detached-HEAD commit),
   proposes a safety-classed remediation, and surfaces a localized one-click
   "Fix it" action on the transient error notice without ever force-pushing.
+- [Canonical remote preflight
+  warning](canonical-remote-preflight-warning.md) — stop a protected network
+  mutation before Git runs when the remote destination cannot be proven, then
+  show a persistent yellow non-blocking warning with a repository-scoped
+  **Change remote URL** action and no credential-bearing URL text.
 - [Git hook execution environment](git-hook-execution.md) — proxy the
   repository's own hooks through the user's configured shell, spool hook
   standard input to a real file so the bundled Windows Git can open it, and

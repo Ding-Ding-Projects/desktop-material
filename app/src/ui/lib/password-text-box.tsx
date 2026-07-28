@@ -3,6 +3,7 @@ import { ITextBoxProps, TextBox } from './text-box'
 import { Button } from './button'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
+import { t, translateForAccessibleName } from '../../lib/i18n'
 
 interface IPasswordTextBoxState {
   /**
@@ -40,8 +41,8 @@ export class PasswordTextBox extends React.Component<
       <div className="password-text-box">
         <TextBox {...props} ref={this.textBoxRef} />
         <Button
-          ariaLabel="Toggle password visibility"
-          tooltip="Toggle password visibility"
+          ariaLabel={translateForAccessibleName('password.visibilityToggle')}
+          tooltip={t('password.visibilityToggle')}
           onClick={this.onTogglePasswordVisibility}
           ariaPressed={this.state.showPassword}
         >

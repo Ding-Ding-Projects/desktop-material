@@ -1052,6 +1052,111 @@
       color: var(--md-sys-color-on-surface-variant);
       font-size: var(--font-size-sm);
     }
+
+    .appearance-playfulness-card {
+      min-width: 0;
+      margin-top: var(--spacing);
+      padding: 16px;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: 20px;
+      background: var(--md-sys-color-surface-container-low);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .appearance-playfulness-copy {
+      min-width: 0;
+
+      h3,
+      p {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+
+      h3 {
+        font-size: 15px;
+        font-weight: var(--font-weight-semibold);
+      }
+
+      p {
+        margin-top: 4px;
+        color: var(--md-sys-color-on-surface-variant);
+        font-size: var(--font-size-sm);
+        line-height: 1.45;
+      }
+    }
+
+    .appearance-playfulness-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: var(--spacing);
+      min-width: 0;
+      margin-top: var(--spacing);
+    }
+
+    .appearance-playfulness-control {
+      min-width: 0;
+      padding: 12px;
+      border-radius: 16px;
+      background: var(--md-sys-color-surface-container);
+    }
+
+    .appearance-playfulness-label-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: var(--spacing-half);
+      min-width: 0;
+
+      label {
+        min-width: 0;
+        color: var(--md-sys-color-on-surface);
+        font-weight: var(--font-weight-medium);
+        overflow-wrap: anywhere;
+      }
+
+      output {
+        flex: 0 0 32px;
+        min-width: 32px;
+        padding: 2px 7px;
+        border-radius: 999px;
+        background: var(--md-sys-color-primary-container);
+        color: var(--md-sys-color-on-primary-container);
+        font-variant-numeric: tabular-nums;
+        font-weight: var(--font-weight-semibold);
+        text-align: center;
+      }
+    }
+
+    .appearance-playfulness-slider {
+      width: 100%;
+      min-width: 0;
+      margin: 10px 0 0;
+    }
+
+    .appearance-playfulness-scale {
+      display: flex;
+      justify-content: space-between;
+      gap: var(--spacing-half);
+      min-width: 0;
+      margin-top: 2px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: 11px;
+
+      span {
+        min-width: 0;
+        overflow-wrap: anywhere;
+
+        &:last-child {
+          text-align: right;
+        }
+      }
+    }
+
+    @media (max-width: 660px) {
+      .appearance-playfulness-grid {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
   }
 
   // Tone: the two per-language funny-level sliders, sitting directly under the

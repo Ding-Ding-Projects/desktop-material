@@ -13,11 +13,47 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 28 root renderer resource audit — **Focused gates green; build blocked by missing dependencies**
+
+Root renderer subscriptions, IPC listeners, global document/window handlers,
+and deferred telemetry/update polling now have deterministic unmount cleanup.
+Queued idle and animation-frame work cannot resurrect those resources after the
+root has unmounted. Focused lifecycle coverage passes **4/4** and changed-file
+ESLint is clean. The Lowlevel MCP production build was attempted headlessly and
+stopped at the dependency gate because this checkout has no local dependency
+tree; built-app capture and remote CI are not yet claimed.
+
+## July 27 encryption, observed network actions, and tone controls — **Local gates green; visual and remote acceptance pending**
+
+- **#78:** GitHub Release-backed Cheap LFS payload encryption is optional and
+  uses AES-256-GCM. Credentials are operation-scoped by default, with Windows
+  credential-vault storage only after explicit opt-in. Legacy pointers remain
+  compatible, plaintext legacy restores do not prompt, and mixed
+  authentication plus cleanup failures fail closed.
+- **#80:** push, fetch, and pull promises are observed. An invalid canonical
+  remote produces a persistent yellow warning with a **Change remote URL**
+  action instead of an unhandled background failure.
+- **#83:** English and Cantonese again have independent persisted funny-level
+  sliders, each spanning 1–5.
+- **#81 and #82:** deliberately deferred to a later continuation.
+
+Local verification is **194/194 focused tests** and **6768/6768 full tests
+across 831 files**; TypeScript and `yarn lint` are clean. Packaged visual
+evidence and remote CI are not yet claimed. #78, #80, and #83 remain open until
+real built-app screenshots are captured.
 ## July 27–28 encryption, group management, lazy loading, tone controls — **Merged and pushed, visual evidence outstanding**
 
 Five issues landed on `main` in one sweep. Each is locally green; none of the
 surfaces with a visible component has a real capture yet, so the issues remain
 open rather than being closed on test evidence alone.
+
+Two of them were then **superseded**. The repository owner independently
+implemented #78 and #83 and pushed `a550dc1ea8`, which deleted this branch's
+encryption module, encryption gate, funny-level controls and their test suites
+in favour of its own. The owner's implementation is the one that ships; the
+descriptions of #78 and #83 below record what this branch built and why, not
+what is now in the tree. #80, #81, #82 and #85 were not covered by those
+commits and survive as described.
 
 - **#78 optional passphrase encryption for Cheap LFS payloads.** AES-256-GCM
   with scrypt at 2^17, fresh salt and nonce per call, passphrase held only in

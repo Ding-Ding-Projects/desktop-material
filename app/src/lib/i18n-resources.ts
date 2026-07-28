@@ -50,30 +50,13 @@ export type TranslationKey =
   | 'appearance.languageMode'
   | 'appearance.languageModeDescription'
   | 'appearance.languageAndNavigation'
-  | 'appearance.toneHeading'
-  | 'appearance.toneDescription'
-  | 'appearance.toneEnglishLabel'
-  | 'appearance.toneCantoneseLabel'
-  | 'appearance.toneLevelName1'
-  | 'appearance.toneLevelName2'
-  | 'appearance.toneLevelName3'
-  | 'appearance.toneLevelName4'
-  | 'appearance.toneLevelName5'
-  | 'appearance.toneValueText'
-  | 'appearance.toneScaleMin'
-  | 'appearance.toneScaleMax'
-  | 'appearance.tonePreviewHeading'
-  | 'appearance.tonePreviewEnglishLabel'
-  | 'appearance.tonePreviewCantoneseLabel'
-  | 'appearance.tonePreviewWarningLabel'
-  | 'appearance.tonePreview.plain'
-  | 'appearance.tonePreview.light'
-  | 'appearance.tonePreview.playful'
-  | 'appearance.toneWarningPreview.plain'
-  | 'appearance.toneWarningPreview.light'
-  | 'appearance.toneWarningPreview.playful'
-  | 'appearance.toneWarningFixed'
-  | 'appearance.toneNarratorNote'
+  | 'appearance.playfulnessHeading'
+  | 'appearance.playfulnessDescription'
+  | 'appearance.englishPlayfulness'
+  | 'appearance.cantonesePlayfulness'
+  | 'appearance.playfulnessValue'
+  | 'appearance.playfulnessSerious'
+  | 'appearance.playfulnessMaximum'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
   | 'appearance.toolbarEditorTitle'
@@ -177,6 +160,22 @@ export type TranslationKey =
   | 'tabs.overflowButton'
   | 'tabs.overflowButtonLabel'
   | 'tabs.overflowTitle'
+  | 'lazyView.loading.plain'
+  | 'lazyView.loading.light'
+  | 'lazyView.loading.playful'
+  | 'lazyView.failedTitle'
+  | 'lazyView.failedBody.plain'
+  | 'lazyView.failedBody.light'
+  | 'lazyView.failedBody.playful'
+  | 'lazyView.failedDetail'
+  | 'lazyView.retry'
+  | 'lazyView.notificationTitle'
+  | 'lazyView.notificationBody'
+  | 'lazyView.section.actions'
+  | 'lazyView.section.releases'
+  | 'lazyView.section.issues'
+  | 'lazyView.section.triage'
+  | 'lazyView.section.tools'
   | 'tabs.overflowDescription.plain'
   | 'tabs.overflowDescription.light'
   | 'tabs.overflowDescription.playful'
@@ -1533,7 +1532,9 @@ export type TranslationKey =
   | 'settings.soundRecordedNarrationDescription'
   | 'settings.soundPreviewNarration'
   | 'settings.soundFunnyHeading'
-  | 'settings.soundFunnyRelocated'
+  | 'settings.soundFunnyEnglishLabel'
+  | 'settings.soundFunnyCantoneseLabel'
+  | 'settings.soundFunnyHint'
   | 'settings.soundMusicHeading'
   | 'settings.soundMusicEnableTitle'
   | 'settings.soundMusicEnableDescription'
@@ -2008,40 +2009,56 @@ export type TranslationKey =
   | 'cheapLfs.settings.autoPinHelp'
   | 'cheapLfs.settings.parallelUploads'
   | 'cheapLfs.settings.parallelUploadsHelp'
-  | 'cheapLfs.settings.encryption'
-  | 'cheapLfs.settings.encryptionHelp'
-  | 'cheapLfs.settings.encryptionSetUp'
-  | 'cheapLfs.settings.savePassphrase'
-  | 'cheapLfs.settings.savePassphraseHelp'
-  | 'cheapLfs.settings.forgetPassphrase'
-  | 'cheapLfs.encryptionGate.title'
-  | 'cheapLfs.encryptionGate.intro.plain'
-  | 'cheapLfs.encryptionGate.intro.light'
-  | 'cheapLfs.encryptionGate.intro.playful'
-  | 'cheapLfs.encryptionGate.irreversible'
-  | 'cheapLfs.encryptionGate.pointerDisclosure'
-  | 'cheapLfs.encryptionGate.passphrase'
-  | 'cheapLfs.encryptionGate.confirmPassphrase'
-  | 'cheapLfs.encryptionGate.mismatch'
-  | 'cheapLfs.encryptionGate.empty'
-  | 'cheapLfs.encryptionGate.remember'
-  | 'cheapLfs.encryptionGate.rememberWarning'
-  | 'cheapLfs.encryptionGate.acknowledge'
-  | 'cheapLfs.encryptionGate.confirm'
-  | 'cheapLfs.encryption.enabledTitle'
-  | 'cheapLfs.encryption.enabledBody'
-  | 'cheapLfs.encryption.vaultUnavailableTitle'
-  | 'cheapLfs.encryption.vaultUnavailableBody'
-  | 'cheapLfs.encryption.forgottenTitle'
-  | 'cheapLfs.encryption.forgottenBody'
-  | 'cheapLfs.encryption.forgetFailedTitle'
-  | 'cheapLfs.encryption.forgetFailedBody'
   | 'cheapLfs.settings.ghcrStorage'
   | 'cheapLfs.settings.ghcrStorageHelp'
   | 'cheapLfs.settings.storageProvider'
   | 'cheapLfs.settings.storageRelease'
   | 'cheapLfs.settings.storageGhcr'
   | 'cheapLfs.settings.storageDockerHub'
+  | 'cheapLfs.encryption.title'
+  | 'cheapLfs.encryption.toggle'
+  | 'cheapLfs.encryption.help'
+  | 'cheapLfs.encryption.metadataNotice'
+  | 'cheapLfs.encryption.statusChecking'
+  | 'cheapLfs.encryption.statusSaved'
+  | 'cheapLfs.encryption.statusMissing'
+  | 'cheapLfs.encryption.statusUnavailable'
+  | 'cheapLfs.encryption.setPassword'
+  | 'cheapLfs.encryption.changePassword'
+  | 'cheapLfs.encryption.forgetPassword'
+  | 'cheapLfs.encryption.saved'
+  | 'cheapLfs.encryption.notSaved'
+  | 'cheapLfs.encryption.saveUnavailable'
+  | 'cheapLfs.encryption.forgot'
+  | 'cheapLfs.encryption.forgetMissing'
+  | 'cheapLfs.encryption.forgetUnavailable'
+  | 'cheapLfs.encryption.dialog.encryptTitle'
+  | 'cheapLfs.encryption.dialog.decryptTitle'
+  | 'cheapLfs.encryption.dialog.changeTitle'
+  | 'cheapLfs.encryption.dialog.forgetTitle'
+  | 'cheapLfs.encryption.dialog.staleForgetTitle'
+  | 'cheapLfs.encryption.dialog.encryptDescription'
+  | 'cheapLfs.encryption.dialog.decryptDescription'
+  | 'cheapLfs.encryption.dialog.changeDescription'
+  | 'cheapLfs.encryption.dialog.forgetDescription'
+  | 'cheapLfs.encryption.dialog.staleForgetDescription'
+  | 'cheapLfs.encryption.dialog.irreversibleWarning'
+  | 'cheapLfs.encryption.dialog.password'
+  | 'cheapLfs.encryption.dialog.confirmPassword'
+  | 'cheapLfs.encryption.dialog.remember'
+  | 'cheapLfs.encryption.dialog.rememberHelp'
+  | 'cheapLfs.encryption.dialog.irreversibleAck'
+  | 'cheapLfs.encryption.dialog.forgetAck'
+  | 'cheapLfs.encryption.dialog.staleForgetAck'
+  | 'cheapLfs.encryption.dialog.passwordRequired'
+  | 'cheapLfs.encryption.dialog.passwordMismatch'
+  | 'cheapLfs.encryption.dialog.continue'
+  | 'cheapLfs.encryption.dialog.forget'
+  | 'cheapLfs.encryption.dialog.cancel'
+  | 'password.visibilityToggle'
+  | 'remoteVerification.warningTitle'
+  | 'remoteVerification.warningBody'
+  | 'remoteVerification.changeUrl'
   | 'ignoredSubmodule.dialogTitle'
   | 'ignoredSubmodule.openAction'
   | 'ignoredSubmodule.openTooltip'
@@ -2243,11 +2260,11 @@ export type TranslationKey =
   | 'settingsSearch.entry.gitDefaultBranch.title'
   | 'settingsSearch.entry.gitDefaultBranch.desc'
   | 'settingsSearch.entry.appearanceTheme.title'
-  | 'settingsSearch.entry.appearanceTheme.desc'
   | 'settingsSearch.entry.appearanceLanguageMode.title'
   | 'settingsSearch.entry.appearanceLanguageMode.desc'
   | 'settingsSearch.entry.appearanceTone.title'
   | 'settingsSearch.entry.appearanceTone.desc'
+  | 'settingsSearch.entry.appearanceTheme.desc'
   | 'settingsSearch.entry.appearanceAccent.title'
   | 'settingsSearch.entry.appearanceAccent.desc'
   | 'settingsSearch.entry.appearanceFont.title'
@@ -2338,22 +2355,6 @@ export type TranslationKey =
   | 'largeRepo.settings.autoDetectDescription'
   | 'largeRepo.settings.autoRepack'
   | 'largeRepo.settings.autoRepackDescription'
-  | 'lazyView.loading.plain'
-  | 'lazyView.loading.light'
-  | 'lazyView.loading.playful'
-  | 'lazyView.failedTitle'
-  | 'lazyView.failedBody.plain'
-  | 'lazyView.failedBody.light'
-  | 'lazyView.failedBody.playful'
-  | 'lazyView.failedDetail'
-  | 'lazyView.retry'
-  | 'lazyView.notificationTitle'
-  | 'lazyView.notificationBody'
-  | 'lazyView.section.actions'
-  | 'lazyView.section.releases'
-  | 'lazyView.section.issues'
-  | 'lazyView.section.triage'
-  | 'lazyView.section.tools'
   | 'largeRepo.status.computing'
   | 'largeRepo.repack.progressTitle'
   | 'largeRepo.repack.progressBody'
@@ -2530,6 +2531,33 @@ export type TranslationKey =
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
+  'settingsSearch.entry.appearanceLanguageMode.title': 'Language mode',
+  'settingsSearch.entry.appearanceLanguageMode.desc':
+    'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
+  'settingsSearch.entry.appearanceTone.title': 'Funny level (tone)',
+  'settingsSearch.entry.appearanceTone.desc':
+    'Independent English and Cantonese sliders from 1 (fully serious) to 5 (maximum playfulness). Styles every message including errors and warnings, never the facts.',
+  'lazyView.loading.plain': 'Loading {name}…',
+  'lazyView.loading.light': 'Fetching {name}. The rest of the app still works.',
+  'lazyView.loading.playful':
+    'Waking {name} up. Everything else keeps working while it stretches.',
+  'lazyView.failedTitle': '{name} could not be loaded',
+  'lazyView.failedBody.plain':
+    'Nothing else in the app was affected. Select Try again to load {name} once more.',
+  'lazyView.failedBody.light':
+    'Only {name} is affected — the rest of the app is fine. Select Try again to load it once more.',
+  'lazyView.failedBody.playful':
+    '{name} tripped on the doorstep; the rest of the app never noticed. Select Try again to give it another go.',
+  'lazyView.failedDetail': 'Reported error: {error}',
+  'lazyView.retry': 'Try again',
+  'lazyView.notificationTitle': 'Could not open {name}',
+  'lazyView.notificationBody':
+    '{name} failed to load and is showing a retry button. Nothing else was affected. Reported error: {error}',
+  'lazyView.section.actions': 'Actions',
+  'lazyView.section.releases': 'Releases',
+  'lazyView.section.issues': 'Issues',
+  'lazyView.section.triage': 'Triage',
+  'lazyView.section.tools': 'Repository tools',
   'ci.status': 'CI checks: {status}',
   'ci.successful': 'successful',
   'ci.failed': 'failed',
@@ -2592,42 +2620,14 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.languageModeDescription':
     'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
   'appearance.languageAndNavigation': 'Language',
-  'appearance.toneHeading': 'Tone',
-  'appearance.toneDescription':
-    'The funny level styles every message the app writes or speaks, including errors, warnings, and destructive-action prompts. It changes the wording only: what happened, what is affected, and what your options are stay exact at every level.',
-  'appearance.toneEnglishLabel': 'English funny level',
-  'appearance.toneCantoneseLabel': 'Cantonese funny level',
-  'appearance.toneLevelName1': 'Fully serious',
-  'appearance.toneLevelName2': 'Mostly serious',
-  'appearance.toneLevelName3': 'Lightly playful',
-  'appearance.toneLevelName4': 'Playful',
-  'appearance.toneLevelName5': 'Maximum playfulness',
-  'appearance.toneValueText': 'Level {level} of 5, {name}',
-  'appearance.toneScaleMin': '1 · serious',
-  'appearance.toneScaleMax': '5 · playful',
-  'appearance.tonePreviewHeading': 'Preview',
-  'appearance.tonePreviewEnglishLabel': 'English at level {level}',
-  'appearance.tonePreviewCantoneseLabel': 'Cantonese at level {level}',
-  'appearance.tonePreviewWarningLabel': 'A warning at this level',
-  // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
-  // playful). Every band reports the same 3 commits going to the same
-  // origin/main, because the voice moves and the facts never do.
-  'appearance.tonePreview.plain': 'Pushed 3 commits to origin/main.',
-  'appearance.tonePreview.light': 'Pushed 3 commits to origin/main. Tidy.',
-  'appearance.tonePreview.playful':
-    'Lobbed 3 commits at origin/main. They went quietly.',
-  // Same three bands for a destructive warning. The count and the repository
-  // name appear in all three, and the sentence that says the action is
-  // irreversible is the separate fixed string below, identical at every level.
-  'appearance.toneWarningPreview.plain':
-    'Discarding 3 changed files in desktop-material.',
-  'appearance.toneWarningPreview.light':
-    'About to discard 3 changed files in desktop-material.',
-  'appearance.toneWarningPreview.playful':
-    'Waving goodbye to 3 changed files in desktop-material.',
-  'appearance.toneWarningFixed': 'This cannot be undone.',
-  'appearance.toneNarratorNote':
-    'The spoken narrator uses this same tone. Its own switches — volume, cooldown, and whether it speaks at all — live in the Sound tab.',
+  'appearance.playfulnessHeading': 'Playfulness',
+  'appearance.playfulnessDescription':
+    'Choose each language’s tone independently. 1 stays fully serious; 5 is maximum fun. Facts, errors, and safety messages stay clear at every level.',
+  'appearance.englishPlayfulness': 'English playfulness',
+  'appearance.cantonesePlayfulness': 'Cantonese playfulness',
+  'appearance.playfulnessValue': 'Level {value} of 5',
+  'appearance.playfulnessSerious': '1 · Fully serious',
+  'appearance.playfulnessMaximum': '5 · Maximum fun',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
   'appearance.toolbarEditorTitle': 'Toolbar appearance',
@@ -4462,8 +4462,10 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Play the pre-recorded voice lines and their melodies that ship with the app instead of live speech synthesis. Falls back to live narration automatically when a clip is unavailable.',
   'settings.soundPreviewNarration': 'Preview narration',
   'settings.soundFunnyHeading': 'Narrator tone',
-  'settings.soundFunnyRelocated':
-    'The narrator speaks at the funny level set in Appearance › Tone, where the English and Cantonese sliders live. One level styles every message in the app, spoken or written, so it is set in one place.',
+  'settings.soundFunnyEnglishLabel': 'English playfulness',
+  'settings.soundFunnyCantoneseLabel': 'Cantonese playfulness',
+  'settings.soundFunnyHint':
+    '1 is fully serious, 5 is maximum fun. Errors always stay clear.',
   'settings.soundMusicHeading': 'Per-repository music',
   'settings.soundMusicEnableTitle': 'Play themed music',
   'settings.soundMusicEnableDescription':
@@ -5185,55 +5187,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.parallelUploads': 'Upload up to 3 large files at once',
   'cheapLfs.settings.parallelUploadsHelp':
     'Uses up to three independent Cheap LFS transfer lanes. Turn this off to upload one file at a time.',
-  'cheapLfs.settings.encryption':
-    'Encrypt this repository’s large files with a passphrase',
-  'cheapLfs.settings.encryptionHelp':
-    'Payloads are encrypted on this machine before upload, so the release asset holds ciphertext. The committed pointer still records the file’s size and SHA-256 in the clear, and the stored container’s own size and SHA-256, so anyone can check the stored object is intact without the passphrase.',
-  'cheapLfs.settings.encryptionSetUp': 'Set up encryption…',
-  'cheapLfs.settings.savePassphrase':
-    'Remember the passphrase in this computer’s credential manager',
-  'cheapLfs.settings.savePassphraseHelp':
-    'The passphrase is stored only in the operating system credential manager, never in a settings file and never in Desktop Material’s settings history. Anyone who can sign in to this machine account can then decrypt these files.',
-  'cheapLfs.settings.forgetPassphrase': 'Forget the saved passphrase',
-  'cheapLfs.encryptionGate.title': 'Encrypt large files in {repository}',
-  'cheapLfs.encryptionGate.intro.plain':
-    'Large files pinned from this repository will be encrypted on this computer before they are uploaded. Choose a passphrase.',
-  'cheapLfs.encryptionGate.intro.light':
-    'From here on, this repository’s big files get sealed up on this computer before they go anywhere. Pick a passphrase.',
-  'cheapLfs.encryptionGate.intro.playful':
-    'Your big files are about to go into a box that only your passphrase opens, sealed right here before anything leaves the building. Pick that passphrase carefully.',
-  // Fixed wording at every funny level and in both languages. There is no band
-  // of humour in which "you cannot get this back" is allowed to read as a
-  // maybe, so this string has no variants.
-  'cheapLfs.encryptionGate.irreversible':
-    'If you lose this passphrase, these files cannot be recovered. There is no reset, no backup key, no recovery code, and nobody at Desktop Material or GitHub can open them for you. Write it down somewhere safe before you continue.',
-  'cheapLfs.encryptionGate.pointerDisclosure':
-    'What encryption does not hide: the pointer committed to Git still records each file’s exact byte size and SHA-256, so someone who already has a copy of a file can confirm it is stored here.',
-  'cheapLfs.encryptionGate.passphrase': 'Passphrase',
-  'cheapLfs.encryptionGate.confirmPassphrase': 'Type the passphrase again',
-  'cheapLfs.encryptionGate.mismatch':
-    'The two passphrases are different. Nothing has been enabled.',
-  'cheapLfs.encryptionGate.empty': 'Enter a passphrase to continue.',
-  'cheapLfs.encryptionGate.remember':
-    'Remember it in this computer’s credential manager',
-  'cheapLfs.encryptionGate.rememberWarning':
-    'Saving it means anyone who can sign in to this machine account can decrypt these files. It is stored in the operating system credential manager only — never in a settings file, and never in Desktop Material’s settings history. Losing the computer still loses the passphrase.',
-  'cheapLfs.encryptionGate.acknowledge':
-    'I understand that losing this passphrase means losing these files permanently',
-  'cheapLfs.encryptionGate.confirm': 'Encrypt large files',
-  'cheapLfs.encryption.enabledTitle': 'Encryption is on for {repository}',
-  'cheapLfs.encryption.enabledBody':
-    'Large files pinned from now on are encrypted before upload. Files already pinned stay as they are; pin them again to replace them with encrypted copies.',
-  'cheapLfs.encryption.vaultUnavailableTitle': 'The passphrase was not saved',
-  'cheapLfs.encryption.vaultUnavailableBody':
-    'This computer’s credential manager could not be used, so nothing was written anywhere. Encryption still works and Desktop Material will ask for the passphrase again instead of keeping a copy in a file.',
-  'cheapLfs.encryption.forgottenTitle': 'Saved passphrase deleted',
-  'cheapLfs.encryption.forgottenBody':
-    'The credential manager entry for {repository} is gone. Desktop Material will ask for the passphrase the next time it needs it.',
-  'cheapLfs.encryption.forgetFailedTitle':
-    'The saved passphrase is still there',
-  'cheapLfs.encryption.forgetFailedBody':
-    'This computer’s credential manager refused the deletion, so the entry for {repository} may still exist. Remove it in the operating system credential manager to be sure.',
   'cheapLfs.settings.ghcrStorage': 'Store Cheap LFS in one GHCR image',
   'cheapLfs.settings.ghcrStorageHelp':
     'Publishes one digest-pinned OCI image for all repository objects. Private repositories encrypt objects with a shared key tracked in that private repository.',
@@ -5241,6 +5194,74 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.storageRelease': 'GitHub published prerelease',
   'cheapLfs.settings.storageGhcr': 'GHCR · one OCI image',
   'cheapLfs.settings.storageDockerHub': 'Docker Hub · one OCI image',
+  'cheapLfs.encryption.title': 'Release payload encryption',
+  'cheapLfs.encryption.toggle': 'Encrypt new Release payloads with a password',
+  'cheapLfs.encryption.help':
+    'Encrypts new Cheap LFS payload content before it is uploaded to GitHub Releases. It is off by default and does not re-encrypt existing payloads.',
+  'cheapLfs.encryption.metadataNotice':
+    'Encryption protects payload contents at the provider. File names, paths, sizes, hashes, and commit history remain visible.',
+  'cheapLfs.encryption.statusChecking': 'Checking Windows Credential Manager…',
+  'cheapLfs.encryption.statusSaved':
+    'A password is saved in Windows Credential Manager for this repository.',
+  'cheapLfs.encryption.statusMissing':
+    'No password is saved for this repository.',
+  'cheapLfs.encryption.statusUnavailable':
+    'Windows Credential Manager is unavailable. Passwords will not be saved.',
+  'cheapLfs.encryption.setPassword': 'Set password…',
+  'cheapLfs.encryption.changePassword': 'Change saved password…',
+  'cheapLfs.encryption.forgetPassword': 'Forget saved password…',
+  'cheapLfs.encryption.saved':
+    'The password was saved in Windows Credential Manager.',
+  'cheapLfs.encryption.notSaved':
+    'The password was not saved. You will be prompted when an encrypted payload operation needs it.',
+  'cheapLfs.encryption.saveUnavailable':
+    'Windows Credential Manager could not save the password. It was not written anywhere else.',
+  'cheapLfs.encryption.forgot':
+    'The saved password was removed from Windows Credential Manager.',
+  'cheapLfs.encryption.forgetMissing': 'There was no saved password to remove.',
+  'cheapLfs.encryption.forgetUnavailable':
+    'Windows Credential Manager could not remove the saved password.',
+  'cheapLfs.encryption.dialog.encryptTitle': 'Set a Release payload password',
+  'cheapLfs.encryption.dialog.decryptTitle':
+    'Enter the Release payload password',
+  'cheapLfs.encryption.dialog.changeTitle':
+    'Change the saved Release payload password',
+  'cheapLfs.encryption.dialog.forgetTitle': 'Forget the saved password?',
+  'cheapLfs.encryption.dialog.staleForgetTitle':
+    'Forget the password that did not work?',
+  'cheapLfs.encryption.dialog.encryptDescription':
+    'Enter the password for encrypting new Release payloads. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.dialog.decryptDescription':
+    'Enter the password that was used to encrypt this Release payload.',
+  'cheapLfs.encryption.dialog.changeDescription':
+    'Set the password used for future encrypted payload operations. Existing payloads keep the password that encrypted them.',
+  'cheapLfs.encryption.dialog.forgetDescription':
+    'This removes the repository password from Windows Credential Manager. It does not decrypt, delete, or change any payload.',
+  'cheapLfs.encryption.dialog.staleForgetDescription':
+    'The saved password could not decrypt this payload. Remove it from Windows Credential Manager so the next attempt asks for another password.',
+  'cheapLfs.encryption.dialog.irreversibleWarning':
+    'If this password is lost, payloads encrypted with it cannot be recovered. There is no backdoor, reset, or support override.',
+  'cheapLfs.encryption.dialog.password': 'Password',
+  'cheapLfs.encryption.dialog.confirmPassword': 'Confirm password',
+  'cheapLfs.encryption.dialog.remember': 'Save in Windows Credential Manager',
+  'cheapLfs.encryption.dialog.rememberHelp':
+    'Off by default. Saving lets anyone using this Windows account decrypt with the stored credential. Losing access to the account or its credential vault can still remove access.',
+  'cheapLfs.encryption.dialog.irreversibleAck':
+    'I understand that losing this password makes payloads encrypted with it unrecoverable.',
+  'cheapLfs.encryption.dialog.forgetAck':
+    'I understand that this removes the saved password and does not change any encrypted payload.',
+  'cheapLfs.encryption.dialog.staleForgetAck':
+    'I understand that this removes the password that failed and the next attempt will ask again.',
+  'cheapLfs.encryption.dialog.passwordRequired': 'Enter a password.',
+  'cheapLfs.encryption.dialog.passwordMismatch': 'The passwords do not match.',
+  'cheapLfs.encryption.dialog.continue': 'Continue',
+  'cheapLfs.encryption.dialog.forget': 'Forget password',
+  'cheapLfs.encryption.dialog.cancel': 'Cancel',
+  'password.visibilityToggle': 'Toggle password visibility',
+  'remoteVerification.warningTitle': 'Remote URL needs attention',
+  'remoteVerification.warningBody':
+    'Desktop Material could not verify this repository’s remote URL. No push was attempted. Review the remote URL, then try again.',
+  'remoteVerification.changeUrl': 'Change remote URL',
   'ignoredSubmodule.dialogTitle': 'Move ignored files into a local submodule',
   'ignoredSubmodule.openAction': 'Ignored files to a local submodule…',
   'ignoredSubmodule.openTooltip':
@@ -5497,12 +5518,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.entry.appearanceTheme.title': 'Theme',
   'settingsSearch.entry.appearanceTheme.desc':
     'Switch between light, dark, and system themes.',
-  'settingsSearch.entry.appearanceLanguageMode.title': 'Language mode',
-  'settingsSearch.entry.appearanceLanguageMode.desc':
-    'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
-  'settingsSearch.entry.appearanceTone.title': 'Funny level (tone)',
-  'settingsSearch.entry.appearanceTone.desc':
-    'Independent English and Cantonese sliders from 1 (fully serious) to 5 (maximum playfulness). Styles every message including errors and warnings, never the facts.',
   'settingsSearch.entry.appearanceAccent.title': 'Accent color',
   'settingsSearch.entry.appearanceAccent.desc':
     'Pick the seed color used across the interface.',
@@ -5572,32 +5587,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'largeRepo.settings.autoRepack': 'Repack large repositories when idle',
   'largeRepo.settings.autoRepackDescription':
     'Run one controlled git repack at a quiet moment, with a non-blocking progress notification.',
-  // Deferred surfaces. The three bands are the funny-level voice (1-2 plain, 3
-  // light, 4-5 playful). Every band names the exact surface being loaded and
-  // says the same thing about it, because the voice moves and the facts do
-  // not. The failure title, the reported error and the retry label carry no
-  // bands at all — they are the facts the user acts on.
-  'lazyView.loading.plain': 'Loading {name}…',
-  'lazyView.loading.light': 'Fetching {name}. The rest of the app still works.',
-  'lazyView.loading.playful':
-    'Waking {name} up. Everything else keeps working while it stretches.',
-  'lazyView.failedTitle': '{name} could not be loaded',
-  'lazyView.failedBody.plain':
-    'Nothing else in the app was affected. Select Try again to load {name} once more.',
-  'lazyView.failedBody.light':
-    'Only {name} is affected — the rest of the app is fine. Select Try again to load it once more.',
-  'lazyView.failedBody.playful':
-    '{name} tripped on the doorstep; the rest of the app never noticed. Select Try again to give it another go.',
-  'lazyView.failedDetail': 'Reported error: {error}',
-  'lazyView.retry': 'Try again',
-  'lazyView.notificationTitle': 'Could not open {name}',
-  'lazyView.notificationBody':
-    '{name} failed to load and is showing a retry button. Nothing else was affected. Reported error: {error}',
-  'lazyView.section.actions': 'Actions',
-  'lazyView.section.releases': 'Releases',
-  'lazyView.section.issues': 'Issues',
-  'lazyView.section.triage': 'Triage',
-  'lazyView.section.tools': 'Repository tools',
   'largeRepo.status.computing': 'Checking for local changes…',
   'largeRepo.repack.progressTitle': 'Optimizing large repository',
   'largeRepo.repack.progressBody': 'Repacking {name} in the background…',
@@ -5819,6 +5808,32 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
 export const cantoneseTranslations: Readonly<
   Partial<Record<TranslationKey, string>>
 > = {
+  'settingsSearch.entry.appearanceLanguageMode.title': '語言模式',
+  'settingsSearch.entry.appearanceLanguageMode.desc':
+    '揀英文、玩味港式廣東話，或者慳位雙語模式。',
+  'settingsSearch.entry.appearanceTone.title': '搞笑等級（語氣）',
+  'settingsSearch.entry.appearanceTone.desc':
+    '英文同廣東話各有一條滑桿，1 係完全認真，5 係玩到盡。改嘅係全 app 文案嘅講法，錯誤同警告都包，但事實一個字都唔會少。',
+  'lazyView.loading.plain': '載入緊 {name}…',
+  'lazyView.loading.light': '拎緊 {name} 出嚟，其他部分照用得。',
+  'lazyView.loading.playful': '嗌緊 {name} 起身，佢伸緊懶腰，其他嘢照玩。',
+  'lazyView.failedTitle': '載入唔到 {name}',
+  'lazyView.failedBody.plain':
+    'App 其他部分冇受影響。撳「再試一次」可以再載入 {name}。',
+  'lazyView.failedBody.light':
+    '淨係 {name} 出事，App 其他部分無恙。撳「再試一次」再載入佢。',
+  'lazyView.failedBody.playful':
+    '{name} 一出門口就仆親，App 其他部分完全唔知發生咩事。撳「再試一次」畀佢再嚟過。',
+  'lazyView.failedDetail': '錯誤訊息：{error}',
+  'lazyView.retry': '再試一次',
+  'lazyView.notificationTitle': '打唔開 {name}',
+  'lazyView.notificationBody':
+    '{name} 載入失敗，嗰度有粒「再試一次」掣等你撳。其他嘢冇受影響。錯誤訊息：{error}',
+  'lazyView.section.actions': 'Actions 工作流程',
+  'lazyView.section.releases': 'Releases 發布',
+  'lazyView.section.issues': 'Issues 議題',
+  'lazyView.section.triage': 'Triage 分流',
+  'lazyView.section.tools': 'Repository 工具',
   'ci.status': 'CI 檢查：{status}',
   'ci.successful': '成功，掂晒',
   'ci.failed': '失敗',
@@ -5880,37 +5895,14 @@ export const cantoneseTranslations: Readonly<
   'appearance.languageModeDescription':
     '揀英文、玩味港式廣東話，或者慳位雙語模式。',
   'appearance.languageAndNavigation': '語言',
-  'appearance.toneHeading': '語氣',
-  'appearance.toneDescription':
-    '搞笑等級會影響全 app 寫出嚟同講出嚟嘅每句說話，錯誤、警告、刪嘢提示都包。佢淨係改講法：發生咗乜、影響邊啲嘢、你有咩揀，每一級都一樣咁準確。',
-  'appearance.toneEnglishLabel': '英文搞笑等級',
-  'appearance.toneCantoneseLabel': '廣東話搞笑等級',
-  'appearance.toneLevelName1': '完全認真',
-  'appearance.toneLevelName2': '大致認真',
-  'appearance.toneLevelName3': '輕鬆少少',
-  'appearance.toneLevelName4': '幾好玩',
-  'appearance.toneLevelName5': '玩到盡',
-  'appearance.toneValueText': '第 {level} 級，共 5 級，{name}',
-  'appearance.toneScaleMin': '1 · 認真',
-  'appearance.toneScaleMax': '5 · 搞笑',
-  'appearance.tonePreviewHeading': '預覽',
-  'appearance.tonePreviewEnglishLabel': '英文（第 {level} 級）',
-  'appearance.tonePreviewCantoneseLabel': '廣東話（第 {level} 級）',
-  'appearance.tonePreviewWarningLabel': '呢一級嘅警告會係咁',
-  'appearance.tonePreview.plain': '已經推送 3 個 commit 去 origin/main。',
-  'appearance.tonePreview.light':
-    '已經推送 3 個 commit 去 origin/main，好整齊。',
-  'appearance.tonePreview.playful':
-    '3 個 commit 掟晒去 origin/main，佢哋一聲都冇出。',
-  'appearance.toneWarningPreview.plain':
-    '準備捨棄 desktop-material 入面 3 個已改動檔案。',
-  'appearance.toneWarningPreview.light':
-    '就嚟捨棄 desktop-material 入面 3 個已改動檔案。',
-  'appearance.toneWarningPreview.playful':
-    '同 desktop-material 入面 3 個已改動檔案講聲拜拜。',
-  'appearance.toneWarningFixed': '呢個動作冇得復原。',
-  'appearance.toneNarratorNote':
-    '旁白把聲都會跟呢個語氣。佢自己嘅掣 — 音量、間隔、講唔講 — 就喺「聲音」分頁度。',
+  'appearance.playfulnessHeading': '搞笑程度',
+  'appearance.playfulnessDescription':
+    '英文同廣東話可以各自揀語氣。1 係完全認真，5 係最玩得。事實、錯誤同安全訊息每一級都會保持清楚。',
+  'appearance.englishPlayfulness': '英文搞笑程度',
+  'appearance.cantonesePlayfulness': '廣東話搞笑程度',
+  'appearance.playfulnessValue': '第 {value} 級，共 5 級',
+  'appearance.playfulnessSerious': '1 · 完全認真',
+  'appearance.playfulnessMaximum': '5 · 最玩得',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
   'appearance.toolbarEditorTitle': '工具列外觀',
@@ -7570,8 +7562,9 @@ export const cantoneseTranslations: Readonly<
     '播應用程式內附嘅預錄語音同旋律，唔使即時合成。如果搵唔到對應嘅錄音，會自動改用即時旁白。',
   'settings.soundPreviewNarration': '試聽旁白',
   'settings.soundFunnyHeading': '旁白語氣',
-  'settings.soundFunnyRelocated':
-    '旁白會跟你喺「外觀 › 語氣」較嘅搞笑等級，英文同廣東話兩條滑桿都喺嗰度。全 app 嘅文案，講嘅寫嘅，都用同一個等級，所以淨係喺一個地方較。',
+  'settings.soundFunnyEnglishLabel': '英文搞笑程度',
+  'settings.soundFunnyCantoneseLabel': '廣東話搞笑程度',
+  'settings.soundFunnyHint': '1 係認真，5 係最搞笑。出錯訊息永遠都會講清楚。',
   'settings.soundMusicHeading': '每個 repository 嘅音樂',
   'settings.soundMusicEnableTitle': '播主題音樂',
   'settings.soundMusicEnableDescription':
@@ -8257,48 +8250,6 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.parallelUploads': '一次過載最多 3 個大檔案',
   'cheapLfs.settings.parallelUploadsHelp':
     '會用最多三條獨立 Cheap LFS 傳輸通道；熄咗就逐個檔案上載。',
-  'cheapLfs.settings.encryption': '用密碼加密呢個 repository 嘅大檔案',
-  'cheapLfs.settings.encryptionHelp':
-    '檔案會喺你部機加密咗先上載，所以 release asset 裝住嘅係密文。不過 commit 落去嗰個 pointer 仍然會照寫明原檔嘅大細同 SHA-256，另外仲會寫低個加密容器自己嘅大細同 SHA-256 — 咁樣冇密碼嘅人都驗到個 asset 有冇被人郁過。',
-  'cheapLfs.settings.encryptionSetUp': '設定加密⋯',
-  'cheapLfs.settings.savePassphrase': '將密碼記入部機嘅憑證管理員',
-  'cheapLfs.settings.savePassphraseHelp':
-    '密碼淨係會入作業系統嘅憑證管理員，唔會寫入任何設定檔，亦都唔會入 Desktop Material 嘅設定歷史。記咗之後，凡係登入到呢部機呢個帳戶嘅人都解得開呢啲檔。',
-  'cheapLfs.settings.forgetPassphrase': '唔記得已儲存嘅密碼',
-  'cheapLfs.encryptionGate.title': '加密 {repository} 嘅大檔案',
-  'cheapLfs.encryptionGate.intro.plain':
-    '由而家開始，呢個 repository pin 嘅大檔案會喺你部機加密咗先上載。請揀一個密碼。',
-  'cheapLfs.encryptionGate.intro.light':
-    '之後呢個 repository 啲大檔案，喺你部機就會封好咗先出門口。揀個密碼先。',
-  'cheapLfs.encryptionGate.intro.playful':
-    '你啲大檔案就嚟入箱喇，喺你部機當場封口，全世界得你個密碼開到。所以呢個密碼，揀好啲。',
-  // 呢句喺任何搞笑程度、任何語言都係同一句。「救唔返」呢個事實冇得講笑淡化。
-  'cheapLfs.encryptionGate.irreversible':
-    '密碼唔見咗，呢啲檔案就救唔返。冇得 reset、冇後備 key、冇復原碼，Desktop Material 同 GitHub 都冇人開得返俾你。撳落去之前，搵個安全嘅地方抄低佢。',
-  'cheapLfs.encryptionGate.pointerDisclosure':
-    '加密遮唔到嘅嘢：commit 落 Git 嗰個 pointer 照樣寫住每個檔嘅實際大細同 SHA-256，所以本身已經有份相同檔案嘅人，係confirm得到嗰個檔存喺呢度。',
-  'cheapLfs.encryptionGate.passphrase': '密碼',
-  'cheapLfs.encryptionGate.confirmPassphrase': '再打多次個密碼',
-  'cheapLfs.encryptionGate.mismatch': '兩次打嘅密碼唔同。冇開到任何嘢。',
-  'cheapLfs.encryptionGate.empty': '要打個密碼先繼續得。',
-  'cheapLfs.encryptionGate.remember': '記入部機嘅憑證管理員',
-  'cheapLfs.encryptionGate.rememberWarning':
-    '記咗即係話，凡係登入到呢部機呢個帳戶嘅人都解得開呢啲檔。佢淨係入作業系統嘅憑證管理員 — 唔會入設定檔，亦都唔會入 Desktop Material 嘅設定歷史。部機冇埋嘅話，個密碼一樣冇埋。',
-  'cheapLfs.encryptionGate.acknowledge':
-    '我明白密碼唔見咗，即係呢啲檔案永久救唔返',
-  'cheapLfs.encryptionGate.confirm': '加密大檔案',
-  'cheapLfs.encryption.enabledTitle': '{repository} 已經開咗加密',
-  'cheapLfs.encryption.enabledBody':
-    '之後 pin 嘅大檔案都會加密咗先上載。之前已經 pin 咗嘅維持原狀；想佢哋都變加密版，就再 pin 多次。',
-  'cheapLfs.encryption.vaultUnavailableTitle': '個密碼冇儲到',
-  'cheapLfs.encryption.vaultUnavailableBody':
-    '部機嘅憑證管理員用唔到，所以咩都冇寫低過。加密照樣行得，Desktop Material 會再問你攞密碼，唔會偷雞抄低喺個檔度。',
-  'cheapLfs.encryption.forgottenTitle': '已刪走儲存咗嘅密碼',
-  'cheapLfs.encryption.forgottenBody':
-    '{repository} 喺憑證管理員嗰個記錄冇咗。下次要用嗰陣，Desktop Material 會再問你。',
-  'cheapLfs.encryption.forgetFailedTitle': '嗰個密碼可能仲喺度',
-  'cheapLfs.encryption.forgetFailedBody':
-    '部機嘅憑證管理員唔俾刪，所以 {repository} 嗰個記錄可能仲喺度。想穩陣就自己入去作業系統嘅憑證管理員刪走佢。',
   'cheapLfs.settings.ghcrStorage': '用一個 GHCR image 儲晒 Cheap LFS',
   'cheapLfs.settings.ghcrStorageHelp':
     '成個 repository 嘅物件會放入一個鎖定 digest 嘅 OCI image。私人 repository 會用一條一齊 track 嘅共享 key 加密物件。',
@@ -8306,6 +8257,69 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.storageRelease': 'GitHub 已發佈 prerelease',
   'cheapLfs.settings.storageGhcr': 'GHCR · 一個 OCI image',
   'cheapLfs.settings.storageDockerHub': 'Docker Hub · 一個 OCI image',
+  'cheapLfs.encryption.title': 'Release payload 加密',
+  'cheapLfs.encryption.toggle': '用密碼加密新嘅 Release payload',
+  'cheapLfs.encryption.help':
+    '上載去 GitHub Releases 之前，先加密新嘅 Cheap LFS payload 內容。預設係關閉，亦唔會重新加密現有 payload。',
+  'cheapLfs.encryption.metadataNotice':
+    '加密會保護 provider 上面嘅 payload 內容。檔案名、路徑、大小、hash 同 commit 歷史仍然會睇到。',
+  'cheapLfs.encryption.statusChecking': '檢查緊 Windows Credential Manager…',
+  'cheapLfs.encryption.statusSaved':
+    '呢個 repository 有密碼儲咗喺 Windows Credential Manager。',
+  'cheapLfs.encryption.statusMissing': '呢個 repository 冇儲存密碼。',
+  'cheapLfs.encryption.statusUnavailable':
+    'Windows Credential Manager 而家用唔到。密碼唔會被儲存。',
+  'cheapLfs.encryption.setPassword': '設定密碼…',
+  'cheapLfs.encryption.changePassword': '更改已儲存密碼…',
+  'cheapLfs.encryption.forgetPassword': '忘記已儲存密碼…',
+  'cheapLfs.encryption.saved': '密碼已儲存喺 Windows Credential Manager。',
+  'cheapLfs.encryption.notSaved':
+    '密碼冇儲存。加密 payload 操作需要時會再問你。',
+  'cheapLfs.encryption.saveUnavailable':
+    'Windows Credential Manager 儲存唔到密碼，亦冇將密碼寫去其他地方。',
+  'cheapLfs.encryption.forgot':
+    '已經由 Windows Credential Manager 移除已儲存密碼。',
+  'cheapLfs.encryption.forgetMissing': '冇已儲存密碼可以移除。',
+  'cheapLfs.encryption.forgetUnavailable':
+    'Windows Credential Manager 移除唔到已儲存密碼。',
+  'cheapLfs.encryption.dialog.encryptTitle': '設定 Release payload 密碼',
+  'cheapLfs.encryption.dialog.decryptTitle': '輸入 Release payload 密碼',
+  'cheapLfs.encryption.dialog.changeTitle': '更改已儲存嘅 Release payload 密碼',
+  'cheapLfs.encryption.dialog.forgetTitle': '忘記已儲存密碼？',
+  'cheapLfs.encryption.dialog.staleForgetTitle': '忘記呢個無效密碼？',
+  'cheapLfs.encryption.dialog.encryptDescription':
+    '輸入用嚟加密新 Release payload 嘅密碼。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.dialog.decryptDescription':
+    '輸入當初用嚟加密呢個 Release payload 嘅密碼。',
+  'cheapLfs.encryption.dialog.changeDescription':
+    '設定日後加密 payload 操作用嘅密碼。現有 payload 仍然保留當初加密佢嘅密碼。',
+  'cheapLfs.encryption.dialog.forgetDescription':
+    '呢個操作會由 Windows Credential Manager 移除 repository 密碼，唔會解密、刪除或者改動任何 payload。',
+  'cheapLfs.encryption.dialog.staleForgetDescription':
+    '已儲存密碼解密唔到呢個 payload。由 Windows Credential Manager 移除之後，下次會再問另一個密碼。',
+  'cheapLfs.encryption.dialog.irreversibleWarning':
+    '如果遺失呢個密碼，用佢加密嘅 payload 將無法復原。冇後門、重設或者支援人員繞過方法。',
+  'cheapLfs.encryption.dialog.password': '密碼',
+  'cheapLfs.encryption.dialog.confirmPassword': '確認密碼',
+  'cheapLfs.encryption.dialog.remember': '儲存喺 Windows Credential Manager',
+  'cheapLfs.encryption.dialog.rememberHelp':
+    '預設關閉。儲存之後，任何使用呢個 Windows 帳戶嘅人都可以用已儲存憑證解密。失去帳戶或者憑證庫存取權，仍然可能令你失去解密能力。',
+  'cheapLfs.encryption.dialog.irreversibleAck':
+    '我明白遺失呢個密碼，就無法復原用佢加密嘅 payload。',
+  'cheapLfs.encryption.dialog.forgetAck':
+    '我明白呢個操作只會移除已儲存密碼，唔會改動任何加密 payload。',
+  'cheapLfs.encryption.dialog.staleForgetAck':
+    '我明白呢個操作會移除失效密碼，下次會再問我。',
+  'cheapLfs.encryption.dialog.passwordRequired': '請輸入密碼。',
+  'cheapLfs.encryption.dialog.passwordMismatch': '兩次輸入嘅密碼唔一致。',
+  'cheapLfs.encryption.dialog.continue': '繼續',
+  'cheapLfs.encryption.dialog.forget': '忘記密碼',
+  'cheapLfs.encryption.dialog.cancel': '取消',
+  'password.visibilityToggle': '切換顯示密碼',
+  'remoteVerification.warningTitle': 'Remote URL 需要處理',
+  'remoteVerification.warningBody':
+    'Desktop Material 無法驗證呢個 repository 嘅 remote URL。冇嘗試 push。請檢查 remote URL，然後再試。',
+  'remoteVerification.changeUrl': '更改 remote URL',
   'ignoredSubmodule.dialogTitle': '將被忽略嘅檔案搬入本機 submodule',
   'ignoredSubmodule.openAction': '被忽略檔案搬入本機 submodule…',
   'ignoredSubmodule.openTooltip':
@@ -8548,12 +8562,6 @@ export const cantoneseTranslations: Readonly<
     '開新 repository 時用嘅分支名。',
   'settingsSearch.entry.appearanceTheme.title': '主題',
   'settingsSearch.entry.appearanceTheme.desc': '喺淺色、深色同跟系統之間揀。',
-  'settingsSearch.entry.appearanceLanguageMode.title': '語言模式',
-  'settingsSearch.entry.appearanceLanguageMode.desc':
-    '揀英文、玩味港式廣東話，或者慳位雙語模式。',
-  'settingsSearch.entry.appearanceTone.title': '搞笑等級（語氣）',
-  'settingsSearch.entry.appearanceTone.desc':
-    '英文同廣東話各有一條滑桿，1 係完全認真，5 係玩到盡。改嘅係全 app 文案嘅講法，錯誤同警告都包，但事實一個字都唔會少。',
   'settingsSearch.entry.appearanceAccent.title': '主色',
   'settingsSearch.entry.appearanceAccent.desc': '揀成個介面用嘅種子顏色。',
   'settingsSearch.entry.appearanceFont.title': '介面字體',
@@ -8618,26 +8626,6 @@ export const cantoneseTranslations: Readonly<
   'largeRepo.settings.autoRepack': '得閒就同大型 repository repack',
   'largeRepo.settings.autoRepackDescription':
     '揀個靜靜時做一次受控嘅 git repack，會有唔阻手嘅進度通知。',
-  'lazyView.loading.plain': '載入緊 {name}…',
-  'lazyView.loading.light': '拎緊 {name} 出嚟，其他部分照用得。',
-  'lazyView.loading.playful': '嗌緊 {name} 起身，佢伸緊懶腰，其他嘢照玩。',
-  'lazyView.failedTitle': '載入唔到 {name}',
-  'lazyView.failedBody.plain':
-    'App 其他部分冇受影響。撳「再試一次」可以再載入 {name}。',
-  'lazyView.failedBody.light':
-    '淨係 {name} 出事，App 其他部分無恙。撳「再試一次」再載入佢。',
-  'lazyView.failedBody.playful':
-    '{name} 一出門口就仆親，App 其他部分完全唔知發生咩事。撳「再試一次」畀佢再嚟過。',
-  'lazyView.failedDetail': '錯誤訊息：{error}',
-  'lazyView.retry': '再試一次',
-  'lazyView.notificationTitle': '打唔開 {name}',
-  'lazyView.notificationBody':
-    '{name} 載入失敗，嗰度有粒「再試一次」掣等你撳。其他嘢冇受影響。錯誤訊息：{error}',
-  'lazyView.section.actions': 'Actions 工作流程',
-  'lazyView.section.releases': 'Releases 發布',
-  'lazyView.section.issues': 'Issues 議題',
-  'lazyView.section.triage': 'Triage 分流',
-  'lazyView.section.tools': 'Repository 工具',
   'largeRepo.status.computing': '查緊有冇本地改動…',
   'largeRepo.repack.progressTitle': '優化緊大型 repository',
   'largeRepo.repack.progressBody': '喺背景 repack 緊 {name}…',

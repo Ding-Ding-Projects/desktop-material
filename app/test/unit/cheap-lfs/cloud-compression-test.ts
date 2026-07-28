@@ -659,4 +659,29 @@ describe('Cheap LFS cloud-compression pointer state', () => {
       }
     )
   })
+
+  it('uses ciphertext-container bytes for encrypted storage totals', () => {
+    assert.equal(
+      getCheapLfsCloudCompressionStats({
+        ...pointer,
+        parts: [
+          {
+            name: 'encrypted',
+            sizeInBytes: 100,
+            sha256: 'b'.repeat(64),
+            encrypted: true,
+            storedSizeInBytes: 132,
+            storedSha256: 'd'.repeat(64),
+          },
+          {
+            name: 'compressed',
+            sizeInBytes: 200,
+            sha256: 'c'.repeat(64),
+            deflatedSizeInBytes: 50,
+          },
+        ],
+      }).storedSizeInBytes,
+      182
+    )
+  })
 })

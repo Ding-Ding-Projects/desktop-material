@@ -26,8 +26,8 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { formatCompactNumber } from '../../lib/format-number'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
-import { observeUserInitiatedOperation } from '../lib/observed-operations'
 import { PopupType } from '../../models/popup'
+import { observeUserInitiatedOperation } from '../lib/observed-operations'
 
 export const DropdownItemClassName = 'push-pull-dropdown-item'
 
@@ -306,9 +306,9 @@ export class PushPullButton extends React.Component<
   private push = () => {
     this.closeDropdown()
     observeUserInitiatedOperation(
-      this.props.dispatcher.push(this.props.repository),
+      () => this.props.dispatcher.push(this.props.repository),
       this.props.dispatcher,
-      'the push started from the toolbar'
+      'toolbar push'
     )
   }
 
@@ -383,9 +383,9 @@ export class PushPullButton extends React.Component<
 
     this.setScreenReaderStateMessageFocus()
     observeUserInitiatedOperation(
-      this.props.dispatcher.confirmOrForcePush(this.props.repository),
+      () => this.props.dispatcher.confirmOrForcePush(this.props.repository),
       this.props.dispatcher,
-      'the force push started from the toolbar'
+      'toolbar force push'
     )
 
     this.setState({ actionInProgress: 'force push' })
@@ -394,9 +394,9 @@ export class PushPullButton extends React.Component<
   private pull = () => {
     this.closeDropdown()
     observeUserInitiatedOperation(
-      this.props.dispatcher.pull(this.props.repository),
+      () => this.props.dispatcher.pull(this.props.repository),
       this.props.dispatcher,
-      'the pull started from the toolbar'
+      'toolbar pull'
     )
   }
 
@@ -419,12 +419,13 @@ export class PushPullButton extends React.Component<
     this.closeDropdown()
 
     observeUserInitiatedOperation(
-      this.props.dispatcher.fetch(
-        this.props.repository,
-        FetchType.UserInitiatedTask
-      ),
+      () =>
+        this.props.dispatcher.fetch(
+          this.props.repository,
+          FetchType.UserInitiatedTask
+        ),
       this.props.dispatcher,
-      'the fetch started from the toolbar'
+      'toolbar fetch'
     )
   }
 

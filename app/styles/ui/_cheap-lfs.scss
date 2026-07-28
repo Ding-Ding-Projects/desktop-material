@@ -117,6 +117,143 @@
   }
 }
 
+.cheap-lfs-settings .cheap-lfs-payload-encryption {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  color: var(--md-sys-color-on-surface);
+  background: var(--md-sys-color-surface-container-low);
+  overflow-wrap: anywhere;
+
+  h4,
+  p {
+    margin: 0;
+  }
+
+  h4 {
+    font-size: 14px;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .checkbox-component {
+    min-width: 0;
+
+    label {
+      line-height: 1.4;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  #cheap-lfs-payload-encryption-help,
+  .cheap-lfs-payload-encryption-metadata,
+  .cheap-lfs-payload-encryption-status,
+  .cheap-lfs-payload-encryption-feedback {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    line-height: 1.45;
+  }
+
+  .cheap-lfs-payload-encryption-metadata {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-high);
+  }
+
+  .cheap-lfs-payload-encryption-status {
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .cheap-lfs-payload-encryption-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+
+    .button-component {
+      max-width: 100%;
+      min-height: 40px;
+      white-space: normal;
+    }
+  }
+}
+
+.cheap-lfs-payload-password-dialog {
+  max-width: min(560px, calc(100vw - 32px));
+
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .cheap-lfs-payload-password-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    p {
+      margin: 0;
+      line-height: 1.5;
+      overflow-wrap: anywhere;
+    }
+  }
+
+  .cheap-lfs-payload-password-warning {
+    padding: 12px;
+    border: 1px solid color-mix(in srgb, var(--md-sys-color-error) 42%, var(--md-sys-color-outline-variant));
+    border-radius: 12px;
+    color: var(--md-sys-color-on-error-container);
+    background: var(--md-sys-color-error-container);
+  }
+
+  .cheap-lfs-payload-password-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+
+    .password-text-box,
+    .text-box-component {
+      min-width: 0;
+      max-width: 100%;
+    }
+  }
+
+  .cheap-lfs-payload-password-caption,
+  .cheap-lfs-payload-password-error {
+    margin: 0;
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .cheap-lfs-payload-password-caption {
+    color: var(--md-sys-color-on-surface-variant);
+  }
+
+  .cheap-lfs-payload-password-error {
+    color: var(--md-sys-color-error);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .cheap-lfs-payload-password-acknowledgement {
+    padding: 12px;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 12px;
+    background: var(--md-sys-color-surface-container-low);
+
+    label {
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+  }
+}
+
 .cheap-lfs-status {
   display: flex;
   flex-direction: column;

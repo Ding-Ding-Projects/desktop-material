@@ -1,5 +1,6 @@
 import * as React from 'react'
 import * as Path from 'path'
+import { CompositeDisposable } from 'event-kit'
 
 import { TransitionGroup, CSSTransition } from 'react-transition-group'
 import {
@@ -83,8 +84,8 @@ import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 import { RepositoriesList } from './repositories-list'
 import { CheapLfsRestoreProgress } from './lib/cheap-lfs-restore-progress'
 import { OperationProgressRow } from './lib/operation-progress-row'
-import { observeUserInitiatedOperation } from './lib/observed-operations'
 import { RepositoryView } from './repository'
+import { observeUserInitiatedOperation } from './lib/observed-operations'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
 import { CloningRepositoryView } from './cloning-repository'
@@ -309,6 +310,7 @@ import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-ret
 import { PullRequestReview } from './notifications/pull-request-review'
 import { getRepositoryType } from '../lib/git'
 import { SSHUserPassword } from './ssh/ssh-user-password'
+import { CheapLfsPayloadPassword } from './dialog/cheap-lfs-payload-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
 import { OpenPullRequestDialog } from './open-pull-request/open-pull-request-dialog'
@@ -458,6 +460,7 @@ const ReadyDelay = 100
 export class App extends React.Component<IAppProps, IAppState> {
   private loading = true
   private mounted = false
+  private readonly subscriptions = new CompositeDisposable()
   private initializationError: Error | null = null
   /**
    * The checklist belongs to a welcome flow completed in this process. Keeping
@@ -480,6 +483,8 @@ export class App extends React.Component<IAppProps, IAppState> {
     new ApplicationMenuAltKeyTracker()
 
   private updateIntervalHandle?: number
+  private reportStatsIntervalHandle?: number
+  private updateCheckIntervalHandle?: number
 
   private repositoryViewRef = React.createRef<RepositoryView>()
   private repositoryDropdownRef = React.createRef<ToolbarDropdown>()
@@ -587,91 +592,123 @@ export class App extends React.Component<IAppProps, IAppState> {
     )
 
     this.state = props.appStore.getState()
-    props.appStore.onDidUpdate(state => {
-      if (this.state.showWelcomeFlow && !state.showWelcomeFlow) {
-        this.showFirstRunChecklist = true
-      }
-      this.syncAudioSystem(state)
-      this.setState(state)
-    })
-
-    props.appStore.onDidError(error => {
-      props.dispatcher.postError(error)
-    })
+    this.subscriptions.add(
+      props.appStore.onDidUpdate(state => {
+        if (this.state.showWelcomeFlow && !state.showWelcomeFlow) {
+          this.showFirstRunChecklist = true
+        }
+        this.syncAudioSystem(state)
+        this.setState(state)
+      }),
+      props.appStore.onDidError(error => {
+        props.dispatcher.postError(error)
+      })
+    )
 
     // Build & Run phase transitions get their own distinct audio cues, fed from
     // the dedicated build-run store (they don't travel through IAppState).
-    props.buildRunStore.onDidUpdate(repositoryId =>
-      this.syncBuildRunAudio(repositoryId)
+    this.subscriptions.add(
+      props.buildRunStore.onDidUpdate(repositoryId =>
+        this.syncBuildRunAudio(repositoryId)
+      )
     )
 
-    ipcRenderer.on('menu-event', (_, name) => this.onMenuEvent(name))
+    this.subscriptions.add(
+      ipcRenderer.on('menu-event', (_, name) => this.onMenuEvent(name))
+    )
 
-    updateStore.onDidChange(async state => {
-      const status = state.status
+    this.subscriptions.add(
+      updateStore.onDidChange(async state => {
+        const status = state.status
 
-      if (
-        !(__RELEASE_CHANNEL__ === 'development') &&
-        status === UpdateStatus.UpdateReady
-      ) {
-        this.props.dispatcher.setUpdateBannerVisibility(true)
-      }
+        if (
+          !(__RELEASE_CHANNEL__ === 'development') &&
+          status === UpdateStatus.UpdateReady
+        ) {
+          this.props.dispatcher.setUpdateBannerVisibility(true)
+        }
 
-      if (
-        status !== UpdateStatus.UpdateReady &&
-        (await updateStore.isUpdateShowcase())
-      ) {
-        this.props.dispatcher.setUpdateShowCaseVisibility(true)
-      }
-    })
+        if (
+          status !== UpdateStatus.UpdateReady &&
+          (await updateStore.isUpdateShowcase()) &&
+          this.mounted
+        ) {
+          this.props.dispatcher.setUpdateShowCaseVisibility(true)
+        }
+      })
+    )
 
-    updateStore.onError(error => {
-      log.error(`Error checking for updates`, error)
+    this.subscriptions.add(
+      updateStore.onError(error => {
+        log.error(`Error checking for updates`, error)
 
-      this.props.dispatcher.postError(error)
-    })
+        this.props.dispatcher.postError(error)
+      })
+    )
 
     // A GitHub Actions response too large to read in one go is expected and
     // recoverable, so it becomes one informative, non-blocking notification
     // rather than a generic "background action stopped unexpectedly" error.
     // The store already rate-limits this to once per session.
-    updateStore.onActionsMetadataSkipped(() => {
-      this.props.dispatcher.postNotification({
-        kind: 'app-error',
-        title: t('actionsMetadata.tooLarge.title'),
-        body: t('actionsMetadata.tooLarge.body'),
+    this.subscriptions.add(
+      updateStore.onActionsMetadataSkipped(() => {
+        this.props.dispatcher.postNotification({
+          kind: 'app-error',
+          title: t('actionsMetadata.tooLarge.title'),
+          body: t('actionsMetadata.tooLarge.body'),
+        })
       })
-    })
+    )
 
-    ipcRenderer.on('launch-timing-stats', (_, stats) => {
-      console.info(`App ready time: ${stats.mainReadyTime}ms`)
-      console.info(`Load time: ${stats.loadTime}ms`)
-      console.info(`Renderer ready time: ${stats.rendererReadyTime}ms`)
+    this.subscriptions.add(
+      ipcRenderer.on('launch-timing-stats', (_, stats) => {
+        console.info(`App ready time: ${stats.mainReadyTime}ms`)
+        console.info(`Load time: ${stats.loadTime}ms`)
+        console.info(`Renderer ready time: ${stats.rendererReadyTime}ms`)
 
-      this.props.dispatcher.recordLaunchStats(stats)
-    })
-
-    ipcRenderer.on('certificate-error', (_, certificate, error, url) => {
-      if (isCertificateErrorSuppressedFor(url)) {
-        return
-      }
-
-      this.props.dispatcher.showPopup({
-        type: PopupType.UntrustedCertificate,
-        certificate,
-        url,
+        this.props.dispatcher.recordLaunchStats(stats)
       })
-    })
+    )
 
-    dragAndDropManager.onDragEnded(this.onDragEnd)
+    this.subscriptions.add(
+      ipcRenderer.on('certificate-error', (_, certificate, error, url) => {
+        if (isCertificateErrorSuppressedFor(url)) {
+          return
+        }
+
+        this.props.dispatcher.showPopup({
+          type: PopupType.UntrustedCertificate,
+          certificate,
+          url,
+        })
+      })
+    )
+
+    this.subscriptions.add(dragAndDropManager.onDragEnded(this.onDragEnd))
   }
 
   public componentWillUnmount() {
     this.mounted = false
     this.submoduleReturnInFlight.dispose()
+    this.subscriptions.dispose()
     window.clearInterval(this.updateIntervalHandle)
+    window.clearInterval(this.reportStatsIntervalHandle)
+    window.clearInterval(this.updateCheckIntervalHandle)
     document.body.classList.remove('repository-folder-dragging')
     document.removeEventListener('contextmenu', this.onCustomizationContextMenu)
+    document.removeEventListener('focus', this.onDocumentFocus, {
+      capture: true,
+    })
+    document.ondragenter = null
+    document.ondragleave = null
+    document.ondragover = null
+    document.ondrop = null
+    document.body.ondrop = null
+
+    if (shouldRenderApplicationMenu()) {
+      window.removeEventListener('keydown', this.onWindowKeyDown)
+      window.removeEventListener('keyup', this.onWindowKeyUp)
+    }
 
     if (__DARWIN__) {
       window.removeEventListener('keydown', this.onMacOSWindowKeyDown)
@@ -679,12 +716,19 @@ export class App extends React.Component<IAppProps, IAppState> {
   }
 
   private async performDeferredLaunchActions() {
+    if (!this.mounted) {
+      return
+    }
+
     // Loading emoji is super important but maybe less important that loading
     // the app. So defer it until we have some breathing space.
     this.props.appStore.loadEmoji()
 
     this.props.dispatcher.reportStats()
-    setInterval(() => this.props.dispatcher.reportStats(), SendStatsInterval)
+    this.reportStatsIntervalHandle = window.setInterval(
+      () => this.props.dispatcher.reportStats(),
+      SendStatsInterval
+    )
 
     this.props.dispatcher.installGlobalLFSFilters(false)
 
@@ -693,13 +737,18 @@ export class App extends React.Component<IAppProps, IAppState> {
       __RELEASE_CHANNEL__ !== 'development' &&
       __RELEASE_CHANNEL__ !== 'test'
     ) {
-      setInterval(() => this.checkForUpdates(true), UpdateCheckInterval)
+      this.updateCheckIntervalHandle = window.setInterval(
+        () => this.checkForUpdates(true),
+        UpdateCheckInterval
+      )
       this.checkForUpdates(true)
     } else if (await updateStore.isUpdateShowcase()) {
       // The only purpose of this call is so we can see the showcase on dev/test
       // env. Prod and beta environment will trigger this during automatic check
       // for updates.
-      this.props.dispatcher.setUpdateShowCaseVisibility(true)
+      if (this.mounted) {
+        this.props.dispatcher.setUpdateShowCaseVisibility(true)
+      }
     }
 
     log.info(`launching: ${getVersion()} (${getOS()})`)
@@ -1591,20 +1640,17 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    const { dispatcher } = this.props
-    const { repository } = state
-
     if (options && options.forceWithLease) {
       observeUserInitiatedOperation(
-        dispatcher.confirmOrForcePush(repository),
-        dispatcher,
-        'the force push started from the menu'
+        () => this.props.dispatcher.confirmOrForcePush(state.repository),
+        this.props.dispatcher,
+        'menu force push'
       )
     } else {
       observeUserInitiatedOperation(
-        dispatcher.push(repository),
-        dispatcher,
-        'the push started from the menu'
+        () => this.props.dispatcher.push(state.repository),
+        this.props.dispatcher,
+        'menu push'
       )
     }
   }
@@ -1627,7 +1673,15 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    this.props.dispatcher.fetch(state.repository, FetchType.UserInitiatedTask)
+    observeUserInitiatedOperation(
+      () =>
+        this.props.dispatcher.fetch(
+          state.repository,
+          FetchType.UserInitiatedTask
+        ),
+      this.props.dispatcher,
+      'menu fetch'
+    )
   }
 
   private showStashedChanges() {
@@ -1720,7 +1774,11 @@ export class App extends React.Component<IAppProps, IAppState> {
     })
 
     this.updateWindowTitle()
-    window.requestAnimationFrame(() => this.syncFeatureAppearanceOwners())
+    window.requestAnimationFrame(() => {
+      if (this.mounted) {
+        this.syncFeatureAppearanceOwners()
+      }
+    })
   }
 
   private clearRepositoryFileDrag() {
@@ -4218,6 +4276,19 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
+      case PopupType.CheapLfsPayloadPassword: {
+        return (
+          <CheapLfsPayloadPassword
+            key="cheap-lfs-payload-password"
+            purpose={popup.purpose}
+            requireIrreversibleAcknowledgement={
+              popup.requireIrreversibleAcknowledgement
+            }
+            onSubmit={popup.onSubmit}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
       case PopupType.PullRequestChecksFailed: {
         return (
           <PullRequestChecksFailed
@@ -5218,6 +5289,13 @@ export class App extends React.Component<IAppProps, IAppState> {
         action.fixKind,
         notice.id
       )
+      return
+    }
+
+    if (action.kind === 'edit-repository-remotes') {
+      void this.props.dispatcher
+        .openRepositoryRemoteManager(action.repositoryId, notice.id)
+        .catch(error => this.props.dispatcher.postError(asError(error)))
       return
     }
 

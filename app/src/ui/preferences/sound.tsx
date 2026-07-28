@@ -17,6 +17,7 @@ import { showOpenDialog } from '../main-process-proxy'
 import { AudioCueStore } from '../../lib/audio/audio-cue-store'
 import {
   AudioCueCategory,
+  clampFunnyLevel,
   IAudioSystemSettings,
   RepoMusicOverride,
 } from '../../lib/audio/audio-settings'
@@ -233,17 +234,21 @@ export class SoundPreferences extends React.Component<
               languageMode={languageMode}
             />
           </h3>
-          {/*
-           * The funny-level sliders deliberately do NOT live here. They style
-           * every message the app writes or speaks, so a second copy under a
-           * text-to-speech heading would both hide them from anyone looking
-           * for a tone control and imply they only affect the spoken voice.
-           * This is a pointer to the single pair on Appearance, never a
-           * duplicate control that could drift out of sync.
-           */}
+          {this.renderFunnyLevel(
+            'settings.soundFunnyEnglishLabel',
+            'sound-funny-en',
+            settings.funnyLevelEnglish,
+            funnyLevelEnglish => this.update({ funnyLevelEnglish })
+          )}
+          {this.renderFunnyLevel(
+            'settings.soundFunnyCantoneseLabel',
+            'sound-funny-ct',
+            settings.funnyLevelCantonese,
+            funnyLevelCantonese => this.update({ funnyLevelCantonese })
+          )}
           <p className="settings-description">
             <LocalizedText
-              translationKey="settings.soundFunnyRelocated"
+              translationKey="settings.soundFunnyHint"
               languageMode={languageMode}
             />
           </p>
@@ -459,6 +464,37 @@ export class SoundPreferences extends React.Component<
           />
           <span className="sound-slider-value" aria-hidden={true}>
             {Math.round(value * 100)}%
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  private renderFunnyLevel(
+    labelKey: Parameters<typeof translate>[0],
+    id: string,
+    value: number,
+    onChange: (value: number) => void
+  ) {
+    const label = translate(labelKey, this.state.languageMode)
+    return (
+      <div className="sound-field-group">
+        <label htmlFor={id}>{label}</label>
+        <div className="sound-slider-row">
+          <input
+            id={id}
+            type="range"
+            min={1}
+            max={5}
+            step={1}
+            value={value}
+            onChange={event =>
+              onChange(clampFunnyLevel(Number(event.currentTarget.value), 3))
+            }
+            aria-valuetext={`${value}`}
+          />
+          <span className="sound-slider-value" aria-hidden={true}>
+            {value}
           </span>
         </div>
       </div>

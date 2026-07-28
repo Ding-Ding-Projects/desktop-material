@@ -119,32 +119,19 @@ export interface IBuildRunPreferences {
   readonly cheapLfsCloudCompression?: boolean
 
   /**
-   * Encrypt this repository's Cheap LFS payloads with a passphrase before they
-   * are uploaded. Off unless exactly true, per repository, never global.
-   *
-   * Turning it on is gated on `cheapLfsEncryptionAcknowledged`: if this is true
-   * and that is not, a pin **refuses** rather than quietly uploading in the
-   * clear, because a user whose settings say "encrypted" and whose release
-   * holds plaintext is worse off than one whose pin failed with a reason.
+   * Encrypt newly uploaded GitHub Release-backed Cheap LFS payloads with a
+   * user-supplied password. Off by default and intentionally limited to the
+   * Release provider; registry providers retain their existing repository-key
+   * encryption contract. The password itself is never persisted here.
    */
-  readonly cheapLfsEncryption?: boolean
+  readonly cheapLfsPayloadEncryption?: boolean
 
   /**
-   * The irreversibility gate was shown and confirmed for this repository: a
-   * lost passphrase means the payload is unrecoverable, with no recovery path
-   * and no override. Written only by that modal, never pre-set.
+   * Records only that the repository's irreversible password-loss warning was
+   * acknowledged before its first encrypted upload. This is not a credential
+   * and turning encryption off clears it so a later opt-in repeats the gate.
    */
-  readonly cheapLfsEncryptionAcknowledged?: boolean
-
-  /**
-   * Keep the passphrase in the OS credential vault instead of asking each
-   * time. Off unless exactly true. **The passphrase itself is never stored in
-   * this record** — this is only the flag saying a vault entry may exist. The
-   * secret goes to `TokenStore` alone; see
-   * `app/src/lib/cheap-lfs/passphrase-vault.ts` for why the settings path is
-   * forbidden for it.
-   */
-  readonly cheapLfsEncryptionSavePassphrase?: boolean
+  readonly cheapLfsPayloadEncryptionConfirmed?: boolean
 
   /**
    * Per-profile command-line overrides. A blank / absent value for a stage
@@ -175,6 +162,8 @@ export const defaultBuildRunPreferences: IBuildRunPreferences = {
   autoPinLargeFilesOnCommit: true,
   parallelCheapLfsUploads: true,
   cheapLfsStorageProvider: 'release',
+  cheapLfsPayloadEncryption: false,
+  cheapLfsPayloadEncryptionConfirmed: false,
 }
 
 /** Resolve persisted preview builds and reject unknown provider values safely. */

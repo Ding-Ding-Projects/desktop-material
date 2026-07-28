@@ -1,5 +1,16 @@
 # Developer Guide
 
+## Root renderer resource ownership
+
+Long-lived work created by the root renderer must be released at the same
+lifecycle boundary. Store/updater/drag/IPC listeners belong in the root
+`CompositeDisposable`; polling timers retain explicit handles; document and
+window handlers are paired with unmount cleanup. Queued idle or animation-frame
+work checks the mounted state before starting more work.
+
+See [Root renderer resource lifecycle](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/quality-and-reliability/root-renderer-resource-lifecycle.md)
+for behavior, failure modes, security boundaries, and verification evidence.
+
 ![The renderer state path from React UI through Dispatcher and AppStore to a fresh state](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/diagrams/renderer-state-flow.svg)
 
 This page is for contributors. It describes how Desktop Material is put together and how to build and

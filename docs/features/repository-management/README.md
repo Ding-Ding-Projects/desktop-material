@@ -97,6 +97,11 @@ Material is displaying or how a repository is represented in the application.
   cancellation. Combined local tests, the exact Windows production build, and
   hidden-desktop acceptance pass; packaged E2E and remote publication remain
   separate.
+- [Cheap LFS Release payload
+  encryption](cheap-lfs-release-payload-encryption.md) — optionally encrypt new
+  GitHub Release payloads with repository-scoped AES-256-GCM and scrypt,
+  retaining the password only for the process or in the operating-system vault
+  while verifying both plaintext and ciphertext receipts.
 - [Cheap LFS asset versioning and commit
   provenance](cheap-lfs-asset-versioning.md) — treat every uploaded release
   asset as write-once, so editing a pinned file uploads the new bytes as a new

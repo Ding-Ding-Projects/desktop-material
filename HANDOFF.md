@@ -1,5 +1,28 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Root renderer resource lifetime audit (focused gates green)
+
+The root `App` created telemetry and update-check intervals without retaining
+their handles, while `componentWillUnmount` cleared only an unrelated interval.
+A queued idle callback could therefore start permanent polling after unmount.
+The same root instance was retained by undisposed app/build/updater/drag
+subscriptions, three IPC listeners, document drag/drop/focus handlers, and
+application-menu key listeners.
+
+The fix collects subscriptions in one `CompositeDisposable`, makes typed IPC
+`on()` registrations disposable, retains and clears both deferred timer
+handles, releases every global handler, and guards queued idle/animation-frame
+work with the mounted state. Focused lifecycle tests pass **4/4** and ESLint is
+clean on all three changed files.
+
+The exact Lowlevel MCP headless build preflight passed against server checkout
+`f2edfe442555cfe35a519dd0b058986cb09d6ee3`, but the mandated production build
+stopped before compilation because this checkout has no dependency tree and
+`npx --no-install` correctly refused to download missing `cross-env`.
+Repository-wide TypeScript also remains red from missing baseline dependencies
+(`dugite`, `registry-js`, Copilot SDK, Dexie, and others); no reported
+diagnostic targets the changed files. Built-app capture and remote CI remain
+pending.
 ## 2026-07-27 — Progressive asynchronous lazy loading (locally verified, Refs #82)
 
 `App.render()` returns `null` until `AppStore.loadInitialState()` resolves, so
@@ -47,31 +70,27 @@ environment, not of the tree: the agent's worktree was missing the
 `@github/copilot-sdk` could not resolve. In the main checkout, after this merge,
 `npx tsc --noEmit` exits 0.
 
-## 2026-07-27 — Funny-level sliders moved to Appearance → Tone (locally verified, Refs #83)
+## 2026-07-27 — Funny-level sliders: superseded by the owner's own integration (Refs #83)
 
-The sliders were never absent from the build — they rendered on **Settings →
-Sound** under a *Text-to-Speech* heading, while the language mode they belong
-beside lived on **Appearance**. That placement hid them from anyone looking for
-a tone control and falsely implied they only styled the spoken narrator, when
-the level styles every category of copy the app writes or speaks.
+A parallel implementation of #83 was written on this branch and then
+**discarded during the merge with `origin/main`**, because the repository owner
+had independently implemented and pushed the same feature in `a550dc1ea8`
+("Integrate safer pushes, encrypted payloads, and funny controls"). Their
+version is the one that ships; `FunnyLevelControls`
+(`app/src/ui/preferences/funny-level-controls.tsx`) and its 14-test suite were
+deleted rather than merged, because two implementations of one settings control
+is strictly worse than either alone.
 
-Both sliders now render in a new `FunnyLevelControls`
-(`app/src/ui/preferences/funny-level-controls.tsx`) inside the Appearance
-language section, with a live per-language preview, `aria-valuetext` that names
-the level (`Level 4 of 5, Playful`) instead of a bare number, and a
-destructive-warning sample whose irreversibility sentence
-(`appearance.toneWarningFixed`) has no per-level variants. Sound keeps the
-narrator's own switches plus a pointer — never a duplicate control. Persistence
-is unchanged: the existing `audio-system-settings-v1` blob stays the single
-source of truth and Appearance writes through `AudioCueStore.setSettings`.
+The same happened to the #78 encryption work merged earlier from this branch:
+`a550dc1ea8` deleted `app/src/lib/cheap-lfs/encrypted-payload.ts`,
+`app/src/ui/repository-settings/cheap-lfs-encryption-gate.tsx` and their three
+test files, replacing them with `payload-encryption-credentials.ts` and
+`cheap-lfs-payload-password.tsx`. That deletion is the owner's call and stands.
 
-Local evidence: `app/test/unit/ui/funny-level-controls-test.tsx` **14/14**;
-`appearance-preferences-test.tsx`, `i18n-test.ts`, `settings-search-test.ts`,
-`audio-settings-test.ts`, `settings-surfaces-test.tsx` **65/65** together;
-`pull-branch-deleted-ui-test.ts` + 6 sibling i18n/style suites **49/49**.
-`npx tsc --noEmit`, eslint and prettier clean. **No screenshot evidence yet** —
-these assertions are DOM-level only; the packaged-app capture the issue asks
-for still has to be taken.
+What survived from this branch, because the owner's commits did not cover it:
+the `decrypting` restore phase (#85), progressive lazy loading (#82), the
+repository/tab group management merged in `a2ad99e218` (#81), the capture
+fixture's `menu:` step, and the two CI test repairs below.
 
 ## 2026-07-27 — Observed user-initiated push/pull/fetch promises (locally verified, Refs #80)
 
@@ -106,6 +125,24 @@ reverted. Adjacent suites pass — provider triage and canonical-remote prefligh
 **52/52**, source-regex/style neighbours **100/100**, docs-hub catalog
 **33/33**. `npx tsc --noEmit`, ESLint, and Prettier are all clean. Remote CI,
 installer, and built-app screenshot evidence for #80 remain outstanding.
+
+## 2026-07-27 — Encryption, observed network actions, and funny-level controls (local gates green)
+
+The current local implementation covers three open issues. #78 provides
+optional AES-256-GCM encryption for GitHub Release-backed Cheap LFS payloads:
+the app asks once per operation unless the user explicitly opts into the
+Windows credential vault, reads legacy pointer formats, restores plaintext
+legacy payloads without prompting, and fails closed when authentication and
+cleanup both fail. #80 observes asynchronous push, fetch, and pull actions and
+shows an invalid canonical remote as a persistent yellow notification whose
+**Change remote URL** action opens the repair surface. #83 restores separate,
+persisted 1–5 funny-level sliders for English and Cantonese. #81 and #82 are
+deliberately deferred to a later continuation.
+
+Current local evidence is **194/194 focused tests** and **6768/6768 full tests
+across 831 files**, with `tsc` and `yarn lint` clean. This checkpoint does not
+claim packaged visual evidence or remote CI. #78, #80, and #83 remain open
+pending screenshots captured from the real built application.
 
 ## 2026-07-27 — TUI path browser and Cheap LFS Git wrapper (automated gates green)
 

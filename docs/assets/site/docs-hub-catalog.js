@@ -588,6 +588,13 @@
       d: 'From tui/:',
     },
     {
+      t: 'Canonical remote preflight warning',
+      h: 'features/quality-and-reliability/canonical-remote-preflight-warning.html',
+      s: 'features/quality-and-reliability/canonical-remote-preflight-warning.md',
+      c: 'features',
+      d: "Network mutations that depend on a GitHub repository association now fail closed when Desktop Material cannot prove the configured remote's canonical destination. Instead of…",
+    },
+    {
       t: 'Git hook execution environment',
       h: 'features/quality-and-reliability/git-hook-execution.html',
       s: 'features/quality-and-reliability/git-hook-execution.md',
@@ -644,6 +651,13 @@
       d: 'Desktop Material bounds repeated background work and releases resources at the same lifecycle boundary that created them. The behavior is automatic; it adds no preference,…',
     },
     {
+      t: 'Root renderer resource lifecycle',
+      h: 'features/quality-and-reliability/root-renderer-resource-lifecycle.html',
+      s: 'features/quality-and-reliability/root-renderer-resource-lifecycle.md',
+      c: 'features',
+      d: 'The root App owns every long-lived renderer subscription and polling timer it starts. Store, updater, drag-manager, and IPC listeners are collected in one CompositeDisposable;…',
+    },
+    {
       t: 'Desktop Material feature documentation',
       h: 'features/',
       s: 'features/README.md',
@@ -684,6 +698,13 @@
       s: 'features/repository-management/cheap-lfs-oci-registry-backend.md',
       c: 'features',
       d: 'Desktop Material can represent the complete Cheap LFS object set for one Git repository as one logical OCI image in GitHub Container Registry (GHCR) or Docker Hub. Select GHCR…',
+    },
+    {
+      t: 'Cheap LFS Release payload encryption',
+      h: 'features/repository-management/cheap-lfs-release-payload-encryption.html',
+      s: 'features/repository-management/cheap-lfs-release-payload-encryption.md',
+      c: 'features',
+      d: 'Desktop Material can encrypt newly uploaded GitHub Release-backed Cheap LFS payloads with a repository-scoped password. The option is deliberately off by default and applies…',
     },
     {
       t: 'Clone dialog repository metadata',
@@ -1432,7 +1453,7 @@
       h: 'wiki/Developer-Guide.html',
       s: 'wiki/Developer-Guide.md',
       c: 'wiki',
-      d: 'This page is for contributors. It describes how Desktop Material is put together and how to build and run it. Desktop Material is a fork of desktop/desktop (MIT), so much of…',
+      d: 'Long-lived work created by the root renderer must be released at the same lifecycle boundary. Store/updater/drag/IPC listeners belong in the root CompositeDisposable; polling…',
     },
     {
       t: 'Guided Feature Gallery',

@@ -24,6 +24,7 @@ import {
   ISecretScanResult,
 } from '../secret-scanning/push-protection-error-dialog'
 import { coerceToString } from '../../lib/git/coerce-to-string'
+import { CanonicalRemoteVerificationError } from '../../lib/canonical-remote-verification-error'
 
 /** An error which also has a code property. */
 interface IErrorWithCode extends Error {
@@ -85,6 +86,25 @@ export async function defaultErrorHandler(
   const e = asErrorWithMetadata(error) || error
   await dispatcher.presentError(e)
 
+  return null
+}
+
+/**
+ * A canonical-remote preflight is a recoverable configuration warning. Keep
+ * the push fail-closed while sending the user to the remote manager instead of
+ * falling through to the generic red error notice.
+ */
+export async function canonicalRemoteVerificationHandler(
+  error: Error,
+  dispatcher: Dispatcher
+): Promise<Error | null> {
+  const underlying =
+    error instanceof ErrorWithMetadata ? error.underlyingError : error
+  if (!(underlying instanceof CanonicalRemoteVerificationError)) {
+    return error
+  }
+
+  dispatcher.showCanonicalRemoteWarning(underlying)
   return null
 }
 

@@ -21,6 +21,29 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Local reliability checkpoint — July 28, 2026:** the root renderer now owns
+> and releases its store/updater/drag/IPC subscriptions, telemetry and update
+> polling timers, and global document/window handlers. Queued idle and
+> animation-frame callbacks cannot restart work after unmount. Focused
+> lifecycle tests pass **4/4** and changed-file ESLint is clean. The required
+> Lowlevel MCP headless production build was attempted but stopped before
+> compilation because this checkout has no installed dependency tree;
+> built-app capture and remote CI are not yet claimed.
+
+> **Local implementation checkpoint — July 27, 2026:** #78 adds optional
+> AES-256-GCM encryption to GitHub Release-backed Cheap LFS payloads. Passwords
+> are requested once per operation or, only when the user opts in, retrieved
+> from the Windows credential vault; existing pointer formats remain compatible,
+> plaintext legacy restores never prompt, and combined authentication/cleanup
+> failures fail closed. #80 observes asynchronous push, fetch, and pull actions
+> and keeps an invalid canonical remote visible as a yellow warning with a
+> **Change remote URL** action. #83 restores independent persisted English and
+> Cantonese funny-level sliders from 1–5. #81 and #82 are deliberately deferred
+> to a later continuation. Local evidence is **194/194 focused tests** and
+> **6768/6768 full tests across 831 files**, with TypeScript and `yarn lint`
+> clean. #78, #80, and #83 remain open pending real built-app screenshots;
+> packaged visual evidence and remote CI are not yet claimed.
+
 > **Merged and published source — July 27, 2026:** Cheap LFS Release restores now
 > open one bounded look-ahead lane at the exact 90% download point and expose
 > detailed overall/file/part progress. Browser-bound links can also use a

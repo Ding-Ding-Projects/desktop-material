@@ -58,6 +58,13 @@ class ErrorNoticeCard extends React.PureComponent<
     }
   }
 
+  private onEditRepositoryRemotes = () => {
+    const { action } = this.props.notice
+    if (action?.kind === 'edit-repository-remotes') {
+      this.props.onAction?.(this.props.notice, action)
+    }
+  }
+
   private onRequestWorkflowUpdate = () => {
     const { action } = this.props.notice
     if (action?.kind === 'update-cheap-lfs-workflow') {
@@ -97,7 +104,7 @@ class ErrorNoticeCard extends React.PureComponent<
 
     return (
       <article
-        className="error-notice"
+        className={`error-notice error-notice--${notice.severity ?? 'error'}`}
         role="alert"
         aria-atomic="true"
         data-error-notice-id={notice.id}
@@ -192,6 +199,15 @@ class ErrorNoticeCard extends React.PureComponent<
               {notice.action.label}
             </button>
           )}
+          {notice.action?.kind === 'edit-repository-remotes' && (
+            <button
+              type="button"
+              className="error-notice-recovery"
+              onClick={this.onEditRepositoryRemotes}
+            >
+              {notice.action.label}
+            </button>
+          )}
           {notice.action?.kind === 'update-cheap-lfs-workflow' &&
             !this.state.confirmingWorkflowUpdate && (
               <button
@@ -247,7 +263,10 @@ export class ErrorNoticeStack extends React.PureComponent<IErrorNoticeStackProps
     }
 
     return (
-      <section className="error-notice-stack" aria-label="Error notifications">
+      <section
+        className="error-notice-stack"
+        aria-label="Application notifications"
+      >
         {this.props.notices.map(notice => (
           <ErrorNoticeCard
             key={notice.id}
