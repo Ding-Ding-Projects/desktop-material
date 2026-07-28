@@ -1945,6 +1945,34 @@ export type TranslationKey =
   | 'cheapLfs.settings.autoPinHelp'
   | 'cheapLfs.settings.parallelUploads'
   | 'cheapLfs.settings.parallelUploadsHelp'
+  | 'cheapLfs.settings.encryption'
+  | 'cheapLfs.settings.encryptionHelp'
+  | 'cheapLfs.settings.encryptionSetUp'
+  | 'cheapLfs.settings.savePassphrase'
+  | 'cheapLfs.settings.savePassphraseHelp'
+  | 'cheapLfs.settings.forgetPassphrase'
+  | 'cheapLfs.encryptionGate.title'
+  | 'cheapLfs.encryptionGate.intro.plain'
+  | 'cheapLfs.encryptionGate.intro.light'
+  | 'cheapLfs.encryptionGate.intro.playful'
+  | 'cheapLfs.encryptionGate.irreversible'
+  | 'cheapLfs.encryptionGate.pointerDisclosure'
+  | 'cheapLfs.encryptionGate.passphrase'
+  | 'cheapLfs.encryptionGate.confirmPassphrase'
+  | 'cheapLfs.encryptionGate.mismatch'
+  | 'cheapLfs.encryptionGate.empty'
+  | 'cheapLfs.encryptionGate.remember'
+  | 'cheapLfs.encryptionGate.rememberWarning'
+  | 'cheapLfs.encryptionGate.acknowledge'
+  | 'cheapLfs.encryptionGate.confirm'
+  | 'cheapLfs.encryption.enabledTitle'
+  | 'cheapLfs.encryption.enabledBody'
+  | 'cheapLfs.encryption.vaultUnavailableTitle'
+  | 'cheapLfs.encryption.vaultUnavailableBody'
+  | 'cheapLfs.encryption.forgottenTitle'
+  | 'cheapLfs.encryption.forgottenBody'
+  | 'cheapLfs.encryption.forgetFailedTitle'
+  | 'cheapLfs.encryption.forgetFailedBody'
   | 'cheapLfs.settings.ghcrStorage'
   | 'cheapLfs.settings.ghcrStorageHelp'
   | 'cheapLfs.settings.storageProvider'
@@ -4986,6 +5014,55 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.parallelUploads': 'Upload up to 3 large files at once',
   'cheapLfs.settings.parallelUploadsHelp':
     'Uses up to three independent Cheap LFS transfer lanes. Turn this off to upload one file at a time.',
+  'cheapLfs.settings.encryption':
+    'Encrypt this repository’s large files with a passphrase',
+  'cheapLfs.settings.encryptionHelp':
+    'Payloads are encrypted on this machine before upload, so the release asset holds ciphertext. The committed pointer still records the file’s size and SHA-256 in the clear, and the stored container’s own size and SHA-256, so anyone can check the stored object is intact without the passphrase.',
+  'cheapLfs.settings.encryptionSetUp': 'Set up encryption…',
+  'cheapLfs.settings.savePassphrase':
+    'Remember the passphrase in this computer’s credential manager',
+  'cheapLfs.settings.savePassphraseHelp':
+    'The passphrase is stored only in the operating system credential manager, never in a settings file and never in Desktop Material’s settings history. Anyone who can sign in to this machine account can then decrypt these files.',
+  'cheapLfs.settings.forgetPassphrase': 'Forget the saved passphrase',
+  'cheapLfs.encryptionGate.title': 'Encrypt large files in {repository}',
+  'cheapLfs.encryptionGate.intro.plain':
+    'Large files pinned from this repository will be encrypted on this computer before they are uploaded. Choose a passphrase.',
+  'cheapLfs.encryptionGate.intro.light':
+    'From here on, this repository’s big files get sealed up on this computer before they go anywhere. Pick a passphrase.',
+  'cheapLfs.encryptionGate.intro.playful':
+    'Your big files are about to go into a box that only your passphrase opens, sealed right here before anything leaves the building. Pick that passphrase carefully.',
+  // Fixed wording at every funny level and in both languages. There is no band
+  // of humour in which "you cannot get this back" is allowed to read as a
+  // maybe, so this string has no variants.
+  'cheapLfs.encryptionGate.irreversible':
+    'If you lose this passphrase, these files cannot be recovered. There is no reset, no backup key, no recovery code, and nobody at Desktop Material or GitHub can open them for you. Write it down somewhere safe before you continue.',
+  'cheapLfs.encryptionGate.pointerDisclosure':
+    'What encryption does not hide: the pointer committed to Git still records each file’s exact byte size and SHA-256, so someone who already has a copy of a file can confirm it is stored here.',
+  'cheapLfs.encryptionGate.passphrase': 'Passphrase',
+  'cheapLfs.encryptionGate.confirmPassphrase': 'Type the passphrase again',
+  'cheapLfs.encryptionGate.mismatch':
+    'The two passphrases are different. Nothing has been enabled.',
+  'cheapLfs.encryptionGate.empty': 'Enter a passphrase to continue.',
+  'cheapLfs.encryptionGate.remember':
+    'Remember it in this computer’s credential manager',
+  'cheapLfs.encryptionGate.rememberWarning':
+    'Saving it means anyone who can sign in to this machine account can decrypt these files. It is stored in the operating system credential manager only — never in a settings file, and never in Desktop Material’s settings history. Losing the computer still loses the passphrase.',
+  'cheapLfs.encryptionGate.acknowledge':
+    'I understand that losing this passphrase means losing these files permanently',
+  'cheapLfs.encryptionGate.confirm': 'Encrypt large files',
+  'cheapLfs.encryption.enabledTitle': 'Encryption is on for {repository}',
+  'cheapLfs.encryption.enabledBody':
+    'Large files pinned from now on are encrypted before upload. Files already pinned stay as they are; pin them again to replace them with encrypted copies.',
+  'cheapLfs.encryption.vaultUnavailableTitle': 'The passphrase was not saved',
+  'cheapLfs.encryption.vaultUnavailableBody':
+    'This computer’s credential manager could not be used, so nothing was written anywhere. Encryption still works and Desktop Material will ask for the passphrase again instead of keeping a copy in a file.',
+  'cheapLfs.encryption.forgottenTitle': 'Saved passphrase deleted',
+  'cheapLfs.encryption.forgottenBody':
+    'The credential manager entry for {repository} is gone. Desktop Material will ask for the passphrase the next time it needs it.',
+  'cheapLfs.encryption.forgetFailedTitle':
+    'The saved passphrase is still there',
+  'cheapLfs.encryption.forgetFailedBody':
+    'This computer’s credential manager refused the deletion, so the entry for {repository} may still exist. Remove it in the operating system credential manager to be sure.',
   'cheapLfs.settings.ghcrStorage': 'Store Cheap LFS in one GHCR image',
   'cheapLfs.settings.ghcrStorageHelp':
     'Publishes one digest-pinned OCI image for all repository objects. Private repositories encrypt objects with a shared key tracked in that private repository.',
@@ -7896,6 +7973,48 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.parallelUploads': '一次過載最多 3 個大檔案',
   'cheapLfs.settings.parallelUploadsHelp':
     '會用最多三條獨立 Cheap LFS 傳輸通道；熄咗就逐個檔案上載。',
+  'cheapLfs.settings.encryption': '用密碼加密呢個 repository 嘅大檔案',
+  'cheapLfs.settings.encryptionHelp':
+    '檔案會喺你部機加密咗先上載，所以 release asset 裝住嘅係密文。不過 commit 落去嗰個 pointer 仍然會照寫明原檔嘅大細同 SHA-256，另外仲會寫低個加密容器自己嘅大細同 SHA-256 — 咁樣冇密碼嘅人都驗到個 asset 有冇被人郁過。',
+  'cheapLfs.settings.encryptionSetUp': '設定加密⋯',
+  'cheapLfs.settings.savePassphrase': '將密碼記入部機嘅憑證管理員',
+  'cheapLfs.settings.savePassphraseHelp':
+    '密碼淨係會入作業系統嘅憑證管理員，唔會寫入任何設定檔，亦都唔會入 Desktop Material 嘅設定歷史。記咗之後，凡係登入到呢部機呢個帳戶嘅人都解得開呢啲檔。',
+  'cheapLfs.settings.forgetPassphrase': '唔記得已儲存嘅密碼',
+  'cheapLfs.encryptionGate.title': '加密 {repository} 嘅大檔案',
+  'cheapLfs.encryptionGate.intro.plain':
+    '由而家開始，呢個 repository pin 嘅大檔案會喺你部機加密咗先上載。請揀一個密碼。',
+  'cheapLfs.encryptionGate.intro.light':
+    '之後呢個 repository 啲大檔案，喺你部機就會封好咗先出門口。揀個密碼先。',
+  'cheapLfs.encryptionGate.intro.playful':
+    '你啲大檔案就嚟入箱喇，喺你部機當場封口，全世界得你個密碼開到。所以呢個密碼，揀好啲。',
+  // 呢句喺任何搞笑程度、任何語言都係同一句。「救唔返」呢個事實冇得講笑淡化。
+  'cheapLfs.encryptionGate.irreversible':
+    '密碼唔見咗，呢啲檔案就救唔返。冇得 reset、冇後備 key、冇復原碼，Desktop Material 同 GitHub 都冇人開得返俾你。撳落去之前，搵個安全嘅地方抄低佢。',
+  'cheapLfs.encryptionGate.pointerDisclosure':
+    '加密遮唔到嘅嘢：commit 落 Git 嗰個 pointer 照樣寫住每個檔嘅實際大細同 SHA-256，所以本身已經有份相同檔案嘅人，係confirm得到嗰個檔存喺呢度。',
+  'cheapLfs.encryptionGate.passphrase': '密碼',
+  'cheapLfs.encryptionGate.confirmPassphrase': '再打多次個密碼',
+  'cheapLfs.encryptionGate.mismatch': '兩次打嘅密碼唔同。冇開到任何嘢。',
+  'cheapLfs.encryptionGate.empty': '要打個密碼先繼續得。',
+  'cheapLfs.encryptionGate.remember': '記入部機嘅憑證管理員',
+  'cheapLfs.encryptionGate.rememberWarning':
+    '記咗即係話，凡係登入到呢部機呢個帳戶嘅人都解得開呢啲檔。佢淨係入作業系統嘅憑證管理員 — 唔會入設定檔，亦都唔會入 Desktop Material 嘅設定歷史。部機冇埋嘅話，個密碼一樣冇埋。',
+  'cheapLfs.encryptionGate.acknowledge':
+    '我明白密碼唔見咗，即係呢啲檔案永久救唔返',
+  'cheapLfs.encryptionGate.confirm': '加密大檔案',
+  'cheapLfs.encryption.enabledTitle': '{repository} 已經開咗加密',
+  'cheapLfs.encryption.enabledBody':
+    '之後 pin 嘅大檔案都會加密咗先上載。之前已經 pin 咗嘅維持原狀；想佢哋都變加密版，就再 pin 多次。',
+  'cheapLfs.encryption.vaultUnavailableTitle': '個密碼冇儲到',
+  'cheapLfs.encryption.vaultUnavailableBody':
+    '部機嘅憑證管理員用唔到，所以咩都冇寫低過。加密照樣行得，Desktop Material 會再問你攞密碼，唔會偷雞抄低喺個檔度。',
+  'cheapLfs.encryption.forgottenTitle': '已刪走儲存咗嘅密碼',
+  'cheapLfs.encryption.forgottenBody':
+    '{repository} 喺憑證管理員嗰個記錄冇咗。下次要用嗰陣，Desktop Material 會再問你。',
+  'cheapLfs.encryption.forgetFailedTitle': '嗰個密碼可能仲喺度',
+  'cheapLfs.encryption.forgetFailedBody':
+    '部機嘅憑證管理員唔俾刪，所以 {repository} 嗰個記錄可能仲喺度。想穩陣就自己入去作業系統嘅憑證管理員刪走佢。',
   'cheapLfs.settings.ghcrStorage': '用一個 GHCR image 儲晒 Cheap LFS',
   'cheapLfs.settings.ghcrStorageHelp':
     '成個 repository 嘅物件會放入一個鎖定 digest 嘅 OCI image。私人 repository 會用一條一齊 track 嘅共享 key 加密物件。',

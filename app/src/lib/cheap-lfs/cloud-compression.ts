@@ -3,7 +3,7 @@ import { constants, Stats } from 'fs'
 import { lstat, link, mkdir, open, realpath, rename, unlink } from 'fs/promises'
 import { dirname, join, resolve } from 'path'
 import { IBuildRunPreferences } from '../../models/build-run-preferences'
-import { ICheapLfsPointer } from './pointer'
+import { cheapLfsPartStoredSizeInBytes, ICheapLfsPointer } from './pointer'
 import { Repository } from '../../models/repository'
 
 /** Immutable commit containing the reviewed composite compressor action. */
@@ -177,12 +177,10 @@ export function getCheapLfsCloudCompressionStats(
   let compressedObjects = 0
   let storedSizeInBytes = 0
   for (const part of parts) {
-    if (part.deflatedSizeInBytes === undefined) {
-      storedSizeInBytes += part.sizeInBytes
-    } else {
+    if (part.deflatedSizeInBytes !== undefined) {
       compressedObjects++
-      storedSizeInBytes += part.deflatedSizeInBytes
     }
+    storedSizeInBytes += cheapLfsPartStoredSizeInBytes(part)
   }
   return {
     totalObjects: parts.length,

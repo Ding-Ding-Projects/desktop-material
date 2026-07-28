@@ -834,6 +834,233 @@ A seam with no tracked-path store — structural test fakes and legacy adaptors 
 keeps its whole-file re-reads, because there `sourcePath` is the working-tree
 file itself and the re-read is its only proof.
 
+## Optional passphrase encryption
+
+Cheap LFS objects live in a GitHub Release — a public or semi-public place. A
+repository may therefore opt in to encrypting its payloads on this machine
+before they are uploaded, so the release asset holds ciphertext. It is **off by
+default, per repository, and never global**.
+
+The non-goal is recorded deliberately: **working-tree files are never encrypted
+in place.** A ciphertext blob has no meaningful line diff, so it defeats Git's
+diffing outright, and re-encrypting after every save draws a fresh nonce (as it
+must) and therefore rewrites the whole file on every commit. That is a worse
+tool than the one it would replace, so it is not built.
+
+### The format
+
+`app/src/lib/cheap-lfs/payload-encryption.ts` owns the container:
+**AES-256-GCM** under a **scrypt** key at cost 2^17 with `r=8`, `p=1` — roughly
+128 MiB per derivation — using Node's own `crypto`, with no hand-rolled
+primitives anywhere. A **fresh salt and a fresh nonce are drawn on every single
+call**; nonce reuse under one key does not weaken GCM, it dismantles it, so this
+has its own test asserting that twelve encryptions of identical bytes produce
+twelve distinct nonces and twelve distinct salts.
+
+The container is a versioned header followed by the salt, the nonce, the tag,
+and the ciphertext:
+
+| Field | Bytes | Notes |
+| --- | --- | --- |
+| magic | 8 | `DMCLFS\0\x01`; a foreign file is refused, never mis-parsed |
+| version | 2 | format version, currently 1 |
+| cipher id / KDF id | 2 + 2 | AES-256-GCM / scrypt; anything else is refused |
+| reserved | 2 | zero |
+| logN, r, p | 4 + 4 + 4 | **every KDF parameter, recorded not assumed** |
+| salt / nonce / tag lengths | 4 + 4 + 4 | |
+| salt, nonce, tag | 16 + 12 + 16 | |
+| ciphertext | remainder | exactly the plaintext length |
+
+**Raising the cost later needs no migration.** Because `logN`, `r`, and `p` live
+in each payload's own header, moving new pins from 2^17 to 2^19 leaves every
+existing payload decryptable by the same build — the reader uses what the header
+says, not what the current default is. Absurd, unknown, or truncated headers are
+refused *before* any memory-hard derivation is spent on them, so a hostile
+pointer cannot turn a restore into a memory bomb.
+
+### What is hashed, and why both digests are recorded
+
+This is the design decision the feature turns on. An encrypted part records
+**two** digests:
+
+| Recorded in the pointer | Taken over | Who can check it | When it is checked |
+| --- | --- | --- | --- |
+| head `size` + `sha256`, and each part's `sha256` + plaintext size | the **plaintext** | the app, holding the passphrase | after decrypting, before anything replaces a file |
+| each part's `stored-size` + `stored-sha256` | the **stored container** | **anyone at all, with no passphrase** | on download, before a key is derived |
+
+The stored pair exists so that *"is the object at the provider still the object
+we published?"* stays answerable by a client that cannot read the object.
+Integrity must not be a privilege of whoever knows the passphrase. Recording
+only the plaintext digest would make it one; recording only the ciphertext
+digest would let a bug in this app's own decryption, reassembly, or ordering
+publish wrong bytes over the user's file — which no authentication tag can
+catch, because those bytes were authentic when they were sealed.
+
+The plaintext pair also stays where it is for a second, unglamorous reason: the
+head `size` and `sha256` are the tracked file's **identity** everywhere else in
+this feature. [Never re-pinning an unchanged payload](#never-re-pinning-an-unchanged-payload)
+compares a working-tree content hash to them, and
+[post-commit payload restore](#post-commit-payload-restore) re-hashes its
+retained copy against them. Ciphertext measurements in those fields would
+silently break both.
+
+> [!IMPORTANT]
+> **What encryption does not hide.** The committed pointer still records the
+> file's exact byte size and its plaintext SHA-256, in the clear, in Git. So a
+> party who already holds a copy of a file can confirm that this repository
+> stores it. Encryption protects the *contents* of the object at the provider;
+> it is not an anonymity feature, and the app says so in the confirmation gate
+> rather than leaving the user to discover it.
+
+The pointer text gains one head-adjacent line and one part record kind:
+
+```text
+version desktop-material/cheap-lfs/v1
+release-tag assets
+asset-name payload.bin
+size 1048576                       <- plaintext whole-file size
+sha256 <plaintext whole-file sha>  <- plaintext whole-file SHA-256
+encryption 1                       <- container format version
+part-encrypted <plaintext-sha256> <plaintext-size> <stored-size> <stored-sha256> <name>
+```
+
+A pointer is **wholly encrypted or wholly not**: the parser refuses a mix, and
+refuses an `encryption` line with no encrypted parts under it, so one readable
+part can never sit inside a file the user was told is protected. It also refuses
+a `stored-size` that is not strictly larger than the plaintext size, because a
+container is a header, a salt, a nonce, and a tag wrapped around what it
+protects and can never be as small as it. An older Desktop Material reading a
+new encrypted pointer sees six head lines, fails the parse, and treats the file
+as ordinary text — which is the correct fail-closed outcome, since it could not
+decrypt it anyway. Cloud compression is likewise inert on these pointers: the
+Action's parser refuses them, so no run tries to deflate ciphertext.
+
+### How a pin encrypts
+
+An encrypted pin always takes the **part-record route**, even for one asset,
+because the stored container's size and digest have nowhere else to live. Parts
+are cut at **64 MiB** rather than the raw 500 MiB, and that smaller bound is
+deliberate: a GCM tag covers the whole message, so a container is sealed and
+re-opened as a whole buffer rather than streamed — handing out plaintext before
+the tag verifies would be handing out unauthenticated bytes. Peak memory for one
+part is therefore about three times the part size, and 64 MiB keeps that near
+200 MiB instead of near 1.5 GiB. The trade is more assets, more key derivations,
+and a slower pin; it is stated here rather than hidden.
+
+Each part is **sealed, then immediately re-opened and compared against the
+plaintext it came from, before anything is uploaded.** This is the last moment
+at which an unopenable container is a recoverable problem rather than a
+destroyed file, so it costs a second key derivation per part on purpose. Only
+then is the container uploaded; only then does its record enter the pointer.
+
+Asset reuse is switched off entirely while encrypting. A bucket asset's size and
+digest can never match a plaintext part's, and a fresh salt and nonce per call
+mean re-sealing identical bytes is never byte-identical anyway — matching on the
+plaintext digest there would adopt some other file's ciphertext. Sealed
+containers are operation-owned scratch, removed on success, failure, and abort
+alike, so a canceled encrypted pin leaves no ciphertext of the user's file
+behind.
+
+### How a restore decrypts
+
+Three gates, in this order, on every part:
+
+1. the **stored container's recorded size and SHA-256** — checked with no
+   passphrase in scope, so a corrupted or swapped download is reported as
+   exactly that instead of being blamed on the passphrase, and no memory-hard
+   derivation is spent on bytes that already failed;
+2. the **GCM tag**, which is the authority on authenticity. A flipped byte, a
+   truncation, and a nonce spliced from a sibling payload each raise, and the
+   partial plaintext `update()` produced is discarded because unauthenticated
+   bytes are not a result;
+3. the **recorded plaintext size and SHA-256**, then the existing whole-file
+   size and digest check after reassembly.
+
+Any one of the three failing leaves the committed pointer exactly where it was.
+**A wrong passphrase and a tampered payload fail identically and deliberately** —
+telling them apart tells an attacker which half they got right — and neither the
+real nor the attempted passphrase ever appears in a message, a log line, or a
+notification body. A pointer naming encrypted assets that reaches a restore path
+with no passphrase resolver is refused outright rather than partially restored.
+
+### Remembering the passphrase, and the one place it must never go
+
+Saving is **off by default**, offered as an unticked checkbox beside the
+passphrase field, and scoped per repository — never one global passphrase reused
+everywhere. When it is on, the passphrase is written to the **OS credential
+vault through `TokenStore`** (keytar; Windows Credential Manager here), the same
+place GitHub tokens already live.
+
+> [!WARNING]
+> **The profile settings store is forbidden for this value.** Desktop Material's
+> settings are committed into an app-owned Git repository with retained history
+> and undo (`app/src/lib/profiles/profile-git.ts`, driven by the allowlist in
+> `profileSettingsRegistry`). A passphrase written through that path would be
+> captured in a commit. Deleting it later writes *another* commit; the earlier
+> one still holds it and `git log -p` still prints it. It would **survive its
+> own deletion** for the life of the profile repository, and a user who clicked
+> "forget" would be told the truth about the current state and a lie about the
+> durable one.
+
+`app/src/lib/cheap-lfs/passphrase-vault.ts` therefore imports
+`../stores/token-store` and nothing else of that kind — no
+`profileSettingsRegistry`, no `profile-git`, no `profile-store`, no
+`localStorage`, no settings file. Tests enforce it from both directions: a
+source scan that no forbidden module is imported, and a run that saves a
+passphrase, captures and commits a profile settings snapshot the way the app
+does, then scans the profile repository's **entire history** — every commit,
+message, and patch — and finds nothing.
+
+The repository preferences carry only flags: `cheapLfsEncryption`,
+`cheapLfsEncryptionAcknowledged`, and `cheapLfsEncryptionSavePassphrase`, all
+booleans, all absent by default. There is no string field anywhere in that
+record a passphrase could land in.
+
+**Vault trouble fails closed to asking, never to a file.** keytar throws on some
+configurations, a locked keychain refuses reads, and a vault can be missing;
+every one of those resolves to "we do not have a saved passphrase, so ask" —
+there is deliberately no fallback store and no cache file. **Forget** deletes the
+vault entry and is reachable from the same surface that offered to save it; when
+the vault refuses the deletion the app says the entry may still exist rather
+than claiming a deletion it cannot prove.
+
+Because a commit-time pin runs unattended and cannot open a modal and wait, an
+unlocked passphrase is also held **in memory for the app session only** — no
+file, nothing that outlives the process, and an explicit lock. A repository
+configured for encryption whose passphrase is available from neither the vault
+nor the session **refuses to pin, with a reason**, and never uploads readable
+bytes.
+
+### The confirmation gate
+
+Turning the setting on does not toggle it. It opens a modal that must be got
+through first, because this is the one Cheap LFS mistake that cannot be undone:
+
+- the irreversibility sentence is a **fixed string with no funny-level
+  variants**, in both languages — *"there is no reset, no backup key, no
+  recovery code, and nobody at Desktop Material or GitHub can open them for
+  you."* The surrounding framing carries the per-language playfulness bands; the
+  consequence does not, because there is no level of humour at which "you cannot
+  get this back" is allowed to read as a maybe;
+- what the committed pointer still discloses is stated here too, before consent
+  rather than after;
+- the passphrase is typed **twice** into real `type="password"` inputs and
+  compared before anything is enabled. It is never accepted from a command-line
+  argument, an environment variable, or a URL, and the modules involved contain
+  no reference to `process.argv`, `process.env`, or URL parameters at all;
+- what saving costs — *anyone who can sign in to this machine account can
+  decrypt these files* — is shown next to the save checkbox, before it is
+  ticked;
+- confirming requires its own explicit acknowledgement checkbox, and only
+  confirming writes both the enabled flag and the acknowledgement.
+
+The middle state is handled rather than assumed away. If a preferences record
+says encryption is enabled while the acknowledgement is missing, the pin
+**refuses**: a user whose settings say "encrypted" and whose release holds
+plaintext is worse off than one whose pin failed with a reason. Progress is
+reported through ordinary non-blocking notifications; only the gate itself and
+the passphrase prompt are modal.
+
 ## Private scratch and the owned-artifact rule
 
 Cheap LFS writes files of its own while it works. **Cheap LFS's own artifacts
@@ -1299,6 +1526,19 @@ install, no public preparation, and a reported blocker. Public prerelease assets
 Latest release. The feature never puts provider credentials in a pointer.
 Temporary downloads are cleaned on success and failure, and unverified bytes
 never replace a tracked file.
+
+Optional payload encryption keeps its passphrase in the OS credential vault
+only, never in the Git-backed profile settings store, a preferences file,
+`localStorage`, a log line, a notification body, an error message, `argv`, an
+environment variable, or a URL. A vault that is missing, locked, or throwing
+falls back to asking each time and never to a plaintext copy. A wrong passphrase
+and a tampered payload fail identically, and neither produces a partial write:
+the stored container's recorded size and digest are proved before any key is
+derived, the GCM tag is proved before any plaintext is returned, and the
+recorded plaintext size and digest are proved before anything replaces a tracked
+file. The committed pointer still records the plaintext size and SHA-256 in the
+clear, which is a confirmation oracle for a guessed file and is disclosed in the
+confirmation gate rather than left to be discovered.
 
 GitHub CLI recovery accepts only the trusted well-known installation path; it
 does not search the current directory or `PATH`. The exact account token is

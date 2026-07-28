@@ -9,6 +9,7 @@ import {
   rename,
   stat,
   unlink,
+  writeFile,
 } from 'fs/promises'
 import { Transform } from 'stream'
 import { finished, pipeline } from 'stream/promises'
@@ -54,6 +55,7 @@ import {
   isCheapLfsReleaseBucket,
 } from './asset-version'
 import {
+  cheapLfsPartStoredSizeInBytes,
   cheapLfsPointerTextSizeInBytes,
   CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_PART_SIZE_BYTES,
@@ -61,11 +63,20 @@ import {
   ICheapLfsPointer,
   ICheapLfsPointerPart,
   isCheapLfsPointerText,
+  isEncryptedCheapLfsPointerPart,
   parseCheapLfsPointer,
   planFileParts,
   serializeCheapLfsPointer,
   validateCheapLfsTrackedPath,
 } from './pointer'
+import {
+  cheapLfsEncryptedPointerPart,
+  cheapLfsEncryptionFormatVersionForNewPins,
+  CHEAP_LFS_ENCRYPTED_PART_SIZE_BYTES,
+  ICheapLfsPinEncryption,
+  openCheapLfsEncryptedPart,
+  sealCheapLfsEncryptedPart,
+} from './encrypted-payload'
 import {
   CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_OCI_POINTER_VERSION,
@@ -325,6 +336,28 @@ export interface ICheapLfsFileSystem {
     destination: string,
     signal?: AbortSignal
   ): Promise<{ readonly sha256: string; readonly sizeInBytes: number }>
+  /**
+   * Seal one plaintext byte range of `source` into an encrypted container at
+   * `destination`, returning the container's own digest and size — the pair the
+   * pointer records so anyone can verify the stored asset without a password.
+   * Absent means this seam cannot encrypt, and an encrypted pin refuses rather
+   * than uploading in the clear.
+   */
+  sealEncryptedPart?(
+    source: string,
+    range: { readonly offset: number; readonly length: number },
+    destination: string,
+    encryption: ICheapLfsPinEncryption,
+    signal?: AbortSignal
+  ): Promise<{ readonly sha256: string; readonly sizeInBytes: number }>
+  /** Open one downloaded encrypted container to a new temp file. */
+  openEncryptedPart?(
+    source: string,
+    destination: string,
+    part: ICheapLfsPointerPart,
+    password: string,
+    signal?: AbortSignal
+  ): Promise<void>
   /** Expand one raw-DEFLATE asset to a new temp file. */
   decompressFile?(
     source: string,
@@ -363,6 +396,16 @@ export interface ICheapLfsPinOptions {
    * `cleanupOwned` on it on every path — success, failure, and abort alike.
    */
   readonly retainSourceForRestore?: boolean
+  /**
+   * Encrypt every uploaded part under this passphrase before it leaves the
+   * machine. Absent — the default everywhere — is byte-for-byte the behaviour
+   * that existed before encryption, with no new branch taken.
+   *
+   * The passphrase lives in memory for the duration of the pin. Nothing here
+   * persists it, logs it, or puts it in an argument, an environment variable, a
+   * URL, or an error message.
+   */
+  readonly encryption?: ICheapLfsPinEncryption
 }
 
 /** A verified private copy of a pinned payload, still on disk after the pin. */
@@ -578,6 +621,92 @@ async function assemblePartsOnDisk(
     out.destroy()
     throw error
   }
+}
+
+/**
+ * Read one plaintext byte range, seal it into an encrypted container, prove the
+ * container re-opens to exactly those bytes, and write it to `destination`.
+ *
+ * Whole-buffer rather than streamed on purpose: a GCM tag covers the entire
+ * message, so streaming plaintext out before the tag verifies would be handing
+ * out unauthenticated bytes. The range is bounded by
+ * `CHEAP_LFS_ENCRYPTED_PART_SIZE_BYTES`, which is what keeps that affordable.
+ */
+async function sealEncryptedPartOnDisk(
+  source: string,
+  range: { readonly offset: number; readonly length: number },
+  destination: string,
+  encryption: ICheapLfsPinEncryption,
+  signal?: AbortSignal
+): Promise<{ readonly sha256: string; readonly sizeInBytes: number }> {
+  ensureMaterializeNotCanceled(signal)
+  const plaintext = await readFileRangeIntoBuffer(source, range, signal)
+  const sealed = await sealCheapLfsEncryptedPart(plaintext, encryption)
+  plaintext.fill(0)
+  ensureMaterializeNotCanceled(signal)
+  await writeFile(destination, sealed.container, { flag: 'wx' })
+  return {
+    sha256: sealed.storedSha256,
+    sizeInBytes: sealed.storedSizeInBytes,
+  }
+}
+
+/** Read an exact byte range into memory, refusing a short or overlong read. */
+async function readFileRangeIntoBuffer(
+  source: string,
+  range: { readonly offset: number; readonly length: number },
+  signal?: AbortSignal
+): Promise<Buffer> {
+  const chunks = new Array<Buffer>()
+  let read = 0
+  const stream = createReadStream(source, {
+    start: range.offset,
+    end: range.offset + range.length - 1,
+    highWaterMark: CheapLfsStreamChunkBytes,
+  })
+  for await (const chunk of stream) {
+    ensureMaterializeNotCanceled(signal)
+    chunks.push(chunk as Buffer)
+    read += (chunk as Buffer).length
+  }
+  if (read !== range.length) {
+    throw new Error(
+      'A Cheap LFS payload was shorter than expected, so the operation stopped and nothing was uploaded or replaced.'
+    )
+  }
+  return Buffer.concat(chunks, range.length)
+}
+
+/**
+ * Open one downloaded container to a new temp file. The stored digest and size
+ * are checked first — without the password — so a corrupted download is named
+ * as one instead of being blamed on the passphrase.
+ */
+async function openEncryptedPartOnDisk(
+  source: string,
+  destination: string,
+  part: ICheapLfsPointerPart,
+  password: string,
+  signal?: AbortSignal
+): Promise<void> {
+  ensureMaterializeNotCanceled(signal)
+  const expectedStoredSize = cheapLfsPartStoredSizeInBytes(part)
+  // A short file is caught by the ranged read below; a long one would not be,
+  // because the read simply stops early. Both must fail closed, so the exact
+  // size is proved before a single byte is trusted.
+  if ((await lstat(source)).size !== expectedStoredSize) {
+    throw new Error(
+      'A downloaded encrypted Cheap LFS part does not match the size recorded in the pointer. The pointer was left in place.'
+    )
+  }
+  const stored = await readFileRangeIntoBuffer(
+    source,
+    { offset: 0, length: expectedStoredSize },
+    signal
+  )
+  const plaintext = await openCheapLfsEncryptedPart(part, stored, password)
+  ensureMaterializeNotCanceled(signal)
+  await writeFile(destination, plaintext, { flag: 'wx' })
 }
 
 async function decompressFileOnDisk(
@@ -1258,6 +1387,8 @@ export const defaultCheapLfsFileSystem: ICheapLfsFileSystem = {
   temporaryPathFor,
   allocatePayloadTemporaryPath: allocateCheapLfsPayloadTemporaryPath,
   assembleParts: assemblePartsOnDisk,
+  sealEncryptedPart: sealEncryptedPartOnDisk,
+  openEncryptedPart: openEncryptedPartOnDisk,
   decompressFile: decompressFileOnDisk,
   scanPointerCandidates,
   resolveReleaseTargetCommitish,
@@ -1832,6 +1963,18 @@ export async function pinFileToRelease(
   ensureReleasesAccount(repository, account)
   ensureCheapLfsReleaseFamilyTag(options.releaseTag)
 
+  const encryption = options.encryption
+  if (encryption !== undefined && fs.sealEncryptedPart === undefined) {
+    throw new Error(
+      'This Cheap LFS transfer path cannot encrypt, so nothing was uploaded. Encrypting would have required sending the file in the clear.'
+    )
+  }
+  // Encrypted parts are sealed and re-opened as whole buffers, so they are cut
+  // far smaller than the 500 MiB raw part size to keep peak memory bounded.
+  const partSize =
+    encryption === undefined
+      ? CHEAP_LFS_PART_SIZE_BYTES
+      : CHEAP_LFS_ENCRYPTED_PART_SIZE_BYTES
   const baseName = cheapLfsSourceAssetName(options.absoluteFilePath)
   let verifiedSource: ICheapLfsVerifiedSourceCopy | undefined
   // Flipped only on the success path that actually hands the copy back, so
@@ -1850,7 +1993,7 @@ export async function pinFileToRelease(
       repository.path,
       trackedRelativePath,
       options.absoluteFilePath,
-      CHEAP_LFS_PART_SIZE_BYTES,
+      partSize,
       signal,
       onHashProgress
     )
@@ -1866,7 +2009,7 @@ export async function pinFileToRelease(
     preflightProjectedPointer(sourceSizeInBytes, options.releaseTag, baseName)
     hashed = await fs.hashFileParts(
       options.absoluteFilePath,
-      CHEAP_LFS_PART_SIZE_BYTES,
+      partSize,
       signal,
       onHashProgress
     )
@@ -1941,7 +2084,10 @@ export async function pinFileToRelease(
       sha256: hashed.sha256,
     })
 
-    if (hashed.parts.length <= 1) {
+    // An encrypted pin always takes the part-record route, even for one asset:
+    // the stored container's size and digest have nowhere else to live, and
+    // those are exactly what lets a password-less client verify the object.
+    if (hashed.parts.length <= 1 && encryption === undefined) {
       const part = hashed.parts[0]
       // Editing a pinned file produces different bytes, a different SHA-256,
       // and therefore a different asset — the earlier commit's asset is never
@@ -2035,10 +2181,16 @@ export async function pinFileToRelease(
     // All-or-nothing reuse: a split file whose every part is already proven
     // present in this bucket writes a pointer naming those assets and uploads
     // nothing. A single missing part falls back to a whole fresh family.
-    const reusableParts = findCheapLfsAssetsForParts(
-      releaseAssets,
-      hashed.parts
-    )
+    //
+    // Reuse is off entirely when encrypting. The release holds containers, not
+    // plaintext, so a bucket asset's size and digest can never match a
+    // plaintext part's — and a fresh salt and nonce per call mean re-sealing
+    // the same bytes is never byte-identical anyway. Matching on the plaintext
+    // digest here would adopt some other file's ciphertext.
+    const reusableParts =
+      encryption !== undefined
+        ? null
+        : findCheapLfsAssetsForParts(releaseAssets, hashed.parts)
     const partBaseName =
       reusableParts !== null
         ? baseName
@@ -2048,26 +2200,58 @@ export async function pinFileToRelease(
             hashed.sha256,
             hashed.parts.length
           )
-    const parts: ReadonlyArray<ICheapLfsPointerPart> = hashed.parts.map(
-      (part, index) => ({
-        name:
-          reusableParts?.[index].name ??
-          partAssetName(partBaseName, index, hashed.parts.length),
+    const partNames = hashed.parts.map(
+      (_part, index) =>
+        reusableParts?.[index].name ??
+        partAssetName(partBaseName, index, hashed.parts.length)
+    )
+    const plaintextParts: ReadonlyArray<ICheapLfsPointerPart> =
+      hashed.parts.map((part, index) => ({
+        name: partNames[index],
         sizeInBytes: part.length,
         sha256: part.sha256,
-      })
-    )
-    const pointer: ICheapLfsPointer = {
+      }))
+    // An encrypted part's stored size and digest exist only once its container
+    // has been sealed, so those records are collected in the upload loop and
+    // the real pointer is built from them afterwards.
+    const encryptedParts = new Array<ICheapLfsPointerPart>()
+    const buildPointer = (
+      pointerParts: ReadonlyArray<ICheapLfsPointerPart>
+    ): ICheapLfsPointer => ({
       version: CHEAP_LFS_POINTER_VERSION,
       releaseTag,
       assetName: partBaseName,
+      // Always the plaintext whole-file identity, encrypted or not: the
+      // never-re-pin check and post-commit payload restore both compare a
+      // working-tree hash against these two fields.
       sizeInBytes: hashed.sizeInBytes,
       sha256: hashed.sha256,
-      parts,
-    }
-    const pointerText = serializeCheapLfsPointer(pointer)
-    ensurePointerFitsOnDisk(pointerText)
+      ...(encryption === undefined
+        ? {}
+        : {
+            encryptionFormatVersion:
+              cheapLfsEncryptionFormatVersionForNewPins(),
+          }),
+      parts: pointerParts,
+    })
+    // Bound the pointer before any transfer starts. An encrypted record is
+    // wider than a plain one, so what is measured here is a deliberately
+    // over-wide projection rather than a form the pointer will not take.
+    ensurePointerFitsOnDisk(
+      serializeCheapLfsPointer(
+        buildPointer(
+          encryption === undefined
+            ? plaintextParts
+            : plaintextParts.map(part => ({
+                ...part,
+                encryptedStoredSizeInBytes: part.sizeInBytes + 1024,
+                encryptedStoredSha256: part.sha256,
+              }))
+        )
+      )
+    )
 
+    const sealedTemporaryPaths = new Array<string>()
     let firstAsset: IGitHubReleaseAsset | undefined
     let transferred = 0
     const preexistingAssetIds = new Set(releaseAssets.map(asset => asset.id))
@@ -2093,7 +2277,7 @@ export async function pinFileToRelease(
         index++
       ) {
         const part = hashed.parts[index]
-        const pointerPart = parts[index]
+        const partName = partNames[index]
         if (index > 0) {
           const refreshed = await releases.getReleaseByTag(
             repository,
@@ -2108,13 +2292,52 @@ export async function pinFileToRelease(
           ensureCheapLfsBucketTag(refreshed, releaseTag)
           currentRelease = refreshed
         }
+        // Plaintext uploads stream a byte range straight out of the private
+        // copy. An encrypted upload cannot: the container is different bytes,
+        // so it is sealed to its own owned temp first and sent whole.
+        let uploadPath = uploadSourcePath
+        let uploadRange: IGitHubReleaseAssetUploadRange | undefined = {
+          offset: part.offset,
+          length: part.length,
+        }
+        let uploadedLength = part.length
+        let uploadedDigest = part.sha256
+        if (encryption !== undefined) {
+          const sealedPath = await payloadTemporaryPath(
+            fs,
+            repository.path,
+            join(repository.path, trackedRelativePath)
+          )
+          sealedTemporaryPaths.push(sealedPath)
+          // Seals the range and proves the container re-opens to exactly those
+          // bytes before anything leaves the machine.
+          const sealed = await fs.sealEncryptedPart!(
+            uploadSourcePath,
+            { offset: part.offset, length: part.length },
+            sealedPath,
+            encryption,
+            signal
+          )
+          uploadPath = sealedPath
+          uploadRange = undefined
+          uploadedLength = sealed.sizeInBytes
+          uploadedDigest = sealed.sha256
+          encryptedParts.push(
+            cheapLfsEncryptedPointerPart(partName, {
+              sizeInBytes: part.length,
+              sha256: part.sha256,
+              storedSizeInBytes: sealed.sizeInBytes,
+              storedSha256: sealed.sha256,
+            })
+          )
+        }
         const review = releases.createMutationReview(repository, currentRelease)
         const upload = await uploadCheapLfsAnnotatedAsset(
           releases,
           repository,
           review,
-          uploadSourcePath,
-          pointerPart.name,
+          uploadPath,
+          partName,
           annotationLabel,
           signal,
           aggregateProgress(
@@ -2123,16 +2346,22 @@ export async function pinFileToRelease(
             hashed.sizeInBytes,
             part.length
           ),
-          { offset: part.offset, length: part.length },
-          `sha256:${part.sha256}`
+          uploadRange,
+          `sha256:${uploadedDigest}`
         )
         // Record ownership before validating the response. A digest or byte-count
         // mismatch still means GitHub accepted an asset that this attempt owns.
         attemptAssets.push(upload.asset)
-        ensureRawUploadMatchesHash(upload, part.length, part.sha256)
+        ensureRawUploadMatchesHash(upload, uploadedLength, uploadedDigest)
         firstAsset ??= upload.asset
         transferred += part.length
       }
+
+      const pointer = buildPointer(
+        encryption === undefined ? plaintextParts : encryptedParts
+      )
+      const pointerText = serializeCheapLfsPointer(pointer)
+      ensurePointerFitsOnDisk(pointerText)
 
       onStage?.('verifying')
       if (verifiedSource !== undefined && trackedPaths !== undefined) {
@@ -2165,6 +2394,17 @@ export async function pinFileToRelease(
         preexistingAssetIds,
         attemptAssets
       )
+    } finally {
+      // Sealed containers are this operation's own scratch. They are removed on
+      // success, failure, and abort alike, so a canceled encrypted pin never
+      // leaves ciphertext of the user's file lying in the payload temp area.
+      for (const sealedPath of sealedTemporaryPaths) {
+        try {
+          await fs.removeFile(sealedPath)
+        } catch {
+          // A temp that cannot be removed is not worth failing a pin over.
+        }
+      }
     }
   } finally {
     if (
@@ -3866,12 +4106,13 @@ async function materializeMultiPart(
     | ((progress: ICheapLfsMaterializeTransferProgress) => void)
     | undefined,
   downloadCoordinator: ICheapLfsMaterializeDownloadCoordinator,
-  fs: ICheapLfsFileSystem
+  fs: ICheapLfsFileSystem,
+  encryptionPassword?: () => Promise<string | null>
 ): Promise<ICheapLfsMaterializeResult> {
   // Resolve every part up front so a missing one fails before any download.
   const resolved = parts.map(part => {
     const asset = resolveReleaseAsset(release, part.name, pointer.releaseTag)
-    const expectedStoredSize = part.deflatedSizeInBytes ?? part.sizeInBytes
+    const expectedStoredSize = cheapLfsPartStoredSizeInBytes(part)
     if (asset.sizeInBytes !== expectedStoredSize) {
       throw new Error(
         'A cheap LFS release asset size does not match its pointer. The pointer was left in place.'
@@ -3879,6 +4120,24 @@ async function materializeMultiPart(
     }
     return { part, asset }
   })
+  // Ask once, before any transfer, so declining costs nothing. A plaintext
+  // pointer never reaches this, which is why every existing caller that omits
+  // the resolver keeps its exact behaviour.
+  const needsPassphrase = parts.some(isEncryptedCheapLfsPointerPart)
+  if (
+    needsPassphrase &&
+    (encryptionPassword === undefined || fs.openEncryptedPart === undefined)
+  ) {
+    throw new Error(
+      'This Cheap LFS pointer names encrypted assets and this restore path cannot decrypt them. The pointer was left in place.'
+    )
+  }
+  const passphrase = needsPassphrase ? await encryptionPassword!() : null
+  if (needsPassphrase && passphrase === null) {
+    throw new Error(
+      'Restoring this encrypted Cheap LFS file needs its passphrase. Nothing was downloaded and the pointer was left in place.'
+    )
+  }
   const controller = new AbortController()
   const cancel = () => controller.abort()
   signal?.addEventListener('abort', cancel, { once: true })
@@ -3897,7 +4156,7 @@ async function materializeMultiPart(
     resolved.map(({ part, asset }) => ({
       assetId: asset.id,
       logicalBytes: part.sizeInBytes,
-      actualBytes: part.deflatedSizeInBytes ?? part.sizeInBytes,
+      actualBytes: cheapLfsPartStoredSizeInBytes(part),
     })),
     pointer.sizeInBytes,
     onProgress
@@ -3993,7 +4252,29 @@ async function materializeMultiPart(
         }
         const download = outcome.value
         let verificationPath = download.path
-        if (part.deflatedSizeInBytes !== undefined) {
+        if (isEncryptedCheapLfsPointerPart(part)) {
+          // Shares the transform stage with decompression rather than adding a
+          // sixth progress state to every restore surface.
+          progress.stage(index, 'decompressing')
+          const expandedPath = await payloadTemporaryPath(
+            fs,
+            repository.path,
+            trackedPath
+          )
+          expandedPaths.add(expandedPath)
+          // Three gates in order: the stored container's recorded size and
+          // digest (checkable by anyone, no passphrase involved), then the GCM
+          // tag, then the recorded plaintext size and digest. Any one of them
+          // failing leaves the committed pointer exactly where it is.
+          await fs.openEncryptedPart!(
+            download.path,
+            expandedPath,
+            part,
+            passphrase!,
+            materializeSignal
+          )
+          verificationPath = expandedPath
+        } else if (part.deflatedSizeInBytes !== undefined) {
           progress.stage(index, 'decompressing')
           if (
             download.bytes !== part.deflatedSizeInBytes ||
@@ -4157,7 +4438,14 @@ export async function materializePointer(
   signal?: AbortSignal,
   onProgress?: (progress: ICheapLfsMaterializeTransferProgress) => void,
   fs: ICheapLfsFileSystem = defaultCheapLfsFileSystem,
-  cache?: ICheapLfsMaterializeCache
+  cache?: ICheapLfsMaterializeCache,
+  /**
+   * Asked for the passphrase, and only when the pointer says its assets are
+   * encrypted. Returning `null` cancels the restore and leaves the pointer
+   * exactly where it is. Never called for a plaintext pointer, so no existing
+   * caller changes behaviour by omitting it.
+   */
+  encryptionPassword?: () => Promise<string | null>
 ): Promise<ICheapLfsMaterializeResult> {
   const trackedPaths = trackedPathStoreFor(fs)
   const relativePath = validateCheapLfsTrackedPath(trackedRelativePath)
@@ -4287,7 +4575,8 @@ export async function materializePointer(
     onProgress,
     cache?.downloadCoordinator ??
       createCheapLfsMaterializeDownloadCoordinator(),
-    fs
+    fs,
+    encryptionPassword
   )
 }
 
