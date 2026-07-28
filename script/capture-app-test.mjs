@@ -144,6 +144,21 @@ describe('capture-app step parsing', () => {
     assert.throws(() => parseStep("menu:alert('x')"), /menu/)
   })
 
+  it('parses shift-right-click as its own step, distinct from right-click', () => {
+    // The two gestures must stay separable: plain right-click opens the
+    // surface's ordinary menu, Shift+Right-click opens the appearance editor,
+    // and a capture proving they no longer collide needs to drive each one.
+    assert.deepEqual(parseStep('shift-right-click:.repository-list-item'), {
+      kind: 'shift-right-click',
+      selector: '.repository-list-item',
+    })
+    assert.deepEqual(parseStep('right-click:.repository-list-item'), {
+      kind: 'right-click',
+      selector: '.repository-list-item',
+    })
+    assert.throws(() => parseStep('shift-right-click:'), /needs a selector/)
+  })
+
   it('parses every supported step kind', () => {
     assert.deepEqual(parseStep('wait:250'), { kind: 'wait', milliseconds: 250 })
     assert.deepEqual(parseStep('wait-for:.repository-tab-overflow'), {

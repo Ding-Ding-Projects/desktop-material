@@ -48,6 +48,8 @@
 //   click:<selector>             click a selector
 //   click-text:<text>            click by exact visible text (links included)
 //   right-click:<selector>       open a selector's context menu
+//   shift-right-click:<selector> Shift+Right-click, the gesture that opens an
+//                                element's appearance editor
 //   hover:<selector>             hover a selector
 //   mouse:<x>,<y>                park the pointer at a viewport coordinate
 //   blur                         drop focus, so no focus tooltip is captured
@@ -140,6 +142,7 @@ function parseStep(raw) {
     case 'wait-for':
     case 'click':
     case 'right-click':
+    case 'shift-right-click':
     case 'scroll-to':
     case 'hover': {
       if (rest.length === 0) {
@@ -735,6 +738,21 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
       }
       return
     }
+    case 'shift-right-click':
+      // Shift+Right-click is the gesture that opens an element's appearance
+      // editor, deliberately distinct from the plain right-click that opens
+      // the surface's ordinary context menu. Capturing the two separately is
+      // the only way a screenshot can show they no longer collide.
+      await page
+        .locator(step.selector)
+        .first()
+        .click({
+          button: 'right',
+          modifiers: ['Shift'],
+          timeout: timeoutMilliseconds,
+        })
+      await page.waitForTimeout(250)
+      return
     case 'right-click':
       // The app's context menus are rendered into the page, not handed to the
       // platform, so a real right-click is all a capture needs to open one.

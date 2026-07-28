@@ -1407,6 +1407,13 @@
       d: 'The final hidden-renderer smoke gate inventories every registered repository page, preferences page, repository-settings page, clone tab, notification tab, File History tab,…',
     },
     {
+      t: 'Shift+Right-click opens appearance editors — built-app capture, 2026-07-28',
+      h: 'verification/shift-right-click-appearance-2026-07-28/',
+      s: 'verification/shift-right-click-appearance-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #89.',
+    },
+    {
       t: 'Tab groups and command palette verification — 2026-07-22',
       h: 'verification/tab-groups-command-palette-2026-07-22.html',
       s: 'verification/tab-groups-command-palette-2026-07-22.md',
