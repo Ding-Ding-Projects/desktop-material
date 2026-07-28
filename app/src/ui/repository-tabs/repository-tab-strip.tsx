@@ -30,6 +30,7 @@ import {
   CloseTabsExceptContainingPopover,
 } from './close-tabs-containing-popover'
 import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
+import { DialogLayerPortal } from '../dialog/dialog-layer'
 import { CreateTabGroupDialog } from './create-tab-group-dialog'
 import { EditTabGroupDialog } from './edit-tab-group-dialog'
 import { TabGroupMembersPopover } from './tab-group-members-popover'
@@ -1638,15 +1639,18 @@ export class RepositoryTabStrip extends React.Component<
     }
 
     return (
-      <EditTabGroupDialog
-        group={group}
-        memberCount={
-          this.state.tabs.tabs.filter(tab => (tab.groupId ?? null) === group.id)
-            .length
-        }
-        onSave={this.onSaveGroup}
-        onDismissed={this.onEditGroupDismissed}
-      />
+      <DialogLayerPortal>
+        <EditTabGroupDialog
+          group={group}
+          memberCount={
+            this.state.tabs.tabs.filter(
+              tab => (tab.groupId ?? null) === group.id
+            ).length
+          }
+          onSave={this.onSaveGroup}
+          onDismissed={this.onEditGroupDismissed}
+        />
+      </DialogLayerPortal>
     )
   }
 
@@ -1739,17 +1743,28 @@ export class RepositoryTabStrip extends React.Component<
     return elements
   }
 
+  /**
+   * The group dialogs must render in `#dialog-layer`, never inline in the
+   * strip. `Dialog` carries the `tooltip-host` class, whose `position: relative`
+   * overrides the UA `position: absolute` every `<dialog>` gets — so an inline
+   * dialog lays out as an in-flow flex item of the strip, stretching the strip
+   * around it and painting below the app bar's positioned pills (#92). Only the
+   * `#dialog-layer dialog[open]` rule restores `position: fixed` and the popup
+   * z-index.
+   */
   private renderCreateGroupDialog() {
     const tab = this.state.createGroupForTab
     if (tab === null) {
       return null
     }
     return (
-      <CreateTabGroupDialog
-        tabLabel={this.labelForTab(tab)}
-        onCreate={this.onCreateGroup}
-        onDismissed={this.onCreateGroupDismissed}
-      />
+      <DialogLayerPortal>
+        <CreateTabGroupDialog
+          tabLabel={this.labelForTab(tab)}
+          onCreate={this.onCreateGroup}
+          onDismissed={this.onCreateGroupDismissed}
+        />
+      </DialogLayerPortal>
     )
   }
 

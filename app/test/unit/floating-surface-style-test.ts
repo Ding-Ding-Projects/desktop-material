@@ -77,6 +77,46 @@ describe('floating surface layout contracts', () => {
     assert.match(style, /@media \(max-height: 420px\)/)
   })
 
+  it('keeps every feature-owned dialog on the dialog layer', () => {
+    const strip = read('app/src/ui/repository-tabs/repository-tab-strip.tsx')
+    const portal = read('app/src/ui/dialog/dialog-layer.tsx')
+    const layer = read('app/styles/ui/_dialog-layer.scss')
+    const tooltips = read('app/styles/ui/window/_tooltips.scss')
+
+    // The stacking contract is *membership of #dialog-layer*, not a z-index
+    // number: only `#dialog-layer dialog[open]` gives a dialog `position:
+    // fixed` and the popup z-index. Nothing else in the app raises a dialog.
+    assert.match(
+      layer,
+      /#dialog-layer\s*\{[\s\S]*?z-index: var\(--popup-z-index\);/
+    )
+    assert.match(layer, /dialog\s*\{\s*&\[open\]\s*\{[\s\S]*?position: fixed;/)
+
+    // …because `Dialog` always carries `tooltip-host`, whose `position:
+    // relative` beats the UA `position: absolute` a <dialog> starts with. A
+    // dialog rendered anywhere else is therefore an ordinary in-flow box with
+    // `z-index: auto`, which is how the New tab group dialog ended up laid out
+    // inside the tab strip and painted under the app bar's pills (#92).
+    assert.match(tooltips, /\.tooltip-host\s*\{[\s\S]*?position: relative;/)
+
+    assert.match(portal, /ReactDOM\.createPortal\(content, host\)/)
+    assert.match(portal, /export const DialogLayerId = 'dialog-layer'/)
+    assert.match(portal, /document\.getElementById\(DialogLayerId\)/)
+
+    // Both tab-group dialogs go through the portal, and the strip renders no
+    // bare <Dialog> of its own.
+    assert.match(
+      strip,
+      /<DialogLayerPortal>\s*<CreateTabGroupDialog/,
+      'CreateTabGroupDialog must render inside the dialog layer'
+    )
+    assert.match(
+      strip,
+      /<DialogLayerPortal>\s*<EditTabGroupDialog/,
+      'EditTabGroupDialog must render inside the dialog layer'
+    )
+  })
+
   it('guards long side-sheet and notification text', () => {
     const foldout = read('app/styles/ui/_foldout.scss')
     const notifications = read('app/styles/ui/_notification-centre.scss')
