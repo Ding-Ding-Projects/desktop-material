@@ -1,20 +1,7 @@
 {
   "elapsedMs": 37557,
   "eventCount": 12,
-  "eventDurationsMs": [
-    56,
-    64,
-    64,
-    64,
-    64,
-    72,
-    96,
-    104,
-    104,
-    104,
-    104,
-    104
-  ],
+  "eventDurationsMs": [56, 64, 64, 64, 64, 72, 96, 104, 104, 104, 104, 104],
   "eventP95Ms": 104,
   "eventMaximumMs": 104,
   "longTaskCount": 6,

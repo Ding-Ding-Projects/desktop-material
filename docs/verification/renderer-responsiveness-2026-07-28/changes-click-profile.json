@@ -1,9 +1,7 @@
 {
   "elapsedMs": 7131.79999999702,
   "eventCount": 1,
-  "eventDurationsMs": [
-    104
-  ],
+  "eventDurationsMs": [104],
   "eventP95Ms": 104,
   "eventMaximumMs": 104,
   "longTaskCount": 1,

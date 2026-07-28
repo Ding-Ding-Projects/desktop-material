@@ -5,7 +5,9 @@ const WebSocket = require('ws')
 const port = Number(process.env.DM_CDP_PORT || 9223)
 const mode = process.argv[2]
 if (mode !== 'start' && mode !== 'finish') {
-  throw new Error('Usage: node renderer_interaction_probe_cdp.js <start|finish>')
+  throw new Error(
+    'Usage: node renderer_interaction_probe_cdp.js <start|finish>'
+  )
 }
 
 const getJSON = url =>
