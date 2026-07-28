@@ -476,6 +476,15 @@ h1.hero-title {
   font-size: 0.96rem;
 }
 
+.feature-link {
+  display: inline-flex;
+  margin-top: 0.85rem;
+  color: var(--md-sys-color-primary);
+  font-weight: 800;
+  text-decoration-thickness: 0.12em;
+  text-underline-offset: 0.22em;
+}
+
 /* ---- Screenshots gallery ---------------------------------------------- */
 .gallery-grid {
   display: grid;

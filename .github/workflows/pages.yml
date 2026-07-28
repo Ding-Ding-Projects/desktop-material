@@ -118,6 +118,10 @@ jobs:
           test -f _site/docs/assets/site/docs-regex-job.js
           test -f _site/docs/assets/site/docs-hub-regex-worker.js
 
+      - name: Validate the Cheap LFS visual guide
+        run: |
+          node script/cheap-lfs-pages-test.mjs _site
+
       # GitHub renders ```mermaid fences natively; pandoc turns them into
       # <pre> blocks, so the published site used to show diagram source. The
       # renderer below is installed outside the checkout so it cannot disturb
