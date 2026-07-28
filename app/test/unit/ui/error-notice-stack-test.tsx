@@ -35,7 +35,9 @@ describe('ErrorNoticeStack', () => {
       />
     )
 
-    assert.ok(screen.getByRole('region', { name: 'Error notifications' }))
+    assert.ok(
+      screen.getByRole('region', { name: 'Application notifications' })
+    )
     const alerts = screen.getAllByRole('alert')
     assert.equal(alerts.length, 2)
     assert.ok(
@@ -69,6 +71,35 @@ describe('ErrorNoticeStack', () => {
     assert.deepEqual(dismissed, ['detail'])
     assert.deepEqual(detailed, [detailedNotice])
     assert.equal(screen.getAllByRole('button', { name: 'Details' }).length, 1)
+  })
+
+  it('renders an actionable warning with warning chrome', () => {
+    const actions: IErrorNotice[] = []
+    render(
+      <ErrorNoticeStack
+        notices={[
+          notice('remote', {
+            severity: 'warning',
+            title: 'Remote URL needs attention',
+            action: {
+              kind: 'edit-repository-remotes',
+              repositoryId: 80,
+              label: 'Change remote URL',
+            },
+          }),
+        ]}
+        onDismiss={() => undefined}
+        onAction={item => actions.push(item)}
+      />
+    )
+
+    const alert = screen.getByRole('alert')
+    assert.ok(alert.classList.contains('error-notice--warning'))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Change remote URL' })
+    )
+    assert.equal(actions.length, 1)
+    assert.equal(actions[0].id, 'remote')
   })
 
   it('expands bounded diagnostics inline when no details handler is supplied', () => {

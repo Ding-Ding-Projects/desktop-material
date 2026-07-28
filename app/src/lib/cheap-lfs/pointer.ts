@@ -56,96 +56,36 @@ const partLine = /^([a-f0-9]{64}) (0|[1-9][0-9]*) (.+)$/
 // `part-deflate <sha256> <original-size> <stored-size> <name>` records an
 // adaptively compressed asset while retaining the original-byte digest/size.
 const deflatedPartLine = /^([a-f0-9]{64}) (0|[1-9][0-9]*) (0|[1-9][0-9]*) (.+)$/
-// `part-encrypted <plaintext-sha256> <plaintext-size> <stored-size>
-//  <stored-sha256> <name>` records an encrypted container asset. Both digests
-// are recorded on purpose. The stored pair verifies the object sitting at the
-// provider **without holding the password**, so integrity stays checkable by
-// any client; the plaintext pair verifies what actually came back out after
-// decrypting, so a wrong password or a reassembly bug still fails closed.
+// `part-encrypted <plain-sha> <plain-size> <stored-sha> <stored-size> <name>`
+// lets restore verify the provider object without a password, then separately
+// authenticate and verify the plaintext before publishing it.
 const encryptedPartLine =
-  /^([a-f0-9]{64}) (0|[1-9][0-9]*) (0|[1-9][0-9]*) ([a-f0-9]{64}) (.+)$/
-const positiveInteger = /^[1-9][0-9]*$/
+  /^([a-f0-9]{64}) (0|[1-9][0-9]*) ([a-f0-9]{64}) (0|[1-9][0-9]*) (.+)$/
 const controlCharacters = /[\u0000-\u001f]/
-
-/**
- * The largest encryption container format version this parser admits.
- * Deliberately generous: a pointer naming a newer container still *parses*, so
- * the app can say "this needs a newer Desktop Material" rather than reporting
- * the committed file as not-a-pointer at all.
- */
-const CheapLfsMaximumEncryptionFormatVersion = 1000
 
 /** One uploaded part of a whole file that was split across release assets. */
 export interface ICheapLfsPointerPart {
   readonly name: string
-  /** The part's *plaintext* byte size. Parts sum to the whole file's size. */
   readonly sizeInBytes: number
-  /** The part's *plaintext* SHA-256. */
   readonly sha256: string
   /** Present when the release asset is raw-DEFLATE encoded. */
   readonly deflatedSizeInBytes?: number
-  /**
-   * Byte size of the encrypted container actually stored at the provider.
-   * Present only on an encrypted part, and always strictly larger than
-   * `sizeInBytes` because the container carries a header, a salt, a nonce, and
-   * an authentication tag on top of the plaintext.
-   */
-  readonly encryptedStoredSizeInBytes?: number
-  /**
-   * SHA-256 of those exact stored container bytes. This is the digest any
-   * client can check against the downloaded asset **without the password**,
-   * which is what keeps the stored object's integrity publicly verifiable
-   * while its contents stay unreadable.
-   */
-  readonly encryptedStoredSha256?: string
-}
-
-/**
- * How many bytes this part actually occupies at the provider, which is what a
- * release asset's reported size must equal. Plain parts store their plaintext,
- * compressed parts store fewer bytes, and encrypted parts store more.
- */
-export function cheapLfsPartStoredSizeInBytes(
-  part: ICheapLfsPointerPart
-): number {
-  return (
-    part.encryptedStoredSizeInBytes ??
-    part.deflatedSizeInBytes ??
-    part.sizeInBytes
-  )
-}
-
-/** True when this part's release asset is an encrypted container. */
-export function isEncryptedCheapLfsPointerPart(
-  part: ICheapLfsPointerPart
-): boolean {
-  return (
-    part.encryptedStoredSizeInBytes !== undefined &&
-    part.encryptedStoredSha256 !== undefined
-  )
+  /** True when the release asset is an authenticated encryption container. */
+  readonly encrypted?: true
+  /** SHA-256 of the stored ciphertext container, verified without a password. */
+  readonly storedSha256?: string
+  /** Exact stored ciphertext-container size. */
+  readonly storedSizeInBytes?: number
 }
 
 export interface ICheapLfsPointer {
   readonly version: string
   readonly releaseTag: string
   readonly assetName: string
-  /**
-   * The whole file's byte size (the sum of every part when split).
-   *
-   * Always the **plaintext** size, encrypted or not. This field is the tracked
-   * file's own identity: the never-re-pin check compares a working-tree content
-   * hash to it, and post-commit payload restore re-hashes the retained copy
-   * against it. Putting ciphertext measurements here would break both.
-   */
+  /** The whole file's byte size (the sum of every part when split). */
   readonly sizeInBytes: number
-  /** The whole file's SHA-256, always over the **plaintext**, as above. */
+  /** The whole file's SHA-256. */
   readonly sha256: string
-  /**
-   * Present when every part is an encrypted container, carrying that
-   * container's format version. Absent means the assets are stored in the
-   * clear. A pointer may never be half-encrypted: the parser refuses a mix.
-   */
-  readonly encryptionFormatVersion?: number
   /**
    * Present when the file was split across release assets or its single asset
    * was compressed. An uncompressed single-asset pointer omits this entirely
@@ -210,16 +150,38 @@ export function serializeCheapLfsPointer(pointer: ICheapLfsPointer): string {
     `size ${pointer.sizeInBytes}`,
     `sha256 ${pointer.sha256}`,
   ]
-  if (pointer.encryptionFormatVersion !== undefined) {
-    lines.push(`encryption ${pointer.encryptionFormatVersion}`)
-  }
   if (pointer.parts !== undefined) {
+    const encryptedParts = pointer.parts.filter(
+      part => part.encrypted === true
+    ).length
+    if (encryptedParts > 0 && encryptedParts !== pointer.parts.length) {
+      throw new Error(
+        'A Cheap LFS pointer cannot mix encrypted and unencrypted parts.'
+      )
+    }
     for (const part of pointer.parts) {
-      if (isEncryptedCheapLfsPointerPart(part)) {
+      if (part.encrypted === true) {
+        if (
+          part.deflatedSizeInBytes !== undefined ||
+          part.storedSha256 === undefined ||
+          part.storedSizeInBytes === undefined
+        ) {
+          throw new Error(
+            'An encrypted Cheap LFS pointer part needs complete stored-object metadata.'
+          )
+        }
         lines.push(
-          `part-encrypted ${part.sha256} ${part.sizeInBytes} ${part.encryptedStoredSizeInBytes} ${part.encryptedStoredSha256} ${part.name}`
+          `part-encrypted ${part.sha256} ${part.sizeInBytes} ${part.storedSha256} ${part.storedSizeInBytes} ${part.name}`
         )
       } else {
+        if (
+          part.storedSha256 !== undefined ||
+          part.storedSizeInBytes !== undefined
+        ) {
+          throw new Error(
+            'An unencrypted Cheap LFS pointer part cannot carry encrypted stored-object metadata.'
+          )
+        }
         lines.push(
           part.deflatedSizeInBytes === undefined
             ? `part ${part.sha256} ${part.sizeInBytes} ${part.name}`
@@ -265,45 +227,27 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
   const headLines = new Array<string>()
   const partTexts = new Array<{
     readonly text: string
-    readonly kind: 'raw' | 'deflate' | 'encrypted'
+    readonly kind: 'raw' | 'deflated' | 'encrypted'
   }>()
-  const encryptionLines = new Array<string>()
   for (const line of allLines) {
     if (line.startsWith('part ')) {
       partTexts.push({ text: line.slice('part '.length), kind: 'raw' })
     } else if (line.startsWith('part-deflate ')) {
       partTexts.push({
         text: line.slice('part-deflate '.length),
-        kind: 'deflate',
+        kind: 'deflated',
       })
     } else if (line.startsWith('part-encrypted ')) {
       partTexts.push({
         text: line.slice('part-encrypted '.length),
         kind: 'encrypted',
       })
-    } else if (line.startsWith('encryption ')) {
-      encryptionLines.push(line.slice('encryption '.length))
     } else {
       headLines.push(line)
     }
   }
-  if (headLines.length !== 5 || encryptionLines.length > 1) {
+  if (headLines.length !== 5) {
     return null
-  }
-
-  let encryptionFormatVersion: number | undefined
-  if (encryptionLines.length === 1) {
-    const declared = encryptionLines[0]
-    if (!positiveInteger.test(declared)) {
-      return null
-    }
-    encryptionFormatVersion = Number(declared)
-    if (
-      !Number.isSafeInteger(encryptionFormatVersion) ||
-      encryptionFormatVersion > CheapLfsMaximumEncryptionFormatVersion
-    ) {
-      return null
-    }
   }
 
   const fields = new Map<string, string>()
@@ -350,35 +294,32 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
   }
 
   if (partTexts.length === 0) {
-    // An `encryption` line with nothing encrypted under it is a malformed
-    // pointer, not a plain one: it would claim protection this file's assets
-    // do not have.
-    return encryptionFormatVersion === undefined
-      ? { version, releaseTag, assetName, sizeInBytes, sha256 }
-      : null
+    return { version, releaseTag, assetName, sizeInBytes, sha256 }
   }
 
   const parts = new Array<ICheapLfsPointerPart>()
   let partsTotal = 0
+  const containsEncryptedPart = partTexts.some(
+    entry => entry.kind === 'encrypted'
+  )
+  // One file has one storage contract. Mixed encrypted/plain part sets would
+  // make password prompting and fail-closed verification ambiguous.
+  if (
+    containsEncryptedPart &&
+    partTexts.some(entry => entry.kind !== 'encrypted')
+  ) {
+    return null
+  }
   for (const entry of partTexts) {
-    // A pointer is either wholly encrypted or wholly not. A mix would let one
-    // readable part sit inside a file the user was told is protected, so the
-    // declaration and every part record must agree.
-    if (
-      (entry.kind === 'encrypted') !==
-      (encryptionFormatVersion !== undefined)
-    ) {
-      return null
-    }
     const match = (
-      entry.kind === 'encrypted'
-        ? encryptedPartLine
-        : entry.kind === 'deflate'
+      entry.kind === 'deflated'
         ? deflatedPartLine
+        : entry.kind === 'encrypted'
+        ? encryptedPartLine
         : partLine
     ).exec(entry.text)
     const nameIndex =
-      entry.kind === 'encrypted' ? 5 : entry.kind === 'deflate' ? 4 : 3
+      entry.kind === 'encrypted' ? 5 : entry.kind === 'deflated' ? 4 : 3
     // Deliberately measured in UTF-16 code units, not UTF-8 bytes, even though
     // *writing* a name now budgets bytes. No string can spend fewer bytes than
     // it has code units, so a 255-byte name is always within 255 characters:
@@ -403,15 +344,11 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
       return null
     }
     if (entry.kind === 'encrypted') {
-      const encryptedStoredSizeInBytes = Number(match[3])
+      const storedSizeInBytes = Number(match[4])
       if (
-        !Number.isSafeInteger(encryptedStoredSizeInBytes) ||
-        encryptedStoredSizeInBytes > CheapLfsLegacyMaximumPartSizeBytes ||
-        // The container is a header, a salt, a nonce, and a tag wrapped around
-        // the plaintext, so it can never be as small as what it protects. A
-        // stored size that is not strictly larger describes something this
-        // format cannot have produced.
-        encryptedStoredSizeInBytes <= partSize
+        !Number.isSafeInteger(storedSizeInBytes) ||
+        storedSizeInBytes < 1 ||
+        storedSizeInBytes > CheapLfsLegacyMaximumPartSizeBytes
       ) {
         return null
       }
@@ -419,10 +356,11 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
         name: match[5],
         sizeInBytes: partSize,
         sha256: match[1],
-        encryptedStoredSizeInBytes,
-        encryptedStoredSha256: match[4],
+        encrypted: true,
+        storedSha256: match[3],
+        storedSizeInBytes,
       })
-    } else if (entry.kind === 'deflate') {
+    } else if (entry.kind === 'deflated') {
       const deflatedSizeInBytes = Number(match[3])
       if (
         !Number.isSafeInteger(deflatedSizeInBytes) ||
@@ -447,22 +385,25 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     return null
   }
 
-  return {
-    version,
-    releaseTag,
-    assetName,
-    sizeInBytes,
-    sha256,
-    ...(encryptionFormatVersion === undefined
-      ? {}
-      : { encryptionFormatVersion }),
-    parts,
-  }
+  return { version, releaseTag, assetName, sizeInBytes, sha256, parts }
 }
 
-/** True when this pointer's release assets are encrypted containers. */
+/**
+ * True only for a complete encrypted Release pointer. The parser rejects mixed
+ * encrypted/plain part sets, while this exported helper lets callers prompt
+ * once per encrypted batch without inspecting optional fields themselves.
+ */
 export function isEncryptedCheapLfsPointer(pointer: ICheapLfsPointer): boolean {
-  return pointer.encryptionFormatVersion !== undefined
+  return (
+    pointer.parts !== undefined &&
+    pointer.parts.length > 0 &&
+    pointer.parts.every(
+      part =>
+        part.encrypted === true &&
+        part.storedSha256 !== undefined &&
+        part.storedSizeInBytes !== undefined
+    )
+  )
 }
 
 /**

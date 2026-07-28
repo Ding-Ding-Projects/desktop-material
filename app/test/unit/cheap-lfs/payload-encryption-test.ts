@@ -1,12 +1,21 @@
 import { describe, it } from 'node:test'
 import assert from 'node:assert'
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import {
+  CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES,
+  CheapLfsAuthenticationError,
   CheapLfsEncryptionError,
   CheapLfsEncryptionFormatVersion,
+  CheapLfsPasswordRequiredError,
+  decryptCheapLfsPayloadFileToFile,
   decryptCheapLfsPayload,
   defaultCheapLfsKdfParameters,
+  encryptCheapLfsPayloadRangeToFile,
   encryptCheapLfsPayload,
+  isCheapLfsAuthenticationError,
   isEncryptedCheapLfsPayload,
   readCheapLfsEncryptionHeader,
 } from '../../../src/lib/cheap-lfs/payload-encryption'
@@ -194,10 +203,27 @@ describe('Cheap LFS payload encryption', () => {
     )
   })
 
+  it('refuses individually valid scrypt parameters whose memory exceeds the hard bound', async () => {
+    const encrypted = await encryptCheapLfsPayload(
+      randomBytes(64),
+      password,
+      fastKdf
+    )
+    const hostile = Buffer.from(encrypted)
+    const kdfOffset = 8 + 2 + 2 + 2 + 2
+    hostile.writeUInt32LE(20, kdfOffset)
+    hostile.writeUInt32LE(32, kdfOffset + 4)
+
+    assert.throws(
+      () => readCheapLfsEncryptionHeader(hostile),
+      CheapLfsEncryptionError
+    )
+  })
+
   it('requires a password on both sides', async () => {
     await assert.rejects(
       encryptCheapLfsPayload(randomBytes(16), '', fastKdf),
-      CheapLfsEncryptionError
+      CheapLfsPasswordRequiredError
     )
     const encrypted = await encryptCheapLfsPayload(
       randomBytes(16),
@@ -206,8 +232,37 @@ describe('Cheap LFS payload encryption', () => {
     )
     await assert.rejects(
       decryptCheapLfsPayload(encrypted, ''),
+      CheapLfsPasswordRequiredError
+    )
+  })
+
+  it('refuses scrypt parameters whose CPU work exceeds the hard bound', async () => {
+    const encrypted = await encryptCheapLfsPayload(
+      randomBytes(64),
+      password,
+      fastKdf
+    )
+    const hostile = Buffer.from(encrypted)
+    const kdfOffset = 8 + 2 + 2 + 2 + 2
+    hostile.writeUInt32LE(17, kdfOffset)
+    hostile.writeUInt32LE(8, kdfOffset + 4)
+    hostile.writeUInt32LE(16, kdfOffset + 8)
+
+    assert.throws(
+      () => readCheapLfsEncryptionHeader(hostile),
       CheapLfsEncryptionError
     )
+  })
+
+  it('accepts a caller-zeroable byte secret without mutating it', async () => {
+    const secret = Buffer.from('mutable passphrase')
+    const before = Buffer.from(secret)
+    const plaintext = randomBytes(128)
+    const encrypted = await encryptCheapLfsPayload(plaintext, secret, fastKdf)
+    assert.deepEqual(secret, before)
+    assert.deepEqual(await decryptCheapLfsPayload(encrypted, secret), plaintext)
+    assert.deepEqual(secret, before)
+    secret.fill(0)
   })
 
   it('never puts the password in its error messages', async () => {
@@ -228,9 +283,169 @@ describe('Cheap LFS payload encryption', () => {
       (e: Error) => e
     )
     assert.ok(error instanceof CheapLfsEncryptionError)
+    assert.equal(isCheapLfsAuthenticationError(error), true)
+    assert.equal(
+      isCheapLfsAuthenticationError(
+        new AggregateError([new Error('cleanup'), error])
+      ),
+      true
+    )
     assert.ok(
       !error.message.includes(secret) && !error.message.includes(attempted),
       `the failure must not echo either password, saw: ${error.message}`
     )
+  })
+
+  it('stream-encrypts one file range and authenticates it into a separate file', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cheap-lfs-encryption-'))
+    try {
+      const prefix = randomBytes(97)
+      const plaintext = randomBytes(2 * 1024 * 1024 + 17)
+      const suffix = randomBytes(41)
+      const source = join(dir, 'source.bin')
+      const encryptedPath = join(dir, 'payload.dmclfs')
+      const decryptedPath = join(dir, 'decrypted.bin')
+      await writeFile(source, Buffer.concat([prefix, plaintext, suffix]))
+
+      const encrypted = await encryptCheapLfsPayloadRangeToFile(
+        source,
+        encryptedPath,
+        prefix.length,
+        plaintext.length,
+        Buffer.from(password),
+        fastKdf
+      )
+      assert.equal(encrypted.plaintextSizeInBytes, plaintext.length)
+      assert.equal(
+        encrypted.plaintextSha256,
+        createHash('sha256').update(plaintext).digest('hex')
+      )
+      assert.equal(
+        encrypted.storedSizeInBytes,
+        plaintext.length + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
+      )
+      const stored = await readFile(encryptedPath)
+      assert.equal(
+        encrypted.storedSha256,
+        createHash('sha256').update(stored).digest('hex')
+      )
+      assert.notEqual(encrypted.storedSha256, encrypted.plaintextSha256)
+
+      const decrypted = await decryptCheapLfsPayloadFileToFile(
+        encryptedPath,
+        decryptedPath,
+        Buffer.from(password)
+      )
+      assert.deepEqual(await readFile(decryptedPath), plaintext)
+      assert.equal(decrypted.plaintextSha256, encrypted.plaintextSha256)
+      assert.equal(decrypted.plaintextSizeInBytes, plaintext.length)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('stream decryption removes partial output on a wrong password or truncation', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cheap-lfs-encryption-fail-'))
+    try {
+      const source = join(dir, 'source.bin')
+      const encryptedPath = join(dir, 'payload.dmclfs')
+      const wrongOutput = join(dir, 'wrong-output.bin')
+      const truncatedOutput = join(dir, 'truncated-output.bin')
+      const existingOutput = join(dir, 'existing-output.bin')
+      await writeFile(source, randomBytes(1024 * 1024 + 3))
+      await encryptCheapLfsPayloadRangeToFile(
+        source,
+        encryptedPath,
+        0,
+        (
+          await stat(source)
+        ).size,
+        Buffer.from(password),
+        fastKdf
+      )
+
+      const wrong = await decryptCheapLfsPayloadFileToFile(
+        encryptedPath,
+        wrongOutput,
+        Buffer.from('not the password')
+      ).catch(error => error)
+      assert.ok(wrong instanceof CheapLfsAuthenticationError)
+      await assert.rejects(stat(wrongOutput), { code: 'ENOENT' })
+
+      const stored = await readFile(encryptedPath)
+      await writeFile(encryptedPath, stored.subarray(0, stored.length - 1))
+      const truncated = await decryptCheapLfsPayloadFileToFile(
+        encryptedPath,
+        truncatedOutput,
+        Buffer.from(password)
+      ).catch(error => error)
+      assert.ok(truncated instanceof CheapLfsAuthenticationError)
+      await assert.rejects(stat(truncatedOutput), { code: 'ENOENT' })
+
+      const existingBytes = Buffer.from('caller-owned output')
+      await writeFile(existingOutput, existingBytes)
+      await assert.rejects(
+        decryptCheapLfsPayloadFileToFile(
+          encryptedPath,
+          existingOutput,
+          Buffer.from(password)
+        ),
+        { code: 'EEXIST' }
+      )
+      assert.deepEqual(await readFile(existingOutput), existingBytes)
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('honors a pre-aborted stream operation before creating output', async () => {
+    const dir = await mkdtemp(join(tmpdir(), 'cheap-lfs-encryption-abort-'))
+    try {
+      const source = join(dir, 'source.bin')
+      const encryptedPath = join(dir, 'payload.dmclfs')
+      const canceledEncryptedPath = join(dir, 'canceled.dmclfs')
+      const canceledPlaintextPath = join(dir, 'canceled.bin')
+      const plaintext = randomBytes(1024)
+      await writeFile(source, plaintext)
+
+      const encryptController = new AbortController()
+      encryptController.abort()
+      await assert.rejects(
+        encryptCheapLfsPayloadRangeToFile(
+          source,
+          canceledEncryptedPath,
+          0,
+          plaintext.length,
+          Buffer.from(password),
+          fastKdf,
+          encryptController.signal
+        ),
+        { name: 'AbortError' }
+      )
+      await assert.rejects(stat(canceledEncryptedPath), { code: 'ENOENT' })
+
+      await encryptCheapLfsPayloadRangeToFile(
+        source,
+        encryptedPath,
+        0,
+        plaintext.length,
+        Buffer.from(password),
+        fastKdf
+      )
+      const decryptController = new AbortController()
+      decryptController.abort()
+      await assert.rejects(
+        decryptCheapLfsPayloadFileToFile(
+          encryptedPath,
+          canceledPlaintextPath,
+          Buffer.from(password),
+          decryptController.signal
+        ),
+        { name: 'AbortError' }
+      )
+      await assert.rejects(stat(canceledPlaintextPath), { code: 'ENOENT' })
+    } finally {
+      await rm(dir, { recursive: true, force: true })
+    }
   })
 })

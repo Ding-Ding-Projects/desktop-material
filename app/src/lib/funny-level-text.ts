@@ -35,11 +35,6 @@ export type FunnyBand = 'plain' | 'light' | 'playful'
  */
 export type FunnyLevelTextBase =
   | 'tabs.overflowDescription'
-  // Only the *framing* of the encryption gate carries bands. The sentence that
-  // says a lost passphrase is unrecoverable is a single fixed string with no
-  // variants at all, because there is no funny level at which that fact is
-  // allowed to read as a maybe.
-  | 'cheapLfs.encryptionGate.intro'
   | 'ignoredSubmodule.intro'
   | 'ignoredSubmodule.reviewLead'
   | 'pullBranchDeleted.intro'

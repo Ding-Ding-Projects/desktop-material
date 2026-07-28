@@ -15,12 +15,18 @@ designed never to become annoying. Three cooperating parts:
 
 ## User workflow
 
-Open **Settings → Sound**. The master switch gates the entire system; the three
-parts each have their own enable toggle, volume slider, and previews. The
-narrator adds a per-language funny-level (English and Cantonese, 1–5), a
-minimum-gap slider, and a preview. Music is chosen per repository via a file
-picker (mp3/ogg/wav/m4a/flac/aac). Quiet hours and a "follow reduced-motion"
-toggle round out the anti-annoyance controls.
+Open **Settings → Appearance → Language** to set the app-wide playfulness
+levels for English and Cantonese independently from 1–5. These sliders sit
+beside the language-mode selector, remain available when audio is off, persist
+immediately, and control the tone of both on-screen copy and narration. Level 1
+is fully serious and level 5 is maximum fun; facts, error copy, destructive
+actions, and safety messages remain clear at every level.
+
+Open **Settings → Sound** for audio itself. The master switch gates the entire
+audio system; the three parts each have their own enable toggle, volume slider,
+and previews. The narrator adds a minimum-gap slider and a preview. Music is
+chosen per repository via a file picker (mp3/ogg/wav/m4a/flac/aac). Quiet hours
+and a "follow reduced-motion" toggle round out the anti-annoyance controls.
 
 ## Event routing
 
@@ -72,6 +78,8 @@ map helpers are pure and round-trip tested.
 - Screen-reader coexistence: narration is suppressed when a screen reader would
   announce the same content; errors still speak.
 - All controls are keyboard reachable with visible focus and labelled sliders.
+  The two playfulness sliders expose their current `1 of 5` value to assistive
+  technology and collapse from two columns to one at narrow widths.
 - Audio is strictly best-effort: every playback path is wrapped so a failure
   (no `AudioContext`, no voices, blocked autoplay) is swallowed and never
   propagates into app-state handling.
@@ -90,6 +98,9 @@ map helpers are pure and round-trip tested.
   reduced-sound/screen-reader/error-bypass decisions.
 - `app/test/unit/audio-settings-test.ts` — settings + repo-music serialization,
   clamping, and narrator line selection.
+- `app/test/unit/ui/appearance-preferences-test.tsx` — discoverability beside
+  language mode, independent persistence, English/Cantonese/bilingual labels,
+  and 1–5 accessibility metadata.
 - `npx tsc --noEmit` clean.
 
 This category has no HTTP API. Postman collections are not applicable.

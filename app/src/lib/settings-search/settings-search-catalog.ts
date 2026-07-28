@@ -256,6 +256,23 @@ export const SettingsSearchCatalog: ReadonlyArray<ISettingsSearchEntry> =
       descriptionKey: 'settingsSearch.entry.appearanceZoom.desc',
       keywords: ['scale', 'zoom', 'magnify', '縮放'],
     },
+    {
+      id: 'appearance-playfulness',
+      tab: PreferencesTab.Appearance,
+      titleKey: 'appearance.playfulnessHeading',
+      descriptionKey: 'appearance.playfulnessDescription',
+      keywords: [
+        'funny',
+        'funny level',
+        'tone',
+        'english',
+        'cantonese',
+        'humour',
+        '搞笑',
+        '語氣',
+        '廣東話',
+      ],
+    },
     // Notifications (reuses the pane's own localized labels)
     {
       id: 'notifications-enable',

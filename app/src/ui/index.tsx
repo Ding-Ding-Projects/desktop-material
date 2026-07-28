@@ -25,6 +25,7 @@ import {
   insufficientGitHubRepoPermissions,
   discardChangesHandler,
   secretScanningPushProtectionErrorHandler,
+  canonicalRemoteVerificationHandler,
 } from './dispatcher'
 import {
   AppStore,
@@ -653,6 +654,7 @@ dispatcher.registerErrorHandler(rebaseConflictsHandler)
 dispatcher.registerErrorHandler(refusedWorkflowUpdate)
 dispatcher.registerErrorHandler(discardChangesHandler)
 dispatcher.registerErrorHandler(secretScanningPushProtectionErrorHandler)
+dispatcher.registerErrorHandler(canonicalRemoteVerificationHandler)
 
 rendererUnhandledRejectionSink = error => {
   try {

@@ -7,6 +7,7 @@ import {
   CHEAP_LFS_POINTER_VERSION,
   ICheapLfsPointer,
   isCheapLfsPointerText,
+  isEncryptedCheapLfsPointer,
   parseCheapLfsPointer,
   planFileParts,
   serializeCheapLfsPointer,
@@ -33,6 +34,24 @@ const multiPartPointer: ICheapLfsPointer = {
   parts: [
     { name: 'huge.bin.part001', sizeInBytes: 10, sha256: 'b'.repeat(64) },
     { name: 'huge.bin.part002', sizeInBytes: 20, sha256: 'c'.repeat(64) },
+  ],
+}
+
+const encryptedPointer: ICheapLfsPointer = {
+  version: CHEAP_LFS_POINTER_VERSION,
+  releaseTag: 'v3.0.0',
+  assetName: 'secret.bin.encrypted',
+  sizeInBytes: 30,
+  sha256: 'd'.repeat(64),
+  parts: [
+    {
+      name: 'secret.bin.encrypted.part001',
+      sizeInBytes: 30,
+      sha256: 'd'.repeat(64),
+      encrypted: true,
+      storedSha256: 'e'.repeat(64),
+      storedSizeInBytes: 114,
+    },
   ],
 }
 
@@ -95,6 +114,72 @@ describe('cheap LFS pointer', () => {
       )
     )
     assert.deepEqual(parseCheapLfsPointer(text), compressed)
+  })
+
+  it('round-trips one encrypted part with separate stored integrity metadata', () => {
+    const text = serializeCheapLfsPointer(encryptedPointer)
+    assert.match(
+      text,
+      new RegExp(
+        `part-encrypted ${'d'.repeat(64)} 30 ${'e'.repeat(
+          64
+        )} 114 secret\\.bin\\.encrypted\\.part001`
+      )
+    )
+    assert.deepEqual(parseCheapLfsPointer(text), encryptedPointer)
+    assert.equal(isEncryptedCheapLfsPointer(encryptedPointer), true)
+    assert.equal(isEncryptedCheapLfsPointer(pointer), false)
+    assert.equal(isEncryptedCheapLfsPointer(multiPartPointer), false)
+  })
+
+  it('rejects incomplete or mixed encrypted part records', () => {
+    const text = serializeCheapLfsPointer(encryptedPointer)
+    assert.equal(
+      parseCheapLfsPointer(
+        text.replace(` ${'e'.repeat(64)} 114 `, ' deadbeef 114 ')
+      ),
+      null
+    )
+    assert.equal(
+      parseCheapLfsPointer(
+        text.replace(
+          /^part-encrypted .*$/m,
+          `part-encrypted ${'d'.repeat(64)} 30 ${'e'.repeat(64)} 0 secret.bin`
+        )
+      ),
+      null
+    )
+    assert.throws(
+      () =>
+        serializeCheapLfsPointer({
+          ...encryptedPointer,
+          sizeInBytes: 31,
+          parts: [
+            ...encryptedPointer.parts!,
+            {
+              name: 'plain.part002',
+              sizeInBytes: 1,
+              sha256: 'f'.repeat(64),
+            },
+          ],
+        }),
+      /cannot mix/
+    )
+    assert.throws(
+      () =>
+        serializeCheapLfsPointer({
+          ...encryptedPointer,
+          parts: [
+            {
+              name: 'broken',
+              sizeInBytes: 30,
+              sha256: 'd'.repeat(64),
+              encrypted: true,
+            },
+          ],
+        }),
+      /stored-object metadata/
+    )
   })
 
   it('accepts legacy parts over the cap but plans new uploads at the cap', () => {

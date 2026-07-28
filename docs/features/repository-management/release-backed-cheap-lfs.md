@@ -45,6 +45,14 @@ repeat the same verified restore. Explicitly public GitHub.com Release pointers
 can take this path while signed out; private and unknown repositories remain
 account-gated.
 
+New Release uploads can also use optional password encryption. The setting is
+off by default, asks for a masked repository-scoped password plus an
+irreversible-loss acknowledgement, and never writes the password to settings or
+Git. Existing plaintext pointers remain readable; encrypted pointers verify
+both ciphertext and plaintext receipts before restoring. See
+[Cheap LFS Release payload encryption](cheap-lfs-release-payload-encryption.md)
+for the container, credential-vault, failure, and verification contracts.
+
 ### Linux terminal interoperability
 
 The separate Linux-first terminal edition reads and writes this same v1 Release

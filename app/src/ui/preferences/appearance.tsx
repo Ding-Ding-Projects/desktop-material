@@ -28,8 +28,21 @@ import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { translate } from '../../lib/i18n'
+import {
+  clampFunnyLevel,
+  IAudioSystemSettings,
+} from '../../lib/audio/audio-settings'
+import {
+  AudioCueStore,
+  getAudioCueStore,
+} from '../../lib/audio/audio-cue-store'
 
 type AppearanceSelectKey = 'languageMode'
+
+export type FunnyLevelSettingsStore = Pick<
+  AudioCueStore,
+  'getSettings' | 'setSettings'
+>
 
 interface IAppearanceProps {
   readonly selectedTheme: ApplicationTheme
@@ -61,27 +74,41 @@ interface IAppearanceProps {
   ) => void
   readonly branchSortOrder: BranchSortOrder
   readonly onBranchSortOrderChanged: (sortOrder: BranchSortOrder) => void
+  /**
+   * Persists the two app-wide playfulness levels. Injectable so this pane can
+   * be exercised without constructing the audio runtime in focused UI tests.
+   */
+  readonly funnyLevelSettingsStore?: FunnyLevelSettingsStore
 }
 
 interface IAppearanceState {
   readonly selectedTheme: ApplicationTheme | null
   readonly selectedTabSize: number
+  readonly funnyLevelEnglish: number
+  readonly funnyLevelCantonese: number
 }
 
 export class Appearance extends React.Component<
   IAppearanceProps,
   IAppearanceState
 > {
+  private readonly funnyLevelSettingsStore: FunnyLevelSettingsStore
+
   public constructor(props: IAppearanceProps) {
     super(props)
 
     const usePropTheme =
       props.selectedTheme !== ApplicationTheme.System ||
       supportsSystemThemeChanges()
+    this.funnyLevelSettingsStore =
+      props.funnyLevelSettingsStore ?? getAudioCueStore()
+    const audioSettings = this.funnyLevelSettingsStore.getSettings()
 
     this.state = {
       selectedTheme: usePropTheme ? props.selectedTheme : null,
       selectedTabSize: props.selectedTabSize,
+      funnyLevelEnglish: audioSettings.funnyLevelEnglish,
+      funnyLevelCantonese: audioSettings.funnyLevelCantonese,
     }
 
     if (!usePropTheme) {
@@ -143,8 +170,110 @@ export class Appearance extends React.Component<
         <p className="appearance-customization-caption">
           {localize('appearance.languageModeDescription')}
         </p>
+        <div
+          className="appearance-playfulness-card"
+          role="group"
+          aria-labelledby="appearance-playfulness-heading"
+          aria-describedby="appearance-playfulness-description"
+        >
+          <div className="appearance-playfulness-copy">
+            <h3 id="appearance-playfulness-heading">
+              {localize('appearance.playfulnessHeading')}
+            </h3>
+            <p id="appearance-playfulness-description">
+              {localize('appearance.playfulnessDescription')}
+            </p>
+          </div>
+          <div className="appearance-playfulness-grid">
+            {this.renderFunnyLevel(
+              'english',
+              'appearance.englishPlayfulness',
+              this.state.funnyLevelEnglish,
+              this.onEnglishFunnyLevelChanged
+            )}
+            {this.renderFunnyLevel(
+              'cantonese',
+              'appearance.cantonesePlayfulness',
+              this.state.funnyLevelCantonese,
+              this.onCantoneseFunnyLevelChanged
+            )}
+          </div>
+        </div>
       </div>
     )
+  }
+
+  private renderFunnyLevel(
+    language: 'english' | 'cantonese',
+    labelKey:
+      | 'appearance.englishPlayfulness'
+      | 'appearance.cantonesePlayfulness',
+    value: number,
+    onChange: (event: React.FormEvent<HTMLInputElement>) => void
+  ) {
+    const languageMode = this.props.appearanceCustomization.languageMode
+    const id = `appearance-playfulness-${language}`
+    const outputId = `${id}-value`
+    const label = translate(labelKey, languageMode)
+    const valueText = translate('appearance.playfulnessValue', languageMode, {
+      value: value.toString(),
+    })
+
+    return (
+      <div className="appearance-playfulness-control">
+        <div className="appearance-playfulness-label-row">
+          <label htmlFor={id}>{label}</label>
+          <output id={outputId} htmlFor={id} aria-live="polite">
+            {value}
+          </output>
+        </div>
+        <input
+          id={id}
+          className="appearance-playfulness-slider"
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={value}
+          onChange={onChange}
+          aria-describedby={`appearance-playfulness-description ${outputId}`}
+          aria-valuetext={valueText}
+        />
+        <div className="appearance-playfulness-scale" aria-hidden={true}>
+          <span>
+            {translate('appearance.playfulnessSerious', languageMode)}
+          </span>
+          <span>
+            {translate('appearance.playfulnessMaximum', languageMode)}
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  private onEnglishFunnyLevelChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.updateFunnyLevel('funnyLevelEnglish', event.currentTarget.value)
+  }
+
+  private onCantoneseFunnyLevelChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.updateFunnyLevel('funnyLevelCantonese', event.currentTarget.value)
+  }
+
+  private updateFunnyLevel(
+    key: 'funnyLevelEnglish' | 'funnyLevelCantonese',
+    rawValue: string
+  ) {
+    const value = clampFunnyLevel(Number(rawValue), 3)
+    const settings: IAudioSystemSettings = {
+      ...this.funnyLevelSettingsStore.getSettings(),
+      [key]: value,
+    }
+    this.funnyLevelSettingsStore.setSettings(settings)
+    this.setState({ [key]: value } as Pick<IAppearanceState, typeof key>)
   }
 
   public async componentDidUpdate(prevProps: IAppearanceProps) {

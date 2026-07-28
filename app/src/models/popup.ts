@@ -74,6 +74,14 @@ export interface IOpencodeSendContext {
   readonly initialPrompt?: string
 }
 
+/** The operation requesting a Cheap LFS payload password. */
+export type CheapLfsPayloadPasswordPurpose =
+  | 'encrypt'
+  | 'decrypt'
+  | 'change'
+  | 'forget'
+  | 'forget-stale'
+
 export enum PopupType {
   RenameBranch = 'RenameBranch',
   DeleteBranch = 'DeleteBranch',
@@ -159,6 +167,7 @@ export enum PopupType {
   AddSSHHost = 'AddSSHHost',
   SSHKeyPassphrase = 'SSHKeyPassphrase',
   SSHUserPassword = 'SSHUserPassword',
+  CheapLfsPayloadPassword = 'CheapLfsPayloadPassword',
   PullRequestChecksFailed = 'PullRequestChecksFailed',
   CICheckRunRerun = 'CICheckRunRerun',
   WarnForcePush = 'WarnForcePush',
@@ -617,6 +626,22 @@ export type PopupDetail =
       type: PopupType.SSHUserPassword
       username: string
       onSubmit: (password: string | undefined, storePassword: boolean) => void
+    }
+  | {
+      type: PopupType.CheapLfsPayloadPassword
+      repository: Repository
+      purpose: CheapLfsPayloadPasswordPurpose
+      requireIrreversibleAcknowledgement?: boolean
+      /**
+       * Receives an independently owned, zeroable password buffer. The callback
+       * must overwrite it as soon as the operation or vault hand-off finishes.
+       * Undefined means cancellation. A zero-length buffer confirms a forget
+       * action without inventing a password sentinel that could be logged.
+       */
+      onSubmit: (
+        password: Buffer | undefined,
+        rememberPassword: boolean
+      ) => void
     }
   | {
       type: PopupType.PullRequestChecksFailed

@@ -13,13 +13,9 @@ import {
 import { BuildRunSettings } from '../../../src/ui/repository-settings/build-run-settings'
 import { CheapLfsSettings } from '../../../src/ui/repository-settings/cheap-lfs-settings'
 import { RepositorySettingsTab } from '../../../src/ui/repository-settings/repository-settings'
-import { fireEvent, render, screen } from '../../helpers/ui/render'
+import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 import { translate } from '../../../src/lib/i18n'
-import { Dispatcher } from '../../../src/ui/dispatcher'
-
-// The Cheap LFS tab only reaches the dispatcher from the encryption gate and
-// the forget-passphrase action; none of the cases below take those paths.
-const stubDispatcher = {} as Dispatcher
+import { Popup, PopupType } from '../../../src/models/popup'
 
 const repository = () =>
   new Repository('C:/cheap-lfs-repo', 1, null, false, null, {}, false)
@@ -43,13 +39,17 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.equal(defaultBuildRunPreferences.autoPinLargeFilesOnCommit, true)
     assert.equal(defaultBuildRunPreferences.parallelCheapLfsUploads, true)
     assert.equal(defaultBuildRunPreferences.cheapLfsStorageProvider, 'release')
+    assert.equal(defaultBuildRunPreferences.cheapLfsPayloadEncryption, false)
+    assert.equal(
+      defaultBuildRunPreferences.cheapLfsPayloadEncryptionConfirmed,
+      false
+    )
   })
 
   it('toggles autoMaterializeCheapLfs through the settings checkbox', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -74,7 +74,6 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -97,7 +96,6 @@ describe('Cheap LFS settings tab preferences', () => {
   it('renders both checkboxes reflecting the persisted preferences', () => {
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -126,7 +124,6 @@ describe('Cheap LFS settings tab preferences', () => {
     }
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={preferences}
         onPreferencesChanged={preference => changes.push(preference)}
@@ -176,7 +173,6 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={githubRepository(true)}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={preference => changes.push(preference)}
@@ -189,6 +185,8 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.equal(selector.value, 'release')
     fireEvent.change(selector, { target: { value: 'ghcr' } })
     assert.equal(changes.at(-1)?.cheapLfsStorageProvider, 'ghcr')
+    assert.equal(changes.at(-1)?.cheapLfsPayloadEncryption, false)
+    assert.equal(changes.at(-1)?.cheapLfsPayloadEncryptionConfirmed, false)
     fireEvent.change(selector, { target: { value: 'docker-hub' } })
     assert.equal(changes.at(-1)?.cheapLfsStorageProvider, 'docker-hub')
 
@@ -204,7 +202,6 @@ describe('Cheap LFS settings tab preferences', () => {
   it('hides Release cloud compression while GHCR storage is selected', () => {
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={githubRepository(true)}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -220,12 +217,191 @@ describe('Cheap LFS settings tab preferences', () => {
       }),
       null
     )
+    assert.equal(
+      screen.queryByRole('checkbox', {
+        name: /encrypt new release payloads/i,
+      }),
+      null
+    )
+  })
+
+  it('enables encryption only after the password warning is acknowledged and zeroes the callback buffer', async () => {
+    const changes: IBuildRunPreferences[] = []
+    let popup: Popup | undefined
+    const dispatcher = {
+      showPopup: async (nextPopup: Popup) => {
+        popup = nextPopup
+      },
+      postError: async (_error: Error) => {},
+    }
+    const credentialActions = {
+      getStatus: async () => 'missing' as const,
+      save: async () => true,
+      forget: async () => 'missing' as const,
+    }
+
+    render(
+      <CheapLfsSettings
+        repository={githubRepository(true)}
+        dispatcher={dispatcher}
+        credentialActions={credentialActions}
+        preferences={defaultBuildRunPreferences}
+        onPreferencesChanged={preferences => changes.push(preferences)}
+      />
+    )
+
+    await waitFor(() => assert.ok(screen.getByText(/no password is saved/i)))
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: /encrypt new release payloads/i,
+      })
+    )
+
+    await waitFor(() => assert.ok(popup !== undefined))
+    if (popup?.type !== PopupType.CheapLfsPayloadPassword) {
+      assert.fail('Expected the Cheap LFS payload-password popup')
+    }
+    assert.equal(popup.purpose, 'encrypt')
+    assert.equal(popup.requireIrreversibleAcknowledgement, true)
+    assert.equal(changes.length, 0)
+
+    const password = Buffer.from('not-persisted', 'utf8')
+    popup.onSubmit(password, false)
+
+    await waitFor(() =>
+      assert.equal(changes.at(-1)?.cheapLfsPayloadEncryption, true)
+    )
+    assert.equal(changes.at(-1)?.cheapLfsPayloadEncryptionConfirmed, true)
+    assert.doesNotMatch(JSON.stringify(changes), /not-persisted/)
+    assert.ok(password.every(byte => byte === 0))
+  })
+
+  it('leaves encryption off when its password popup is removed', async () => {
+    const changes: IBuildRunPreferences[] = []
+    let popup: Popup | undefined
+    render(
+      <CheapLfsSettings
+        repository={githubRepository(true)}
+        dispatcher={{
+          showPopup: async nextPopup => {
+            popup = nextPopup
+          },
+          postError: async () => {},
+        }}
+        credentialActions={{
+          getStatus: async () => 'missing',
+          save: async () => true,
+          forget: async () => 'missing',
+        }}
+        preferences={defaultBuildRunPreferences}
+        onPreferencesChanged={preferences => changes.push(preferences)}
+      />
+    )
+
+    fireEvent.click(
+      screen.getByRole('checkbox', {
+        name: /encrypt new release payloads/i,
+      })
+    )
+    await waitFor(() => assert.ok(popup !== undefined))
+    popup?.onRemoved?.('removed')
+    assert.equal(changes.length, 0)
+  })
+
+  it('saves a changed password only through the credential action and zeroes it', async () => {
+    let popup: Popup | undefined
+    let savedValue = ''
+    render(
+      <CheapLfsSettings
+        repository={githubRepository(true)}
+        dispatcher={{
+          showPopup: async nextPopup => {
+            popup = nextPopup
+          },
+          postError: async () => {},
+        }}
+        credentialActions={{
+          getStatus: async () => 'missing',
+          save: async (_repository, password) => {
+            savedValue = Buffer.from(password).toString('utf8')
+            return true
+          },
+          forget: async () => 'missing',
+        }}
+        preferences={defaultBuildRunPreferences}
+        onPreferencesChanged={() => {}}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: /set password/i }))
+    )
+    fireEvent.click(screen.getByRole('button', { name: /set password/i }))
+    await waitFor(() => assert.ok(popup !== undefined))
+    if (popup?.type !== PopupType.CheapLfsPayloadPassword) {
+      assert.fail('Expected the Cheap LFS payload-password popup')
+    }
+    assert.equal(popup.purpose, 'change')
+
+    const password = Buffer.from('vault-only', 'utf8')
+    popup.onSubmit(password, true)
+    await waitFor(() => assert.equal(savedValue, 'vault-only'))
+    await waitFor(() =>
+      assert.ok(screen.getByText(/password was saved in windows/i))
+    )
+    assert.ok(password.every(byte => byte === 0))
+  })
+
+  it('forgets a saved password only after explicit popup confirmation', async () => {
+    let popup: Popup | undefined
+    let forgetCalls = 0
+    render(
+      <CheapLfsSettings
+        repository={githubRepository(true)}
+        dispatcher={{
+          showPopup: async nextPopup => {
+            popup = nextPopup
+          },
+          postError: async () => {},
+        }}
+        credentialActions={{
+          getStatus: async () => 'saved',
+          save: async () => true,
+          forget: async () => {
+            forgetCalls++
+            return 'deleted'
+          },
+        }}
+        preferences={defaultBuildRunPreferences}
+        onPreferencesChanged={() => {}}
+      />
+    )
+
+    await waitFor(() =>
+      assert.ok(screen.getByRole('button', { name: /forget saved password/i }))
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: /forget saved password/i })
+    )
+    await waitFor(() => assert.ok(popup !== undefined))
+    if (popup?.type !== PopupType.CheapLfsPayloadPassword) {
+      assert.fail('Expected the Cheap LFS payload-password popup')
+    }
+    assert.equal(popup.purpose, 'forget')
+    assert.equal(forgetCalls, 0)
+
+    const confirmation = Buffer.alloc(0)
+    popup.onSubmit(confirmation, false)
+    await waitFor(() => assert.equal(forgetCalls, 1))
+    await waitFor(() =>
+      assert.ok(screen.getByText(/saved password was removed/i))
+    )
+    assert.ok(confirmation.every(byte => byte === 0))
   })
 
   it('shows confirmed-public cloud compression as automatic', () => {
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={githubRepository(false)}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={() => {}}
@@ -243,7 +419,6 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={githubRepository(true)}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={preference => changes.push(preference)}
@@ -261,7 +436,6 @@ describe('Cheap LFS settings tab preferences', () => {
   it('fails closed when repository visibility is unknown', () => {
     render(
       <CheapLfsSettings
-        dispatcher={stubDispatcher}
         repository={githubRepository(null)}
         preferences={{
           ...defaultBuildRunPreferences,

@@ -32,6 +32,46 @@
     animation: dmDown calc(340ms * var(--mdur, 1)) var(--spring-fast) both;
   }
 
+  .error-notice--warning {
+    border-color: color-mix(
+      in srgb,
+      var(--banner-warning-icon-color) 42%,
+      transparent
+    );
+    background: var(--banner-warning-background);
+    color: var(--banner-warning-text-color);
+
+    .error-notice-icon,
+    .error-notice-occurrences,
+    .error-notice-diagnostic {
+      background: color-mix(
+        in srgb,
+        var(--banner-warning-icon-color) 14%,
+        transparent
+      );
+    }
+
+    .error-notice-icon {
+      color: var(--banner-warning-icon-color);
+    }
+
+    .error-notice-details,
+    .error-notice-recovery,
+    .error-notice-dismiss {
+      &:hover {
+        background: color-mix(
+          in srgb,
+          var(--banner-warning-icon-color) 14%,
+          transparent
+        );
+      }
+
+      &:focus-visible {
+        outline-color: var(--banner-warning-icon-color);
+      }
+    }
+  }
+
   .error-notice-icon {
     display: grid;
     place-items: center;

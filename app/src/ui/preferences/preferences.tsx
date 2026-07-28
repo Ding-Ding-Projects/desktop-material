@@ -969,6 +969,7 @@ export class Preferences extends React.Component<
             }
             branchSortOrder={this.state.branchSortOrder}
             onBranchSortOrderChanged={this.onBranchSortOrderChanged}
+            funnyLevelSettingsStore={getAudioCueStore()}
           />
         )
         break

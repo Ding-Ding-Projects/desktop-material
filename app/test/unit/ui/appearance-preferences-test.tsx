@@ -3,6 +3,10 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import { translate } from '../../../src/lib/i18n'
+import {
+  DefaultAudioSystemSettings,
+  IAudioSystemSettings,
+} from '../../../src/lib/audio/audio-settings'
 import { BranchSortOrder } from '../../../src/models/branch-sort-order'
 import {
   DefaultAppearanceCustomization,
@@ -21,6 +25,17 @@ import { fireEvent, render, screen } from '../../helpers/ui/render'
 describe('Appearance preferences', () => {
   it('keeps ordinary preferences and routes visual customization to elements', () => {
     const changes = new Array<IAppearanceCustomization>()
+    let funnySettings: IAudioSystemSettings = {
+      ...DefaultAudioSystemSettings,
+      funnyLevelEnglish: 2,
+      funnyLevelCantonese: 5,
+    }
+    const funnyLevelSettingsStore = {
+      getSettings: () => funnySettings,
+      setSettings: (settings: IAudioSystemSettings) => {
+        funnySettings = settings
+      },
+    }
     const commonProps = {
       selectedTheme: ApplicationTheme.Light,
       onSelectedThemeChanged: () => {},
@@ -47,6 +62,7 @@ describe('Appearance preferences', () => {
       onShowBranchNameInRepoListChanged: () => {},
       branchSortOrder: BranchSortOrder.LastModified,
       onBranchSortOrderChanged: () => {},
+      funnyLevelSettingsStore,
     }
 
     const view = render(
@@ -58,6 +74,24 @@ describe('Appearance preferences', () => {
 
     assert.ok(screen.getByText(/right-click that element/i))
     assert.ok(screen.getByLabelText('Language'))
+    const englishFunnySlider = screen.getByRole('slider', {
+      name: 'English playfulness',
+    })
+    const cantoneseFunnySlider = screen.getByRole('slider', {
+      name: 'Cantonese playfulness',
+    })
+    assert.equal(englishFunnySlider.getAttribute('min'), '1')
+    assert.equal(englishFunnySlider.getAttribute('max'), '5')
+    assert.equal(englishFunnySlider.getAttribute('value'), '2')
+    assert.equal(
+      englishFunnySlider.getAttribute('aria-valuetext'),
+      'Level 2 of 5'
+    )
+    assert.equal(cantoneseFunnySlider.getAttribute('value'), '5')
+    assert.equal(
+      cantoneseFunnySlider.getAttribute('aria-valuetext'),
+      'Level 5 of 5'
+    )
     assert.ok(screen.getByRole('slider', { name: 'Scale' }))
     assert.ok(screen.getByRole('radio', { name: /Light/i }))
     assert.ok(
@@ -94,6 +128,13 @@ describe('Appearance preferences', () => {
       null
     )
 
+    fireEvent.change(englishFunnySlider, { target: { value: '4' } })
+    assert.equal(funnySettings.funnyLevelEnglish, 4)
+    assert.equal(funnySettings.funnyLevelCantonese, 5)
+    fireEvent.change(cantoneseFunnySlider, { target: { value: '1' } })
+    assert.equal(funnySettings.funnyLevelEnglish, 4)
+    assert.equal(funnySettings.funnyLevelCantonese, 1)
+
     fireEvent.change(screen.getByLabelText('Language'), {
       target: { value: 'bilingual' },
     })
@@ -117,6 +158,19 @@ describe('Appearance preferences', () => {
     )
     assert.ok(
       screen.getByLabelText(translate('appearance.languageMode', 'cantonese'))
+    )
+    assert.ok(
+      screen.getByRole('slider', {
+        name: translate('appearance.englishPlayfulness', 'cantonese'),
+      })
+    )
+    assert.equal(
+      screen
+        .getByRole('slider', {
+          name: translate('appearance.cantonesePlayfulness', 'cantonese'),
+        })
+        .getAttribute('aria-valuetext'),
+      translate('appearance.playfulnessValue', 'cantonese', { value: '1' })
     )
     assert.equal(
       screen.queryByLabelText(
@@ -152,6 +206,16 @@ describe('Appearance preferences', () => {
     )
     assert.ok(
       screen.getByLabelText(translate('appearance.languageMode', 'bilingual'))
+    )
+    assert.ok(
+      screen.getByRole('slider', {
+        name: translate('appearance.englishPlayfulness', 'bilingual'),
+      })
+    )
+    assert.ok(
+      screen.getByRole('slider', {
+        name: translate('appearance.cantonesePlayfulness', 'bilingual'),
+      })
     )
     assert.equal(
       screen.queryByLabelText(

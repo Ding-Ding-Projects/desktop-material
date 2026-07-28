@@ -100,6 +100,8 @@ export class Repository {
       this.buildRunPreferences.buildFixProvider,
       this.buildRunPreferences.buildFixAutoApprove,
       this.buildRunPreferences.cheapLfsCloudCompression,
+      this.buildRunPreferences.cheapLfsPayloadEncryption === true,
+      this.buildRunPreferences.cheapLfsPayloadEncryptionConfirmed === true,
       this.buildRunPreferences.parallelCheapLfsUploads !== false,
       getCheapLfsStorageProvider(this.buildRunPreferences),
       this.groupName,
