@@ -8,6 +8,7 @@ Screenshots of the real built app come from the capture fixture described in
 [App capture fixture](../technical/app-capture-fixture.md) — including multi-tab
 scenes such as the tab overflow dropdown, which cannot be produced by hand.
 
+- [Standalone Cheap LFS versus Git LFS comparison atlas — 2026-07-28](cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md)
 - [Renderer responsiveness — 2026-07-28](renderer-responsiveness-2026-07-28/README.md)
 - [Cheap LFS Pages product-guide revamp — 2026-07-28](cheap-lfs-pages-revamp-2026-07-28/README.md)
 - [Linux-first TUI publish run — 2026-07-27](linux-tui-2026-07-27/run-manifest.md)

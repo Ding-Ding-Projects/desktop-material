@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="700" viewBox="0 0 1200 700" role="img" aria-labelledby="title desc">
+  <title id="title">Cheap LFS and Git LFS comparison orbit</title>
+  <desc id="desc">Two large product circles connect to shared Git pointers while distinct satellites show provider choice, guided verification, standard clients, and ecosystem support.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#101426"/>
+      <stop offset="1" stop-color="#241733"/>
+    </linearGradient>
+    <linearGradient id="cheap" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#a9f2d4"/>
+      <stop offset="1" stop-color="#4ed4aa"/>
+    </linearGradient>
+    <linearGradient id="lfs" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dac1ff"/>
+      <stop offset="1" stop-color="#9f7aea"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="1200" height="700" rx="48" fill="url(#bg)"/>
+  <g fill="none" stroke="#ffffff" stroke-opacity=".14">
+    <ellipse cx="350" cy="350" rx="285" ry="225"/>
+    <ellipse cx="850" cy="350" rx="285" ry="225"/>
+    <path d="M500 350H700" stroke-dasharray="12 18"/>
+  </g>
+  <circle cx="350" cy="350" r="142" fill="url(#cheap)" filter="url(#glow)" opacity=".95"/>
+  <circle cx="850" cy="350" r="142" fill="url(#lfs)" filter="url(#glow)" opacity=".95"/>
+  <g font-family="Segoe UI, Arial, sans-serif" text-anchor="middle">
+    <text x="350" y="330" font-size="58" font-weight="800" fill="#10261f">CHEAP</text>
+    <text x="350" y="390" font-size="58" font-weight="800" fill="#10261f">LFS</text>
+    <text x="850" y="330" font-size="58" font-weight="800" fill="#211735">GIT</text>
+    <text x="850" y="390" font-size="58" font-weight="800" fill="#211735">LFS</text>
+    <circle cx="600" cy="350" r="66" fill="#fff" fill-opacity=".1" stroke="#fff" stroke-opacity=".3"/>
+    <text x="600" y="340" font-size="26" font-weight="700" fill="#fff">GIT</text>
+    <text x="600" y="374" font-size="22" fill="#d8dcf8">POINTER</text>
+  </g>
+  <g font-family="Segoe UI Emoji, Segoe UI, Arial, sans-serif" text-anchor="middle">
+    <g transform="translate(116 196)">
+      <circle r="60" fill="#163a31" stroke="#7bf0cc" stroke-width="2"/>
+      <text y="-4" font-size="34">🧭</text><text y="30" font-size="15" fill="#e7fff7">Guided UI</text>
+    </g>
+    <g transform="translate(132 510)">
+      <circle r="60" fill="#163a31" stroke="#7bf0cc" stroke-width="2"/>
+      <text y="-4" font-size="34">🛡️</text><text y="30" font-size="15" fill="#e7fff7">Verify + restore</text>
+    </g>
+    <g transform="translate(480 106)">
+      <circle r="60" fill="#163a31" stroke="#7bf0cc" stroke-width="2"/>
+      <text y="-4" font-size="34">☁️</text><text y="30" font-size="15" fill="#e7fff7">Release / OCI</text>
+    </g>
+    <g transform="translate(720 106)">
+      <circle r="60" fill="#2d2241" stroke="#cbb1ff" stroke-width="2"/>
+      <text y="-4" font-size="34">🌍</text><text y="30" font-size="15" fill="#f6efff">Cross-platform</text>
+    </g>
+    <g transform="translate(1068 196)">
+      <circle r="60" fill="#2d2241" stroke="#cbb1ff" stroke-width="2"/>
+      <text y="-4" font-size="34">🔌</text><text y="30" font-size="15" fill="#f6efff">Host ecosystem</text>
+    </g>
+    <g transform="translate(1068 510)">
+      <circle r="60" fill="#2d2241" stroke="#cbb1ff" stroke-width="2"/>
+      <text y="-4" font-size="34">🔒</text><text y="30" font-size="15" fill="#f6efff">File locking</text>
+    </g>
+    <g transform="translate(600 594)">
+      <rect x="-156" y="-38" width="312" height="76" rx="38" fill="#ffffff" fill-opacity=".09" stroke="#fff" stroke-opacity=".24"/>
+      <text y="-4" font-size="28">🤝</text><text y="25" font-size="15" fill="#eef0ff">Same goal · different operating model</text>
+    </g>
+  </g>
+</svg>

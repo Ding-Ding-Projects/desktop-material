@@ -101,6 +101,13 @@ Material is displaying or how a repository is represented in the application.
   adds a provider-first established-branch push walkthrough, the
   unpublished-branch Release-anchor caveat, and a cross-checked 30-criterion
   Cheap LFS versus Git LFS comparison.
+- [Cheap LFS versus Git LFS comparison
+  atlas](cheap-lfs-vs-git-lfs.md) — a standalone Pages decision surface with
+  72 row-level sourced distinctions in 12 categories, honest Cheap/Git/tie/
+  depends signals, provider-first versus pre-push diagrams, an exact six-stage
+  publication proof, composable filters, a worker-isolated regex builder, and
+  explicit Windows, host-policy, interoperability, privacy, and open-evidence
+  boundaries.
 - [Cheap LFS Release payload
   encryption](cheap-lfs-release-payload-encryption.md) — optionally encrypt new
   GitHub Release payloads with repository-scoped AES-256-GCM and scrypt,

@@ -714,6 +714,13 @@
       d: 'Desktop Material can encrypt newly uploaded GitHub Release-backed Cheap LFS payloads with a repository-scoped password. The option is deliberately off by default and applies…',
     },
     {
+      t: 'Cheap LFS versus Git LFS comparison atlas',
+      h: 'features/repository-management/cheap-lfs-vs-git-lfs.html',
+      s: 'features/repository-management/cheap-lfs-vs-git-lfs.md',
+      c: 'features',
+      d: 'The standalone Cheap LFS versus Git LFS comparison atlas is the decision surface for teams choosing how large payloads should leave',
+    },
+    {
       t: 'Clone dialog repository metadata',
       h: 'features/repository-management/clone-dialog-repository-metadata.html',
       s: 'features/repository-management/clone-dialog-repository-metadata.md',
@@ -1377,6 +1384,27 @@
       s: 'verification/cheap-lfs-payload-encryption-2026-07-28/README.md',
       c: 'verification',
       d: 'Visual evidence for issue #78 (optional password encryption for Cheap LFS payloads).',
+    },
+    {
+      t: 'Cheap LFS vs Git LFS Pages headless cleanup ledger',
+      h: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/cleanup-ledger.html',
+      s: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: cheap-lfs-vs-git-lfs-pages-2026-07-28',
+    },
+    {
+      t: 'Standalone Cheap LFS versus Git LFS Pages acceptance — 2026-07-28',
+      h: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/',
+      s: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Local Pages acceptance is complete. The assembled site passed the route contracts and an installed-Chrome run through the exact Lowlevel MCP HTTP service. The accepted run…',
+    },
+    {
+      t: 'Cheap LFS vs Git LFS standalone comparison page — run manifest',
+      h: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/run-manifest.html',
+      s: 'verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: publish',
     },
     {
       t: 'Funny-level sliders — built-app capture, 2026-07-28',

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="620" viewBox="0 0 1200 620" role="img" aria-labelledby="title desc">
+  <title id="title">Provider-first Cheap LFS and hook-driven Git LFS paths</title>
+  <desc id="desc">The Cheap LFS lane reviews and uploads provider bytes before committing and pushing a pointer. The Git LFS lane cleans a file to a pointer and uploads missing objects through its pre-push hook.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7f5ff"/>
+      <stop offset="1" stop-color="#eefbf7"/>
+    </linearGradient>
+    <marker id="arrowCheap" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0l10 5-10 5z" fill="#087f5b"/>
+    </marker>
+    <marker id="arrowLfs" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+      <path d="M0 0l10 5-10 5z" fill="#6f42c1"/>
+    </marker>
+  </defs>
+  <rect width="1200" height="620" rx="42" fill="url(#bg)"/>
+  <g font-family="Segoe UI Emoji, Segoe UI, Arial, sans-serif">
+    <text x="72" y="78" font-size="27" font-weight="800" fill="#075c44">🧭 CHEAP LFS · PROVIDER FIRST</text>
+    <text x="72" y="344" font-size="27" font-weight="800" fill="#57319a">🔌 GIT LFS · FILTER + PRE-PUSH</text>
+  </g>
+  <g fill="none" stroke-width="5" stroke-linecap="round">
+    <path d="M214 196H354M474 196H614M734 196H874M994 196h92" stroke="#087f5b" marker-end="url(#arrowCheap)"/>
+    <path d="M214 462H354M474 462H614M734 462H874M994 462h92" stroke="#6f42c1" marker-end="url(#arrowLfs)"/>
+  </g>
+  <g font-family="Segoe UI Emoji, Segoe UI, Arial, sans-serif" text-anchor="middle">
+    <g transform="translate(150 196)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#7bd8bb" stroke-width="3"/>
+      <text y="-18" font-size="38">📦</text><text y="20" font-size="17" font-weight="700" fill="#153f34">Review file</text><text y="46" font-size="14" fill="#41665c">size · source</text>
+    </g>
+    <g transform="translate(410 196)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#7bd8bb" stroke-width="3"/>
+      <text y="-18" font-size="38">☁️</text><text y="20" font-size="17" font-weight="700" fill="#153f34">Upload bytes</text><text y="46" font-size="14" fill="#41665c">Release / OCI</text>
+    </g>
+    <g transform="translate(670 196)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#7bd8bb" stroke-width="3"/>
+      <text y="-18" font-size="38">🛡️</text><text y="20" font-size="17" font-weight="700" fill="#153f34">Verify provider</text><text y="46" font-size="14" fill="#41665c">identity · bytes</text>
+    </g>
+    <g transform="translate(930 196)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#7bd8bb" stroke-width="3"/>
+      <text y="-18" font-size="38">📝</text><text y="20" font-size="17" font-weight="700" fill="#153f34">Commit pointer</text><text y="46" font-size="14" fill="#41665c">then git push</text>
+    </g>
+    <g transform="translate(1120 196)">
+      <circle r="56" fill="#087f5b"/><text y="12" font-size="34">✅</text>
+    </g>
+    <g transform="translate(150 462)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#cbb1ff" stroke-width="3"/>
+      <text y="-18" font-size="38">🎯</text><text y="20" font-size="17" font-weight="700" fill="#372458">Track pattern</text><text y="46" font-size="14" fill="#69557f">.gitattributes</text>
+    </g>
+    <g transform="translate(410 462)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#cbb1ff" stroke-width="3"/>
+      <text y="-18" font-size="38">🧹</text><text y="20" font-size="17" font-weight="700" fill="#372458">Clean filter</text><text y="46" font-size="14" fill="#69557f">object → pointer</text>
+    </g>
+    <g transform="translate(670 462)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#cbb1ff" stroke-width="3"/>
+      <text y="-18" font-size="38">📝</text><text y="20" font-size="17" font-weight="700" fill="#372458">Commit pointer</text><text y="46" font-size="14" fill="#69557f">normal Git commit</text>
+    </g>
+    <g transform="translate(930 462)">
+      <rect x="-82" y="-70" width="164" height="140" rx="28" fill="#fff" stroke="#cbb1ff" stroke-width="3"/>
+      <text y="-18" font-size="38">🪝</text><text y="20" font-size="17" font-weight="700" fill="#372458">Pre-push hook</text><text y="46" font-size="14" fill="#69557f">upload objects</text>
+    </g>
+    <g transform="translate(1120 462)">
+      <circle r="56" fill="#6f42c1"/><text y="12" font-size="34">✅</text>
+    </g>
+  </g>
+</svg>

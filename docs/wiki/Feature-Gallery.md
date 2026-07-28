@@ -58,9 +58,23 @@ contract rejects missing, duplicate, or unassigned assets.
 
 These are Pages-guide captures, not additional Desktop Material app-gallery
 scenes, so they do not change the 89-function catalog count below. The first
-shows the sourced bilingual comparison and category controls at 1440×960. The
-second shows the safe branch-proof commands and first-branch distinction in a
-390×844 dark layout. Both came from the locally assembled real site in
+pair documents the standalone 72-row Cheap LFS versus Git LFS atlas: a
+1440×960 bilingual marketing overview with its code-native product-orbit
+graphic, then the 390×844 dark Cantonese publication handoff. The assembled
+route passed 35/35 installed-Chrome checks through Lowlevel MCP, including the
+36-entry bibliography, composable filters, bounded regex worker, six ordered
+push stages, tab persistence, local assets, and zero document overflow. The
+[standalone atlas receipt](../verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md)
+records the exact evidence boundary and hashes.
+
+![Bilingual standalone Cheap LFS versus Git LFS marketing overview with the product-orbit graphic](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/comparison-atlas-wide.png)
+
+![Narrow dark Cantonese Cheap LFS push handoff with ordered provider-first stages](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/comparison-push-narrow.png)
+
+The older pair below shows the sourced bilingual comparison and category
+controls at 1440×960, followed by the safe branch-proof commands and
+first-branch distinction in a 390×844 dark layout. Both came from the locally
+assembled real site in
 installed headless Chrome through Lowlevel MCP; the
 [dated receipt](../verification/cheap-lfs-pages-revamp-2026-07-28/README.md)
 records the exact checks and hashes.

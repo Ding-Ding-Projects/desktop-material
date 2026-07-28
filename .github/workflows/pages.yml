@@ -7,6 +7,8 @@ on:
     paths:
       - 'site/**'
       - 'docs/**'
+      - 'script/cheap-lfs-pages-test.mjs'
+      - 'script/cheap-lfs-vs-git-lfs-pages-test.mjs'
       - '.github/workflows/pages.yml'
   workflow_dispatch:
 
@@ -130,6 +132,10 @@ jobs:
       - name: Validate the Cheap LFS visual guide
         run: |
           node script/cheap-lfs-pages-test.mjs _site
+
+      - name: Validate the Cheap LFS comparison atlas
+        run: |
+          node script/cheap-lfs-vs-git-lfs-pages-test.mjs _site
 
       # GitHub renders ```mermaid fences natively; pandoc turns them into
       # <pre> blocks, so the published site used to show diagram source. The

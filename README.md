@@ -21,6 +21,19 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 
 ![CI](https://github.com/Ding-Ding-Projects/desktop-material/actions/workflows/ci.yml/badge.svg?branch=main)
 
+> **Standalone Cheap LFS versus Git LFS atlas — July 28, 2026:** the
+> [separate comparison page](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)
+> maps **72 sourced differences in 12 categories**, with row-level receipts,
+> provider-first and pre-push graphics, composable text/category/fit filters,
+> a bounded worker-isolated regex builder, an interactive fit finder, and a
+> dedicated six-stage `git push` proof. It does not pretend the pointer formats
+> interoperate, and it gives Git LFS the advantage where standards,
+> cross-platform support, locking, migration, caching, CI, and automation are
+> the better fit. The assembled route passed 35/35 installed-Chrome checks at
+> 1440×960 and 390×844; the exact local boundary and post-push publication
+> status are recorded in the
+> [dated receipt](docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/README.md).
+
 > **Cheap LFS Pages guide — July 28, 2026:** the
 > [product guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
 > now pairs a provider-first `git push` walkthrough with a sourced, filterable

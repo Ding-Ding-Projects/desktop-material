@@ -13,6 +13,34 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 28 standalone Cheap LFS versus Git LFS atlas — **Locally accepted; publication queued**
+
+The new stable `/cheap-lfs-vs-git-lfs.html` route is separate from the
+end-to-end Cheap LFS guide. Its source defines 72 row-level sourced
+distinctions in 12 six-row categories, six persistent browser-style tabs, two
+code-native SVG diagrams, an interactive fit finder, and category/fit/text
+filters. Explicit regex mode reuses the documentation site's fresh-worker
+runner and 750 ms hard deadline rather than compiling reader patterns on the UI
+thread. A dedicated publication tab contrasts Cheap LFS's provider-first
+handoff with Git LFS's pre-push path and includes the committed-pointer,
+ordinary `git push`, fetch, matching `HEAD`/`@{upstream}`, first-anchor, and
+raw-byte safety proofs.
+
+The source keeps the result honest: Cheap LFS leads on the guided Windows
+workflow, explicit provider verification, Release/OCI choice, multipart
+logical files, optional encryption, recovery, and observability; Git LFS leads
+on standards, cross-platform clients, tracking policy, locking, caching,
+pruning, migration, CI, and automation. Host cost and policy remain dated
+“depends” claims, the pointer formats are not described as interoperable, and
+open 50+ GiB hardening issue #96 remains visible. Automated and Lowlevel MCP
+headless acceptance is green: both route contracts, 59 documentation/search
+tests, 35 installed-Chrome checks, all 33 HTTP requests, original-resolution
+wide/narrow capture inspection, and runtime cleanup passed. The base predates
+renderer multi-compiler fix `6903c9ae1e`, so its known pre-fix production-build
+path was stopped with bounded evidence rather than misreported as a Pages
+success. The pushed SHA and live Pages verdict remain queued at this local
+checkpoint.
+
 ## July 28 Cheap LFS Pages product guide — **Locally accepted; publication queued**
 
 The stable `/cheap-lfs.html` route now carries a marketing-style but

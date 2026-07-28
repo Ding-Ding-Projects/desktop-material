@@ -1,5 +1,59 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Standalone Cheap LFS versus Git LFS comparison atlas
+
+An isolated Pages-only branch based on remote `823f7fa0e5` adds
+`site/cheap-lfs-vs-git-lfs.html` as a genuinely separate route rather than
+stretching the existing product guide again. The route controller defines
+exactly 72 bilingual, row-level sourced criteria in 12 categories and renders
+desktop table plus narrow card views. Its fit signals are contextual:
+`cheap`, `git`, `tie`, or `depends`; there is no aggregated product winner.
+
+Six browser-style tabs separate the verdict, matrix, exact `git push` handoff,
+workflow diagrams, fit finder, and source library. Tab order, pins, active
+hash, and per-tab font/size/color/radius appearance persist. Comparison
+category and outcome persist under route-specific keys, while the page shares
+the established EN/粵/EN+粵, independent funny-level, and theme keys. Text
+search remains plain by default. Explicit regex mode delegates both search and
+builder work to the documentation site's shared same-origin worker, which the
+page terminates at 750 ms; patterns never compile on the page thread and are
+not persisted.
+
+The dedicated push tab preserves the product boundary: provider bytes and
+provider proof precede a Cheap pointer commit on an established branch; a
+first Release-backed publication may need the app's create-only anchor; OCI
+does not. Plain `git push` publishes the already-created pointer commit. The
+proof inspects `git show HEAD:path/to/large-file.bin`, pushes, fetches, and
+requires `git rev-parse HEAD` to equal `git rev-parse '@{upstream}'`. It warns
+that materialized raw bytes may appear modified and must not be added over the
+pointer, and that ordinary
+`git push --set-upstream origin HEAD` is not the app's hook-skipping anchor.
+The parallel Git LFS lane documents tracking, `.gitattributes`, the clean
+filter, and the pre-push hook.
+
+The two marketing graphics are code-native
+`site/assets/cheap-lfs/comparison-orbit.svg` and
+`site/assets/cheap-lfs/pointer-paths.svg`; they are conceptual diagrams with
+accessible titles/descriptions, not fabricated app evidence. The full feature
+contract is
+[`docs/features/repository-management/cheap-lfs-vs-git-lfs.md`](docs/features/repository-management/cheap-lfs-vs-git-lfs.md).
+
+**Verification state:** local Pages acceptance is complete in the isolated
+worktree. The new 72-row contract and original 30-row guide pass; documentation
+catalog/hub/regex/search suites pass 59/59; and the exact Lowlevel MCP run passed
+35/35 installed-Chrome checks in six phases with 33/33 HTTP 200 responses, zero
+runtime errors, zero document overflow at 1440×960 and 390×844, and verified
+browser/server cleanup. The accepted captures and hashes live in
+`docs/verification/cheap-lfs-vs-git-lfs-pages-2026-07-28/`.
+
+The branch base predates renderer multi-compiler correction `6903c9ae1e`. Its
+skill-required production-build attempt entered that known pre-fix webpack
+path, so only the validated task-owned ten-process tree was stopped. The
+captured boundary is `returncode=4294967295`, empty stderr, and
+`timed_out=false`; no app-build success is claimed. Final exact application
+build proof belongs to the renderer lineage after integration. Commit, push,
+live route, and Pages deployment proof remain queued at this local checkpoint.
+
 ## 2026-07-28 — Cheap LFS Pages comparison and push guide
 
 `site/cheap-lfs.html` now presents a filterable 30-decision Cheap LFS versus

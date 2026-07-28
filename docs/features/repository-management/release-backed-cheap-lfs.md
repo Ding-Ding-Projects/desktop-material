@@ -104,12 +104,14 @@ publication step, not proof that the later pointer commit reached the remote.
 The bilingual [Cheap LFS Pages product
 guide](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html)
 includes the complete provider-first [push
-walkthrough](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html#push)
-and a cross-checked [30-criterion Cheap LFS versus Git LFS
-comparison](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html#compare).
-It distinguishes Desktop Material behavior from the standard Git LFS client and
-links the current Git LFS, GitHub billing, collaboration, and Release-limit
-sources behind the comparison.
+walkthrough](https://ding-ding-projects.github.io/desktop-material/cheap-lfs.html#push).
+The separate [Cheap LFS versus Git LFS comparison
+atlas](https://ding-ding-projects.github.io/desktop-material/cheap-lfs-vs-git-lfs.html)
+expands the choice into 72 row-level sourced criteria across 12 categories,
+with an exact publication proof, workflow graphics, composable filters, and
+honest Cheap/Git/tie/depends signals. It distinguishes Desktop Material
+behavior from the Git LFS standard and from GitHub-specific billing,
+collaboration, limits, Releases, archives, and Pages policy.
 
 A manual pin reviews the source file, repository-relative pointer path,
 release tag, optional release name, and byte size. The default tag is `assets`;

@@ -32,6 +32,7 @@ URLs. Navigation links to `github.com` are not assets and are allowed.
 | Assemble publish directory | Copies `site/` into `_site/`, drops the files that are build inputs rather than pages, and copies `docs/assets/screenshots`. |
 | Render documentation to HTML | Runs `pandoc --from gfm --to html5` over every `docs/**/*.md` and every root-level `*.md`, through `site/docs-template.html` and the `site/md-links.lua` link rewriter. |
 | Publish the documentation hub | Renders `docs/README.md` to `/docs/README.html` and copies the hand-built Material Design 3 hub to `/docs/index.html`. |
+| Validate the Cheap LFS Pages surfaces | Runs the existing 30-row product-guide contract and the standalone 72-row comparison-atlas contract against the assembled `_site`, after the shared regex runner and worker have been copied. |
 | Install the Mermaid pre-renderer | Installs `@mermaid-js/mermaid-cli` and `puppeteer` into `$RUNNER_TEMP`, outside the checkout, then downloads Chromium. |
 | Pre-render Mermaid diagrams | Runs `site/render-mermaid.mjs` over `_site`. |
 | Build documentation search index | Runs `site/build-search-index.js`, which extracts each page's text into `docs/search-index.json`. |
@@ -40,6 +41,36 @@ URLs. Navigation links to `github.com` are not assets and are allowed.
 The pre-render step runs **before** the search index, so the text inside a
 diagram is indexed as part of the page and a reader can find a page by a node
 label.
+
+### Standalone Cheap LFS comparison route
+
+`site/cheap-lfs-vs-git-lfs.html` publishes at
+`/desktop-material/cheap-lfs-vs-git-lfs.html`. It uses only repository-owned
+CSS, JavaScript, and two self-contained SVG diagrams. The route also loads:
+
+```text
+docs/assets/site/docs-regex-job.js
+docs/assets/site/docs-hub-regex-worker.js
+```
+
+Those URLs do not exist beneath raw `site/`. They become valid only after the
+**Publish the documentation hub** step copies `docs/assets/site/` into
+`_site/docs/assets/site/`. Local browser acceptance must therefore serve an
+assembled `_site` tree, or map that path to the repository's `docs/assets/site`
+directory. Serving raw `site/` and reporting a broken regex worker is a false
+failure.
+
+The route contract is:
+
+```sh
+node script/cheap-lfs-vs-git-lfs-pages-test.mjs _site
+```
+
+It holds the data model at 72 criteria across 12 categories, resolves every
+row-level source ID, checks the exact Cheap/Git push commands and caveats,
+exercises tab/filter/fit/language/tone state, and refuses a page-thread regular
+expression implementation. The existing `cheap-lfs-pages-test.mjs` continues
+to protect the 30-row teaching guide independently.
 
 ## Mermaid diagrams
 
