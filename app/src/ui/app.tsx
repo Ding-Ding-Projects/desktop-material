@@ -83,6 +83,7 @@ import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 import { RepositoriesList } from './repositories-list'
 import { CheapLfsRestoreProgress } from './lib/cheap-lfs-restore-progress'
 import { OperationProgressRow } from './lib/operation-progress-row'
+import { observeUserInitiatedOperation } from './lib/observed-operations'
 import { RepositoryView } from './repository'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
@@ -1589,10 +1590,21 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
+    const { dispatcher } = this.props
+    const { repository } = state
+
     if (options && options.forceWithLease) {
-      this.props.dispatcher.confirmOrForcePush(state.repository)
+      observeUserInitiatedOperation(
+        dispatcher.confirmOrForcePush(repository),
+        dispatcher,
+        'the force push started from the menu'
+      )
     } else {
-      this.props.dispatcher.push(state.repository)
+      observeUserInitiatedOperation(
+        dispatcher.push(repository),
+        dispatcher,
+        'the push started from the menu'
+      )
     }
   }
 

@@ -602,6 +602,13 @@
       d: 'Root causes for this feature were found live on a 211k-file repository, where background Git maintenance, stale locks, deleted-directory polling, and a slow first git status…',
     },
     {
+      t: 'Observed user-initiated operations',
+      h: 'features/quality-and-reliability/observed-user-initiated-operations.html',
+      s: 'features/quality-and-reliability/observed-user-initiated-operations.md',
+      c: 'features',
+      d: 'A promise that nobody watches cannot report its own failure. This document describes why a rejected Push origin could surface as a generic "a background action stopped…',
+    },
+    {
       t: 'Peer-closed stream writes',
       h: 'features/quality-and-reliability/peer-closed-stream-writes.html',
       s: 'features/quality-and-reliability/peer-closed-stream-writes.md',

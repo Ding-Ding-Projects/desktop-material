@@ -26,6 +26,7 @@ import { AriaLiveContainer } from '../accessibility/aria-live-container'
 import { enableResizingToolbarButtons } from '../../lib/feature-flag'
 import { formatCompactNumber } from '../../lib/format-number'
 import { MaterialSymbol, MaterialSymbolName } from '../lib/material-symbol'
+import { observeUserInitiatedOperation } from '../lib/observed-operations'
 import { PopupType } from '../../models/popup'
 
 export const DropdownItemClassName = 'push-pull-dropdown-item'
@@ -304,7 +305,11 @@ export class PushPullButton extends React.Component<
 
   private push = () => {
     this.closeDropdown()
-    this.props.dispatcher.push(this.props.repository)
+    observeUserInitiatedOperation(
+      this.props.dispatcher.push(this.props.repository),
+      this.props.dispatcher,
+      'the push started from the toolbar'
+    )
   }
 
   /**
@@ -377,14 +382,22 @@ export class PushPullButton extends React.Component<
     this.closeDropdown()
 
     this.setScreenReaderStateMessageFocus()
-    this.props.dispatcher.confirmOrForcePush(this.props.repository)
+    observeUserInitiatedOperation(
+      this.props.dispatcher.confirmOrForcePush(this.props.repository),
+      this.props.dispatcher,
+      'the force push started from the toolbar'
+    )
 
     this.setState({ actionInProgress: 'force push' })
   }
 
   private pull = () => {
     this.closeDropdown()
-    this.props.dispatcher.pull(this.props.repository)
+    observeUserInitiatedOperation(
+      this.props.dispatcher.pull(this.props.repository),
+      this.props.dispatcher,
+      'the pull started from the toolbar'
+    )
   }
 
   /**
@@ -405,9 +418,13 @@ export class PushPullButton extends React.Component<
   private fetch = () => {
     this.closeDropdown()
 
-    this.props.dispatcher.fetch(
-      this.props.repository,
-      FetchType.UserInitiatedTask
+    observeUserInitiatedOperation(
+      this.props.dispatcher.fetch(
+        this.props.repository,
+        FetchType.UserInitiatedTask
+      ),
+      this.props.dispatcher,
+      'the fetch started from the toolbar'
     )
   }
 

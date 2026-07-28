@@ -16,6 +16,7 @@ import {
 } from '../../lib/stores/provider-triage-store'
 import { Button } from '../lib/button'
 import { LinkButton } from '../lib/link-button'
+import { containBackgroundOperation } from '../lib/observed-operations'
 import { FilterMode, matchWithMode } from '../../lib/fuzzy-find'
 import { FilterModeControl } from '../lib/filter-mode-control'
 import {
@@ -200,16 +201,27 @@ export class RepositoryProviderTriage extends React.Component<
     return associated
   }
 
+  /**
+   * Start a triage refresh. The store represents every expected failure in its
+   * own state (an `unavailable` or `error` channel the panel renders), so an
+   * escaping rejection here is a defect, not news for the user: containing it
+   * as a diagnostic keeps it out of the global `unhandledrejection` handler,
+   * whose only vocabulary is a generic "a background action stopped
+   * unexpectedly" notice.
+   */
   private load = (requestedAccountKey: string | null = null) => {
     this.associationGeneration++
-    void this.store.load(
-      this.props.repository,
-      this.props.accounts,
-      undefined,
-      this.props.onAssociateAccount === undefined
-        ? undefined
-        : this.associateAccount,
-      requestedAccountKey
+    containBackgroundOperation(
+      this.store.load(
+        this.props.repository,
+        this.props.accounts,
+        undefined,
+        this.props.onAssociateAccount === undefined
+          ? undefined
+          : this.associateAccount,
+        requestedAccountKey
+      ),
+      'refreshing provider triage'
     )
   }
 

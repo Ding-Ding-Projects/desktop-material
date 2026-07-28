@@ -1,5 +1,39 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Observed user-initiated push/pull/fetch promises (locally verified, Refs #80)
+
+Pressing **Push origin** could surface the generic "A background action stopped
+unexpectedly" notice instead of the real failure. The toolbar handler started
+`dispatcher.push(...)` and dropped the returned promise, so when the push
+preflight's hosted-repository lookup 404s and
+`repositoryWithCanonicalRemoteForNetwork` rejects, the renderer's global
+`unhandledrejection` containment in `app/src/ui/index.tsx` — which is
+deliberately generic so an arbitrary rejection cannot copy a credential onto
+the screen — was the only thing left to report it.
+
+The rejection was never double-reported by the store: `performFailableOperation`
+catches a Git-level push failure, calls `emitError`, and **resolves**, so a
+rejection escaping `_push` is by construction a failure nothing has presented.
+The fix is therefore observe-**and**-report at the call site, not
+observe-and-swallow. New helpers live in
+`app/src/ui/lib/observed-operations.ts`; the toolbar push/force-push/pull/fetch,
+the menu push and force push, the force-push confirmation dialog, and the
+workflow-push-rejection retry now route their promise through
+`observeUserInitiatedOperation`, while the previously `void`-ed provider triage
+refresh is contained as a background diagnostic via
+`containBackgroundOperation`. A failed canonical-remote preflight still runs no
+Git command at all — `withCanonicalRemoteForNetwork` never invokes
+`performPush` when the destination cannot be proven.
+
+Local evidence: `app/test/unit/push-rejection-observation-test.tsx` passes
+**17/17**, including a rendered `PushPullButton` click on a rejecting push
+(asserted to post the real error once and leave nothing for Node's
+`unhandledRejection`), and the same suite fails 2/17 when the observation is
+reverted. Adjacent suites pass — provider triage and canonical-remote preflight
+**52/52**, source-regex/style neighbours **100/100**, docs-hub catalog
+**33/33**. `npx tsc --noEmit`, ESLint, and Prettier are all clean. Remote CI,
+installer, and built-app screenshot evidence for #80 remain outstanding.
+
 ## 2026-07-27 — TUI path browser and Cheap LFS Git wrapper (automated gates green)
 
 The Linux-first Textual edition now has a folder-only browser in its Open and
