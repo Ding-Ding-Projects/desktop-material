@@ -1,0 +1,22 @@
+name: Cheap LFS Release to GHCR
+description:
+  Publish one verified Cheap LFS GHCR snapshot, then atomically adopt Release
+  pointers on the current default branch.
+
+inputs:
+  private-repository-actions-confirmed:
+    description:
+      Explicit confirmation that this private repository may run an in-repo
+      Actions job with contents and packages write permissions.
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Publish and adopt the canonical GHCR snapshot
+      shell: bash
+      env:
+        CHEAP_LFS_GITHUB_TOKEN: ${{ github.token }}
+        CHEAP_LFS_PRIVATE_ACTIONS_CONFIRMED: ${{ inputs.private-repository-actions-confirmed }}
+      run: node "$GITHUB_ACTION_PATH/release-to-ghcr.mjs"
