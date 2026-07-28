@@ -1010,19 +1010,16 @@ place GitHub tokens already live.
 > "forget" would be told the truth about the current state and a lie about the
 > durable one.
 
-`app/src/lib/cheap-lfs/passphrase-vault.ts` therefore imports
+`app/src/lib/cheap-lfs/payload-encryption-credentials.ts` therefore imports
 `../stores/token-store` and nothing else of that kind — no
 `profileSettingsRegistry`, no `profile-git`, no `profile-store`, no
-`localStorage`, no settings file. Tests enforce it from both directions: a
-source scan that no forbidden module is imported, and a run that saves a
-passphrase, captures and commits a profile settings snapshot the way the app
-does, then scans the profile repository's **entire history** — every commit,
-message, and patch — and finds nothing.
+`localStorage`, no settings file. Focused tests prove that leaving **Save** off
+prompts again for every operation and never calls the vault writer.
 
-The repository preferences carry only flags: `cheapLfsEncryption`,
-`cheapLfsEncryptionAcknowledged`, and `cheapLfsEncryptionSavePassphrase`, all
-booleans, all absent by default. There is no string field anywhere in that
-record a passphrase could land in.
+The repository preferences carry only the boolean
+`cheapLfsPayloadEncryption` and `cheapLfsPayloadEncryptionConfirmed` flags,
+both absent by default. There is no string field anywhere in that record a
+passphrase could land in.
 
 **Vault trouble fails closed to asking, never to a file.** keytar throws on some
 configurations, a locked keychain refuses reads, and a vault can be missing;
@@ -1032,12 +1029,13 @@ vault entry and is reachable from the same surface that offered to save it; when
 the vault refuses the deletion the app says the entry may still exist rather
 than claiming a deletion it cannot prove.
 
-Because a commit-time pin runs unattended and cannot open a modal and wait, an
-unlocked passphrase is also held **in memory for the app session only** — no
-file, nothing that outlives the process, and an explicit lock. A repository
-configured for encryption whose passphrase is available from neither the vault
-nor the session **refuses to pin, with a reason**, and never uploads readable
-bytes.
+An unsaved passphrase is **operation-scoped, not session-scoped**. Upload and
+materialization open the existing masked popup, use its independently owned
+buffer for that one operation, overwrite it in `finally`, and prompt again next
+time. Canceling refuses the operation before provider access and never uploads
+readable bytes. A saved credential that cannot authenticate is not retried
+silently: the app asks before removing the stale vault entry, asks for a
+replacement, and saves that replacement only after decryption verifies.
 
 ### The confirmation gate
 

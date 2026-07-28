@@ -2,11 +2,11 @@ import * as React from 'react'
 import { Dialog, DialogContent, DialogFooter } from '../dialog'
 import { Dispatcher } from '../dispatcher'
 import { Ref } from '../lib/ref'
-import { observeUserInitiatedOperation } from '../lib/observed-operations'
 import { RepositoryWithGitHubRepository } from '../../models/repository'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { SignInResult } from '../../lib/stores'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { observeUserInitiatedOperation } from '../lib/observed-operations'
 
 const okButtonText = __DARWIN__ ? 'Continue in Browser' : 'Continue in browser'
 
@@ -73,9 +73,9 @@ export class WorkflowPushRejectedDialog extends React.Component<
 
     if (result.kind === 'success') {
       observeUserInitiatedOperation(
-        dispatcher.push(repository),
+        () => dispatcher.push(repository),
         dispatcher,
-        'the push retried after signing in'
+        'workflow-permission push retry'
       )
     }
 

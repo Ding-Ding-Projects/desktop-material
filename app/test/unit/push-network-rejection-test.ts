@@ -48,9 +48,8 @@ describe('push network rejection containment', () => {
     )
     const shown = new Array<CanonicalRemoteVerificationError>()
     const dispatcher = {
-      showCanonicalRemoteWarning: (
-        error: CanonicalRemoteVerificationError
-      ) => shown.push(error),
+      showCanonicalRemoteWarning: (error: CanonicalRemoteVerificationError) =>
+        shown.push(error),
     }
 
     const remaining = await canonicalRemoteVerificationHandler(
@@ -104,7 +103,10 @@ describe('push network rejection containment', () => {
     ]) {
       const index = source.indexOf(call)
       assert.notEqual(index, -1, `missing ${call}`)
-      assert.match(source.slice(Math.max(0, index - 100), index), /runNetworkAction/)
+      assert.match(
+        source.slice(Math.max(0, index - 180), index),
+        /observeUserInitiatedOperation/
+      )
     }
   })
 })

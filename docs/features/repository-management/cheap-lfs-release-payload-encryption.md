@@ -27,25 +27,35 @@ encrypted pointer still requires its password to materialize.
 
 ## Password storage
 
-The password can stay only in the current app process, which is the default, or
-the user can opt into the operating-system credential vault. It is never
-written to repository preferences, Git history, local storage, the profile
-history repository, a pointer, or a Release asset. Vault entries use a hashed
-repository identity rather than exposing the local path or remote name in the
-credential label.
+By default, a prompted password belongs only to that upload or materialization
+operation and its buffer is overwritten when the operation settles. The next
+operation prompts again. The user can instead opt into the operating-system
+credential vault. A password is never written to repository preferences, Git
+history, local storage, the profile history repository, a pointer, or a Release
+asset. Vault entries use a hashed repository identity rather than exposing the
+local path or remote name in the credential label.
 
-**Set/Change password** replaces the in-session value and, when requested, the
-vault value. **Forget saved password** clears both the in-session copy and the
-exact repository-scoped vault entry. Buffers owned by the transfer path are
+**Set/Change password** changes the vault value only when **Save in Windows
+Credential Manager** is selected. **Forget saved password** clears the exact
+repository-scoped vault entry. A password entered for decryption is saved only
+after its GCM tag and plaintext receipts verify, so a mistyped replacement
+cannot overwrite a usable credential. Buffers owned by the transfer path are
 zeroed after use where the JavaScript runtime permits.
 
 ## Failure modes and safety
 
-- A missing password stops before provider access for an encrypted upload or
-  restore. The app never silently falls back to plaintext.
+- A missing password opens the masked password prompt before an encrypted
+  upload or restore. Canceling stops before provider access, and the app never
+  silently falls back to plaintext.
 - A locked or unavailable credential vault produces a non-blocking error. The
-  password can still remain in memory for the current process; it is never
-  copied to a weaker store.
+  one-operation password is never copied to a weaker store.
+- A saved password that fails authentication is identified as stale. The app
+  asks before removing it, then asks for a replacement and retries without
+  publishing partial plaintext.
+- Pointers already written by the pushed format-v1 implementation remain
+  readable. The canonical contract stays `encryption 1` followed by
+  `part-encrypted <plain-sha> <plain-size> <stored-size> <stored-sha> <name>`;
+  the unchanged versioned container remains decryptable by the streaming path.
 - A changed source range, malformed header, unsupported parameters, wrong
   password, authentication-tag failure, size mismatch, or SHA-256 mismatch
   rejects the operation before the destination is replaced.
@@ -61,11 +71,13 @@ derived from the pointer, Release asset, or app settings.
 ## Verification
 
 Focused unit and integration coverage exercises container round trips,
-streaming ranges, wrong-password and tamper failures, pointer parsing,
-encrypted multipart Release upload and materialization, exact temporary-file
-cleanup, credential-vault save/change/forget behavior, the irreversible
-acknowledgement, all three language modes, and ciphertext storage accounting.
-The checkpoint also passes full TypeScript checking. Packaged visual acceptance
-and remote CI remain separate release evidence.
+streaming ranges, a captured origin/main format-v1 container, the exact
+origin/main pointer text, wrong-password and tamper failures, encrypted
+multipart Release upload and materialization, exact temporary-file cleanup,
+operation-scoped prompting, stale-vault replacement, credential-vault
+save/change/forget behavior, the irreversible acknowledgement, all three
+language modes, and ciphertext storage accounting. The checkpoint also passes
+full TypeScript checking. Packaged visual acceptance and remote CI remain
+separate release evidence.
 
 This feature adds no HTTP endpoint, so a Postman collection is not applicable.

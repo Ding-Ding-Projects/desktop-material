@@ -2,6 +2,7 @@ import assert from 'node:assert'
 import { describe, it } from 'node:test'
 import {
   cheapLfsPointerTextSizeInBytes,
+  CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
   CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_PART_SIZE_BYTES,
   CHEAP_LFS_POINTER_VERSION,
@@ -43,6 +44,7 @@ const encryptedPointer: ICheapLfsPointer = {
   assetName: 'secret.bin.encrypted',
   sizeInBytes: 30,
   sha256: 'd'.repeat(64),
+  encryptionFormatVersion: CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
   parts: [
     {
       name: 'secret.bin.encrypted.part001',
@@ -121,9 +123,9 @@ describe('cheap LFS pointer', () => {
     assert.match(
       text,
       new RegExp(
-        `part-encrypted ${'d'.repeat(64)} 30 ${'e'.repeat(
+        `encryption 1\\npart-encrypted ${'d'.repeat(64)} 30 114 ${'e'.repeat(
           64
-        )} 114 secret\\.bin\\.encrypted\\.part001`
+        )} secret\\.bin\\.encrypted\\.part001`
       )
     )
     assert.deepEqual(parseCheapLfsPointer(text), encryptedPointer)
@@ -132,11 +134,49 @@ describe('cheap LFS pointer', () => {
     assert.equal(isEncryptedCheapLfsPointer(multiPartPointer), false)
   })
 
+  it('parses the exact encrypted pointer contract already pushed to main', () => {
+    const pushedPointer = [
+      `version ${CHEAP_LFS_POINTER_VERSION}`,
+      'release-tag v3.0.0',
+      'asset-name secret.bin.encrypted',
+      'size 30',
+      `sha256 ${'d'.repeat(64)}`,
+      'encryption 1',
+      `part-encrypted ${'d'.repeat(64)} 30 114 ${'e'.repeat(
+        64
+      )} secret.bin.encrypted.part001`,
+      '',
+    ].join('\n')
+
+    assert.deepEqual(parseCheapLfsPointer(pushedPointer), encryptedPointer)
+    assert.equal(serializeCheapLfsPointer(encryptedPointer), pushedPointer)
+  })
+
+  it('reads and canonicalizes the short-lived inverse encrypted ordering', () => {
+    const interimPointer = [
+      `version ${CHEAP_LFS_POINTER_VERSION}`,
+      'release-tag v3.0.0',
+      'asset-name secret.bin.encrypted',
+      'size 30',
+      `sha256 ${'d'.repeat(64)}`,
+      `part-encrypted ${'d'.repeat(64)} 30 ${'e'.repeat(
+        64
+      )} 114 secret.bin.encrypted.part001`,
+      '',
+    ].join('\n')
+
+    assert.deepEqual(parseCheapLfsPointer(interimPointer), encryptedPointer)
+    assert.equal(
+      serializeCheapLfsPointer(parseCheapLfsPointer(interimPointer)!),
+      serializeCheapLfsPointer(encryptedPointer)
+    )
+  })
+
   it('rejects incomplete or mixed encrypted part records', () => {
     const text = serializeCheapLfsPointer(encryptedPointer)
     assert.equal(
       parseCheapLfsPointer(
-        text.replace(` ${'e'.repeat(64)} 114 `, ' deadbeef 114 ')
+        text.replace(` 114 ${'e'.repeat(64)} `, ' 114 deadbeef ')
       ),
       null
     )
@@ -144,7 +184,7 @@ describe('cheap LFS pointer', () => {
       parseCheapLfsPointer(
         text.replace(
           /^part-encrypted .*$/m,
-          `part-encrypted ${'d'.repeat(64)} 30 ${'e'.repeat(64)} 0 secret.bin`
+          `part-encrypted ${'d'.repeat(64)} 30 0 ${'e'.repeat(64)} secret.bin`
         )
       ),
       null

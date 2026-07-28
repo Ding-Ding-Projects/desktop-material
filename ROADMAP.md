@@ -13,6 +13,25 @@ This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
 
+## July 27 encryption, observed network actions, and tone controls — **Local gates green; visual and remote acceptance pending**
+
+- **#78:** GitHub Release-backed Cheap LFS payload encryption is optional and
+  uses AES-256-GCM. Credentials are operation-scoped by default, with Windows
+  credential-vault storage only after explicit opt-in. Legacy pointers remain
+  compatible, plaintext legacy restores do not prompt, and mixed
+  authentication plus cleanup failures fail closed.
+- **#80:** push, fetch, and pull promises are observed. An invalid canonical
+  remote produces a persistent yellow warning with a **Change remote URL**
+  action instead of an unhandled background failure.
+- **#83:** English and Cantonese again have independent persisted funny-level
+  sliders, each spanning 1–5.
+- **#81 and #82:** deliberately deferred to a later continuation.
+
+Local verification is **194/194 focused tests** and **6768/6768 full tests
+across 831 files**; TypeScript and `yarn lint` are clean. Packaged visual
+evidence and remote CI are not yet claimed. #78, #80, and #83 remain open until
+real built-app screenshots are captured.
+
 ## July 27 Linux TUI path browser and Git wrapper — **Handoff accepted with a bounded visual gap**
 
 The Linux-first terminal edition now adds a folder-only repository browser to

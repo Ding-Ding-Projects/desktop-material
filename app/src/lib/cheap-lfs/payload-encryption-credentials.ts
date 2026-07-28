@@ -2,17 +2,12 @@ import { createHash } from 'crypto'
 import * as Path from 'path'
 
 import type { Repository } from '../../models/repository'
+import type { CheapLfsPayloadPasswordPurpose } from '../../models/popup'
 import { TokenStore } from '../stores/token-store'
 
 const CheapLfsPayloadPasswordService = `${
   __DEV__ ? 'GitHub Desktop Dev' : 'GitHub Desktop'
 } - Cheap LFS payload password`
-
-/**
- * Passwords the user deliberately chose not to persist. They live only for
- * this app process, are copied on read, and are zeroed when replaced/forgotten.
- */
-const sessionPasswords = new Map<string, Buffer>()
 
 /**
  * The narrow credential-vault surface used here. Keeping this injectable makes
@@ -21,11 +16,7 @@ const sessionPasswords = new Map<string, Buffer>()
  */
 export interface ICheapLfsCredentialVault {
   getItem(service: string, account: string): Promise<string | null>
-  setItem(
-    service: string,
-    account: string,
-    value: string
-  ): Promise<unknown>
+  setItem(service: string, account: string, value: string): Promise<unknown>
   deleteItem(service: string, account: string): Promise<boolean>
 }
 
@@ -34,32 +25,71 @@ export type CheapLfsSavedPasswordRead =
   | { readonly kind: 'missing' }
   | { readonly kind: 'unavailable' }
 
-export type CheapLfsSavedPasswordForget =
-  | 'deleted'
-  | 'missing'
-  | 'unavailable'
+export type CheapLfsSavedPasswordForget = 'deleted' | 'missing' | 'unavailable'
 
-/** Keep a one-session password without writing it to disk or the OS vault. */
-export function setSessionCheapLfsPayloadPassword(
-  repository: Pick<Repository, 'path' | 'gitHubRepository'>,
-  password: Uint8Array
-): void {
-  const account = cheapLfsPayloadPasswordAccount(repository)
-  sessionPasswords.get(account)?.fill(0)
-  sessionPasswords.set(account, Buffer.from(password))
+export interface ICheapLfsPasswordPromptResult {
+  /** The caller owns this buffer and must overwrite it after the operation. */
+  readonly password: Buffer
+  readonly rememberPassword: boolean
 }
 
-/** Read the session password first, then fall back to the OS vault. */
-export async function readAvailableCheapLfsPayloadPassword(
+export interface ICheapLfsOperationPassword {
+  /** The caller owns this buffer and must overwrite it after the operation. */
+  readonly password: Buffer
+  /** A vault credential can be stale; a prompted credential is one-shot. */
+  readonly source: 'vault' | 'prompt'
+  /**
+   * For decrypt prompts, persistence is deferred until authentication succeeds.
+   * Vault credentials and one-shot prompt results keep this false.
+   */
+  readonly rememberPassword: boolean
+}
+
+export type CheapLfsPayloadPasswordPrompt = (
+  purpose: Extract<CheapLfsPayloadPasswordPurpose, 'encrypt' | 'decrypt'>
+) => Promise<ICheapLfsPasswordPromptResult | null>
+
+/**
+ * Resolve one operation's password.
+ *
+ * A password whose Save box was left off is returned only to this call. There
+ * is deliberately no process/session cache: the caller zeroes the returned
+ * buffer in `finally`, and the next operation prompts again. A deliberately
+ * saved Windows-vault credential may be reused.
+ */
+export async function acquireCheapLfsOperationPassword(
   repository: Pick<Repository, 'path' | 'gitHubRepository'>,
+  purpose: Extract<CheapLfsPayloadPasswordPurpose, 'encrypt' | 'decrypt'>,
+  prompt: CheapLfsPayloadPasswordPrompt,
+  onVaultSaveUnavailable: () => void = () => undefined,
   vault: ICheapLfsCredentialVault = TokenStore
-): Promise<CheapLfsSavedPasswordRead> {
-  const session = sessionPasswords.get(
-    cheapLfsPayloadPasswordAccount(repository)
-  )
-  return session === undefined
-    ? await readSavedCheapLfsPayloadPassword(repository, vault)
-    : { kind: 'saved', password: Buffer.from(session) }
+): Promise<ICheapLfsOperationPassword | null> {
+  const saved = await readSavedCheapLfsPayloadPassword(repository, vault)
+  if (saved.kind === 'saved') {
+    return {
+      password: saved.password,
+      source: 'vault',
+      rememberPassword: false,
+    }
+  }
+
+  const entered = await prompt(purpose)
+  if (entered === null) {
+    return null
+  }
+
+  if (
+    purpose === 'encrypt' &&
+    entered.rememberPassword &&
+    !(await saveCheapLfsPayloadPassword(repository, entered.password, vault))
+  ) {
+    onVaultSaveUnavailable()
+  }
+  return {
+    password: entered.password,
+    source: 'prompt',
+    rememberPassword: purpose === 'decrypt' && entered.rememberPassword,
+  }
 }
 
 /**
@@ -129,13 +159,8 @@ export async function forgetSavedCheapLfsPayloadPassword(
   vault: ICheapLfsCredentialVault = TokenStore
 ): Promise<CheapLfsSavedPasswordForget> {
   const account = cheapLfsPayloadPasswordAccount(repository)
-  sessionPasswords.get(account)?.fill(0)
-  sessionPasswords.delete(account)
   try {
-    return (await vault.deleteItem(
-      CheapLfsPayloadPasswordService,
-      account
-    ))
+    return (await vault.deleteItem(CheapLfsPayloadPasswordService, account))
       ? 'deleted'
       : 'missing'
   } catch {

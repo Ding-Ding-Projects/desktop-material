@@ -16,6 +16,7 @@ import {
   encryptCheapLfsPayloadRangeToFile,
   encryptCheapLfsPayload,
   isCheapLfsAuthenticationError,
+  isOnlyCheapLfsAuthenticationError,
   isEncryptedCheapLfsPayload,
   readCheapLfsEncryptionHeader,
 } from '../../../src/lib/cheap-lfs/payload-encryption'
@@ -27,6 +28,21 @@ const fastKdf = { logN: 8, blockSize: 1, parallelism: 1 }
 const password = 'correct horse battery staple'
 
 describe('Cheap LFS payload encryption', () => {
+  it('decrypts a format-v1 container written by the pushed origin/main implementation', async () => {
+    // Captured from the already-pushed format-v1 writer with low test KDF
+    // parameters. The layout/magic are immutable compatibility data.
+    const originMainContainer = Buffer.from(
+      'RE1DTEZTAAEBAAEAAQAAAAoAAAAIAAAAAQAAABAAAAAMAAAAEAAAAEN/FUhz5gRbCX9zzCqAHBVixTT1+V/U8i+KyMRSEmetGTNY9bRmYNpGaLcI1q1itWHvwowFWmReZbxzphuToxOCNA==',
+      'base64'
+    )
+
+    const plaintext = await decryptCheapLfsPayload(
+      originMainContainer,
+      'compat-password'
+    )
+    assert.equal(plaintext.toString('utf8'), 'origin-main-compatible')
+  })
+
   it('round-trips to byte-identical plaintext', async () => {
     const plaintext = randomBytes(4096)
     const encrypted = await encryptCheapLfsPayload(plaintext, password, fastKdf)
@@ -289,6 +305,22 @@ describe('Cheap LFS payload encryption', () => {
         new AggregateError([new Error('cleanup'), error])
       ),
       true
+    )
+    assert.equal(isOnlyCheapLfsAuthenticationError(error), true)
+    assert.equal(
+      isOnlyCheapLfsAuthenticationError(
+        new AggregateError([
+          error,
+          new AggregateError([new CheapLfsAuthenticationError()]),
+        ])
+      ),
+      true
+    )
+    assert.equal(
+      isOnlyCheapLfsAuthenticationError(
+        new AggregateError([new Error('cleanup'), error])
+      ),
+      false
     )
     assert.ok(
       !error.message.includes(secret) && !error.message.includes(attempted),

@@ -5,8 +5,8 @@ import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Dispatcher } from '../dispatcher'
 import { DialogFooter, DialogContent, Dialog } from '../dialog'
 import { Ref } from '../lib/ref'
-import { observeUserInitiatedOperation } from '../lib/observed-operations'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
+import { observeUserInitiatedOperation } from '../lib/observed-operations'
 
 interface IConfirmForcePushProps {
   readonly dispatcher: Dispatcher
@@ -84,9 +84,9 @@ export class ConfirmForcePush extends React.Component<
     this.props.onDismissed()
 
     observeUserInitiatedOperation(
-      this.props.dispatcher.performForcePush(this.props.repository),
+      () => this.props.dispatcher.performForcePush(this.props.repository),
       this.props.dispatcher,
-      'the confirmed force push'
+      'confirmed force push'
     )
   }
 }

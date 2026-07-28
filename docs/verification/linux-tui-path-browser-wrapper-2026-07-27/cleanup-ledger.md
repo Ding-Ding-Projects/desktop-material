@@ -14,6 +14,7 @@
 | Xvfb/xterm/TUI processes | final observed Xvfb PID `3294`; packaged xterm/TUI window used runtime handle `2097164` before relaunch | stopped/destroyed with the disposable distro | distro absent after destroy |
 | Linux fixture and bare remote | `/root/dm-verify/fixture`; symlink `/tmp/desktop-material-tui-browser-wrapper-20260727-019fa510-fixture` | removed with the disposable distro | distro absent after destroy |
 | Linux verification environments | `/root/dm-verify/lowlevel-venv`; `/root/dm-verify/tui-venv`; `/opt/desktop-material-lowlevel-venv`; `/tmp/desktop-material-tui-venv` | removed with the disposable distro | distro absent after destroy |
+| raw Windows capture staging | `C:\Users\cntow\AppData\Local\Temp\desktop-material-path-browser-raw-019fa510` | one genuine post-paste frame was promoted byte-for-byte as `path-browser.png`, then the exact owned staging directory was removed | filesystem absence proved after removal; promoted SHA-256 is `02b51879e2982ff5ae651e35da1ab440d5fcad923652b74a9d07e7497a5df32d` |
 | Windows uv tool install | `C:\Users\cntow\.local\bin\{github,dmt,desktop-material-tui}.exe` | retained by user request | all three resolve on PATH and report `0.1.0` |
 | retained Open-dialog capture | `docs/verification/linux-tui-path-browser-wrapper-2026-07-27/open-repository-dialog.png` | repository-owned evidence retained | 16,856 bytes; SHA-256 `95ce306606df496341d9b8155ae08386a7d2b916f6949cf85228698ea693b9b2` |
 

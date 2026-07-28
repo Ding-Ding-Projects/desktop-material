@@ -54,10 +54,10 @@ export function asReportableError(reason: unknown): Error {
  * ..." (e.g. `'refreshing provider triage'`).
  */
 export function containBackgroundOperation(
-  operation: Promise<unknown>,
+  operationOrAction: Promise<unknown> | (() => Promise<unknown>),
   description: string
 ): void {
-  operation.catch(reason => {
+  const report = (reason: unknown) => {
     try {
       log.warn(
         `Contained a background failure while ${description}.`,
@@ -66,7 +66,17 @@ export function containBackgroundOperation(
     } catch {
       // Containment must not depend on logging succeeding.
     }
-  })
+  }
+
+  try {
+    const operation =
+      typeof operationOrAction === 'function'
+        ? operationOrAction()
+        : operationOrAction
+    operation.catch(report)
+  } catch (reason) {
+    report(reason)
+  }
 }
 
 /**
@@ -83,12 +93,19 @@ export function containBackgroundOperation(
  * (e.g. `'the push started from the toolbar'`).
  */
 export function observeUserInitiatedOperation(
-  operation: Promise<unknown>,
+  operationOrAction: Promise<unknown> | (() => Promise<unknown>),
   presenter: IOperationErrorPresenter,
   description: string
 ): void {
-  containBackgroundOperation(
-    operation.catch(reason => presenter.postError(asReportableError(reason))),
-    `presenting the failure of ${description}`
-  )
+  containBackgroundOperation(async () => {
+    try {
+      const operation =
+        typeof operationOrAction === 'function'
+          ? operationOrAction()
+          : operationOrAction
+      await operation
+    } catch (reason) {
+      await presenter.postError(asReportableError(reason))
+    }
+  }, `presenting the failure of ${description}`)
 }

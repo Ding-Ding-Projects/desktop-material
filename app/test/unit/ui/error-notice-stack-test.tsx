@@ -35,9 +35,7 @@ describe('ErrorNoticeStack', () => {
       />
     )
 
-    assert.ok(
-      screen.getByRole('region', { name: 'Application notifications' })
-    )
+    assert.ok(screen.getByRole('region', { name: 'Application notifications' }))
     const alerts = screen.getAllByRole('alert')
     assert.equal(alerts.length, 2)
     assert.ok(
@@ -95,9 +93,7 @@ describe('ErrorNoticeStack', () => {
 
     const alert = screen.getByRole('alert')
     assert.ok(alert.classList.contains('error-notice--warning'))
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Change remote URL' })
-    )
+    fireEvent.click(screen.getByRole('button', { name: 'Change remote URL' }))
     assert.equal(actions.length, 1)
     assert.equal(actions[0].id, 'remote')
   })

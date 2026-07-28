@@ -20,7 +20,6 @@ import {
   forgetSavedCheapLfsPayloadPassword,
   hasSavedCheapLfsPayloadPassword,
   saveCheapLfsPayloadPassword,
-  setSessionCheapLfsPayloadPassword,
 } from '../../lib/cheap-lfs/payload-encryption-credentials'
 
 type CheapLfsCredentialStatus = 'checking' | 'saved' | 'missing' | 'unavailable'
@@ -262,7 +261,6 @@ export class CheapLfsSettings extends React.Component<
     rememberPassword: boolean,
     enableEncryption: boolean
   ): Promise<void> {
-    setSessionCheapLfsPayloadPassword(this.props.repository, password)
     let credentialFeedback: CheapLfsCredentialFeedback = 'not-saved'
     let credentialStatus = this.state.credentialStatus
 

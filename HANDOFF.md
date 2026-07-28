@@ -34,6 +34,24 @@ reverted. Adjacent suites pass — provider triage and canonical-remote prefligh
 **33/33**. `npx tsc --noEmit`, ESLint, and Prettier are all clean. Remote CI,
 installer, and built-app screenshot evidence for #80 remain outstanding.
 
+## 2026-07-27 — Encryption, observed network actions, and funny-level controls (local gates green)
+
+The current local implementation covers three open issues. #78 provides
+optional AES-256-GCM encryption for GitHub Release-backed Cheap LFS payloads:
+the app asks once per operation unless the user explicitly opts into the
+Windows credential vault, reads legacy pointer formats, restores plaintext
+legacy payloads without prompting, and fails closed when authentication and
+cleanup both fail. #80 observes asynchronous push, fetch, and pull actions and
+shows an invalid canonical remote as a persistent yellow notification whose
+**Change remote URL** action opens the repair surface. #83 restores separate,
+persisted 1–5 funny-level sliders for English and Cantonese. #81 and #82 are
+deliberately deferred to a later continuation.
+
+Current local evidence is **194/194 focused tests** and **6768/6768 full tests
+across 831 files**, with `tsc` and `yarn lint` clean. This checkpoint does not
+claim packaged visual evidence or remote CI. #78, #80, and #83 remain open
+pending screenshots captured from the real built application.
+
 ## 2026-07-27 — TUI path browser and Cheap LFS Git wrapper (automated gates green)
 
 The Linux-first Textual edition now has a folder-only browser in its Open and

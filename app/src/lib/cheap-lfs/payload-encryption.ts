@@ -142,6 +142,33 @@ export function isCheapLfsAuthenticationError(
   return false
 }
 
+/**
+ * Return true only when every leaf failure is an authentication failure.
+ *
+ * Materialization can aggregate a wrong-password error with a failure to
+ * remove plaintext temporary output. That mixed failure must never be retried
+ * as though it were only a stale credential, because a successful retry would
+ * hide the unsafe cleanup result.
+ */
+export function isOnlyCheapLfsAuthenticationError(error: unknown): boolean {
+  const seen = new Set<AggregateError>()
+  const visit = (candidate: unknown): boolean => {
+    if (candidate instanceof CheapLfsAuthenticationError) {
+      return true
+    }
+    if (
+      !(candidate instanceof AggregateError) ||
+      candidate.errors.length === 0 ||
+      seen.has(candidate)
+    ) {
+      return false
+    }
+    seen.add(candidate)
+    return candidate.errors.every(visit)
+  }
+  return visit(error)
+}
+
 /** The scrypt parameters a payload was written with. */
 export interface ICheapLfsKdfParameters {
   readonly logN: number

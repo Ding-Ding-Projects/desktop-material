@@ -56,12 +56,19 @@ const partLine = /^([a-f0-9]{64}) (0|[1-9][0-9]*) (.+)$/
 // `part-deflate <sha256> <original-size> <stored-size> <name>` records an
 // adaptively compressed asset while retaining the original-byte digest/size.
 const deflatedPartLine = /^([a-f0-9]{64}) (0|[1-9][0-9]*) (0|[1-9][0-9]*) (.+)$/
-// `part-encrypted <plain-sha> <plain-size> <stored-sha> <stored-size> <name>`
-// lets restore verify the provider object without a password, then separately
-// authenticate and verify the plaintext before publishing it.
-const encryptedPartLine =
+// The pushed v1 contract is:
+// `part-encrypted <plain-sha> <plain-size> <stored-size> <stored-sha> <name>`.
+// Keep it canonical forever. The short-lived in-development inverse ordering
+// is accepted below only so a local pointer made by that build is not orphaned.
+const encryptedPartLineV1 =
+  /^([a-f0-9]{64}) (0|[1-9][0-9]*) (0|[1-9][0-9]*) ([a-f0-9]{64}) (.+)$/
+const encryptedPartLineInterim =
   /^([a-f0-9]{64}) (0|[1-9][0-9]*) ([a-f0-9]{64}) (0|[1-9][0-9]*) (.+)$/
+const positiveInteger = /^[1-9][0-9]*$/
 const controlCharacters = /[\u0000-\u001f]/
+const CheapLfsMaximumEncryptionFormatVersion = 1000
+/** Container format declared by the already-pushed encrypted pointer writer. */
+export const CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION = 1
 
 /** One uploaded part of a whole file that was split across release assets. */
 export interface ICheapLfsPointerPart {
@@ -86,6 +93,11 @@ export interface ICheapLfsPointer {
   readonly sizeInBytes: number
   /** The whole file's SHA-256. */
   readonly sha256: string
+  /**
+   * Container format declared by encrypted pointers. Version 1 is the
+   * already-pushed contract and must remain readable by later builds.
+   */
+  readonly encryptionFormatVersion?: number
   /**
    * Present when the file was split across release assets or its single asset
    * was compressed. An uncompressed single-asset pointer omits this entirely
@@ -159,6 +171,26 @@ export function serializeCheapLfsPointer(pointer: ICheapLfsPointer): string {
         'A Cheap LFS pointer cannot mix encrypted and unencrypted parts.'
       )
     }
+    if (encryptedParts > 0) {
+      const formatVersion =
+        pointer.encryptionFormatVersion ??
+        CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION
+      if (
+        !Number.isSafeInteger(formatVersion) ||
+        formatVersion < 1 ||
+        formatVersion > CheapLfsMaximumEncryptionFormatVersion
+      ) {
+        throw new Error(
+          'An encrypted Cheap LFS pointer needs a supported encryption format version.'
+        )
+      }
+      // Keep the exact persisted contract that was already pushed to main.
+      lines.push(`encryption ${formatVersion}`)
+    } else if (pointer.encryptionFormatVersion !== undefined) {
+      throw new Error(
+        'An unencrypted Cheap LFS pointer cannot declare an encryption format.'
+      )
+    }
     for (const part of pointer.parts) {
       if (part.encrypted === true) {
         if (
@@ -171,7 +203,7 @@ export function serializeCheapLfsPointer(pointer: ICheapLfsPointer): string {
           )
         }
         lines.push(
-          `part-encrypted ${part.sha256} ${part.sizeInBytes} ${part.storedSha256} ${part.storedSizeInBytes} ${part.name}`
+          `part-encrypted ${part.sha256} ${part.sizeInBytes} ${part.storedSizeInBytes} ${part.storedSha256} ${part.name}`
         )
       } else {
         if (
@@ -229,6 +261,7 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     readonly text: string
     readonly kind: 'raw' | 'deflated' | 'encrypted'
   }>()
+  const encryptionLines = new Array<string>()
   for (const line of allLines) {
     if (line.startsWith('part ')) {
       partTexts.push({ text: line.slice('part '.length), kind: 'raw' })
@@ -242,12 +275,29 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
         text: line.slice('part-encrypted '.length),
         kind: 'encrypted',
       })
+    } else if (line.startsWith('encryption ')) {
+      encryptionLines.push(line.slice('encryption '.length))
     } else {
       headLines.push(line)
     }
   }
-  if (headLines.length !== 5) {
+  if (headLines.length !== 5 || encryptionLines.length > 1) {
     return null
+  }
+
+  let encryptionFormatVersion: number | undefined
+  if (encryptionLines.length === 1) {
+    const declared = encryptionLines[0]
+    if (!positiveInteger.test(declared)) {
+      return null
+    }
+    encryptionFormatVersion = Number(declared)
+    if (
+      !Number.isSafeInteger(encryptionFormatVersion) ||
+      encryptionFormatVersion > CheapLfsMaximumEncryptionFormatVersion
+    ) {
+      return null
+    }
   }
 
   const fields = new Map<string, string>()
@@ -294,7 +344,9 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
   }
 
   if (partTexts.length === 0) {
-    return { version, releaseTag, assetName, sizeInBytes, sha256 }
+    return encryptionFormatVersion === undefined
+      ? { version, releaseTag, assetName, sizeInBytes, sha256 }
+      : null
   }
 
   const parts = new Array<ICheapLfsPointerPart>()
@@ -310,12 +362,17 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
   ) {
     return null
   }
+  if (!containsEncryptedPart && encryptionFormatVersion !== undefined) {
+    return null
+  }
   for (const entry of partTexts) {
     const match = (
       entry.kind === 'deflated'
         ? deflatedPartLine
         : entry.kind === 'encrypted'
-        ? encryptedPartLine
+        ? encryptionFormatVersion === undefined
+          ? encryptedPartLineInterim
+          : encryptedPartLineV1
         : partLine
     ).exec(entry.text)
     const nameIndex =
@@ -344,10 +401,14 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
       return null
     }
     if (entry.kind === 'encrypted') {
-      const storedSizeInBytes = Number(match[4])
+      const storedSizeInBytes = Number(
+        encryptionFormatVersion === undefined ? match[4] : match[3]
+      )
+      const storedSha256 =
+        encryptionFormatVersion === undefined ? match[3] : match[4]
       if (
         !Number.isSafeInteger(storedSizeInBytes) ||
-        storedSizeInBytes < 1 ||
+        storedSizeInBytes <= partSize ||
         storedSizeInBytes > CheapLfsLegacyMaximumPartSizeBytes
       ) {
         return null
@@ -357,7 +418,7 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
         sizeInBytes: partSize,
         sha256: match[1],
         encrypted: true,
-        storedSha256: match[3],
+        storedSha256,
         storedSizeInBytes,
       })
     } else if (entry.kind === 'deflated') {
@@ -385,7 +446,21 @@ export function parseCheapLfsPointer(text: string): ICheapLfsPointer | null {
     return null
   }
 
-  return { version, releaseTag, assetName, sizeInBytes, sha256, parts }
+  return {
+    version,
+    releaseTag,
+    assetName,
+    sizeInBytes,
+    sha256,
+    ...(containsEncryptedPart
+      ? {
+          encryptionFormatVersion:
+            encryptionFormatVersion ??
+            CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
+        }
+      : {}),
+    parts,
+  }
 }
 
 /**

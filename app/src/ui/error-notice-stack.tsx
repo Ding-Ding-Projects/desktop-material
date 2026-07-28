@@ -104,9 +104,7 @@ class ErrorNoticeCard extends React.PureComponent<
 
     return (
       <article
-        className={`error-notice error-notice--${
-          notice.severity ?? 'error'
-        }`}
+        className={`error-notice error-notice--${notice.severity ?? 'error'}`}
         role="alert"
         aria-atomic="true"
         data-error-notice-id={notice.id}

@@ -5,6 +5,7 @@ import { FetchType } from '../../models/fetch'
 import { Repository } from '../../models/repository'
 import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { DefaultAppDisplayName } from '../../models/app-identity'
+import { observeUserInitiatedOperation } from '../lib/observed-operations'
 
 interface IPushNeedsPullWarningProps {
   readonly dispatcher: Dispatcher
@@ -61,11 +62,19 @@ export class PushNeedsPullWarning extends React.Component<
 
   private onFetch = async () => {
     this.setState({ isLoading: true })
-    await this.props.dispatcher.fetch(
-      this.props.repository,
-      FetchType.UserInitiatedTask
-    )
-    this.setState({ isLoading: false })
-    this.props.onDismissed()
+    try {
+      await this.props.dispatcher.fetch(
+        this.props.repository,
+        FetchType.UserInitiatedTask
+      )
+      this.props.onDismissed()
+    } catch (error) {
+      observeUserInitiatedOperation(
+        () => Promise.reject(error),
+        this.props.dispatcher,
+        'fetch-before-push recovery'
+      )
+      this.setState({ isLoading: false })
+    }
   }
 }

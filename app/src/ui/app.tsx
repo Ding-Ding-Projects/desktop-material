@@ -83,8 +83,8 @@ import { TitleBar, ZoomInfo, FullScreenInfo } from './window'
 import { RepositoriesList } from './repositories-list'
 import { CheapLfsRestoreProgress } from './lib/cheap-lfs-restore-progress'
 import { OperationProgressRow } from './lib/operation-progress-row'
-import { observeUserInitiatedOperation } from './lib/observed-operations'
 import { RepositoryView } from './repository'
+import { observeUserInitiatedOperation } from './lib/observed-operations'
 import { RenameBranch } from './rename-branch'
 import { DeleteBranch, DeleteRemoteBranch } from './delete-branch'
 import { CloningRepositoryView } from './cloning-repository'
@@ -276,7 +276,6 @@ import classNames from 'classnames'
 import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
 import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
-import { ManageRepositoryGroupDialog } from './repository-groups/manage-repository-group-dialog'
 import { ThankYou } from './thank-you'
 import {
   getUserContributions,
@@ -309,6 +308,7 @@ import { DiscardChangesRetryDialog } from './discard-changes/discard-changes-ret
 import { PullRequestReview } from './notifications/pull-request-review'
 import { getRepositoryType } from '../lib/git'
 import { SSHUserPassword } from './ssh/ssh-user-password'
+import { CheapLfsPayloadPassword } from './dialog/cheap-lfs-payload-password'
 import { showContextualMenu } from '../lib/menu-item'
 import { UnreachableCommitsDialog } from './history/unreachable-commits-dialog'
 import { OpenPullRequestDialog } from './open-pull-request/open-pull-request-dialog'
@@ -1591,20 +1591,17 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    const { dispatcher } = this.props
-    const { repository } = state
-
     if (options && options.forceWithLease) {
       observeUserInitiatedOperation(
-        dispatcher.confirmOrForcePush(repository),
-        dispatcher,
-        'the force push started from the menu'
+        () => this.props.dispatcher.confirmOrForcePush(state.repository),
+        this.props.dispatcher,
+        'menu force push'
       )
     } else {
       observeUserInitiatedOperation(
-        dispatcher.push(repository),
-        dispatcher,
-        'the push started from the menu'
+        () => this.props.dispatcher.push(state.repository),
+        this.props.dispatcher,
+        'menu push'
       )
     }
   }
@@ -1627,7 +1624,15 @@ export class App extends React.Component<IAppProps, IAppState> {
       return
     }
 
-    this.props.dispatcher.fetch(state.repository, FetchType.UserInitiatedTask)
+    observeUserInitiatedOperation(
+      () =>
+        this.props.dispatcher.fetch(
+          state.repository,
+          FetchType.UserInitiatedTask
+        ),
+      this.props.dispatcher,
+      'menu fetch'
+    )
   }
 
   private showStashedChanges() {
@@ -3965,16 +3970,6 @@ export class App extends React.Component<IAppProps, IAppState> {
           />
         )
       }
-      case PopupType.ManageRepositoryGroup: {
-        return (
-          <ManageRepositoryGroupDialog
-            dispatcher={this.props.dispatcher}
-            repositories={this.state.repositories}
-            groupName={popup.groupName}
-            onDismissed={onPopupDismissedFn}
-          />
-        )
-      }
       case PopupType.ThankYou:
         return (
           <ThankYou
@@ -4213,6 +4208,19 @@ export class App extends React.Component<IAppProps, IAppState> {
           <SSHUserPassword
             key="ssh-user-password"
             username={popup.username}
+            onSubmit={popup.onSubmit}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.CheapLfsPayloadPassword: {
+        return (
+          <CheapLfsPayloadPassword
+            key="cheap-lfs-payload-password"
+            purpose={popup.purpose}
+            requireIrreversibleAcknowledgement={
+              popup.requireIrreversibleAcknowledgement
+            }
             onSubmit={popup.onSubmit}
             onDismissed={onPopupDismissedFn}
           />
@@ -5218,6 +5226,13 @@ export class App extends React.Component<IAppProps, IAppState> {
         action.fixKind,
         notice.id
       )
+      return
+    }
+
+    if (action.kind === 'edit-repository-remotes') {
+      void this.props.dispatcher
+        .openRepositoryRemoteManager(action.repositoryId, notice.id)
+        .catch(error => this.props.dispatcher.postError(asError(error)))
       return
     }
 

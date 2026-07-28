@@ -178,9 +178,7 @@ export function getCheapLfsCloudCompressionStats(
   let storedSizeInBytes = 0
   for (const part of parts) {
     storedSizeInBytes +=
-      part.storedSizeInBytes ??
-      part.deflatedSizeInBytes ??
-      part.sizeInBytes
+      part.storedSizeInBytes ?? part.deflatedSizeInBytes ?? part.sizeInBytes
     if (part.deflatedSizeInBytes === undefined) {
       continue
     } else {

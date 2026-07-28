@@ -97,8 +97,8 @@ act only against the hidden display, then capture and inspect the result.
 | full locked suite/static/package | automated gates accepted; install inspection pending | 250 passed, 1 Linux-only skip in 182.76 seconds; Ruff lint/format clean; strict mypy clean on normal and Linux targets; wheel and source distribution built |
 | one-line installs | accepted for the Windows host and packaged Linux wheel | Windows aliases resolve from `C:\Users\cntow\.local\bin`; the disposable Linux environment reported all aliases at `0.1.0` |
 | real Linux CLI push/pull | accepted | disposable remote advanced through `safe-push` and `pointer`; the consumer materialized 23 bytes whose SHA-256 `7105fb968e5a0c2501ca439db315f6fe96bebc3d75551dfef293566da729f0ee` exactly matched the index pointer and cache object |
-| real Linux browser/quoted paste | partial | packaged xterm and Open repository dialog captured; immediate quoted-paste normalization and expanded tree interaction remain covered by Pilot/unit tests rather than accepted live evidence |
-| screenshot SHA-256 | accepted for retained Open-dialog capture | `open-repository-dialog.png`: `95ce306606df496341d9b8155ae08386a7d2b916f6949cf85228698ea693b9b2` |
+| real Linux browser/quoted paste | partial | packaged xterm and Open repository dialog captured; a genuine post-paste frame retains the normalized path, but the capture alone does not prove when the matching quotes were removed, so immediate normalization and expanded-tree interaction remain covered by Pilot/unit tests rather than accepted live evidence |
+| screenshot SHA-256 | accepted for retained real frames | `open-repository-dialog.png`: `95ce306606df496341d9b8155ae08386a7d2b916f6949cf85228698ea693b9b2`; `path-browser.png`: `02b51879e2982ff5ae651e35da1ab440d5fcad923652b74a9d07e7497a5df32d` |
 | exact remote CI/Pages/wiki | current milestone pending | Prior compatibility commit `f555d374a6` is contained in `origin/main`; run `30317262582` passed the Linux TUI matrix and Windows TUI core but failed overall in the unrelated Windows x64 unit job; installer run `30318769692` failed and published no Release |
 
 ## Cleanup gate

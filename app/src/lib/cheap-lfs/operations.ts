@@ -55,6 +55,7 @@ import {
 } from './asset-version'
 import {
   cheapLfsPointerTextSizeInBytes,
+  CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
   CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
   CHEAP_LFS_PART_SIZE_BYTES,
   CHEAP_LFS_POINTER_VERSION,
@@ -1742,6 +1743,11 @@ function preflightProjectedPointer(
       parts: partCount > 1 || encrypted ? [] : undefined,
     })
   )
+  if (encrypted) {
+    projectedBytes += cheapLfsPointerTextSizeInBytes(
+      `encryption ${CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION}\n`
+    )
+  }
 
   for (let index = 0; index < partCount; index++) {
     if (partCount <= 1 && !encrypted) {
@@ -1753,9 +1759,13 @@ function preflightProjectedPointer(
         : CHEAP_LFS_PART_SIZE_BYTES
     projectedBytes += cheapLfsPointerTextSizeInBytes(
       encrypted
-        ? `part-encrypted ${placeholderSha256} ${partSize} ${placeholderSha256} ${
+        ? `part-encrypted ${placeholderSha256} ${partSize} ${
             partSize + CHEAP_LFS_ENCRYPTION_OVERHEAD_BYTES
-          } ${partAssetName(pointerBaseName, index, partCount)}\n`
+          } ${placeholderSha256} ${partAssetName(
+            pointerBaseName,
+            index,
+            partCount
+          )}\n`
         : `part ${placeholderSha256} ${partSize} ${partAssetName(
             pointerBaseName,
             index,
@@ -2165,6 +2175,7 @@ export async function pinFileToRelease(
           assetName: partBaseName,
           sizeInBytes: hashed.sizeInBytes,
           sha256: hashed.sha256,
+          encryptionFormatVersion: CHEAP_LFS_ENCRYPTION_POINTER_FORMAT_VERSION,
           parts,
         }
         const pointerText = serializeCheapLfsPointer(pointer)
