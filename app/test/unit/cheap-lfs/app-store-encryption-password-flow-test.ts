@@ -1,4 +1,6 @@
 import assert from 'node:assert'
+import { readFileSync } from 'node:fs'
+import { join } from 'node:path'
 import { afterEach, describe, it, mock } from 'node:test'
 
 import { AppStore } from '../../../src/lib/stores/app-store'
@@ -208,5 +210,60 @@ describe('AppStore Cheap LFS password prompting', () => {
       false
     )
     credential.password.fill(0)
+  })
+})
+
+describe('Cheap LFS saved password lifetime', () => {
+  // Normalized to LF: the working copy is checked out with CRLF on Windows,
+  // and a pattern anchored on "\n  }" silently matches nothing there — which
+  // reads exactly like the contract being violated.
+  const removalSource = readFileSync(
+    join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
+    'utf8'
+  ).replace(/\r\n/g, '\n')
+
+  it('forgets the saved password while removing a repository', () => {
+    // A password the user asked to be remembered must not outlive the app's
+    // knowledge of the repository. After removal nothing in the UI can reach
+    // the entry, so it would sit in the operating system credential manager
+    // for good.
+    const removal = removalSource.match(
+      /public async _removeRepository\([\s\S]*?\n  \}\n/
+    )
+    assert.notEqual(removal, null, '_removeRepository must be findable')
+    assert.match(
+      removal?.[0] ?? '',
+      /forgetSavedCheapLfsPayloadPassword\(repository\)/,
+      'removing a repository must clear its saved Cheap LFS password'
+    )
+    // Before `removeRepository`, while the path and remote can still derive
+    // the vault account.
+    const body = removal?.[0] ?? ''
+    assert.ok(
+      body.indexOf('forgetSavedCheapLfsPayloadPassword(repository)') <
+        body.indexOf('repositoriesStore.removeRepository(repository)'),
+      'the vault entry must be cleared before the repository record goes'
+    )
+  })
+
+  it('does not let an unreachable vault block the removal', () => {
+    const removal =
+      removalSource.match(
+        /public async _removeRepository\([\s\S]*?\n  \}\n/
+      )?.[0] ?? ''
+    const forgetIndex = removal.indexOf(
+      'forgetSavedCheapLfsPayloadPassword(repository)'
+    )
+    const afterForget = removal.slice(forgetIndex)
+    assert.match(
+      afterForget,
+      /forgotten === 'unavailable'[\s\S]*?log\.warn/,
+      'a locked or broken vault is logged, never thrown'
+    )
+    assert.doesNotMatch(
+      afterForget.slice(0, afterForget.indexOf('removeRepository(repository)')),
+      /return 'error'/,
+      'a vault failure must not abort removing the repository'
+    )
   })
 })

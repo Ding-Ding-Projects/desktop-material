@@ -18606,6 +18606,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (repository instanceof CloningRepository) {
         this._removeCloningRepository(repository)
       } else {
+        // Drop the repository's saved Cheap LFS payload password before the
+        // repository itself goes, while its path and remote can still derive
+        // the vault account. Afterwards nothing in the app knows the entry
+        // exists, and a credential the user asked to be remembered for a
+        // repository they have removed would sit in the operating system
+        // credential manager forever with no surface able to reach it.
+        //
+        // Deliberately not fatal: a locked or unavailable vault must not block
+        // removing a repository, and the entry is inert without the app.
+        const forgotten = await forgetSavedCheapLfsPayloadPassword(repository)
+        if (forgotten === 'unavailable') {
+          log.warn(
+            'Could not reach the credential vault while removing a repository; a saved Cheap LFS password may remain.'
+          )
+        }
         await this.repositoriesStore.removeRepository(repository)
       }
     } catch (err) {
