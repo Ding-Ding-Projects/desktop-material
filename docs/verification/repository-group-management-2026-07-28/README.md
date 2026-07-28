@@ -44,3 +44,37 @@ should not be closed on these two images alone.
 
 A `Close` tooltip is visible in the second frame, an artifact of where focus landed. It is not
 part of the menu under test.
+
+---
+
+## Tab-group member dropdown (added 2026-07-28, after #92)
+
+`tab-group-member-dropdown.png` shows the surface this directory previously lacked: a tab
+group's chip opened into its member dropdown, captured from a production build at
+`550d6ca766` at 1280×860.
+
+It could not be captured before #92 was fixed, because the **New tab group** dialog needed to
+create the group was itself rendering underneath the toolbar.
+
+### What it shows
+
+- The `Verification group` chip with its member count badge and members button.
+- The dropdown headed *Tabs in "Verification group"*, stating: *"Every tab in this group,
+  listed even while the group is collapsed. Choosing one switches to it."*
+- Its own search field — *Name, alias, path, or…* — with the **Regex builder** control, as
+  every search surface in this project requires.
+- Group actions: **Edit group…**, **Collapse**, and **Delete group**, the last with the
+  non-destructive guarantee stated in the product: *"Deleting the group clears the label only;
+  every tab stays open."*
+
+### What it does not show, and one defect it does
+
+The captured group has **one** member, because creating a group from a tab's context menu adds
+only that tab. The frame therefore demonstrates the dropdown, its search and its actions, but
+**not** a multi-member list — the "lists every member while collapsed" claim is covered by unit
+tests, not by this image.
+
+The frame also exposes a real text defect, filed separately: the copy reads **"1 tabs in this
+group."** and the button's accessible name is **"Show the 1 tabs in Verification group"**. Both
+`tabs.groupMembersCount` and `tabs.groupMembersButton` are hardcoded plurals with no singular
+form.
