@@ -290,6 +290,116 @@
   padding: 8px 0;
 }
 
+// Shared app-strip and batch-clone restore lanes. Kept outside `.cheap-lfs`
+// because automatic restore is visible even when the manager is closed.
+.cheap-lfs-restore-lanes {
+  display: grid;
+  gap: var(--spacing);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cheap-lfs-restore-lane {
+  background: var(--md-sys-color-surface-container-low);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  padding: var(--spacing);
+
+  &.prefetch {
+    background: color-mix(in srgb, var(--md-sys-color-primary-container) 34%, var(--md-sys-color-surface-container-low));
+    border-color: color-mix(in srgb, var(--md-sys-color-primary) 45%, var(--md-sys-color-outline-variant));
+  }
+
+  .cheap-lfs-restore-lane-heading {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+    justify-content: space-between;
+  }
+
+  .cheap-lfs-restore-lane-title {
+    align-items: center;
+    display: flex;
+    gap: var(--spacing-half);
+
+    .material-symbol {
+      color: var(--md-sys-color-primary);
+      flex: 0 0 auto;
+    }
+  }
+
+  .cheap-lfs-restore-lane-percent {
+    color: var(--md-sys-color-primary);
+    flex: 0 0 auto;
+    font-variant-numeric: tabular-nums;
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .cheap-lfs-restore-lane-path {
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-sm);
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .cheap-lfs-restore-lane-meta {
+    color: var(--md-sys-color-on-surface-variant);
+    display: flex;
+    flex-wrap: wrap;
+    font-size: var(--font-size-sm);
+    gap: 4px var(--spacing);
+    line-height: 1.35;
+
+    span {
+      font-variant-numeric: tabular-nums;
+    }
+  }
+
+  .cheap-lfs-restore-lane-bar {
+    margin: var(--spacing-half) 0 0;
+  }
+}
+
+.cheap-lfs-restore-failures {
+  background: var(--md-sys-color-error-container);
+  border: 1px solid color-mix(in srgb, var(--md-sys-color-error) 42%, var(--md-sys-color-outline-variant));
+  border-radius: 14px;
+  color: var(--md-sys-color-on-error-container);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-half);
+  padding: var(--spacing);
+
+  ul {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-half);
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+
+  li {
+    display: grid;
+    gap: 2px;
+    grid-template-columns: minmax(0, 1fr);
+    line-height: 1.4;
+  }
+
+  .cheap-lfs-restore-failure-path {
+    font-family: var(--font-family-monospace);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+    overflow-wrap: anywhere;
+  }
+
+  .cheap-lfs-restore-failures-omitted {
+    font-size: var(--font-size-sm);
+  }
+}
+
 @media (max-width: 700px) {
   .cheap-lfs-row-heading,
   .cheap-lfs-list-heading,
@@ -300,6 +410,10 @@
 
   .cheap-lfs-pin-form dl,
   .cheap-lfs-pin-review dl {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cheap-lfs-restore-lanes {
     grid-template-columns: minmax(0, 1fr);
   }
 }

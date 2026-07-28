@@ -31,22 +31,32 @@ export const separator: Electron.MenuItemConstructorOptions = {
   type: 'separator',
 }
 
-export function buildDefaultMenu(params: MenuLabelsEvent): Electron.Menu {
-  return Menu.buildFromTemplate(buildDefaultMenuTemplate(params))
+export type OpenWebLink = (url: string) => Promise<unknown>
+
+const openWithSystemBrowser: OpenWebLink = url => shell.openExternal(url)
+
+export function buildDefaultMenu(
+  params: MenuLabelsEvent,
+  openWebLink: OpenWebLink = openWithSystemBrowser
+): Electron.Menu {
+  return Menu.buildFromTemplate(buildDefaultMenuTemplate(params, openWebLink))
 }
 
-export function buildDefaultMenuTemplate({
-  selectedExternalEditor,
-  selectedShell,
-  askForConfirmationOnForcePush,
-  askForConfirmationOnRepositoryRemoval,
-  hasCurrentPullRequest = false,
-  contributionTargetDefaultBranch = defaultBranchNameValue,
-  isForcePushForCurrentRepository = false,
-  isStashedChangesVisible = false,
-  askForConfirmationWhenStashingAllChanges = true,
-  isChangesFilterVisible = true,
-}: MenuLabelsEvent): Electron.MenuItemConstructorOptions[] {
+export function buildDefaultMenuTemplate(
+  {
+    selectedExternalEditor,
+    selectedShell,
+    askForConfirmationOnForcePush,
+    askForConfirmationOnRepositoryRemoval,
+    hasCurrentPullRequest = false,
+    contributionTargetDefaultBranch = defaultBranchNameValue,
+    isForcePushForCurrentRepository = false,
+    isStashedChangesVisible = false,
+    askForConfirmationWhenStashingAllChanges = true,
+    isChangesFilterVisible = true,
+  }: MenuLabelsEvent,
+  openWebLink: OpenWebLink = openWithSystemBrowser
+): Electron.MenuItemConstructorOptions[] {
   contributionTargetDefaultBranch = truncateWithEllipsis(
     contributionTargetDefaultBranch,
     25
@@ -606,44 +616,36 @@ export function buildDefaultMenuTemplate({
   const submitIssueItem: Electron.MenuItemConstructorOptions = {
     label: __DARWIN__ ? 'Report Issue…' : 'Report issue…',
     click() {
-      shell
-        .openExternal(
-          'https://github.com/Ding-Ding-Projects/desktop-material/issues/new/choose'
-        )
-        .catch(err => log.error('Failed opening issue creation page', err))
+      openWebLink(
+        'https://github.com/Ding-Ding-Projects/desktop-material/issues/new/choose'
+      ).catch(err => log.error('Failed opening issue creation page', err))
     },
   }
 
   const contactSupportItem: Electron.MenuItemConstructorOptions = {
     label: __DARWIN__ ? 'Contact GitHub Support…' : '&Contact GitHub support…',
     click() {
-      shell
-        .openExternal(
-          `https://github.com/contact?from_desktop_app=1&app_version=${app.getVersion()}`
-        )
-        .catch(err => log.error('Failed opening contact support page', err))
+      openWebLink(
+        `https://github.com/contact?from_desktop_app=1&app_version=${app.getVersion()}`
+      ).catch(err => log.error('Failed opening contact support page', err))
     },
   }
 
   const showUserGuides: Electron.MenuItemConstructorOptions = {
     label: 'Show User Guides',
     click() {
-      shell
-        .openExternal(
-          'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide'
-        )
-        .catch(err => log.error('Failed opening user guides page', err))
+      openWebLink(
+        'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide'
+      ).catch(err => log.error('Failed opening user guides page', err))
     },
   }
 
   const showKeyboardShortcuts: Electron.MenuItemConstructorOptions = {
     label: __DARWIN__ ? 'Show Keyboard Shortcuts' : 'Show keyboard shortcuts',
     click() {
-      shell
-        .openExternal(
-          'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide'
-        )
-        .catch(err => log.error('Failed opening keyboard shortcuts page', err))
+      openWebLink(
+        'https://github.com/Ding-Ding-Projects/desktop-material/wiki/User-Guide'
+      ).catch(err => log.error('Failed opening keyboard shortcuts page', err))
     },
   }
 

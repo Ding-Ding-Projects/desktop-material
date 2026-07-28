@@ -5,6 +5,16 @@
 The generated mark above is documentation artwork. It is not embedded in the
 pointer format and is not required by the transfer protocol.
 
+> **Restore continuation — July 27, 2026:** the exact-90% two-lane Release
+> restore pipeline and substantially more detailed shared progress surface
+> passed 652/652 combined tests, 14/14 verifier contracts, full TypeScript, the
+> exact Windows production build, and isolated wide-English/narrow-bilingual
+> hidden-desktop acceptance. The source is pushed through `2abccae8fd`, and
+> Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
+> TUI compatibility correction rerun and installer/Release evidence remain
+> pending. The historical
+> live acceptance below still belongs to the earlier shipped restore.
+
 ![Cheap LFS manager after a live private-repository UI pin](../../assets/screenshots/cheap-lfs-ui-acceptance.png)
 
 The inspected acceptance frame above comes from the production bundle running
@@ -35,6 +45,17 @@ repeat the same verified restore. Explicitly public GitHub.com Release pointers
 can take this path while signed out; private and unknown repositories remain
 account-gated.
 
+### Linux terminal interoperability
+
+The separate Linux-first terminal edition reads and writes this same v1 Release
+pointer format. Its clickable **Cheap LFS** tab and `dmt cheap-lfs` commands
+provide local preview, confirmed track, cache-first verify, and confirmed
+restore with the same 500 MiB new-write and 2 GiB legacy-read boundaries. It
+does not yet reproduce the graphical edition's automatic commit/clone workers,
+Release bucket rollover, OCI providers, or cloud-compression publication. See
+[Cheap LFS in the terminal edition](../linux-tui/cheap-lfs.md) for its exact
+behavior, safety contract, CLI, and parity boundary.
+
 ## Behavior and configuration
 
 **Repository settings → Cheap LFS → Large-file storage** selects a
@@ -61,14 +82,22 @@ release tag, optional release name, and byte size. The default tag is `assets`;
 if it has no release, the app creates a published prerelease so collaborators
 can fetch its assets while the bucket remains outside the installer's stable
 `/releases/latest` update feed. A draft created by an older Desktop Material is
-published in place only after its exact reviewed identity is revalidated.
+published in place only after its exact reviewed identity and Cheap LFS
+provenance are revalidated. Current buckets carry the exact
+`<!-- desktop-material:cheap-lfs-release-bucket:v1 -->` body sentinel; a legacy
+prerelease remains writable when at least one asset carries a valid
+`cheap-lfs/v1` provenance label. A stable release or unrelated prerelease that
+happens to use the requested tag is never published or appended to; choose a
+different tag. Existing pointers can still restore from an explicitly named
+historical Release without claiming it as app-managed storage.
 A file at or below the per-asset cap initially uploads as one raw asset. A
-larger file is split into ordered raw parts of at most 1.5 GiB — GitHub allows
-release assets up to 2 GiB, but uploads near that ceiling proved unreliable,
-so new parts stay well below it — and the pointer records every part's name,
-size, and SHA-256 as well as the whole-file size and digest. The raw upload is
-immediately cloneable and remains the safe fallback while optional cloud
-compression runs.
+larger file is split into ordered raw parts of at most 500 MiB. GitHub
+historically allowed legacy Release pointers with parts up to 2 GiB, and the
+reader retains that compatibility, but uploads near that ceiling proved
+unreliable, so new writes use the smaller retryable part size. The pointer
+records every part's name, size, and SHA-256 as well as the whole-file size and
+digest. The raw upload is immediately cloneable and remains the safe fallback
+while optional cloud compression runs.
 
 ### Cloud compression
 
@@ -338,12 +367,16 @@ the entire group moves to the next bucket and every generated pointer records
 that exact derived tag.
 
 Current buckets are published prereleases and resolve through GitHub's direct
-release-by-tag endpoint. For compatibility, the cloud Action can still locate
-an older draft through a bounded inventory of at most 100 pages of 100 releases;
-Desktop Material publishes that exact legacy bucket in place before new pins or
-materialization. A draft outside those **10,000 releases** fails safely without
-changing the pointer or raw asset. Compression also needs one free asset slot
-for its verified side object. If the selected Release has already reached its
+release-by-tag endpoint. For compatibility, bounded lookup can still identify
+an older draft among at most 100 pages of 100 releases. Desktop Material
+publishes that exact legacy bucket in place before a new pin only when the
+exact sentinel or a valid legacy asset-provenance label proves it is Cheap LFS
+storage. Materialization may read a pointer's unrecognized draft asset but does
+not publish that draft. The cloud Action mutates only a published, managed
+prerelease: a draft, stable Release, or unrelated prerelease is rejected before
+download or upload, leaving the raw pointer unchanged. Compression also needs
+one free asset slot for its verified side object. If the selected Release has
+already reached its
 **1,000-asset** capacity, the upload cannot be adopted and the raw pointer
 remains cloneable and locally materializable. Cheap LFS never deletes the
 historical raw asset merely to make room.
@@ -374,6 +407,62 @@ enabled by default for compatibility:
   pinned-file list after completion **and** after a cancel so completed files
   never keep a stale pointer state (which previously also suppressed the
   local-deletion warning on Remove).
+
+### Exact-90% restore look-ahead and detailed progress
+
+![Detailed Cheap LFS restore progress with the current transfer at exactly 90% and the next transfer already active](../../assets/screenshots/cheap-lfs-restore-lookahead.png)
+
+Release-backed restore now uses one shared, batch-local download coordinator
+with a hard maximum of **two active HTTP downloads**. The current file or part
+keeps its first lane. As soon as the provider reports
+`transferred / total >= 90%`, the next file or multipart part may enter the
+second look-ahead lane. A report at 899/1000 does not open it; 900/1000 does.
+The threshold is fixed rather than user-configurable, so every clone/open,
+fetch/pull, single-file, and Materialize-all path gets the same bound.
+
+Multipart restore applies the same rule inside one pointer: resolve every
+required asset first, start part 1, and begin part 2 at part 1's exact 90%
+network point. The shared coordinator still caps the entire nested operation
+at two downloads, so file-level and part-level look-ahead cannot multiply into
+unbounded traffic. If a provider supplies no usable progress total, settlement
+of the current transfer is the conservative fallback that opens the next lane.
+
+Look-ahead is only a download scheduling optimization. Every part is still
+decompressed when required, checked against its own recorded size and SHA-256,
+assembled in pointer order, checked against the whole-file size and SHA-256,
+and atomically published only while the tracked pointer is unchanged. A failed
+prefetch is drained and its owned temporary data is cleaned; a failure stays
+attached to its input path and remaining pointers continue. Cancellation stops
+new work, aborts queued or active downloads, drains the two lanes, and leaves
+unverified pointers untouched.
+
+The shared restore panel is used by the Large files surface and clone/batch
+restore progress. It exposes substantially more than one aggregate percentage:
+
+- repository, provider, phase, current path, file ordinal, and multipart
+  ordinal;
+- succeeded, failed, remaining, total, queued-file, and queued-part counts;
+- logical restored bytes and, when the provider supplies them, actual
+  downloaded/compressed bytes;
+- overall progress plus separate **Current** and **Next at 90%** lane bars;
+- downloading, decompressing, verifying, materializing, and canceling states;
+- elapsed time, observed download rate, ETA, and the fixed 90% handoff point;
+  and
+- bounded per-file failure details plus an honest cancellation state.
+
+Visible counters and bars may update continuously, while the screen-reader live
+summary is bucketed to meaningful 10% transitions so frequent transfer events
+do not flood announcements. Reduced-motion mode removes the active shimmer,
+and narrow/bilingual layouts wrap rather than clipping at high Windows scale.
+Legacy sequential progress is adapted into this richer model, keeping older
+callers truthful while they adopt lane detail.
+
+<sub>**香港粵語速讀。** 而家下載去到**真係 90%**，下一個檔或者下一 part 就可以
+入第二條 lane 開工；89.9% 仲未得，啱啱 90% 就得。成個 batch 無論點套娃都最多兩
+個下載，唔會一開預取就成村人衝出去。介面會分開顯示目前／下一條 lane、檔同 part
+次序、邏輯還原位元組、實際下載位元組、速度、ETA、成功／失敗／排隊／剩餘，同埋
+下載、解壓、驗證、落盤、取消各階段。快係快咗，但 SHA-256、大小、指標冇變先換檔
+嗰啲安全檢查，一樣一粒都冇少。</sub>
 
 The Changes filter includes a **Large files** chip that matches working-tree
 files strictly over the same 100 MiB Cheap LFS threshold. Its bounded,
@@ -641,7 +730,9 @@ requests.
 Automatic clone/open materialization and explicit Materialize-all work share a
 repository-scoped scheduler. This keeps two UI entry points from concurrently
 publishing the same restored path through separate compare-and-swap recovery
-flows.
+flows. Within one active Release batch, the nested file/part download
+coordinator is separately capped at two lanes and opens its look-ahead lane only
+at the fixed 90% transfer boundary described above.
 
 ### When a path identity may replace a content re-hash
 
@@ -1091,6 +1182,8 @@ review, upload/download error, missing trusted GitHub CLI, CLI
 failure, changed source file, digest or size mismatch, oversized pointer
 projection, invalid part layout, insufficient temporary space, or cancellation
 before pointer commit leaves the original source or tracked pointer in place.
+An existing stable or otherwise unrecognized Release at the requested tag also
+fails before publish, upload, or pointer replacement and asks for another tag.
 Failed multipart pins attempt to delete only assets uploaded by that
 attempt and report any cleanup failure without touching pre-existing assets.
 CLI-unavailable, CLI-failed, and incomplete-asset messages direct the user to
@@ -1176,6 +1269,10 @@ and uploads only that copy. The original source and destination proofs are
 revalidated after staging and immediately before provider publication and
 pointer replacement. Asset uploads also use exact account-bound Release
 mutation reviews, refreshing the Release snapshot before each later part.
+Release mutation additionally requires recognizable bucket provenance:
+published-prerelease status plus either the exact current body sentinel or a
+valid legacy asset label. A tag match, title, or prose mention is never enough,
+and read-only restore does not auto-publish an unrecognized draft.
 
 Private prerelease assets remain available only to users authorized for the
 repository. Explicitly public GitHub.com repositories use a blank-token,
@@ -1236,6 +1333,20 @@ and HTTP values rather than interpolated shell programs. Existing unowned
 workflow content at the managed path is never overwritten.
 
 ## Verification
+
+The July 27 combined browser, restore, IPC, localization, and private-badge
+gate passed **652/652 across 53 files**. It supersedes the earlier **42/42**
+restore-progress and **15/15** operations/AppStore checkpoints while retaining
+their exact 899/1000-versus-900/1000 threshold, reduced-motion, and
+narrow-layout coverage. The two verifier contract suites passed **14/14**,
+full TypeScript was clean, and the exact Windows production build returned
+zero with no timeout or stderr. A real built app on an isolated hidden Win32
+desktop passed wide English and narrow bilingual restore receipts at the
+current-90% / look-ahead-10% state without clipping, overlap, or private data.
+The source and four new raw-main evidence assets are pushed through
+`2abccae8fd`, and Pages/wiki publication and packaged Windows E2E are verified.
+Only the Linux TUI compatibility correction rerun and installer/Release
+evidence remain pending.
 
 ### Live GitHub and Desktop Material UI acceptance — 2026-07-22
 
@@ -1323,11 +1434,12 @@ and digest. The corrected Action's bounded draft lookup produced the succeeding
 public and private results above. The full run, asset, pointer, screenshot, and
 remaining publication record is in the cloud-compression acceptance receipt.
 
-The focused Large files UI test also pins the factual 1.5 GiB-part copy.
+The focused Large files UI test derives its 500 MiB part-size copy directly
+from the shared pointer constant so UI guidance cannot drift from new writes.
 
 `cheap-lfs/pointer-test.ts` covers canonical single/multipart pointers, legacy
 deflated compatibility, size limits, part totals, path normalization, and the
-1.5 GiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
+500 MiB-part upload plan. `cheap-lfs/operations-test.ts` covers raw uploads,
 deduplicated asset names, 1,000-asset rollover without splitting groups,
 mutation reviews, attempt-owned cleanup, source race checks, cancellation,
 per-part and whole-file verification, paginated inventory reuse, and atomic

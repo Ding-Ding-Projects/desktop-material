@@ -7,11 +7,18 @@ import {
   CheapLfsPinStage,
   ICheapLfsBatchMaterializeResult,
   ICheapLfsMaterializeResult,
+  ICheapLfsMaterializeTransferProgress,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
   ICheapLfsManagedPointerEntry,
 } from '../../lib/cheap-lfs/operations'
 import { OperationProgressRow } from '../lib/operation-progress-row'
+import { CheapLfsRestoreProgress } from '../lib/cheap-lfs-restore-progress'
+import {
+  CheapLfsRestoreLookAheadThresholdPercent,
+  CheapLfsRestoreProvider,
+  ICheapLfsRestoreProgress,
+} from '../../lib/cheap-lfs/restore-progress'
 import { translateForAccessibleName } from '../../lib/i18n'
 import type { ICheapLfsOciMutationResult } from '../../lib/cheap-lfs/oci-operations'
 import {
@@ -135,7 +142,7 @@ interface ICheapLfsState {
   readonly busy: CheapLfsBusy | null
   readonly materializingPath: string | null
   readonly pin: IPinDraft | null
-  readonly progress: IGitHubReleaseTransferProgressEvent | null
+  readonly progress: ICheapLfsMaterializeTransferProgress | null
   /**
    * The pin stage currently running. Hashing and release-bucket allocation
    * both happen before the first upload byte, and used to leave the panel
@@ -232,8 +239,11 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   private cloudGeneration = 0
   private operationController: AbortController | null = null
   private lastProgressAt = 0
+  private operationStartedAt = 0
   /** True while the current operation is a whole-repository Materialize all. */
   private materializeAllInFlight = false
+  /** Provider captured from the selected committed pointer, not preferences. */
+  private materializeProvider: CheapLfsRestoreProvider = 'unknown'
   private readonly materializeHandlers = new Map<string, () => void>()
   private readonly removeHandlers = new Map<string, () => void>()
   private readonly virtualListRef = React.createRef<List>()
@@ -427,6 +437,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     }
     const controller = new AbortController()
     this.operationController = controller
+    this.operationStartedAt = Date.now()
     this.materializeAllInFlight = false
     this.setState({
       busy: kind,
@@ -456,7 +467,7 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
   private updateProgress(
     generation: number,
     controller: AbortController,
-    progress: IGitHubReleaseTransferProgressEvent
+    progress: ICheapLfsMaterializeTransferProgress
   ) {
     const now = Date.now()
     if (
@@ -724,6 +735,15 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     if (operation === null) {
       return
     }
+    const entry = this.state.pointers.find(
+      candidate => candidate.relativePath === relativePath
+    )
+    this.materializeProvider =
+      entry === undefined
+        ? 'unknown'
+        : entry.kind === 'release'
+        ? 'github-release'
+        : entry.provider
     this.lastProgressAt = 0
     this.setState({ materializingPath: relativePath })
     try {
@@ -1348,6 +1368,96 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
     return null
   }
 
+  /**
+   * The app-wide batch card owns Materialize-all progress. A single manual
+   * restore uses the same detailed component here so the Repository Tools
+   * surface never falls back to the old one-line byte bar.
+   */
+  private renderMaterializeProgress(
+    transfer: ICheapLfsMaterializeTransferProgress
+  ) {
+    if (this.materializeAllInFlight) {
+      return null
+    }
+
+    const provider = this.materializeProvider
+    const logicalProcessedBytes =
+      transfer.logicalTransferredBytes ?? transfer.transferredBytes
+    const logicalTotalBytes = transfer.logicalTotalBytes ?? transfer.totalBytes
+    const actualDownloadedBytes =
+      transfer.actualTransferredBytes ?? transfer.transferredBytes
+    const actualDownloadTotalBytes =
+      transfer.actualTotalBytes ?? transfer.totalBytes
+    const elapsedMilliseconds = Math.max(
+      1,
+      Date.now() - this.operationStartedAt
+    )
+    const downloadRateBytesPerSecond =
+      actualDownloadedBytes > 0
+        ? Math.floor((actualDownloadedBytes * 1_000) / elapsedMilliseconds)
+        : null
+    const etaSeconds =
+      downloadRateBytesPerSecond !== null &&
+      downloadRateBytesPerSecond > 0 &&
+      actualDownloadTotalBytes >= actualDownloadedBytes
+        ? Math.ceil(
+            (actualDownloadTotalBytes - actualDownloadedBytes) /
+              downloadRateBytesPerSecond
+          )
+        : null
+    const laneProcessed = transfer.partTransferredBytes ?? logicalProcessedBytes
+    const laneTotal = transfer.partTotalBytes ?? logicalTotalBytes
+    const progress: ICheapLfsRestoreProgress = {
+      repositoryId: this.props.repository.id,
+      repositoryName: this.props.repository.name,
+      provider,
+      phase: transfer.phase ?? 'downloading',
+      filesSucceeded: 0,
+      filesFailed: 0,
+      filesRemaining: 1,
+      filesTotal: 1,
+      logicalProcessedBytes,
+      logicalTotalBytes,
+      actualDownloadedBytes,
+      actualDownloadTotalBytes,
+      downloadRateBytesPerSecond,
+      etaSeconds,
+      elapsedSeconds: Math.floor(elapsedMilliseconds / 1_000),
+      queuedFiles: 0,
+      queuedParts: Math.max(
+        0,
+        (transfer.partsTotal ?? 0) - (transfer.partOrdinal ?? 0)
+      ),
+      currentLane: {
+        provider,
+        phase: transfer.phase ?? 'downloading',
+        relativePath: this.state.materializingPath ?? '',
+        fileOrdinal: 1,
+        filesTotal: 1,
+        partOrdinal: transfer.partOrdinal ?? null,
+        partsTotal: transfer.partsTotal ?? null,
+        processedBytes: laneProcessed,
+        totalBytes: laneTotal > 0 ? laneTotal : null,
+        percent:
+          laneTotal > 0
+            ? Math.min(100, Math.floor((laneProcessed / laneTotal) * 100))
+            : null,
+      },
+      prefetchLane: null,
+      lookAheadThresholdPercent: CheapLfsRestoreLookAheadThresholdPercent,
+      failures: [],
+      cancelRequested: this.operationController?.signal.aborted === true,
+    }
+
+    return (
+      <CheapLfsRestoreProgress
+        className="cheap-lfs-restore-progress-inline"
+        progress={progress}
+        onCancel={this.cancelOperation}
+      />
+    )
+  }
+
   private renderStatus() {
     const { busy, materializingPath, progress, error, notice } = this.state
     const busyLabel =
@@ -1355,27 +1465,36 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         ? `materialize ${materializingPath}`
         : busy
     return (
-      <div className="cheap-lfs-status" aria-live="polite">
-        {busy !== null && (
-          <div className="cheap-lfs-busy" role="status">
-            <span>Working: {busyLabel}</span>
-            <Button onClick={this.cancelOperation}>Cancel</Button>
-          </div>
-        )}
+      <div className="cheap-lfs-status">
+        {busy !== null &&
+          !(
+            busy === 'materialize' &&
+            progress !== null &&
+            !this.materializeAllInFlight
+          ) && (
+            <div className="cheap-lfs-busy" role="status">
+              <span>Working: {busyLabel}</span>
+              <Button onClick={this.cancelOperation}>Cancel</Button>
+            </div>
+          )}
         {this.renderPinStageProgress()}
-        {progress !== null && (
-          <div className="cheap-lfs-progress">
-            <progress
-              max={Math.max(1, progress.totalBytes)}
-              value={progress.transferredBytes}
-              aria-label={`Cheap LFS ${progress.direction} progress`}
-            />
-            <span>
-              {formatBytes(progress.transferredBytes)} of{' '}
-              {formatBytes(progress.totalBytes)}
-            </span>
-          </div>
-        )}
+        {progress !== null &&
+        busy === 'materialize' &&
+        !this.materializeAllInFlight
+          ? this.renderMaterializeProgress(progress)
+          : progress !== null && (
+              <div className="cheap-lfs-progress">
+                <progress
+                  max={Math.max(1, progress.totalBytes)}
+                  value={progress.transferredBytes}
+                  aria-label={`Cheap LFS ${progress.direction} progress`}
+                />
+                <span>
+                  {formatBytes(progress.transferredBytes)} of{' '}
+                  {formatBytes(progress.totalBytes)}
+                </span>
+              </div>
+            )}
         {error !== null && (
           <p className="cheap-lfs-error" role="alert">
             {error}
@@ -1524,7 +1643,11 @@ export class CheapLfs extends React.Component<ICheapLfsProps, ICheapLfsState> {
         )}
         <p className="cheap-lfs-pin-help">
           {provider === 'release'
-            ? 'Files up to 2 GiB upload as a single asset; larger files are split automatically into 1.5 GiB parts. A published prerelease is created without changing the stable Latest release.'
+            ? `Files up to ${formatBytes(
+                CHEAP_LFS_PART_SIZE_BYTES
+              )} upload as a single asset; larger files are split automatically into ${formatBytes(
+                CHEAP_LFS_PART_SIZE_BYTES
+              )} parts. A published prerelease is created without changing the stable Latest release.`
             : 'The full repository object set stays in one logical image. New versions reuse unchanged layers, split new data into at most 1.5 GiB layers, and halve a layer after upload timeout. Private-repository payloads are encrypted with the shared tracked key.'}
         </p>
         <div className="repository-tool-controls">

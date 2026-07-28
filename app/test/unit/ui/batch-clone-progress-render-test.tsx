@@ -10,6 +10,10 @@ import {
   IBatchCloneItemStatus,
   IBatchCloneState,
 } from '../../../src/models/batch-clone'
+import {
+  CheapLfsRestoreLookAheadThresholdPercent,
+  ICheapLfsRestoreProgress,
+} from '../../../src/lib/cheap-lfs/restore-progress'
 import { SubmoduleFetchStage } from '../../../src/models/progress'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
@@ -167,6 +171,80 @@ describe('BatchCloneProgress rows', () => {
       '.batch-clone-item progress'
     )
     assert.equal(progress?.hasAttribute('value'), false)
+  })
+
+  it('reuses the detailed restore card during clone finalization', () => {
+    const restore: ICheapLfsRestoreProgress = {
+      repositoryId: 5,
+      repositoryName: 'desktop',
+      provider: 'github-release',
+      phase: 'downloading',
+      filesSucceeded: 0,
+      filesFailed: 0,
+      filesRemaining: 2,
+      filesTotal: 2,
+      logicalProcessedBytes: 900,
+      logicalTotalBytes: 2_000,
+      actualDownloadedBytes: 900,
+      actualDownloadTotalBytes: 2_000,
+      downloadRateBytesPerSecond: 100,
+      etaSeconds: 11,
+      elapsedSeconds: 9,
+      queuedFiles: 1,
+      queuedParts: 0,
+      currentLane: {
+        provider: 'github-release',
+        phase: 'downloading',
+        relativePath: 'assets/current.bin',
+        fileOrdinal: 1,
+        filesTotal: 2,
+        partOrdinal: null,
+        partsTotal: null,
+        processedBytes: 900,
+        totalBytes: 1_000,
+        percent: 90,
+      },
+      prefetchLane: {
+        provider: 'github-release',
+        phase: 'downloading',
+        relativePath: 'assets/next.bin',
+        fileOrdinal: 2,
+        filesTotal: 2,
+        partOrdinal: null,
+        partsTotal: null,
+        processedBytes: 1,
+        totalBytes: 1_000,
+        percent: 0,
+      },
+      lookAheadThresholdPercent: CheapLfsRestoreLookAheadThresholdPercent,
+      failures: [],
+      cancelRequested: false,
+    }
+
+    const view = render(
+      <BatchCloneProgress
+        dispatcher={dispatcher}
+        onDismissed={() => {}}
+        batchCloneState={stateWith({ kind: 'cloning', progress: 1 })}
+        finalizing={{
+          completed: 0,
+          total: 1,
+          current: 'desktop',
+          stage: 'restoring',
+        }}
+        cheapLfsRestore={restore}
+        isTopMost={true}
+      />
+    )
+
+    const card = view.baseElement.querySelector(
+      '.batch-clone-finalizing-restore[data-verification="cheap-lfs-restore-progress"]'
+    )
+    assert.ok(card)
+    assert.match(card.textContent ?? '', /started at 90%/)
+    assert.match(card.textContent ?? '', /assets\/current\.bin/)
+    assert.match(card.textContent ?? '', /assets\/next\.bin/)
+    assert.equal(card.querySelectorAll('[role="progressbar"]').length, 3)
   })
 
   it('keeps Done open until durable batch dismissal succeeds', async () => {

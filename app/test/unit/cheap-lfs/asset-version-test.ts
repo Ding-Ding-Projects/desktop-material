@@ -108,7 +108,7 @@ function releaseBucket(tag: string) {
     tagName: tag,
     targetCommitish: 'trunk',
     name: tag,
-    body: '',
+    body: CheapLfsReleaseBodySentinel,
     draft: false,
     prerelease: true,
     createdAt: new Date(0),
@@ -233,6 +233,15 @@ function releaseBucket(tag: string) {
     bytesOf: (name: string) => stored.get(name),
     rejectLabeledUploads: (value: boolean) => (rejectLabeledUploads = value),
     failLabelUpdates: (value: boolean) => (failLabelUpdates = value),
+    makeUnowned: () =>
+      (current = {
+        ...current,
+        body: 'Unrelated prerelease notes',
+        assets: current.assets.map(candidate => ({
+          ...candidate,
+          label: null,
+        })),
+      }),
   }
 }
 
@@ -903,6 +912,42 @@ describe('cheap LFS asset versioning', () => {
         assert.equal(annotation?.sha256, pins[index].sha256)
         assert.equal(stored.name, pins[index].assetName)
       }
+    })
+  })
+
+  it('skips post-commit labels after the release loses managed provenance', async () => {
+    await withTempRepository(async (dir, repository) => {
+      const bucket = releaseBucket('assets')
+      const content = Buffer.from('provenance boundary')
+      await writeFile(join(dir, 'provenance.bin'), content)
+      const result = await pinFileToRelease(
+        bucket.gateway,
+        repository,
+        selected,
+        {
+          absoluteFilePath: join(dir, 'provenance.bin'),
+          trackedRelativePath: 'provenance.bin',
+          releaseTag: 'assets',
+        }
+      )
+      bucket.makeUnowned()
+
+      const outcome = await annotateCheapLfsPinnedAssets(
+        bucket.gateway,
+        repository,
+        cheapLfsAnnotatablePins([
+          {
+            relativePath: 'provenance.bin',
+            sizeInBytes: content.length,
+            result,
+          },
+        ]),
+        'abcdef1234567890abcdef1234567890abcdef12'
+      )
+
+      assert.deepEqual(outcome, { annotated: 0, skipped: 1 })
+      assert.deepEqual(bucket.labelUpdates, [])
+      assert.equal(bucket.assets()[0].label, null)
     })
   })
 

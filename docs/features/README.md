@@ -16,7 +16,8 @@ the implemented feature contracts.
 - [Repository management](repository-management/README.md) — opening,
   organizing, and safely navigating repositories and nested repositories.
 - [Integrations](integrations/README.md) — user-level Git, editor, shell,
-  operating-system connections, and repository-bound provider packages.
+  operating-system connections, a sandboxed app-hosted browser, and
+  repository-bound provider packages.
 - [Identity and workspace](identity-and-workspace/README.md) — multiple
   accounts plus fast repository and branch navigation at workspace scale.
 - [Collaboration](collaboration/README.md) — pull-request review, creation,
@@ -27,3 +28,6 @@ the implemented feature contracts.
   responsiveness, lifecycle cleanup, failure recovery, and regression gates.
 - [Design system](design-system/README.md) — Material presentation controls,
   including command-palette row appearance and responsive visual behavior.
+- [Linux-first terminal edition](linux-tui/README.md) — mouse and keyboard
+  interaction, editable text controls, Git/GitHub workflows, XDG persistence,
+  RE2 search, packaging, security, and honest desktop-parity status.

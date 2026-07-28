@@ -4,7 +4,7 @@
 
 Treat every gallery entry as part of a workflow: find the capability, open its named surface, review the exact scope, and keep the resulting evidence.
 
-This page maps 77 named, user-facing visual functions and states to a one-screenshot-per-function
+This page maps 89 named, user-facing visual functions and states to a one-screenshot-per-function
 acceptance gallery. Every view
 uses synthetic accounts, repositories, issues, pull requests, workflow runs, logs, and artifact
 metadata except the purpose-built live Cheap LFS acceptance repositories. No personal path,
@@ -42,6 +42,17 @@ contract rejects missing, duplicate, or unassigned assets.
 > Exact build, interaction, and
 > privacy receipts are retained in `HANDOFF.md`; each promoted release records its own main, CI,
 > Pages, and wiki verification without implying that later maintenance work is complete.
+>
+> **July 27 published acceptance:** one repository-list sync-summary scene, the
+> exact-90% restore, app-hosted authentication browser, and private-repository
+> lock receipts, plus five Linux TUI receipts bring the source catalog to 89.
+> The three new Windows captures came from the real production build on an
+> isolated hidden Win32 desktop. The Linux TUI captures came from the real
+> Textual application in an ephemeral Debian environment, a real terminal, and
+> an isolated Xvfb display. All eight passed original-resolution accessibility,
+> clipping, and privacy inspection. Their default-branch, Pages, and wiki
+> publication and packaged Windows E2E are verified. Only the Linux TUI
+> compatibility correction rerun and installer/Release receipts remain pending.
 
 The July 18–19 temporary-submodule and refreshed six-image set passed its local
 ten-pass off-screen inspection. A final 1440×960 post-build regression reopened
@@ -89,6 +100,8 @@ active profile's style, label, and explicit language mode.
 | `cheap-lfs-cloud-compression.png` | Bilingual private opt-in with the managed cloud workflow ready and a verified compressed pointer |
 | `cheap-lfs-commit-progress.png` | Three-worker Cheap LFS terminal with queue, provider, reason, timing, ETA, manual-phase, and keyboard-disclosure context |
 | `cheap-lfs-bambu-build-live.png` | Live public Bambu build inventory with ten tracked Release-backed pointer objects |
+| `cheap-lfs-restore-lookahead.png` | Exact-90% Release restore with detailed current and already-running look-ahead lanes |
+| `app-hosted-browser-authentication.png` | Sandboxed app-hosted browser with tabs, redirects, bookmark sanitization, and private authentication escape |
 | `material-actions-cancel.png` | Exact workflow-run cancellation review with ref, actor, and commit context |
 | `material-rebase-review.png` | Reviewed current→target rebase with ahead/behind state and commit preview |
 | `material-pull-preview.png` | Freshly fetched ordinary pull review bound to one exact upstream OID |
@@ -156,6 +169,12 @@ active profile's style, label, and explicit language mode.
 | `tab-overflow-search.png` | Tab overflow dropdown with its search field and regex builder |
 | `repository-groups-expanded.png` | Repository group expanded with per-row sync summaries |
 | `repository-groups-collapsed.png` | Repository group collapsed with its member count pill |
+| `private-repository-lock-badge.png` | Explicit private-metadata lock retained beside the repository logo |
+| `linux-tui-overview.png` | Linux terminal edition overview with repository navigation, status, and first-class workspace tabs |
+| `linux-tui-text-input.png` | Real terminal text-field editing and keyboard interaction |
+| `linux-tui-regex-builder.png` | Guided RE2-compatible regex builder with live matches and capture groups |
+| `linux-tui-bilingual-narrow.png` | Narrow bilingual terminal layout with readable English and playful Hong Kong-style Cantonese |
+| `linux-tui-cheap-lfs.png` | Linux terminal Cheap LFS workspace with repository-scoped transfer detail |
 
 ## App identity and portable tabs
 
@@ -165,6 +184,51 @@ folders, current-tab session import/export, and appropriate right-click
 customization/history context use the same profile/repository ownership model.
 
 ![Restart-restored profile app identity and favorite repository tab](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/material-app-identity-workspace.png)
+
+## Linux terminal edition
+
+The Linux terminal edition adapts Desktop Material's repository navigation,
+Git workflows, Cheap LFS controls, search, regex construction, language modes,
+and persisted appearance model for a keyboard-first Textual interface. These
+captures come from the real application running in a real Debian terminal and
+isolated Xvfb display; they cover the workspace overview, editable text input,
+the full regex builder, narrow bilingual layout, and Cheap LFS workspace.
+
+![Linux terminal edition overview with repository navigation, status, and workspace tabs](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-overview.png)
+
+![Linux terminal edition text field accepting real keyboard input](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-text-input.png)
+
+![Linux terminal edition guided regex builder with live matches and capture groups](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-regex-builder.png)
+
+![Linux terminal edition narrow bilingual layout in English and playful Hong Kong-style Cantonese](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-bilingual-narrow.png)
+
+![Linux terminal edition Cheap LFS workspace with detailed repository-scoped transfer controls](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/linux-tui-cheap-lfs.png)
+
+## App-hosted browser
+
+The July 27 continuation adds a dedicated Desktop Material browser for HTTP(S) links
+when **Settings → Advanced → Open web links** is set to internal. Its trusted
+chrome supplies tabs, New tab, URL bar, Back/Forward, Refresh/Stop, Go,
+bookmarks, popup/redirect capture, and an external escape. Remote pages stay in
+permission-denied sandboxed `WebContentsView` tabs without Node, preload, or
+trusted app IPC. Authentication tabs use a clearable in-memory session, cannot
+be bookmarked, and always offer the system browser.
+
+The accepted capture uses a synthetic redirect/popup fixture and no real
+account or credential. It proves the private authentication notice, explicit
+system-browser action, bookmark exclusion, and sandboxed tab chrome from the
+real production bundle. The source and capture are pushed through `2abccae8fd`,
+and Pages/wiki publication and packaged Windows E2E are verified. Only the
+Linux TUI compatibility correction rerun and installer/Release evidence remain
+pending. See the
+[app-hosted browser contract](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md).
+
+<sub>**香港粵語速讀。** 分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門
+齊晒，網頁鎖喺 sandbox。呢張係真 build 喺 hidden desktop 嘅驗收相，冇用真帳戶
+或者密碼；source 同相已經經 `2abccae8fd` 推上 main，Pages/wiki 亦 live，packaged
+Windows E2E 都過關。而家淨係 TUI correction 遙距 rerun 同 installer/Release 憑證未完成。</sub>
+
+![App-hosted browser showing captured redirects, a sanitized bookmark, and the private authentication escape](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/app-hosted-browser-authentication.png)
 
 ## Tab groups and command palette
 
@@ -236,6 +300,18 @@ pointer files without sending users through GitHub Releases. Its cloud card
 shows the visibility policy and local-only decompression boundary, and each row
 is labeled Raw, Compressed, or Mixed.
 
+The July 27 restore continuation gives Release restore one shared maximum-two-download
+coordinator. The next file or multipart part starts at the exact 90% network
+point, while the shared panel separates overall, current, and look-ahead lanes;
+file/part ordinals; logical and actual downloaded bytes; phase, queue, rate,
+ETA, failures, and cancellation. The scheduler, shared UI, production build,
+and wide English/narrow bilingual hidden-desktop receipts pass. The exact
+source and screenshot are now live on default-branch Pages and the wiki;
+packaged Windows E2E is verified. Only the Linux TUI compatibility correction
+rerun and installer/Release evidence remain pending.
+
+![Detailed Cheap LFS restore with the current transfer at exactly 90% and the next transfer already active](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-restore-lookahead.png)
+
 ![Live private-repository Cheap LFS pin result with the verified pointer and Materialize action](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-ui-acceptance.png)
 
 ![Bilingual private-repository cloud-compression opt-in with a verified compressed pointer](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
@@ -261,6 +337,14 @@ Whole multipart files and whole manual batches roll together from `assets` to
 toward capacity but cannot be downloaded until GitHub marks them uploaded.
 
 ## Repository administration
+
+The repository picker shows a separate filled lock only for exact
+`isPrivate === true` provider metadata. The lock remains visible beside the
+ordinary, fork, or custom repository logo, is keyboard-focusable, and joins the
+row's localized accessible name. Public and unknown metadata make no privacy
+claim.
+
+![Repository picker showing the private-repository lock beside the repository logo](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/private-repository-lock-badge.png)
 
 ![Unfinished file tiles stored temporarily and restored intact](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/concepts/stash-recovery.png)
 

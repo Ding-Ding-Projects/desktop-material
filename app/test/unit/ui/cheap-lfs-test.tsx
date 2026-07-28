@@ -9,6 +9,7 @@ import { CheapLfs, ICheapLfsDispatcher } from '../../../src/ui/repository-tools'
 import {
   ICheapLfsBatchMaterializeResult,
   ICheapLfsMaterializeResult,
+  ICheapLfsMaterializeTransferProgress,
   ICheapLfsManagedPointerEntry,
   ICheapLfsPinOptions,
   ICheapLfsPinResult,
@@ -770,6 +771,95 @@ describe('CheapLfs panel', () => {
     )
   })
 
+  it('shows detailed part, network, rate, ETA, and queue readings for a single restore', async () => {
+    const dispatcher = new FakeCheapLfsDispatcher(pointers)
+    const gate = deferred<void>()
+    dispatcher.materializePointer = async (
+      _repository: Repository,
+      trackedRelativePath: string,
+      _signal?: AbortSignal,
+      onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+    ) => {
+      dispatcher.materializeCalls.push(trackedRelativePath)
+      onProgress?.({
+        operationId: 'single-detailed-restore',
+        direction: 'download',
+        transferredBytes: 900,
+        totalBytes: 1_000,
+        phase: 'downloading',
+        logicalTransferredBytes: 900,
+        logicalTotalBytes: 1_000,
+        actualTransferredBytes: 450,
+        actualTotalBytes: 500,
+        partOrdinal: 2,
+        partsTotal: 3,
+        partTransferredBytes: 150,
+        partTotalBytes: 200,
+      } as ICheapLfsMaterializeTransferProgress)
+      await gate.promise
+      return { path: trackedRelativePath, bytes: 1_000 }
+    }
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    await screen.findByText('assets/logo.psd')
+
+    fireEvent.click(
+      within(rowFor('assets/logo.psd')).getByRole('button', {
+        name: 'Materialize',
+      })
+    )
+
+    assert.ok(await screen.findByText('Restoring now'))
+    assert.ok(screen.getByText('Network download'))
+    assert.ok(screen.getByText('Download rate'))
+    assert.ok(screen.getByText('Time remaining'))
+    assert.ok(screen.getByText('Waiting queue'))
+    assert.ok(screen.getByText('Part 2/3'))
+    assert.ok(
+      document.querySelector('[data-verification="cheap-lfs-restore-progress"]')
+    )
+    gate.resolve()
+  })
+
+  it('labels a single restore from its pointer provider, not current preferences', async () => {
+    const entry = ociPointerEntry('models/archive.bin')
+    const dispatcher = new FakeCheapLfsDispatcher([entry])
+    const gate = deferred<void>()
+    dispatcher.materializePointer = async (
+      _repository: Repository,
+      trackedRelativePath: string,
+      _signal?: AbortSignal,
+      onProgress?: (progress: IGitHubReleaseTransferProgressEvent) => void
+    ) => {
+      dispatcher.materializeCalls.push(trackedRelativePath)
+      onProgress?.({
+        operationId: 'mixed-provider-restore',
+        direction: 'download',
+        transferredBytes: 256,
+        totalBytes: 1_000,
+      })
+      await gate.promise
+      return { path: trackedRelativePath, bytes: 1_000 }
+    }
+    // The repository retains its default Release preference while the selected
+    // committed pointer explicitly routes through GHCR.
+    render(
+      <CheapLfs repository={repository} accounts={[]} dispatcher={dispatcher} />
+    )
+    await screen.findByText('models/archive.bin')
+
+    fireEvent.click(
+      within(rowFor('models/archive.bin')).getByRole('button', {
+        name: 'Materialize',
+      })
+    )
+
+    assert.ok(await screen.findByText('Provider: GHCR'))
+    assert.equal(screen.queryByText('Provider: GitHub Release'), null)
+    gate.resolve()
+  })
+
   it('routes Materialize all through one shared batch instead of per-file calls', async () => {
     const dispatcher = new FakeCheapLfsDispatcher(pointers)
     const gate = deferred<void>()
@@ -915,7 +1005,7 @@ describe('CheapLfs panel', () => {
     assert.equal(trackedInput.value, 'big.psd')
     assert.ok(
       screen.getByText(
-        /larger files are split automatically into 1.5 GiB parts/
+        /larger files are split automatically into 500\.0 MiB parts/
       )
     )
 
@@ -928,7 +1018,7 @@ describe('CheapLfs panel', () => {
     assert.equal(dispatcher.pinCalls[0].absoluteFilePath, pickedFile('big.psd'))
   })
 
-  it('splits a file above the 2 GiB cap and pins it after review', async () => {
+  it('splits a file above the current Release part cap and pins it after review', async () => {
     const dispatcher = new FakeCheapLfsDispatcher([])
     const sourceSize = 3 * 1024 * 1024 * 1024
     // Derived rather than hardcoded so changing the part size cannot leave a

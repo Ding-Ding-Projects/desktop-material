@@ -4,10 +4,11 @@
 
 Use this map to choose a starting point: learn the daily workflow in the User Guide, browse shipped surfaces in the Feature Gallery, or open a specialist guide for deeper details.
 
-> **Platform support:** Desktop Material is a Windows-only application. The
+> **Platform support:** the graphical Electron edition is Windows-only. Its
 > installer and portable-ZIP target is Windows x64, with Windows x64/arm64
-> build validation and Windows packaged E2E. macOS and Linux application
-> packages are not produced or supported.
+> build validation and packaged Windows E2E. A separate
+> [Linux-first TUI](../features/linux-tui/README.md) provides a terminal-native
+> Python package; it is not a Linux Electron build.
 
 **Desktop Material** is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop.
 It is a fork of [desktop/desktop](https://github.com/desktop/desktop) (MIT) with the entire
@@ -47,6 +48,14 @@ into named app functions rather than a searchable command or endpoint catalogue.
 > 10/10 hashes from pointer-only Git history. Its first automatic/manual overlap
 > prompted repository-scoped serialization; the corrected UI receipt remains
 > explicitly separated in `HANDOFF.md`.
+>
+> The July 27 exact-90% restore look-ahead, sandboxed app-hosted browser, and
+> private-repository lock passed the final focused **760/760 across 58 files**
+> gate, 14/14 verifier contracts, full TypeScript, the exact Windows production
+> build, and isolated hidden-desktop interaction/privacy review. The source and
+> captures are pushed through `2abccae8fd`, and Pages/wiki publication is
+> verified live. Packaged Windows E2E is verified. Only the Linux TUI
+> compatibility correction rerun and installer/Release evidence remain pending.
 
 M21 closes the complete 30-item GitHub Desktop demand brief: exact account and
 repository identity, native PR review/creation/activity, selective and external
@@ -89,8 +98,8 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 | Page | What it covers |
 | --- | --- |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
-| [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, guided Git/GitHub functions, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
-| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 77 named visual scenes, with automated missing/duplicate coverage checks. |
+| [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, the app-hosted browser, guided Git/GitHub functions, Cheap LFS restore progress, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
+| [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 89 named visual scenes, with automated missing/duplicate coverage checks. |
 | [Automation](Automation) | Scheduled commit & push and pull, layered overrides, safety guards, and merge-all branches/worktrees. |
 | [Submodules](Submodules) | The simplest page in the wiki — what submodules are (toy boxes inside toy boxes), pre-clone badges, temporary open-and-Back navigation, the Submodule Manager, configuration, fixes, and submodule vs subtree, all in pictures. |
 | [Regex Guide](Regex-Guide) | Filter chips, substring/regex modes, the regex builder, and the search surfaces that use them. |
@@ -121,6 +130,21 @@ receipts as acceptance evidence.
   repository folders to open/switch tabs, or export/import the current tab session with aliases,
   pins, favorites, order, and appearance. Portable files intentionally omit profile-local group
   definitions and memberships.
+- **App-hosted web browser** —
+  the persisted **Settings → Advanced → Open web links** choice sends HTTP(S)
+  links either to the system browser or a dedicated Desktop Material window
+  with tabs, URL/navigation controls, bookmarks, popup/redirect capture, and an
+  external escape. Remote pages stay in permission-denied sandboxed
+  `WebContentsView` tabs without Node, preload, or trusted app IPC.
+  Authentication gets an explicit in-memory, non-bookmarkable session and a
+  visible **Continue in system browser** path.
+- **Detailed two-lane Cheap LFS restore** — Release downloads share one
+  coordinator capped at two. The next
+  file or multipart part starts at exactly 90%, and the shared Large files and
+  clone/batch panel distinguishes overall/current/look-ahead progress,
+  file/part ordinals, logical and actual bytes, phases, queue, elapsed time,
+  rate, ETA, failures, and cancellation without weakening size/SHA-256 or
+  unchanged-pointer verification.
 - **Rich command palette** — `Ctrl+F` shows icon/title/search-term/group rows and an anchored
   appearance editor for comfortable/compact density plus independent icon, group, and keyword
   visibility. The palette, tab groups, state announcements, and accessible names follow English,

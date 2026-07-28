@@ -884,6 +884,7 @@ export type TranslationKey =
   | 'repositoryPicker.showingHidden'
   | 'repositoryPicker.showHidden'
   | 'repositoryPicker.hidden'
+  | 'repositoryPicker.privateRepository'
   | 'repositoryPicker.itemHiddenAria'
   | 'repositoryPicker.hideMenu'
   | 'repositoryPicker.unhideMenu'
@@ -1550,6 +1551,38 @@ export type TranslationKey =
   | 'settings.advancedUsageStatsDescription'
   | 'settings.advancedCredentialStorageTitle'
   | 'settings.advancedCredentialStorageDescription'
+  | 'settings.browserOpenModeTitle'
+  | 'settings.browserOpenModeDescription'
+  | 'settings.browserOpenModeInternal'
+  | 'settings.browserOpenModeExternal'
+  | 'browser.title'
+  | 'browser.tabs'
+  | 'browser.newTab'
+  | 'browser.closeTab'
+  | 'browser.closeNamedTab'
+  | 'browser.closeAuthenticationTab'
+  | 'browser.authentication'
+  | 'browser.authChip'
+  | 'browser.back'
+  | 'browser.forward'
+  | 'browser.stop'
+  | 'browser.refresh'
+  | 'browser.addressLabel'
+  | 'browser.addressPlaceholder'
+  | 'browser.go'
+  | 'browser.removeBookmark'
+  | 'browser.addBookmark'
+  | 'browser.openExternal'
+  | 'browser.bookmarks'
+  | 'browser.authNoticeTitle'
+  | 'browser.authNoticeBody'
+  | 'browser.openAuthExternal'
+  | 'browser.error.invalidAddress'
+  | 'browser.error.loadFailed'
+  | 'browser.error.certificate'
+  | 'browser.error.downloadBlocked'
+  | 'browser.error.rendererGone'
+  | 'browser.error.tooManyTabs'
   | 'settings.integrationsExternalEditorTitle'
   | 'settings.integrationsExternalEditorSubtitle'
   | 'settings.integrationsShellTitle'
@@ -2309,6 +2342,63 @@ export type TranslationKey =
   | 'cheapLfs.restore.label'
   | 'cheapLfs.restore.status'
   | 'cheapLfs.restore.cancel'
+  | 'cheapLfs.restore.canceling'
+  | 'cheapLfs.restore.title'
+  | 'cheapLfs.restore.sectionLabel'
+  | 'cheapLfs.restore.summary'
+  | 'cheapLfs.restore.progressLabel'
+  | 'cheapLfs.restore.progressValueText'
+  | 'cheapLfs.restore.filesLabel'
+  | 'cheapLfs.restore.filesValue'
+  | 'cheapLfs.restore.logicalBytesLabel'
+  | 'cheapLfs.restore.logicalBytesValue'
+  | 'cheapLfs.restore.actualBytesLabel'
+  | 'cheapLfs.restore.downloadWithTotal'
+  | 'cheapLfs.restore.downloadWithoutTotal'
+  | 'cheapLfs.restore.downloadTotalOnly'
+  | 'cheapLfs.restore.notReported'
+  | 'cheapLfs.restore.rateLabel'
+  | 'cheapLfs.restore.rateValue'
+  | 'cheapLfs.restore.ratePending'
+  | 'cheapLfs.restore.etaLabel'
+  | 'cheapLfs.restore.etaPending'
+  | 'cheapLfs.restore.elapsedLabel'
+  | 'cheapLfs.restore.queueLabel'
+  | 'cheapLfs.restore.queueValue'
+  | 'cheapLfs.restore.lookAheadStarts'
+  | 'cheapLfs.restore.lookAheadStarting'
+  | 'cheapLfs.restore.lookAheadActive'
+  | 'cheapLfs.restore.lookAheadBoundary'
+  | 'cheapLfs.restore.currentLane'
+  | 'cheapLfs.restore.prefetchLane'
+  | 'cheapLfs.restore.laneGroupLabel'
+  | 'cheapLfs.restore.laneFile'
+  | 'cheapLfs.restore.lanePart'
+  | 'cheapLfs.restore.laneProgressLabel'
+  | 'cheapLfs.restore.laneValueText'
+  | 'cheapLfs.restore.laneValueIndeterminate'
+  | 'cheapLfs.restore.laneBytes'
+  | 'cheapLfs.restore.laneBytesWithoutTotal'
+  | 'cheapLfs.restore.laneWaiting'
+  | 'cheapLfs.restore.pathUnavailable'
+  | 'cheapLfs.restore.failuresLabel'
+  | 'cheapLfs.restore.failureReason'
+  | 'cheapLfs.restore.failureReasonWithStatus'
+  | 'cheapLfs.restore.failureUnknown'
+  | 'cheapLfs.restore.failuresOmitted'
+  | 'cheapLfs.restore.providerBadge'
+  | 'cheapLfs.restore.phaseBadge'
+  | 'cheapLfs.restore.provider.githubRelease'
+  | 'cheapLfs.restore.provider.ghcr'
+  | 'cheapLfs.restore.provider.dockerHub'
+  | 'cheapLfs.restore.provider.mixed'
+  | 'cheapLfs.restore.provider.unknown'
+  | 'cheapLfs.restore.phase.preparing'
+  | 'cheapLfs.restore.phase.downloading'
+  | 'cheapLfs.restore.phase.decompressing'
+  | 'cheapLfs.restore.phase.verifying'
+  | 'cheapLfs.restore.phase.materializing'
+  | 'cheapLfs.restore.phase.canceling'
   | 'batchClone.finalizingLabel'
   | 'batchClone.finalizingStatus'
   | 'batchClone.restoringStatus'
@@ -3440,6 +3530,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositoryPicker.showingHidden': 'Showing hidden ({count})',
   'repositoryPicker.showHidden': 'Show hidden ({count})',
   'repositoryPicker.hidden': 'Hidden',
+  'repositoryPicker.privateRepository': 'Private repository',
   'repositoryPicker.itemHiddenAria': '{repository}, hidden',
   'repositoryPicker.hideMenu': 'Hide repository',
   'repositoryPicker.unhideMenu': 'Unhide repository',
@@ -4266,6 +4357,44 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settings.advancedCredentialStorageTitle': 'Credential storage',
   'settings.advancedCredentialStorageDescription':
     'Tokens are kept in the operating-system credential store and are never written to repository configuration.',
+  'settings.browserOpenModeTitle': 'Open web links',
+  'settings.browserOpenModeDescription':
+    'Choose whether browser-bound links open in Desktop Material or your system browser. Authentication always offers an external-browser option.',
+  'settings.browserOpenModeInternal': 'Inside Desktop Material',
+  'settings.browserOpenModeExternal': 'In the system browser',
+  'browser.title': 'Desktop Material browser',
+  'browser.tabs': 'Browser tabs',
+  'browser.newTab': 'New tab',
+  'browser.closeTab': 'Close tab',
+  'browser.closeNamedTab': 'Close tab: {title}',
+  'browser.closeAuthenticationTab': 'Close authentication tab: {title}',
+  'browser.authentication': 'Authentication tab',
+  'browser.authChip': 'SIGN IN',
+  'browser.back': 'Back',
+  'browser.forward': 'Forward',
+  'browser.stop': 'Stop loading',
+  'browser.refresh': 'Refresh',
+  'browser.addressLabel': 'Web address',
+  'browser.addressPlaceholder': 'Enter a web address',
+  'browser.go': 'Go',
+  'browser.removeBookmark': 'Remove bookmark',
+  'browser.addBookmark': 'Add bookmark',
+  'browser.openExternal': 'Open externally',
+  'browser.bookmarks': 'Bookmarks',
+  'browser.authNoticeTitle': 'Private sign-in session.',
+  'browser.authNoticeBody':
+    'This tab shares an in-memory session only with sign-in popups. Its address and data are cleared when sign-in closes, and it cannot be bookmarked.',
+  'browser.openAuthExternal': 'Continue in system browser',
+  'browser.error.invalidAddress': 'Enter a valid HTTP or HTTPS web address.',
+  'browser.error.loadFailed': 'This page could not be loaded.',
+  'browser.error.certificate':
+    'This page was blocked because its certificate could not be verified.',
+  'browser.error.downloadBlocked':
+    'The in-app browser does not save downloads. Open this page externally to download.',
+  'browser.error.rendererGone':
+    'This page stopped unexpectedly. Refresh it or open it externally.',
+  'browser.error.tooManyTabs':
+    'The in-app browser is limited to 20 tabs. Close a tab before opening another.',
   'settings.integrationsExternalEditorTitle': 'External editor',
   'settings.integrationsExternalEditorSubtitle':
     'Used when opening files or repositories in your editor',
@@ -5293,6 +5422,76 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.restore.status':
     'Restoring large files — {files} files, {bytes} transferred',
   'cheapLfs.restore.cancel': 'Stop restoring',
+  'cheapLfs.restore.canceling': 'Stopping…',
+  'cheapLfs.restore.title': 'Large-file restore',
+  'cheapLfs.restore.sectionLabel':
+    'Large-file restore progress for {repository}',
+  'cheapLfs.restore.summary':
+    'Restore {percent}% · {succeeded} succeeded · {failed} failed · {remaining} remaining',
+  'cheapLfs.restore.progressLabel': 'Overall large-file restore progress',
+  'cheapLfs.restore.progressValueText':
+    '{processed} of {total} restored, {percent}%; {succeeded} succeeded, {failed} failed, {remaining} remaining',
+  'cheapLfs.restore.filesLabel': 'Files',
+  'cheapLfs.restore.filesValue':
+    '{succeeded} succeeded · {failed} failed · {remaining} remaining · {total} total',
+  'cheapLfs.restore.logicalBytesLabel': 'Original file data',
+  'cheapLfs.restore.logicalBytesValue': '{processed} / {total}',
+  'cheapLfs.restore.actualBytesLabel': 'Network download',
+  'cheapLfs.restore.downloadWithTotal': '{downloaded} / {total}',
+  'cheapLfs.restore.downloadWithoutTotal':
+    '{downloaded} downloaded · total not reported',
+  'cheapLfs.restore.downloadTotalOnly':
+    'Total {total} · waiting for first byte',
+  'cheapLfs.restore.notReported': 'Not reported by this provider',
+  'cheapLfs.restore.rateLabel': 'Download rate',
+  'cheapLfs.restore.rateValue': '{rate}',
+  'cheapLfs.restore.ratePending': 'Measuring…',
+  'cheapLfs.restore.etaLabel': 'Time remaining',
+  'cheapLfs.restore.etaPending': 'Calculating…',
+  'cheapLfs.restore.elapsedLabel': 'Elapsed',
+  'cheapLfs.restore.queueLabel': 'Waiting queue',
+  'cheapLfs.restore.queueValue': '{files} files · {parts} parts',
+  'cheapLfs.restore.lookAheadStarts':
+    'Next download starts when this lane reaches exactly {percent}%.',
+  'cheapLfs.restore.lookAheadStarting':
+    'This lane reached {percent}%; starting the next download…',
+  'cheapLfs.restore.lookAheadActive':
+    'Next download is already running — it started at {percent}%.',
+  'cheapLfs.restore.lookAheadBoundary':
+    'Look-ahead boundary: {percent}% · nothing else is queued.',
+  'cheapLfs.restore.currentLane': 'Restoring now',
+  'cheapLfs.restore.prefetchLane': 'Next download',
+  'cheapLfs.restore.laneGroupLabel': '{lane}: {path}',
+  'cheapLfs.restore.laneFile': 'File {current}/{total}',
+  'cheapLfs.restore.lanePart': 'Part {current}/{total}',
+  'cheapLfs.restore.laneProgressLabel': 'Download progress for {path}',
+  'cheapLfs.restore.laneValueText':
+    '{processed} of {total} downloaded for {path}, {percent}%',
+  'cheapLfs.restore.laneValueIndeterminate':
+    '{processed} downloaded for {path}; total not reported',
+  'cheapLfs.restore.laneBytes': '{processed} / {total}',
+  'cheapLfs.restore.laneBytesWithoutTotal': '{processed} downloaded',
+  'cheapLfs.restore.laneWaiting': 'Waiting for the first provider lane…',
+  'cheapLfs.restore.pathUnavailable': 'Path unavailable',
+  'cheapLfs.restore.failuresLabel': 'Restore failures',
+  'cheapLfs.restore.failureReason': 'Reason: {reason}',
+  'cheapLfs.restore.failureReasonWithStatus':
+    'HTTP {status} · reason: {reason}',
+  'cheapLfs.restore.failureUnknown': 'The provider did not report a reason.',
+  'cheapLfs.restore.failuresOmitted': '{count} more failures are not shown.',
+  'cheapLfs.restore.providerBadge': 'Provider: {provider}',
+  'cheapLfs.restore.phaseBadge': 'Phase: {phase}',
+  'cheapLfs.restore.provider.githubRelease': 'GitHub Releases',
+  'cheapLfs.restore.provider.ghcr': 'GHCR',
+  'cheapLfs.restore.provider.dockerHub': 'Docker Hub',
+  'cheapLfs.restore.provider.mixed': 'Mixed providers',
+  'cheapLfs.restore.provider.unknown': 'Provider pending',
+  'cheapLfs.restore.phase.preparing': 'Preparing',
+  'cheapLfs.restore.phase.downloading': 'Downloading',
+  'cheapLfs.restore.phase.decompressing': 'Decompressing',
+  'cheapLfs.restore.phase.verifying': 'Verifying',
+  'cheapLfs.restore.phase.materializing': 'Restoring',
+  'cheapLfs.restore.phase.canceling': 'Stopping',
   'batchClone.finalizingLabel': 'Finishing the cloned repositories',
   'batchClone.finalizingStatus': 'Registering {index} of {total} repositories…',
   'batchClone.restoringStatus': 'Restoring large files in {name}…',
@@ -6340,6 +6539,7 @@ export const cantoneseTranslations: Readonly<
   'repositoryPicker.showingHidden': '顯示緊隱藏項目（{count}）',
   'repositoryPicker.showHidden': '顯示隱藏項目（{count}）',
   'repositoryPicker.hidden': '已隱藏',
+  'repositoryPicker.privateRepository': '私人 repo',
   'repositoryPicker.itemHiddenAria': '{repository}，已隱藏',
   'repositoryPicker.hideMenu': '隱藏 repo',
   'repositoryPicker.unhideMenu': '取消隱藏 repo',
@@ -7102,6 +7302,43 @@ export const cantoneseTranslations: Readonly<
   'settings.advancedCredentialStorageTitle': '憑證儲存',
   'settings.advancedCredentialStorageDescription':
     '權杖只會存喺作業系統嘅憑證庫，絕對唔會寫入 repository 嘅設定檔。',
+  'settings.browserOpenModeTitle': '開啟網頁連結',
+  'settings.browserOpenModeDescription':
+    '揀 browser 連結喺 Desktop Material 入面開，定交畀系統瀏覽器。登入頁永遠都有轉去外部瀏覽器嘅選項。',
+  'settings.browserOpenModeInternal': '喺 Desktop Material 入面',
+  'settings.browserOpenModeExternal': '喺系統瀏覽器',
+  'browser.title': 'Desktop Material 瀏覽器',
+  'browser.tabs': '瀏覽器分頁',
+  'browser.newTab': '新分頁',
+  'browser.closeTab': '關閉分頁',
+  'browser.closeNamedTab': '關閉分頁：{title}',
+  'browser.closeAuthenticationTab': '關閉登入分頁：{title}',
+  'browser.authentication': '登入分頁',
+  'browser.authChip': '登入',
+  'browser.back': '上一頁',
+  'browser.forward': '下一頁',
+  'browser.stop': '停止載入',
+  'browser.refresh': '重新整理',
+  'browser.addressLabel': '網址',
+  'browser.addressPlaceholder': '輸入網址',
+  'browser.go': '前往',
+  'browser.removeBookmark': '移除書籤',
+  'browser.addBookmark': '加入書籤',
+  'browser.openExternal': '喺外部開啟',
+  'browser.bookmarks': '書籤',
+  'browser.authNoticeTitle': '私人登入工作階段。',
+  'browser.authNoticeBody':
+    '呢個分頁只會同登入彈出分頁共享記憶體內嘅工作階段；關閉登入後會清走網址同資料，而且唔可以加書籤。',
+  'browser.openAuthExternal': '轉去系統瀏覽器繼續',
+  'browser.error.invalidAddress': '請輸入有效嘅 HTTP 或 HTTPS 網址。',
+  'browser.error.loadFailed': '載入唔到呢個頁面。',
+  'browser.error.certificate': '頁面憑證驗證唔到，已經安全擋住。',
+  'browser.error.downloadBlocked':
+    'App 內瀏覽器唔會儲存下載；要下載請喺外部開啟呢個頁面。',
+  'browser.error.rendererGone':
+    '呢個頁面意外停止咗。請重新整理，或者喺外部開啟。',
+  'browser.error.tooManyTabs':
+    'App 內瀏覽器最多只可以開 20 個分頁。請先關閉一個分頁再開新嘅。',
   'settings.integrationsExternalEditorTitle': '外部編輯器',
   'settings.integrationsExternalEditorSubtitle':
     '喺編輯器打開檔案或者 repository 時會用到',
@@ -8070,6 +8307,73 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.restore.label': '還原緊大檔案',
   'cheapLfs.restore.status': '還原緊大檔案 — {files} 個檔案，傳咗 {bytes}',
   'cheapLfs.restore.cancel': '停止還原',
+  'cheapLfs.restore.canceling': '停緊…',
+  'cheapLfs.restore.title': '大檔案還原實況',
+  'cheapLfs.restore.sectionLabel': '{repository} 嘅大檔案還原進度',
+  'cheapLfs.restore.summary':
+    '還原咗 {percent}% · 搞掂 {succeeded} · 失手 {failed} · 仲有 {remaining}',
+  'cheapLfs.restore.progressLabel': '大檔案整體還原進度',
+  'cheapLfs.restore.progressValueText':
+    '還原咗 {processed} / {total}，即係 {percent}%；成功 {succeeded}，失敗 {failed}，仲有 {remaining}',
+  'cheapLfs.restore.filesLabel': '檔案',
+  'cheapLfs.restore.filesValue':
+    '成功 {succeeded} · 失敗 {failed} · 仲有 {remaining} · 合共 {total}',
+  'cheapLfs.restore.logicalBytesLabel': '原檔數據',
+  'cheapLfs.restore.logicalBytesValue': '{processed} / {total}',
+  'cheapLfs.restore.actualBytesLabel': '實際網絡下載',
+  'cheapLfs.restore.downloadWithTotal': '{downloaded} / {total}',
+  'cheapLfs.restore.downloadWithoutTotal':
+    '下載咗 {downloaded} · provider 未報總數',
+  'cheapLfs.restore.downloadTotalOnly': '總數 {total} · 等緊第一批 bytes',
+  'cheapLfs.restore.notReported': '呢個 provider 未有報數',
+  'cheapLfs.restore.rateLabel': '下載速度',
+  'cheapLfs.restore.rateValue': '{rate}',
+  'cheapLfs.restore.ratePending': '量度緊…',
+  'cheapLfs.restore.etaLabel': '預計仲要',
+  'cheapLfs.restore.etaPending': '計緊…',
+  'cheapLfs.restore.elapsedLabel': '已用時間',
+  'cheapLfs.restore.queueLabel': '等候隊列',
+  'cheapLfs.restore.queueValue': '{files} 個檔案 · {parts} 個 parts',
+  'cheapLfs.restore.lookAheadStarts':
+    '呢條下載線一到正正 {percent}% 就開下一條，唔使呆等。',
+  'cheapLfs.restore.lookAheadStarting':
+    '呢條下載線到咗 {percent}%；開緊下一條下載線…',
+  'cheapLfs.restore.lookAheadActive':
+    '下一條下載線已經開跑 — 正正 {percent}% 嗰陣起步。',
+  'cheapLfs.restore.lookAheadBoundary':
+    '預先下載界線：{percent}% · 而家冇其他檔案排隊。',
+  'cheapLfs.restore.currentLane': '而家還原緊',
+  'cheapLfs.restore.prefetchLane': '下一條下載線',
+  'cheapLfs.restore.laneGroupLabel': '{lane}：{path}',
+  'cheapLfs.restore.laneFile': '檔案 {current}/{total}',
+  'cheapLfs.restore.lanePart': 'Part {current}/{total}',
+  'cheapLfs.restore.laneProgressLabel': '{path} 嘅下載進度',
+  'cheapLfs.restore.laneValueText':
+    '{path} 下載咗 {processed} / {total}，即係 {percent}%',
+  'cheapLfs.restore.laneValueIndeterminate':
+    '{path} 下載咗 {processed}；provider 未報總數',
+  'cheapLfs.restore.laneBytes': '{processed} / {total}',
+  'cheapLfs.restore.laneBytesWithoutTotal': '下載咗 {processed}',
+  'cheapLfs.restore.laneWaiting': '等緊 provider 開第一條下載線…',
+  'cheapLfs.restore.pathUnavailable': '未有檔案路徑',
+  'cheapLfs.restore.failuresLabel': '還原失敗',
+  'cheapLfs.restore.failureReason': '原因：{reason}',
+  'cheapLfs.restore.failureReasonWithStatus': 'HTTP {status} · 原因：{reason}',
+  'cheapLfs.restore.failureUnknown': 'Provider 冇報失敗原因。',
+  'cheapLfs.restore.failuresOmitted': '仲有 {count} 個失敗未顯示。',
+  'cheapLfs.restore.providerBadge': 'Provider：{provider}',
+  'cheapLfs.restore.phaseBadge': '階段：{phase}',
+  'cheapLfs.restore.provider.githubRelease': 'GitHub Releases',
+  'cheapLfs.restore.provider.ghcr': 'GHCR',
+  'cheapLfs.restore.provider.dockerHub': 'Docker Hub',
+  'cheapLfs.restore.provider.mixed': '混合 providers',
+  'cheapLfs.restore.provider.unknown': '等緊 provider',
+  'cheapLfs.restore.phase.preparing': '準備緊',
+  'cheapLfs.restore.phase.downloading': '下載緊',
+  'cheapLfs.restore.phase.decompressing': '解壓緊',
+  'cheapLfs.restore.phase.verifying': '核實緊',
+  'cheapLfs.restore.phase.materializing': '還原緊',
+  'cheapLfs.restore.phase.canceling': '停緊',
   'batchClone.finalizingLabel': '執緊 clone 完嘅 repository',
   'batchClone.finalizingStatus': '登記緊第 {index} / {total} 個 repository…',
   'batchClone.restoringStatus': '還原緊 {name} 入面嘅大檔案…',

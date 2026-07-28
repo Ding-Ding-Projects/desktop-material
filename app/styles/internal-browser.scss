@@ -1,0 +1,6 @@
+// Keep this entry beside the bundled font assets. Sass resolves the imported
+// @font-face URLs relative to the entry stylesheet, while the browser-specific
+// component rules remain colocated with their renderer.
+@import 'fonts';
+@import 'ui/material-symbol';
+@import '../src/internal-browser/styles/internal-browser';

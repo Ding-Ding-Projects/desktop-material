@@ -48,6 +48,7 @@ import {
   IRepositorySyncFunnyLevels,
   IRepositorySyncSummaryText,
 } from './repository-sync-summary'
+import { translateForAccessibleName } from '../../lib/i18n'
 
 /**
  * The Material Symbols Rounded ligature for a repository row's leading glyph.
@@ -55,6 +56,8 @@ import {
  * outside the repository picker) using the prototype's `book_2`/`fork_right`
  * vocabulary. `computer` (the design's local-repo glyph) is not in the bundled
  * subset, so a local-only repo falls back to the generic `book_2` repo glyph.
+ * Privacy is a separate badge beside the row, which keeps a private fork's
+ * repository type visible and remains present when a custom logo is loaded.
  */
 function materialSymbolForRepository(
   repository: Repositoryish
@@ -72,9 +75,6 @@ function materialSymbolForRepository(
     return 'book_2'
   }
 
-  if (gitHubRepo.isPrivate) {
-    return 'lock'
-  }
   if (gitHubRepo.fork) {
     return 'fork_right'
   }
@@ -159,6 +159,7 @@ export class RepositoryListItem extends React.Component<
   IRepositoryListItemState
 > {
   private readonly listItemRef = createObservableRef<HTMLDivElement>()
+  private readonly privateBadgeRef = createObservableRef<HTMLSpanElement>()
 
   /**
    * Per-row memo for the sync line.
@@ -751,6 +752,8 @@ export class RepositoryListItem extends React.Component<
           {this.renderSyncSummary()}
         </div>
 
+        {this.renderPrivateBadge(gitHubRepo)}
+
         {this.props.branchName !== null && (
           <span className="repository-branch-pill">
             <MaterialSymbol name="alt_route" size={14} />
@@ -787,6 +790,54 @@ export class RepositoryListItem extends React.Component<
         {this.renderAppearanceEditor()}
       </div>
     )
+  }
+
+  /**
+   * Paint privacy only from the repository metadata already held by the app.
+   * `null` means unknown and must never be presented as either public or
+   * private. The compact icon badge keeps its full shape at narrow widths while
+   * a keyboard-focusable, localized tooltip supplies the complete wording.
+   */
+  private renderPrivateBadge(
+    gitHubRepo: Repository['gitHubRepository']
+  ): JSX.Element | null {
+    if (gitHubRepo?.isPrivate !== true) {
+      return null
+    }
+
+    const languageMode = this.props.languageMode ?? 'english'
+    const accessibleName = translateForAccessibleName(
+      'repositoryPicker.privateRepository',
+      {},
+      languageMode
+    )
+
+    /* eslint-disable jsx-a11y/no-noninteractive-tabindex --
+     * This read-only status icon must remain a keyboard-reachable tooltip
+     * trigger. The containing option already exposes the same privacy state. */
+    return (
+      <span
+        className="repository-private-badge"
+        ref={this.privateBadgeRef}
+        tabIndex={0}
+        role="img"
+        aria-label={accessibleName}
+      >
+        <Tooltip
+          target={this.privateBadgeRef}
+          openOnFocus={true}
+          positionRelativeToTarget={true}
+          applyAriaDescribedBy={false}
+        >
+          <LocalizedText
+            translationKey="repositoryPicker.privateRepository"
+            languageMode={languageMode}
+          />
+        </Tooltip>
+        <MaterialSymbol name="lock" size={13} fill={1} />
+      </span>
+    )
+    /* eslint-enable jsx-a11y/no-noninteractive-tabindex */
   }
 
   /**

@@ -82,6 +82,7 @@ import {
   IUnknownAction,
   URLActionType,
 } from '../../lib/parse-app-url'
+import type { InternalBrowserOAuthCallbackResult } from '../../lib/internal-browser'
 import {
   matchExistingRepository,
   urlsMatch,
@@ -4590,10 +4591,12 @@ export class Dispatcher {
     }
   }
 
-  public async dispatchURLAction(action: URLActionType): Promise<void> {
+  public async dispatchURLAction(
+    action: URLActionType
+  ): Promise<InternalBrowserOAuthCallbackResult | null> {
     switch (action.name) {
-      case 'oauth':
-        await this.appStore._resolveOAuthRequest(action)
+      case 'oauth': {
+        const result = await this.appStore._resolveOAuthRequest(action)
 
         if (__DARWIN__) {
           // workaround for user reports that the application doesn't receive focus
@@ -4606,11 +4609,12 @@ export class Dispatcher {
             window.focus()
           }
         }
-        break
+        return result
+      }
 
       case 'open-repository-from-url':
         this.openRepositoryFromUrl(action)
-        break
+        return null
 
       default:
         const unknownAction: IUnknownAction = action
@@ -4619,6 +4623,7 @@ export class Dispatcher {
             unknownAction.name
           } - payload: ${JSON.stringify(unknownAction)}`
         )
+        return null
     }
   }
 

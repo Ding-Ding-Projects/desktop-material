@@ -12,11 +12,12 @@ import {
 } from 'electron'
 import * as Fs from 'fs'
 import * as Path from 'path'
+import { randomUUID } from 'crypto'
 
 import { AppWindow } from './app-window'
 import { buildDefaultMenu, getAllMenuItems } from './menu'
 import { shellNeedsPatching, updateEnvironmentForProcess } from '../lib/shell'
-import { parseAppURL } from '../lib/parse-app-url'
+import { IOAuthAction, parseAppURL } from '../lib/parse-app-url'
 import {
   handleSquirrelEvent,
   installWindowsCLI,
@@ -67,6 +68,22 @@ import {
 import { repairStaleShellExtensionRegistration } from './shell-extension-installer'
 import { QuickActionWindow } from './quick-action-window'
 import { IQuickActionRequest, decideQuickAction } from '../lib/quick-action'
+import {
+  InternalBrowserWindow,
+  isInternalBrowserRemoteWebContents,
+} from './internal-browser-window'
+import {
+  BrowserOpenMode,
+  createInternalBrowserOAuthCallbackId,
+  InternalBrowserOAuthCallbackResult,
+  IOpenExternalOptions,
+  normalizeBrowserOpenMode,
+  normalizeInternalBrowserCommand,
+  normalizeInternalBrowserContentBounds,
+  normalizeInternalBrowserOAuthCallbackReceipt,
+  normalizeWebURL,
+  redactBrowserURL,
+} from '../lib/internal-browser'
 import {
   buildRunner,
   codexRunner,
@@ -134,7 +151,21 @@ app.setAppLogsPath()
 enableSourceMaps()
 
 const windows = new Map<number, AppWindow>()
+let internalBrowserWindow: InternalBrowserWindow | null = null
+let browserOpenMode: BrowserOpenMode = 'internal'
 let agentServerController: AgentServerController | null = null
+const internalBrowserOAuthCallbackTimeoutMs = 60_000
+
+interface IPendingInternalBrowserOAuthCallback {
+  readonly ownerWindowId: number
+  readonly timeout: ReturnType<typeof setTimeout>
+  readonly resolve: (result: InternalBrowserOAuthCallbackResult) => void
+}
+
+const pendingInternalBrowserOAuthCallbacks = new Map<
+  string,
+  IPendingInternalBrowserOAuthCallback
+>()
 
 const launchTime = now()
 
@@ -295,6 +326,132 @@ if (__DARWIN__) {
   possibleProtocols.add('github-mac')
 } else if (__WIN32__) {
   possibleProtocols.add('github-windows')
+}
+
+function isAppProtocolURL(url: string): boolean {
+  try {
+    return possibleProtocols.has(new URL(url).protocol.replace(/:$/, ''))
+  } catch {
+    return false
+  }
+}
+
+function settleInternalBrowserOAuthCallback(
+  callbackId: string,
+  result: InternalBrowserOAuthCallbackResult
+) {
+  const pending = pendingInternalBrowserOAuthCallbacks.get(callbackId)
+  if (pending === undefined) {
+    return
+  }
+  clearTimeout(pending.timeout)
+  pendingInternalBrowserOAuthCallbacks.delete(callbackId)
+  pending.resolve(result)
+}
+
+function cancelInternalBrowserOAuthCallbacksForWindow(windowId: number) {
+  for (const [callbackId, pending] of pendingInternalBrowserOAuthCallbacks) {
+    if (pending.ownerWindowId === windowId) {
+      settleInternalBrowserOAuthCallback(callbackId, 'rejected')
+    }
+  }
+}
+
+function handleInternalBrowserAuthenticationCallback(
+  action: IOAuthAction,
+  ownerWindowId: number | null
+): Promise<InternalBrowserOAuthCallbackResult> {
+  if (ownerWindowId === null) {
+    return Promise.resolve('rejected')
+  }
+  const target = windows.get(ownerWindowId)
+  if (target === undefined || !target.isLoaded) {
+    return Promise.resolve('rejected')
+  }
+
+  return dispatchOAuthActionToWindow(action, target, false)
+}
+
+function dispatchOAuthActionToWindow(
+  action: IOAuthAction,
+  target: AppWindow,
+  revealWindow: boolean
+): Promise<InternalBrowserOAuthCallbackResult> {
+  const callbackId = createInternalBrowserOAuthCallbackId(randomUUID())
+  return new Promise(resolve => {
+    const timeout = setTimeout(
+      () => settleInternalBrowserOAuthCallback(callbackId, 'failed'),
+      internalBrowserOAuthCallbackTimeoutMs
+    )
+    pendingInternalBrowserOAuthCallbacks.set(callbackId, {
+      ownerWindowId: target.id,
+      timeout,
+      resolve,
+    })
+    try {
+      target.sendURLAction(action, callbackId, revealWindow)
+    } catch (error) {
+      log.error('Unable to deliver internal browser OAuth callback', error)
+      settleInternalBrowserOAuthCallback(callbackId, 'failed')
+    }
+  })
+}
+
+function getInternalBrowserWindow(): InternalBrowserWindow {
+  if (internalBrowserWindow !== null && !internalBrowserWindow.isDestroyed) {
+    return internalBrowserWindow
+  }
+
+  const browser = new InternalBrowserWindow({
+    handleAuthenticationCallback: handleInternalBrowserAuthenticationCallback,
+    isAppURL: isAppProtocolURL,
+    onClosed: () => {
+      if (internalBrowserWindow === browser) {
+        internalBrowserWindow = null
+      }
+      if (
+        !__DARWIN__ &&
+        windows.size === 0 &&
+        quickActionWindows.size === 0 &&
+        !preventQuit
+      ) {
+        app.quit()
+      }
+    },
+  })
+  internalBrowserWindow = browser
+  return browser
+}
+
+async function openExternalTarget(
+  path: string,
+  options?: Partial<IOpenExternalOptions>,
+  sourceWindowId: number | null = null
+): Promise<boolean> {
+  const webURL = normalizeWebURL(path)
+  const mode = normalizeBrowserOpenMode(options?.mode ?? browserOpenMode)
+  const intent =
+    options?.intent === 'authentication' ? 'authentication' : 'default'
+
+  if (webURL !== null && mode === 'internal') {
+    log.info(`Opening in the app browser: ${redactBrowserURL(webURL)}`)
+    return getInternalBrowserWindow().open(
+      webURL,
+      intent,
+      intent === 'authentication' ? sourceWindowId : null
+    )
+  }
+
+  if (webURL !== null) {
+    log.info(`Opening in the system browser: ${redactBrowserURL(webURL)}`)
+  }
+  try {
+    await shell.openExternal(path)
+    return true
+  } catch (error) {
+    log.error('Call to openExternal failed', error)
+    return false
+  }
 }
 
 // On Windows, in order to get notifications properly working for dev builds,
@@ -524,13 +681,22 @@ function handleAppURL(url: string) {
   })
 }
 
-function broadcastOAuthAction(action: ReturnType<typeof parseAppURL>) {
+function broadcastOAuthAction(action: IOAuthAction) {
   for (const window of getAppWindows()) {
-    if (window.isLoaded) {
-      window.sendURLAction(action)
-    } else {
-      window.onDidLoad(() => window.sendURLAction(action))
+    const deliver = () => {
+      void dispatchOAuthActionToWindow(action, window, true).then(result => {
+        internalBrowserWindow?.handleAuthenticationResolution(
+          window.id,
+          action.state,
+          result
+        )
+      })
     }
+    if (!window.isLoaded) {
+      window.onDidLoad(deliver)
+      continue
+    }
+    deliver()
   }
 }
 
@@ -633,7 +799,12 @@ function openQuickActionWindow(
     // A quick action never keeps the app alive on its own: if it was the only
     // reason this process started, closing it should quit rather than leave an
     // invisible process behind.
-    if (!__DARWIN__ && windows.size === 0 && quickActionWindows.size === 0) {
+    if (
+      !__DARWIN__ &&
+      windows.size === 0 &&
+      quickActionWindows.size === 0 &&
+      internalBrowserWindow === null
+    ) {
       app.quit()
     }
   })
@@ -924,12 +1095,15 @@ app.on('ready', () => {
   const updateAccounts = installAuthenticatedImageFilter(orderedWebRequest)
 
   Menu.setApplicationMenu(
-    buildDefaultMenu({
-      selectedShell: null,
-      selectedExternalEditor: null,
-      askForConfirmationOnRepositoryRemoval: false,
-      askForConfirmationOnForcePush: false,
-    })
+    buildDefaultMenu(
+      {
+        selectedShell: null,
+        selectedExternalEditor: null,
+        askForConfirmationOnRepositoryRemoval: false,
+        askForConfirmationOnForcePush: false,
+      },
+      openExternalTarget
+    )
   )
 
   registerBuildRunIpc()
@@ -970,7 +1144,7 @@ app.on('ready', () => {
     // current state with the new in order to not get a temporary
     // race conditions where menu items which shouldn't be enabled
     // are.
-    const newMenu = buildDefaultMenu(labels)
+    const newMenu = buildDefaultMenu(labels, openExternalTarget)
 
     const currentMenu = Menu.getApplicationMenu()
 
@@ -1294,6 +1468,50 @@ app.on('ready', () => {
     }
   })
 
+  ipcMain.on('set-browser-open-mode', (_event, mode) => {
+    browserOpenMode = normalizeBrowserOpenMode(mode)
+  })
+
+  ipcMain.on('internal-browser-ready', event => {
+    if (event.sender === internalBrowserWindow?.webContents) {
+      internalBrowserWindow.onRendererReady()
+    }
+  })
+
+  ipcMain.on('internal-browser-command', (event, command) => {
+    const normalized = normalizeInternalBrowserCommand(command)
+    if (
+      event.sender === internalBrowserWindow?.webContents &&
+      normalized !== null
+    ) {
+      internalBrowserWindow.handleCommand(normalized)
+    }
+  })
+
+  ipcMain.on('internal-browser-content-bounds', (event, bounds) => {
+    const normalized = normalizeInternalBrowserContentBounds(bounds)
+    if (
+      event.sender === internalBrowserWindow?.webContents &&
+      normalized !== null
+    ) {
+      internalBrowserWindow.setContentBounds(normalized)
+    }
+  })
+
+  ipcMain.on('internal-browser-oauth-result', (event, value) => {
+    const receipt = normalizeInternalBrowserOAuthCallbackReceipt(value)
+    const source = getAppWindowFromWebContents(event.sender)
+    if (receipt === null || source === null) {
+      return
+    }
+
+    const pending = pendingInternalBrowserOAuthCallbacks.get(receipt.callbackId)
+    if (pending?.ownerWindowId !== source.id) {
+      return
+    }
+    settleInternalBrowserOAuthCallback(receipt.callbackId, receipt.result)
+  })
+
   ipcMain.on('log', (_, level, message) => writeLog(level, message))
 
   ipcMain.on('set-verbose-logging', (_, verbose) =>
@@ -1318,22 +1536,9 @@ app.on('ready', () => {
     reportErrorSafely(error, { ...getExtraErrorContext(), ...extra }, nonFatal)
   })
 
-  ipcMain.handle('open-external', async (_, path: string) => {
-    const pathLowerCase = path.toLowerCase()
-    if (
-      pathLowerCase.startsWith('http://') ||
-      pathLowerCase.startsWith('https://')
-    ) {
-      log.info(`opening in browser: ${path}`)
-    }
-
-    try {
-      await shell.openExternal(path)
-      return true
-    } catch (e) {
-      log.error(`Call to openExternal failed: '${e}'`)
-      return false
-    }
+  ipcMain.handle('open-external', (event, path, options) => {
+    const sourceWindowId = getAppWindowFromWebContents(event.sender)?.id ?? null
+    return openExternalTarget(path, options, sourceWindowId)
   })
 
   /**
@@ -1524,6 +1729,9 @@ app.on('web-contents-created', (event, contents) => {
   // prevent link navigation within our windows
   // see https://www.electronjs.org/docs/tutorial/security#12-disable-or-limit-navigation
   contents.on('will-navigate', (event, url) => {
+    if (isInternalBrowserRemoteWebContents(contents)) {
+      return
+    }
     event.preventDefault()
     log.warn(`Prevented navigation to: ${url}`)
   })
@@ -1533,6 +1741,11 @@ app.on(
   'certificate-error',
   (event, webContents, url, error, certificate, callback) => {
     callback(false)
+
+    if (isInternalBrowserRemoteWebContents(webContents)) {
+      internalBrowserWindow?.handleCertificateError(webContents)
+      return
+    }
 
     const target = getAppWindowFromWebContents(webContents)
     if (target !== null) {
@@ -1571,8 +1784,14 @@ function createWindow(onWindowDidLoad?: OnDidLoadFn): AppWindow {
   }
 
   window.onClosed(() => {
+    cancelInternalBrowserOAuthCallbacksForWindow(window.id)
     windows.delete(window.id)
-    if (!__DARWIN__ && windows.size === 0 && !preventQuit) {
+    if (
+      !__DARWIN__ &&
+      windows.size === 0 &&
+      internalBrowserWindow === null &&
+      !preventQuit
+    ) {
       app.quit()
     }
   })

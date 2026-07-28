@@ -63,6 +63,7 @@ import { installDevGlobals } from './install-globals'
 import {
   reportUncaughtException,
   sendErrorReport,
+  setBrowserOpenMode,
   setWindowRepositoryState,
 } from './main-process-proxy'
 import { getOS } from '../lib/get-os'
@@ -107,6 +108,10 @@ import {
   configureRendererShutdown,
   prepareRendererShutdown,
 } from './lib/renderer-shutdown'
+import {
+  BrowserPreferencesChangedEvent,
+  getBrowserOpenModePreference,
+} from '../lib/internal-browser'
 
 if (__DEV__) {
   installDevGlobals()
@@ -131,6 +136,13 @@ process.env['LOCAL_GIT_DIRECTORY'] = Path.resolve(__dirname, 'git')
 delete process.env.GIT_EXEC_PATH
 
 const startTime = performance.now()
+
+// Keep native-menu links aligned with the persisted renderer preference before
+// the user invokes any browser-bound action.
+setBrowserOpenMode(getBrowserOpenModePreference())
+document.addEventListener(BrowserPreferencesChangedEvent, () =>
+  setBrowserOpenMode(getBrowserOpenModePreference())
+)
 
 if (!process.env.TEST_ENV) {
   /* This is the magic trigger for webpack to go compile
@@ -705,11 +717,35 @@ ipcRenderer.on('blur', () => {
   dispatcher.setAppFocusState(false)
 })
 
-ipcRenderer.on('url-action', (_, action) =>
+ipcRenderer.on('url-action', (_, action, callbackId) => {
   dispatcher
     .dispatchURLAction(action)
-    .catch(e => log.error(`URL action ${action.name} failed`, e))
-)
+    .then(result => {
+      if (action.name === 'oauth') {
+        if (typeof callbackId !== 'string') {
+          log.error('OAuth URL action arrived without a callback correlation')
+          return
+        }
+        ipcRenderer.send('internal-browser-oauth-result', {
+          callbackId,
+          result: result ?? 'failed',
+        })
+      }
+    })
+    .catch(e => {
+      log.error(`URL action ${action.name} failed`, e)
+      if (action.name === 'oauth') {
+        if (typeof callbackId !== 'string') {
+          log.error('Failed OAuth URL action had no callback correlation')
+          return
+        }
+        ipcRenderer.send('internal-browser-oauth-result', {
+          callbackId,
+          result: 'failed',
+        })
+      }
+    })
+})
 
 ipcRenderer.on('cli-action', (_, action) =>
   dispatcher

@@ -10,9 +10,10 @@ A task-oriented tour of Desktop Material's features. It assumes you already know
 Desktop workflow (clone, commit, push, branch, pull request) — that all still works. This guide
 focuses on what Desktop Material adds on top.
 
-> Desktop Material is supported on Windows only. Use the published Windows x64
-> installer; macOS and Linux application packages are not produced or
-> supported.
+> The graphical Desktop Material edition is supported on Windows only. Use its
+> published Windows x64 installer. Linux users can use the separate
+> [terminal edition](../features/linux-tui/README.md), which has its own package
+> and parity boundary rather than a Linux Electron binary.
 
 **Feature guide**
 
@@ -31,6 +32,14 @@ push batching and the responsive Releases correction are published through
 integrity proofs are complete; the serialized materialization correction keeps
 its final UI receipt in `HANDOFF.md`.
 
+The July 27 app-hosted browser, exact-90% Cheap LFS restore look-ahead, and
+private-repository lock passed the final focused **760/760 across 58 files**
+gate, 14/14 verifier contracts, full TypeScript, the exact Windows production
+build, and isolated hidden-desktop interaction/privacy review. The source and
+captures are pushed through `2abccae8fd`, and Pages/wiki publication is
+verified live. Packaged Windows E2E is verified. Only the Linux TUI
+compatibility correction rerun and installer/Release evidence remain pending.
+
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
 read-only mutation boundaries and owned headless-resource cleanup. Initial
@@ -38,13 +47,14 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 77-scene visual index: every
+The [Guided Feature Gallery](Feature-Gallery) is the canonical 89-scene visual index: every
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
 - [Install on Windows](#install-on-windows)
 - [Material first run](#material-first-run)
 - [Signing in](#signing-in)
+- [App-hosted browser](#app-hosted-browser)
 - [Local Ollama model management](#local-ollama-model-management)
 - [Repository tabs](#repository-tabs)
 - [Command palette](#command-palette)
@@ -302,7 +312,7 @@ only on the same exact scheme, host, and port. An explicit push URL moves only w
 matched the old fetch URL; a separate deployment or write-only target remains untouched. Concurrent
 remote edits win, unsafe candidates are refused, and a provider/config failure leaves the current
 URL in place for a later explicit retry. See [Automatic remote URL
-refresh](../features/repository-management/automatic-remote-url-refresh.md) for the complete safety
+refresh](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/repository-management/automatic-remote-url-refresh.md) for the complete safety
 and retry behavior.
 
 During background fetch, a local `refs/remotes/<remote>/HEAD` is reused only when it points inside
@@ -314,6 +324,59 @@ window, so a generic host's rename is detected even when its old branch still ex
 child-process close event cannot hang the completed fetch. Concurrent preparations for the same
 remote URL share one in-flight system proxy lookup instead of multiplying resolver work after a
 timeout. Clone cancellation remains stricter and waits for the owned process to close completely.
+
+---
+
+## App-hosted browser
+
+> **Published source acceptance:** combined tests, verifier contracts, full
+> TypeScript, the exact Windows production build, and hidden-desktop
+> interaction/privacy checks pass. The source and accepted capture are pushed
+> through `2abccae8fd`, and Pages/wiki publication is verified live. Packaged
+> Windows E2E is verified. Only the Linux TUI compatibility correction rerun
+> and installer/Release evidence remain pending.
+
+Open **Settings → Advanced → Open web links** and choose:
+
+- **Inside Desktop Material** to send browser-bound HTTP(S) links to the
+  dedicated app-hosted window; or
+- **In the system browser** to preserve external-browser behavior.
+
+The selection persists and applies to later links. Authentication is marked
+explicitly by the app; Desktop Material does not guess from a hostname or URL
+path.
+
+The app-hosted window provides browser tabs, New tab, close, Back, Forward,
+Refresh/Stop, a labelled address field, Go, ordinary bookmarks, and **Open
+externally**. A bare host such as `example.com/docs` becomes HTTPS. Arbitrary
+words are not sent to a search engine. HTTP(S) redirects stay in the current
+tab; a page's `window.open` target is captured into a new app-hosted tab instead
+of receiving an unrestricted popup.
+
+Sign-in tabs show a **SIGN IN** marker and private-session notice. They cannot
+be bookmarked, use an in-memory session shared only with their sign-in popups,
+clear its storage/cache after the authentication browser closes, and always
+offer **Continue in system browser**. A valid Desktop Material callback returns
+to the app. Ordinary bookmarks persist, but their query strings and fragments
+are removed first so OAuth codes and signed parameters do not land in bookmark
+storage. Open tabs and their current URLs are not restored.
+
+Remote pages are not part of the trusted Desktop Material renderer. Each lives
+in a sandboxed `WebContentsView` with Node and preload disabled, context
+isolation and web security enabled, permissions denied, downloads blocked, and
+certificate failures refused. A blocked download explains that the page must
+be opened externally. Load, certificate, download, and renderer failures appear
+in the browser chrome with a refresh or external-browser recovery path.
+
+<sub>**香港粵語速讀。** **Settings → Advanced → Open web links** 揀 app 入面定系統
+瀏覽器。App 入面有分頁、網址列、前後頁、重新整理、Go、書籤同外部逃生門；網頁
+自己就鎖喺 sandbox view，冇 Node、冇 app IPC、冇權限，壞憑證唔會夾硬放行。登入
+分頁係記憶體工作階段、加唔到書籤，閂咗會清資料，亦永遠可以轉去系統瀏覽器。呢
+本機正式 build 同 hidden-desktop 驗收已經過關；遠端發佈證據另外計。</sub>
+
+See [App-hosted browser](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/integrations/app-hosted-browser.md) for
+persistence limits, complete failure behavior, security boundaries, and the
+pending acceptance gates.
 
 ---
 
@@ -1033,8 +1096,9 @@ the pointers, and resumes the same commit automatically. Older GitHub
 Enterprise versions safely fall back to the repository Releases listing. **Cancel** stops either
 path until the verified pointer commit begins; that short final mutation phase finishes as one
 reviewed operation. The app waits for and verifies every multipart asset before writing the pointer.
-A file fitting the 1.5 GiB per-asset cap initially uses one raw asset, while a
-larger file uses ordered raw ranges of at most 1.5 GiB each. Public repositories
+A file fitting the 500 MiB new-write cap initially uses one raw asset, while a
+larger file uses ordered raw ranges of at most 500 MiB each. Legacy pointers
+with parts up to 2 GiB remain readable. Public repositories
 then automatically receive one owned, SHA-pinned workflow file in Changes for
 review. Compression starts only after you commit and push that caller. Private
 repositories stay off until you explicitly enable **Cloud compression** in the
@@ -1059,13 +1123,53 @@ pointers can restore while signed out using read-only anonymous requests with no
 Release pointers still require the repository-selected account; anonymous
 Release mutations are never allowed.
 
+### Exact-90% two-lane restore progress
+
+> **Published source acceptance:** combined tests, verifier contracts,
+> TypeScript, the exact production build, and hidden-desktop acceptance pass.
+> The source and accepted capture are pushed through `2abccae8fd`, and
+> Pages/wiki publication is verified live. Packaged Windows E2E is verified.
+> Only the Linux TUI compatibility correction rerun and installer/Release
+> evidence remain pending.
+
+For Release-backed pointers, one restore batch now shares a coordinator with a
+hard limit of two HTTP downloads. The current file or multipart part owns the
+first lane. When the provider reports that transfer at **90% or greater**, the
+next file or part may start in the look-ahead lane: 89.9% stays single-lane,
+while exactly 90% opens it. If a provider has no usable progress total, the next
+item waits for the current transfer to settle.
+
+The detailed restore panel shows overall progress and separate **Current** and
+**Next at 90%** lanes, plus repository, provider, current phase, file and part
+ordinals, logical restored bytes, actual downloaded/compressed bytes when
+known, succeeded/failed/remaining/queued counts, elapsed time, download rate,
+ETA, bounded per-file failures, and cancellation. Downloading, decompressing,
+verifying, materializing, and canceling remain distinct instead of sharing one
+ambiguous percentage.
+
+The second lane does not weaken validation. Desktop Material still verifies
+every part's size and SHA-256, assembles parts in pointer order, verifies the
+whole file, and replaces only the unchanged pointer. Cancellation aborts queued
+and active work, drains both lanes, cleans owned temporary files, and leaves
+unverified pointers in place. Visible counters update exactly; screen-reader
+announcements are grouped into meaningful 10% transitions, reduced-motion mode
+removes active shimmer, and bilingual/narrow layouts wrap instead of clipping.
+
+<sub>**香港粵語速讀。** 下載真係到 90%，下一個檔或者 part 先可以入第二條
+lane；成個 batch 最多兩個下載。面板會分目前／下一條 lane、檔同 part 次序、邏輯
+同實際位元組、階段、速度、ETA、排隊、成功、失敗同取消。預取只係慳中間嗰幾秒，
+每 part 同全檔 SHA-256、大小、指標冇變先換檔，全部照舊要過關。</sub>
+
 New buckets are published prereleases, so collaborators can fetch them while
 they remain outside the stable installer `/releases/latest` feed. For
 compatibility, older draft discovery is bounded to 100 pages of 100 releases
 because GitHub's direct tag lookup does not expose drafts. Desktop Material
-publishes the exact revalidated legacy draft before reuse. If it is outside
-those 10,000 releases, the Action leaves the object raw and reports a safe
-failure. The same rule applies when the Release has reached GitHub's 1,000-asset
+publishes a revalidated legacy draft before a new pin only when the exact
+managed-bucket sentinel or a valid legacy asset label proves its Cheap LFS
+provenance. The compression Action accepts only a published managed
+prerelease; it refuses a draft, stable Release, or unrelated same-tag
+prerelease before download or upload and leaves the raw pointer unchanged. The
+same safe fallback applies when the Release has reached GitHub's 1,000-asset
 capacity and therefore has no free slot for a compressed side asset. Cheap LFS
 retains the raw historical object instead of deleting it to force compression.
 

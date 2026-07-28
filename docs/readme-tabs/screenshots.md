@@ -15,6 +15,23 @@ safe Git loop, short-lived branches, conflict resolution, rebase, stash recovery
 automation, and account isolation. The diagrams are reproducible with
 `node script/generate-wiki-diagrams.js`.
 
+## Linux-first terminal edition
+
+These are original-resolution captures of the packaged Python wheel running in
+a real mouse-reporting Debian terminal on an off-screen X display.
+
+<!-- markdownlint-disable MD013 -->
+
+| Changes and editable text | Clickable Cheap LFS manager |
+| --- | --- |
+| <img src="../assets/screenshots/linux-tui-text-input.png" alt="Linux terminal edition with a clicked commit summary Input and a two-line editable TextArea" width="520"><br><sub>Mouse focus · Input · multiline TextArea</sub> | <img src="../assets/screenshots/linux-tui-cheap-lfs.png" alt="Linux terminal Cheap LFS manager with pointer and oversized-file rows, editable path tag and repository fields, and a local preview plan" width="520"><br><sub>Windows-compatible v1 pointers · safe preview</sub> |
+
+| Live RE2 builder | Bilingual narrow layout |
+| --- | --- |
+| <img src="../assets/screenshots/linux-tui-regex-builder.png" alt="Linux terminal RE2 builder with an editable pattern, multiline sample, case-insensitive flag, two matches, and capture groups" width="520"><br><sub>RE2 flags · live matches · capture groups</sub> | <img src="../assets/screenshots/linux-tui-bilingual-narrow.png" alt="Compact bilingual Desktop Material terminal layout with abbreviated tabs and unclipped primary controls" width="520"><br><sub>English plus playful Hong Kong Cantonese · 100-column layout</sub> |
+
+<!-- markdownlint-enable MD013 -->
+
 ## Inherited external-UI assets — excluded from the capture mandate
 
 Every screenshot of **Desktop Material's own interface** is produced by the

@@ -1,0 +1,482 @@
+$accent: #7c4dff;
+$accent-soft: #33265f;
+$surface: #17151d;
+$surface-raised: #24202d;
+$surface-high: #302a3b;
+$outline: #625b70;
+$text: #f4eff8;
+$text-muted: #cac3d0;
+$success: #77d49b;
+$warning: #f4c06a;
+$danger: #ff8a91;
+
+Screen {
+    background: $surface;
+    color: $text;
+}
+
+Header {
+    background: $surface-high;
+    color: $text;
+}
+
+Footer {
+    background: $surface-raised;
+    color: $text-muted;
+}
+
+#app-body {
+    height: 1fr;
+    width: 100%;
+    layout: horizontal;
+}
+
+#repository-rail {
+    width: 28;
+    min-width: 20;
+    height: 100%;
+    background: $surface-raised;
+    border-right: solid $outline;
+    padding: 1;
+}
+
+#repository-heading {
+    height: 2;
+    text-style: bold;
+    color: $text;
+}
+
+#repository-list {
+    height: 1fr;
+    border: round $outline;
+    margin-top: 1;
+}
+
+#repository-actions {
+    height: auto;
+    layout: horizontal;
+    margin-top: 1;
+}
+
+#repository-actions Button {
+    width: 1fr;
+    min-width: 8;
+}
+
+#workspace {
+    width: 1fr;
+    height: 100%;
+}
+
+#repository-toolbar {
+    height: 3;
+    width: 100%;
+    background: $surface-raised;
+    padding: 0 1;
+    layout: horizontal;
+}
+
+#repository-toolbar .toolbar-title {
+    width: 1fr;
+    height: 3;
+    content-align: left middle;
+    text-style: bold;
+}
+
+#repository-toolbar Button {
+    min-width: 8;
+    width: auto;
+    height: 3;
+}
+
+#main-tabs {
+    width: 100%;
+    height: 1fr;
+}
+
+TabbedContent > ContentSwitcher {
+    height: 1fr;
+}
+
+TabPane {
+    height: 100%;
+    padding: 0 1 1 1;
+}
+
+.screen-layout {
+    width: 100%;
+    height: 100%;
+}
+
+.screen-toolbar {
+    width: 100%;
+    height: auto;
+    min-height: 3;
+    layout: horizontal;
+}
+
+.screen-toolbar Button,
+.screen-toolbar Select {
+    height: 3;
+    width: auto;
+    min-width: 9;
+}
+
+.screen-split {
+    width: 100%;
+    height: 1fr;
+    layout: horizontal;
+}
+
+.screen-list {
+    width: 42%;
+    min-width: 24;
+    height: 100%;
+    border: round $outline;
+}
+
+.screen-detail {
+    width: 1fr;
+    height: 100%;
+    border: round $outline;
+    margin-left: 1;
+}
+
+.form-panel {
+    height: auto;
+    min-height: 8;
+    border: round $outline;
+    padding: 0 1;
+    margin-top: 1;
+}
+
+#commit-panel {
+    height: 16;
+}
+
+#commit-body {
+    height: 5;
+}
+
+.form-row {
+    layout: horizontal;
+    height: 3;
+}
+
+.form-row Input,
+.form-row Select {
+    width: 1fr;
+}
+
+.form-row Button {
+    width: auto;
+    min-width: 10;
+}
+
+.field-label {
+    color: $text-muted;
+    height: 1;
+}
+
+Input,
+TextArea,
+Select,
+SelectionList,
+OptionList,
+DataTable,
+ListView,
+Tree {
+    border: round $outline;
+    background: $surface;
+}
+
+Input:focus,
+TextArea:focus,
+Select:focus,
+SelectionList:focus,
+OptionList:focus,
+DataTable:focus,
+ListView:focus,
+Tree:focus,
+Button:focus {
+    border: double $accent;
+}
+
+Button {
+    background: $surface-high;
+    color: $text;
+    border: round $outline;
+}
+
+Button:hover {
+    background: $accent-soft;
+    border: round $accent;
+}
+
+Button.-primary {
+    background: $accent;
+    color: #ffffff;
+}
+
+Button.-error {
+    background: #7b2933;
+    color: #ffffff;
+}
+
+.modal-card {
+    width: 76;
+    max-width: 92vw;
+    height: auto;
+    max-height: 90vh;
+    padding: 1 2;
+    background: $surface-raised;
+    border: double $accent;
+}
+
+ModalScreen {
+    align: center middle;
+    background: #000000 55%;
+}
+
+.modal-title {
+    height: 2;
+    text-style: bold;
+    color: $text;
+}
+
+.modal-body {
+    height: auto;
+    max-height: 50vh;
+    color: $text-muted;
+}
+
+.modal-actions {
+    height: 3;
+    align-horizontal: right;
+    margin-top: 1;
+}
+
+.modal-actions Button {
+    width: auto;
+    min-width: 12;
+    margin-left: 1;
+}
+
+.modal-prompt {
+    height: auto;
+    min-height: 1;
+}
+
+#palette-card {
+    height: 76vh;
+}
+
+#palette-query {
+    height: 3;
+}
+
+#palette-list {
+    height: 1fr;
+}
+
+#help-card {
+    height: 86vh;
+}
+
+#settings-history-card {
+    height: 82vh;
+}
+
+#help-card VerticalScroll {
+    height: 1fr;
+    border: round $outline;
+    padding: 0 1;
+}
+
+#help-close {
+    dock: bottom;
+    width: 16;
+    align-horizontal: right;
+}
+
+.narrow #repository-rail {
+    display: none;
+}
+
+.narrow .screen-split {
+    layout: vertical;
+}
+
+.narrow .screen-list {
+    width: 100%;
+    height: 42%;
+    min-height: 7;
+}
+
+.narrow .screen-detail {
+    width: 100%;
+    height: 1fr;
+    margin-left: 0;
+    margin-top: 1;
+}
+
+.compact #repository-toolbar .optional-toolbar {
+    display: none;
+}
+
+.compact Tab {
+    padding: 0 1;
+    min-width: 4;
+    border-right: solid $outline;
+}
+
+.compact #commit-panel {
+    height: 11;
+}
+
+.compact #commit-body {
+    height: 3;
+}
+
+.narrow Tab {
+    padding: 0 1;
+    min-width: 4;
+}
+
+.comfortable Input,
+.comfortable Button,
+.comfortable Select {
+    height: 3;
+}
+
+.dense Input,
+.dense Button,
+.dense Select {
+    height: 1;
+    border: none;
+}
+
+.cheap-lfs-table {
+    width: 100%;
+    height: 1fr;
+    min-height: 7;
+}
+
+.cheap-lfs-form {
+    height: 17;
+    min-height: 14;
+}
+
+.cheap-lfs-fields {
+    width: 100%;
+    height: 4;
+}
+
+.cheap-lfs-field {
+    width: 1fr;
+    height: 4;
+    margin-right: 1;
+}
+
+.cheap-lfs-plan {
+    width: 100%;
+    height: 6;
+}
+
+#cheap-lfs-provider-scope {
+    height: 4;
+}
+
+.narrow .cheap-lfs-form {
+    height: 21;
+    min-height: 16;
+}
+
+.narrow .cheap-lfs-fields {
+    layout: vertical;
+    height: 12;
+}
+
+.narrow .cheap-lfs-field {
+    width: 100%;
+    height: 4;
+    margin-right: 0;
+}
+
+.narrow .cheap-lfs-plan {
+    height: 7;
+    min-height: 5;
+}
+
+.narrow #cheap-lfs-provider-scope {
+    height: auto;
+    min-height: 4;
+}
+
+#advanced-tabs {
+    width: 100%;
+    height: 100%;
+}
+
+.advanced-table {
+    width: 100%;
+    height: 1fr;
+    min-height: 7;
+    border: round $outline;
+}
+
+.advanced-form {
+    min-height: 12;
+    max-height: 18;
+}
+
+.advanced-input-row,
+.advanced-check-row {
+    width: 100%;
+    height: auto;
+    min-height: 3;
+    layout: horizontal;
+}
+
+.advanced-input-row Input {
+    width: 1fr;
+}
+
+.advanced-check-row Checkbox {
+    width: 1fr;
+}
+
+.advanced-status {
+    width: 100%;
+    height: 3;
+    padding: 1;
+    border: round $outline;
+}
+
+.advanced-editor {
+    width: 100%;
+    height: 1fr;
+    min-height: 8;
+}
+
+.advanced-command-form {
+    width: 100%;
+    height: 100%;
+}
+
+.advanced-command-output {
+    width: 100%;
+    height: 1fr;
+    min-height: 8;
+}
+
+.narrow .advanced-input-row,
+.narrow .advanced-check-row {
+    layout: vertical;
+    height: auto;
+}
+
+.narrow .advanced-input-row Input,
+.narrow .advanced-check-row Checkbox {
+    width: 100%;
+}

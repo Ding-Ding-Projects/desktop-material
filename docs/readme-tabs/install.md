@@ -2,6 +2,46 @@
 
 <sub>Tabbed README — GitHub can't run scripts, so each tab above is a separate page.</sub>
 
+# Install the Linux-first TUI
+
+The terminal edition is a distinct Python/Textual package for Linux, not a
+Linux Electron build. Install a trusted checkout and open a repository with the
+literal launcher:
+
+```bash
+uv tool install ./tui
+github /path/to/repository
+```
+
+`github`, `dmt`, and `desktop-material-tui` are identical launchers for the
+terminal edition; the alias does not replace GitHub CLI's `gh`. If another
+program or shell alias already owns `github`, use either longer name. Useful
+noninteractive commands are:
+
+```bash
+github --help
+github status --json
+```
+
+`pipx install ./tui` is the corresponding isolated install route. The package
+supports Python 3.10–3.13 and requires Git; provider surfaces also require an
+authenticated `gh`. Contributors can instead use the locked project:
+
+```bash
+cd tui
+uv sync --locked --extra dev
+uv run desktop-material-tui
+```
+
+The CI lane builds a wheel and source distribution and smoke-installs the wheel
+in a fresh environment. Current package, XDG, security, mouse/text-box, and
+parity details live in the
+[Linux TUI guide](../features/linux-tui/README.md).
+
+Docker users can build the local wheel into the tracked non-root image and run
+it interactively against the current repository with persistent XDG volumes.
+See the copy-paste [container installation](../features/linux-tui/container.md).
+
 # Install on Windows
 
 Desktop Material's automated releases provide a per-user x64 Windows installer.

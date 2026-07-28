@@ -153,6 +153,84 @@ describe('recent UI internationalization', () => {
     }
   })
 
+  it('localizes detailed Cheap LFS restore and the exact 90% look-ahead', () => {
+    const variables = {
+      repository: 'media',
+      percent: '90',
+      succeeded: '2',
+      failed: '1',
+      remaining: '3',
+      total: '6',
+      processed: '1 GiB',
+      downloaded: '700 MiB',
+      files: '3',
+      parts: '4',
+      lane: 'current',
+      path: 'assets/movie.mp4',
+      current: '2',
+      reason: 'digest mismatch',
+      status: '422',
+      count: '2',
+      rate: '20 MiB/s',
+      provider: 'GHCR',
+      phase: 'Downloading',
+    }
+    for (const key of [
+      'cheapLfs.restore.title',
+      'cheapLfs.restore.sectionLabel',
+      'cheapLfs.restore.summary',
+      'cheapLfs.restore.progressValueText',
+      'cheapLfs.restore.filesValue',
+      'cheapLfs.restore.actualBytesLabel',
+      'cheapLfs.restore.ratePending',
+      'cheapLfs.restore.etaPending',
+      'cheapLfs.restore.queueValue',
+      'cheapLfs.restore.lookAheadStarts',
+      'cheapLfs.restore.lookAheadStarting',
+      'cheapLfs.restore.lookAheadActive',
+      'cheapLfs.restore.lookAheadBoundary',
+      'cheapLfs.restore.currentLane',
+      'cheapLfs.restore.prefetchLane',
+      'cheapLfs.restore.laneValueText',
+      'cheapLfs.restore.failuresLabel',
+      'cheapLfs.restore.failureReasonWithStatus',
+      'cheapLfs.restore.providerBadge',
+      'cheapLfs.restore.phaseBadge',
+      'cheapLfs.restore.phase.downloading',
+      'cheapLfs.restore.phase.decompressing',
+      'cheapLfs.restore.phase.verifying',
+      'cheapLfs.restore.phase.materializing',
+      'cheapLfs.restore.canceling',
+    ] as const) {
+      const english = translate(key, 'english', variables)
+      const cantonese = translate(key, 'cantonese', variables)
+      assert.notEqual(english, cantonese, `${key} was not translated`)
+      assert.equal(
+        translate(key, 'bilingual', variables),
+        `${english} · ${cantonese}`
+      )
+    }
+
+    const english = translate(
+      'cheapLfs.restore.lookAheadStarts',
+      'english',
+      variables
+    )
+    const cantonese = translate(
+      'cheapLfs.restore.lookAheadStarts',
+      'cantonese',
+      variables
+    )
+    assert.match(english, /exactly 90%/)
+    assert.match(cantonese, /正正 90%/)
+    assert.equal(
+      translate('cheapLfs.restore.providerBadge', 'bilingual', {
+        provider: translatedVariable('cheapLfs.restore.provider.mixed'),
+      }),
+      'Provider: Mixed providers · Provider：混合 providers'
+    )
+  })
+
   it('says a modified pinned file becomes a new asset in every mode', () => {
     for (const key of [
       'cheapLfs.localState.pointer',

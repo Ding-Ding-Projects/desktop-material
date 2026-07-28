@@ -11,3 +11,15 @@ Full instructions live in [`docs/contributing/setup.md`](../contributing/setup.m
 ```
 yarn && yarn build:dev && yarn start
 ```
+
+The separate Linux terminal edition uses its locked Python project:
+
+```bash
+cd tui
+uv sync --locked --extra dev
+uv run pytest
+uv run desktop-material-tui
+```
+
+Its full contributor, package, interaction, and verification contract is in the
+[Linux TUI documentation](../features/linux-tui/README.md).

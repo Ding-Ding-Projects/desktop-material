@@ -28,7 +28,8 @@ this fork.
   [Collaboration](features/collaboration/README.md),
   [Review and diff](features/review-and-diff/README.md),
   [Quality and reliability](features/quality-and-reliability/README.md), and
-  [Design system](features/design-system/README.md)
+  [Design system](features/design-system/README.md), plus the separate
+  [Linux-first terminal edition](features/linux-tui/README.md)
 - **Search and regex** — [Regex guide](regex-guide.md)
 - **Evidence** — [Verification records](verification/README.md)
 - **Contributing** — [Development environment setup](contributing/setup.md),
@@ -53,9 +54,12 @@ this fork.
 
 The sections below keep the full detail behind each area.
 
-Desktop Material itself is supported and released on Windows only. Inherited
-non-Windows source and historical upstream documentation do not define a
-supported runtime; see [Windows-only platform support](features/integrations/windows-only-platform-support.md).
+Desktop Material's graphical Electron edition is supported and released on
+Windows only. The separate Python/Textual terminal edition targets Linux and
+has its own [support, packaging, interaction, and parity
+contract](features/linux-tui/README.md); it is not a non-Windows Electron
+runtime. See [graphical-edition platform
+support](features/integrations/windows-only-platform-support.md).
 
 ## Product and Material design
 
@@ -69,12 +73,30 @@ supported runtime; see [Windows-only platform support](features/integrations/win
   customization scopes, adaptive app-bar behavior, and entry surfaces
 - **[Feature documentation](features/README.md)** - categorized user workflows,
   persistence boundaries, failure modes, security notes, and acceptance targets
+- **[App-hosted browser](features/integrations/app-hosted-browser.md)** -
+  global internal/external link routing, tabbed app-hosted navigation,
+  authentication escape, and remote-content security boundaries
+- **[Release-backed Cheap LFS](features/repository-management/release-backed-cheap-lfs.md)**
+  - exact-90% two-lane restore scheduling, detailed progress, verified pointer
+    replacement, and recovery behavior
+- **[Private-repository lock badge](features/repository-management/private-repository-lock-badge.md)**
+  - exact provider-metadata semantics, custom-logo coexistence, localization,
+    accessibility, and failure-safe public/unknown fallback
 - **[Tab groups](features/identity-and-workspace/tab-groups.md)** - named,
   colored, collapsible repository-tab organization with profile persistence
 - **[Command palette appearance](features/design-system/command-palette-appearance.md)**
   - localized row density, icons, group chips, and search-term presentation
 - **[Verification records](verification/README.md)** - reproducible local
   acceptance evidence and links to exact publication receipts
+
+The July 27 browser, Cheap LFS restore, and private-badge continuation has
+completed source acceptance: the final focused gate passed **760/760 across 58
+files**, **14/14** verifier contracts passed, TypeScript is clean, the exact
+Windows production build succeeded, and real hidden-desktop
+interaction/privacy receipts passed. The source and captures are merged and
+pushed through `2abccae8fd`, with Pages and wiki publication verified live.
+Packaged Windows E2E is verified. Only the Linux TUI compatibility correction
+rerun and installer/Release evidence remain pending.
 
 Appearance is now owner-scoped. Right-clicking an actual visual opens an editor
 beside it; every profile element, feature entry point, repository element, and

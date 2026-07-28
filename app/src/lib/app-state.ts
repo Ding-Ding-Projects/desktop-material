@@ -78,6 +78,7 @@ import type { Model } from '@github/copilot-sdk/dist/generated/rpc'
 import type { IAutomationSettingsState } from './automation/automation-settings'
 import type { IMergeAllState } from './automation/merge-all'
 import type { ICheapLfsAutoPinProgress } from './cheap-lfs/operations'
+import type { CheapLfsRestoreProgressInput } from './cheap-lfs/restore-progress'
 import type { ICommitBatchProgress } from './commit-push-batching'
 
 export enum SelectionType {
@@ -102,23 +103,12 @@ export type PossibleSelections =
 /**
  * Live progress for a Cheap LFS materialize (restore) batch.
  *
- * The automatic materialize runs after every clone, repository selection,
- * fetch and pull, and downloads every committed pointer's real bytes — that is
- * arbitrarily many gigabytes. Before this state existed the automatic path
- * passed no `onProgress` at all and the only feedback was a notification after
- * the whole batch finished.
+ * The canonical provider-neutral model carries two active lanes, logical and
+ * network byte totals, timing, queue and failure detail. The input union keeps
+ * the former sequential producer source-compatible while its backend event
+ * contract moves to the richer shape; every renderer normalizes at its edge.
  */
-export interface ICheapLfsRestoreState {
-  readonly repositoryId: number
-  readonly repositoryName: string
-  /** Pointers fully settled (materialized or failed). */
-  readonly filesCompleted: number
-  readonly filesTotal: number
-  /** Bytes transferred so far across the batch. */
-  readonly transferredBytes: number
-  /** Sum of every pending pointer's recorded size. */
-  readonly totalBytes: number
-}
+export type ICheapLfsRestoreState = CheapLfsRestoreProgressInput
 
 /**
  * The post-clone finalization phase of a batch clone.

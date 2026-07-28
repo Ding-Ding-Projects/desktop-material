@@ -478,11 +478,25 @@ export class AppWindow {
     ipcWebContents.send(this.window.webContents, 'menu-event', name)
   }
 
-  /** Send the URL action to the renderer. */
-  public sendURLAction(action: URLActionType) {
-    this.show()
+  /** Send a URL action, optionally correlated to an internal OAuth callback. */
+  public sendURLAction(
+    action: URLActionType,
+    oauthCallbackId?: string,
+    revealWindow = true
+  ) {
+    // Operating-system callbacks reveal the app as before. An internal-browser
+    // callback keeps browser chrome in front until the store acknowledges the
+    // exact flow and the private authentication session can be retired.
+    if (revealWindow) {
+      this.show()
+    }
 
-    ipcWebContents.send(this.window.webContents, 'url-action', action)
+    ipcWebContents.send(
+      this.window.webContents,
+      'url-action',
+      action,
+      oauthCallbackId
+    )
   }
 
   /** Send the URL action to the renderer. */

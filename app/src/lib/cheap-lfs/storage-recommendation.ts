@@ -37,7 +37,7 @@ function checkedSizes(sizes: ReadonlyArray<number>): ReadonlyArray<number> {
 
 /**
  * Recommend storage without silently overriding the persisted user choice.
- * Release storage is the lowest-setup choice for one initial 1.5 GiB transfer;
+ * Release storage is the lowest-setup choice for one initial 500 MiB transfer;
  * larger batches benefit from content-addressed layer reuse. GHCR wins for a
  * GitHub repository when available, while Docker Hub is the registry fallback.
  */

@@ -1,5 +1,95 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Remote TUI compatibility correction (locally verified)
+
+The first CI run for merged source `2abccae8fd` exposed two real portability
+defects after the earlier local matrix:
+
+- Git 2.54 on Ubuntu emits strict ISO UTC timestamps ending in `Z`. CPython
+  3.10 rejects that suffix in `datetime.fromisoformat`, which caused nine
+  direct Git/profile-history failures and two downstream TUI failures.
+- Linux typeshed deliberately does not expose the Windows-only
+  `msvcrt.locking` and `LK_*` members, so strict mypy rejected the statically
+  imported Windows branch even though its runtime guard was correct.
+
+The Git porcelain, reflog, and profile-history parsers now normalize only a
+terminal uppercase `Z` to `+00:00`; numeric offsets and malformed-date
+failure behavior remain unchanged. The Windows lock branch now imports
+`msvcrt` dynamically as `Any`, matching the existing `fcntl` runtime boundary.
+The installer workflow also skips TUI package work when `prepare` has already
+marked an upstream failed-CI target as non-publishable. That prevents a newly
+loaded workflow from assuming a historical pre-TUI target contains `tui/`,
+while successful current-source release runs still require the wheel and
+source distribution.
+
+Local correction evidence is green: the isolated CPython 3.10.20 full suite
+passed **193 tests** with one Windows-host Linux-PTY skip, the affected
+post-format set passed **35/35**, Ruff lint/format passed, strict mypy passed
+all 47 source files for both Linux and Windows platforms, 32 focused
+persistence/CLI tests passed, and the release workflow safety suite passed
+**8/8**. Packaged Windows E2E passed in
+[job `90140843987`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843987).
+Only the correction push/remote rerun and installer/Release evidence remain
+pending; the failed jobs are
+[Python 3.10](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843973),
+[Python 3.12 mypy](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315770398/job/90140843983),
+and the
+[historical-target TUI package job](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30315814320/job/90141026604).
+
+## 2026-07-27 — Linux-first interactive TUI preview (locally verified)
+
+A new `tui/` Python project is a terminal-native sibling to the Windows-only
+Electron application. Its Textual shell is designed for both mouse and keyboard
+operation: repository/workspace tabs, buttons, lists, tables, checkboxes, and
+selectors are clickable, while repository paths, URLs, commit messages,
+provider bodies, API payloads, regex patterns, and sample text use real
+`Input`/`TextArea` controls.
+
+- Local Git covers repository open/create/clone, status/diff, file staging,
+  commit/amend/sign-off, fetch/pull/push, history, branches, stashes, plus
+  read-only tag/remote tools through argv-only bounded subprocess adapters.
+- The GitHub pane uses an installed, non-prompting `gh` CLI for issues, pull
+  requests, Actions, releases, packages, read-only Projects inventory, and a
+  bounded REST/GraphQL explorer. It does not store a GitHub token.
+- Shared literal/fuzzy/explicit-RE2 search enforces pattern, input, memory,
+  match, capture, and zero-width iteration bounds. Settings and notification
+  state use XDG paths, atomic TOML, SQLite WAL, and an isolated app-owned Git
+  history.
+- Linux packaging is a wheel plus source distribution. The additive Ubuntu CI
+  job tests Python 3.10/3.12/3.13; Python 3.12 also checks Ruff, mypy, package
+  contents, a fresh-wheel install, and the generated parity ledger.
+- An additive Windows Server 2022/Python 3.12 lane checks the non-PTY unit,
+  application, infrastructure, Cheap LFS, lint, and typed core. Linux PTY and
+  mouse acceptance remain Linux-only and are not inferred from that lane.
+- Cheap LFS reads and writes the canonical Windows Release-v1 pointer format
+  across Linux and Windows, uses a 500 MiB limit for new writes while retaining
+  2 GiB legacy reads, and verifies size/hash before restore with a local recovery
+  cache. The TUI preview does not yet implement OCI/GHCR or cloud-provider
+  writes, encryption, or automatic multi-file batching.
+- `tui/contracts/parity.yaml` is generated from the existing 201-row desktop
+  source of truth. Current mapping is 14 adapted, 53 partial, 132 not yet
+  available, and 2 terminal-owned; unmapped work can never default to complete.
+- Categorized docs under `docs/features/linux-tui/` cover installation,
+  interaction, accessibility, XDG persistence, Git/GitHub, RE2, language,
+  appearance, notifications, editor/history, security, failure modes, and
+  verification.
+
+Status: implementation commit `eee005c7f4`, integration merge `ba45dcfbaf`, and
+verification commit `fcb86eca4d` are integrated and pushed through merge
+`2abccae8fd`. Local evidence is complete:
+193 Windows-hosted TUI/core tests passed with one Linux-only PTY skip, that PTY
+test passed on real Debian, all 164 focused Windows Cheap LFS tests passed, the
+wheel/sdist and fresh install were inspected, and a non-root remote Docker build
+ran successfully. Five original Lowlevel/Xvfb screenshots prove mouse clicks,
+editable Inputs/TextAreas, regex matches, bilingual narrow layout, and Cheap LFS
+preview; every disposable process, display, filesystem root, Docker image, and
+WSL distribution was removed and proven absent. Pages/wiki publication is live;
+the first CI defects and locally verified correction are recorded immediately
+above. Packaged Windows E2E is verified; only the correction push/remote rerun
+and installer/Release evidence remain pending. The
+[run manifest](docs/verification/linux-tui-2026-07-27/run-manifest.md) records
+the exact local evidence and hashes.
+
 ## 2026-07-27 — SESSION HANDOFF (read this first)
 
 `main` is at **`949dc81e6d`**, pushed, with **zero divergence** from the remote.
@@ -217,7 +307,119 @@ rendered, zero colour-audit warnings, and Chromium reported **0** non-`file:`
 requests for the published pages in both colour schemes. `npx prettier --check`
 passes on every touched non-Markdown file. Not yet verified against the
 deployed Pages site.
+## 2026-07-27 — Exact-90% restore, app-hosted browser, and private badge (pre-publication local receipt)
 
+At this pre-publication checkpoint, three user-facing continuations were
+locally accepted and integrated into local `main`. The source and captures were
+later pushed through `2abccae8fd`, and Pages/wiki publication is now verified
+live. Packaged Windows E2E is verified. Only the Linux TUI compatibility
+correction rerun and installer/Release evidence remain pending; do not attach
+an older installer badge to these changes.
+
+**Cheap LFS restore scheduling and progress**
+
+- `app/src/lib/cheap-lfs/operations.ts` gives one Release restore batch a FIFO
+  coordinator capped at two active HTTP downloads. File-level and multipart
+  look-ahead both use the same fixed threshold: 899/1000 stays single-lane and
+  900/1000 may start the next file or part. A provider with no usable progress
+  total opens the next lane only when the current transfer settles.
+- The look-ahead changes download scheduling only. Ordered part
+  decompression/verification, part and whole-file size/SHA-256 proofs,
+  unchanged-pointer compare-and-replace, input-ordered results, cancellation
+  draining, and owned-temp cleanup remain in the materialization path. The
+  shared coordinator prevents nested file/part prefetch from exceeding two
+  downloads.
+- `app/src/lib/cheap-lfs/restore-progress.ts` defines the canonical UI model:
+  repository/provider/phase, file totals, logical and actual downloaded bytes,
+  rate/ETA/elapsed time, queued work, fixed threshold, bounded failures,
+  cancel state, and separate current/look-ahead lane detail including file and
+  multipart ordinals.
+- `app/src/ui/lib/cheap-lfs-restore-progress.tsx` is reused by the Large files
+  manager and batch-clone restore progress. It keeps exact visible counters,
+  buckets screen-reader announcements to meaningful 10% transitions, removes
+  active shimmer under reduced motion, and wraps narrow/bilingual content
+  rather than clipping. Legacy sequential progress is adapted into the same
+  contract.
+- The combined local gate described below supersedes the earlier 42/42 and
+  15/15 focused checkpoints.
+
+**App-hosted browser**
+
+- `app/src/lib/internal-browser.ts` owns strict HTTP(S) normalization,
+  credential/query/fragment redaction, bounded bookmark persistence, the
+  persisted internal/external setting, explicit default/authentication intent,
+  serializable state, and runtime command/bounds validation.
+- `app/src/main-process/internal-browser-window.ts` separates trusted local
+  browser chrome from remote `WebContentsView` tabs. Remote content has Node
+  and preload disabled, context isolation/sandbox/web security enabled,
+  permissions and downloads denied, certificate errors refused, and no trusted
+  Desktop Material IPC registration. Valid HTTP(S) redirects stay in place,
+  `window.open` targets are captured into new tabs, app callbacks return to the
+  app, and only the allowlisted `mailto:`, `tel:`, and `ms-settings:` schemes
+  escape to Windows.
+- `app/src/internal-browser/` supplies New tab, close/activate tabs, URL bar,
+  Back/Forward, Refresh/Stop, Go, ordinary bookmarks, and **Open externally**.
+  Authentication tabs show a SIGN IN chip, cannot be bookmarked, use one
+  in-memory partition, clear its storage/cache after use, and expose
+  **Continue in system browser**.
+- `app/src/ui/preferences/advanced.tsx` persists the global choice. Main/menu
+  routing uses that choice for browser-bound links while authentication intent
+  remains explicit rather than inferred from URL text. Webpack produces a
+  separate trusted browser-chrome bundle.
+- The built browser passed the local redirect, popup, New tab, query-stripped
+  bookmark, authentication-session, and external-escape receipt described
+  below.
+
+**Private-repository lock badge**
+
+- `app/src/ui/repositories-list/repository-list-item.tsx` renders a separate
+  filled Material lock only when provider metadata is exactly
+  `isPrivate === true`. `false`, `null`, and missing GitHub metadata render no
+  privacy claim.
+- The lock remains visible beside a fork glyph or custom logo, is
+  keyboard-focusable, exposes a localized tooltip, and contributes **Private
+  repository** to the canonical row accessible name. Its fixed 22 px shape
+  (20 px in compact density) does not widen or clip bilingual rows.
+- The UI does not infer privacy from a URL, account, remote name, access
+  failure, or local filesystem state.
+
+**Local acceptance**
+
+- The combined browser, Cheap LFS restore, IPC, localization, and
+  private-badge test run passed **652/652 across 53 files**.
+- The two deterministic verifier contract suites passed **14/14**.
+- Full `tsc --noEmit` completed cleanly.
+- The exact Windows production command completed with `returncode 0`,
+  `timed_out false`, `client_ok true`, and no stderr. The resulting `out`
+  directory includes the normal renderer/main assets and the
+  `internal-browser` HTML, JavaScript, and CSS assets.
+- The real built app ran on an isolated hidden Win32 desktop. Wide English and
+  narrow bilingual restore receipts both proved the current lane at exactly
+  **90%** and the already-running next lane at **10%**, with no clipping,
+  overlap, or private data. The browser receipt proved same-tab redirect,
+  popup capture into a new tab, New tab, query-stripped bookmark storage, and
+  the explicit authentication escape without using a real account or
+  credential. The private-repository badge receipt proved the separate lock in
+  the real repository picker.
+
+| Accepted local capture | Dimensions | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| `docs/assets/screenshots/cheap-lfs-restore-lookahead.png` | 1440×960 | 106,724 | `001e9d09e95cf81c981f4b97a33c2aab958a93fce8eca064a8d0cea9df1e3a96` |
+| `docs/assets/screenshots/app-hosted-browser-authentication.png` | 1144×741 | 65,346 | `257960b35797e2f7e5f2a8e442c353e656d98af5ef4a088fe30113b641293f69` |
+| `docs/assets/screenshots/private-repository-lock-badge.png` | 960×660 | 87,517 | `7cf7e27565bceb3d584c24752c2e066b29abdbcafe066b25250fa65d3284de9a` |
+
+**Publication update**
+
+The source and accepted captures are pushed through `2abccae8fd`, and
+Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
+TUI compatibility correction rerun and installer/Release evidence remain
+pending. This pre-publication local receipt does not claim those remaining
+gates.
+
+Feature contracts:
+[Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
+[App-hosted browser](docs/features/integrations/app-hosted-browser.md), and
+[Private-repository lock badge](docs/features/repository-management/private-repository-lock-badge.md).
 ## 2026-07-27 — Documentation search no longer compiles reader regex on the UI thread (#69)
 
 `site/docs-search.html`, published as `/docs/search.html`, built and compiled
@@ -3103,16 +3305,16 @@ This handoff records the wave's scope. Per-item build, screenshot, release, and
 remote-CI receipts are added only when the exact pushed commit and its green
 remote runs exist.
 
-## Platform support decision
+## Graphical edition platform support decision
 
-Desktop Material is a Windows-only application. Windows x64 is the published
-installer target; Windows x64/arm64 builds, the Windows x64 full-unit lane, and
-Windows x64 packaged E2E are the supported product gates. macOS and Linux app
-runtimes, packages, and E2E lanes are intentionally unsupported. Non-Windows
-runners may still host platform-neutral repository automation such as lint,
-Pages, static analysis, release metadata, or issue triage; those jobs are not
-application targets. Preserve this boundary in future CI, release, roadmap,
-and feature work unless the user explicitly changes it.
+Desktop Material's Electron application is Windows-only. Windows x64 is the
+published installer target; Windows x64/arm64 builds, the Windows x64 full-unit
+lane, and Windows x64 packaged E2E are the supported graphical product gates.
+macOS and Linux Electron runtimes, packages, and E2E lanes are intentionally
+unsupported. Non-Windows runners may still host platform-neutral repository
+automation. On July 27 the user explicitly authorized a separate Linux-first
+Python/Textual TUI; its wheel, tests, and headless terminal acceptance do not
+change this Electron boundary.
 
 The policy change has a tracked CI contract and a fresh combined-tree Windows
 gate: 592 unit files ran in three batches, with 4,161 passes, zero failures,

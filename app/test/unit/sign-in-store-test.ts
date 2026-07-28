@@ -1,11 +1,15 @@
 import { describe, it, beforeEach, mock } from 'node:test'
 import assert from 'node:assert'
-import { SignInStore, SignInStep } from '../../src/lib/stores/sign-in-store'
+import {
+  ISignInOAuthCallbackServices,
+  SignInStore,
+  SignInStep,
+} from '../../src/lib/stores/sign-in-store'
 import { AccountsStore } from '../../src/lib/stores'
 import { Account } from '../../src/models/account'
 import { getDotComAPIEndpoint } from '../../src/lib/api'
 import { InMemoryStore, AsyncInMemoryStore } from '../helpers/stores'
-import { shell } from '../../src/lib/app-shell'
+import { IAppShellOpenExternalOptions, shell } from '../../src/lib/app-shell'
 
 function createAccountsStore(
   accounts: ReadonlyArray<Account> = []
@@ -206,6 +210,152 @@ describe('SignInStore', () => {
       signInStore.reset()
       assert.notEqual(result, null)
       assert.equal(result.kind, 'cancelled')
+    })
+  })
+
+  describe('authenticateWithBrowser', () => {
+    it('classifies the OAuth launch as authentication', async () => {
+      let capturedOptions: IAppShellOpenExternalOptions | undefined
+      const openExternal = mock.method(
+        shell,
+        'openExternal',
+        async (_path: string, options?: IAppShellOpenExternalOptions) => {
+          capturedOptions = options
+          return true
+        }
+      )
+
+      try {
+        signInStore.beginDotComSignIn()
+        await signInStore.authenticateWithBrowser()
+
+        assert.deepEqual(capturedOptions, { intent: 'authentication' })
+      } finally {
+        signInStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+  })
+
+  describe('resolveOAuthRequest', () => {
+    it('rejects a callback with the wrong state without exchanging it', async () => {
+      let exchangeCount = 0
+      const services: ISignInOAuthCallbackServices = {
+        requestOAuthToken: async () => {
+          exchangeCount++
+          return 'unused'
+        },
+        fetchUser: async () => createDotComAccount(),
+      }
+      const callbackStore = new SignInStore(services)
+      const openExternal = mock.method(shell, 'openExternal', async () => true)
+
+      try {
+        callbackStore.beginDotComSignIn()
+        await callbackStore.authenticateWithBrowser()
+
+        const result = await callbackStore.resolveOAuthRequest({
+          name: 'oauth',
+          code: 'ignored-code',
+          state: 'wrong-state',
+        })
+
+        assert.equal(result, 'rejected')
+        assert.equal(exchangeCount, 0)
+        const retainedState = callbackStore.getState()
+        assert.equal(retainedState?.kind, SignInStep.Authentication)
+        if (retainedState?.kind !== SignInStep.Authentication) {
+          throw new Error(
+            'Expected the rejected OAuth session to remain active'
+          )
+        }
+        assert.equal(retainedState.loading, true)
+      } finally {
+        callbackStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+
+    it('retains the sign-in flow with an error when token exchange fails', async () => {
+      let fetchCount = 0
+      const services: ISignInOAuthCallbackServices = {
+        requestOAuthToken: async () => null,
+        fetchUser: async () => {
+          fetchCount++
+          return createDotComAccount()
+        },
+      }
+      const callbackStore = new SignInStore(services)
+      const openExternal = mock.method(shell, 'openExternal', async () => true)
+
+      try {
+        callbackStore.beginDotComSignIn()
+        await callbackStore.authenticateWithBrowser()
+        const state = callbackStore.getState()
+        if (
+          state?.kind !== SignInStep.Authentication ||
+          state.oauthState === undefined
+        ) {
+          throw new Error('Expected an active OAuth session')
+        }
+
+        const result = await callbackStore.resolveOAuthRequest({
+          name: 'oauth',
+          code: 'failed-code',
+          state: state.oauthState.state,
+        })
+        await new Promise<void>(resolve => setImmediate(resolve))
+
+        assert.equal(result, 'failed')
+        assert.equal(fetchCount, 0)
+        const failedState = callbackStore.getState()
+        assert.equal(failedState?.kind, SignInStep.Authentication)
+        if (failedState?.kind !== SignInStep.Authentication) {
+          throw new Error('Expected the failed OAuth session to remain active')
+        }
+        assert.equal(failedState.loading, false)
+        assert.notEqual(failedState.error, null)
+      } finally {
+        callbackStore.reset()
+        openExternal.mock.restore()
+      }
+    })
+
+    it('acknowledges success only after token and account validation', async () => {
+      const account = createDotComAccount('confirmed-user')
+      const services: ISignInOAuthCallbackServices = {
+        requestOAuthToken: async () => 'confirmed-token',
+        fetchUser: async (_endpoint, token) => {
+          assert.equal(token, 'confirmed-token')
+          return account
+        },
+      }
+      const callbackStore = new SignInStore(services)
+      const openExternal = mock.method(shell, 'openExternal', async () => true)
+
+      try {
+        callbackStore.beginDotComSignIn()
+        await callbackStore.authenticateWithBrowser()
+        const state = callbackStore.getState()
+        if (
+          state?.kind !== SignInStep.Authentication ||
+          state.oauthState === undefined
+        ) {
+          throw new Error('Expected an active OAuth session')
+        }
+
+        const result = await callbackStore.resolveOAuthRequest({
+          name: 'oauth',
+          code: 'confirmed-code',
+          state: state.oauthState.state,
+        })
+
+        assert.equal(result, 'succeeded')
+        assert.equal(callbackStore.getState()?.kind, SignInStep.Success)
+      } finally {
+        callbackStore.reset()
+        openExternal.mock.restore()
+      }
     })
   })
 

@@ -187,6 +187,132 @@ jobs:
       - name: Run script tests
         run: yarn test:script
 
+  tui_package:
+    name: Linux TUI packages
+    if: needs.prepare.outputs.publish == 'true'
+    needs: prepare
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+    outputs:
+      version: ${{ steps.tui_version.outputs.version }}
+      wheel_name: ${{ steps.tui_payload.outputs.wheel_name }}
+      sdist_name: ${{ steps.tui_payload.outputs.sdist_name }}
+    env:
+      RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.prepare.outputs.sha }}
+          fetch-depth: 0
+      - name: Require the prepared exact commit
+        shell: bash
+        run: |
+          checked_out=$(git rev-parse HEAD)
+          if [ "$checked_out" != "$RELEASE_TARGET_SHA" ]; then
+            echo "Checked-out commit $checked_out does not match release target $RELEASE_TARGET_SHA." >&2
+            exit 1
+          fi
+      - uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        with:
+          version: 0.11.26
+          enable-cache: true
+          cache-dependency-glob: tui/uv.lock
+      - name: Install locked TUI environment
+        working-directory: tui
+        run: uv sync --locked --extra dev --python 3.12
+      - name: Discover exact TUI package version
+        id: tui_version
+        working-directory: tui
+        shell: bash
+        run: |
+          version=$(uv run --python 3.12 python -c \
+            'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')
+          if [ -z "$version" ] || [[ "$version" == *[[:space:]]* ]]; then
+            echo "TUI pyproject.toml did not provide one usable package version." >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+      - name: Verify generated parity contract
+        run: node tui/tools/generate-parity-contract.mjs --check
+      - name: Run TUI tests
+        working-directory: tui
+        run: uv run --python 3.12 pytest
+      - name: Run TUI lint and types
+        working-directory: tui
+        run: |
+          uv run --python 3.12 ruff check .
+          uv run --python 3.12 mypy src
+      - name: Build wheel and source distribution
+        working-directory: tui
+        run: uv build --clear
+      - name: Verify and collect exact TUI payload
+        id: tui_payload
+        shell: bash
+        env:
+          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
+        run: |
+          shopt -s nullglob
+          wheels=(tui/dist/*.whl)
+          sdists=(tui/dist/*.tar.gz)
+          if [ "${#wheels[@]}" -ne 1 ] || [ "${#sdists[@]}" -ne 1 ]; then
+            echo "Expected exactly one TUI wheel and one source distribution." >&2
+            printf 'wheel: %s\n' "${wheels[@]:-<none>}" >&2
+            printf 'sdist: %s\n' "${sdists[@]:-<none>}" >&2
+            exit 1
+          fi
+          expected_wheel="desktop_material_tui-${TUI_VERSION}-py3-none-any.whl"
+          expected_sdist="desktop_material_tui-${TUI_VERSION}.tar.gz"
+          wheel_name=$(basename "${wheels[0]}")
+          sdist_name=$(basename "${sdists[0]}")
+          if [ "$wheel_name" != "$expected_wheel" ] || \
+             [ "$sdist_name" != "$expected_sdist" ]; then
+            echo "Built TUI package names do not match pyproject.toml version $TUI_VERSION." >&2
+            printf 'Expected: %s and %s\n' "$expected_wheel" "$expected_sdist" >&2
+            printf 'Actual:   %s and %s\n' "$wheel_name" "$sdist_name" >&2
+            exit 1
+          fi
+          mkdir -p release-payload/tui
+          cp "${wheels[0]}" "${sdists[0]}" release-payload/tui/
+          test -s "release-payload/tui/$wheel_name"
+          test -s "release-payload/tui/$sdist_name"
+          echo "wheel_name=$wheel_name" >> "$GITHUB_OUTPUT"
+          echo "sdist_name=$sdist_name" >> "$GITHUB_OUTPUT"
+      - name: Smoke-test the fresh TUI wheel
+        shell: bash
+        env:
+          TUI_VERSION: ${{ steps.tui_version.outputs.version }}
+          TUI_WHEEL_NAME: ${{ steps.tui_payload.outputs.wheel_name }}
+        run: |
+          smoke="$RUNNER_TEMP/desktop-material-tui-release-smoke"
+          uv venv "$smoke" --python 3.12 --clear
+          UV_NO_CACHE=1 uv pip install \
+            --python "$smoke/bin/python" \
+            "release-payload/tui/$TUI_WHEEL_NAME"
+          installed=$("$smoke/bin/python" -c \
+            'import importlib.metadata; print(importlib.metadata.version("desktop-material-tui"))')
+          if [ "$installed" != "$TUI_VERSION" ]; then
+            echo "Fresh wheel installed version $installed, expected $TUI_VERSION." >&2
+            exit 1
+          fi
+          reported=$("$smoke/bin/desktop-material-tui" --version)
+          if [ "$reported" != "desktop-material-tui $TUI_VERSION" ]; then
+            echo "Fresh wheel entry point reported '$reported'." >&2
+            exit 1
+          fi
+      - name: Preserve verified TUI packages
+        uses: actions/upload-artifact@v7
+        with:
+          name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/tui/
+          if-no-files-found: error
+          retention-days: 3
+
   package:
     name: Windows x64
     needs: prepare
@@ -321,11 +447,13 @@ jobs:
       - prepare
       - lint
       - test
+      - tui_package
       - package
     if: >-
       always() && needs.prepare.result == 'success' && needs.package.result ==
-      'success' && needs.prepare.outputs.publish == 'true' && (github.event_name
-      == 'workflow_run' ||
+      'success' && needs.tui_package.result == 'success' &&
+      needs.prepare.outputs.publish == 'true' && (github.event_name ==
+      'workflow_run' ||
        (needs.lint.result == 'success' && needs.test.result == 'success'))
     runs-on: ubuntu-latest
     permissions:
@@ -335,6 +463,9 @@ jobs:
       RELEASE_TARGET_SHA: ${{ needs.prepare.outputs.sha }}
       RELEASE_VERSION: ${{ needs.prepare.outputs.version }}
       RELEASE_TAG: ${{ needs.prepare.outputs.tag }}
+      TUI_VERSION: ${{ needs.tui_package.outputs.version }}
+      TUI_WHEEL_NAME: ${{ needs.tui_package.outputs.wheel_name }}
+      TUI_SDIST_NAME: ${{ needs.tui_package.outputs.sdist_name }}
       # RELEASE_TOKEN (a fine-grained PAT with Contents write on this repo)
       # takes precedence when configured: since 2026-07-26 the workflow token
       # is refused by POST /releases (issue #44), while a user PAT publishes
@@ -356,6 +487,10 @@ jobs:
           name:
             express-release-notes-${{ github.run_id }}-${{ github.run_attempt }}
           path: release-payload
+      - uses: actions/download-artifact@v7
+        with:
+          name: express-tui-${{ github.run_id }}-${{ github.run_attempt }}
+          path: release-payload/tui
       - name: Revalidate immutable release tag before publishing
         shell: bash
         run: |
@@ -385,6 +520,8 @@ jobs:
             release-payload/installers/GitHubDesktopSetup-x64.msi
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-full.nupkg"
             "release-payload/installers/GitHubDesktop-${RELEASE_VERSION}-x64-full.nupkg"
+            "release-payload/tui/$TUI_WHEEL_NAME"
+            "release-payload/tui/$TUI_SDIST_NAME"
             release-payload/release-notes.md
           )
           for asset in "${required[@]}"; do
@@ -397,7 +534,8 @@ jobs:
         shell: bash
         run: |
           set +e
-          gh release create "$RELEASE_TAG" release-payload/installers/* \
+          gh release create "$RELEASE_TAG" \
+            release-payload/installers/* release-payload/tui/* \
             --repo "$GITHUB_REPOSITORY" \
             --target "$RELEASE_TARGET_SHA" \
             --title "Desktop Material $RELEASE_VERSION" \
@@ -421,7 +559,8 @@ jobs:
               -F prerelease=true \
               -f make_latest=false \
               -F body=@release-payload/release-notes.md >/dev/null
-            gh release upload "$RELEASE_TAG" release-payload/installers/* \
+            gh release upload "$RELEASE_TAG" \
+              release-payload/installers/* release-payload/tui/* \
               --repo "$GITHUB_REPOSITORY"
             gh release edit "$RELEASE_TAG" \
               --repo "$GITHUB_REPOSITORY" \
@@ -440,6 +579,14 @@ jobs:
             echo "Published release unexpectedly remained a draft." >&2
             exit 1
           fi
+          published_assets=$(gh release view "$RELEASE_TAG" \
+            --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name')
+          for expected in "$TUI_WHEEL_NAME" "$TUI_SDIST_NAME"; do
+            if ! grep -Fqx "$expected" <<<"$published_assets"; then
+              echo "Published release is missing TUI asset $expected." >&2
+              exit 1
+            fi
+          done
       - name: Reconcile Latest to the newest main release
         shell: bash
         run: bash .github/scripts/promote-current-release.sh

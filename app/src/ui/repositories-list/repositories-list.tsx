@@ -1023,6 +1023,15 @@ export class RepositoriesList extends React.Component<
           this.state.languageMode
         )
       : item.repository.name
+    const privacy =
+      item.repository instanceof Repository &&
+      item.repository.gitHubRepository?.isPrivate === true
+        ? translateForAccessibleName(
+            'repositoryPicker.privateRepository',
+            {},
+            this.state.languageMode
+          )
+        : null
 
     const syncName = this.getSyncAccessibleNames(
       this.props.repositories,
@@ -1031,7 +1040,9 @@ export class RepositoriesList extends React.Component<
       this.state.syncFunnyLevels
     ).get(item.repository.id)
 
-    return syncName === undefined ? name : `${name}, ${syncName}`
+    return [name, privacy, syncName]
+      .filter((segment): segment is string => typeof segment === 'string')
+      .join(', ')
   }
   private getGroupAriaLabelGetter =
     (
