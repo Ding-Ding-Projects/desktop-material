@@ -658,11 +658,31 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
 
     return offsetRect(
       direction === undefined && this.props.positionRelativeToTarget !== true
-        ? this.mouseRect
+        ? this.getPointerRect(target)
         : target.getBoundingClientRect(),
       tooltipOffset?.x ?? 0,
       tooltipOffset?.y ?? 0
     )
+  }
+
+  /**
+   * The rect a mouse-anchored tooltip is placed against.
+   *
+   * `mouseRect` is only ever written by a mouse event over the target, but a
+   * tooltip can also be shown without one — keyboard focus (`onTargetFocus`),
+   * `openOnFocus`, or a programmatic click. In that case the pristine
+   * `new DOMRect()` would anchor the tooltip at the viewport origin and strand
+   * it half outside the window rather than beside the thing it describes
+   * (#92). Fall back to the target's own box whenever no pointer position has
+   * been recorded; a real pointer always yields a 20x20 rect, so only the
+   * untouched rect matches.
+   */
+  private getPointerRect(target: TooltipTarget) {
+    const { x, y, width, height } = this.mouseRect
+
+    return x === 0 && y === 0 && width === 0 && height === 0
+      ? target.getBoundingClientRect()
+      : this.mouseRect
   }
 
   private cancelShowTooltip() {
@@ -747,7 +767,13 @@ export class Tooltip<T extends TooltipTarget> extends React.Component<
       : TooltipDirection.SOUTH
 
     const style: React.CSSProperties = visible
-      ? getTooltipPositionStyle(direction, targetRect, hostRect, tooltipRect)
+      ? getTooltipPositionStyle(
+          direction,
+          targetRect,
+          hostRect,
+          tooltipRect,
+          windowRect
+        )
       : { visibility: 'hidden', left: `0px`, top: `0px` }
 
     const className = classNames('tooltip', this.props.className, {
@@ -865,13 +891,50 @@ function getDirection(
   return TooltipDirection.SOUTH
 }
 
+/**
+ * Nudge a tooltip back inside the window.
+ *
+ * `getDirection` returns SOUTH when none of the eight placements fits — "fall
+ * back to south even though it doesn't fit" — and SOUTH is centered on the
+ * target, so a target at or beyond a window edge places the tooltip partly
+ * outside the window. That is how a `New tab group…` tip ended up stranded in
+ * the top-left corner of the app, half of it clipped away by the window edge
+ * and unreadable (#92).
+ *
+ * The window always wins over the preferred offset: the tooltip may be pushed
+ * off its ideal alignment, but it is never painted outside the content area.
+ * A tooltip wider or taller than the window is pinned to the top-left corner
+ * rather than to a negative coordinate.
+ */
+export function clampTooltipRectToWindow(
+  rect: DOMRect,
+  windowRect: DOMRect
+): DOMRect {
+  const maxLeft = Math.max(windowRect.left, windowRect.right - rect.width)
+  const maxTop = Math.max(windowRect.top, windowRect.bottom - rect.height)
+
+  return new DOMRect(
+    Math.min(Math.max(rect.left, windowRect.left), maxLeft),
+    Math.min(Math.max(rect.top, windowRect.top), maxTop),
+    rect.width,
+    rect.height
+  )
+}
+
 function getTooltipPositionStyle(
   direction: TooltipDirection,
   target: DOMRect,
   host: DOMRect,
-  tooltip: DOMRect
+  tooltip: DOMRect,
+  windowRect: DOMRect
 ): React.CSSProperties {
-  const r = getTooltipRectRelativeTo(target, direction, tooltip)
+  // Clamped in viewport coordinates, then rebased onto the host, so the result
+  // is bounded for both the `position: fixed` body portal and the
+  // `position: absolute` `.tooltip-host` portal.
+  const r = clampTooltipRectToWindow(
+    getTooltipRectRelativeTo(target, direction, tooltip),
+    windowRect
+  )
   r.x -= host.x
   r.y -= host.y
 

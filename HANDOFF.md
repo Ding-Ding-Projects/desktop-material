@@ -1,5 +1,22 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Tab-group dialogs move onto the dialog layer (Refs #92)
+
+`CreateTabGroupDialog`/`EditTabGroupDialog` rendered inline in
+`repository-tab-strip.tsx`. `Dialog` carries `tooltip-host`, whose
+`position: relative` overrides the UA `position: absolute` on `<dialog>`, so
+they laid out as in-flow flex items of the strip at `z-index: auto` and the app
+bar's positioned pills painted over the Group color swatches. Both now portal
+into `#dialog-layer` via the new `app/src/ui/dialog/dialog-layer.tsx`. Second
+defect in the same frame: `Tooltip` anchors mouse-placed tips to `mouseRect`,
+which stays `(0,0,0,0)` when a tip is shown by focus, and `getDirection` falls
+back to an unclamped SOUTH — so the tip landed half outside the window.
+`getTargetRect` now falls back to the target's box and
+`clampTooltipRectToWindow` bounds every tooltip. Verified: 17/17 across the
+three touched test files (5 new, each confirmed failing before the fix), `tsc`
+exits 0, eslint and repo-wide prettier clean. **Not visually verified** — no
+build or capture was run on this worktree.
+
 ## 2026-07-28 — Shift+Right-click opens appearance editors (Refs #89)
 
 The appearance editor no longer claims a plain right-click anywhere. The
