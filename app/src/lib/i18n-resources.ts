@@ -9,15 +9,6 @@ export type TranslationKey =
   | 'ci.cancelled'
   | 'ci.skipped'
   | 'ci.stale'
-  | 'lazyView.loading.plain'
-  | 'lazyView.loading.light'
-  | 'lazyView.loading.playful'
-  | 'lazyView.failedTitle'
-  | 'lazyView.failedBody.plain'
-  | 'lazyView.failedBody.light'
-  | 'lazyView.failedBody.playful'
-  | 'lazyView.failedDetail'
-  | 'lazyView.retry'
   | 'startup.loading'
   | 'repositorySection.actions'
   | 'repositorySection.releases'
@@ -72,6 +63,10 @@ export type TranslationKey =
   | 'appearance.playfulnessValue'
   | 'appearance.playfulnessSerious'
   | 'appearance.playfulnessMaximum'
+  | 'appearance.elementGestureHeading'
+  | 'appearance.elementGesture.plain'
+  | 'appearance.elementGesture.light'
+  | 'appearance.elementGesture.playful'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
   | 'appearance.toolbarEditorTitle'
@@ -175,6 +170,22 @@ export type TranslationKey =
   | 'tabs.overflowButton'
   | 'tabs.overflowButtonLabel'
   | 'tabs.overflowTitle'
+  | 'lazyView.loading.plain'
+  | 'lazyView.loading.light'
+  | 'lazyView.loading.playful'
+  | 'lazyView.failedTitle'
+  | 'lazyView.failedBody.plain'
+  | 'lazyView.failedBody.light'
+  | 'lazyView.failedBody.playful'
+  | 'lazyView.failedDetail'
+  | 'lazyView.retry'
+  | 'lazyView.notificationTitle'
+  | 'lazyView.notificationBody'
+  | 'lazyView.section.actions'
+  | 'lazyView.section.releases'
+  | 'lazyView.section.issues'
+  | 'lazyView.section.triage'
+  | 'lazyView.section.tools'
   | 'tabs.overflowDescription.plain'
   | 'tabs.overflowDescription.light'
   | 'tabs.overflowDescription.playful'
@@ -2263,6 +2274,10 @@ export type TranslationKey =
   | 'settingsSearch.entry.gitDefaultBranch.title'
   | 'settingsSearch.entry.gitDefaultBranch.desc'
   | 'settingsSearch.entry.appearanceTheme.title'
+  | 'settingsSearch.entry.appearanceLanguageMode.title'
+  | 'settingsSearch.entry.appearanceLanguageMode.desc'
+  | 'settingsSearch.entry.appearanceTone.title'
+  | 'settingsSearch.entry.appearanceTone.desc'
   | 'settingsSearch.entry.appearanceTheme.desc'
   | 'settingsSearch.entry.appearanceAccent.title'
   | 'settingsSearch.entry.appearanceAccent.desc'
@@ -2533,6 +2548,33 @@ export type TranslationKey =
 
 /** Complete base catalog. Every missing locale entry falls back to this. */
 export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
+  'settingsSearch.entry.appearanceLanguageMode.title': 'Language mode',
+  'settingsSearch.entry.appearanceLanguageMode.desc':
+    'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
+  'settingsSearch.entry.appearanceTone.title': 'Funny level (tone)',
+  'settingsSearch.entry.appearanceTone.desc':
+    'Independent English and Cantonese sliders from 1 (fully serious) to 5 (maximum playfulness). Styles every message including errors and warnings, never the facts.',
+  'lazyView.loading.plain': 'Loading {name}…',
+  'lazyView.loading.light': 'Fetching {name}. The rest of the app still works.',
+  'lazyView.loading.playful':
+    'Waking {name} up. Everything else keeps working while it stretches.',
+  'lazyView.failedTitle': '{name} could not be loaded',
+  'lazyView.failedBody.plain':
+    'Nothing else in the app was affected. Select Try again to load {name} once more.',
+  'lazyView.failedBody.light':
+    'Only {name} is affected — the rest of the app is fine. Select Try again to load it once more.',
+  'lazyView.failedBody.playful':
+    '{name} tripped on the doorstep; the rest of the app never noticed. Select Try again to give it another go.',
+  'lazyView.failedDetail': 'Reported error: {error}',
+  'lazyView.retry': 'Try again',
+  'lazyView.notificationTitle': 'Could not open {name}',
+  'lazyView.notificationBody':
+    '{name} failed to load and is showing a retry button. Nothing else was affected. Reported error: {error}',
+  'lazyView.section.actions': 'Actions',
+  'lazyView.section.releases': 'Releases',
+  'lazyView.section.issues': 'Issues',
+  'lazyView.section.triage': 'Triage',
+  'lazyView.section.tools': 'Repository tools',
   'ci.status': 'CI checks: {status}',
   'ci.successful': 'successful',
   'ci.failed': 'failed',
@@ -2543,18 +2585,6 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'ci.cancelled': 'cancelled',
   'ci.skipped': 'skipped',
   'ci.stale': 'stale',
-  'lazyView.loading.plain': 'Loading {name}…',
-  'lazyView.loading.light': 'Getting {name} ready…',
-  'lazyView.loading.playful': 'Waking up {name}…',
-  'lazyView.failedTitle': '{name} could not load',
-  'lazyView.failedBody.plain':
-    '{name} stopped while loading. The rest of Desktop Material is still usable.',
-  'lazyView.failedBody.light':
-    '{name} hit a snag while loading. The rest of Desktop Material is still usable.',
-  'lazyView.failedBody.playful':
-    '{name} tripped over its shoelaces while loading. The rest of Desktop Material is still usable.',
-  'lazyView.failedDetail': 'Reported error: {error}',
-  'lazyView.retry': 'Try again',
   'startup.loading': 'Opening your workspace…',
   'repositorySection.actions': 'Actions',
   'repositorySection.releases': 'Releases',
@@ -2621,6 +2651,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.playfulnessValue': 'Level {value} of 5',
   'appearance.playfulnessSerious': '1 · Fully serious',
   'appearance.playfulnessMaximum': '5 · Maximum fun',
+  'appearance.elementGestureHeading': 'Element appearance',
+  // Every band names the same three facts: the gesture that opens an element's
+  // appearance editor, what a plain right-click does instead, and the keyboard
+  // route. Only the voice moves.
+  'appearance.elementGesture.plain':
+    'Shift+Right-click an element to open its appearance editor. A plain right-click opens that element’s ordinary menu instead. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
+  'appearance.elementGesture.light':
+    'Want to restyle something? Shift+Right-click it and its appearance editor opens. A plain right-click stays out of the way and opens that element’s ordinary menu. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
+  'appearance.elementGesture.playful':
+    'Hold Shift, right-click anything, and its appearance editor pops out ready for a fresh coat of paint. A plain right-click keeps its day job: that element’s ordinary menu. Keyboard fans, focus the element and hit Shift+F10 or the Menu key. Every element hoards its own settings and history like a squirrel.',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
   'appearance.toolbarEditorTitle': 'Toolbar appearance',
@@ -5812,6 +5852,32 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
 export const cantoneseTranslations: Readonly<
   Partial<Record<TranslationKey, string>>
 > = {
+  'settingsSearch.entry.appearanceLanguageMode.title': '語言模式',
+  'settingsSearch.entry.appearanceLanguageMode.desc':
+    '揀英文、玩味港式廣東話，或者慳位雙語模式。',
+  'settingsSearch.entry.appearanceTone.title': '搞笑等級（語氣）',
+  'settingsSearch.entry.appearanceTone.desc':
+    '英文同廣東話各有一條滑桿，1 係完全認真，5 係玩到盡。改嘅係全 app 文案嘅講法，錯誤同警告都包，但事實一個字都唔會少。',
+  'lazyView.loading.plain': '載入緊 {name}…',
+  'lazyView.loading.light': '拎緊 {name} 出嚟，其他部分照用得。',
+  'lazyView.loading.playful': '嗌緊 {name} 起身，佢伸緊懶腰，其他嘢照玩。',
+  'lazyView.failedTitle': '載入唔到 {name}',
+  'lazyView.failedBody.plain':
+    'App 其他部分冇受影響。撳「再試一次」可以再載入 {name}。',
+  'lazyView.failedBody.light':
+    '淨係 {name} 出事，App 其他部分無恙。撳「再試一次」再載入佢。',
+  'lazyView.failedBody.playful':
+    '{name} 一出門口就仆親，App 其他部分完全唔知發生咩事。撳「再試一次」畀佢再嚟過。',
+  'lazyView.failedDetail': '錯誤訊息：{error}',
+  'lazyView.retry': '再試一次',
+  'lazyView.notificationTitle': '打唔開 {name}',
+  'lazyView.notificationBody':
+    '{name} 載入失敗，嗰度有粒「再試一次」掣等你撳。其他嘢冇受影響。錯誤訊息：{error}',
+  'lazyView.section.actions': 'Actions 工作流程',
+  'lazyView.section.releases': 'Releases 發布',
+  'lazyView.section.issues': 'Issues 議題',
+  'lazyView.section.triage': 'Triage 分流',
+  'lazyView.section.tools': 'Repository 工具',
   'ci.status': 'CI 檢查：{status}',
   'ci.successful': '成功，掂晒',
   'ci.failed': '失敗',
@@ -5822,18 +5888,6 @@ export const cantoneseTranslations: Readonly<
   'ci.cancelled': '已取消',
   'ci.skipped': '已略過',
   'ci.stale': '資料舊咗',
-  'lazyView.loading.plain': '載入緊 {name}…',
-  'lazyView.loading.light': '準備緊 {name}…',
-  'lazyView.loading.playful': '叫醒緊 {name}…',
-  'lazyView.failedTitle': '{name} 載入唔到',
-  'lazyView.failedBody.plain':
-    '{name} 載入途中停咗。Desktop Material 其他部分仍然用得。',
-  'lazyView.failedBody.light':
-    '{name} 載入途中撞到阻滯。Desktop Material 其他部分仍然用得。',
-  'lazyView.failedBody.playful':
-    '{name} 載入途中俾鞋帶絆親。Desktop Material 其他部分仍然用得。',
-  'lazyView.failedDetail': '錯誤詳情：{error}',
-  'lazyView.retry': '再試一次',
   'startup.loading': '打開緊你嘅工作區…',
   'repositorySection.actions': '操作',
   'repositorySection.releases': '版本發布',
@@ -5899,6 +5953,13 @@ export const cantoneseTranslations: Readonly<
   'appearance.playfulnessValue': '第 {value} 級，共 5 級',
   'appearance.playfulnessSerious': '1 · 完全認真',
   'appearance.playfulnessMaximum': '5 · 最玩得',
+  'appearance.elementGestureHeading': '元素外觀',
+  'appearance.elementGesture.plain':
+    '撳住 Shift 再右擊一個元素，就會開佢嘅外觀編輯器。單純右擊照舊開返該元素本身嘅選單。用鍵盤嘅話，先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
+  'appearance.elementGesture.light':
+    '想改個樣？撳住 Shift 右擊佢，外觀編輯器就會彈出嚟。淨係右擊就唔阻你，照開返該元素本身嘅選單。用鍵盤就先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
+  'appearance.elementGesture.playful':
+    '撳住 Shift 再右擊，外觀編輯器即刻彈出嚟等你落色。淨係右擊嘅話，佢繼續做返本份——開該元素本身嘅選單。鍾意用鍵盤？聚焦該元素，撳 Shift+F10 或者 Menu 鍵。每個元素都好似松鼠咁，收埋自己嘅設定同歷史。',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
   'appearance.toolbarEditorTitle': '工具列外觀',

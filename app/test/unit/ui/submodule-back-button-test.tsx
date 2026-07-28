@@ -53,6 +53,7 @@ describe('Submodule Back button contextual appearance editor', () => {
     assert.equal(ordinaryRightClick, true)
     assert.equal(documentSawPrevented, false)
     assert.equal(screen.queryByRole('dialog'), null)
+    assert.equal(button.getAttribute('aria-expanded'), 'false')
 
     const shiftedRightClick = fireEvent.contextMenu(button, {
       button: 2,

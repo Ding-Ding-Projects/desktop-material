@@ -13,6 +13,69 @@ import { getPersistedLanguageMode, t } from '../../lib/i18n'
 import { Button } from './button'
 import { Loading } from './loading'
 
+type LoadSource = () => Promise<unknown>
+
+interface IResolvedLoad {
+  readonly value: unknown
+}
+
+/**
+ * Stable module loaders are evaluated once per renderer session. In-flight
+ * requests are shared too, while rejections are deliberately forgotten so the
+ * local retry button always starts a real new attempt.
+ */
+const resolvedLoads = new WeakMap<LoadSource, IResolvedLoad>()
+const inFlightLoads = new WeakMap<LoadSource, Promise<unknown>>()
+
+function asLoadSource<T>(source: () => Promise<T>): LoadSource {
+  return source as LoadSource
+}
+
+function readCachedLoad<T>(source: () => Promise<T>): {
+  readonly found: boolean
+  readonly value: T | null
+} {
+  const cached = resolvedLoads.get(asLoadSource(source))
+  return cached === undefined
+    ? { found: false, value: null }
+    : { found: true, value: cached.value as T }
+}
+
+function forgetCachedLoad<T>(source: () => Promise<T>): void {
+  const key = asLoadSource(source)
+  resolvedLoads.delete(key)
+  inFlightLoads.delete(key)
+}
+
+function loadOnce<T>(source: () => Promise<T>): Promise<T> {
+  const key = asLoadSource(source)
+  const cached = resolvedLoads.get(key)
+  if (cached !== undefined) {
+    return Promise.resolve(cached.value as T)
+  }
+
+  const inFlight = inFlightLoads.get(key)
+  if (inFlight !== undefined) {
+    return inFlight as Promise<T>
+  }
+
+  const request = Promise.resolve()
+    .then(source)
+    .then(
+      value => {
+        resolvedLoads.set(key, { value })
+        inFlightLoads.delete(key)
+        return value
+      },
+      error => {
+        inFlightLoads.delete(key)
+        throw normalizeProgressiveLoadError(error)
+      }
+    )
+  inFlightLoads.set(key, request)
+  return request
+}
+
 export interface ILazyViewProps<T> {
   /** User-facing name of the local surface being loaded. */
   readonly name: string
@@ -97,46 +160,67 @@ class LazyRenderBoundary<T> extends React.Component<
  * Local progressive boundary for modules and other expensive inactive views.
  *
  * It deliberately owns no focus calls. Loading is announced politely, loader
- * and render errors stay in this surface with a retry, and late completions are
- * fenced by the underlying ProgressiveLoad generation.
+ * and render errors stay in this surface with a retry, late completions are
+ * fenced by the underlying ProgressiveLoad generation, and resolved stable
+ * loaders are reused without flashing a spinner when a surface is revisited.
  */
 export class LazyView<T> extends React.Component<
   ILazyViewProps<T>,
   ILazyViewState<T>
 > {
-  private readonly progressiveLoad = new ProgressiveLoad<T>()
+  private progressiveLoad: ProgressiveLoad<T>
   private mounted = false
   private nextRenderAttempt = 0
 
   public constructor(props: ILazyViewProps<T>) {
     super(props)
+    const cached = readCachedLoad(props.load)
+    this.progressiveLoad = new ProgressiveLoad<T>(
+      cached.found ? cached.value : null
+    )
     this.state = {
       source: props.load,
-      loadState: loadingState<T>(),
+      loadState: cached.found ? this.progressiveLoad.state : loadingState<T>(),
       renderAttempt: this.nextRenderAttempt,
     }
   }
 
   public componentDidMount(): void {
     this.mounted = true
-    this.startLoad(this.props.load)
+    if (this.progressiveLoad.state.kind !== 'ready') {
+      this.startLoad(this.props.load)
+    }
   }
 
   public componentDidUpdate(prevProps: ILazyViewProps<T>): void {
-    if (prevProps.load !== this.props.load) {
-      this.progressiveLoad.reset()
+    if (prevProps.load === this.props.load) {
+      return
+    }
+
+    this.progressiveLoad.dispose()
+    const cached = readCachedLoad(this.props.load)
+    this.progressiveLoad = new ProgressiveLoad<T>(
+      cached.found ? cached.value : null
+    )
+    if (cached.found) {
+      this.setState({
+        source: this.props.load,
+        loadState: this.progressiveLoad.state,
+        renderAttempt: ++this.nextRenderAttempt,
+      })
+    } else {
       this.startLoad(this.props.load)
     }
   }
 
   public componentWillUnmount(): void {
     this.mounted = false
-    this.progressiveLoad.reset()
+    this.progressiveLoad.dispose()
   }
 
   private startLoad(source: () => Promise<T>): void {
     const renderAttempt = ++this.nextRenderAttempt
-    const completion = this.progressiveLoad.run(source)
+    const completion = this.progressiveLoad.run(() => loadOnce(source))
     this.setState({
       source,
       loadState: this.progressiveLoad.state,
@@ -168,6 +252,7 @@ export class LazyView<T> extends React.Component<
   }
 
   private retry = (): void => {
+    forgetCachedLoad(this.props.load)
     this.startLoad(this.props.load)
   }
 
@@ -189,7 +274,7 @@ export class LazyView<T> extends React.Component<
         <span className="lazy-view-spinner" aria-hidden={true}>
           <Loading />
         </span>
-        <p>{message}</p>
+        <p className="lazy-view-message">{message}</p>
       </section>
     )
   }
@@ -205,8 +290,10 @@ export class LazyView<T> extends React.Component<
 
     return (
       <section className="lazy-view lazy-view-failed" role="alert">
-        <h2>{t('lazyView.failedTitle', variables)}</h2>
-        <p>{body}</p>
+        <h2 className="lazy-view-title">
+          {t('lazyView.failedTitle', variables)}
+        </h2>
+        <p className="lazy-view-message">{body}</p>
         <p className="lazy-view-error-detail">
           {t('lazyView.failedDetail', { error: error.message })}
         </p>

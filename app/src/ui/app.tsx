@@ -194,6 +194,7 @@ import {
   CodeDiffAppearanceEditor,
   DefaultRepositoryLogoAppearanceEditor,
   FeatureHighlightingAppearanceEditor,
+  isAppearanceEditorFallbackContextMenu,
   RepositoryListAppearanceEditor,
   RepositoryTabsAppearanceEditor,
   RepositoryTabsOverrideAppearanceEditor,
@@ -201,7 +202,6 @@ import {
   RepositoryWorkspaceAppearanceEditor,
   ToolbarAppearanceEditor,
   UpdateProgressAppearanceEditor,
-  isAppearanceEditorContextMenuGesture,
 } from './appearance'
 import { LocalizedText } from './lib/localized-text'
 import { SubtreeManagerDialog } from './subtrees/subtree-manager-dialog'
@@ -1843,15 +1843,21 @@ export class App extends React.Component<IAppProps, IAppState> {
 
   /**
    * Offer one consistent customization/history contract for otherwise
-   * unhandled shell surfaces. A physical secondary click needs Shift so the
-   * ordinary context menu remains available. Existing specialized context
-   * menus still win because they prevent the event before it reaches this
-   * document listener.
+   * unhandled shell surfaces. Existing specialized context menus win because
+   * they prevent the event before it reaches this document listener.
+   *
+   * The pointer gesture is Shift+Right-click. This listener sits on `document`
+   * and matches `#desktop-app-contents`, so on a plain right-click it used to
+   * swallow essentially every right-click in the shell — including the ones
+   * ordinary context menus wanted. A plain right-click now falls straight
+   * through to whatever the surface itself does. A keyboard context-menu
+   * request still opens the editor, because these fallback owners have no
+   * other menu for the keyboard to reach.
    */
   private onCustomizationContextMenu = (event: MouseEvent) => {
     if (
       event.defaultPrevented ||
-      !isAppearanceEditorContextMenuGesture(event) ||
+      !isAppearanceEditorFallbackContextMenu(event) ||
       !(event.target instanceof Element)
     ) {
       return

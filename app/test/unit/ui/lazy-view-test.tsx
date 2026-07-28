@@ -31,6 +31,7 @@ describe('LazyView', () => {
 
   afterEach(() => {
     console.error = originalConsoleError
+    localStorage.clear()
   })
 
   it('does not invoke its loader before mounting', () => {
@@ -65,15 +66,15 @@ describe('LazyView', () => {
     assert.equal(screen.queryByText('loaded'), null)
   })
 
-  it('renders the resolved surface and does not move focus', async () => {
+  it('renders the resolved surface directly and does not move focus', async () => {
     const request = deferred<string>()
-    render(
+    const view = render(
       <>
         <button type="button">Keep focus</button>
         <LazyView
           name="Issues"
           load={() => request.promise}
-          render={value => <div>{value}</div>}
+          render={value => <p data-testid="resolved-view">{value}</p>}
         />
       </>
     )
@@ -85,6 +86,11 @@ describe('LazyView', () => {
 
     assert.equal(document.activeElement, focusOwner)
     assert.equal(screen.queryByRole('status'), null)
+    assert.equal(
+      view.container.querySelector('[data-testid="resolved-view"]')
+        ?.parentElement,
+      view.container
+    )
   })
 
   it('shows the real failure and retries the exact loader', async () => {
@@ -116,7 +122,7 @@ describe('LazyView', () => {
     assert.equal(failures[0].message, 'chunk unavailable')
 
     fireEvent.click(screen.getByRole('button', { name: 'Try again' }))
-    assert.equal(calls, 2)
+    await waitFor(() => assert.equal(calls, 2))
     assert.ok(screen.getByRole('status'))
 
     retry.resolve('Tools loaded')
@@ -166,6 +172,58 @@ describe('LazyView', () => {
     assert.equal(screen.queryByRole('alert'), null)
   })
 
+  it('reuses a resolved stable loader synchronously on a later mount', async () => {
+    let calls = 0
+    const load = async () => {
+      calls++
+      return 'cached surface'
+    }
+    const renderSurface = (value: string) => <div>{value}</div>
+
+    const first = render(
+      <LazyView name="Actions" load={load} render={renderSurface} />
+    )
+    await waitFor(() => assert.ok(screen.getByText('cached surface')))
+    first.unmount()
+
+    const second = render(
+      <LazyView name="Actions" load={load} render={renderSurface} />
+    )
+    assert.equal(second.container.querySelector('[role="status"]'), null)
+    assert.ok(screen.getByText('cached surface'))
+    assert.equal(calls, 1)
+  })
+
+  it('shares one in-flight request between mounts using the same loader', async () => {
+    const request = deferred<string>()
+    let calls = 0
+    const load = () => {
+      calls++
+      return request.promise
+    }
+
+    render(
+      <>
+        <LazyView
+          name="First tools"
+          load={load}
+          render={value => <div>{value}</div>}
+        />
+        <LazyView
+          name="Second tools"
+          load={load}
+          render={value => <div>{value}</div>}
+        />
+      </>
+    )
+    await waitFor(() => assert.equal(calls, 1))
+
+    request.resolve('shared result')
+    await waitFor(() =>
+      assert.equal(screen.getAllByText('shared result').length, 2)
+    )
+  })
+
   it('does not let an earlier navigation overwrite the latest view', async () => {
     const first = deferred<string>()
     const second = deferred<string>()
@@ -195,21 +253,26 @@ describe('LazyView', () => {
     assert.ok(screen.getByText('new Issues view'))
   })
 
-  it('fences a completion after unmount', async () => {
+  it('fences a completion and failure report after unmount', async () => {
     const request = deferred<string>()
+    let reports = 0
     const view = render(
       <LazyView
         name="Triage"
         load={() => request.promise}
+        onError={() => {
+          reports++
+        }}
         render={value => <div>{value}</div>}
       />
     )
 
     view.unmount()
-    request.resolve('stale')
-    await request.promise
+    request.reject(new Error('too late'))
+    await Promise.resolve()
     await Promise.resolve()
 
-    assert.equal(screen.queryByText('stale'), null)
+    assert.equal(screen.queryByRole('alert'), null)
+    assert.equal(reports, 0)
   })
 })

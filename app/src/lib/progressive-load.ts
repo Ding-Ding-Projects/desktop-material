@@ -1,7 +1,12 @@
 /**
- * State for an asynchronous value which may retain a previously safe value
- * while a newer request is running.
+ * Race-safe progressive loading for a single surface.
+ *
+ * Every request receives a monotonic token, rejections become explicit failed
+ * state, and a previously verified value can remain visible while a refresh
+ * runs. Nothing here introduces a timer or artificial delay.
  */
+
+/** Observable state for an asynchronously loaded value. */
 export type ProgressiveLoadState<T> =
   | {
       readonly kind: 'idle'
@@ -24,13 +29,13 @@ export type ProgressiveLoadState<T> =
 export interface IProgressiveLoadCompletion<T> {
   /**
    * Whether this request still owned the load when it completed. A false value
-   * means that a newer request or reset superseded it.
+   * means that a newer request, reset, or disposal superseded it.
    */
   readonly accepted: boolean
   readonly state: ProgressiveLoadState<T>
 }
 
-/** Convert rejected non-Error values into an actionable, renderable Error. */
+/** Convert a rejected value into an actionable, renderable Error. */
 export function normalizeProgressiveLoadError(error: unknown): Error {
   if (error instanceof Error) {
     return error
@@ -43,12 +48,15 @@ export function normalizeProgressiveLoadError(error: unknown): Error {
   }
 }
 
+/** Compatibility name for callers which normalize arbitrary rejection values. */
+export const asError = normalizeProgressiveLoadError
+
 /**
  * Monotonic request ownership. Only the newest issued token may publish.
  *
- * Cancellation advances the generation instead of trying to cancel arbitrary
- * promises. This makes the boundary useful for APIs which do not expose an
- * AbortSignal while still preventing late completions from mutating UI state.
+ * Checking the newest issued token, rather than merely the newest completed
+ * token, also rejects a slow first result that settles while a newer request
+ * is still running.
  */
 export class LatestLoadGate {
   private generation = 0
@@ -58,8 +66,12 @@ export class LatestLoadGate {
     return ++this.generation
   }
 
+  public isLatest(token: number): boolean {
+    return token === this.generation && token > this.lastAccepted
+  }
+
   public accept(token: number): boolean {
-    if (token !== this.generation || token <= this.lastAccepted) {
+    if (!this.isLatest(token)) {
       return false
     }
 
@@ -67,53 +79,82 @@ export class LatestLoadGate {
     return true
   }
 
+  /** Refuse every request currently in flight. */
   public cancel(): void {
     this.generation++
+  }
+
+  /** Descriptive alias retained for lifecycle-oriented callers. */
+  public cancelInFlight(): void {
+    this.cancel()
   }
 }
 
 /**
- * A small newest-request-wins state machine for progressive asynchronous data.
+ * Drives one value through newest-request-wins progressive loading.
  *
- * `run` always handles the source promise's rejection and resolves with a
- * failed state containing the real Error. Callers may safely launch it with
- * `void` without creating an unhandled rejection.
+ * `run` never rejects. A source rejection resolves to a failed state containing
+ * the real Error, so launching it with `void` cannot create an unhandled
+ * rejection. The last verified value remains available while a refresh runs
+ * and after a failed refresh.
  */
 export class ProgressiveLoad<T> {
   private readonly gate = new LatestLoadGate()
   private currentState: ProgressiveLoadState<T>
+  private disposed = false
 
   public constructor(initialValue: T | null = null) {
-    this.currentState = { kind: 'idle', value: initialValue }
+    this.currentState =
+      initialValue === null
+        ? { kind: 'idle', value: null }
+        : { kind: 'ready', value: initialValue }
   }
 
   public get state(): ProgressiveLoadState<T> {
     return this.currentState
   }
 
+  /** Compatibility accessor for render paths which prefer a method. */
+  public getState(): ProgressiveLoadState<T> {
+    return this.currentState
+  }
+
   public reset(value: T | null = null): ProgressiveLoadState<T> {
     this.gate.cancel()
-    this.currentState = { kind: 'idle', value }
+    if (!this.disposed) {
+      this.currentState =
+        value === null ? { kind: 'idle', value: null } : { kind: 'idle', value }
+    }
     return this.currentState
+  }
+
+  /** Permanently stop this loader from accepting or emitting later results. */
+  public dispose(): void {
+    this.gate.cancel()
+    this.disposed = true
   }
 
   public async run(
     source: () => Promise<T>
   ): Promise<IProgressiveLoadCompletion<T>> {
+    if (this.disposed) {
+      return { accepted: false, state: this.currentState }
+    }
+
     const token = this.gate.begin()
     const cachedValue = this.currentState.value
     this.currentState = { kind: 'loading', value: cachedValue }
 
     try {
       const value = await source()
-      if (!this.gate.accept(token)) {
+      if (this.disposed || !this.gate.accept(token)) {
         return { accepted: false, state: this.currentState }
       }
 
       this.currentState = { kind: 'ready', value }
       return { accepted: true, state: this.currentState }
     } catch (error) {
-      if (!this.gate.accept(token)) {
+      if (this.disposed || !this.gate.accept(token)) {
         return { accepted: false, state: this.currentState }
       }
 

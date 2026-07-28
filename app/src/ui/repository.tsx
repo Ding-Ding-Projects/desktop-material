@@ -440,6 +440,39 @@ export class RepositoryView extends React.Component<
     return section
   }
 
+  /**
+   * A deferred section failed to evaluate.
+   *
+   * This informs; it never asks the user to decide anything, so it becomes a
+   * corner notification (errors persist until dismissed) rather than a modal.
+   * The section itself keeps its own local failure surface and retry button,
+   * and every other part of the window stays usable.
+   */
+  private onLazyViewLoadFailed = (name: string, error: Error) => {
+    try {
+      log.error(`${name} failed to load progressively`, error)
+    } catch {
+      // The local failure surface must not depend on the diagnostic sink.
+    }
+    try {
+      this.props.dispatcher.postNotification({
+        kind: 'app-error',
+        title: t('lazyView.notificationTitle', { name }),
+        body: t('lazyView.notificationBody', { name, error: error.message }),
+        repositoryId: this.props.repository.id,
+      })
+    } catch (notificationError) {
+      try {
+        log.error(
+          'Unable to persist a progressive loading notice',
+          notificationError
+        )
+      } catch {
+        // The failure is still visible and retryable in its local boundary.
+      }
+    }
+  }
+
   private onHideGitHubAPI = () => {
     setGitHubAPITabHidden(this.props.repository.hash, true)
     this.setState({ isGitHubAPIHidden: true }, () => {
@@ -1324,39 +1357,6 @@ export class RepositoryView extends React.Component<
     this.props.dispatcher.changeImageDiffType(imageDiffType)
   }
 
-  /**
-   * Keep optional-view failures out of the modal popup stack. The local lazy
-   * boundary retains the retry while this notification makes the failure
-   * reviewable after the user navigates elsewhere.
-   */
-  private postLazyViewFailure = (name: string, error: Error): void => {
-    try {
-      log.error(`${name} failed to load progressively`, error)
-    } catch {
-      // The local failure surface must not depend on the diagnostic sink.
-    }
-    try {
-      this.props.dispatcher.postNotification({
-        kind: 'app-error',
-        title: t('lazyView.failedTitle', { name }),
-        body: `${t('lazyView.failedBody.plain', { name })} ${t(
-          'lazyView.failedDetail',
-          { error: error.message }
-        )}`,
-        repositoryId: this.props.repository.id,
-      })
-    } catch (notificationError) {
-      try {
-        log.error(
-          'Unable to persist a progressive loading notice',
-          notificationError
-        )
-      } catch {
-        // The failure is still visible and retryable in its local boundary.
-      }
-    }
-  }
-
   private renderActionsModule = (module: ActionsModule): React.ReactNode => {
     const tip = this.props.state.branchesState.tip
     const currentBranch = tip.kind === TipState.Valid ? tip.branch.name : null
@@ -1500,7 +1500,7 @@ export class RepositoryView extends React.Component<
           key="actions"
           name={t('repositorySection.actions')}
           load={loadActionsModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderActionsModule}
         />
       )
@@ -1510,7 +1510,7 @@ export class RepositoryView extends React.Component<
           key="releases"
           name={t('repositorySection.releases')}
           load={loadGitHubDistributionModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderGitHubDistributionModule}
         />
       )
@@ -1520,7 +1520,7 @@ export class RepositoryView extends React.Component<
           key="cheap-lfs"
           name={t('cheapLfs.managerRail')}
           load={loadCheapLfsModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderCheapLfsModule}
         />
       )
@@ -1530,7 +1530,7 @@ export class RepositoryView extends React.Component<
           key="issues"
           name={t('repositorySection.issues')}
           load={loadGitHubIssuesModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderGitHubIssuesModule}
         />
       )
@@ -1540,7 +1540,7 @@ export class RepositoryView extends React.Component<
           key="github-api"
           name={t('githubApi.railLabel')}
           load={loadGitHubAPIModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderGitHubAPIModule}
         />
       )
@@ -1550,7 +1550,7 @@ export class RepositoryView extends React.Component<
           key="triage"
           name={t('repositorySection.triage')}
           load={loadRepositoryProviderTriageModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderProviderTriageModule}
         />
       )
@@ -1560,7 +1560,7 @@ export class RepositoryView extends React.Component<
           key="repository-tools"
           name={t('repositorySection.tools')}
           load={loadRepositoryToolsModule}
-          onError={this.postLazyViewFailure}
+          onError={this.onLazyViewLoadFailed}
           render={this.renderRepositoryToolsModule}
         />
       )

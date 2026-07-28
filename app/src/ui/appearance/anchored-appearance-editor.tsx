@@ -107,28 +107,59 @@ export function isAppearanceEditorContextMenuKey(
 }
 
 /**
- * Whether a context-menu event expresses appearance-editing intent.
+ * Whether a pointer context-menu event carries the appearance-editor gesture.
  *
- * A physical secondary click reports button 2 and needs Shift. Chromium emits
- * button 0 for the keyboard Context Menu command, while the macOS Shift+F10
- * compatibility path dispatches a plain event without a button. Both keyboard
- * paths remain accepted.
+ * The gesture is Shift+Right-click. A plain right-click belongs to the
+ * surface's ordinary context menu — before this predicate existed the editor
+ * claimed every right-click and those menus never got a chance to open.
+ *
+ * Every surface — the shell-wide document listener, the repository tab strip,
+ * the repository list, the submodule Back button — asks this one function, so
+ * changing the gesture later is a single edit rather than a hunt for
+ * `shiftKey` checks. `MouseEvent` and React's `MouseEvent` both satisfy the
+ * structural parameter type.
  */
-export function isAppearanceEditorContextMenuGesture(
-  event: Pick<React.MouseEvent<HTMLElement>, 'button' | 'shiftKey'>
+export function isAppearanceEditorPointerGesture(
+  event: Pick<MouseEvent, 'shiftKey'>
 ): boolean {
-  return event.shiftKey || event.button !== 2
+  return event.shiftKey
 }
 
 /**
- * Open an anchored editor from Shift+right-click or a keyboard-generated
- * context-menu event. Returns whether the appearance gesture was handled.
+ * Whether a context-menu event should open the appearance editor on a surface
+ * that owns no other context menu — the shell-wide fallback owners such as the
+ * toolbar, the repository list, the tab strip, and the workspace.
+ *
+ * Two routes qualify:
+ *
+ * 1. Shift+Right-click, the pointer gesture above.
+ * 2. Any context-menu request that did not come from a pointer — the
+ *    ContextMenu key, Shift+F10, and the plain `Event` the macOS Shift+F10
+ *    bridge in `App` synthesizes. These surfaces have no competing menu for
+ *    the keyboard to open, and a keyboard cannot express "Shift+Right-click",
+ *    so demanding the pointer gesture would strand their editors on the mouse.
+ *
+ * Chromium reports `button === 2` for a real right-click and `button === 0`
+ * for a keyboard-initiated context menu; the synthetic macOS event is not a
+ * `MouseEvent` at all and so has no `button`.
+ */
+export function isAppearanceEditorFallbackContextMenu(event: Event): boolean {
+  const fromPointer = event instanceof MouseEvent && event.button === 2
+  return fromPointer ? isAppearanceEditorPointerGesture(event) : true
+}
+
+/**
+ * Open an anchored editor from a pointer context-menu event.
+ *
+ * Only Shift+Right-click opens the editor. Returns whether this helper handled
+ * the event; on a plain right-click it returns false without preventing or
+ * stopping anything, so the caller's ordinary context menu still runs.
  */
 export function openAppearanceEditorFromContextMenu<T extends HTMLElement>(
   event: React.MouseEvent<T>,
   open: (anchor: T) => void
 ): boolean {
-  if (!isAppearanceEditorContextMenuGesture(event)) {
+  if (!isAppearanceEditorPointerGesture(event)) {
     return false
   }
 

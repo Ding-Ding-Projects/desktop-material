@@ -40,7 +40,14 @@ export type FunnyBand = 'plain' | 'light' | 'playful'
  * `TranslationKey`, so a family that is missing a band fails to compile.
  */
 export type FunnyLevelTextBase =
+  | 'appearance.elementGesture'
   | 'tabs.overflowDescription'
+  // Only the framing of a deferred surface's progress and failure copy carries
+  // bands. The failure title, the reported error string and the retry label
+  // are single fixed strings, because what failed and what to press are facts
+  // the user acts on rather than voice.
+  | 'lazyView.loading'
+  | 'lazyView.failedBody'
   | 'ignoredSubmodule.intro'
   | 'ignoredSubmodule.reviewLead'
   | 'pullBranchDeleted.intro'

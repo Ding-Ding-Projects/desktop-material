@@ -42,8 +42,16 @@ interface ITabOverflowPopoverProps {
   readonly onSelect: (tab: IRepositoryTab) => void
   /** Open the per-tab appearance editor for an overflowed tab. */
   readonly onCustomize: (tab: IRepositoryTab) => void
-  /** Open the same command menu a tab in the strip gets from a right-click. */
-  readonly onContextMenu: (tab: IRepositoryTab) => void
+  /**
+   * Open the same command menu a tab in the strip gets from a right-click.
+   *
+   * The event is forwarded so the strip can read the Shift+Right-click
+   * appearance gesture from an overflow row exactly as it does from the strip.
+   */
+  readonly onContextMenu: (
+    tab: IRepositoryTab,
+    event: React.MouseEvent<HTMLElement>
+  ) => void
   readonly onClose: () => void
 }
 
@@ -189,7 +197,7 @@ export class TabOverflowPopover extends React.Component<
     const tab = this.tabFromElement(event.currentTarget)
     if (tab !== undefined) {
       event.preventDefault()
-      this.props.onContextMenu(tab)
+      this.props.onContextMenu(tab, event)
     }
   }
 

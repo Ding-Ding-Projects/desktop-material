@@ -53,9 +53,10 @@ describe('repository owner appearance editors', () => {
       'repository-element-appearance-editors.tsx'
     )
 
-    // Shift+right-click opens the exact owner while an ordinary right-click
-    // bubbles to the repository command menu. Its explicit "Customize …"
-    // entries still resolve the same anchors from the row's own DOM.
+    // The exact name and logo owners use the shared helper, so only
+    // Shift+right-click opens directly while ordinary right-click continues to
+    // the repository command menu. The menu's explicit "Customize …" entries
+    // resolve those same anchors from the row's own DOM.
     assert.match(
       row,
       /openAppearanceEditorFromContextMenu\(event, this\.openNameAppearanceEditor\)/
@@ -64,6 +65,23 @@ describe('repository owner appearance editors', () => {
       row,
       /openAppearanceEditorFromContextMenu\(event, this\.openLogoAppearanceEditor\)/
     )
+    // The list owns the row's pointer gestures: a plain right-click builds the
+    // repository context menu (which keeps its "Customize …" entries), and
+    // Shift+Right-click — decided by the one shared predicate, never a local
+    // `event.shiftKey` check — jumps straight to the name editor.
+    const list = read(
+      'app',
+      'src',
+      'ui',
+      'repositories-list',
+      'repositories-list.tsx'
+    )
+    assert.match(
+      list,
+      /isAppearanceEditorPointerGesture\(event\)[\s\S]{0,120}this\.onCustomizeNameAppearance\(item\.repository\)/
+    )
+    assert.match(list, /generateRepositoryListContextMenu\(\{/)
+    assert.doesNotMatch(list, /event\.shiftKey/)
     assert.match(row, /public openNameAppearanceEditorFromMenu\(\)/)
     assert.match(row, /public openLogoAppearanceEditorFromMenu\(\)/)
     assert.match(

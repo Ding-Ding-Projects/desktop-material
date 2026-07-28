@@ -132,9 +132,19 @@ describe('appearance customization style contracts', () => {
 
     assert.match(appearance, /className="appearance-scope-note"/)
     assert.match(appearance, /role="note"/)
-    assert.match(appearance, /Shift\+right-click it/)
-    assert.match(appearance, /Context Menu key or Shift\+F10/)
-    assert.match(appearance, /Each element keeps[\s\S]*?its settings/)
+    // The note is localized and playfulness-aware rather than hard-coded, and
+    // it advertises the Shift+Right-click gesture that opens element editors.
+    assert.match(
+      appearance,
+      /translateWithFunnyLevel\(\s*'appearance\.elementGesture',/
+    )
+    assert.match(appearance, /translate\('appearance\.elementGestureHeading'/)
+    const resources = await readFile(
+      Path.join(app, 'src/lib/i18n-resources.ts'),
+      'utf8'
+    )
+    assert.match(resources, /Shift\+Right-click an element/)
+    assert.match(resources, /Each element keeps its settings/)
 
     assert.match(
       preferences,

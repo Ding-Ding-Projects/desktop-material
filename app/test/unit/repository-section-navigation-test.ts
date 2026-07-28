@@ -46,9 +46,11 @@ describe('repository section navigation source contract', () => {
       repositorySource,
       /id="cheap-lfs-tab"[\s\S]*?RepositorySectionTab\.CheapLfs/
     )
+    // The manager module is evaluated on first activation, so the section
+    // renders it through its deferred module rather than a static element.
     assert.match(
       repositorySource,
-      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?<LazyView<RepositoryToolsModule>[\s\S]*?render=\{this\.renderCheapLfsModule\}/
+      /selectedSection === RepositorySectionTab\.CheapLfs[\s\S]*?<LazyView<CheapLfsModule>[\s\S]*?render=\{this\.renderCheapLfsModule\}/
     )
     assert.match(
       repositorySource,

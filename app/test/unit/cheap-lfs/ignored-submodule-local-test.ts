@@ -5,6 +5,7 @@ import {
   mkdir,
   readdir,
   readFile,
+  realpath,
   symlink,
   writeFile,
 } from 'node:fs/promises'
@@ -525,10 +526,19 @@ describe('staging ignored files into a local submodule', () => {
   it('aborts a failed copy proof before any topology change', async t => {
     const repository = await setupIgnoredRepository(t)
     const inventory = await listIgnoredFileInventory(repository)
-    const destinationAbsolute = join(repository.path, DestinationPath)
+    // The staging code resolves the repository root through `realpath` before
+    // building the destination, so the paths it hands to `hashFile` are the
+    // resolved ones. Matching on the *unresolved* path worked locally and
+    // silently stopped matching on CI, where the temporary directory resolves
+    // to something else — no corruption was injected, the proof honestly
+    // passed, and the test failed claiming a missing failure it had never
+    // caused. Resolve here too, so the prefix is the one that is actually used.
+    const repositoryRoot = await realpath(repository.path)
+    const destinationAbsolute = join(repositoryRoot, DestinationPath)
     const indexBefore = await stagedIndex(repository)
 
     const phases: IgnoredSubmodulePhase[] = []
+    let corruptedCopies = 0
     const failure = await stageIgnoredFilesIntoLocalSubmodule(
       repository,
       inventory,
@@ -540,16 +550,26 @@ describe('staging ignored files into a local submodule', () => {
         onPhase: phase => void phases.push(phase),
         // The copy landing in the new repository reads back wrong. Nothing
         // downstream of the proof may run.
-        hashFile: async absolutePath =>
-          absolutePath.startsWith(destinationAbsolute)
-            ? 'corrupted'
-            : sha256(absolutePath),
+        hashFile: async absolutePath => {
+          if (absolutePath.startsWith(destinationAbsolute)) {
+            corruptedCopies += 1
+            return 'corrupted'
+          }
+          return sha256(absolutePath)
+        },
       }
     ).then(
       () => null,
       (error: unknown) => error
     )
 
+    // Assert the fault was actually injected before asserting the reaction to
+    // it. Without this, a prefix that stops matching turns this test into one
+    // that quietly proves nothing and then blames the code for not failing.
+    assert.ok(
+      corruptedCopies > 0,
+      `no copy was corrupted, so this test proved nothing; hashFile never saw a path under ${destinationAbsolute}`
+    )
     assert.ok(
       failure instanceof IgnoredSubmoduleProofError,
       'the proof failure must be reported as such'

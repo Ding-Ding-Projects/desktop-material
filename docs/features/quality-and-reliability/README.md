@@ -10,6 +10,11 @@ contracts that span more than one user workflow.
   optional startup work, evaluate heavy inactive repository sections on first
   activation, and contain each load behind accessible local progress, retry,
   and newest-request-wins lifecycle guards.
+- [Root renderer resource
+  lifecycle](root-renderer-resource-lifecycle.md) — make store, updater,
+  drag-manager, and IPC subscriptions disposable; retain and clear deferred
+  polling timers; and release document/window handlers that otherwise keep a
+  stale root renderer alive after unmount.
 - [Responsiveness and resource
   lifecycle](responsiveness-and-resource-lifecycle.md) — avoid redundant remote
   discovery, hard-bound advisory process cleanup, coalesce stalled proxy work,

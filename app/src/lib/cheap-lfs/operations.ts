@@ -3791,6 +3791,10 @@ export type CheapLfsMaterializePhase =
   | 'downloading'
   | 'decrypting'
   | 'decompressing'
+  // Decryption is its own phase, never decompression's. scrypt at the
+  // configured cost makes it the longest visible step of an encrypted restore,
+  // so it is the one a user actually sits and reads.
+  | 'decrypting'
   | 'verifying'
   | 'materializing'
 

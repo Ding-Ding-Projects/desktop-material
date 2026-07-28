@@ -1159,6 +1159,136 @@
     }
   }
 
+  // Tone: the two per-language funny-level sliders, sitting directly under the
+  // language-mode selector so the whole "how does this app talk to me" story is
+  // one surface. Everything here is min-width: 0 and wraps, because the longest
+  // strings in the app (bilingual mode, Cantonese level names) land in this
+  // section and must never clip at narrow widths or 200% display scale.
+  .appearance-tone-section {
+    min-width: 0;
+    margin-top: var(--spacing);
+    padding: var(--spacing);
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    background: var(--md-sys-color-surface-container-low);
+
+    .appearance-tone-heading {
+      margin: 0;
+      font-size: var(--font-size);
+      font-weight: var(--font-weight-semibold);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    .appearance-tone-sliders {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing);
+      margin-top: var(--spacing);
+    }
+
+    .appearance-tone-field {
+      flex: 1 1 240px;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--spacing-half);
+    }
+
+    .appearance-tone-label {
+      font-weight: var(--font-weight-medium);
+      color: var(--md-sys-color-on-surface-variant);
+      overflow-wrap: anywhere;
+    }
+
+    .appearance-tone-slider-row {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing);
+      min-width: 0;
+    }
+
+    .appearance-tone-slider {
+      flex: 1 1 auto;
+      min-width: 0;
+      accent-color: var(--md-sys-color-primary);
+
+      &:focus-visible {
+        outline: 2px solid var(--md-sys-color-primary);
+        outline-offset: 4px;
+      }
+    }
+
+    .appearance-tone-value {
+      flex: none;
+      min-width: 3ch;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .appearance-tone-scale {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: var(--spacing-half);
+      min-width: 0;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+    }
+
+    .appearance-tone-level-name {
+      flex: 1 1 auto;
+      min-width: 0;
+      text-align: center;
+      color: var(--md-sys-color-on-surface);
+      overflow-wrap: anywhere;
+    }
+
+    .appearance-tone-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--spacing);
+      margin-top: var(--spacing);
+    }
+
+    .appearance-tone-preview-heading {
+      flex: 1 0 100%;
+      margin: 0;
+      font-size: var(--font-size-sm);
+      font-weight: var(--font-weight-semibold);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--md-sys-color-on-surface-variant);
+    }
+
+    .appearance-tone-preview-card {
+      flex: 1 1 240px;
+      min-width: 0;
+      padding: var(--spacing);
+      border-radius: 12px;
+      background: var(--md-sys-color-surface-container-high);
+    }
+
+    .appearance-tone-preview-label {
+      display: block;
+      margin-bottom: 2px;
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-sm);
+      overflow-wrap: anywhere;
+    }
+
+    .appearance-tone-preview-sample {
+      margin: 0 0 var(--spacing-half);
+      color: var(--md-sys-color-on-surface);
+      overflow-wrap: anywhere;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+  }
+
   // Profile-scoped app identity editor. The preview reuses the exact title-bar
   // component while this layout keeps every control reachable at compact widths.
   .app-identity-section {

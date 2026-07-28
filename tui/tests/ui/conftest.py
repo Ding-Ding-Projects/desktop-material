@@ -36,6 +36,12 @@ def isolated_xdg_environment(
     for variable, path in roots.items():
         monkeypatch.setenv(variable, str(path))
     monkeypatch.setenv("NO_COLOR", "1")
+
+    # A real home directory exists. Pointing HOME at a path that does not is
+    # not isolation, it is a machine no user has ever had, and surfaces that
+    # sensibly refuse to navigate somewhere absent then look broken: the folder
+    # browser's Home button stayed put and the test blamed the button.
+    home.mkdir(parents=True, exist_ok=True)
     return home
 
 

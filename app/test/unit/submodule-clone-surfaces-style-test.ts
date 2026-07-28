@@ -92,7 +92,7 @@ describe('submodule clone-surface contracts', () => {
     const repositoryView = read('src', 'ui', 'repository.tsx')
     assert.match(
       repositoryView,
-      /submoduleCount=\{this\.state\.submoduleCount\}[\s\S]*?onOpenSubmoduleManager=\{this\.onOpenSubmoduleManager\}/
+      /submoduleCount: this\.state\.submoduleCount,[\s\S]*?onOpenSubmoduleManager: this\.onOpenSubmoduleManager,/
     )
     assert.match(
       repositoryView,
@@ -119,7 +119,7 @@ describe('submodule clone-surface contracts', () => {
     const repositoryView = read('src', 'ui', 'repository.tsx')
     assert.match(
       repositoryView,
-      /subtreeCount=\{this\.state\.subtreeCount\}[\s\S]*?onOpenSubtreeManager=\{this\.onOpenSubtreeManager\}/
+      /subtreeCount: this\.state\.subtreeCount,[\s\S]*?onOpenSubtreeManager: this\.onOpenSubtreeManager,/
     )
     assert.match(
       repositoryView,
@@ -161,11 +161,13 @@ describe('submodule clone-surface contracts', () => {
     )
     assert.match(tools, /selected === 'cheap-lfs' && this\.renderCheapLfs\(\)/)
 
-    // The repository view supplies the panel wiring only for GitHub repos.
+    // The repository view supplies the panel wiring only for GitHub repos. The
+    // tools section is loaded lazily, so the wiring now travels in the
+    // deferred view's `viewProps` object rather than as a JSX attribute.
     const repositoryView = read('src', 'ui', 'repository.tsx')
     assert.match(
       repositoryView,
-      /cheapLfs=\{\{[\s\S]*?dispatcher: this\.props\.dispatcher,[\s\S]*?available: this\.showsGitHubReleases\(\),/
+      /cheapLfs: \{[\s\S]*?dispatcher: this\.props\.dispatcher,[\s\S]*?available: this\.showsGitHubReleases\(\),/
     )
 
     // The panel owns a registered, compact-safe style partial.

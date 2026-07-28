@@ -1666,6 +1666,15 @@ export class AppStore extends TypedBaseStore<IAppState> {
   >()
   private externalEditorResolutionGeneration = 0
 
+  /**
+   * Bumped every time the selected editor is set.
+   *
+   * The startup availability scan captures this before it starts and compares
+   * it afterwards, so a choice the user makes while the scan is running is
+   * never overwritten by the scan's older answer.
+   */
+  private externalEditorSelectionGeneration = 0
+
   private resolvedExternalEditor: string | null = null
 
   /** The user's preferred shell. */
@@ -4606,8 +4615,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
       getEnum(uncommittedChangesStrategyKey, UncommittedChangesStrategy) ??
       defaultUncommittedChangesStrategy
 
-    // This persisted label is safe to show while the availability scan runs.
-    // Every launch resolves the executable again before opening anything.
+    // Adopt the editor the user last chose straight from local storage so the
+    // shell can paint immediately. Confirming it is still installed means
+    // enumerating editors across the filesystem and (on Windows) the registry,
+    // which used to hold the entire window blank until it finished; that check
+    // now runs in loadDeferredInitialState().
+    //
+    // Showing the cached choice while the check runs is safe here because a
+    // stale value cannot change what any button does: every launch path calls
+    // findEditorOrDefault() again first and reports a clear ExternalEditorError
+    // when nothing suitable is installed. Nothing is written, moved or
+    // discarded on the strength of this value.
     this.selectedExternalEditor =
       localStorage.getItem(externalEditorKey) || null
     this.externalEditorDiscoveryLoad.reset(this.selectedExternalEditor)
@@ -4767,12 +4785,14 @@ export class AppStore extends TypedBaseStore<IAppState> {
         if (!this.isDeferredStartupCurrent(generation)) {
           return
         }
+        const selectionGeneration = this.externalEditorSelectionGeneration
         const completion = await this.externalEditorDiscoveryLoad.run(() =>
           this.lookupSelectedExternalEditor()
         )
         if (
           !completion.accepted ||
-          !this.isDeferredStartupCurrent(generation)
+          !this.isDeferredStartupCurrent(generation) ||
+          selectionGeneration !== this.externalEditorSelectionGeneration
         ) {
           return
         }
@@ -5205,6 +5225,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     selectedEditor: string | null
   ): Promise<void> {
     this.selectedExternalEditor = selectedEditor
+    this.externalEditorSelectionGeneration += 1
 
     // Make sure we keep the resolved (cached) editor
     // in sync when the user changes their editor choice.
@@ -18820,6 +18841,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // never strands an encrypted checkout without its remembered key.
         const forgotten = await forgetSavedCheapLfsPayloadPassword(repository)
         if (forgotten === 'unavailable') {
+          log.warn(
+            'Could not reach the credential vault after removing a repository; a saved Cheap LFS password may remain until startup cleanup retries.'
+          )
           // The repository is already removed. Keep a non-secret persistent
           // notice and let the main-process startup sweep retry both app-owned
           // vault services without sending credential values to the renderer.

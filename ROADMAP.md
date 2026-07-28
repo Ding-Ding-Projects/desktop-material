@@ -1,6 +1,6 @@
 # Desktop Material roadmap
 
-Updated: **July 27, 2026**
+Updated: **July 28, 2026**
 
 Desktop Material's numbered roadmap now extends through **M27**. M0–M21 and the
 M23 Ollama manager have published receipts; M22's 73-scene visual refresh is
@@ -12,6 +12,16 @@ and installer-release pipelines.
 This file is the compact public source of truth; implementation details and
 historical test receipts stay in [PLAN.md](PLAN.md) and
 [HANDOFF.md](HANDOFF.md).
+
+## July 28 root renderer resource audit — **Focused gates green; build blocked by missing dependencies**
+
+Root renderer subscriptions, IPC listeners, global document/window handlers,
+and deferred telemetry/update polling now have deterministic unmount cleanup.
+Queued idle and animation-frame work cannot resurrect those resources after the
+root has unmounted. Focused lifecycle coverage passes **4/4** and changed-file
+ESLint is clean. The Lowlevel MCP production build was attempted headlessly and
+stopped at the dependency gate because this checkout has no local dependency
+tree; built-app capture and remote CI are not yet claimed.
 
 ## July 27 encryption, observed network actions, and tone controls — **Local gates green; visual and remote acceptance pending**
 
@@ -31,6 +41,58 @@ Local verification is **194/194 focused tests** and **6768/6768 full tests
 across 831 files**; TypeScript and `yarn lint` are clean. Packaged visual
 evidence and remote CI are not yet claimed. #78, #80, and #83 remain open until
 real built-app screenshots are captured.
+## July 27–28 encryption, group management, lazy loading, tone controls — **Merged and pushed, visual evidence outstanding**
+
+Five issues landed on `main` in one sweep. Each is locally green; none of the
+surfaces with a visible component has a real capture yet, so the issues remain
+open rather than being closed on test evidence alone.
+
+Two of them were then **superseded**. The repository owner independently
+implemented #78 and #83 and pushed `a550dc1ea8`, which deleted this branch's
+encryption module, encryption gate, funny-level controls and their test suites
+in favour of its own. The owner's implementation is the one that ships; the
+descriptions of #78 and #83 below record what this branch built and why, not
+what is now in the tree. #80, #81, #82 and #85 were not covered by those
+commits and survive as described.
+
+- **#78 optional passphrase encryption for Cheap LFS payloads.** AES-256-GCM
+  with scrypt at 2^17, fresh salt and nonce per call, passphrase held only in
+  the operating system credential manager. An encrypted part records both a
+  stored digest pair, checkable by anyone without the passphrase, and the
+  plaintext pair the never-re-pin check compares against. Restore gates in
+  order — stored pair, GCM tag, plaintext pair, whole-file check — and every
+  one fails closed. The committed pointer still records each file's plaintext
+  size and SHA-256, so encryption conceals contents rather than the fact that a
+  given file is stored here; the confirmation dialog states this before the
+  user opts in.
+- **#80 push, force-push, pull and fetch observe their own promises.** A
+  rejected canonical-remote preflight previously reached the renderer's global
+  unhandled-rejection containment and surfaced as a generic "a background
+  action stopped unexpectedly" notice instead of the real error.
+- **#81 first-class repository and tab group management.** Groups can be
+  created, renamed, recoloured and removed without closing repositories, and a
+  collapsed tab group lists its members in a keyboard-navigable dropdown. This
+  also gave `updateTabGroup` its first UI caller — it had shipped with none.
+- **#82 progressive asynchronous lazy loading.** The external-editor
+  availability scan and clone-queue journal recovery no longer block first
+  paint, and seven heavy repository sections load behind a local, screen-reader
+  announced progress state.
+- **#83 funny-level sliders moved to Appearance › Tone.** They were not
+  missing; they were stranded in the Sound tab under a text-to-speech heading,
+  which implied they styled only spoken narration when they style every
+  category of copy. Language mode now sits beside them, and the slider
+  announces "Level 4 of 5, Playful" rather than a bare number.
+- **#85 decryption reports its own progress stage** instead of borrowing
+  `decompressing` — the wrong word on the slowest step of an encrypted restore.
+
+Two build facts are worth recording because they cost real time. `yarn
+compile:dev` exhausts a 10 GB V8 heap: the config exports six webpack
+configurations built concurrently by one MultiCompiler, each holding a full
+module graph. Building one configuration per process succeeds comfortably.
+Separately, a build piped into `tail` returns `tail`'s exit status, so two
+out-of-memory failures were reported as success and a screenshot was taken of a
+stale bundle — which is how a shipped feature briefly appeared to be missing
+from the settings tab.
 
 ## July 27 Linux TUI path browser and Git wrapper — **Handoff accepted with a bounded visual gap**
 

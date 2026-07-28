@@ -238,6 +238,13 @@
       d: 'Builds on the audio system to give each meaningful app event its own recognizable sound effect instead of routing everything through the shared commit / auto-commit cue. It…',
     },
     {
+      t: 'Tone: the per-language funny-level sliders',
+      h: 'features/design-system/tone-funny-level.html',
+      s: 'features/design-system/tone-funny-level.md',
+      c: 'features',
+      d: "Two independent sliders — one for English, one for Cantonese — set how playful the app's copy reads, from 1 (fully serious) to 5 (maximum playfulness). They live on Settings →…",
+    },
+    {
       t: 'GitHub Desktop demand backlog coverage',
       h: 'features/github-desktop-demand-backlog.html',
       s: 'features/github-desktop-demand-backlog.md',
@@ -270,7 +277,7 @@
       h: 'features/identity-and-workspace/owner-scoped-appearance-and-history.html',
       s: 'features/identity-and-workspace/owner-scoped-appearance-and-history.md',
       c: 'features',
-      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, the keyboard Context Menu key, or Shift+F10 opens an anchored editor…',
+      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, or Shift+F10 / the ContextMenu key from the keyboard, opens an anchored…',
     },
     {
       t: 'Identity and workspace features',
@@ -623,11 +630,11 @@
       d: 'A write that finishes after the thing on the other end already went away is a routine event, not a crash. This document describes how Desktop Material contains that class of…',
     },
     {
-      t: 'Progressive asynchronous loading',
+      t: 'Progressive asynchronous lazy loading',
       h: 'features/quality-and-reliability/progressive-lazy-loading.html',
       s: 'features/quality-and-reliability/progressive-lazy-loading.md',
       c: 'features',
-      d: 'Desktop Material paints and reveals its usable application shell before optional startup work finishes. Expensive repository sections are evaluated only when selected, with…',
+      d: 'Desktop Material renders its shell and safe cached state as soon as it can, and finishes the expensive work behind that first paint. Surfaces that a session may never open are…',
     },
     {
       t: 'Quality and reliability',
@@ -642,6 +649,13 @@
       s: 'features/quality-and-reliability/responsiveness-and-resource-lifecycle.md',
       c: 'features',
       d: 'Desktop Material bounds repeated background work and releases resources at the same lifecycle boundary that created them. The behavior is automatic; it adds no preference,…',
+    },
+    {
+      t: 'Root renderer resource lifecycle',
+      h: 'features/quality-and-reliability/root-renderer-resource-lifecycle.html',
+      s: 'features/quality-and-reliability/root-renderer-resource-lifecycle.md',
+      c: 'features',
+      d: 'The root App owns every long-lived renderer subscription and polling timer it starts. Store, updater, drag-manager, and IPC listeners are collected in one CompositeDisposable;…',
     },
     {
       t: 'Desktop Material feature documentation',
@@ -1337,6 +1351,20 @@
       d: 'Run ID: close-all-open-issues-20260728',
     },
     {
+      t: 'Cheap LFS payload encryption — built-app capture, 2026-07-28',
+      h: 'verification/cheap-lfs-payload-encryption-2026-07-28/',
+      s: 'verification/cheap-lfs-payload-encryption-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #78 (optional password encryption for Cheap LFS payloads).',
+    },
+    {
+      t: 'Funny-level sliders — built-app capture, 2026-07-28',
+      h: 'verification/funny-level-sliders-2026-07-28/',
+      s: 'verification/funny-level-sliders-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #83 (restore the missing English and Cantonese funny-level sliders).',
+    },
+    {
       t: 'Linux TUI publish cleanup ledger',
       h: 'verification/linux-tui-2026-07-27/cleanup-ledger.html',
       s: 'verification/linux-tui-2026-07-27/cleanup-ledger.md',
@@ -1370,6 +1398,13 @@
       s: 'verification/README.md',
       c: 'verification',
       d: 'This folder keeps reproducible local acceptance records that support, but do not replace, exact-commit CI, Pages, wiki, and Release receipts in HANDOFF.md.',
+    },
+    {
+      t: 'Repository group management — built-app capture, 2026-07-28',
+      h: 'verification/repository-group-management-2026-07-28/',
+      s: 'verification/repository-group-management-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #81 (first-class repository and tab group management).',
     },
     {
       t: 'Responsive surface matrix — 2026-07-17',
@@ -1446,7 +1481,7 @@
       h: 'wiki/Developer-Guide.html',
       s: 'wiki/Developer-Guide.md',
       c: 'wiki',
-      d: 'This page is for contributors. It describes how Desktop Material is put together and how to build and run it. Desktop Material is a fork of desktop/desktop (MIT), so much of…',
+      d: 'Long-lived work created by the root renderer must be released at the same lifecycle boundary. Store/updater/drag/IPC listeners belong in the root CompositeDisposable; polling…',
     },
     {
       t: 'Guided Feature Gallery',

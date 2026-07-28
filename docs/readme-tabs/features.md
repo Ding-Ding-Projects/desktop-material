@@ -149,7 +149,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
   **Hong Kong Cantonese**, or a compact **Bilingual** presentation. English is
   the safe fallback; Desktop Material does not silently replace the selection
   from the Windows locale
-- `Shift`+right-click an actual visual owner—or focus it and press the Context Menu key or `Shift+F10`—to open its editor beside that element. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Ordinary right-click remains available to native and component-specific command menus
+- `Shift`+right-click an actual visual owner—or focus it and press the Context Menu key or `Shift+F10`—to open its editor beside that element. A plain right-click remains available to the surface's ordinary context menu, and surfaces that have one keep a Customize entry in it. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Specialized Git context menus keep priority on their surrounding hit areas
 - Every appearance owner has one versioned `setting.json` in its own local Git
   repository and its own **History** manager with lazy diffs, undo, redo, and
   restore. History actions append audit commits; the editor footer exposes the

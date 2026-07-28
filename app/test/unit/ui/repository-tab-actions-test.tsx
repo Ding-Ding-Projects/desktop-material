@@ -773,7 +773,7 @@ describe('RepositoryTab title appearance', () => {
       />
     )
 
-    fireEvent.contextMenu(screen.getByText('alpha'))
+    fireEvent.contextMenu(screen.getByText('alpha'), { shiftKey: true })
 
     await waitFor(() =>
       assert.equal(

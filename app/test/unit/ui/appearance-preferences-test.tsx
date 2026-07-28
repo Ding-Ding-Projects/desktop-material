@@ -72,7 +72,17 @@ describe('Appearance preferences', () => {
       />
     )
 
-    assert.ok(screen.getByText(/Shift\+right-click it/i))
+    // The pane is where the Shift+Right-click gesture is advertised, so the
+    // note names the gesture, what a plain right-click does instead, and the
+    // keyboard route. English level 2 reads the plain band.
+    assert.ok(
+      screen.getByRole('heading', {
+        name: translate('appearance.elementGestureHeading', 'english'),
+      })
+    )
+    assert.ok(
+      screen.getByText(translate('appearance.elementGesture.plain', 'english'))
+    )
     assert.ok(screen.getByLabelText('Language'))
     const englishFunnySlider = screen.getByRole('slider', {
       name: 'English playfulness',
@@ -131,6 +141,21 @@ describe('Appearance preferences', () => {
     fireEvent.change(englishFunnySlider, { target: { value: '4' } })
     assert.equal(funnySettings.funnyLevelEnglish, 4)
     assert.equal(funnySettings.funnyLevelCantonese, 5)
+    // The gesture note restyles live with the slider — voice only. Level 4
+    // reads the playful band and still names every fact the plain band does.
+    const playfulNote = translate(
+      'appearance.elementGesture.playful',
+      'english'
+    )
+    assert.ok(screen.getByText(playfulNote))
+    assert.match(playfulNote, /Shift/)
+    assert.match(playfulNote, /Shift\+F10 or the Menu key/)
+    assert.equal(
+      screen.queryByText(
+        translate('appearance.elementGesture.plain', 'english')
+      ),
+      null
+    )
     fireEvent.change(cantoneseFunnySlider, { target: { value: '1' } })
     assert.equal(funnySettings.funnyLevelEnglish, 4)
     assert.equal(funnySettings.funnyLevelCantonese, 1)
@@ -156,6 +181,19 @@ describe('Appearance preferences', () => {
         name: translate('appearance.languageAndNavigation', 'cantonese'),
       })
     )
+    // Cantonese mode with the Cantonese level at 1 reads the Cantonese plain
+    // band; the English level stays at 4 and no longer shows.
+    assert.ok(
+      screen.getByRole('heading', {
+        name: translate('appearance.elementGestureHeading', 'cantonese'),
+      })
+    )
+    assert.ok(
+      screen.getByText(
+        translate('appearance.elementGesture.plain', 'cantonese')
+      )
+    )
+    assert.equal(screen.queryByText(playfulNote), null)
     assert.ok(
       screen.getByLabelText(translate('appearance.languageMode', 'cantonese'))
     )

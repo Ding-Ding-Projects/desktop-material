@@ -131,9 +131,10 @@ class DeferredJournal extends MemoryJournal {
 }
 
 class DeferredLoadJournal extends MemoryJournal {
-  private releaseLoad: () => void = () => {}
   public readonly loadStarted: Promise<void>
+
   private readonly loadBlocked: Promise<void>
+  private readonly markLoadStarted: () => void
 
   public constructor(snapshot: IBatchCloneJournalSnapshot | null) {
     super(snapshot)
@@ -147,7 +148,7 @@ class DeferredLoadJournal extends MemoryJournal {
     this.markLoadStarted = markLoadStarted
   }
 
-  private readonly markLoadStarted: () => void
+  private releaseLoad: () => void = () => {}
 
   public release(): void {
     this.releaseLoad()

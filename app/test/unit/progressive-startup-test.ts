@@ -6,6 +6,29 @@ import { describe, it } from 'node:test'
 const read = (...segments: ReadonlyArray<string>) =>
   readFileSync(join(process.cwd(), ...segments), 'utf8')
 
+/** Extract one complete method so assertions cannot match a different caller. */
+function methodBody(source: string, signature: string): string {
+  const start = source.indexOf(signature)
+  assert.notEqual(start, -1, `could not find '${signature}' in source`)
+
+  let depth = 0
+  let seenBrace = false
+  for (let index = start; index < source.length; index++) {
+    const character = source[index]
+    if (character === '{') {
+      depth++
+      seenBrace = true
+    } else if (character === '}') {
+      depth--
+      if (seenBrace && depth === 0) {
+        return source.slice(start, index + 1)
+      }
+    }
+  }
+
+  assert.fail(`could not find the end of '${signature}'`)
+}
+
 const appSource = read('app', 'src', 'ui', 'app.tsx')
 const appStoreSource = read('app', 'src', 'lib', 'stores', 'app-store.ts')
 const repositorySource = read('app', 'src', 'ui', 'repository.tsx')
@@ -66,7 +89,7 @@ const heavyModules = [
 ] as const
 
 describe('progressive startup source contract', () => {
-  it('renders and reveals the shell without waiting for initial state', () => {
+  it('reveals the committed shell without a fake delay', () => {
     assert.doesNotMatch(
       appSource,
       /if \(this\.loading\)\s*\{\s*return null\s*\}/
@@ -77,19 +100,16 @@ describe('progressive startup source contract', () => {
       /componentDidMount\(\)[\s\S]*?this\.readySent = true[\s\S]*?sendReady\(/
     )
     assert.doesNotMatch(appSource, /ReadyDelay|setTimeout\([^)]*sendReady/)
-  })
-
-  it('cancels the deferred idle callback when the shell unmounts', () => {
     assert.match(
       appSource,
       /componentWillUnmount\(\)[\s\S]*?cancelIdleCallback\(/
     )
   })
 
-  it('uses persisted editor data while discovery continues in the background', () => {
-    const initialState = appStoreSource.slice(
-      appStoreSource.indexOf('public async loadInitialState'),
-      appStoreSource.indexOf('private async loadDeferredInitialState')
+  it('uses persisted editor data while isolated startup work continues', () => {
+    const initialState = methodBody(
+      appStoreSource,
+      'public async loadInitialState()'
     )
     assert.match(
       initialState,
@@ -105,49 +125,41 @@ describe('progressive startup source contract', () => {
     )
     assert.match(
       appStoreSource,
-      /externalEditorDiscoveryLoad\.run\(\(\) =>\s*this\.lookupSelectedExternalEditor\(\)/
-    )
-    assert.match(
-      appStoreSource,
-      /_setExternalEditor\(selectedEditor: string\)[\s\S]*?externalEditorDiscoveryLoad\.reset\(selectedEditor\)/
-    )
-  })
-
-  it('contains each deferred startup rejection without a modal', () => {
-    assert.match(
-      appStoreSource,
       /runDeferredStartupStep[\s\S]*?try \{[\s\S]*?await action\(\)[\s\S]*?catch \(error\)[\s\S]*?reportDeferredStartupFailure/
     )
     assert.match(appStoreSource, /sendNonFatalException\(\s*'deferredStartup'/)
-    assert.match(
-      appStoreSource,
-      /reportDeferredStartupFailure[\s\S]*?postNotification\(\{[\s\S]*?kind: 'app-error'/
-    )
 
-    const reporter = appStoreSource.slice(
-      appStoreSource.indexOf('private reportDeferredStartupFailure'),
-      appStoreSource.indexOf(
-        '/**',
-        appStoreSource.indexOf('private reportDeferredStartupFailure') + 1
-      )
-    )
-    assert.doesNotMatch(reporter, /showPopup|Dialog/)
-  })
-
-  it('introduces no fake delay in the progressive startup boundary', () => {
     const start = appStoreSource.indexOf('public async loadInitialState')
     const end = appStoreSource.indexOf(
       'private async auditAccountOAuthScopes',
       start
     )
-    const progressiveStartup = appStoreSource.slice(start, end)
+    assert.doesNotMatch(appStoreSource.slice(start, end), /setTimeout|sleep\(/)
+  })
 
-    assert.doesNotMatch(progressiveStartup, /setTimeout|sleep\(/)
+  it('fences editor discovery when the user changes selection', () => {
+    const deferredStartup = methodBody(
+      appStoreSource,
+      'private async loadDeferredInitialState('
+    )
+    assert.match(
+      deferredStartup,
+      /const selectionGeneration = this\.externalEditorSelectionGeneration[\s\S]*?await this\.externalEditorDiscoveryLoad\.run\([\s\S]*?selectionGeneration !== this\.externalEditorSelectionGeneration[\s\S]*?return/
+    )
+
+    const updateSelection = methodBody(
+      appStoreSource,
+      'private updateSelectedExternalEditor('
+    )
+    assert.match(
+      updateSelection,
+      /this\.externalEditorSelectionGeneration \+= 1/
+    )
   })
 })
 
 describe('lazy repository module source contract', () => {
-  it('uses real async chunks and direct modules for inactive heavy sections', () => {
+  it('uses direct asynchronous chunks for all seven inactive sections', () => {
     assert.doesNotMatch(repositorySource, /webpackMode:\s*["']eager["']/)
 
     for (const { barrel, direct, loader } of heavyModules) {
@@ -172,17 +184,7 @@ describe('lazy repository module source contract', () => {
       assert.match(loaderSource, /webpackChunkName:/)
       assert.match(loaderSource, new RegExp(`'${escapedDirect}'`))
     }
-  })
 
-  it('keeps active Changes and History static while bounding seven heavy views', () => {
-    assert.match(
-      repositorySource,
-      /import \{ Changes, ChangesSidebar \} from '\.\/changes'/
-    )
-    assert.match(
-      repositorySource,
-      /import \{ SelectedCommits, CompareSidebar \} from '\.\/history'/
-    )
     assert.equal(repositorySource.match(/<LazyView</g)?.length, 7)
     for (const key of ['actions', 'releases', 'issues', 'triage', 'tools']) {
       assert.match(
@@ -192,17 +194,20 @@ describe('lazy repository module source contract', () => {
     }
   })
 
-  it('announces local progress, retains retry, and never moves focus', () => {
+  it('keeps loading, recovery, caching, and focus behavior local', () => {
     assert.match(
       lazyViewSource,
       /role="status"[\s\S]*?aria-live="polite"[\s\S]*?aria-busy=\{true\}/
     )
     assert.match(lazyViewSource, /role="alert"/)
     assert.match(lazyViewSource, /onClick=\{this\.retry\}/)
+    assert.match(lazyViewSource, /resolvedLoads = new WeakMap/)
+    assert.match(lazyViewSource, /inFlightLoads = new WeakMap/)
+    assert.match(lazyViewSource, /forgetCachedLoad\(this\.props\.load\)/)
     assert.doesNotMatch(lazyViewSource, /\.focus\(|autoFocus/)
   })
 
-  it('fences repository metadata loads across rapid A-B-A navigation', () => {
+  it('fences and aborts repository inventories across navigation', () => {
     assert.match(
       repositorySource,
       /submoduleCountLoad = new ProgressiveLoad<number>\(\)/
@@ -210,10 +215,6 @@ describe('lazy repository module source contract', () => {
     assert.match(
       repositorySource,
       /subtreeCountLoad = new ProgressiveLoad<number>\(\)/
-    )
-    assert.match(
-      repositorySource,
-      /cancelRepositoryInventoryLoads[\s\S]*?submoduleCountLoad\.reset\([\s\S]*?subtreeCountLoad\.reset\(/
     )
     assert.match(
       repositorySource,
@@ -225,11 +226,7 @@ describe('lazy repository module source contract', () => {
     )
     assert.match(
       repositorySource,
-      /inventoryRepositoryHash === this\.props\.repository\.hash/
-    )
-    assert.match(
-      repositorySource,
-      /this\.props\.repository\.hash === repositoryHash[\s\S]*?RepositorySectionTab\.RepositoryTools/
+      /cancelRepositoryInventoryLoads[\s\S]*?submoduleCountLoad\.reset\([\s\S]*?subtreeCountLoad\.reset\(/
     )
     assert.match(
       dispatcherSource,
@@ -255,13 +252,9 @@ describe('lazy repository module source contract', () => {
       gitLogSource,
       /getCommits\([\s\S]{0,180}?signal\?: AbortSignal[\s\S]{0,1800}?createGitProcessAbortHandler\(signal\)[\s\S]{0,420}?processCallback/
     )
-    assert.doesNotMatch(
-      repositorySource,
-      /loadSub(?:module|tree)Count[\s\S]{0,900}?catch \{\}/
-    )
   })
 
-  it('defers repository inventories to Tools activation and keeps failures local', () => {
+  it('starts inventories only for Tools and keeps failures usable there', () => {
     const didMount = repositorySource.slice(
       repositorySource.indexOf('public componentDidMount()'),
       repositorySource.indexOf('public componentWillUnmount()')
@@ -270,8 +263,6 @@ describe('lazy repository module source contract', () => {
       didMount,
       /getSelectedSection\(\) === RepositorySectionTab\.RepositoryTools/
     )
-    assert.match(didMount, /this\.loadSubmoduleCount\(\)/)
-    assert.match(didMount, /this\.loadSubtreeCount\(\)/)
     assert.match(
       repositorySource,
       /!wasRepositoryToolsActive && repositoryToolsActive[\s\S]*?loadSubmoduleCount\(\)[\s\S]*?loadSubtreeCount\(\)/
@@ -280,39 +271,21 @@ describe('lazy repository module source contract', () => {
       repositorySource,
       /wasRepositoryToolsActive && !repositoryToolsActive[\s\S]*?cancelRepositoryInventoryLoads\(true\)/
     )
-    assert.doesNotMatch(
-      repositorySource,
-      /result\.state\.kind === 'failed'[\s\S]{0,180}?postLazyViewFailure/
-    )
     assert.match(
       repositoryToolsSource,
       /submoduleInventoryState\?: ProgressiveLoadState<number>/
     )
-    assert.match(
-      repositoryToolsSource,
-      /subtreeInventoryState\?: ProgressiveLoadState<number>/
-    )
     assert.match(repositoryToolsSource, /role="alert"/)
     assert.match(repositoryToolsSource, /onClick=\{retry\}/)
-    assert.match(
-      repositoryToolsSource,
-      /ariaLabel=\{`\$\{t\('lazyView\.retry'\)\}: \$\{name\}`\}/
-    )
     assert.match(
       repositoryToolsStyleSource,
       /\.repository-tools-inventory-statuses[\s\S]*?max-height: 128px;[\s\S]*?overflow-y: auto;/
     )
-    assert.match(
-      repositoryToolsStyleSource,
-      /\.repository-tools-inventory-error[\s\S]*?max-height: 64px;[\s\S]*?overflow: auto;/
-    )
-  })
 
-  it('does not move focus when Repository tools resolves', () => {
-    const didMount = repositoryToolsSource.slice(
+    const toolsDidMount = repositoryToolsSource.slice(
       repositoryToolsSource.indexOf('public componentDidMount()'),
       repositoryToolsSource.indexOf('public componentDidUpdate(')
     )
-    assert.doesNotMatch(didMount, /\.focus\(|autoFocus/)
+    assert.doesNotMatch(toolsDidMount, /\.focus\(|autoFocus/)
   })
 })

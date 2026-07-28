@@ -193,6 +193,11 @@ export class SubmoduleBackButton extends React.Component<
     this.setState({ editorAnchor: anchor })
   }
 
+  /**
+   * Shift+Right-click opens this button's appearance editor. A plain
+   * right-click is left untouched — the button has no other menu, but the
+   * editor must not claim a gesture the rest of the shell answers.
+   */
   private onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
     openAppearanceEditorFromContextMenu(event, anchor =>
       this.openEditor(anchor)

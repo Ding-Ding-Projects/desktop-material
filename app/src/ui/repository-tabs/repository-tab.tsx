@@ -271,24 +271,15 @@ export class RepositoryTab extends React.Component<
   }
 
   /**
-   * Shift+right-click edits the visible title; an ordinary right-click opens
-   * the surrounding frame's tab command menu.
+   * The visible title owns its editor; the surrounding frame keeps commands.
+   *
+   * Only Shift+Right-click opens the title's appearance editor. A plain
+   * right-click is left alone so it bubbles to the tab frame and opens the
+   * ordinary tab command menu — which still lists "Customize Appearance…".
    */
   private onLabelContextMenu = (event: React.MouseEvent<HTMLSpanElement>) => {
-    if (
-      openAppearanceEditorFromContextMenu(event, anchor =>
-        this.props.onOpenStyleEditor(this.props.tab, anchor)
-      )
-    ) {
-      return
-    }
-
-    event.stopPropagation()
-    const frame = event.currentTarget.closest<HTMLElement>('.repository-tab')
-    this.props.onContextMenu(
-      this.props.tab,
-      event,
-      frame ?? event.currentTarget
+    openAppearanceEditorFromContextMenu(event, anchor =>
+      this.props.onOpenStyleEditor(this.props.tab, anchor)
     )
   }
 
