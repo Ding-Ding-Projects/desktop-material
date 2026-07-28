@@ -92,6 +92,36 @@ describe('CommitAuthorOriginsCache', () => {
     assert.equal(calls, 10)
   })
 
+  it('reloads scope across a simulated unmount and unchanged-identity remount', async () => {
+    let scope: IConfigValueOrigin['scope'] = 'global'
+    let calls = 0
+    const load: CommitAuthorOriginLoader = async (_repository, name) => {
+      calls += 1
+      return {
+        value: name === 'user.name' ? 'Same Name' : 'same@example.com',
+        scope,
+        origin: `file:${scope}-config`,
+      }
+    }
+    const cache = new CommitAuthorOriginsCache(load)
+    const repo = repository(7)
+
+    const beforeUnmount = await cache.load(repo)
+    scope = 'local'
+
+    // The view no longer exists, but AppStore._refreshAuthor performs this
+    // invalidation after the settings save. A new view must not receive the
+    // still-fresh global result even though the visible identity is unchanged.
+    cache.invalidate()
+    const afterRemount = await cache.load(repo)
+
+    assert.equal(beforeUnmount.name?.value, afterRemount.name?.value)
+    assert.equal(beforeUnmount.email?.value, afterRemount.email?.value)
+    assert.equal(beforeUnmount.name?.scope, 'global')
+    assert.equal(afterRemount.name?.scope, 'local')
+    assert.equal(calls, 4)
+  })
+
   it('drops rejected and least-recently-used entries instead of retaining them', async () => {
     let calls = 0
     let shouldReject = true

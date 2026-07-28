@@ -390,6 +390,7 @@ import {
   IBatchCloneFinalizingState,
 } from '../app-state'
 import { afterRendererPaint } from '../after-renderer-paint'
+import { invalidateCommitAuthorOrigins } from '../commit-author-origins'
 import { compareFormUpdateChangesState } from '../compare-form-update'
 import {
   findEditorOrDefault,
@@ -8224,6 +8225,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   public async _refreshAuthor(repository: Repository): Promise<void> {
+    // Git identity can change while the Changes view is unmounted. Clear every
+    // repository's short-lived origin snapshot so a later remount cannot show
+    // a stale global/local scope after a global setting change.
+    invalidateCommitAuthorOrigins()
+
     const gitStore = this.gitStoreCache.get(repository)
     const commitAuthor =
       (await gitStore.performFailableOperation(() =>

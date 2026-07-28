@@ -73,4 +73,11 @@ describe('commit message avatar lazy Git config contract', () => {
       /public componentWillUnmount\(\)[\s\S]*?isMounted = false[\s\S]*?gitConfigLocationLoadSequence \+= 1/
     )
   })
+
+  it('discards the resolved location whenever the popover closes', () => {
+    const closeStart = source.indexOf('private closePopover')
+    const clickStart = source.indexOf('private onAvatarClick', closeStart)
+    const close = source.slice(closeStart, clickStart)
+    assert.match(close, /isPopoverOpen: false,\s*isGitConfigLocal: null/)
+  })
 })

@@ -188,6 +188,33 @@ describe('tooltip viewport containment', () => {
     view.unmount()
   })
 
+  it('forgets a prior hover anchor before a later keyboard focus', t => {
+    enableTestTimers(['setTimeout'])
+    t.after(resetTestTimers)
+
+    const view = render(<FocusTooltipFixture />)
+    const target = screen.getByRole('button', { name: 'Add tab to new group…' })
+    target.getBoundingClientRect = () => new DOMRect(800, 80, 50, 24)
+
+    fireEvent.mouseEnter(target, { clientX: 120, clientY: 120 })
+    advanceTimersBy(400)
+    assert.equal(
+      screen.getByRole('tooltip', { hidden: true }).style.transform,
+      'translate(104px, 136px)'
+    )
+
+    fireEvent.mouseLeave(target)
+    assert.equal(screen.queryByRole('tooltip', { hidden: true }), null)
+
+    fireEvent.focusIn(target)
+    advanceTimersBy(400)
+    assert.equal(
+      screen.getByRole('tooltip', { hidden: true }).style.transform,
+      'translate(809px, 110px)'
+    )
+    view.unmount()
+  })
+
   it('never places a tooltip outside the window, even when no direction fits', () => {
     const windowRect = new DOMRect(0, 0, 1440, 960)
 

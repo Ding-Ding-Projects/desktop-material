@@ -11,6 +11,10 @@ const preferencesSource = readFileSync(
   join(process.cwd(), 'app', 'src', 'ui', 'preferences', 'preferences.tsx'),
   'utf8'
 )
+const appStoreSource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
+  'utf8'
+)
 
 describe('commit author origin lifecycle source contract', () => {
   it('does no hidden work and makes a live preference transition render first', () => {
@@ -39,7 +43,7 @@ describe('commit author origin lifecycle source contract', () => {
       /!this\.isMounted[\s\S]*?!this\.state\.showCommitAuthorInfo[\s\S]*?this\.props\.commitAuthor === null/
     )
     assert.ok(
-      loader.indexOf('commitAuthorOriginsCache.load(repository)') >
+      loader.indexOf('loadCachedCommitAuthorOrigins(repository)') >
         loader.indexOf('!this.state.showCommitAuthorInfo')
     )
   })
@@ -59,7 +63,7 @@ describe('commit author origin lifecycle source contract', () => {
     )
     assert.match(
       update,
-      /authorRefreshed[\s\S]*?commitAuthorOriginsCache\.invalidate\(this\.props\.repository\)/
+      /authorRefreshed[\s\S]*?invalidateCommitAuthorOrigins\(this\.props\.repository\)/
     )
 
     const loaderStart = commitMessageSource.indexOf(
@@ -104,5 +108,27 @@ describe('commit author origin lifecycle source contract', () => {
       )?.length,
       1
     )
+  })
+
+  it('invalidates shared origins even while the Changes view is unmounted', () => {
+    const refreshStart = appStoreSource.indexOf(
+      'public async _refreshAuthor(repository: Repository)'
+    )
+    const nextMethod = appStoreSource.indexOf(
+      'private async _refreshWorktrees',
+      refreshStart
+    )
+    assert.ok(refreshStart >= 0 && nextMethod > refreshStart)
+
+    const refresh = appStoreSource.slice(refreshStart, nextMethod)
+    assert.ok(
+      refresh.indexOf('invalidateCommitAuthorOrigins()') <
+        refresh.indexOf('getAuthorIdentity(repository)')
+    )
+    assert.match(
+      commitMessageSource,
+      /loadCachedCommitAuthorOrigins\(repository\)/
+    )
+    assert.doesNotMatch(commitMessageSource, /new CommitAuthorOriginsCache\(/)
   })
 })

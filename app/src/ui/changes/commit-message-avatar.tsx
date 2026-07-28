@@ -316,7 +316,10 @@ export class CommitMessageAvatar extends React.Component<
     this.gitConfigLocationLoadKey = null
     this.setState(prevState => {
       if (prevState.isPopoverOpen) {
-        return { isPopoverOpen: false }
+        // Git identity may have moved between global and local config without
+        // changing its visible name/email. Force the next ordinary open to run
+        // a fresh lazy location check instead of routing to stale settings.
+        return { isPopoverOpen: false, isGitConfigLocal: null }
       }
       return null
     })
@@ -556,12 +559,13 @@ export class CommitMessageAvatar extends React.Component<
   }
 
   private onOpenGitSettings = () => {
-    if (this.state.isGitConfigLocal === null) {
+    const { isGitConfigLocal } = this.state
+    if (isGitConfigLocal === null) {
       return
     }
 
     this.closePopover()
-    if (this.state.isGitConfigLocal) {
+    if (isGitConfigLocal) {
       this.props.onOpenRepositorySettings()
     } else {
       this.props.onOpenGitSettings()

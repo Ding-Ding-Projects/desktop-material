@@ -1,4 +1,4 @@
-import type { IConfigValueOrigin } from './git/config'
+import { getConfigValueWithOrigin, type IConfigValueOrigin } from './git/config'
 import type { Repository } from '../models/repository'
 
 export interface ICommitAuthorOrigins {
@@ -95,4 +95,27 @@ export class CommitAuthorOriginsCache {
       this.entries.delete(oldest)
     }
   }
+}
+
+const sharedCommitAuthorOriginsCache = new CommitAuthorOriginsCache(
+  getConfigValueWithOrigin
+)
+
+/**
+ * Load the shared, bounded author-origin snapshot used by the Changes view.
+ */
+export function loadCachedCommitAuthorOrigins(
+  repository: Repository
+): Promise<ICommitAuthorOrigins> {
+  return sharedCommitAuthorOriginsCache.load(repository)
+}
+
+/**
+ * Evict author-origin snapshots after Git identity configuration is refreshed.
+ *
+ * The Changes view may be unmounted while History is selected, so invalidation
+ * belongs in the lib/store path rather than in a component lifecycle.
+ */
+export function invalidateCommitAuthorOrigins(repository?: Repository): void {
+  sharedCommitAuthorOriginsCache.invalidate(repository)
 }

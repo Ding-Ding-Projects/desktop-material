@@ -45,7 +45,6 @@ import {
 import {
   formatConfigPath,
   formatConfigScope,
-  getConfigValueWithOrigin,
   IConfigValueOrigin,
   setGlobalConfigValue,
 } from '../../lib/git/config'
@@ -87,7 +86,10 @@ import {
   getShowCommitAuthorInfo,
   ShowCommitAuthorInfoChangedEvent,
 } from '../../models/commit-author-display'
-import { CommitAuthorOriginsCache } from '../../lib/commit-author-origins'
+import {
+  invalidateCommitAuthorOrigins,
+  loadCachedCommitAuthorOrigins,
+} from '../../lib/commit-author-origins'
 import {
   bilingualVariable,
   t,
@@ -561,10 +563,6 @@ const ManualFallbackHiddenPhases: ReadonlySet<string> = new Set([
   'manual-detected',
 ])
 
-const commitAuthorOriginsCache = new CommitAuthorOriginsCache(
-  getConfigValueWithOrigin
-)
-
 /**
  * The manual-upload handoff is offered for the whole automatic release-backed
  * flow — including `preparing`/`hashing`, which can run for minutes on huge
@@ -830,7 +828,7 @@ export class CommitMessage extends React.Component<
       if (authorRefreshed) {
         // An author refresh can preserve the same visible name/email while the
         // winning Git config file or scope changes underneath it.
-        commitAuthorOriginsCache.invalidate(this.props.repository)
+        invalidateCommitAuthorOrigins(this.props.repository)
       }
       if (
         this.state.commitAuthorNameOrigin !== null ||
@@ -966,7 +964,7 @@ export class CommitMessage extends React.Component<
     // Identity-source details are optional and hidden by default. Avoid paying
     // for two Git processes when there is no surface that can render them.
     try {
-      const origins = await commitAuthorOriginsCache.load(repository)
+      const origins = await loadCachedCommitAuthorOrigins(repository)
       if (
         !this.isMounted ||
         sequence !== this.commitAuthorOriginLoadSequence ||
@@ -1420,7 +1418,7 @@ export class CommitMessage extends React.Component<
 
   private onUpdateUserEmail = async (email: string) => {
     await setGlobalConfigValue('user.email', email)
-    commitAuthorOriginsCache.invalidate()
+    invalidateCommitAuthorOrigins()
     this.commitAuthorOriginLoadSequence += 1
     this.props.onRefreshAuthor()
     await this.loadCommitAuthorOrigins()
