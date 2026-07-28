@@ -5,11 +5,16 @@ contracts that span more than one user workflow.
 
 ## Features
 
+- [No-op renderer update
+  suppression](no-op-render-update-suppression.md) — prevent an already-closed
+  History branch list from emitting a second global app-state update and root
+  render whenever users switch between Changes and History.
 - [Progressive asynchronous
-  loading](progressive-lazy-loading.md) — reveal the usable shell before
-  optional startup work, evaluate heavy inactive repository sections on first
-  activation, and contain each load behind accessible local progress, retry,
-  and newest-request-wins lifecycle guards.
+  loading](progressive-lazy-loading.md) — reveal the usable shell from cached
+  and persisted state before optional startup work, evaluate the seven heavy
+  inactive repository sections on first activation, and contain each load
+  behind screen-reader-announced progress, retry, and newest-request-wins
+  lifecycle guards.
 - [Root renderer resource
   lifecycle](root-renderer-resource-lifecycle.md) — make store, updater,
   drag-manager, and IPC subscriptions disposable; retain and clear deferred

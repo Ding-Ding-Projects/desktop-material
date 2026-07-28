@@ -27,6 +27,22 @@ issue-closing receipts are proved. The archived Linux TUI prototype, its five
 captures, and its package/compatibility lanes are historical and non-blocking
 under the Windows-only product boundary.
 
+## Historical July 28 measured repository-view responsiveness — **Source fix locally verified; exact post-fix timing pending**
+
+Lowlevel MCP exercised the immutable baseline Windows release at `9bdfdb8b25`
+on an off-screen desktop. Idle animation stayed below 17 ms across 122 sampled
+frames, but warmed Changes/History switches measured 56–104 ms with six long
+tasks. Every section click sent an already-satisfied
+`showBranchList: false` update after the real section mutation, causing a
+second global app-state emission and root render. The rail now skips that
+dispatch while the list is already closed, and the store rejects identical
+partial updates from every caller. Focused tests passed **42/42** in that source
+checkpoint. Its changed-file ESLint was blocked by five missing
+repository-specific rule definitions in the reused dependency tree; that
+historical environment does not override the active close-out branch's later
+green lint gate. Exact post-fix packaged timing is still an acceptance
+requirement.
+
 ## Historical July 28 root renderer resource audit — **Superseded checkout snapshot**
 
 Root renderer subscriptions, IPC listeners, global document/window handlers,

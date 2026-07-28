@@ -4610,6 +4610,37 @@ describe('cheap LFS operations', () => {
     })
   })
 
+  it('excludes oversized raw working-tree files before asking Git to grep them', async () => {
+    await withTempRepository(async (dir, repository) => {
+      await execFile('git', ['init', '--quiet'], { cwd: dir })
+      const pointerText = serializeCheapLfsPointer({
+        version: CHEAP_LFS_POINTER_VERSION,
+        releaseTag: 'assets',
+        assetName: 'asset.bin',
+        sizeInBytes: 10,
+        sha256: 'b'.repeat(64),
+      })
+      await writeFile(join(dir, 'pointer.bin'), pointerText, 'utf8')
+      await writeFile(
+        join(dir, 'raw-model.gguf'),
+        Buffer.alloc(CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES + 1, 7)
+      )
+
+      const all = await listAllCheapLfsPointers(repository)
+      assert.deepEqual(
+        all.map(entry => entry.relativePath),
+        ['pointer.bin']
+      )
+
+      const scopedRaw = await listAllCheapLfsPointers(
+        repository,
+        defaultCheapLfsFileSystem,
+        ['raw-model.gguf']
+      )
+      assert.deepEqual(scopedRaw, [])
+    })
+  })
+
   it('fails closed instead of returning a partial inventory at the pointer byte bound', async () => {
     await withTempRepository(async (dir, repository) => {
       await execFile('git', ['init', '--quiet'], { cwd: dir })

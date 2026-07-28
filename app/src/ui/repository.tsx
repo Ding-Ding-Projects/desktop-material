@@ -1086,7 +1086,8 @@ export class RepositoryView extends React.Component<
   private onSidebarFocusWithinChanged = (sidebarHasFocusWithin: boolean) => {
     if (
       sidebarHasFocusWithin === false &&
-      this.props.state.selectedSection === RepositorySectionTab.History
+      this.props.state.selectedSection === RepositorySectionTab.History &&
+      this.props.state.compareState.showBranchList
     ) {
       this.props.dispatcher.updateCompareForm(this.props.repository, {
         showBranchList: false,
@@ -1704,7 +1705,7 @@ export class RepositoryView extends React.Component<
       this.props.repository,
       section
     )
-    if (!!section) {
+    if (this.props.state.compareState.showBranchList) {
       this.props.dispatcher.updateCompareForm(this.props.repository, {
         showBranchList: false,
       })

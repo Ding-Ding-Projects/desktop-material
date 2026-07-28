@@ -79,20 +79,20 @@ exact build.
 
 ## 2026-07-28 — Bounded Cheap LFS inventory joins the close-out (Refs #96)
 
-Issue #96 was filed while this campaign was active. Its fix first landed on
-remote `main`: definitely raw oversized payloads receive a bounded header
-preflight instead of being fed whole into pointer inventory. Adversarial review
-found one remaining acceptance gap: an oversized file whose bounded header
-looks like a pointer is still left in `git grep`, so an attacker-controlled
-50+ GiB sparse file could exhaust Git before the bounded format validator runs.
-The close-out branch must exclude every oversized file from Git content grep,
-directly feed pointer-looking oversized paths to the existing bounded
-validation path, and prove scoped and unscoped inventory behavior with real
-large logical-size sparse fixtures. The branch has not yet reconciled that
-newer `main` tip, so neither the initial fix nor its reported focused tests are
-claimed by this checkpoint. Final closure requires the strengthened fix, merge
-ancestry, a fresh affected-test/typecheck/lint pass, the exact build, and
-remote publication proof.
+Issue #96 was filed while this campaign was active. The initial fix landed on
+remote `main` and is now present through this merge: definitely raw oversized
+payloads receive a bounded header preflight instead of being fed whole into
+pointer inventory. Adversarial review found one remaining acceptance gap: an
+oversized file whose bounded header looks like a pointer is still left in
+`git grep`, so an attacker-controlled 50+ GiB sparse file could exhaust Git
+before the bounded format validator runs. The close-out branch must still
+exclude every oversized file from Git content grep, directly feed
+pointer-looking oversized paths to the existing bounded validation path, and
+prove scoped and unscoped inventory behavior with real large logical-size
+sparse fixtures. The original focused results do not cover that adversarial
+case. Final closure requires the strengthened fix, merge ancestry, a fresh
+affected-test/typecheck/lint pass, the exact build, and remote publication
+proof.
 
 ## 2026-07-28 — Guided gallery scoped to 84 Windows scenes (Refs #23)
 
@@ -124,6 +124,32 @@ legacy updater blob is historical evidence and cannot satisfy that current
 slot. No UI was launched and no screenshot was recaptured or deleted in this
 documentation checkpoint. Issue closure still requires current-build
 acceptance for all 84 Windows targets.
+
+## 2026-07-28 — Measured Changes/History renderer update suppression (`main` checkpoint)
+
+The exact baseline `v3.6.3-beta3-zadughkqcv` Windows x64 portable build at
+`9bdfdb8b25e458e4834bdaa26473d44a5602621d` was driven on an isolated Lowlevel
+MCP Win32 desktop. Idle rendering was already smooth (122/122 frames at
+16.51 ms average, 16.80 ms max, zero over 25 ms), but twelve warmed
+Changes/History switches measured 56–104 ms and six 59–67 ms long tasks. A
+single Changes click measured 104 ms, one 62 ms long task, and 166 mutation
+records.
+
+`RepositoryView.onTabClicked` always dispatched
+`updateCompareForm({ showBranchList: false })` after the real section mutation.
+`AppStore._updateCompareForm` then merged and emitted even when the value was
+already false, producing a second root render for one user click. Navigation
+now dispatches only when the list is open, and a store-level equality gate
+protects every caller. Focused responsiveness, lifecycle, progressive-loading,
+and navigation coverage passed **42/42**. In that source checkout, changed-file
+ESLint could not load five repository-specific rules; it reported only missing
+rule definitions, not source findings.
+
+That source checkout's mandated production build and direct compile diagnostic
+both reached bounded webpack timeouts, and its reused incomplete dependency
+tree left repository-wide TypeScript red without naming the new helper or
+test. No post-fix binary or timing was claimed by that checkpoint. The merged
+close-out tree still owes the final gates listed in the current handoff above.
 
 ## 2026-07-28 — Tab-group dialogs move onto the dialog layer (Refs #92)
 

@@ -391,6 +391,7 @@ import {
   ICheapLfsRestoreState,
   IBatchCloneFinalizingState,
 } from '../app-state'
+import { compareFormUpdateChangesState } from '../compare-form-update'
 import {
   findEditorOrDefault,
   getAvailableEditors,
@@ -3423,6 +3424,11 @@ export class AppStore extends TypedBaseStore<IAppState> {
     repository: Repository,
     newState: Pick<ICompareFormUpdate, K>
   ) {
+    const current = this.repositoryStateCache.get(repository).compareState
+    if (!compareFormUpdateChangesState(current, newState)) {
+      return
+    }
+
     this.repositoryStateCache.updateCompareState(repository, state => {
       return merge(state, newState)
     })

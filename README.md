@@ -31,6 +31,16 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > checkpoint. The dated notes below are preserved chronology, not current
 > blockers or issue states.
 
+> **Measured responsiveness checkpoint — July 28, 2026:** the exact released
+> baseline Windows build at `9bdfdb8b25` held every sampled idle frame below
+> 17 ms, but twelve warmed Changes/History switches still took 56–104 ms and
+> produced six long tasks. The navigation path was emitting an identical
+> compare-form update after the real section change, forcing a second root
+> render. Navigation and `AppStore` now suppress that no-op; focused
+> responsiveness and adjacent lifecycle/lazy-loading coverage passed **42/42**
+> at that source checkpoint. Exact post-fix release timing remains pending;
+> this does not replace the close-out gates above.
+
 > **Historical local reliability checkpoint — July 28, 2026 (superseded):**
 > the root renderer now owns
 > and releases its store/updater/drag/IPC subscriptions, telemetry and update

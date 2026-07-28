@@ -31,6 +31,7 @@ capture may legitimately replace.
 <!-- markdownlint-enable MD013 -->
 
 - [Close-all-open-issues publish run — 2026-07-28](close-all-open-issues-2026-07-28/run-manifest.md)
+- [Renderer responsiveness — 2026-07-28](renderer-responsiveness-2026-07-28/README.md)
 - [Linux-first TUI publish run — 2026-07-27](linux-tui-2026-07-27/run-manifest.md)
 - [Linux TUI path browser and Git wrapper — 2026-07-27](linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
 - [Pull-and-bug-hunt publish run — 2026-07-26](bug-hunt-2026-07-26/run-manifest.md)

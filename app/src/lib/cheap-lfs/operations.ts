@@ -747,6 +747,70 @@ async function gitPointerPaths(
   source: 'working-tree' | 'index' | 'head',
   pathspec?: ReadonlyArray<string>
 ): Promise<ReadonlyArray<string>> {
+  let workingTreePathspec = pathspec
+  let oversizedWorkingTreeExclusions: ReadonlyArray<string> = []
+  if (source === 'working-tree') {
+    const maximumPointerBytes = Math.max(
+      CHEAP_LFS_MAXIMUM_POINTER_TEXT_BYTES,
+      CHEAP_LFS_OCI_MAXIMUM_POINTER_TEXT_BYTES
+    )
+    const changedPaths =
+      pathspec ??
+      parseNulPaths(
+        (
+          await git(
+            [
+              ...largeRepositoryGitArgsForPath(root),
+              'ls-files',
+              '-z',
+              '-m',
+              '-o',
+              '--exclude-standard',
+            ],
+            root,
+            'listCheapLfsChangedPaths',
+            {
+              encoding: 'buffer',
+              maxBuffer: Infinity,
+            }
+          )
+        ).stdout
+      )
+    const oversizedRawPaths = new Array<string>()
+    for (const relativePath of changedPaths) {
+      const absolutePath = join(root, relativePath)
+      let sizeInBytes: number
+      try {
+        sizeInBytes = (await stat(absolutePath)).size
+      } catch {
+        continue
+      }
+      if (sizeInBytes <= maximumPointerBytes) {
+        continue
+      }
+      const header = await readBoundedText(
+        absolutePath,
+        CheapLfsPointerHeaderBytes,
+        false
+      )
+      if (pointerHeaderMatches(header)) {
+        // Keep pointer-looking files in Git's candidate set so the existing
+        // bounded parser can fail closed with the format-specific size error.
+        // Only raw payloads are safe to exclude before grep.
+        continue
+      }
+      oversizedRawPaths.push(relativePath)
+    }
+    if (pathspec !== undefined) {
+      const oversized = new Set(oversizedRawPaths)
+      workingTreePathspec = pathspec.filter(path => !oversized.has(path))
+      if (workingTreePathspec.length === 0) {
+        return []
+      }
+    } else {
+      oversizedWorkingTreeExclusions = oversizedRawPaths
+    }
+  }
   const args = [
     ...largeRepositoryGitArgsForPath(root),
     'grep',
@@ -773,8 +837,12 @@ async function gitPointerPaths(
   // matched with `:(literal)` so a filename containing pathspec glob magic
   // (`*`, `[`, ...) still matches itself exactly, mirroring the caller's own
   // exact-path narrowing.
-  if (pathspec !== undefined && pathspec.length > 0) {
-    args.push(...pathspec.map(path => `:(literal)${path}`))
+  if (workingTreePathspec !== undefined && workingTreePathspec.length > 0) {
+    args.push(...workingTreePathspec.map(path => `:(literal)${path}`))
+  } else if (oversizedWorkingTreeExclusions.length > 0) {
+    args.push(
+      ...oversizedWorkingTreeExclusions.map(path => `:(exclude,literal)${path}`)
+    )
   }
   const result = await git(args, root, `listCheapLfs${source}Pointers`, {
     successExitCodes: new Set([0, 1, 128]),
