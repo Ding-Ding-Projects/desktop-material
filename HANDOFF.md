@@ -1,5 +1,31 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-27 — Funny-level sliders moved to Appearance → Tone (locally verified, Refs #83)
+
+The sliders were never absent from the build — they rendered on **Settings →
+Sound** under a *Text-to-Speech* heading, while the language mode they belong
+beside lived on **Appearance**. That placement hid them from anyone looking for
+a tone control and falsely implied they only styled the spoken narrator, when
+the level styles every category of copy the app writes or speaks.
+
+Both sliders now render in a new `FunnyLevelControls`
+(`app/src/ui/preferences/funny-level-controls.tsx`) inside the Appearance
+language section, with a live per-language preview, `aria-valuetext` that names
+the level (`Level 4 of 5, Playful`) instead of a bare number, and a
+destructive-warning sample whose irreversibility sentence
+(`appearance.toneWarningFixed`) has no per-level variants. Sound keeps the
+narrator's own switches plus a pointer — never a duplicate control. Persistence
+is unchanged: the existing `audio-system-settings-v1` blob stays the single
+source of truth and Appearance writes through `AudioCueStore.setSettings`.
+
+Local evidence: `app/test/unit/ui/funny-level-controls-test.tsx` **14/14**;
+`appearance-preferences-test.tsx`, `i18n-test.ts`, `settings-search-test.ts`,
+`audio-settings-test.ts`, `settings-surfaces-test.tsx` **65/65** together;
+`pull-branch-deleted-ui-test.ts` + 6 sibling i18n/style suites **49/49**.
+`npx tsc --noEmit`, eslint and prettier clean. **No screenshot evidence yet** —
+these assertions are DOM-level only; the packaged-app capture the issue asks
+for still has to be taken.
+
 ## 2026-07-27 — Observed user-initiated push/pull/fetch promises (locally verified, Refs #80)
 
 Pressing **Push origin** could surface the generic "A background action stopped

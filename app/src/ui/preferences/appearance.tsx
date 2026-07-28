@@ -28,6 +28,8 @@ import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { translate } from '../../lib/i18n'
+import { IFunnyLevels } from '../../lib/funny-level-text'
+import { FunnyLevelControls } from './funny-level-controls'
 
 type AppearanceSelectKey = 'languageMode'
 
@@ -61,6 +63,14 @@ interface IAppearanceProps {
   ) => void
   readonly branchSortOrder: BranchSortOrder
   readonly onBranchSortOrderChanged: (sortOrder: BranchSortOrder) => void
+
+  /**
+   * Per-language playfulness, 1 (fully serious) .. 5 (maximum). Rendered here
+   * beside the language-mode selector because the level styles every message
+   * the app writes or speaks, not only the optional spoken narrator.
+   */
+  readonly funnyLevels: IFunnyLevels
+  readonly onFunnyLevelsChanged: (levels: IFunnyLevels) => void
 }
 
 interface IAppearanceState {
@@ -143,6 +153,11 @@ export class Appearance extends React.Component<
         <p className="appearance-customization-caption">
           {localize('appearance.languageModeDescription')}
         </p>
+        <FunnyLevelControls
+          languageMode={languageMode}
+          levels={this.props.funnyLevels}
+          onLevelsChanged={this.props.onFunnyLevelsChanged}
+        />
       </div>
     )
   }

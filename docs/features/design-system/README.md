@@ -9,6 +9,10 @@
 - [Dialog wheel and trackpad scrolling](dialog-wheel-scrolling.md) — route
   pointer scrolling from any descendant to the nearest usable dialog scroll
   owner while preserving nested controls and stacked-panel behavior.
+- [Tone: per-language funny-level sliders](tone-funny-level.md) — independent
+  English and Cantonese 1..5 sliders on Settings → Appearance beside the
+  language mode, wired to every category of copy (not just the narrator), with
+  a live preview, the voice-not-facts rule, and searchable level names.
 - [Audio system](audio-system.md) — optional, off-by-default spoken narrator,
   synthesized sound effects, and per-repository music, with rate-limiting,
   quiet hours, reduced-sound, screen-reader coexistence, and funny-level tone.

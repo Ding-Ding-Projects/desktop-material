@@ -3,6 +3,7 @@ import { describe, it } from 'node:test'
 import * as React from 'react'
 
 import { translate } from '../../../src/lib/i18n'
+import { DefaultFunnyLevels } from '../../../src/lib/funny-level-text'
 import { BranchSortOrder } from '../../../src/models/branch-sort-order'
 import {
   DefaultAppearanceCustomization,
@@ -47,6 +48,8 @@ describe('Appearance preferences', () => {
       onShowBranchNameInRepoListChanged: () => {},
       branchSortOrder: BranchSortOrder.LastModified,
       onBranchSortOrderChanged: () => {},
+      funnyLevels: DefaultFunnyLevels,
+      onFunnyLevelsChanged: () => {},
     }
 
     const view = render(
