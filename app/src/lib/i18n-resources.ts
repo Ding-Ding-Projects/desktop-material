@@ -50,6 +50,30 @@ export type TranslationKey =
   | 'appearance.languageMode'
   | 'appearance.languageModeDescription'
   | 'appearance.languageAndNavigation'
+  | 'appearance.toneHeading'
+  | 'appearance.toneDescription'
+  | 'appearance.toneEnglishLabel'
+  | 'appearance.toneCantoneseLabel'
+  | 'appearance.toneLevelName1'
+  | 'appearance.toneLevelName2'
+  | 'appearance.toneLevelName3'
+  | 'appearance.toneLevelName4'
+  | 'appearance.toneLevelName5'
+  | 'appearance.toneValueText'
+  | 'appearance.toneScaleMin'
+  | 'appearance.toneScaleMax'
+  | 'appearance.tonePreviewHeading'
+  | 'appearance.tonePreviewEnglishLabel'
+  | 'appearance.tonePreviewCantoneseLabel'
+  | 'appearance.tonePreviewWarningLabel'
+  | 'appearance.tonePreview.plain'
+  | 'appearance.tonePreview.light'
+  | 'appearance.tonePreview.playful'
+  | 'appearance.toneWarningPreview.plain'
+  | 'appearance.toneWarningPreview.light'
+  | 'appearance.toneWarningPreview.playful'
+  | 'appearance.toneWarningFixed'
+  | 'appearance.toneNarratorNote'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
   | 'appearance.toolbarEditorTitle'
@@ -1468,9 +1492,7 @@ export type TranslationKey =
   | 'settings.soundRecordedNarrationDescription'
   | 'settings.soundPreviewNarration'
   | 'settings.soundFunnyHeading'
-  | 'settings.soundFunnyEnglishLabel'
-  | 'settings.soundFunnyCantoneseLabel'
-  | 'settings.soundFunnyHint'
+  | 'settings.soundFunnyRelocated'
   | 'settings.soundMusicHeading'
   | 'settings.soundMusicEnableTitle'
   | 'settings.soundMusicEnableDescription'
@@ -2181,6 +2203,10 @@ export type TranslationKey =
   | 'settingsSearch.entry.gitDefaultBranch.desc'
   | 'settingsSearch.entry.appearanceTheme.title'
   | 'settingsSearch.entry.appearanceTheme.desc'
+  | 'settingsSearch.entry.appearanceLanguageMode.title'
+  | 'settingsSearch.entry.appearanceLanguageMode.desc'
+  | 'settingsSearch.entry.appearanceTone.title'
+  | 'settingsSearch.entry.appearanceTone.desc'
   | 'settingsSearch.entry.appearanceAccent.title'
   | 'settingsSearch.entry.appearanceAccent.desc'
   | 'settingsSearch.entry.appearanceFont.title'
@@ -2508,6 +2534,42 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.languageModeDescription':
     'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
   'appearance.languageAndNavigation': 'Language',
+  'appearance.toneHeading': 'Tone',
+  'appearance.toneDescription':
+    'The funny level styles every message the app writes or speaks, including errors, warnings, and destructive-action prompts. It changes the wording only: what happened, what is affected, and what your options are stay exact at every level.',
+  'appearance.toneEnglishLabel': 'English funny level',
+  'appearance.toneCantoneseLabel': 'Cantonese funny level',
+  'appearance.toneLevelName1': 'Fully serious',
+  'appearance.toneLevelName2': 'Mostly serious',
+  'appearance.toneLevelName3': 'Lightly playful',
+  'appearance.toneLevelName4': 'Playful',
+  'appearance.toneLevelName5': 'Maximum playfulness',
+  'appearance.toneValueText': 'Level {level} of 5, {name}',
+  'appearance.toneScaleMin': '1 · serious',
+  'appearance.toneScaleMax': '5 · playful',
+  'appearance.tonePreviewHeading': 'Preview',
+  'appearance.tonePreviewEnglishLabel': 'English at level {level}',
+  'appearance.tonePreviewCantoneseLabel': 'Cantonese at level {level}',
+  'appearance.tonePreviewWarningLabel': 'A warning at this level',
+  // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
+  // playful). Every band reports the same 3 commits going to the same
+  // origin/main, because the voice moves and the facts never do.
+  'appearance.tonePreview.plain': 'Pushed 3 commits to origin/main.',
+  'appearance.tonePreview.light': 'Pushed 3 commits to origin/main. Tidy.',
+  'appearance.tonePreview.playful':
+    'Lobbed 3 commits at origin/main. They went quietly.',
+  // Same three bands for a destructive warning. The count and the repository
+  // name appear in all three, and the sentence that says the action is
+  // irreversible is the separate fixed string below, identical at every level.
+  'appearance.toneWarningPreview.plain':
+    'Discarding 3 changed files in desktop-material.',
+  'appearance.toneWarningPreview.light':
+    'About to discard 3 changed files in desktop-material.',
+  'appearance.toneWarningPreview.playful':
+    'Waving goodbye to 3 changed files in desktop-material.',
+  'appearance.toneWarningFixed': 'This cannot be undone.',
+  'appearance.toneNarratorNote':
+    'The spoken narrator uses this same tone. Its own switches — volume, cooldown, and whether it speaks at all — live in the Sound tab.',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
   'appearance.toolbarEditorTitle': 'Toolbar appearance',
@@ -4289,10 +4351,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'Play the pre-recorded voice lines and their melodies that ship with the app instead of live speech synthesis. Falls back to live narration automatically when a clip is unavailable.',
   'settings.soundPreviewNarration': 'Preview narration',
   'settings.soundFunnyHeading': 'Narrator tone',
-  'settings.soundFunnyEnglishLabel': 'English playfulness',
-  'settings.soundFunnyCantoneseLabel': 'Cantonese playfulness',
-  'settings.soundFunnyHint':
-    '1 is fully serious, 5 is maximum fun. Errors always stay clear.',
+  'settings.soundFunnyRelocated':
+    'The narrator speaks at the funny level set in Appearance › Tone, where the English and Cantonese sliders live. One level styles every message in the app, spoken or written, so it is set in one place.',
   'settings.soundMusicHeading': 'Per-repository music',
   'settings.soundMusicEnableTitle': 'Play themed music',
   'settings.soundMusicEnableDescription':
@@ -5326,6 +5386,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'settingsSearch.entry.appearanceTheme.title': 'Theme',
   'settingsSearch.entry.appearanceTheme.desc':
     'Switch between light, dark, and system themes.',
+  'settingsSearch.entry.appearanceLanguageMode.title': 'Language mode',
+  'settingsSearch.entry.appearanceLanguageMode.desc':
+    'Choose English, playful Hong Kong Cantonese, or a compact bilingual view.',
+  'settingsSearch.entry.appearanceTone.title': 'Funny level (tone)',
+  'settingsSearch.entry.appearanceTone.desc':
+    'Independent English and Cantonese sliders from 1 (fully serious) to 5 (maximum playfulness). Styles every message including errors and warnings, never the facts.',
   'settingsSearch.entry.appearanceAccent.title': 'Accent color',
   'settingsSearch.entry.appearanceAccent.desc':
     'Pick the seed color used across the interface.',
@@ -5676,6 +5742,37 @@ export const cantoneseTranslations: Readonly<
   'appearance.languageModeDescription':
     '揀英文、玩味港式廣東話，或者慳位雙語模式。',
   'appearance.languageAndNavigation': '語言',
+  'appearance.toneHeading': '語氣',
+  'appearance.toneDescription':
+    '搞笑等級會影響全 app 寫出嚟同講出嚟嘅每句說話，錯誤、警告、刪嘢提示都包。佢淨係改講法：發生咗乜、影響邊啲嘢、你有咩揀，每一級都一樣咁準確。',
+  'appearance.toneEnglishLabel': '英文搞笑等級',
+  'appearance.toneCantoneseLabel': '廣東話搞笑等級',
+  'appearance.toneLevelName1': '完全認真',
+  'appearance.toneLevelName2': '大致認真',
+  'appearance.toneLevelName3': '輕鬆少少',
+  'appearance.toneLevelName4': '幾好玩',
+  'appearance.toneLevelName5': '玩到盡',
+  'appearance.toneValueText': '第 {level} 級，共 5 級，{name}',
+  'appearance.toneScaleMin': '1 · 認真',
+  'appearance.toneScaleMax': '5 · 搞笑',
+  'appearance.tonePreviewHeading': '預覽',
+  'appearance.tonePreviewEnglishLabel': '英文（第 {level} 級）',
+  'appearance.tonePreviewCantoneseLabel': '廣東話（第 {level} 級）',
+  'appearance.tonePreviewWarningLabel': '呢一級嘅警告會係咁',
+  'appearance.tonePreview.plain': '已經推送 3 個 commit 去 origin/main。',
+  'appearance.tonePreview.light':
+    '已經推送 3 個 commit 去 origin/main，好整齊。',
+  'appearance.tonePreview.playful':
+    '3 個 commit 掟晒去 origin/main，佢哋一聲都冇出。',
+  'appearance.toneWarningPreview.plain':
+    '準備捨棄 desktop-material 入面 3 個已改動檔案。',
+  'appearance.toneWarningPreview.light':
+    '就嚟捨棄 desktop-material 入面 3 個已改動檔案。',
+  'appearance.toneWarningPreview.playful':
+    '同 desktop-material 入面 3 個已改動檔案講聲拜拜。',
+  'appearance.toneWarningFixed': '呢個動作冇得復原。',
+  'appearance.toneNarratorNote':
+    '旁白把聲都會跟呢個語氣。佢自己嘅掣 — 音量、間隔、講唔講 — 就喺「聲音」分頁度。',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
   'appearance.toolbarEditorTitle': '工具列外觀',
@@ -7285,9 +7382,8 @@ export const cantoneseTranslations: Readonly<
     '播應用程式內附嘅預錄語音同旋律，唔使即時合成。如果搵唔到對應嘅錄音，會自動改用即時旁白。',
   'settings.soundPreviewNarration': '試聽旁白',
   'settings.soundFunnyHeading': '旁白語氣',
-  'settings.soundFunnyEnglishLabel': '英文搞笑程度',
-  'settings.soundFunnyCantoneseLabel': '廣東話搞笑程度',
-  'settings.soundFunnyHint': '1 係認真，5 係最搞笑。出錯訊息永遠都會講清楚。',
+  'settings.soundFunnyRelocated':
+    '旁白會跟你喺「外觀 › 語氣」較嘅搞笑等級，英文同廣東話兩條滑桿都喺嗰度。全 app 嘅文案，講嘅寫嘅，都用同一個等級，所以淨係喺一個地方較。',
   'settings.soundMusicHeading': '每個 repository 嘅音樂',
   'settings.soundMusicEnableTitle': '播主題音樂',
   'settings.soundMusicEnableDescription':
@@ -8264,6 +8360,12 @@ export const cantoneseTranslations: Readonly<
     '開新 repository 時用嘅分支名。',
   'settingsSearch.entry.appearanceTheme.title': '主題',
   'settingsSearch.entry.appearanceTheme.desc': '喺淺色、深色同跟系統之間揀。',
+  'settingsSearch.entry.appearanceLanguageMode.title': '語言模式',
+  'settingsSearch.entry.appearanceLanguageMode.desc':
+    '揀英文、玩味港式廣東話，或者慳位雙語模式。',
+  'settingsSearch.entry.appearanceTone.title': '搞笑等級（語氣）',
+  'settingsSearch.entry.appearanceTone.desc':
+    '英文同廣東話各有一條滑桿，1 係完全認真，5 係玩到盡。改嘅係全 app 文案嘅講法，錯誤同警告都包，但事實一個字都唔會少。',
   'settingsSearch.entry.appearanceAccent.title': '主色',
   'settingsSearch.entry.appearanceAccent.desc': '揀成個介面用嘅種子顏色。',
   'settingsSearch.entry.appearanceFont.title': '介面字體',

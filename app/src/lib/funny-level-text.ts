@@ -4,7 +4,12 @@ import {
   DefaultAudioSystemSettings,
   parseAudioSettings,
 } from './audio/audio-settings'
-import { translate, TranslationKey, TranslationVariables } from './i18n'
+import {
+  translate,
+  translatedVariable,
+  TranslationKey,
+  TranslationVariables,
+} from './i18n'
 import { LanguageMode } from '../models/language-mode'
 
 /**
@@ -35,6 +40,11 @@ export type FunnyBand = 'plain' | 'light' | 'playful'
  */
 export type FunnyLevelTextBase =
   | 'tabs.overflowDescription'
+  // The Appearance › Tone live preview. The first family is an ordinary
+  // status line; the second is a destructive warning whose irreversibility
+  // sentence is the separate fixed `appearance.toneWarningFixed` string.
+  | 'appearance.tonePreview'
+  | 'appearance.toneWarningPreview'
   // Only the *framing* of the encryption gate carries bands. The sentence that
   // says a lost passphrase is unrecoverable is a single fixed string with no
   // variants at all, because there is no funny level at which that fact is
@@ -44,6 +54,49 @@ export type FunnyLevelTextBase =
   | 'ignoredSubmodule.reviewLead'
   | 'pullBranchDeleted.intro'
   | 'pullBranchDeleted.recovered'
+
+/** Every selectable funny level, in slider order (1 serious .. 5 max). */
+export const FunnyLevelValues: ReadonlyArray<number> = [1, 2, 3, 4, 5]
+
+/**
+ * The resource key naming each level. Screen readers announce the name rather
+ * than a bare number, because "3" alone tells the listener nothing about what
+ * the app will sound like.
+ */
+const FunnyLevelNameKeys: ReadonlyArray<TranslationKey> = [
+  'appearance.toneLevelName1',
+  'appearance.toneLevelName2',
+  'appearance.toneLevelName3',
+  'appearance.toneLevelName4',
+  'appearance.toneLevelName5',
+]
+
+/** The resource key naming a level, clamping anything outside 1..5. */
+export function funnyLevelNameKey(level: number): TranslationKey {
+  const clamped = clampFunnyLevel(
+    level,
+    DefaultAudioSystemSettings.funnyLevelEnglish
+  )
+  return FunnyLevelNameKeys[clamped - 1] ?? 'appearance.toneLevelName3'
+}
+
+/**
+ * The slider's spoken value: the position *and* what that position means, so a
+ * screen-reader user hears "Level 4 of 5, Playful" instead of "4".
+ */
+export function funnyLevelValueText(
+  level: number,
+  languageMode: LanguageMode
+): string {
+  const clamped = clampFunnyLevel(
+    level,
+    DefaultAudioSystemSettings.funnyLevelEnglish
+  )
+  return translate('appearance.toneValueText', languageMode, {
+    level: String(clamped),
+    name: translatedVariable(funnyLevelNameKey(clamped)),
+  })
+}
 
 /** Read the persisted per-language funny levels, defaulting when unreadable. */
 export function readFunnyLevels(): IFunnyLevels {

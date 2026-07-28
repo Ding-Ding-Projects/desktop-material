@@ -17,8 +17,13 @@ designed never to become annoying. Three cooperating parts:
 
 Open **Settings → Sound**. The master switch gates the entire system; the three
 parts each have their own enable toggle, volume slider, and previews. The
-narrator adds a per-language funny-level (English and Cantonese, 1–5), a
-minimum-gap slider, and a preview. Music is chosen per repository via a file
+narrator adds a minimum-gap slider and a preview. Its **tone** is not set here:
+the per-language funny-level sliders (English and Cantonese, 1–5) live on
+**Settings → Appearance → Tone**, beside the language mode, because that one
+level styles every message the app writes as well as every line it speaks — see
+[Tone: per-language funny-level sliders](tone-funny-level.md). The Sound tab
+carries a pointer to them rather than a second copy that could drift.
+Music is chosen per repository via a file
 picker (mp3/ogg/wav/m4a/flac/aac). Quiet hours and a "follow reduced-motion"
 toggle round out the anti-annoyance controls.
 
