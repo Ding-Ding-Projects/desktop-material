@@ -42,8 +42,40 @@ describe('capture-app option parsing', () => {
     assert.equal(options.size, null)
     assert.deepEqual(options.steps, [])
     assert.equal(options.keepUserData, false)
+    assert.equal(options.windowPixels, false)
+    assert.equal(options.repositoryGroup, null)
+    assert.equal(options.repositoryDefaultBranch, null)
+    assert.deepEqual(options.localStorage, {})
     assert.ok(options.settleMilliseconds > 0)
     assert.ok(options.timeoutMilliseconds > 0)
+  })
+
+  it('collects the repository-row and startup-preference seeds', () => {
+    const options = parseCaptureArguments([
+      '--repo-group=Verification group',
+      '--repo-default-branch=main',
+      '--local-storage=zoom-factor=2',
+      '--local-storage=zoom-auto-fit-enabled=1',
+    ])
+
+    assert.equal(options.repositoryGroup, 'Verification group')
+    assert.equal(options.repositoryDefaultBranch, 'main')
+    assert.deepEqual(options.localStorage, {
+      'zoom-factor': '2',
+      'zoom-auto-fit-enabled': '1',
+    })
+  })
+
+  it('rejects seeds it cannot act on', () => {
+    assert.throws(() => parseCaptureArguments(['--repo-group=']), /group name/)
+    assert.throws(
+      () => parseCaptureArguments(['--repo-default-branch=']),
+      /branch name/
+    )
+    assert.throws(
+      () => parseCaptureArguments(['--local-storage=zoom-factor']),
+      /<key>=<value>/
+    )
   })
 
   it('collects repeated repositories and steps in order', () => {
@@ -63,6 +95,10 @@ describe('capture-app option parsing', () => {
       { kind: 'click', selector: '.repository-tab-overflow' },
       { kind: 'wait', milliseconds: 600 },
     ])
+  })
+
+  it('accepts the window-pixel capture switch', () => {
+    assert.equal(parseCaptureArguments(['--window-pixels']).windowPixels, true)
   })
 
   it('accepts a positional output path', () => {
@@ -102,9 +138,27 @@ describe('capture-app step parsing', () => {
       kind: 'click-text',
       text: 'Skip for now',
     })
+    assert.deepEqual(parseStep('right-click:.repository-list-item'), {
+      kind: 'right-click',
+      selector: '.repository-list-item',
+    })
     assert.deepEqual(parseStep('hover:.repository-tab'), {
       kind: 'hover',
       selector: '.repository-tab',
+    })
+    assert.deepEqual(parseStep('scroll:.dialog-content::320'), {
+      kind: 'scroll',
+      selector: '.dialog-content',
+      delta: 320,
+    })
+    assert.deepEqual(parseStep('scroll:.dialog-content::-120'), {
+      kind: 'scroll',
+      selector: '.dialog-content',
+      delta: -120,
+    })
+    assert.deepEqual(parseStep('scroll-to:.bitbucket-accounts'), {
+      kind: 'scroll-to',
+      selector: '.bitbucket-accounts',
     })
     assert.deepEqual(parseStep('mouse:12,760'), {
       kind: 'mouse',
@@ -112,6 +166,7 @@ describe('capture-app step parsing', () => {
       y: 760,
     })
     assert.deepEqual(parseStep('blur'), { kind: 'blur' })
+    assert.deepEqual(parseStep('reload'), { kind: 'reload' })
     assert.deepEqual(parseStep('type:input.search::capture'), {
       kind: 'type',
       selector: 'input.search',
@@ -130,6 +185,20 @@ describe('capture-app step parsing', () => {
     assert.deepEqual(parseStep('resize:900x700'), {
       kind: 'resize',
       size: { width: 900, height: 700 },
+    })
+    assert.deepEqual(parseStep('min-size:320x240'), {
+      kind: 'min-size',
+      size: { width: 320, height: 240 },
+    })
+    assert.deepEqual(parseStep('metrics:640x480'), {
+      kind: 'metrics',
+      size: { width: 640, height: 480 },
+      scale: 1,
+    })
+    assert.deepEqual(parseStep('metrics:480x330@2'), {
+      kind: 'metrics',
+      size: { width: 480, height: 330 },
+      scale: 2,
     })
     assert.deepEqual(parseStep('optional:click:.banner .close'), {
       kind: 'optional',
@@ -162,6 +231,16 @@ describe('capture-app step parsing', () => {
     assert.throws(() => parseStep('resize:huge'), /<width>x<height>/)
     assert.throws(() => parseStep('mouse:12'), /<x>,<y>/)
     assert.throws(() => parseStep('blur:now'), /takes no argument/)
+    assert.throws(() => parseStep('reload:now'), /takes no argument/)
+    assert.throws(() => parseStep('right-click:'), /needs a selector/)
+    assert.throws(() => parseStep('scroll-to:'), /needs a selector/)
+    assert.throws(() => parseStep('scroll:.pane'), /<selector>::<dy>/)
+    assert.throws(() => parseStep('scroll:.pane::0'), /non-zero pixel delta/)
+    assert.throws(() => parseStep('scroll:.pane::down'), /non-zero pixel delta/)
+    assert.throws(() => parseStep('min-size:small'), /<width>x<height>/)
+    assert.throws(() => parseStep('metrics:small'), /<width>x<height>/)
+    assert.throws(() => parseStep('metrics:640x480@0'), /scale must be/)
+    assert.throws(() => parseStep('metrics:640x480@9'), /scale must be/)
   })
 })
 

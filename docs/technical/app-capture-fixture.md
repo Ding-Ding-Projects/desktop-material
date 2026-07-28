@@ -59,37 +59,47 @@ holding an array of the same step strings.
 
 | Option              | Meaning                                                |
 | ------------------- | ------------------------------------------------------ |
-| `--out=<png>`       | output file (default `app-shot.png` in the repo root)  |
-| `--repo=<path>`     | repository to open as a tab (repeatable)               |
-| `--tabs=<n>`        | create and open N throwaway repositories               |
-| `--repos-root=<d>`  | where those throwaway repositories are created         |
-| `--size=<WxH>`      | window content size, applied before the tabs open      |
-| `--step=<step>`     | UI step to run before the capture (repeatable)         |
-| `--steps-file=<js>` | JSON array of steps, appended after every `--step`     |
-| `--wait=<ms>`       | settle time before the capture (default 2500)          |
-| `--timeout=<ms>`    | per-operation timeout (default 15000)                  |
-| `--report=<json>`   | also write a JSON report of the run                    |
-| `--main=<main.js>`  | app entry point (default `out/main.js`)                |
-| `--keep-user-data`  | keep the throwaway profile for debugging               |
-| `--keep-repos`      | keep the throwaway repositories                        |
-| `--strict-console`  | exit non-zero when the renderer logged console errors  |
+| `--out=<png>`             | output file (default `app-shot.png` in the repo root) |
+| `--repo=<path>`           | repository to open as a tab (repeatable)              |
+| `--tabs=<n>`              | create and open N throwaway repositories              |
+| `--repos-root=<d>`        | where those throwaway repositories are created        |
+| `--size=<WxH>`            | window content size, applied before the tabs open     |
+| `--repo-group=<name>`     | seed every repository row into that named group       |
+| `--repo-default-branch=`  | seed every repository row's default branch            |
+| `--local-storage=<k>=<v>` | stage one renderer preference (repeatable)            |
+| `--step=<step>`           | UI step to run before the capture (repeatable)        |
+| `--steps-file=<js>`       | JSON array of steps, appended after every `--step`    |
+| `--wait=<ms>`             | settle time before the capture (default 2500)         |
+| `--timeout=<ms>`          | per-operation timeout (default 15000)                 |
+| `--report=<json>`         | also write a JSON report of the run                   |
+| `--main=<main.js>`        | app entry point (default `out/main.js`)               |
+| `--keep-user-data`        | keep the throwaway profile for debugging              |
+| `--keep-repos`            | keep the throwaway repositories                       |
+| `--strict-console`        | exit non-zero when the renderer logged console errors |
+| `--window-pixels`         | always photograph the window, not the CSS viewport    |
 
 ### Steps
 
-| Step                          | Effect                                     |
-| ----------------------------- | ------------------------------------------ |
-| `wait:<ms>`                   | sleep                                      |
-| `wait-for:<selector>`         | wait for a selector to become visible      |
-| `click:<selector>`            | click a selector                           |
-| `click-text:<text>`           | click by exact visible text (links too)    |
-| `hover:<selector>`            | hover a selector                           |
-| `mouse:<x>,<y>`               | park the pointer at a viewport coordinate  |
-| `blur`                        | drop focus, so no focus tooltip is caught  |
-| `type:<selector>::<text>`     | fill a field                               |
-| `press:<key>`                 | press a key on the page                    |
-| `press:<selector>::<key>`     | press a key on a selector                  |
-| `resize:<WxH>`                | resize the window mid-run                  |
-| `optional:<step>`             | run a step, but do not fail when it cannot |
+| Step                       | Effect                                        |
+| -------------------------- | --------------------------------------------- |
+| `wait:<ms>`                | sleep                                         |
+| `wait-for:<selector>`      | wait for a selector to become visible         |
+| `click:<selector>`         | click a selector                              |
+| `click-text:<text>`        | click by exact visible text (links too)       |
+| `right-click:<selector>`   | open a selector's context menu                |
+| `hover:<selector>`         | hover a selector                              |
+| `mouse:<x>,<y>`            | park the pointer at a viewport coordinate     |
+| `blur`                     | drop focus, so no focus tooltip is caught     |
+| `reload`                   | restart the renderer, keeping persisted state |
+| `scroll:<selector>::<dy>`  | wheel-scroll over a selector by dy pixels     |
+| `scroll-to:<selector>`     | scroll a selector into the middle of its pane |
+| `type:<selector>::<text>`  | fill a field                                  |
+| `press:<key>`              | press a key on the page                       |
+| `press:<selector>::<key>`  | press a key on a selector                     |
+| `resize:<WxH>`             | resize the window mid-run                     |
+| `min-size:<WxH>`           | lower the window's own minimum size           |
+| `metrics:<WxH>[@<scale>]`  | override the renderer viewport over CDP       |
+| `optional:<step>`          | run a step, but do not fail when it cannot    |
 
 A click leaves the pointer on whatever it clicked, so the shutter often catches
 that control's tooltip hanging over the surface being documented. End a sequence
@@ -109,6 +119,35 @@ short. And menu items keep a duplicate `.sr-only` copy of their label, so
 `click-text:` never resolves one — reach for
 `[role=menuitem]:has-text("Manage .gitignore")` instead.
 
+`right-click:` opens the app's own in-page context menu (the Material menu with
+the _Filter actions_ field), so the result is a normal DOM surface a screenshot
+can see. Aim it at a plain child rather than the element you have in mind: a
+repository tab's own label runs a **different** menu, so the tab's commands come
+from `right-click:[role=tab] .repository-tab-favorite`. Opening the menu moves
+focus to the surface underneath — which is how a context-menu capture ends up
+with the host dialog's "Close" tooltip printed over it — so put `blur` **after**
+the right click, not before.
+
+### Small windows, and why the shutter changes
+
+Below roughly 1000×600 the app auto-fits its own zoom, and two things follow.
+
+`resize:` alone cannot get there: the window carries a 960×660 minimum and a
+smaller `setContentSize` is silently clamped, so the capture would quietly
+document the wrong size. `min-size:320x240` lowers the window's floor first, and
+the shot stays a photograph of a genuinely small real window rather than an
+emulation. `metrics:` is the escape hatch for a size the window still refuses —
+it overrides the renderer's viewport over CDP, but only the renderer is fooled,
+so anything the app derives from the main process's content size (auto-fit very
+much included) keeps seeing the real window. Prefer `min-size:` + `resize:`.
+
+Once the zoom is fitted, `page.screenshot()` frames the wrong rectangle: it
+measures in CSS pixels, and a 720×687 window scaled to 72% has a 1000×954 CSS
+viewport, so the PNG comes back 1000×954 with the app tucked in one corner and
+dead space around it. The fixture notices (`window.devicePixelRatio !== 1`) and
+photographs the window through `webContents.capturePage()` instead; the run
+prints `via=window-pixels` when it does. `--window-pixels` forces it.
+
 Useful stable selectors on the tab strip: `.repository-tab-strip`,
 `.repository-tab-overflow` (the overflow button, present only when tabs actually
 overflow), `.repository-tab-overflow-count`, `.repository-tab-search`,
@@ -117,7 +156,7 @@ overflow), `.repository-tab-overflow-count`, `.repository-tab-search`,
 ## Output
 
 ```text
-CAPTURE_OK C:\...\overflow.png 1100x760 tabs=14 overflow=true
+CAPTURE_OK C:\...\overflow.png 1100x760 tabs=14 overflow=true via=page-screenshot
 CAPTURE_CONSOLE_ERRORS 0
 ```
 
@@ -144,7 +183,11 @@ The interesting part, and the reason the fixture exists:
    `Database`, object store `repositories`, the store behind
    `RepositoriesDatabase` — as plain local repository rows.
 4. Reload the window. The app reads its repository list once at startup, so the
-   seeded rows only become real repositories after a reload.
+   seeded rows only become real repositories after a reload. Anything
+   `--local-storage=` staged rides along on the same reload, which is the only
+   way to set a preference the app reads once while booting — the interface
+   scale (`zoom-factor`) being the one the gallery actually needs. `--repo-group=`
+   and `--repo-default-branch=` fill the matching columns of the seeded rows.
 5. Send one `cli-action` `open-repository` IPC per path from the main process.
    Because each repository now exists in the database, the app takes its own
    `selectRepository` → `ensureTabForRepository` path and opens a tab, instead of

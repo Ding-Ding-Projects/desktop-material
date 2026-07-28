@@ -28,6 +28,9 @@
 //   --tabs=<n>           create and open N throwaway git repositories
 //   --repos-root=<dir>   where throwaway repositories are created
 //   --size=<WxH>         window content size, applied before the tabs open
+//   --repo-group=<name>  seed every repository row into that named group
+//   --repo-default-branch=<b>  seed every repository row's default branch
+//   --local-storage=<k>=<v>    seed one renderer localStorage entry (repeatable)
 //   --step=<step>        UI step to run before the capture (repeatable)
 //   --steps-file=<json>  JSON array of steps, appended after every --step
 //   --wait=<ms>          settle time before the capture (default 2500)
@@ -37,19 +40,26 @@
 //   --keep-user-data     do not delete the throwaway profile (debugging)
 //   --keep-repos         do not delete the throwaway repositories
 //   --strict-console     exit non-zero when the renderer logged errors
+//   --window-pixels      always photograph the window, not the CSS viewport
 //
 // Steps:
 //   wait:<ms>                    sleep
 //   wait-for:<selector>          wait for a selector to become visible
 //   click:<selector>             click a selector
 //   click-text:<text>            click by exact visible text (links included)
+//   right-click:<selector>       open a selector's context menu
 //   hover:<selector>             hover a selector
 //   mouse:<x>,<y>                park the pointer at a viewport coordinate
 //   blur                         drop focus, so no focus tooltip is captured
+//   reload                       restart the renderer, keeping persisted state
+//   scroll:<selector>::<dy>      wheel-scroll over a selector by dy pixels
+//   scroll-to:<selector>         scroll a selector into the middle of its pane
 //   type:<selector>::<text>      fill a field
 //   press:<key>                  press a key on the page
 //   press:<selector>::<key>      press a key on a selector
 //   resize:<WxH>                 resize the window mid-run
+//   min-size:<WxH>               lower the window's own minimum size
+//   metrics:<WxH>[@<scale>]      override the renderer viewport over CDP
 //   optional:<step>              run <step>, but do not fail when it cannot
 
 const { execFileSync } = require('child_process')
@@ -110,9 +120,10 @@ function parseStep(raw) {
   const rest = separator === -1 ? '' : value.slice(separator + 1)
 
   switch (kind) {
-    case 'blur': {
+    case 'blur':
+    case 'reload': {
       if (rest.length > 0) {
-        throw new Error(`Step blur takes no argument: ${value}`)
+        throw new Error(`Step ${kind} takes no argument: ${value}`)
       }
       return { kind }
     }
@@ -125,6 +136,8 @@ function parseStep(raw) {
     }
     case 'wait-for':
     case 'click':
+    case 'right-click':
+    case 'scroll-to':
     case 'hover': {
       if (rest.length === 0) {
         throw new Error(`Step ${kind} needs a selector: ${value}`)
@@ -169,12 +182,46 @@ function parseStep(raw) {
         key: rest.slice(index + 2),
       }
     }
+    case 'scroll': {
+      // A wheel over the element, not `scrollTop +=`, because the surface that
+      // actually scrolls is usually an ancestor (or a child) of the thing a
+      // selector can name, and the wheel finds it the same way a user does.
+      const index = rest.indexOf('::')
+      if (index <= 0) {
+        throw new Error(`Step scroll needs <selector>::<dy>: ${value}`)
+      }
+      const delta = Number.parseInt(rest.slice(index + 2), 10)
+      if (!Number.isFinite(delta) || delta === 0) {
+        throw new Error(`Step scroll needs a non-zero pixel delta: ${value}`)
+      }
+      return { kind, selector: rest.slice(0, index), delta }
+    }
     case 'resize': {
       const size = parseSize(rest)
       if (size === null) {
         throw new Error(`Step resize needs <width>x<height>: ${value}`)
       }
       return { kind, size }
+    }
+    case 'min-size': {
+      const size = parseSize(rest)
+      if (size === null) {
+        throw new Error(`Step min-size needs <width>x<height>: ${value}`)
+      }
+      return { kind, size }
+    }
+    case 'metrics': {
+      // `<width>x<height>` with an optional `@<deviceScaleFactor>`.
+      const [rawSize, rawScale] = rest.trim().split('@')
+      const size = parseSize(rawSize)
+      if (size === null) {
+        throw new Error(`Step metrics needs <width>x<height>: ${value}`)
+      }
+      const scale = rawScale === undefined ? 1 : Number(rawScale)
+      if (!Number.isFinite(scale) || scale <= 0 || scale > 4) {
+        throw new Error(`Step metrics scale must be in (0, 4]: ${value}`)
+      }
+      return { kind, size, scale }
     }
     case 'optional': {
       // Some scenes only appear sometimes — the update banner a fresh profile
@@ -202,6 +249,9 @@ function parseCaptureArguments(argv) {
     tabs: 0,
     repositoriesRoot: null,
     size: null,
+    repositoryGroup: null,
+    repositoryDefaultBranch: null,
+    localStorage: {},
     steps: [],
     stepsFile: null,
     settleMilliseconds: DefaultSettleMilliseconds,
@@ -211,6 +261,7 @@ function parseCaptureArguments(argv) {
     keepUserData: false,
     keepRepositories: false,
     strictConsole: false,
+    windowPixels: false,
   }
 
   for (const argument of argv) {
@@ -251,6 +302,29 @@ function parseCaptureArguments(argv) {
         options.size = size
         break
       }
+      case 'repo-group':
+        if (value.length === 0) {
+          throw new Error('--repo-group needs a group name')
+        }
+        options.repositoryGroup = value
+        break
+      case 'repo-default-branch':
+        if (value.length === 0) {
+          throw new Error('--repo-default-branch needs a branch name')
+        }
+        options.repositoryDefaultBranch = value
+        break
+      case 'local-storage': {
+        // Preferences the app reads once at startup — the interface scale, for
+        // one — can only be staged before the renderer boots, so they are
+        // written alongside the repository rows and picked up by the reload.
+        const index = value.indexOf('=')
+        if (index <= 0) {
+          throw new Error(`--local-storage must be <key>=<value>: ${value}`)
+        }
+        options.localStorage[value.slice(0, index)] = value.slice(index + 1)
+        break
+      }
       case 'step':
         options.steps.push(parseStep(value))
         break
@@ -287,6 +361,9 @@ function parseCaptureArguments(argv) {
         break
       case 'strict-console':
         options.strictConsole = true
+        break
+      case 'window-pixels':
+        options.windowPixels = true
         break
       default:
         throw new Error(`Unknown option: --${name}`)
@@ -390,14 +467,77 @@ async function setWindowContentSize(electronApp, size) {
 }
 
 /**
+ * Photograph the window's own pixels through the main process.
+ *
+ * `page.screenshot()` measures in CSS pixels, which stops matching the window
+ * the moment the app auto-fits its zoom: a 720×687 window whose UI is scaled to
+ * 72% has a 1000×954 CSS viewport, and Playwright dutifully returns a 1000×954
+ * canvas with the app tucked in one corner and dead space around it. Asking the
+ * webContents for the frame instead returns exactly what is on screen.
+ */
+async function captureWindowPixels(electronApp, outPath) {
+  const encoded = await electronApp.evaluate(async ({ BrowserWindow }) => {
+    const [window] = BrowserWindow.getAllWindows()
+    if (window === undefined) {
+      throw new Error('No BrowserWindow to photograph')
+    }
+    const image = await window.webContents.capturePage()
+    return image.toPNG().toString('base64')
+  })
+  fs.writeFileSync(outPath, Buffer.from(encoded, 'base64'))
+}
+
+/**
+ * Lower the window's own minimum size so a later `resize:` can genuinely reach
+ * a smaller viewport. The app ships a 960×660 floor, which is exactly the size
+ * the small-window screenshots are supposed to prove — and a `setContentSize`
+ * under it is silently clamped, so the capture would quietly document the wrong
+ * size. Lowering the floor from the main process changes the window, not the
+ * application, and the shot stays an honest photograph of a real small window.
+ */
+async function setWindowMinimumSize(electronApp, size) {
+  await electronApp.evaluate(({ BrowserWindow }, target) => {
+    const [window] = BrowserWindow.getAllWindows()
+    if (window === undefined) {
+      throw new Error('No BrowserWindow to lower the minimum size of')
+    }
+    window.setMinimumSize(target.width, target.height)
+  }, size)
+}
+
+/**
+ * Override the renderer's viewport (and device scale factor) through CDP.
+ *
+ * The escape hatch for a size the window itself refuses to take: the emulated
+ * metrics are what the page lays out and screenshots against. Note that only
+ * the renderer is fooled — anything the app derives from the main process's
+ * content size still sees the real window — so prefer `min-size:` + `resize:`
+ * whenever the window can actually be made that small.
+ */
+async function setDeviceMetrics(electronApp, page, size, scale) {
+  // The override lives as long as the session does, so the session is cached on
+  // the page rather than detached: detaching would restore the real viewport
+  // before the shutter fires.
+  if (page.__captureCdpSession === undefined) {
+    page.__captureCdpSession = await electronApp.context().newCDPSession(page)
+  }
+  await page.__captureCdpSession.send('Emulation.setDeviceMetricsOverride', {
+    width: size.width,
+    height: size.height,
+    deviceScaleFactor: scale,
+    mobile: false,
+  })
+}
+
+/**
  * Write repository rows straight into the renderer's IndexedDB. This is the
  * whole point of the fixture: it is the one setup path that does not depend on
  * the Add-repository dialog. The rows mirror `IDatabaseRepository` for a plain
  * local repository; ids come from the store's own autoIncrement key.
  */
-function seedRepositories(page, repositoryPaths, timeoutMilliseconds) {
+function seedRepositories(page, repositoryPaths, timeoutMilliseconds, fields) {
   return page.evaluate(
-    async ({ paths, databaseName, storeName, timeout }) => {
+    async ({ paths, databaseName, storeName, timeout, row }) => {
       const deadline = Date.now() + timeout
 
       const openDatabase = () =>
@@ -446,8 +586,8 @@ function seedRepositories(page, repositoryPaths, timeoutMilliseconds) {
               path: repositoryPath,
               alias: null,
               missing: false,
-              groupName: null,
-              defaultBranch: null,
+              groupName: row.groupName,
+              defaultBranch: row.defaultBranch,
               customEditorOverride: null,
             })
             added++
@@ -469,8 +609,26 @@ function seedRepositories(page, repositoryPaths, timeoutMilliseconds) {
       databaseName: RepositoriesDatabaseName,
       storeName: RepositoriesObjectStoreName,
       timeout: timeoutMilliseconds,
+      row: {
+        groupName: (fields && fields.groupName) || null,
+        defaultBranch: (fields && fields.defaultBranch) || null,
+      },
     }
   )
+}
+
+/** Stage renderer localStorage entries the app only reads once, at startup. */
+function seedLocalStorage(page, entries) {
+  const pairs = Object.entries(entries || {})
+  if (pairs.length === 0) {
+    return Promise.resolve(0)
+  }
+  return page.evaluate(staged => {
+    for (const [key, value] of staged) {
+      window.localStorage.setItem(key, value)
+    }
+    return staged.length
+  }, pairs)
 }
 
 function readTabCount(page) {
@@ -550,17 +708,56 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
       }
       return
     }
+    case 'right-click':
+      // The app's context menus are rendered into the page, not handed to the
+      // platform, so a real right-click is all a capture needs to open one.
+      await page
+        .locator(step.selector)
+        .first()
+        .click({ button: 'right', timeout: timeoutMilliseconds })
+      return
     case 'hover':
       await page
         .locator(step.selector)
         .first()
         .hover({ timeout: timeoutMilliseconds })
       return
+    case 'scroll':
+      await page
+        .locator(step.selector)
+        .first()
+        .hover({ timeout: timeoutMilliseconds })
+      await page.mouse.wheel(0, step.delta)
+      await page.waitForTimeout(400)
+      return
+    case 'scroll-to':
+      // scrollIntoView rather than a wheel when the target is known by name:
+      // it needs no pointer, so it cannot leave a tooltip in the frame.
+      await page
+        .locator(step.selector)
+        .first()
+        .evaluate(element =>
+          element.scrollIntoView({ block: 'center', behavior: 'instant' })
+        )
+      await page.waitForTimeout(400)
+      return
     case 'mouse':
       // Parking the pointer somewhere harmless is how a capture avoids
       // photographing the tooltip of whatever the previous click left it over.
       await page.mouse.move(step.x, step.y)
       await page.waitForTimeout(250)
+      return
+    case 'reload':
+      // Restart the renderer mid-run. This is how a capture can honestly claim
+      // a surface was *restored* rather than merely created: whatever survives
+      // is what the app read back out of its own persistence.
+      await page.reload({ timeout: Math.max(timeoutMilliseconds, 30000) })
+      await page.waitForLoadState('domcontentloaded')
+      await completeWelcomeFlow(page, 1500)
+      await page
+        .locator('#desktop-app-contents')
+        .waitFor({ state: 'visible', timeout: timeoutMilliseconds })
+      await page.waitForTimeout(1000)
       return
     case 'blur':
       // Tooltips follow focus as well as the pointer, and a dialog focuses its
@@ -589,6 +786,14 @@ async function runStep(page, electronApp, step, timeoutMilliseconds) {
       return
     case 'resize':
       await setWindowContentSize(electronApp, step.size)
+      await page.waitForTimeout(400)
+      return
+    case 'min-size':
+      await setWindowMinimumSize(electronApp, step.size)
+      await page.waitForTimeout(100)
+      return
+    case 'metrics':
+      await setDeviceMetrics(electronApp, page, step.size, step.scale)
       await page.waitForTimeout(400)
       return
     default:
@@ -685,16 +890,22 @@ async function captureApp(options) {
       await page.waitForTimeout(400)
     }
 
+    const stagedPreferences = options.localStorage || {}
     let seededCount = 0
-    if (repositoryPaths.length > 0) {
+    if (repositoryPaths.length > 0 || Object.keys(stagedPreferences).length) {
+      await seedLocalStorage(page, stagedPreferences)
       seededCount = await seedRepositories(
         page,
         repositoryPaths,
-        timeoutMilliseconds
+        timeoutMilliseconds,
+        {
+          groupName: options.repositoryGroup,
+          defaultBranch: options.repositoryDefaultBranch,
+        }
       )
 
-      // The app reads its repositories once at startup, so seeded rows only
-      // become real repositories after the renderer reloads.
+      // The app reads its repositories (and its startup preferences) once at
+      // startup, so seeded rows only take effect after the renderer reloads.
       await page.reload({ timeout: Math.max(timeoutMilliseconds, 30000) })
       await page.waitForLoadState('domcontentloaded')
       await completeWelcomeFlow(page, 1500)
@@ -721,7 +932,18 @@ async function captureApp(options) {
     )
 
     fs.mkdirSync(path.dirname(outPath), { recursive: true })
-    await page.screenshot({ path: outPath })
+
+    // A window small enough for the app to auto-fit its zoom no longer has a
+    // CSS viewport the size of the window, so the page screenshot would frame
+    // the wrong rectangle. Photograph the window itself in that case.
+    const devicePixelRatio = await page.evaluate('window.devicePixelRatio')
+    const useWindowPixels =
+      options.windowPixels === true || Math.abs(devicePixelRatio - 1) > 0.001
+    if (useWindowPixels) {
+      await captureWindowPixels(electronApp, outPath)
+    } else {
+      await page.screenshot({ path: outPath })
+    }
 
     const overflowVisible = await page
       .locator('.repository-tab-overflow')
@@ -738,6 +960,8 @@ async function captureApp(options) {
       welcomeSteps,
       tabCount: await readTabCount(page),
       overflowVisible,
+      capturedVia: useWindowPixels ? 'window-pixels' : 'page-screenshot',
+      devicePixelRatio,
       // Playwright's viewportSize() is null for an Electron page, so ask the
       // renderer for the size that was actually captured.
       viewport: await page.evaluate(
@@ -787,7 +1011,7 @@ async function main() {
       : `${report.viewport.width}x${report.viewport.height}`
   /* eslint-disable no-console */
   console.log(
-    `CAPTURE_OK ${report.outPath} ${size} tabs=${report.tabCount} overflow=${report.overflowVisible}`
+    `CAPTURE_OK ${report.outPath} ${size} tabs=${report.tabCount} overflow=${report.overflowVisible} via=${report.capturedVia}`
   )
   console.log(`CAPTURE_CONSOLE_ERRORS ${report.consoleErrors.length}`)
   for (const error of report.consoleErrors) {
