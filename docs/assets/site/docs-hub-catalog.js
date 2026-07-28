@@ -277,7 +277,7 @@
       h: 'features/identity-and-workspace/owner-scoped-appearance-and-history.html',
       s: 'features/identity-and-workspace/owner-scoped-appearance-and-history.md',
       c: 'features',
-      d: 'Desktop Material attaches appearance controls to the element that owns the setting. A right-click or Shift+F10 opens an anchored editor beside the profile, feature, repository,…',
+      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, or Shift+F10 / the ContextMenu key from the keyboard, opens an anchored…',
     },
     {
       t: 'Identity and workspace features',
@@ -1342,6 +1342,13 @@
       s: 'verification/cheap-lfs-pages-2026-07-27/run-manifest.md',
       c: 'verification',
       d: 'Mode: publish',
+    },
+    {
+      t: 'Cheap LFS payload encryption — built-app capture, 2026-07-28',
+      h: 'verification/cheap-lfs-payload-encryption-2026-07-28/',
+      s: 'verification/cheap-lfs-payload-encryption-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #78 (optional password encryption for Cheap LFS payloads).',
     },
     {
       t: 'Linux TUI publish cleanup ledger',
