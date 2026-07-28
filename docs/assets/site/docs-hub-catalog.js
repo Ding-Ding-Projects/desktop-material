@@ -1414,6 +1414,13 @@
       d: 'Visual evidence for issue #89.',
     },
     {
+      t: 'New tab group dialog is overlapped by the toolbar — built-app capture, 2026-07-28',
+      h: 'verification/tab-group-dialog-overlap-2026-07-28/',
+      s: 'verification/tab-group-dialog-overlap-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Evidence for the defect found while capturing issue #81.',
+    },
+    {
       t: 'Tab groups and command palette verification — 2026-07-22',
       h: 'verification/tab-groups-command-palette-2026-07-22.html',
       s: 'verification/tab-groups-command-palette-2026-07-22.md',
