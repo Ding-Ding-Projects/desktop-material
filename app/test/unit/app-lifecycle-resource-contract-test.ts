@@ -19,7 +19,10 @@ describe('App lifecycle resource ownership', () => {
   it('owns long-lived subscriptions and disposes them on unmount', async () => {
     const source = await readSource('ui/app.tsx')
 
-    assert.match(source, /private readonly subscriptions = new CompositeDisposable\(\)/)
+    assert.match(
+      source,
+      /private readonly subscriptions = new CompositeDisposable\(\)/
+    )
     assert.match(
       source,
       /this\.subscriptions\.add\([\s\S]*?appStore\.onDidUpdate[\s\S]*?appStore\.onDidError/
