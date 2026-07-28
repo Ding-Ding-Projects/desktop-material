@@ -45,6 +45,10 @@ installs resolve all three aliases from the uv tool directory already on
 quoted-paste normalization, expanded-tree clicking, narrow live resizing, and
 Ctrl+Q exit remain automated rather than accepted visual evidence in the
 [dated run manifest](docs/verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md).
+Feature commit `62420efaf6` is integrated and pushed through `f5f6f04c7e`;
+current remote `main` contains that merge. Pages run `30323259671` and Cheap LFS
+cloud run `30323259650` passed for the pushed merge, while CI `30323259648` and
+code scanning `30323259706` were still running at handoff.
 
 The preceding compatibility commit `f555d374a6` is already contained in
 `origin/main`.

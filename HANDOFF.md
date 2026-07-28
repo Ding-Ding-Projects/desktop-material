@@ -92,8 +92,11 @@ The preceding TUI compatibility correction commit `f555d374a6` is contained in
 the Linux TUI Python matrix and Windows TUI core job passed, but the workflow
 overall failed in the unrelated Windows x64 unit job. Installer
 [run `30318769692`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30318769692)
-failed and published no Release. The final integration/push SHA is the next
-handoff datum to record after publication.
+failed and published no Release. Feature commit `62420efaf6` is integrated and
+pushed through merge `f5f6f04c7e`, which remains an ancestor of current remote
+`main`. For that exact merge, Pages run `30323259671` and Cheap LFS cloud run
+`30323259650` passed; CI run `30323259648` and code-scanning run `30323259706`
+were still running at handoff and are not claimed green.
 
 ## 2026-07-27 — Remote TUI compatibility correction (TUI lanes green)
 
