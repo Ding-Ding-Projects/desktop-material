@@ -251,6 +251,59 @@
     }
   }
 
+  // A user-created group carries its own actions button beside the disclosure,
+  // so renaming, re-populating, and dissolving it are reachable from the group
+  // itself instead of only from one member's context menu.
+  .repository-group-header-row {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-half);
+    width: 100%;
+    height: 100%;
+
+    .repository-group-header {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+  }
+
+  .repository-group-actions {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    color: var(--md-sys-color-on-surface-variant);
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+      color: var(--md-sys-color-on-surface);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: -2px;
+    }
+  }
+
+  // The polite, auto-clearing result line for a group action. It reserves no
+  // height while empty so the filter row never jumps.
+  .repository-group-notice {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-xs);
+    line-height: 1.45;
+
+    &:empty {
+      display: none;
+    }
+  }
+
   // Explicit at the site of the animation as well as through the global
   // reduced-motion switch: the chevron still turns, it just stops sliding.
   @media (prefers-reduced-motion: reduce) {

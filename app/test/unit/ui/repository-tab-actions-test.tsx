@@ -819,7 +819,12 @@ describe('RepositoryTabStrip tab groups', () => {
       document.querySelectorAll('.repository-tab-group-chip').length,
       1
     )
-    assert.equal(chip.nextElementSibling?.getAttribute('data-tab-id'), 'alpha')
+    // The chip and its member-dropdown trigger form one cluster; the cluster
+    // is what precedes the group's first member in the strip.
+    assert.equal(
+      chip.parentElement?.nextElementSibling?.getAttribute('data-tab-id'),
+      'alpha'
+    )
     assert.ok(screen.getByRole('tab', { name: 'alpha, Work group' }))
     assert.ok(screen.getByRole('tab', { name: 'beta, Work group' }))
 

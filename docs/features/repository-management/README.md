@@ -62,6 +62,11 @@ Material is displaying or how a repository is represented in the application.
   keyboard-reachable disclosure control that keeps saying how many repositories
   it holds, persisted as an undoable, diffable profile setting, and guaranteed
   never to hide a filter match.
+- [Custom repository group
+  management](repository-group-management.md) — create, rename, re-populate, and
+  dissolve a custom group from the list itself, with a searchable member picker
+  wired to the regex builder and a removal that clears the label only and never
+  removes a repository.
 - [Tag lifecycle management](tag-lifecycle-management.md) — inventory, create,
   move, sign, push, fetch, prune, and explicitly delete local and remote tags
   through stale-safe reviewed operations.

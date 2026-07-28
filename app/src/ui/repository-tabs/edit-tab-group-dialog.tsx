@@ -4,8 +4,9 @@ import { OkCancelButtonGroup } from '../dialog/ok-cancel-button-group'
 import { TextBox } from '../lib/text-box'
 import { TabGroupColorPicker } from './tab-group-color-picker'
 import {
-  DefaultTabGroupColor,
+  ITabGroup,
   TabGroupColor,
+  normalizeTabGroupColor,
   normalizeTabGroupName,
 } from '../../models/repository-tab'
 import { LanguageMode, normalizeLanguageMode } from '../../models/language-mode'
@@ -18,29 +19,39 @@ import {
   TranslationVariables,
 } from '../../lib/i18n'
 
-interface ICreateTabGroupDialogProps {
-  /** The tab that will become the group's first member. */
-  readonly tabLabel: string
-  readonly onCreate: (name: string, color: TabGroupColor) => void
+interface IEditTabGroupDialogProps {
+  /** The group being renamed or recolored. */
+  readonly group: ITabGroup
+  /** How many tabs the group currently holds, stated in the intro. */
+  readonly memberCount: number
+  readonly onSave: (name: string, color: TabGroupColor) => void
   readonly onDismissed: () => void
 }
 
-interface ICreateTabGroupDialogState {
+interface IEditTabGroupDialogState {
   readonly name: string
   readonly color: TabGroupColor
   readonly languageMode: LanguageMode
 }
 
-/** Name and color a new tab group before its first tab joins it. */
-export class CreateTabGroupDialog extends React.Component<
-  ICreateTabGroupDialogProps,
-  ICreateTabGroupDialogState
+/**
+ * Rename and recolor an existing tab group.
+ *
+ * This is the strip's missing edit surface: the store has supported renaming
+ * and recoloring since groups landed, but nothing in the UI could reach it. The
+ * dialog touches the label only — membership, tab order, the pin boundary, and
+ * every open tab are left exactly as they were, which is why the intro states
+ * the member count instead of implying the edit might disturb it.
+ */
+export class EditTabGroupDialog extends React.Component<
+  IEditTabGroupDialogProps,
+  IEditTabGroupDialogState
 > {
-  public constructor(props: ICreateTabGroupDialogProps) {
+  public constructor(props: IEditTabGroupDialogProps) {
     super(props)
     this.state = {
-      name: '',
-      color: DefaultTabGroupColor,
+      name: props.group.name,
+      color: normalizeTabGroupColor(props.group.color),
       languageMode: getPersistedLanguageMode(),
     }
   }
@@ -86,16 +97,16 @@ export class CreateTabGroupDialog extends React.Component<
     this.setState({ name })
   }
 
+  private onColorChange = (color: TabGroupColor) => {
+    this.setState({ color })
+  }
+
   private onSubmit = () => {
     const name = normalizeTabGroupName(this.state.name)
     if (name === null) {
       return
     }
-    this.props.onCreate(name, this.state.color)
-  }
-
-  private onColorChange = (color: TabGroupColor) => {
-    this.setState({ color })
+    this.props.onSave(name, this.state.color)
   }
 
   public render() {
@@ -103,12 +114,12 @@ export class CreateTabGroupDialog extends React.Component<
 
     return (
       <Dialog
-        id="create-tab-group"
+        id="edit-tab-group"
         title={
           <>
-            <span aria-hidden="true">{this.text('tabs.groupDialogTitle')}</span>
+            <span aria-hidden="true">{this.text('tabs.groupEditTitle')}</span>
             <span className="sr-only">
-              {this.accessibleText('tabs.groupDialogTitle')}
+              {this.accessibleText('tabs.groupEditTitle')}
             </span>
           </>
         }
@@ -117,8 +128,9 @@ export class CreateTabGroupDialog extends React.Component<
       >
         <DialogContent>
           <p className="tab-group-intro">
-            {this.text('tabs.groupDialogIntro', {
-              tab: this.props.tabLabel,
+            {this.text('tabs.groupEditIntro', {
+              name: this.props.group.name,
+              count: String(this.props.memberCount),
             })}
           </p>
           <TextBox
@@ -141,8 +153,8 @@ export class CreateTabGroupDialog extends React.Component<
         </DialogContent>
         <DialogFooter>
           <OkCancelButtonGroup
-            okButtonText={this.text('tabs.groupCreateAction')}
-            okButtonAriaLabel={this.accessibleText('tabs.groupCreateAction')}
+            okButtonText={this.text('tabs.groupSaveAction')}
+            okButtonAriaLabel={this.accessibleText('tabs.groupSaveAction')}
             okButtonDisabled={disabled}
             cancelButtonText={this.text('tabs.groupCancelAction')}
             cancelButtonAriaLabel={this.accessibleText(

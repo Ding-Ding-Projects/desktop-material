@@ -78,6 +78,12 @@ import {
   repositoryGroupRowsId,
 } from './repository-group-header'
 import {
+  customRepositoryGroupKeyName,
+  IRepositoryGroupNoticeDetail,
+  planRepositoryGroupRemoval,
+  RepositoryGroupNoticeEvent,
+} from './repository-group-actions'
+import {
   getProfileRepositoryLogoSignature,
   IRepositoryLogoLoader,
   repositoryLogoLoader,
@@ -221,6 +227,11 @@ interface IRepositoriesListState {
    * that produced them.
    */
   readonly filteredGroupIndices: ReadonlyArray<number>
+  /**
+   * The most recent repository-group result, shown as a non-blocking polite
+   * status line. Null once it has been read and cleared.
+   */
+  readonly groupNotice: string | null
 }
 
 /**
@@ -269,6 +280,14 @@ const RepositoryStatusFilters: ReadonlyArray<{
 const RowHeight = 54
 const CompactRowHeight = 38
 const GroupHeaderRowHeight = 36
+
+/**
+ * How long a repository-group result stays on screen.
+ *
+ * Long enough to read a bilingual sentence at a comfortable pace, short enough
+ * that a stale line never sits over a list the user has moved on from.
+ */
+const GroupNoticeDurationMs = 8000
 
 /**
  * Iterate over all groups until a list item is found that matches
@@ -462,6 +481,8 @@ export class RepositoriesList extends React.Component<
    */
   private bulkCancelled = false
   private unmounted = false
+  /** Auto-clear timer for the polite repository-group status line. */
+  private groupNoticeTimer: ReturnType<typeof setTimeout> | null = null
 
   public constructor(props: IRepositoriesListProps) {
     super(props)
@@ -491,6 +512,7 @@ export class RepositoriesList extends React.Component<
       bulkCancelRequested: false,
       collapsedGroupKeys: getCollapsedRepositoryGroups(),
       filteredGroupIndices: [],
+      groupNotice: null,
     }
   }
 
@@ -525,6 +547,10 @@ export class RepositoriesList extends React.Component<
     document.addEventListener(
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
+    )
+    document.addEventListener(
+      RepositoryGroupNoticeEvent,
+      this.onRepositoryGroupNotice
     )
   }
 
@@ -575,6 +601,43 @@ export class RepositoriesList extends React.Component<
       LanguageModeChangedEvent,
       this.onLanguageModeChanged
     )
+    document.removeEventListener(
+      RepositoryGroupNoticeEvent,
+      this.onRepositoryGroupNotice
+    )
+    if (this.groupNoticeTimer !== null) {
+      clearTimeout(this.groupNoticeTimer)
+      this.groupNoticeTimer = null
+    }
+  }
+
+  /**
+   * Show a repository-group result without blocking anything.
+   *
+   * Creating, editing, and dissolving a group all report here — including the
+   * dialog, which lives outside this list and posts its sentence as a document
+   * event. The line is polite, auto-clears, and never gates the list.
+   */
+  private onRepositoryGroupNotice = (event: Event) => {
+    const detail = (event as CustomEvent<IRepositoryGroupNoticeDetail>).detail
+    const notice = detail?.notice
+    if (typeof notice !== 'string' || notice.length === 0) {
+      return
+    }
+    this.showGroupNotice(notice)
+  }
+
+  private showGroupNotice(notice: string) {
+    if (this.groupNoticeTimer !== null) {
+      clearTimeout(this.groupNoticeTimer)
+    }
+    this.setState({ groupNotice: notice })
+    this.groupNoticeTimer = setTimeout(() => {
+      this.groupNoticeTimer = null
+      if (!this.unmounted) {
+        this.setState({ groupNotice: null })
+      }
+    }, GroupNoticeDurationMs)
   }
 
   private onLanguageModeChanged = (event: Event) => {
@@ -851,7 +914,9 @@ export class RepositoriesList extends React.Component<
     const count =
       this.getGroupMemberCounts(this.visibleGroups).get(groupKey) ?? 0
 
-    return (
+    const customName = customRepositoryGroupKeyName(groupKey)
+
+    const disclosure = (
       <button
         key={groupKey}
         type="button"
@@ -892,6 +957,166 @@ export class RepositoriesList extends React.Component<
           </span>
         )}
       </button>
+    )
+
+    // Only a user-created group can be renamed, re-populated, or dissolved.
+    // The provider-derived groups (pinned, recent, an owner, an Enterprise
+    // host) describe facts about the repositories, so there is nothing there
+    // for a group action to change.
+    if (customName === null) {
+      return disclosure
+    }
+
+    return (
+      <div key={groupKey} className="repository-group-header-row">
+        {disclosure}
+        <button
+          type="button"
+          className="repository-group-actions"
+          aria-label={translateForAccessibleName(
+            'repositoryGroups.actionsLabel',
+            { group: label },
+            this.state.languageMode
+          )}
+          aria-haspopup="menu"
+          data-group-name={label}
+          onClick={this.onGroupActionsClick}
+          onKeyDown={this.onGroupActionsKeyDown}
+        >
+          <MaterialSymbol name="tune" size={16} />
+        </button>
+      </div>
+    )
+  }
+
+  /**
+   * The custom group's own menu: rename and re-populate, or dissolve it.
+   *
+   * Both routes are non-destructive by construction — the only field either can
+   * write is the repository's group label.
+   */
+  private onGroupActionsClick = (
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    // The button lives inside a list row; without this the row would also
+    // process the press and the side sheet would react to opening a menu.
+    event.stopPropagation()
+    this.openGroupActionsMenu(event.currentTarget.dataset.groupName)
+  }
+
+  private onGroupActionsKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>
+  ) => {
+    if (
+      event.key !== 'Enter' &&
+      event.key !== ' ' &&
+      event.key !== 'Spacebar'
+    ) {
+      return
+    }
+    // Handle it here and suppress the button's own synthesized click, which
+    // would otherwise open the menu twice.
+    event.preventDefault()
+    event.stopPropagation()
+    this.openGroupActionsMenu(event.currentTarget.dataset.groupName)
+  }
+
+  private openGroupActionsMenu(groupName: string | undefined) {
+    if (groupName === undefined || groupName.length === 0) {
+      return
+    }
+
+    const items: ReadonlyArray<IMenuItem> = [
+      {
+        label: translate('repositoryGroups.editMenu', this.state.languageMode),
+        action: () => this.onEditRepositoryGroup(groupName),
+      },
+      {
+        label: translate(
+          'repositoryGroups.removeMenu',
+          this.state.languageMode
+        ),
+        action: () => this.onRemoveRepositoryGroup(groupName),
+      },
+    ]
+
+    showContextualMenu(items)
+  }
+
+  private onNewRepositoryGroup = () => {
+    this.props.dispatcher.showPopup({
+      type: PopupType.ManageRepositoryGroup,
+      groupName: null,
+    })
+  }
+
+  private onEditRepositoryGroup(groupName: string) {
+    this.props.dispatcher.showPopup({
+      type: PopupType.ManageRepositoryGroup,
+      groupName,
+    })
+  }
+
+  /**
+   * Dissolve a custom group.
+   *
+   * Every member's group label goes back to `null` and nothing else happens:
+   * the repositories stay in the list, keep their pins, their aliases, and
+   * every byte on disk. The announced sentence states the exact count that
+   * stayed, so the user is never left guessing what a "remove" did.
+   */
+  private onRemoveRepositoryGroup(groupName: string) {
+    const assignments = planRepositoryGroupRemoval(
+      this.props.repositories,
+      groupName
+    )
+    const count = String(assignments.length)
+
+    Promise.all(
+      assignments.map(assignment =>
+        this.props.dispatcher.changeRepositoryGroupName(
+          assignment.repository,
+          null
+        )
+      )
+    )
+      .then(() => {
+        if (!this.unmounted) {
+          this.showGroupNotice(
+            translate(
+              'repositoryGroups.removedStatus',
+              this.state.languageMode,
+              { group: groupName, count }
+            )
+          )
+        }
+      })
+      .catch(error => {
+        log.error('Failed to remove repository group', error)
+        if (!this.unmounted) {
+          this.showGroupNotice(
+            translate('repositoryGroups.actionFailed', this.state.languageMode)
+          )
+        }
+      })
+  }
+
+  /** The polite, auto-clearing result line for a group action. */
+  private renderGroupNotice() {
+    const { groupNotice } = this.state
+    return (
+      <div
+        className="repository-group-notice"
+        role="status"
+        aria-live="polite"
+        aria-label={translateForAccessibleName(
+          'repositoryGroups.noticeAria',
+          {},
+          this.state.languageMode
+        )}
+      >
+        {groupNotice ?? ''}
+      </div>
     )
   }
 
@@ -1298,6 +1523,7 @@ export class RepositoriesList extends React.Component<
             ))}
           </div>
           {this.renderAutoExpandedGroupsNotice()}
+          {this.renderGroupNotice()}
           {hiddenRepositoryCount > 0 && (
             <button
               type="button"
@@ -1422,6 +1648,21 @@ export class RepositoriesList extends React.Component<
           <MaterialSymbol name="library_add_check" size={16} />
           <LocalizedText
             translationKey="repositoryBulk.enterSelection"
+            languageMode={this.state.languageMode}
+          />
+        </Button>
+        <Button
+          className="repository-group-new-button"
+          ariaLabel={translateForAccessibleName(
+            'repositoryGroups.newButtonAria',
+            {},
+            this.state.languageMode
+          )}
+          onClick={this.onNewRepositoryGroup}
+        >
+          <MaterialSymbol name="group_add" size={16} />
+          <LocalizedText
+            translationKey="repositoryGroups.newButton"
             languageMode={this.state.languageMode}
           />
         </Button>

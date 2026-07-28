@@ -135,6 +135,19 @@ export type TranslationKey =
   | 'tabs.groupCollapsedStatus'
   | 'tabs.groupDeletedStatus'
   | 'tabs.groupActionFailed'
+  | 'tabs.groupEdit'
+  | 'tabs.groupEditTitle'
+  | 'tabs.groupEditIntro'
+  | 'tabs.groupSaveAction'
+  | 'tabs.groupUpdatedStatus'
+  | 'tabs.groupMembersButton'
+  | 'tabs.groupMembersTitle'
+  | 'tabs.groupMembersDescription'
+  | 'tabs.groupMembersListLabel'
+  | 'tabs.groupMembersEmpty'
+  | 'tabs.groupMembersCount'
+  | 'tabs.groupMembersKeepsTabs'
+  | 'tabs.groupMembersShow'
   | 'tabs.tabPinnedSuffix'
   | 'tabs.tabFavoriteSuffix'
   | 'tabs.overflowButton'
@@ -987,6 +1000,34 @@ export type TranslationKey =
   | 'repositoryBulk.removeListAria'
   | 'repositoryBulk.removeConfirm'
   | 'repositoryBulk.removeCancel'
+  | 'repositoryGroups.newButton'
+  | 'repositoryGroups.newButtonAria'
+  | 'repositoryGroups.actionsLabel'
+  | 'repositoryGroups.editMenu'
+  | 'repositoryGroups.removeMenu'
+  | 'repositoryGroups.createTitle'
+  | 'repositoryGroups.editTitle'
+  | 'repositoryGroups.createIntro'
+  | 'repositoryGroups.editIntro'
+  | 'repositoryGroups.nameLabel'
+  | 'repositoryGroups.membersLabel'
+  | 'repositoryGroups.searchLabel'
+  | 'repositoryGroups.searchPlaceholder'
+  | 'repositoryGroups.searchTarget'
+  | 'repositoryGroups.regexError'
+  | 'repositoryGroups.noMatches'
+  | 'repositoryGroups.empty'
+  | 'repositoryGroups.selectedCount'
+  | 'repositoryGroups.createAction'
+  | 'repositoryGroups.saveAction'
+  | 'repositoryGroups.cancelAction'
+  | 'repositoryGroups.removeAction'
+  | 'repositoryGroups.removeHint'
+  | 'repositoryGroups.createdStatus'
+  | 'repositoryGroups.updatedStatus'
+  | 'repositoryGroups.removedStatus'
+  | 'repositoryGroups.actionFailed'
+  | 'repositoryGroups.noticeAria'
   | 'removeRepository.trashFailedMessage'
   | 'removeRepository.trashFailedWarning'
   | 'removeRepository.forceDeleteButton'
@@ -2600,6 +2641,23 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.groupCollapsedStatus': '{name} group collapsed.',
   'tabs.groupDeletedStatus': '{name} group deleted. Its tabs stayed open.',
   'tabs.groupActionFailed': 'Could not update the tab group. Try again.',
+  'tabs.groupEdit': 'Edit group “{name}”…',
+  'tabs.groupEditTitle': 'Edit tab group',
+  'tabs.groupEditIntro':
+    'Rename or recolor “{name}”. Its {count} tabs stay open and stay in the group.',
+  'tabs.groupSaveAction': 'Save group',
+  'tabs.groupUpdatedStatus': '{name} group updated.',
+  'tabs.groupMembersButton': 'Show the {count} tabs in {name}',
+  'tabs.groupMembersTitle': 'Tabs in “{name}”',
+  'tabs.groupMembersDescription':
+    'Every tab in this group, listed even while the group is collapsed. Choosing one switches to it.',
+  'tabs.groupMembersListLabel': 'Tabs in this group',
+  'tabs.groupMembersEmpty':
+    'This group holds no tabs yet. Move a tab in from that tab’s context menu.',
+  'tabs.groupMembersCount': '{count} tabs in this group.',
+  'tabs.groupMembersKeepsTabs':
+    'Deleting the group clears the label only; every tab stays open.',
+  'tabs.groupMembersShow': 'Show tabs in “{name}”',
   'tabs.tabPinnedSuffix': ', pinned',
   'tabs.tabFavoriteSuffix': ', favorite',
   'tabs.overflowButton': '{count} more',
@@ -3702,6 +3760,42 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'repositoryBulk.removeListAria': 'Repositories that will be removed',
   'repositoryBulk.removeConfirm': 'Remove from list',
   'repositoryBulk.removeCancel': 'Cancel',
+  'repositoryGroups.newButton': 'Group',
+  'repositoryGroups.newButtonAria': 'Create a repository group',
+  'repositoryGroups.actionsLabel': 'Group actions for {group}',
+  'repositoryGroups.editMenu': 'Edit group…',
+  'repositoryGroups.removeMenu': 'Remove group',
+  'repositoryGroups.createTitle': 'New repository group',
+  'repositoryGroups.editTitle': 'Edit repository group',
+  'repositoryGroups.createIntro':
+    'Name the group and tick the repositories that join it. A group only organizes this list; no repository is cloned, moved, or removed.',
+  'repositoryGroups.editIntro':
+    'Rename “{group}” or change which repositories it holds. It currently holds {count} repositories.',
+  'repositoryGroups.nameLabel': 'Group name',
+  'repositoryGroups.membersLabel': 'Repositories in this group',
+  'repositoryGroups.searchLabel': 'Search repositories',
+  'repositoryGroups.searchPlaceholder': 'Filter repositories',
+  'repositoryGroups.searchTarget': 'repository names and paths',
+  'repositoryGroups.regexError': 'Regex: {message}',
+  'repositoryGroups.noMatches': 'No repository matches that search.',
+  'repositoryGroups.empty': 'There are no repositories to group yet.',
+  'repositoryGroups.selectedCount':
+    '{selected} of {total} repositories chosen.',
+  'repositoryGroups.createAction': 'Create group',
+  'repositoryGroups.saveAction': 'Save group',
+  'repositoryGroups.cancelAction': 'Cancel',
+  'repositoryGroups.removeAction': 'Remove group',
+  'repositoryGroups.removeHint':
+    'Removing a group clears the group label only. Every repository stays in the list and nothing on disk is touched.',
+  'repositoryGroups.createdStatus':
+    'Created the {group} group with {count} repositories.',
+  'repositoryGroups.updatedStatus':
+    'Updated the {group} group. It now holds {count} repositories.',
+  'repositoryGroups.removedStatus':
+    'Removed the {group} group. Its {count} repositories stayed in the list.',
+  'repositoryGroups.actionFailed':
+    'Could not update the repository group. Try again.',
+  'repositoryGroups.noticeAria': 'Repository group result',
   'removeRepository.trashFailedMessage':
     "The repository couldn't be moved to {trash}. A file may be open in another program, or the location (such as a network or removable drive) may not support {trash}.",
   'removeRepository.trashFailedWarning':
@@ -5767,6 +5861,22 @@ export const cantoneseTranslations: Readonly<
   'tabs.groupCollapsedStatus': '已收起「{name}」群組。',
   'tabs.groupDeletedStatus': '已刪除「{name}」群組，入面啲分頁仲開住。',
   'tabs.groupActionFailed': '未能更新分頁群組，等陣再試。',
+  'tabs.groupEdit': '編輯群組「{name}」…',
+  'tabs.groupEditTitle': '編輯分頁群組',
+  'tabs.groupEditIntro':
+    '改「{name}」個名或者顏色。入面 {count} 個分頁照樣開住，亦都留喺呢個群組。',
+  'tabs.groupSaveAction': '儲存群組',
+  'tabs.groupUpdatedStatus': '已更新「{name}」群組。',
+  'tabs.groupMembersButton': '打開「{name}」入面 {count} 個分頁',
+  'tabs.groupMembersTitle': '「{name}」入面嘅分頁',
+  'tabs.groupMembersDescription':
+    '呢個群組入面所有分頁，就算收埋咗一樣列晒出嚟。撳一下就即刻跳去嗰個分頁。',
+  'tabs.groupMembersListLabel': '呢個群組入面嘅分頁',
+  'tabs.groupMembersEmpty':
+    '呢個群組暫時未有分頁。喺分頁嘅右鍵選單度將分頁搬入嚟。',
+  'tabs.groupMembersCount': '呢個群組有 {count} 個分頁。',
+  'tabs.groupMembersKeepsTabs': '刪除群組只係甩個標籤，每個分頁都會繼續開住。',
+  'tabs.groupMembersShow': '睇「{name}」入面嘅分頁',
   'tabs.tabPinnedSuffix': '，已置頂',
   'tabs.tabFavoriteSuffix': '，最愛',
   'tabs.overflowButton': '仲有 {count} 個',
@@ -6736,6 +6846,40 @@ export const cantoneseTranslations: Readonly<
   'repositoryBulk.removeListAria': '將會移除嘅 repo',
   'repositoryBulk.removeConfirm': '喺清單移除',
   'repositoryBulk.removeCancel': '取消',
+  'repositoryGroups.newButton': '分組',
+  'repositoryGroups.newButtonAria': '建立 repo 分組',
+  'repositoryGroups.actionsLabel': '「{group}」嘅分組操作',
+  'repositoryGroups.editMenu': '編輯分組…',
+  'repositoryGroups.removeMenu': '移除分組',
+  'repositoryGroups.createTitle': '新 repo 分組',
+  'repositoryGroups.editTitle': '編輯 repo 分組',
+  'repositoryGroups.createIntro':
+    '改個組名，再剔返邊幾個 repo 入組。分組淨係整理呢個清單，唔會 clone、搬走或者移除任何 repo。',
+  'repositoryGroups.editIntro':
+    '改「{group}」個名，或者換入面有邊幾個 repo。而家有 {count} 個 repo。',
+  'repositoryGroups.nameLabel': '分組名',
+  'repositoryGroups.membersLabel': '呢個分組入面嘅 repo',
+  'repositoryGroups.searchLabel': '搵 repo',
+  'repositoryGroups.searchPlaceholder': '篩選 repo',
+  'repositoryGroups.searchTarget': 'repo 名同路徑',
+  'repositoryGroups.regexError': 'Regex：{message}',
+  'repositoryGroups.noMatches': '無 repo 夾到呢個搜尋。',
+  'repositoryGroups.empty': '暫時未有 repo 可以分組。',
+  'repositoryGroups.selectedCount': '{total} 個 repo 之中揀咗 {selected} 個。',
+  'repositoryGroups.createAction': '建立分組',
+  'repositoryGroups.saveAction': '儲存分組',
+  'repositoryGroups.cancelAction': '取消',
+  'repositoryGroups.removeAction': '移除分組',
+  'repositoryGroups.removeHint':
+    '移除分組淨係甩咗個分組標籤。每個 repo 都會留喺清單，磁碟上乜都唔會郁。',
+  'repositoryGroups.createdStatus':
+    '已建立「{group}」分組，入面有 {count} 個 repo。',
+  'repositoryGroups.updatedStatus':
+    '已更新「{group}」分組，而家有 {count} 個 repo。',
+  'repositoryGroups.removedStatus':
+    '已移除「{group}」分組，入面 {count} 個 repo 全部留喺清單。',
+  'repositoryGroups.actionFailed': '未能更新 repo 分組，等陣再試。',
+  'repositoryGroups.noticeAria': 'Repo 分組結果',
   'removeRepository.trashFailedMessage':
     '呢個 repo 無法移去{trash}。可能有檔案喺其他程式度開住，又或者呢個位置（例如網絡磁碟或者可移除磁碟）唔支援{trash}。',
   'removeRepository.trashFailedWarning':

@@ -12,3 +12,176 @@
     color: var(--md-sys-color-on-surface-variant);
   }
 }
+
+// The create / edit dialog for a custom repository group.
+//
+// A group is only a label on a repository, so this surface is deliberately
+// unalarming: a name field, a searchable member picker, and a plain removal
+// button. The hint under the picker states in words that removing a group keeps
+// every repository, because that is the fact a user is most likely to doubt.
+#manage-repository-group {
+  .dialog-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: min(480px, 80vw);
+  }
+
+  .repository-group-members-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .repository-group-members-label {
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .repository-group-filter-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .repository-group-filter-input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 18px;
+    background: var(--md-sys-color-surface-container-high);
+    color: inherit;
+    font-size: var(--font-size-sm);
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+
+  .repository-group-error {
+    margin: 0;
+    color: var(--md-sys-color-error);
+    font-size: var(--font-size-xs);
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .repository-group-member-list {
+    min-width: 0;
+    max-height: 260px;
+    margin: 0;
+    padding: 4px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--md-sys-color-outline-variant);
+    border-radius: 16px;
+    list-style: none;
+  }
+
+  .repository-group-member {
+    min-width: 0;
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+      padding: 7px 8px;
+      border-radius: 12px;
+      cursor: pointer;
+
+      &:hover {
+        background: var(--md-sys-color-surface-container-highest);
+      }
+    }
+
+    input:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 2px;
+    }
+  }
+
+  .repository-group-member-copy {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+
+    strong,
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    strong {
+      font-size: var(--font-size-sm);
+    }
+
+    .repository-group-member-path {
+      color: var(--md-sys-color-on-surface-variant);
+      font-size: var(--font-size-xs);
+    }
+  }
+
+  .repository-group-empty,
+  .repository-group-count {
+    margin: 0;
+    color: var(--md-sys-color-on-surface-variant);
+    font-size: var(--font-size-xs);
+  }
+
+  .repository-group-empty {
+    padding: 18px 12px;
+    text-align: center;
+  }
+
+  // Dissolving a group is not destructive, so it reads as an ordinary outlined
+  // action rather than a danger button — and it sits away from the primary
+  // action so it is never the button a user reaches for by muscle memory.
+  .repository-group-remove {
+    min-height: 36px;
+    margin-right: auto;
+    padding: 0 16px;
+    border: 1px solid var(--md-sys-color-outline);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+
+    &:hover {
+      background: var(--md-sys-color-surface-container-highest);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--md-sys-color-primary);
+      outline-offset: 1px;
+    }
+  }
+}
+
+@media (max-width: 520px) {
+  #manage-repository-group {
+    .repository-group-filter-row .filter-regex-builder-label {
+      display: none;
+    }
+
+    .repository-group-member-list {
+      max-height: 180px;
+    }
+  }
+}
+
+@media (forced-colors: active) {
+  #manage-repository-group .repository-group-remove,
+  .repository-group-actions {
+    border: 1px solid ButtonText;
+    color: ButtonText;
+  }
+}

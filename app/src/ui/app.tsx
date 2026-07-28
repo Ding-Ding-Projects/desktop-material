@@ -275,6 +275,7 @@ import classNames from 'classnames'
 import { MoveToApplicationsFolder } from './move-to-applications-folder'
 import { ChangeRepositoryAlias } from './change-repository-alias/change-repository-alias-dialog'
 import { ChangeRepositoryGroupName } from './change-repository-group-name/change-repository-group-name-dialog'
+import { ManageRepositoryGroupDialog } from './repository-groups/manage-repository-group-dialog'
 import { ThankYou } from './thank-you'
 import {
   getUserContributions,
@@ -3948,6 +3949,16 @@ export class App extends React.Component<IAppProps, IAppState> {
           <ChangeRepositoryGroupName
             dispatcher={this.props.dispatcher}
             repository={popup.repository}
+            onDismissed={onPopupDismissedFn}
+          />
+        )
+      }
+      case PopupType.ManageRepositoryGroup: {
+        return (
+          <ManageRepositoryGroupDialog
+            dispatcher={this.props.dispatcher}
+            repositories={this.state.repositories}
+            groupName={popup.groupName}
             onDismissed={onPopupDismissedFn}
           />
         )
