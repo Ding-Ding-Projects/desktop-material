@@ -1,5 +1,6 @@
 export * from './content'
 export * from './dialog'
+export * from './dialog-layer'
 export * from './error'
 export * from './footer'
 export * from './ok-cancel-button-group'

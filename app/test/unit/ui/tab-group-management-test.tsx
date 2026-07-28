@@ -18,17 +18,27 @@ import { LanguageModeChangedEvent } from '../../../src/lib/i18n'
 import { fireEvent, render, screen, waitFor } from '../../helpers/ui/render'
 
 let previousIpcSend: typeof ipcRenderer.send
+let dialogLayer: HTMLElement | null = null
 
 beforeEach(() => {
   previousIpcSend = ipcRenderer.send
   ipcRenderer.send = () => undefined
   localStorage.removeItem('language-mode-v1')
   localStorage.removeItem('filter-mode/tab-group-members')
+
+  // `App` renders `<div id="dialog-layer">` once, and every floating dialog in
+  // the app lives inside it. The strip is mounted on its own here, so stage the
+  // layer the same way; without it the portal has nowhere to go.
+  dialogLayer = document.createElement('div')
+  dialogLayer.id = 'dialog-layer'
+  document.body.appendChild(dialogLayer)
 })
 
 afterEach(() => {
   ipcRenderer.send = previousIpcSend
   localStorage.removeItem('language-mode-v1')
+  dialogLayer?.remove()
+  dialogLayer = null
 })
 
 function makeTab(id: string, repository: Repository): IRepositoryTab {
@@ -372,5 +382,64 @@ describe('tab group edit dialog', () => {
       new CustomEvent(LanguageModeChangedEvent, { detail: 'english' })
     )
     assert.ok(screen.getByRole('dialog', { name: 'Edit tab group' }))
+  })
+})
+
+/**
+ * Regression cover for #92: both group dialogs used to render inline in the
+ * strip's own JSX. `Dialog` always carries the `tooltip-host` class, and
+ * `.tooltip-host { position: relative }` overrides the UA `position: absolute`
+ * every `<dialog>` starts with, so an inline dialog is laid out as an in-flow
+ * flex item of the strip with `z-index: auto` — stretching the strip around it
+ * and painting underneath the app bar's positioned Fetch origin / Commit &
+ * push / Build & run pills, which come later in the document. Only
+ * `#dialog-layer dialog[open]` (in _dialog-layer.scss) puts a dialog back out
+ * of flow and onto the popup layer, so membership of that layer *is* the
+ * stacking contract.
+ */
+describe('tab group dialog stacking', () => {
+  it('portals the new group dialog into the dialog layer, out of the tab strip', async () => {
+    await buildHarness()
+
+    fireEvent.contextMenu(await screen.findByRole('tab', { name: 'gamma' }))
+    fireEvent.click(
+      await screen.findByRole('menuitem', { name: 'Add tab to new group…' })
+    )
+
+    const dialog = await waitFor(() => {
+      const element = document.querySelector('dialog#create-tab-group')
+      assert.notEqual(element, null)
+      return element as HTMLDialogElement
+    })
+
+    assert.notEqual(dialog.closest('#dialog-layer'), null)
+    assert.equal(document.querySelector('.repository-tab-strip dialog'), null)
+    // The non-destructive guarantee stays stated in the product, not only in a
+    // changelog, however the dialog is laid out.
+    assert.ok(
+      screen.getByText(
+        '“gamma” becomes the first tab in this group. Grouping only organizes the strip; it never closes a tab.'
+      )
+    )
+  })
+
+  it('portals the edit group dialog into the dialog layer, out of the tab strip', async () => {
+    await buildHarness()
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Show the 2 tabs in Work' })
+    )
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Edit group “Work”…' })
+    )
+
+    const dialog = await waitFor(() => {
+      const element = document.querySelector('dialog#edit-tab-group')
+      assert.notEqual(element, null)
+      return element as HTMLDialogElement
+    })
+
+    assert.notEqual(dialog.closest('#dialog-layer'), null)
+    assert.equal(document.querySelector('.repository-tab-strip dialog'), null)
   })
 })

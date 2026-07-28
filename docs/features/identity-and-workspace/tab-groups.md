@@ -74,6 +74,30 @@ The rename and recolor reach the profile store the same way every other tab
 mutation does, so they survive restart, profile switching, and settings-history
 restore.
 
+### Where the group dialogs are drawn
+
+Both group dialogs render inside the app's `#dialog-layer`, the single
+top-level layer that owns every floating dialog, rather than inline in the tab
+strip that opens them. That layer is what supplies a dialog's whole geometry
+and elevation contract: `#dialog-layer dialog[open]` sets `position: fixed`,
+centres the dialog, bounds it to the viewport, and puts it at
+`--popup-z-index`.
+
+The distinction is not cosmetic. `Dialog` always carries the `tooltip-host`
+class, and `.tooltip-host { position: relative }` overrides the
+`position: absolute` a `<dialog>` gets from the user-agent stylesheet, so a
+dialog rendered anywhere else is laid out as an ordinary in-flow box with
+`z-index: auto`. Rendered inline it therefore became a flex item of the tab
+strip — stretching the strip around itself and painting underneath the app
+bar's Fetch origin, Commit & push and Build & run pills, which are positioned
+and come later in the document. That was the defect in
+[#92](https://github.com/Ding-Ding-Projects/desktop-material/issues/92); the
+layer membership, not a raised z-index number, is the fix and the contract.
+
+Tooltips (`--tooltip-z-index`), the Material context menu on its own backdrop,
+notifications, and the regex-builder layer all remain above or beside the popup
+layer exactly as before.
+
 Manual movement preserves membership while a tab stays beside the rest of its
 group. Moving it outside that run explicitly ungroups only the moved tab. The
 A–Z, opened-time, repository-status, and favorite arrangements treat each
@@ -155,3 +179,10 @@ member switching, arrow/Home/Enter keyboard navigation with a live
 bilingual rendering of the dropdown's copy, and the edit dialog renaming and
 recoloring a group — persisted to the profile store — without touching its
 membership.
+
+Its `tab group dialog stacking` block pins the layering contract: the new-group
+dialog opened from a tab's context menu and the edit dialog opened from the
+member dropdown must both land inside `#dialog-layer`, and the strip itself
+must contain no `<dialog>` at all. `app/test/unit/floating-surface-style-test.ts`
+adds the source-level half of the same contract, including the `.tooltip-host`
+rule that makes an unportalled dialog fall into normal flow in the first place.

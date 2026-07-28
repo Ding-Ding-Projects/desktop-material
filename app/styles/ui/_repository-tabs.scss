@@ -2595,8 +2595,13 @@ body[data-dm-tab-close-buttons='active'] .repository-tab:not(.active):hover .rep
     color: var(--md-sys-color-on-surface-variant);
   }
 
+  // Six 28px swatches plus their gaps are 218px wide, which fits the dialog at
+  // every supported window size and display scale. Wrap anyway: a swatch the
+  // user cannot see is a swatch the user cannot pick, and `.dialog-content`
+  // hides horizontal overflow rather than scrolling to it.
   .tab-group-colors {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     margin-top: 8px;
   }
