@@ -35,6 +35,8 @@ import { WorktreeEntry } from './worktree'
 import { MergeAllMode } from '../lib/automation/merge-all'
 import { IGitHubPullRequestTarget } from '../lib/github-pull-request'
 import { IGitModulesEntry } from '../lib/git/gitmodules'
+import { ICheapLfsCloneInventory } from '../lib/cheap-lfs/clone-inventory'
+import { ICheapLfsCloneSelection } from './cheap-lfs-clone-selection'
 import { BuildStageKind } from '../lib/build-run/types'
 import { INotificationEntry } from './notification-centre'
 import {
@@ -104,6 +106,7 @@ export enum PopupType {
   AddSubmodule = 'AddSubmodule',
   IgnoredSubmodule = 'IgnoredSubmodule',
   CloneableSubmodules = 'CloneableSubmodules',
+  CheapLfsCloneAssets = 'CheapLfsCloneAssets',
   SubmoduleManager = 'SubmoduleManager',
   SubmoduleConfig = 'SubmoduleConfig',
   SubtreeManager = 'SubtreeManager',
@@ -358,6 +361,17 @@ export type PopupDetail =
        * open clone dialog take the URL instead of opening a second dialog.
        */
       onCloneUrl?: (url: string) => void
+    }
+  | {
+      type: PopupType.CheapLfsCloneAssets
+      repositoryName: string
+      accountKey: string
+      repositoryCloneUrl: string
+      defaultBranch: string
+      manifestBlobSha: string
+      inventory: ICheapLfsCloneInventory
+      initialSelection?: ICheapLfsCloneSelection
+      onSelectionConfirmed: (selection: ICheapLfsCloneSelection) => void
     }
   | {
       type: PopupType.SubmoduleManager

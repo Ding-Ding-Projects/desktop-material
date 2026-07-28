@@ -68,6 +68,11 @@ import {
   ICheapLfsRestoreLaneProgress,
   ICheapLfsRestoreProgress,
 } from '../cheap-lfs/restore-progress'
+import { ensureCheapLfsCloneHelperBundle } from '../cheap-lfs/clone-helper'
+import {
+  readCheapLfsCloneManifestEvidence,
+  validateCheapLfsCloneSelection,
+} from '../cheap-lfs/clone-selection-validation'
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
 import {
   buildCheapLfsFirstPublishAbort,
@@ -209,6 +214,7 @@ import {
 } from '../../models/appearance-customization'
 import { CloneRepositoryTab } from '../../models/clone-repository-tab'
 import type { CloneOptions } from '../../models/clone-options'
+import type { ICheapLfsCloneSelection } from '../../models/cheap-lfs-clone-selection'
 import { CloningRepository } from '../../models/cloning-repository'
 import {
   getPreferAbsoluteDates,
@@ -6478,7 +6484,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     const gitStore = this.gitStoreCache.get(repository)
 
     let refreshAfterAutoPinFailure = false
-    let autoIncludedCheapLfsWorkflowPath: string | null = null
+    const autoIncludedCheapLfsManagedPaths = new Set<string>()
     // Owned by this method from the moment the pin outcome arrives: every exit
     // path below runs through the `finally` that discards them.
     let retainedCheapLfsPins: ReadonlyArray<ICheapLfsRetainedPin> = []
@@ -6505,6 +6511,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         annotatablePins = pinResult.annotatablePins ?? []
         retainedCheapLfsPins = pinResult.retainedPins ?? []
         alreadyStoredCheapLfsPaths = pinResult.alreadyStoredPaths ?? []
+        const preferences =
+          repository.buildRunPreferences ?? defaultBuildRunPreferences
 
         // The Release compressor is driven by a repository-owned workflow. An
         // automatic pin must install that caller before the status refresh and
@@ -6513,8 +6521,6 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // even though cloud compression is enabled. GHCR uses registry layers
         // directly and has no Release caller.
         if (pinned.length > 0) {
-          const preferences =
-            repository.buildRunPreferences ?? defaultBuildRunPreferences
           if (getCheapLfsStorageProvider(preferences) === 'release') {
             try {
               const workflow = await ensureCheapLfsCloudCompressionWorkflow(
@@ -6522,8 +6528,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
                 preferences
               )
               if (cheapLfsCloudCompressionUsesInRepoWorkflow(workflow.policy)) {
-                autoIncludedCheapLfsWorkflowPath =
+                autoIncludedCheapLfsManagedPaths.add(
                   CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH
+                )
               }
             } catch (workflowError) {
               // Raw published prerelease assets remain valid storage. Surface
@@ -6535,6 +6542,51 @@ export class AppStore extends TypedBaseStore<IAppState> {
                   : new Error(String(workflowError))
               )
             }
+          }
+        }
+
+        // Keep the default-on, repository-owned clone helper synchronized with
+        // the exact pointer set this commit will expose. The public manifest is
+        // also the bounded discovery source used by the clone dialog; every
+        // helper file changed here joins the same pointer commit atomically.
+        if (preferences.cheapLfsCloneHelperEnabled !== false) {
+          try {
+            const helperPointers = (
+              await listAllCheapLfsPointers(repository)
+            ).filter(entry => entry.workingTreeState === 'pointer')
+            const helper = await ensureCheapLfsCloneHelperBundle({
+              repositoryPath: repository.path,
+              enabled: true,
+              entries: helperPointers,
+            })
+            if (helper.status === 'conflict') {
+              this.postPersistentErrorNotice(
+                t('cheapLfs.cloneHelper.conflictTitle'),
+                t('cheapLfs.cloneHelper.conflictBody', {
+                  paths: helper.conflicts.join(', '),
+                }),
+                `cheap-lfs-clone-helper-conflict:${repository.id}`,
+                repository.id
+              )
+            } else if (
+              helper.status === 'created' ||
+              helper.status === 'updated'
+            ) {
+              for (const path of [...helper.created, ...helper.updated]) {
+                autoIncludedCheapLfsManagedPaths.add(path)
+              }
+            }
+          } catch (helperError) {
+            log.error(
+              'Automatic Cheap LFS clone-helper setup failed',
+              helperError
+            )
+            this.postPersistentErrorNotice(
+              t('cheapLfs.cloneHelper.failureTitle'),
+              t('cheapLfs.cloneHelper.failureBody'),
+              `cheap-lfs-clone-helper-failure:${repository.id}`,
+              repository.id
+            )
           }
         }
       } catch (error) {
@@ -6567,7 +6619,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
       if (
         pinned.length > 0 ||
         pinFailures.length > 0 ||
-        alreadyStoredCheapLfsPaths.length > 0
+        alreadyStoredCheapLfsPaths.length > 0 ||
+        autoIncludedCheapLfsManagedPaths.size > 0
       ) {
         // Re-read status so the just-written pointer content — not the original
         // binary — is staged for each success, and every failed raw file can be
@@ -6588,9 +6641,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
           requiredCheapLfsPaths.delete(path)
         }
         const originalSelectedPaths = new Set(selectedFiles.map(f => f.path))
-        if (autoIncludedCheapLfsWorkflowPath !== null) {
-          originalSelectedPaths.add(autoIncludedCheapLfsWorkflowPath)
-          requiredCheapLfsPaths.add(autoIncludedCheapLfsWorkflowPath)
+        for (const managedPath of autoIncludedCheapLfsManagedPaths) {
+          originalSelectedPaths.add(managedPath)
+          requiredCheapLfsPaths.add(managedPath)
         }
         const refreshedFiles =
           this.repositoryStateCache.get(repository).changesState
@@ -12414,13 +12467,27 @@ export class AppStore extends TypedBaseStore<IAppState> {
         // clone batch reports completion, so users don't receive a successful
         // clone summary while only pointer text is still present on disk.
         for (const [index, registered] of addedRepositories.entries()) {
+          const cloneItem = matchExistingRepository(
+            unfinalizedItems,
+            registered.path
+          )
           this.updateBatchCloneFinalizing({
             completed: index,
             total: addedRepositories.length,
             current: registered.name,
             stage: 'restoring',
           })
-          await this.maybeAutoMaterializeCheapLfs(registered)
+          await this.maybeAutoMaterializeCheapLfs(registered, {
+            ...(cloneItem?.cheapLfsSelection === undefined
+              ? {}
+              : { cheapLfsSelection: cloneItem.cheapLfsSelection }),
+            ...(cloneItem === undefined
+              ? {}
+              : {
+                  expectedCloneUrl: cloneItem.url,
+                  expectedDefaultBranch: cloneItem.defaultBranch,
+                }),
+          })
         }
       } finally {
         this.updateBatchCloneFinalizing(null)
@@ -16109,7 +16176,12 @@ export class AppStore extends TypedBaseStore<IAppState> {
    */
   public async maybeAutoMaterializeCheapLfs(
     repository: Repository,
-    options: { readonly requireSelected?: boolean } = {}
+    options: {
+      readonly requireSelected?: boolean
+      readonly cheapLfsSelection?: ICheapLfsCloneSelection
+      readonly expectedCloneUrl?: string
+      readonly expectedDefaultBranch?: string
+    } = {}
   ): Promise<void> {
     try {
       if (isSubmoduleRepository(repository)) {
@@ -16135,10 +16207,47 @@ export class AppStore extends TypedBaseStore<IAppState> {
       const pointerEntries = discoveredEntries.filter(
         entry => entry.workingTreeState === 'pointer'
       )
+      let requestedPaths = new Set(
+        pointerEntries.map(entry => entry.relativePath)
+      )
+      if (options.cheapLfsSelection !== undefined) {
+        const manifest = await readCheapLfsCloneManifestEvidence(repository)
+        const validation = validateCheapLfsCloneSelection(
+          options.cheapLfsSelection,
+          {
+            accountKey: repository.accountKey,
+            repositoryCloneUrl: options.expectedCloneUrl ?? '',
+            defaultBranch:
+              options.expectedDefaultBranch ?? repository.defaultBranch,
+          },
+          manifest,
+          pointerEntries
+        )
+        if (validation.kind === 'invalid') {
+          log.warn(
+            `Cheap LFS clone selection was rejected: ${validation.reason}`
+          )
+          this.postPersistentErrorNotice(
+            t('cheapLfs.cloneSelection.rejectedTitle'),
+            t('cheapLfs.cloneSelection.rejectedBody', {
+              reason: validation.reason,
+            }),
+            `cheap-lfs-clone-selection:${repository.id}:${validation.reason}`,
+            repository.id
+          )
+          return
+        }
+        requestedPaths = new Set(validation.selectedPaths)
+      }
       const entries =
         releaseReadAccount === null
-          ? pointerEntries.filter(entry => entry.kind === 'oci')
-          : pointerEntries
+          ? pointerEntries.filter(
+              entry =>
+                entry.kind === 'oci' && requestedPaths.has(entry.relativePath)
+            )
+          : pointerEntries.filter(entry =>
+              requestedPaths.has(entry.relativePath)
+            )
       if (entries.length === 0) {
         return
       }
@@ -16166,7 +16275,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         return
       }
       await this.runCheapLfsMaterialize(repository, {
-        requestedPaths: new Set(entries.map(entry => entry.relativePath)),
+        requestedPaths,
         includeReleasePointers: releaseReadAccount !== null,
         shouldRun: options.requireSelected
           ? () => this.selectedRepository === repository

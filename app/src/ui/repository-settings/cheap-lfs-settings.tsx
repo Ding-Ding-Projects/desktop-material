@@ -162,6 +162,15 @@ export class CheapLfsSettings extends React.Component<
     })
   }
 
+  private onCheapLfsCloneHelperEnabledChanged = (
+    event: React.FormEvent<HTMLInputElement>
+  ) => {
+    this.props.onPreferencesChanged({
+      ...this.props.preferences,
+      cheapLfsCloneHelperEnabled: event.currentTarget.checked,
+    })
+  }
+
   private onCheapLfsUploadConcurrencyChanged = (
     event: React.FormEvent<HTMLSelectElement>
   ) => {
@@ -549,6 +558,22 @@ export class CheapLfsSettings extends React.Component<
                 }
                 onChange={this.onAutoPinLargeFilesOnCommitChanged}
               />
+              <Checkbox
+                label={t('cheapLfs.settings.cloneHelper')}
+                value={
+                  prefs.cheapLfsCloneHelperEnabled !== false
+                    ? CheckboxValue.On
+                    : CheckboxValue.Off
+                }
+                ariaDescribedBy="cheap-lfs-clone-helper-help"
+                onChange={this.onCheapLfsCloneHelperEnabledChanged}
+              />
+              <p
+                id="cheap-lfs-clone-helper-help"
+                className="build-run-section-description"
+              >
+                {t('cheapLfs.settings.cloneHelperHelp')}
+              </p>
               <Select
                 className="cheap-lfs-upload-concurrency-select"
                 label={t('cheapLfs.settings.parallelUploads')}
@@ -599,16 +624,7 @@ export class CheapLfsSettings extends React.Component<
             {cheapLfsStorageProvider === 'release' &&
               this.renderPayloadEncryption()}
             <p className="build-run-section-description">
-              Pinning large files uploads any committed file over ~100&nbsp;MB
-              to the selected Cheap LFS storage and commits a small pointer in
-              its place, so the push stays under GitHub's file size limit.
-              Upload concurrency uses the selected one-to-three transfer lanes;
-              retries fall back to one lane, and failed files stay in Changes
-              while safe files can still commit. GHCR and Docker Hub modes keep
-              the repository object set in one digest-pinned OCI image; private
-              repositories encrypt its objects with the shared tracked
-              repository key. Downloading large files restores pointers after
-              cloning or pulling.
+              {t('cheapLfs.settings.summary')}
             </p>
           </section>
         </div>

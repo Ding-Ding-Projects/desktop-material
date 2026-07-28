@@ -100,6 +100,7 @@ export class Repository {
       this.buildRunPreferences.autoBuildOnPull,
       this.buildRunPreferences.buildFixProvider,
       this.buildRunPreferences.buildFixAutoApprove,
+      this.buildRunPreferences.cheapLfsCloneHelperEnabled !== false,
       this.buildRunPreferences.cheapLfsCloudCompression,
       this.buildRunPreferences.cheapLfsPayloadEncryption === true,
       this.buildRunPreferences.cheapLfsPayloadEncryptionConfirmed === true,

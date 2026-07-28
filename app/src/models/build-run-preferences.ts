@@ -97,6 +97,17 @@ export interface IBuildRunPreferences {
   readonly autoPinLargeFilesOnCommit?: boolean
 
   /**
+   * Keep the managed cross-platform clone/hydration helper under
+   * `.desktop-material/cheap-lfs` synchronized whenever the repository
+   * contains Cheap LFS pointers. Optional for compatibility with repositories
+   * saved before the helper existed; an absent value is enabled.
+   *
+   * Disabling this stops future managed updates but deliberately does not
+   * delete a helper already committed to the repository.
+   */
+  readonly cheapLfsCloneHelperEnabled?: boolean
+
+  /**
    * Legacy parallel-upload switch retained for compatibility with older app
    * versions. New writes keep it synchronized with
    * `cheapLfsUploadConcurrency`: one lane is false and two or three lanes are
@@ -169,6 +180,7 @@ export const defaultBuildRunPreferences: IBuildRunPreferences = {
   opencodeAutoApprove: false,
   autoMaterializeCheapLfs: true,
   autoPinLargeFilesOnCommit: true,
+  cheapLfsCloneHelperEnabled: true,
   parallelCheapLfsUploads: true,
   cheapLfsUploadConcurrency: 3,
   cheapLfsStorageProvider: 'release',

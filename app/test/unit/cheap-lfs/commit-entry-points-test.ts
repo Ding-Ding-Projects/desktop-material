@@ -7,6 +7,10 @@ const source = readFileSync(
   join(process.cwd(), 'app', 'src', 'lib', 'stores', 'app-store.ts'),
   'utf8'
 )
+const dispatcherSource = readFileSync(
+  join(process.cwd(), 'app', 'src', 'ui', 'dispatcher', 'dispatcher.ts'),
+  'utf8'
+)
 
 function methodBody(start: string, end: string): string {
   const startIndex = source.indexOf(start)
@@ -87,7 +91,7 @@ describe('cheap LFS commit entry points', () => {
     assert.ok(refreshStatus > ensureWorkflow)
     assert.match(
       body,
-      /autoIncludedCheapLfsWorkflowPath\s*=\s*CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH/
+      /autoIncludedCheapLfsManagedPaths\.add\(\s*CHEAP_LFS_CLOUD_COMPRESSION_WORKFLOW_PATH/
     )
     // Only a public repository has a caller to include. A private one routes
     // through the encrypted public builder and never gets the file, so the
@@ -100,7 +104,34 @@ describe('cheap LFS commit entry points', () => {
     assert.doesNotMatch(body, /if \(workflow\.changed\)/)
     assert.match(
       body,
-      /originalSelectedPaths\.add\(autoIncludedCheapLfsWorkflowPath\)/
+      /for \(const managedPath of autoIncludedCheapLfsManagedPaths\)[\s\S]*originalSelectedPaths\.add\(managedPath\)[\s\S]*requiredCheapLfsPaths\.add\(managedPath\)/
+    )
+  })
+
+  it('generates and atomically includes the default-on clone helper', () => {
+    const body = methodBody(
+      'public async _commitIncludedChanges(',
+      'private async _refreshRepositoryAfterCommit('
+    )
+    const pin = body.indexOf('autoPinLargeFilesBeforeCommit(')
+    const listPointers = body.indexOf(
+      'await listAllCheapLfsPointers(repository)',
+      pin
+    )
+    const ensureHelper = body.indexOf(
+      'ensureCheapLfsCloneHelperBundle(',
+      listPointers
+    )
+    const refreshStatus = body.indexOf('await this._loadStatus(repository)')
+
+    assert.ok(pin >= 0)
+    assert.ok(listPointers > pin)
+    assert.ok(ensureHelper > listPointers)
+    assert.ok(refreshStatus > ensureHelper)
+    assert.match(body, /preferences\.cheapLfsCloneHelperEnabled !== false/)
+    assert.match(
+      body,
+      /for \(const path of \[\.\.\.helper\.created, \.\.\.helper\.updated\]\)[\s\S]*autoIncludedCheapLfsManagedPaths\.add\(path\)/
     )
   })
 
@@ -136,11 +167,40 @@ describe('cheap LFS commit entry points', () => {
     // materialization before the batch is allowed to report completion.
     assert.match(
       source,
-      /for \(const \[index, registered\] of addedRepositories\.entries\(\)\) \{[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered\)/
+      /for \(const \[index, registered\] of addedRepositories\.entries\(\)\) \{[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered, \{/
     )
     assert.match(
       source,
-      /stage: 'restoring',[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered\)/
+      /stage: 'restoring',[\s\S]*?await this\.maybeAutoMaterializeCheapLfs\(registered, \{/
+    )
+    assert.match(
+      source,
+      /cheapLfsSelection: cloneItem\.cheapLfsSelection[\s\S]*expectedCloneUrl: cloneItem\.url[\s\S]*expectedDefaultBranch: cloneItem\.defaultBranch/
+    )
+  })
+
+  it('binds single-clone asset choices to authoritative local evidence', () => {
+    const body = methodBody(
+      'public async maybeAutoMaterializeCheapLfs(',
+      'private async runCheapLfsMaterialize('
+    )
+    const manifest = body.indexOf('readCheapLfsCloneManifestEvidence(')
+    const validate = body.indexOf('validateCheapLfsCloneSelection(', manifest)
+    const rejected = body.indexOf("validation.kind === 'invalid'", validate)
+    const materialize = body.indexOf('this.runCheapLfsMaterialize(', rejected)
+
+    assert.ok(manifest >= 0)
+    assert.ok(validate > manifest)
+    assert.ok(rejected > validate)
+    assert.ok(materialize > rejected)
+    assert.match(
+      body.slice(rejected, materialize),
+      /postPersistentErrorNotice\([\s\S]*return/
+    )
+    assert.match(body, /requestedPaths = new Set\(validation\.selectedPaths\)/)
+    assert.match(
+      dispatcherSource,
+      /maybeAutoMaterializeCheapLfs\(addedRepository, \{[\s\S]*cheapLfsSelection: options\.cheapLfsSelection[\s\S]*expectedCloneUrl: url/
     )
   })
 

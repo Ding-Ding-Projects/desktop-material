@@ -182,6 +182,21 @@ interface ICloneGithubRepositoryProps {
   /** Bumped when probe results land so visible rows re-render. */
   readonly submoduleBadgeVersion?: number
 
+  /** Returns the discovered Cheap LFS inventory asset count for a row. */
+  readonly getCheapLfsAssetCount?: (
+    url: string,
+    defaultBranch: string
+  ) => number | null | undefined
+
+  /** Requests a lazy Cheap LFS inventory probe for a visible row. */
+  readonly onProbeCheapLfs?: (repository: IAPIRepository) => void
+
+  /** Opens the Cheap LFS asset selector for a repository. */
+  readonly onShowCheapLfsAssets?: (repository: IAPIRepository) => void
+
+  /** Bumped when a Cheap LFS inventory probe lands. */
+  readonly cheapLfsBadgeVersion?: number
+
   /** The visibility scope narrowing the repository list. */
   readonly visibilityFilter: RepositoryVisibilityFilter
 
@@ -211,16 +226,19 @@ interface ICloneGithubRepositoryProps {
 interface ICloneGithubRepositoryState {
   /** Active language mode for localizing the metadata labels and chip eyebrow. */
   readonly languageMode: LanguageMode
+
+  /** Metadata filters stay out of the repository viewport until requested. */
+  readonly filtersOpen: boolean
 }
 
 const VisibilityFilterLabels: ReadonlyArray<{
   readonly key: RepositoryVisibilityFilter
-  readonly label: string
+  readonly labelKey: Parameters<typeof translate>[0]
 }> = [
-  { key: 'all', label: 'All' },
-  { key: 'public', label: 'Public' },
-  { key: 'private', label: 'Private' },
-  { key: 'forked', label: 'Forked' },
+  { key: 'all', labelKey: 'clone.visibilityAll' },
+  { key: 'public', labelKey: 'clone.visibilityPublic' },
+  { key: 'private', labelKey: 'clone.visibilityPrivate' },
+  { key: 'forked', labelKey: 'clone.visibilityForked' },
 ]
 
 /**
@@ -244,7 +262,10 @@ export class CloneGithubRepository extends React.PureComponent<
 
   public constructor(props: ICloneGithubRepositoryProps) {
     super(props)
-    this.state = { languageMode: getPersistedLanguageMode() }
+    this.state = {
+      languageMode: getPersistedLanguageMode(),
+      filtersOpen: false,
+    }
   }
 
   public componentDidMount() {
@@ -312,10 +333,12 @@ export class CloneGithubRepository extends React.PureComponent<
       <div
         className="org-filter-chips visibility-filter-chips"
         role="group"
-        aria-label="Filter repositories by visibility"
+        aria-label={this.localize('clone.visibilityFilterAria')}
       >
-        <span className="org-filter-eyebrow">Visibility</span>
-        {VisibilityFilterLabels.map(({ key, label }) => (
+        <span className="org-filter-eyebrow">
+          {this.localize('clone.visibilityFilterLabel')}
+        </span>
+        {VisibilityFilterLabels.map(({ key, labelKey }) => (
           <button
             type="button"
             key={key}
@@ -326,7 +349,7 @@ export class CloneGithubRepository extends React.PureComponent<
             aria-pressed={selected === key}
             onClick={this.onVisibilityChipClick}
           >
-            {label}
+            {this.localize(labelKey)}
           </button>
         ))}
       </div>
@@ -385,6 +408,91 @@ export class CloneGithubRepository extends React.PureComponent<
             </button>
           )
         })}
+      </div>
+    )
+  }
+
+  private onToggleFilters = () => {
+    this.setState(state => ({ filtersOpen: !state.filtersOpen }))
+  }
+
+  private getActiveFilterCount(): number {
+    return (
+      (this.props.selectedOrganization === null ? 0 : 1) +
+      (this.props.visibilityFilter === 'all' ? 0 : 1) +
+      this.props.languageFilter.size
+    )
+  }
+
+  private renderFilterDisclosure() {
+    const activeCount = this.getActiveFilterCount()
+    const { filtersOpen } = this.state
+    const visibleLabel =
+      activeCount === 0
+        ? this.localize('clone.filters.button')
+        : this.localize('clone.filters.buttonActive', {
+            count: String(activeCount),
+          })
+
+    return (
+      <div className="clone-repository-filter-disclosure">
+        <button
+          type="button"
+          className={classNames('clone-repository-filter-button', {
+            active: activeCount > 0,
+          })}
+          aria-expanded={filtersOpen}
+          aria-controls="clone-repository-metadata-filters"
+          onClick={this.onToggleFilters}
+        >
+          <MaterialSymbol name="filter_list" size={18} />
+          <span>{visibleLabel}</span>
+          <MaterialSymbol
+            className={classNames('clone-repository-filter-chevron', {
+              expanded: filtersOpen,
+            })}
+            name="expand_more"
+            size={18}
+          />
+        </button>
+        {!filtersOpen && activeCount > 0 && (
+          <span className="clone-repository-filter-status" role="status">
+            {this.localize('clone.filters.activeCount', {
+              count: String(activeCount),
+            })}
+          </span>
+        )}
+      </div>
+    )
+  }
+
+  private renderMetadataFilters() {
+    return (
+      <div
+        id="clone-repository-metadata-filters"
+        className="clone-repository-metadata-filters"
+        hidden={!this.state.filtersOpen}
+        aria-label={this.localize('clone.filters.metadataAria')}
+      >
+        <OrgFilterChips
+          organizations={this.props.organizations}
+          selectedOrganization={this.props.selectedOrganization}
+          loading={this.props.organizationsLoading}
+          onSelect={this.props.onSelectedOrganizationChanged}
+          loaded={
+            this.props.organizationsLoaded &&
+            this.props.organizationsError === null
+          }
+          scopeMissing={this.props.organizationsScopeMissing}
+          scopeMissingMessage={this.localize('clone.orgScopeMissing')}
+          reconnectLabel={this.localize('clone.orgReconnect')}
+          onReconnect={this.props.onReconnectAccount}
+          restrictionNote={this.localize('clone.orgRestrictionNote')}
+          reviewAccessLabel={this.localize('clone.orgReviewAccess')}
+          settingsUrl={this.getOAuthAppSettingsUrl()}
+        />
+        {this.renderVisibilityChips()}
+        {this.renderLanguageChips()}
       </div>
     )
   }
@@ -456,23 +564,8 @@ export class CloneGithubRepository extends React.PureComponent<
         {this.props.accounts.length > 1 && (
           <Row className="account-picker-row">{this.renderAccountPicker()}</Row>
         )}
-        <OrgFilterChips
-          organizations={this.props.organizations}
-          selectedOrganization={this.props.selectedOrganization}
-          loading={this.props.organizationsLoading}
-          onSelect={this.props.onSelectedOrganizationChanged}
-          loaded={
-            this.props.organizationsLoaded &&
-            this.props.organizationsError === null
-          }
-          scopeMissing={this.props.organizationsScopeMissing}
-          scopeMissingMessage={this.localize('clone.orgScopeMissing')}
-          reconnectLabel={this.localize('clone.orgReconnect')}
-          onReconnect={this.props.onReconnectAccount}
-          restrictionNote={this.localize('clone.orgRestrictionNote')}
-          reviewAccessLabel={this.localize('clone.orgReviewAccess')}
-          settingsUrl={this.getOAuthAppSettingsUrl()}
-        />
+        {this.renderFilterDisclosure()}
+        {this.renderMetadataFilters()}
         {this.props.organizationsError !== null &&
           !this.props.organizationsLoading && (
             <div className="org-repositories-error" role="alert">
@@ -485,8 +578,6 @@ export class CloneGithubRepository extends React.PureComponent<
               </Button>
             </div>
           )}
-        {this.renderVisibilityChips()}
-        {this.renderLanguageChips()}
         {this.props.repositoryError !== null && (
           <div className="org-repositories-error" role="alert">
             <span>We couldn't refresh this account's repositories.</span>
@@ -526,6 +617,10 @@ export class CloneGithubRepository extends React.PureComponent<
             onProbeSubmodules={this.props.onProbeSubmodules}
             onShowSubmodules={this.props.onShowSubmodules}
             submoduleBadgeVersion={this.props.submoduleBadgeVersion}
+            getCheapLfsAssetCount={this.props.getCheapLfsAssetCount}
+            onProbeCheapLfs={this.props.onProbeCheapLfs}
+            onShowCheapLfsAssets={this.props.onShowCheapLfsAssets}
+            cheapLfsBadgeVersion={this.props.cheapLfsBadgeVersion}
             rowHeight={this.getCloneRowHeight}
             showMetadata={true}
             languageMode={this.state.languageMode}

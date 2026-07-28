@@ -38,6 +38,7 @@ describe('Cheap LFS settings tab preferences', () => {
   it('defaults both automation toggles on', () => {
     assert.equal(defaultBuildRunPreferences.autoMaterializeCheapLfs, true)
     assert.equal(defaultBuildRunPreferences.autoPinLargeFilesOnCommit, true)
+    assert.equal(defaultBuildRunPreferences.cheapLfsCloneHelperEnabled, true)
     assert.equal(defaultBuildRunPreferences.parallelCheapLfsUploads, true)
     assert.equal(defaultBuildRunPreferences.cheapLfsUploadConcurrency, 3)
     assert.equal(defaultBuildRunPreferences.cheapLfsStorageProvider, 'release')
@@ -45,6 +46,32 @@ describe('Cheap LFS settings tab preferences', () => {
     assert.equal(
       defaultBuildRunPreferences.cheapLfsPayloadEncryptionConfirmed,
       false
+    )
+  })
+
+  it('defaults the cross-platform clone helper on and persists an explicit opt-out', () => {
+    const changes: IBuildRunPreferences[] = []
+    render(
+      <CheapLfsSettings
+        repository={repository()}
+        preferences={{
+          ...defaultBuildRunPreferences,
+          cheapLfsCloneHelperEnabled: undefined,
+        }}
+        onPreferencesChanged={preference => changes.push(preference)}
+      />
+    )
+
+    const checkbox = screen.getByRole<HTMLInputElement>('checkbox', {
+      name: /include the windows and linux clone helper/i,
+    })
+    assert.equal(checkbox.checked, true)
+    fireEvent.click(checkbox)
+    assert.equal(changes.at(-1)?.cheapLfsCloneHelperEnabled, false)
+    assert.match(
+      screen.getByText(/one-command windows\/linux hydration scripts/i)
+        .textContent ?? '',
+      /\.desktop-material\/cheap-lfs/
     )
   })
 

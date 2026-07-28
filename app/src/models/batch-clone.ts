@@ -1,6 +1,10 @@
 import * as Path from 'path'
 import { URL } from 'url'
 import { parseRepositoryIdentifier } from '../lib/remote-parsing'
+import {
+  ICheapLfsCloneSelection,
+  isSafeCheapLfsCloneSelection,
+} from './cheap-lfs-clone-selection'
 
 /** How a batch of repositories should be cloned. */
 export enum BatchCloneMode {
@@ -89,6 +93,9 @@ export interface IBatchCloneItem {
   /** Stable signed-in account identity preferred for the first HTTPS attempt. */
   readonly accountKey?: string
 
+  /** Optional pre-clone Cheap LFS asset allowlist for this repository. */
+  readonly cheapLfsSelection?: ICheapLfsCloneSelection
+
   /**
    * Unguessable ownership proof for v2 staged clones. Legacy v1 queue items do
    * not have one and are therefore recovered without deleting or promoting
@@ -138,6 +145,7 @@ export interface IBatchCloneInput {
   readonly name?: string
   readonly defaultBranch?: string
   readonly accountKey?: string
+  readonly cheapLfsSelection?: ICheapLfsCloneSelection
 }
 
 /** True when a status is terminal (no further transitions expected). */
@@ -289,6 +297,11 @@ export function isSafeBatchCloneItem(item: IBatchCloneItem): boolean {
     (item.accountKey !== undefined &&
       (typeof item.accountKey !== 'string' ||
         item.accountKey.length > MaxBatchCloneAccountKeyLength)) ||
+    (item.cheapLfsSelection !== undefined &&
+      (!isSafeCheapLfsCloneSelection(item.cheapLfsSelection) ||
+        item.cheapLfsSelection.repositoryCloneUrl !== item.url ||
+        item.cheapLfsSelection.defaultBranch !== item.defaultBranch ||
+        item.cheapLfsSelection.accountKey !== item.accountKey)) ||
     (item.recoveryId !== undefined && !isBatchCloneRecoveryId(item.recoveryId))
   ) {
     return false
@@ -408,6 +421,15 @@ export function buildBatchCloneItems(
     ) {
       throw new Error('Account identity exceeds the supported length.')
     }
+    if (
+      input.cheapLfsSelection !== undefined &&
+      (!isSafeCheapLfsCloneSelection(input.cheapLfsSelection) ||
+        input.cheapLfsSelection.repositoryCloneUrl !== input.url ||
+        input.cheapLfsSelection.defaultBranch !== input.defaultBranch ||
+        input.cheapLfsSelection.accountKey !== input.accountKey)
+    ) {
+      throw new Error('Cheap LFS clone selection is unsafe or stale.')
+    }
     const preferred =
       input.name && input.name.length > 0
         ? input.name
@@ -426,6 +448,9 @@ export function buildBatchCloneItems(
         : {}),
       ...(input.accountKey !== undefined
         ? { accountKey: input.accountKey }
+        : {}),
+      ...(input.cheapLfsSelection !== undefined
+        ? { cheapLfsSelection: input.cheapLfsSelection }
         : {}),
     }
   })
