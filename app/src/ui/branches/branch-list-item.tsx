@@ -26,6 +26,9 @@ interface IBranchListItemProps {
   /** Whether the local branch has no live upstream branch. */
   readonly isLocalOnly?: boolean
 
+  /** Path of another worktree that currently has this branch checked out. */
+  readonly linkedWorktreePath?: string
+
   /** The characters in the branch name to highlight */
   readonly matches: IMatches
 
@@ -103,6 +106,7 @@ export class BranchListItem extends React.Component<
       isCurrentBranch,
       isPinned = false,
       isLocalOnly = false,
+      linkedWorktreePath,
       name,
     } = this.props
 
@@ -156,6 +160,14 @@ export class BranchListItem extends React.Component<
             fill={1}
             size={16}
           />
+        )}
+        {linkedWorktreePath !== undefined && (
+          <TooltippedContent
+            className="linked-worktree-indicator"
+            tooltip={`Checked out in another worktree: ${linkedWorktreePath}`}
+          >
+            <MaterialSymbol name="account_tree" size={18} />
+          </TooltippedContent>
         )}
         {isCurrentBranch && (
           <MaterialSymbol

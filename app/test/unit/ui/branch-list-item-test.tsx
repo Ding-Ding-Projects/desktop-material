@@ -118,6 +118,24 @@ describe('BranchListItem', () => {
     assert.equal(pinned?.textContent, 'star')
   })
 
+  it('marks a branch checked out in another worktree', () => {
+    const view = render(
+      <BranchListItem
+        name="release"
+        isCurrentBranch={false}
+        linkedWorktreePath="C:\\worktrees\\release"
+        matches={noMatches}
+        authorDate={undefined}
+      />
+    )
+
+    const indicator = view.container.querySelector(
+      '.linked-worktree-indicator .material-symbol'
+    )
+    assert.notEqual(indicator, null)
+    assert.equal(indicator?.textContent, 'account_tree')
+  })
+
   it('drops dragged commits onto the current branch callback', () => {
     let droppedOnCurrentBranch = 0
 

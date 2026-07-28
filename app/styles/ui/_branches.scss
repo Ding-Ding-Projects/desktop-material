@@ -460,6 +460,13 @@
       flex-shrink: 0;
       margin-right: var(--spacing-half);
     }
+
+    .linked-worktree-indicator {
+      display: inline-flex;
+      flex-shrink: 0;
+      margin-right: var(--spacing-half);
+      color: var(--md-sys-color-tertiary);
+    }
   }
 }
 

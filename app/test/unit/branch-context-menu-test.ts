@@ -70,4 +70,25 @@ describe('branch visibility context menu', () => {
       false
     )
   })
+
+  it('offers switching to an existing worktree instead of creating another', () => {
+    const calls = new Array<string>()
+    const items = generateBranchContextMenuItems({
+      branch,
+      onCheckoutInNewWorktree: () => calls.push('new'),
+      onSwitchToWorktree: () => calls.push('switch'),
+    })
+
+    assert.equal(
+      items.some(item => item.label === 'Checkout in new worktree…'),
+      false
+    )
+
+    const switchItem = items.find(
+      item => item.label === 'Switch to existing worktree'
+    )
+    assert.notEqual(switchItem, undefined)
+    switchItem?.action?.()
+    assert.deepEqual(calls, ['switch'])
+  })
 })

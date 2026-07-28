@@ -35,6 +35,8 @@ import {
   loadRepositoryBranchVisibilityState,
   saveRepositoryBranchVisibilityState,
 } from '../../lib/branch-visibility'
+import { WorktreeEntry } from '../../models/worktree'
+import { findLinkedWorktreeForBranch } from './branch-worktree'
 
 const RowHeight = 30
 
@@ -157,6 +159,12 @@ interface IBranchListProps {
 
   /** Optional: Callback to checkout a branch in a new worktree */
   readonly onCheckoutInNewWorktree?: (branch: Branch) => void
+
+  /** Known worktrees used to identify branches already checked out elsewhere. */
+  readonly worktrees?: ReadonlyArray<WorktreeEntry>
+
+  /** Switch to the existing worktree that already owns a branch. */
+  readonly onSwitchToWorktree?: (branch: Branch) => void
 }
 
 interface IBranchListState {
@@ -327,16 +335,28 @@ export class BranchList extends React.Component<
   ) => {
     event.preventDefault()
 
-    const { onRenameBranch, onDeleteBranch, onCheckoutInNewWorktree } =
-      this.props
+    const {
+      onRenameBranch,
+      onDeleteBranch,
+      onCheckoutInNewWorktree,
+      onSwitchToWorktree,
+    } = this.props
 
     const { branch } = item
+    const linkedWorktree = findLinkedWorktreeForBranch(
+      this.props.repository.path,
+      branch,
+      this.props.worktrees ?? []
+    )
 
     const items = generateBranchContextMenuItems({
       branch,
       onRenameBranch,
       onDeleteBranch,
-      onCheckoutInNewWorktree,
+      onCheckoutInNewWorktree:
+        linkedWorktree === undefined ? onCheckoutInNewWorktree : undefined,
+      onSwitchToWorktree:
+        linkedWorktree === undefined ? undefined : onSwitchToWorktree,
       isPinned: this.state.visibility.pinned.includes(branch.name),
       isSolo: this.state.visibility.solo === branch.name,
       canHide: this.canHideBranch(branch),
