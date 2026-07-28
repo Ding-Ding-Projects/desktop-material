@@ -39,6 +39,7 @@ import {
   createCheapLfsMaterializeCache,
   defaultCheapLfsFileSystem,
   discardCheapLfsRetainedPins,
+  getCheapLfsReleaseLaneTag,
   ICheapLfsAutoPinFailure,
   ICheapLfsAutoPinProgress,
   ICheapLfsAutoPinnedFile,
@@ -771,6 +772,7 @@ import { WorkflowPreferences } from '../../models/workflow-preferences'
 import {
   defaultBuildRunPreferences,
   getCheapLfsStorageProvider,
+  getCheapLfsUploadConcurrency,
   IBuildRunPreferences,
 } from '../../models/build-run-preferences'
 import { RepositoryIndicatorUpdater } from './helpers/repository-indicator-updater'
@@ -15224,9 +15226,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
               repository,
               account: this.requireCheapLfsAccount(repository),
               provider,
-              parallelBlobTransfers:
-                repository.buildRunPreferences.parallelCheapLfsUploads !==
-                false,
+              parallelBlobTransfers: true,
+              blobUploadConcurrency: getCheapLfsUploadConcurrency(
+                repository.buildRunPreferences
+              ),
             },
             session =>
               pinCheapLfsFilesToOci(
@@ -15387,8 +15390,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repository,
         account: getAccountForRepository(this.accounts, repository),
         provider: entry.provider,
-        parallelBlobTransfers:
-          repository.buildRunPreferences.parallelCheapLfsUploads !== false,
+        parallelBlobTransfers: true,
       },
       session =>
         materializeCheapLfsOciFile(
@@ -15492,9 +15494,10 @@ export class AppStore extends TypedBaseStore<IAppState> {
               repository,
               account: this.requireCheapLfsAccount(repository),
               provider: entry.provider,
-              parallelBlobTransfers:
-                repository.buildRunPreferences.parallelCheapLfsUploads !==
-                false,
+              parallelBlobTransfers: true,
+              blobUploadConcurrency: getCheapLfsUploadConcurrency(
+                repository.buildRunPreferences
+              ),
             },
             session =>
               removeCheapLfsOciFile(
@@ -16738,9 +16741,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           {
             absoluteFilePath: target.absolutePath,
             trackedRelativePath: target.relativePath,
-            releaseTag:
-              ['assets', 'assets-parallel-2', 'assets-parallel-3'][laneIndex] ??
-              'assets',
+            releaseTag: getCheapLfsReleaseLaneTag(laneIndex),
             ...(releaseReview === null ? {} : { releaseReview }),
             retainSourceForRestore: true,
             ...(encryptionPassword === undefined ? {} : { encryptionPassword }),
@@ -16870,7 +16871,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
               repository,
               account: this.requireCheapLfsAccount(repository),
               provider: selectedStorageProvider,
-              parallelBlobTransfers: prefs.parallelCheapLfsUploads !== false,
+              parallelBlobTransfers: true,
+              blobUploadConcurrency: getCheapLfsUploadConcurrency(prefs),
             },
             session =>
               pinCheapLfsFilesToOci(
@@ -17042,7 +17044,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           controller.signal,
           reportProgress,
           file => automaticallyPinned.push(file),
-          prefs.parallelCheapLfsUploads === false ? 1 : 3
+          getCheapLfsUploadConcurrency(prefs)
         )
         if (controller.signal.aborted || result.canceled) {
           const canceled = new Error(

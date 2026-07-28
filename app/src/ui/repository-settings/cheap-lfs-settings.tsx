@@ -5,6 +5,7 @@ import {
   CheapLfsStorageProvider,
   IBuildRunPreferences,
   getCheapLfsStorageProvider,
+  getCheapLfsUploadConcurrency,
 } from '../../models/build-run-preferences'
 import { Checkbox, CheckboxValue } from '../lib/checkbox'
 import { Octicon } from '../octicons'
@@ -77,7 +78,7 @@ function asError(error: unknown): Error {
  * The Repository Settings "Cheap LFS" tab.
  *
  * Hosts the large-file (Cheap LFS) preferences: the storage-provider selector,
- * the auto-pin / auto-materialize / parallel-upload toggles, and the
+ * the auto-pin / auto-materialize controls, configurable upload lanes, and the
  * cloud-compression consent. The controls live in their own tab but still edit
  * the shared {@link IBuildRunPreferences} working copy owned by the host
  * `RepositorySettings` dialog, which persists it on submit exactly as it does
@@ -161,12 +162,15 @@ export class CheapLfsSettings extends React.Component<
     })
   }
 
-  private onParallelCheapLfsUploadsChanged = (
-    event: React.FormEvent<HTMLInputElement>
+  private onCheapLfsUploadConcurrencyChanged = (
+    event: React.FormEvent<HTMLSelectElement>
   ) => {
+    const cheapLfsUploadConcurrency = Number(event.currentTarget.value)
     this.props.onPreferencesChanged({
       ...this.props.preferences,
-      parallelCheapLfsUploads: event.currentTarget.checked,
+      cheapLfsUploadConcurrency,
+      // Keep app versions that only understand the legacy switch coherent.
+      parallelCheapLfsUploads: cheapLfsUploadConcurrency > 1,
     })
   }
 
@@ -494,22 +498,6 @@ export class CheapLfsSettings extends React.Component<
       </span>
     )
 
-    const parallelUploadsLabel = (
-      <span className="build-run-toggle-label">
-        {t('cheapLfs.settings.parallelUploads')}
-        <ToggledtippedContent
-          className="build-run-toggle-tip"
-          ariaLabel={translateForAccessibleName(
-            'cheapLfs.settings.parallelUploads'
-          )}
-          ariaLiveMessage={t('cheapLfs.settings.parallelUploadsHelp')}
-          tooltip={t('cheapLfs.settings.parallelUploadsHelp')}
-        >
-          <Octicon symbol={octicons.info} />
-        </ToggledtippedContent>
-      </span>
-    )
-
     const cloudCompressionLabel = (
       <span className="build-run-toggle-label">
         {cloudPolicy === 'automatic-public'
@@ -561,15 +549,19 @@ export class CheapLfsSettings extends React.Component<
                 }
                 onChange={this.onAutoPinLargeFilesOnCommitChanged}
               />
-              <Checkbox
-                label={parallelUploadsLabel}
-                value={
-                  prefs.parallelCheapLfsUploads !== false
-                    ? CheckboxValue.On
-                    : CheckboxValue.Off
-                }
-                onChange={this.onParallelCheapLfsUploadsChanged}
-              />
+              <Select
+                className="cheap-lfs-upload-concurrency-select"
+                label={t('cheapLfs.settings.parallelUploads')}
+                value={String(getCheapLfsUploadConcurrency(prefs))}
+                onChange={this.onCheapLfsUploadConcurrencyChanged}
+              >
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+              </Select>
+              <p className="build-run-section-description">
+                {t('cheapLfs.settings.parallelUploadsHelp')}
+              </p>
               <Select
                 className="cheap-lfs-storage-provider-select"
                 label={t('cheapLfs.settings.storageProvider')}
@@ -610,12 +602,13 @@ export class CheapLfsSettings extends React.Component<
               Pinning large files uploads any committed file over ~100&nbsp;MB
               to the selected Cheap LFS storage and commits a small pointer in
               its place, so the push stays under GitHub's file size limit.
-              Parallel uploads use up to three transfer lanes; failed files stay
-              in Changes while safe files can still commit. GHCR and Docker Hub
-              modes keep the repository object set in one digest-pinned OCI
-              image; private repositories encrypt its objects with the shared
-              tracked repository key. Downloading large files restores pointers
-              after cloning or pulling.
+              Upload concurrency uses the selected one-to-three transfer lanes;
+              retries fall back to one lane, and failed files stay in Changes
+              while safe files can still commit. GHCR and Docker Hub modes keep
+              the repository object set in one digest-pinned OCI image; private
+              repositories encrypt its objects with the shared tracked
+              repository key. Downloading large files restores pointers after
+              cloning or pulling.
             </p>
           </section>
         </div>

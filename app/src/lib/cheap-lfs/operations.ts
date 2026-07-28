@@ -5384,6 +5384,17 @@ export interface ICheapLfsAutoPinResult {
 /** Automatic pinning deliberately never exceeds three concurrent files. */
 export const CheapLfsMaximumAutoPinConcurrency = 3
 
+/** Return the stable Release bucket tag owned by a zero-based upload lane. */
+export function getCheapLfsReleaseLaneTag(laneIndex: number): string {
+  const lane = Number.isFinite(laneIndex)
+    ? Math.min(
+        CheapLfsMaximumAutoPinConcurrency - 1,
+        Math.max(0, Math.floor(laneIndex))
+      )
+    : 0
+  return lane === 0 ? 'assets' : `assets-parallel-${lane + 1}`
+}
+
 /** The disk and transfer seams the auto-pin-on-commit flow depends on. */
 export interface ICheapLfsAutoPinDependencies {
   /** Opaque production containment/CAS seam; structural test fakes may omit. */

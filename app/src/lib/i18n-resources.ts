@@ -5203,9 +5203,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.settings.autoPin': 'Pin large files when committing',
   'cheapLfs.settings.autoPinHelp':
     'Files over about 100 MB are uploaded to the selected Cheap LFS storage and replaced with small pointers. Failed files stay in Changes for the next commit while other selected safe changes continue.',
-  'cheapLfs.settings.parallelUploads': 'Upload up to 3 large files at once',
+  'cheapLfs.settings.parallelUploads': 'Simultaneous Cheap LFS uploads',
   'cheapLfs.settings.parallelUploadsHelp':
-    'Uses up to three independent Cheap LFS transfer lanes. Turn this off to upload one file at a time.',
+    'Choose 1, 2, or 3 upload lanes. Upload retries fall back to one lane; downloads keep their existing restore behavior.',
   'cheapLfs.settings.ghcrStorage': 'Store Cheap LFS in one GHCR image',
   'cheapLfs.settings.ghcrStorageHelp':
     'Publishes one digest-pinned OCI image for all repository objects. Private repositories encrypt objects with a shared key tracked in that private repository.',
@@ -8283,9 +8283,9 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.settings.autoPin': 'Commit 嗰陣自動 pin 大檔案',
   'cheapLfs.settings.autoPinHelp':
     '大過約 100 MB 嘅檔案會上載去揀好嘅 Cheap LFS 儲存位置，再換成細 pointer。失手嘅檔案會留喺 Changes 等下次 commit，其他揀咗嘅安全變更會照行。',
-  'cheapLfs.settings.parallelUploads': '一次過載最多 3 個大檔案',
+  'cheapLfs.settings.parallelUploads': 'Cheap LFS 同時上載數量',
   'cheapLfs.settings.parallelUploadsHelp':
-    '會用最多三條獨立 Cheap LFS 傳輸通道；熄咗就逐個檔案上載。',
+    '揀 1、2 或 3 條上載通道；上載重試會穩陣啲逐個嚟，下載就保留原本還原方式，唔會亂改車道。',
   'cheapLfs.settings.ghcrStorage': '用一個 GHCR image 儲晒 Cheap LFS',
   'cheapLfs.settings.ghcrStorageHelp':
     '成個 repository 嘅物件會放入一個鎖定 digest 嘅 OCI image。私人 repository 會用一條一齊 track 嘅共享 key 加密物件。',
