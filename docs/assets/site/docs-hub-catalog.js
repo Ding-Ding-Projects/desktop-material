@@ -1393,6 +1393,13 @@
       d: 'This folder keeps reproducible local acceptance records that support, but do not replace, exact-commit CI, Pages, wiki, and Release receipts in HANDOFF.md.',
     },
     {
+      t: 'Repository group management — built-app capture, 2026-07-28',
+      h: 'verification/repository-group-management-2026-07-28/',
+      s: 'verification/repository-group-management-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #81 (first-class repository and tab group management).',
+    },
+    {
       t: 'Responsive surface matrix — 2026-07-17',
       h: 'verification/responsive-surface-matrix-2026-07-17.html',
       s: 'verification/responsive-surface-matrix-2026-07-17.md',
