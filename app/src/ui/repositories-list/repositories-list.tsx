@@ -92,6 +92,7 @@ import {
   IRepositoryLogoChangedDetail,
   RepositoryLogoChangedEvent,
 } from '../../lib/appearance-customization'
+import { isAppearanceEditorPointerGesture } from '../appearance'
 import {
   getPersistedLanguageMode,
   LanguageModeChangedEvent,
@@ -1192,11 +1193,21 @@ export class RepositoriesList extends React.Component<
     this.props.onSelectionChanged(item.repository)
   }
 
+  /**
+   * Right-click opens the repository row's own menu, which still lists the
+   * "Customize …" appearance entries. Shift+Right-click is the shortcut
+   * straight to the row's name appearance editor.
+   */
   private onItemContextMenu = (
     item: IRepositoryListItem,
     event: React.MouseEvent<HTMLDivElement>
   ) => {
     event.preventDefault()
+
+    if (isAppearanceEditorPointerGesture(event)) {
+      this.onCustomizeNameAppearance(item.repository)
+      return
+    }
 
     const items = generateRepositoryListContextMenu({
       accounts: this.props.accounts ?? [],

@@ -149,7 +149,7 @@ provider-sync exercise is recorded in [`HANDOFF.md`](../../HANDOFF.md).
   **Hong Kong Cantonese**, or a compact **Bilingual** presentation. English is
   the safe fallback; Desktop Material does not silently replace the selection
   from the Windows locale
-- Right-click an actual visual owner—or focus it and press `Shift+F10`—to open its editor beside that element. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Specialized Git context menus keep priority on their surrounding hit areas
+- `Shift`+right-click an actual visual owner—or focus it and press `Shift+F10`—to open its editor beside that element. A plain right-click is left to the surface's ordinary context menu, and surfaces that have one keep a Customize entry in it. This covers the app identity/workspace, update bar, toolbar, repository list, tab strip, code/diff surface, individual Material feature entry points, each repository name/logo, each tab title, and the temporary-submodule Back control. Specialized Git context menus keep priority on their surrounding hit areas
 - Every appearance owner has one versioned `setting.json` in its own local Git
   repository and its own **History** manager with lazy diffs, undo, redo, and
   restore. History actions append audit commits; the editor footer exposes the
@@ -185,7 +185,7 @@ flowchart TD
 ```
 
 **How appearance is layered.** There is no central appearance studio. You reach
-an editor two ways — right-clicking the element that actually owns the look, or
+an editor two ways — `Shift`+right-clicking the element that actually owns the look, or
 the Repository settings Appearance hub — and both commit through the same owner
 path, so an edit made either way is indistinguishable, History included. The
 normalized value lands on exactly one owner: a profile owner, a repository
@@ -199,7 +199,7 @@ rewriting the chain.
 
 **Repository tabs**
 - Browser-like repository tabs, per-account and bound to repos, with inline rename
-- Per-tab title styling: right-click the actual title for bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, one-click return to default, and that tab's dedicated Git history. The clicked tab initializes before the editor opens; an in-progress profile transition gives localized retry guidance instead of escaping to the app crash boundary
+- Per-tab title styling: `Shift`+right-click the actual title (a plain right-click opens the tab command menu, which still offers Customize Appearance…) for bold/italic/underline, size, text color, background color, font family, and alignment, with curated palettes, recent colors, a custom picker, one-click return to default, and that tab's dedicated Git history. The clicked tab initializes before the editor opens; an in-progress profile transition gives localized retry guidance instead of escaping to the app crash boundary
 - Collect tabs into named, curated-color groups. A visible chip before the first member shows its name, count, active state, and expanded/collapsed state; mouse, Enter, or Space really hides/restores the member tabs. Group actions, dialog copy, announcements, and accessible names follow English, playful Hong Kong-style Cantonese, or bilingual mode
 - Group metadata persists across open/close and bulk-close operations, per-window reloads, profile history, and session imports. A group cannot cross the protected pinned/unpinned boundary. Deleting a group never closes its tabs
 - Mark tabs as favorites, drag a repository folder onto the app to open or switch its tab, and export or import the current ordered tab session with pins, favorites, aliases, and per-tab appearance. Portable exports intentionally omit profile-local group definitions and `groupId` memberships, while import preserves the destination profile's existing groups

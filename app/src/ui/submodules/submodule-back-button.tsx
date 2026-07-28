@@ -17,7 +17,11 @@ import {
 import { Select } from '../lib/select'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
-import { AnchoredAppearanceEditor } from '../appearance'
+import {
+  AnchoredAppearanceEditor,
+  isAppearanceEditorContextMenuKey,
+  openAppearanceEditorFromContextMenu,
+} from '../appearance'
 import { IVersionedStoreHistorySource } from '../version-history'
 
 interface ISubmoduleBackButtonProps {
@@ -189,17 +193,19 @@ export class SubmoduleBackButton extends React.Component<
     this.setState({ editorAnchor: anchor })
   }
 
+  /**
+   * Shift+Right-click opens this button's appearance editor. A plain
+   * right-click is left untouched — the button has no other menu, but the
+   * editor must not claim a gesture the rest of the shell answers.
+   */
   private onContextMenu = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    this.openEditor(event.currentTarget)
+    openAppearanceEditorFromContextMenu(event, anchor =>
+      this.openEditor(anchor)
+    )
   }
 
   private onKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>) => {
-    if (
-      event.key !== 'ContextMenu' &&
-      !(event.key === 'F10' && event.shiftKey)
-    ) {
+    if (!isAppearanceEditorContextMenuKey(event)) {
       return
     }
 

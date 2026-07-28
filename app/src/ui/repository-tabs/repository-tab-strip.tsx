@@ -21,7 +21,10 @@ import {
 } from '../../models/repository-tab'
 import { RepositoryTab } from './repository-tab'
 import { TabStyleEditor } from './tab-style-editor'
-import { AnchoredAppearanceEditor } from '../appearance'
+import {
+  AnchoredAppearanceEditor,
+  isAppearanceEditorPointerGesture,
+} from '../appearance'
 import {
   CloseTabsContainingPopover,
   CloseTabsExceptContainingPopover,
@@ -680,6 +683,10 @@ export class RepositoryTabStrip extends React.Component<
     }
   }
 
+  /**
+   * Right-click opens the tab command menu, which still lists "Customize
+   * Appearance…". Shift+Right-click is the shortcut straight to that editor.
+   */
   private onContextMenu = (
     tab: IRepositoryTab,
     event: React.MouseEvent<HTMLElement>
@@ -688,6 +695,10 @@ export class RepositoryTabStrip extends React.Component<
     const anchor = event.currentTarget as HTMLElement
     const titleAnchor =
       anchor.querySelector<HTMLElement>('.repository-tab-label') ?? anchor
+    if (isAppearanceEditorPointerGesture(event)) {
+      void this.openStyleEditor(tab, titleAnchor)
+      return
+    }
     this.showTabCommandMenu(tab, anchor, titleAnchor)
   }
 
@@ -1223,8 +1234,19 @@ export class RepositoryTabStrip extends React.Component<
     })
   }
 
-  /** Give an overflowed tab the same command menu a visible tab has. */
-  private onOverflowContextMenu = (tab: IRepositoryTab) => {
+  /**
+   * Give an overflowed tab the same command menu a visible tab has, and the
+   * same Shift+Right-click shortcut straight to its appearance editor.
+   */
+  private onOverflowContextMenu = (
+    tab: IRepositoryTab,
+    event: React.MouseEvent<HTMLElement>
+  ) => {
+    if (isAppearanceEditorPointerGesture(event)) {
+      this.onOverflowCustomize(tab)
+      return
+    }
+
     const anchor = this.state.overflowAnchor
     if (anchor === null) {
       return

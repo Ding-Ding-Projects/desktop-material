@@ -192,6 +192,7 @@ import {
   CodeDiffAppearanceEditor,
   DefaultRepositoryLogoAppearanceEditor,
   FeatureHighlightingAppearanceEditor,
+  isAppearanceEditorFallbackContextMenu,
   RepositoryListAppearanceEditor,
   RepositoryTabsAppearanceEditor,
   RepositoryTabsOverrideAppearanceEditor,
@@ -1737,9 +1738,21 @@ export class App extends React.Component<IAppProps, IAppState> {
    * Offer one consistent customization/history contract for otherwise
    * unhandled shell surfaces. Existing specialized context menus win because
    * they prevent the event before it reaches this document listener.
+   *
+   * The pointer gesture is Shift+Right-click. This listener sits on `document`
+   * and matches `#desktop-app-contents`, so on a plain right-click it used to
+   * swallow essentially every right-click in the shell — including the ones
+   * ordinary context menus wanted. A plain right-click now falls straight
+   * through to whatever the surface itself does. A keyboard context-menu
+   * request still opens the editor, because these fallback owners have no
+   * other menu for the keyboard to reach.
    */
   private onCustomizationContextMenu = (event: MouseEvent) => {
-    if (event.defaultPrevented || !(event.target instanceof Element)) {
+    if (
+      event.defaultPrevented ||
+      !isAppearanceEditorFallbackContextMenu(event) ||
+      !(event.target instanceof Element)
+    ) {
       return
     }
     if (event.target.closest('[data-context-menu-owner="true"]') !== null) {

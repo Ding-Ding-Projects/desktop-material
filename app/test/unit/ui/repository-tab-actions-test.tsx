@@ -665,7 +665,20 @@ describe('RepositoryTab title appearance', () => {
 
     const label = screen.getByText('beta')
     assert.equal(label.classList.contains('repository-tab-label'), true)
+
+    // A plain right-click on the title belongs to the tab command menu, which
+    // still carries "Customize Appearance…"; only Shift+Right-click opens the
+    // title's appearance editor directly.
     fireEvent.contextMenu(label)
+    assert.equal(screen.queryByText('Tab appearance'), null)
+    const plainMenuBackdrop = document.querySelector<HTMLElement>(
+      '.material-context-menu-backdrop'
+    )
+    if (plainMenuBackdrop !== null) {
+      fireEvent.mouseDown(plainMenuBackdrop)
+    }
+
+    fireEvent.contextMenu(label, { shiftKey: true })
 
     await waitFor(() => {
       assert.ok(screen.getByText('Tab appearance'))
@@ -754,7 +767,7 @@ describe('RepositoryTab title appearance', () => {
       />
     )
 
-    fireEvent.contextMenu(screen.getByText('alpha'))
+    fireEvent.contextMenu(screen.getByText('alpha'), { shiftKey: true })
 
     await waitFor(() =>
       assert.equal(

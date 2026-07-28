@@ -1,10 +1,47 @@
 # Owner-scoped appearance and history
 
 Desktop Material attaches appearance controls to the element that owns the
-setting. A right-click or `Shift+F10` opens an anchored editor beside the
-profile, feature, repository, tab, repository logo or name, or submodule Back
-control being changed. The editor exposes that owner's History without routing
-the edit through a shared appearance studio.
+setting. `Shift`+right-click, or `Shift+F10` / the `ContextMenu` key from the
+keyboard, opens an anchored editor beside the profile, feature, repository, tab,
+repository logo or name, or submodule Back control being changed. The editor
+exposes that owner's History without routing the edit through a shared
+appearance studio.
+
+## The Shift+right-click gesture
+
+A plain right-click belongs to the surface's ordinary context menu. Requiring
+`Shift` keeps the appearance editor from claiming right-clicks that a tab
+command menu or a repository row menu wanted, which is what it used to do
+across the whole shell.
+
+The gesture is defined in exactly one place —
+`isAppearanceEditorPointerGesture` in
+`app/src/ui/appearance/anchored-appearance-editor.tsx`, re-exported from
+`app/src/ui/appearance/index.ts` — so changing it later is one edit. Two
+helpers build on it:
+
+- `openAppearanceEditorFromContextMenu(event, open)` opens the editor and
+  returns `true` on `Shift`+right-click; on a plain right-click it returns
+  `false` without calling `preventDefault()` or `stopPropagation()`, so the
+  surface's own menu still runs.
+- `isAppearanceEditorFallbackContextMenu(event)` is used only by the shell-wide
+  `document` listener in `app.tsx`. Those owners (the toolbar, repository list,
+  tab strip, workspace, `[data-dm-feature]` elements) have no other context
+  menu, so it also accepts a keyboard-originated context-menu request —
+  Chromium reports `button === 0` for the `ContextMenu` key and `Shift+F10`,
+  and the macOS `Shift+F10` bridge dispatches a plain `Event` with no `button`
+  at all. Without that allowance those editors would become mouse-only.
+
+Surfaces that already own a context menu keep it and gain the shortcut: the
+repository tab strip and the tab overflow rows still open the tab command menu
+with its **Customize Appearance…** entry, and the repository list still opens
+its row menu with the **Customize …** entries. `Shift`+right-click jumps
+straight to the editor instead.
+
+The gesture is advertised in **Settings → Appearance**, in the note at the top
+of the pane. That copy is localized (`appearance.elementGesture`) and follows
+the per-language playfulness sliders; every level names the gesture, what a
+plain right-click does instead, and the keyboard route.
 
 ## Behavior and configuration
 
@@ -116,9 +153,9 @@ dispose the old subscriptions and initialize the new profile's owners before
 publishing their aggregate renderer projection.
 
 Tab history and repository-path lookups are deliberately nullable while the
-active profile's title owner is starting. A right-click first initializes the
-clicked tab, including an inactive tab, and opens its editor only when both
-owner resources are ready. During a profile transition the live status region
+active profile's title owner is starting. A `Shift`+right-click first
+initializes the clicked tab, including an inactive tab, and opens its editor
+only when both owner resources are ready. During a profile transition the live status region
 offers localized retry guidance. Delayed work is fenced by coordinator
 instance, active profile key, tab existence, and edit revision so an old
 profile cannot overwrite the replacement profile or a newer title edit.
@@ -161,8 +198,17 @@ feature, tab, and repository isolation plus migration and UUID races.
 `repository-tab-element-history-test.ts` exercise actual-element anchoring,
 focus return, inheritance changes, owner-local history refresh, profile
 replacement, stale-load rejection, and appearance-pending startup.
-`repository-tab-actions-test.tsx` covers right-clicking an inactive title and
+`repository-tab-actions-test.tsx` covers `Shift`+right-clicking an inactive
+title, the plain right-click that must instead reach the tab command menu, and
 the non-crashing localized loading state.
+`anchored-appearance-editor-test.tsx` additionally proves the gesture contract
+directly: a plain right-click opens no editor, is not `preventDefault()`ed, and
+keeps bubbling to the surface that owns the menu, while `Shift`+right-click
+opens the editor and claims the event.
+`tab-session-and-context-style-test.ts` proves every surface asks the shared
+predicate rather than reading `shiftKey` itself, and that the Settings →
+Appearance note carries the gesture in both languages at all three playfulness
+bands.
 `repository-settings-appearance-test.tsx` covers the Repository Settings hub:
 every repository owner rendered with its inherited state, an edit and a reset
 committed through the same owner id, the round trip from the hub to the

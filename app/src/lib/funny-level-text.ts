@@ -34,6 +34,7 @@ export type FunnyBand = 'plain' | 'light' | 'playful'
  * `TranslationKey`, so a family that is missing a band fails to compile.
  */
 export type FunnyLevelTextBase =
+  | 'appearance.elementGesture'
   | 'tabs.overflowDescription'
   | 'ignoredSubmodule.intro'
   | 'ignoredSubmodule.reviewLead'

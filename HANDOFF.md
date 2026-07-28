@@ -1,5 +1,20 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Shift+Right-click opens appearance editors (Refs #89)
+
+The appearance editor no longer claims a plain right-click anywhere. The
+gesture is now Shift+Right-click, decided once by
+`isAppearanceEditorPointerGesture` in `app/src/ui/appearance/`; the
+shell-wide `document` listener in `app.tsx` uses
+`isAppearanceEditorFallbackContextMenu`, which also accepts a
+keyboard-originated context menu so those owners never become mouse-only.
+Surfaces with a real menu (tab strip, tab overflow rows, repository list)
+keep it and their Customize entries. Settings → Appearance advertises the
+gesture in both languages at every playfulness level. Verified: tsc clean
+apart from two pre-existing branch errors, 100 unit tests across 15 files
+green, eslint and prettier clean. Not visually verified — no build was run.
+
+
 ## 2026-07-27 — Observed user-initiated push/pull/fetch promises (locally verified, Refs #80)
 
 Pressing **Push origin** could surface the generic "A background action stopped

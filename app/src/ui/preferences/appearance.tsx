@@ -28,6 +28,7 @@ import { IAppearanceCustomization } from '../../models/appearance-customization'
 import { Octicon } from '../octicons'
 import * as octicons from '../octicons/octicons.generated'
 import { translate } from '../../lib/i18n'
+import { translateWithFunnyLevel } from '../../lib/funny-level-text'
 import {
   clampFunnyLevel,
   IAudioSystemSettings,
@@ -687,26 +688,49 @@ export class Appearance extends React.Component<
     )
   }
 
+  /**
+   * The one place the Shift+Right-click gesture is advertised in settings.
+   *
+   * A pointer gesture nobody can guess is a hidden feature, so this note names
+   * the gesture, what a plain right-click does instead, and the keyboard route
+   * that reaches the same editors. The playfulness levels restyle the voice;
+   * all three facts survive every level.
+   */
+  private renderElementGestureNote() {
+    const languageMode = this.props.appearanceCustomization.languageMode
+
+    return (
+      <aside
+        className="appearance-scope-note"
+        role="note"
+        aria-labelledby="appearance-scope-note-title"
+      >
+        <span className="appearance-scope-note-icon">
+          <Octicon symbol={octicons.paintbrush} height={20} />
+        </span>
+        <div>
+          <h2 id="appearance-scope-note-title">
+            {translate('appearance.elementGestureHeading', languageMode)}
+          </h2>
+          <p>
+            {translateWithFunnyLevel(
+              'appearance.elementGesture',
+              languageMode,
+              {
+                english: this.state.funnyLevelEnglish,
+                cantonese: this.state.funnyLevelCantonese,
+              }
+            )}
+          </p>
+        </div>
+      </aside>
+    )
+  }
+
   public render() {
     return (
       <DialogContent>
-        <aside
-          className="appearance-scope-note"
-          role="note"
-          aria-labelledby="appearance-scope-note-title"
-        >
-          <span className="appearance-scope-note-icon">
-            <Octicon symbol={octicons.paintbrush} height={20} />
-          </span>
-          <div>
-            <h2 id="appearance-scope-note-title">Element appearance</h2>
-            <p>
-              To customize a visual element, right-click that element and open
-              its anchored appearance editor. Each element keeps its settings
-              and history separate.
-            </p>
-          </div>
-        </aside>
+        {this.renderElementGestureNote()}
         {this.renderLanguageAndNavigation()}
         {this.renderScaling()}
         {this.renderSelectedTheme()}
