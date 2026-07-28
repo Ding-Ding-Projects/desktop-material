@@ -1,7 +1,8 @@
 name: Cheap LFS Release to GHCR
 description:
-  Publish one verified Cheap LFS GHCR snapshot, then atomically adopt Release
-  pointers on the current default branch.
+  Publish one verified immutable Cheap LFS GHCR snapshot, atomically adopt
+  Release pointers on the current default branch, then promote its canonical
+  tag after the remote adoption commit is proven.
 
 inputs:
   private-repository-actions-confirmed:

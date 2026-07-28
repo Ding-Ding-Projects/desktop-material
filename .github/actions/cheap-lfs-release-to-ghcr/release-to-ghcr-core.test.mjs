@@ -7,8 +7,10 @@ import {
   deriveTarget,
   parseOciPointer,
   parseReleasePointer,
+  requireOciPointerVisibility,
   requirePackagePolicy,
   resolveConversionVisibility,
+  runCanonicalPublicationTransaction,
   serializeOciPointer,
 } from './release-to-ghcr-core.mjs'
 
@@ -59,21 +61,40 @@ describe('Release-to-GHCR pointer parsing', () => {
 
 describe('Release-to-GHCR visibility consent', () => {
   it('allows a confirmed public repository without granting private consent', () => {
-    assert.equal(resolveConversionVisibility(false, false), 'public')
+    assert.equal(resolveConversionVisibility('public', false), 'public')
   })
 
   it('blocks a public-to-private transition until the separate confirmation is explicit', () => {
     assert.throws(
-      () => resolveConversionVisibility(true, false),
+      () => resolveConversionVisibility('private', false),
       error => error.kind === 'private-actions-unconfirmed'
     )
-    assert.equal(resolveConversionVisibility(true, true), 'private')
+    assert.equal(resolveConversionVisibility('private', true), 'private')
   })
 
-  it('blocks unknown visibility even when a stale confirmation exists', () => {
+  it('blocks internal and unknown visibility even when a stale confirmation exists', () => {
     assert.throws(
       () => resolveConversionVisibility(null, true),
       error => error.kind === 'visibility-unknown'
+    )
+    assert.throws(
+      () => resolveConversionVisibility('internal', true),
+      error => error.kind === 'visibility-unknown'
+    )
+  })
+
+  it('fails closed with actionable migration for existing public OCI pointers after a private transition', () => {
+    assert.throws(
+      () => requireOciPointerVisibility('private', [undefined]),
+      error =>
+        error.kind === 'public-to-private-oci-transition' &&
+        /materialize/i.test(error.message) &&
+        /repin/i.test(error.message) &&
+        /no canonical tag or pointer was changed/i.test(error.message)
+    )
+    assert.equal(
+      requireOciPointerVisibility('private', [`sha256:${shaA}`]),
+      true
     )
   })
 })
@@ -162,5 +183,112 @@ describe('Release-to-GHCR canonical image', () => {
     })
     assert.equal(first.manifestDigest, second.manifestDigest)
     assert.deepEqual(first.manifestBytes, second.manifestBytes)
+  })
+})
+
+describe('Release-to-GHCR publication transaction', () => {
+  it('promotes the canonical tag only after immutable publication and exact remote adoption', async () => {
+    const events = []
+    const adoptionCommit = 'c'.repeat(40)
+    const result = await runCanonicalPublicationTransaction({
+      publishImmutableSnapshot: async () => events.push('immutable'),
+      verifyPackagePolicy: async () => events.push('package-policy'),
+      verifyCapturedDefault: async () => events.push('captured-head'),
+      adoptPointers: async () => {
+        events.push('git-cas')
+        return adoptionCommit
+      },
+      verifyAdoptedDefault: async commit =>
+        events.push(`adopted-head:${commit}`),
+      publishCanonicalTag: async commit =>
+        events.push(`canonical-tag:${commit}`),
+    })
+    assert.equal(result, adoptionCommit)
+    assert.deepEqual(events, [
+      'immutable',
+      'package-policy',
+      'captured-head',
+      'git-cas',
+      `adopted-head:${adoptionCommit}`,
+      `canonical-tag:${adoptionCommit}`,
+    ])
+  })
+
+  it('leaves Git and the canonical tag untouched when a first public package is still private', async () => {
+    const events = []
+    await assert.rejects(
+      () =>
+        runCanonicalPublicationTransaction({
+          publishImmutableSnapshot: async () => events.push('immutable'),
+          verifyPackagePolicy: async () => {
+            events.push('package-policy')
+            requirePackagePolicy({
+              sourceVisibility: 'public',
+              packageVisibility: 'private',
+              repositoryIdentity: 'github.com/repositories/42',
+              linkedRepositoryIdentity: 'github.com/repositories/42',
+            })
+          },
+          verifyCapturedDefault: async () => events.push('captured-head'),
+          adoptPointers: async () => {
+            events.push('git-cas')
+            return 'c'.repeat(40)
+          },
+          verifyAdoptedDefault: async () => events.push('adopted-head'),
+          publishCanonicalTag: async () => events.push('canonical-tag'),
+        }),
+      error => error.kind === 'public-package-private'
+    )
+    assert.deepEqual(events, ['immutable', 'package-policy'])
+  })
+
+  it('never promotes the canonical tag when a concurrent run loses the Git compare-and-swap', async () => {
+    const events = []
+    await assert.rejects(
+      () =>
+        runCanonicalPublicationTransaction({
+          publishImmutableSnapshot: async () => events.push('immutable'),
+          verifyPackagePolicy: async () => events.push('package-policy'),
+          verifyCapturedDefault: async () => events.push('captured-head'),
+          adoptPointers: async () => {
+            events.push('git-cas-lost')
+            throw new Error('remote default advanced')
+          },
+          verifyAdoptedDefault: async () => events.push('adopted-head'),
+          publishCanonicalTag: async () => events.push('canonical-tag'),
+        }),
+      /remote default advanced/
+    )
+    assert.deepEqual(events, [
+      'immutable',
+      'package-policy',
+      'captured-head',
+      'git-cas-lost',
+    ])
+  })
+
+  it('never promotes the canonical tag when the adopted commit is no longer the remote default', async () => {
+    const events = []
+    await assert.rejects(
+      () =>
+        runCanonicalPublicationTransaction({
+          publishImmutableSnapshot: async () => events.push('immutable'),
+          verifyPackagePolicy: async () => events.push('package-policy'),
+          verifyCapturedDefault: async () => events.push('captured-head'),
+          adoptPointers: async () => 'd'.repeat(40),
+          verifyAdoptedDefault: async () => {
+            events.push('adopted-head-changed')
+            throw new Error('adopted commit is no longer current')
+          },
+          publishCanonicalTag: async () => events.push('canonical-tag'),
+        }),
+      /no longer current/
+    )
+    assert.deepEqual(events, [
+      'immutable',
+      'package-policy',
+      'captured-head',
+      'adopted-head-changed',
+    ])
   })
 })

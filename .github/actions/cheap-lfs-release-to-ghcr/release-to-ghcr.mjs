@@ -40,8 +40,10 @@ import {
   parseRepositoryKey,
   repositoryKeyId,
   requireManagedRelease,
+  requireOciPointerVisibility,
   requirePackagePolicy,
   resolveConversionVisibility,
+  runCanonicalPublicationTransaction,
   serializeOciPointer,
   serializeRepositoryKey,
   newRepositoryKey,
@@ -52,6 +54,12 @@ const API_VERSION = '2022-11-28'
 const MAX_GIT_METADATA_BYTES = 64 * 1024 * 1024
 const MAX_API_RESPONSE_BYTES = 8 * 1024 * 1024
 const MAX_RELEASE_PAGES = 100
+const MAX_RELEASE_ASSETS_PER_RELEASE = 10_000
+const MAX_CACHED_RELEASE_ASSETS = 16_384
+const MAX_RELEASE_ASSET_METADATA_BYTES = 32 * 1024 * 1024
+const MAX_CACHED_RELEASE_ASSET_METADATA_BYTES = 64 * 1024 * 1024
+const METADATA_REQUEST_TIMEOUT_MS = 2 * 60 * 1000
+const ASSET_TRANSFER_TIMEOUT_MS = 2 * 60 * 60 * 1000
 const MAX_PACKAGE_POLICY_ATTEMPTS = 12
 const PACKAGE_POLICY_RETRY_MS = 2_000
 const CANONICAL_KEY_PATH =
@@ -147,9 +155,14 @@ async function boundedResponseBuffer(response, maximum = MAX_API_RESPONSE_BYTES)
 }
 
 async function api(path, options = {}) {
-  const { allowNotFound = false, ...fetchOptions } = options
+  const {
+    allowNotFound = false,
+    timeoutMs = METADATA_REQUEST_TIMEOUT_MS,
+    ...fetchOptions
+  } = options
   const response = await fetch(apiUrl + path, {
     ...fetchOptions,
+    signal: AbortSignal.timeout(timeoutMs),
     headers: {
       Accept: 'application/vnd.github+json',
       Authorization: `Bearer ${token}`,
@@ -168,18 +181,25 @@ async function api(path, options = {}) {
   return response
 }
 
-async function apiJson(path, options = {}) {
+async function apiJsonWithSize(path, options = {}) {
   const response = await api(path, options)
   if (response.status === 404) {
     await response.body?.cancel().catch(() => {})
-    return null
+    return { value: null, byteLength: 0 }
   }
   const bytes = await boundedResponseBuffer(response)
   try {
-    return JSON.parse(bytes.toString('utf8'))
+    return {
+      value: JSON.parse(bytes.toString('utf8')),
+      byteLength: bytes.byteLength,
+    }
   } catch {
     throw new Error('GitHub returned invalid bounded JSON.')
   }
+}
+
+async function apiJson(path, options = {}) {
+  return (await apiJsonWithSize(path, options)).value
 }
 
 function parseTreeEntries(output, commit) {
@@ -437,6 +457,14 @@ function remoteBranchCommit(defaultBranch) {
   return match !== null && match[2] === remoteRef ? match[1] : null
 }
 
+function requireRemoteDefaultCommit(defaultBranch, expectedCommit, phase) {
+  if (remoteBranchCommit(defaultBranch) !== expectedCommit) {
+    throw new Error(
+      `The remote default branch changed ${phase}. No canonical tag was promoted.`
+    )
+  }
+}
+
 async function loadRepositoryMetadata() {
   const metadata = await apiJson(`/repos/${repositoryName}`)
   if (
@@ -445,7 +473,10 @@ async function loadRepositoryMetadata() {
     String(metadata.full_name).toLowerCase() !== repositoryName.toLowerCase() ||
     typeof metadata.default_branch !== 'string' ||
     metadata.default_branch.length === 0 ||
+    (metadata.visibility !== 'public' &&
+      metadata.visibility !== 'private') ||
     (metadata.private !== true && metadata.private !== false) ||
+    metadata.private !== (metadata.visibility === 'private') ||
     typeof metadata.owner?.login !== 'string' ||
     (metadata.owner?.type !== 'User' &&
       metadata.owner?.type !== 'Organization') ||
@@ -453,7 +484,7 @@ async function loadRepositoryMetadata() {
     metadata.id <= 0
   ) {
     throw new Error(
-      'GitHub did not return exact repository identity, visibility, and default-branch metadata.'
+      'GitHub did not return an exact supported public or private repository identity, visibility, and default branch. Internal and unknown visibility are blocked.'
     )
   }
   if (refName !== metadata.default_branch) {
@@ -470,7 +501,7 @@ async function requireRepositoryPolicyUnchanged(
 ) {
   const current = await loadRepositoryMetadata()
   const currentVisibility = resolveConversionVisibility(
-    current.private,
+    current.visibility,
     privateConfirmation === 'true'
   )
   if (
@@ -488,10 +519,68 @@ async function requireRepositoryPolicyUnchanged(
 
 const releaseCache = new Map()
 const assetCache = new Map()
+let cachedReleaseAssetCount = 0
+let cachedReleaseAssetMetadataBytes = 0
+
+function boundedReleaseMetadata(value, expectedTag) {
+  if (
+    typeof value !== 'object' ||
+    value === null ||
+    !Number.isSafeInteger(value.id) ||
+    value.id <= 0 ||
+    value.tag_name !== expectedTag ||
+    typeof value.draft !== 'boolean' ||
+    typeof value.prerelease !== 'boolean'
+  ) {
+    throw new Error('GitHub returned invalid bounded Release metadata.')
+  }
+  const body =
+    typeof value.body === 'string' &&
+    Buffer.byteLength(value.body, 'utf8') <= 4 * 1024
+      ? value.body
+      : null
+  return {
+    id: value.id,
+    tag_name: value.tag_name,
+    draft: value.draft,
+    prerelease: value.prerelease,
+    body,
+  }
+}
+
+function boundedAssetMetadata(value) {
+  if (typeof value !== 'object' || value === null) {
+    return null
+  }
+  return {
+    id: Number.isSafeInteger(value.id) ? value.id : null,
+    name:
+      typeof value.name === 'string' &&
+      Buffer.byteLength(value.name, 'utf8') <= 255
+        ? value.name
+        : null,
+    state: typeof value.state === 'string' ? value.state : null,
+    size: Number.isSafeInteger(value.size) ? value.size : null,
+    digest:
+      typeof value.digest === 'string' && value.digest.length <= 80
+        ? value.digest
+        : null,
+    label:
+      typeof value.label === 'string' &&
+      Buffer.byteLength(value.label, 'utf8') <= 1024
+        ? value.label
+        : null,
+  }
+}
 
 async function releaseForTag(tag) {
   if (releaseCache.has(tag)) {
     return releaseCache.get(tag)
+  }
+  if (releaseCache.size >= MAX_OBJECTS) {
+    throw new Error(
+      'Cheap LFS found more than 4096 distinct Release buckets.'
+    )
   }
   let release = await apiJson(
     `/repos/${repositoryName}/releases/tags/${encodeURIComponent(tag)}`,
@@ -517,23 +606,53 @@ async function releaseForTag(tag) {
   if (release === null) {
     throw new Error(`GitHub Release tag was not found: ${tag}`)
   }
-  releaseCache.set(tag, release)
-  return release
+  const bounded = boundedReleaseMetadata(release, tag)
+  releaseCache.set(tag, bounded)
+  return bounded
 }
 
 async function allAssets(releaseId) {
+  if (!Number.isSafeInteger(releaseId) || releaseId <= 0) {
+    throw new Error('GitHub returned an invalid Release identifier.')
+  }
   if (assetCache.has(releaseId)) {
     return assetCache.get(releaseId)
   }
   const assets = []
-  for (let page = 1; page <= MAX_RELEASE_PAGES; page++) {
-    const next = await apiJson(
+  let releaseMetadataBytes = 0
+  for (let page = 1; page <= MAX_RELEASE_PAGES + 1; page++) {
+    const result = await apiJsonWithSize(
       `/repos/${repositoryName}/releases/${releaseId}/assets?per_page=100&page=${page}`
     )
+    const next = result.value
     if (!Array.isArray(next)) {
       throw new Error('GitHub returned an invalid Release asset inventory.')
     }
-    assets.push(...next)
+    releaseMetadataBytes += result.byteLength
+    if (
+      releaseMetadataBytes > MAX_RELEASE_ASSET_METADATA_BYTES ||
+      cachedReleaseAssetMetadataBytes + result.byteLength >
+        MAX_CACHED_RELEASE_ASSET_METADATA_BYTES
+    ) {
+      throw new Error(
+        'Cheap LFS Release asset metadata exceeded its cumulative bound.'
+      )
+    }
+    if (
+      assets.length + next.length > MAX_RELEASE_ASSETS_PER_RELEASE ||
+      cachedReleaseAssetCount + next.length > MAX_CACHED_RELEASE_ASSETS
+    ) {
+      throw new Error(
+        'Cheap LFS Release asset inventory exceeded its cumulative bound.'
+      )
+    }
+    const bounded = next.map(boundedAssetMetadata)
+    if (bounded.some(asset => asset === null)) {
+      throw new Error('GitHub returned invalid Release asset metadata.')
+    }
+    assets.push(...bounded)
+    cachedReleaseAssetCount += bounded.length
+    cachedReleaseAssetMetadataBytes += result.byteLength
     if (next.length < 100) {
       assetCache.set(releaseId, assets)
       return assets
@@ -578,7 +697,10 @@ async function downloadAsset(asset, destination, expectedBytes) {
   }
   const response = await api(
     `/repos/${repositoryName}/releases/assets/${asset.id}`,
-    { headers: { Accept: 'application/octet-stream' } }
+    {
+      headers: { Accept: 'application/octet-stream' },
+      timeoutMs: ASSET_TRANSFER_TIMEOUT_MS,
+    }
   )
   if (response.body === null) {
     throw new Error('GitHub returned an empty Release asset response.')
@@ -627,6 +749,7 @@ class GhcrRegistry {
       return
     }
     const challengeResponse = await fetch('https://ghcr.io/v2/', {
+      signal: AbortSignal.timeout(METADATA_REQUEST_TIMEOUT_MS),
       headers: { 'User-Agent': 'desktop-material-cheap-lfs-release-to-ghcr' },
     })
     const challenge = challengeResponse.headers.get('www-authenticate') ?? ''
@@ -644,6 +767,7 @@ class GhcrRegistry {
       `repository:${this.target.registryPath}:pull,push`
     )
     const response = await fetch(url, {
+      signal: AbortSignal.timeout(METADATA_REQUEST_TIMEOUT_MS),
       headers: {
         Authorization: `Basic ${Buffer.from(`${actor}:${token}`).toString(
           'base64'
@@ -675,13 +799,18 @@ class GhcrRegistry {
     if (url.protocol !== 'https:' || url.hostname !== 'ghcr.io') {
       throw new Error('GHCR returned an untrusted upload location.')
     }
+    const {
+      timeoutMs = METADATA_REQUEST_TIMEOUT_MS,
+      ...fetchOptions
+    } = options
     const response = await fetch(url, {
-      ...options,
+      ...fetchOptions,
       redirect: 'follow',
+      signal: AbortSignal.timeout(timeoutMs),
       headers: {
         Authorization: this.authorization,
         'User-Agent': 'desktop-material-cheap-lfs-release-to-ghcr',
-        ...options.headers,
+        ...fetchOptions.headers,
       },
     })
     return response
@@ -746,6 +875,7 @@ class GhcrRegistry {
     url.searchParams.set('digest', digest)
     const response = await this.request(url, {
       method: 'PUT',
+      timeoutMs: ASSET_TRANSFER_TIMEOUT_MS,
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Length': String(bytes.byteLength),
@@ -774,6 +904,7 @@ class GhcrRegistry {
     url.searchParams.set('digest', descriptor.digest)
     const response = await this.request(url, {
       method: 'PUT',
+      timeoutMs: ASSET_TRANSFER_TIMEOUT_MS,
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Length': String(descriptor.size),
@@ -1068,12 +1199,11 @@ async function loadExistingObjects(
 }
 
 async function loadRepositoryKey(head, visibility, ociEntries) {
+  requireOciPointerVisibility(
+    visibility,
+    ociEntries.map(entry => entry.pointer.keyId)
+  )
   if (visibility === 'public') {
-    if (ociEntries.some(entry => entry.pointer.keyId !== undefined)) {
-      throw new Error(
-        'Public Release-to-GHCR conversion refuses a tracked private GHCR pointer.'
-      )
-    }
     return { key: null, keyId: null, addCanonicalKey: false }
   }
 
@@ -1098,7 +1228,9 @@ async function loadRepositoryKey(head, visibility, ociEntries) {
     )
   }
   let key = canonical ?? legacy
-  const hasExistingPrivatePointers = ociEntries.length > 0
+  const hasExistingPrivatePointers = ociEntries.some(
+    entry => entry.pointer.keyId !== undefined
+  )
   if (key === null && hasExistingPrivatePointers) {
     throw new Error(
       'Private GHCR pointers exist but their tracked repository key is missing.'
@@ -1621,16 +1753,16 @@ async function main() {
   git(['diff', '--cached', '--quiet'])
   const repository = await loadRepositoryMetadata()
   const visibility = resolveConversionVisibility(
-    repository.private,
+    repository.visibility,
     privateConfirmation === 'true'
   )
   const target = deriveTarget(repository)
   const head = fetchPointerSizedBlobs()
-  if (remoteBranchCommit(repository.default_branch) !== head) {
-    throw new Error(
-      'The remote default branch differs from the checked-out conversion commit.'
-    )
-  }
+  requireRemoteDefaultCommit(
+    repository.default_branch,
+    head,
+    'before conversion began'
+  )
   const pointers = await trackedPointersAt(head)
   await summary('## Cheap LFS Release → GHCR')
   if (pointers.release.length === 0) {
@@ -1708,35 +1840,62 @@ async function main() {
       keyId: keyState.keyId,
       objects: [...objects.values()],
     })
-    await registry.uploadBuffer(
-      image.configBytes,
-      image.configDescriptor.digest
-    )
-    await registry.putManifest(image.manifestDigest, image.manifestBytes)
     const retentionTag = `${OCI_RETENTION_TAG_PREFIX}${image.manifestDigest.slice(
       'sha256:'.length
     )}`
-    await registry.putManifest(retentionTag, image.manifestBytes)
-
-    // A public first publish intentionally reaches this point: GHCR has created
-    // its default-private package and retained the immutable image. Policy
-    // verification then stops before the canonical tag and Git pointers.
-    await inspectPackagePolicy(repository, target, visibility)
-    await requireRepositoryPolicyUnchanged(repository, visibility)
-    await registry.putManifest(OCI_REPOSITORY_TAG, image.manifestBytes)
-    await requireRepositoryPolicyUnchanged(repository, visibility)
-
-    const commit = await adoptPointers({
-      head,
-      defaultBranch: repository.default_branch,
-      expectedRepository: repository,
-      releaseEntries: pointers.release,
-      image,
-      target,
-      visibility,
-      key: keyState.key,
-      addCanonicalKey: keyState.addCanonicalKey,
-      tempRoot,
+    const commit = await runCanonicalPublicationTransaction({
+      publishImmutableSnapshot: async () => {
+        await registry.uploadBuffer(
+          image.configBytes,
+          image.configDescriptor.digest
+        )
+        await registry.putManifest(
+          image.manifestDigest,
+          image.manifestBytes
+        )
+        await registry.putManifest(retentionTag, image.manifestBytes)
+      },
+      // A public first publish intentionally reaches package inspection:
+      // GHCR has created its default-private package and retained the immutable
+      // image, but neither Git pointers nor the mutable canonical tag changed.
+      verifyPackagePolicy: async () => {
+        await inspectPackagePolicy(repository, target, visibility)
+      },
+      verifyCapturedDefault: async () => {
+        await requireRepositoryPolicyUnchanged(repository, visibility)
+        requireRemoteDefaultCommit(
+          repository.default_branch,
+          head,
+          'before pointer adoption'
+        )
+      },
+      adoptPointers: async () =>
+        adoptPointers({
+          head,
+          defaultBranch: repository.default_branch,
+          expectedRepository: repository,
+          releaseEntries: pointers.release,
+          image,
+          target,
+          visibility,
+          key: keyState.key,
+          addCanonicalKey: keyState.addCanonicalKey,
+          tempRoot,
+        }),
+      verifyAdoptedDefault: async adoptionCommit => {
+        await requireRepositoryPolicyUnchanged(repository, visibility)
+        requireRemoteDefaultCommit(
+          repository.default_branch,
+          adoptionCommit,
+          'after pointer adoption and immediately before canonical-tag promotion'
+        )
+      },
+      publishCanonicalTag: async () => {
+        await registry.putManifest(
+          OCI_REPOSITORY_TAG,
+          image.manifestBytes
+        )
+      },
     })
     await summary(
       `Published one canonical GHCR snapshot \`${image.manifestDigest}\` and adopted ${pointers.release.length} current default-branch Release pointer(s) in \`${commit}\`.`

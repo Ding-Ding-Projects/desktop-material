@@ -53,6 +53,7 @@ const SaltBytes = 32
 const NonceBytes = 12
 const AuthenticationTagBytes = 16
 const DigestPattern = /^sha256:[0-9a-f]{64}$/
+const GitObjectPattern = /^[a-f0-9]{40,64}$/
 const ShaPattern = /^[a-f0-9]{64}$/
 const IntegerPattern = /^(?:0|[1-9][0-9]*)$/
 const OciRepositoryPattern =
@@ -353,14 +354,19 @@ export function serializeOciPointer(pointer) {
 }
 
 /**
- * Runtime visibility policy. A `true` conversion setting is not private
- * consent: private Actions run only when the separate confirmation is true.
+ * Runtime visibility policy. Repository visibility is checked independently
+ * from the conversion preference: private Actions run only when GitHub says
+ * `private` and the separate confirmation is true. Internal and unknown
+ * visibility are deliberately unsupported rather than guessed.
  */
-export function resolveConversionVisibility(isPrivate, privateConfirmed) {
-  if (isPrivate === false) {
+export function resolveConversionVisibility(
+  repositoryVisibility,
+  privateConfirmed
+) {
+  if (repositoryVisibility === 'public') {
     return 'public'
   }
-  if (isPrivate === true) {
+  if (repositoryVisibility === 'private') {
     if (privateConfirmed === true) {
       return 'private'
     }
@@ -371,8 +377,97 @@ export function resolveConversionVisibility(isPrivate, privateConfirmed) {
   }
   fail(
     'visibility-unknown',
-    'Cheap LFS Release-to-GHCR conversion is blocked until GitHub confirms whether this repository is public or private.'
+    'Cheap LFS Release-to-GHCR conversion is blocked because GitHub did not report an exact supported public or private repository visibility. Internal and unknown visibility are not converted.'
   )
+}
+
+/**
+ * Existing OCI pointers cannot silently cross a repository visibility
+ * boundary. Public objects need an explicit materialize-and-repin migration
+ * before a private snapshot can encrypt them; private objects likewise cannot
+ * be published through a public snapshot.
+ */
+export function requireOciPointerVisibility(visibility, pointerKeyIds) {
+  if (
+    (visibility !== 'public' && visibility !== 'private') ||
+    !Array.isArray(pointerKeyIds) ||
+    pointerKeyIds.some(
+      keyId => keyId !== undefined && !DigestPattern.test(keyId)
+    )
+  ) {
+    fail(
+      'visibility-unknown',
+      'Cheap LFS could not prove the visibility policy of existing GHCR pointers.'
+    )
+  }
+  const hasPublicPointers = pointerKeyIds.some(
+    keyId => keyId === undefined
+  )
+  const hasPrivatePointers = pointerKeyIds.some(
+    keyId => keyId !== undefined
+  )
+  if (visibility === 'private' && hasPublicPointers) {
+    fail(
+      'public-to-private-oci-transition',
+      'This repository became private while public GHCR pointers still exist. No canonical tag or pointer was changed. Materialize those files while their public package remains accessible, repin them to private GHCR in Desktop Material, then rerun this workflow.'
+    )
+  }
+  if (visibility === 'public' && hasPrivatePointers) {
+    fail(
+      'private-to-public-oci-transition',
+      'This repository became public while private encrypted GHCR pointers still exist. No canonical tag or pointer was changed. Materialize and repin those files under the intended public policy before rerunning this workflow.'
+    )
+  }
+  return true
+}
+
+/**
+ * Transaction seam for immutable publication, Git compare-and-swap adoption,
+ * and mutable canonical-tag promotion.
+ *
+ * The canonical tag is intentionally last. Only the run whose fast-forward
+ * adoption wins and whose exact adopted commit is still the remote default may
+ * promote it, so a concurrent loser can leave harmless immutable blobs but can
+ * never overwrite the canonical tag.
+ */
+export async function runCanonicalPublicationTransaction({
+  publishImmutableSnapshot,
+  verifyPackagePolicy,
+  verifyCapturedDefault,
+  adoptPointers,
+  verifyAdoptedDefault,
+  publishCanonicalTag,
+}) {
+  const operations = [
+    publishImmutableSnapshot,
+    verifyPackagePolicy,
+    verifyCapturedDefault,
+    adoptPointers,
+    verifyAdoptedDefault,
+    publishCanonicalTag,
+  ]
+  if (operations.some(operation => typeof operation !== 'function')) {
+    fail(
+      'invalid-transaction',
+      'Cheap LFS received an incomplete canonical publication transaction.'
+    )
+  }
+  await publishImmutableSnapshot()
+  await verifyPackagePolicy()
+  await verifyCapturedDefault()
+  const adoptionCommit = await adoptPointers()
+  if (
+    typeof adoptionCommit !== 'string' ||
+    !GitObjectPattern.test(adoptionCommit)
+  ) {
+    fail(
+      'invalid-transaction',
+      'Cheap LFS pointer adoption did not return an exact Git commit.'
+    )
+  }
+  await verifyAdoptedDefault(adoptionCommit)
+  await publishCanonicalTag(adoptionCommit)
+  return adoptionCommit
 }
 
 /**
