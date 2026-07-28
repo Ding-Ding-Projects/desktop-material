@@ -47,7 +47,32 @@ run-level choices. Persistent choices live in Settings.
 
 ## User installation
 
-From a trusted local checkout:
+Git and [uv](https://docs.astral.sh/uv/getting-started/installation/) are
+required. For a fresh Linux shell installation, clone the trusted repository,
+install the isolated tool, and add uv's tool directory to future shells in one
+line:
+
+<!-- markdownlint-disable MD013 -->
+
+```bash
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
+```
+
+The equivalent one-line Windows PowerShell installation is:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Close and reopen the terminal after either command so the updated `PATH` is
+loaded. Then open a repository with `github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The fully interactive acceptance
+target remains Linux; the Windows Terminal launch path and cross-platform core
+are also tested.
+
+From an existing trusted local checkout:
 
 ```bash
 uv tool install ./tui
@@ -62,7 +87,19 @@ name, use `dmt` or `desktop-material-tui` instead. From a repository:
 ```bash
 github --help
 github status --json
+github push --dry-run
+github pull --ff-only
+github git status --short
 ```
+
+The Open/Create dialog provides a clickable folder browser. Bracketed or
+Textual clipboard paste immediately unwraps one matching pair of outer quotes;
+submission applies the same normalization for typed paths and terminals
+without bracketed-paste reporting. Direct `github push` and `github pull` are
+Cheap-LFS-aware; the explicit `github git …` form passes other native Git argv
+through. See
+[Repository path browser and quoted paste](repository-path-browser.md) and the
+[Cheap LFS Git wrapper](cheap-lfs-git-wrapper.md) for their exact contracts.
 
 `pipx install ./tui` is the corresponding pipx route. A wheel built by CI can
 be installed with:
@@ -140,6 +177,11 @@ boundary, SELinux note, and failure modes are in the
 - unsupported Python: the package installer refuses it.
 - RE2 wheel unavailable for a platform: installation fails closed; do not
   substitute a different regex engine.
+- `github` not found after installation: `uv tool update-shell` updates future
+  shells, so open a new terminal or source the updated profile. Inspect the
+  executable directory with `uv tool dir --bin`. If another program or alias
+  already owns `github`, use the identical `dmt` or `desktop-material-tui`
+  launcher.
 - narrow terminal: content reflows and scrolls, but a terminal below the
   documented minimum may be impractical.
 - wheel omits `styles.tcss`: packaged startup is a release blocker.

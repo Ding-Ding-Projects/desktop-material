@@ -140,6 +140,25 @@ dmt_docker status --json
 dmt_docker cheap-lfs status --json
 ```
 
+Exercise the Cheap-LFS-aware native Git wrapper with the same writable
+repository and persistent cache:
+
+```bash
+dmt_docker push --dry-run origin main
+dmt_docker push origin main
+dmt_docker pull --ff-only
+```
+
+The first command performs Git's native dry-run and the read-only Cheap LFS
+preflight without publishing refs or downloading provider payloads. A real push
+requires Git credentials or an SSH agent deliberately made available to that
+container; the default example does not mount the host home, credential files,
+or agent socket. Pull writes Git state and working files, and its post-pull
+materialization uses the mounted cache. A missing cached object additionally
+requires the scoped `gh` authentication described above. With a read-only
+workspace mount, real push/pull or restoration fails rather than silently
+escaping the mount boundary.
+
 Review a Cheap LFS mutation before explicitly confirming the same command:
 
 ```bash

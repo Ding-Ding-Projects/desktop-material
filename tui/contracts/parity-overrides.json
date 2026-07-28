@@ -156,11 +156,14 @@
     },
     "Clone, add local, create repository": {
       "status": "adapted",
-      "reason": "Click actions and real text inputs open a local path, clone a URL, or initialize a new repository using argv-safe Git calls.",
+      "reason": "Open and Create combine real path inputs with a folder-only mouse/keyboard browser; Clone uses a real normalized destination input. All three use argv-safe Git calls, and matching outer quotes are removed from pasted paths without shell evaluation.",
       "evidence": [
         "tui/src/desktop_material_tui/app.py",
+        "tui/src/desktop_material_tui/application/path_input.py",
         "tui/src/desktop_material_tui/ui/screens/dialogs.py",
-        "tui/tests/ui/test_app_interactions.py"
+        "tui/tests/ui/test_path_dialog.py",
+        "tui/tests/unit/test_path_input.py",
+        "docs/features/linux-tui/repository-path-browser.md"
       ]
     },
     "Repository list filter and alias": {
@@ -215,15 +218,17 @@
     },
     "Release-backed Cheap LFS": {
       "status": "partial",
-      "reason": "The terminal edition reads and writes canonical v1 Release pointers and provides read-only preview, confirmed tracking, cache-first Release restore, and verification through gh with exact SHA-256 checks and no-overwrite recovery. Automatic commit/open/clone integration, cancelable confirmed transfers, paginated bucket rollover, manual browser handoff, and the desktop account-bound background workflows are absent.",
+      "reason": "The terminal edition reads and writes canonical v1 Release pointers and provides preview, explicit confirmed Track uploads, and cache-first restore. Its Git wrapper adds source-history preflight and post-pull materialization but never stages, commits, uploads, or rewrites automatically. Automatic open/clone integration, cancelable confirmed transfers, bucket rollover, browser handoff, and the desktop account-bound background workflows are absent.",
       "evidence": [
         "tui/src/desktop_material_tui/domain/cheap_lfs.py",
         "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/src/desktop_material_tui/application/git_command_wrapper.py",
         "tui/src/desktop_material_tui/cli.py",
         "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
         "tui/tests/unit/test_cheap_lfs_pointer.py",
         "tui/tests/application/test_cheap_lfs.py",
-        "docs/features/linux-tui/cheap-lfs.md"
+        "tui/tests/application/test_git_command_wrapper.py",
+        "docs/features/linux-tui/cheap-lfs-git-wrapper.md"
       ]
     },
     "Cheap LFS asset versioning": {
@@ -247,11 +252,13 @@
     },
     "Oversized-file filter and two-lane clone repair": {
       "status": "partial",
-      "reason": "Cheap LFS inventory identifies safe regular files strictly over 100 MiB and the manager can explicitly verify or restore canonical pointers. The Changes filter, automatic clone/open repair, and the desktop two-lane 90% look-ahead progress coordinator are not implemented.",
+      "reason": "Cheap LFS inventory identifies safe files strictly over 100 MiB; the Git wrapper blocks working-tree bypass candidates and oversized source-history blobs, verifies indexed materialized payloads, and restores pointers after explicit pulls. The Changes filter, automatic clone/open repair, and desktop two-lane 90% look-ahead coordinator are absent.",
       "evidence": [
         "tui/src/desktop_material_tui/application/cheap_lfs.py",
+        "tui/src/desktop_material_tui/application/git_command_wrapper.py",
         "tui/src/desktop_material_tui/ui/screens/cheap_lfs.py",
-        "tui/tests/application/test_cheap_lfs.py"
+        "tui/tests/application/test_cheap_lfs.py",
+        "tui/tests/application/test_git_command_wrapper.py"
       ]
     },
     "Permanent discard": {

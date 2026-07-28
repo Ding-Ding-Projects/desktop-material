@@ -12,7 +12,7 @@ focuses on what Desktop Material adds on top.
 
 > The graphical Desktop Material edition is supported on Windows only. Use its
 > published Windows x64 installer. Linux users can use the separate
-> [terminal edition](../features/linux-tui/README.md), which has its own package
+> [terminal edition](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/README.md), which has its own package
 > and parity boundary rather than a Linux Electron binary.
 
 **Feature guide**
@@ -51,6 +51,7 @@ The [Guided Feature Gallery](Feature-Gallery) is the canonical 89-scene visual i
 catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
 
 - [The shell](#the-shell)
+- [Install the TUI on Linux or Windows](#install-the-tui-on-linux-or-windows)
 - [Install on Windows](#install-on-windows)
 - [Material first run](#material-first-run)
 - [Signing in](#signing-in)
@@ -114,6 +115,52 @@ The complete [30-item feature ledger](https://github.com/Ding-Ding-Projects/desk
 links to behavior, recovery, security, and test details for every workflow.
 
 ![Advanced tag lifecycle workspace with local, pushed, and remote-only tags](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/advanced-workflows.png)
+
+---
+
+## Install the TUI on Linux or Windows
+
+The terminal edition requires Git, Python 3.10–3.13, and
+[uv](https://docs.astral.sh/uv/getting-started/installation/). From a fresh
+parent directory, use the matching one-line installation.
+
+Linux shell:
+
+<!-- markdownlint-disable MD013 -->
+
+```bash
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
+```
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Close and reopen the terminal afterward so the updated `PATH` is loaded. Then
+run `github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The interactive acceptance target
+remains Linux-first; the Windows Terminal launch path and cross-platform core
+are also tested.
+
+The same launcher provides Cheap-LFS-aware Git commands:
+
+```bash
+github -C /path/to/repository push --dry-run
+github -C /path/to/repository push origin main
+github -C /path/to/repository pull --ff-only
+github -C /path/to/repository git status --short
+```
+
+Open/Create also has a clickable folder browser. Bracketed or Textual clipboard
+paste unwraps one matching pair of single or double quotes immediately without
+evaluating shell syntax; submission applies the same normalization as a
+fallback. See the
+[complete TUI installation guide](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/install-and-packaging.md)
+for package, upgrade, Docker, security, and failure-mode details.
 
 ---
 

@@ -32,6 +32,7 @@ from textual.widgets import (
     Tabs,
 )
 
+from .application.path_input import path_from_user_input
 from .ui.screens.advanced import AdvancedPane
 from .ui.screens.cheap_lfs import CheapLfsPane
 from .ui.screens.dialogs import (
@@ -145,7 +146,7 @@ class DesktopMaterialTUI(App[None]):
     ) -> None:
         super().__init__()
         self.initial_repository = (
-            Path(initial_repository).expanduser().resolve()
+            path_from_user_input(initial_repository).resolve()
             if initial_repository is not None
             else None
         )
@@ -445,6 +446,7 @@ class DesktopMaterialTUI(App[None]):
     def on_resize(self, event: events.Resize) -> None:
         self.set_class(event.size.width < 120, "narrow")
         self.set_class(event.size.width < 125, "compact")
+        self.set_class(event.size.height < 22, "short")
         if self.is_running:
             self._update_tab_labels()
 
@@ -512,12 +514,19 @@ class DesktopMaterialTUI(App[None]):
             return
 
     def open_repository_path(self, path: str | Path) -> None:
-        repository_path = Path(path).expanduser().resolve()
+        requested_path = path_from_user_input(path).resolve()
         try:
-            service = self.repository_services.get(repository_path)
+            service = self.repository_services.get(requested_path)
             if service is None:
-                service = self._make_repository_service(repository_path)
+                service = self._make_repository_service(requested_path)
+            repository_path = service.path
+            existing_service = self.repository_services.get(repository_path)
+            if existing_service is not None:
+                service = existing_service
+            else:
                 self.repository_services[repository_path] = service
+            if requested_path != repository_path:
+                self.repository_services.pop(requested_path, None)
         except Exception as error:
             self.notify(str(error), title="Could not open repository", severity="error")
             return
@@ -727,8 +736,13 @@ class DesktopMaterialTUI(App[None]):
 
     def action_open_repository(self) -> None:
         initial = str(self.active_repository.parent) if self.active_repository else ""
+        translator = self._translator
         self.push_screen(
-            PathDialog("Open repository", initial=initial),
+            PathDialog(
+                translator.t("repository.open") if translator else "Open repository",
+                initial=initial,
+                submit_label=translator.t("common.open") if translator else "Open",
+            ),
             lambda value: self.open_repository_path(value) if value else None,
         )
 
@@ -739,8 +753,13 @@ class DesktopMaterialTUI(App[None]):
         self._clone_request(request)
 
     def _show_create_repository_dialog(self) -> None:
+        translator = self._translator
         self.push_screen(
-            PathDialog("Create repository", placeholder="/path/to/new/repository"),
+            PathDialog(
+                translator.t("repository.create") if translator else "Create repository",
+                placeholder="/path/to/new/repository",
+                submit_label=translator.t("repository.create") if translator else "Create",
+            ),
             self._handle_create_repository,
         )
 
@@ -752,7 +771,7 @@ class DesktopMaterialTUI(App[None]):
         if request is None:
             return
         destination = await asyncio.to_thread(
-            lambda: Path(request.destination).expanduser().resolve()
+            lambda: path_from_user_input(request.destination).resolve()
         )
         self.notify("Cloning in the background…", title="Clone")
         result = await asyncio.to_thread(
@@ -778,7 +797,7 @@ class DesktopMaterialTUI(App[None]):
     async def _create_repository(self, value: str | None) -> None:
         if not value:
             return
-        path = await asyncio.to_thread(lambda: Path(value).expanduser().resolve())
+        path = await asyncio.to_thread(lambda: path_from_user_input(value).resolve())
         try:
             await asyncio.to_thread(path.mkdir, parents=True, exist_ok=True)
             result = await asyncio.to_thread(

@@ -7,7 +7,7 @@ Use this map to choose a starting point: learn the daily workflow in the User Gu
 > **Platform support:** the graphical Electron edition is Windows-only. Its
 > installer and portable-ZIP target is Windows x64, with Windows x64/arm64
 > build validation and packaged Windows E2E. A separate
-> [Linux-first TUI](../features/linux-tui/README.md) provides a terminal-native
+> [Linux-first TUI](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/README.md) provides a terminal-native
 > Python package; it is not a Linux Electron build.
 
 **Desktop Material** is an independent Material Design 3 (M3 Expressive) remake of GitHub Desktop.
@@ -93,10 +93,48 @@ for details, the portable-ZIP extraction note, and the manual-download path.
 
 ---
 
+## Install the terminal edition
+
+From a fresh parent directory, install the Linux-first TUI with Git and uv in
+one line.
+
+Linux shell:
+
+<!-- markdownlint-disable MD013 -->
+
+```bash
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
+```
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Close and reopen the terminal afterward, then run
+`github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The interactive acceptance target
+remains Linux-first; the Windows Terminal launch path and cross-platform core
+are also tested. `github push` scans safe working candidates and the publication
+delta, with a conservative full-source-history fallback, before the real push;
+`github pull` restores verified canonical pointers after native Git succeeds,
+and `github git …` passes other native Git argv through without a shell.
+Open/Create includes a clickable folder browser. Bracketed or Textual clipboard
+paste immediately unwraps one matching outer quote pair; submission applies the
+same normalization as a fallback. See the
+[TUI installation guide](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/install-and-packaging.md) for
+the requirements, packaging, Docker, security, and failure-mode details.
+
+---
+
 ## Contents
 
 | Page | What it covers |
 | --- | --- |
+| [Install the terminal edition](#install-the-terminal-edition) | One-line Linux shell and Windows PowerShell installation, PATH setup, and launcher guidance. |
 | [Install on Windows](User-Guide#install-on-windows) | Fully automatic PowerShell install, portable ZIP, integrity checks, architecture limits, and manual download. |
 | [User Guide](User-Guide) | Task-oriented walkthrough for the Material welcome, appearance scopes, adaptive toolbar, accounts, the app-hosted browser, guided Git/GitHub functions, Cheap LFS restore progress, organizations, tabs, automation, Actions, History, stashes, pull-all, multi-window, and the MD3 shell. |
 | [Guided Feature Gallery](Feature-Gallery) | One distinct screenshot for each of 89 named visual scenes, with automated missing/duplicate coverage checks. |

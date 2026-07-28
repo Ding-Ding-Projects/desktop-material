@@ -21,6 +21,7 @@ from .application.cheap_lfs import (
     CheapLfsTrackPlan,
     summarize_provider_scope,
 )
+from .application.git_command_wrapper import GitCommandWrapper, GitWrapperReport
 from .application.repository_service import RepositoryService
 from .infrastructure.git.runner import redact_git_argument
 from .infrastructure.persistence import ConfigStore, XDGPaths
@@ -42,6 +43,7 @@ _COMMANDS = frozenset(
         "stash",
         "remote",
         "tag",
+        "git",
         "cheap-lfs",
         "preferences",
     }
@@ -173,20 +175,29 @@ def build_parser(prog: str = "github") -> argparse.ArgumentParser:
     fetch.add_argument("--dry-run", action="store_true")
     _add_json_option(fetch)
 
-    pull = subparsers.add_parser("pull", help="fetch and integrate an upstream branch")
-    pull.add_argument("remote", nargs="?")
-    pull.add_argument("branch", nargs="?")
-    pull.add_argument("--rebase", action="store_true")
-    pull.add_argument("--ff-only", action="store_true")
-    _add_mutation_options(pull)
+    git_command = subparsers.add_parser(
+        "git",
+        add_help=False,
+        help="run native Git argv; push/pull add Cheap LFS phases",
+    )
+    _add_json_option(git_command)
+    git_command.add_argument("git_args", nargs=argparse.REMAINDER)
 
-    push = subparsers.add_parser("push", help="publish refs")
-    push.add_argument("remote", nargs="?")
-    push.add_argument("branch", nargs="?")
-    push.add_argument("--set-upstream", action="store_true")
-    push.add_argument("--force-with-lease", action="store_true")
-    push.add_argument("--tags", action="store_true")
-    _add_mutation_options(push)
+    pull = subparsers.add_parser(
+        "pull",
+        add_help=False,
+        help="native git pull plus safe Cheap LFS restoration",
+    )
+    _add_json_option(pull)
+    pull.add_argument("git_args", nargs=argparse.REMAINDER)
+
+    push = subparsers.add_parser(
+        "push",
+        add_help=False,
+        help="Cheap LFS preflight followed by native git push",
+    )
+    _add_json_option(push)
+    push.add_argument("git_args", nargs=argparse.REMAINDER)
 
     branches = subparsers.add_parser("branch", help="list and manage branches")
     branch_commands = branches.add_subparsers(dest="branch_command", required=True)
@@ -381,6 +392,42 @@ def normalize_argv(arguments: Sequence[str]) -> list[str]:
     return ["tui", *values]
 
 
+def _raw_git_wrapper_argv(values: Sequence[str]) -> tuple[int, str] | None:
+    """Find a wrapper command while preserving every following native Git argv."""
+
+    root_options_with_value = frozenset(
+        {
+            "-C",
+            "--repository-path",
+            "--language",
+            "--english-funny-level",
+            "--cantonese-funny-level",
+        }
+    )
+    index = 0
+    while index < len(values):
+        value = values[index]
+        if value in {"git", "pull", "push"}:
+            return index, value
+        if value in root_options_with_value:
+            index += 2
+            continue
+        if value.startswith(("--repository-path=", "--language=")):
+            index += 1
+            continue
+        if value.startswith(("--english-funny-level=", "--cantonese-funny-level=")):
+            index += 1
+            continue
+        if value.startswith("-C") and value != "-C":
+            index += 1
+            continue
+        if value in {"--json", "--save-preferences"}:
+            index += 1
+            continue
+        return None
+    return None
+
+
 def main(
     argv: Sequence[str] | None = None,
     *,
@@ -394,13 +441,20 @@ def main(
     errors = stderr or sys.stderr
     raw = sys.argv[1:] if argv is None else list(argv)
     program = prog or Path(sys.argv[0]).name or "github"
-    args = build_parser(program).parse_args(normalize_argv(raw))
+    normalized = normalize_argv(raw)
+    wrapper = _raw_git_wrapper_argv(normalized)
+    if wrapper is None:
+        args = build_parser(program).parse_args(normalized)
+    else:
+        command_index, _command = wrapper
+        args = build_parser(program).parse_args(normalized[: command_index + 1])
+        args.git_args = normalized[command_index + 1 :]
     try:
         preferences = _load_preferences()
         if getattr(args, "save_preferences", False):
             preferences = _persist_root_overrides(args, preferences)
         locale = _effective_locale(args, preferences)
-        return _dispatch(args, locale, output)
+        return _dispatch(args, locale, output, errors)
     except ConfirmationRequiredError as error:
         print(str(error), file=errors)
         return 2
@@ -410,13 +464,20 @@ def main(
         return 1
 
 
-def _dispatch(args: argparse.Namespace, locale: Mapping[str, object], output: TextIO) -> int:
+def _dispatch(
+    args: argparse.Namespace,
+    locale: Mapping[str, object],
+    output: TextIO,
+    errors: TextIO | None = None,
+) -> int:
     if args.command == "tui":
         return _launch_tui(args)
     if args.command == "preferences":
         return _preferences_command(args, output)
     if args.command == "cheap-lfs":
         return _cheap_lfs_command(args, locale, output)
+    if args.command in {"git", "pull", "push"}:
+        return _git_wrapper_command(args, output, errors or output)
 
     service = RepositoryService(args.repository_path)
     service.validate()
@@ -478,46 +539,6 @@ def _dispatch(args: argparse.Namespace, locale: Mapping[str, object], output: Te
             _emit(plan, args, output)
         else:
             _emit(service.fetch(args.remote, args.prune, args.tags), args, output)
-    elif command == "pull":
-        plan = {
-            "operation": "pull",
-            "remote": args.remote,
-            "branch": args.branch,
-            "rebase": args.rebase,
-            "ff_only": args.ff_only,
-        }
-        _execute_confirmed(
-            args,
-            plan,
-            lambda: service.pull(
-                args.remote,
-                args.branch,
-                args.rebase,
-                args.ff_only,
-            ),
-            output,
-        )
-    elif command == "push":
-        plan = {
-            "operation": "push",
-            "remote": args.remote,
-            "branch": args.branch,
-            "set_upstream": args.set_upstream,
-            "force_with_lease": args.force_with_lease,
-            "tags": args.tags,
-        }
-        _execute_confirmed(
-            args,
-            plan,
-            lambda: service.push(
-                args.remote,
-                args.branch,
-                args.set_upstream,
-                args.force_with_lease,
-                args.tags,
-            ),
-            output,
-        )
     elif command == "branch":
         _branch_command(service, args, output)
     elif command == "stash":
@@ -529,6 +550,53 @@ def _dispatch(args: argparse.Namespace, locale: Mapping[str, object], output: Te
     else:  # pragma: no cover - argparse makes this unreachable
         raise ValueError(f"Unsupported command: {command}")
     return 0
+
+
+def _git_wrapper_command(
+    args: argparse.Namespace,
+    output: TextIO,
+    errors: TextIO,
+) -> int:
+    git_args = tuple(args.git_args)
+    if args.command in {"pull", "push"}:
+        git_args = (args.command, *git_args)
+    report = GitCommandWrapper(args.repository_path).run(git_args)
+    if getattr(args, "json_output", False):
+        _emit(report, args, output)
+    else:
+        _emit_git_wrapper_human(report, output, errors)
+    return report.exit_code
+
+
+def _emit_git_wrapper_human(
+    report: GitWrapperReport,
+    output: TextIO,
+    errors: TextIO,
+) -> None:
+    phased = len(report.phases) > 1 or (
+        report.phases and report.phases[0].name in {"git.pull", "git.push"}
+    )
+    for phase in report.phases:
+        destination = errors if phase.state == "failed" else output
+        if phased:
+            print(f"[{phase.name}: {phase.state}]", file=destination)
+        if phase.detail:
+            print(phase.detail, file=destination)
+        if phase.stdout:
+            print(phase.stdout, end="" if phase.stdout.endswith("\n") else "\n", file=output)
+        if phase.stderr:
+            print(phase.stderr, end="" if phase.stderr.endswith("\n") else "\n", file=errors)
+    if report.blocked_blobs:
+        print("Oversized outgoing Git blobs:", file=errors)
+        for blob in report.blocked_blobs:
+            print(
+                f"  {blob.path}  {blob.size_in_bytes} bytes  {blob.oid[:12]}",
+                file=errors,
+            )
+    if report.blocked_working_files:
+        print("Oversized working-tree files:", file=errors)
+        for item in report.blocked_working_files:
+            print(f"  {item.path}  {item.size_in_bytes} bytes", file=errors)
 
 
 def _launch_tui(args: argparse.Namespace) -> int:

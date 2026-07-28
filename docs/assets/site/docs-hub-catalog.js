@@ -483,6 +483,13 @@
       d: 'The terminal edition separates:',
     },
     {
+      t: 'Cheap LFS-aware Git CLI wrapper',
+      h: 'features/linux-tui/cheap-lfs-git-wrapper.html',
+      s: 'features/linux-tui/cheap-lfs-git-wrapper.md',
+      c: 'features',
+      d: 'github exposes an argv-preserving Git wrapper alongside the interactive TUI:',
+    },
+    {
       t: 'Cheap LFS in the terminal edition',
       h: 'features/linux-tui/cheap-lfs.html',
       s: 'features/linux-tui/cheap-lfs.md',
@@ -544,6 +551,13 @@
       s: 'features/linux-tui/repositories-and-git.md',
       c: 'features',
       d: 'The repository rail supports:',
+    },
+    {
+      t: 'Repository path browser and quoted paste',
+      h: 'features/linux-tui/repository-path-browser.html',
+      s: 'features/linux-tui/repository-path-browser.md',
+      c: 'features',
+      d: "The terminal edition's Open repository and Create repository dialogs combine a real editable path field with a terminal-native folder browser. A user can paste or type a path,…",
     },
     {
       t: 'TUI search and RE2',
@@ -1260,6 +1274,20 @@
       d: 'Cheap LFS passed live GitHub storage, fresh-clone history, and Desktop Material UI acceptance in both repository visibility modes while authenticated as DingDingChae. The two…',
     },
     {
+      t: 'Cheap LFS Pages headless cleanup ledger',
+      h: 'verification/cheap-lfs-pages-2026-07-27/cleanup-ledger.html',
+      s: 'verification/cheap-lfs-pages-2026-07-27/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: cheap-lfs-pages-2026-07-27',
+    },
+    {
+      t: 'Cheap LFS GitHub Pages visual guide — run manifest',
+      h: 'verification/cheap-lfs-pages-2026-07-27/run-manifest.html',
+      s: 'verification/cheap-lfs-pages-2026-07-27/run-manifest.md',
+      c: 'verification',
+      d: 'Mode: publish',
+    },
+    {
       t: 'Linux TUI publish cleanup ledger',
       h: 'verification/linux-tui-2026-07-27/cleanup-ledger.html',
       s: 'verification/linux-tui-2026-07-27/cleanup-ledger.md',
@@ -1272,6 +1300,20 @@
       s: 'verification/linux-tui-2026-07-27/run-manifest.md',
       c: 'verification',
       d: 'Run ID: linux-tui-2026-07-27-019fa510',
+    },
+    {
+      t: 'Linux TUI path browser and Git wrapper cleanup ledger',
+      h: 'verification/linux-tui-path-browser-wrapper-2026-07-27/cleanup-ledger.html',
+      s: 'verification/linux-tui-path-browser-wrapper-2026-07-27/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: linux-tui-path-browser-wrapper-2026-07-27-019fa510',
+    },
+    {
+      t: 'Linux TUI path browser and Git wrapper run manifest',
+      h: 'verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.html',
+      s: 'verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: linux-tui-path-browser-wrapper-2026-07-27-019fa510',
     },
     {
       t: 'Verification records',

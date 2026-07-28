@@ -35,8 +35,9 @@ uv pip install \
 /tmp/desktop-material-tui-wheel-smoke/bin/desktop-material-tui --version
 ```
 
-Inspect the archive for `styles.tcss`, `py.typed`, metadata, and both console
-entry points. Delete the controlled temporary environment after the check.
+Inspect the archive for `styles.tcss`, `py.typed`, metadata, and all three
+console entry points: `github`, `dmt`, and `desktop-material-tui`. Delete the
+controlled temporary environment after the check.
 
 ## Automated interaction
 
@@ -47,9 +48,12 @@ mouse-reporting terminal capture.
 
 ## Headless Linux acceptance
 
-The dated
+The original dated
 [run manifest](../../verification/linux-tui-2026-07-27/run-manifest.md) defines
-a publish-mode Lowlevel MCP/Xvfb exercise. It must:
+the full publish-mode Lowlevel MCP/Xvfb exercise. The later
+[path-browser and Git-wrapper manifest](../../verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
+adds packaged mouse, paste, browser, native Git, one-line install, and cleanup
+acceptance. Together they require:
 
 - start from a deterministic temporary Git fixture;
 - inspect a screenshot before sending input;

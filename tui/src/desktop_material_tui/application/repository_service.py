@@ -35,6 +35,7 @@ from ..infrastructure.git.porcelain import (
     parse_tags,
 )
 from ..infrastructure.git.runner import SubprocessGitRunner, redact_git_argument
+from .path_input import path_from_user_input
 
 _HTTP_USER_INFO = re.compile(r"(?i)^https?://[^/@\s]+@")
 _STASH_REF = re.compile(r"^stash@\{\d+}$")
@@ -51,7 +52,7 @@ class RepositoryService:
         timeout: float = 30.0,
         network_timeout: float = 120.0,
     ) -> None:
-        requested_path = Path(path).expanduser()
+        requested_path = path_from_user_input(path)
         if timeout <= 0 or network_timeout <= 0:
             raise InvalidGitArgumentError("timeout", "must be greater than zero")
         self._requested_path = requested_path
