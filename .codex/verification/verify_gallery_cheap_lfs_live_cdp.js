@@ -39,11 +39,13 @@ const zlib = require('zlib')
 const { execFileSync } = require('node:child_process')
 const WebSocket = require('ws')
 
-const SurfaceReceiptSchema = 'desktop-material/gallery-cheap-lfs-live/v1'
+const SurfaceReceiptSchema = 'desktop-material/gallery-cheap-lfs-live/v2'
 const PointerVersion = 'desktop-material/cheap-lfs/v1'
 const PrivateAcceptanceOriginIdentity =
   'DingDingChae/desktop-material-cheap-lfs-private-20260722-153308'
 const PrivateAcceptanceCommit = 'e56519d4742c63bb2c9f5f1e917de3fca7379fdd'
+const CloudCompressionWorkflowPath =
+  '.github/workflows/cheap-lfs-cloud-compression.yml'
 
 const ScenarioSpecifications = Object.freeze({
   'bambu-build-live': Object.freeze({
@@ -112,6 +114,20 @@ const ExpectedAssertionNames = Object.freeze([
 
 function fail(message) {
   throw new Error(message)
+}
+
+function sha256Text(value) {
+  return crypto.createHash('sha256').update(value).digest('hex')
+}
+
+function expectedOriginIdentityForScenario(scenario) {
+  const specification = ScenarioSpecifications[scenario]
+  if (specification === undefined) {
+    fail(`Unknown Cheap LFS gallery scenario ${scenario}.`)
+  }
+  return (
+    specification.publicIdentity ?? PrivateAcceptanceOriginIdentity
+  ).toLowerCase()
 }
 
 function parseArguments(argv) {
@@ -188,7 +204,7 @@ function isContainedPath(root, candidate) {
   )
 }
 
-function assertRealDirectory(candidate, label) {
+function readRealDirectoryIdentity(candidate, label) {
   let status
   let real
   let realStatus
@@ -208,7 +224,15 @@ function assertRealDirectory(candidate, label) {
   ) {
     fail(`${label} must be a real directory, not a link or junction.`)
   }
-  return real
+  return {
+    realPath: real,
+    device: String(status.dev),
+    inode: String(status.ino),
+  }
+}
+
+function assertRealDirectory(candidate, label) {
+  return readRealDirectoryIdentity(candidate, label).realPath
 }
 
 function readBoundedRealFile(candidate, maximumBytes, label) {
@@ -341,10 +365,113 @@ function runReadOnlyGit(repositoryPath, args, label) {
   }
 }
 
+function readRepositoryFilesystemIdentity(repositoryPath, label) {
+  const repository = readRealDirectoryIdentity(
+    repositoryPath,
+    `${label} repository root`
+  )
+  if (normalizedPath(repository.realPath) !== normalizedPath(repositoryPath)) {
+    fail(`${label} repository root identity changed.`)
+  }
+  const gitDirectory = readRealDirectoryIdentity(
+    path.join(repository.realPath, '.git'),
+    `${label} Git directory`
+  )
+  if (!isContainedPath(repository.realPath, gitDirectory.realPath)) {
+    fail(`${label} Git directory escaped the repository root.`)
+  }
+
+  const reportedTopLevel = runReadOnlyGit(
+    repository.realPath,
+    ['rev-parse', '--show-toplevel'],
+    label
+  )
+  const reportedGitDirectory = runReadOnlyGit(
+    repository.realPath,
+    ['rev-parse', '--absolute-git-dir'],
+    label
+  )
+  if (
+    normalizedPath(reportedTopLevel) !== normalizedPath(repository.realPath) ||
+    normalizedPath(reportedGitDirectory) !==
+      normalizedPath(gitDirectory.realPath)
+  ) {
+    fail(`${label} Git paths do not match the owned repository directories.`)
+  }
+
+  return {
+    repositoryFilesystemIdentitySha256: sha256Text(
+      JSON.stringify({
+        repositoryDevice: repository.device,
+        repositoryInode: repository.inode,
+        gitDirectoryDevice: gitDirectory.device,
+        gitDirectoryInode: gitDirectory.inode,
+      })
+    ),
+    gitDirectoryPath: gitDirectory.realPath,
+  }
+}
+
+function readRepositoryGitState(repositoryPath, label) {
+  const filesystem = readRepositoryFilesystemIdentity(repositoryPath, label)
+  const originIdentity = normalizedGitHubOriginIdentity(
+    parseOriginURL(
+      readBoundedRealFile(
+        path.join(filesystem.gitDirectoryPath, 'config'),
+        256 * 1024,
+        `${label} Git config`
+      )
+    )
+  )
+  if (originIdentity === null) {
+    fail(`${label} GitHub origin identity is invalid.`)
+  }
+  return {
+    repositoryFilesystemIdentitySha256:
+      filesystem.repositoryFilesystemIdentitySha256,
+    originIdentity,
+    status: runReadOnlyGit(
+      repositoryPath,
+      ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
+      label
+    ),
+    branch: runReadOnlyGit(
+      repositoryPath,
+      ['symbolic-ref', '--quiet', '--short', 'HEAD'],
+      label
+    ),
+    upstream: runReadOnlyGit(
+      repositoryPath,
+      ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
+      label
+    ),
+    head: runReadOnlyGit(
+      repositoryPath,
+      ['rev-parse', '--verify', 'HEAD^{commit}'],
+      label
+    ),
+    upstreamTip: runReadOnlyGit(
+      repositoryPath,
+      ['rev-parse', '--verify', '@{upstream}^{commit}'],
+      label
+    ),
+  }
+}
+
 function validateGitStateProof(state, expectedCommit, label) {
   const expected = String(expectedCommit).toLowerCase()
   if (!/^[a-f0-9]{40}$/.test(expected)) {
     fail(`${label} expected commit is invalid.`)
+  }
+  if (
+    !/^[a-f0-9]{64}$/.test(
+      String(state.repositoryFilesystemIdentitySha256 ?? '')
+    )
+  ) {
+    fail(`${label} repository filesystem identity is invalid.`)
+  }
+  if (!/^[^/\s]+\/[^/\s]+$/.test(String(state.originIdentity ?? ''))) {
+    fail(`${label} GitHub origin identity is invalid.`)
   }
   if (state.status !== '') {
     fail(`${label} fixture must have no staged, unstaged, or untracked state.`)
@@ -362,40 +489,243 @@ function validateGitStateProof(state, expectedCommit, label) {
     worktreeClean: true,
     expectedCommitMatched: true,
     originTrackingTipMatched: true,
+    repositoryFilesystemIdentitySha256:
+      state.repositoryFilesystemIdentitySha256,
   }
 }
 
 function validateReadOnlyGitPreparation(repositoryPath, expectedCommit, label) {
   return validateGitStateProof(
-    {
-      status: runReadOnlyGit(
-        repositoryPath,
-        ['status', '--porcelain=v1', '-z', '--untracked-files=all'],
-        label
-      ),
-      branch: runReadOnlyGit(
-        repositoryPath,
-        ['symbolic-ref', '--quiet', '--short', 'HEAD'],
-        label
-      ),
-      upstream: runReadOnlyGit(
-        repositoryPath,
-        ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{upstream}'],
-        label
-      ),
-      head: runReadOnlyGit(
-        repositoryPath,
-        ['rev-parse', '--verify', 'HEAD^{commit}'],
-        label
-      ),
-      upstreamTip: runReadOnlyGit(
-        repositoryPath,
-        ['rev-parse', '--verify', '@{upstream}^{commit}'],
-        label
-      ),
-    },
+    readRepositoryGitState(repositoryPath, label),
     expectedCommit,
     label
+  )
+}
+
+function readExactWorkingTreeEntryKind(repositoryPath, relativePath, label) {
+  const segments = relativePath.split('/')
+  let candidate = repositoryPath
+  for (let index = 0; index < segments.length; index += 1) {
+    candidate = path.join(candidate, segments[index])
+    let status
+    try {
+      status = fs.lstatSync(candidate)
+    } catch (error) {
+      if (error?.code === 'ENOENT') {
+        return 'absent'
+      }
+      fail(`${label} working-tree workflow absence check failed.`)
+    }
+    if (status.isSymbolicLink()) {
+      return index === segments.length - 1
+        ? 'link-or-junction'
+        : 'linked-parent'
+    }
+    let real
+    let realStatus
+    try {
+      real = fs.realpathSync.native(candidate)
+      realStatus = fs.lstatSync(real)
+    } catch {
+      fail(`${label} working-tree workflow identity check failed.`)
+    }
+    if (status.dev !== realStatus.dev || status.ino !== realStatus.ino) {
+      return index === segments.length - 1
+        ? 'link-or-junction'
+        : 'linked-parent'
+    }
+    if (index < segments.length - 1) {
+      if (!status.isDirectory()) {
+        return 'non-directory-parent'
+      }
+      continue
+    }
+    if (status.isFile()) {
+      return 'file'
+    }
+    if (status.isDirectory()) {
+      return 'directory'
+    }
+    return 'other'
+  }
+  return 'other'
+}
+
+function normalizedGitState(state) {
+  return {
+    repositoryFilesystemIdentitySha256: String(
+      state.repositoryFilesystemIdentitySha256
+    ).toLowerCase(),
+    originIdentity: String(state.originIdentity).toLowerCase(),
+    status: String(state.status),
+    branch: String(state.branch),
+    upstream: String(state.upstream),
+    head: String(state.head).toLowerCase(),
+    upstreamTip: String(state.upstreamTip).toLowerCase(),
+  }
+}
+
+function computeRepositoryStateFingerprintSha256(proof) {
+  return sha256Text(
+    JSON.stringify({
+      expectedCommit: proof.expectedCommit,
+      expectedOriginIdentitySha256: proof.expectedOriginIdentitySha256,
+      repositoryFilesystemIdentitySha256:
+        proof.repositoryFilesystemIdentitySha256,
+      worktreeClean: proof.worktreeClean,
+      expectedCommitMatched: proof.expectedCommitMatched,
+      originTrackingTipMatched: proof.originTrackingTipMatched,
+      originIdentityMatched: proof.originIdentityMatched,
+      committedCloudWorkflowAbsent: proof.committedCloudWorkflowAbsent,
+      indexCloudWorkflowAbsent: proof.indexCloudWorkflowAbsent,
+      workingTreeCloudWorkflowAbsent: proof.workingTreeCloudWorkflowAbsent,
+    })
+  )
+}
+
+function validateRepositoryStateProof(
+  state,
+  expectedCommit,
+  expectedOriginIdentity,
+  label,
+  cloudWorkflowAbsenceRequired
+) {
+  const before = normalizedGitState(state.before)
+  const after = normalizedGitState(state.after)
+  const gitProof = validateGitStateProof(before, expectedCommit, label)
+  validateGitStateProof(after, expectedCommit, label)
+  if (JSON.stringify(before) !== JSON.stringify(after)) {
+    fail(`${label} Git state changed during the read-only provenance fence.`)
+  }
+  const normalizedExpectedCommit = String(expectedCommit).toLowerCase()
+  const normalizedExpectedOriginIdentity = String(
+    expectedOriginIdentity
+  ).toLowerCase()
+  if (
+    !/^[^/\s]+\/[^/\s]+$/.test(normalizedExpectedOriginIdentity) ||
+    before.originIdentity !== normalizedExpectedOriginIdentity
+  ) {
+    fail(`${label} fixture origin does not match its reviewed repository.`)
+  }
+
+  let committedCloudWorkflowAbsent = null
+  let indexCloudWorkflowAbsent = null
+  let workingTreeCloudWorkflowAbsent = null
+  if (cloudWorkflowAbsenceRequired) {
+    if (state.committedWorkflowEntry !== '') {
+      fail(`${label} must not contain the cloud workflow in HEAD.`)
+    }
+    if (state.indexWorkflowEntry !== '') {
+      fail(`${label} must not contain the cloud workflow in the index.`)
+    }
+    if (state.workingTreeWorkflowKind !== 'absent') {
+      fail(`${label} must not contain the cloud workflow in the working tree.`)
+    }
+    committedCloudWorkflowAbsent = true
+    indexCloudWorkflowAbsent = true
+    workingTreeCloudWorkflowAbsent = true
+  } else if (
+    state.committedWorkflowEntry !== null ||
+    state.indexWorkflowEntry !== null ||
+    state.workingTreeWorkflowKind !== null
+  ) {
+    fail(`${label} received unexpected cloud-workflow proof fields.`)
+  }
+
+  const proof = {
+    ...gitProof,
+    originIdentityMatched: true,
+    expectedCommit: normalizedExpectedCommit,
+    expectedOriginIdentitySha256: sha256Text(normalizedExpectedOriginIdentity),
+    committedCloudWorkflowAbsent,
+    indexCloudWorkflowAbsent,
+    workingTreeCloudWorkflowAbsent,
+  }
+  return {
+    ...proof,
+    repositoryStateFingerprintSha256:
+      computeRepositoryStateFingerprintSha256(proof),
+  }
+}
+
+function validateCloudRepositoryStateProof(state, expectedCommit, label) {
+  return validateRepositoryStateProof(
+    state,
+    expectedCommit,
+    PrivateAcceptanceOriginIdentity,
+    label,
+    true
+  )
+}
+
+function selectCloudWorkflowEntries(output, label) {
+  if (output === '') {
+    return ''
+  }
+  const matches = []
+  for (const entry of output.split('\0')) {
+    if (entry === '') {
+      continue
+    }
+    const separator = entry.indexOf('\t')
+    if (separator < 1) {
+      fail(`${label} workflow inventory is malformed.`)
+    }
+    const relativePath = entry
+      .slice(separator + 1)
+      .replaceAll('\\', '/')
+      .toLowerCase()
+    if (relativePath === CloudCompressionWorkflowPath.toLowerCase()) {
+      matches.push(entry)
+    }
+  }
+  return matches.join('\0')
+}
+
+function readRepositoryStateProof(
+  repositoryPath,
+  expectedCommit,
+  expectedOriginIdentity,
+  label,
+  cloudWorkflowAbsenceRequired
+) {
+  const before = readRepositoryGitState(repositoryPath, label)
+  const committedWorkflowEntry = cloudWorkflowAbsenceRequired
+    ? selectCloudWorkflowEntries(
+        runReadOnlyGit(
+          repositoryPath,
+          ['ls-tree', '-r', '-z', '--full-tree', 'HEAD'],
+          label
+        ),
+        label
+      )
+    : null
+  const indexWorkflowEntry = cloudWorkflowAbsenceRequired
+    ? selectCloudWorkflowEntries(
+        runReadOnlyGit(repositoryPath, ['ls-files', '-z', '--stage'], label),
+        label
+      )
+    : null
+  const workingTreeWorkflowKind = cloudWorkflowAbsenceRequired
+    ? readExactWorkingTreeEntryKind(
+        repositoryPath,
+        CloudCompressionWorkflowPath,
+        label
+      )
+    : null
+  const after = readRepositoryGitState(repositoryPath, label)
+  return validateRepositoryStateProof(
+    {
+      before,
+      after,
+      committedWorkflowEntry,
+      indexWorkflowEntry,
+      workingTreeWorkflowKind,
+    },
+    expectedCommit,
+    expectedOriginIdentity,
+    label,
+    cloudWorkflowAbsenceRequired
   )
 }
 
@@ -501,7 +831,16 @@ function validateOwnedPaths(options) {
       ? 'Bambu'
       : 'Private Cheap LFS acceptance'
   )
-  return { runRoot, repositoryPath, preparation }
+  const repositoryStateProof = readRepositoryStateProof(
+    repositoryPath,
+    options.specification.expectedCommit,
+    expectedOriginIdentity,
+    options.scenario === 'bambu-build-live'
+      ? 'Bambu'
+      : 'Private Cheap LFS acceptance',
+    options.scenario === 'cloud-compression'
+  )
+  return { runRoot, repositoryPath, preparation, repositoryStateProof }
 }
 
 function isRecord(value) {
@@ -518,6 +857,147 @@ function sameKeys(value, expected) {
 
 function validPositiveInteger(value) {
   return Number.isSafeInteger(value) && value > 0
+}
+
+function validateRepositoryCaptureProof(
+  initial,
+  postRender,
+  postCapture,
+  scenario
+) {
+  const cloud = scenario === 'cloud-compression'
+  const expectedWorkflowValue = cloud ? true : null
+  const specification = ScenarioSpecifications[scenario]
+  if (specification === undefined) {
+    fail(`Unknown Cheap LFS gallery scenario ${scenario}.`)
+  }
+  const expectedCommit = specification.expectedCommit.toLowerCase()
+  const expectedOriginIdentitySha256 = sha256Text(
+    expectedOriginIdentityForScenario(scenario)
+  )
+  const expectedKeys = [
+    'worktreeClean',
+    'expectedCommitMatched',
+    'originTrackingTipMatched',
+    'repositoryFilesystemIdentitySha256',
+    'originIdentityMatched',
+    'expectedCommit',
+    'expectedOriginIdentitySha256',
+    'committedCloudWorkflowAbsent',
+    'indexCloudWorkflowAbsent',
+    'workingTreeCloudWorkflowAbsent',
+    'repositoryStateFingerprintSha256',
+  ]
+  for (const [name, proof] of [
+    ['initial', initial],
+    ['post-render', postRender],
+    ['post-capture', postCapture],
+  ]) {
+    if (
+      !sameKeys(proof, expectedKeys) ||
+      proof.worktreeClean !== true ||
+      proof.expectedCommitMatched !== true ||
+      proof.originTrackingTipMatched !== true ||
+      !/^[a-f0-9]{64}$/.test(proof.repositoryFilesystemIdentitySha256 ?? '') ||
+      proof.originIdentityMatched !== true ||
+      proof.expectedCommit !== expectedCommit ||
+      proof.expectedOriginIdentitySha256 !== expectedOriginIdentitySha256 ||
+      proof.committedCloudWorkflowAbsent !== expectedWorkflowValue ||
+      proof.indexCloudWorkflowAbsent !== expectedWorkflowValue ||
+      proof.workingTreeCloudWorkflowAbsent !== expectedWorkflowValue ||
+      !/^[a-f0-9]{64}$/.test(proof.repositoryStateFingerprintSha256 ?? '') ||
+      proof.repositoryStateFingerprintSha256 !==
+        computeRepositoryStateFingerprintSha256(proof)
+    ) {
+      fail(`${name} repository capture proof is invalid for ${scenario}.`)
+    }
+  }
+  const fingerprints = [
+    initial.repositoryStateFingerprintSha256,
+    postRender.repositoryStateFingerprintSha256,
+    postCapture.repositoryStateFingerprintSha256,
+  ]
+  if (new Set(fingerprints).size !== 1) {
+    fail(`Repository state changed while capturing ${scenario}.`)
+  }
+  return {
+    postRenderStateRevalidated: true,
+    postCaptureStateRevalidated: true,
+    repositoryStateStableAfterRender: true,
+    repositoryStateStableAcrossCapture: true,
+    originIdentityMatched: true,
+    expectedCommit,
+    expectedOriginIdentitySha256,
+    repositoryFilesystemIdentitySha256:
+      initial.repositoryFilesystemIdentitySha256,
+    committedCloudWorkflowAbsent: expectedWorkflowValue,
+    indexCloudWorkflowAbsent: expectedWorkflowValue,
+    workingTreeCloudWorkflowAbsent: expectedWorkflowValue,
+    initialFingerprintSha256: fingerprints[0],
+    postRenderFingerprintSha256: fingerprints[1],
+    postCaptureFingerprintSha256: fingerprints[2],
+  }
+}
+
+function validateRepositoryCaptureReceipt(receipt, scenario) {
+  const expectedWorkflowValue = scenario === 'cloud-compression' ? true : null
+  const specification = ScenarioSpecifications[scenario]
+  if (specification === undefined) {
+    fail(`Unknown Cheap LFS gallery scenario ${scenario}.`)
+  }
+  const expectedCommit = specification.expectedCommit.toLowerCase()
+  const expectedOriginIdentitySha256 = sha256Text(
+    expectedOriginIdentityForScenario(scenario)
+  )
+  if (
+    !sameKeys(receipt, [
+      'postRenderStateRevalidated',
+      'postCaptureStateRevalidated',
+      'repositoryStateStableAfterRender',
+      'repositoryStateStableAcrossCapture',
+      'originIdentityMatched',
+      'expectedCommit',
+      'expectedOriginIdentitySha256',
+      'repositoryFilesystemIdentitySha256',
+      'committedCloudWorkflowAbsent',
+      'indexCloudWorkflowAbsent',
+      'workingTreeCloudWorkflowAbsent',
+      'initialFingerprintSha256',
+      'postRenderFingerprintSha256',
+      'postCaptureFingerprintSha256',
+    ]) ||
+    receipt.postRenderStateRevalidated !== true ||
+    receipt.postCaptureStateRevalidated !== true ||
+    receipt.repositoryStateStableAfterRender !== true ||
+    receipt.repositoryStateStableAcrossCapture !== true ||
+    receipt.originIdentityMatched !== true ||
+    receipt.expectedCommit !== expectedCommit ||
+    receipt.expectedOriginIdentitySha256 !== expectedOriginIdentitySha256 ||
+    !/^[a-f0-9]{64}$/.test(receipt.repositoryFilesystemIdentitySha256 ?? '') ||
+    receipt.committedCloudWorkflowAbsent !== expectedWorkflowValue ||
+    receipt.indexCloudWorkflowAbsent !== expectedWorkflowValue ||
+    receipt.workingTreeCloudWorkflowAbsent !== expectedWorkflowValue ||
+    !/^[a-f0-9]{64}$/.test(receipt.initialFingerprintSha256 ?? '') ||
+    receipt.postRenderFingerprintSha256 !== receipt.initialFingerprintSha256 ||
+    receipt.postCaptureFingerprintSha256 !== receipt.initialFingerprintSha256 ||
+    receipt.initialFingerprintSha256 !==
+      computeRepositoryStateFingerprintSha256({
+        worktreeClean: true,
+        expectedCommitMatched: true,
+        originTrackingTipMatched: true,
+        repositoryFilesystemIdentitySha256:
+          receipt.repositoryFilesystemIdentitySha256,
+        originIdentityMatched: true,
+        expectedCommit,
+        expectedOriginIdentitySha256,
+        committedCloudWorkflowAbsent: expectedWorkflowValue,
+        indexCloudWorkflowAbsent: expectedWorkflowValue,
+        workingTreeCloudWorkflowAbsent: expectedWorkflowValue,
+      })
+  ) {
+    fail(`Repository capture receipt is invalid for ${scenario}.`)
+  }
+  return receipt
 }
 
 function requestJSON(port, requestPath) {
@@ -1786,8 +2266,12 @@ function inspectPngBytes(bytes, expectedWidth, expectedHeight) {
       minimum = Math.min(minimum, red, green, blue)
       maximum = Math.max(maximum, red, green, blue)
       const luminance = (red * 2126 + green * 7152 + blue * 722) / 10000
-      if (luminance < 8) darkPixels++
-      if (luminance > 247) lightPixels++
+      if (luminance < 8) {
+        darkPixels++
+      }
+      if (luminance > 247) {
+        lightPixels++
+      }
       if (colors.size < 4096) {
         colors.add(`${red >> 3},${green >> 3},${blue >> 3}`)
       }
@@ -1831,8 +2315,7 @@ async function captureOriginalPixels(options) {
   if (buffer.byteLength < 20_000) {
     fail('Capture is suspiciously small and may be blank.')
   }
-  fs.writeFileSync(options.capturePath, buffer, { flag: 'wx' })
-  return {
+  const capture = {
     outputFile: options.specification.outputFile,
     source: 'Page.captureScreenshot',
     fromSurface: true,
@@ -1843,6 +2326,116 @@ async function captureOriginalPixels(options) {
     bytes: buffer.byteLength,
     sha256: crypto.createHash('sha256').update(buffer).digest('hex'),
     pixelInspection,
+  }
+  const captureOwnership = writeExclusiveOwnedFile(
+    options.capturePath,
+    buffer,
+    'Capture'
+  )
+  return { capture, captureOwnership }
+}
+
+function removeOwnedNewFile(candidate, io = fs) {
+  try {
+    io.unlinkSync(candidate)
+  } catch (error) {
+    if (error?.code !== 'ENOENT') {
+      throw error
+    }
+  }
+}
+
+function writeExclusiveOwnedFile(candidate, contents, label, io = fs) {
+  let descriptor = null
+  let created = false
+  try {
+    descriptor = io.openSync(candidate, 'wx', 0o600)
+    created = true
+    io.writeFileSync(descriptor, contents)
+    io.fsyncSync(descriptor)
+    const status = io.fstatSync(descriptor)
+    if (!status.isFile()) {
+      fail(`${label} output descriptor is not a regular file.`)
+    }
+    const descriptorToClose = descriptor
+    descriptor = null
+    io.closeSync(descriptorToClose)
+    return {
+      device: String(status.dev),
+      inode: String(status.ino),
+    }
+  } catch (error) {
+    const cleanupErrors = []
+    if (descriptor !== null) {
+      try {
+        const descriptorToClose = descriptor
+        descriptor = null
+        io.closeSync(descriptorToClose)
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError)
+      }
+    }
+    if (created) {
+      try {
+        removeOwnedNewFile(candidate, io)
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError)
+      }
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupErrors],
+        `${label} write failed and its owned partial file could not be removed.`
+      )
+    }
+    throw error
+  }
+}
+
+function writeAtomicReceipt(
+  receiptPath,
+  contents,
+  io = fs,
+  nonce = crypto.randomBytes(8).toString('hex')
+) {
+  if (!/^[a-f0-9]{16}$/.test(nonce)) {
+    fail('Receipt publication nonce is invalid.')
+  }
+  const pendingPath = path.join(
+    path.dirname(receiptPath),
+    `.${path.basename(receiptPath)}.pending-${process.pid}-${nonce}`
+  )
+  writeExclusiveOwnedFile(pendingPath, contents, 'Pending receipt', io)
+  let pendingOwned = true
+  let receiptOwned = false
+  try {
+    io.linkSync(pendingPath, receiptPath)
+    receiptOwned = true
+    io.unlinkSync(pendingPath)
+    pendingOwned = false
+  } catch (error) {
+    const cleanupErrors = []
+    if (receiptOwned) {
+      try {
+        removeOwnedNewFile(receiptPath, io)
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError)
+      }
+    }
+    if (pendingOwned) {
+      try {
+        removeOwnedNewFile(pendingPath, io)
+      } catch (cleanupError) {
+        cleanupErrors.push(cleanupError)
+      }
+    }
+    if (cleanupErrors.length > 0) {
+      throw new AggregateError(
+        [error, ...cleanupErrors],
+        'Receipt publication failed and its owned files could not be removed.'
+      )
+    }
+    throw error
   }
 }
 
@@ -1858,14 +2451,20 @@ function validateFinalReceipt(receipt) {
       'state',
       'visibleText',
       'assertions',
+      'repositoryCaptureProof',
       'capture',
     ])
   ) {
     fail('Final live gallery receipt keys are invalid.')
   }
   const surface = { ...receipt }
+  delete surface.repositoryCaptureProof
   delete surface.capture
   validateSurfaceReceipt(surface, receipt.scenario)
+  validateRepositoryCaptureReceipt(
+    receipt.repositoryCaptureProof,
+    receipt.scenario
+  )
   const specification = ScenarioSpecifications[receipt.scenario]
   if (
     !sameKeys(receipt.capture, [
@@ -1899,6 +2498,35 @@ function validateFinalReceipt(receipt) {
   return receipt
 }
 
+function discardUnreceiptedCapture(capturePath, ownership) {
+  let status
+  try {
+    status = fs.lstatSync(capturePath)
+  } catch (error) {
+    if (error?.code === 'ENOENT') {
+      return
+    }
+    throw new Error('The unreceipted capture could not be inspected.', {
+      cause: error,
+    })
+  }
+  if (
+    status.isSymbolicLink() ||
+    !status.isFile() ||
+    String(status.dev) !== ownership.device ||
+    String(status.ino) !== ownership.inode
+  ) {
+    fail('The unreceipted capture path no longer identifies the owned PNG.')
+  }
+  try {
+    fs.unlinkSync(capturePath)
+  } catch (error) {
+    throw new Error('The unreceipted capture could not be removed.', {
+      cause: error,
+    })
+  }
+}
+
 async function main() {
   const options = parseArguments(process.argv.slice(2))
   const owned = validateOwnedPaths(options)
@@ -1922,16 +2550,64 @@ async function main() {
       ),
       options.scenario
     )
-    const capture = await captureOriginalPixels(options)
-    const receipt = validateFinalReceipt({ ...surface, capture })
-    fs.writeFileSync(
-      options.receiptPath,
-      `${JSON.stringify(receipt, null, 2)}\n`,
-      { flag: 'wx' }
+    const repositoryLabel =
+      options.scenario === 'bambu-build-live'
+        ? 'Bambu'
+        : 'Private Cheap LFS acceptance'
+    const expectedOriginIdentity = expectedOriginIdentityForScenario(
+      options.scenario
     )
-    process.stdout.write(
-      `GALLERY_CHEAP_LFS_LIVE_RECEIPT ${JSON.stringify(receipt)}\n`
+    const postRenderRepositoryState = readRepositoryStateProof(
+      owned.repositoryPath,
+      options.specification.expectedCommit,
+      expectedOriginIdentity,
+      repositoryLabel,
+      options.scenario === 'cloud-compression'
     )
+    let captureOwnership = null
+    try {
+      const captured = await captureOriginalPixels(options)
+      const { capture } = captured
+      captureOwnership = captured.captureOwnership
+      const postCaptureRepositoryState = readRepositoryStateProof(
+        owned.repositoryPath,
+        options.specification.expectedCommit,
+        expectedOriginIdentity,
+        repositoryLabel,
+        options.scenario === 'cloud-compression'
+      )
+      const repositoryCaptureProof = validateRepositoryCaptureProof(
+        owned.repositoryStateProof,
+        postRenderRepositoryState,
+        postCaptureRepositoryState,
+        options.scenario
+      )
+      const receipt = validateFinalReceipt({
+        ...surface,
+        repositoryCaptureProof,
+        capture,
+      })
+      writeAtomicReceipt(
+        options.receiptPath,
+        `${JSON.stringify(receipt, null, 2)}\n`
+      )
+      captureOwnership = null
+      process.stdout.write(
+        `GALLERY_CHEAP_LFS_LIVE_RECEIPT ${JSON.stringify(receipt)}\n`
+      )
+    } catch (error) {
+      if (captureOwnership !== null) {
+        try {
+          discardUnreceiptedCapture(options.capturePath, captureOwnership)
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [error, cleanupError],
+            'Live gallery verification failed and its unreceipted capture could not be removed.'
+          )
+        }
+      }
+      throw error
+    }
   } finally {
     client.close()
   }
@@ -1949,6 +2625,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  computeRepositoryStateFingerprintSha256,
   ExpectedAssertionNames,
   PointerVersion,
   ScenarioSpecifications,
@@ -1958,7 +2635,13 @@ module.exports = {
   isContainedPath,
   parseArguments,
   parseOriginURL,
+  readExactWorkingTreeEntryKind,
+  selectCloudWorkflowEntries,
+  validateCloudRepositoryStateProof,
   validateGitStateProof,
   validateFinalReceipt,
+  validateRepositoryCaptureProof,
   validateSurfaceReceipt,
+  writeAtomicReceipt,
+  writeExclusiveOwnedFile,
 }

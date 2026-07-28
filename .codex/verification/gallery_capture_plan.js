@@ -88,7 +88,7 @@ const CaptureBatches = Object.freeze({
   'windows-internal-browser': Object.freeze({
     platform: 'windows-headless',
     commands: Object.freeze([
-      'node .codex/verification/verify_internal_browser_cdp.js --port <owned-cdp-port> --run-root <owned-temp-run-root> --receipt <owned-temp-run-root>\\receipts\\internal-browser.json',
+      'node .codex/verification/verify_internal_browser_cdp.js --port <owned-cdp-port> --run-root <owned-temp-run-root> --receipt <owned-temp-run-root>\\internal-browser-cdp-receipt.json',
       'Lowlevel capture_screenshot(client_only=true, hwnd=<resolved-browser-hwnd>, path=<owned-temp-run-root>\\captures\\app-hosted-browser-authentication.png)',
     ]),
     fixture:
@@ -164,7 +164,7 @@ const CaptureBatches = Object.freeze({
   'windows-ollama': Object.freeze({
     platform: 'windows-headless',
     commands: Object.freeze([
-      'node .codex/verification/verify_ollama_manager_cdp.js --port <owned-cdp-port> --p0-run-root <owned-p0-run-root> --ollama-run-root <owned-ollama-run-root> --capture <owned-p0-run-root>\\captures\\material-ollama-model-manager.png --receipt <owned-p0-run-root>\\receipts\\material-ollama-model-manager.json',
+      'node .codex/verification/verify_ollama_manager_cdp.js --port <owned-cdp-port> --p0-run-root <owned-p0-run-root> --ollama-run-root <owned-ollama-run-root> --capture <owned-p0-run-root>\\captures\\material-ollama-model-manager.png --receipt <owned-p0-run-root>\\captures\\material-ollama-model-manager.json',
     ]),
     fixture:
       'Owned P0 production-app fixture plus .codex/verification/fake_ollama_server.py in a separate validated owned run root.',

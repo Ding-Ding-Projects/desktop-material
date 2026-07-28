@@ -1,9 +1,11 @@
 'use strict'
 
-/* eslint-disable no-sync -- contract tests read bounded repository files */
+/* eslint-disable no-sync -- contract tests use bounded repository/Temp fixtures */
 
 const assert = require('node:assert/strict')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
 const test = require('node:test')
 
@@ -101,10 +103,48 @@ function validSurfaceReceipt(scenario) {
   }
 }
 
+function validRepositoryStateProof(
+  scenario,
+  repositoryFilesystemIdentitySha256 = '4'.repeat(64)
+) {
+  const specification = verifier.ScenarioSpecifications[scenario]
+  const workflowValue = scenario === 'cloud-compression' ? true : null
+  const originIdentity =
+    specification.publicIdentity ??
+    'DingDingChae/desktop-material-cheap-lfs-private-20260722-153308'
+  const proof = {
+    worktreeClean: true,
+    expectedCommitMatched: true,
+    originTrackingTipMatched: true,
+    repositoryFilesystemIdentitySha256,
+    originIdentityMatched: true,
+    expectedCommit: specification.expectedCommit,
+    expectedOriginIdentitySha256: crypto
+      .createHash('sha256')
+      .update(originIdentity.toLowerCase())
+      .digest('hex'),
+    committedCloudWorkflowAbsent: workflowValue,
+    indexCloudWorkflowAbsent: workflowValue,
+    workingTreeCloudWorkflowAbsent: workflowValue,
+  }
+  return {
+    ...proof,
+    repositoryStateFingerprintSha256:
+      verifier.computeRepositoryStateFingerprintSha256(proof),
+  }
+}
+
 function validFinalReceipt(scenario) {
   const specification = verifier.ScenarioSpecifications[scenario]
+  const repositoryState = validRepositoryStateProof(scenario)
   return {
     ...validSurfaceReceipt(scenario),
+    repositoryCaptureProof: verifier.validateRepositoryCaptureProof(
+      repositoryState,
+      { ...repositoryState },
+      { ...repositoryState },
+      scenario
+    ),
     capture: {
       outputFile: specification.outputFile,
       source: 'Page.captureScreenshot',
@@ -263,6 +303,20 @@ test('filesystem gates use identity and require a one-entry clone reflog', () =>
     'GIT_CONFIG_NOSYSTEM',
     'core.hooksPath=',
     "'@{upstream}^{commit}'",
+    "'ls-tree'",
+    "'-r'",
+    "'--full-tree'",
+    "'ls-files'",
+    "'--stage'",
+    'CloudCompressionWorkflowPath',
+    'selectCloudWorkflowEntries',
+    'readExactWorkingTreeEntryKind',
+    'readRepositoryFilesystemIdentity',
+    "'--show-toplevel'",
+    "'--absolute-git-dir'",
+    'repositoryFilesystemIdentitySha256',
+    "error?.code === 'ENOENT'",
+    "'linked-parent'",
   ]) {
     assert.ok(
       source.includes(contract),
@@ -275,9 +329,165 @@ test('filesystem gates use identity and require a one-entry clone reflog', () =>
   )
 })
 
+test('working-tree workflow absence rejects real entries and dangling links', t => {
+  const functionStart = source.indexOf(
+    'function readExactWorkingTreeEntryKind('
+  )
+  const initialLstat = source.indexOf('fs.lstatSync(candidate)', functionStart)
+  const linkCheck = source.indexOf('status.isSymbolicLink()', initialLstat)
+  const realpath = source.indexOf(
+    'fs.realpathSync.native(candidate)',
+    linkCheck
+  )
+  assert.ok(functionStart >= 0)
+  assert.ok(initialLstat > functionStart)
+  assert.ok(linkCheck > initialLstat)
+  assert.ok(realpath > linkCheck)
+
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'desktop-material-cloud-workflow-contract-')
+  )
+  const workflow = path.join(
+    root,
+    '.github',
+    'workflows',
+    'cheap-lfs-cloud-compression.yml'
+  )
+  try {
+    assert.equal(
+      verifier.readExactWorkingTreeEntryKind(
+        root,
+        '.github/workflows/cheap-lfs-cloud-compression.yml',
+        'Cloud fixture'
+      ),
+      'absent'
+    )
+    fs.mkdirSync(path.dirname(workflow), { recursive: true })
+    fs.writeFileSync(workflow, 'unexpected workflow')
+    assert.equal(
+      verifier.readExactWorkingTreeEntryKind(
+        root,
+        '.github/workflows/cheap-lfs-cloud-compression.yml',
+        'Cloud fixture'
+      ),
+      'file'
+    )
+    fs.unlinkSync(workflow)
+    try {
+      fs.symlinkSync(path.join(root, 'missing-target'), workflow, 'file')
+      assert.equal(
+        verifier.readExactWorkingTreeEntryKind(
+          root,
+          '.github/workflows/cheap-lfs-cloud-compression.yml',
+          'Cloud fixture'
+        ),
+        'link-or-junction'
+      )
+    } catch (error) {
+      if (!['EPERM', 'EACCES', 'UNKNOWN'].includes(error?.code)) {
+        throw error
+      }
+      t.diagnostic(
+        `dangling-link runtime probe unavailable (${error.code}); source-order gate retained`
+      )
+    }
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
+test('exclusive output cleanup is ownership-aware and receipt publication is atomic', () => {
+  const calls = []
+  const injectedFailure = new Error('injected write failure')
+  const failingIo = {
+    openSync() {
+      calls.push('open')
+      return 17
+    },
+    writeFileSync() {
+      calls.push('write')
+      throw injectedFailure
+    },
+    fsyncSync() {
+      calls.push('fsync')
+    },
+    closeSync() {
+      calls.push('close')
+    },
+    unlinkSync() {
+      calls.push('unlink')
+    },
+  }
+  assert.throws(
+    () =>
+      verifier.writeExclusiveOwnedFile(
+        'owned-output.png',
+        Buffer.from('partial'),
+        'Capture',
+        failingIo
+      ),
+    error => error === injectedFailure
+  )
+  assert.deepEqual(calls, ['open', 'write', 'close', 'unlink'])
+
+  let unrelatedUnlinkAttempted = false
+  const collision = Object.assign(new Error('already exists'), {
+    code: 'EEXIST',
+  })
+  assert.throws(
+    () =>
+      verifier.writeExclusiveOwnedFile(
+        'other-output.png',
+        Buffer.from('bytes'),
+        'Capture',
+        {
+          openSync() {
+            throw collision
+          },
+          unlinkSync() {
+            unrelatedUnlinkAttempted = true
+          },
+        }
+      ),
+    error => error === collision
+  )
+  assert.equal(unrelatedUnlinkAttempted, false)
+
+  const root = fs.mkdtempSync(
+    path.join(os.tmpdir(), 'desktop-material-atomic-receipt-contract-')
+  )
+  const receipt = path.join(root, 'receipt.json')
+  try {
+    verifier.writeAtomicReceipt(
+      receipt,
+      '{"complete":true}\n',
+      fs,
+      'a'.repeat(16)
+    )
+    assert.equal(fs.readFileSync(receipt, 'utf8'), '{"complete":true}\n')
+    assert.deepEqual(fs.readdirSync(root), ['receipt.json'])
+    assert.throws(
+      () =>
+        verifier.writeAtomicReceipt(
+          receipt,
+          '{"replacement":true}\n',
+          fs,
+          'b'.repeat(16)
+        ),
+      /exist/i
+    )
+    assert.equal(fs.readFileSync(receipt, 'utf8'), '{"complete":true}\n')
+    assert.deepEqual(fs.readdirSync(root), ['receipt.json'])
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true })
+  }
+})
+
 test('read-only Git provenance fails closed on dirty or unreviewed state', () => {
   const expected = '1'.repeat(40)
   const clean = {
+    repositoryFilesystemIdentitySha256: '4'.repeat(64),
+    originIdentity: 'fixture/repository',
     status: '',
     branch: 'main',
     upstream: 'origin/main',
@@ -288,8 +498,15 @@ test('read-only Git provenance fails closed on dirty or unreviewed state', () =>
     worktreeClean: true,
     expectedCommitMatched: true,
     originTrackingTipMatched: true,
+    repositoryFilesystemIdentitySha256: '4'.repeat(64),
   })
   for (const [field, value, message] of [
+    [
+      'repositoryFilesystemIdentitySha256',
+      'invalid',
+      /repository filesystem identity/,
+    ],
+    ['originIdentity', 'invalid', /GitHub origin identity/],
     ['status', '?? payload-private.bin', /no staged, unstaged, or untracked/],
     ['branch', 'review', /reviewed origin\/main checkout/],
     ['upstream', 'fork/main', /reviewed origin\/main checkout/],
@@ -308,6 +525,166 @@ test('read-only Git provenance fails closed on dirty or unreviewed state', () =>
   }
 })
 
+test('cloud repository proof rejects every workflow surface and unstable Git state', () => {
+  const unrelated = `100644 blob ${'0'.repeat(40)}\t.github/workflows/pages.yml`
+  const workflow = `100644 blob ${'2'.repeat(
+    40
+  )}\t.GitHub/Workflows/CHEAP-LFS-CLOUD-COMPRESSION.YML`
+  assert.equal(
+    verifier.selectCloudWorkflowEntries(
+      `${unrelated}\0${workflow}`,
+      'Cloud fixture'
+    ),
+    workflow
+  )
+  assert.equal(
+    verifier.selectCloudWorkflowEntries(unrelated, 'Cloud fixture'),
+    ''
+  )
+  assert.throws(
+    () =>
+      verifier.selectCloudWorkflowEntries(
+        'malformed-workflow-inventory',
+        'Cloud fixture'
+      ),
+    /workflow inventory is malformed/
+  )
+
+  const expected = '1'.repeat(40)
+  const clean = {
+    repositoryFilesystemIdentitySha256: '5'.repeat(64),
+    originIdentity:
+      'dingdingchae/desktop-material-cheap-lfs-private-20260722-153308',
+    status: '',
+    branch: 'main',
+    upstream: 'origin/main',
+    head: expected,
+    upstreamTip: expected,
+  }
+  const state = {
+    before: clean,
+    after: clean,
+    committedWorkflowEntry: '',
+    indexWorkflowEntry: '',
+    workingTreeWorkflowKind: 'absent',
+  }
+  const proof = verifier.validateCloudRepositoryStateProof(
+    state,
+    expected,
+    'Cloud fixture'
+  )
+  assert.deepEqual(
+    {
+      worktreeClean: proof.worktreeClean,
+      expectedCommitMatched: proof.expectedCommitMatched,
+      originTrackingTipMatched: proof.originTrackingTipMatched,
+      committedCloudWorkflowAbsent: proof.committedCloudWorkflowAbsent,
+      indexCloudWorkflowAbsent: proof.indexCloudWorkflowAbsent,
+      workingTreeCloudWorkflowAbsent: proof.workingTreeCloudWorkflowAbsent,
+    },
+    {
+      worktreeClean: true,
+      expectedCommitMatched: true,
+      originTrackingTipMatched: true,
+      committedCloudWorkflowAbsent: true,
+      indexCloudWorkflowAbsent: true,
+      workingTreeCloudWorkflowAbsent: true,
+    }
+  )
+  assert.match(proof.repositoryStateFingerprintSha256, /^[a-f0-9]{64}$/)
+  assert.equal(proof.repositoryFilesystemIdentitySha256, '5'.repeat(64))
+  assert.equal(proof.originIdentityMatched, true)
+  assert.equal(proof.expectedCommit, expected)
+  assert.equal(
+    proof.repositoryStateFingerprintSha256,
+    verifier.computeRepositoryStateFingerprintSha256(proof)
+  )
+
+  for (const [field, value, message] of [
+    [
+      'committedWorkflowEntry',
+      `100644 blob ${'2'.repeat(
+        40
+      )}\t.github/workflows/cheap-lfs-cloud-compression.yml`,
+      /must not contain the cloud workflow in HEAD/,
+    ],
+    [
+      'indexWorkflowEntry',
+      `100644 ${'2'.repeat(
+        40
+      )} 0\t.github/workflows/cheap-lfs-cloud-compression.yml`,
+      /must not contain the cloud workflow in the index/,
+    ],
+  ]) {
+    assert.throws(
+      () =>
+        verifier.validateCloudRepositoryStateProof(
+          { ...state, [field]: value },
+          expected,
+          'Cloud fixture'
+        ),
+      message
+    )
+  }
+  for (const kind of [
+    'file',
+    'directory',
+    'link-or-junction',
+    'linked-parent',
+    'non-directory-parent',
+    'other',
+  ]) {
+    assert.throws(
+      () =>
+        verifier.validateCloudRepositoryStateProof(
+          { ...state, workingTreeWorkflowKind: kind },
+          expected,
+          'Cloud fixture'
+        ),
+      /must not contain the cloud workflow in the working tree/
+    )
+  }
+  assert.throws(
+    () =>
+      verifier.validateCloudRepositoryStateProof(
+        {
+          ...state,
+          after: { ...clean, status: '?? transient.bin' },
+        },
+        expected,
+        'Cloud fixture'
+      ),
+    /no staged, unstaged, or untracked/
+  )
+  assert.throws(
+    () =>
+      verifier.validateCloudRepositoryStateProof(
+        {
+          ...state,
+          after: { ...clean, head: '2'.repeat(40) },
+        },
+        expected,
+        'Cloud fixture'
+      ),
+    /HEAD does not match/
+  )
+  assert.throws(
+    () =>
+      verifier.validateCloudRepositoryStateProof(
+        {
+          ...state,
+          after: {
+            ...clean,
+            repositoryFilesystemIdentitySha256: '6'.repeat(64),
+          },
+        },
+        expected,
+        'Cloud fixture'
+      ),
+    /Git state changed during the read-only provenance fence/
+  )
+})
+
 test('driver is attach-only and uses the real production Cheap LFS surface', () => {
   for (const contract of [
     "document.querySelector('#cheap-lfs-tab')",
@@ -319,7 +696,12 @@ test('driver is attach-only and uses the real production Cheap LFS surface', () 
     'Page.captureScreenshot',
     'fromSurface: true',
     'captureBeyondViewport: false',
-    "fs.writeFileSync(options.capturePath, buffer, { flag: 'wx' })",
+    'writeExclusiveOwnedFile(',
+    'writeAtomicReceipt(',
+    "io.openSync(candidate, 'wx', 0o600)",
+    'io.fstatSync(descriptor)',
+    'io.linkSync(pendingPath, receiptPath)',
+    'String(status.dev) !== ownership.device',
   ]) {
     assert.ok(
       source.includes(contract),
@@ -454,6 +836,96 @@ test('final receipt pins original CDP PNG proof', () => {
     () => verifier.validateFinalReceipt(scaled),
     /original-pixel capture proof/
   )
+
+  const unstable = validFinalReceipt('cloud-compression')
+  unstable.repositoryCaptureProof.postCaptureFingerprintSha256 = '5'.repeat(64)
+  assert.throws(
+    () => verifier.validateFinalReceipt(unstable),
+    /Repository capture receipt is invalid/
+  )
+  const fabricated = validFinalReceipt('cloud-compression')
+  fabricated.repositoryCaptureProof.initialFingerprintSha256 = '4'.repeat(64)
+  fabricated.repositoryCaptureProof.postRenderFingerprintSha256 = '4'.repeat(64)
+  fabricated.repositoryCaptureProof.postCaptureFingerprintSha256 = '4'.repeat(
+    64
+  )
+  assert.throws(
+    () => verifier.validateFinalReceipt(fabricated),
+    /Repository capture receipt is invalid/
+  )
+  for (const field of [
+    'committedCloudWorkflowAbsent',
+    'indexCloudWorkflowAbsent',
+    'workingTreeCloudWorkflowAbsent',
+  ]) {
+    const missing = validFinalReceipt('cloud-compression')
+    missing.repositoryCaptureProof[field] = false
+    assert.throws(
+      () => verifier.validateFinalReceipt(missing),
+      /Repository capture receipt is invalid/
+    )
+  }
+})
+
+test('repository capture proof rejects fingerprint drift and cloud gate drift', () => {
+  for (const scenario of Object.keys(verifier.ScenarioSpecifications)) {
+    const proof = validRepositoryStateProof(scenario)
+    assert.doesNotThrow(() =>
+      verifier.validateRepositoryCaptureProof(
+        proof,
+        { ...proof },
+        { ...proof },
+        scenario
+      )
+    )
+  }
+  const cloud = validRepositoryStateProof('cloud-compression')
+  const replacedRepository = validRepositoryStateProof(
+    'cloud-compression',
+    '5'.repeat(64)
+  )
+  assert.throws(
+    () =>
+      verifier.validateRepositoryCaptureProof(
+        cloud,
+        { ...cloud },
+        replacedRepository,
+        'cloud-compression'
+      ),
+    /Repository state changed while capturing/
+  )
+  for (const field of [
+    'committedCloudWorkflowAbsent',
+    'indexCloudWorkflowAbsent',
+    'workingTreeCloudWorkflowAbsent',
+  ]) {
+    assert.throws(
+      () =>
+        verifier.validateRepositoryCaptureProof(
+          cloud,
+          { ...cloud, [field]: false },
+          { ...cloud },
+          'cloud-compression'
+        ),
+      /repository capture proof is invalid/
+    )
+  }
+  const wrongCommit = {
+    ...cloud,
+    expectedCommit: 'f'.repeat(40),
+  }
+  wrongCommit.repositoryStateFingerprintSha256 =
+    verifier.computeRepositoryStateFingerprintSha256(wrongCommit)
+  assert.throws(
+    () =>
+      verifier.validateRepositoryCaptureProof(
+        wrongCommit,
+        wrongCommit,
+        wrongCommit,
+        'cloud-compression'
+      ),
+    /repository capture proof is invalid/
+  )
 })
 
 test('pixel inspector accepts the three existing full-resolution gallery PNGs', () => {
@@ -495,11 +967,33 @@ test('privacy scan and capture order precede original pixel acquisition', () => 
     )
   }
   const inspected = source.indexOf('const surface = validateSurfaceReceipt(')
+  const postRender = source.indexOf(
+    'const postRenderRepositoryState = readRepositoryStateProof('
+  )
   const captured = source.indexOf(
-    'const capture = await captureOriginalPixels('
+    'const captured = await captureOriginalPixels(',
+    postRender
+  )
+  const postCapture = source.indexOf(
+    'const postCaptureRepositoryState = readRepositoryStateProof(',
+    captured
+  )
+  const proofValidated = source.indexOf(
+    'const repositoryCaptureProof = validateRepositoryCaptureProof(',
+    postCapture
+  )
+  const receiptWritten = source.indexOf(
+    'writeAtomicReceipt(\n        options.receiptPath',
+    proofValidated
   )
   assert.ok(inspected >= 0)
-  assert.ok(captured > inspected)
+  assert.ok(postRender > inspected)
+  assert.ok(captured > postRender)
+  assert.ok(postCapture > captured)
+  assert.ok(proofValidated > postCapture)
+  assert.ok(receiptWritten > proofValidated)
+  assert.ok(source.includes('discardUnreceiptedCapture('))
+  assert.ok(source.includes('captureOwnership'))
 })
 
 test('current gallery copy uses private builder routing while dated evidence stays historical', () => {

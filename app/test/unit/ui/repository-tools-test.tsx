@@ -515,7 +515,10 @@ describe('Repository tools', () => {
     )
     assert.ok(subtreeStatus)
     assert.equal(subtreeStatus.getAttribute('role'), 'alert')
-    assert.match(subtreeStatus.textContent ?? '', /Subtrees could not load/)
+    assert.match(
+      subtreeStatus.textContent ?? '',
+      /Subtrees could not be loaded/
+    )
     assert.match(subtreeStatus.textContent ?? '', /history probe failed/)
     const subtreeRetry = within(subtreeStatus).getByRole('button')
     assert.equal(subtreeRetry.getAttribute('aria-label'), 'Try again: Subtrees')
@@ -533,7 +536,7 @@ describe('Repository tools', () => {
     selectHubTool('subtree-manager')
     const subtreeCard = getSelectedToolCard('Subtree manager')
     assert.doesNotMatch(subtreeCard.textContent ?? '', /No subtrees yet/)
-    assert.match(subtreeCard.textContent ?? '', /Subtrees could not load/)
+    assert.match(subtreeCard.textContent ?? '', /Subtrees could not be loaded/)
 
     // When a refreshed inventory removes the selected gated entry, return to a
     // real catalog item instead of leaving an empty detail pane.

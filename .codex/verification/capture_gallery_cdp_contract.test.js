@@ -991,6 +991,54 @@ test('canonical and specialist batches own all 84 published images exactly once'
   )
 })
 
+test('specialist command templates satisfy verifier-owned output containment', () => {
+  const internalBrowser = GalleryCapturePlan.find(
+    entry => entry.output === 'app-hosted-browser-authentication'
+  )
+  const ollama = GalleryCapturePlan.find(
+    entry => entry.output === 'material-ollama-model-manager'
+  )
+  assert.ok(internalBrowser)
+  assert.ok(ollama)
+
+  assert.ok(
+    internalBrowser.commands.some(command =>
+      command.includes(
+        '--receipt <owned-temp-run-root>\\internal-browser-cdp-receipt.json'
+      )
+    )
+  )
+  assert.ok(
+    internalBrowser.commands.every(
+      command => !command.includes('<owned-temp-run-root>\\receipts\\')
+    )
+  )
+  assert.ok(
+    ollama.commands.some(command =>
+      command.includes(
+        '--receipt <owned-p0-run-root>\\captures\\material-ollama-model-manager.json'
+      )
+    )
+  )
+
+  const internalBrowserVerifier = fs.readFileSync(
+    path.join(__dirname, 'verify_internal_browser_cdp.js'),
+    'utf8'
+  )
+  const ollamaVerifier = fs.readFileSync(
+    path.join(__dirname, 'verify_ollama_manager_cdp.js'),
+    'utf8'
+  )
+  assert.match(
+    internalBrowserVerifier,
+    /path\.dirname\(requestedReceipt\)\.toLowerCase\(\) !== runRoot\.toLowerCase\(\)/
+  )
+  assert.match(
+    ollamaVerifier,
+    /const expectedParent = path\.join\(p0\.runRoot, 'captures'\)[\s\S]*?parent\.toLowerCase\(\) !== expectedParent\.toLowerCase\(\)/
+  )
+})
+
 test('audit-design mode owns a separate exact five-surface catalog', () => {
   const scenes = frozenStringArray('AuditDesignScenes')
   const outputs = frozenStringArray('AuditDesignOutputs')

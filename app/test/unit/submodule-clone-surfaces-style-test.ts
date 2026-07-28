@@ -92,7 +92,15 @@ describe('submodule clone-surface contracts', () => {
     const repositoryView = read('src', 'ui', 'repository.tsx')
     assert.match(
       repositoryView,
-      /submoduleCount: this\.state\.submoduleCount,[\s\S]*?onOpenSubmoduleManager: this\.onOpenSubmoduleManager,/
+      /submoduleInventoryState=\{\s*inventoryBelongsToRepository\s*\?\s*this\.state\.submoduleInventoryState\s*:\s*unavailableInventory\s*\}/
+    )
+    assert.match(
+      repositoryView,
+      /onRetrySubmoduleInventory=\{this\.loadSubmoduleCount\}/
+    )
+    assert.match(
+      repositoryView,
+      /onOpenSubmoduleManager=\{this\.onOpenSubmoduleManager\}/
     )
     assert.match(
       repositoryView,
@@ -119,7 +127,15 @@ describe('submodule clone-surface contracts', () => {
     const repositoryView = read('src', 'ui', 'repository.tsx')
     assert.match(
       repositoryView,
-      /subtreeCount: this\.state\.subtreeCount,[\s\S]*?onOpenSubtreeManager: this\.onOpenSubtreeManager,/
+      /subtreeInventoryState=\{\s*inventoryBelongsToRepository\s*\?\s*this\.state\.subtreeInventoryState\s*:\s*unavailableInventory\s*\}/
+    )
+    assert.match(
+      repositoryView,
+      /onRetrySubtreeInventory=\{this\.loadSubtreeCount\}/
+    )
+    assert.match(
+      repositoryView,
+      /onOpenSubtreeManager=\{this\.onOpenSubtreeManager\}/
     )
     assert.match(
       repositoryView,
@@ -162,12 +178,12 @@ describe('submodule clone-surface contracts', () => {
     assert.match(tools, /selected === 'cheap-lfs' && this\.renderCheapLfs\(\)/)
 
     // The repository view supplies the panel wiring only for GitHub repos. The
-    // tools section is loaded lazily, so the wiring now travels in the
-    // deferred view's `viewProps` object rather than as a JSX attribute.
+    // tools section is loaded lazily, then the module renderer supplies the
+    // live panel wiring as a JSX property.
     const repositoryView = read('src', 'ui', 'repository.tsx')
     assert.match(
       repositoryView,
-      /cheapLfs: \{[\s\S]*?dispatcher: this\.props\.dispatcher,[\s\S]*?available: this\.showsGitHubReleases\(\),/
+      /cheapLfs=\{\{\s*repository: this\.props\.repository,\s*accounts: this\.props\.accounts,\s*dispatcher: this\.props\.dispatcher,\s*available: this\.showsGitHubReleases\(\),\s*\}\}/
     )
 
     // The panel owns a registered, compact-safe style partial.

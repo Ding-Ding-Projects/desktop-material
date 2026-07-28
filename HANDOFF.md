@@ -77,6 +77,83 @@ This checkpoint predates reconciliation with the newer remote `main` fixes,
 including #96, so the same gates must run again on the merged source before the
 exact build.
 
+### Post-checkpoint acceptance and CI reconciliation
+
+The pushed close-out checkpoint is
+`2fedf140e394fa2fea3e380203e716b6f7aa8628`. Remote CI run
+[`30370044526`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30370044526)
+completed with successful lint, Windows TUI core, and packaged Windows x64 E2E
+smoke. Its 845-file/6,957-test Windows x64 unit run had exactly seven leaf
+failures: the two deliberate missing-updater gallery gates plus five stale
+source/copy assertions described below. Three Linux TUI jobs stopped only at
+the generated parity-contract hash, and Windows arm64 script tests stopped only
+at the generated documentation catalog. The parity contract has therefore been
+regenerated from the current 201-row source. The documentation catalog repair
+already exists on newer `main` and will be regenerated again only after the
+final documentation tree is reconciled.
+
+The preceding branch run also exposed three stale source-shape tests. Their
+assertions now follow the current lazy repository-tools JSX wiring, the shared
+context-menu appearance helper, and the localized “Subtrees could not be
+loaded” copy. These are test-contract repairs, not product-behavior changes.
+The updater/wiki failures remain deliberately unresolved until the distinct
+current-source updater frame is produced by the packaged-build verifier.
+
+A separate read-only acceptance audit proved that every required verifier
+implementation exists, but found two printed command templates that their own
+containment checks would reject. The internal-browser receipt is now a direct
+child of its owned run root, and the Ollama receipt now shares the owned P0
+`captures` directory with its PNG. A cross-contract assertion pins both rules.
+After the shared renderer profiler became quiescent, the three repaired app
+test files passed **46/46 across 3/3 files**, the regenerated 201-row parity
+contract passed its checked-generation gate, and the gallery plus live Cheap
+LFS contracts passed **75/75**. Prettier, application-test ESLint, the
+repository-ignored verifier lint with its intentional CommonJS/synchronous
+rules disabled, syntax checks, and `git diff --check` are green. The
+authoritative logs are
+`%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\post-ci-repair-{targeted-tests,contracts,format-lint}.log`.
+
+The open-issue scan after that audit remains exactly #23, #80, #81, #82, #85,
+#87, #94, #95, and #96. Two #23 specialist frames still require read access to
+`DingDingChae/desktop-material-cheap-lfs-private-20260722-153308`. Both GitHub
+API and non-prompting HTTPS checks under the active `codingmachineedge`
+identity return not-found. No substitute repository, historical frame, or
+mocked provenance will be represented as that private live acceptance.
+
+The read-only audit also found that the cloud specialist's current pin is
+internally inconsistent with the retained history. Its verifier requires
+`e56519d4742c63bb2c9f5f1e917de3fca7379fdd`, the pre-compression UI-acceptance
+commit, while simultaneously requiring the compressed pointer first documented
+at `6259b0fa0dc6c65cdb5a90af8e1da9358b45b0ac` and today's
+no-private-workflow encrypted-builder routing. Read access is required first to
+inspect authentic later history. If no retained commit contains the compressed
+pointer with the legacy private workflow removed, producing that current-state
+evidence will require separate owner authorization for one narrowly scoped
+fixture commit; it will not be inferred from the request to capture screenshots.
+
+The live Cheap LFS specialist now fails closed around that boundary. Before
+attaching to Chromium, after the settled production surface proves the current
+builder-routing state, and immediately after original-pixel capture, it
+bookends read-only Git snapshots and requires a clean `main` checkout at the
+exact `origin/main` SHA. Every fence revalidates the repository root and
+`.git` directory as the same real directories, checks Git's reported top-level
+and absolute Git directory, and rebinds the reviewed GitHub origin. The cloud
+scene additionally requires
+`.github/workflows/cheap-lfs-cloud-compression.yml` to be absent from `HEAD`,
+the index, and the real working tree; link/junction parents, ignored occupants,
+and any other non-absence fail. A version-2 receipt binds the exact reviewed
+commit, hashed origin, and stable filesystem identity to its canonical SHA-256
+fingerprints. Capture creation uses an exclusive descriptor, full write,
+`fsync`, and identity-aware cleanup; the fully written receipt is published
+atomically without overwriting through a same-directory hard link. The focused
+contract passes **20/20**, including real dangling-link and atomic-publication
+probes plus injected write failures. This closes the verifier's mount-time
+rewrite and orphan-output gaps without pretending that the inaccessible,
+internally inconsistent fixture pin is resolved. A mutation that begins and
+fully reverts between samples remains the unavoidable read-only TOCTOU limit;
+the owned fresh clone and three double-fenced samples are the strongest
+non-mutating mitigation.
+
 ## 2026-07-28 — Bounded Cheap LFS inventory joins the close-out (Refs #96)
 
 Issue #96 was filed while this campaign was active. The initial fix landed on

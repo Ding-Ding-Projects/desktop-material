@@ -79,6 +79,98 @@
   production build, remote-default ancestry, applicable remote workflows, and
   the finished issue receipt remain required.
 
+## Post-checkpoint acceptance and CI reconciliation
+
+- Pushed checkpoint:
+  `2fedf140e394fa2fea3e380203e716b6f7aa8628`.
+- Branch CI:
+  [`30370044526`](https://github.com/Ding-Ding-Projects/desktop-material/actions/runs/30370044526).
+  Lint, Windows TUI core, and packaged Windows x64 E2E smoke passed. The
+  845-file/6,957-test Windows x64 unit run had exactly seven leaf failures: two
+  deliberate missing-updater gallery gates and five stale source/copy
+  assertions. The three Linux TUI matrix jobs stopped only at the generated
+  parity-contract hash, which has been regenerated from the current 201-row
+  source. Windows arm64 script tests stopped only at the documentation catalog;
+  newer `main` contains that repair, and the generator will run again after
+  final documentation reconciliation.
+- Three source-shape tests have been aligned with current lazy
+  repository-tools JSX wiring, the shared context-menu appearance helper, and
+  localized subtree failure copy. Updater/wiki tests intentionally stay
+  fail-closed until the new current-source updater frame exists.
+- The acceptance audit found two otherwise unexecutable command templates.
+  The internal-browser receipt now targets
+  `<internal-root>\internal-browser-cdp-receipt.json`, a direct run-root child.
+  The Ollama receipt now targets
+  `<p0-root>\captures\material-ollama-model-manager.json`, a direct child of
+  the verifier-owned captures directory. A cross-contract assertion pins both
+  containment rules. The repaired app-test batch passes **46/46 across 3/3
+  files**; checked generation accepts the regenerated 201-row parity contract;
+  and the gallery plus live Cheap LFS contracts pass **75/75**. Prettier,
+  application-test ESLint, verifier lint under its intentional
+  CommonJS/synchronous overrides, syntax checks, and `git diff --check` are
+  green. Logs:
+  `%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs\post-ci-repair-{targeted-tests,contracts,format-lint}.log`.
+- The post-audit open set is exactly #23, #80, #81, #82, #85, #87, #94, #95,
+  and #96.
+- The active `codingmachineedge` identity cannot read
+  `DingDingChae/desktop-material-cheap-lfs-private-20260722-153308`.
+  `cheap-lfs-ui-acceptance.png` pins its retained pre-compression UI commit
+  `e56519d4742c63bb2c9f5f1e917de3fca7379fdd`. No alternate repository or
+  historical frame is accepted as a substitute.
+- The `cloud-compression` scenario currently pins that same pre-compression
+  commit while also requiring the compressed pointer first documented at
+  `6259b0fa0dc6c65cdb5a90af8e1da9358b45b0ac` and current
+  no-private-workflow encrypted-builder routing. The recorded contract is
+  therefore not satisfiable from the documented `e56519d…` tree. Read access
+  is required to inspect authentic later history before selecting a corrected
+  SHA. If no retained commit meets both current conditions, a new narrowly
+  scoped fixture commit requires separate owner authorization.
+- The live verifier now bookends read-only Git state before attachment, after
+  the settled production cloud surface, and immediately after capture. Every
+  sample requires clean `main`, exact `origin/main`, the reviewed SHA, the
+  reviewed GitHub origin, and unchanged real-directory identities for the
+  repository root and `.git`; Git's reported top-level and absolute Git
+  directory must match those owned paths. The cloud sample also proves the
+  private workflow absent from `HEAD`, the index, and the real working tree;
+  link/junction parents, ignored occupants, and every other non-absence fail
+  closed. Version-2 receipts canonically bind the reviewed commit, hashed
+  origin, filesystem identity, and absence booleans. Capture writes are
+  exclusive, flushed, and identity-cleaned; fully written receipts publish
+  atomically without overwriting. The focused contract passes **20/20**,
+  including dangling-link, injected-write, and atomic-publication probes. These
+  gates do not resolve the missing access or select a replacement SHA. A
+  mutation that begins and fully reverts between samples is the residual
+  read-only TOCTOU limit; freezing or mutating the real acceptance environment
+  would invalidate the test.
+
+## Final-build issue acceptance matrix
+
+Existing PNG presence is not acceptance. All visual rows below require the
+fresh final build, original-pixel inspection, privacy checks, and retained
+receipts where declared.
+
+<!-- markdownlint-disable MD013 -->
+
+| Issue | Exact verifier/scene | Required candidate evidence | Ordering and fixture constraint |
+| --- | --- | --- | --- |
+| #23 | `gallery_capture_plan.js`; canonical capture; every declared specialist verifier; Pages verifier | 84 promoted Windows PNGs: 67 canonical plus 17 specialists; specialist receipts; Pages desktop/mobile captures | Canonical driver emits 68 candidates, but `material-cheap-lfs-preparing.png` is deferred. The private live pair and packaged updater are separate gates. |
+| #80 | `capture_gallery_cdp.js --scenes canonical-remote-warning-evidence` | `canonical-remote-warning-1280x860.png`; `canonical-remote-warning-evidence.json` | Provider-backed P0 fixture, English, clean branch ahead of origin; exactly one actionable warning, no generic duplicate, dialog, receive-pack, or ref mutation; restore origin. |
+| #81 | `capture_gallery_cdp.js --scenes tab-group-management-evidence` | collapsed, edit, and persisted 1280×860 PNGs; `switch-receipt.json` | Fresh isolated profile with one ungrouped tab and zero groups; the scene creates two fresh Git repositories. Also refresh the gallery tab-group frame. |
+| #82 | `verify_progressive_loading_cdp.js` | failure and recovered 1280×860 PNGs; `issue82.json` | **First action in a fresh renderer**, before another deferred section opens; require all seven `repository-*.js` chunks; restore the sabotaged chunk and verifier state. |
+| #85 | real operation fixture, then `verify_issue_85_encrypted_restore_cdp.js` | `operation.json`; `decrypting-bilingual.png`; `decrypting-bilingual.json` | Separate owned direct-Temp root and disposable Git repository; prove genuine Downloading → Decrypting → Decompressing → Verifying → Materializing callbacks. |
+| #87 | canonical `error-notice` plus `cheap-lfs-commit-password-evidence` | `material-error-notice.png`; `commit-auto-pin-password-dialog.png` | Provider-backed fixture; background path is one non-modal skip notice with no password dialog, upload, anchor, or swallowed commit; interactive scene proves the real empty-password dialog and cancellation. |
+| #94 | `capture_gallery_cdp.js --scenes tab-group-tooltip-dismissal-evidence` | 1440×960 and 1180×820 dismissal PNGs | Fresh profile; zero stale owner tooltip, dialog in `#dialog-layer`, six usable swatches, contained geometry. |
+| #95 | `capture_gallery_cdp.js --scenes tab-group-member-singular-evidence` | `tab-group-member-singular-1280x860.png` | Fresh English/light profile; visible and accessible copy must both say “1 tab”; unit tests carry zero/many and Cantonese. |
+| #96 | affected pair, then complete `app/test/unit/cheap-lfs` suite | test/build/CI logs; no PNG | Recorded source checkpoint is 82/82 and 673/673; rerun final-tree typecheck/lint/build and prove pushed-default ancestry and CI. |
+
+<!-- markdownlint-enable MD013 -->
+
+The P0 UI order is fixed: prepare the fixture/provider, launch the final
+unpackaged build on the owned desktop, run #82 first in the untouched renderer,
+then canonical and other P0 scenes. #81 uses a separate fresh profile, #85 a
+separate owned root, and the updater a separate exact packaged development
+build and desktop. Never promote a partial gallery.
+
 ## Ordered background interactions
 
 1. Preflight the exact lowlevel-computer-use MCP HTTP server, scheduled-task
