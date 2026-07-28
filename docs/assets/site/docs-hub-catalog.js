@@ -1358,6 +1358,13 @@
       d: 'Visual evidence for issue #83 (restore the missing English and Cantonese funny-level sliders).',
     },
     {
+      t: 'Built app launched on an off-screen desktop — 2026-07-28',
+      h: 'verification/headless-desktop-launch-2026-07-28/',
+      s: 'verification/headless-desktop-launch-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Independent confirmation that the production build actually runs, captured through a completely different route from the Playwright-driven fixture used elsewhere in…',
+    },
+    {
       t: 'Linux TUI publish cleanup ledger',
       h: 'verification/linux-tui-2026-07-27/cleanup-ledger.html',
       s: 'verification/linux-tui-2026-07-27/cleanup-ledger.md',
