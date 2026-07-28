@@ -1,0 +1,1647 @@
+<!DOCTYPE html>
+<html lang="en" data-language="bi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="A bilingual, visual guide to Cheap LFS in Desktop Material: what it is, how to configure it, track large files, commit pointers, restore verified bytes, and troubleshoot safely."
+    />
+    <meta name="theme-color" content="#f8f9ff" />
+    <title>Cheap LFS visual guide · Desktop Material</title>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="cheap-lfs.css" />
+    <script src="cheap-lfs.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">
+      <span class="copy en">Skip to the guide</span>
+      <span class="copy yue" lang="zh-HK">跳去教學</span>
+    </a>
+
+    <header class="guide-appbar">
+      <div class="wrap guide-appbar-inner">
+        <a
+          class="guide-brand"
+          href="index.html"
+          aria-label="Desktop Material home"
+        >
+          <span class="guide-logo" aria-hidden="true">DM</span>
+          <span>
+            <strong>Desktop Material</strong>
+            <small>
+              <span class="copy en">Cheap LFS guide</span>
+              <span class="copy yue" lang="zh-HK">Cheap LFS 圖解</span>
+            </small>
+          </span>
+        </a>
+        <button
+          class="guide-menu-button"
+          type="button"
+          aria-expanded="false"
+          aria-controls="guide-nav"
+        >
+          <span class="copy en">Menu</span>
+          <span class="copy yue" lang="zh-HK">選單</span>
+        </button>
+        <nav id="guide-nav" class="guide-nav" aria-label="Cheap LFS guide">
+          <a href="#how-it-works">
+            <span class="copy en">How it works</span>
+            <span class="copy yue" lang="zh-HK">原理</span>
+          </a>
+          <a href="#ui-guide">
+            <span class="copy en">UI guide</span>
+            <span class="copy yue" lang="zh-HK">介面教學</span>
+          </a>
+          <a href="#providers">
+            <span class="copy en">Providers</span>
+            <span class="copy yue" lang="zh-HK">儲存方式</span>
+          </a>
+          <a href="#troubleshooting">
+            <span class="copy en">Troubleshooting</span>
+            <span class="copy yue" lang="zh-HK">故障排解</span>
+          </a>
+          <a
+            href="docs/features/repository-management/release-backed-cheap-lfs.html"
+          >
+            <span class="copy en">Technical reference</span>
+            <span class="copy yue" lang="zh-HK">技術文件</span>
+          </a>
+        </nav>
+        <div class="guide-controls">
+          <div
+            class="language-switcher"
+            role="group"
+            aria-label="Language mode"
+          >
+            <button type="button" data-set-language="en">EN</button>
+            <button type="button" data-set-language="yue" lang="zh-HK">
+              粵
+            </button>
+            <button type="button" data-set-language="bi">EN + 粵</button>
+          </div>
+          <button
+            class="tone-button"
+            type="button"
+            aria-expanded="false"
+            aria-controls="tone-panel"
+          >
+            <span aria-hidden="true">☺</span>
+            <span class="copy en">Tone</span>
+            <span class="copy yue" lang="zh-HK">語氣</span>
+          </button>
+          <button
+            class="theme-button"
+            type="button"
+            aria-label="Toggle light and dark theme"
+          >
+            <span aria-hidden="true">◐</span>
+          </button>
+          <div class="tone-panel" id="tone-panel" hidden>
+            <div class="tone-panel-heading">
+              <strong>
+                <span class="copy en">Funny level</span>
+                <span class="copy yue" lang="zh-HK">搞笑程度</span>
+              </strong>
+              <button
+                class="tone-close"
+                type="button"
+                aria-label="Close tone controls"
+              >
+                ×
+              </button>
+            </div>
+            <label for="funny-en">
+              <span>English</span>
+              <output for="funny-en" id="funny-en-value">2</output>
+            </label>
+            <input
+              id="funny-en"
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value="2"
+            />
+            <div class="range-labels" aria-hidden="true">
+              <span>1</span><span>5</span>
+            </div>
+            <p class="tone-preview tone-preview-en" aria-live="polite"></p>
+            <label for="funny-yue">
+              <span lang="zh-HK">廣東話</span>
+              <output for="funny-yue" id="funny-yue-value">4</output>
+            </label>
+            <input
+              id="funny-yue"
+              type="range"
+              min="1"
+              max="5"
+              step="1"
+              value="4"
+            />
+            <div class="range-labels" aria-hidden="true">
+              <span>1</span><span>5</span>
+            </div>
+            <p
+              class="tone-preview tone-preview-yue"
+              lang="zh-HK"
+              aria-live="polite"
+            ></p>
+            <small>
+              <span class="copy en"
+                >Tone changes; facts, warnings, and recovery steps do not.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >淨係改口吻；事實、警告同救援步驟唔會玩嘢。</span
+              >
+            </small>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section class="cheap-hero" aria-labelledby="cheap-title">
+        <div class="wrap cheap-hero-surface">
+          <div class="cheap-hero-copy copy-stack">
+            <span class="guide-kicker">
+              <span class="copy en" data-tone-target="en"
+                >Large files without a heavyweight Git history</span
+              >
+              <span class="copy yue" lang="zh-HK" data-tone-target="yue"
+                >大檔唔使塞爆 Git 歷史</span
+              >
+            </span>
+            <h1 id="cheap-title">
+              <span class="copy en"
+                >Cheap LFS, explained from first click to verified
+                restore.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >Cheap LFS：由第一下撳掣，到驗證還原，一頁講清楚。</span
+              >
+            </h1>
+            <p class="cheap-lede">
+              <span class="copy en">
+                Keep a tiny readable pointer in Git. Store the heavy bytes in a
+                GitHub Release or container registry. Desktop Material handles
+                the upload, checks every byte, and restores the real file when
+                you need it.
+              </span>
+              <span class="copy yue" lang="zh-HK">
+                Git 入面只留一張細細張、睇得明嘅指標；真正大舊嗰份就放去 GitHub
+                Release 或容器倉庫。Desktop Material 幫你上傳、逐 byte
+                驗證，需要時先穩陣還原。
+              </span>
+            </p>
+            <div class="cheap-hero-actions">
+              <a class="btn btn-filled" href="#ui-guide">
+                <span class="copy en">Start with the real UI</span>
+                <span class="copy yue" lang="zh-HK">跟真介面開始</span>
+              </a>
+              <a class="btn btn-tonal" href="#quick-start">
+                <span class="copy en">Seven-step quick start</span>
+                <span class="copy yue" lang="zh-HK">七步極速開波</span>
+              </a>
+            </div>
+            <ul class="hero-facts" aria-label="Guide facts">
+              <li>
+                <strong>17</strong>
+                <span class="copy en">visuals</span>
+                <span class="copy yue" lang="zh-HK">張圖</span>
+              </li>
+              <li>
+                <strong>5</strong>
+                <span class="copy en">real UI captures</span>
+                <span class="copy yue" lang="zh-HK">張真介面截圖</span>
+              </li>
+              <li>
+                <strong>3</strong>
+                <span class="copy en">storage routes</span>
+                <span class="copy yue" lang="zh-HK">種儲存路線</span>
+              </li>
+            </ul>
+          </div>
+          <figure class="cheap-hero-figure visual-card concept-visual">
+            <img
+              src="assets/cheap-lfs/cheap-lfs-hero.webp"
+              width="1568"
+              height="1003"
+              alt="Concept illustration: a small Git pointer connects to large-file storage and a restored Windows workspace"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Concept illustration: Git keeps the recipe; external storage
+                keeps the meal.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >概念圖：Git 留低食譜，大檔倉庫先至擺正餐。</span
+              >
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section
+        class="guide-section guide-intro"
+        id="how-it-works"
+        aria-labelledby="how-title"
+      >
+        <div class="wrap">
+          <div class="section-heading copy-stack">
+            <span class="guide-kicker">
+              <span class="copy en">The one-minute mental model</span>
+              <span class="copy yue" lang="zh-HK">一分鐘理解晒</span>
+            </span>
+            <h2 id="how-title">
+              <span class="copy en"
+                >The commit stays small. The original file stays
+                recoverable.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >Commit 繼續輕盈，原檔一樣搵得返。</span
+              >
+            </h2>
+            <p>
+              <span class="copy en">
+                Cheap LFS is intentionally not Git LFS. A plain Git client sees
+                the pointer text. Desktop Material reads that pointer, finds the
+                provider object, verifies its size and SHA-256 digest, and
+                materializes the file.
+              </span>
+              <span class="copy yue" lang="zh-HK">
+                Cheap LFS 刻意唔係 Git LFS。普通 Git 用戶會見到指標文字；Desktop
+                Material 就會讀個指標、搵返儲存物件、核對大小同
+                SHA-256，先至還原成真檔。
+              </span>
+            </p>
+          </div>
+
+          <div class="concept-grid">
+            <figure class="visual-card visual-card-wide concept-visual">
+              <img
+                src="assets/cheap-lfs/git-vs-cheap-lfs.webp"
+                width="1536"
+                height="1024"
+                loading="lazy"
+                alt="Concept comparison of a bloated Git commit and a small pointer-only Cheap LFS commit"
+              />
+              <figcaption class="copy-stack">
+                <strong class="copy en">Normal Git vs Cheap LFS</strong>
+                <strong class="copy yue" lang="zh-HK"
+                  >普通 Git 對 Cheap LFS</strong
+                >
+                <span class="copy en"
+                  >Large binaries stop inflating every clone and every
+                  historical checkout.</span
+                >
+                <span class="copy yue" lang="zh-HK"
+                  >大 binary 唔再跟住每次 clone、每段歷史四圍旅行。</span
+                >
+              </figcaption>
+            </figure>
+
+            <div class="explain-cards">
+              <article>
+                <span class="step-orb">1</span>
+                <h3>
+                  <span class="copy en">Track</span>
+                  <span class="copy yue" lang="zh-HK">追蹤</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Choose a large working-tree file and review exactly what
+                    will move.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >揀一個工作目錄大檔，先睇清楚邊份會搬屋。</span
+                  >
+                </p>
+              </article>
+              <article>
+                <span class="step-orb">2</span>
+                <h3>
+                  <span class="copy en">Store</span>
+                  <span class="copy yue" lang="zh-HK">儲存</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Upload verified raw parts to Releases or publish an
+                    immutable registry object set.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >驗證後上傳去 Release，或者發佈一套不可變嘅 registry
+                    物件。</span
+                  >
+                </p>
+              </article>
+              <article>
+                <span class="step-orb">3</span>
+                <h3>
+                  <span class="copy en">Commit</span>
+                  <span class="copy yue" lang="zh-HK">提交</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >The tracked path becomes a compact pointer; the original
+                    bytes stay outside Git.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >原路徑變成精簡指標，真 bytes 就留喺 Git 外面。</span
+                  >
+                </p>
+              </article>
+              <article>
+                <span class="step-orb">4</span>
+                <h3>
+                  <span class="copy en">Restore</span>
+                  <span class="copy yue" lang="zh-HK">還原</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Download, verify, and atomically replace the working
+                    copy—never trust partial bytes.</span
+                  >
+                  <span class="copy yue" lang="zh-HK"
+                    >下載、驗證、一次過換入工作檔；半桶水 bytes
+                    一律唔收貨。</span
+                  >
+                </p>
+              </article>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="guide-section tonal-section"
+        id="quick-start"
+        aria-labelledby="quick-title"
+      >
+        <div class="wrap">
+          <div class="section-heading copy-stack">
+            <span class="guide-kicker">
+              <span class="copy en">Start to finish</span>
+              <span class="copy yue" lang="zh-HK">由零到完成</span>
+            </span>
+            <h2 id="quick-title">
+              <span class="copy en">Seven steps for your first large file</span>
+              <span class="copy yue" lang="zh-HK">第一個大檔，七步搞掂</span>
+            </h2>
+          </div>
+
+          <figure class="visual-card guide-diagram concept-visual">
+            <img
+              src="assets/cheap-lfs/track-workflow.webp"
+              width="1600"
+              height="640"
+              loading="lazy"
+              alt="Concept workflow showing selection, review, multipart preparation, verified upload, and pointer commit"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Concept workflow: selection → review → parts → verified storage
+                → pointer.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >概念流程：揀檔 → 審閱 → 分件 → 驗證儲存 → 指標。</span
+              >
+            </figcaption>
+          </figure>
+
+          <ol class="quick-steps">
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Open the repository</span
+                  ><span class="copy yue" lang="zh-HK">開啟 repository</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Use the repository rail and open
+                    <strong>Large files</strong>, or go to
+                    <strong>Repository settings → Cheap LFS</strong>.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >喺 repository rail 開 <strong>Large files</strong>，或者去
+                    <strong>Repository settings → Cheap LFS</strong>。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Choose a storage route</span
+                  ><span class="copy yue" lang="zh-HK">揀儲存路線</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Start with GitHub Releases for the simplest project-bound
+                    setup. Use a registry when you need an immutable current
+                    object set.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >最簡單就用 GitHub
+                    Releases；想要一套不可變嘅目前物件集合，就揀
+                    registry。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Review visibility and access</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >睇清楚公開程度同權限</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Public Release pointers may restore signed out when
+                    explicitly public. Private storage needs the right
+                    account.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >明確公開嘅 Release
+                    指標可以登出照還原；私人倉庫就一定要有啱嘅帳戶權限。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Select the large file</span
+                  ><span class="copy yue" lang="zh-HK">揀大檔</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Use the large-file filter in Changes or the Large files
+                    manager. Keep source code and ordinary small assets in
+                    normal Git.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >用 Changes 嘅大檔篩選器或者 Large files manager。Source
+                    code 同普通細檔繼續留喺正常 Git。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Let the upload finish and verify</span
+                  ><span class="copy yue" lang="zh-HK">等上傳同驗證完成</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Do not edit the source mid-transfer. Desktop Material
+                    rejects changed-in-flight files and reports each worker
+                    honestly.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >傳緊嗰陣唔好改原檔。Desktop Material
+                    發現飛行中變咗樣會拒收，worker 狀態亦會老實報數。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Commit the pointer</span
+                  ><span class="copy yue" lang="zh-HK">Commit 個指標</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Review the pointer diff, then commit and push it. Keep the
+                    backing Release or registry object for as long as that
+                    commit must remain restorable.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >睇過指標 diff 先 commit 同 push。只要嗰個 commit
+                    仲要還原，就唔好刪背後嘅 Release 或 registry 物件。</span
+                  >
+                </p>
+              </div>
+            </li>
+            <li>
+              <div>
+                <h3>
+                  <span class="copy en">Test a restore</span
+                  ><span class="copy yue" lang="zh-HK">試一次還原</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Use <strong>Materialize</strong> or
+                    <strong>Materialize all</strong>. A fresh clone should
+                    receive the pointer first and then recover verified original
+                    bytes.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >用 <strong>Materialize</strong> 或
+                    <strong>Materialize all</strong>。新 clone
+                    會先收到指標，再攞返驗證過嘅原裝 bytes。</span
+                  >
+                </p>
+              </div>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <section
+        class="guide-section ui-section"
+        id="ui-guide"
+        aria-labelledby="ui-title"
+      >
+        <div class="wrap">
+          <div class="section-heading copy-stack">
+            <span class="guide-kicker">
+              <span class="copy en">Real product guidance</span>
+              <span class="copy yue" lang="zh-HK">真介面帶住做</span>
+            </span>
+            <h2 id="ui-title">
+              <span class="copy en"
+                >Five genuine captures, with bilingual callouts</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >五張真實截圖，加雙語指路牌</span
+              >
+            </h2>
+            <p>
+              <span class="copy en"
+                >These are captures of the built app, not generated mockups.
+                Callouts sit above the original pixels and remain readable by
+                assistive technology.</span
+              >
+              <span class="copy yue" lang="zh-HK"
+                >呢啲係真 build 截圖，唔係 AI
+                扮介面。提示層浮喺原圖上面，讀屏器一樣讀得到。</span
+              >
+            </p>
+          </div>
+
+          <div class="ui-guide-list">
+            <article class="ui-step">
+              <div class="ui-step-copy copy-stack">
+                <span class="ui-step-number">01</span>
+                <h3>
+                  <span class="copy en">Find every tracked pointer</span
+                  ><span class="copy yue" lang="zh-HK">一眼搵晒所有指標</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Open <strong>Large files</strong>. Search the inventory,
+                    inspect provider and remote state, then choose
+                    <strong>Materialize</strong> on one row or restore the whole
+                    list.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >開 <strong>Large files</strong>，搜尋清單、睇 provider 同
+                    remote 狀態；可以逐行
+                    <strong>Materialize</strong>，亦可以全批還原。</span
+                  >
+                </p>
+                <ul>
+                  <li>
+                    <span class="copy en"
+                      >The tracked Git blob remains the pointer.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >Git 真正追蹤嘅 blob 仍然係指標。</span
+                    >
+                  </li>
+                  <li>
+                    <span class="copy en"
+                      >The working tree receives the restored original
+                      bytes.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >工作目錄就會收到還原後嘅原裝 bytes。</span
+                    >
+                  </li>
+                </ul>
+              </div>
+              <figure class="ui-frame">
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-ui-acceptance.png"
+                  width="1200"
+                  height="752"
+                  loading="lazy"
+                  alt="Real Cheap LFS manager after a verified private-repository pin"
+                />
+                <span class="callout callout-a"
+                  ><b>1</b><span class="copy en">Pointer inventory</span
+                  ><span class="copy yue" lang="zh-HK">指標清單</span></span
+                >
+                <span class="callout callout-b"
+                  ><b>2</b><span class="copy en">Restore action</span
+                  ><span class="copy yue" lang="zh-HK">還原掣</span></span
+                >
+                <figcaption>
+                  <span class="evidence-label"
+                    ><span class="copy en">Real UI evidence</span
+                    ><span class="copy yue" lang="zh-HK">真介面證據</span></span
+                  >
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="ui-step ui-step-reverse">
+              <div class="ui-step-copy copy-stack">
+                <span class="ui-step-number">02</span>
+                <h3>
+                  <span class="copy en"
+                    >Choose cloud compression deliberately</span
+                  ><span class="copy yue" lang="zh-HK">有意識先開雲端壓縮</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >Public repositories can prepare the owned workflow
+                    automatically. Private repositories require explicit
+                    consent. Failed or unhelpful compression keeps the verified
+                    raw object available.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >公開 repository 可以自動準備受管理 workflow；私人
+                    repository 一定要你明確同意。壓縮失敗或者慳唔到位，驗證過嘅
+                    raw 物件照樣留低。</span
+                  >
+                </p>
+              </div>
+              <figure class="ui-frame">
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-cloud-compression.png"
+                  width="960"
+                  height="660"
+                  loading="lazy"
+                  alt="Real bilingual Cheap LFS manager showing private cloud-compression consent and a verified compressed pointer"
+                />
+                <span class="callout callout-c"
+                  ><b>1</b><span class="copy en">Private opt-in</span
+                  ><span class="copy yue" lang="zh-HK">私人庫要同意</span></span
+                >
+                <span class="callout callout-d"
+                  ><b>2</b><span class="copy en">Verified state</span
+                  ><span class="copy yue" lang="zh-HK">已驗證狀態</span></span
+                >
+                <figcaption>
+                  <span class="evidence-label"
+                    ><span class="copy en">Real bilingual UI</span
+                    ><span class="copy yue" lang="zh-HK">真雙語介面</span></span
+                  >
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="ui-step">
+              <div class="ui-step-copy copy-stack">
+                <span class="ui-step-number">03</span>
+                <h3>
+                  <span class="copy en"
+                    >Watch the workers before committing</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Commit 前睇住 workers 做嘢</span
+                  >
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >The Changes view can isolate files over 100 MiB. The
+                    compact terminal reports queue depth, selected provider,
+                    phase, bytes, elapsed time, ETA, success, failure, and
+                    manual handoff honestly.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >Changes 可以淨係睇超過 100 MiB 嘅檔。下面個細 terminal
+                    會老實顯示隊列、provider、階段、bytes、用時、ETA、成功、失敗同手動接力。</span
+                  >
+                </p>
+              </div>
+              <figure class="ui-frame">
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-commit-progress.png"
+                  width="1440"
+                  height="960"
+                  loading="lazy"
+                  alt="Real Changes view with three Cheap LFS workers, provider recommendation, timing, ETA, and manual controls"
+                />
+                <span class="callout callout-a"
+                  ><b>1</b><span class="copy en">Large-file filter</span
+                  ><span class="copy yue" lang="zh-HK">大檔篩選</span></span
+                >
+                <span class="callout callout-e"
+                  ><b>2</b><span class="copy en">Worker progress</span
+                  ><span class="copy yue" lang="zh-HK">Worker 進度</span></span
+                >
+                <figcaption>
+                  <span class="evidence-label"
+                    ><span class="copy en"
+                      >Real production progress surface</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >真 production 進度介面</span
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="ui-step ui-step-reverse">
+              <div class="ui-step-copy copy-stack">
+                <span class="ui-step-number">04</span>
+                <h3>
+                  <span class="copy en">Read the two-lane restore</span
+                  ><span class="copy yue" lang="zh-HK">睇明雙線還原</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >The detailed restore surface shows the current transfer and
+                    can start the next eligible transfer before the first one
+                    finishes. Completion is reported only after byte
+                    verification and destination replacement.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >詳細還原介面同時睇到目前傳輸，仲可以喺第一份未完之前預先開下一份合資格工作。要驗證
+                    bytes 同換入目的地完成，先至會報大功告成。</span
+                  >
+                </p>
+              </div>
+              <figure class="ui-frame">
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-restore-lookahead.png"
+                  width="1440"
+                  height="960"
+                  loading="lazy"
+                  alt="Real Cheap LFS restore progress showing one transfer at 90 percent and the next transfer already active"
+                />
+                <span class="callout callout-f"
+                  ><b>1</b><span class="copy en">Current transfer</span
+                  ><span class="copy yue" lang="zh-HK">目前傳輸</span></span
+                >
+                <span class="callout callout-g"
+                  ><b>2</b><span class="copy en">Look-ahead lane</span
+                  ><span class="copy yue" lang="zh-HK">預開下一線</span></span
+                >
+                <figcaption>
+                  <span class="evidence-label"
+                    ><span class="copy en"
+                      >Real hidden-desktop acceptance capture</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >真 hidden-desktop 驗收截圖</span
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </article>
+
+            <article class="ui-step">
+              <div class="ui-step-copy copy-stack">
+                <span class="ui-step-number">05</span>
+                <h3>
+                  <span class="copy en">Scale beyond toy examples</span
+                  ><span class="copy yue" lang="zh-HK">唔只係玩具例子</span>
+                </h3>
+                <p>
+                  <span class="copy en"
+                    >This retained Bambu build acceptance covered a 14.8 GB,
+                    8,305-file payload across four UI batches. Ten pointer
+                    restores matched all ten expected hashes in a fresh
+                    clone.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >呢次保留嘅 Bambu build 驗收，真係處理咗 14.8 GB、8,305
+                    個檔，分四批 UI 做完；新 clone 還原十個指標，十個 hash
+                    全部對中。</span
+                  >
+                </p>
+              </div>
+              <figure class="ui-frame">
+                <img
+                  src="docs/assets/screenshots/cheap-lfs-bambu-build-live.png"
+                  width="960"
+                  height="660"
+                  loading="lazy"
+                  alt="Real live Cheap LFS inventory for a 14.8 GB Bambu build with ten tracked objects"
+                />
+                <span class="callout callout-h"
+                  ><b>1</b><span class="copy en">Ten real pointers</span
+                  ><span class="copy yue" lang="zh-HK">十個真指標</span></span
+                >
+                <figcaption>
+                  <span class="evidence-label"
+                    ><span class="copy en">Real public-safe live inventory</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >真實、可公開 live 清單</span
+                    ></span
+                  >
+                </figcaption>
+              </figure>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="guide-section tonal-section"
+        aria-labelledby="pointer-title"
+      >
+        <div class="wrap two-column-feature">
+          <div class="feature-copy copy-stack">
+            <span class="guide-kicker"
+              ><span class="copy en">Pointer anatomy</span
+              ><span class="copy yue" lang="zh-HK">指標解剖</span></span
+            >
+            <h2 id="pointer-title">
+              <span class="copy en">A pointer is a recipe, not the meal</span
+              ><span class="copy yue" lang="zh-HK">指標係食譜，唔係正餐</span>
+            </h2>
+            <p>
+              <span class="copy en"
+                >The committed text identifies the format, storage provider,
+                immutable object or ordered parts, original size, and SHA-256
+                digest. It is small enough to review in a normal diff.</span
+              ><span class="copy yue" lang="zh-HK"
+                >Commit 落去嘅文字會講明格式、儲存
+                provider、不可變物件或者有次序嘅分件、原始大小同
+                SHA-256。細到普通 diff 都睇得舒服。</span
+              >
+            </p>
+            <div class="fact-list">
+              <div>
+                <strong
+                  ><span class="copy en">Readable</span
+                  ><span class="copy yue" lang="zh-HK">睇得明</span></strong
+                ><span class="copy en"
+                  >No opaque Git filter is required to inspect the commit.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >唔使裝神秘 Git filter 先睇到 commit。</span
+                >
+              </div>
+              <div>
+                <strong
+                  ><span class="copy en">Verifiable</span
+                  ><span class="copy yue" lang="zh-HK">驗得到</span></strong
+                ><span class="copy en"
+                  >Size and digest are checked before the file is
+                  accepted.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >檔案收貨之前，一定核對大小同 digest。</span
+                >
+              </div>
+              <div>
+                <strong
+                  ><span class="copy en">Portable</span
+                  ><span class="copy yue" lang="zh-HK">搬得走</span></strong
+                ><span class="copy en"
+                  >Anyone can see what storage access is required.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >任何人都睇到需要邊種儲存權限。</span
+                >
+              </div>
+            </div>
+          </div>
+          <figure class="visual-card concept-visual">
+            <img
+              src="assets/cheap-lfs/pointer-anatomy.webp"
+              width="1536"
+              height="1024"
+              loading="lazy"
+              alt="Concept diagram of provider, identity, size, digest, and ordered parts stored in a Cheap LFS pointer"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Concept anatomy. The exact v1 format is documented in the
+                technical reference.</span
+              ><span class="copy yue" lang="zh-HK"
+                >概念解剖；實際 v1 格式請睇技術文件。</span
+              >
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section
+        class="guide-section"
+        id="providers"
+        aria-labelledby="provider-title"
+      >
+        <div class="wrap">
+          <div class="section-heading copy-stack">
+            <span class="guide-kicker"
+              ><span class="copy en">Storage choices</span
+              ><span class="copy yue" lang="zh-HK">儲存選擇</span></span
+            >
+            <h2 id="provider-title">
+              <span class="copy en"
+                >Pick the route that matches the repository</span
+              ><span class="copy yue" lang="zh-HK"
+                >Repository 食邊款，就揀邊條路</span
+              >
+            </h2>
+          </div>
+          <figure class="visual-card guide-diagram concept-visual">
+            <img
+              src="assets/cheap-lfs/provider-routes.webp"
+              width="1600"
+              height="878"
+              loading="lazy"
+              alt="Concept comparison of Release assets, immutable registry storage, and manual browser handoff"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Concept comparison; provider availability depends on repository
+                and account state.</span
+              ><span class="copy yue" lang="zh-HK"
+                >概念比較；實際有邊款，要睇 repository 同帳戶狀態。</span
+              >
+            </figcaption>
+          </figure>
+          <div class="provider-table-wrap">
+            <table class="provider-table">
+              <thead>
+                <tr>
+                  <th>
+                    <span class="copy en">Route</span
+                    ><span class="copy yue" lang="zh-HK">路線</span>
+                  </th>
+                  <th>
+                    <span class="copy en">Best fit</span
+                    ><span class="copy yue" lang="zh-HK">最啱用</span>
+                  </th>
+                  <th>
+                    <span class="copy en">What to remember</span
+                    ><span class="copy yue" lang="zh-HK">要記住</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <th>
+                    <span class="copy en">GitHub Releases</span
+                    ><span class="copy yue" lang="zh-HK">GitHub Releases</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >The simplest repository-bound path; multipart uploads and
+                      draft/prerelease buckets.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >最直接嘅 repository 專屬路線；支援分件同 draft/prerelease
+                      buckets。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Do not delete assets needed by reachable commits. Private
+                      restores require account access.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >仲有 commit 要用就唔好刪
+                      asset。私人還原要有帳戶權限。</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <th>
+                    <span class="copy en">Container registry</span
+                    ><span class="copy yue" lang="zh-HK">容器倉庫</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >An immutable manifest representing the complete current
+                      object set.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >用不可變 manifest 表示成套目前物件。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Each change publishes a new manifest; unchanged objects
+                      can be reused.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >每次改動出新 manifest；冇變嘅物件可以重用。</span
+                    >
+                  </td>
+                </tr>
+                <tr>
+                  <th>
+                    <span class="copy en">Manual browser handoff</span
+                    ><span class="copy yue" lang="zh-HK">手動瀏覽器接力</span>
+                  </th>
+                  <td>
+                    <span class="copy en"
+                      >A bounded fallback when automatic provider upload cannot
+                      complete.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >自動上傳行唔通時嘅受控後備方案。</span
+                    >
+                  </td>
+                  <td>
+                    <span class="copy en"
+                      >Finish every reserved part and return to the app for
+                      verification.</span
+                    ><span class="copy yue" lang="zh-HK"
+                      >預留咗嘅分件要傳齊，再返 app 做驗證。</span
+                    >
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="guide-section tonal-section"
+        aria-labelledby="restore-title"
+      >
+        <div class="wrap visual-story-grid">
+          <article class="story-card">
+            <figure class="visual-card concept-visual">
+              <img
+                src="assets/cheap-lfs/restore-workflow.webp"
+                width="1600"
+                height="878"
+                loading="lazy"
+                alt="Concept restore workflow from pointer through verified multipart download to atomic destination replacement"
+              />
+              <figcaption class="copy-stack">
+                <span class="copy en"
+                  >Concept illustration: verified restore and atomic
+                  replacement.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >概念插圖：驗證還原，同一次過安全換檔。</span
+                >
+              </figcaption>
+            </figure>
+            <div class="copy-stack">
+              <h2 id="restore-title">
+                <span class="copy en"
+                  >Restore is verification first, replacement second</span
+                ><span class="copy yue" lang="zh-HK">還原係先驗貨，後換檔</span>
+              </h2>
+              <p>
+                <span class="copy en"
+                  >Parts download to temporary owned storage, reassemble in
+                  order, and must match both expected byte count and digest.
+                  Only then does the complete file move into place.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >分件先落去 app 管理嘅暫存位，按次序砌返好，再核對預期 bytes
+                  同 digest。全部啱先一次過搬入目的地。</span
+                >
+              </p>
+            </div>
+          </article>
+          <article class="story-card">
+            <figure class="visual-card concept-visual">
+              <img
+                src="assets/cheap-lfs/integrity-safety.webp"
+                width="1600"
+                height="800"
+                loading="lazy"
+                alt="Concept safety gates for size, checksum, source race rejection, and atomic replacement"
+              />
+              <figcaption class="copy-stack">
+                <span class="copy en"
+                  >Concept illustration: size, digest, race, and destination
+                  safety gates.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >概念插圖：大小、digest、競態同目的地安全閘。</span
+                >
+              </figcaption>
+            </figure>
+            <div class="copy-stack">
+              <h2>
+                <span class="copy en"
+                  >Changed while uploading? The operation fails closed.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >上傳途中改咗檔？安全閘會即刻收工。</span
+                >
+              </h2>
+              <p>
+                <span class="copy en"
+                  >Desktop Material checks stable identity and content. A source
+                  that changes mid-capture is rejected instead of producing a
+                  pointer to ambiguous bytes.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >Desktop Material
+                  會驗穩定身份同內容。擷取途中變咗樣，就拒絕建立一張指住唔知邊版
+                  bytes 嘅指標。</span
+                >
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="guide-section" aria-labelledby="team-title">
+        <div class="wrap two-column-feature">
+          <figure class="visual-card concept-visual">
+            <img
+              src="assets/cheap-lfs/collaboration.webp"
+              width="1536"
+              height="1024"
+              loading="lazy"
+              alt="Concept showing two collaborators restoring identical verified files from shared storage"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Concept collaboration: pointers travel with Git; verified bytes
+                come from storage.</span
+              ><span class="copy yue" lang="zh-HK"
+                >概念協作：指標跟 Git 行，驗證 bytes 就由倉庫攞。</span
+              >
+            </figcaption>
+          </figure>
+          <div class="feature-copy copy-stack">
+            <span class="guide-kicker"
+              ><span class="copy en">Collaboration contract</span
+              ><span class="copy yue" lang="zh-HK">協作合約</span></span
+            >
+            <h2 id="team-title">
+              <span class="copy en"
+                >Everyone needs the pointer. Restorers also need storage
+                access.</span
+              ><span class="copy yue" lang="zh-HK"
+                >人人都會有指標；要還原嗰位仲要有倉庫權限。</span
+              >
+            </h2>
+            <p>
+              <span class="copy en"
+                >A collaborator without Desktop Material can still inspect and
+                commit the pointer, but they will not see the original file
+                automatically. Document the chosen provider and access policy in
+                the repository.</span
+              ><span class="copy yue" lang="zh-HK"
+                >冇 Desktop Material 嘅拍檔照樣可以睇同 commit
+                指標，但唔會自動見到原檔。記得喺 repository 寫清楚用邊個
+                provider 同點樣攞權限。</span
+              >
+            </p>
+            <a
+              class="text-link"
+              href="docs/features/repository-management/release-backed-cheap-lfs.html"
+              ><span class="copy en"
+                >Read the exact collaboration and failure contract →</span
+              ><span class="copy yue" lang="zh-HK"
+                >睇完整協作同失敗合約 →</span
+              ></a
+            >
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="guide-section tonal-section"
+        aria-labelledby="compression-title"
+      >
+        <div class="wrap visual-story-grid">
+          <article class="story-card">
+            <figure class="visual-card concept-visual">
+              <img
+                src="assets/cheap-lfs/cloud-compression.webp"
+                width="1536"
+                height="1024"
+                loading="lazy"
+                alt="Concept showing optional cloud compression with retained raw fallback and incompressible bypass"
+              />
+              <figcaption class="copy-stack">
+                <span class="copy en"
+                  >Concept illustration: optional compression with a retained
+                  raw fallback.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >概念插圖：可選壓縮，同時保留 raw 後備。</span
+                >
+              </figcaption>
+            </figure>
+            <div class="copy-stack">
+              <h2 id="compression-title">
+                <span class="copy en"
+                  >Compression is an optimization, not a trust shortcut</span
+                ><span class="copy yue" lang="zh-HK"
+                  >壓縮係慳位優化，唔係走捷徑</span
+                >
+              </h2>
+              <p>
+                <span class="copy en"
+                  >The cloud workflow compresses one object at a time.
+                  Non-beneficial or failed results leave the raw object intact
+                  and cloneable. Decompression and final verification happen
+                  locally.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >雲端 workflow 每次壓一個物件。慳唔到位或者失敗，raw
+                  物件照留低、照 clone 得；解壓同最後驗證全部喺本機做。</span
+                >
+              </p>
+            </div>
+          </article>
+          <article class="story-card">
+            <figure class="visual-card concept-visual">
+              <img
+                src="assets/cheap-lfs/privacy-boundary.webp"
+                width="1600"
+                height="878"
+                loading="lazy"
+                alt="Concept showing pointer metadata, private account-gated storage, and optional encryption as a separate layer"
+              />
+              <figcaption class="copy-stack">
+                <span class="copy en"
+                  >Concept illustration: pointer metadata, provider access, and
+                  separate optional encryption.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >概念插圖：指標 metadata、provider
+                  權限，同獨立可選加密。</span
+                >
+              </figcaption>
+            </figure>
+            <div class="copy-stack">
+              <h2>
+                <span class="copy en">Cheap LFS is not encryption</span
+                ><span class="copy yue" lang="zh-HK">Cheap LFS 唔等於加密</span>
+              </h2>
+              <p>
+                <span class="copy en"
+                  >The pointer can expose provider coordinates, size, and
+                  digest. Private storage relies on provider access control.
+                  Payload encryption, when enabled, is a separate explicit layer
+                  with its own password-recovery consequences.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >指標可能透露 provider 位置、大小同 digest。私人儲存靠
+                  provider 權限控制；payload
+                  加密如果開啟，係另一層明確功能，而且唔見密碼真係會有後果。</span
+                >
+              </p>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section
+        class="guide-section"
+        id="troubleshooting"
+        aria-labelledby="trouble-title"
+      >
+        <div class="wrap">
+          <div class="section-heading copy-stack">
+            <span class="guide-kicker"
+              ><span class="copy en">When something stops</span
+              ><span class="copy yue" lang="zh-HK">有嘢卡住嗰陣</span></span
+            >
+            <h2 id="trouble-title">
+              <span class="copy en">Troubleshoot from the pointer outward</span
+              ><span class="copy yue" lang="zh-HK">由指標一路向外查</span>
+            </h2>
+          </div>
+          <figure class="visual-card guide-diagram concept-visual">
+            <img
+              src="assets/cheap-lfs/troubleshooting.webp"
+              width="1600"
+              height="800"
+              loading="lazy"
+              alt="Concept troubleshooting bays for account access, missing storage object, digest mismatch, and retryable interruption"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Most failures are recoverable; a digest mismatch is a safety
+                stop, not a warning to ignore.</span
+              ><span class="copy yue" lang="zh-HK"
+                >大部分失敗都救得返；digest 唔對係安全停車，唔係叫你照衝。</span
+              >
+            </figcaption>
+          </figure>
+          <div class="trouble-grid">
+            <details>
+              <summary>
+                <span class="copy en">“Account access required”</span
+                ><span class="copy yue" lang="zh-HK">「需要帳戶權限」</span>
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Switch to an account that can read the repository and its
+                  Release or registry package. Confirm the remote points to the
+                  expected owner before retrying.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >轉去有權讀 repository 同對應 Release／registry package
+                  嘅帳戶；再試之前先確認 remote 真係指住預期 owner。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en">“Backing asset not found”</span
+                ><span class="copy yue" lang="zh-HK">「搵唔到背後 asset」</span>
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Open the pointer diff and verify the provider object or every
+                  ordered part still exists. Restore a deleted asset from your
+                  backup; do not rewrite history blindly.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >開指標 diff，檢查 provider
+                  物件或者每一件分件仲喺唔喺度。由備份還原俾人刪咗嘅
+                  asset，唔好盲改歷史。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en">“Size or digest mismatch”</span
+                ><span class="copy yue" lang="zh-HK"
+                  >「大小或 digest 唔對」</span
+                >
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Treat the stored bytes as untrusted. Retry once from a clean
+                  cache; if the mismatch remains, preserve the pointer and
+                  investigate the backing object instead of forcing
+                  replacement.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >當倉庫 bytes 唔可信。清 cache
+                  再試一次；仲唔對就保留指標，查背後物件，唔好硬換入去。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en">Transfer interrupted or stalled</span
+                ><span class="copy yue" lang="zh-HK">傳輸中斷或者停滯</span>
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Cancel safely, keep the pointer or original source, then
+                  retry. Multipart and manual handoff flows track the parts that
+                  still need completion.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >安全取消，保留指標或者原檔，再試過。分件同手動接力流程會記住仲欠邊幾件。</span
+                >
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section
+        class="guide-section tonal-section"
+        aria-labelledby="practice-title"
+      >
+        <div class="wrap two-column-feature">
+          <div class="feature-copy copy-stack">
+            <span class="guide-kicker"
+              ><span class="copy en">Good project hygiene</span
+              ><span class="copy yue" lang="zh-HK">好習慣先長玩長有</span></span
+            >
+            <h2 id="practice-title">
+              <span class="copy en"
+                >Use Cheap LFS for the files that truly need it</span
+              ><span class="copy yue" lang="zh-HK"
+                >真係大件，先好請 Cheap LFS 出場</span
+              >
+            </h2>
+            <ul class="practice-list">
+              <li>
+                <span class="copy en"
+                  >Keep source, configuration, and ordinary diffable files in
+                  normal Git.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >Source、設定同普通可 diff 檔案繼續放正常 Git。</span
+                >
+              </li>
+              <li>
+                <span class="copy en"
+                  >Use Cheap LFS for large generated assets, archives, media,
+                  models, and build payloads.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >大型生成資產、壓縮檔、媒體、模型同 build payload 先交俾 Cheap
+                  LFS。</span
+                >
+              </li>
+              <li>
+                <span class="copy en"
+                  >New Release writes use bounded 500 MiB parts; legacy reads
+                  remain bounded to 2 GiB.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >新 Release 寫入用 500 MiB 上限分件；舊格式讀取仍然有 2 GiB
+                  上限。</span
+                >
+              </li>
+              <li>
+                <span class="copy en"
+                  >Test a fresh-clone restore before treating a migration as
+                  complete.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >搬遷未算完成，先用 fresh clone 真還原一次。</span
+                >
+              </li>
+              <li>
+                <span class="copy en"
+                  >Retain provider objects for every commit you promise to
+                  restore.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >承諾仲原到嘅 commit，對應 provider 物件就要保留。</span
+                >
+              </li>
+            </ul>
+          </div>
+          <figure class="visual-card concept-visual">
+            <img
+              src="assets/cheap-lfs/best-practices.webp"
+              width="1536"
+              height="1024"
+              loading="lazy"
+              alt="Concept lifecycle for selecting large binaries, reviewing storage, verifying uploads, committing pointers, testing restore, and retaining objects"
+            />
+            <figcaption class="copy-stack">
+              <span class="copy en"
+                >Concept lifecycle: select → review → upload → verify → commit →
+                restore test → retain.</span
+              ><span class="copy yue" lang="zh-HK"
+                >概念循環：揀 → 睇 → 傳 → 驗 → commit → 試還原 → 保留。</span
+              >
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="guide-section faq-section" aria-labelledby="faq-title">
+        <div class="wrap">
+          <div class="section-heading copy-stack">
+            <span class="guide-kicker"
+              ><span class="copy en">Fast answers</span
+              ><span class="copy yue" lang="zh-HK">快問快答</span></span
+            >
+            <h2 id="faq-title">
+              <span class="copy en">Cheap LFS FAQ</span
+              ><span class="copy yue" lang="zh-HK">Cheap LFS 常見問題</span>
+            </h2>
+          </div>
+          <div class="faq-grid">
+            <details>
+              <summary>
+                <span class="copy en">Is this Git LFS?</span
+                ><span class="copy yue" lang="zh-HK">呢個係咪 Git LFS？</span>
+              </summary>
+              <p>
+                <span class="copy en"
+                  >No. It uses a Desktop Material pointer format and
+                  Release/registry storage. A client without Desktop Material
+                  sees the pointer text.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >唔係。佢用 Desktop Material 指標格式同 Release／registry
+                  儲存。冇 Desktop Material 嘅 client 會見到指標文字。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en"
+                  >Does cloning download every large file?</span
+                ><span class="copy yue" lang="zh-HK"
+                  >Clone 會唔會一次過下載晒大檔？</span
+                >
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Git receives pointers first. Desktop Material can
+                  automatically materialize eligible files on open/clone, or you
+                  can restore them from Large files.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >Git 先收指標。Desktop Material 可以喺開啟／clone
+                  後自動還原合資格檔案，亦可以去 Large files 手動做。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en">Can I use a private repository?</span
+                ><span class="copy yue" lang="zh-HK"
+                  >私人 repository 用唔用得？</span
+                >
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Yes. Restorers need provider access. Private cloud
+                  compression is explicit opt-in.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >得。還原者要有 provider 權限；私人庫雲端壓縮要明確 opt
+                  in。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en">Can I delete old Release assets?</span
+                ><span class="copy yue" lang="zh-HK"
+                  >舊 Release assets 可唔可以刪？</span
+                >
+              </summary>
+              <p>
+                <span class="copy en"
+                  >Only when no retained commit or exported pointer depends on
+                  them. Deleting the object breaks future materialization for
+                  that pointer.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >要肯定冇任何保留 commit
+                  或匯出指標再依賴先得。刪咗物件，嗰張指標以後就還原唔到。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en"
+                  >Are generated illustrations runtime evidence?</span
+                ><span class="copy yue" lang="zh-HK"
+                  >生成插圖係咪實機證據？</span
+                >
+              </summary>
+              <p>
+                <span class="copy en"
+                  >No. Every generated visual is labelled as a concept. Only the
+                  five UI figures marked “Real UI evidence” are product
+                  captures.</span
+                ><span class="copy yue" lang="zh-HK"
+                  >唔係。所有生成圖都標明係概念；只有五張寫住「真介面證據」嘅圖先係產品截圖。</span
+                >
+              </p>
+            </details>
+            <details>
+              <summary>
+                <span class="copy en"
+                  >Where is the exact protocol documented?</span
+                ><span class="copy yue" lang="zh-HK">實際協議文件喺邊？</span>
+              </summary>
+              <p>
+                <a
+                  href="docs/features/repository-management/release-backed-cheap-lfs.html"
+                  ><span class="copy en"
+                    >Open the full Release-backed Cheap LFS technical
+                    reference.</span
+                  ><span class="copy yue" lang="zh-HK"
+                    >開完整 Release-backed Cheap LFS 技術文件。</span
+                  ></a
+                >
+              </p>
+            </details>
+          </div>
+        </div>
+      </section>
+
+      <section class="guide-cta">
+        <div class="wrap guide-cta-surface copy-stack">
+          <span class="guide-kicker"
+            ><span class="copy en">Ready to try it?</span
+            ><span class="copy yue" lang="zh-HK">準備試未？</span></span
+          >
+          <h2>
+            <span class="copy en"
+              >Open a repository, then choose Large files.</span
+            ><span class="copy yue" lang="zh-HK"
+              >開一個 repository，跟住揀 Large files。</span
+            >
+          </h2>
+          <p>
+            <span class="copy en"
+              >Start with one disposable large file, use GitHub Releases, finish
+              the verified upload, commit the pointer, and prove a fresh restore
+              before migrating real project assets.</span
+            ><span class="copy yue" lang="zh-HK"
+              >先用一份可棄置大檔試路、揀 GitHub Releases、完成驗證上傳、commit
+              指標，再用 fresh restore 證明行得通，先搬真 project 資產。</span
+            >
+          </p>
+          <div class="cheap-hero-actions">
+            <a class="btn btn-filled" href="index.html#install"
+              ><span class="copy en">Install Desktop Material</span
+              ><span class="copy yue" lang="zh-HK"
+                >安裝 Desktop Material</span
+              ></a
+            >
+            <a
+              class="btn btn-tonal"
+              href="docs/features/repository-management/release-backed-cheap-lfs.html"
+              ><span class="copy en">Read the technical reference</span
+              ><span class="copy yue" lang="zh-HK">睇技術文件</span></a
+            >
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="guide-footer">
+      <div class="wrap">
+        <p>
+          <span class="copy en"
+            >Desktop Material · Windows-only Material 3 Git client · Concept art
+            is explanatory, UI captures are genuine.</span
+          >
+          <span class="copy yue" lang="zh-HK"
+            >Desktop Material · Windows 專用 Material 3 Git client ·
+            概念圖負責講解，介面截圖全部真嘅。</span
+          >
+        </p>
+        <p>
+          <a href="index.html"
+            ><span class="copy en">Home</span
+            ><span class="copy yue" lang="zh-HK">首頁</span></a
+          >
+          ·
+          <a href="docs/"
+            ><span class="copy en">Docs</span
+            ><span class="copy yue" lang="zh-HK">文件</span></a
+          >
+          ·
+          <a href="https://github.com/Ding-Ding-Projects/desktop-material"
+            >GitHub</a
+          >
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
