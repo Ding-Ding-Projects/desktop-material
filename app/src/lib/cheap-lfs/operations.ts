@@ -3588,6 +3588,7 @@ const CheapLfsMaterializeLookAheadFraction =
 export type CheapLfsMaterializePhase =
   | 'downloading'
   | 'decompressing'
+  | 'decrypting'
   | 'verifying'
   | 'materializing'
 
@@ -3792,7 +3793,7 @@ export function cheapLfsMaterializeStageAwareLogicalBytes(
           (transferred *
             (phase === 'verifying'
               ? 95
-              : phase === 'decompressing'
+              : phase === 'decompressing' || phase === 'decrypting'
               ? 90
               : 85)) /
             100
@@ -4253,9 +4254,7 @@ async function materializeMultiPart(
         const download = outcome.value
         let verificationPath = download.path
         if (isEncryptedCheapLfsPointerPart(part)) {
-          // Shares the transform stage with decompression rather than adding a
-          // sixth progress state to every restore surface.
-          progress.stage(index, 'decompressing')
+          progress.stage(index, 'decrypting')
           const expandedPath = await payloadTemporaryPath(
             fs,
             repository.path,

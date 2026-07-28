@@ -30,6 +30,12 @@ export type CheapLfsRestorePhase =
   | 'preparing'
   | 'downloading'
   | 'decompressing'
+  // Decryption is its own phase rather than borrowing `decompressing`. The two
+  // are not interchangeable to a watching user: scrypt at the configured cost
+  // is deliberately slow, so this is often the longest visible step of a
+  // restore, and telling someone their file is being decompressed while it is
+  // actually being decrypted is wrong exactly when they are staring at it.
+  | 'decrypting'
   | 'verifying'
   | 'materializing'
   | 'canceling'
@@ -133,6 +139,7 @@ const restorePhases = new Set<CheapLfsRestorePhase>([
   'preparing',
   'downloading',
   'decompressing',
+  'decrypting',
   'verifying',
   'materializing',
   'canceling',

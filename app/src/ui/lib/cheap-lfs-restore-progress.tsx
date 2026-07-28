@@ -68,6 +68,7 @@ function restorePhaseKey(
   | 'cheapLfs.restore.phase.preparing'
   | 'cheapLfs.restore.phase.downloading'
   | 'cheapLfs.restore.phase.decompressing'
+  | 'cheapLfs.restore.phase.decrypting'
   | 'cheapLfs.restore.phase.verifying'
   | 'cheapLfs.restore.phase.materializing'
   | 'cheapLfs.restore.phase.canceling' {
@@ -78,6 +79,8 @@ function restorePhaseKey(
       return 'cheapLfs.restore.phase.downloading'
     case 'decompressing':
       return 'cheapLfs.restore.phase.decompressing'
+    case 'decrypting':
+      return 'cheapLfs.restore.phase.decrypting'
     case 'verifying':
       return 'cheapLfs.restore.phase.verifying'
     case 'materializing':

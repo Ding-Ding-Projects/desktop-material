@@ -341,6 +341,59 @@ describe('Cheap LFS encryption on the pin path', () => {
     })
   })
 
+  it('reports decrypting, not decompressing, while it decrypts', async () => {
+    // scrypt at the configured cost makes this the longest visible step of an
+    // encrypted restore, so it is precisely the step a user reads. Naming it
+    // "Decompressing" was wrong at the worst possible moment.
+    await withTempRepository(async (dir, repository) => {
+      const source = join(dir, 'payload.bin')
+      await writeFile(source, Buffer.from('bytes worth naming the stage for'))
+      const bucket = inMemoryBucket()
+      const fs = legacyFileSystem()
+      const phases: Array<string> = []
+
+      await pinFileToRelease(
+        bucket.gateway,
+        repository,
+        selected,
+        {
+          absoluteFilePath: source,
+          trackedRelativePath: 'payload.bin',
+          releaseTag: 'assets',
+          encryption: { password: passphrase, kdf: fastKdf },
+        },
+        undefined,
+        undefined,
+        fs
+      )
+
+      await materializePointer(
+        bucket.gateway,
+        repository,
+        selected,
+        'payload.bin',
+        undefined,
+        update => phases.push(update.phase),
+        fs,
+        undefined,
+        async () => passphrase
+      )
+
+      assert.ok(
+        phases.includes('decrypting'),
+        `an encrypted restore must report the decrypting phase, saw: ${phases.join(
+          ', '
+        )}`
+      )
+      assert.ok(
+        !phases.includes('decompressing'),
+        `nothing was compressed, so no restore may claim it was, saw: ${phases.join(
+          ', '
+        )}`
+      )
+    })
+  })
+
   it('leaves the pointer in place when the passphrase is wrong', async () => {
     await withTempRepository(async (dir, repository) => {
       const source = join(dir, 'payload.bin')

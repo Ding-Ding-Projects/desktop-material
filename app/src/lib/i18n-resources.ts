@@ -2424,6 +2424,7 @@ export type TranslationKey =
   | 'cheapLfs.restore.phase.preparing'
   | 'cheapLfs.restore.phase.downloading'
   | 'cheapLfs.restore.phase.decompressing'
+  | 'cheapLfs.restore.phase.decrypting'
   | 'cheapLfs.restore.phase.verifying'
   | 'cheapLfs.restore.phase.materializing'
   | 'cheapLfs.restore.phase.canceling'
@@ -5566,6 +5567,7 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.restore.phase.preparing': 'Preparing',
   'cheapLfs.restore.phase.downloading': 'Downloading',
   'cheapLfs.restore.phase.decompressing': 'Decompressing',
+  'cheapLfs.restore.phase.decrypting': 'Decrypting',
   'cheapLfs.restore.phase.verifying': 'Verifying',
   'cheapLfs.restore.phase.materializing': 'Restoring',
   'cheapLfs.restore.phase.canceling': 'Stopping',
@@ -8490,6 +8492,7 @@ export const cantoneseTranslations: Readonly<
   'cheapLfs.restore.phase.preparing': '準備緊',
   'cheapLfs.restore.phase.downloading': '下載緊',
   'cheapLfs.restore.phase.decompressing': '解壓緊',
+  'cheapLfs.restore.phase.decrypting': '解密緊',
   'cheapLfs.restore.phase.verifying': '核實緊',
   'cheapLfs.restore.phase.materializing': '還原緊',
   'cheapLfs.restore.phase.canceling': '停緊',
