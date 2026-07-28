@@ -1,9 +1,4 @@
-import {
-  createCipheriv,
-  createHash,
-  hkdfSync,
-  randomBytes,
-} from 'node:crypto'
+import { createCipheriv, createHash, hkdfSync, randomBytes } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
 import { stat, unlink } from 'node:fs/promises'
 import { pipeline } from 'node:stream/promises'
@@ -18,8 +13,7 @@ export const LEGACY_ASSET_LABEL =
 
 export const OCI_ARTIFACT_TYPE =
   'application/vnd.desktop-material.cheap-lfs.repository.v1'
-export const OCI_CONFIG_MEDIA_TYPE =
-  'application/vnd.oci.image.config.v1+json'
+export const OCI_CONFIG_MEDIA_TYPE = 'application/vnd.oci.image.config.v1+json'
 export const OCI_MANIFEST_MEDIA_TYPE =
   'application/vnd.oci.image.manifest.v1+json'
 export const PUBLIC_OBJECT_MEDIA_TYPE =
@@ -29,8 +23,8 @@ export const PRIVATE_OBJECT_MEDIA_TYPE =
 export const OCI_SOURCE_ANNOTATION = 'org.opencontainers.image.source'
 export const SNAPSHOT_CONFIG_FIELD = 'desktopMaterialCheapLfs'
 export const OCI_REPOSITORY_TAG = 'desktop-material-cheap-lfs-v1'
-export const OCI_RETENTION_TAG_PREFIX =
-  'desktop-material-cheap-lfs-sha256-'
+export const OCI_RETENTION_TAG_PREFIX = 'desktop-material-cheap-lfs-sha256-'
+export const ADOPTION_RECEIPT_PREFIX = 'Cheap-LFS-GHCR-Receipt: '
 
 export const MAX_RELEASE_POINTER_BYTES = 512 * 1024
 export const MAX_OCI_POINTER_BYTES = 1024 * 1024
@@ -45,6 +39,7 @@ export const MAX_OBJECT_BYTES = MAX_CHUNK_BYTES * MAX_CHUNKS_PER_OBJECT
 export const MAX_ASSET_NAME_BYTES = 255
 export const MAX_RELEASE_ASSET_BYTES = 2 * 1024 * 1024 * 1024
 export const MAX_IMAGE_REFERENCES = 64
+export const MAX_ADOPTION_POINTERS = 1_000_000
 
 const EncryptionAlgorithm = 'AES-256-GCM'
 const KeyDerivationAlgorithm = 'HKDF-SHA256'
@@ -58,6 +53,8 @@ const ShaPattern = /^[a-f0-9]{64}$/
 const IntegerPattern = /^(?:0|[1-9][0-9]*)$/
 const OciRepositoryPattern =
   /^ghcr\.io\/[a-z0-9]+(?:[._-][a-z0-9]+)*\/[a-z0-9]+(?:[._-][a-z0-9]+)*$/
+const AdoptionReceiptPattern =
+  /^v1 manifest=(sha256:[0-9a-f]{64}) parent=([a-f0-9]{40,64}) visibility=(public|private) pointers=([1-9][0-9]{0,6})$/
 
 export class CheapLfsReleaseToGhcrError extends Error {
   constructor(kind, message) {
@@ -87,18 +84,215 @@ export function canonicalJson(value) {
   return result
 }
 
-function safeInteger(value, minimum, maximum) {
+/**
+ * Record enough immutable state in the adoption commit to safely finish a
+ * canonical-tag promotion after a process crash. The receipt is only a
+ * locator: repair still revalidates the exact Git diff, OCI image, package
+ * policy, visibility, and remote default head before changing the tag.
+ */
+export function serializeAdoptionReceipt({
+  manifestDigest,
+  parentCommit,
+  visibility,
+  pointerCount,
+}) {
+  if (
+    !DigestPattern.test(manifestDigest) ||
+    !GitObjectPattern.test(parentCommit) ||
+    (visibility !== 'public' && visibility !== 'private') ||
+    !safeInteger(pointerCount, 1, MAX_ADOPTION_POINTERS)
+  ) {
+    fail(
+      'invalid-adoption-receipt',
+      'Cheap LFS could not serialize an invalid GHCR adoption receipt.'
+    )
+  }
   return (
-    Number.isSafeInteger(value) && value >= minimum && value <= maximum
+    ADOPTION_RECEIPT_PREFIX +
+    `v1 manifest=${manifestDigest} parent=${parentCommit} ` +
+    `visibility=${visibility} pointers=${pointerCount}`
   )
 }
 
-function exactKeys(value, keys) {
+export function parseAdoptionReceipt(message) {
   if (
-    typeof value !== 'object' ||
-    value === null ||
-    Array.isArray(value)
+    typeof message !== 'string' ||
+    Buffer.byteLength(message, 'utf8') > 64 * 1024
   ) {
+    fail(
+      'invalid-adoption-receipt',
+      'Cheap LFS found an oversized GHCR adoption commit message.'
+    )
+  }
+  const receiptLines = message
+    .split(/\r?\n/)
+    .filter(line => line.startsWith(ADOPTION_RECEIPT_PREFIX))
+  if (receiptLines.length === 0) {
+    return null
+  }
+  if (receiptLines.length !== 1) {
+    fail(
+      'invalid-adoption-receipt',
+      'Cheap LFS found duplicate GHCR adoption receipts.'
+    )
+  }
+  const match = AdoptionReceiptPattern.exec(
+    receiptLines[0].slice(ADOPTION_RECEIPT_PREFIX.length)
+  )
+  if (match === null) {
+    fail(
+      'invalid-adoption-receipt',
+      'Cheap LFS found a malformed GHCR adoption receipt.'
+    )
+  }
+  const pointerCount = Number(match[4])
+  if (!safeInteger(pointerCount, 1, MAX_ADOPTION_POINTERS)) {
+    fail(
+      'invalid-adoption-receipt',
+      'Cheap LFS found an invalid GHCR adoption pointer count.'
+    )
+  }
+  return {
+    manifestDigest: match[1],
+    parentCommit: match[2],
+    visibility: match[3],
+    pointerCount,
+  }
+}
+
+/**
+ * Prove that HEAD is precisely a managed Release-pointer adoption before a
+ * crash-repair path is allowed to promote the mutable canonical tag.
+ * Registry contents are deliberately verified by the runtime separately.
+ */
+export function requireRepairableAdoption({
+  receipt,
+  headCommit,
+  parentCommit,
+  changedPaths,
+  allowedAuxiliaryPaths = [],
+  parentReleasePointers,
+  currentReleasePointers,
+  currentOciPointers,
+  registryRepository,
+  visibility,
+}) {
+  if (
+    receipt === null ||
+    typeof receipt !== 'object' ||
+    !DigestPattern.test(receipt.manifestDigest) ||
+    !safeInteger(receipt.pointerCount, 1, MAX_ADOPTION_POINTERS) ||
+    receipt.parentCommit !== parentCommit ||
+    receipt.visibility !== visibility ||
+    !GitObjectPattern.test(headCommit) ||
+    !GitObjectPattern.test(parentCommit) ||
+    !OciRepositoryPattern.test(registryRepository) ||
+    !Array.isArray(changedPaths) ||
+    !Array.isArray(allowedAuxiliaryPaths) ||
+    !Array.isArray(parentReleasePointers) ||
+    !Array.isArray(currentReleasePointers) ||
+    !Array.isArray(currentOciPointers)
+  ) {
+    fail(
+      'unrepairable-adoption',
+      'Cheap LFS could not prove an exact managed GHCR adoption commit.'
+    )
+  }
+  if (
+    parentReleasePointers.length !== receipt.pointerCount ||
+    currentReleasePointers.length !== 0
+  ) {
+    fail(
+      'unrepairable-adoption',
+      'Cheap LFS GHCR adoption repair found a different Release pointer set.'
+    )
+  }
+
+  const releaseByPath = new Map()
+  for (const entry of parentReleasePointers) {
+    if (
+      typeof entry?.path !== 'string' ||
+      entry.path.length === 0 ||
+      releaseByPath.has(entry.path) ||
+      (entry.mode !== '100644' && entry.mode !== '100755') ||
+      !ShaPattern.test(entry.pointer?.sha256) ||
+      !safeInteger(entry.pointer?.sizeInBytes, 1, MAX_OBJECT_BYTES)
+    ) {
+      fail(
+        'unrepairable-adoption',
+        'Cheap LFS GHCR adoption repair found invalid parent pointers.'
+      )
+    }
+    releaseByPath.set(entry.path, entry)
+  }
+  const allowedChanges = new Set(releaseByPath.keys())
+  for (const path of allowedAuxiliaryPaths) {
+    if (
+      typeof path !== 'string' ||
+      path.length === 0 ||
+      allowedChanges.has(path)
+    ) {
+      fail(
+        'unrepairable-adoption',
+        'Cheap LFS GHCR adoption repair received invalid auxiliary paths.'
+      )
+    }
+    allowedChanges.add(path)
+  }
+  const actualChanges = new Set(changedPaths)
+  if (
+    actualChanges.size !== changedPaths.length ||
+    actualChanges.size !== allowedChanges.size ||
+    [...actualChanges].some(path => !allowedChanges.has(path))
+  ) {
+    fail(
+      'unrepairable-adoption',
+      'Cheap LFS GHCR adoption repair found an unexpected Git tree change.'
+    )
+  }
+
+  const currentByPath = new Map()
+  for (const entry of currentOciPointers) {
+    if (typeof entry?.path !== 'string' || currentByPath.has(entry.path)) {
+      fail(
+        'unrepairable-adoption',
+        'Cheap LFS GHCR adoption repair found duplicate current OCI paths.'
+      )
+    }
+    currentByPath.set(entry.path, entry)
+  }
+  const immutableImage = `${registryRepository}@${receipt.manifestDigest}`
+  const converted = []
+  for (const [path, parent] of releaseByPath) {
+    const current = currentByPath.get(path)
+    if (
+      current === undefined ||
+      current.mode !== parent.mode ||
+      current.pointer?.image !== immutableImage ||
+      current.pointer?.object !== `sha256:${parent.pointer.sha256}` ||
+      current.pointer?.sizeInBytes !== parent.pointer.sizeInBytes ||
+      !Array.isArray(current.pointer?.layers) ||
+      current.pointer.layers.length === 0 ||
+      (visibility === 'public'
+        ? current.pointer.keyId !== undefined
+        : !DigestPattern.test(current.pointer.keyId))
+    ) {
+      fail(
+        'unrepairable-adoption',
+        `Cheap LFS GHCR adoption repair rejected the converted pointer at ${path}.`
+      )
+    }
+    converted.push(current)
+  }
+  return converted
+}
+
+function safeInteger(value, minimum, maximum) {
+  return Number.isSafeInteger(value) && value >= minimum && value <= maximum
+}
+
+function exactKeys(value, keys) {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
     return false
   }
   const actual = Object.keys(value)
@@ -191,10 +385,7 @@ export function parseReleasePointer(text) {
       'Release-to-GHCR conversion cannot read password-encrypted Release pointers in unattended Actions. Materialize and repin those files to GHCR from Desktop Material instead.'
     )
   }
-  if (
-    fields.size !== 5 ||
-    fields.get('version') !== RELEASE_POINTER_VERSION
-  ) {
+  if (fields.size !== 5 || fields.get('version') !== RELEASE_POINTER_VERSION) {
     fail('invalid-pointer', 'Cheap LFS found a malformed Release pointer.')
   }
   const releaseTag = fields.get('release-tag')
@@ -274,10 +465,7 @@ export function parseOciPointer(text) {
     fail('invalid-pointer', 'Cheap LFS found a non-canonical OCI pointer.')
   }
   const lines = text.split('\n')
-  if (
-    (lines.length !== 6 && lines.length !== 7) ||
-    lines.at(-1) !== ''
-  ) {
+  if ((lines.length !== 6 && lines.length !== 7) || lines.at(-1) !== '') {
     fail('invalid-pointer', 'Cheap LFS found a malformed OCI pointer.')
   }
   const prefixes = [
@@ -341,7 +529,10 @@ export function serializeOciPointer(pointer) {
     pointer.layers.some(layer => !DigestPattern.test(layer)) ||
     (pointer.keyId !== undefined && !DigestPattern.test(pointer.keyId))
   ) {
-    fail('invalid-pointer', 'Cheap LFS cannot serialize an invalid OCI pointer.')
+    fail(
+      'invalid-pointer',
+      'Cheap LFS cannot serialize an invalid OCI pointer.'
+    )
   }
   return (
     `version ${OCI_POINTER_VERSION}\n` +
@@ -400,12 +591,8 @@ export function requireOciPointerVisibility(visibility, pointerKeyIds) {
       'Cheap LFS could not prove the visibility policy of existing GHCR pointers.'
     )
   }
-  const hasPublicPointers = pointerKeyIds.some(
-    keyId => keyId === undefined
-  )
-  const hasPrivatePointers = pointerKeyIds.some(
-    keyId => keyId !== undefined
-  )
+  const hasPublicPointers = pointerKeyIds.some(keyId => keyId === undefined)
+  const hasPrivatePointers = pointerKeyIds.some(keyId => keyId !== undefined)
   if (visibility === 'private' && hasPublicPointers) {
     fail(
       'public-to-private-oci-transition',
@@ -540,10 +727,7 @@ export function deriveTarget(repository) {
 }
 
 export function parseRepositoryKey(text, expectedHeader) {
-  if (
-    typeof text !== 'string' ||
-    Buffer.byteLength(text, 'utf8') > 256
-  ) {
+  if (typeof text !== 'string' || Buffer.byteLength(text, 'utf8') > 256) {
     fail('invalid-key', 'The tracked Cheap LFS repository key is invalid.')
   }
   const lines = text.split('\n')
@@ -689,11 +873,7 @@ export async function encryptChunk({
   }
 }
 
-export function validateSnapshot(
-  value,
-  repositoryIdentity,
-  visibility
-) {
+export function validateSnapshot(value, repositoryIdentity, visibility) {
   if (
     !exactKeys(value, [
       'format',
@@ -886,8 +1066,7 @@ export function buildImage({
 export function requireManagedRelease(release, assets, expectedTag) {
   const legacyProvenance = assets.some(
     asset =>
-      typeof asset?.label === 'string' &&
-      LEGACY_ASSET_LABEL.test(asset.label)
+      typeof asset?.label === 'string' && LEGACY_ASSET_LABEL.test(asset.label)
   )
   if (
     release?.tag_name !== expectedTag ||

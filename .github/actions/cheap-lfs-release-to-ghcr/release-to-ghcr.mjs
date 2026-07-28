@@ -1,14 +1,7 @@
 import { execFileSync, spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { createReadStream, createWriteStream } from 'node:fs'
-import {
-  appendFile,
-  mkdtemp,
-  open,
-  rm,
-  stat,
-  unlink,
-} from 'node:fs/promises'
+import { appendFile, mkdtemp, open, rm, stat, unlink } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Readable, Transform } from 'node:stream'
@@ -47,6 +40,9 @@ import {
   serializeOciPointer,
   serializeRepositoryKey,
   newRepositoryKey,
+  parseAdoptionReceipt,
+  requireRepairableAdoption,
+  serializeAdoptionReceipt,
   validateSnapshot,
 } from './release-to-ghcr-core.mjs'
 
@@ -62,11 +58,9 @@ const METADATA_REQUEST_TIMEOUT_MS = 2 * 60 * 1000
 const ASSET_TRANSFER_TIMEOUT_MS = 2 * 60 * 60 * 1000
 const MAX_PACKAGE_POLICY_ATTEMPTS = 12
 const PACKAGE_POLICY_RETRY_MS = 2_000
-const CANONICAL_KEY_PATH =
-  '.desktop-material/cheap-lfs-registry-key-v1'
+const CANONICAL_KEY_PATH = '.desktop-material/cheap-lfs-registry-key-v1'
 const LEGACY_KEY_PATH = '.desktop-material/cheap-lfs-ghcr-key-v1'
-const CANONICAL_KEY_HEADER =
-  'desktop-material-cheap-lfs-registry-key-v1'
+const CANONICAL_KEY_HEADER = 'desktop-material-cheap-lfs-registry-key-v1'
 const LEGACY_KEY_HEADER = 'desktop-material-cheap-lfs-ghcr-key-v1'
 
 const workspace = process.env.GITHUB_WORKSPACE
@@ -76,8 +70,7 @@ const apiUrl = process.env.GITHUB_API_URL || 'https://api.github.com'
 const refName = process.env.GITHUB_REF_NAME
 const eventCommit = process.env.GITHUB_SHA
 const actor = process.env.GITHUB_ACTOR
-const privateConfirmation =
-  process.env.CHEAP_LFS_PRIVATE_ACTIONS_CONFIRMED
+const privateConfirmation = process.env.CHEAP_LFS_PRIVATE_ACTIONS_CONFIRMED
 
 if (
   !workspace ||
@@ -138,7 +131,10 @@ function optionalGit(args, options = {}) {
   }
 }
 
-async function boundedResponseBuffer(response, maximum = MAX_API_RESPONSE_BYTES) {
+async function boundedResponseBuffer(
+  response,
+  maximum = MAX_API_RESPONSE_BYTES
+) {
   if (response.body === null) {
     return Buffer.alloc(0)
   }
@@ -322,8 +318,7 @@ async function readPointerBlobs(candidates, onBlob) {
           }
           const header = pending.subarray(0, newline).toString('ascii')
           pending = pending.subarray(newline + 1)
-          const match =
-            /^([a-f0-9]{40,64}) blob (0|[1-9][0-9]*)$/.exec(header)
+          const match = /^([a-f0-9]{40,64}) blob (0|[1-9][0-9]*)$/.exec(header)
           const expected = candidates[index]
           if (
             match === null ||
@@ -388,9 +383,7 @@ async function trackedPointersAt(commit) {
       if (!Buffer.from(text, 'utf8').equals(contents)) {
         return
       }
-      const prefix = text
-        .slice(0, 128)
-        .replace(/^\uFEFF/, '')
+      const prefix = text.slice(0, 128).replace(/^\uFEFF/, '')
       let pointer = null
       let kind = null
       if (prefix.startsWith('version desktop-material/cheap-lfs/v1')) {
@@ -425,9 +418,7 @@ function fetchPointerSizedBlobs() {
   if (!/^[a-f0-9]{40,64}$/.test(head)) {
     throw new Error('Cheap LFS could not resolve the checked-out commit.')
   }
-  if (
-    !optionalGit(['merge-base', '--is-ancestor', eventCommit, head]).ok
-  ) {
+  if (!optionalGit(['merge-base', '--is-ancestor', eventCommit, head]).ok) {
     throw new Error(
       'The checked-out commit is not the workflow event commit or its verified compression descendant.'
     )
@@ -473,8 +464,7 @@ async function loadRepositoryMetadata() {
     String(metadata.full_name).toLowerCase() !== repositoryName.toLowerCase() ||
     typeof metadata.default_branch !== 'string' ||
     metadata.default_branch.length === 0 ||
-    (metadata.visibility !== 'public' &&
-      metadata.visibility !== 'private') ||
+    (metadata.visibility !== 'public' && metadata.visibility !== 'private') ||
     (metadata.private !== true && metadata.private !== false) ||
     metadata.private !== (metadata.visibility === 'private') ||
     typeof metadata.owner?.login !== 'string' ||
@@ -495,10 +485,7 @@ async function loadRepositoryMetadata() {
   return metadata
 }
 
-async function requireRepositoryPolicyUnchanged(
-  expected,
-  expectedVisibility
-) {
+async function requireRepositoryPolicyUnchanged(expected, expectedVisibility) {
   const current = await loadRepositoryMetadata()
   const currentVisibility = resolveConversionVisibility(
     current.visibility,
@@ -578,9 +565,7 @@ async function releaseForTag(tag) {
     return releaseCache.get(tag)
   }
   if (releaseCache.size >= MAX_OBJECTS) {
-    throw new Error(
-      'Cheap LFS found more than 4096 distinct Release buckets.'
-    )
+    throw new Error('Cheap LFS found more than 4096 distinct Release buckets.')
   }
   let release = await apiJson(
     `/repos/${repositoryName}/releases/tags/${encodeURIComponent(tag)}`,
@@ -777,7 +762,9 @@ class GhcrRegistry {
     })
     if (!response.ok) {
       await response.body?.cancel().catch(() => {})
-      throw new Error(`GHCR token exchange failed with HTTP ${response.status}.`)
+      throw new Error(
+        `GHCR token exchange failed with HTTP ${response.status}.`
+      )
     }
     const body = await boundedResponseBuffer(response, 64 * 1024)
     let parsed
@@ -787,7 +774,11 @@ class GhcrRegistry {
       throw new Error('GHCR returned an invalid authentication response.')
     }
     const bearer = parsed?.token ?? parsed?.access_token
-    if (typeof bearer !== 'string' || bearer.length < 1 || bearer.length > 16_384) {
+    if (
+      typeof bearer !== 'string' ||
+      bearer.length < 1 ||
+      bearer.length > 16_384
+    ) {
       throw new Error('GHCR returned an invalid bearer token.')
     }
     this.authorization = `Bearer ${bearer}`
@@ -799,10 +790,7 @@ class GhcrRegistry {
     if (url.protocol !== 'https:' || url.hostname !== 'ghcr.io') {
       throw new Error('GHCR returned an untrusted upload location.')
     }
-    const {
-      timeoutMs = METADATA_REQUEST_TIMEOUT_MS,
-      ...fetchOptions
-    } = options
+    const { timeoutMs = METADATA_REQUEST_TIMEOUT_MS, ...fetchOptions } = options
     const response = await fetch(url, {
       ...fetchOptions,
       redirect: 'follow',
@@ -1115,17 +1103,18 @@ async function loadValidatedImage(registry, digest, target, visibility) {
       'Cheap LFS rejected a GHCR snapshot whose layer index differs from its manifest.'
     )
   }
-  return { manifest, snapshot }
+  return { manifest, manifestBytes: manifestResult.bytes, snapshot }
 }
 
 function requirePointerObject(pointer, image) {
   const sha = pointer.object.slice('sha256:'.length)
-  const object = image.snapshot.objects.find(candidate => candidate.sha256 === sha)
+  const object = image.snapshot.objects.find(
+    candidate => candidate.sha256 === sha
+  )
   if (
     object === undefined ||
     object.sizeInBytes !== pointer.sizeInBytes ||
-    (pointer.keyId !== undefined &&
-      pointer.keyId !== image.snapshot.keyId) ||
+    (pointer.keyId !== undefined && pointer.keyId !== image.snapshot.keyId) ||
     object.chunks.length !== pointer.layers.length ||
     object.chunks.some(
       (chunk, index) => chunk.blob.digest !== pointer.layers[index]
@@ -1183,10 +1172,7 @@ async function loadExistingObjects(
     )
     const object = requirePointerObject(entry.pointer, references.get(digest))
     const existing = objects.get(object.sha256)
-    if (
-      existing !== undefined &&
-      existing.sizeInBytes !== object.sizeInBytes
-    ) {
+    if (existing !== undefined && existing.sizeInBytes !== object.sizeInBytes) {
       throw new Error(
         'Current GHCR pointers disagree about one object’s canonical size.'
       )
@@ -1208,10 +1194,10 @@ async function loadRepositoryKey(head, visibility, ociEntries) {
   }
 
   const readKey = (path, header) => {
-    const result = optionalGit(
-      ['cat-file', 'blob', `${head}:${path}`],
-      { raw: true, maxBuffer: 1024 }
-    )
+    const result = optionalGit(['cat-file', 'blob', `${head}:${path}`], {
+      raw: true,
+      maxBuffer: 1024,
+    })
     return result.ok ? parseRepositoryKey(result.value, header) : null
   }
   const canonical = readKey(CANONICAL_KEY_PATH, CANONICAL_KEY_HEADER)
@@ -1290,10 +1276,7 @@ async function splitAndUploadPart({
     let encryption = null
     try {
       if (visibility === 'private') {
-        encryptedPath = join(
-          tempRoot,
-          `encrypted-${object.index}-${ordinal}`
-        )
+        encryptedPath = join(tempRoot, `encrypted-${object.index}-${ordinal}`)
         encryption = await encryptChunk({
           sourcePath: chunkPath,
           destinationPath: encryptedPath,
@@ -1473,10 +1456,7 @@ function mergeReleaseSources(releaseEntries) {
   for (const entry of releaseEntries) {
     const source = entry.pointer
     const previous = sources.get(source.sha256)
-    if (
-      previous !== undefined &&
-      previous.sizeInBytes !== source.sizeInBytes
-    ) {
+    if (previous !== undefined && previous.sizeInBytes !== source.sizeInBytes) {
       throw new Error(
         'Two Release pointers disagree about one object digest’s size.'
       )
@@ -1504,8 +1484,7 @@ function parsePackageMetadata(value, repository, target) {
     typeof linked === 'object' &&
     linked !== null &&
     linked.id === repository.id &&
-    String(linked.full_name).toLowerCase() ===
-      repositoryName.toLowerCase() &&
+    String(linked.full_name).toLowerCase() === repositoryName.toLowerCase() &&
     linked.private === repository.private
   ) {
     linkedRepositoryIdentity = target.repositoryIdentity
@@ -1531,9 +1510,7 @@ async function inspectPackagePolicy(repository, target, visibility) {
       }
     }
     if (attempt < MAX_PACKAGE_POLICY_ATTEMPTS) {
-      await new Promise(resolve =>
-        setTimeout(resolve, PACKAGE_POLICY_RETRY_MS)
-      )
+      await new Promise(resolve => setTimeout(resolve, PACKAGE_POLICY_RETRY_MS))
     }
   }
   if (last === null) {
@@ -1715,6 +1692,13 @@ async function adoptPointers({
       'Replace current default-branch Release pointers only after one exact GHCR snapshot was published and verified.',
       '-m',
       '一個完整 GHCR 快照驗明正身先一次過換 pointer；舊 Release 資產原封不動，歷史仲有路返屋企。',
+      '-m',
+      serializeAdoptionReceipt({
+        manifestDigest: image.manifestDigest,
+        parentCommit: head,
+        visibility,
+        pointerCount: releaseEntries.length,
+      }),
     ],
     { quiet: true }
   )
@@ -1748,6 +1732,148 @@ async function summary(text) {
   }
 }
 
+function singleCommitParent(commit) {
+  const lineage = git(['rev-list', '--parents', '-n', '1', commit])
+    .split(/\s+/)
+    .filter(Boolean)
+  if (
+    lineage.length !== 2 ||
+    lineage[0] !== commit ||
+    !/^[a-f0-9]{40,64}$/.test(lineage[1])
+  ) {
+    throw new Error(
+      'Cheap LFS GHCR adoption repair requires one exact parent commit.'
+    )
+  }
+  return lineage[1]
+}
+
+function changedTreePaths(parent, commit) {
+  const paths = git(
+    ['diff-tree', '--no-commit-id', '--name-only', '-r', '-z', parent, commit],
+    { raw: true, quiet: true }
+  )
+    .split('\0')
+    .filter(Boolean)
+  if (new Set(paths).size !== paths.length) {
+    throw new Error(
+      'Cheap LFS GHCR adoption repair found duplicate changed paths.'
+    )
+  }
+  return paths
+}
+
+function fetchAdoptionParent(head) {
+  git([
+    'fetch',
+    '--no-tags',
+    '--refetch',
+    '--depth=2',
+    `--filter=blob:limit=${MAX_POINTER_BLOB_BYTES}`,
+    'origin',
+    head,
+  ])
+  if (git(['rev-parse', '--verify', 'HEAD']) !== head) {
+    throw new Error(
+      'The checked-out commit changed while fetching its adoption parent.'
+    )
+  }
+}
+
+async function repairInterruptedCanonicalPromotion({
+  repository,
+  visibility,
+  target,
+  head,
+  pointers,
+}) {
+  const message = git(['show', '-s', '--format=%B', head], { raw: true })
+  const receipt = parseAdoptionReceipt(message)
+  if (receipt === null) {
+    return false
+  }
+  if (receipt.visibility !== visibility) {
+    throw new Error(
+      'Repository visibility changed after the recorded GHCR adoption. The canonical tag was not promoted.'
+    )
+  }
+
+  fetchAdoptionParent(head)
+  const parent = singleCommitParent(head)
+  if (parent !== receipt.parentCommit) {
+    throw new Error(
+      'The GHCR adoption receipt does not name the exact parent commit.'
+    )
+  }
+  const parentPointers = await trackedPointersAt(parent)
+  const auxiliaryPaths = []
+  const parentCanonicalKey = currentTreeBlob(CANONICAL_KEY_PATH, parent)
+  const currentCanonicalKey = currentTreeBlob(CANONICAL_KEY_PATH, head)
+  if (
+    visibility === 'private' &&
+    parentCanonicalKey === null &&
+    currentCanonicalKey !== null
+  ) {
+    auxiliaryPaths.push(CANONICAL_KEY_PATH)
+  }
+  const converted = requireRepairableAdoption({
+    receipt,
+    headCommit: head,
+    parentCommit: parent,
+    changedPaths: changedTreePaths(parent, head),
+    allowedAuxiliaryPaths: auxiliaryPaths,
+    parentReleasePointers: parentPointers.release,
+    currentReleasePointers: pointers.release,
+    currentOciPointers: pointers.oci,
+    registryRepository: target.registryRepository,
+    visibility,
+  })
+
+  const registry = new GhcrRegistry(target)
+  const keyState = await loadRepositoryKey(head, visibility, pointers.oci)
+  try {
+    if (keyState.addCanonicalKey) {
+      throw new Error(
+        'Cheap LFS GHCR adoption repair could not prove the canonical repository key.'
+      )
+    }
+    const image = await loadValidatedImage(
+      registry,
+      receipt.manifestDigest,
+      target,
+      visibility
+    )
+    for (const entry of converted) {
+      requirePointerObject(entry.pointer, image)
+    }
+    await inspectPackagePolicy(repository, target, visibility)
+    await requireRepositoryPolicyUnchanged(repository, visibility)
+    requireRemoteDefaultCommit(
+      repository.default_branch,
+      head,
+      'immediately before interrupted canonical-tag repair'
+    )
+    await registry.putManifest(OCI_REPOSITORY_TAG, image.manifestBytes)
+    requireRemoteDefaultCommit(
+      repository.default_branch,
+      head,
+      'immediately after interrupted canonical-tag repair'
+    )
+    await summary(
+      `Repaired the canonical GHCR tag for already-adopted snapshot \`${receipt.manifestDigest}\` at \`${head}\` after revalidating the exact adoption commit.`
+    )
+    await summary(
+      'No Git pointer or Release asset changed during canonical-tag repair.'
+    )
+    console.log(
+      `Cheap LFS Release-to-GHCR: repaired the canonical tag for ${head}.`
+    )
+    return true
+  } finally {
+    keyState.key?.fill(0)
+  }
+}
+
 async function main() {
   git(['diff', '--quiet'])
   git(['diff', '--cached', '--quiet'])
@@ -1766,6 +1892,17 @@ async function main() {
   const pointers = await trackedPointersAt(head)
   await summary('## Cheap LFS Release → GHCR')
   if (pointers.release.length === 0) {
+    if (
+      await repairInterruptedCanonicalPromotion({
+        repository,
+        visibility,
+        target,
+        head,
+        pointers,
+      })
+    ) {
+      return
+    }
     await summary(
       'No current default-branch Release pointers needed conversion. Nothing was published or changed.'
     )
@@ -1776,14 +1913,8 @@ async function main() {
   }
 
   const registry = new GhcrRegistry(target)
-  const keyState = await loadRepositoryKey(
-    head,
-    visibility,
-    pointers.oci
-  )
-  const tempRoot = await mkdtemp(
-    join(tmpdir(), 'cheap-lfs-release-to-ghcr-')
-  )
+  const keyState = await loadRepositoryKey(head, visibility, pointers.oci)
+  const tempRoot = await mkdtemp(join(tmpdir(), 'cheap-lfs-release-to-ghcr-'))
   try {
     const objects = await loadExistingObjects(
       pointers.oci,
@@ -1849,10 +1980,7 @@ async function main() {
           image.configBytes,
           image.configDescriptor.digest
         )
-        await registry.putManifest(
-          image.manifestDigest,
-          image.manifestBytes
-        )
+        await registry.putManifest(image.manifestDigest, image.manifestBytes)
         await registry.putManifest(retentionTag, image.manifestBytes)
       },
       // A public first publish intentionally reaches package inspection:
@@ -1891,10 +2019,7 @@ async function main() {
         )
       },
       publishCanonicalTag: async () => {
-        await registry.putManifest(
-          OCI_REPOSITORY_TAG,
-          image.manifestBytes
-        )
+        await registry.putManifest(OCI_REPOSITORY_TAG, image.manifestBytes)
       },
     })
     await summary(

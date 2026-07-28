@@ -5,12 +5,15 @@ import {
   OCI_POINTER_VERSION,
   buildImage,
   deriveTarget,
+  parseAdoptionReceipt,
   parseOciPointer,
   parseReleasePointer,
   requireOciPointerVisibility,
   requirePackagePolicy,
+  requireRepairableAdoption,
   resolveConversionVisibility,
   runCanonicalPublicationTransaction,
+  serializeAdoptionReceipt,
   serializeOciPointer,
 } from './release-to-ghcr-core.mjs'
 
@@ -290,5 +293,112 @@ describe('Release-to-GHCR publication transaction', () => {
       'captured-head',
       'adopted-head-changed',
     ])
+  })
+})
+
+describe('Release-to-GHCR interrupted adoption repair', () => {
+  const parentCommit = 'c'.repeat(40)
+  const headCommit = 'd'.repeat(40)
+  const manifestDigest = `sha256:${shaA}`
+  const registryRepository = 'ghcr.io/octo/material-cheap-lfs'
+  const receiptLine = serializeAdoptionReceipt({
+    manifestDigest,
+    parentCommit,
+    visibility: 'public',
+    pointerCount: 1,
+  })
+  const receipt = parseAdoptionReceipt(
+    `Adopt Cheap LFS GHCR snapshot\n\n${receiptLine}\n`
+  )
+  const parentReleasePointers = [
+    {
+      path: 'assets/model.bin',
+      mode: '100644',
+      pointer: { sha256: shaB, sizeInBytes: 12 },
+    },
+  ]
+  const currentOciPointers = [
+    {
+      path: 'assets/model.bin',
+      mode: '100644',
+      pointer: {
+        image: `${registryRepository}@${manifestDigest}`,
+        object: `sha256:${shaB}`,
+        sizeInBytes: 12,
+        layers: [`sha256:${shaA}`],
+      },
+    },
+  ]
+
+  it('round-trips one bounded machine-verifiable adoption receipt', () => {
+    assert.deepEqual(receipt, {
+      manifestDigest,
+      parentCommit,
+      visibility: 'public',
+      pointerCount: 1,
+    })
+    assert.equal(parseAdoptionReceipt('ordinary commit\n'), null)
+    assert.throws(
+      () => parseAdoptionReceipt(`${receiptLine}\n${receiptLine}\n`),
+      error => error.kind === 'invalid-adoption-receipt'
+    )
+  })
+
+  it('permits canonical-tag repair only for the exact pointer-only adoption diff', () => {
+    assert.deepEqual(
+      requireRepairableAdoption({
+        receipt,
+        headCommit,
+        parentCommit,
+        changedPaths: ['assets/model.bin'],
+        parentReleasePointers,
+        currentReleasePointers: [],
+        currentOciPointers,
+        registryRepository,
+        visibility: 'public',
+      }),
+      currentOciPointers
+    )
+  })
+
+  it('rejects an unrelated tree change or a pointer aimed at another manifest', () => {
+    assert.throws(
+      () =>
+        requireRepairableAdoption({
+          receipt,
+          headCommit,
+          parentCommit,
+          changedPaths: ['assets/model.bin', 'README.md'],
+          parentReleasePointers,
+          currentReleasePointers: [],
+          currentOciPointers,
+          registryRepository,
+          visibility: 'public',
+        }),
+      error => error.kind === 'unrepairable-adoption'
+    )
+    assert.throws(
+      () =>
+        requireRepairableAdoption({
+          receipt,
+          headCommit,
+          parentCommit,
+          changedPaths: ['assets/model.bin'],
+          parentReleasePointers,
+          currentReleasePointers: [],
+          currentOciPointers: [
+            {
+              ...currentOciPointers[0],
+              pointer: {
+                ...currentOciPointers[0].pointer,
+                image: `${registryRepository}@sha256:${'e'.repeat(64)}`,
+              },
+            },
+          ],
+          registryRepository,
+          visibility: 'public',
+        }),
+      error => error.kind === 'unrepairable-adoption'
+    )
   })
 })
