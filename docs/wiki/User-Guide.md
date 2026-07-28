@@ -632,7 +632,7 @@ fallback titles and localized group names both remain searchable.
 Cantonese, or bilingual language mode; theme and scale; repository-list behavior; branch sorting;
 formatting; and diff tab size. Visual customization belongs to the thing being changed.
 
-Right-click an actual element—or focus it and press `Shift+F10`—to open its editor beside that
+`Shift`+right-click an actual element—or focus it and press `Shift+F10`—to open its editor beside that
 owner. Supported owners include the app identity/workspace, update progress bar, toolbar,
 repository list, repository tab strip, code/diff surface, each reviewed Material feature entry
 point, each repository name and logo, each tab title, and the temporary-submodule Back control.
@@ -1746,7 +1746,7 @@ list.
   local Git URL. Review the repository-relative checkout path and optional branch; Desktop rechecks
   duplicate/occupied destinations immediately before Git, reports bounded clone progress, and lets
   you cancel the running operation before refreshing the managed list. The same tab shows a Back
-  preview: right-click it (or press `Shift+F10`) to open that element's appearance editor beside
+  preview: `Shift`+right-click it (or press `Shift+F10`) to open that element's appearance editor beside
   it. Changes remain staged with the rest of Repository Settings until **Save**. The adjacent
   **Subtrees** tab embeds the full add, pull, push, and split manager. The same managed list opens
   as the Submodule Manager from the Tools tab's **Nested repositories** category, and clone-list
@@ -1758,7 +1758,7 @@ list.
   importing it. It does not enter the repository list, Recent, or the persisted last selection.
   The context bar's **Close viewer** action and Back control both return to the saved root and
   clear temporary state; repeated Open, Close, or Back activation cannot create another tab
-  or repository entry. Right-click the actual Back control to open the same anchored editor and
+  or repository entry. `Shift`+right-click the actual Back control to open the same anchored editor and
   save its profile-wide style or label immediately.
   Uninitialized, stale, invalid-Git, traversal, sibling-prefix, and symlink/junction escape targets
   fail without changing repository persistence, and the manager stays available for recovery.

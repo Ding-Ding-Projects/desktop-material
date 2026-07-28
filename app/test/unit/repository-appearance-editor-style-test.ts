@@ -58,6 +58,23 @@ describe('repository owner appearance editors', () => {
     // repository context menu's "Customize …" items call, resolving the anchor
     // from the row's own DOM.
     assert.doesNotMatch(row, /openAppearanceEditorFromContextMenu/)
+    // The list owns the row's pointer gestures: a plain right-click builds the
+    // repository context menu (which keeps its "Customize …" entries), and
+    // Shift+Right-click — decided by the one shared predicate, never a local
+    // `event.shiftKey` check — jumps straight to the name editor.
+    const list = read(
+      'app',
+      'src',
+      'ui',
+      'repositories-list',
+      'repositories-list.tsx'
+    )
+    assert.match(
+      list,
+      /isAppearanceEditorPointerGesture\(event\)[\s\S]{0,120}this\.onCustomizeNameAppearance\(item\.repository\)/
+    )
+    assert.match(list, /generateRepositoryListContextMenu\(\{/)
+    assert.doesNotMatch(list, /event\.shiftKey/)
     assert.match(row, /public openNameAppearanceEditorFromMenu\(\)/)
     assert.match(row, /public openLogoAppearanceEditorFromMenu\(\)/)
     assert.match(

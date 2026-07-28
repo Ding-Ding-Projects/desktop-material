@@ -57,6 +57,10 @@ export type TranslationKey =
   | 'appearance.playfulnessValue'
   | 'appearance.playfulnessSerious'
   | 'appearance.playfulnessMaximum'
+  | 'appearance.elementGestureHeading'
+  | 'appearance.elementGesture.plain'
+  | 'appearance.elementGesture.light'
+  | 'appearance.elementGesture.playful'
   | 'appearance.submoduleBackStyle'
   | 'appearance.submoduleBackLabel'
   | 'appearance.toolbarEditorTitle'
@@ -2628,6 +2632,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'appearance.playfulnessValue': 'Level {value} of 5',
   'appearance.playfulnessSerious': '1 · Fully serious',
   'appearance.playfulnessMaximum': '5 · Maximum fun',
+  'appearance.elementGestureHeading': 'Element appearance',
+  // Every band names the same three facts: the gesture that opens an element's
+  // appearance editor, what a plain right-click does instead, and the keyboard
+  // route. Only the voice moves.
+  'appearance.elementGesture.plain':
+    'Shift+Right-click an element to open its appearance editor. A plain right-click opens that element’s ordinary menu instead. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
+  'appearance.elementGesture.light':
+    'Want to restyle something? Shift+Right-click it and its appearance editor opens. A plain right-click stays out of the way and opens that element’s ordinary menu. From the keyboard, focus the element and press Shift+F10 or the Menu key. Each element keeps its settings and history separate.',
+  'appearance.elementGesture.playful':
+    'Hold Shift, right-click anything, and its appearance editor pops out ready for a fresh coat of paint. A plain right-click keeps its day job: that element’s ordinary menu. Keyboard fans, focus the element and hit Shift+F10 or the Menu key. Every element hoards its own settings and history like a squirrel.',
   'appearance.submoduleBackStyle': 'Submodule Back button style',
   'appearance.submoduleBackLabel': 'Submodule Back button label',
   'appearance.toolbarEditorTitle': 'Toolbar appearance',
@@ -5903,6 +5917,13 @@ export const cantoneseTranslations: Readonly<
   'appearance.playfulnessValue': '第 {value} 級，共 5 級',
   'appearance.playfulnessSerious': '1 · 完全認真',
   'appearance.playfulnessMaximum': '5 · 最玩得',
+  'appearance.elementGestureHeading': '元素外觀',
+  'appearance.elementGesture.plain':
+    '撳住 Shift 再右擊一個元素，就會開佢嘅外觀編輯器。單純右擊照舊開返該元素本身嘅選單。用鍵盤嘅話，先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
+  'appearance.elementGesture.light':
+    '想改個樣？撳住 Shift 右擊佢，外觀編輯器就會彈出嚟。淨係右擊就唔阻你，照開返該元素本身嘅選單。用鍵盤就先聚焦該元素，再撳 Shift+F10 或者 Menu 鍵。每個元素嘅設定同歷史都各自分開。',
+  'appearance.elementGesture.playful':
+    '撳住 Shift 再右擊，外觀編輯器即刻彈出嚟等你落色。淨係右擊嘅話，佢繼續做返本份——開該元素本身嘅選單。鍾意用鍵盤？聚焦該元素，撳 Shift+F10 或者 Menu 鍵。每個元素都好似松鼠咁，收埋自己嘅設定同歷史。',
   'appearance.submoduleBackStyle': '子模組返回掣款式',
   'appearance.submoduleBackLabel': '子模組返回掣文字',
   'appearance.toolbarEditorTitle': '工具列外觀',

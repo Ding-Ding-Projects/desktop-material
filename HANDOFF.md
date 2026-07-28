@@ -1,5 +1,23 @@
 # Desktop Material — Active parity handoff
 
+## 2026-07-28 — Shift+Right-click opens appearance editors (Refs #89)
+
+The appearance editor no longer claims a plain right-click anywhere. The
+gesture is now Shift+Right-click, decided once by
+`isAppearanceEditorPointerGesture` in `app/src/ui/appearance/`; the
+shell-wide `document` listener in `app.tsx` uses
+`isAppearanceEditorFallbackContextMenu`, which also accepts a
+keyboard-originated context menu so those owners never become mouse-only.
+Surfaces with a real menu (tab strip, tab overflow rows, repository list)
+keep it and their Customize entries. Settings → Appearance advertises the
+gesture in both languages at every playfulness level. Verified: 100 unit tests
+across 15 files green, eslint and prettier clean. Not visually verified — no
+build was run.
+
+The two pre-existing `tsc` errors that branch recorded against its base
+(`operations.ts` and `app.tsx`) were the merge-collision damage fixed in
+`ff53cd2155`; after merging, `npx tsc --noEmit` exits 0 on this tree.
+
 ## 2026-07-28 — Root renderer resource lifetime audit (focused gates green)
 
 The root `App` created telemetry and update-check intervals without retaining

@@ -5,6 +5,8 @@ import * as React from 'react'
 import {
   AnchoredAppearanceEditor,
   getAppearanceRepositoryDisplayPath,
+  isAppearanceEditorFallbackContextMenu,
+  isAppearanceEditorPointerGesture,
   openAppearanceEditorFromContextMenu,
   openAppearanceEditorFromKeyDown,
 } from '../../../src/ui/appearance'
@@ -68,6 +70,8 @@ interface IHarnessProps {
   readonly contentOwnsHeader?: boolean
   readonly insideFoldout?: boolean
   readonly onOwnerClick?: () => void
+  /** Records what the owner's own context menu would have done, if anything. */
+  readonly onOwnerContextMenu?: () => void
 }
 
 function Harness(props: IHarnessProps) {
@@ -82,6 +86,7 @@ function Harness(props: IHarnessProps) {
       tabIndex={-1}
       onClick={props.onOwnerClick}
       onKeyDown={props.onOwnerClick}
+      onContextMenu={props.onOwnerContextMenu}
     >
       <button
         type="button"
@@ -128,6 +133,84 @@ function Harness(props: IHarnessProps) {
 }
 
 describe('anchored appearance editor', () => {
+  it('defines the gesture once and keeps shell-wide owners reachable from the keyboard', () => {
+    // The gesture itself: Shift decides, nothing else.
+    assert.equal(isAppearanceEditorPointerGesture({ shiftKey: false }), false)
+    assert.equal(isAppearanceEditorPointerGesture({ shiftKey: true }), true)
+
+    const contextMenu = (init: MouseEventInit) =>
+      new MouseEvent('contextmenu', init)
+
+    // A real right-click (Chromium reports button 2) must hold Shift.
+    assert.equal(
+      isAppearanceEditorFallbackContextMenu(
+        contextMenu({ button: 2, shiftKey: false })
+      ),
+      false
+    )
+    assert.equal(
+      isAppearanceEditorFallbackContextMenu(
+        contextMenu({ button: 2, shiftKey: true })
+      ),
+      true
+    )
+
+    // A keyboard context-menu request (ContextMenu key / Shift+F10, button 0)
+    // still reaches owners that have no other menu, so the editors behind the
+    // shell-wide fallback never become mouse-only.
+    assert.equal(
+      isAppearanceEditorFallbackContextMenu(
+        contextMenu({ button: 0, shiftKey: false })
+      ),
+      true
+    )
+    // The macOS Shift+F10 bridge synthesizes a plain Event with no button.
+    assert.equal(
+      isAppearanceEditorFallbackContextMenu(
+        new Event('contextmenu', { bubbles: true })
+      ),
+      true
+    )
+  })
+
+  it('leaves a plain right-click to the ordinary context menu and opens only on Shift+Right-click', () => {
+    let ownerContextMenus = 0
+    render(<Harness onOwnerContextMenu={() => ownerContextMenus++} />)
+    const anchor = screen.getByRole('button', { name: 'Toolbar' })
+    anchor.focus()
+
+    // The regression this guards: a plain right-click used to be swallowed by
+    // the appearance editor, so the surface's own context menu never ran.
+    const plainWasNotCancelled = fireEvent.contextMenu(anchor)
+    assert.equal(
+      screen.queryByRole('dialog', { name: 'Toolbar appearance' }),
+      null,
+      'a plain right-click must not open the appearance editor'
+    )
+    assert.equal(
+      plainWasNotCancelled,
+      true,
+      'a plain right-click must not be preventDefault()ed by the editor'
+    )
+    assert.equal(
+      ownerContextMenus,
+      1,
+      'a plain right-click must keep bubbling to the surface that owns the menu'
+    )
+
+    // Shift+Right-click is the gesture, and it claims the event outright.
+    const gestureWasNotCancelled = fireEvent.contextMenu(anchor, {
+      shiftKey: true,
+    })
+    assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
+    assert.equal(gestureWasNotCancelled, false)
+    assert.equal(
+      ownerContextMenus,
+      1,
+      'the gesture must not also open the surface context menu'
+    )
+  })
+
   it('opens from a pointer beside its owner, copies its repo path, closes outside, and restores focus', async () => {
     const clipboard = captureClipboardWrites()
     try {
@@ -135,7 +218,7 @@ describe('anchored appearance editor', () => {
       const anchor = screen.getByRole('button', { name: 'Toolbar' })
       anchor.focus()
 
-      const wasNotCancelled = fireEvent.contextMenu(anchor)
+      const wasNotCancelled = fireEvent.contextMenu(anchor, { shiftKey: true })
       assert.equal(wasNotCancelled, false)
       assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
       assert.ok(screen.getByRole('tab', { name: 'Customize' }))
@@ -259,7 +342,7 @@ describe('anchored appearance editor', () => {
     const anchor = screen.getByRole('button', { name: 'Toolbar' })
     anchor.focus()
 
-    fireEvent.contextMenu(anchor)
+    fireEvent.contextMenu(anchor, { shiftKey: true })
     const editor = screen.getByRole('dialog', {
       name: 'Toolbar appearance',
     })
@@ -284,7 +367,7 @@ describe('anchored appearance editor', () => {
       assert.equal(document.activeElement, anchor)
     })
 
-    fireEvent.contextMenu(anchor)
+    fireEvent.contextMenu(anchor, { shiftKey: true })
     assert.ok(screen.getByRole('dialog', { name: 'Toolbar appearance' }))
     fireEvent.keyDown(window, { key: 'Escape' })
     await waitFor(() => {
@@ -307,7 +390,9 @@ describe('anchored appearance editor', () => {
         }}
       />
     )
-    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }))
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }), {
+      shiftKey: true,
+    })
 
     const customize = screen.getByRole('tab', { name: 'Customize' })
     fireEvent.mouseDown(customize)
@@ -328,7 +413,7 @@ describe('anchored appearance editor', () => {
       />
     )
     const anchor = screen.getByRole('button', { name: 'Toolbar' })
-    fireEvent.contextMenu(anchor)
+    fireEvent.contextMenu(anchor, { shiftKey: true })
     fireEvent.click(screen.getByRole('tab', { name: 'History' }))
 
     const history = await screen.findByRole('dialog', {
@@ -376,7 +461,9 @@ describe('anchored appearance editor', () => {
 
   it('lets rich editor children own the visual heading and History action', async () => {
     render(<Harness contentOwnsHeader={true} />)
-    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }))
+    fireEvent.contextMenu(screen.getByRole('button', { name: 'Toolbar' }), {
+      shiftKey: true,
+    })
 
     assert.ok(screen.getByRole('heading', { name: 'Owned toolbar controls' }))
     assert.equal(screen.queryByRole('tab', { name: 'Customize' }), null)

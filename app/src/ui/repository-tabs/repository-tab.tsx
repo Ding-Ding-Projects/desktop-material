@@ -26,6 +26,7 @@ import {
 } from '../repository-logo/repository-logo-loader'
 import { Dispatcher } from '../dispatcher'
 import { translateForAccessibleName } from '../../lib/i18n'
+import { openAppearanceEditorFromContextMenu } from '../appearance'
 
 interface IRepositoryTabProps {
   readonly tab: IRepositoryTab
@@ -268,11 +269,17 @@ export class RepositoryTab extends React.Component<
     )
   }
 
-  /** The visible title owns its editor; the surrounding frame keeps commands. */
+  /**
+   * The visible title owns its editor; the surrounding frame keeps commands.
+   *
+   * Only Shift+Right-click opens the title's appearance editor. A plain
+   * right-click is left alone so it bubbles to the tab frame and opens the
+   * ordinary tab command menu — which still lists "Customize Appearance…".
+   */
   private onLabelContextMenu = (event: React.MouseEvent<HTMLSpanElement>) => {
-    event.preventDefault()
-    event.stopPropagation()
-    this.props.onOpenStyleEditor(this.props.tab, event.currentTarget)
+    openAppearanceEditorFromContextMenu(event, anchor =>
+      this.props.onOpenStyleEditor(this.props.tab, anchor)
+    )
   }
 
   private onDragStart = (event: React.DragEvent<HTMLElement>) => {

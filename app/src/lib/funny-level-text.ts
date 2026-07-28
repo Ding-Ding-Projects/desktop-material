@@ -34,6 +34,7 @@ export type FunnyBand = 'plain' | 'light' | 'playful'
  * `TranslationKey`, so a family that is missing a band fails to compile.
  */
 export type FunnyLevelTextBase =
+  | 'appearance.elementGesture'
   | 'tabs.overflowDescription'
   // Only the framing of a deferred surface's progress and failure copy carries
   // bands. The failure title, the reported error string and the retry label

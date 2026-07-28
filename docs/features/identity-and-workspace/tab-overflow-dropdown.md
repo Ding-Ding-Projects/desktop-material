@@ -57,7 +57,9 @@ the strip itself never scrolls sideways.
   tab's context menu exists for it. Each dropdown row therefore carries its own
   **Customize appearance** button, and right-clicking a row opens the same tab
   command menu a visible tab has — pin, favorite, arrange, tab groups,
-  Customize Appearance…, and the close actions. Both routes close the dropdown
+  Customize Appearance…, and the close actions.
+  `Shift`+right-clicking a row is the shortcut straight to that tab's
+  appearance editor, matching the strip. All routes close the dropdown
   first (its focus trap would otherwise fight the editor's) and anchor to the
   still-mounted more-tabs button, because the clicked row unmounts with the
   dropdown. Opening the editor for an overflowed tab does not switch to it.

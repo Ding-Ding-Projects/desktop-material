@@ -345,7 +345,12 @@ describe('Submodule Manager temporary repository navigation', () => {
     })
     assert.equal(screen.queryByLabelText('Submodule Back button style'), null)
 
+    // A plain right-click is left to the ordinary context menu; Shift+Right-click
+    // is what opens the Back button's appearance editor.
     fireEvent.contextMenu(previewButton)
+    assert.equal(screen.queryByLabelText('Submodule Back button style'), null)
+
+    fireEvent.contextMenu(previewButton, { shiftKey: true })
 
     fireEvent.change(screen.getByLabelText('Submodule Back button style'), {
       target: { value: 'filled' },
@@ -396,7 +401,8 @@ describe('Submodule Manager temporary repository navigation', () => {
           { parent: 'parent' },
           'cantonese'
         ),
-      })
+      }),
+      { shiftKey: true }
     )
     assert.ok(
       screen.getByLabelText(
