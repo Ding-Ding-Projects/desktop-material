@@ -68,6 +68,20 @@ import {
   ICheapLfsRestoreProgress,
 } from '../cheap-lfs/restore-progress'
 import { cheapLfsPinFailureReasonText } from '../cheap-lfs/failure-reason'
+import { cheapLfsPartStoredSizeInBytes } from '../cheap-lfs/pointer'
+import { ICheapLfsPinEncryption } from '../cheap-lfs/encrypted-payload'
+import {
+  CheapLfsEncryptionGateError,
+  decideCheapLfsEncryption,
+} from '../cheap-lfs/encryption-gate'
+import {
+  CheapLfsPassphraseSaveOutcome,
+  forgetCheapLfsPassphrase,
+  lockCheapLfsPassphraseSession,
+  resolveCheapLfsPassphrase,
+  saveCheapLfsPassphrase,
+  unlockCheapLfsPassphraseForSession,
+} from '../cheap-lfs/passphrase-vault'
 import {
   buildCheapLfsFirstPublishAbort,
   CheapLfsBootstrapCommitMessage,
@@ -14709,6 +14723,74 @@ export class AppStore extends TypedBaseStore<IAppState> {
     return account
   }
 
+  /**
+   * What an about-to-run pin should do about encryption for this repository.
+   *
+   * `null` means "pin exactly as before" — the overwhelmingly common answer,
+   * and the one that takes no new branch anywhere downstream. Encryption is on
+   * only when this repository's own preference says so *and* the irreversible-
+   * loss gate was confirmed; a repository configured for encryption whose
+   * passphrase is not available throws instead of uploading readable bytes.
+   */
+  private async resolveCheapLfsPinEncryption(
+    repository: Repository
+  ): Promise<ICheapLfsPinEncryption | null> {
+    const preferences = repository.buildRunPreferences
+    const decision = decideCheapLfsEncryption({
+      enabled: preferences.cheapLfsEncryption,
+      acknowledgedIrreversible: preferences.cheapLfsEncryptionAcknowledged,
+      savePassphrase: preferences.cheapLfsEncryptionSavePassphrase,
+    })
+    if (decision === 'plaintext') {
+      return null
+    }
+    if (decision === 'blocked-needs-acknowledgement') {
+      throw new CheapLfsEncryptionGateError()
+    }
+    const passphrase = await resolveCheapLfsPassphrase(
+      repository.id,
+      preferences.cheapLfsEncryptionSavePassphrase === true,
+      // A background commit cannot open a modal and wait for it, so an
+      // unavailable passphrase is refused with a reason rather than guessed at.
+      // The vault being locked, missing, or throwing lands here too.
+      async () => null
+    )
+    if (passphrase === null) {
+      throw new Error(
+        'This repository encrypts its large files, and its passphrase is not available on this machine right now. Unlock encryption in Repository settings → Cheap LFS and commit again; nothing was uploaded and no file was replaced.'
+      )
+    }
+    return { password: passphrase }
+  }
+
+  /**
+   * Record the passphrase the user just confirmed in the encryption gate.
+   *
+   * Held for this app session, and additionally written to the OS credential
+   * vault when the user ticked "remember". It never reaches the profile
+   * settings store, `localStorage`, or any file — see
+   * `app/src/lib/cheap-lfs/passphrase-vault.ts` for why that matters here.
+   */
+  public async _setCheapLfsEncryptionPassphrase(
+    repository: Repository,
+    passphrase: string,
+    remember: boolean
+  ): Promise<CheapLfsPassphraseSaveOutcome | null> {
+    unlockCheapLfsPassphraseForSession(repository.id, passphrase)
+    if (!remember) {
+      return null
+    }
+    return await saveCheapLfsPassphrase(repository.id, passphrase)
+  }
+
+  /** Delete this repository's saved passphrase and lock the session copy. */
+  public async _forgetCheapLfsEncryptionPassphrase(
+    repository: Repository
+  ): Promise<boolean> {
+    lockCheapLfsPassphraseSession(repository.id)
+    return await forgetCheapLfsPassphrase(repository.id)
+  }
+
   private requireCheapLfsReadAccount(repository: Repository): Account {
     const account = getGitHubReleasesReadAccount(repository, this.accounts)
     if (account === null) {
@@ -14898,7 +14980,18 @@ export class AppStore extends TypedBaseStore<IAppState> {
         signal,
         onProgress,
         defaultCheapLfsFileSystem,
-        releaseCache
+        releaseCache,
+        // Consulted only when the pointer itself names encrypted assets. A
+        // saved or session-unlocked passphrase restores silently; anything else
+        // resolves to `null`, which cancels the restore and leaves the pointer
+        // in place rather than writing partial bytes over the user's file.
+        () =>
+          resolveCheapLfsPassphrase(
+            repository.id,
+            repository.buildRunPreferences.cheapLfsEncryptionSavePassphrase ===
+              true,
+            async () => null
+          )
       )
     }
     const result = await this.cheapLfsOciSessionRunner(
@@ -15753,8 +15846,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
           }
           const actualTotal =
             entry.pointer.parts?.reduce(
-              (sum, part) =>
-                sum + (part.deflatedSizeInBytes ?? part.sizeInBytes),
+              (sum, part) => sum + cheapLfsPartStoredSizeInBytes(part),
               0
             ) ?? entry.pointer.sizeInBytes
           actualByPath.set(entry.relativePath, {
@@ -16240,6 +16332,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
         onHashProgress?: (processedBytes: number) => void,
         laneIndex: number = 0
       ) => {
+        const encryption = await this.resolveCheapLfsPinEncryption(repository)
         const result = await pinFileToRelease(
           this.githubReleasesStore,
           repository,
@@ -16252,6 +16345,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
               'assets',
             ...(releaseReview === null ? {} : { releaseReview }),
             retainSourceForRestore: true,
+            ...(encryption === null ? {} : { encryption }),
           },
           signal,
           onProgress,

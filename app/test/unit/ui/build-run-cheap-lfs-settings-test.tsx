@@ -15,6 +15,11 @@ import { CheapLfsSettings } from '../../../src/ui/repository-settings/cheap-lfs-
 import { RepositorySettingsTab } from '../../../src/ui/repository-settings/repository-settings'
 import { fireEvent, render, screen } from '../../helpers/ui/render'
 import { translate } from '../../../src/lib/i18n'
+import { Dispatcher } from '../../../src/ui/dispatcher'
+
+// The Cheap LFS tab only reaches the dispatcher from the encryption gate and
+// the forget-passphrase action; none of the cases below take those paths.
+const stubDispatcher = {} as Dispatcher
 
 const repository = () =>
   new Repository('C:/cheap-lfs-repo', 1, null, false, null, {}, false)
@@ -44,6 +49,7 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -68,6 +74,7 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -90,6 +97,7 @@ describe('Cheap LFS settings tab preferences', () => {
   it('renders both checkboxes reflecting the persisted preferences', () => {
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -118,6 +126,7 @@ describe('Cheap LFS settings tab preferences', () => {
     }
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={repository()}
         preferences={preferences}
         onPreferencesChanged={preference => changes.push(preference)}
@@ -167,6 +176,7 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={githubRepository(true)}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={preference => changes.push(preference)}
@@ -194,6 +204,7 @@ describe('Cheap LFS settings tab preferences', () => {
   it('hides Release cloud compression while GHCR storage is selected', () => {
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={githubRepository(true)}
         preferences={{
           ...defaultBuildRunPreferences,
@@ -214,6 +225,7 @@ describe('Cheap LFS settings tab preferences', () => {
   it('shows confirmed-public cloud compression as automatic', () => {
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={githubRepository(false)}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={() => {}}
@@ -231,6 +243,7 @@ describe('Cheap LFS settings tab preferences', () => {
     const changes: IBuildRunPreferences[] = []
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={githubRepository(true)}
         preferences={defaultBuildRunPreferences}
         onPreferencesChanged={preference => changes.push(preference)}
@@ -248,6 +261,7 @@ describe('Cheap LFS settings tab preferences', () => {
   it('fails closed when repository visibility is unknown', () => {
     render(
       <CheapLfsSettings
+        dispatcher={stubDispatcher}
         repository={githubRepository(null)}
         preferences={{
           ...defaultBuildRunPreferences,

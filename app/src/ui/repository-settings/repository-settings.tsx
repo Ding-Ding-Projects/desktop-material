@@ -471,6 +471,7 @@ export class RepositorySettings extends React.Component<
         return (
           <CheapLfsSettings
             repository={this.props.repository}
+            dispatcher={this.props.dispatcher}
             preferences={this.state.buildRunPreferences}
             onPreferencesChanged={this.onBuildRunPreferencesChanged}
           />

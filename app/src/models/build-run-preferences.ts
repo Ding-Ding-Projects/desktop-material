@@ -119,6 +119,34 @@ export interface IBuildRunPreferences {
   readonly cheapLfsCloudCompression?: boolean
 
   /**
+   * Encrypt this repository's Cheap LFS payloads with a passphrase before they
+   * are uploaded. Off unless exactly true, per repository, never global.
+   *
+   * Turning it on is gated on `cheapLfsEncryptionAcknowledged`: if this is true
+   * and that is not, a pin **refuses** rather than quietly uploading in the
+   * clear, because a user whose settings say "encrypted" and whose release
+   * holds plaintext is worse off than one whose pin failed with a reason.
+   */
+  readonly cheapLfsEncryption?: boolean
+
+  /**
+   * The irreversibility gate was shown and confirmed for this repository: a
+   * lost passphrase means the payload is unrecoverable, with no recovery path
+   * and no override. Written only by that modal, never pre-set.
+   */
+  readonly cheapLfsEncryptionAcknowledged?: boolean
+
+  /**
+   * Keep the passphrase in the OS credential vault instead of asking each
+   * time. Off unless exactly true. **The passphrase itself is never stored in
+   * this record** — this is only the flag saying a vault entry may exist. The
+   * secret goes to `TokenStore` alone; see
+   * `app/src/lib/cheap-lfs/passphrase-vault.ts` for why the settings path is
+   * forbidden for it.
+   */
+  readonly cheapLfsEncryptionSavePassphrase?: boolean
+
+  /**
    * Per-profile command-line overrides. A blank / absent value for a stage
    * means "use the detected command". Stored as raw command-line strings; the
    * dispatcher tokenises them into an argv array (never a shell string).
