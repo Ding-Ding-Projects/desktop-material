@@ -1351,6 +1351,13 @@
       d: 'Visual evidence for issue #78 (optional password encryption for Cheap LFS payloads).',
     },
     {
+      t: 'Funny-level sliders — built-app capture, 2026-07-28',
+      h: 'verification/funny-level-sliders-2026-07-28/',
+      s: 'verification/funny-level-sliders-2026-07-28/README.md',
+      c: 'verification',
+      d: 'Visual evidence for issue #83 (restore the missing English and Cantonese funny-level sliders).',
+    },
+    {
       t: 'Linux TUI publish cleanup ledger',
       h: 'verification/linux-tui-2026-07-27/cleanup-ledger.html',
       s: 'verification/linux-tui-2026-07-27/cleanup-ledger.md',
