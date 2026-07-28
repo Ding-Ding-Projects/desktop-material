@@ -31,10 +31,11 @@ Desktop Material is an independent Material Design 3 (M3 Expressive) remake of [
 > exact Windows production build completed successfully, and the real built
 > app passed isolated off-screen English/bilingual interaction and privacy
 > inspection. The source is merged and pushed through `2abccae8fd`; Pages and
-> wiki publication are live. The first remote run exposed Linux TUI-only
-> Python 3.10/mypy compatibility defects, whose locally green correction and
-> remote rerun are tracked in `HANDOFF.md`. Packaged Windows E2E is verified;
-> only the TUI correction rerun and installer/Release evidence remain pending.
+> wiki publication are live. TUI correction commit `f555d374a6` is contained
+> in `origin/main`; remote run `30317262582` passed its Linux TUI matrix and
+> Windows TUI core job but failed overall in the unrelated Windows x64 unit
+> job. Installer run `30318769692` failed and published no Release. Packaged
+> Windows E2E remains verified.
 > See
 > [Release-backed Cheap LFS](docs/features/repository-management/release-backed-cheap-lfs.md),
 > the [app-hosted browser](docs/features/integrations/app-hosted-browser.md),
@@ -64,10 +65,29 @@ downloads, and updater behavior.
 Install the trusted checkout as an isolated tool, then launch a repository with
 the literal `github` command:
 
+Linux shell, from a fresh parent directory:
+
+<!-- markdownlint-disable MD013 -->
+
 ```bash
-uv tool install ./tui
-github /path/to/repository
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
 ```
+
+Windows PowerShell, from a fresh parent directory:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Both commands require Git and
+[uv](https://docs.astral.sh/uv/getting-started/installation/). Close and reopen
+the terminal afterward so the updated `PATH` is loaded, then run
+`github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The interactive acceptance target
+remains Linux-first; the Windows Terminal launch path and cross-platform core
+are also tested.
 
 `github`, `dmt`, and `desktop-material-tui` are identical launchers for this
 terminal edition. This alias does not replace GitHub CLI's `gh`. If another
@@ -77,7 +97,30 @@ program or shell alias already owns `github`, use `dmt` or
 ```bash
 github --help
 github status --json
+github push --dry-run
+github push origin main
+github pull --ff-only
+github git log --oneline --decorate
 ```
+
+`github push` runs a native dry-run, then scans safe working candidates and the
+publication delta; an unprovable remote base safely falls back to all history
+reachable from the pushed source refs. Native Git publishes nothing until that
+passes. `github pull` runs native Git first and then restores canonical Cheap
+LFS pointers with exact size/SHA-256 verification. The explicit `github git …`
+form passes other native Git arguments through without a shell; see the
+[wrapper contract](docs/features/linux-tui/cheap-lfs-git-wrapper.md).
+
+The current browser/wrapper milestone passes the full Windows-hosted TUI suite
+(250 passed, 1 Linux-only skip in 182.76 seconds), its 29 focused path/browser
+tests, and its 47 focused wrapper tests. Ruff lint/format, strict mypy for the
+normal and explicit Linux targets, and package build are also green. A real
+Debian/Xvfb/xterm run accepted the packaged Open dialog and fixture-backed
+push/pull with an exact restored pointer/cache hash match. All three Windows
+aliases resolve from the uv tool directory already on `PATH`, the Linux wheel
+smoke reported the same aliases, and disposable cleanup is complete. The
+remaining automated-versus-live evidence split is explicit in the
+[dated run manifest](docs/verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md).
 
 For development, run the locked project directly:
 
@@ -87,9 +130,10 @@ uv sync --locked --extra dev
 uv run desktop-material-tui
 ```
 
-It supports mouse clicks, keyboard focus, editable single-line and multiline
-text controls, local Git workflows, GitHub workflows through `gh`, shared RE2
-search, localization, notifications, and XDG persistence. It does **not** yet
+It supports mouse clicks, a folder-only repository browser, safe quoted-path
+paste, keyboard focus, editable single-line and multiline text controls, local
+Git workflows, GitHub workflows through `gh`, shared RE2 search, localization,
+notifications, and XDG persistence. It does **not** yet
 claim all 201 graphical-edition capabilities; see the generated
 [parity contract](tui/contracts/parity.yaml) and
 [TUI documentation](docs/features/linux-tui/README.md).

@@ -160,8 +160,13 @@ planning draft are not silently claimed as captured interactions.
       cleanup left one clean `main` worktree, no task branches, and no stashes.
 - [x] merged delivery `2abccae8fd` is the exact pushed `origin/main`; Pages and
       the Cheap LFS cloud-compression workflow succeeded.
-- [ ] exact corrective-commit CI and installer/release evidence after the
-      compatibility-fix push, without predicting success
+- [x] compatibility correction `f555d374a6` is contained in `origin/main`;
+      CI run `30317262582` passed its Linux TUI Python matrix and Windows TUI
+      core job.
+- [ ] repository-wide CI acceptance: run `30317262582` failed overall in the
+      unrelated Windows x64 unit job.
+- [ ] installer/release acceptance: run `30318769692` failed and published no
+      Release.
 
 ## Evidence table
 
@@ -197,6 +202,9 @@ Current local interaction status: **Complete**. The packaged Linux run, real
 mouse/text-field acceptance, five captures, and guarded cleanup are proven
 locally. The merged source and Pages/wiki publication are live; the first
 merged-source matrix exposed Python 3.10 timestamp and Linux-mypy portability
-defects that now pass the full local correction gates. The corrective
-default-branch CI and installer/release verdict remain unclaimed until their
-exact post-push receipts exist.
+defects that now pass the full local correction gates. Correction commit
+`f555d374a6` is contained in `origin/main`, and its Linux TUI matrix plus
+Windows TUI core job passed in run `30317262582`. That workflow still failed
+overall in the unrelated Windows x64 unit job. Installer run `30318769692`
+failed and published no Release; neither failed top-level gate is claimed as
+accepted.

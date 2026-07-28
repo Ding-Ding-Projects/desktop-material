@@ -12,6 +12,8 @@ a user can:
 - click buttons for open, clone, create, stage, commit, fetch, pull, push,
   branch, stash, worktree, submodule, sparse-checkout, build/run, GitHub, and
   notification actions;
+- expand the Open/Create folder browser, navigate Home or Up, and click a
+  directory to place its path in the editable repository field;
 - click list, selection-list, table, checkbox, and select control rows;
 - place the caret in single-line and multiline text fields;
 - drag text selection where the terminal and widget allow it;
@@ -40,6 +42,12 @@ the caret, Backspace/Delete to edit, and Ctrl+A/C/X/V where the terminal exposes
 those sequences. Multiline commit and provider bodies keep Enter for a newline;
 the surrounding action is a separate button so text entry never submits by
 accident.
+
+Repository path inputs remove one matching outer single- or double-quote pair
+from pasted text immediately and normalize once more on submission. They do
+not evaluate shell syntax or remove internal, unmatched, or mismatched quotes.
+The [repository path browser guide](repository-path-browser.md) records the
+exact parsing, failure, and security contract.
 
 ## Keyboard interaction
 

@@ -19,6 +19,36 @@ generated `contracts/parity.yaml` ledger marks 14 rows adapted, 53 partial, 132
 not yet available, and 2 terminal-owned, with source evidence for every
 non-default mapping.
 
+## One-line install
+
+These commands require Git and
+[uv](https://docs.astral.sh/uv/getting-started/installation/). They clone the
+trusted repository, install the TUI as an isolated user tool, and add uv's tool
+directory to future shells.
+
+Linux shell:
+
+<!-- markdownlint-disable MD013 -->
+
+```bash
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git && cd desktop-material && uv tool install ./tui && uv tool update-shell
+```
+
+Windows PowerShell:
+
+```powershell
+git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTEXITCODE -ne 0) { throw 'git clone failed' }; Set-Location .\desktop-material; uv tool install .\tui; if ($LASTEXITCODE -ne 0) { throw 'uv tool install failed' }; uv tool update-shell
+```
+
+<!-- markdownlint-enable MD013 -->
+
+Close and reopen the terminal after the command finishes so the updated
+`PATH` is loaded, then launch a repository with
+`github /path/to/repository` on Linux or
+`github C:\path\to\repository` on Windows. The interactive product remains
+Linux-first; its Windows Terminal launch path and cross-platform core are also
+tested.
+
 ## Development quick start
 
 ```bash
@@ -48,7 +78,20 @@ case. Discover the complete scriptable CLI or request machine-readable status:
 ```bash
 github --help
 github -C /path/to/repository status --json
+github -C /path/to/repository push --dry-run
+github -C /path/to/repository push origin main
+github -C /path/to/repository pull --ff-only
+github -C /path/to/repository git log --oneline
 ```
+
+The short `github push` and `github pull` forms are Cheap-LFS-aware wrappers.
+Push blocks oversized safe working candidates or blobs in the publication
+delta, conservatively falling back to all source-ref history when its remote
+base cannot be proven. It never stages, commits, uploads, or rewrites history.
+Pull runs native Git first and then restores canonical pointers through the
+verified cache/provider path. `github git …` preserves other native Git argv
+without invoking a shell. See the
+[full wrapper contract](../docs/features/linux-tui/cheap-lfs-git-wrapper.md).
 
 ## Docker quick start
 
@@ -111,6 +154,32 @@ docker run --rm \
   --workdir /workspace \
   desktop-material-tui:local cheap-lfs status --json
 ```
+
+Run the Cheap-LFS-aware native Git dry-run against the writable repository
+mount, then use the same form for an authenticated push or pull:
+
+```bash
+docker run --rm --init \
+  --volume "$PWD:/workspace" \
+  --volume desktop-material-tui-config:/home/dmt/.config \
+  --volume desktop-material-tui-cache:/home/dmt/.cache \
+  --workdir /workspace \
+  desktop-material-tui:local push --dry-run origin main
+
+docker run --rm --init \
+  --volume "$PWD:/workspace" \
+  --volume desktop-material-tui-config:/home/dmt/.config \
+  --volume desktop-material-tui-cache:/home/dmt/.cache \
+  --workdir /workspace \
+  desktop-material-tui:local pull --ff-only
+```
+
+Replace the final command with `push origin main` for a real publish. The
+default container does not inherit host Git credentials, SSH keys, or an agent;
+make only the required authentication available deliberately. Push preflight
+never downloads Cheap LFS payloads. Pull may use the persistent cache or the
+scoped `gh` login to materialize verified pointers, and therefore needs a
+writable workspace.
 
 Preview a Cheap LFS publication before allowing any mutation, then repeat the
 same reviewed command with explicit confirmation:

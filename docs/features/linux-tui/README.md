@@ -63,6 +63,9 @@ matches, and the compact bilingual layout:
 - [Interaction and accessibility](interaction-and-accessibility.md) — mouse
   clicks, text boxes, keyboard focus, scrolling, resizing, assistive technology,
   and terminal constraints.
+- [Repository path browser and quoted paste](repository-path-browser.md) —
+  folder-only mouse/keyboard browsing, Home/Up navigation, immediate safe
+  unquoting, failure behavior, and path-boundary security.
 - [Architecture and XDG persistence](architecture-and-persistence.md) —
   boundaries, config, SQLite, locking, and isolated local history.
 - [Repositories and Git](repositories-and-git.md) — available workflows,
@@ -72,6 +75,9 @@ matches, and the compact bilingual layout:
 - [Cheap LFS](cheap-lfs.md) — Windows-compatible pointer limits, clickable
   manager, CLI, managed Release writes, verification, recovery, and current
   parity boundaries.
+- [Cheap LFS-aware Git CLI wrapper](cheap-lfs-git-wrapper.md) — exact native
+  Git argv passthrough, push preflight, materialized payload verification, and
+  safe pull restoration.
 - [Search and RE2](search-and-regex.md) — modes, dialect, bounds, builder,
   flags, zero-width matches, and synchronization.
 - [Language, appearance, and notifications](language-appearance-notifications.md)
@@ -87,8 +93,10 @@ matches, and the compact bilingual layout:
 
 ## Acceptance boundary
 
-Source code or a green unit test does not prove a mouse path. The dated
+Source code or a green unit test does not prove a mouse path. The original
 [Linux TUI verification manifest](../../verification/linux-tui-2026-07-27/run-manifest.md)
-owns real PTY, mouse, text-entry, resize, screenshot, and cleanup evidence.
-Pending boxes in that record remain pending; they are never implied by this
-feature overview.
+and the later
+[path-browser and Git-wrapper manifest](../../verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
+own the real PTY, mouse, text-entry, resize, screenshot, CLI, install, and
+cleanup evidence. Pending boxes in either record remain pending; they are never
+implied by this feature overview.
