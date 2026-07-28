@@ -13,9 +13,17 @@
 const fs = require('fs')
 const path = require('path')
 
-const ExpectedPublishedGalleryCount = 89
+const ExpectedPublishedGalleryCount = 84
 const CanonicalCandidateCount = 68
 const DeferredCanonicalOutputs = Object.freeze(['material-cheap-lfs-preparing'])
+const RetainedHistoricalEvidence = Object.freeze({
+  'auto-updater-update-ready.png': Object.freeze({
+    acceptedAt: '2026-07-22',
+    document: 'docs/verification/auto-updater-version-order-2026-07-22.md',
+    sourceCommit: '923dbb51acad8f01f01f1c100c6945c7a2e08e23',
+    sha256: 'a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d',
+  }),
+})
 
 const galleryPath = path.resolve(
   __dirname,
@@ -92,12 +100,13 @@ const CaptureBatches = Object.freeze({
     platform: 'windows-headless',
     commands: Object.freeze([
       'npx --no-install cross-env RELEASE_CHANNEL=development yarn build:prod',
-      'Lowlevel launch the owned legacy Super Express installation against the owned Squirrel update feed, wait for update-ready, then capture_screenshot(client_only=true, hwnd=<resolved-app-hwnd>, path=<owned-temp-run-root>\\captures\\auto-updater-update-ready.png)',
+      'node .codex/verification/verify_gallery_auto_updater_ready_cdp.js --port <owned-cdp-port> --run-root <owned-temp-run-root> --protected-install-root <attested-protected-install-root> --protected-user-sid <attested-protected-user-sid> --execution-user-sid <attested-execution-user-sid> --desktop-name <owned-headless-desktop-name> --capture <owned-temp-run-root>\\captures\\auto-updater-current-source-ready.png --receipt <owned-temp-run-root>\\receipts\\auto-updater-current-source-ready-receipt.json --ready <owned-temp-run-root>\\receipts\\auto-updater-current-source-ready-verifier-ready.json',
+      'Lowlevel wait for the verifier-owned ready handshake, launch only its exact executable, arguments, environment, identity, and non-default desktop, then let the verifier capture original Chromium pixels and exit through File > Exit without invoking Quit and Install',
     ]),
     fixture:
-      'Owned legacy alphabetic-s installation and deterministic newer alphabetic-z Squirrel feed on a hidden Win32 desktop.',
+      'Exact freshly packaged development-channel production build in a unique owned Squirrel root, plus a bounded loopback feed containing one deterministic newer inert full nupkg with no executable payload.',
     privacyGate:
-      'Use isolated user data and fixture identity only; inspect the original 960x660 client frame before promotion.',
+      'The verifier attests the current build, isolated identity, protected installation and same-user state, genuine Electron/Squirrel event path, exact 960x660 frame, path-free receipt, and complete owned cleanup before promotion.',
   }),
   'windows-cheap-lfs-live': Object.freeze({
     platform: 'windows-headless',
@@ -129,18 +138,6 @@ const CaptureBatches = Object.freeze({
       'Disposable Git fixture plus the verifier-published deterministic restore snapshot with current and prefetched lanes.',
     privacyGate:
       'The attach-only verifier validates owned paths, exact progress semantics, clipping, and privacy before capture.',
-  }),
-  'linux-tui-lowlevel': Object.freeze({
-    platform: 'linux-xvfb',
-    commands: Object.freeze([
-      'uv build --clear',
-      '<owned-wheel-venv>/bin/desktop-material-tui <owned-linux-run-root>/fixture',
-      'Lowlevel Linux Xvfb capture_screenshot(window_id=<resolved-terminal-window>, path=<owned-linux-run-root>/captures/<output>.png)',
-    ]),
-    fixture:
-      'Fresh installed wheel; ephemeral Linux/Xvfb terminal; owned Git fixture with local bare origin, three controlled changes, branch, tag, stash, and isolated XDG roots.',
-    privacyGate:
-      'Use only fixture paths and example.invalid identity; inspect the original 1600x1000 terminal capture and run the secret-pattern scan before promotion.',
   }),
   'windows-ui-state-lowlevel': Object.freeze({
     platform: 'windows-headless',
@@ -207,11 +204,11 @@ const SpecialistCaptureEntries = Object.freeze([
       'Drive same-tab redirect, popup capture, New Tab, sanitized bookmark, then leave the nonbookmarkable authentication tab and external-browser escape action visible.',
   },
   {
-    output: 'auto-updater-update-ready',
-    scene: 'installed-update-ready',
+    output: 'auto-updater-current-source-ready',
+    scene: 'current-source-installed-update-ready',
     batch: 'windows-updater-lowlevel',
     interaction:
-      'Start the legacy alphabetic-s installation, complete the real Squirrel download from the owned feed, and leave About showing the newer alphabetic-z update ready.',
+      'Invoke the real production check-for-updates IPC against the bounded loopback feed, observe the genuine Squirrel update-downloaded event, and leave the current-source About surface showing the disclosed inert fixture ready without clicking Quit and Install.',
   },
   {
     output: 'cheap-lfs-bambu-build-live',
@@ -225,7 +222,7 @@ const SpecialistCaptureEntries = Object.freeze([
     scene: 'private-cloud-compression-consent',
     batch: 'windows-cheap-lfs-live',
     interaction:
-      'Use a disposable private fixture, explicitly enable cloud compression, pin one synthetic compressible file, and leave the bilingual verified compressed-pointer row visible.',
+      'Use a caller-owned disposable private fixture with persisted cloud-compression consent and one retained verified compressed pointer; validate the current no-private-workflow encrypted public-builder route, then leave its bilingual routing notice and 99.9%-smaller row visible.',
   },
   {
     output: 'cheap-lfs-commit-progress',
@@ -246,42 +243,7 @@ const SpecialistCaptureEntries = Object.freeze([
     scene: 'private-live-pin-acceptance',
     batch: 'windows-cheap-lfs-live',
     interaction:
-      'Use the native picker in a disposable private repository, push one synthetic pointer through the real provider path, then show the verified row and Materialize action.',
-  },
-  {
-    output: 'linux-tui-bilingual-narrow',
-    scene: 'bilingual-narrow',
-    batch: 'linux-tui-lowlevel',
-    interaction:
-      'Switch the installed TUI to bilingual mode, resize the terminal to 100 columns, dismiss a real toast by mouse, and prove primary controls remain unclipped.',
-  },
-  {
-    output: 'linux-tui-cheap-lfs',
-    scene: 'cheap-lfs-preview',
-    batch: 'linux-tui-lowlevel',
-    interaction:
-      'Open Cheap LFS with one canonical pointer and one 101 MiB candidate, edit the path tag and repository/provider fields, click Preview, and make no provider mutation.',
-  },
-  {
-    output: 'linux-tui-overview',
-    scene: 'changes-overview',
-    batch: 'linux-tui-lowlevel',
-    interaction:
-      'Open the installed wheel on the three-change fixture and leave Changes, repository rail, toolbar, tabs, and visible focus treatment in frame.',
-  },
-  {
-    output: 'linux-tui-regex-builder',
-    scene: 'regex-builder',
-    batch: 'linux-tui-lowlevel',
-    interaction:
-      'Edit the raw (alpha|beta) pattern and multiline sample, click case-insensitive mode, and leave two matches plus capture groups visible.',
-  },
-  {
-    output: 'linux-tui-text-input',
-    scene: 'commit-text-input',
-    batch: 'linux-tui-lowlevel',
-    interaction:
-      'Click the commit-summary Input, type TUI mouse proof, enter and edit a two-line TextArea body, and do not submit the commit.',
+      'Fresh-clone the purpose-built private acceptance repository, verify its retained live Release-pointer history, then show the verified row and Materialize action without provider or repository mutation.',
   },
   {
     output: 'material-command-palette-appearance',
@@ -419,6 +381,7 @@ module.exports = {
   ExpectedPublishedGalleryCount,
   GalleryCapturePlan,
   PublishedGalleryOutputs,
+  RetainedHistoricalEvidence,
   SpecialistCaptureEntries,
 }
 

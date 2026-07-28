@@ -191,6 +191,55 @@ describe('CloseTabsContainingPopover compatibility', () => {
 })
 
 describe('CloseTabsExceptContainingPopover', () => {
+  it('uses singular copy when one tab stays open', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const store = await createStore([makeTab('alpha', alpha)])
+
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={() => 'alpha'}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Text to keep'), {
+      target: { value: 'alpha' },
+    })
+    assert.ok(screen.getByText('The 1 tab stays open.'))
+  })
+
+  it('uses singular copy when one bounded preview row is omitted', async () => {
+    const repositories = Array.from(
+      { length: 9 },
+      (_, index) =>
+        new Repository(`/work/repository-${index + 1}`, index + 1, null, false)
+    )
+    const tabs = repositories.map((repository, index) =>
+      makeTab(`tab-${index + 1}`, repository)
+    )
+    const store = await createStore(tabs)
+
+    render(
+      <CloseTabsExceptContainingPopover
+        tabsStore={store}
+        anchor={null}
+        resolveAdditionalKeys={() => []}
+        resolveLabel={tab => tab.repositoryPath}
+        onClosed={() => undefined}
+        onClose={() => undefined}
+      />
+    )
+
+    fireEvent.change(screen.getByLabelText('Text to keep'), {
+      target: { value: 'repository-1' },
+    })
+    assert.ok(screen.getByText('And 1 more tab'))
+  })
+
   it('previews literal alias matches, pinned protection, and safe counts', async () => {
     const material = new Repository(
       '/work/desktop-material',
@@ -289,6 +338,15 @@ describe('CloseTabsExceptContainingPopover', () => {
 })
 
 describe('ArrangeTabsPopover', () => {
+  it('uses singular copy for a one-tab collection', async () => {
+    const alpha = new Repository('/work/alpha', 1, null, false)
+    const store = await createStore([makeTab('alpha', alpha)])
+
+    render(<ArrangeHarness store={store} repositories={[alpha]} ranks={{}} />)
+
+    assert.ok(screen.getByText('1 of 1 tab'))
+  })
+
   it('stars and one-shot arranges favorite tabs accessibly', async () => {
     const alpha = new Repository('/work/alpha', 1, null, false)
     const beta = new Repository('/work/beta', 2, null, false)

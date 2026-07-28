@@ -1,5 +1,9 @@
 # Linux TUI container
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 Desktop Material TUI ships a minimal multi-stage `tui/Dockerfile` for users who
 prefer an isolated Linux runtime. The builder creates a wheel from the local
 checkout, installs dependency versions and hashes from `uv.lock`, and installs

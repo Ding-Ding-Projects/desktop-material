@@ -41,10 +41,27 @@ function validReceipt() {
 
 describe('Pages gallery CDP verifier contracts', () => {
   it('tracks the exact guided gallery at its accepted dimensions', () => {
-    assert.equal(ExpectedGalleryImageCount, 89)
-    assert.equal(acceptedImageNames.length, 89)
-    assert.equal(new Set(acceptedImageNames).size, 89)
-    assert.equal(Object.keys(acceptedImageDimensions).length, 89)
+    assert.equal(ExpectedGalleryImageCount, 84)
+    assert.equal(acceptedImageNames.length, 84)
+    assert.equal(new Set(acceptedImageNames).size, 84)
+    assert.equal(Object.keys(acceptedImageDimensions).length, 84)
+    assert.equal(
+      acceptedImageNames.includes('auto-updater-current-source-ready.png'),
+      true
+    )
+    assert.equal(
+      acceptedImageNames.includes('auto-updater-update-ready.png'),
+      false
+    )
+    for (const historical of [
+      'linux-tui-bilingual-narrow.png',
+      'linux-tui-cheap-lfs.png',
+      'linux-tui-overview.png',
+      'linux-tui-regex-builder.png',
+      'linux-tui-text-input.png',
+    ]) {
+      assert.equal(acceptedImageNames.includes(historical), false, historical)
+    }
     assert.deepEqual(acceptedImageDimensions['material-repository-tools.png'], {
       width: 1440,
       height: 960,
@@ -65,10 +82,6 @@ describe('Pages gallery CDP verifier contracts', () => {
       acceptedImageDimensions['repository-list-sync-summary.png'],
       { width: 390, height: 100 }
     )
-    assert.deepEqual(acceptedImageDimensions['linux-tui-overview.png'], {
-      width: 1600,
-      height: 1000,
-    })
     assert.deepEqual(
       acceptedImageDimensions['material-ollama-model-manager.png'],
       { width: 1452, height: 1001 }

@@ -10,10 +10,11 @@ A task-oriented tour of Desktop Material's features. It assumes you already know
 Desktop workflow (clone, commit, push, branch, pull request) — that all still works. This guide
 focuses on what Desktop Material adds on top.
 
-> The graphical Desktop Material edition is supported on Windows only. Use its
-> published Windows x64 installer. Linux users can use the separate
-> [terminal edition](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/README.md), which has its own package
-> and parity boundary rather than a Linux Electron binary.
+> Desktop Material is supported, built, packaged, released, and accepted on
+> Windows only. Use its published Windows x64 installer. The retained
+> [Linux TUI prototype](https://github.com/Ding-Ding-Projects/desktop-material/blob/main/docs/features/linux-tui/README.md),
+> package notes, parity ledger, and Xvfb captures are historical July 27
+> evidence, not a supported edition or Windows-release blocker.
 
 **Feature guide**
 
@@ -37,8 +38,9 @@ private-repository lock passed the final focused **760/760 across 58 files**
 gate, 14/14 verifier contracts, full TypeScript, the exact Windows production
 build, and isolated hidden-desktop interaction/privacy review. The source and
 captures are pushed through `2abccae8fd`, and Pages/wiki publication is
-verified live. Packaged Windows E2E is verified. Only the Linux TUI
-compatibility correction rerun and installer/Release evidence remain pending.
+verified live. Packaged Windows E2E is verified. Installer/Release evidence
+remained pending at that dated checkpoint; the archived TUI compatibility work
+is outside the current Windows acceptance boundary.
 
 The temporary-submodule changeset completed its local ten-pass, final post-build
 child/Back, and fresh-bundle duplicate Open/Back race inspections, including
@@ -47,11 +49,14 @@ remote CI caught a macOS error-ordering defect without publishing; correction
 `98d93ccc` passed its full remote CI gate and published
 `v3.6.3-beta3-b0000000165`. Exact publication receipts are in `HANDOFF.md`.
 
-The [Guided Feature Gallery](Feature-Gallery) is the canonical 89-scene visual index: every
-catalogued function or state owns one distinct screenshot rather than borrowing an overview image.
+The [Guided Feature Gallery](Feature-Gallery) declares the canonical 84-scene
+Windows visual target: every catalogued function or state must own one distinct
+screenshot rather than borrow an overview image. Current promotion remains
+pending until all targets pass. Five earlier Linux/Xvfb captures remain
+archived outside that target set.
 
 - [The shell](#the-shell)
-- [Install the TUI on Linux or Windows](#install-the-tui-on-linux-or-windows)
+- [Historical Linux TUI prototype](#historical-linux-tui-prototype-unsupported)
 - [Install on Windows](#install-on-windows)
 - [Material first run](#material-first-run)
 - [Signing in](#signing-in)
@@ -118,11 +123,13 @@ links to behavior, recovery, security, and test details for every workflow.
 
 ---
 
-## Install the TUI on Linux or Windows
+## Historical Linux TUI prototype (unsupported)
 
-The terminal edition requires Git, Python 3.10–3.13, and
-[uv](https://docs.astral.sh/uv/getting-started/installation/). From a fresh
-parent directory, use the matching one-line installation.
+The commands below reproduce the July 27 prototype acceptance record. They are
+not a current installation recommendation; Desktop Material's supported
+product and package path is Windows. At that checkpoint the prototype required
+Git, Python 3.10–3.13, and
+[uv](https://docs.astral.sh/uv/getting-started/installation/).
 
 Linux shell:
 
@@ -143,8 +150,8 @@ git clone https://github.com/Ding-Ding-Projects/desktop-material.git; if ($LASTE
 Close and reopen the terminal afterward so the updated `PATH` is loaded. Then
 run `github /path/to/repository` on Linux or
 `github C:\path\to\repository` on Windows. The interactive acceptance target
-remains Linux-first; the Windows Terminal launch path and cross-platform core
-are also tested.
+was Linux-first; the Windows Terminal launch path and cross-platform core were
+also tested at that checkpoint.
 
 The same launcher provides Cheap-LFS-aware Git commands:
 
@@ -216,7 +223,7 @@ selected, downloaded, and applied `3.6.3-beta3-zadtberjmv`; a following
 same-source Super Express Release then progressed visibly through **Downloading
 update…** to **Quit and Install Update**.
 
-![About showing an automatic update ready for a legacy Super Express installation](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/main/docs/assets/screenshots/auto-updater-update-ready.png)
+![Historical About frame showing an automatic update ready for a legacy Super Express installation](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/923dbb51acad8f01f01f1c100c6945c7a2e08e23/docs/assets/screenshots/auto-updater-update-ready.png)
 
 ## Creating a GitHub release
 
@@ -380,8 +387,9 @@ timeout. Clone cancellation remains stricter and waits for the owned process to 
 > TypeScript, the exact Windows production build, and hidden-desktop
 > interaction/privacy checks pass. The source and accepted capture are pushed
 > through `2abccae8fd`, and Pages/wiki publication is verified live. Packaged
-> Windows E2E is verified. Only the Linux TUI compatibility correction rerun
-> and installer/Release evidence remain pending.
+> Windows E2E is verified. Installer/Release evidence remained pending at that
+> dated checkpoint; archived TUI compatibility work does not block this
+> Windows feature.
 
 Open **Settings → Advanced → Open web links** and choose:
 
@@ -1152,9 +1160,10 @@ with parts up to 2 GiB remain readable. Public repositories
 then automatically receive one owned, SHA-pinned workflow file in Changes for
 review. Compression starts only after you commit and push that caller. Private
 repositories stay off until you explicitly enable **Cloud compression** in the
-Large files manager or Repository Settings; that opt-in prepares the same
-reviewed caller, and the copy warns that private Actions usage may consume the
-owner's minutes. Unknown visibility stays off.
+Large files manager or Repository Settings. That persisted opt-in installs no
+workflow in the private repository and spends none of its Actions minutes;
+compression is routed through the encrypted public builder, whose external
+registration must be completed before it runs. Unknown visibility stays off.
 
 The GitHub Action downloads and raw-DEFLATEs one Release object at a time, uses
 no Actions artifacts or caches, and adopts a verified side asset only when it is
@@ -1179,8 +1188,8 @@ Release mutations are never allowed.
 > TypeScript, the exact production build, and hidden-desktop acceptance pass.
 > The source and accepted capture are pushed through `2abccae8fd`, and
 > Pages/wiki publication is verified live. Packaged Windows E2E is verified.
-> Only the Linux TUI compatibility correction rerun and installer/Release
-> evidence remain pending.
+> Installer/Release evidence remained pending at that dated checkpoint;
+> archived TUI compatibility work does not block this Windows feature.
 
 For Release-backed pointers, one restore batch now shares a coordinator with a
 hard limit of two HTTP downloads. The current file or multipart part owns the
@@ -1193,9 +1202,13 @@ The detailed restore panel shows overall progress and separate **Current** and
 **Next at 90%** lanes, plus repository, provider, current phase, file and part
 ordinals, logical restored bytes, actual downloaded/compressed bytes when
 known, succeeded/failed/remaining/queued counts, elapsed time, download rate,
-ETA, bounded per-file failures, and cancellation. Downloading, decompressing,
-verifying, materializing, and canceling remain distinct instead of sharing one
-ambiguous percentage.
+ETA, bounded per-file failures, and cancellation. Downloading, decrypting,
+decompressing, verifying, materializing, and canceling remain distinct instead
+of sharing one ambiguous percentage. For an encrypted-and-compressed Release object, the
+truthful transform order is **Downloading → Decrypting → Decompressing →
+Verifying → Materializing**. Plain bilingual copy renders the second phase as
+**Decrypting · 解密緊**; playfulness may change the voice but never the phase,
+path, byte counts, or order.
 
 The second lane does not weaken validation. Desktop Material still verifies
 every part's size and SHA-256, assembles parts in pointer order, verifies the
@@ -1207,8 +1220,10 @@ removes active shimmer, and bilingual/narrow layouts wrap instead of clipping.
 
 <sub>**香港粵語速讀。** 下載真係到 90%，下一個檔或者 part 先可以入第二條
 lane；成個 batch 最多兩個下載。面板會分目前／下一條 lane、檔同 part 次序、邏輯
-同實際位元組、階段、速度、ETA、排隊、成功、失敗同取消。預取只係慳中間嗰幾秒，
-每 part 同全檔 SHA-256、大小、指標冇變先換檔，全部照舊要過關。</sub>
+同實際位元組、階段、速度、ETA、排隊、成功、失敗同取消。加密兼壓縮嘅檔案會照實
+顯示「下載 → **解密** → 解壓 → 驗證 → 落盤」，雙語係
+**Decrypting · 解密緊**。預取只係慳中間嗰幾秒，每 part 同全檔 SHA-256、大小、指標
+冇變先換檔，全部照舊要過關。</sub>
 
 New buckets are published prereleases, so collaborators can fetch them while
 they remain outside the stable installer `/releases/latest` feed. For

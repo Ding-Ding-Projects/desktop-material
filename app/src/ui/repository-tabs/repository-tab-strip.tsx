@@ -33,10 +33,12 @@ import { IMenuItem, showContextualMenu } from '../../lib/menu-item'
 import { DialogLayerPortal } from '../dialog/dialog-layer'
 import { CreateTabGroupDialog } from './create-tab-group-dialog'
 import { EditTabGroupDialog } from './edit-tab-group-dialog'
+import { TabGroupMembersPopover } from './tab-group-members-popover'
 import {
-  TabGroupMembersPopover,
+  tabGroupChipKey,
   tabGroupMembersButtonKey,
-} from './tab-group-members-popover'
+  tabOverflowButtonLabelKey,
+} from './tab-count-copy'
 import { FoldoutType } from '../../lib/app-state'
 import { NotificationBellButton } from '../notifications/notification-bell-button'
 import { RepositoryStateCache } from '../../lib/stores/repository-state-cache'
@@ -1560,7 +1562,7 @@ export class RepositoryTabStrip extends React.Component<
           })}
           data-group-id={group.id}
           aria-label={this.accessibleText(
-            isCollapsed ? 'tabs.groupChipCollapsed' : 'tabs.groupChipExpanded',
+            tabGroupChipKey(members.length, isCollapsed),
             { name: group.name, count: String(members.length) }
           )}
           aria-expanded={!isCollapsed}
@@ -1786,7 +1788,10 @@ export class RepositoryTabStrip extends React.Component<
         ref={this.overflowButtonRef}
         className="repository-tab-overflow"
         data-dm-feature={true}
-        aria-label={this.accessibleText('tabs.overflowButtonLabel', { count })}
+        aria-label={this.accessibleText(
+          tabOverflowButtonLabelKey(overflowCount),
+          { count }
+        )}
         aria-haspopup="dialog"
         aria-expanded={this.state.overflowAnchor !== null}
         onClick={this.onOverflowButtonClick}

@@ -161,9 +161,13 @@ The current maintenance additions in this section are implemented. Their exact
 production, headless, source-publication, and cleanup evidence remains centralized
 in `HANDOFF.md`; historical gallery references do not substitute for those receipts.
 
-The [Guided Feature Gallery](Feature-Gallery) is the machine-checked documentation manifest for 89
-captured, user-facing visual functions and states associated with these subsystems. Each function
-owns one distinct tracked PNG; missing, duplicate, and unassigned assets fail the catalog contract.
+The [Guided Feature Gallery](Feature-Gallery) is the machine-checked
+documentation manifest for 84 user-facing Windows visual targets associated
+with these subsystems. Each function must own one distinct current PNG;
+missing, duplicate, and unassigned current assets fail the catalog contract,
+so the manifest cannot claim publication while a target is absent. Five
+retained Linux/Xvfb assets are explicitly historical and outside that target
+set.
 Keep captures free of personal paths, account identifiers, credentials, signed URLs, and unbounded
 provider payloads. A tracked image reference does not replace exact-source build, CI, public
 publication, release, or cleanup evidence.

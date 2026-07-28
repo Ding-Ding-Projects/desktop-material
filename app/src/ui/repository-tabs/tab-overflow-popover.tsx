@@ -29,6 +29,7 @@ import {
   readTabFunnyLevels,
   translateWithTabFunnyLevel,
 } from './tab-action-helpers'
+import { tabOverflowFilterCountKey } from './tab-count-copy'
 
 interface ITabOverflowPopoverProps {
   /** The tabs that did not fit in the strip, in their original order. */
@@ -456,7 +457,7 @@ export class TabOverflowPopover extends React.Component<
             aria-live="polite"
           >
             {isFiltering
-              ? this.text('tabs.overflowFilterCount', {
+              ? this.text(tabOverflowFilterCountKey(total), {
                   visible: String(results.length),
                   total: String(total),
                 })

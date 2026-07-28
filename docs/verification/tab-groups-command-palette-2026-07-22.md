@@ -38,12 +38,20 @@ Playwright CDP hook without showing or switching to the off-screen desktop.
 Both PNGs were inspected at original resolution for expected state, clipping,
 blank output, and private data before promotion.
 
-- `docs/assets/screenshots/material-tab-groups.png`
+![Historical tab-groups acceptance at immutable source commit 58be6fe5953477b015a134c414a8cf82363ecc75](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-tab-groups.png)
+
+![Historical command-palette acceptance at immutable source commit 58be6fe5953477b015a134c414a8cf82363ecc75](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-command-palette-appearance.png)
+
+The hash list below identifies immutable blobs at
+`58be6fe5953477b015a134c414a8cf82363ecc75`; the familiar gallery paths are
+labels only and may point to newer bytes on `main`.
+
+- [Immutable `material-tab-groups.png` blob](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-tab-groups.png)
   - Dimensions: 1000×687
   - Bytes: 94,467
   - SHA-256:
     `fd857137f71b79fbef65225e4469f2d2e3d95ecb6701e4847b84da11ad2875b8`
-- `docs/assets/screenshots/material-command-palette-appearance.png`
+- [Immutable `material-command-palette-appearance.png` blob](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/58be6fe5953477b015a134c414a8cf82363ecc75/docs/assets/screenshots/material-command-palette-appearance.png)
   - Dimensions: 1000×687
   - Bytes: 99,234
   - SHA-256:

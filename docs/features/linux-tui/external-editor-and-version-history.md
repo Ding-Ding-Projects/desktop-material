@@ -1,5 +1,9 @@
 # TUI external editor and local version history
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 ## External editor and terminal
 
 Settings includes editable editor and terminal command preferences plus editor

@@ -1,5 +1,9 @@
 # Cheap LFS in the terminal edition
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 The Linux-first terminal edition can inspect, create, verify, and restore the
 same `desktop-material/cheap-lfs/v1` GitHub Release pointers as the Windows
 graphical edition. It is a compatible vertical slice, not a second pointer

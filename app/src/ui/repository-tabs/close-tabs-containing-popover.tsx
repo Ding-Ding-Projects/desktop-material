@@ -15,6 +15,10 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import {
+  formatAllTabsStayOpen,
+  formatRemainingTabCount,
+} from './tab-count-copy'
 
 /** The persistence id for the close-matching filter's mode. */
 const CloseTabsFilterListId = 'close-tabs-containing'
@@ -304,7 +308,7 @@ export class CloseTabsExceptContainingPopover extends React.Component<
         : preview.matchingTabs.length === 0
         ? 'No tabs match. Nothing will close.'
         : preview.closedTabs.length === 0
-        ? `All ${preview.keptTabs.length} tabs stay open.`
+        ? formatAllTabsStayOpen(preview.keptTabs.length)
         : `${preview.keptTabs.length} kept, ${
             preview.closedTabs.length
           } closed${
@@ -407,7 +411,7 @@ export class CloseTabsExceptContainingPopover extends React.Component<
               </ul>
               {remaining > 0 && (
                 <p className="close-tabs-except-more">
-                  And {remaining} more tabs
+                  {formatRemainingTabCount(remaining)}
                 </p>
               )}
             </div>

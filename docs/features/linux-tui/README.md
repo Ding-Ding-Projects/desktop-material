@@ -1,9 +1,15 @@
-# Linux-first terminal edition
+# Historical Linux TUI prototype — archived July 27, 2026
 
-Desktop Material TUI is a separate, terminal-native edition of Desktop Material.
-It targets Linux first and is built with Textual. The graphical Electron edition
-remains a Windows application; the TUI does not turn that binary into a
-cross-platform Electron package.
+> **Archive status:** Desktop Material is a Windows-only product. This directory
+> preserves the source, package notes, parity ledger, and acceptance evidence
+> for a July 27 Python/Textual prototype. The TUI is not a current supported
+> edition, package, CI/release target, or compatibility commitment, and no
+> remaining item here blocks the Windows application. Commands are retained for
+> historical reproducibility rather than as installation recommendations.
+
+Desktop Material TUI was a separate, terminal-native prototype built with
+Textual. It targeted Linux first; it did not turn the Windows Electron
+application into a cross-platform package.
 
 The terminal edition is interactive, not a read-only CLI. Users can click
 buttons, tabs, lists, checkboxes, tables, and selectors in a mouse-reporting
@@ -12,9 +18,10 @@ bodies, issue and pull-request text, API requests, regex patterns, and sample
 text use real editable `Input` or `TextArea` controls. Every primary workflow
 also remains keyboard reachable.
 
-## Current delivery state
+## Historical delivery state
 
-The first preview is version `0.1.0`. It provides a substantial vertical slice:
+The archived preview was version `0.1.0` and provided a substantial vertical
+slice:
 
 - open, create, clone, and switch among repositories;
 - inspect changes and diffs, stage files, commit, fetch, pull, and push;
@@ -29,7 +36,7 @@ The first preview is version `0.1.0`. It provides a substantial vertical slice:
   accessibility, and search preferences through XDG paths;
 - retain reviewable notifications and isolated Git-backed settings history.
 
-This is not yet complete parity with the 201-row desktop inventory. The
+This was not complete parity with the 201-row desktop inventory. The
 generated [parity contract](../../../tui/contracts/parity.yaml) defaults every
 unmapped row to `not_yet_available`; its current summary is 14 adapted, 53
 partial, 132 not yet available, and 2 terminal-owned capabilities. The contract
@@ -41,10 +48,11 @@ node tui/tools/generate-parity-contract.mjs
 node tui/tools/generate-parity-contract.mjs --check
 ```
 
-## Verified terminal surfaces
+## Historical terminal captures
 
-The gallery uses original, unedited captures from the packaged wheel running in
-an off-screen Debian terminal. It includes the Changes overview, real
+The five original, unedited captures came from the packaged wheel running in
+an off-screen Debian terminal. They are retained outside the current 84-scene
+Windows gallery and include the Changes overview, real
 single-line and multiline editing, the clickable Cheap LFS manager, live RE2
 matches, and the compact bilingual layout:
 
@@ -91,12 +99,13 @@ matches, and the compact bilingual layout:
 - [Verification](verification.md) — local quality gates, packaged-wheel smoke
   checks, headless Linux interaction evidence, and the parity drift gate.
 
-## Acceptance boundary
+## Historical acceptance boundary
 
 Source code or a green unit test does not prove a mouse path. The original
 [Linux TUI verification manifest](../../verification/linux-tui-2026-07-27/run-manifest.md)
 and the later
 [path-browser and Git-wrapper manifest](../../verification/linux-tui-path-browser-wrapper-2026-07-27/run-manifest.md)
 own the real PTY, mouse, text-entry, resize, screenshot, CLI, install, and
-cleanup evidence. Pending boxes in either record remain pending; they are never
-implied by this feature overview.
+cleanup evidence for that dated prototype. Pending boxes remain historical
+gaps; they neither become implied successes nor block current Windows
+acceptance.

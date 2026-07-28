@@ -39,6 +39,149 @@ describe('asError', () => {
     assert.equal(asError(404).message, '404')
     assert.equal(asError(null).message, 'null')
   })
+
+  it('keeps chunk failures actionable without exposing a local app path', () => {
+    const error = new Error(
+      'Loading chunk repository-tools failed.\n' +
+        '(error: file:///C:/Users/example/AppData/Local/DesktopMaterial/out/repository-tools.js)'
+    )
+    error.name = 'ChunkLoadError'
+
+    const normalized = asError(error)
+
+    assert.equal(normalized.name, 'ChunkLoadError')
+    assert.equal(
+      normalized.message,
+      'Loading chunk repository-tools failed.\n' +
+        '(error: <local app asset>/repository-tools.js)'
+    )
+    assert.doesNotMatch(normalized.message, /C:|Users|AppData/)
+  })
+
+  it('redacts a raw Windows module path but leaves network errors intact', () => {
+    assert.equal(
+      asError(
+        'Unable to load C:\\Users\\example\\Desktop Material\\out\\repository-issues.js'
+      ).message,
+      'Unable to load <local app asset>/repository-issues.js'
+    )
+    const remote = new Error(
+      'Unable to load https://example.invalid/repository-tools.js'
+    )
+    assert.equal(asError(remote), remote)
+  })
+
+  it('redacts paths with parenthesized profile names and UNC roots', () => {
+    const parenthesized = asError(
+      new Error(
+        'Loading failed (error: file:///C:/Users/Alice (Work)/AppData/Local/DesktopMaterial/out/repository-tools.js)'
+      )
+    )
+    assert.equal(
+      parenthesized.message,
+      'Loading failed (error: <local app asset>/repository-tools.js)'
+    )
+    assert.doesNotMatch(parenthesized.message, /Alice|AppData/)
+
+    for (const [input, expected] of [
+      [
+        'Loading failed (error: file://build-server/share/private/repository-tools.js)',
+        'Loading failed (error: <local app asset>/repository-tools.js)',
+      ],
+      [
+        'Loading failed from \\\\build-server\\share\\private\\repository-tools.js',
+        'Loading failed from <local app asset>/repository-tools.js',
+      ],
+    ] as const) {
+      const normalized = asError(input).message
+      assert.equal(normalized, expected)
+      assert.doesNotMatch(normalized, /build-server|share|private/)
+    }
+  })
+
+  it('redacts quoted paths and preserves their sentence punctuation', () => {
+    for (const [input, expected] of [
+      [
+        'Loading "C:\\Users\\Alice\\AppData\\chunk.js"',
+        'Loading "<local app asset>/chunk.js"',
+      ],
+      [
+        "Cannot load 'file:///C:/Users/Alice/AppData/chunk.js'",
+        "Cannot load '<local app asset>/chunk.js'",
+      ],
+      [
+        'Unable to load `C:\\Users\\Alice\\AppData\\chunk.js`!',
+        'Unable to load `<local app asset>/chunk.js`!',
+      ],
+      [
+        'Unable to load \\\\server\\share\\private\\chunk.js.',
+        'Unable to load <local app asset>/chunk.js.',
+      ],
+    ] as const) {
+      const normalized = asError(input).message
+      assert.equal(normalized, expected)
+      assert.doesNotMatch(normalized, /Alice|AppData|server|share|private/)
+    }
+  })
+
+  it('redacts paths beside localized Unicode punctuation', () => {
+    for (const [input, expected] of [
+      [
+        'Cannot load “C:\\Users\\Alice\\AppData\\chunk.js”',
+        'Cannot load “<local app asset>/chunk.js”',
+      ],
+      [
+        'Cannot load ‘file:///C:/Users/Alice/AppData/chunk.js’',
+        'Cannot load ‘<local app asset>/chunk.js’',
+      ],
+      [
+        'Cannot load C:\\Users\\Alice\\AppData\\chunk.js…',
+        'Cannot load <local app asset>/chunk.js…',
+      ],
+      [
+        'Cannot load C:\\Users\\Alice\\AppData\\chunk.js—retry available',
+        'Cannot load <local app asset>/chunk.js—retry available',
+      ],
+      [
+        'Cannot load \\\\server\\share\\private\\chunk.js–try again',
+        'Cannot load <local app asset>/chunk.js–try again',
+      ],
+      [
+        'Cannot load 「C:\\Users\\Alice\\AppData\\chunk.js」',
+        'Cannot load 「<local app asset>/chunk.js」',
+      ],
+      [
+        'Cannot load 『file:///C:/Users/Alice/AppData/chunk.js』',
+        'Cannot load 『<local app asset>/chunk.js』',
+      ],
+      [
+        'Cannot load 《C:\\Users\\Alice\\AppData\\chunk.js》',
+        'Cannot load 《<local app asset>/chunk.js》',
+      ],
+      [
+        'Cannot load «C:\\Users\\Alice\\AppData\\chunk.js»',
+        'Cannot load «<local app asset>/chunk.js»',
+      ],
+      [
+        'Cannot load <C:\\Users\\Alice\\AppData\\chunk.js>',
+        'Cannot load <<local app asset>/chunk.js>',
+      ],
+      [
+        'Cannot load C:\\Users\\Alice\\AppData\\chunk.js→retry available',
+        'Cannot load <local app asset>/chunk.js→retry available',
+      ],
+    ] as const) {
+      const normalized = asError(input).message
+      assert.equal(normalized, expected)
+      assert.doesNotMatch(normalized, /Alice|AppData|server|share|private/)
+    }
+  })
+
+  it('does not redact a provider URL containing a drive-shaped route', () => {
+    const remote =
+      'Unable to load https://example.invalid/assets/C:/repository-tools.js'
+    assert.equal(asError(remote).message, remote)
+  })
 })
 
 describe('LatestLoadGate', () => {
@@ -105,6 +248,27 @@ describe('ProgressiveLoad', () => {
     assert.equal(result.state.kind, 'failed')
     if (result.state.kind === 'failed') {
       assert.equal(result.state.error.message, 'offline')
+    }
+  })
+
+  it('contains an Error whose message getter throws', async () => {
+    const hostile = new Error()
+    Object.defineProperty(hostile, 'message', {
+      get: () => {
+        throw new Error('message getter escaped')
+      },
+    })
+    const load = new ProgressiveLoad<string>()
+
+    const result = await load.run(() => Promise.reject(hostile))
+
+    assert.equal(result.accepted, true)
+    assert.equal(result.state.kind, 'failed')
+    if (result.state.kind === 'failed') {
+      assert.equal(
+        result.state.error.message,
+        'Unknown progressive loading failure'
+      )
     }
   })
 

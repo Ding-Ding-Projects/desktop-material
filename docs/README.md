@@ -28,8 +28,8 @@ this fork.
   [Collaboration](features/collaboration/README.md),
   [Review and diff](features/review-and-diff/README.md),
   [Quality and reliability](features/quality-and-reliability/README.md), and
-  [Design system](features/design-system/README.md), plus the separate
-  [Linux-first terminal edition](features/linux-tui/README.md)
+  [Design system](features/design-system/README.md), plus the archived
+  [Linux TUI prototype record](features/linux-tui/README.md)
 - **Search and regex** — [Regex guide](regex-guide.md)
 - **Evidence** — [Verification records](verification/README.md)
 - **Contributing** — [Development environment setup](contributing/setup.md),
@@ -54,12 +54,12 @@ this fork.
 
 The sections below keep the full detail behind each area.
 
-Desktop Material's graphical Electron edition is supported and released on
-Windows only. The separate Python/Textual terminal edition targets Linux and
-has its own [support, packaging, interaction, and parity
-contract](features/linux-tui/README.md); it is not a non-Windows Electron
-runtime. See [graphical-edition platform
-support](features/integrations/windows-only-platform-support.md).
+Desktop Material is supported, built, packaged, released, and accepted on
+Windows only. The retained Python/Textual TUI source, package/interaction
+notes, parity contract, and five Xvfb captures are
+[historical July 27 evidence](features/linux-tui/README.md), not a supported
+edition, a non-Windows Electron runtime, or a release blocker. See
+[Windows-only product support](features/integrations/windows-only-platform-support.md).
 
 ## Product and Material design
 
@@ -95,8 +95,9 @@ files**, **14/14** verifier contracts passed, TypeScript is clean, the exact
 Windows production build succeeded, and real hidden-desktop
 interaction/privacy receipts passed. The source and captures are merged and
 pushed through `2abccae8fd`, with Pages and wiki publication verified live.
-Packaged Windows E2E is verified. Only the Linux TUI compatibility correction
-rerun and installer/Release evidence remain pending.
+Packaged Windows E2E is verified. Installer/Release evidence remained pending
+at that dated checkpoint; the archived TUI compatibility work is outside the
+current Windows acceptance boundary.
 
 Appearance is now owner-scoped. `Shift`+right-clicking an actual visual—or
 focusing it and using the Context Menu key or `Shift+F10`—opens an editor beside

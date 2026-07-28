@@ -1,5 +1,9 @@
 # TUI search and RE2
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 ## Search modes
 
 Plain literal search is the default. A user must deliberately select fuzzy or

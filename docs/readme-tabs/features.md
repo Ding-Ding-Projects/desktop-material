@@ -9,12 +9,12 @@ Material ships. For milestone status and published CI/release evidence, see the
 [Roadmap & receipts](roadmap-and-receipts.md) tab; for annotated captures, see the
 [Screenshots](screenshots.md) tab.
 
-The separate [Linux-first terminal edition](../features/linux-tui/README.md)
-adapts these workflows for character-cell terminals with mouse clicks,
-keyboard focus, and real single-line/multiline text controls. Its generated
-[parity contract](../../tui/contracts/parity.yaml) maps all 201 desktop rows and
-marks missing work explicitly; the current preview is not described as full
-parity.
+The archived [Linux TUI prototype](../features/linux-tui/README.md) adapted a
+subset of these workflows for character-cell terminals. Its source, generated
+[parity contract](../../tui/contracts/parity.yaml), package notes, and five
+Xvfb captures remain as historical July 27 evidence only. It is not a current
+supported product/release target, and its gaps do not block the Windows
+application.
 
 > Looking for an exhaustive checklist instead of this prose tour? The
 > **[Complete list](complete-feature-list.md)** tab records every feature in one
@@ -27,8 +27,9 @@ parity.
 > TypeScript check, exact Windows production build, and isolated hidden-desktop
 > interaction/privacy review. The source and captures are pushed through
 > `2abccae8fd`, and Pages/wiki publication is verified live. Packaged Windows
-> E2E is verified. Only the Linux TUI compatibility correction rerun and
-> installer/Release evidence remain pending.
+> E2E is verified. Installer/Release evidence was still pending at that dated
+> checkpoint; the separate historical TUI correction is non-blocking under the
+> Windows-only product boundary.
 
 **The whole feature set on one page / 成套功能一版睇晒**
 

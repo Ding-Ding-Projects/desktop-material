@@ -24,6 +24,10 @@ import {
   persistFilterMode,
   readPersistedFilterMode,
 } from '../lib/filter-list-mode'
+import {
+  tabGroupMembersCountKey,
+  tabOverflowFilterCountKey,
+} from './tab-count-copy'
 
 interface ITabGroupMembersPopoverProps {
   readonly group: ITabGroup
@@ -55,20 +59,6 @@ const ListId = 'tab-group-members-list'
 
 /** The persistence id, audit identity, and regex-builder binding for the search. */
 const TabGroupMembersFilterListId = 'tab-group-members'
-
-/** Select the localized member-button form without teaching i18n English rules. */
-export function tabGroupMembersButtonKey(count: number): TranslationKey {
-  return count === 1
-    ? 'tabs.groupMembersButtonOne'
-    : 'tabs.groupMembersButtonMany'
-}
-
-/** Select the localized member-count form; zero deliberately uses the many form. */
-export function tabGroupMembersCountKey(count: number): TranslationKey {
-  return count === 1
-    ? 'tabs.groupMembersCountOne'
-    : 'tabs.groupMembersCountMany'
-}
 
 /**
  * The dropdown a group chip opens to list every tab it holds.
@@ -465,7 +455,7 @@ export class TabGroupMembersPopover extends React.Component<
             aria-live="polite"
           >
             {isFiltering
-              ? this.text('tabs.overflowFilterCount', {
+              ? this.text(tabOverflowFilterCountKey(total), {
                   visible: String(results.length),
                   total: String(total),
                 })

@@ -10,12 +10,13 @@ pointer format and is not required by the transfer protocol.
 > passed 652/652 combined tests, 14/14 verifier contracts, full TypeScript, the
 > exact Windows production build, and isolated wide-English/narrow-bilingual
 > hidden-desktop acceptance. The source is pushed through `2abccae8fd`, and
-> Pages/wiki publication and packaged Windows E2E are verified. Only the Linux
-> TUI compatibility correction rerun and installer/Release evidence remain
-> pending. The historical
+> Pages/wiki publication and packaged Windows E2E are verified.
+> Installer/Release evidence remained pending at that dated checkpoint; the
+> archived Linux TUI compatibility work is outside the current Windows
+> acceptance boundary. The historical
 > live acceptance below still belongs to the earlier shipped restore.
 
-![Cheap LFS manager after a live private-repository UI pin](../../assets/screenshots/cheap-lfs-ui-acceptance.png)
+![Historical Cheap LFS manager acceptance at immutable source commit 342a1548009a3e1591c27f7a4af82cf6cf02c96e](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/342a1548009a3e1591c27f7a4af82cf6cf02c96e/docs/assets/screenshots/cheap-lfs-ui-acceptance.png)
 
 The inspected acceptance frame above comes from the production bundle running
 on an off-screen Win32 desktop. The same dated exercise materialized and
@@ -53,16 +54,15 @@ both ciphertext and plaintext receipts before restoring. See
 [Cheap LFS Release payload encryption](cheap-lfs-release-payload-encryption.md)
 for the container, credential-vault, failure, and verification contracts.
 
-### Linux terminal interoperability
+### Historical Linux terminal interoperability
 
-The separate Linux-first terminal edition reads and writes this same v1 Release
-pointer format. Its clickable **Cheap LFS** tab and `dmt cheap-lfs` commands
-provide local preview, confirmed track, cache-first verify, and confirmed
-restore with the same 500 MiB new-write and 2 GiB legacy-read boundaries. It
-does not yet reproduce the graphical edition's automatic commit/clone workers,
-Release bucket rollover, OCI providers, or cloud-compression publication. See
-[Cheap LFS in the terminal edition](../linux-tui/cheap-lfs.md) for its exact
-behavior, safety contract, CLI, and parity boundary.
+The archived Linux TUI prototype read and wrote this same v1 Release pointer
+format during its July 27 exercise. Its clickable **Cheap LFS** tab,
+`dmt cheap-lfs` commands, 500 MiB new-write bound, 2 GiB legacy-read boundary,
+and parity gaps are historical prototype facts, not current supported-product
+commitments. See the
+[archived Cheap LFS TUI record](../linux-tui/cheap-lfs.md) for its exact dated
+behavior and safety contract.
 
 ## Behavior and configuration
 
@@ -109,7 +109,11 @@ while optional cloud compression runs.
 
 ### Cloud compression
 
-![Bilingual private-repository cloud-compression consent with a verified compressed pointer](../../assets/screenshots/cheap-lfs-cloud-compression.png)
+![Historical July 22 private-caller cloud-compression acceptance at immutable source commit f7b4760a13894f0320f7b361f055f6fba40d913f](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/f7b4760a13894f0320f7b361f055f6fba40d913f/docs/assets/screenshots/cheap-lfs-cloud-compression.png)
+
+That immutable frame proves the July 22 caller behavior only. It is not
+relabelled as evidence for the current externally registered public-builder
+route described below.
 
 Cloud compression is automatic for a repository whose GitHub visibility is
 confirmed public. It is off by default for private repositories and runs there
@@ -453,7 +457,8 @@ restore progress. It exposes substantially more than one aggregate percentage:
 - logical restored bytes and, when the provider supplies them, actual
   downloaded/compressed bytes;
 - overall progress plus separate **Current** and **Next at 90%** lane bars;
-- downloading, decompressing, verifying, materializing, and canceling states;
+- downloading, decrypting, decompressing, verifying, materializing, and
+  canceling states;
 - elapsed time, observed download rate, ETA, and the fixed 90% handoff point;
   and
 - bounded per-file failure details plus an honest cancellation state.
@@ -465,12 +470,22 @@ and narrow/bilingual layouts wrap rather than clipping at high Windows scale.
 Legacy sequential progress is adapted into this richer model, keeping older
 callers truthful while they adopt lane detail.
 
+An encrypted-and-compressed Release restore reports the production transform
+order exactly: **Downloading → Decrypting → Decompressing → Verifying →
+Materializing**. Decryption has its own phase because authenticated decryption
+and its password KDF can be the longest visible work; calling it decompression
+would misstate what the app is doing. In bilingual mode the plain funny-level
+voice renders this as **Decrypting · 解密緊**. Higher funny levels may change
+that voice, but never the phase, byte counts, path, or operation order.
+
 <sub>**香港粵語速讀。** 而家下載去到**真係 90%**，下一個檔或者下一 part 就可以
 入第二條 lane 開工；89.9% 仲未得，啱啱 90% 就得。成個 batch 無論點套娃都最多兩
 個下載，唔會一開預取就成村人衝出去。介面會分開顯示目前／下一條 lane、檔同 part
 次序、邏輯還原位元組、實際下載位元組、速度、ETA、成功／失敗／排隊／剩餘，同埋
-下載、解壓、驗證、落盤、取消各階段。快係快咗，但 SHA-256、大小、指標冇變先換檔
-嗰啲安全檢查，一樣一粒都冇少。</sub>
+下載、**解密**、解壓、驗證、落盤、取消各階段；加密兼壓縮檔案嘅順序一定係
+**下載 → 解密 → 解壓 → 驗證 → 落盤**，雙語會寫
+**Decrypting · 解密緊**。快係快咗，但 SHA-256、大小、指標冇變先換檔嗰啲安全檢查，
+一樣一粒都冇少。</sub>
 
 The Changes filter includes a **Large files** chip that matches working-tree
 files strictly over the same 100 MiB Cheap LFS threshold. Its bounded,
@@ -582,7 +597,7 @@ elapsed time, renderer-observed throughput and ETA, aggregate transferred
 bytes, and success/failure counts. Long storage recommendations use a native,
 keyboard-focusable disclosure. It never renders raw provider or process output.
 
-![English Changes sidebar with the Large files filter and a three-lane Cheap LFS terminal below Commit](../../assets/screenshots/cheap-lfs-commit-progress.png)
+![Historical English Cheap LFS commit-progress acceptance at immutable source commit c3db37ea5524b91f9603151ae5d1107205f16a59](https://raw.githubusercontent.com/Ding-Ding-Projects/desktop-material/c3db37ea5524b91f9603151ae5d1107205f16a59/docs/assets/screenshots/cheap-lfs-commit-progress.png)
 
 The historical initial-`c3db37ea55` UI gate rebuilt the production bundle in
 400.46 seconds and exercised this Cheap LFS surface on an isolated off-screen
@@ -1591,8 +1606,9 @@ desktop passed wide English and narrow bilingual restore receipts at the
 current-90% / look-ahead-10% state without clipping, overlap, or private data.
 The source and four new raw-main evidence assets are pushed through
 `2abccae8fd`, and Pages/wiki publication and packaged Windows E2E are verified.
-Only the Linux TUI compatibility correction rerun and installer/Release
-evidence remain pending.
+Installer/Release evidence remained pending at that dated checkpoint; archived
+Linux TUI compatibility work is non-blocking under the current Windows-only
+product boundary.
 
 ### Live GitHub and Desktop Material UI acceptance — 2026-07-22
 

@@ -1,5 +1,9 @@
 # Repository path browser and quoted paste
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 The terminal edition's **Open repository** and **Create repository** dialogs
 combine a real editable path field with a terminal-native folder browser. A
 user can paste or type a path, or click through directories without leaving the

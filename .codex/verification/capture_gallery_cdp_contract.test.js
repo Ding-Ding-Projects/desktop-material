@@ -14,6 +14,7 @@ const {
   ExpectedPublishedGalleryCount,
   GalleryCapturePlan,
   PublishedGalleryOutputs,
+  RetainedHistoricalEvidence,
   SpecialistCaptureEntries,
 } = require('./gallery_capture_plan.js')
 
@@ -211,9 +212,9 @@ test('every renderer reload is fenced by the appearance coordinator', () => {
   const locationReloads =
     source.match(/await evaluate\('window\.location\.reload\(\), true'\)/g) ??
     []
-  assert.equal(pageReloads.length, 2)
+  assert.equal(pageReloads.length, 3)
   assert.equal(locationReloads.length, 1)
-  assert.equal(pageReloads.length + locationReloads.length, 3)
+  assert.equal(pageReloads.length + locationReloads.length, 4)
 
   const helperStart = source.indexOf(
     'async function waitForElementAppearanceCoordinatorReady(context)'
@@ -294,6 +295,27 @@ test('every renderer reload is fenced by the appearance coordinator', () => {
       identityPre < identityReload &&
       identityReload < identityTimeOrigin &&
       identityTimeOrigin < identityPost
+  )
+
+  const tabGroups = sceneSource('tab-group-management-evidence')
+  const tabGroupsPre = tabGroups.indexOf(
+    "'tab-group management before renderer reload'"
+  )
+  const tabGroupsReload = tabGroups.indexOf(
+    "await client.send('Page.reload', { ignoreCache: true })"
+  )
+  const tabGroupsTimeOrigin = tabGroups.indexOf(
+    'performance.timeOrigin > ${JSON.stringify(',
+    tabGroupsReload
+  )
+  const tabGroupsPost = tabGroups.indexOf(
+    "'tab-group management after renderer reload'"
+  )
+  assert.ok(
+    tabGroupsPre >= 0 &&
+      tabGroupsPre < tabGroupsReload &&
+      tabGroupsReload < tabGroupsTimeOrigin &&
+      tabGroupsTimeOrigin < tabGroupsPost
   )
 
   const anchored = sceneSource('anchored-appearance')
@@ -850,7 +872,7 @@ test('capture-only tooltip suppression is removed before disconnect', () => {
   assert.ok(cleanup < close)
 })
 
-test('canonical and specialist batches own all 89 published images exactly once', () => {
+test('canonical and specialist batches own all 84 published images exactly once', () => {
   const scenes = frozenStringArray('CanonicalGalleryScenes')
   const outputs = frozenStringArray('CanonicalGalleryOutputs')
   const publishedCanonical = outputs.filter(
@@ -858,6 +880,13 @@ test('canonical and specialist batches own all 89 published images exactly once'
   )
   const specialistOutputs = SpecialistCaptureEntries.map(entry => entry.output)
   const expectedCatalog = [...publishedCanonical, ...specialistOutputs]
+  const historicalLinuxOutputs = [
+    'linux-tui-bilingual-narrow',
+    'linux-tui-cheap-lfs',
+    'linux-tui-overview',
+    'linux-tui-regex-builder',
+    'linux-tui-text-input',
+  ]
 
   assert.equal(CanonicalCandidateCount, 68)
   assert.deepEqual(CanonicalGalleryOutputs, outputs)
@@ -865,12 +894,14 @@ test('canonical and specialist batches own all 89 published images exactly once'
   assert.equal(new Set(outputs).size, CanonicalCandidateCount)
   assert.deepEqual(DeferredCanonicalOutputs, ['material-cheap-lfs-preparing'])
   assert.equal(publishedCanonical.length, 67)
-  assert.equal(specialistOutputs.length, 22)
-  assert.equal(new Set(specialistOutputs).size, 22)
-  assert.equal(ExpectedPublishedGalleryCount, 89)
+  assert.equal(specialistOutputs.length, 17)
+  assert.equal(new Set(specialistOutputs).size, 17)
+  assert.ok(specialistOutputs.includes('auto-updater-current-source-ready'))
+  assert.ok(!specialistOutputs.includes('auto-updater-update-ready'))
+  assert.equal(ExpectedPublishedGalleryCount, 84)
   assert.equal(PublishedGalleryOutputs.length, ExpectedPublishedGalleryCount)
-  assert.equal(new Set(PublishedGalleryOutputs).size, 89)
-  assert.equal(GalleryCapturePlan.length, 89)
+  assert.equal(new Set(PublishedGalleryOutputs).size, 84)
+  assert.equal(GalleryCapturePlan.length, 84)
   assert.deepEqual(
     [...expectedCatalog].sort(),
     [...PublishedGalleryOutputs].sort()
@@ -882,6 +913,49 @@ test('canonical and specialist batches own all 89 published images exactly once'
   for (const output of specialistOutputs) {
     assert.ok(!outputs.includes(output), output)
   }
+  for (const output of historicalLinuxOutputs) {
+    assert.ok(!PublishedGalleryOutputs.includes(output), output)
+    assert.ok(
+      !GalleryCapturePlan.some(entry => entry.output === output),
+      output
+    )
+  }
+  assert.ok(!PublishedGalleryOutputs.includes('auto-updater-update-ready'))
+  assert.deepEqual(
+    RetainedHistoricalEvidence['auto-updater-update-ready.png'],
+    {
+      acceptedAt: '2026-07-22',
+      document: 'docs/verification/auto-updater-version-order-2026-07-22.md',
+      sourceCommit: '923dbb51acad8f01f01f1c100c6945c7a2e08e23',
+      sha256:
+        'a02cffa612114be3af5e0fffcd5b602a4ba4dfd3226298e48d143a6bed76bd4d',
+    }
+  )
+  const currentUpdater = GalleryCapturePlan.find(
+    entry => entry.output === 'auto-updater-current-source-ready'
+  )
+  assert.ok(currentUpdater)
+  assert.ok(
+    currentUpdater.commands.some(command =>
+      command.includes('verify_gallery_auto_updater_ready_cdp.js')
+    )
+  )
+  assert.ok(
+    currentUpdater.commands.some(command =>
+      command.includes('auto-updater-current-source-ready-receipt.json')
+    )
+  )
+  assert.ok(
+    currentUpdater.commands.every(
+      command => !command.includes('\\captures\\auto-updater-update-ready.png')
+    )
+  )
+  assert.equal(CaptureBatches['linux-tui-lowlevel'], undefined)
+  assert.ok(
+    Object.values(CaptureBatches).every(
+      batch => batch.platform !== 'linux-xvfb'
+    )
+  )
   for (const deferred of DeferredCanonicalOutputs) {
     assert.ok(outputs.includes(deferred), deferred)
     assert.ok(!PublishedGalleryOutputs.includes(deferred), deferred)
@@ -1538,6 +1612,105 @@ test('issue 87 evidence uses the real scheduled handler and commit password dial
   assert.ok(!dialogScene.includes('globalThis.__issue87'))
 })
 
+test('issue 80 evidence proves the real Push origin warning fails closed', () => {
+  const evidence = sceneSource('canonical-remote-warning-evidence')
+  for (const contract of [
+    'assertOwnedDisposableFixture()',
+    "requestedLanguageMode !== 'english'",
+    'missingRemote.origin !== endpoint.origin',
+    "missingRemote.username !== ''",
+    "missingRemote.password !== ''",
+    'missingRemote.href.includes(ready.token',
+    "'remote'",
+    "'get-url'",
+    "'origin'",
+    "'symbolic-ref'",
+    "'HEAD'",
+    '`refs/remotes/origin/${ready.featureBranch}`',
+    'originalHeadOID',
+    'originalRemoteTrackingOID',
+    'ownedBareRepository',
+    'providerRemoteRef',
+    'originalProviderRemoteOID',
+    'behind !== 0',
+    'ahead < 1',
+    'setViewport(1280, 860)',
+    "'set-url'",
+    'missingRemoteURL',
+    "require('electron').ipcRenderer.emit('focus')",
+    'selection?.state?.remote?.url',
+    "'button.push-pull-button.push-pull-button--push'",
+    "vt(button).includes('Push origin')",
+    'providerLogPositionBeforeClick',
+    'providerMutationsBeforeClick',
+    'new MutationObserver',
+    'observer.observe(document.body, { childList: true, subtree: true })',
+    "pushButton.setAttribute('data-canonical-remote-warning-target', 'true')",
+    'pushButton.focus()',
+    'pushButton.click()',
+    "'Remote URL needs attention'",
+    'No push was attempted.',
+    "'Change remote URL'",
+    'genericBackgroundNoticeCount',
+    'duplicateOccurrenceCount',
+    'visibleDialogCount',
+    'warningBackground',
+    'domReceipt?.focus?.tag',
+    'domReceipt?.observer?.noticeAdditions?.length !== 1',
+    'domReceipt?.observer?.dialogAdditions?.length !== 0',
+    'providerLogPositionAfterClick',
+    'missingRepositoryAPIPath',
+    'entry.status === 404',
+    'git-receive-pack|service=git-receive-pack',
+    'receivePackRequests.length !== 0',
+    'providerMutationsAfterClick !== providerMutationsBeforeClick',
+    'localHeadAfterClick !== originalHeadOID',
+    'remoteTrackingAfterClick !== originalRemoteTrackingOID',
+    'providerRemoteAfterClick !== originalProviderRemoteOID',
+    "capture('canonical-remote-warning-1280x860')",
+    'backgroundProviderRefresh',
+    'exercised: false',
+    'No reviewed app-native built-app action',
+    'push-network-rejection-test.ts',
+    'push-rejection-observation-test.tsx',
+    'finally',
+    'originalRemoteURL',
+    'originalRemoteRestored',
+    'providerRemoteOIDRestored',
+    "'canonical-remote-warning-evidence.json'",
+    'serializedReceipt.includes(ready.token)',
+    'fs.writeFileSync(receiptPath, serializedReceipt',
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `issue 80 evidence misses ${contract}`
+    )
+  }
+
+  const observer = evidence.indexOf('new MutationObserver')
+  const click = evidence.indexOf('pushButton.click()')
+  const domGate = evidence.indexOf('domReceipt?.warningCount !== 1')
+  const providerGate = evidence.indexOf('expectedProviderRequests.length < 1')
+  const refGate = evidence.indexOf('localHeadAfterClick !== originalHeadOID')
+  const capture = evidence.indexOf(
+    "capture('canonical-remote-warning-1280x860')"
+  )
+  const restore = evidence.indexOf(
+    'originalRemoteRestored: restoredRemoteURL === originalRemoteURL'
+  )
+  const receiptWrite = evidence.indexOf(
+    'fs.writeFileSync(receiptPath, serializedReceipt'
+  )
+  assert.match(
+    evidence,
+    /finally[\s\S]*?'set-url',\s*'origin',\s*originalRemoteURL[\s\S]*?originalRemoteRestored/
+  )
+  assert.ok(observer >= 0 && observer < click)
+  assert.ok(click < domGate && domGate < providerGate)
+  assert.ok(providerGate < refGate && refGate < capture)
+  assert.ok(capture < restore && restore < receiptWrite)
+})
+
 test('issue 94 evidence proves a real transient tooltip disappears at two viewports', () => {
   const evidence = sceneSource('tab-group-tooltip-dismissal-evidence')
   for (const contract of [
@@ -1595,6 +1768,152 @@ test('issue 95 evidence proves singular accessible and visible copy', () => {
   assert.ok(
     evidence.indexOf("'1 tab in this group.'") <
       evidence.indexOf("capture('tab-group-member-singular-1280x860')")
+  )
+})
+
+test('tab-group management evidence creates only fresh owned Git fixtures', () => {
+  const start = source.indexOf('const TabGroupManagementEvidenceDirectory')
+  const end = source.indexOf('const DefaultWidth', start)
+  assert.ok(start >= 0 && end > start)
+  const fixture = source.slice(start, end)
+
+  for (const contract of [
+    'assertOwnedDisposableFixture()',
+    "'tab-group-management-evidence'",
+    "'material-evidence-beta'",
+    "'material-evidence-gamma'",
+    'path.relative(ownedRunRoot, evidenceRoot)',
+    'fs.existsSync(evidenceRoot)',
+    'fs.mkdirSync(evidenceRoot, { recursive: false })',
+    'fs.lstatSync(evidenceRoot)',
+    'entry.isSymbolicLink()',
+    'fs.mkdirSync(repositoryPath, { recursive: false })',
+    "{ encoding: 'utf8', flag: 'wx' }",
+    "runAdvancedWorkflowGit(ownedRepository, ['init', '--quiet'])",
+    "'user.name=Desktop Material Evidence'",
+    "'user.email=evidence@desktop-material.invalid'",
+    "'--no-gpg-sign'",
+    "'--is-inside-work-tree'",
+    "'status'",
+    "'--porcelain=v1'",
+    "'switch-receipt.json'",
+    'TAB_GROUP_MANAGEMENT_FIXTURE',
+  ]) {
+    assert.ok(
+      fixture.includes(contract),
+      `tab-group fixture misses ${contract}`
+    )
+  }
+  for (const destructive of [
+    'rmSync(',
+    'rmdirSync(',
+    'unlinkSync(',
+    "'reset'",
+    "'clean'",
+  ]) {
+    assert.ok(
+      !fixture.includes(destructive),
+      `tab-group fixture must not use ${destructive}`
+    )
+  }
+})
+
+test('tab-group management evidence drives, receipts, edits, and reloads real UI', () => {
+  const evidence = sceneSource('tab-group-management-evidence')
+  const canonical = frozenStringArray('CanonicalGalleryScenes')
+  assert.ok(!canonical.includes('tab-group-management-evidence'))
+
+  for (const contract of [
+    'initialState?.tabCount !== 1',
+    'initialState?.groupCount !== 0',
+    'prepareTabGroupManagementEvidenceFixture()',
+    "menuEvent('add-local-repository')",
+    '\'#add-existing-repository input[type="text"]\'',
+    "clickText('Add repository'",
+    'contextMenuSelector(seedTabSelector)',
+    "'Add tab to new group…'",
+    '\'#create-tab-group button.tab-group-color[data-color="purple"]\'',
+    "clickText('Create group'",
+    '`Move to “${initialGroupName}”`',
+    'expectedMemberCount',
+    "'3 tabs in this group.'",
+    "capture('tab-group-members-collapsed-1280x860')",
+    "dispatchKeyboardKey('ArrowDown', 'ArrowDown', 40)",
+    "dispatchKeyboardKey('Enter', 'Enter', 13)",
+    "navigation: Object.freeze(['ArrowDown', 'Enter'])",
+    'afterActiveTabId === targetTabId',
+    "scene: 'tab-group-management-evidence'",
+    'path.relative(evidenceFixture.root, evidenceFixture.receiptPath)',
+    "{ encoding: 'utf8', flag: 'wx' }",
+    'TAB_GROUP_SWITCH_RECEIPT',
+    '`Edit group “${initialGroupName}”…`',
+    '\'#edit-tab-group button.tab-group-color[data-color="green"]\'',
+    "capture('tab-group-edit-1280x860')",
+    "clickText('Save group'",
+    "'tab-group management before renderer reload'",
+    "await client.send('Page.reload', { ignoreCache: true })",
+    "'tab-group management after renderer reload'",
+    '`${persistedGroupName} group, 3 tabs, collapsed. Expand group.`',
+    '`Show the 3 tabs in ${persistedGroupName}`',
+    "capture('tab-group-persisted-1280x860')",
+  ]) {
+    assert.ok(
+      evidence.includes(contract),
+      `tab-group management evidence misses ${contract}`
+    )
+  }
+
+  assert.equal(
+    (evidence.match(/await dispatchKeyboardKey\('Enter', 'Enter', 13\)/g) ?? [])
+      .length,
+    1
+  )
+  assert.equal(
+    (evidence.match(/await maskTabGroupMemberPathsForCapture\(\)/g) ?? [])
+      .length,
+    2
+  )
+  assert.equal(
+    (
+      evidence.match(
+        /await client\.send\('Page\.reload', \{ ignoreCache: true \}\)/g
+      ) ?? []
+    ).length,
+    1
+  )
+
+  const firstMask = evidence.indexOf(
+    'await maskTabGroupMemberPathsForCapture()'
+  )
+  const collapsedCapture = evidence.indexOf(
+    "capture('tab-group-members-collapsed-1280x860')"
+  )
+  const arrow = evidence.indexOf(
+    "dispatchKeyboardKey('ArrowDown', 'ArrowDown', 40)"
+  )
+  const enter = evidence.indexOf("dispatchKeyboardKey('Enter', 'Enter', 13)")
+  const receipt = evidence.indexOf('TAB_GROUP_SWITCH_RECEIPT')
+  const editCapture = evidence.indexOf("capture('tab-group-edit-1280x860')")
+  const reload = evidence.indexOf(
+    "await client.send('Page.reload', { ignoreCache: true })"
+  )
+  const secondMask = evidence.indexOf(
+    'await maskTabGroupMemberPathsForCapture()',
+    firstMask + 1
+  )
+  const persistedCapture = evidence.indexOf(
+    "capture('tab-group-persisted-1280x860')"
+  )
+  assert.ok(
+    firstMask >= 0 &&
+      firstMask < collapsedCapture &&
+      collapsedCapture < arrow &&
+      arrow < enter &&
+      enter < receipt &&
+      receipt < editCapture &&
+      editCapture < reload &&
+      reload < secondMask &&
+      secondMask < persistedCapture
   )
 })
 

@@ -4,7 +4,11 @@
 - Mode: `publish`
 - Milestone: resolve, verify, publish, and close every actionable issue open at
   the start of this run: #23, #78, #80, #81, #82, #83, #85, #86, #87, and
-  #89.
+  #89. Issues #92, #94, and #95 were discovered during the campaign and joined
+  the same implementation, verification, publication, and closure gate. Issue
+  #96 was filed while the campaign was active and is governed by that same
+  gate; its fix first landed on `main` and must be reconciled into this
+  worktree before final build and publication.
 - Project worktree:
   `C:\Users\cntow\Documents\GitHub\desktop-material-close-issues-20260728`
 - Initial source: `origin/main` at
@@ -18,9 +22,12 @@
 
 ## Expected UI and behavior
 
-- #23: every repository screenshot requested by the issue has a fresh,
-  original-pixel, private-data-free capture from the current built application;
-  README, Pages, and wiki references render the promoted assets.
+- #23: the current guided gallery and capture campaign own exactly 84 Windows
+  scenes, each requiring a fresh, original-pixel, private-data-free capture
+  from the current built application; README, Pages, and wiki references render
+  the promoted current assets. Five earlier Linux/Xvfb captures remain
+  preserved with their dated manifests as historical evidence, explicitly
+  outside this Windows exact set.
 - #78: optional Cheap LFS payload encryption has a usable passphrase flow,
   authenticated ciphertext, legacy plaintext compatibility, and documented
   failure behavior.
@@ -40,6 +47,15 @@
   deterministic passphrase path and never hangs or silently uploads plaintext.
 - #89: appearance editing is reachable with Shift+right-click while ordinary
   right-click retains its native/context-menu meaning.
+- #92: tab-group create/edit dialogs render on the dialog layer and keep every
+  color choice visible and keyboard reachable.
+- #94: tab-group help is removed after its owner disappears, including at
+  1440×960 and 1180×820.
+- #95: every visible and accessible tab-count phrase uses a truthful singular
+  or many form in English and natural classifier phrasing in Cantonese.
+- #96: Cheap LFS inventory checks must bound reads of definitely raw oversized
+  payloads so validation cannot exhaust memory, while pointer-looking files
+  continue to fail closed on malformed or unverifiable metadata.
 
 ## Ordered background interactions
 
@@ -63,36 +79,66 @@
 
 ## Fixture and capture contract
 
-- Owned run root:
-  `%TEMP%\DesktopMaterial-close-all-open-issues-20260728-<unique>`
-- Short-path P0 runtime root:
-  `%TEMP%\desktop-material-p0-ui-<unique>` (kept below the established gallery
+- Primary run root:
+  `%TEMP%\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65`
+- Short-path repository-specialist/P0 runtime root:
+  `%TEMP%\desktop-material-p0-ui-c1581a0e` (kept below the established gallery
   fixture path-length ceiling and matching the fixture scripts' ownership
-  prefix; independently owned and recorded in the cleanup ledger)
+  prefix)
+- UI-state specialist root:
+  `%TEMP%\desktop-material-gallery-ui-state-20260728-1581a0ec8c65`
+- live Cheap LFS specialist root:
+  `%TEMP%\desktop-material-gallery-cheap-lfs-live-20260728-1581a0ec8c65`
+- Cheap LFS commit-progress specialist root:
+  `%TEMP%\desktop-material-cheap-lfs-progress-20260728-1581a0ec8c65`
+- Cheap LFS restore-progress specialist root:
+  `%TEMP%\desktop-material-cheap-lfs-restore-progress-20260728-1581a0ec8c65`
+- final issue-#85 decrypting-operation verifier root:
+  `%TEMP%\desktop-material-cheap-lfs-restore-progress-issue85-20260728-1581a0ec8c65`
+- internal-browser specialist root:
+  `%TEMP%\desktop-material-internal-browser-cdp-20260728-1581a0ec8c65`
+- updater-ready specialist root:
+  `%TEMP%\desktop-material-updater-ready-20260728-1581a0ec8c65`
+- Ollama specialist root:
+  `%TEMP%\desktop-material-ollama-20260728-1581a0ec8c65`
+- Every root above is independently owned, must be entered in the cleanup
+  ledger before creation, and must be removed with post-run absence proof if it
+  is created. A verifier may not substitute another direct-Temp path.
 - Cleanup ledger:
   `docs/verification/close-all-open-issues-2026-07-28/cleanup-ledger.md`
 - Headless desktop:
   `DesktopMaterialCloseIssues-20260728-<unique>`
-- Theme: capture the theme required by each existing public target; otherwise
-  use the repository's Material dark default.
+- Theme: capture the theme required by each existing public target; the
+  canonical 67-image Windows batch uses light/English exactly as declared by
+  `gallery_capture_plan.js`.
 - Dimensions: preserve each tracked target's documented dimensions; new
   milestone frames default to 1440x960, with any responsive variants recording
   their exact requested and observed sizes.
-- Candidate capture location: beneath one of the two exact owned run roots
-  recorded in the cleanup ledger only.
-- Promotion targets: only issue-required paths under
-  `docs/assets/screenshots/`.
+- Candidate capture location: beneath the exact verifier-owned root assigned
+  above and recorded in the cleanup ledger only.
+- Gallery promotion targets: only the 84 current Windows paths under
+  `docs/assets/screenshots/`. Issue-specific acceptance frames and their JSON
+  receipts are promoted only beneath this run directory. The five retained
+  `linux-tui-*.png` assets are historical, are not capture-plan outputs, and
+  must not be overwritten or promoted by this run. The July 22
+  `auto-updater-update-ready.png` legacy-migration blob is likewise reserved
+  historical evidence; current-source updater acceptance uses a distinct
+  gallery target.
 
 ## Change and documentation allowlist
 
-- Product sources under `app/src/` needed by the ten starting issues
+- Product sources under `app/src/` needed by the starting and discovered issues
 - Regression and verification tests under `app/test/`, `script/`, and `tui/`
   when directly relevant
 - Deterministic capture tooling under `script/`
 - Deterministic headless capture plans and CDP drivers under
   `.codex/verification/`
 - Issue-required public screenshots under `docs/assets/screenshots/`
-- README/gallery/wiki references in `README.md`, `docs/`, and `_config.yml`
+- README, roadmap, Pages, gallery, and wiki references in `README.md`,
+  `ROADMAP.md`, `site/index.html`, `docs/`, and `_config.yml`; `ROADMAP.md` and
+  `site/index.html` are in scope because #23 requires the current 84-scene
+  boundary and private cloud-compression behavior to stay truthful on every
+  public catalogue surface
 - This run's records under
   `docs/verification/close-all-open-issues-2026-07-28/`
 - `HANDOFF.md`
@@ -111,6 +157,8 @@ why it is necessary before it is staged.
 - repository-wide Prettier check
 - relevant TUI tests, Ruff, mypy, and package build if TUI files change
 - exact MCP production build and off-screen interaction/capture acceptance
+- exact 84-row gallery/capture/Pages set, with the five historical Linux/Xvfb
+  assets present but excluded from current figures and promotion
 - `git diff --check`, full/staged diff review, and secret scan
 - pushed `origin/main` SHA equality and ancestry proof for every completed
   source branch/worktree

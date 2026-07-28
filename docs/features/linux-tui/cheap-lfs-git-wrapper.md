@@ -1,5 +1,9 @@
 # Cheap LFS-aware Git CLI wrapper
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 `github` exposes an argv-preserving Git wrapper alongside the interactive TUI:
 
 ```text

@@ -1,5 +1,9 @@
 # TUI interaction and accessibility
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 <!-- markdownlint-disable MD013 -->
 
 ## Mouse interaction

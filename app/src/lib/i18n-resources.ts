@@ -142,8 +142,10 @@ export type TranslationKey =
   | 'tabs.groupColorGrey'
   | 'tabs.groupCreateAction'
   | 'tabs.groupCancelAction'
-  | 'tabs.groupChipExpanded'
-  | 'tabs.groupChipCollapsed'
+  | 'tabs.groupChipExpandedOne'
+  | 'tabs.groupChipExpandedMany'
+  | 'tabs.groupChipCollapsedOne'
+  | 'tabs.groupChipCollapsedMany'
   | 'tabs.groupMemberLabel'
   | 'tabs.groupCreatedStatus'
   | 'tabs.groupMovedStatus'
@@ -154,7 +156,8 @@ export type TranslationKey =
   | 'tabs.groupActionFailed'
   | 'tabs.groupEdit'
   | 'tabs.groupEditTitle'
-  | 'tabs.groupEditIntro'
+  | 'tabs.groupEditIntroOne'
+  | 'tabs.groupEditIntroMany'
   | 'tabs.groupSaveAction'
   | 'tabs.groupUpdatedStatus'
   | 'tabs.groupMembersButtonOne'
@@ -170,7 +173,8 @@ export type TranslationKey =
   | 'tabs.tabPinnedSuffix'
   | 'tabs.tabFavoriteSuffix'
   | 'tabs.overflowButton'
-  | 'tabs.overflowButtonLabel'
+  | 'tabs.overflowButtonLabelOne'
+  | 'tabs.overflowButtonLabelMany'
   | 'tabs.overflowTitle'
   | 'lazyView.loading.plain'
   | 'lazyView.loading.light'
@@ -203,7 +207,8 @@ export type TranslationKey =
   | 'tabs.overflowSearchPlaceholder'
   | 'tabs.overflowSearchTarget'
   | 'tabs.overflowNoMatches'
-  | 'tabs.overflowFilterCount'
+  | 'tabs.overflowFilterCountOne'
+  | 'tabs.overflowFilterCountMany'
   | 'tabs.overflowRegexError'
   | 'tabs.overflowCustomize'
   | 'tabs.overflowCustomizeLabel'
@@ -2748,9 +2753,13 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.groupColorGrey': 'Grey',
   'tabs.groupCreateAction': 'Create group',
   'tabs.groupCancelAction': 'Cancel',
-  'tabs.groupChipExpanded':
+  'tabs.groupChipExpandedOne':
+    '{name} group, {count} tab, expanded. Collapse group.',
+  'tabs.groupChipExpandedMany':
     '{name} group, {count} tabs, expanded. Collapse group.',
-  'tabs.groupChipCollapsed':
+  'tabs.groupChipCollapsedOne':
+    '{name} group, {count} tab, collapsed. Expand group.',
+  'tabs.groupChipCollapsedMany':
     '{name} group, {count} tabs, collapsed. Expand group.',
   'tabs.groupMemberLabel': '{tab}, {name} group',
   'tabs.groupCreatedStatus': '{name} group created.',
@@ -2762,7 +2771,9 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.groupActionFailed': 'Could not update the tab group. Try again.',
   'tabs.groupEdit': 'Edit group “{name}”…',
   'tabs.groupEditTitle': 'Edit tab group',
-  'tabs.groupEditIntro':
+  'tabs.groupEditIntroOne':
+    'Rename or recolor “{name}”. Its {count} tab stays open and stays in the group.',
+  'tabs.groupEditIntroMany':
     'Rename or recolor “{name}”. Its {count} tabs stay open and stay in the group.',
   'tabs.groupSaveAction': 'Save group',
   'tabs.groupUpdatedStatus': '{name} group updated.',
@@ -2782,7 +2793,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.tabPinnedSuffix': ', pinned',
   'tabs.tabFavoriteSuffix': ', favorite',
   'tabs.overflowButton': '{count} more',
-  'tabs.overflowButtonLabel': 'Show {count} more tabs',
+  'tabs.overflowButtonLabelOne': 'Show {count} more tab',
+  'tabs.overflowButtonLabelMany': 'Show {count} more tabs',
   'tabs.overflowTitle': 'More tabs',
   // The three bands are the funny-level voice (1-2 plain, 3 light, 4-5
   // playful). Every band states the same fact — these tabs did not fit in the
@@ -2806,7 +2818,8 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'tabs.overflowSearchPlaceholder': 'Name, alias, path, or URL',
   'tabs.overflowSearchTarget': 'Overflowing tabs',
   'tabs.overflowNoMatches': 'No tab in this menu matches this search.',
-  'tabs.overflowFilterCount': '{visible} of {total} tabs in this menu',
+  'tabs.overflowFilterCountOne': '{visible} of {total} tab in this menu',
+  'tabs.overflowFilterCountMany': '{visible} of {total} tabs in this menu',
   'tabs.overflowRegexError':
     'Invalid regular expression: {message}. Every tab in this menu is still listed.',
   'tabs.overflowCustomize': 'Customize appearance',
@@ -6058,9 +6071,13 @@ export const cantoneseTranslations: Readonly<
   'tabs.groupColorGrey': '灰色',
   'tabs.groupCreateAction': '建立群組',
   'tabs.groupCancelAction': '取消',
-  'tabs.groupChipExpanded':
+  'tabs.groupChipExpandedOne':
     '「{name}」群組，{count} 個分頁，已展開。收起群組。',
-  'tabs.groupChipCollapsed':
+  'tabs.groupChipExpandedMany':
+    '「{name}」群組，{count} 個分頁，已展開。收起群組。',
+  'tabs.groupChipCollapsedOne':
+    '「{name}」群組，{count} 個分頁，已收起。展開群組。',
+  'tabs.groupChipCollapsedMany':
     '「{name}」群組，{count} 個分頁，已收起。展開群組。',
   'tabs.groupMemberLabel': '{tab}，「{name}」群組',
   'tabs.groupCreatedStatus': '已建立「{name}」群組。',
@@ -6072,7 +6089,9 @@ export const cantoneseTranslations: Readonly<
   'tabs.groupActionFailed': '未能更新分頁群組，等陣再試。',
   'tabs.groupEdit': '編輯群組「{name}」…',
   'tabs.groupEditTitle': '編輯分頁群組',
-  'tabs.groupEditIntro':
+  'tabs.groupEditIntroOne':
+    '改「{name}」個名或者顏色。入面 {count} 個分頁照樣開住，亦都留喺呢個群組。',
+  'tabs.groupEditIntroMany':
     '改「{name}」個名或者顏色。入面 {count} 個分頁照樣開住，亦都留喺呢個群組。',
   'tabs.groupSaveAction': '儲存群組',
   'tabs.groupUpdatedStatus': '已更新「{name}」群組。',
@@ -6091,7 +6110,8 @@ export const cantoneseTranslations: Readonly<
   'tabs.tabPinnedSuffix': '，已置頂',
   'tabs.tabFavoriteSuffix': '，最愛',
   'tabs.overflowButton': '仲有 {count} 個',
-  'tabs.overflowButtonLabel': '打開多 {count} 個分頁',
+  'tabs.overflowButtonLabelOne': '打開多 {count} 個分頁',
+  'tabs.overflowButtonLabelMany': '打開多 {count} 個分頁',
   'tabs.overflowTitle': '仲有啲分頁',
   'tabs.overflowDescription.plain':
     '呢啲分頁擠唔落條分頁列。喺呢度可以搵、揀，或者改外觀。',
@@ -6111,7 +6131,8 @@ export const cantoneseTranslations: Readonly<
   'tabs.overflowSearchPlaceholder': '名、別名、路徑或者網址',
   'tabs.overflowSearchTarget': '擠唔落嘅分頁',
   'tabs.overflowNoMatches': '呢個選單冇分頁夾到呢個搜尋。',
-  'tabs.overflowFilterCount': '呢個選單 {total} 個分頁入面有 {visible} 個',
+  'tabs.overflowFilterCountOne': '呢個選單 {total} 個分頁入面有 {visible} 個',
+  'tabs.overflowFilterCountMany': '呢個選單 {total} 個分頁入面有 {visible} 個',
   'tabs.overflowRegexError':
     '規則式唔啱：{message}。呢個選單啲分頁一個都冇少，照樣列晒出嚟。',
   'tabs.overflowCustomize': '整色整水',

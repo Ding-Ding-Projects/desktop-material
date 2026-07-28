@@ -1,5 +1,9 @@
 # TUI language, appearance, and notifications
 
+> **Historical prototype record:** This page preserves the July 27, 2026 TUI
+> experiment. It is not current supported-product guidance or a Windows-release
+> blocker.
+
 ## Language and tone
 
 Settings persists exactly three application language modes:

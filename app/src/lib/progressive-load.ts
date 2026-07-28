@@ -35,14 +35,65 @@ export interface IProgressiveLoadCompletion<T> {
   readonly state: ProgressiveLoadState<T>
 }
 
-/** Convert a rejected value into an actionable, renderable Error. */
-export function normalizeProgressiveLoadError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error
-  }
+/**
+ * Keep a renderer-local failure actionable without painting a developer's
+ * absolute installation path into the repository surface or notification.
+ *
+ * Webpack's ChunkLoadError includes the complete `file:///C:/…/out/chunk.js`
+ * URL. The chunk name and failure remain useful; the profile/worktree prefix
+ * does not. HTTP(S) provider URLs are deliberately left alone.
+ */
+const LocalProgressiveLoadPathPattern =
+  /(^|[^A-Za-z0-9_])(?:file:\/{2,4}(?:[A-Za-z]:[\\/]|[^/\\\s]+[\\/])|[A-Za-z]:[\\/]|\\\\[^\\/\s]+[\\/])(?:[^\r\n]*?[\\/])?([^\\/?#\r\n]+?\.[A-Za-z0-9]{1,16})(?:[?#][^\s)\]}]*)?(?=[\s\p{P}\p{S}]|$)/gimu
 
+function sanitizeLocalProgressiveLoadPath(message: string): string {
+  return message.replace(
+    LocalProgressiveLoadPathPattern,
+    (
+      match: string,
+      prefix: string,
+      basename: string,
+      offset: number,
+      source: string
+    ) => {
+      // A provider URL is not a local path even if one of its route segments
+      // happens to resemble `C:/…`.
+      const candidateOffset = offset + prefix.length
+      const tokenBoundary = Math.max(
+        source.lastIndexOf(' ', candidateOffset - 1),
+        source.lastIndexOf('\t', candidateOffset - 1),
+        source.lastIndexOf('\r', candidateOffset - 1),
+        source.lastIndexOf('\n', candidateOffset - 1)
+      )
+      if (
+        /^https?:\/\/\S*$/i.test(
+          source.slice(tokenBoundary + 1, candidateOffset)
+        )
+      ) {
+        return match
+      }
+
+      return `${prefix}<local app asset>/${basename}`
+    }
+  )
+}
+
+/** Convert a rejected value into an actionable, renderable, privacy-safe Error. */
+export function normalizeProgressiveLoadError(error: unknown): Error {
   try {
-    return new Error(String(error))
+    if (error instanceof Error) {
+      const originalMessage = error.message
+      const message = sanitizeLocalProgressiveLoadPath(originalMessage)
+      if (message === originalMessage) {
+        return error
+      }
+
+      const sanitized = new Error(message)
+      sanitized.name = error.name
+      return sanitized
+    }
+
+    return new Error(sanitizeLocalProgressiveLoadPath(String(error)))
   } catch {
     return new Error('Unknown progressive loading failure')
   }
