@@ -24,6 +24,7 @@ with a reason before the run is complete.
 | Run logs | `C:\Users\cntow\AppData\Local\Temp\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\logs` | yes | pending |
 | Off-screen Win32 desktop | `DesktopMaterialCloseIssues-20260728-1581a0ec8c65` | no | pending |
 | Built Electron process | pending | no | pending |
+| Node/Corepack build shims | `C:\Users\cntow\AppData\Local\Temp\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\corepack-shims` | yes | pending |
 | Windows TUI verification environment | `C:\Users\cntow\AppData\Local\Temp\DesktopMaterial-close-all-open-issues-20260728-1581a0ec8c65\tui-venv` | yes | pending |
 | Optional disposable Linux environment | pending | no | pending |
 | Test-only credential-vault entries | pending | no | pending |

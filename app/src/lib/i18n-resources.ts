@@ -2052,6 +2052,9 @@ export type TranslationKey =
   | 'cheapLfs.encryption.dialog.commitDescription.plain'
   | 'cheapLfs.encryption.dialog.commitDescription.light'
   | 'cheapLfs.encryption.dialog.commitDescription.playful'
+  | 'cheapLfs.encryption.backgroundCommitBlocked.plain'
+  | 'cheapLfs.encryption.backgroundCommitBlocked.light'
+  | 'cheapLfs.encryption.backgroundCommitBlocked.playful'
   | 'cheapLfs.encryption.dialog.decryptDescription'
   | 'cheapLfs.encryption.dialog.changeDescription'
   | 'cheapLfs.encryption.dialog.forgetDescription'
@@ -5272,6 +5275,12 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
     'This commit is paused for a password: its large files will be pinned and uploaded only as encrypted ciphertext. Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
   'cheapLfs.encryption.dialog.commitDescription.playful':
     'This commit is waiting at the encryption gate. Its large files will be pinned and uploaded only as encrypted ciphertext; Cancel stops the commit before any upload starts. Desktop Material cannot recover a lost password.',
+  'cheapLfs.encryption.backgroundCommitBlocked.plain':
+    "The scheduled commit stopped because no usable saved password was available from Windows Credential Manager. No Release anchor was created, no upload started, and Desktop Material did not fall back to plaintext. Open Repository settings > Large files & storage, check or save this repository's password, then retry.",
+  'cheapLfs.encryption.backgroundCommitBlocked.light':
+    "The scheduled commit stopped at the encryption gate because Windows Credential Manager had no usable saved password available. No Release anchor was created, no upload started, and Desktop Material did not fall back to plaintext. Open Repository settings > Large files & storage, check or save this repository's password, then retry.",
+  'cheapLfs.encryption.backgroundCommitBlocked.playful':
+    "The scheduled commit met a locked encryption gate and stopped because Windows Credential Manager had no usable saved password available. No Release anchor was created, no upload started, and Desktop Material did not sneak through a plaintext fallback. Open Repository settings > Large files & storage, check or save this repository's password, then retry.",
   'cheapLfs.encryption.dialog.decryptDescription':
     'Enter the password that was used to encrypt this Release payload.',
   'cheapLfs.encryption.dialog.changeDescription':
@@ -8354,6 +8363,12 @@ export const cantoneseTranslations: Readonly<
     '呢個 commit 暫停咗等密碼；大檔 pin 好之後只會以加密 ciphertext 上載。撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
   'cheapLfs.encryption.dialog.commitDescription.playful':
     '呢個 commit 喺加密閘口等緊密碼。大檔 pin 好之後只會以加密 ciphertext 上載；撳「取消」會喺任何上載開始前停止 commit。Desktop Material 無法復原遺失嘅密碼。',
+  'cheapLfs.encryption.backgroundCommitBlocked.plain':
+    '排程 commit 已停止，因為 Windows Credential Manager 冇可用嘅已儲存密碼。冇建立 Release anchor、冇開始上載，而 Desktop Material 亦冇改用未加密 plaintext。請開啟 Repository settings > Large files & storage，檢查或儲存呢個 repository 嘅密碼，然後重試。',
+  'cheapLfs.encryption.backgroundCommitBlocked.light':
+    '排程 commit 喺加密閘口停止，因為 Windows Credential Manager 冇可用嘅已儲存密碼。冇建立 Release anchor、冇開始上載，而 Desktop Material 亦冇改用未加密 plaintext。請開啟 Repository settings > Large files & storage，檢查或儲存呢個 repository 嘅密碼，然後重試。',
+  'cheapLfs.encryption.backgroundCommitBlocked.playful':
+    '排程 commit 撞到鎖住嘅加密閘口，所以停止咗；Windows Credential Manager 冇可用嘅已儲存密碼。冇建立 Release anchor、冇開始上載，而 Desktop Material 亦冇偷偷改用未加密 plaintext。請開啟 Repository settings > Large files & storage，檢查或儲存呢個 repository 嘅密碼，然後重試。',
   'cheapLfs.encryption.dialog.decryptDescription':
     '輸入當初用嚟加密呢個 Release payload 嘅密碼。',
   'cheapLfs.encryption.dialog.changeDescription':

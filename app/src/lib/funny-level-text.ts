@@ -54,6 +54,7 @@ export type FunnyLevelTextBase =
   | 'pullBranchDeleted.recovered'
   | 'cheapLfs.restore.phase.decrypting'
   | 'cheapLfs.encryption.dialog.commitDescription'
+  | 'cheapLfs.encryption.backgroundCommitBlocked'
   | 'lazyView.loading'
   | 'lazyView.failedBody'
 

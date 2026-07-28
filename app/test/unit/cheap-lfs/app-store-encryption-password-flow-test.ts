@@ -7,6 +7,16 @@ import { afterEach, describe, it, mock } from 'node:test'
 import { AppStore } from '../../../src/lib/stores/app-store'
 import { TokenStore } from '../../../src/lib/stores/token-store'
 import {
+  AudioSettingsStorageKey,
+  DefaultAudioSystemSettings,
+  serializeAudioSettings,
+} from '../../../src/lib/audio/audio-settings'
+import {
+  cantoneseTranslations,
+  englishTranslations,
+} from '../../../src/lib/i18n-resources'
+import { LanguageModeStorageKey } from '../../../src/lib/language-preference'
+import {
   defaultBuildRunPreferences,
   IBuildRunPreferences,
 } from '../../../src/models/build-run-preferences'
@@ -118,7 +128,15 @@ type PasswordFlowStore = {
 }
 
 type CommitPasswordFlowStore = PasswordFlowStore &
-  Pick<AppStore, '_commitIncludedChanges'>
+  Pick<AppStore, '_commitIncludedChanges'> & {
+    performScheduledCommitPush(
+      repository: Repository,
+      fence: {
+        readonly repositoryIdentity: string
+        readonly selectionEpoch: number
+      }
+    ): Promise<void>
+  }
 
 function createStore(
   onPopup: (
@@ -140,7 +158,7 @@ function createStore(
 
 function configureCommitRoute(
   store: PasswordFlowStore,
-  autoPin: () => Promise<{
+  autoPin: (...args: ReadonlyArray<unknown>) => Promise<{
     readonly pinned: ReadonlyArray<never>
     readonly failures: ReadonlyArray<{
       readonly relativePath: string
@@ -193,11 +211,20 @@ function configureCommitRoute(
     postCheapLfsPinFailureNotification: () => undefined,
     emitError: () => undefined,
     _refreshRepository: async () => undefined,
+    isScheduledAutomationFenceCurrent: () => true,
+    generateAutomationCommitMessage: async () => null,
+    _changeIncludeAllFiles: async () => undefined,
+    setOneClickCommitPushPhase: () => undefined,
+    repositoryWithCanonicalRemoteForNetwork: async () => repository,
   })
   return { store: commitStore, gitOperations: () => gitOperations }
 }
 
-afterEach(() => mock.restoreAll())
+afterEach(() => {
+  mock.restoreAll()
+  localStorage.removeItem(AudioSettingsStorageKey)
+  localStorage.removeItem(LanguageModeStorageKey)
+})
 
 describe('AppStore Cheap LFS password prompting', () => {
   it('restores a legacy plaintext pointer without prompting when new uploads are encrypted', async () => {
@@ -289,7 +316,7 @@ describe('AppStore Cheap LFS password prompting', () => {
     )
   })
 
-  it('never opens credential UI for an unattended encrypted commit', async () => {
+  it('rejects an unattended encrypted commit without opening credential UI', async () => {
     mock.method(TokenStore, 'getItem', async () => null)
     let promptCount = 0
     const store = createStore(() => {
@@ -298,9 +325,109 @@ describe('AppStore Cheap LFS password prompting', () => {
 
     await assert.rejects(
       store.acquireCheapLfsCommitEncryptionPassword(repository, true),
-      /background commits require a password already saved/
+      /no usable saved password was available from Windows Credential Manager/
     )
     assert.equal(promptCount, 0)
+  })
+
+  it('stops the real scheduled commit with one localized nonblocking notice and no upload fallback', async () => {
+    mock.method(TokenStore, 'getItem', async () => null)
+
+    const cases = [
+      {
+        mode: 'english',
+        funnyLevelEnglish: 1,
+        funnyLevelCantonese: 5,
+        title: englishTranslations['cheapLfs.encryption.dialog.commitTitle'],
+        body: englishTranslations[
+          'cheapLfs.encryption.backgroundCommitBlocked.plain'
+        ],
+      },
+      {
+        mode: 'cantonese',
+        funnyLevelEnglish: 5,
+        funnyLevelCantonese: 3,
+        title: cantoneseTranslations['cheapLfs.encryption.dialog.commitTitle'],
+        body: cantoneseTranslations[
+          'cheapLfs.encryption.backgroundCommitBlocked.light'
+        ],
+      },
+      {
+        mode: 'bilingual',
+        funnyLevelEnglish: 5,
+        funnyLevelCantonese: 1,
+        title: `${englishTranslations['cheapLfs.encryption.dialog.commitTitle']} · ${cantoneseTranslations['cheapLfs.encryption.dialog.commitTitle']}`,
+        body: `${englishTranslations['cheapLfs.encryption.backgroundCommitBlocked.playful']} · ${cantoneseTranslations['cheapLfs.encryption.backgroundCommitBlocked.plain']}`,
+      },
+    ] as const
+
+    for (const testCase of cases) {
+      localStorage.setItem(LanguageModeStorageKey, testCase.mode)
+      localStorage.setItem(
+        AudioSettingsStorageKey,
+        serializeAudioSettings({
+          ...DefaultAudioSystemSettings,
+          funnyLevelEnglish: testCase.funnyLevelEnglish,
+          funnyLevelCantonese: testCase.funnyLevelCantonese,
+        })
+      )
+
+      let promptCount = 0
+      let emittedErrors = 0
+      let providerAnchors = 0
+      let providerUploads = 0
+      let observedBackgroundTask: boolean | undefined
+      const notices = new Array<ReadonlyArray<unknown>>()
+      const passwordStore = createStore(() => {
+        promptCount++
+      })
+      const route = configureCommitRoute(
+        passwordStore,
+        async (...args: ReadonlyArray<unknown>) => {
+          observedBackgroundTask = args[3] as boolean | undefined
+          const credential =
+            await passwordStore.acquireCheapLfsCommitEncryptionPassword(
+              repository,
+              observedBackgroundTask
+            )
+          try {
+            providerAnchors++
+            providerUploads++
+          } finally {
+            credential?.password.fill(0)
+          }
+          return { pinned: [], failures: [], commitPaths: [] }
+        }
+      )
+      Object.assign(route.store, {
+        emitError: () => {
+          emittedErrors++
+        },
+        postPersistentErrorNotice: (...args: ReadonlyArray<unknown>) => {
+          notices.push(args)
+        },
+      })
+
+      await route.store.performScheduledCommitPush(repository, {
+        repositoryIdentity: repository.path,
+        selectionEpoch: 0,
+      })
+
+      assert.equal(observedBackgroundTask, true)
+      assert.equal(promptCount, 0)
+      assert.equal(emittedErrors, 0)
+      assert.equal(providerAnchors, 0)
+      assert.equal(providerUploads, 0)
+      assert.equal(route.gitOperations(), 0)
+      assert.deepEqual(notices, [
+        [
+          testCase.title,
+          testCase.body,
+          `cheap-lfs-background-password-required:${repository.id}`,
+          repository.id,
+        ],
+      ])
+    }
   })
 
   it('runs the real commit entry through the blocking password gate before the provider upload', async () => {

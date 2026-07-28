@@ -634,7 +634,8 @@ import {
   setObject,
   getFloatNumber,
 } from '../local-storage'
-import { t } from '../i18n'
+import { getPersistedLanguageMode, t } from '../i18n'
+import { readFunnyLevels, translateWithFunnyLevel } from '../funny-level-text'
 import { TranslationKey } from '../i18n-resources'
 import { CanonicalRemoteVerificationError } from '../canonical-remote-verification-error'
 import {
@@ -924,6 +925,15 @@ class CheapLfsPasswordPromptCanceledError extends Error {
   public constructor() {
     super('The Cheap LFS password prompt was canceled.')
     this.name = 'AbortError'
+  }
+}
+
+class CheapLfsBackgroundPasswordUnavailableError extends Error {
+  public constructor() {
+    super(
+      'The encrypted Cheap LFS background commit stopped because no usable saved password was available from Windows Credential Manager. No upload was started.'
+    )
+    this.name = 'CheapLfsBackgroundPasswordUnavailableError'
   }
 }
 
@@ -4149,6 +4159,21 @@ export class AppStore extends TypedBaseStore<IAppState> {
         repositoryId: repository.id,
         action: { kind: 'open-repository', repositoryId: repository.id },
       })
+    } catch (error) {
+      if (error instanceof CheapLfsBackgroundPasswordUnavailableError) {
+        this.postPersistentErrorNotice(
+          t('cheapLfs.encryption.dialog.commitTitle'),
+          translateWithFunnyLevel(
+            'cheapLfs.encryption.backgroundCommitBlocked',
+            getPersistedLanguageMode(),
+            readFunnyLevels()
+          ),
+          `cheap-lfs-background-password-required:${repository.id}`,
+          repository.id
+        )
+        return
+      }
+      throw error
     } finally {
       this.setOneClickCommitPushPhase(repository, null)
     }
@@ -6656,6 +6681,9 @@ export class AppStore extends TypedBaseStore<IAppState> {
             this.cheapLfsCommitCancelRequests.delete(repository.id))
         if (!this.isTemporaryRepositoryActive(repository)) {
           return false
+        }
+        if (error instanceof CheapLfsBackgroundPasswordUnavailableError) {
+          throw error
         }
         if (!wasUserCanceled) {
           this.emitError(
@@ -15132,9 +15160,7 @@ export class AppStore extends TypedBaseStore<IAppState> {
     )
     if (credential === null) {
       if (!allowPrompt) {
-        throw new Error(
-          'Encrypted Cheap LFS background commits require a password already saved in Windows Credential Manager. No upload was started.'
-        )
+        throw new CheapLfsBackgroundPasswordUnavailableError()
       }
       throw this.cheapLfsPasswordPromptCanceled()
     }

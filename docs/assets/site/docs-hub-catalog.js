@@ -277,7 +277,7 @@
       h: 'features/identity-and-workspace/owner-scoped-appearance-and-history.html',
       s: 'features/identity-and-workspace/owner-scoped-appearance-and-history.md',
       c: 'features',
-      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, or Shift+F10 / the ContextMenu key from the keyboard, opens an anchored…',
+      d: 'Desktop Material attaches appearance controls to the element that owns the setting. Shift+right-click, the keyboard Context Menu key, or Shift+F10 opens an anchored editor…',
     },
     {
       t: 'Identity and workspace features',
@@ -630,11 +630,11 @@
       d: 'A write that finishes after the thing on the other end already went away is a routine event, not a crash. This document describes how Desktop Material contains that class of…',
     },
     {
-      t: 'Progressive asynchronous lazy loading',
+      t: 'Progressive asynchronous loading',
       h: 'features/quality-and-reliability/progressive-lazy-loading.html',
       s: 'features/quality-and-reliability/progressive-lazy-loading.md',
       c: 'features',
-      d: 'Desktop Material renders its shell and safe cached state as soon as it can, and finishes the expensive work behind that first paint. Surfaces that a session may never open are…',
+      d: 'Desktop Material paints and reveals its usable application shell before optional startup work finishes. Expensive repository sections are downloaded and evaluated only when…',
     },
     {
       t: 'Quality and reliability',
@@ -1344,18 +1344,25 @@
       d: 'Mode: publish',
     },
     {
-      t: 'Close-all-open-issues verification run',
-      h: 'verification/close-all-open-issues-2026-07-28/run-manifest.html',
-      s: 'verification/close-all-open-issues-2026-07-28/run-manifest.md',
-      c: 'verification',
-      d: 'Run ID: close-all-open-issues-20260728',
-    },
-    {
       t: 'Cheap LFS payload encryption — built-app capture, 2026-07-28',
       h: 'verification/cheap-lfs-payload-encryption-2026-07-28/',
       s: 'verification/cheap-lfs-payload-encryption-2026-07-28/README.md',
       c: 'verification',
       d: 'Visual evidence for issue #78 (optional password encryption for Cheap LFS payloads).',
+    },
+    {
+      t: 'Close-all-open-issues cleanup ledger',
+      h: 'verification/close-all-open-issues-2026-07-28/cleanup-ledger.html',
+      s: 'verification/close-all-open-issues-2026-07-28/cleanup-ledger.md',
+      c: 'verification',
+      d: 'Run ID: close-all-open-issues-20260728',
+    },
+    {
+      t: 'Close-all-open-issues verification run',
+      h: 'verification/close-all-open-issues-2026-07-28/run-manifest.html',
+      s: 'verification/close-all-open-issues-2026-07-28/run-manifest.md',
+      c: 'verification',
+      d: 'Run ID: close-all-open-issues-20260728',
     },
     {
       t: 'Funny-level sliders — built-app capture, 2026-07-28',
