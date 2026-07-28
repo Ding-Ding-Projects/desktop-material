@@ -44,6 +44,11 @@ export type FunnyLevelTextBase =
   | 'lazyView.failedBody'
   | 'ignoredSubmodule.intro'
   | 'ignoredSubmodule.reviewLead'
+  // Only the notice body is banded. The skipped paths, their count, and the
+  // remedy are stated identically in every band, and the per-file failure rows
+  // keep one fixed factual reason — which file was pinned is never a matter of
+  // voice.
+  | 'cheapLfs.unattendedEncryption.body'
   | 'pullBranchDeleted.intro'
   | 'pullBranchDeleted.recovered'
 

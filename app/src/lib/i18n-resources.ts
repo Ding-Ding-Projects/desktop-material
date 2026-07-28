@@ -2201,6 +2201,11 @@ export type TranslationKey =
   | 'cheapLfs.firstPublish.publishFailed'
   | 'cheapLfs.firstPublish.reasonWithDetail'
   | 'cheapLfs.firstPublish.abortTitle'
+  | 'cheapLfs.unattendedEncryption.title'
+  | 'cheapLfs.unattendedEncryption.reason'
+  | 'cheapLfs.unattendedEncryption.body.plain'
+  | 'cheapLfs.unattendedEncryption.body.light'
+  | 'cheapLfs.unattendedEncryption.body.playful'
   | 'cheapLfs.localState.pointer'
   | 'cheapLfs.localState.materialized'
   | 'cheapLfs.localState.modified'
@@ -5437,6 +5442,16 @@ export const englishTranslations: Readonly<Record<TranslationKey, string>> = {
   'cheapLfs.firstPublish.reasonWithDetail': '{reason} Git reported: {detail}',
   'cheapLfs.firstPublish.abortTitle':
     'Commit stopped before the branch was published',
+  'cheapLfs.unattendedEncryption.title':
+    'Automatic commit did not pin large files',
+  'cheapLfs.unattendedEncryption.reason':
+    'Release payload encryption is on for this repository and no password is saved, so an automatic commit had nobody to ask for one. This file was not encrypted, not uploaded, and not committed; it is unchanged in the working tree. Commit it yourself to be asked for the password, or save one under Large files & storage.',
+  'cheapLfs.unattendedEncryption.body.plain':
+    'Release payload encryption is on for this repository and no password is saved, so an automatic commit had nobody to ask for one. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+  'cheapLfs.unattendedEncryption.body.light':
+    'An automatic commit met an encrypted repository, a password that was deliberately never saved, and nobody awake to type it — so it stopped instead of guessing. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
+  'cheapLfs.unattendedEncryption.body.playful':
+    'The automatic commit walked up to the locked door, discovered you had very sensibly not left the key under the mat, and — full credit to it — did not try the window. Nothing was encrypted and nothing was uploaded, and these large files stayed out of the commit: {names} ({count} in total). Everything else in the commit went through. Commit them yourself to be asked for the password, or save one under Large files & storage.',
   'cheapLfs.localState.pointer': 'Pointer stored locally',
   'cheapLfs.localState.materialized':
     'Materialized locally · verified against the committed pointer',
@@ -8496,6 +8511,15 @@ export const cantoneseTranslations: Readonly<
     '上載之前發佈唔到個 branch，所以 release 冇 commit 可以指向。請先發佈呢個 branch，然後再 commit 一次。',
   'cheapLfs.firstPublish.reasonWithDetail': '{reason} Git 報告：{detail}',
   'cheapLfs.firstPublish.abortTitle': 'Commit 已經停低，個 branch 未發佈到',
+  'cheapLfs.unattendedEncryption.title': '自動 commit 冇 pin 到啲大檔案',
+  'cheapLfs.unattendedEncryption.reason':
+    '呢個 repository 開咗 Release payload 加密，但係冇儲低密碼，自動 commit 冇人可以問。呢個檔案冇加密過、冇上載過、亦都冇入到 commit，喺 working tree 度原封不動。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+  'cheapLfs.unattendedEncryption.body.plain':
+    '呢個 repository 開咗 Release payload 加密，但係冇儲低密碼，自動 commit 冇人可以問。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+  'cheapLfs.unattendedEncryption.body.light':
+    '自動 commit 撞正個加密 repository，密碼你又特登冇儲低，四圍又冇人醒住可以打，佢寧願停手都唔亂估。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
+  'cheapLfs.unattendedEncryption.body.playful':
+    '自動 commit 行到門口，發覺你好醒目噉冇將鎖匙擺喺門墊底，佢都算識做，冇試過爬窗。冇加密過任何嘢，亦都冇上載過任何嘢，以下大檔案冇入到今次 commit：{names}（總共 {count} 個）。commit 入面其餘嘅嘢照樣做咗。請自己 commit 一次等佢問你攞密碼，或者喺「大檔案同儲存」度儲返個密碼。',
   'cheapLfs.localState.pointer': '本機淨係擺住個 pointer',
   'cheapLfs.localState.materialized':
     '已經喺本機還原 · 同 commit 咗嘅 pointer 對得上',

@@ -145,9 +145,15 @@ import { ensureCheapLfsScratchHygiene } from '../cheap-lfs/scratch-storage'
 import {
   acquireCheapLfsOperationPassword,
   forgetSavedCheapLfsPayloadPassword,
+  hasSavedCheapLfsPayloadPassword,
   ICheapLfsOperationPassword,
   saveCheapLfsPayloadPassword,
 } from '../cheap-lfs/payload-encryption-credentials'
+import {
+  buildCheapLfsUnattendedEncryptionSkip,
+  decideCheapLfsUnattendedEncryption,
+  ICheapLfsUnattendedSkipTarget,
+} from '../cheap-lfs/unattended-encryption'
 import {
   ICheapLfsPointer,
   isEncryptedCheapLfsPointer,
@@ -632,7 +638,8 @@ import {
   setObject,
   getFloatNumber,
 } from '../local-storage'
-import { t } from '../i18n'
+import { getPersistedLanguageMode, t } from '../i18n'
+import { readFunnyLevels, translateWithFunnyLevel } from '../funny-level-text'
 import { TranslationKey } from '../i18n-resources'
 import { CanonicalRemoteVerificationError } from '../canonical-remote-verification-error'
 import {
@@ -6442,7 +6449,8 @@ export class AppStore extends TypedBaseStore<IAppState> {
         const pinResult = await this.autoPinLargeFilesBeforeCommit(
           repository,
           selectedFiles,
-          forceAutoPinLargeFiles
+          forceAutoPinLargeFiles,
+          isBackgroundTask
         )
         pinned = pinResult.pinned
         pinFailures = pinResult.failures
@@ -14963,6 +14971,57 @@ export class AppStore extends TypedBaseStore<IAppState> {
   }
 
   /**
+   * Decide whether an automatic commit must abandon its encrypted pin, and if
+   * so build every surface that reports it.
+   *
+   * A scheduled commit runs with nobody in front of the app. Asking it for a
+   * password means opening a modal on an unattended machine and waiting for a
+   * keystroke that is never coming; uploading without one means writing the
+   * payload in the clear. Both are refused, so the affected large files are
+   * left in the working tree and out of the commit and the reason is stated
+   * on the failure rows, in the commit terminal, and on a non-blocking notice.
+   *
+   * Returns `null` whenever the pin may go ahead — every interactive commit,
+   * and every automatic commit whose repository is either unencrypted or has a
+   * password deliberately saved to the operating-system vault.
+   */
+  private async skipUnattendedCheapLfsEncryptedPin(
+    repository: Repository,
+    targets: ReadonlyArray<ICheapLfsUnattendedSkipTarget>,
+    isBackgroundTask: boolean
+  ): Promise<ReturnType<typeof buildCheapLfsUnattendedEncryptionSkip> | null> {
+    const preferences =
+      repository.buildRunPreferences ?? defaultBuildRunPreferences
+    const encryptionEnabled =
+      getCheapLfsStorageProvider(preferences) === 'release' &&
+      preferences.cheapLfsPayloadEncryption === true
+    // The vault is only read once the answer can still change, so an ordinary
+    // interactive commit never pays for a credential-manager round trip here.
+    if (!isBackgroundTask || !encryptionEnabled) {
+      return null
+    }
+    const decision = decideCheapLfsUnattendedEncryption({
+      isBackgroundTask,
+      encryptionEnabled,
+      savedPassword: await hasSavedCheapLfsPayloadPassword(repository),
+    })
+    if (decision === 'proceed') {
+      return null
+    }
+    return buildCheapLfsUnattendedEncryptionSkip(
+      targets,
+      repository.id,
+      (base, variables) =>
+        translateWithFunnyLevel(
+          base,
+          getPersistedLanguageMode(),
+          readFunnyLevels(),
+          variables
+        )
+    )
+  }
+
+  /**
    * Materialization follows the pointer's immutable storage contract, not the
    * repository's setting for future uploads. Legacy plaintext pointers must
    * therefore stay restorable without an encryption prompt.
@@ -16463,11 +16522,17 @@ export class AppStore extends TypedBaseStore<IAppState> {
    * Ordinary failures are returned with successful pointers so
    * `_commitIncludedChanges` can exclude unsafe raw files and commit the safe
    * subset. Cancellation remains exceptional and aborts the commit flow.
+   *
+   * `isBackgroundTask` marks a scheduled/automated commit, which has nobody in
+   * front of it and therefore must never summon credential UI. It is the only
+   * thing that distinguishes an encrypted repository the user can be asked
+   * about from one that can only be skipped.
    */
   private async autoPinLargeFilesBeforeCommit(
     repository: Repository,
     selectedFiles: ReadonlyArray<WorkingDirectoryFileChange>,
-    forceAutoPin: boolean = false
+    forceAutoPin: boolean = false,
+    isBackgroundTask: boolean = false
   ): Promise<ICheapLfsCommitPinOutcome> {
     if (isSubmoduleRepository(repository)) {
       return {
@@ -16852,6 +16917,29 @@ export class AppStore extends TypedBaseStore<IAppState> {
         target => !partialFailurePaths.has(target.relativePath)
       )
       if (releaseEligibleTargets.length > 0) {
+        // An unattended commit cannot be asked for a password, and an encrypted
+        // repository has no other way to produce one. Decide that before the
+        // anchor runs, so a skip publishes nothing and uploads nothing.
+        const unattendedSkip = await this.skipUnattendedCheapLfsEncryptedPin(
+          repository,
+          releaseEligibleTargets,
+          isBackgroundTask
+        )
+        if (unattendedSkip !== null) {
+          reportProgress(unattendedSkip.progress)
+          this.postPersistentErrorNotice(
+            unattendedSkip.notice.title,
+            unattendedSkip.notice.body,
+            unattendedSkip.notice.dedupeKey,
+            repository.id
+          )
+          return {
+            pinned: [],
+            failures: mergeFailures(unattendedSkip.failures),
+            commitPaths: [],
+            alreadyStoredPaths: alreadyStored,
+          }
+        }
         encryptionPassword = (
           await this.acquireCheapLfsEncryptionPassword(repository)
         )?.password
